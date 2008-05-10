@@ -98,6 +98,7 @@ struct Ntl_Mod_t_
     float *            pDelayTable;   
     // other data members
     void *             pCopy;
+    int                nUsed, nRems;
 }; 
 
 struct Ntl_Obj_t_
@@ -186,12 +187,12 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
 ///                         ITERATORS                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#define Ntl_ManForEachModel( p, pNtl, i )                                       \
-    Vec_PtrForEachEntry( p->vModels, pNtl, i )
-#define Ntl_ManForEachCiNet( p, pNtl, i )                                       \
-    Vec_PtrForEachEntry( p->vCis, pNtl, i )
-#define Ntl_ManForEachCoNet( p, pNtl, i )                                       \
-    Vec_PtrForEachEntry( p->vCos, pNtl, i )
+#define Ntl_ManForEachModel( p, pMod, i )                                       \
+    Vec_PtrForEachEntry( p->vModels, pMod, i )
+#define Ntl_ManForEachCiNet( p, pNet, i )                                       \
+    Vec_PtrForEachEntry( p->vCis, pNet, i )
+#define Ntl_ManForEachCoNet( p, pNet, i )                                       \
+    Vec_PtrForEachEntry( p->vCos, pNet, i )
 #define Ntl_ManForEachNode( p, pObj, i )                                   \
     for ( i = 0; (i < Vec_PtrSize(p->vNodes)) && (((pObj) = Vec_PtrEntry(p->vNodes, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Ntl_ObjIsNode(pObj) ) {} else

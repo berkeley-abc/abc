@@ -197,6 +197,7 @@ static int Abc_CommandProve          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDebug          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmcInter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIndcut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEnlarge        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -447,6 +448,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "debug",         Abc_CommandDebug,            0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc",           Abc_CommandBmc,              0 );
+    Cmd_CommandAdd( pAbc, "Verification", "int",           Abc_CommandBmcInter,         0 );
     Cmd_CommandAdd( pAbc, "Verification", "indcut",        Abc_CommandIndcut,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
 
@@ -4531,17 +4533,22 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
+    int fRemoveLatches;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fRemoveLatches = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'l':
+            fRemoveLatches ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -4562,14 +4569,15 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     pNtkRes = Abc_NtkDup( pNtk );
-    Abc_NtkMakeComb( pNtkRes );
+    Abc_NtkMakeComb( pNtkRes, fRemoveLatches );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: comb [-h]\n" );
+    fprintf( pErr, "usage: comb [-lh]\n" );
     fprintf( pErr, "\t        makes the current network combinational by replacing latches by PI/PO pairs\n" );
+    fprintf( pErr, "\t-l    : toggle removing latches [default = %s]\n", fRemoveLatches? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -5741,7 +5749,10 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fUseAllCis;
     int fUseMffc;
+    int fSeq;
     int Output;
+
+    extern void Abc_NtkMakeOnePo( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodePo );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5750,9 +5761,10 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fUseAllCis = 0;
     fUseMffc = 0;
+    fSeq = 0;
     Output = -1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Omah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Omash" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5769,8 +5781,12 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'm':
             fUseMffc ^= 1;
+            break;
         case 'a':
             fUseAllCis ^= 1;
+            break;
+        case 's':
+            fSeq ^= 1;
             break;
         case 'h':
             goto usage;
@@ -5824,12 +5840,18 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pNodeCo = Abc_NtkCo( pNtk, Output );
-        if ( fUseMffc )
+        if ( fSeq )
+        {
+            pNtkRes = Abc_NtkDup( pNtk );
+            pNodeCo = Abc_NtkPo( pNtkRes, Output );
+            Abc_NtkMakeOnePo( pNtkRes, pNodeCo );
+        }
+        else if ( fUseMffc )
             pNtkRes = Abc_NtkCreateMffc( pNtk, Abc_ObjFanin0(pNodeCo), Abc_ObjName(pNodeCo) );
-        else
+        else 
             pNtkRes = Abc_NtkCreateCone( pNtk, Abc_ObjFanin0(pNodeCo), Abc_ObjName(pNodeCo), fUseAllCis );
     }
-    if ( pNodeCo && Abc_ObjFaninC0(pNodeCo) )
+    if ( pNodeCo && Abc_ObjFaninC0(pNodeCo) && !fSeq )
         printf( "The extracted cone represents the complement function of the CO.\n" );
     if ( pNtkRes == NULL )
     {
@@ -5841,10 +5863,11 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cone [-O num] [-amh] <name>\n" );
+    fprintf( pErr, "usage: cone [-O num] [-amsh] <name>\n" );
     fprintf( pErr, "\t         replaces the current network by one logic cone\n" );
-    fprintf( pErr, "\t-a     : toggle writing all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
-    fprintf( pErr, "\t-m     : toggle writing only MFFC or complete TFI cone [default = %s]\n", fUseMffc? "MFFC": "TFI cone" );
+    fprintf( pErr, "\t-a     : toggle keeping all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
+    fprintf( pErr, "\t-m     : toggle keeping only MFFC or complete TFI cone [default = %s]\n", fUseMffc? "MFFC": "TFI cone" );
+    fprintf( pErr, "\t-s     : toggle comb or sequential cone (works with \"-O num\") [default = %s]\n", fSeq? "seq": "comb" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\t-O num : (optional) the 0-based number of the CO to extract\n");
     fprintf( pErr, "\tname   : (optional) the name of the node to extract\n");
@@ -14601,6 +14624,11 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( stdout, "Does not work for combinational networks.\n" );
+        return 0;
+    }
     Abc_NtkDarBmc( pNtk, nFrames, nBTLimit, fRewrite, fVerbose );
     return 0;
 
@@ -14614,7 +14642,98 @@ usage:
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
- 
+  
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int nBTLimit;
+    int fRewrite;
+    int fVerbose;
+
+    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nBTLimit = 20000;
+    fRewrite = 0;
+    fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Crvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'r':
+            fRewrite ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( stdout, "Does not work for combinational networks.\n" );
+        return 0;
+    }
+    if ( Abc_NtkPoNum(pNtk) != 1 )
+    {
+        fprintf( stdout, "Currently only works for single-output miters (run \"orpos\").\n" );
+        return 0;
+    }
+    Abc_NtkDarBmcInter( pNtk, nBTLimit, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: int [-C num] [-vh]\n" );
+    fprintf( pErr, "\t         uses interpolation to prove the property\n" );
+    fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", nBTLimit );
+//    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    []

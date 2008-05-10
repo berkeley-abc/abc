@@ -133,4 +133,6 @@ alias pjsolve   "scl; dc2; fr; dc2; ic; ic -t; if -a; cs tacas/005_care.aig; mfs
 alias t0        "r test/mc1.blif; st; test"
 alias t1        "r s27mc2.blif; st; test"
 alias t2        "r i/intel_001.aig; ps; indcut -v"
+alias t         "r c\s\0\000.aig; int"
+#alias t         "r test/interpol.blif; st; int"
 

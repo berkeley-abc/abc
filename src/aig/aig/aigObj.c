@@ -370,6 +370,11 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     // make sure object is not pointing to itself
     assert( pObjOld != Aig_ObjFanin0(pObjNewR) );
     assert( pObjOld != Aig_ObjFanin1(pObjNewR) );
+    if ( pObjOld == Aig_ObjFanin0(pObjNewR) || pObjOld == Aig_ObjFanin1(pObjNewR) )
+    {
+        printf( "Aig_ObjReplace(): Internal error!\n" );
+        exit(1);
+    }
     // recursively delete the old node - but leave the object there
     pObjNewR->nRefs++;
     if ( !Aig_ObjIsPi(pObjOld) )

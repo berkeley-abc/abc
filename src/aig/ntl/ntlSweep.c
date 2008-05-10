@@ -97,11 +97,11 @@ void Ntl_ManSweepMark( Ntl_Man_t * p )
 int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
 {
     int nObjsOld[NTL_OBJ_VOID];
-    Ntl_Mod_t * pRoot;
+    Ntl_Mod_t * pRoot, * pMod;
     Ntl_Net_t * pNet;
     Ntl_Obj_t * pObj;
     int i, k, nNetsOld;
-    int Counter = 0;
+    int ModelCounter = 0, Counter = 0;
 
     // remember the number of objects
     pRoot = Ntl_ManRootModel( p );
@@ -111,6 +111,23 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
 
     // mark the nets that do not fanout into POs
     Ntl_ManSweepMark( p );
+
+    // count how many boxes of each type are swept away
+    if ( fVerbose )
+    {
+    Ntl_ManForEachModel( p, pMod, i )
+        pMod->nUsed = pMod->nRems = 0;
+    Ntl_ModelForEachObj( pRoot, pObj, i )
+        if ( Ntl_ObjIsBox(pObj) && pObj->pImplem )
+        {
+            pObj->pImplem->nUsed++;
+            if ( !pObj->fMark )
+            {
+                if ( pObj->pImplem->nRems++ == 0 )
+                    ModelCounter++;
+            }
+        }
+    }
 
     // remove the useless objects and their nets
     Ntl_ModelForEachObj( pRoot, pObj, i )
@@ -134,6 +151,8 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
         Counter++;
     }
 
+
+
     // print detailed statistics of sweeping
     if ( fVerbose )
     {
@@ -151,6 +170,14 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
             nObjsOld[NTL_OBJ_BOX] - pRoot->nObjs[NTL_OBJ_BOX],
             !nObjsOld[NTL_OBJ_BOX]? 0.0: 100.0 * (nObjsOld[NTL_OBJ_BOX] - pRoot->nObjs[NTL_OBJ_BOX]) / nObjsOld[NTL_OBJ_BOX] );
         printf( "\n" );
+        if ( ModelCounter )
+        {
+            printf( "Sweep removed %d boxed of %d types (out of %d types):\n", 
+                nObjsOld[NTL_OBJ_BOX] - pRoot->nObjs[NTL_OBJ_BOX], ModelCounter, Vec_PtrSize(p->vModels)-1 );
+            Ntl_ManForEachModel( p, pMod, i )
+              if ( i )
+                printf( "Model %3d : %-40s  Swept = %5d. Left = %5d.\n", i, pMod->pName, pMod->nRems, pMod->nUsed-pMod->nRems );
+        }
     }
     if ( !Ntl_ManCheck( p ) )
         printf( "Ntl_ManSweep: The check has failed for design %s.\n", p->pName );

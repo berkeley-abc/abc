@@ -1104,7 +1104,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMakeComb( Abc_Ntk_t * pNtk )
+void Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches )
 {
     Abc_Obj_t * pObj;
     int i;
@@ -1136,17 +1136,48 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk )
     }
     assert( Abc_NtkBoNum(pNtk) == 0 );
 
-    // move COs to become POs
-    Vec_PtrClear( pNtk->vPos );
-    Abc_NtkForEachCo( pNtk, pObj, i )
+    if ( fRemoveLatches )
     {
-        if ( Abc_ObjIsBi(pObj) )
+        // remove registers
+        Vec_Ptr_t * vBos;
+        vBos = Vec_PtrAlloc( 100 );
+        Vec_PtrClear( pNtk->vPos );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            if ( Abc_ObjIsBi(pObj) )
+                Vec_PtrPush( vBos, pObj );
+            else
+                Vec_PtrPush( pNtk->vPos, pObj );
+        // remove COs
+        Vec_PtrFree( pNtk->vCos );
+        pNtk->vCos = NULL;
+        // remove the BOs
+        Vec_PtrForEachEntry( vBos, pObj, i )
+            Abc_NtkDeleteObj( pObj );
+        Vec_PtrFree( vBos );
+        // create COs
+        pNtk->vCos = Vec_PtrDup( pNtk->vPos );
+        // cleanup
+        if ( Abc_NtkIsLogic(pNtk) )
+            Abc_NtkCleanup( pNtk, 0 );
+        else if ( Abc_NtkIsStrash(pNtk) )
+            Abc_AigCleanup( pNtk->pManFunc );
+        else
+            assert( 0 );
+    }
+    else
+    {
+        // move COs to become POs
+        Vec_PtrClear( pNtk->vPos );
+        Abc_NtkForEachCo( pNtk, pObj, i )
         {
-            pObj->Type = ABC_OBJ_PO;
-            pNtk->nObjCounts[ABC_OBJ_PO]++;
-            pNtk->nObjCounts[ABC_OBJ_BI]--;
+            if ( Abc_ObjIsBi(pObj) )
+            {
+                pObj->Type = ABC_OBJ_PO;
+                pNtk->nObjCounts[ABC_OBJ_PO]++;
+                pNtk->nObjCounts[ABC_OBJ_BI]--;
+            }
+            Vec_PtrPush( pNtk->vPos, pObj );
         }
-        Vec_PtrPush( pNtk->vPos, pObj );
     }
     assert( Abc_NtkBiNum(pNtk) == 0 );
 
@@ -1154,6 +1185,60 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk )
         fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Removes all POs, except one.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMakeOnePo( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodePo )
+{
+    Vec_Ptr_t * vPosToRemove;
+    Abc_Obj_t * pObj;
+    int i;
+
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
+
+    if ( Abc_NtkPoNum(pNtk) == 1 )
+        return;
+
+    // make sure the node exists
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        if ( pObj == pNodePo )
+            break;
+    assert( i < Abc_NtkPoNum(pNtk) );
+
+    // collect POs to remove
+    vPosToRemove = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        if ( pObj != pNodePo )
+            Vec_PtrPush( vPosToRemove, pObj );
+
+    // remove the POs
+    Vec_PtrForEachEntry( vPosToRemove, pObj, i )
+        Abc_NtkDeleteObj( pObj );
+    Vec_PtrFree( vPosToRemove );
+
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_AigCleanup( pNtk->pManFunc );
+        printf( "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
+    }
+    else
+    {
+        printf( "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
+    }
+
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
+}
 
 /**Function*************************************************************
 

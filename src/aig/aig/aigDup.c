@@ -732,6 +732,61 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates the miter of the two AIG managers.]
+
+  Description [Oper is the operation to perform on the outputs of the miter.
+  Oper == 0 is XOR
+  Oper == 1 is complemented implication (p1 => p2)
+  Oper == 2 is OR
+  Oper == 3 is AND
+  ]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    assert( Aig_ManRegNum(p1) == 0 );
+    assert( Aig_ManRegNum(p2) == 0 );
+    assert( Aig_ManPoNum(p1) == 1 );
+    assert( Aig_ManPoNum(p2) == 1 );
+    assert( Aig_ManPiNum(p1) == Aig_ManPiNum(p2) );
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p1) + Aig_ManObjNumMax(p2) );
+    // add first AIG
+    Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p1, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    Aig_ManForEachNode( p1, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // add second AIG
+    Aig_ManConst1(p2)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p2, pObj, i )
+        pObj->pData = Aig_ManPi( pNew, i );
+    Aig_ManForEachNode( p2, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // add the output
+    if ( Oper == 0 ) // XOR
+        pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_ObjChild0Copy(Aig_ManPo(p2,0)) );
+    else if ( Oper == 1 ) // implication is PO(p1) -> PO(p2)  ...  complement is PO(p1) & !PO(p2) 
+        pObj = Aig_And( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p2,0))) );
+    else if ( Oper == 2 ) // OR
+        pObj = Aig_Or( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_ObjChild0Copy(Aig_ManPo(p2,0)) );
+    else if ( Oper == 3 ) // AND
+        pObj = Aig_And( pNew, Aig_ObjChild0Copy(Aig_ManPo(p1,0)), Aig_ObjChild0Copy(Aig_ManPo(p2,0)) );
+    else
+        assert( 0 );
+    Aig_ObjCreatePo( pNew, pObj );
+    Aig_ManCleanup( pNew );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

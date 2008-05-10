@@ -212,6 +212,31 @@ void Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus )
   SeeAlso     []
 
 ***********************************************************************/
+void Cnf_DataPrint( Cnf_Dat_t * p, int fReadable )
+{
+    FILE * pFile = stdout;
+    int * pLit, * pStop, i;
+    fprintf( pFile, "p cnf %d %d\n", p->nVars, p->nClauses );
+    for ( i = 0; i < p->nClauses; i++ )
+    {
+        for ( pLit = p->pClauses[i], pStop = p->pClauses[i+1]; pLit < pStop; pLit++ )
+            fprintf( pFile, "%d ", fReadable? Cnf_Lit2Var2(*pLit) : Cnf_Lit2Var(*pLit) );
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes CNF into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
 {
     FILE * pFile;

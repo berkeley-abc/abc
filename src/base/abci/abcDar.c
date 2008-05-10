@@ -1240,6 +1240,45 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
+{
+    Aig_Man_t * pMan;
+    int RetValue, Depth, clk = clock();
+    // derive the AIG manager
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+    {
+        printf( "Converting miter into AIG has failed.\n" );
+        return -1;
+    }
+    assert( pMan->nRegs > 0 );
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan);
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan);
+    RetValue = Saig_Interpolate( pMan, nConfLimit, fVerbose, &Depth );
+    if ( RetValue == 1 )
+        printf( "Property proved.  " );
+    else if ( RetValue == 0 )
+        printf( "Property DISPROVED with counter-example at depth %d.  ", Depth );
+    else if ( RetValue == -1 )
+        printf( "Property UNDECIDED.  " );
+    else
+        assert( 0 );
+PRT( "Time", clock() - clk );
+    Aig_ManStop( pMan );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose )
 {
     Aig_Man_t * pMan;

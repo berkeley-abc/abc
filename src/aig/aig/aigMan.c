@@ -216,7 +216,7 @@ void Aig_ManStop( Aig_Man_t * p )
     FREE( p->pObjCopies );
     FREE( p->pReprs );
     FREE( p->pEquivs );
-//    free( p->pTable );
+    free( p->pTable );
     free( p );
 }
 

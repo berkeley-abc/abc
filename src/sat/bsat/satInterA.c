@@ -892,6 +892,7 @@ void Inta_ManPrepareInter( Inta_Man_t * p )
 void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, int fVerbose )
 {
     Aig_Man_t * pRes;
+    Aig_Obj_t * pObj;
     Sto_Cls_t * pClause;
     int RetValue = 1;
     int clkTotal = clock();
@@ -955,7 +956,8 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
 p->timeTotal += clock() - clkTotal;
     }
 
-    Aig_ObjCreatePo( pRes, *Inta_ManAigRead( p, p->pCnf->pTail ) );
+    pObj = *Inta_ManAigRead( p, p->pCnf->pTail );
+    Aig_ObjCreatePo( pRes, pObj );
     Aig_ManCleanup( pRes );
 
     p->pAig = NULL;

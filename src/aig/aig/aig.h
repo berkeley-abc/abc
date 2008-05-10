@@ -64,7 +64,7 @@ typedef enum {
 } Aig_Type_t;
 
 // the AIG node
-struct Aig_Obj_t_  // 8 words
+struct Aig_Obj_t_  // 9 words
 {
     union {                         
         Aig_Obj_t *  pNext;          // strashing table
@@ -477,6 +477,7 @@ extern Aig_Man_t *     Aig_ManDupLevelized( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepres( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepresDfs( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int fImpl );
 /*=== aigFanout.c ==========================================================*/
 extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
@@ -524,6 +525,7 @@ extern Aig_Obj_t *     Aig_Or( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 );
 extern Aig_Obj_t *     Aig_Exor( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 );
 extern Aig_Obj_t *     Aig_Mux( Aig_Man_t * p, Aig_Obj_t * pC, Aig_Obj_t * p1, Aig_Obj_t * p0 );
 extern Aig_Obj_t *     Aig_Maj( Aig_Man_t * p, Aig_Obj_t * pA, Aig_Obj_t * pB, Aig_Obj_t * pC );
+extern Aig_Obj_t *     Aig_Multi( Aig_Man_t * p, Aig_Obj_t ** pArgs, int nArgs, Aig_Type_t Type );
 extern Aig_Obj_t *     Aig_Miter( Aig_Man_t * p, Vec_Ptr_t * vPairs );
 extern Aig_Obj_t *     Aig_MiterTwo( Aig_Man_t * p, Vec_Ptr_t * vNodes1, Vec_Ptr_t * vNodes2 );
 extern Aig_Obj_t *     Aig_CreateAnd( Aig_Man_t * p, int nVars );
