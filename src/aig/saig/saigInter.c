@@ -23,15 +23,14 @@
 #include "cnf.h"
 #include "satStore.h"
 
-////////////////////////////////////////////////////////////////////////
-///                        DECLARATIONS                              ///
-////////////////////////////////////////////////////////////////////////
-
 /* 
     The interpolation algorithm implemented here was introduced in the paper:
     K. L. McMillan. Interpolation and SAT-based model checking. CAV’03, pp. 1-13.
 */
 
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
 
 // simulation manager
 typedef struct Saig_IntMan_t_ Saig_IntMan_t;
@@ -203,8 +202,8 @@ Aig_Man_t * Saig_ManFramesInter( Aig_Man_t * pAig, int nFrames )
     Aig_Man_t * pFrames;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, f;
+    assert( Saig_ManRegNum(pAig) > 0 );
     assert( Saig_ManPoNum(pAig) == 1 );
-    // start the fraig package
     pFrames = Aig_ManStart( Aig_ManNodeNum(pAig) * nFrames );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
@@ -265,7 +264,7 @@ sat_solver * Saig_DeriveSatSolver(
     assert( Aig_ManPoNum(pInter) == 1 );
     assert( Aig_ManPoNum(pFrames) == 1 );
     assert( Aig_ManPiNum(pInter) == Aig_ManRegNum(pAig) );
-    assert( (Aig_ManPiNum(pFrames) - Aig_ManRegNum(pAig)) % Saig_ManPiNum(pAig) == 0 );
+//    assert( (Aig_ManPiNum(pFrames) - Aig_ManRegNum(pAig)) % Saig_ManPiNum(pAig) == 0 );
 
     // prepare CNFs
     Cnf_DataLift( pCnfAig,   pCnfFrames->nVars );
@@ -354,7 +353,7 @@ int Saig_PerformOneStep( Saig_IntMan_t * p )
 
     // derive the SAT solver
     pSat = Saig_DeriveSatSolver( p->pInter, p->pCnfInter, p->pAigTrans, p->pCnfAig, p->pFrames, p->pCnfFrames, p->vVarsAB );
-Sat_SolverWriteDimacs( pSat, "test.cnf", NULL, NULL, 1 );
+//Sat_SolverWriteDimacs( pSat, "test.cnf", NULL, NULL, 1 );
     // solve the problem
 clk = clock();
     status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
@@ -403,14 +402,15 @@ int Saig_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld )
     Aig_Man_t * pMiter, * pAigTemp;
     int RetValue;
     pMiter = Aig_ManCreateMiter( pNew, pOld, 1 );
-    pMiter = Dar_ManRwsat( pAigTemp = pMiter, 1, 0 );
-    Aig_ManStop( pAigTemp );
+//    pMiter = Dar_ManRwsat( pAigTemp = pMiter, 1, 0 );
+//    Aig_ManStop( pAigTemp );
     RetValue = Fra_FraigMiterStatus( pMiter );
     if ( RetValue == -1 )
     {
         pAigTemp = Fra_FraigEquivence( pMiter, 1000000, 1 );
         RetValue = Fra_FraigMiterStatus( pAigTemp );
         Aig_ManStop( pAigTemp );
+//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0 );
     }
     assert( RetValue != -1 );
     Aig_ManStop( pMiter );
@@ -495,9 +495,8 @@ void Saig_ManagerFree( Saig_IntMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fVerbose, int * pDepth )
+int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose, int * pDepth )
 {
-    int fUseTransRel = 0;
     Saig_IntMan_t * p;
     Aig_Man_t * pAigTemp;
     int s, i, RetValue, Status, clk, clk2, clkTotal = clock();
@@ -516,18 +515,20 @@ int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fVerbose, int * pDep
     p->fVerbose = fVerbose;
     // can perform SAT sweeping and/or rewriting of this AIG...
     p->pAig = pAig;      
-    if ( fUseTransRel )
+    if ( fTransLoop )
         p->pAigTrans = Saig_ManTransformed( pAig );
     else
         p->pAigTrans = Saig_ManDuplicated( pAig );
+//    p->pAigTrans = Dar_ManRwsat( pAigTemp = p->pAigTrans, 1, 0 );
+//    Aig_ManStop( pAigTemp );
     // derive CNF for the transformed AIG
 clk = clock();
     p->pCnfAig = Cnf_Derive( p->pAigTrans, Aig_ManRegNum(p->pAigTrans) ); 
 p->timeCnf += clock() - clk;    
     if ( fVerbose )
-    {
+    { 
         printf( "AIG: PI/PO/Reg = %d/%d/%d. And = %d. Lev = %d.  CNF: Var/Cla = %d/%d.\n",
-            Aig_ManPiNum(pAig), Aig_ManPoNum(pAig), Aig_ManRegNum(pAig), 
+            Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig), 
             Aig_ManAndNum(pAig), Aig_ManLevelNum(pAig),
             p->pCnfAig->nVars, p->pCnfAig->nClauses );
     }
@@ -545,10 +546,13 @@ p->timeCnf += clock() - clk;
         // timeframes
         p->pFrames = Saig_ManFramesInter( pAig, p->nFrames );
 clk = clock();
-//        p->pFrames = Dar_ManRwsat( pAigTemp = p->pFrames, 1, 0 );
-//        Aig_ManStop( pAigTemp );
+        if ( fRewrite )
+        {
+            p->pFrames = Dar_ManRwsat( pAigTemp = p->pFrames, 1, 0 );
+            Aig_ManStop( pAigTemp );
 //        p->pFrames = Fra_FraigEquivence( pAigTemp = p->pFrames, 100, 0 );
 //        Aig_ManStop( pAigTemp );
+        }
 p->timeRwr += clock() - clk;
         // can also do SAT sweeping on the timeframes...
 clk = clock();
@@ -569,7 +573,7 @@ p->timeCnf += clock() - clk;
             RetValue = Saig_PerformOneStep( p );
             if ( fVerbose )
             {
-                printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%4d. Conf =%6d.  ", 
+                printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 
                     i+1, i + 1 + p->nFrames, Aig_ManNodeNum(p->pInter), Aig_ManLevelNum(p->pInter), p->nConfCur );
                 PRT( "Time", clock() - clk );
                 if ( Aig_ManNodeNum(p->pInter) == 0 )
@@ -623,7 +627,7 @@ p->timeEqu += clock() - clk;
                 return 1;
             }
             // save interpolant and convert it into CNF
-            if ( fUseTransRel )
+            if ( fTransLoop )
             {
                 Aig_ManStop( p->pInter );
                 p->pInter = p->pInterNew; 

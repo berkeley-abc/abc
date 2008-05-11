@@ -3254,6 +3254,14 @@ SOURCE=.\src\aig\saig\saig.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigBmc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigCone.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigInter.c
 # End Source File
 # Begin Source File

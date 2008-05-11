@@ -75,8 +75,12 @@ static inline int          Saig_ObjIsLi( Aig_Man_t * p, Aig_Obj_t * pObj )    { 
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== saigBmc.c ==========================================================*/
+extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRewrite, int fVerbose, int * piFrame );
+/*=== saigCone.c ==========================================================*/
+extern void              Saig_ManPrintCones( Aig_Man_t * p );
 /*=== saigInter.c ==========================================================*/
-extern int               Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fVerbose, int * pDepth );
+extern int               Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose, int * pDepth );
 /*=== saigPhase.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose );
 /*=== saigRetFwd.c ==========================================================*/

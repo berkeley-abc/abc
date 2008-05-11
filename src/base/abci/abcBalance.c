@@ -346,7 +346,7 @@ int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst,
         return 0;
     }
     // if the new node is complemented or a PI, another gate begins
-    if ( !fFirst && (Abc_ObjIsComplement(pNode) || !Abc_ObjIsNode(pNode) || !fDuplicate && !fSelective && (Abc_ObjFanoutNum(pNode) > 1)) )
+    if ( !fFirst && (Abc_ObjIsComplement(pNode) || !Abc_ObjIsNode(pNode) || (!fDuplicate && !fSelective && (Abc_ObjFanoutNum(pNode) > 1)) || Vec_PtrSize(vSuper) > 10000) )
     {
         Vec_PtrPush( vSuper, pNode );
         Abc_ObjRegular(pNode)->fMarkB = 1;

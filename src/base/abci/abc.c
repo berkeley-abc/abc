@@ -54,6 +54,7 @@ static int Abc_CommandPrintGates     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandPrintSharing   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintXCut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintDsd       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintCone      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShow           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowBdd        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -307,6 +308,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_sharing", Abc_CommandPrintSharing,     0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_xcut",    Abc_CommandPrintXCut,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_dsd",     Abc_CommandPrintDsd,         0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_cone",    Abc_CommandPrintCone,        0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show",          Abc_CommandShow,             0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
@@ -1828,6 +1830,67 @@ usage:
     fprintf( pErr, "\t-c     : toggle recursive cofactoring [default = %s]\n", fCofactor? "yes": "no" );
     fprintf( pErr, "\t-N num : the number of levels to cofactor [default = %d]\n", nCofLevel );
     fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintCone( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fUseLibrary;
+
+    extern int Abc_NtkDarPrintCone( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseLibrary = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUseLibrary ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( pErr, "The network is combinational.\n" );
+        return 1;
+    }
+    Abc_NtkDarPrintCone( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_cone [-h]\n" );
+    fprintf( pErr, "\t        prints cones of influence info for each primary output\n" );
+//    fprintf( pErr, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
 
@@ -14561,22 +14624,23 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFrames;
     int nBTLimit;
     int fRewrite;
+    int fNewAlgo;
     int fVerbose;
 
-//    extern void Abc_NtkBmc( Abc_Ntk_t * pNtk, int nFrames, int fInit, int fVerbose );
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nBTLimit, int fRewrite, int fVerbose );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames  = 5;
-    nBTLimit = 1000000;
+    nFrames  = 10;
+    nBTLimit = 10000;
     fRewrite = 0;
+    fNewAlgo = 1;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCravh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14605,6 +14669,9 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fRewrite ^= 1;
             break;
+        case 'a':
+            fNewAlgo ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -14629,15 +14696,16 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Does not work for combinational networks.\n" );
         return 0;
     }
-    Abc_NtkDarBmc( pNtk, nFrames, nBTLimit, fRewrite, fVerbose );
+    Abc_NtkDarBmc( pNtk, nFrames, nBTLimit, fRewrite, fNewAlgo, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: bmc [-F num] [-C num] [-rvh]\n" );
+    fprintf( pErr, "usage: bmc [-F num] [-C num] [-ravh]\n" );
     fprintf( pErr, "\t         perform bounded model checking\n" );
     fprintf( pErr, "\t-F num : the number of time frames [default = %d]\n", nFrames );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -14661,20 +14729,22 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nBTLimit;
     int fRewrite;
+    int fTransLoop;
     int fVerbose;
 
-    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose );
+    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nBTLimit = 20000;
-    fRewrite = 0;
-    fVerbose = 1;
+    nBTLimit   = 20000;
+    fRewrite   = 0;
+    fTransLoop = 1;
+    fVerbose   = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Crvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Crtvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14691,6 +14761,9 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'r':
             fRewrite ^= 1;
+            break;
+        case 't':
+            fTransLoop ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -14721,14 +14794,15 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for single-output miters (run \"orpos\").\n" );
         return 0;
     }
-    Abc_NtkDarBmcInter( pNtk, nBTLimit, fVerbose );
+    Abc_NtkDarBmcInter( pNtk, nBTLimit, fRewrite, fTransLoop, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: int [-C num] [-vh]\n" );
+    fprintf( pErr, "usage: int [-C num] [-rtvh]\n" );
     fprintf( pErr, "\t         uses interpolation to prove the property\n" );
     fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", nBTLimit );
-//    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-t     : toggle adding transition into the init state [default = %s]\n", fTransLoop? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

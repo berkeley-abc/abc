@@ -770,7 +770,7 @@ void Dar_LibObjPrint_rec( Dar_LibObj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class )
+void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class, Aig_Obj_t * pRoot )
 {
     Dar_LibObj_t * pObj;
     Dar_LibDat_t * pData, * pData0, * pData1;
@@ -797,13 +797,15 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class )
             continue;
         pFanin0 = Aig_NotCond( pData0->pFunc, pObj->fCompl0 );
         pFanin1 = Aig_NotCond( pData1->pFunc, pObj->fCompl1 );
+        if ( Aig_Regular(pFanin0) == pRoot || Aig_Regular(pFanin1) == pRoot )
+            continue;
         pData->pFunc = Aig_TableLookupTwo( p->pAig, pFanin0, pFanin1 );
         if ( pData->pFunc )
         {
             // update the level to be more accurate
             pData->Level = Aig_Regular(pData->pFunc)->Level;
             // mark the node if it is part of MFFC
-            pData->fMffc = Aig_ObjIsTravIdCurrent(p->pAig, pData->pFunc);
+            pData->fMffc = Aig_ObjIsTravIdCurrent(p->pAig, Aig_Regular(pData->pFunc));
         }
     }
 }
@@ -871,7 +873,7 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
     nNodesSaved = Dar_LibCutMarkMffc( p->pAig, pRoot, pCut->nLeaves );
     // evaluate the cut
     Class = s_DarLib->pMap[pCut->uTruth];
-    Dar_LibEvalAssignNums( p, Class );
+    Dar_LibEvalAssignNums( p, Class, pRoot );
     // profile outputs by their savings
     p->nTotalSubgs += s_DarLib->nSubgr0[Class];
     p->ClassSubgs[Class] += s_DarLib->nSubgr0[Class];

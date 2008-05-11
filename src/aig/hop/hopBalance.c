@@ -148,7 +148,7 @@ int Hop_NodeBalanceCone_rec( Hop_Obj_t * pRoot, Hop_Obj_t * pObj, Vec_Ptr_t * vS
         return 0;
     }
     // if the new node is complemented or a PI, another gate begins
-    if ( pObj != pRoot && (Hop_IsComplement(pObj) || Hop_ObjType(pObj) != Hop_ObjType(pRoot) || Hop_ObjRefs(pObj) > 1) )
+    if ( pObj != pRoot && (Hop_IsComplement(pObj) || Hop_ObjType(pObj) != Hop_ObjType(pRoot) || Hop_ObjRefs(pObj) > 1 || Vec_PtrSize(vSuper) > 10000) )
     {
         Vec_PtrPush( vSuper, pObj );
         Hop_Regular(pObj)->fMarkB = 1;

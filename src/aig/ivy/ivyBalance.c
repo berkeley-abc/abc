@@ -215,7 +215,7 @@ int Ivy_NodeBalanceCone_rec( Ivy_Obj_t * pRoot, Ivy_Obj_t * pObj, Vec_Ptr_t * vS
         return 0;
     }
     // if the new node is complemented or a PI, another gate begins
-    if ( pObj != pRoot && (Ivy_IsComplement(pObj) || Ivy_ObjType(pObj) != Ivy_ObjType(pRoot) || Ivy_ObjRefs(pObj) > 1) )
+    if ( pObj != pRoot && (Ivy_IsComplement(pObj) || Ivy_ObjType(pObj) != Ivy_ObjType(pRoot) || Ivy_ObjRefs(pObj) > 1 || Vec_PtrSize(vSuper) > 10000) )
     {
         Vec_PtrPush( vSuper, pObj );
         Ivy_Regular(pObj)->fMarkB = 1;

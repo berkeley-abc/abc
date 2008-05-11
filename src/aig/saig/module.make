@@ -1,4 +1,5 @@
-SRC +=    src/aig/saig/saig_.c \
+SRC +=    src/aig/saig/saigBmc.c \
+    src/aig/saig/saigCone.c \
     src/aig/saig/saigInter.c \
     src/aig/saig/saigPhase.c \
     src/aig/saig/saigRetFwd.c \

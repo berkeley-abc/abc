@@ -90,7 +90,8 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
     }
-    
+   
+//Aig_ManDumpBlif( pAig, "inter.blif", NULL, NULL );
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 

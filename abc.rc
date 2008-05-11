@@ -35,6 +35,7 @@ alias fr fretime
 alias ft fraig_trust
 alias ic indcut
 alias lp lutpack
+alias pcon print_cone
 alias pd print_dsd
 alias pex print_exdc -d
 alias pf print_factor
