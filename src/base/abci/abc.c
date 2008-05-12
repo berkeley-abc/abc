@@ -12713,6 +12713,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fWriteImps = 0;
     pPars->fUse1Hot   = 0;
     pPars->fVerbose   = 0;
+    pPars->TimeLimit  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILirfletvh" ) ) != EOF )
     {
@@ -14657,25 +14658,27 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int nFrames;
+    int nSizeMax;
     int nBTLimit;
     int fRewrite;
     int fNewAlgo;
     int fVerbose;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames  = 10;
+    nFrames  = 20;
+    nSizeMax = 100000;
     nBTLimit = 10000;
     fRewrite = 0;
     fNewAlgo = 1;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCravh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FNCravh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14688,6 +14691,17 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSizeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSizeMax < 0 ) 
                 goto usage;
             break;
         case 'C':
@@ -14731,13 +14745,14 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Does not work for combinational networks.\n" );
         return 0;
     }
-    Abc_NtkDarBmc( pNtk, nFrames, nBTLimit, fRewrite, fNewAlgo, fVerbose );
+    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nBTLimit, fRewrite, fNewAlgo, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: bmc [-F num] [-C num] [-ravh]\n" );
+    fprintf( pErr, "usage: bmc [-FNC num] [-ravh]\n" );
     fprintf( pErr, "\t         perform bounded model checking\n" );
     fprintf( pErr, "\t-F num : the number of time frames [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-N num : the max number of nodes in the frames [default = %d]\n", nSizeMax );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
@@ -17069,6 +17084,7 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fWriteImps = 0;
     pPars->fUse1Hot   = 0;
     pPars->fVerbose   = 0;
+    pPars->TimeLimit  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILirfletvh" ) ) != EOF )
     {

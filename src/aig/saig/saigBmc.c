@@ -82,6 +82,90 @@ Aig_Man_t * Saig_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the number of internal nodes that are not counted yet.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManFramesCount_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    if ( !Aig_ObjIsNode(pObj) )
+        return 0;
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return 0;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    return 1 + Saig_ManFramesCount_rec( p, Aig_ObjFanin0(pObj) ) + 
+        Saig_ManFramesCount_rec( p, Aig_ObjFanin1(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create timeframes of the manager for BMC.]
+
+  Description [The resulting manager is combinational. The primary inputs
+  corresponding to register outputs are ordered first. POs correspond to 
+  the property outputs in each time-frame.
+  The unrolling is stopped as soon as the number of nodes in the frames
+  exceeds the given maximum size.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManFramesBmcLimit( Aig_Man_t * pAig, int nFrames, int nSizeMax )
+{
+    Aig_Man_t * pFrames;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pObjPo;
+    int i, f, Counter = 0;
+    assert( Saig_ManRegNum(pAig) > 0 );
+    pFrames = Aig_ManStart( nSizeMax );
+    Aig_ManIncrementTravId( pFrames );
+    // map the constant node
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
+    // create variables for register outputs
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->pData = Aig_ManConst0( pFrames );
+    // add timeframes
+    Counter = 0;
+    for ( f = 0; f < nFrames; f++ )
+    {
+        // create PI nodes for this frame
+        Saig_ManForEachPi( pAig, pObj, i )
+            pObj->pData = Aig_ObjCreatePi( pFrames );
+        // add internal nodes of this frame
+        Aig_ManForEachNode( pAig, pObj, i )
+            pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+        // create POs for this frame
+        Saig_ManForEachPo( pAig, pObj, i )
+        {
+            pObjPo = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+            Counter += Saig_ManFramesCount_rec( pFrames, Aig_ObjFanin0(pObjPo) );
+            if ( Counter >= nSizeMax )
+            {
+                Aig_ManCleanup( pFrames );
+                return pFrames;
+            }
+        }
+        if ( f == nFrames - 1 )
+            break;
+        // save register inputs
+        Saig_ManForEachLi( pAig, pObj, i )
+            pObj->pData = Aig_ObjChild0Copy(pObj);
+        // transfer to register outputs
+        Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
+            pObjLo->pData = pObjLi->pData;
+    }
+    Aig_ManCleanup( pFrames );
+    return pFrames;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs BMC for the given AIG.]
 
   Description []
@@ -91,7 +175,7 @@ Aig_Man_t * Saig_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fRewrite, int fVerbose, int * piFrame )
+int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLimit, int fRewrite, int fVerbose, int * piFrame )
 {
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
@@ -101,7 +185,13 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fRewri
     *piFrame = -1;
     // derive the timeframes
     clk = clock();
-    pFrames = Saig_ManFramesBmc( pAig, nFrames );
+    if ( nSizeMax > 0 )
+    {
+        pFrames = Saig_ManFramesBmcLimit( pAig, nFrames, nSizeMax );
+        nFrames = Aig_ManPoNum(pFrames) / Saig_ManPoNum(pAig) + ((Aig_ManPoNum(pFrames) % Saig_ManPoNum(pAig)) > 0);
+    }
+    else
+        pFrames = Saig_ManFramesBmc( pAig, nFrames );
     if ( fVerbose )
     {
         printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 

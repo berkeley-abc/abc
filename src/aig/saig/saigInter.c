@@ -566,6 +566,14 @@ p->timeCnf += clock() - clk;
         // iterate the interpolation procedure
         for ( i = 0; ; i++ )
         {
+            if ( p->nFrames + i >= 100 )
+            {
+                if ( fVerbose )
+                    printf( "Reached limit (%d) on the number of timeframes.\n", 100 );
+                p->timeTotal = clock() - clkTotal;
+                Saig_ManagerFree( p );
+                return -1;
+            }
             // perform interplation
             clk = clock();
             RetValue = Saig_PerformOneStep( p );

@@ -787,6 +787,50 @@ Aig_Man_t * Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG with only one primary output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    assert( Aig_ManRegNum(p) > 0 );
+    assert( iPoNum < Aig_ManPoNum(p)-Aig_ManRegNum(p) );
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    // set registers
+    pNew->nRegs    = p->nRegs;
+    pNew->nTruePis = p->nTruePis;
+    pNew->nTruePos = 1;
+    // duplicate internal nodes
+    Aig_ManForEachNode( p, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create the PO
+    pObj = Aig_ManPo( p, iPoNum );
+    Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    // create register inputs with MUXes
+    Aig_ManForEachLiSeq( p, pObj, i )
+        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    Aig_ManCleanup( pNew );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

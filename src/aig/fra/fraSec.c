@@ -120,7 +120,7 @@ clk = clock();
     pNew = Aig_ManDupOrdered( pTemp = pNew );
 //    pNew = Aig_ManDupDfs( pTemp = pNew );
     Aig_ManStop( pTemp );
-    if ( TimeLimit )
+    if ( RetValue == -1 && TimeLimit )
     {
         TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
         TimeLeft = AIG_MAX( TimeLeft, 0.0 );
@@ -131,7 +131,7 @@ clk = clock();
             goto finish;
         }
     }
-    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, 1, fVeryVerbose, &nIter, TimeLeft );
+    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 1000, 1, fVeryVerbose, &nIter, TimeLeft );
     if ( pNew == NULL )
     {
         pNew = pTemp;
@@ -156,7 +156,7 @@ PRT( "Time", clock() - clk );
     }
     }
 
-    if ( TimeLimit )
+    if ( RetValue == -1 && TimeLimit )
     {
         TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
         TimeLeft = AIG_MAX( TimeLeft, 0.0 );
@@ -189,7 +189,7 @@ PRT( "Time", clock() - clk );
     if ( RetValue >= 0 )
         goto finish;
 
-    if ( TimeLimit )
+    if ( RetValue == -1 && TimeLimit )
     {
         TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
         TimeLeft = AIG_MAX( TimeLeft, 0.0 );
@@ -226,7 +226,7 @@ PRT( "Time", clock() - clk );
     if ( RetValue == -1 )
     for ( nFrames = 1; nFrames <= nFramesMax; nFrames *= 2 )
     {
-        if ( TimeLimit )
+        if ( RetValue == -1 && TimeLimit )
         {
             TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
             TimeLeft = AIG_MAX( TimeLeft, 0.0 );
@@ -327,13 +327,13 @@ PRT( "Time", clock() - clkTotal );
 
     // try interplation
 clk = clock();
-    if ( RetValue == -1 && Aig_ManRegNum(pNew) > 0 )
+    if ( RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) == 1 )
     {
         extern int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose, int * pDepth );
         int Depth;
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-        RetValue = Saig_Interpolate( pNew, 10000, 0, 1, 0, &Depth );
+        RetValue = Saig_Interpolate( pNew, 5000, 0, 1, fVeryVerbose, &Depth );
         if ( fVerbose )
         {
         if ( RetValue == 1 )
@@ -355,6 +355,53 @@ PRT( "Time", clock() - clk );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
         RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0 );
+    }
+
+    // try one-output at a time
+    if ( RetValue == -1 && Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) > 1 )
+    {
+        Aig_Man_t * pNew2;
+        int i, TimeLimit2, RetValue2, fOneUnsolved = 0, iCount, Counter = 0;
+        // count unsolved outputs
+        for ( i = 0; i < Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew); i++ )
+            if ( !Aig_ObjIsConst1( Aig_ObjFanin0(Aig_ManPo(pNew,i)) ) )
+                Counter++;
+        printf( "*** The miter has %d outputs (out of %d total) unsolved in the multi-output form.\n", 
+            Counter, Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) );
+        iCount = 0;
+        for ( i = 0; i < Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew); i++ )
+        {
+            // get the remaining time for this output
+            if ( TimeLimit )
+            {
+                TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+                TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+                if ( TimeLeft == 0.0 )
+                {
+                    printf( "Runtime limit exceeded.\n" );
+                    goto finish;
+                }
+                TimeLimit2 = 1 + (int)TimeLeft;
+            }
+            else
+                TimeLimit2 = 0;
+            if ( Aig_ObjIsConst1( Aig_ObjFanin0(Aig_ManPo(pNew,i)) ) )
+                continue;
+            iCount++;
+            printf( "*** Running output %d of the miter (number %d out of %d unsolved).\n", i, iCount, Counter );
+            pNew2 = Aig_ManDupOneOutput( pNew, i );
+            RetValue2 = Fra_FraigSec( pNew2, nFramesMax, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose, TimeLimit2 );
+            Aig_ManStop( pNew2 );
+            if ( RetValue2 == 0 )
+                goto finish;
+            if ( RetValue2 == -1 )
+                fOneUnsolved = 1;
+        }
+        if ( fOneUnsolved )
+            RetValue = -1;
+        else
+            RetValue = 1;
+        printf( "*** Finished running separate outputs of the miter.\n" );
     }
 
 finish:

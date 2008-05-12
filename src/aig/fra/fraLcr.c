@@ -542,7 +542,7 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
         if ( pnIter ) *pnIter = 0;
         return Aig_ManDupOrdered(pAig);
     }
-    assert( Aig_ManRegNum(pAig) > 0 );
+    assert( Aig_ManRegNum(pAig) > 0 ); 
 
     // simulate the AIG 
 clk2 = clock();

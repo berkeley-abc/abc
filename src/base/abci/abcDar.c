@@ -1208,7 +1208,7 @@ Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int f
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose )
+int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue = -1, clk = clock();
@@ -1226,7 +1226,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nBTLimit, int fRewrite, in
     if ( fNewAlgo )
     {
         int iFrame;
-        RetValue = Saig_ManBmcSimple( pMan, nFrames, nBTLimit, fRewrite, fVerbose, &iFrame );
+        RetValue = Saig_ManBmcSimple( pMan, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &iFrame );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( RetValue == 1 )
             printf( "No output was asserted in %d frames. ", nFrames );
@@ -1337,7 +1337,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int fTryComb, int fTryBmc, int nFrames, i
     }
     if ( fTryBmc )
     {
-        RetValue = Abc_NtkDarBmc( pNtk, 10, 1000, 0, 1, 0 );
+        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, 1000, 0, 1, 0 );
         if ( RetValue == 0 )
             return RetValue;
     }
