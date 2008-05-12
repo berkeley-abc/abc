@@ -336,9 +336,10 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     Fra_Par_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
-    Aig_Man_t * pManAigNew;
+    Aig_Man_t * pManAigNew = NULL;
     int nNodesBeg, nRegsBeg;
     int nIter, i, clk = clock(), clk2;
+    int TimeToStop = (pParams->TimeLimit == 0.0)? 0 : clock() + (int)(pParams->TimeLimit * CLOCKS_PER_SEC);
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
@@ -419,6 +420,12 @@ PRT( "Time", clock() - clk );
     if ( pPars->fUseImps )
         p->pCla->vImps = Fra_ImpDerive( p, 5000000, pPars->nMaxImps, pPars->fLatchCorr );
 
+    if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
+    {
+        printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
+        goto finish;
+    }
+
     // perform BMC (for the min number of frames)
     Fra_BmcPerform( p, pPars->nFramesP, pPars->nFramesK+1 ); // +1 is needed to prevent non-refinement
 //Fra_ClassesPrint( p->pCla, 1 );
@@ -442,6 +449,13 @@ PRT( "Time", clock() - clk );
         int nLitsOld = Fra_ClassesCountLits(p->pCla);
         int nImpsOld = p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0;
         int nHotsOld = p->vOneHots? Fra_OneHotCount(p, p->vOneHots) : 0;
+
+        if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
+        {
+            printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
+            goto finish;
+        }
+
         // mark the classes as non-refined
         p->pCla->fRefinement = 0;
         // derive non-init K-timeframes while implementing e-classes
@@ -592,6 +606,7 @@ p->timeTotal = clock() - clk;
     p->nNodesEnd = Aig_ManNodeNum(pManAigNew);
     p->nRegsEnd  = Aig_ManRegNum(pManAigNew);
     // free the manager
+finish:
     Fra_ManStop( p );
     // check the output
 //    if ( Aig_ManPoNum(pManAigNew) - Aig_ManRegNum(pManAigNew) == 1 )

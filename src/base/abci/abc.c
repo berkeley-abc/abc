@@ -9166,6 +9166,12 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( Abc_NtkLatchNum(pNtk) > 0 )
+    {
+        fprintf( pErr, "The network has registers. Use \"dprove\".\n" );
+        return 1;
+    }
+
     clk = clock();
 
     if ( Abc_NtkIsStrash(pNtk) )
@@ -13923,7 +13929,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames        = 16;
+    nFrames        =  2;
     fPhaseAbstract =  1;
     fRetimeFirst   =  1;
     fRetimeRegs    =  1;
@@ -14020,6 +14026,8 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
+    int fTryComb;
+    int fTryBmc;
     int nFrames;
     int fPhaseAbstract;
     int fRetimeFirst;
@@ -14027,31 +14035,55 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fFraiging;
     int fVerbose;
     int fVeryVerbose;
+    int TimeLimit;
     int c;
 
-    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int fTryComb, int fTryBmc, 
+                                int nFrames, int fPhaseAbstract, int fRetimeFirst, 
+                                int fRetimeRegs, int fFraiging, int fVerbose, 
+                                int fVeryVerbose, int TimeLimit );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames        =  8; 
-    fPhaseAbstract =  1;
-    fRetimeFirst   =  1;
-    fRetimeRegs    =  1;
-    fFraiging      =  1;
-    fVerbose       =  0;
-    fVeryVerbose   =  0;
+    fTryComb       =   1;
+    fTryBmc        =   1;
+    nFrames        =   2; 
+    fPhaseAbstract =   1;
+    fRetimeFirst   =   1;
+    fRetimeRegs    =   1;
+    fFraiging      =   1;
+    fVerbose       =   0;
+    fVeryVerbose   =   0;
+    TimeLimit      = 300;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Farmfwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbTFarmfwvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fTryComb ^= 1;
+            break;
+        case 'b':
+            fTryBmc ^= 1;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeLimit < 0 ) 
+                goto usage;
+            break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFrames = atoi(argv[globalUtilOptind]);
@@ -14095,13 +14127,16 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    Abc_NtkDarProve( pNtk, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose );
+    Abc_NtkDarProve( pNtk, fTryComb, fTryBmc, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose, TimeLimit );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-F num] [-armfwvh]\n" );
+    fprintf( pErr, "usage: dprove [-F num] [-T num] [-carmfwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-T num : the approximate runtime limit (in seconds) [default = %d]\n", TimeLimit );
+    fprintf( pErr, "\t-c     : toggles using CEC before attempting SEC [default = %s]\n", fTryComb? "yes": "no" );
+    fprintf( pErr, "\t-b     : toggles using BMC before attempting SEC [default = %s]\n", fTryBmc? "yes": "no" );
     fprintf( pErr, "\t-a     : toggles the use of phase abstraction [default = %s]\n", fPhaseAbstract? "yes": "no" );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-m     : toggles min-register retiming [default = %s]\n", fRetimeRegs? "yes": "no" );
@@ -14742,7 +14777,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     nBTLimit   = 20000;
     fRewrite   = 0;
     fTransLoop = 1;
-    fVerbose   = 1;
+    fVerbose   = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Crtvh" ) ) != EOF )
     {
@@ -17530,11 +17565,11 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVeryVerbose;
     int c;
 
-    extern int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose );
+    extern int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose, int TimeLimit );
     extern Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
 
     // set defaults
-    nFrames        =  8;
+    nFrames        =  2;
     fPhaseAbstract =  0;
     fRetimeFirst   =  0;
     fRetimeRegs    =  0;
@@ -17591,7 +17626,7 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAig = Ntl_ManPrepareSec( pArgvNew[0], pArgvNew[1] );
     if ( pAig == NULL )
         return 0;
-    Fra_FraigSec( pAig, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose );
+    Fra_FraigSec( pAig, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose, 0 );
     Aig_ManStop( pAig );
     return 0;
 

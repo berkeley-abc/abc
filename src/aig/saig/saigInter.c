@@ -519,8 +519,6 @@ int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTrans
         p->pAigTrans = Saig_ManTransformed( pAig );
     else
         p->pAigTrans = Saig_ManDuplicated( pAig );
-//    p->pAigTrans = Dar_ManRwsat( pAigTemp = p->pAigTrans, 1, 0 );
-//    Aig_ManStop( pAigTemp );
     // derive CNF for the transformed AIG
 clk = clock();
     p->pCnfAig = Cnf_Derive( p->pAigTrans, Aig_ManRegNum(p->pAigTrans) ); 

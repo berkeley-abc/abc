@@ -347,7 +347,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
 
     // perform SCL for the given design
     pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
-    pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL );
+    pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
     Aig_ManStop( pTemp );
 
     // finalize the transformation

@@ -40,13 +40,14 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose )
+int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose, int TimeLimit )
 {
     Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
     Aig_Man_t * pNew, * pTemp;
     int nFrames, RetValue, nIter, clk, clkTotal = clock();
     int fLatchCorr = 0;
+    float TimeLeft = 0.0;
 
     // try the miter before solving
     pNew = Aig_ManDup( p );
@@ -119,7 +120,24 @@ clk = clock();
     pNew = Aig_ManDupOrdered( pTemp = pNew );
 //    pNew = Aig_ManDupDfs( pTemp = pNew );
     Aig_ManStop( pTemp );
-    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, 1, fVeryVerbose, &nIter );
+    if ( TimeLimit )
+    {
+        TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+        TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+        if ( TimeLeft == 0.0 )
+        {
+            printf( "Runtime limit exceeded.\n" );
+            RetValue = -1;
+            goto finish;
+        }
+    }
+    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, 1, fVeryVerbose, &nIter, TimeLeft );
+    if ( pNew == NULL )
+    {
+        pNew = pTemp;
+        RetValue = -1;
+        goto finish;
+    }
     p->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
     Aig_ManStop( pTemp );
     if ( pNew == NULL )
@@ -136,6 +154,18 @@ PRT( "Time", clock() - clkTotal );
             nIter, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
     }
+    }
+
+    if ( TimeLimit )
+    {
+        TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+        TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+        if ( TimeLeft == 0.0 )
+        {
+            printf( "Runtime limit exceeded.\n" );
+            RetValue = -1;
+            goto finish;
+        }
     }
 
     // perform fraiging
@@ -158,6 +188,18 @@ PRT( "Time", clock() - clk );
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue >= 0 )
         goto finish;
+
+    if ( TimeLimit )
+    {
+        TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+        TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+        if ( TimeLeft == 0.0 )
+        {
+            printf( "Runtime limit exceeded.\n" );
+            RetValue = -1;
+            goto finish;
+        }
+    }
 
     // perform min-area retiming
     if ( fRetimeRegs && pNew->nRegs )
@@ -184,9 +226,28 @@ PRT( "Time", clock() - clk );
     if ( RetValue == -1 )
     for ( nFrames = 1; nFrames <= nFramesMax; nFrames *= 2 )
     {
+        if ( TimeLimit )
+        {
+            TimeLeft = (float)TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
+            TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+            if ( TimeLeft == 0.0 )
+            {
+                printf( "Runtime limit exceeded.\n" );
+                RetValue = -1;
+                goto finish;
+            }
+        }
+
 clk = clock();
         pPars->nFramesK = nFrames;
+        pPars->TimeLimit = TimeLeft;
         pNew = Fra_FraigInduction( pTemp = pNew, pPars );
+        if ( pNew == NULL )
+        {
+            pNew = pTemp;
+            RetValue = -1;
+            goto finish;
+        }
         Aig_ManStop( pTemp );
         RetValue = Fra_FraigMiterStatus( pNew );
         if ( fVerbose )
@@ -264,11 +325,33 @@ PRT( "Time", clock() - clkTotal );
     // get the miter status
     RetValue = Fra_FraigMiterStatus( pNew );
 
+    // try interplation
+clk = clock();
+    if ( RetValue == -1 && Aig_ManRegNum(pNew) > 0 )
+    {
+        extern int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose, int * pDepth );
+        int Depth;
+        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+        RetValue = Saig_Interpolate( pNew, 10000, 0, 1, 0, &Depth );
+        if ( fVerbose )
+        {
+        if ( RetValue == 1 )
+            printf( "Property proved using interpolation.  " );
+        else if ( RetValue == 0 )
+            printf( "Property DISPROVED with cex at depth %d using interpolation.  ", Depth );
+        else if ( RetValue == -1 )
+            printf( "Property UNDECIDED after interpolation.  " );
+        else
+            assert( 0 ); 
+PRT( "Time", clock() - clk );
+        }
+    }
+
     // try reachability analysis
-    if ( RetValue == -1 && Aig_ManRegNum(pNew) < 200 )
+    if ( RetValue == -1 && Aig_ManRegNum(pNew) < 200 && Aig_ManRegNum(pNew) > 0 )
     {
         extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
-        assert( Aig_ManRegNum(pNew) > 0 );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
         RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0 );

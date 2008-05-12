@@ -526,7 +526,7 @@ void Fra_ClassNodesUnmark( Fra_Lcr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fProve, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fProve, int fVerbose, int * pnIter, float TimeLimit )
 {
     int nPartSize    = 200;
     int fReprSelect  = 0;
@@ -536,6 +536,7 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     Aig_Man_t * pAigPart, * pAigNew = NULL;
     Vec_Int_t * vPart;
     int i, nIter, timeSim, clk = clock(), clk2, clk3;
+    int TimeToStop = (TimeLimit == 0.0)? 0 : clock() + (int)(TimeLimit * CLOCKS_PER_SEC);
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;
@@ -609,6 +610,15 @@ p->timePart += clock() - clk2;
         Vec_PtrClear( p->vFraigs );
         Vec_PtrForEachEntry( p->vParts, vPart, i )
         {
+            if ( TimeLimit != 0.0 && clock() > TimeToStop )
+            {
+                Vec_PtrForEachEntry( p->vFraigs, pAigPart, i )
+                    Aig_ManStop( pAigPart );
+                Aig_ManCleanMarkA( pAig );
+                Aig_ManCleanMarkB( pAig );
+                printf( "Fra_FraigLatchCorrespondence(): Runtime limit exceeded.\n" );
+                goto finish;
+            }
 clk2 = clock();
             pAigPart = Fra_LcrCreatePart( p, vPart );
 p->timeTrav += clock() - clk2;
@@ -649,7 +659,6 @@ clk2 = clock();
 p->timePart += clock() - clk2;
         }
     }
-    free( pTemp );
     p->nIters = nIter;
 
     // move the classes into representatives and reduce AIG
@@ -667,6 +676,8 @@ p->timeTotal = clock() - clk;
     p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
     p->nNodesEnd = Aig_ManNodeNum(pAigNew);
     p->nRegsEnd  = Aig_ManRegNum(pAigNew);
+finish:
+    free( pTemp );
     Lcr_ManFree( p );
     if ( pnIter ) *pnIter = nIter;
     return pAigNew;
