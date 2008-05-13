@@ -4668,6 +4668,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCheck;
     int fComb;
     int fImplic;
+    int fMulti;
     int nPartSize;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -4678,9 +4679,10 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     fComb  = 1;
     fCheck = 1;
     fImplic = 0;
+    fMulti = 0;
     nPartSize = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Pcih" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Pcmih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4698,6 +4700,9 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fComb ^= 1;
             break;
+        case 'm':
+            fMulti ^= 1;
+            break;
         case 'i':
             fImplic ^= 1;
             break;
@@ -4712,7 +4717,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // compute the miter
-    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize, fImplic );
+    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize, fImplic, fMulti );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
 
@@ -4731,11 +4736,12 @@ usage:
         strcpy( Buffer, "unused" );
     else
         sprintf( Buffer, "%d", nPartSize );
-    fprintf( pErr, "usage: miter [-P num] [-cih] <file1> <file2>\n" );
+    fprintf( pErr, "usage: miter [-P num] [-cimh] <file1> <file2>\n" );
     fprintf( pErr, "\t         computes the miter of the two circuits\n" );
     fprintf( pErr, "\t-P num : output partition size [default = %s]\n", Buffer );
     fprintf( pErr, "\t-c     : toggles deriving combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
     fprintf( pErr, "\t-i     : toggles deriving implication miter (file1 => file2) [default = %s]\n", fImplic? "yes": "no" );
+    fprintf( pErr, "\t-m     : toggles creating multi-output miters [default = %s]\n", fMulti? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
     fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
@@ -14132,7 +14138,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-F num] [-T num] [-carmfwvh]\n" );
+    fprintf( pErr, "usage: dprove [-F num] [-T num] [-cbarmfwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrames );
     fprintf( pErr, "\t-T num : the approximate runtime limit (in seconds) [default = %d]\n", TimeLimit );

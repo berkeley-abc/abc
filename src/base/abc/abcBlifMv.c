@@ -162,7 +162,11 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
         // skip space if present
         if ( *pSop == ' ' )
             pSop++;
-        Index = Abc_StringGetNumber( &pSop );
+        // assume don't-care constant to be zero
+        if ( *pSop == '-' )
+            Index = 0;
+        else
+            Index = Abc_StringGetNumber( &pSop );
         assert( Index < nValues );
         pValues[Index] = Abc_AigConst1(pNtkNew);
         // save the values in the fanout net
@@ -365,6 +369,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObj, * pTemp, * pBit, * pNet;
     int i, k, v, nValues, nValuesMax, nBits;
+    int nCount1, nCount2;
 
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( Abc_NtkHasBlifMv(pNtk) );
@@ -393,12 +398,15 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
     pNtkNew->pName = Extra_UtilStrsav( pNtk->pName );
 //    pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pName );
 
+    nCount1 = nCount2 = 0;
     // encode the CI nets
     Abc_NtkIncrementTravId( pNtk );
     if ( fUsePositional )
     {
         Abc_NtkForEachCi( pNtk, pObj, i )
         {
+            if ( !Abc_ObjIsPi(pObj) )
+                continue;
             pNet = Abc_ObjFanout0(pObj);
             nValues = Abc_ObjMvVarNum(pNet);
             pValues = ALLOC( Abc_Obj_t *, nValues );
@@ -413,11 +421,32 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
             // mark the net
             Abc_NodeSetTravIdCurrent( pNet );
         }
+        Abc_NtkForEachCi( pNtk, pObj, i )
+        {
+            if ( Abc_ObjIsPi(pObj) )
+                continue;
+            pNet = Abc_ObjFanout0(pObj);
+            nValues = Abc_ObjMvVarNum(pNet);
+            pValues = ALLOC( Abc_Obj_t *, nValues );
+            // create PIs for the values
+            for ( v = 0; v < nValues; v++ )
+            {
+                pValues[v] = Abc_NtkCreateBo( pNtkNew );
+                Abc_NtkConvertAssignName( pValues[v], pNet, v );
+                nCount1++;
+            }
+            // save the values in the fanout net
+            pNet->pCopy = (Abc_Obj_t *)pValues;
+            // mark the net
+            Abc_NodeSetTravIdCurrent( pNet );
+        }
     }
     else
     {
         Abc_NtkForEachCi( pNtk, pObj, i )
         {
+            if ( !Abc_ObjIsPi(pObj) )
+                continue;
             pNet = Abc_ObjFanout0(pObj);
             nValues = Abc_ObjMvVarNum(pNet);
             pValues = ALLOC( Abc_Obj_t *, nValues );
@@ -427,6 +456,36 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
             {
                 pBits[k] = Abc_NtkCreatePi( pNtkNew );
                 Abc_NtkConvertAssignName( pBits[k], pNet, k );
+            }
+            // encode the values
+            for ( v = 0; v < nValues; v++ )
+            {
+                pValues[v] = Abc_AigConst1(pNtkNew);
+                for ( k = 0; k < nBits; k++ )
+                {
+                    pBit = Abc_ObjNotCond( pBits[k], (v&(1<<k)) == 0 );
+                    pValues[v] = Abc_AigAnd( pNtkNew->pManFunc, pValues[v], pBit );
+                }
+            }
+            // save the values in the fanout net
+            pNet->pCopy = (Abc_Obj_t *)pValues;
+            // mark the net
+            Abc_NodeSetTravIdCurrent( pNet );
+        }
+        Abc_NtkForEachCi( pNtk, pObj, i )
+        {
+            if ( Abc_ObjIsPi(pObj) )
+                continue;
+            pNet = Abc_ObjFanout0(pObj);
+            nValues = Abc_ObjMvVarNum(pNet);
+            pValues = ALLOC( Abc_Obj_t *, nValues );
+            // create PIs for the encoding bits
+            nBits = Extra_Base2Log( nValues );
+            for ( k = 0; k < nBits; k++ )
+            {
+                pBits[k] = Abc_NtkCreateBo( pNtkNew );
+                Abc_NtkConvertAssignName( pBits[k], pNet, k );
+                nCount1++;
             }
             // encode the values
             for ( v = 0; v < nValues; v++ )
@@ -459,6 +518,8 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
     {
         Abc_NtkForEachCo( pNtk, pObj, i )
         {
+            if ( !Abc_ObjIsPo(pObj) )
+                continue;
             pNet = Abc_ObjFanin0(pObj);
             // skip marked nets
             if ( Abc_NodeIsTravIdCurrent(pNet) )
@@ -473,11 +534,32 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 Abc_NtkConvertAssignName( pTemp, pNet, v );
             }
         }
+        Abc_NtkForEachCo( pNtk, pObj, i )
+        {
+            if ( Abc_ObjIsPo(pObj) )
+                continue;
+            pNet = Abc_ObjFanin0(pObj);
+            // skip marked nets
+            if ( Abc_NodeIsTravIdCurrent(pNet) )
+                continue;
+            Abc_NodeSetTravIdCurrent( pNet );
+            nValues = Abc_ObjMvVarNum(pNet);
+            pValues = (Abc_Obj_t **)pNet->pCopy;
+            for ( v = 0; v < nValues; v++ )
+            {
+                pTemp = Abc_NtkCreateBi( pNtkNew );
+                Abc_ObjAddFanin( pTemp, pValues[v] );
+                Abc_NtkConvertAssignName( pTemp, pNet, v );
+                nCount2++;
+            }
+        }
     }
     else
     {
         Abc_NtkForEachCo( pNtk, pObj, i )
         {
+            if ( !Abc_ObjIsPo(pObj) )
+                continue;
             pNet = Abc_ObjFanin0(pObj);
             // skip marked nets
             if ( Abc_NodeIsTravIdCurrent(pNet) )
@@ -496,6 +578,49 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 Abc_ObjAddFanin( pTemp, pBit );
                 Abc_NtkConvertAssignName( pTemp, pNet, k );
             }
+        }
+        Abc_NtkForEachCo( pNtk, pObj, i )
+        {
+            if ( Abc_ObjIsPo(pObj) )
+                continue;
+            pNet = Abc_ObjFanin0(pObj);
+            // skip marked nets
+            if ( Abc_NodeIsTravIdCurrent(pNet) )
+                continue;
+            Abc_NodeSetTravIdCurrent( pNet );
+            nValues = Abc_ObjMvVarNum(pNet);
+            pValues = (Abc_Obj_t **)pNet->pCopy;
+            nBits = Extra_Base2Log( nValues );
+            for ( k = 0; k < nBits; k++ )
+            {
+                pBit = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
+                for ( v = 0; v < nValues; v++ )
+                    if ( v & (1<<k) )
+                        pBit = Abc_AigOr( pNtkNew->pManFunc, pBit, pValues[v] );
+                pTemp = Abc_NtkCreateBi( pNtkNew );
+                Abc_ObjAddFanin( pTemp, pBit );
+                Abc_NtkConvertAssignName( pTemp, pNet, k );
+                nCount2++;
+            }
+        }
+    }
+
+    if ( Abc_NtkLatchNum(pNtk) )
+    {
+        Abc_Obj_t * pLatch, * pObjLi, * pObjLo;
+        int i;
+        assert( nCount1 == nCount2 );
+        for ( i = 0; i < nCount1; i++ )
+        {
+            // create latch
+            pLatch = Abc_NtkCreateLatch( pNtkNew );
+            Abc_LatchSetInit0( pLatch );
+            Abc_ObjAssignName( pLatch, Abc_ObjName(pLatch), NULL );
+            // connect
+            pObjLi = Abc_NtkCo( pNtkNew, Abc_NtkCoNum(pNtkNew)-nCount1+i );
+            pObjLo = Abc_NtkCi( pNtkNew, Abc_NtkCiNum(pNtkNew)-nCount1+i );
+            Abc_ObjAddFanin( pLatch, pObjLi );
+            Abc_ObjAddFanin( pObjLo, pLatch );
         }
     }
 

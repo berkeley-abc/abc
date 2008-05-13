@@ -52,7 +52,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     int RetValue;
 
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );
@@ -120,7 +120,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     int RetValue;
 
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 0, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );
@@ -225,7 +225,7 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
     assert( nPartSize > 0 );
 
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, nPartSize, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, nPartSize, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );
@@ -342,7 +342,7 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
     //    pParams->fVerbose = 1;
 
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 1, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 1, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );
@@ -457,7 +457,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     int RetValue;
 
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );
@@ -539,7 +539,7 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
     int RetValue;
 
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );

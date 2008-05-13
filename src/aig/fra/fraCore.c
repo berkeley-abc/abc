@@ -77,6 +77,12 @@ int Fra_FraigMiterStatus( Aig_Man_t * p )
             CountNonConst0++;
             continue;
         }
+        // check if the output is a primary input
+        if ( p->nRegs == 0 && Aig_ObjIsPi(Aig_Regular(pChild)) )
+        {
+            CountNonConst0++;
+            continue;
+        }
         // check if the output can be not constant 0
         if ( Aig_Regular(pChild)->fPhase != (unsigned)Aig_IsComplement(pChild) )
         {

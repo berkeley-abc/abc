@@ -1815,6 +1815,12 @@ int Ivy_FraigMiterStatus( Ivy_Man_t * pMan )
             CountConst0++;
             continue;
         }
+        // check if the output is a primary input
+        if ( Ivy_ObjIsPi(Ivy_Regular(pObjNew)) )
+        {
+            CountNonConst0++;
+            continue;
+        }
         // check if the output can be constant 0
         if ( Ivy_Regular(pObjNew)->fPhase != (unsigned)Ivy_IsComplement(pObjNew) )
         {

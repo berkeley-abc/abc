@@ -1033,7 +1033,7 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVe
     if ( pNtk2 != NULL )
     {
         // get the miter of the two networks
-        pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0 );
+        pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0, 0 );
         if ( pMiter == NULL )
         {
             printf( "Miter computation has failed.\n" );
@@ -1380,7 +1380,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fPhase
     int RetValue;
  
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );

@@ -354,7 +354,7 @@ int Abc_NtkRRProve( Abc_RRMan_t * p )
     Abc_NtkRRUpdate( pWndCopy, p->pNode->pCopy->pCopy, p->pFanin->pCopy->pCopy, p->pFanout? p->pFanout->pCopy->pCopy : NULL );
     if ( !Abc_NtkIsDfsOrdered(pWndCopy) )
         Abc_NtkReassignIds(pWndCopy);
-    p->pMiter = Abc_NtkMiter( p->pWnd, pWndCopy, 1, 0, 0 );
+    p->pMiter = Abc_NtkMiter( p->pWnd, pWndCopy, 1, 0, 0, 0 );
     Abc_NtkDelete( pWndCopy );
 clk = clock();
     RetValue  = Abc_NtkMiterProve( &p->pMiter, p->pParams );
