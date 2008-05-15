@@ -69,20 +69,10 @@ int Ioa_FileSize( char * pFileName )
 ***********************************************************************/
 char * Ioa_FileNameGeneric( char * FileName )
 {
-    char * pDot;
-    char * pUnd;
-    char * pRes;
-    
-    // find the generic name of the file
+    char * pDot, * pRes;
     pRes = Aig_UtilStrsav( FileName );
-    // find the pointer to the "." symbol in the file name
-//  pUnd = strstr( FileName, "_" );
-    pUnd = NULL;
-    pDot = strstr( FileName, "." );
-    if ( pUnd )
-        pRes[pUnd - FileName] = 0;
-    else if ( pDot )
-        pRes[pDot - FileName] = 0;
+    if ( (pDot = strrchr( pRes, '.' )) )
+        *pDot = 0;
     return pRes;
 }
 
@@ -107,8 +97,7 @@ char * Ioa_FileNameGenericAppend( char * pBase, char * pSuffix )
         return Buffer;
     }
     strcpy( Buffer, pBase );
-    pDot = strstr( Buffer, "." );
-    if ( pDot )
+    if ( (pDot = strrchr( Buffer, '.' )) )
         *pDot = 0;
     strcat( Buffer, pSuffix );
     // find the last occurrance of slash

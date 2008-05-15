@@ -174,19 +174,10 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
 ***********************************************************************/
 char * Nwk_FileNameGeneric( char * FileName )
 {
-    char * pDot;
-    char * pUnd;
-    char * pRes;
-    // find the generic name of the file
+    char * pDot, * pRes;
     pRes = Aig_UtilStrsav( FileName );
-    // find the pointer to the "." symbol in the file name
-//  pUnd = strstr( FileName, "_" );
-    pUnd = NULL;
-    pDot = strstr( FileName, "." );
-    if ( pUnd )
-        pRes[pUnd - FileName] = 0;
-    else if ( pDot )
-        pRes[pDot - FileName] = 0;
+    if ( (pDot = strrchr( pRes, '.' )) )
+        *pDot = 0;
     return pRes;
 }
 

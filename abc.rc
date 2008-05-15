@@ -56,6 +56,7 @@ alias r3f retime -M 3 -f
 alias r3b retime -M 3 -b
 alias ren renode
 alias rh read_hie
+alias ri read_init
 alias rl read_blif
 alias rb read_bench
 alias ret retime

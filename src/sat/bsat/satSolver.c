@@ -789,7 +789,7 @@ clause* sat_solver_propagate(sat_solver* s)
     return confl;
 }
 
-static inline int clause_cmp (const void* x, const void* y) {
+static int clause_cmp (const void* x, const void* y) {
     return clause_size((clause*)x) > 2 && (clause_size((clause*)y) == 2 || clause_activity((clause*)x) < clause_activity((clause*)y)) ? -1 : 1; }
 
 void sat_solver_reducedb(sat_solver* s)

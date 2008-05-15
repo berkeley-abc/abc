@@ -683,7 +683,7 @@ int IoCommandReadInit( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
         }
     }
-    if ( argc != globalUtilOptind + 1 )
+    if ( argc != globalUtilOptind && argc != globalUtilOptind + 1 )
         goto usage;
 
     if ( pNtk == NULL )
@@ -692,7 +692,16 @@ int IoCommandReadInit( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // get the input file name
-    pFileName = argv[globalUtilOptind];
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    else if ( pNtk->pSpec )
+        pFileName = Extra_FileNameGenericAppend( pNtk->pSpec, ".init" );
+    else
+    {
+        printf( "File name should be given on the command line.\n" );
+        return 1;
+    }
+
     // read the file using the corresponding file reader
     pNtk = Abc_NtkDup( pNtk );
     Io_ReadBenchInit( pNtk, pFileName );

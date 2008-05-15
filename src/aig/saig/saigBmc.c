@@ -182,7 +182,6 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     Aig_Man_t * pFrames, * pAigTemp;
     Aig_Obj_t * pObj;
     int status, clk, Lit, i, RetValue = 1;
-    *piFrame = -1;
     // derive the timeframes
     clk = clock();
     if ( nSizeMax > 0 )
@@ -192,6 +191,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     }
     else
         pFrames = Saig_ManFramesBmc( pAig, nFrames );
+    *piFrame = nFrames;
     if ( fVerbose )
     {
         printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 

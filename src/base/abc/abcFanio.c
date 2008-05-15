@@ -92,6 +92,10 @@ void Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     {
         int x = 0; 
     }
+    if ( pObj->Id == 1960 )
+    {
+        int x = 0;
+    }
 //    printf( "Adding fanin of %s ", Abc_ObjName(pObj) );
 //    printf( "to be %s\n", Abc_ObjName(pFanin) );
 }

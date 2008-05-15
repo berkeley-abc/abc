@@ -51,6 +51,7 @@ extern "C" {
 
 typedef struct Fra_Par_t_   Fra_Par_t;
 typedef struct Fra_Ssw_t_   Fra_Ssw_t;
+typedef struct Fra_Sec_t_   Fra_Sec_t;
 typedef struct Fra_Man_t_   Fra_Man_t;
 typedef struct Fra_Cla_t_   Fra_Cla_t;
 typedef struct Fra_Sml_t_   Fra_Sml_t;
@@ -87,7 +88,7 @@ struct Fra_Par_t_
     int              fDontShowBar;      // does not show progressbar during fraiging
 };
 
-// seq SAT sweeping parametesr
+// seq SAT sweeping parameters
 struct Fra_Ssw_t_
 {
     int              nPartSize;         // size of the partition
@@ -105,6 +106,27 @@ struct Fra_Ssw_t_
     int              fVerbose;          // enable verbose output 
     int              nIters;            // the number of iterations performed
     float            TimeLimit;         // the runtime budget for this call
+};
+
+// SEC parametesr
+struct Fra_Sec_t_
+{
+    int              fTryComb;          // try CEC call as a preprocessing step
+    int              fTryBmc;           // try BMC call as a preprocessing step 
+    int              nFramesMax;        // the max number of frames used for induction
+    int              fPhaseAbstract;    // enables phase abstraction
+    int              fRetimeFirst;      // enables most-forward retiming at the beginning
+    int              fRetimeRegs;       // enables min-register retiming at the beginning
+    int              fFraiging;         // enables fraiging at the beginning
+    int              fInterpolation;    // enables interpolation
+    int              fReachability;     // enables BDD based reachability
+    int              fStopOnFirstFail;  // enables stopping after first output of a miter has failed to prove
+    int              fVerbose;          // enables verbose reporting of statistics
+    int              fVeryVerbose;      // enables very verbose reporting  
+    int              TimeLimit;         // enables the timeout
+    // internal parameters
+    int              fRecursive;        // set to 1 when SEC is called recursively
+    int              fReportSolution;   // enables report solution in a special form
 };
 
 // FRAIG equivalence classes
@@ -329,7 +351,8 @@ extern int                 Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig
 extern int                 Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR );
 extern int                 Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew );
 /*=== fraSec.c ========================================================*/
-extern int                 Fra_FraigSec( Aig_Man_t * p, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose, int TimeLimit );
+extern void                Fra_SecSetDefaultParams( Fra_Sec_t * p );
+extern int                 Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec );
 /*=== fraSim.c ========================================================*/
 extern int                 Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize );
 extern int                 Fra_SmlNodeIsConst( Aig_Obj_t * pObj );

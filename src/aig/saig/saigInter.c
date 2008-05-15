@@ -178,6 +178,7 @@ Aig_Man_t * Saig_ManTransformed( Aig_Man_t * p )
     Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
     {
         pObj = Aig_Mux( pNew, pCtrl, pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
+//        pObj = Aig_Mux( pNew, pCtrl, Aig_ManConst0(pNew), Aig_ObjChild0Copy(pObjLi) );
         Aig_ObjCreatePo( pNew, pObj );
     }
     Aig_ManCleanup( pNew );
@@ -566,10 +567,10 @@ p->timeCnf += clock() - clk;
         // iterate the interpolation procedure
         for ( i = 0; ; i++ )
         {
-            if ( p->nFrames + i >= 100 )
+            if ( p->nFrames + i >= 75 )
             {
                 if ( fVerbose )
-                    printf( "Reached limit (%d) on the number of timeframes.\n", 100 );
+                    printf( "Reached limit (%d) on the number of timeframes.\n", 75 );
                 p->timeTotal = clock() - clkTotal;
                 Saig_ManagerFree( p );
                 return -1;

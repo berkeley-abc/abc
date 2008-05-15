@@ -1229,7 +1229,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
         RetValue = Saig_ManBmcSimple( pMan, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &iFrame );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( RetValue == 1 )
-            printf( "No output was asserted in %d frames. ", nFrames );
+            printf( "No output was asserted in %d frames. ", iFrame );
         else if ( RetValue == -1 )
             printf( "No output was asserted in %d frames. Reached conflict limit (%d). ", iFrame, nBTLimit );
         else // if ( RetValue == 0 )
@@ -1309,15 +1309,17 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int fTryComb, int fTryBmc, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose, int TimeLimit )
+int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
 {
     Aig_Man_t * pMan;
-    int RetValue;
-    if ( fTryComb )
+    int RetValue, clkTotal = clock();
+    if ( pSecPar->fTryComb || Abc_NtkLatchNum(pNtk) == 0 )
     {
         Prove_Params_t Params, * pParams = &Params;
         Abc_Ntk_t * pNtkComb;
         int RetValue, clk = clock();
+        if ( Abc_NtkLatchNum(pNtk) == 0 )
+            printf( "The network has no latches. Running CEC.\n" );
         // create combinational network
         pNtkComb = Abc_NtkDup( pNtk );
         Abc_NtkMakeComb( pNtkComb, 1 );
@@ -1332,14 +1334,27 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int fTryComb, int fTryBmc, int nFrames, i
         {
             printf( "Networks are equivalent after CEC.   " );
             PRT( "Time", clock() - clk );
+            if ( pSecPar->fReportSolution )
+            {
+            printf( "SOLUTION: PASS       " );
+            PRT( "Time", clock() - clkTotal );
+            }
             return RetValue;
         }
     }
-    if ( fTryBmc )
+    if ( pSecPar->fTryBmc )
     {
-        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, 1000, 0, 1, 0 );
+        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, 2000, 0, 1, 0 );
         if ( RetValue == 0 )
+        {
+            printf( "Networks are not equivalent.\n" );
+            if ( pSecPar->fReportSolution )
+            {
+            printf( "SOLUTION: FAIL       " );
+            PRT( "Time", clock() - clkTotal );
+            }
             return RetValue;
+        }
     }
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
@@ -1350,7 +1365,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int fTryComb, int fTryBmc, int nFrames, i
     }
     assert( pMan->nRegs > 0 );
     // perform verification
-    RetValue = Fra_FraigSec( pMan, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose, TimeLimit );
+    RetValue = Fra_FraigSec( pMan, pSecPar );
     pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
     if ( pNtk->pSeqModel )
     {
@@ -1372,7 +1387,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int fTryComb, int fTryBmc, int nFrames, i
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
 {
 //    Fraig_Params_t Params;
     Aig_Man_t * pMan;
@@ -1392,8 +1407,8 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fPhase
         extern void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel, int nFrames );
         printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         // report the error
-        pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, nFrames );
-        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pMiter->pModel, nFrames );
+        pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, pSecPar->nFramesMax );
+        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pMiter->pModel, pSecPar->nFramesMax );
         FREE( pMiter->pModel );
         Abc_NtkDelete( pMiter );
         return 0;
@@ -1444,7 +1459,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fPhase
     assert( pMan->nRegs > 0 );
 
     // perform verification
-    RetValue = Fra_FraigSec( pMan, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose, 0 );
+    RetValue = Fra_FraigSec( pMan, pSecPar );
     Aig_ManStop( pMan );
     return RetValue;
 }
