@@ -3266,6 +3266,10 @@ SOURCE=.\src\aig\saig\saigInter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigIoa.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigPhase.c
 # End Source File
 # Begin Source File
@@ -3283,6 +3287,10 @@ SOURCE=.\src\aig\saig\saigRetStep.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigScl.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigTrans.c
 # End Source File
 # End Group
 # Begin Group "bbr"

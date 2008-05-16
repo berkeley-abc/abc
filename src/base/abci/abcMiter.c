@@ -766,7 +766,7 @@ void Abc_NtkMiterReport( Abc_Ntk_t * pMiter )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
+Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial, int fVerbose )
 {
     char Buffer[1000];
     ProgressBar * pProgress;

@@ -135,6 +135,7 @@ struct Aig_Man_t_
     Vec_Int_t *      vLevelR;        // the reverse level of the nodes
     int              nLevelMax;      // maximum number of levels
     void *           pData;          // the temporary data
+    void *           pData2;         // the temporary data
     int              nTravIds;       // the current traversal ID
     int              fCatchExor;     // enables EXOR nodes
     int              fAddStrash;     // performs additional strashing
@@ -497,6 +498,7 @@ extern int             Aig_ManCleanup( Aig_Man_t * p );
 extern int             Aig_ManPiCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
 extern void            Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew );
+extern void            Aig_ManSetRegNum( Aig_Man_t * p, int nRegs );
 /*=== aigMem.c ==========================================================*/
 extern void            Aig_ManStartMemory( Aig_Man_t * p );
 extern void            Aig_ManStopMemory( Aig_Man_t * p );
@@ -625,6 +627,7 @@ extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
 extern void            Aig_ManSetPioNumbers( Aig_Man_t * p );
 extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
 extern int             Aig_ManCountChoices( Aig_Man_t * p );
+extern char *          Aig_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern unsigned        Aig_ManRandom( int fReset );
 
 /*=== aigWin.c =========================================================*/

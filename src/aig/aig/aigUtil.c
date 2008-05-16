@@ -992,6 +992,28 @@ void Aig_ManPrintControlFanouts( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the composite name of the file.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Aig_FileNameGenericAppend( char * pBase, char * pSuffix )
+{
+    static char Buffer[1000];
+    char * pDot;
+    strcpy( Buffer, pBase );
+    if ( (pDot = strrchr( Buffer, '.' )) )
+        *pDot = 0;
+    strcat( Buffer, pSuffix );
+    return Buffer;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates a sequence or random numbers.]
 
   Description []

@@ -478,7 +478,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // create the timeframes
-    pFrames = Abc_NtkFrames( pMiter, nFrames, 1 );
+    pFrames = Abc_NtkFrames( pMiter, nFrames, 1, 0 );
     Abc_NtkDelete( pMiter );
     if ( pFrames == NULL )
     {
@@ -564,7 +564,7 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
     }
 
     // create the timeframes
-    pFrames = Abc_NtkFrames( pMiter, nFrames, 1 );
+    pFrames = Abc_NtkFrames( pMiter, nFrames, 1, 0 );
     Abc_NtkDelete( pMiter );
     if ( pFrames == NULL )
     {
@@ -777,7 +777,7 @@ void Abc_NtkGetSeqPoSupp( Abc_Ntk_t * pNtk, int iFrame, int iNumPo )
     Vec_Ptr_t * vSupp;
     int i, k;
     // get the timeframes of the network
-    pFrames = Abc_NtkFrames( pNtk, iFrame + 1, 0 );
+    pFrames = Abc_NtkFrames( pNtk, iFrame + 1, 0, 0 );
 //Abc_NtkShowAig( pFrames );
 
     // get the PO of the timeframes

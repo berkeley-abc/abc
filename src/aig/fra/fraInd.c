@@ -616,6 +616,63 @@ finish:
     return pManAigNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Outputs a set of pairs of equivalent nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_FraigInductionTest( char * pFileName, Fra_Ssw_t * pParams )
+{
+    extern Aig_Man_t * Saig_ManReadBlif( char * pFileName );
+    FILE * pFile;
+    char * pFilePairs;
+    Aig_Man_t * pMan, * pNew;
+    Aig_Obj_t * pObj, * pRepr;
+    int * pNum2Id;
+    int i, Counter = 0;
+    pMan = Saig_ManReadBlif( pFileName );
+    if ( pMan == NULL )
+        return 0;
+    // perform seq SAT sweeping
+    pNew = Fra_FraigInduction( pMan, pParams );
+    if ( pNew == NULL )
+    {
+        Aig_ManStop( pMan );
+        return 0;
+    }
+    if ( pParams->fVerbose )
+    {
+        printf( "Original AIG: " );
+        Aig_ManPrintStats( pMan );
+        printf( "Reduced  AIG: " );
+        Aig_ManPrintStats( pNew );
+    }
+    Aig_ManStop( pNew );
+    pNum2Id = pMan->pData;
+    // write the output file
+    pFilePairs = Aig_FileNameGenericAppend( pFileName, ".pairs" );
+    pFile = fopen( pFilePairs, "w" );
+    Aig_ManForEachObj( pMan, pObj, i )
+        if ( (pRepr = pMan->pReprs[pObj->Id]) )
+        {
+            fprintf( pFile, "%d %d %c\n", pNum2Id[pObj->Id], pNum2Id[pRepr->Id], (Aig_ObjPhase(pObj) ^ Aig_ObjPhase(pRepr))? '-' : '+' );
+            Counter++;
+        }
+    fclose( pFile );
+    if ( pParams->fVerbose )
+    {
+        printf( "Result: %d pairs of seq equiv nodes are written into file \"%s\".\n", Counter, pFilePairs );
+    }
+    Aig_ManStop( pMan );
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

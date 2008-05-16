@@ -359,6 +359,25 @@ void Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew )
     printf( "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sets the number of registers in the AIG manager.]
+
+  Description [This procedure should be called after the manager is 
+  fully constructed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManSetRegNum( Aig_Man_t * p, int nRegs )
+{
+    p->nRegs = nRegs;
+    p->nTruePis = Aig_ManPiNum(p) - nRegs;
+    p->nTruePos = Aig_ManPoNum(p) - nRegs;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

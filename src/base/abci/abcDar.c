@@ -1491,6 +1491,7 @@ Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchE
     if ( pMan->vFlopNums )
         Vec_IntFree( pMan->vFlopNums );
     pMan->vFlopNums = NULL;
+
     pMan = Aig_ManScl( pTemp = pMan, fLatchConst, fLatchEqual, fVerbose );
     Aig_ManStop( pTemp );
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
@@ -2083,6 +2084,38 @@ Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, in
 
 /**Function*************************************************************
 
+  Synopsis    [Performs phase abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarFrames( Abc_Ntk_t * pNtk, int nPrefix, int nFrames, int fInit, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 0, 0 );
+    pMan->nRegs = Abc_NtkLatchNum(pNtk);
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Saig_ManTimeframeSimplify( pTemp = pMan, nPrefix, nFrames, fInit, fVerbose );
+    Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs BDD-based reachability analysis.]
 
   Description []
@@ -2106,6 +2139,38 @@ void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartitio
     Aig_ManStop( pMan );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Performs BDD-based reachability analysis.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDarTest( Abc_Ntk_t * pNtk )
+{
+    Aig_Man_t * pMan;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    pMan->nRegs = Abc_NtkLatchNum(pNtk);
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+    if ( pMan == NULL )
+        return;
+
+Aig_ManSetRegNum( pMan, pMan->nRegs );
+Aig_ManPrintStats( pMan );
+Saig_ManDumpBlif( pMan, "_temp_.blif" );
+Aig_ManStop( pMan );
+pMan = Saig_ManReadBlif( "_temp_.blif" );
+Aig_ManPrintStats( pMan );
+
+    Aig_ManStop( pMan );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

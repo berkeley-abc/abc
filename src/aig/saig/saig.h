@@ -79,6 +79,9 @@ static inline int          Saig_ObjIsLi( Aig_Man_t * p, Aig_Obj_t * pObj )    { 
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame );
 /*=== saigCone.c ==========================================================*/
 extern void              Saig_ManPrintCones( Aig_Man_t * p );
+/*=== saigIoa.c ==========================================================*/
+extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
+extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
 /*=== saigInter.c ==========================================================*/
 extern int               Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose, int * pDepth );
 /*=== saigPhase.c ==========================================================*/
@@ -92,6 +95,8 @@ extern Aig_Man_t *       Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, in
 extern void              Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward );
 /*=== saigScl.c ==========================================================*/
 extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
+/*=== saigTrans.c ==========================================================*/
+extern Aig_Man_t *       Saig_ManTimeframeSimplify( Aig_Man_t * pAig, int nFrames, int nFramesMax, int fInit, int fVerbose );
 
 #ifdef __cplusplus
 }

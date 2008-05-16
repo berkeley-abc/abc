@@ -91,6 +91,7 @@ static int Abc_CommandOrPos          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAndPos         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAppend         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDFrames        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAig            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -181,6 +182,7 @@ static int Abc_CommandFlowRetime     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSeqFpga        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqMap         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqSweep       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqSweepTest   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLcorr          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqCleanup     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCycle          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -345,6 +347,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "andpos",        Abc_CommandAndPos,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
+    Cmd_CommandAdd( pAbc, "Various",      "dframes",       Abc_CommandDFrames,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "aig",           Abc_CommandAig,              0 );
@@ -432,6 +435,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "smap",          Abc_CommandSeqMap,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "ssweep",        Abc_CommandSeqSweep,         1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "testssw",       Abc_CommandSeqSweepTest,     0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "lcorr",         Abc_CommandLcorr,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "scleanup",      Abc_CommandSeqCleanup,       1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "cycle",         Abc_CommandCycle,            1 );
@@ -5071,8 +5075,9 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkTemp, * pNtkRes;
-    int fInitial;
     int nFrames;
+    int fInitial;
+    int fVerbose;
     int c;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -5080,10 +5085,11 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fInitial = 0;
     nFrames  = 5;
+    fInitial = 0;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fih" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5100,6 +5106,9 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'i':
             fInitial ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -5118,11 +5127,11 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
-        pNtkRes  = Abc_NtkFrames( pNtkTemp, nFrames, fInitial );
+        pNtkRes  = Abc_NtkFrames( pNtkTemp, nFrames, fInitial, fVerbose );
         Abc_NtkDelete( pNtkTemp );
     }
     else
-        pNtkRes  = Abc_NtkFrames( pNtk, nFrames, fInitial );
+        pNtkRes  = Abc_NtkFrames( pNtk, nFrames, fInitial, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Unrolling the network has failed.\n" );
@@ -5133,13 +5142,127 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: frames [-F num] [-ih]\n" );
+    fprintf( pErr, "usage: frames [-F num] [-ivh]\n" );
     fprintf( pErr, "\t         unrolls the network for a number of time frames\n" );
     fprintf( pErr, "\t-F num : the number of frames to unroll [default = %d]\n", nFrames );
     fprintf( pErr, "\t-i     : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );  
+    fprintf( pErr, "\t-v     : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkTemp, * pNtkRes;
+    int nPrefix;
+    int nFrames;
+    int fInitial;
+    int fVerbose;
+    int c;
+
+    extern Abc_Ntk_t * Abc_NtkDarFrames( Abc_Ntk_t * pNtk, int nPrefix, int nFrames, int fInitial, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nPrefix  = 5;
+    nFrames  = 5;
+    fInitial = 0;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NFivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPrefix = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPrefix <= 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames <= 0 ) 
+                goto usage;
+            break;
+        case 'i':
+            fInitial ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( nPrefix > nFrames )
+    {
+        fprintf( pErr, "Prefix (%d) cannot be more than the number of frames (%d).\n", nPrefix, nFrames );
+        return 1;
+    }
+
+    // get the new network
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
+        pNtkRes  = Abc_NtkDarFrames( pNtkTemp, nPrefix, nFrames, fInitial, fVerbose );
+        Abc_NtkDelete( pNtkTemp );
+    }
+    else
+        pNtkRes  = Abc_NtkDarFrames( pNtk, nPrefix, nFrames, fInitial, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Unrolling the network has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dframes [-NF num] [-ivh]\n" );
+    fprintf( pErr, "\t         unrolls the network with simplification\n" );
+    fprintf( pErr, "\t-N num : the number of frames to use as prefix [default = %d]\n", nPrefix );
+    fprintf( pErr, "\t-F num : the number of frames to unroll [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-i     : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );  
+    fprintf( pErr, "\t-v     : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 
 /**Function*************************************************************
@@ -7352,6 +7475,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
 //    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
     extern Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose );
+    extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
 
 
 
@@ -7537,6 +7661,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 //    Abc_NtkDarPartition( pNtk );
+Abc_NtkDarTest( pNtk );
+return 0;
 
     pNtkRes = Abc_NtkDarRetimeStep( pNtk, 0 );
     if ( pNtkRes == NULL )
@@ -12877,6 +13003,170 @@ usage:
     fprintf( pErr, "\t-t     : toggle using one-hotness conditions [default = %s]\n", pPars->fUse1Hot? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSeqSweepTest( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * pFileName;
+    Fra_Ssw_t Pars, * pPars = &Pars;
+    int c;
+//    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, Fra_Ssw_t * pPars );
+    extern int Fra_FraigInductionTest( char * pFileName, Fra_Ssw_t * pParams );
+
+    // set defaults
+    pPars->nPartSize  = 0;
+    pPars->nOverSize  = 0;
+    pPars->nFramesP   = 0;
+    pPars->nFramesK   = 1;
+    pPars->nMaxImps   = 5000;
+    pPars->nMaxLevs   = 0;
+    pPars->fUseImps   = 0;
+    pPars->fRewrite   = 0;
+    pPars->fFraiging  = 0;
+    pPars->fLatchCorr = 0;
+    pPars->fWriteImps = 0;
+    pPars->fUse1Hot   = 0;
+    pPars->fVerbose   = 0;
+    pPars->TimeLimit  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILirfletvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPartSize < 2 ) 
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nOverSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nOverSize < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesP = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesP < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesK = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesK <= 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxImps = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxImps <= 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxLevs <= 0 ) 
+                goto usage;
+            break;
+        case 'i':
+            pPars->fUseImps ^= 1;
+            break;
+        case 'r':
+            pPars->fRewrite ^= 1;
+            break;
+        case 'f':
+            pPars->fFraiging ^= 1;
+            break;
+        case 'l':
+            pPars->fLatchCorr ^= 1;
+            break;
+        case 'e':
+            pPars->fWriteImps ^= 1;
+            break;
+        case 't':
+            pPars->fUse1Hot ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    // get the input file name
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    else
+    {
+        printf( "File name should be given on the command line.\n" );
+        return 1;
+    }
+    Fra_FraigInductionTest( pFileName, pPars );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: testssw [-PQNFL num] [-lrfetvh] <file>\n" );
+    fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
+    fprintf( stdout, "\t         (outputs a file with a set of pairs of equivalent nodes)\n" );
+    fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
+    fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
+    fprintf( stdout, "\t-N num : number of time frames to use as the prefix [default = %d]\n", pPars->nFramesP );
+    fprintf( stdout, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", pPars->nFramesK );
+    fprintf( stdout, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
+//    fprintf( stdout, "\t-I num : max number of implications to consider [default = %d]\n", pPars->nMaxImps );
+//    fprintf( stdout, "\t-i     : toggle using implications [default = %s]\n", pPars->fUseImps? "yes": "no" );
+    fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
+    fprintf( stdout, "\t-r     : toggle AIG rewriting [default = %s]\n", pPars->fRewrite? "yes": "no" );
+    fprintf( stdout, "\t-f     : toggle fraiging (combinational SAT sweeping) [default = %s]\n", pPars->fFraiging? "yes": "no" );
+    fprintf( stdout, "\t-e     : toggle writing implications as assertions [default = %s]\n", pPars->fWriteImps? "yes": "no" );
+    fprintf( stdout, "\t-t     : toggle using one-hotness conditions [default = %s]\n", pPars->fUse1Hot? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
 

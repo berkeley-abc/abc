@@ -14,13 +14,13 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: mainInt.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: mainInt.h,v 1.1 2008/05/14 22:13:13 wudenni Exp $]
 
 ***********************************************************************/
 
 #ifndef __MAIN_INT_H__
 #define __MAIN_INT_H__
-
+ 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -93,21 +93,31 @@ struct Abc_Frame_t_
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#else  /* defined(WIN32) */
+#define DLLIMPORT
+#endif /* defined(WIN32) */
+
+#ifndef ABC_DLL
+#define ABC_DLL DLLIMPORT
+#endif
 
 /*=== mvMain.c ===========================================================*/
-extern int             main( int argc, char * argv[] );
+extern ABC_DLL int             main( int argc, char * argv[] );
 /*=== mvInit.c ===================================================*/
-extern void            Abc_FrameInit( Abc_Frame_t * pAbc );
-extern void            Abc_FrameEnd( Abc_Frame_t * pAbc );
+extern ABC_DLL void            Abc_FrameInit( Abc_Frame_t * pAbc );
+extern ABC_DLL void            Abc_FrameEnd( Abc_Frame_t * pAbc );
 /*=== mvFrame.c =====================================================*/
-extern Abc_Frame_t *   Abc_FrameAllocate();
-extern void            Abc_FrameDeallocate( Abc_Frame_t * p );
+extern ABC_DLL Abc_Frame_t *   Abc_FrameAllocate();
+extern ABC_DLL void            Abc_FrameDeallocate( Abc_Frame_t * p );
 /*=== mvUtils.c =====================================================*/
-extern char *          Abc_UtilsGetVersion( Abc_Frame_t * pAbc );
-extern char *          Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc );
-extern void            Abc_UtilsPrintHello( Abc_Frame_t * pAbc );
-extern void            Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName );
-extern void            Abc_UtilsSource( Abc_Frame_t * pAbc );
+extern ABC_DLL char *          Abc_UtilsGetVersion( Abc_Frame_t * pAbc );
+extern ABC_DLL char *          Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc );
+extern ABC_DLL void            Abc_UtilsPrintHello( Abc_Frame_t * pAbc );
+extern ABC_DLL void            Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName );
+extern ABC_DLL void            Abc_UtilsSource( Abc_Frame_t * pAbc );
 
 #endif
 

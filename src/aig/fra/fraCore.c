@@ -411,6 +411,7 @@ p->timeTrav += clock() - clk2;
     }
     else
     {
+        Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
         Aig_ManCleanup( p->pManFraig );
         pManAigNew = p->pManFraig;
         p->pManFraig = NULL;

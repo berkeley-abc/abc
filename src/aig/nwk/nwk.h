@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: nwk.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: nwk.h,v 1.1 2008/05/14 22:13:09 wudenni Exp $]
 
 ***********************************************************************/
  
@@ -28,6 +28,8 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#pragma warning( disable : 4273 )
 
 #include "aig.h"
 #include "hop.h"
@@ -117,6 +119,16 @@ struct Nwk_Obj_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      INLINED FUNCTIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#else  /* defined(WIN32) */
+#define DLLIMPORT
+#endif /* defined(WIN32) */
+
+#ifndef ABC_DLL
+#define ABC_DLL DLLIMPORT
+#endif
 
 static inline int         Nwk_ManCiNum( Nwk_Man_t * p )           { return p->nObjs[NWK_OBJ_CI];                } 
 static inline int         Nwk_ManCoNum( Nwk_Man_t * p )           { return p->nObjs[NWK_OBJ_CO];                } 
@@ -124,9 +136,9 @@ static inline int         Nwk_ManNodeNum( Nwk_Man_t * p )         { return p->nO
 static inline int         Nwk_ManLatchNum( Nwk_Man_t * p )        { return p->nObjs[NWK_OBJ_LATCH];             } 
 static inline int         Nwk_ManObjNumMax( Nwk_Man_t * p )       { return Vec_PtrSize(p->vObjs);               }
 
-static inline Nwk_Obj_t * Nwk_ManCi( Nwk_Man_t * p, int i )       { return Vec_PtrEntry( p->vCis, i );          } 
-static inline Nwk_Obj_t * Nwk_ManCo( Nwk_Man_t * p, int i )       { return Vec_PtrEntry( p->vCos, i );          } 
-static inline Nwk_Obj_t * Nwk_ManObj( Nwk_Man_t * p, int i )      { return Vec_PtrEntry( p->vObjs, i );         } 
+static inline Nwk_Obj_t * Nwk_ManCi( Nwk_Man_t * p, int i )       { return (Nwk_Obj_t *)Vec_PtrEntry( p->vCis, i );          } 
+static inline Nwk_Obj_t * Nwk_ManCo( Nwk_Man_t * p, int i )       { return (Nwk_Obj_t *)Vec_PtrEntry( p->vCos, i );          } 
+static inline Nwk_Obj_t * Nwk_ManObj( Nwk_Man_t * p, int i )      { return (Nwk_Obj_t *)Vec_PtrEntry( p->vObjs, i );         } 
 
 static inline int         Nwk_ObjId( Nwk_Obj_t * p )              { return p->Id;                               } 
 static inline int         Nwk_ObjPioNum( Nwk_Obj_t * p )          { return p->PioId;                            } 
@@ -216,76 +228,76 @@ static inline int         Nwk_ManTimeMore( float f1, float f2, float Eps )   { r
 ////////////////////////////////////////////////////////////////////////
 
 /*=== nwkAig.c ==========================================================*/
-extern Vec_Ptr_t *     Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose );
+extern ABC_DLL Vec_Ptr_t *     Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose );
 /*=== nwkBidec.c ==========================================================*/
-extern void            Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose );
-extern Hop_Obj_t *     Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
+extern ABC_DLL void            Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose );
+extern ABC_DLL Hop_Obj_t *     Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
 /*=== nwkCheck.c ==========================================================*/
-extern int             Nwk_ManCheck( Nwk_Man_t * p );
+extern ABC_DLL int             Nwk_ManCheck( Nwk_Man_t * p );
 /*=== nwkDfs.c ==========================================================*/
-extern int             Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk );
-extern int             Nwk_ManLevelBackup( Nwk_Man_t * pNtk );
-extern int             Nwk_ManLevel( Nwk_Man_t * pNtk );
-extern int             Nwk_ManLevelMax( Nwk_Man_t * pNtk );
-extern Vec_Vec_t *     Nwk_ManLevelize( Nwk_Man_t * pNtk );
-extern Vec_Ptr_t *     Nwk_ManDfs( Nwk_Man_t * pNtk );
-extern Vec_Ptr_t *     Nwk_ManDfsNodes( Nwk_Man_t * pNtk, Nwk_Obj_t ** ppNodes, int nNodes );
-extern Vec_Ptr_t *     Nwk_ManDfsReverse( Nwk_Man_t * pNtk );
-extern Vec_Ptr_t *     Nwk_ManSupportNodes( Nwk_Man_t * pNtk, Nwk_Obj_t ** ppNodes, int nNodes );
-extern void            Nwk_ManSupportSum( Nwk_Man_t * pNtk );
-extern int             Nwk_ObjMffcLabel( Nwk_Obj_t * pNode );
+extern ABC_DLL int             Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManLevelBackup( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManLevel( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManLevelMax( Nwk_Man_t * pNtk );
+extern ABC_DLL Vec_Vec_t *     Nwk_ManLevelize( Nwk_Man_t * pNtk );
+extern ABC_DLL Vec_Ptr_t *     Nwk_ManDfs( Nwk_Man_t * pNtk );
+extern ABC_DLL Vec_Ptr_t *     Nwk_ManDfsNodes( Nwk_Man_t * pNtk, Nwk_Obj_t ** ppNodes, int nNodes );
+extern ABC_DLL Vec_Ptr_t *     Nwk_ManDfsReverse( Nwk_Man_t * pNtk );
+extern ABC_DLL Vec_Ptr_t *     Nwk_ManSupportNodes( Nwk_Man_t * pNtk, Nwk_Obj_t ** ppNodes, int nNodes );
+extern ABC_DLL void            Nwk_ManSupportSum( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ObjMffcLabel( Nwk_Obj_t * pNode );
 /*=== nwkFanio.c ==========================================================*/
-extern void            Nwk_ObjCollectFanins( Nwk_Obj_t * pNode, Vec_Ptr_t * vNodes );
-extern void            Nwk_ObjCollectFanouts( Nwk_Obj_t * pNode, Vec_Ptr_t * vNodes );
-extern int             Nwk_ObjFindFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
-extern int             Nwk_ObjFindFanout( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanout );
-extern void            Nwk_ObjAddFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
-extern void            Nwk_ObjDeleteFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
-extern void            Nwk_ObjPatchFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFaninOld, Nwk_Obj_t * pFaninNew );
-extern void            Nwk_ObjTransferFanout( Nwk_Obj_t * pNodeFrom, Nwk_Obj_t * pNodeTo );
-extern void            Nwk_ObjReplace( Nwk_Obj_t * pNodeOld, Nwk_Obj_t * pNodeNew );
+extern ABC_DLL void            Nwk_ObjCollectFanins( Nwk_Obj_t * pNode, Vec_Ptr_t * vNodes );
+extern ABC_DLL void            Nwk_ObjCollectFanouts( Nwk_Obj_t * pNode, Vec_Ptr_t * vNodes );
+extern ABC_DLL int             Nwk_ObjFindFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
+extern ABC_DLL int             Nwk_ObjFindFanout( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanout );
+extern ABC_DLL void            Nwk_ObjAddFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
+extern ABC_DLL void            Nwk_ObjDeleteFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
+extern ABC_DLL void            Nwk_ObjPatchFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFaninOld, Nwk_Obj_t * pFaninNew );
+extern ABC_DLL void            Nwk_ObjTransferFanout( Nwk_Obj_t * pNodeFrom, Nwk_Obj_t * pNodeTo );
+extern ABC_DLL void            Nwk_ObjReplace( Nwk_Obj_t * pNodeOld, Nwk_Obj_t * pNodeNew );
 /*=== nwkFlow.c ============================================================*/
-extern Vec_Ptr_t *     Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
-extern Vec_Ptr_t *     Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
+extern ABC_DLL Vec_Ptr_t *     Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
+extern ABC_DLL Vec_Ptr_t *     Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
 /*=== nwkMan.c ============================================================*/
-extern Nwk_Man_t *     Nwk_ManAlloc();
-extern void            Nwk_ManFree( Nwk_Man_t * p );
-extern void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl );
+extern ABC_DLL Nwk_Man_t *     Nwk_ManAlloc();
+extern ABC_DLL void            Nwk_ManFree( Nwk_Man_t * p );
+extern ABC_DLL void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl );
 /*=== nwkMap.c ============================================================*/
-extern Nwk_Man_t *     Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
+extern ABC_DLL Nwk_Man_t *     Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
 /*=== nwkObj.c ============================================================*/
-extern Nwk_Obj_t *     Nwk_ManCreateCi( Nwk_Man_t * pMan, int nFanouts );
-extern Nwk_Obj_t *     Nwk_ManCreateCo( Nwk_Man_t * pMan );
-extern Nwk_Obj_t *     Nwk_ManCreateNode( Nwk_Man_t * pMan, int nFanins, int nFanouts );
-extern Nwk_Obj_t *     Nwk_ManCreateBox( Nwk_Man_t * pMan, int nFanins, int nFanouts );
-extern Nwk_Obj_t *     Nwk_ManCreateLatch( Nwk_Man_t * pMan );
-extern void            Nwk_ManDeleteNode( Nwk_Obj_t * pObj );
-extern void            Nwk_ManDeleteNode_rec( Nwk_Obj_t * pObj );
+extern ABC_DLL Nwk_Obj_t *     Nwk_ManCreateCi( Nwk_Man_t * pMan, int nFanouts );
+extern ABC_DLL Nwk_Obj_t *     Nwk_ManCreateCo( Nwk_Man_t * pMan );
+extern ABC_DLL Nwk_Obj_t *     Nwk_ManCreateNode( Nwk_Man_t * pMan, int nFanins, int nFanouts );
+extern ABC_DLL Nwk_Obj_t *     Nwk_ManCreateBox( Nwk_Man_t * pMan, int nFanins, int nFanouts );
+extern ABC_DLL Nwk_Obj_t *     Nwk_ManCreateLatch( Nwk_Man_t * pMan );
+extern ABC_DLL void            Nwk_ManDeleteNode( Nwk_Obj_t * pObj );
+extern ABC_DLL void            Nwk_ManDeleteNode_rec( Nwk_Obj_t * pObj );
 /*=== nwkSpeedup.c ============================================================*/
-extern Aig_Man_t *     Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
+extern ABC_DLL Aig_Man_t *     Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
 /*=== nwkStrash.c ============================================================*/
-extern Aig_Man_t *     Nwk_ManStrash( Nwk_Man_t * pNtk );
+extern ABC_DLL Aig_Man_t *     Nwk_ManStrash( Nwk_Man_t * pNtk );
 /*=== nwkTiming.c ============================================================*/
-extern int             Nwk_ManVerifyTiming(  Nwk_Man_t * pNtk );
-extern void            Nwk_ManDelayTraceSortPins( Nwk_Obj_t * pNode, int * pPinPerm, float * pPinDelays );
-extern float           Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk );
-extern void            Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk );
-extern void            Nwk_ManUpdate( Nwk_Obj_t * pObj, Nwk_Obj_t * pObjNew, Vec_Vec_t * vLevels );
-extern int             Nwk_ManVerifyLevel( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManVerifyTiming(  Nwk_Man_t * pNtk );
+extern ABC_DLL void            Nwk_ManDelayTraceSortPins( Nwk_Obj_t * pNode, int * pPinPerm, float * pPinDelays );
+extern ABC_DLL float           Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk );
+extern ABC_DLL void            Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk );
+extern ABC_DLL void            Nwk_ManUpdate( Nwk_Obj_t * pObj, Nwk_Obj_t * pObjNew, Vec_Vec_t * vLevels );
+extern ABC_DLL int             Nwk_ManVerifyLevel( Nwk_Man_t * pNtk );
 /*=== nwkUtil.c ============================================================*/
-extern void            Nwk_ManIncrementTravId( Nwk_Man_t * pNtk );
-extern int             Nwk_ManGetFaninMax( Nwk_Man_t * pNtk );
-extern int             Nwk_ManGetTotalFanins( Nwk_Man_t * pNtk );
-extern int             Nwk_ManPiNum( Nwk_Man_t * pNtk );
-extern int             Nwk_ManPoNum( Nwk_Man_t * pNtk );
-extern int             Nwk_ManGetAigNodeNum( Nwk_Man_t * pNtk );
-extern int             Nwk_NodeCompareLevelsIncrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
-extern int             Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
-extern void            Nwk_ObjPrint( Nwk_Obj_t * pObj );
-extern void            Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
-extern void            Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk );
-extern void            Nwk_ManCleanMarks( Nwk_Man_t * pNtk );
-extern void            Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose );
+extern ABC_DLL void            Nwk_ManIncrementTravId( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManGetFaninMax( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManGetTotalFanins( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManPiNum( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManPoNum( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_ManGetAigNodeNum( Nwk_Man_t * pNtk );
+extern ABC_DLL int             Nwk_NodeCompareLevelsIncrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
+extern ABC_DLL int             Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
+extern ABC_DLL void            Nwk_ObjPrint( Nwk_Obj_t * pObj );
+extern ABC_DLL void            Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
+extern ABC_DLL void            Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk );
+extern ABC_DLL void            Nwk_ManCleanMarks( Nwk_Man_t * pNtk );
+extern ABC_DLL void            Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose );
 
 #ifdef __cplusplus
 }

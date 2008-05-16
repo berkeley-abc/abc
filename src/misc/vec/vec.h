@@ -72,6 +72,10 @@ typedef long long          sint64;
 #define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
 #endif
 
+#ifndef CALLOC
+#define CALLOC(type, num)     ((type *) calloc((num), sizeof(type)))
+#endif
+
 #ifndef FREE
 #define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
 #endif

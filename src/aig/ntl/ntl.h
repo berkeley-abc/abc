@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: .h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ntl.h,v 1.1 2008/05/14 22:13:09 wudenni Exp $]
 
 ***********************************************************************/
  
@@ -145,8 +145,18 @@ struct Ntl_Lut_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      INLINED FUNCTIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#else  /* defined(WIN32) */
+#define DLLIMPORT
+#endif /* defined(WIN32) */
 
-static inline Ntl_Mod_t * Ntl_ManRootModel( Ntl_Man_t * p )       { return Vec_PtrEntry( p->vModels, 0 );       } 
+#ifndef ABC_DLL
+#define ABC_DLL DLLIMPORT
+#endif
+
+static inline Ntl_Mod_t * Ntl_ManRootModel( Ntl_Man_t * p )       { return (Ntl_Mod_t *)Vec_PtrEntry( p->vModels, 0 );       } 
 
 static inline int         Ntl_ModelPiNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PI];                } 
 static inline int         Ntl_ModelPoNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PO];                } 
@@ -157,8 +167,8 @@ static inline int         Ntl_ModelBoxNum( Ntl_Mod_t * p )        { return p->nO
 static inline int         Ntl_ModelCiNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PI] + p->nObjs[NTL_OBJ_LATCH]; } 
 static inline int         Ntl_ModelCoNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PO] + p->nObjs[NTL_OBJ_LATCH]; } 
 
-static inline Ntl_Obj_t * Ntl_ModelPi( Ntl_Mod_t * p, int i )     { return Vec_PtrEntry(p->vPis, i);            } 
-static inline Ntl_Obj_t * Ntl_ModelPo( Ntl_Mod_t * p, int i )     { return Vec_PtrEntry(p->vPos, i);            } 
+static inline Ntl_Obj_t * Ntl_ModelPi( Ntl_Mod_t * p, int i )     { return (Ntl_Obj_t *)Vec_PtrEntry(p->vPis, i);            } 
+static inline Ntl_Obj_t * Ntl_ModelPo( Ntl_Mod_t * p, int i )     { return (Ntl_Obj_t *)Vec_PtrEntry(p->vPos, i);            } 
 
 static inline char *      Ntl_ModelPiName( Ntl_Mod_t * p, int i ) { return Ntl_ModelPi(p, i)->pFanio[0]->pName; } 
 static inline char *      Ntl_ModelPoName( Ntl_Mod_t * p, int i ) { return Ntl_ModelPo(p, i)->pFanio[0]->pName; } 
@@ -188,7 +198,7 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
 ////////////////////////////////////////////////////////////////////////
 
 #define Ntl_ManForEachModel( p, pMod, i )                                       \
-    Vec_PtrForEachEntry( p->vModels, pMod, i )
+    for ( i = 0; (i < Vec_PtrSize(p->vModels)) && (((pMod) = (Ntl_Mod_t*)Vec_PtrEntry(p->vModels, i)), 1); i++ )
 #define Ntl_ManForEachCiNet( p, pNet, i )                                       \
     Vec_PtrForEachEntry( p->vCis, pNet, i )
 #define Ntl_ManForEachCoNet( p, pNet, i )                                       \
@@ -201,20 +211,20 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
         if ( (pObj) == NULL || !Ntl_ObjIsBox(pObj) ) {} else
 
 #define Ntl_ModelForEachPi( pNwk, pObj, i )                                     \
-    Vec_PtrForEachEntry( pNwk->vPis, pObj, i )
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vPis)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vPis, i)), 1); i++ )
 #define Ntl_ModelForEachPo( pNwk, pObj, i )                                     \
-    Vec_PtrForEachEntry( pNwk->vPos, pObj, i )
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vPos)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vPos, i)), 1); i++ )
 #define Ntl_ModelForEachObj( pNwk, pObj, i )                                    \
-    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( pObj == NULL ) {} else
 #define Ntl_ModelForEachLatch( pNwk, pObj, i )                                  \
-    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
-        if ( (pObj) == NULL || !Ntl_ObjIsLatch(pObj) ) {} else
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
+        if ( (pObj) == NULL || !Ntl_ObjIsLatch((Ntl_Obj_t*)pObj) ) {} else
 #define Ntl_ModelForEachNode( pNwk, pObj, i )                                   \
-    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Ntl_ObjIsNode(pObj) ) {} else
 #define Ntl_ModelForEachBox( pNwk, pObj, i )                                    \
-    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Ntl_ObjIsBox(pObj) ) {} else
 #define Ntl_ModelForEachNet( pNwk, pNet, i )                                    \
     for ( i = 0; i < pNwk->nTableSize; i++ )                                    \
@@ -230,84 +240,84 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
 ////////////////////////////////////////////////////////////////////////
 
 /*=== ntlCore.c ==========================================================*/
-extern int             Ntl_ManInsertTest( Ntl_Man_t * p, Aig_Man_t * pAig );
-extern int             Ntl_ManInsertTestIf( Ntl_Man_t * p, Aig_Man_t * pAig );
+extern ABC_DLL int             Ntl_ManInsertTest( Ntl_Man_t * p, Aig_Man_t * pAig );
+extern ABC_DLL int             Ntl_ManInsertTestIf( Ntl_Man_t * p, Aig_Man_t * pAig );
 /*=== ntlEc.c ==========================================================*/
-extern void            Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan1, Aig_Man_t ** ppMan2 );
-extern Aig_Man_t *     Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
+extern ABC_DLL void            Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan1, Aig_Man_t ** ppMan2 );
+extern ABC_DLL Aig_Man_t *     Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
 /*=== ntlExtract.c ==========================================================*/
-extern Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
-extern Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p, int fSeq );
-extern Aig_Man_t *     Ntl_ManCollapseForCec( Ntl_Man_t * p );
-extern Aig_Man_t *     Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 );
+extern ABC_DLL Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
+extern ABC_DLL Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p, int fSeq );
+extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseForCec( Ntl_Man_t * p );
+extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 );
 /*=== ntlInsert.c ==========================================================*/
-extern Ntl_Man_t *     Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
-extern Ntl_Man_t *     Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig );
-extern Ntl_Man_t *     Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk );
+extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
+extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig );
+extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk );
 /*=== ntlCheck.c ==========================================================*/
-extern int             Ntl_ManCheck( Ntl_Man_t * pMan );
-extern int             Ntl_ModelCheck( Ntl_Mod_t * pModel );
-extern void            Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel );
+extern ABC_DLL int             Ntl_ManCheck( Ntl_Man_t * pMan );
+extern ABC_DLL int             Ntl_ModelCheck( Ntl_Mod_t * pModel );
+extern ABC_DLL void            Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel );
 /*=== ntlMan.c ============================================================*/
-extern Ntl_Man_t *     Ntl_ManAlloc();
-extern void            Ntl_ManCleanup( Ntl_Man_t * p );
-extern Ntl_Man_t *     Ntl_ManStartFrom( Ntl_Man_t * p );
-extern Ntl_Man_t *     Ntl_ManDup( Ntl_Man_t * p );
-extern void            Ntl_ManFree( Ntl_Man_t * p );
-extern int             Ntl_ManIsComb( Ntl_Man_t * p );
-extern int             Ntl_ManLatchNum( Ntl_Man_t * p );
-extern Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
-extern void            Ntl_ManPrintStats( Ntl_Man_t * p );
-extern Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
-extern Ntl_Mod_t *     Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName );
-extern Ntl_Mod_t *     Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
-extern Ntl_Mod_t *     Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
-extern void            Ntl_ModelFree( Ntl_Mod_t * p );
+extern ABC_DLL Ntl_Man_t *     Ntl_ManAlloc();
+extern ABC_DLL void            Ntl_ManCleanup( Ntl_Man_t * p );
+extern ABC_DLL Ntl_Man_t *     Ntl_ManStartFrom( Ntl_Man_t * p );
+extern ABC_DLL Ntl_Man_t *     Ntl_ManDup( Ntl_Man_t * p );
+extern ABC_DLL void            Ntl_ManFree( Ntl_Man_t * p );
+extern ABC_DLL int             Ntl_ManIsComb( Ntl_Man_t * p );
+extern ABC_DLL int             Ntl_ManLatchNum( Ntl_Man_t * p );
+extern ABC_DLL Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
+extern ABC_DLL void            Ntl_ManPrintStats( Ntl_Man_t * p );
+extern ABC_DLL Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
+extern ABC_DLL Ntl_Mod_t *     Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName );
+extern ABC_DLL Ntl_Mod_t *     Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
+extern ABC_DLL Ntl_Mod_t *     Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
+extern ABC_DLL void            Ntl_ModelFree( Ntl_Mod_t * p );
 /*=== ntlMap.c ============================================================*/
-extern Vec_Ptr_t *     Ntl_MappingAlloc( int nLuts, int nVars );
-extern Vec_Ptr_t *     Ntl_MappingFromAig( Aig_Man_t * p );
-extern Vec_Ptr_t *     Ntl_MappingFpga( Aig_Man_t * p );
-extern Vec_Ptr_t *     Ntl_MappingIf( Ntl_Man_t * pMan, Aig_Man_t * p );
+extern ABC_DLL Vec_Ptr_t *     Ntl_MappingAlloc( int nLuts, int nVars );
+extern ABC_DLL Vec_Ptr_t *     Ntl_MappingFromAig( Aig_Man_t * p );
+extern ABC_DLL Vec_Ptr_t *     Ntl_MappingFpga( Aig_Man_t * p );
+extern ABC_DLL Vec_Ptr_t *     Ntl_MappingIf( Ntl_Man_t * pMan, Aig_Man_t * p );
 /*=== ntlObj.c ============================================================*/
-extern Ntl_Obj_t *     Ntl_ModelCreatePi( Ntl_Mod_t * pModel );
-extern Ntl_Obj_t *     Ntl_ModelCreatePo( Ntl_Mod_t * pModel, Ntl_Net_t * pNet );
-extern Ntl_Obj_t *     Ntl_ModelCreateLatch( Ntl_Mod_t * pModel );
-extern Ntl_Obj_t *     Ntl_ModelCreateNode( Ntl_Mod_t * pModel, int nFanins );
-extern Ntl_Obj_t *     Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts );
-extern Ntl_Obj_t *     Ntl_ModelDupObj( Ntl_Mod_t * pModel, Ntl_Obj_t * pOld );
-extern Ntl_Obj_t *     Ntl_ModelCreatePiWithName( Ntl_Mod_t * pModel, char * pName );
-extern char *          Ntl_ManStoreName( Ntl_Man_t * p, char * pName );
-extern char *          Ntl_ManStoreSop( Aig_MmFlex_t * pMan, char * pSop );
-extern char *          Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFileName );
+extern ABC_DLL Ntl_Obj_t *     Ntl_ModelCreatePi( Ntl_Mod_t * pModel );
+extern ABC_DLL Ntl_Obj_t *     Ntl_ModelCreatePo( Ntl_Mod_t * pModel, Ntl_Net_t * pNet );
+extern ABC_DLL Ntl_Obj_t *     Ntl_ModelCreateLatch( Ntl_Mod_t * pModel );
+extern ABC_DLL Ntl_Obj_t *     Ntl_ModelCreateNode( Ntl_Mod_t * pModel, int nFanins );
+extern ABC_DLL Ntl_Obj_t *     Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts );
+extern ABC_DLL Ntl_Obj_t *     Ntl_ModelDupObj( Ntl_Mod_t * pModel, Ntl_Obj_t * pOld );
+extern ABC_DLL Ntl_Obj_t *     Ntl_ModelCreatePiWithName( Ntl_Mod_t * pModel, char * pName );
+extern ABC_DLL char *          Ntl_ManStoreName( Ntl_Man_t * p, char * pName );
+extern ABC_DLL char *          Ntl_ManStoreSop( Aig_MmFlex_t * pMan, char * pSop );
+extern ABC_DLL char *          Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFileName );
 /*=== ntlSweep.c ==========================================================*/
-extern int             Ntl_ManSweep( Ntl_Man_t * p, int fVerbose );
+extern ABC_DLL int             Ntl_ManSweep( Ntl_Man_t * p, int fVerbose );
 /*=== ntlTable.c ==========================================================*/
-extern Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
-extern Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
-extern int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber );
-extern int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
-extern int             Ntl_ModelClearNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
-extern void            Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet );
-extern int             Ntl_ModelCountNets( Ntl_Mod_t * p );
+extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
+extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
+extern ABC_DLL int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber );
+extern ABC_DLL int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
+extern ABC_DLL int             Ntl_ModelClearNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
+extern ABC_DLL void            Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet );
+extern ABC_DLL int             Ntl_ModelCountNets( Ntl_Mod_t * p );
 /*=== ntlTime.c ==========================================================*/
-extern Tim_Man_t *     Ntl_ManCreateTiming( Ntl_Man_t * p );
+extern ABC_DLL Tim_Man_t *     Ntl_ManCreateTiming( Ntl_Man_t * p );
 /*=== ntlReadBlif.c ==========================================================*/
-extern Ntl_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
+extern ABC_DLL Ntl_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
 /*=== ntlWriteBlif.c ==========================================================*/
-extern void            Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName );
-extern void            Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName );
+extern ABC_DLL void            Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName );
+extern ABC_DLL void            Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName );
 /*=== ntlUtil.c ==========================================================*/
-extern int             Ntl_ModelCountLut1( Ntl_Mod_t * pRoot );
-extern int             Ntl_ModelGetFaninMax( Ntl_Mod_t * pRoot );
-extern Ntl_Net_t *     Ntl_ModelFindSimpleNet( Ntl_Net_t * pNetCo );
-extern int             Ntl_ManCountSimpleCoDrivers( Ntl_Man_t * p );
-extern Vec_Ptr_t *     Ntl_ManCollectCiNames( Ntl_Man_t * p );
-extern Vec_Ptr_t *     Ntl_ManCollectCoNames( Ntl_Man_t * p );
-extern void            Ntl_ManMarkCiCoNets( Ntl_Man_t * p );
-extern void            Ntl_ManUnmarkCiCoNets( Ntl_Man_t * p );
-extern int             Ntl_ManCheckNetsAreNotMarked( Ntl_Mod_t * pModel );
-extern void            Ntl_ManSetZeroInitValues( Ntl_Man_t * p );
-extern void            Ntl_ManTransformInitValues( Ntl_Man_t * p );
+extern ABC_DLL int             Ntl_ModelCountLut1( Ntl_Mod_t * pRoot );
+extern ABC_DLL int             Ntl_ModelGetFaninMax( Ntl_Mod_t * pRoot );
+extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindSimpleNet( Ntl_Net_t * pNetCo );
+extern ABC_DLL int             Ntl_ManCountSimpleCoDrivers( Ntl_Man_t * p );
+extern ABC_DLL Vec_Ptr_t *     Ntl_ManCollectCiNames( Ntl_Man_t * p );
+extern ABC_DLL Vec_Ptr_t *     Ntl_ManCollectCoNames( Ntl_Man_t * p );
+extern ABC_DLL void            Ntl_ManMarkCiCoNets( Ntl_Man_t * p );
+extern ABC_DLL void            Ntl_ManUnmarkCiCoNets( Ntl_Man_t * p );
+extern ABC_DLL int             Ntl_ManCheckNetsAreNotMarked( Ntl_Mod_t * pModel );
+extern ABC_DLL void            Ntl_ManSetZeroInitValues( Ntl_Man_t * p );
+extern ABC_DLL void            Ntl_ManTransformInitValues( Ntl_Man_t * p );
 
 #ifdef __cplusplus
 }
