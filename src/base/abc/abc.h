@@ -29,8 +29,6 @@ extern "C" {
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#pragma warning( disable : 4273 )
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -225,6 +223,8 @@ struct Abc_Lib_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+//#pragma warning( disable : 4273 )
 
 #ifdef WIN32
 #define DLLEXPORT __declspec(dllexport)

@@ -40,11 +40,13 @@
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDup( Aig_Man_t * p )
+Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj, * pObjNew;
     int i;
+    assert( p->pManTime == NULL );
+    assert( p->pManHaig == NULL || Aig_ManBufNum(p) == 0 );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
@@ -88,12 +90,109 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p )
         pObj->pData = pObjNew;
     }
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
-    // duplicate the timing manager
-    if ( p->pManTime )
-        pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
+    // pass the HAIG manager
+    if ( p->pManHaig != NULL )
+    {
+        pNew->pManHaig = p->pManHaig;  
+        p->pManHaig = NULL;
+    }
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDup(): The check has failed.\n" );
+        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_ManDupSimpleDfs_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    if ( pObj->pData )
+        return pObj->pData;
+    Aig_ManDupSimpleDfs_rec( pNew, p, Aig_ObjFanin0(pObj) );
+    if ( Aig_ObjIsBuf(pObj) )
+        return pObj->pData = Aig_ObjChild0Copy(pObj);
+    Aig_ManDupSimpleDfs_rec( pNew, p, Aig_ObjFanin1(pObj) );
+    pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    Aig_Regular(pObj->pData)->pHaig = pObj->pHaig;
+    return pObj->pData;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description [Orders nodes as follows: PIs, ANDs, POs.]
+               
+  SideEffects [This procedure assumes that buffers are not used during
+  HAIG recording. This way, each HAIG node is in one-to-one correspondence 
+  with old HAIG node. There is no need to create new nodes, just reassign 
+  the pointers. If it were not the case, we would need to create HAIG nodes 
+  for each new node duplicated. ]
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjNew;
+    int i;
+    assert( p->pManTime == NULL );
+    assert( p->pManHaig == NULL || Aig_ManBufNum(p) == 0 );
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->nRegs = p->nRegs;
+    pNew->nTruePis = p->nTruePis;
+    pNew->nTruePos = p->nTruePos;
+    pNew->nAsserts = p->nAsserts;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
+    Aig_ManForEachPi( p, pObj, i )
+    {
+        pObjNew = Aig_ObjCreatePi( pNew );
+        pObjNew->pHaig = pObj->pHaig;
+        pObjNew->Level = pObj->Level;
+        pObj->pData = pObjNew;
+    }
+    // duplicate internal nodes
+    Aig_ManForEachObj( p, pObj, i )
+        if ( !Aig_ObjIsPo(pObj) )
+        {
+            Aig_ManDupSimpleDfs_rec( pNew, p, pObj );        
+            assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
+        }
+    // add the POs
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObjNew->pHaig = pObj->pHaig;
+        pObj->pData = pObjNew;
+    }
+    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
+    // pass the HAIG manager
+    if ( p->pManHaig != NULL )
+    {
+        pNew->pManHaig = p->pManHaig;  
+        p->pManHaig = NULL;
+    }
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 
@@ -160,6 +259,12 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
+    // pass the HAIG manager
+    if ( p->pManHaig != NULL )
+    {
+        pNew->pManHaig = p->pManHaig;  
+        p->pManHaig = NULL;
+    }
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManDupOrdered(): The check has failed.\n" );
@@ -255,7 +360,9 @@ Aig_Obj_t * Aig_ManDupDfs_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj
         return pObj->pData = Aig_ObjChild0Copy(pObj);
     Aig_ManDupDfs_rec( pNew, p, Aig_ObjFanin1(pObj) );
     pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
-    if ( pObj->pHaig )
+    if ( p->pManHaig != NULL )
+        Aig_Regular(pObjNew)->pHaig = Aig_NotCond( pObj->pHaig, Aig_IsComplement(pObjNew) );
+    else if ( pObj->pHaig )
         Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
     if ( pEquivNew )
     {
@@ -313,7 +420,7 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
         {
             pObjNew = Aig_ObjCreatePi( pNew );
             pObjNew->Level = pObj->Level;
-            Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+            pObjNew->pHaig = pObj->pHaig;
             pObj->pData = pObjNew;
         }
         else if ( Aig_ObjIsPo(pObj) )
@@ -321,7 +428,7 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
             Aig_ManDupDfs_rec( pNew, p, Aig_ObjFanin0(pObj) );        
 //            assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
             pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-            Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+            pObjNew->pHaig = pObj->pHaig;
             pObj->pData = pObjNew;
         }
     }
@@ -331,6 +438,12 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
+    // pass the HAIG manager
+    if ( p->pManHaig != NULL )
+    {
+        pNew->pManHaig = p->pManHaig;  
+        p->pManHaig = NULL;
+    }
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManDupDfs(): The check has failed.\n" );
@@ -379,7 +492,7 @@ Vec_Ptr_t * Aig_ManOrderPios( Aig_Man_t * p, Aig_Man_t * pOrder )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Aig_ManDupDfsOrder_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+Aig_Obj_t * Aig_ManDupDfsGuided_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pObjNew, * pEquivNew = NULL;
     if ( pObj->pData )
@@ -387,12 +500,12 @@ Aig_Obj_t * Aig_ManDupDfsOrder_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t *
     if ( Aig_ObjIsPi(pObj) )
         return NULL;
     if ( p->pEquivs && Aig_ObjEquiv(p, pObj) )
-        pEquivNew = Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjEquiv(p, pObj) );
-    if ( !Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjFanin0(pObj) ) )
+        pEquivNew = Aig_ManDupDfsGuided_rec( pNew, p, Aig_ObjEquiv(p, pObj) );
+    if ( !Aig_ManDupDfsGuided_rec( pNew, p, Aig_ObjFanin0(pObj) ) )
         return NULL;
     if ( Aig_ObjIsBuf(pObj) )
         return pObj->pData = Aig_ObjChild0Copy(pObj);
-    if ( !Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjFanin1(pObj) ) )
+    if ( !Aig_ManDupDfsGuided_rec( pNew, p, Aig_ObjFanin1(pObj) ) )
         return NULL;
     pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
     if ( pObj->pHaig )
@@ -418,7 +531,7 @@ Aig_Obj_t * Aig_ManDupDfsOrder_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t *
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder )
+Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide )
 {
     Vec_Ptr_t * vPios;
     Aig_Man_t * pNew;
@@ -448,7 +561,7 @@ Aig_Man_t * Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder )
     // duplicate internal nodes
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
-    vPios = Aig_ManOrderPios( p, pOrder );
+    vPios = Aig_ManOrderPios( p, pGuide );
     Vec_PtrForEachEntry( vPios, pObj, i )
     {
         if ( Aig_ObjIsPi(pObj) )
@@ -460,7 +573,7 @@ Aig_Man_t * Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder )
         }
         else if ( Aig_ObjIsPo(pObj) )
         {
-            Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjFanin0(pObj) );        
+            Aig_ManDupDfsGuided_rec( pNew, p, Aig_ObjFanin0(pObj) );        
 //            assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
             pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
             Aig_Regular(pObjNew)->pHaig = pObj->pHaig;

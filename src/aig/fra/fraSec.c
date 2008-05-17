@@ -82,7 +82,7 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec )
     float TimeLeft = 0.0;
 
     // try the miter before solving
-    pNew = Aig_ManDup( p );
+    pNew = Aig_ManDupSimple( p );
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue >= 0 )
         goto finish;
@@ -144,7 +144,7 @@ clk = clock();
 PRT( "Time", clock() - clk );
     }
     }
-    
+     
     // run latch correspondence
 clk = clock();
     if ( pNew->nRegs )
@@ -165,21 +165,26 @@ clk = clock();
         }
     }
     pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 1000, 1, pParSec->fVeryVerbose, &nIter, TimeLeft );
-    if ( pNew == NULL )
-    {
-        pNew = pTemp;
-        RetValue = -1;
-        TimeOut = 1;
-        goto finish;
-    }
     p->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
     Aig_ManStop( pTemp );
     if ( pNew == NULL )
     {
-        RetValue = 0;
-        printf( "Networks are NOT EQUIVALENT after simulation.   " );
+        if ( p->pSeqModel )
+        {
+            RetValue = 0;
+            printf( "Networks are NOT EQUIVALENT after simulation.   " );
 PRT( "Time", clock() - clkTotal );
-        return RetValue;
+            if ( pParSec->fReportSolution && !pParSec->fRecursive )
+            {
+            printf( "SOLUTION: FAIL       " );
+PRT( "Time", clock() - clkTotal );
+            }
+            return RetValue;
+        }
+        pNew = pTemp;
+        RetValue = -1;
+        TimeOut = 1;
+        goto finish;
     }
 
     if ( pParSec->fVerbose )
@@ -354,6 +359,11 @@ PRT( "Time", clock() - clk );
             RetValue = 0;
             printf( "Networks are NOT EQUIVALENT after simulation.   " );
 PRT( "Time", clock() - clkTotal );
+            if ( pParSec->fReportSolution && !pParSec->fRecursive )
+            {
+            printf( "SOLUTION: FAIL       " );
+PRT( "Time", clock() - clkTotal );
+            }
             return RetValue;
         }
         Fra_SmlStop( pSml );

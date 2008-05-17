@@ -2762,19 +2762,36 @@ usage:
 int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;
+    Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
+    int fCleanupPis;
+    int fCleanupPos;
+    int fVerbose;
+
+    extern Abc_Ntk_t * Abc_NtkDarCleanupAig( Abc_Ntk_t * pNtk, int fCleanupPis, int fCleanupPos, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fCleanupPis = 1;
+    fCleanupPos = 1;
+    fVerbose    = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "iovh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'i':
+            fCleanupPis ^= 1;
+            break;
+        case 'o':
+            fCleanupPos ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -2789,16 +2806,35 @@ int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Cleanup cannot be performed on the AIG.\n" );
+        if ( !fCleanupPos && !fCleanupPos )
+        {
+            printf( "Cleanup for PIs and POs is not enabled.\n" );
+            pNtkRes = Abc_NtkDup( pNtk );
+        }
+        else
+            pNtkRes = Abc_NtkDarCleanupAig( pNtk, fCleanupPis, fCleanupPos, fVerbose );
+    }
+    else
+    {
+        Abc_NtkCleanup( pNtk, fVerbose );
+        pNtkRes = Abc_NtkDup( pNtk );
+    }
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Cleanup has failed.\n" );
         return 1;
     }
-    // modify the current network
-    Abc_NtkCleanup( pNtk, 1 );
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cleanup [-h]\n" );
-    fprintf( pErr, "\t        removes dangling nodes\n" );
+    fprintf( pErr, "usage: cleanup [-iovh]\n" );
+    fprintf( pErr, "\t        for logic networks, removes dangling combinatinal logic\n" );
+    fprintf( pErr, "\t        for AIGs, removes PIs w/o fanout and POs driven by const-0\n" );
+    fprintf( pErr, "\t-i    : toggles removing PIs without fanout [default = %s]\n", fCleanupPis? "yes": "no" );
+    fprintf( pErr, "\t-o    : toggles removing POs with const-0 drivers [default = %s]\n", fCleanupPos? "yes": "no" );
+    fprintf( pErr, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -7469,7 +7505,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
 //    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
-//    extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
+    extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
@@ -7661,7 +7697,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 //    Abc_NtkDarPartition( pNtk );
-Abc_NtkDarTest( pNtk );
+//Abc_NtkDarTest( pNtk );
+
+
+Abc_NtkDarHaigRecord( pNtk );
 return 0;
 
     pNtkRes = Abc_NtkDarRetimeStep( pNtk, 0 );

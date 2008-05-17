@@ -105,9 +105,9 @@ static inline void Fra_FramesConstrainNode( Aig_Man_t * pManFraig, Aig_Obj_t * p
     // set the new node
     Fra_ObjSetFraig( pObj, iFrame, pObjNew2 );
     // add the constraint
-    pMiter = Aig_Exor( pManFraig, Aig_Regular(pObjNew), Aig_Regular(pObjReprNew) );
-    pMiter = Aig_NotCond( pMiter, Aig_Regular(pMiter)->fPhase ^ Aig_IsComplement(pMiter) );
-    pMiter = Aig_Not( pMiter );
+    pMiter = Aig_Exor( pManFraig, pObjNew, pObjReprNew );
+    pMiter = Aig_NotCond( pMiter, !Aig_ObjPhaseReal(pMiter) );
+    assert( Aig_ObjPhaseReal(pMiter) == 1 );
     Aig_ObjCreatePo( pManFraig, pMiter );
 }
 

@@ -68,6 +68,7 @@ void Aig_TableResize( Aig_Man_t * p )
     Aig_Obj_t * pEntry, * pNext;
     Aig_Obj_t ** pTableOld, ** ppPlace;
     int nTableSizeOld, Counter, i, clk;
+    assert( p->pTable != NULL );
 clk = clock();
     // save the old table
     pTableOld = p->pTable;
@@ -115,7 +116,7 @@ Aig_Obj_t * Aig_TableLookup( Aig_Man_t * p, Aig_Obj_t * pGhost )
     assert( Aig_ObjIsNode(pGhost) );
     assert( Aig_ObjChild0(pGhost) && Aig_ObjChild1(pGhost) );
     assert( Aig_ObjFanin0(pGhost)->Id < Aig_ObjFanin1(pGhost)->Id );
-    if ( !Aig_ObjRefs(Aig_ObjFanin0(pGhost)) || !Aig_ObjRefs(Aig_ObjFanin1(pGhost)) )
+    if ( p->pTable == NULL || !Aig_ObjRefs(Aig_ObjFanin0(pGhost)) || !Aig_ObjRefs(Aig_ObjFanin1(pGhost)) )
         return NULL;
     for ( pEntry = p->pTable[Aig_Hash(pGhost, p->nTableSize)]; pEntry; pEntry = pEntry->pNext )
     {

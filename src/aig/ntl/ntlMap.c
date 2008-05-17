@@ -129,7 +129,7 @@ void Ntl_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
-    pPars->Epsilon     =  (float)0.001;
+    pPars->Epsilon     =  (float)0.005;
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;

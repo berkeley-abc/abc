@@ -53,6 +53,7 @@ void Lpk_IfManStart( Lpk_Man_t * p )
     pPars->nFlowIters  =  0; // 1
     pPars->nAreaIters  =  0; // 1 
     pPars->DelayTarget = -1;
+    pPars->Epsilon     =  (float)0.005;
     pPars->fPreprocess =  0;
     pPars->fArea       =  1;
     pPars->fFancy      =  0;

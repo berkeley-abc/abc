@@ -79,6 +79,8 @@ static inline int          Saig_ObjIsLi( Aig_Man_t * p, Aig_Obj_t * pObj )    { 
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame );
 /*=== saigCone.c ==========================================================*/
 extern void              Saig_ManPrintCones( Aig_Man_t * p );
+/*=== saigHaig.c ==========================================================*/
+extern void              Saig_ManHaigRecord( Aig_Man_t * p );
 /*=== saigIoa.c ==========================================================*/
 extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );

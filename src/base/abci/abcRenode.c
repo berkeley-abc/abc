@@ -74,6 +74,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
     pPars->nFlowIters  =  nFlowIters;
     pPars->nAreaIters  =  nAreaIters;
     pPars->DelayTarget = -1;
+    pPars->Epsilon     =  (float)0.005;
     pPars->fPreprocess =  1;
     pPars->fArea       =  fArea;
     pPars->fFancy      =  0;

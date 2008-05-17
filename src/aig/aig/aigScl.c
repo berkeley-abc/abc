@@ -103,7 +103,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     assert( Aig_ManNodeNum(p) >= Aig_ManNodeNum(pNew) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDup(): The check has failed.\n" );
+        printf( "Aig_ManRemap(): The check has failed.\n" );
     return pNew;
 }
 
@@ -598,7 +598,7 @@ Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int 
     // store the original AIG
     assert( pAig->vFlopNums == NULL );
     pAigInit = pAig;
-    pAig = Aig_ManDup( pAig );
+    pAig = Aig_ManDupSimple( pAig );
     // create storage for latch numbers
     pAig->vFlopNums = Vec_IntStartNatural( pAig->nRegs );
     pAig->vFlopReprs = Vec_IntAlloc( 100 );

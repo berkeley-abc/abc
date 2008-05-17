@@ -133,7 +133,7 @@ p->timeCuts += clock() - clk;
             // remove the old cuts
             Dar_ObjSetCuts( pObj, NULL );
             // replace the node
-            Aig_ObjReplace( pAig, pObj, pObjNew, 1, p->pPars->fUpdateLevel );
+            Aig_ObjReplace( pAig, pObj, pObjNew, p->pPars->fUpdateLevel );
             continue;
         }
 
@@ -156,7 +156,7 @@ p->timeCuts += clock() - clk;
         pObjNew = Aig_NotCond( pObjNew, Aig_ObjPhaseReal(pObjNew) ^ pObj->fPhase );
         assert( (int)Aig_Regular(pObjNew)->Level <= Required );
         // replace the node
-        Aig_ObjReplace( pAig, pObj, pObjNew, 1, p->pPars->fUpdateLevel );
+        Aig_ObjReplace( pAig, pObj, pObjNew, p->pPars->fUpdateLevel );
         // compare the gains
         nNodeAfter = Aig_ManNodeNum( pAig );
         assert( p->GainBest <= nNodeBefore - nNodeAfter );

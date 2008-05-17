@@ -523,6 +523,7 @@ void Abc_NtkRecAdd( Abc_Ntk_t * pNtk )
     pPars->nFlowIters  =  0;
     pPars->nAreaIters  =  0;
     pPars->DelayTarget = -1;
+    pPars->Epsilon     =  (float)0.005;
     pPars->fPreprocess =  0;
     pPars->fArea       =  1;
     pPars->fFancy      =  0;

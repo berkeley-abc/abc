@@ -353,7 +353,18 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     // make sure the balanced node is not assigned
 //    assert( pObjOld->Level >= Aig_Regular(pObjNew)->Level );
     assert( pObjOld->pData == NULL );
-    Aig_Regular(pObjNew)->pHaig = pObjOld->pHaig;
+    if ( pNew->pManHaig != NULL )
+    {
+        Aig_Obj_t * pObjNewR = Aig_Regular(pObjNew);
+//        printf( "Balancing HAIG node %d equivalent to HAIG node %d (over = %d).\n", 
+//            pObjNewR->pHaig->Id, pObjOld->pHaig->Id, pObjNewR->pHaig->pHaig != NULL );
+        assert( pObjNewR->pHaig != NULL );
+//        assert( pObjNewR->pHaig->pHaig == NULL );
+        assert( !Aig_IsComplement(pObjNewR->pHaig) );
+        pObjNewR->pHaig->pHaig = pObjOld->pHaig;
+    }
+    else
+        Aig_Regular(pObjNew)->pHaig = pObjOld->pHaig;
     return pObjOld->pData = pObjNew;
 }
 
@@ -383,6 +394,12 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
+    // pass the HAIG manager
+    if ( p->pManHaig != NULL )
+    {
+        pNew->pManHaig = p->pManHaig;  p->pManHaig = NULL;
+        Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(pNew->pManHaig);
+    }
     // map the PI nodes
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -401,6 +418,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 // copy the PI
                 pObjNew = Aig_ObjCreatePi(pNew); 
                 pObj->pData = pObjNew;
+                pObjNew->pHaig = pObj->pHaig;
                 // set the arrival time of the new PI
                 arrTime = Tim_ManGetCiArrival( p->pManTime, Aig_ObjPioNum(pObj) );
                 pObjNew->Level = (int)arrTime;
@@ -411,10 +429,12 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
                 pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
                 pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
-                Aig_ObjCreatePo( pNew, pObjNew );
                 // save arrival time of the output
                 arrTime = (float)Aig_Regular(pObjNew)->Level;
                 Tim_ManSetCoArrival( p->pManTime, Aig_ObjPioNum(pObj), arrTime );
+                // create PO
+                pObjNew = Aig_ObjCreatePo( pNew, pObjNew );
+                pObjNew->pHaig = pObj->pHaig;
             }
             else
                 assert( 0 );
@@ -429,13 +449,15 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
             pObjNew = Aig_ObjCreatePi(pNew); 
             pObjNew->Level = pObj->Level;
             pObj->pData = pObjNew;
+            pObjNew->pHaig = pObj->pHaig;
         }
         Aig_ManForEachPo( p, pObj, i )
         {
             pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
             pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
             pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
-            Aig_ObjCreatePo( pNew, pObjNew );
+            pObjNew = Aig_ObjCreatePo( pNew, pObjNew );
+            pObjNew->pHaig = pObj->pHaig;
         }
     }
     Vec_VecFree( vStore );

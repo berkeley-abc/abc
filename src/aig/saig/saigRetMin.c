@@ -622,7 +622,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnl
     Vec_Ptr_t * vCut;
     Aig_Man_t * pNew, * pTemp, * pCopy;
     int i, fChanges;
-    pNew = Aig_ManDup( p );
+    pNew = Aig_ManDupSimple( p );
     // perform several iterations of forward retiming
     fChanges = 0;
     if ( !fBackwardOnly )
@@ -672,7 +672,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnl
     {
         if ( Saig_ManRegNum(pNew) == 0 )
             break;
-        pCopy = Aig_ManDup( pNew );
+        pCopy = Aig_ManDupSimple( pNew );
         pTemp = Saig_ManRetimeMinAreaBackward( pCopy, fVerbose );
         Aig_ManStop( pCopy );
         if ( pTemp == NULL )

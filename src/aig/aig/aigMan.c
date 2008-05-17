@@ -163,7 +163,7 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     Aig_ObjCreatePo( pNew, pObj );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDup(): The check has failed.\n" );
+        printf( "Aig_ManExtractMiter(): The check has failed.\n" );
     return pNew;
 }
 
@@ -235,8 +235,7 @@ int Aig_ManCleanup( Aig_Man_t * p )
 {
     Vec_Ptr_t * vObjs;
     Aig_Obj_t * pNode;
-    int i, nNodesOld;
-    nNodesOld = Aig_ManNodeNum(p);
+    int i, nNodesOld = Aig_ManNodeNum(p);
     // collect roots of dangling nodes
     vObjs = Vec_PtrAlloc( 100 );
     Aig_ManForEachObj( p, pNode, i )
@@ -247,6 +246,27 @@ int Aig_ManCleanup( Aig_Man_t * p )
         Aig_ObjDelete_rec( p, pNode, 1 );
     Vec_PtrFree( vObjs );
     return nNodesOld - Aig_ManNodeNum(p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds POs for the nodes that otherwise would be dangling.]
+
+  Description [Returns the number of POs added.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManAntiCleanup( Aig_Man_t * p )
+{
+    Aig_Obj_t * pNode;
+    int i, nNodesOld = Aig_ManPoNum(p);
+    Aig_ManForEachObj( p, pNode, i )
+        if ( Aig_ObjIsNode(pNode) && Aig_ObjRefs(pNode) == 0 )
+            Aig_ObjCreatePo( p, pNode );
+    return nNodesOld - Aig_ManPoNum(p);
 }
 
 /**Function*************************************************************
@@ -278,6 +298,40 @@ int Aig_ManPiCleanup( Aig_Man_t * p )
     if ( Aig_ManRegNum(p) )
         p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
     return nPisOld - Aig_ManPiNum(p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes POs with constant input.]
+
+  Description [Returns the number of POs removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManPoCleanup( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, k = 0, nPosOld = Aig_ManPoNum(p);
+    Vec_PtrForEachEntry( p->vPos, pObj, i )
+    {
+        if ( i >= Aig_ManPoNum(p) - Aig_ManRegNum(p) )
+            Vec_PtrWriteEntry( p->vPos, k++, pObj );
+        else if ( !Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) || !Aig_ObjFaninC0(pObj) ) // non-const or const1
+            Vec_PtrWriteEntry( p->vPos, k++, pObj );
+        else
+        {
+            Aig_ObjDisconnect( p, pObj );
+            Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+        }
+    }
+    Vec_PtrShrink( p->vPos, k );
+    p->nObjs[AIG_OBJ_PO] = Vec_PtrSize( p->vPos );
+    if ( Aig_ManRegNum(p) )
+        p->nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p);
+    return nPosOld - Aig_ManPoNum(p);
 }
 
 /**Function*************************************************************

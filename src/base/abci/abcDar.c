@@ -94,16 +94,6 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     pMan->fCatchExor = fExors;
 
     pMan->pName = Extra_UtilStrsav( pNtk->pName );
-    // save the number of registers
-    if ( fRegisters )
-    {
-        pMan->nRegs = Abc_NtkLatchNum(pNtk);
-        pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
-//        pMan->vFlopNums = NULL;
-//        pMan->vOnehots = Abc_NtkConverLatchNamesIntoNumbers( pNtk );
-        if ( pNtk->vOnehots )
-            pMan->vOnehots = (Vec_Ptr_t *)Vec_VecDupInt( (Vec_Vec_t *)pNtk->vOnehots );
-    }
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
@@ -134,6 +124,16 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     if ( !fExors && nNodes )
         printf( "Abc_NtkToDar(): Unexpected %d dangling nodes when converting to AIG!\n", nNodes );
 //Aig_ManDumpVerilog( pMan, "test.v" );
+    // save the number of registers
+    if ( fRegisters )
+    {
+        Aig_ManSetRegNum( pMan, Abc_NtkLatchNum(pNtk) );
+        pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
+//        pMan->vFlopNums = NULL;
+//        pMan->vOnehots = Abc_NtkConverLatchNamesIntoNumbers( pNtk );
+        if ( pNtk->vOnehots )
+            pMan->vOnehots = (Vec_Ptr_t *)Vec_VecDupInt( (Vec_Vec_t *)pNtk->vOnehots );
+    }
     if ( !Aig_ManCheck( pMan ) )
     {
         printf( "Abc_NtkToDar: AIG check has failed.\n" );
@@ -1220,8 +1220,6 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
         return RetValue;
     }
     assert( pMan->nRegs > 0 );
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan);
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan);
     // perform verification
     if ( fNewAlgo )
     {
@@ -1282,8 +1280,6 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTra
         return -1;
     }
     assert( pMan->nRegs > 0 );
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan);
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan);
     RetValue = Saig_Interpolate( pMan, nConfLimit, fRewrite, fTransLoop, fVerbose, &Depth );
     if ( RetValue == 1 )
         printf( "Property proved.  " );
@@ -1593,9 +1589,6 @@ Abc_Ntk_t * Abc_NtkDarRetimeMostFwd( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbo
         Vec_IntFree( pMan->vFlopNums ); 
     pMan->vFlopNums = NULL;
 
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
-
     pMan = Saig_ManRetimeForward( pTemp = pMan, nMaxIters, fVerbose );
     Aig_ManStop( pTemp );
 
@@ -1630,9 +1623,6 @@ Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int nMaxIters, int fForwa
         Vec_IntFree( pMan->vFlopNums ); 
     pMan->vFlopNums = NULL;
 
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
-
     pMan = Saig_ManRetimeMinArea( pTemp = pMan, nMaxIters, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
     Aig_ManStop( pTemp );
 
@@ -1664,11 +1654,8 @@ Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose )
         Vec_IntFree( pMan->vFlopNums ); 
     pMan->vFlopNums = NULL;
 
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
-
     Aig_ManPrintStats(pMan);
-    Saig_ManRetimeSteps( pMan, 1, 0 );
+    Saig_ManRetimeSteps( pMan, 1000, 1 );
     Aig_ManPrintStats(pMan);
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
@@ -1689,18 +1676,16 @@ Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose )
 ***********************************************************************/
 void Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk )
 {
-/*
     Aig_Man_t * pMan;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return;
-//    Aig_ManReduceLachesCount( pMan );
     if ( pMan->vFlopNums )
         Vec_IntFree( pMan->vFlopNums ); 
     pMan->vFlopNums = NULL;
-    Aig_ManHaigRecord( pMan );
+
+    Saig_ManHaigRecord( pMan );
     Aig_ManStop( pMan );
-*/
 }
 
 /**Function*************************************************************
@@ -2006,8 +1991,6 @@ void Abc_NtkDarPrintCone( Abc_Ntk_t * pNtk )
     if ( pMan == NULL )
         return;
     assert( Aig_ManRegNum(pMan) > 0 );
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
     Saig_ManPrintCones( pMan );
     Aig_ManStop( pMan );
 }
@@ -2063,10 +2046,7 @@ Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, in
     Vec_Int_t * vInits;
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk, 0, 0 );
-    pMan->nRegs = Abc_NtkLatchNum(pNtk);
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return NULL;
     vInits = Abc_NtkGetLatchValues(pNtk);
@@ -2097,16 +2077,50 @@ Abc_Ntk_t * Abc_NtkDarFrames( Abc_Ntk_t * pNtk, int nPrefix, int nFrames, int fI
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk, 0, 0 );
-    pMan->nRegs = Abc_NtkLatchNum(pNtk);
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return NULL;
     pMan = Saig_ManTimeframeSimplify( pTemp = pMan, nPrefix, nFrames, fInit, fVerbose );
     Aig_ManStop( pTemp );
     if ( pMan == NULL )
         return NULL;
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs phase abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarCleanupAig( Abc_Ntk_t * pNtk, int fCleanupPis, int fCleanupPos, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    if ( fCleanupPis )
+    {
+        int Temp = Aig_ManPiCleanup( pMan );
+        if ( fVerbose )
+            printf( "Cleanup removed %d primary inputs without fanout.\n", Temp );                                                                     
+    }
+    if ( fCleanupPos )
+    {
+        int Temp = Aig_ManPoCleanup( pMan );
+        if ( fVerbose )
+            printf( "Cleanup removed %d primary outputs driven by const-0.\n", Temp );                                                                     
+    }
     pNtkAig = Abc_NtkFromAigPhase( pMan );
     pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -2129,10 +2143,7 @@ void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartitio
 {
     extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
     Aig_Man_t * pMan;
-    pMan = Abc_NtkToDar( pNtk, 0, 0 );
-    pMan->nRegs = Abc_NtkLatchNum(pNtk);
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return;
     Aig_ManVerifyUsingBdds( pMan, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
@@ -2156,9 +2167,6 @@ void Abc_NtkDarTest( Abc_Ntk_t * pNtk )
     Aig_Man_t * pMan;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
-    pMan->nRegs = Abc_NtkLatchNum(pNtk);
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
     if ( pMan == NULL )
         return;
 

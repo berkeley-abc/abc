@@ -994,7 +994,7 @@ Fra_Cex_t * Fra_SmlGetCounterExample( Fra_Sml_t * p )
     }
     return pCex;
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Generates seq counter-example from the combinational one.]

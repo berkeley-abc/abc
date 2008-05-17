@@ -582,7 +582,7 @@ p->timeEval += clock() - clk;
         pObjNew = Dar_RefactBuildGraph( pAig, p->vLeavesBest, p->pGraphBest );
         assert( (int)Aig_Regular(pObjNew)->Level <= Required );
         // replace the node
-        Aig_ObjReplace( pAig, pObj, pObjNew, 1, p->pPars->fUpdateLevel );
+        Aig_ObjReplace( pAig, pObj, pObjNew, p->pPars->fUpdateLevel );
         // compare the gains
         nNodeAfter = Aig_ManNodeNum( pAig );
         assert( p->GainBest <= nNodeBefore - nNodeAfter );

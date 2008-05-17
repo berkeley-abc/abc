@@ -885,7 +885,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
         pNew = Saig_ManPerformAbstraction( pTsi, nFrames, fVerbose );
     Saig_TsiStop( pTsi );
     if ( pNew == NULL )
-        pNew = Aig_ManDup( p );
+        pNew = Aig_ManDupSimple( p );
     return pNew;
 }
 

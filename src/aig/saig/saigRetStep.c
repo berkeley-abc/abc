@@ -44,6 +44,7 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj )
     Aig_Obj_t * pFanin0, * pFanin1;
     Aig_Obj_t * pInput0, * pInput1;
     Aig_Obj_t * pObjNew, * pObjLi, * pObjLo;
+    int fCompl;
 
     assert( Saig_ManRegNum(p) > 0 );
     assert( Aig_ObjIsNode(pObj) );
@@ -68,22 +69,26 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj )
     pInput1 = Aig_ObjChild0( pInput1 );
     pInput0 = Aig_NotCond( pInput0, Aig_ObjFaninC0(pObj) );
     pInput1 = Aig_NotCond( pInput1, Aig_ObjFaninC1(pObj) );
+    // get the condition when the register should be complemetned
+    fCompl = Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj);
 
     // create new node
     pObjNew = Aig_And( p, pInput0, pInput1 );
 
     // create new register input
-    pObjLi = Aig_ObjCreatePo( p, Aig_NotCond(pObjNew, pObjNew->fPhase) );
+    pObjLi = Aig_ObjCreatePo( p, Aig_NotCond(pObjNew, fCompl) );
     pObjLi->PioNum = Aig_ManPoNum(p) - 1;
-    assert( pObjLi->fPhase == 0 );
 
     // create new register output
     pObjLo = Aig_ObjCreatePi( p );
     pObjLo->PioNum = Aig_ManPiNum(p) - 1;
     p->nRegs++;
 
+//printf( "Reg = %4d. Reg = %4d. Compl = %d. Phase = %d.\n", 
+//       pFanin0->PioNum, pFanin1->PioNum, Aig_IsComplement(pObjNew), fCompl );
+
     // return register output
-    return Aig_NotCond( pObjLo, pObjNew->fPhase );
+    return Aig_NotCond( pObjLo, fCompl );
 }
 
 /**Function*************************************************************
@@ -163,6 +168,7 @@ void Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward )
     int RetValue, s, i;
     Aig_ManSetPioNumbers( p );
     Aig_ManFanoutStart( p );
+    p->fCreatePios = 1;
     if ( fForward )
     {
         for ( s = 0; s < nSteps; s++ )
@@ -172,7 +178,7 @@ void Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward )
                 pObjNew = Saig_ManRetimeNodeFwd( p, pObj );
                 if ( pObjNew == NULL )
                     continue;
-                Aig_ObjReplace( p, pObj, pObjNew, 0, 0 );
+                Aig_ObjReplace( p, pObj, pObjNew, 0 );
                 break;
             }
         }
@@ -186,13 +192,16 @@ void Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward )
                 pObjNew = Saig_ManRetimeNodeBwd( p, pObj );
                 if ( pObjNew == NULL )
                     continue;
-                Aig_ObjReplace( p, pObj, pObjNew, 0, 0 );
+                Aig_ObjReplace( p, pObj, pObjNew, 0 );
                 break;
             }
         }
     }
+    p->fCreatePios = 0;
+    Aig_ManFanoutStop( p );
     RetValue = Aig_ManCleanup( p );
     assert( RetValue == 0 );
+    Aig_ManSetRegNum( p, p->nRegs ); 
 }
 
 ////////////////////////////////////////////////////////////////////////

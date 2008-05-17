@@ -150,6 +150,8 @@ struct Aig_Man_t_
     void *           pSeqModel;
     Aig_Man_t *      pManExdc;
     Vec_Ptr_t *      vOnehots;
+    Aig_Man_t *      pManHaig;
+    int              fCreatePios;
     // timing statistics
     int              time1;
     int              time2;
@@ -322,7 +324,8 @@ static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;           } 
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
-static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(long)pObj->pNext;                                                    }
+static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) );      } 
+static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(long)pObj->pNext;                                                   }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -469,11 +472,12 @@ extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t 
 extern void            Aig_ObjCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes );
 extern int             Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper );
 /*=== aigDup.c ==========================================================*/
-extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupSimple( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupSimpleDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupOrdered( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );
-extern Aig_Man_t *     Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder );
+extern Aig_Man_t *     Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide );
 extern Aig_Man_t *     Aig_ManDupLevelized( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepres( Aig_Man_t * p );
@@ -487,15 +491,15 @@ extern void            Aig_ManFanoutStart( Aig_Man_t * p );
 extern void            Aig_ManFanoutStop( Aig_Man_t * p );
 /*=== aigFrames.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int fRegs, int fEnlarge, Aig_Obj_t *** ppObjMap );
-/*=== aigHaig.c ==========================================================*/
-extern void            Aig_ManHaigRecord( Aig_Man_t * p );
 /*=== aigMan.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
+extern int             Aig_ManAntiCleanup( Aig_Man_t * p );
 extern int             Aig_ManPiCleanup( Aig_Man_t * p );
+extern int             Aig_ManPoCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
 extern void            Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew );
 extern void            Aig_ManSetRegNum( Aig_Man_t * p, int nRegs );
@@ -517,9 +521,9 @@ extern void            Aig_ObjConnect( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_
 extern void            Aig_ObjDisconnect( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_ObjDelete( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_ObjDelete_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fFreeTop );
-extern void            Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew );
-extern void            Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, int fNodesOnly, int fUpdateLevel );
 extern void            Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj );
+extern void            Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew );
+extern void            Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, int fUpdateLevel );
 /*=== aigOper.c =========================================================*/
 extern Aig_Obj_t *     Aig_IthVar( Aig_Man_t * p, int i );
 extern Aig_Obj_t *     Aig_Oper( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1, Aig_Type_t Type );

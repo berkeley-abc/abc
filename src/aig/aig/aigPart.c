@@ -1323,7 +1323,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
     // create the equivalent nodes lists
     Aig_ManMarkValidChoices( pAig );
     // reconstruct the network
-    pAig = Aig_ManDupDfsOrder( pTemp = pAig, Vec_PtrEntry(vAigs,0) );
+    pAig = Aig_ManDupDfsGuided( pTemp = pAig, Vec_PtrEntry(vAigs,0) );
     Aig_ManStop( pTemp );
     // duplicate the timing manager
     pTemp = Vec_PtrEntry( vAigs, 0 );
@@ -1566,7 +1566,7 @@ Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
     // create the equivalent nodes lists
     Aig_ManMarkValidChoices( pNew );
     // reconstruct the network
-    pNew = Aig_ManDupDfsOrder( pTemp = pNew, Vec_PtrEntry( vAigs, 0 ) );
+    pNew = Aig_ManDupDfsGuided( pTemp = pNew, Vec_PtrEntry( vAigs, 0 ) );
     Aig_ManStop( pTemp );
     // duplicate the timing manager
     pTemp = Vec_PtrEntry( vAigs, 0 );

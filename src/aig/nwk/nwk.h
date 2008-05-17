@@ -29,8 +29,6 @@ extern "C" {
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#pragma warning( disable : 4273 )
-
 #include "aig.h"
 #include "hop.h"
 #include "tim.h"
@@ -119,6 +117,9 @@ struct Nwk_Obj_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      INLINED FUNCTIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+//#pragma warning( disable : 4273 )
+
 #ifdef WIN32
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
