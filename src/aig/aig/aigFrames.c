@@ -117,6 +117,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
             pObjNew = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,fEnlarge?0:nFs-1) );
             Aig_ObjSetFrames( pObjMap, nFs, pObj, nFs-1, pObjNew );
         }
+        Aig_ManSetRegNum( pFrames, Aig_ManRegNum(pAig) );
     }
     Aig_ManCleanup( pFrames );
     // return the new manager

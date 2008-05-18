@@ -49,7 +49,6 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     assert( p->vFlopNums == NULL || Vec_IntSize(p->vFlopNums) == p->nRegs );
     if ( p->vFlopNums )
@@ -101,6 +100,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     Aig_ManForEachPo( p, pObj, i )
         Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     assert( Aig_ManNodeNum(p) >= Aig_ManNodeNum(pNew) );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManRemap(): The check has failed.\n" );

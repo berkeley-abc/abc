@@ -809,7 +809,7 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
 //        assert( Aig_Regular(pObjNew)->nRefs > 0 );
     }
     free( pLatches );
-    pNew->nRegs = nLatches;
+    Aig_ManSetRegNum( pNew, nLatches );
     // remove useless nodes
     Aig_ManCleanup( pNew );
     if ( !Aig_ManCheck( pNew ) )

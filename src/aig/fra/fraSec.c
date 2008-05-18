@@ -57,7 +57,7 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     p->fVeryVerbose      =   0;  // enables very verbose reporting  
     p->TimeLimit         =   0;  // enables the timeout
     // internal parameters
-    p->fReportSolution   =   1;  // enables specialized format for reporting solution
+    p->fReportSolution   =   0;  // enables specialized format for reporting solution
 }
 
 /**Function*************************************************************

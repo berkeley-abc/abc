@@ -149,9 +149,9 @@ static int Abc_CommandFraigClean     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandFraigSweep     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigDress     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandHaigStart      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandHaigStop       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandHaigUse        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandHaigStart      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandHaigStop       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+//static int Abc_CommandHaigUse        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRecStart       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecStop        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -404,9 +404,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_sweep",   Abc_CommandFraigSweep,       1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "dress",         Abc_CommandFraigDress,       1 );
 
-    Cmd_CommandAdd( pAbc, "Choicing",     "haig_start",    Abc_CommandHaigStart,        0 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "haig_stop",     Abc_CommandHaigStop,         0 );
-    Cmd_CommandAdd( pAbc, "Choicing",     "haig_use",      Abc_CommandHaigUse,          1 );
+//    Cmd_CommandAdd( pAbc, "Choicing",     "haig_start",    Abc_CommandHaigStart,        0 );
+//    Cmd_CommandAdd( pAbc, "Choicing",     "haig_stop",     Abc_CommandHaigStop,         0 );
+//    Cmd_CommandAdd( pAbc, "Choicing",     "haig_use",      Abc_CommandHaigUse,          1 );
 
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_start",     Abc_CommandRecStart,         0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop",      Abc_CommandRecStop,          0 );
@@ -7505,7 +7505,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
 //    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
-    extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
@@ -7519,13 +7519,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-//    printf( "This command is temporarily disabled.\n" );
-//    return 0;
+    printf( "This command is temporarily disabled.\n" );
+    return 0;
 
     // set defaults
     fVeryVerbose = 0;
     fVerbose = 1;
-    fBmc     = 1;
+    fBmc     = 0;
     nFrames  = 1;
     nLevels  = 200;
     Extra_UtilGetoptReset();
@@ -7685,7 +7685,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 
-//    Abc_NtkDarHaigRecord( pNtk );
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
 /*
     if ( globalUtilOptind != 1 )
@@ -7699,11 +7698,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_NtkDarPartition( pNtk );
 //Abc_NtkDarTest( pNtk );
 
-
-Abc_NtkDarHaigRecord( pNtk );
-return 0;
-
-    pNtkRes = Abc_NtkDarRetimeStep( pNtk, 0 );
+//    pNtkRes = Abc_NtkDarRetimeStep( pNtk, 0 );
+    pNtkRes = Abc_NtkDarHaigRecord( pNtk, 3, 3000, 0, 0, 0, 0 );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -7713,7 +7709,7 @@ return 0;
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 usage:
-    fprintf( pErr, "usage: test [-vwh]\n" );
+    fprintf( pErr, "usage: test [-bvwh]\n" );
     fprintf( pErr, "\t         testbench for new procedures\n" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
@@ -9398,19 +9394,29 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, fUseZeroCost, fVerbose, nIters;
-    extern Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int fVerbose );
+    int c;
+    int nIters;
+    int nSteps;
+    int fRetimingOnly;
+    int fAddBugs;
+    int fUseCnf;
+    int fVerbose;
+
+    extern Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nIters       = 2;
-    fUseZeroCost = 0;
-    fVerbose     = 1;
+    nIters        = 3;
+    nSteps        = 3000;
+    fRetimingOnly = 0;
+    fAddBugs      = 0;
+    fUseCnf       = 0;
+    fVerbose      = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Izvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ISrbcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9425,11 +9431,28 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nIters < 0 ) 
                 goto usage;
             break;
-        case 'z':
-            fUseZeroCost ^= 1;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-S\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nSteps = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSteps < 0 ) 
+                goto usage;
+            break;
+        case 'r':
+            fRetimingOnly ^= 1;
+            break;
+        case 'b':
+            fAddBugs ^= 1;
+            break;
+        case 'c':
+            fUseCnf ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            fUseCnf ^= 1;
             break;
         case 'h':
             goto usage;
@@ -9448,7 +9471,7 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtkRes = Abc_NtkIvyHaig( pNtk, nIters, fUseZeroCost, fVerbose );
+    pNtkRes = Abc_NtkDarHaigRecord( pNtk, nIters, nSteps, fRetimingOnly, fAddBugs, fUseCnf, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -9459,10 +9482,17 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: haig [-Izvh]\n" );
-    fprintf( pErr, "\t         prints HAIG stats after sequential rewriting\n" );
-    fprintf( pErr, "\t-I num : the number of rewriting iterations [default = %d]\n", nIters );
-    fprintf( pErr, "\t-z     : toggle zero-cost replacements [default = %s]\n", fUseZeroCost? "yes": "no" );
+    fprintf( pErr, "usage: haig [-IS num] [-rbcvh]\n" );
+    fprintf( pErr, "\t         run a few rounds of comb+seq synthesis to test HAIG recording\n" );
+    fprintf( pErr, "\t         the current network is set to be the result of synthesis performed\n" );
+    fprintf( pErr, "\t         (this network can be verified using command \"dsec\")\n" );
+    fprintf( pErr, "\t         HAIG is written out into the file \"haig.blif\"\n" );
+    fprintf( pErr, "\t         (this HAIG can be proved using \"r haig.blif; st; dprove -abc -F 16\")\n" );
+    fprintf( pErr, "\t-I num : the number of rounds of comb+seq synthesis [default = %d]\n", nIters );
+    fprintf( pErr, "\t-S num : the number of forward retiming moves performed [default = %d]\n", nSteps );
+    fprintf( pErr, "\t-r     : toggle the use of retiming only [default = %s]\n", fRetimingOnly? "yes": "no" );
+    fprintf( pErr, "\t-b     : toggle bug insertion [default = %s]\n", fAddBugs? "yes": "no" );
+    fprintf( pErr, "\t-c     : enable CNF-based proof (no speculative reduction) [default = %s]\n", fUseCnf? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

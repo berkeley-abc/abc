@@ -715,7 +715,7 @@ Aig_Man_t * Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 )
     pMiter = Aig_Miter(pAig, vPairs);
     Vec_PtrFree( vPairs );
     Aig_ObjPatchFanin0( pAig, Aig_ManPo(pAig,0), pMiter  );
-    pAig->nRegs = Ntl_ModelLatchNum( pRoot1 ) + Ntl_ModelLatchNum( pRoot2 );
+    Aig_ManSetRegNum( pAig, Ntl_ModelLatchNum( pRoot1 ) + Ntl_ModelLatchNum( pRoot2 ) );
     Aig_ManCleanup( pAig );
     return pAig;    
 }

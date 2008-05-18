@@ -51,9 +51,6 @@ Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
-    pNew->nTruePis = p->nTruePis;
-    pNew->nTruePos = p->nTruePos;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -90,6 +87,7 @@ Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
         pObj->pData = pObjNew;
     }
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // pass the HAIG manager
     if ( p->pManHaig != NULL )
     {
@@ -152,9 +150,6 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
-    pNew->nTruePis = p->nTruePis;
-    pNew->nTruePos = p->nTruePos;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -184,6 +179,7 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
         pObj->pData = pObjNew;
     }
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // pass the HAIG manager
     if ( p->pManHaig != NULL )
     {
@@ -216,9 +212,6 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
-    pNew->nTruePis = p->nTruePis;
-    pNew->nTruePos = p->nTruePos;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -256,6 +249,7 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( (nNodes = Aig_ManCleanup( pNew )) )
         printf( "Aig_ManDupOrdered(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
@@ -292,7 +286,6 @@ Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
     pNew->fCatchExor = 1;
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -328,6 +321,7 @@ Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
         pObj->pData = pObjNew;
     }
     Aig_ManCleanup( pNew );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
@@ -394,7 +388,6 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -435,6 +428,7 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
     assert( p->pEquivs != NULL || Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( p->pEquivs == NULL && p->pReprs == NULL && (nNodes = Aig_ManCleanup( pNew )) )
         printf( "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
@@ -541,7 +535,6 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -584,6 +577,7 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide )
 //    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( p->pEquivs == NULL && p->pReprs == NULL && (nNodes = Aig_ManCleanup( pNew )) )
         printf( "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
@@ -614,7 +608,6 @@ Aig_Man_t * Aig_ManDupLevelized( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -658,6 +651,7 @@ Aig_Man_t * Aig_ManDupLevelized( Aig_Man_t * p )
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
 //    if ( (nNodes = Aig_ManCleanup( pNew )) )
 //        printf( "Aig_ManDupLevelized(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // duplicate the timing manager
     if ( p->pManTime )
         pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
@@ -745,7 +739,6 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // map the const and primary inputs
@@ -766,6 +759,7 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
         else
             assert( 0 );
     }
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the new manager
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManDupRepres: Check has failed.\n" );
@@ -818,7 +812,6 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // map the const and primary inputs
@@ -839,6 +832,7 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
         else 
             assert( 0 );
     }
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the new manager
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManDupRepresDfs: Check has failed.\n" );

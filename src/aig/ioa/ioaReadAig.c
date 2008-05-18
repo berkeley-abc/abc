@@ -104,7 +104,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     Vec_Int_t * vLits = NULL;
     Vec_Ptr_t * vNodes, * vDrivers;//, * vTerms;
     Aig_Obj_t * pObj, * pNode0, * pNode1;
-    Aig_Man_t * pManNew;
+    Aig_Man_t * pNew;
     int nTotal, nInputs, nOutputs, nLatches, nAnds, nFileSize, i;//, iTerm, nDigits;
     char * pContents, * pDrivers, * pSymbols, * pCur, * pName;//, * pType;
     unsigned uLit0, uLit1, uLit;
@@ -143,39 +143,39 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     }
 
     // allocate the empty AIG
-    pManNew = Aig_ManStart( nAnds );
+    pNew = Aig_ManStart( nAnds );
     pName = Ioa_FileNameGeneric( pFileName );
-    pManNew->pName = Aig_UtilStrsav( pName );
-//    pManNew->pSpec = Ioa_UtilStrsav( pFileName );
+    pNew->pName = Aig_UtilStrsav( pName );
+//    pNew->pSpec = Ioa_UtilStrsav( pFileName );
     free( pName );
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );
-    Vec_PtrPush( vNodes, Aig_ManConst0(pManNew) );
+    Vec_PtrPush( vNodes, Aig_ManConst0(pNew) );
 
     // create the PIs
     for ( i = 0; i < nInputs + nLatches; i++ )
     {
-        pObj = Aig_ObjCreatePi(pManNew);    
+        pObj = Aig_ObjCreatePi(pNew);    
         Vec_PtrPush( vNodes, pObj );
     }
 /*
     // create the POs
     for ( i = 0; i < nOutputs + nLatches; i++ )
     {
-        pObj = Aig_ObjCreatePo(pManNew);   
+        pObj = Aig_ObjCreatePo(pNew);   
     }
 */
     // create the latches
-    pManNew->nRegs = nLatches;
+    pNew->nRegs = nLatches;
 /*
     nDigits = Ioa_Base10Log( nLatches );
     for ( i = 0; i < nLatches; i++ )
     {
-        pObj = Aig_ObjCreateLatch(pManNew);
+        pObj = Aig_ObjCreateLatch(pNew);
         Aig_LatchSetInit0( pObj );
-        pNode0 = Aig_ObjCreateBi(pManNew);
-        pNode1 = Aig_ObjCreateBo(pManNew);
+        pNode0 = Aig_ObjCreateBi(pNew);
+        pNode1 = Aig_ObjCreateBo(pNew);
         Aig_ObjAddFanin( pObj, pNode0 );
         Aig_ObjAddFanin( pNode1, pObj );
         Vec_PtrPush( vNodes, pNode1 );
@@ -211,7 +211,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
         pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
         pNode1 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_PtrSize(vNodes) == i + 1 + nInputs + nLatches );
-        Vec_PtrPush( vNodes, Aig_And(pManNew, pNode0, pNode1) );
+        Vec_PtrPush( vNodes, Aig_And(pNew, pNode0, pNode1) );
     }
 //    Bar_ProgressStop( pProgress );
 
@@ -259,9 +259,9 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
 
     // create the POs
     for ( i = 0; i < nOutputs; i++ )
-        Aig_ObjCreatePo( pManNew, Vec_PtrEntry(vDrivers, nLatches + i) );
+        Aig_ObjCreatePo( pNew, Vec_PtrEntry(vDrivers, nLatches + i) );
     for ( i = 0; i < nLatches; i++ )
-        Aig_ObjCreatePo( pManNew, Vec_PtrEntry(vDrivers, i) );
+        Aig_ObjCreatePo( pNew, Vec_PtrEntry(vDrivers, i) );
     Vec_PtrFree( vDrivers );
 
 /*
@@ -275,11 +275,11 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
             // get the terminal type
             pType = pCur;
             if ( *pCur == 'i' )
-                vTerms = pManNew->vPis;
+                vTerms = pNew->vPis;
             else if ( *pCur == 'l' )
-                vTerms = pManNew->vBoxes;
+                vTerms = pNew->vBoxes;
             else if ( *pCur == 'o' )
-                vTerms = pManNew->vPos;
+                vTerms = pNew->vPos;
             else
             {
                 fprintf( stdout, "Wrong terminal type.\n" );
@@ -311,13 +311,13 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
         } 
 
         // assign the remaining names
-        Aig_ManForEachPi( pManNew, pObj, i )
+        Aig_ManForEachPi( pNew, pObj, i )
         {
             if ( pObj->pCopy ) continue;
             Aig_ObjAssignName( pObj, Aig_ObjName(pObj), NULL );
             Counter++;
         }
-        Aig_ManForEachLatchOutput( pManNew, pObj, i )
+        Aig_ManForEachLatchOutput( pNew, pObj, i )
         {
             if ( pObj->pCopy ) continue;
             Aig_ObjAssignName( pObj, Aig_ObjName(pObj), NULL );
@@ -325,7 +325,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
             Aig_ObjAssignName( Aig_ObjFanin0(Aig_ObjFanin0(pObj)), Aig_ObjName(pObj), "_in" );
             Counter++;
         }
-        Aig_ManForEachPo( pManNew, pObj, i )
+        Aig_ManForEachPo( pNew, pObj, i )
         {
             if ( pObj->pCopy ) continue;
             Aig_ObjAssignName( pObj, Aig_ObjName(pObj), NULL );
@@ -337,7 +337,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     else
     {
 //        printf( "Ioa_ReadAiger(): I/O/register names are not given. Generating short names.\n" );
-        Aig_ManShortNames( pManNew );
+        Aig_ManShortNames( pNew );
     }
 */
 
@@ -346,16 +346,17 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     Vec_PtrFree( vNodes );
 
     // remove the extra nodes
-    Aig_ManCleanup( pManNew );
+    Aig_ManCleanup( pNew );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(pNew) );
 
     // check the result
-    if ( fCheck && !Aig_ManCheck( pManNew ) )
+    if ( fCheck && !Aig_ManCheck( pNew ) )
     {
         printf( "Ioa_ReadAiger: The network check has failed.\n" );
-        Aig_ManStop( pManNew );
+        Aig_ManStop( pNew );
         return NULL;
     }
-    return pManNew;
+    return pNew;
 }
 
 

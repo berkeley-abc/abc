@@ -473,9 +473,10 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
 //        printf( "Setting HAIG node %d equivalent to HAIG node %d (over = %d).\n", 
 //            pObjNewR->pHaig->Id, pObjOld->pHaig->Id, pObjNewR->pHaig->pHaig != NULL );
         assert( pObjNewR->pHaig != NULL );
-//        assert( pObjNewR->pHaig->pHaig == NULL );
         assert( !Aig_IsComplement(pObjNewR->pHaig) );
-        pObjNewR->pHaig->pHaig = pObjOld->pHaig;
+        assert( p->pManHaig->vEquPairs != NULL );
+        Vec_IntPush( p->pManHaig->vEquPairs, pObjNewR->pHaig->Id );
+        Vec_IntPush( p->pManHaig->vEquPairs, pObjOld->pHaig->Id );
     }
     else
         pObjOld->pHaig = pObjNewR->pHaig? pObjNewR->pHaig : pObjOld->pHaig;

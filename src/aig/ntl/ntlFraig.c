@@ -312,7 +312,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     pAigCol = Ntl_ManCollapse( pNew, 1 );
 
     // perform SCL for the given design
-    pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
+    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
     Aig_ManStop( pTemp );
 
@@ -346,7 +346,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     pAigCol = Ntl_ManCollapse( pNew, 1 );
 
     // perform SCL for the given design
-    pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
+    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
     Aig_ManStop( pTemp );
 
@@ -380,7 +380,7 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     pAigCol = Ntl_ManCollapse( pNew, 1 );
 
     // perform SCL for the given design
-    pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
+    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     pTemp = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pTemp );
 
@@ -555,7 +555,7 @@ Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     Aig_Man_t * pAigRed, * pAigCol;
     // collapse the AIG
     pAigCol = Ntl_ManCollapse( p, 1 );
-    pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
+    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     // transform the collapsed AIG
     pAigRed = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pAigRed );

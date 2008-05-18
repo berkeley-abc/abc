@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj )
+Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug )
 {
     Aig_Obj_t * pFanin0, * pFanin1;
     Aig_Obj_t * pInput0, * pInput1;
@@ -71,6 +71,12 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj )
     pInput1 = Aig_NotCond( pInput1, Aig_ObjFaninC1(pObj) );
     // get the condition when the register should be complemetned
     fCompl = Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj);
+
+    if ( fMakeBug )
+    {
+        printf( "Introducing bug during retiming.\n" );
+        pInput1 = Aig_Not( pInput1 );
+    }
 
     // create new node
     pObjNew = Aig_And( p, pInput0, pInput1 );
@@ -162,7 +168,7 @@ Aig_Obj_t * Saig_ManRetimeNodeBwd( Aig_Man_t * p, Aig_Obj_t * pObjLo )
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward )
+int Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs )
 {
     Aig_Obj_t * pObj, * pObjNew;
     int RetValue, s, i;
@@ -175,12 +181,15 @@ void Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward )
         {
             Aig_ManForEachNode( p, pObj, i )
             {
-                pObjNew = Saig_ManRetimeNodeFwd( p, pObj );
+                pObjNew = Saig_ManRetimeNodeFwd( p, pObj, fAddBugs && (s == 10) );
+//                pObjNew = Saig_ManRetimeNodeFwd( p, pObj, 0 );
                 if ( pObjNew == NULL )
                     continue;
                 Aig_ObjReplace( p, pObj, pObjNew, 0 );
                 break;
             }
+            if ( i == Vec_PtrSize(p->vObjs) )
+                break;
         }
     }
     else
@@ -195,6 +204,8 @@ void Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward )
                 Aig_ObjReplace( p, pObj, pObjNew, 0 );
                 break;
             }
+            if ( i == Vec_PtrSize(p->vObjs) )
+                break;
         }
     }
     p->fCreatePios = 0;
@@ -202,6 +213,7 @@ void Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward )
     RetValue = Aig_ManCleanup( p );
     assert( RetValue == 0 );
     Aig_ManSetRegNum( p, p->nRegs ); 
+    return s;
 }
 
 ////////////////////////////////////////////////////////////////////////

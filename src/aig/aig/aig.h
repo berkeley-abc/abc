@@ -152,6 +152,7 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vOnehots;
     Aig_Man_t *      pManHaig;
     int              fCreatePios;
+    Vec_Int_t *      vEquPairs;      
     // timing statistics
     int              time1;
     int              time2;

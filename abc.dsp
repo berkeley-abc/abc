@@ -3245,6 +3245,26 @@ SOURCE=.\src\aig\mfx\mfxStrash.c
 SOURCE=.\src\aig\mfx\mfxWin.c
 # End Source File
 # End Group
+# Begin Group "bbr"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\bbr\bbr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\bbr\bbrImage.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\bbr\bbrNtbdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\bbr\bbrReach.c
+# End Source File
+# End Group
 # Begin Group "saig"
 
 # PROP Default_Filter ""
@@ -3295,26 +3315,6 @@ SOURCE=.\src\aig\saig\saigScl.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigTrans.c
-# End Source File
-# End Group
-# Begin Group "bbr"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbr.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbrImage.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbrNtbdd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbrReach.c
 # End Source File
 # End Group
 # End Group

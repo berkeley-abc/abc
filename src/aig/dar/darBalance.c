@@ -359,9 +359,10 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
 //        printf( "Balancing HAIG node %d equivalent to HAIG node %d (over = %d).\n", 
 //            pObjNewR->pHaig->Id, pObjOld->pHaig->Id, pObjNewR->pHaig->pHaig != NULL );
         assert( pObjNewR->pHaig != NULL );
-//        assert( pObjNewR->pHaig->pHaig == NULL );
         assert( !Aig_IsComplement(pObjNewR->pHaig) );
-        pObjNewR->pHaig->pHaig = pObjOld->pHaig;
+        assert( pNew->pManHaig->vEquPairs != NULL );
+        Vec_IntPush( pNew->pManHaig->vEquPairs, pObjNewR->pHaig->Id );
+        Vec_IntPush( pNew->pManHaig->vEquPairs, pObjOld->pHaig->Id );
     }
     else
         Aig_Regular(pObjNew)->pHaig = pObjOld->pHaig;
@@ -390,7 +391,6 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -463,6 +463,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     Vec_VecFree( vStore );
     // remove dangling nodes
     Aig_ManCleanup( pNew );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting AIG
     if ( !Aig_ManCheck(pNew) )
         printf( "Dar_ManBalance(): The check has failed.\n" );

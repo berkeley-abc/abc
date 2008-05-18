@@ -80,7 +80,7 @@ extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int n
 /*=== saigCone.c ==========================================================*/
 extern void              Saig_ManPrintCones( Aig_Man_t * p );
 /*=== saigHaig.c ==========================================================*/
-extern void              Saig_ManHaigRecord( Aig_Man_t * p );
+extern Aig_Man_t *       Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 /*=== saigIoa.c ==========================================================*/
 extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
@@ -94,7 +94,7 @@ extern Aig_Man_t *       Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, in
 extern Aig_Man_t *       Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut );
 extern Aig_Man_t *       Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
 /*=== saigRetStep.c ==========================================================*/
-extern void              Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward );
+extern int               Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs );
 /*=== saigScl.c ==========================================================*/
 extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
 /*=== saigTrans.c ==========================================================*/

@@ -1655,7 +1655,7 @@ Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose )
     pMan->vFlopNums = NULL;
 
     Aig_ManPrintStats(pMan);
-    Saig_ManRetimeSteps( pMan, 1000, 1 );
+    Saig_ManRetimeSteps( pMan, 1000, 1, 0 );
     Aig_ManPrintStats(pMan);
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
@@ -1674,18 +1674,23 @@ Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose )
 {
-    Aig_Man_t * pMan;
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
-        return;
+        return NULL;
     if ( pMan->vFlopNums )
         Vec_IntFree( pMan->vFlopNums ); 
     pMan->vFlopNums = NULL;
 
-    Saig_ManHaigRecord( pMan );
+    pMan = Saig_ManHaigRecord( pTemp = pMan, nIters, nSteps, fRetimingOnly, fAddBugs, fUseCnf, fVerbose );
+    Aig_ManStop( pTemp );
+
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
+    return pNtkAig;
 }
 
 /**Function*************************************************************
