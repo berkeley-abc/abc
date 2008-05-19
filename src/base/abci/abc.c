@@ -14291,7 +14291,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     Fra_SecSetDefaultParams( pSecPar );
-    pSecPar->TimeLimit = 300;
+    pSecPar->TimeLimit = 600;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Farmfwvh" ) ) != EOF )
     {

@@ -45,7 +45,7 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     memset( p, 0, sizeof(Fra_Sec_t) );
     p->fTryComb          =   1;  // try CEC call as a preprocessing step
     p->fTryBmc           =   1;  // try BMC call as a preprocessing step 
-    p->nFramesMax        =   2;  // the max number of frames used for induction
+    p->nFramesMax        =   4;  // the max number of frames used for induction
     p->fPhaseAbstract    =   1;  // enables phase abstraction
     p->fRetimeFirst      =   1;  // enables most-forward retiming at the beginning
     p->fRetimeRegs       =   1;  // enables min-register retiming at the beginning
