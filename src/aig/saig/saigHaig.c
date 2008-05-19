@@ -195,137 +195,7 @@ int Aig_ManMapHaigNodes( Aig_Man_t * pHaig )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManHaigVerifyComb( Aig_Man_t * pHaig )
-{
-    int nBTLimit = 0;
-    Vec_Ptr_t * vResult;
-    Aig_Man_t * pFrames;
-    Cnf_Dat_t * pCnf;
-    sat_solver * pSat;
-    Aig_Obj_t * pObj1, * pObj2;
-    int i, RetValue, RetValue1, RetValue2, Counter, Lits[2];
-    int clk = clock();
-
-    printf( "Filtering combinational cases:\n" );
-//    return;
-
-    // create time frames with speculative reduction and convert them into CNF
-clk = clock();
-    pFrames = Aig_ManHaigFrames( pHaig, 1 );
-
-    // collect the HAIG nodes that were used to create spec miters
-    vResult = Vec_PtrAlloc( Aig_ManPoNum(pFrames)/2 );
-    Aig_ManForEachPo( pFrames, pObj1, i )
-    {
-        pObj2 = Aig_ManPo( pFrames, ++i );
-        Vec_PtrPush( vResult, pObj1->pData );
-    }
-
-    printf( "Frames:     " );
-    Aig_ManPrintStats( pFrames );
-
-//    pFrames = Dar_ManRwsat( pTemp = pFrames, 1, 0 );
-//    Aig_ManStop( pTemp );
-
-    printf( "Frames:     " );
-    Aig_ManPrintStats( pFrames );
-
-    printf( "Additional frames stats: Assumptions = %d. Asserts = %d. Pairs = %d.\n", 
-        Aig_ManPoNum(pFrames)/2 - pFrames->nAsserts/2, pFrames->nAsserts/2, Vec_IntSize(pHaig->vEquPairs)/2 );
-//    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManPoNum(pFrames) );
-    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) );
-
-//    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) - pFrames->nAsserts );
-//Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
-//    Saig_ManDumpBlif( pHaig, "haig_temp.blif" );
-//    Saig_ManDumpBlif( pFrames, "haig_temp_frames.blif" );
-    // create the SAT solver to be used for this problem
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
-    if ( pSat == NULL )
-    {
-        printf( "Aig_ManHaigVerify(): Computed CNF is not valid.\n" );
-        return;
-    }
-PRT( "Preparation", clock() - clk );
-
-
-    // check in the second timeframe
-clk = clock();
-    Counter = 0;
-    printf( "Started solving ...\r" );
-    Aig_ManForEachPo( pFrames, pObj1, i )
-    {
-        pObj2 = Aig_ManPo( pFrames, ++i );
-        assert( pObj1->fPhase == pObj2->fPhase );
-
-        Lits[0] = toLitCond( pCnf->pVarNums[pObj1->Id], 0 );
-        Lits[1] = toLitCond( pCnf->pVarNums[pObj2->Id], 1 );
-
-        RetValue1 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)10, (sint64)0, (sint64)0, (sint64)0 );
-        if ( RetValue1 == l_False )
-        {
-            Lits[0] = lit_neg( Lits[0] );
-            Lits[1] = lit_neg( Lits[1] );
-            RetValue = sat_solver_addclause( pSat, Lits, Lits + 2 );
-            assert( RetValue );
-        }
-
-        Lits[0]++;
-        Lits[1]--;
-
-        RetValue2 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)10, (sint64)0, (sint64)0, (sint64)0 );
-        if ( RetValue2 == l_False )
-        {
-            Lits[0] = lit_neg( Lits[0] );
-            Lits[1] = lit_neg( Lits[1] );
-            RetValue = sat_solver_addclause( pSat, Lits, Lits + 2 );
-            assert( RetValue );
-        }
-
-        if ( RetValue1 != l_False || RetValue2 != l_False )
-        {
-            Counter++;
-        }
-        else
-        {
-            pObj1 = Vec_PtrEntry( vResult, i/2 );
-            assert( pObj1->pHaig != NULL );
-            pObj1->fMarkA = 1;
-        }
-        
-        if ( i % 50 == 1 )
-            printf( "Solving assertion %6d out of %6d.\r", 
-                (i - (Aig_ManPoNum(pFrames) - pFrames->nAsserts))/2, 
-                pFrames->nAsserts/2 );
-//        if ( nClasses == 1000 )
-//            break;
-    }
-    printf( "                                                          \r" );
-PRT( "Solving    ", clock() - clk );
-    if ( Counter )
-        printf( "Verification failed for %d out of %d assertions.\n", Counter, pFrames->nAsserts/2 );
-    else
-        printf( "Verification is successful for all %d assertions.\n", pFrames->nAsserts/2 );
-
-    // clean up
-    Aig_ManStop( pFrames );
-    Cnf_DataFree( pCnf );
-    sat_solver_delete( pSat );
-    Vec_PtrFree( vResult );
-}
- 
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Aig_ManHaigVerify( Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames )
+int Aig_ManHaigVerify( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames )
 {
     int nBTLimit = 0;
     Aig_Man_t * pFrames, * pTemp;
@@ -336,9 +206,6 @@ int Aig_ManHaigVerify( Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames )
     int clk = clock();
 
     nOvers = Aig_ManMapHaigNodes( pHaig );
-
-//    if ( nFrames == 2 )
-//        Aig_ManHaigVerifyComb( pHaig );
 
     // create time frames with speculative reduction and convert them into CNF
 clk = clock();
@@ -358,6 +225,59 @@ clk = clock();
         Aig_ManPoNum(pFrames)/2 - pFrames->nAsserts/2, pFrames->nAsserts/2, Vec_IntSize(pHaig->vEquPairs)/2, nOvers );
 //    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManPoNum(pFrames) );
     pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) );
+
+/*
+    // print the statistic into a file
+    {
+        FILE * pTable;
+        Aig_Man_t * pTemp, * pHaig2;
+
+        pHaig2 = pAig->pManHaig; 
+        pAig->pManHaig = NULL;
+        pTemp = Aig_ManDupDfs( pAig );
+        pAig->pManHaig = pHaig2;
+
+        Aig_ManSeqCleanup( pTemp );
+
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  p->pName );
+        fprintf( pTable, "%d ", Saig_ManPiNum(p) );
+        fprintf( pTable, "%d ", Saig_ManPoNum(p) );
+
+        fprintf( pTable, "%d ", Saig_ManRegNum(p) );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(p) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(p) );
+
+        fprintf( pTable, "%d ", Saig_ManRegNum(pTemp) );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(pTemp) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(pTemp) );
+
+        fprintf( pTable, "%d ", Saig_ManRegNum(pHaig) );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(pHaig) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(pHaig) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+
+
+        pTable = fopen( "stats2.txt", "a+" );
+        fprintf( pTable, "%s ",  p->pSpec );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(pFrames) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(pFrames) );
+
+        fprintf( pTable, "%d ", pCnf->nVars );
+        fprintf( pTable, "%d ", pCnf->nClauses );
+        fprintf( pTable, "%d ", pCnf->nLiterals );
+
+        fprintf( pTable, "%d ", Aig_ManPoNum(pFrames)/2 - pFrames->nAsserts/2 );
+        fprintf( pTable, "%d ", pFrames->nAsserts/2 );
+        fprintf( pTable, "%d ", Vec_IntSize(pHaig->vEquPairs)/2 );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+
+        Aig_ManStop( pTemp );
+    }
+*/
+
 
 //    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) - pFrames->nAsserts );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
@@ -478,7 +398,7 @@ PRT( "Solving    ", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManHaigVerify2( Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames )
+int Aig_ManHaigVerify2( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames )
 {
     int nBTLimit = 0;
     Cnf_Dat_t * pCnf;
@@ -774,12 +694,12 @@ PRT( "Synthesis time ", clock() - clk );
 
     if ( fUseCnf )
     {
-        if ( !Aig_ManHaigVerify2( pNew, pNew->pManHaig, 1+fSeqHaig ) )
+        if ( !Aig_ManHaigVerify2( p, pNew, pNew->pManHaig, 1+fSeqHaig ) )
             printf( "Constructing SAT solver has failed.\n" );         
     }
     else
     {
-        if ( !Aig_ManHaigVerify( pNew, pNew->pManHaig, 1+fSeqHaig ) )
+        if ( !Aig_ManHaigVerify( p, pNew, pNew->pManHaig, 1+fSeqHaig ) )
             printf( "Constructing SAT solver has failed.\n" );         
     }
 

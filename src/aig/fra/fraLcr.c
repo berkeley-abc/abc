@@ -533,7 +533,7 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     Fra_Lcr_t * p;
     Fra_Sml_t * pSml;
     Fra_Man_t * pTemp;
-    Aig_Man_t * pAigPart, * pAigNew = NULL;
+    Aig_Man_t * pAigPart, * pAigTemp, * pAigNew = NULL;
     Vec_Int_t * vPart;
     int i, nIter, timeSim, clk = clock(), clk2, clk3;
     int TimeToStop = (TimeLimit == 0.0)? 0 : clock() + (int)(TimeLimit * CLOCKS_PER_SEC);
@@ -623,9 +623,9 @@ clk2 = clock();
             pAigPart = Fra_LcrCreatePart( p, vPart );
 p->timeTrav += clock() - clk2;
 clk2 = clock();
-            pAigNew  = Fra_FraigEquivence( pAigPart, nConfMax, 0 );
+            pAigTemp  = Fra_FraigEquivence( pAigPart, nConfMax, 0 );
 p->timeFraig += clock() - clk2;
-            Vec_PtrPush( p->vFraigs, pAigNew );
+            Vec_PtrPush( p->vFraigs, pAigTemp );
             Aig_ManStop( pAigPart );
         }
         Fra_ClassNodesUnmark( p );
