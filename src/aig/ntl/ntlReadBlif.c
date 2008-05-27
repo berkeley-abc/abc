@@ -534,6 +534,18 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             fprintf( stdout, "Line %d: Skipping EXDC network.\n", Ioa_ReadGetLine(p, pCur) );
             break;
         }
+        else if ( !strncmp(pCur, "no_merge", 8) ) 
+        {
+        }
+        else if ( !strncmp(pCur, "attribute", 9) ) 
+        {
+        }
+        else if ( !strncmp(pCur, "input_required", 14) ) 
+        {
+        }
+        else if ( !strncmp(pCur, "output_arrival", 14) ) 
+        {
+        }
         else
         {
             pCur--;
@@ -682,7 +694,8 @@ static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
     char * pToken;
     Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
     pToken = Vec_PtrEntry( vTokens, 0 );
-    assert( !strcmp(pToken, "attrib") );
+    assert( !strncmp(pToken, "attrib", 6) );
+/*
     if ( Vec_PtrSize(vTokens) != 2 )
     {
         sprintf( p->pMan->sError, "Line %d: The number of entries (%d) in .attrib line is different from two.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
@@ -695,6 +708,7 @@ static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
         sprintf( p->pMan->sError, "Line %d: Unknown attribute (%s) in the .attrib line of model %s.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1), p->pNtk->pName );
         return 0;
     }
+*/
     return 1;
 }
 
@@ -864,12 +878,28 @@ static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
         sprintf( p->pMan->sError, "Line %d: Cannot find the model for subcircuit %s.", Ioa_ReadGetLine(p->pMan, pToken), pName );
         return 0;
     }
-
+/*
+    // temporary fix for splitting the .subckt line
+    if ( nEquals < Ntl_ModelPiNum(pModel) + Ntl_ModelPoNum(pModel) )
+    { 
+        Vec_Ptr_t * vTokens2 = Vec_PtrAlloc( 10 );
+        // get one additional token
+        pToken = Vec_PtrEntry( vTokens, Vec_PtrSize(vTokens) - 1 );
+        for ( ; *pToken; pToken++ );
+        for ( ; *pToken == 0; pToken++ );
+        Ioa_ReadSplitIntoTokensAndClear( vTokens2, pToken, '\0', '=' );
+//        assert( Vec_PtrSize( vTokens2 ) == 2 );
+        Vec_PtrForEachEntry( vTokens2, pToken, i )
+            Vec_PtrPush( vTokens, pToken );
+        nEquals += Vec_PtrSize(vTokens2)/2;
+        Vec_PtrFree( vTokens2 );
+    }
+*/    
     // check if the number of tokens is correct
     if ( nEquals != Ntl_ModelPiNum(pModel) + Ntl_ModelPoNum(pModel) )
     {
-        sprintf( p->pMan->sError, "Line %d: The number of ports (%d) in .subckt differs from the sum of PIs and POs of the model (%d).", 
-            Ioa_ReadGetLine(p->pMan, pToken), nEquals, Ntl_ModelPiNum(pModel) + Ntl_ModelPoNum(pModel) );
+        sprintf( p->pMan->sError, "Line %d: The number of ports (%d) in .subckt %s differs from the sum of PIs and POs of the model (%d).", 
+            Ioa_ReadGetLine(p->pMan, pToken), nEquals, pName, Ntl_ModelPiNum(pModel) + Ntl_ModelPoNum(pModel) );
         return 0;
     }
 

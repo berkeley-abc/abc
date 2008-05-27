@@ -89,6 +89,7 @@ extern int               Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int
 /*=== saigPhase.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose );
 /*=== saigRetFwd.c ==========================================================*/
+extern void              Saig_ManMarkAutonomous( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose );
 /*=== saigRetMin.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut );

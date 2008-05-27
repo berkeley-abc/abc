@@ -195,7 +195,7 @@ int Aig_ManMapHaigNodes( Aig_Man_t * pHaig )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManHaigVerify( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames )
+int Aig_ManHaigVerify( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int nFrames, int clkSynth )
 {
     int nBTLimit = 0;
     Aig_Man_t * pFrames, * pTemp;
@@ -203,7 +203,7 @@ int Aig_ManHaigVerify( Aig_Man_t * p, Aig_Man_t * pAig, Aig_Man_t * pHaig, int n
     sat_solver * pSat;
     Aig_Obj_t * pObj1, * pObj2;
     int i, RetValue1, RetValue2, Counter, Lits[2], nOvers;
-    int clk = clock();
+    int clk = clock(), clkVerif;
 
     nOvers = Aig_ManMapHaigNodes( pHaig );
 
@@ -226,57 +226,6 @@ clk = clock();
 //    pCnf = Cnf_DeriveSimple( pFrames, Aig_ManPoNum(pFrames) );
     pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) );
 
-/*
-    // print the statistic into a file
-    {
-        FILE * pTable;
-        Aig_Man_t * pTemp, * pHaig2;
-
-        pHaig2 = pAig->pManHaig; 
-        pAig->pManHaig = NULL;
-        pTemp = Aig_ManDupDfs( pAig );
-        pAig->pManHaig = pHaig2;
-
-        Aig_ManSeqCleanup( pTemp );
-
-        pTable = fopen( "stats.txt", "a+" );
-        fprintf( pTable, "%s ",  p->pName );
-        fprintf( pTable, "%d ", Saig_ManPiNum(p) );
-        fprintf( pTable, "%d ", Saig_ManPoNum(p) );
-
-        fprintf( pTable, "%d ", Saig_ManRegNum(p) );
-        fprintf( pTable, "%d ", Aig_ManNodeNum(p) );
-        fprintf( pTable, "%d ", Aig_ManLevelNum(p) );
-
-        fprintf( pTable, "%d ", Saig_ManRegNum(pTemp) );
-        fprintf( pTable, "%d ", Aig_ManNodeNum(pTemp) );
-        fprintf( pTable, "%d ", Aig_ManLevelNum(pTemp) );
-
-        fprintf( pTable, "%d ", Saig_ManRegNum(pHaig) );
-        fprintf( pTable, "%d ", Aig_ManNodeNum(pHaig) );
-        fprintf( pTable, "%d ", Aig_ManLevelNum(pHaig) );
-        fprintf( pTable, "\n" );
-        fclose( pTable );
-
-
-        pTable = fopen( "stats2.txt", "a+" );
-        fprintf( pTable, "%s ",  p->pSpec );
-        fprintf( pTable, "%d ", Aig_ManNodeNum(pFrames) );
-        fprintf( pTable, "%d ", Aig_ManLevelNum(pFrames) );
-
-        fprintf( pTable, "%d ", pCnf->nVars );
-        fprintf( pTable, "%d ", pCnf->nClauses );
-        fprintf( pTable, "%d ", pCnf->nLiterals );
-
-        fprintf( pTable, "%d ", Aig_ManPoNum(pFrames)/2 - pFrames->nAsserts/2 );
-        fprintf( pTable, "%d ", pFrames->nAsserts/2 );
-        fprintf( pTable, "%d ", Vec_IntSize(pHaig->vEquPairs)/2 );
-        fprintf( pTable, "\n" );
-        fclose( pTable );
-
-        Aig_ManStop( pTemp );
-    }
-*/
 
 
 //    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) - pFrames->nAsserts );
@@ -375,10 +324,65 @@ clk = clock();
     }
     printf( "                                                          \r" );
 PRT( "Solving    ", clock() - clk );
+clkVerif = clock() - clk;
     if ( Counter )
         printf( "Verification failed for %d out of %d assertions.\n", Counter, pFrames->nAsserts/2 );
     else
         printf( "Verification is successful for all %d assertions.\n", pFrames->nAsserts/2 );
+
+    // print the statistic into a file
+    {
+        FILE * pTable;
+        Aig_Man_t * pTemp, * pHaig2;
+
+        pHaig2 = pAig->pManHaig; 
+        pAig->pManHaig = NULL;
+        pTemp = Aig_ManDupDfs( pAig );
+        pAig->pManHaig = pHaig2;
+
+        Aig_ManSeqCleanup( pTemp );
+
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  p->pName );
+        fprintf( pTable, "%d ", Saig_ManPiNum(p) );
+        fprintf( pTable, "%d ", Saig_ManPoNum(p) );
+
+        fprintf( pTable, "%d ", Saig_ManRegNum(p) );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(p) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(p) );
+
+        fprintf( pTable, "%d ", Saig_ManRegNum(pTemp) );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(pTemp) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(pTemp) );
+
+        fprintf( pTable, "%d ", Saig_ManRegNum(pHaig) );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(pHaig) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(pHaig) );
+
+        fprintf( pTable, "%.2f", (float)(clkSynth)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+
+
+        pTable = fopen( "stats2.txt", "a+" );
+        fprintf( pTable, "%s ",  p->pName );
+        fprintf( pTable, "%d ", Aig_ManNodeNum(pFrames) );
+        fprintf( pTable, "%d ", Aig_ManLevelNum(pFrames) );
+
+        fprintf( pTable, "%d ", pCnf->nVars );
+        fprintf( pTable, "%d ", pCnf->nClauses );
+        fprintf( pTable, "%d ", pCnf->nLiterals );
+
+        fprintf( pTable, "%d ", Aig_ManPoNum(pFrames)/2 - pFrames->nAsserts/2 );
+        fprintf( pTable, "%d ", pFrames->nAsserts/2 );
+        fprintf( pTable, "%d ", Vec_IntSize(pHaig->vEquPairs)/2 );
+
+        fprintf( pTable, "%.2f", (float)(clkVerif)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+
+        Aig_ManStop( pTemp );
+    }
 
     // clean up
     Aig_ManStop( pFrames );
@@ -617,7 +621,7 @@ Aig_Man_t * Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSteps, int fReti
     Dar_RwrPar_t ParsRwr, * pParsRwr = &ParsRwr;
     Aig_Man_t * pNew, * pTemp;
     Aig_Obj_t * pObj;
-    int i, k, nStepsReal, clk = clock();
+    int i, k, nStepsReal, clk = clock(), clkSynth;
     Dar_ManDefaultRwrParams( pParsRwr );
 
 clk = clock();
@@ -679,6 +683,7 @@ clk = clock();
         }
     } 
 PRT( "Synthesis time ", clock() - clk );
+clkSynth = clock() - clk;
 
     // use the haig for verification
 //    Aig_ManAntiCleanup( pNew->pManHaig );
@@ -699,7 +704,7 @@ PRT( "Synthesis time ", clock() - clk );
     }
     else
     {
-        if ( !Aig_ManHaigVerify( p, pNew, pNew->pManHaig, 1+fSeqHaig ) )
+        if ( !Aig_ManHaigVerify( p, pNew, pNew->pManHaig, 1+fSeqHaig, clkSynth ) )
             printf( "Constructing SAT solver has failed.\n" );         
     }
 

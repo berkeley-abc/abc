@@ -522,7 +522,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     int i, k;
 
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
-    assert( Abc_ObjIsNode(pNode) || (Abc_NtkIsStrash(pNtk) && Abc_AigNodeIsConst(pNode))  ); 
+    assert( Abc_ObjIsNode(pNode) || (Abc_NtkIsStrash(pNtk) && (Abc_AigNodeIsConst(pNode) || Abc_ObjIsCi(pNode)))  ); 
     
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );

@@ -846,44 +846,6 @@ Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nW
 
 /**Function*************************************************************
 
-  Synopsis    [Resimulates the counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fra_SmlRunCounterExample( Aig_Man_t * pAig, Fra_Cex_t * p )
-{
-    Fra_Sml_t * pSml;
-    Aig_Obj_t * pObj;
-    int RetValue, i, k, iBit;
-    assert( Aig_ManRegNum(pAig) > 0 );
-    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
-    // start a new sequential simulator
-    pSml = Fra_SmlStart( pAig, 0, p->iFrame+1, 1 );
-    // assign simulation info for the registers
-    iBit = 0;
-    Aig_ManForEachLoSeq( pAig, pObj, i )
-        Fra_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
-    // assign simulation info for the primary inputs
-    for ( i = 0; i <= p->iFrame; i++ )
-        Aig_ManForEachPiSeq( pAig, pObj, k )
-            Fra_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
-    assert( iBit == p->nBits );
-    // run random simulation
-    Fra_SmlSimulateOne( pSml );
-    // check if the given output has failed
-    RetValue = !Fra_SmlNodeIsZero( pSml, Aig_ManPo(pAig, p->iPo) );
-    Fra_SmlStop( pSml );
-    return RetValue;
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Allocates a counter-example.]
 
   Description []
@@ -1081,6 +1043,115 @@ Fra_Cex_t * Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
     pCex->iFrame = iFrame;
     return pCex;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlRunCounterExample( Aig_Man_t * pAig, Fra_Cex_t * p )
+{
+    Fra_Sml_t * pSml;
+    Aig_Obj_t * pObj;
+    int RetValue, i, k, iBit;
+    assert( Aig_ManRegNum(pAig) > 0 );
+    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
+    // start a new sequential simulator
+    pSml = Fra_SmlStart( pAig, 0, p->iFrame+1, 1 );
+    // assign simulation info for the registers
+    iBit = 0;
+    Aig_ManForEachLoSeq( pAig, pObj, i )
+        Fra_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
+    // assign simulation info for the primary inputs
+    for ( i = 0; i <= p->iFrame; i++ )
+        Aig_ManForEachPiSeq( pAig, pObj, k )
+            Fra_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
+    assert( iBit == p->nBits );
+    // run random simulation
+    Fra_SmlSimulateOne( pSml );
+    // check if the given output has failed
+    RetValue = !Fra_SmlNodeIsZero( pSml, Aig_ManPo(pAig, p->iPo) );
+    Fra_SmlStop( pSml );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Fra_Cex_t * p )
+{
+    Fra_Sml_t * pSml;
+    Aig_Obj_t * pObj;
+    int RetValue, i, k, iBit;
+    unsigned * pSims;
+    assert( Aig_ManRegNum(pAig) > 0 );
+    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
+    // start a new sequential simulator
+    pSml = Fra_SmlStart( pAig, 0, p->iFrame+1, 1 );
+    // assign simulation info for the registers
+    iBit = 0;
+    Aig_ManForEachLoSeq( pAig, pObj, i )
+//        Fra_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
+        Fra_SmlAssignConst( pSml, pObj, 0, 0 );
+    // assign simulation info for the primary inputs
+    iBit = p->nRegs;
+    for ( i = 0; i <= p->iFrame; i++ )
+        Aig_ManForEachPiSeq( pAig, pObj, k )
+            Fra_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
+    assert( iBit == p->nBits );
+    // run random simulation
+    Fra_SmlSimulateOne( pSml );
+    // check if the given output has failed
+    RetValue = !Fra_SmlNodeIsZero( pSml, Aig_ManPo(pAig, p->iPo) );
+
+    // write the output file
+    fprintf( pFile, "1\n" );
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Aig_ManForEachLoSeq( pAig, pObj, k )
+        {
+            pSims = Fra_ObjSim(pSml, pObj->Id);
+            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
+        }
+        fprintf( pFile, " " );
+        Aig_ManForEachPiSeq( pAig, pObj, k )
+        {
+            pSims = Fra_ObjSim(pSml, pObj->Id);
+            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
+        }
+        fprintf( pFile, " " );
+        Aig_ManForEachPoSeq( pAig, pObj, k )
+        {
+            pSims = Fra_ObjSim(pSml, pObj->Id);
+            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
+        }
+        fprintf( pFile, " " );
+        Aig_ManForEachLiSeq( pAig, pObj, k )
+        {
+            pSims = Fra_ObjSim(pSml, pObj->Id);
+            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
+        }
+        fprintf( pFile, "\n" );
+    }
+
+    Fra_SmlStop( pSml );
+    return RetValue;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

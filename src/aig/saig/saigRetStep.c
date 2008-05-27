@@ -62,6 +62,10 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
     assert( Aig_ObjPioNum(pFanin0) > 0 );
     assert( Aig_ObjPioNum(pFanin1) > 0 );
 
+    // skip latch guns
+    if ( !Aig_ObjIsTravIdCurrent(p, pFanin0) && !Aig_ObjIsTravIdCurrent(p, pFanin1) )
+        return NULL;
+
     // get the inputs of these registers
     pInput0 = Saig_ManLi( p, Aig_ObjPioNum(pFanin0) - Saig_ManPiNum(p) );
     pInput1 = Saig_ManLi( p, Aig_ObjPioNum(pFanin1) - Saig_ManPiNum(p) );
@@ -89,6 +93,9 @@ Aig_Obj_t * Saig_ManRetimeNodeFwd( Aig_Man_t * p, Aig_Obj_t * pObj, int fMakeBug
     pObjLo = Aig_ObjCreatePi( p );
     pObjLo->PioNum = Aig_ManPiNum(p) - 1;
     p->nRegs++;
+
+    // make sure the register is retimable.
+    Aig_ObjSetTravIdCurrent(p, pObjLo);
 
 //printf( "Reg = %4d. Reg = %4d. Compl = %d. Phase = %d.\n", 
 //       pFanin0->PioNum, pFanin1->PioNum, Aig_IsComplement(pObjNew), fCompl );
@@ -177,6 +184,7 @@ int Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs )
     p->fCreatePios = 1;
     if ( fForward )
     {
+        Saig_ManMarkAutonomous( p );
         for ( s = 0; s < nSteps; s++ )
         {
             Aig_ManForEachNode( p, pObj, i )

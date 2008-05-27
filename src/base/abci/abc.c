@@ -14291,9 +14291,9 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     Fra_SecSetDefaultParams( pSecPar );
-    pSecPar->TimeLimit = 600;
+    pSecPar->TimeLimit = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Farmfwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTarmfwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14306,6 +14306,17 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             pSecPar->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pSecPar->nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->TimeLimit < 0 ) 
                 goto usage;
             break;
         case 'a':
@@ -14350,9 +14361,10 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dsec [-F num] [-armfwvh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: dsec [-F num] [-T num] [-armfwvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs inductive sequential equivalence checking\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
+    fprintf( pErr, "\t-T num : the approximate runtime limit (in seconds) [default = %d]\n", pSecPar->TimeLimit );
     fprintf( pErr, "\t-a     : toggles the use of phase abstraction [default = %s]\n", pSecPar->fPhaseAbstract? "yes": "no" );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", pSecPar->fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-m     : toggles min-register retiming [default = %s]\n", pSecPar->fRetimeRegs? "yes": "no" );
@@ -14459,6 +14471,9 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform verification
     Abc_NtkDarProve( pNtk, pSecPar );
+
+    // Fra_SmlWriteCounterExample( stdout, Aig_Man_t * pAig, Fra_Cex_t * p )
+
     return 0;
 
 usage:
@@ -15617,19 +15632,24 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     int c;
     int fMapped;
+    int fTest;
     extern void * Ioa_ReadBlif( char * pFileName, int fCheck );
     extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManExtractNwk( void * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
 
     // set defaults
     fMapped = 0;
+    fTest   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mth" ) ) != EOF )
     {
         switch ( c )
         {
         case 'm':
             fMapped ^= 1;
+            break;
+        case 't':
+            fTest ^= 1;
             break;
         case 'h':
             goto usage;
@@ -15649,6 +15669,19 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
+
+    if ( fTest )
+    {
+        extern void Ntl_ManFree( void * p );
+        extern void Ntl_ManPrintStats( void * p );
+        void * pTemp = Ioa_ReadBlif( pFileName, 1 );
+        if ( pTemp )
+        {
+        Ntl_ManPrintStats( pTemp );
+        Ntl_ManFree( pTemp );
+        }
+        return 0;
+    }
 
     Abc_FrameClearDesign(); 
     pAbc->pAbc8Ntl = Ioa_ReadBlif( pFileName, 1 );
@@ -15672,9 +15705,10 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *r [-mh]\n" );
+    fprintf( stdout, "usage: *r [-mth]\n" );
     fprintf( stdout, "\t        reads the design with whiteboxes\n" );
     fprintf( stdout, "\t-m    : toggle extracting mapped network [default = %s]\n", fMapped? "yes": "no" );
+    fprintf( stdout, "\t-t    : toggle reading in the test mode [default = %s]\n", fTest? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }

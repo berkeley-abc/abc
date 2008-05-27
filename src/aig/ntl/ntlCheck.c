@@ -123,8 +123,11 @@ int Ntl_ManCheck( Ntl_Man_t * pMan )
     }
     // check models
     Ntl_ManForEachModel( pMan, pMod1, i )
+    {
         if ( !Ntl_ModelCheck( pMod1 ) )
             fStatus = 0;
+        break;
+    }
     return fStatus;
 }
 

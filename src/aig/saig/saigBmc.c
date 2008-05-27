@@ -191,7 +191,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     }
     else
         pFrames = Saig_ManFramesBmc( pAig, nFrames );
-    *piFrame = nFrames;
+    if ( piFrame )
+        *piFrame = nFrames;
     if ( fVerbose )
     {
         printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
@@ -281,7 +282,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
             }
             else
             {
-                *piFrame = i / Saig_ManPoNum(pAig);
+                if ( piFrame )
+                    *piFrame = i / Saig_ManPoNum(pAig);
                 RetValue = -1;
                 break;
             }
