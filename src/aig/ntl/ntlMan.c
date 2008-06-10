@@ -50,9 +50,14 @@ Ntl_Man_t * Ntl_ManAlloc()
     p->vCos = Vec_PtrAlloc( 1000 );
     p->vNodes = Vec_PtrAlloc( 1000 );
     p->vBox1Cos = Vec_IntAlloc( 1000 );
+    p->vLatchIns = Vec_PtrAlloc( 1000 );
     // start the manager
     p->pMemObjs = Aig_MmFlexStart();
     p->pMemSops = Aig_MmFlexStart();
+    // allocate model table
+    p->nModTableSize = Aig_PrimeCudd( 100 );
+    p->pModTable = ALLOC( Ntl_Mod_t *, p->nModTableSize );
+    memset( p->pModTable, 0, sizeof(Ntl_Mod_t *) * p->nModTableSize );
     return p;
 }
 
@@ -185,14 +190,16 @@ void Ntl_ManFree( Ntl_Man_t * p )
             Ntl_ModelFree( pModel );
         Vec_PtrFree( p->vModels );
     }
-    if ( p->vCis )     Vec_PtrFree( p->vCis );
-    if ( p->vCos )     Vec_PtrFree( p->vCos );
-    if ( p->vNodes )   Vec_PtrFree( p->vNodes );
-    if ( p->vBox1Cos ) Vec_IntFree( p->vBox1Cos );
-    if ( p->pMemObjs ) Aig_MmFlexStop( p->pMemObjs, 0 );
-    if ( p->pMemSops ) Aig_MmFlexStop( p->pMemSops, 0 );
-    if ( p->pAig )     Aig_ManStop( p->pAig );
-    if ( p->pManTime ) Tim_ManStop( p->pManTime );
+    if ( p->vCis )      Vec_PtrFree( p->vCis );
+    if ( p->vCos )      Vec_PtrFree( p->vCos );
+    if ( p->vNodes )    Vec_PtrFree( p->vNodes );
+    if ( p->vBox1Cos )  Vec_IntFree( p->vBox1Cos );
+    if ( p->vLatchIns ) Vec_PtrFree( p->vLatchIns );
+    if ( p->pMemObjs )  Aig_MmFlexStop( p->pMemObjs, 0 );
+    if ( p->pMemSops )  Aig_MmFlexStop( p->pMemSops, 0 );
+    if ( p->pAig )      Aig_ManStop( p->pAig );
+    if ( p->pManTime )  Tim_ManStop( p->pManTime );
+    FREE( p->pModTable );
     free( p );
 }
 
@@ -239,7 +246,7 @@ int Ntl_ManLatchNum( Ntl_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Mod_t * Ntl_ManFindModel( Ntl_Man_t * p, char * pName )
+Ntl_Mod_t * Ntl_ManFindModel_old( Ntl_Man_t * p, char * pName )
 {
     Ntl_Mod_t * pModel;
     int i;
@@ -276,6 +283,8 @@ void Ntl_ManPrintStats( Ntl_Man_t * p )
     printf( "\n" );
     fflush( stdout );
     assert( Ntl_ModelLut1Num(pRoot) == Ntl_ModelCountLut1(pRoot) );
+    Ntl_ManPrintTypes( p );
+    fflush( stdout );
 }
 
 /**Function*************************************************************
@@ -296,6 +305,67 @@ Tim_Man_t * Ntl_ManReadTimeMan( Ntl_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Saves the model type.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManSaveBoxType( Ntl_Obj_t * pObj )
+{
+    Ntl_Mod_t * pModel = pObj->pImplem;
+    int Number = 0;
+    assert( Ntl_ObjIsBox(pObj) );
+    Number |= (pModel->attrWhite << 0);
+    Number |= (pModel->attrBox   << 1);
+    Number |= (pModel->attrComb  << 2);
+    Number |= (pModel->attrKeep  << 3);
+    pModel->pMan->BoxTypes[Number]++;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Saves the model type.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManPrintTypes( Ntl_Man_t * p )
+{
+    Ntl_Mod_t * pModel;
+    Ntl_Obj_t * pObj;
+    int i;
+    pModel = Ntl_ManRootModel( p );
+    if ( Ntl_ModelBoxNum(pModel) == 0 )
+        return;
+    printf( "BOX STATISTICS:\n" );
+    Ntl_ModelForEachBox( pModel, pObj, i )
+        Ntl_ManSaveBoxType( pObj );
+    for ( i = 0; i < 15; i++ )
+    {
+        if ( !p->BoxTypes[i] )
+            continue;
+        printf( "%5d :", p->BoxTypes[i] );
+        printf( " %s", ((i & 1) > 0)? "white": "black" );
+        printf( " %s", ((i & 2) > 0)? "box  ": "logic" );
+        printf( " %s", ((i & 4) > 0)? "comb ": "seq  " );
+        printf( " %s", ((i & 8) > 0)? "keep ": "sweep" );
+        printf( "\n" );
+    }
+    printf( "Total box instances = %6d.\n\n", Ntl_ModelBoxNum(pModel) );
+    for ( i = 0; i < 15; i++ )
+        p->BoxTypes[i] = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Allocates the model.]
 
   Description []
@@ -311,16 +381,25 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
     // start the manager
     p = ALLOC( Ntl_Mod_t, 1 );
     memset( p, 0, sizeof(Ntl_Mod_t) );
+    p->attrBox   = 1;
+    p->attrComb  = 1;
+    p->attrWhite = 1;
+    p->attrKeep  = 0;
     p->pMan  = pMan;
     p->pName = Ntl_ManStoreName( p->pMan, pName );
-    Vec_PtrPush( pMan->vModels, p );
-    p->vObjs = Vec_PtrAlloc( 1000 );
-    p->vPis  = Vec_PtrAlloc( 100 );
-    p->vPos  = Vec_PtrAlloc( 100 );
+    p->vObjs = Vec_PtrAlloc( 100 );
+    p->vPis  = Vec_PtrAlloc( 10 );
+    p->vPos  = Vec_PtrAlloc( 10 ); 
     // start the table
-    p->nTableSize = Aig_PrimeCudd( 1000 );
+    p->nTableSize = Aig_PrimeCudd( 100 );
     p->pTable = ALLOC( Ntl_Net_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Ntl_Net_t *) * p->nTableSize );
+    // add model to the table
+    if ( !Ntl_ManAddModel( pMan, p ) )
+    {
+        Ntl_ModelFree( p );
+        return NULL;
+    }
     return p;
 }
 
@@ -371,11 +450,14 @@ Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
             if ( pNet->pCopy != NULL )
                 Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
         if ( Ntl_ObjIsLatch(pObj) )
+        {
             ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
+            ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock->pCopy;
+        }
     }
     pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
-    pModelNew->vArrivals = pModelOld->vArrivals? Vec_IntDup( pModelOld->vArrivals ) : NULL;
-    pModelNew->vRequireds = pModelOld->vRequireds? Vec_IntDup( pModelOld->vRequireds ) : NULL;
+    pModelNew->vTimeInputs = pModelOld->vTimeInputs? Vec_IntDup( pModelOld->vTimeInputs ) : NULL;
+    pModelNew->vTimeOutputs = pModelOld->vTimeOutputs? Vec_IntDup( pModelOld->vTimeOutputs ) : NULL;
     return pModelNew;
 }
 
@@ -397,11 +479,20 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     Ntl_Obj_t * pObj;
     int i, k;
     pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
+    pModelNew->attrWhite = pModelOld->attrWhite;
+    pModelNew->attrBox     = pModelOld->attrBox;
+    pModelNew->attrComb     = pModelOld->attrComb;
+    pModelNew->attrKeep     = pModelOld->attrKeep;
     Ntl_ModelForEachObj( pModelOld, pObj, i )
         pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
     Ntl_ModelForEachNet( pModelOld, pNet, i )
     {
         pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+        if ( pNet->pDriver == NULL )
+        {
+            assert( !pModelOld->attrWhite );
+            continue;
+        }
         ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
         assert( pNet->pDriver->pCopy != NULL );
     }
@@ -412,13 +503,16 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
         Ntl_ObjForEachFanout( pObj, pNet, k )
             Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
         if ( Ntl_ObjIsLatch(pObj) )
+        {
             ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
+            ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock->pCopy;
+        }
         if ( Ntl_ObjIsNode(pObj) )
             ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObj->pSop );
     }
     pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
-    pModelNew->vArrivals = pModelOld->vArrivals? Vec_IntDup( pModelOld->vArrivals ) : NULL;
-    pModelNew->vRequireds = pModelOld->vRequireds? Vec_IntDup( pModelOld->vRequireds ) : NULL;
+    pModelNew->vTimeInputs = pModelOld->vTimeInputs? Vec_IntDup( pModelOld->vTimeInputs ) : NULL;
+    pModelNew->vTimeOutputs = pModelOld->vTimeOutputs? Vec_IntDup( pModelOld->vTimeOutputs ) : NULL;
     return pModelNew;
 }
 
@@ -435,15 +529,54 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
 ***********************************************************************/
 void Ntl_ModelFree( Ntl_Mod_t * p )
 {
-    assert( Ntl_ManCheckNetsAreNotMarked(p) );
-    if ( p->vRequireds )  Vec_IntFree( p->vRequireds );
-    if ( p->vArrivals )   Vec_IntFree( p->vArrivals );
-    if ( p->vDelays )     Vec_IntFree( p->vDelays );
+    assert( Ntl_ModelCheckNetsAreNotMarked(p) );
+    if ( p->vTimeOutputs )  Vec_IntFree( p->vTimeOutputs );
+    if ( p->vTimeInputs )   Vec_IntFree( p->vTimeInputs );
+    if ( p->vDelays )       Vec_IntFree( p->vDelays );
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vPis );
     Vec_PtrFree( p->vPos );
     free( p->pTable );
     free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create model equal to the latch with the given init value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Mod_t * Ntl_ManCreateLatchModel( Ntl_Man_t * pMan, int Init )
+{
+    char Name[100];
+    Ntl_Mod_t * pModel;
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNetLi, * pNetLo;
+    // create model
+    sprintf( Name, "%s%d", "latch", Init );
+    pModel = Ntl_ModelAlloc( pMan, Name );
+    pModel->attrWhite = 1;
+    pModel->attrBox   = 1;
+    pModel->attrComb  = 0;
+    pModel->attrKeep  = 0;
+    // create primary input
+    pObj = Ntl_ModelCreatePi( pModel );
+    pNetLi = Ntl_ModelFindOrCreateNet( pModel, "li" );
+    Ntl_ModelSetNetDriver( pObj, pNetLi );
+    // create latch 
+    pObj = Ntl_ModelCreateLatch( pModel );
+    pObj->LatchId.regInit = Init;
+    pObj->pFanio[0] = pNetLi;
+    // create primary output
+    pNetLo = Ntl_ModelFindOrCreateNet( pModel, "lo" );
+    Ntl_ModelSetNetDriver( pObj, pNetLo );
+    pObj = Ntl_ModelCreatePo( pModel, pNetLo );
+    return pModel;
 }
 
 ////////////////////////////////////////////////////////////////////////

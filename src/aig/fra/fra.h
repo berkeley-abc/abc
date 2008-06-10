@@ -104,6 +104,7 @@ struct Fra_Ssw_t_
     int              fWriteImps;        // write implications into a file
     int              fUse1Hot;          // use one-hotness constraints
     int              fVerbose;          // enable verbose output 
+    int              fSilent;           // disable any output 
     int              nIters;            // the number of iterations performed
     float            TimeLimit;         // the runtime budget for this call
 };
@@ -121,6 +122,7 @@ struct Fra_Sec_t_
     int              fInterpolation;    // enables interpolation
     int              fReachability;     // enables BDD based reachability
     int              fStopOnFirstFail;  // enables stopping after first output of a miter has failed to prove
+    int              fSilent;           // disables all output
     int              fVerbose;          // enables verbose reporting of statistics
     int              fVeryVerbose;      // enables very verbose reporting  
     int              TimeLimit;         // enables the timeout

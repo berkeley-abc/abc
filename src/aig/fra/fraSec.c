@@ -53,11 +53,12 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     p->fInterpolation    =   1;  // enables interpolation
     p->fReachability     =   1;  // enables BDD based reachability
     p->fStopOnFirstFail  =   1;  // enables stopping after first output of a miter has failed to prove
+    p->fSilent           =   0;  // disables all output
     p->fVerbose          =   0;  // enables verbose reporting of statistics
     p->fVeryVerbose      =   0;  // enables very verbose reporting  
     p->TimeLimit         =   0;  // enables the timeout
     // internal parameters
-    p->fReportSolution   =   1;  // enables specialized format for reporting solution
+    p->fReportSolution   =   0;  // enables specialized format for reporting solution
 }
 
 /**Function*************************************************************
@@ -158,7 +159,8 @@ clk = clock();
         TimeLeft = AIG_MAX( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
-            printf( "Runtime limit exceeded.\n" );
+            if ( !pParSec->fSilent )
+                printf( "Runtime limit exceeded.\n" );
             RetValue = -1;
             TimeOut = 1;
             goto finish;
@@ -166,14 +168,16 @@ clk = clock();
     }
     pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 1000, 1, pParSec->fVeryVerbose, &nIter, TimeLeft );
     p->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
-    Aig_ManStop( pTemp );
     if ( pNew == NULL )
     {
         if ( p->pSeqModel )
         {
             RetValue = 0;
-            printf( "Networks are NOT EQUIVALENT after simulation.   " );
+            if ( !pParSec->fSilent )
+            {
+                printf( "Networks are NOT EQUIVALENT after simulation.   " );
 PRT( "Time", clock() - clkTotal );
+            }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
             printf( "SOLUTION: FAIL       " );
@@ -186,6 +190,7 @@ PRT( "Time", clock() - clkTotal );
         TimeOut = 1;
         goto finish;
     }
+    Aig_ManStop( pTemp );
 
     if ( pParSec->fVerbose )
     {
@@ -201,7 +206,8 @@ PRT( "Time", clock() - clk );
         TimeLeft = AIG_MAX( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
-            printf( "Runtime limit exceeded.\n" );
+            if ( !pParSec->fSilent )
+                printf( "Runtime limit exceeded.\n" );
             RetValue = -1;
             TimeOut = 1;
             goto finish;
@@ -235,7 +241,8 @@ PRT( "Time", clock() - clk );
         TimeLeft = AIG_MAX( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
-            printf( "Runtime limit exceeded.\n" );
+            if ( !pParSec->fSilent )
+                printf( "Runtime limit exceeded.\n" );
             RetValue = -1;
             TimeOut = 1;
             goto finish;
@@ -273,7 +280,8 @@ PRT( "Time", clock() - clk );
             TimeLeft = AIG_MAX( TimeLeft, 0.0 );
             if ( TimeLeft == 0.0 )
             {
-                printf( "Runtime limit exceeded.\n" );
+                if ( !pParSec->fSilent )
+                    printf( "Runtime limit exceeded.\n" );
                 RetValue = -1;
                 TimeOut = 1;
                 goto finish;
@@ -283,6 +291,7 @@ PRT( "Time", clock() - clk );
 clk = clock();
         pPars->nFramesK = nFrames;
         pPars->TimeLimit = TimeLeft;
+        pPars->fSilent = pParSec->fSilent;
         pNew = Fra_FraigInduction( pTemp = pNew, pPars );
         if ( pNew == NULL )
         {
@@ -357,8 +366,11 @@ PRT( "Time", clock() - clk );
             Fra_SmlStop( pSml );
             Aig_ManStop( pNew );
             RetValue = 0;
-            printf( "Networks are NOT EQUIVALENT after simulation.   " );
+            if ( !pParSec->fSilent )
+            {
+                printf( "Networks are NOT EQUIVALENT after simulation.   " );
 PRT( "Time", clock() - clkTotal );
+            }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
             printf( "SOLUTION: FAIL       " );
@@ -399,10 +411,10 @@ PRT( "Time", clock() - clk );
     // try reachability analysis
     if ( pParSec->fReachability && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManRegNum(pNew) < 150 )
     {
-        extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
+        extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-        RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0 );
+        RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0, pParSec->fSilent );
     }
 
     // try one-output at a time
@@ -414,8 +426,9 @@ PRT( "Time", clock() - clk );
         for ( i = 0; i < Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew); i++ )
             if ( !Aig_ObjIsConst1( Aig_ObjFanin0(Aig_ManPo(pNew,i)) ) )
                 Counter++;
-        printf( "*** The miter has %d outputs (out of %d total) unsolved in the multi-output form.\n", 
-            Counter, Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) );
+        if ( !pParSec->fSilent )
+            printf( "*** The miter has %d outputs (out of %d total) unsolved in the multi-output form.\n", 
+                Counter, Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) );
         iCount = 0;
         for ( i = 0; i < Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew); i++ )
         {
@@ -427,7 +440,8 @@ PRT( "Time", clock() - clk );
                 TimeLeft = AIG_MAX( TimeLeft, 0.0 );
                 if ( TimeLeft == 0.0 )
                 {
-                    printf( "Runtime limit exceeded.\n" );
+                    if ( !pParSec->fSilent )
+                        printf( "Runtime limit exceeded.\n" );
                     TimeOut = 1;
                     goto finish;
                 }
@@ -438,7 +452,8 @@ PRT( "Time", clock() - clk );
             if ( Aig_ObjIsConst1( Aig_ObjFanin0(Aig_ManPo(pNew,i)) ) )
                 continue;
             iCount++;
-            printf( "*** Running output %d of the miter (number %d out of %d unsolved).\n", i, iCount, Counter );
+            if ( !pParSec->fSilent )
+                printf( "*** Running output %d of the miter (number %d out of %d unsolved).\n", i, iCount, Counter );
             pNew2 = Aig_ManDupOneOutput( pNew, i );
             
             TimeLimitCopy = pParSec->TimeLimit;
@@ -462,15 +477,19 @@ PRT( "Time", clock() - clk );
             RetValue = -1;
         else
             RetValue = 1;
-        printf( "*** Finished running separate outputs of the miter.\n" );
+        if ( !pParSec->fSilent )
+            printf( "*** Finished running separate outputs of the miter.\n" );
     }
 
 finish:
     // report the miter
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent.   " );
+        if ( !pParSec->fSilent )
+        {
+            printf( "Networks are equivalent.   " );
 PRT( "Time", clock() - clkTotal );
+        }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: PASS       " );
@@ -479,8 +498,11 @@ PRT( "Time", clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT.   " );
+        if ( !pParSec->fSilent )
+        {
+            printf( "Networks are NOT EQUIVALENT.   " );
 PRT( "Time", clock() - clkTotal );
+        }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: FAIL       " );
@@ -489,14 +511,17 @@ PRT( "Time", clock() - clkTotal );
     }
     else 
     {
-        printf( "Networks are UNDECIDED.   " );
+        if ( !pParSec->fSilent )
+        {
+            printf( "Networks are UNDECIDED.   " );
 PRT( "Time", clock() - clkTotal );
+        }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: UNDECIDED  " );
 PRT( "Time", clock() - clkTotal );
         }
-        if ( !TimeOut )
+        if ( !TimeOut && !pParSec->fSilent )
         {
             static int Counter = 1;
             char pFileName[1000];

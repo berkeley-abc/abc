@@ -554,6 +554,8 @@ void Tim_ManCreateBoxFirst( Tim_Man_t * p, int firstIn, int nIns, int firstOut, 
     pBox = (Tim_Box_t *)Mem_FlexEntryFetch( p->pMemObj, sizeof(Tim_Box_t) + sizeof(int) * (nIns+nOuts) );
     memset( pBox, 0, sizeof(Tim_Box_t) );
     pBox->iBox = Vec_PtrSize( p->vBoxes );
+//printf( "Creating box %d: First in = %d. (%d) First out = %d. (%d)\n", pBox->iBox, 
+//       firstIn, nIns, firstOut, nOuts );
     Vec_PtrPush( p->vBoxes, pBox );
     pBox->pDelayTable = pDelayTable;
     pBox->nInputs  = nIns;
@@ -691,6 +693,25 @@ void Tim_ManSetCoRequired( Tim_Man_t * p, int iCo, float Delay )
     assert( !p->fUseTravId || p->pCos[iCo].TravId != p->nTravIds );
     p->pCos[iCo].timeReq = Delay;
     p->pCos[iCo].TravId = p->nTravIds;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the correct required times for all POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManSetCiArrivalAll( Tim_Man_t * p, float Delay )
+{
+    Tim_Obj_t * pObj;
+    int i;
+    Tim_ManForEachCi( p, pObj, i )
+        Tim_ManInitCiArrival( p, i, Delay );
 }
 
 /**Function*************************************************************

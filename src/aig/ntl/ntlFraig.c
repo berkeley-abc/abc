@@ -203,7 +203,7 @@ void Ntl_ManResetComplemented( Ntl_Man_t * p, Aig_Man_t * pAigCol )
     pRoot = Ntl_ManRootModel(p);
     Ntl_ModelForEachLatch( pRoot, pObj, i )
     {
-        if ( (pObj->LatchId & 3) == 1 )
+        if ( Ntl_ObjIsInit1( pObj ) )
         {
             pObjCol = Ntl_ObjFanout0(pObj)->pCopy;
             assert( pObjCol->fPhase == 0 );
@@ -275,7 +275,7 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew, 0 );
+    pAigCol = Ntl_ManCollapseComb( pNew );
 
     // perform fraiging for the given design
     nPartSize = nPartSize? nPartSize : Aig_ManPoNum(pAigCol);
@@ -309,7 +309,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew, 1 );
+    pAigCol = Ntl_ManCollapseSeq( pNew );
 
     // perform SCL for the given design
     Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
@@ -343,7 +343,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew, 1 );
+    pAigCol = Ntl_ManCollapseSeq( pNew );
 
     // perform SCL for the given design
     Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
@@ -377,7 +377,7 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew, 1 );
+    pAigCol = Ntl_ManCollapseSeq( pNew );
 
     // perform SCL for the given design
     Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
@@ -502,7 +502,7 @@ void Ntl_ManFlipEdges( Ntl_Man_t * p, Aig_Man_t * pAigCol )
     iLatch = 0;
     Ntl_ModelForEachLatch( pRoot, pObj, i )
     {
-        if ( (pObj->LatchId & 3) == 1 )
+        if ( Ntl_ObjIsInit1( pObj ) )
         {
             pObjCol = Aig_ManPi( pAigCol, Ntl_ModelPiNum(pRoot) + iLatch );
             assert( pObjCol->fMarkA == 0 );
@@ -524,7 +524,7 @@ void Ntl_ManFlipEdges( Ntl_Man_t * p, Aig_Man_t * pAigCol )
     iLatch = 0;
     Ntl_ModelForEachLatch( pRoot, pObj, i )
     {
-        if ( (pObj->LatchId & 3) == 1 )
+        if ( Ntl_ObjIsInit1( pObj ) )
         {
             // flip the latch input
             pObjCol = Aig_ManPo( pAigCol, Ntl_ModelPoNum(pRoot) + iLatch );
@@ -554,7 +554,7 @@ Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     Ntl_Man_t * pNew;
     Aig_Man_t * pAigRed, * pAigCol;
     // collapse the AIG
-    pAigCol = Ntl_ManCollapse( p, 1 );
+    pAigCol = Ntl_ManCollapseSeq( p );
     Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     // transform the collapsed AIG
     pAigRed = Fra_FraigInduction( pAigCol, pPars );

@@ -40,11 +40,100 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ModelCheck( Ntl_Mod_t * pModel )
+int Ntl_ModelCheck( Ntl_Mod_t * pModel, int fMain )
 {
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
     int i, k, fStatus = 1;
+
+    // check root level model
+    if ( fMain )
+    {
+        if ( Ntl_ModelLatchNum(pModel) > 0 )
+        {
+            printf( "Root level model has %d registers.\n", pModel->pName, Ntl_ModelLatchNum(pModel) );
+            fStatus = 0;
+        }
+        goto checkobjs;
+    }
+
+    // check delay information
+    if ( pModel->attrBox && pModel->attrComb )
+    {
+        if ( pModel->vDelays == NULL )
+        {
+            printf( "Warning: Comb model %s does not have delay info. Default 1.0 delays are assumed.\n", pModel->pName );
+            pModel->vDelays = Vec_IntAlloc( 3 );
+            Vec_IntPush( pModel->vDelays, -1 );
+            Vec_IntPush( pModel->vDelays, -1 );
+            Vec_IntPush( pModel->vDelays, Aig_Float2Int(1.0) );        
+        }
+        if ( pModel->vTimeInputs != NULL )
+        {
+            printf( "Combinational model %s has input arrival/required time information.\n", pModel->pName );
+            fStatus = 0;
+        }
+        if ( pModel->vTimeOutputs != NULL )
+        {
+            printf( "Combinational model %s has output arrival/required time information.\n", pModel->pName );
+            fStatus = 0;
+        }
+    }
+    if ( pModel->attrBox && !pModel->attrComb )
+    {
+        if ( pModel->vDelays != NULL )
+        {
+            printf( "Sequential model %s has delay info.\n", pModel->pName );
+            fStatus = 0;
+        }
+        if ( pModel->vTimeInputs == NULL )
+        {
+            printf( "Warning: Seq model %s does not have input arrival/required time info. Default 0.0 is assumed.\n", pModel->pName );
+            pModel->vTimeInputs = Vec_IntAlloc( 2 );
+            Vec_IntPush( pModel->vTimeInputs, -1 );
+            Vec_IntPush( pModel->vTimeInputs, Aig_Float2Int(1.0) );        
+        }
+        if ( pModel->vTimeOutputs == NULL )
+        {
+            printf( "Warning: Seq model %s does not have output arrival/required time info. Default 0.0 is assumed.\n", pModel->pName );
+            pModel->vTimeOutputs = Vec_IntAlloc( 2 );
+            Vec_IntPush( pModel->vTimeOutputs, -1 );
+            Vec_IntPush( pModel->vTimeOutputs, Aig_Float2Int(1.0) );        
+        }
+    }
+
+    // check box attributes
+    if ( pModel->attrBox )
+    {
+        if ( !pModel->attrWhite )
+        {
+            if ( Ntl_ModelNodeNum(pModel) + Ntl_ModelLut1Num(pModel) > 0 )
+            {
+                printf( "Model %s is a blackbox, yet it has %d nodes.\n", pModel->pName, Ntl_ModelNodeNum(pModel) + Ntl_ModelLut1Num(pModel) );
+                fStatus = 0;
+            }
+            if ( Ntl_ModelLatchNum(pModel) > 0 )
+            {
+                printf( "Model %s is a blackbox, yet it has %d registers.\n", pModel->pName, Ntl_ModelLatchNum(pModel) );
+                fStatus = 0;
+            }
+            return fStatus;
+        }
+        // this is a white box
+        if ( pModel->attrComb && Ntl_ModelNodeNum(pModel) + Ntl_ModelLut1Num(pModel) == 0 )
+        {
+            printf( "Model %s is a comb blackbox, yet it has no nodes.\n", pModel->pName );
+            fStatus = 0;
+        }
+        if ( !pModel->attrComb && Ntl_ModelLatchNum(pModel) == 0 )
+        {
+            printf( "Model %s is a seq blackbox, yet it has no registers.\n", pModel->pName );
+            fStatus = 0;
+        }
+    }
+
+checkobjs:
+    // check nets
     Ntl_ModelForEachNet( pModel, pNet, i )
     {
         if ( pNet->pName == NULL )
@@ -58,6 +147,8 @@ int Ntl_ModelCheck( Ntl_Mod_t * pModel )
             fStatus = 0;
         }
     }
+
+    // check objects
     Ntl_ModelForEachObj( pModel, pObj, i )
     {
         Ntl_ObjForEachFanin( pObj, pNet, k )
@@ -89,8 +180,8 @@ int Ntl_ModelCheck( Ntl_Mod_t * pModel )
 ***********************************************************************/
 int Ntl_ManCheck( Ntl_Man_t * pMan )
 {
-    Ntl_Mod_t * pMod1, * pMod2;
-    int i, k, fStatus = 1;
+    Ntl_Mod_t * pMod1;
+    int i, fStatus = 1;
     // check that the models have unique names
     Ntl_ManForEachModel( pMan, pMod1, i )
     {
@@ -98,16 +189,6 @@ int Ntl_ManCheck( Ntl_Man_t * pMan )
         {
             printf( "Model %d does not have a name\n", i );
             fStatus = 0;
-        }
-        Ntl_ManForEachModel( pMan, pMod2, k )
-        {
-            if ( i >= k )
-                continue;
-            if ( strcmp(pMod1->pName, pMod2->pName) == 0 )
-            {
-                printf( "Models %d and %d have the same name (%s).\n", i, k, pMod1->pName );
-                fStatus = 0;
-            }
         }
     }
     // check that the models (except the first one) do not have boxes
@@ -124,9 +205,8 @@ int Ntl_ManCheck( Ntl_Man_t * pMan )
     // check models
     Ntl_ManForEachModel( pMan, pMod1, i )
     {
-        if ( !Ntl_ModelCheck( pMod1 ) )
+        if ( !Ntl_ModelCheck( pMod1, i==0 ) )
             fStatus = 0;
-        break;
     }
     return fStatus;
 }
@@ -150,7 +230,7 @@ void Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel )
     Ntl_Obj_t * pNode;
     int i;
 
-    if ( Ntl_ModelIsBlackBox(pModel) )
+    if ( !pModel->attrWhite )
         return;
 
     // check for non-driven nets
@@ -184,6 +264,37 @@ void Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel )
         printf( "\n" );
     }
     Vec_PtrFree( vNets );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fixed problems with non-driven nets in the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ModelTransformLatches( Ntl_Mod_t * pModel )
+{ 
+    Ntl_Mod_t * pMod[3] = { NULL };
+    Ntl_Obj_t * pLatch;
+    int i, Init;
+    if ( Ntl_ModelLatchNum(pModel) == 0 )
+        return;
+    Ntl_ModelForEachLatch( pModel, pLatch, i )
+    {
+        Init = pLatch->LatchId.regInit;
+        if ( pMod[Init] == NULL )
+            pMod[Init] = Ntl_ManCreateLatchModel( pModel->pMan, Init );
+        pLatch->pImplem = pMod[Init];
+        pLatch->Type = NTL_OBJ_BOX;
+    }
+    printf( "Root level model %s: %d registers turned into white seq boxes.\n", pModel->pName, Ntl_ModelLatchNum(pModel) );
+    pModel->nObjs[NTL_OBJ_BOX] += Ntl_ModelLatchNum(pModel);
+    pModel->nObjs[NTL_OBJ_LATCH] = 0;
 }
 
 

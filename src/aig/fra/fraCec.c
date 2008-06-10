@@ -53,19 +53,22 @@ int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVe
     // derive CNF
     pCnf = Cnf_Derive( pMan, Aig_ManPoNum(pMan) );
 //    pCnf = Cnf_DeriveSimple( pMan, Aig_ManPoNum(pMan) );
-    // convert into the SAT solver
+    // convert into SAT solver
     pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
-    // add the OR clause for the outputs
-    Cnf_DataWriteOrClause( pSat, pCnf );
-    vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
-    Cnf_DataFree( pCnf );
-    // solve SAT
     if ( pSat == NULL )
     {
-        Vec_IntFree( vCiIds );
-//        printf( "Trivially unsat\n" );
+        Cnf_DataFree( pCnf );
         return 1;
     }
+    // add the OR clause for the outputs
+    if ( !Cnf_DataWriteOrClause( pSat, pCnf ) )
+    {
+        sat_solver_delete( pSat );
+        Cnf_DataFree( pCnf );
+        return 1;
+    }
+    vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
+    Cnf_DataFree( pCnf );
 
 
 //    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );

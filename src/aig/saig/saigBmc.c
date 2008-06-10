@@ -277,6 +277,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                 free( pModel );
                 Vec_IntFree( vCiIds );
 
+//                if ( piFrame )
+//                    *piFrame = i / Saig_ManPoNum(pAig);
                 RetValue = 0;
                 break;
             }

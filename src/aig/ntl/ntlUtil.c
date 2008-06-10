@@ -238,26 +238,6 @@ void Ntl_ManUnmarkCiCoNets( Ntl_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Unmarks the CI/CO nets.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManCheckNetsAreNotMarked( Ntl_Mod_t * pModel )
-{
-    Ntl_Net_t * pNet;
-    int i;
-    Ntl_ModelForEachNet( pModel, pNet, i )
-        assert( pNet->fMark == 0 );
-    return 1;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Convert initial values of registers to be zero.]
 
   Description []
@@ -274,7 +254,7 @@ void Ntl_ManSetZeroInitValues( Ntl_Man_t * p )
     int i;
     pRoot = Ntl_ManRootModel(p);
     Ntl_ModelForEachLatch( pRoot, pObj, i )
-        pObj->LatchId &= ~3;
+        pObj->LatchId.regInit = 0;
 }
 
 /**Function*************************************************************
@@ -296,7 +276,7 @@ void Ntl_ManAddInverters( Ntl_Obj_t * pObj )
     Ntl_Net_t * pNetLo, * pNetLi, * pNetLoInv, * pNetLiInv;
     Ntl_Obj_t * pNode;
     int nLength, RetValue;
-    assert( (pObj->LatchId & 3) == 1 );
+    assert( Ntl_ObjIsInit1( pObj ) );
     // get the nets
     pNetLi = Ntl_ObjFanin0(pObj);
     pNetLo = Ntl_ObjFanout0(pObj);
@@ -362,11 +342,132 @@ void Ntl_ManTransformInitValues( Ntl_Man_t * p )
     pRoot = Ntl_ManRootModel(p);
     Ntl_ModelForEachLatch( pRoot, pObj, i )
     {
-        if ( (pObj->LatchId & 3) == 1 )
+        if ( Ntl_ObjIsInit1( pObj ) )
             Ntl_ManAddInverters( pObj );
-        pObj->LatchId &= ~3;
+        pObj->LatchId.regInit = 0;
     }
+}
 
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of CIs in the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCombLeafNum( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pObj;
+    int i, Counter = 0;
+    Ntl_ModelForEachCombLeaf( p, pObj, i )
+        Counter += Ntl_ObjFanoutNum( pObj );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of COs in the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCombRootNum( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pObj;
+    int i, Counter = 0;
+    Ntl_ModelForEachCombRoot( p, pObj, i )
+        Counter += Ntl_ObjFaninNum( pObj );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of CIs in the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelSeqLeafNum( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pObj;
+    int i, Counter = 0;
+    Ntl_ModelForEachSeqLeaf( p, pObj, i )
+        Counter += Ntl_ObjFanoutNum( pObj );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of COs in the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelSeqRootNum( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pObj;
+    int i, Counter = 0;
+    Ntl_ModelForEachSeqRoot( p, pObj, i )
+        Counter += Ntl_ObjFaninNum( pObj );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unmarks the CI/CO nets.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCheckNetsAreNotMarked( Ntl_Mod_t * pModel )
+{
+    Ntl_Net_t * pNet;
+    int i;
+    Ntl_ModelForEachNet( pModel, pNet, i )
+        assert( pNet->fMark == 0 );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unmarks the CI/CO nets.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ModelClearNets( Ntl_Mod_t * pModel )
+{
+    Ntl_Net_t * pNet;
+    int i;
+    Ntl_ModelForEachNet( pModel, pNet, i )
+    {
+        pNet->nVisits = 0;
+        pNet->pCopy = NULL;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

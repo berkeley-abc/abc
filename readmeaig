@@ -1,0 +1,24 @@
+Using AIG Package in ABC
+
+- Download the latest snapshot of ABC
+- Compile the code found in "abc\src\aig\aig", "abc\src\aig\saig", and "abc\src\misc\vec" as a static library.
+- Link the library to the project.
+- Add #include "saig.h".
+- Start the AIG package using Aig_ManStart().
+- Assign primary inputs using Aig_ObjCreatePi().
+- Assign register outputs using Aig_ObjCreatePi().
+(it is important to create all PIs first, before creating register outputs).
+- Construct AIG in the topological order using Aig_And(), Aig_Or(), Aig_Not(), etc.
+- If constant-0/1 AIG nodes are needed, use Aig_ManConst0() or Aig_ManConst1()
+- Create primary outputs using Aig_ObjCreatePo().
+- Create register inputs using Aig_ObjCreatePo().
+(it is important to create all POs first, before creating register inputs).
+- Set the number of registers by calling Aig_ManSetRegNum().
+- Remove dangling AIG nodes (produced by structural hashing) using Aig_ManCleanup().
+- Call the consistency checking procedure Aig_ManCheck().
+- Dump AIG into a file using the new BLIF dumper Saig_ManDumpBlif().
+- For each object in the design annotated with the constructed AIG node (pNode), remember its AIG node ID by calling Aig_ObjId( Aig_Regular(pNode) ). To check whether the corresponding AIG node is complemented use Aig_IsComplement(pNode).
+- Quit the AIG package using Aig_ManStop().
+The above process should not produce memory leaks.
+
+

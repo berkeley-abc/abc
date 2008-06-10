@@ -265,7 +265,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
 
     // then rest of the expression 
     pToken = strtok( NULL, ";" );
-    pGate->pForm = Extra_UtilStrsav( pToken );
+    pGate->pForm = chomp( pToken );
 
     // read the pin info
     // start the linked list of pins
@@ -392,21 +392,27 @@ Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, bool fExtendedFormat )
   SeeAlso     []
 
 ***********************************************************************/
-char *chomp( char *s )
+char * chomp( char *s )
 {
-    char *b = ALLOC(char, strlen(s)+1), *c = b;
-    while (*s && isspace(*s))
-        ++s;
-    while (*s && !isspace(*s))
-        *c++ = *s++;
-    *c = 0;
-    return b;
+    char *a, *b, *c;
+    // remove leading spaces
+    for ( b = s; *b; b++ )
+        if ( !isspace(*b) )
+            break;
+    // strsav the string
+    a = strcpy( ALLOC(char, strlen(b)+1), b );
+    // remove trailing spaces
+    for ( c = a+strlen(a); c > a; c-- )
+        if ( *c == 0 || isspace(*c) )
+            *c = 0;
+        else
+            break;
+    return a;
 }   
         
 /**Function*************************************************************
 
-  Synopsis    [Duplicates string and returns it with leading and 
-               trailing spaces removed.]
+  Synopsis    []
 
   Description []
                

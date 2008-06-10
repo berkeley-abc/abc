@@ -74,7 +74,7 @@ extern void        Aig_ManFreeGlobalBdds( Aig_Man_t * p, DdManager * dd );
 extern int         Aig_ManSizeOfGlobalBdds( Aig_Man_t * p );
 extern DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropInternal, int fReorder, int fVerbose );
 /*=== bbrReach.c ==========================================================*/
-extern int         Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
+extern int         Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent );
 
 #ifdef __cplusplus
 }

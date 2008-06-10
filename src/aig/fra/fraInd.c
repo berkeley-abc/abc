@@ -422,7 +422,8 @@ PRT( "Time", clock() - clk );
 
     if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
     {
-        printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
+        if ( !pParams->fSilent )
+            printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
         goto finish;
     }
 
@@ -452,7 +453,8 @@ PRT( "Time", clock() - clk );
 
         if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
         {
-            printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
+            if ( !pParams->fSilent )
+                printf( "Fra_FraigInduction(): Runtime limit exceeded.\n" );
             goto finish;
         }
 

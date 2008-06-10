@@ -1,6 +1,8 @@
 Often the code comes directly from a Windows computer.
 The following steps may be needed to compile it on UNIX:
 
+Modify Makefile to have -DLIN (for 32-bits) or -DLIN64 (for 64-bits)
+
 >> dos2unix Makefile Makefile
 >> dos2unix depends.sh depends.sh
 >> chmod 755 depends.sh

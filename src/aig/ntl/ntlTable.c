@@ -189,7 +189,7 @@ Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber )
+int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber )
 {
     Ntl_Net_t * pNet;
     Ntl_Obj_t * pObj;
@@ -198,6 +198,30 @@ int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber )
     pNet = Ntl_ModelFindNet( p, pName );
     if ( pNet == NULL )
         return 0;
+    if ( fPiOnly )
+    {
+        Ntl_ModelForEachPi( p, pObj, i )
+        {
+            if ( Ntl_ObjFanout0(pObj) == pNet )
+            {
+                *pNumber = i;
+                return -1;
+            }
+        }
+        return 0;
+    }
+    if ( fPoOnly )
+    {
+        Ntl_ModelForEachPo( p, pObj, i )
+        {
+            if ( Ntl_ObjFanin0(pObj) == pNet )
+            {
+                *pNumber = i;
+                return 1;
+            }
+        }
+        return 0;
+    }
     Ntl_ModelForEachPo( p, pObj, i )
     {
         if ( Ntl_ObjFanin0(pObj) == pNet )
@@ -279,6 +303,97 @@ int Ntl_ModelCountNets( Ntl_Mod_t * p )
     Ntl_ModelForEachNet( p, pNet, i )
         Counter++;
     return Counter;
+}
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Resizes the table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManModelTableResize( Ntl_Man_t * p )
+{
+    Ntl_Mod_t ** pModTableNew, ** ppSpot, * pEntry, * pEntry2;
+    int nModTableSizeNew, Counter, e, clk;
+clk = clock();
+    // get the new table size
+    nModTableSizeNew = Aig_PrimeCudd( 3 * p->nModTableSize ); 
+    // allocate a new array
+    pModTableNew = ALLOC( Ntl_Mod_t *, nModTableSizeNew );
+    memset( pModTableNew, 0, sizeof(Ntl_Mod_t *) * nModTableSizeNew );
+    // rehash entries 
+    Counter = 0;
+    for ( e = 0; e < p->nModTableSize; e++ )
+        for ( pEntry = p->pModTable[e], pEntry2 = pEntry? pEntry->pNext : NULL; 
+              pEntry; pEntry = pEntry2, pEntry2 = pEntry? pEntry->pNext : NULL )
+            {
+                ppSpot = pModTableNew + Ntl_HashString( pEntry->pName, nModTableSizeNew );
+                pEntry->pNext = *ppSpot;
+                *ppSpot = pEntry;
+                Counter++;
+            }
+    assert( Counter == p->nModEntries );
+//    printf( "Increasing the structural table size from %6d to %6d. ", p->nTableSize, nTableSizeNew );
+//    PRT( "Time", clock() - clk );
+    // replace the table and the parameters
+    free( p->pModTable );
+    p->pModTable = pModTableNew;
+    p->nModTableSize = nModTableSizeNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds or creates the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManAddModel( Ntl_Man_t * p, Ntl_Mod_t * pModel )
+{
+    Ntl_Mod_t * pEnt;
+    unsigned Key = Ntl_HashString( pModel->pName, p->nModTableSize );
+    for ( pEnt = p->pModTable[Key]; pEnt; pEnt = pEnt->pNext )
+        if ( !strcmp( pEnt->pName, pModel->pName ) )
+            return 0;
+    pModel->pNext = p->pModTable[Key];
+    p->pModTable[Key] = pModel;
+    if ( ++p->nModEntries > 2 * p->nModTableSize )
+        Ntl_ManModelTableResize( p );
+    Vec_PtrPush( p->vModels, pModel );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds or creates the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Mod_t * Ntl_ManFindModel( Ntl_Man_t * p, char * pName )
+{
+    Ntl_Mod_t * pEnt;
+    unsigned Key = Ntl_HashString( pName, p->nModTableSize );
+    for ( pEnt = p->pModTable[Key]; pEnt; pEnt = pEnt->pNext )
+        if ( !strcmp( pEnt->pName, pName ) )
+            return pEnt;
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

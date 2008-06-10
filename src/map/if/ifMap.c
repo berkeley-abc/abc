@@ -296,6 +296,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
             }
             else if ( If_ObjIsCi(pObj) )
             {
+//printf( "processing CI %d\n", pObj->Id );
                 arrTime = Tim_ManGetCiArrival( p->pManTim, pObj->IdPio );
                 If_ObjSetArrTime( pObj, arrTime );
             }

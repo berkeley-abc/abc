@@ -9298,7 +9298,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Prove_Params_t Params, * pParams = &Params;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkTemp;
-    int c, clk, RetValue;
+    int c, clk, RetValue, iOut = -1;
 
     extern int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
 
@@ -9351,8 +9351,16 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     // verify that the pattern is correct
     if ( RetValue == 0 )
     {
+        Abc_Obj_t * pObj;
+        int i;
         int * pSimInfo = Abc_NtkVerifySimulatePattern( pNtk, pNtkTemp->pModel );
-        if ( pSimInfo[0] != 1 )
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            if ( pSimInfo[i] == 1 )
+            {
+                iOut = i;
+                break;
+            }
+        if ( i == Abc_NtkCoNum(pNtk) )
             printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
         free( pSimInfo );
     }
@@ -9360,7 +9368,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( RetValue == -1 ) 
         printf( "UNDECIDED      " );
     else if ( RetValue == 0 )
-        printf( "SATISFIABLE    " );
+        printf( "SATISFIABLE (output = %d) ", iOut );
     else
         printf( "UNSATISFIABLE  " );
     //printf( "\n" );
@@ -15634,6 +15642,7 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMapped;
     int fTest;
     extern void * Ioa_ReadBlif( char * pFileName, int fCheck );
+    extern void Ioa_WriteBlif( void * p, char * pFileName );
     extern Aig_Man_t * Ntl_ManExtract( void * p );
     extern void * Ntl_ManExtractNwk( void * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
 
@@ -15678,6 +15687,7 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pTemp )
         {
         Ntl_ManPrintStats( pTemp );
+//        Ioa_WriteBlif( pTemp, "test_boxes.blif" );
         Ntl_ManFree( pTemp );
         }
         return 0;
@@ -17888,6 +17898,8 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    printf( "Currently *cec works only for two designs given on command line.\n" );
+/*
     // derive AIGs
     pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl, 0 );
     pTemp = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
@@ -17903,6 +17915,7 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     Fra_FraigCecTop( pAig1, pAig2, nConfLimit, nPartSize, fSmart, fVerbose );
     Aig_ManStop( pAig1 );
     Aig_ManStop( pAig2 );
+*/
     return 0;
 
 usage:

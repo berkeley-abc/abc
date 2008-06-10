@@ -3294,6 +3294,10 @@ SOURCE=.\src\aig\saig\saigIoa.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigMiter.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigPhase.c
 # End Source File
 # Begin Source File

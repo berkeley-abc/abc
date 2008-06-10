@@ -79,7 +79,7 @@ void Ntl_ManSweepMark( Ntl_Man_t * p )
         Ntl_ManSweepMark_rec( p, pObj );
     // start from the persistant boxes
     Ntl_ModelForEachBox( pRoot, pObj, i )
-        if ( pObj->pImplem->fKeep )
+        if ( pObj->pImplem->attrKeep )
             Ntl_ManSweepMark_rec( p, pObj );
 }
 

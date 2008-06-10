@@ -1119,20 +1119,22 @@ int Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Fra_Cex_t * p )
     RetValue = !Fra_SmlNodeIsZero( pSml, Aig_ManPo(pAig, p->iPo) );
 
     // write the output file
-    fprintf( pFile, "1\n" );
     for ( i = 0; i <= p->iFrame; i++ )
     {
+/*
         Aig_ManForEachLoSeq( pAig, pObj, k )
         {
             pSims = Fra_ObjSim(pSml, pObj->Id);
             fprintf( pFile, "%d", (int)(pSims[i] != 0) );
         }
         fprintf( pFile, " " );
+*/
         Aig_ManForEachPiSeq( pAig, pObj, k )
         {
             pSims = Fra_ObjSim(pSml, pObj->Id);
             fprintf( pFile, "%d", (int)(pSims[i] != 0) );
         }
+/*
         fprintf( pFile, " " );
         Aig_ManForEachPoSeq( pAig, pObj, k )
         {
@@ -1145,6 +1147,7 @@ int Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Fra_Cex_t * p )
             pSims = Fra_ObjSim(pSml, pObj->Id);
             fprintf( pFile, "%d", (int)(pSims[i] != 0) );
         }
+*/
         fprintf( pFile, "\n" );
     }
 

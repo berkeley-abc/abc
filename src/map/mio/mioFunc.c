@@ -25,7 +25,9 @@
 
 // these symbols (and no other) can appear in the formulas
 #define MIO_SYMB_AND    '*'
-#define MIO_SYMB_OR     '+'
+#define MIO_SYMB_OR1    '+'
+#define MIO_SYMB_OR2    '|'
+#define MIO_SYMB_XOR    '^'
 #define MIO_SYMB_NOT    '!'
 #define MIO_SYMB_AFTNOT '\''
 #define MIO_SYMB_OPEN   '('
@@ -239,8 +241,9 @@ int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
 
     // remove the non-name symbols
     for ( pTemp = Buffer; *pTemp; pTemp++ )
-        if ( *pTemp == MIO_SYMB_AND  || *pTemp == MIO_SYMB_OR || *pTemp == MIO_SYMB_NOT
-          || *pTemp == MIO_SYMB_OPEN || *pTemp == MIO_SYMB_CLOSE || *pTemp == MIO_SYMB_AFTNOT )
+        if ( *pTemp == MIO_SYMB_AND || *pTemp == MIO_SYMB_OR1 || *pTemp == MIO_SYMB_OR2 
+          || *pTemp == MIO_SYMB_XOR || *pTemp == MIO_SYMB_NOT || *pTemp == MIO_SYMB_OPEN 
+          || *pTemp == MIO_SYMB_CLOSE || *pTemp == MIO_SYMB_AFTNOT )
             *pTemp = ' ';
 
     // save the names

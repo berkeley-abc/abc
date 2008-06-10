@@ -45,29 +45,36 @@
 ***********************************************************************/
 int main( int argc, char * argv[] )
 {
+    int fEnableBmcOnly = 0;  // enable to make it BMC-only
+
+    int fEnableCounter = 1;  // should be 1 in the final version
+    int fEnableComment = 0;  // should be 0 in the final version
+
     Fra_Sec_t SecPar, * pSecPar = &SecPar;
     FILE * pFile;
     Aig_Man_t * pAig;
-    int RetValue;
+    int RetValue = -1;
+    int Depth    = -1;
     // BMC parameters
-    int nFrames  = 30;
-    int nSizeMax = 200000;
+    int nFrames  = 50;
+    int nSizeMax = 500000;
     int nBTLimit = 10000;
     int fRewrite = 0;
     int fNewAlgo = 1;
     int fVerbose = 0;
+    int clkTotal = clock();
 
     if ( argc != 2 )
     {
         printf( "  Expecting one command-line argument (an input file in AIGER format).\n" );
-        printf( "  usage: %s <file.aig>", argv[0] );
+        printf( "  usage: %s <file.aig>\n", argv[0] );
         return 0;
     }
     pFile = fopen( argv[1], "r" );
     if ( pFile == NULL )
     {
         printf( "  Cannot open input AIGER file \"%s\".\n", argv[1] );
-        printf( "  usage: %s <file.aig>", argv[0] );
+        printf( "  usage: %s <file.aig>\n", argv[0] );
         return 0;
     }
     fclose( pFile );
@@ -75,33 +82,47 @@ int main( int argc, char * argv[] )
     if ( pAig == NULL )
     {
         printf( "  Parsing the AIGER file \"%s\" has failed.\n", argv[1] );
-        printf( "  usage: %s <file.aig>", argv[0] );
+        printf( "  usage: %s <file.aig>\n", argv[0] );
         return 0;
     }
 
-    // perform BMC
     Aig_ManSetRegNum( pAig, pAig->nRegs );
-    RetValue = Saig_ManBmcSimple( pAig, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, NULL );
-
-    // perform full-blown SEC
-    if ( RetValue != 0 )
+    if ( !fEnableBmcOnly )
     {
-        extern void Dar_LibStart();
-        extern void Dar_LibStop();
-        extern void Cnf_ClearMemory();
+        // perform BMC
+        if ( pAig->nRegs != 0 )
+            RetValue = Saig_ManBmcSimple( pAig, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, NULL );
 
-        Fra_SecSetDefaultParams( pSecPar );
-        pSecPar->nFramesMax      =   2;  // the max number of frames used for induction
+        // perform full-blown SEC
+        if ( RetValue != 0 )
+        {
+            extern void Dar_LibStart();
+            extern void Dar_LibStop();
+            extern void Cnf_ClearMemory();
 
-        Dar_LibStart();
-        RetValue = Fra_FraigSec( pAig, pSecPar );
-        Dar_LibStop();
-        Cnf_ClearMemory();
+            Fra_SecSetDefaultParams( pSecPar );
+            pSecPar->TimeLimit       = 600;
+            pSecPar->nFramesMax      =   4;  // the max number of frames used for induction
+            pSecPar->fPhaseAbstract  =   0;  // disable phase-abstraction
+            pSecPar->fSilent         =   1;  // disable phase-abstraction
+
+            Dar_LibStart();
+            RetValue = Fra_FraigSec( pAig, pSecPar );
+            Dar_LibStop();
+            Cnf_ClearMemory();
+        }
     }
 
     // perform BMC again
-    if ( RetValue == -1 )
+    if ( RetValue == -1 && pAig->nRegs != 0 )
     {
+        int nFrames  = 200;
+        int nSizeMax = 500000;
+        int nBTLimit = 10000000;
+        int fRewrite = 0;
+        RetValue = Saig_ManBmcSimple( pAig, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &Depth );
+        if ( RetValue != 0 )
+            RetValue = -1;
     }
 
     // decide how to report the output
@@ -111,7 +132,20 @@ int main( int argc, char * argv[] )
     if ( RetValue == 0 ) 
     {
 //        fprintf(stdout, "s SATIFIABLE\n");
+        fprintf( pFile, "1" );
+        if ( fEnableCounter  )
+        {
+        printf( "\n" );
+        if ( pAig->pSeqModel )
         Fra_SmlWriteCounterExample( pFile, pAig, pAig->pSeqModel );
+        }
+
+        if ( fEnableComment )
+        {
+        printf( "  # File %10s.  ", argv[1] );
+        PRT( "Time", clock() - clkTotal );
+        }
+
         if ( pFile != stdout )
             fclose(pFile);
         Aig_ManStop( pAig );
@@ -120,7 +154,15 @@ int main( int argc, char * argv[] )
     else if ( RetValue == 1 ) 
     {
 //    fprintf(stdout, "s UNSATISFIABLE\n");
-        fprintf( pFile, "0\n" );
+        fprintf( pFile, "0" );
+
+        if ( fEnableComment )
+        {
+        printf( "  # File %10s.  ", argv[1] );
+        PRT( "Time", clock() - clkTotal );
+        }
+        printf( "\n" );
+
         if ( pFile != stdout )
             fclose(pFile);
         Aig_ManStop( pAig );
@@ -129,6 +171,15 @@ int main( int argc, char * argv[] )
     else // if ( RetValue == -1 ) 
     {
 //    fprintf(stdout, "s UNKNOWN\n");
+        fprintf( pFile, "2" );
+
+        if ( fEnableComment )
+        {
+        printf( "  # File %10s.  ", argv[1] );
+        PRT( "Time", clock() - clkTotal );
+        }
+        printf( "\n" );
+
         if ( pFile != stdout )
             fclose(pFile);
         Aig_ManStop( pAig );

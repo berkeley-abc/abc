@@ -42,33 +42,48 @@
 void Ntl_ManCreateMissingInputs( Ntl_Mod_t * p1, Ntl_Mod_t * p2, int fSeq )
 {
     Ntl_Obj_t * pObj;
-    Ntl_Net_t * pNet;
-    int i;
-    Ntl_ModelForEachPi( p1, pObj, i )
+    Ntl_Net_t * pNet, * pNext;
+    int i, k;
+    if ( fSeq )
     {
-        pNet = Ntl_ModelFindNet( p2, Ntl_ObjFanout0(pObj)->pName );
-        if ( pNet == NULL )
-            Ntl_ModelCreatePiWithName( p2, Ntl_ObjFanout0(pObj)->pName );
-    }
-    Ntl_ModelForEachPi( p2, pObj, i )
-    {
-        pNet = Ntl_ModelFindNet( p1, Ntl_ObjFanout0(pObj)->pName );
-        if ( pNet == NULL )
-            Ntl_ModelCreatePiWithName( p1, Ntl_ObjFanout0(pObj)->pName );
-    }
-    if ( !fSeq )
-    {
-        Ntl_ModelForEachLatch( p1, pObj, i )
+        Ntl_ModelForEachSeqLeaf( p1, pObj, i )
         {
-            pNet = Ntl_ModelFindNet( p2, Ntl_ObjFanout0(pObj)->pName );
-            if ( pNet == NULL )
-                Ntl_ModelCreatePiWithName( p2, Ntl_ObjFanout0(pObj)->pName );
+            Ntl_ObjForEachFanout( pObj, pNext, k )
+            {
+                pNet = Ntl_ModelFindNet( p2, pNext->pName );
+                if ( pNet == NULL )
+                    Ntl_ModelCreatePiWithName( p2, pNext->pName );
+            }
         }
-        Ntl_ModelForEachLatch( p2, pObj, i )
+        Ntl_ModelForEachSeqLeaf( p2, pObj, i )
         {
-            pNet = Ntl_ModelFindNet( p1, Ntl_ObjFanout0(pObj)->pName );
-            if ( pNet == NULL )
-                Ntl_ModelCreatePiWithName( p1, Ntl_ObjFanout0(pObj)->pName );
+            Ntl_ObjForEachFanout( pObj, pNext, k )
+            {
+                pNet = Ntl_ModelFindNet( p1, pNext->pName );
+                if ( pNet == NULL )
+                    Ntl_ModelCreatePiWithName( p1, pNext->pName );
+            }
+        }
+    }
+    else
+    {
+        Ntl_ModelForEachCombLeaf( p1, pObj, i )
+        {
+            Ntl_ObjForEachFanout( pObj, pNext, k )
+            {
+                pNet = Ntl_ModelFindNet( p2, pNext->pName );
+                if ( pNet == NULL )
+                    Ntl_ModelCreatePiWithName( p2, pNext->pName );
+            }
+        }
+        Ntl_ModelForEachCombLeaf( p2, pObj, i )
+        {
+            Ntl_ObjForEachFanout( pObj, pNext, k )
+            {
+                pNet = Ntl_ModelFindNet( p1, pNext->pName );
+                if ( pNet == NULL )
+                    Ntl_ModelCreatePiWithName( p1, pNext->pName );
+            }
         }
     }
 }
@@ -89,38 +104,45 @@ void Ntl_ManDeriveCommonCis( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, int fSeq )
     Ntl_Mod_t * p1 = Ntl_ManRootModel(pMan1);
     Ntl_Mod_t * p2 = Ntl_ManRootModel(pMan2);
     Ntl_Obj_t * pObj;
-    Ntl_Net_t * pNet;
-    int i;
-    if ( fSeq )
-        assert( Ntl_ModelPiNum(p1) == Ntl_ModelPiNum(p2) );
-    else
-        assert( Ntl_ModelCiNum(p1) == Ntl_ModelCiNum(p2) );
+    Ntl_Net_t * pNet, * pNext;
+    int i, k;
     // order the CIs 
     Vec_PtrClear( pMan1->vCis );
     Vec_PtrClear( pMan2->vCis );
-    Ntl_ModelForEachPi( p1, pObj, i )
+    if ( fSeq ) 
     {
-        pNet = Ntl_ModelFindNet( p2, Ntl_ObjFanout0(pObj)->pName );
-        if ( pNet == NULL )
+        assert( Ntl_ModelSeqLeafNum(p1) == Ntl_ModelSeqLeafNum(p2) );
+        Ntl_ModelForEachSeqLeaf( p1, pObj, i )
         {
-            printf( "Ntl_ManDeriveCommonCis(): Internal error!\n" );
-            return;
-        }
-        Vec_PtrPush( pMan1->vCis, pObj );    
-        Vec_PtrPush( pMan2->vCis, pNet->pDriver );    
-    }
-    if ( !fSeq )
-    {
-        Ntl_ModelForEachLatch( p1, pObj, i )
-        {
-            pNet = Ntl_ModelFindNet( p2, Ntl_ObjFanout0(pObj)->pName );
-            if ( pNet == NULL )
+            Ntl_ObjForEachFanout( pObj, pNext, k )
             {
-                printf( "Ntl_ManDeriveCommonCis(): Internal error!\n" );
-                return;
+                pNet = Ntl_ModelFindNet( p2, pNext->pName );
+                if ( pNet == NULL )
+                {
+                    printf( "Ntl_ManDeriveCommonCis(): Internal error!\n" );
+                    return;
+                }
+                Vec_PtrPush( pMan1->vCis, pNext );    
+                Vec_PtrPush( pMan2->vCis, pNet );  
             }
-            Vec_PtrPush( pMan1->vCis, pObj );    
-            Vec_PtrPush( pMan2->vCis, pNet->pDriver );    
+        }
+    }
+    else
+    {
+        assert( Ntl_ModelCombLeafNum(p1) == Ntl_ModelCombLeafNum(p2) );
+        Ntl_ModelForEachCombLeaf( p1, pObj, i )
+        {
+            Ntl_ObjForEachFanout( pObj, pNext, k )
+            {
+                pNet = Ntl_ModelFindNet( p2, pNext->pName );
+                if ( pNet == NULL )
+                {
+                    printf( "Ntl_ManDeriveCommonCis(): Internal error!\n" );
+                    return;
+                }
+                Vec_PtrPush( pMan1->vCis, pNext );    
+                Vec_PtrPush( pMan2->vCis, pNet );  
+            }
         }
     }
 }
@@ -141,45 +163,47 @@ void Ntl_ManDeriveCommonCos( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, int fSeq )
     Ntl_Mod_t * p1 = Ntl_ManRootModel(pMan1);
     Ntl_Mod_t * p2 = Ntl_ManRootModel(pMan2);
     Ntl_Obj_t * pObj;
-    Ntl_Net_t * pNet;
-    int i;
-//    if ( fSeq )
-//        assert( Ntl_ModelPoNum(p1) == Ntl_ModelPoNum(p2) );
-//    else
-//        assert( Ntl_ModelCoNum(p1) == Ntl_ModelCoNum(p2) );
-    // remember PO in the corresponding net of the second design
-    Ntl_ModelForEachPo( p2, pObj, i )
-        Ntl_ObjFanin0(pObj)->pCopy = pObj;
+    Ntl_Net_t * pNet, * pNext;
+    int i, k;
     // order the COs 
     Vec_PtrClear( pMan1->vCos );
     Vec_PtrClear( pMan2->vCos );
-    Ntl_ModelForEachPo( p1, pObj, i )
+    if ( fSeq ) 
     {
-        pNet = Ntl_ModelFindNet( p2, Ntl_ObjFanin0(pObj)->pName );
-        if ( pNet == NULL )
+        assert( Ntl_ModelSeqRootNum(p1) == Ntl_ModelSeqRootNum(p2) );
+        Ntl_ModelForEachSeqRoot( p1, pObj, i )
         {
-            printf( "Ntl_ManDeriveCommonCos(): Cannot find output %s in the second design. Skipping it!\n", 
-                Ntl_ObjFanin0(pObj)->pName );
-            continue;
-        }
-        Vec_PtrPush( pMan1->vCos, pObj );    
-        Vec_PtrPush( pMan2->vCos, pNet->pCopy );    
-    }
-    if ( !fSeq )
-    {
-        Ntl_ModelForEachLatch( p2, pObj, i )
-            Ntl_ObjFanin0(pObj)->pCopy = pObj;
-        Ntl_ModelForEachLatch( p1, pObj, i )
-        {
-            pNet = Ntl_ModelFindNet( p2, Ntl_ObjFanin0(pObj)->pName );
-            if ( pNet == NULL )
+            Ntl_ObjForEachFanin( pObj, pNext, k )
             {
-                printf( "Ntl_ManDeriveCommonCos(): Cannot find output %s in the second design. Skipping it!\n", 
-                    Ntl_ObjFanin0(pObj)->pName );
-                continue;
+                pNet = Ntl_ModelFindNet( p2, pNext->pName );
+                if ( pNet == NULL )
+                {
+                    printf( "Ntl_ManDeriveCommonCos(): Cannot find output %s in the second design. Skipping it!\n", 
+                        pNext->pName );
+                    continue;
+                }
+                Vec_PtrPush( pMan1->vCos, pNext );    
+                Vec_PtrPush( pMan2->vCos, pNet );  
             }
-            Vec_PtrPush( pMan1->vCos, pObj );    
-            Vec_PtrPush( pMan2->vCos, pNet->pCopy );    
+        }
+    }
+    else
+    {
+        assert( Ntl_ModelCombRootNum(p1) == Ntl_ModelCombRootNum(p2) );
+        Ntl_ModelForEachCombRoot( p1, pObj, i )
+        {
+            Ntl_ObjForEachFanin( pObj, pNext, k )
+            {
+                pNet = Ntl_ModelFindNet( p2, pNext->pName );
+                if ( pNet == NULL )
+                {
+                    printf( "Ntl_ManDeriveCommonCos(): Cannot find output %s in the second design. Skipping it!\n", 
+                        pNext->pName );
+                    continue;
+                }
+                Vec_PtrPush( pMan1->vCos, pNext );    
+                Vec_PtrPush( pMan2->vCos, pNet );  
+            }
         }
     }
 }
@@ -214,19 +238,19 @@ void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan
     // make sure they are compatible
     pModel1 = Ntl_ManRootModel( pMan1 );
     pModel2 = Ntl_ManRootModel( pMan2 );
-    if ( Ntl_ModelCiNum(pModel1) != Ntl_ModelCiNum(pModel2) )
+    if ( Ntl_ModelCombLeafNum(pModel1) != Ntl_ModelCombLeafNum(pModel2) )
     {
         printf( "Warning: The number of inputs in the designs is different (%d and %d).\n", 
-            Ntl_ModelCiNum(pModel1), Ntl_ModelCiNum(pModel2) );
+            Ntl_ModelCombLeafNum(pModel1), Ntl_ModelCombLeafNum(pModel2) );
     }
-    if ( Ntl_ModelCoNum(pModel1) != Ntl_ModelCoNum(pModel2) )
+    if ( Ntl_ModelCombRootNum(pModel1) != Ntl_ModelCombRootNum(pModel2) )
     {
         printf( "Warning: The number of outputs in the designs is different (%d and %d).\n", 
-            Ntl_ModelCoNum(pModel1), Ntl_ModelCoNum(pModel2) );
+            Ntl_ModelCombRootNum(pModel1), Ntl_ModelCombRootNum(pModel2) );
     }
     // normalize inputs/outputs
     Ntl_ManCreateMissingInputs( pModel1, pModel2, 0 );
-    if ( Ntl_ModelCiNum(pModel1) != Ntl_ModelCiNum(pModel2) )
+    if ( Ntl_ModelCombLeafNum(pModel1) != Ntl_ModelCombLeafNum(pModel2) )
     {
         if ( pMan1 )  Ntl_ManFree( pMan1 );
         if ( pMan2 )  Ntl_ManFree( pMan2 );
@@ -243,8 +267,8 @@ void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan
         return;
     }
     // derive AIGs
-    *ppMan1 = Ntl_ManCollapseForCec( pMan1 );
-    *ppMan2 = Ntl_ManCollapseForCec( pMan2 );
+    *ppMan1 = Ntl_ManCollapseComb( pMan1 );
+    *ppMan2 = Ntl_ManCollapseComb( pMan2 );
     // cleanup 
     Ntl_ManFree( pMan1 );
     Ntl_ManFree( pMan2 );
@@ -263,7 +287,9 @@ void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan
 ***********************************************************************/
 Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 )
 {
-    Aig_Man_t * pAig;
+    extern Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
+
+    Aig_Man_t * pAig1, * pAig2, * pAig;
     Ntl_Man_t * pMan1, * pMan2;
     Ntl_Mod_t * pModel1, * pModel2;
     // read the netlists
@@ -286,12 +312,12 @@ Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 )
         printf( "Ntl_ManPrepareSec(): The designs have no latches. Use combinational command \"*cec\".\n" );
         return NULL;
     }
-    if ( Ntl_ModelPiNum(pModel1) != Ntl_ModelPiNum(pModel2) )
+    if ( Ntl_ModelSeqLeafNum(pModel1) != Ntl_ModelSeqLeafNum(pModel2) )
     {
         printf( "Warning: The number of inputs in the designs is different (%d and %d).\n", 
             Ntl_ModelPiNum(pModel1), Ntl_ModelPiNum(pModel2) );
     }
-    if ( Ntl_ModelPoNum(pModel1) != Ntl_ModelPoNum(pModel2) )
+    if ( Ntl_ModelSeqRootNum(pModel1) != Ntl_ModelSeqRootNum(pModel2) )
     {
         printf( "Warning: The number of outputs in the designs is different (%d and %d).\n", 
             Ntl_ModelPoNum(pModel1), Ntl_ModelPoNum(pModel2) );
@@ -308,9 +334,12 @@ Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 )
         return NULL;
     }
     // derive AIGs
-    pAig = Ntl_ManCollapseForSec( pMan1, pMan2 );
+    pAig1 = Ntl_ManCollapseSeq( pMan1 );
+    pAig2 = Ntl_ManCollapseSeq( pMan2 );
+    pAig = Saig_ManCreateMiter( pAig1, pAig2, 0 );
+    Aig_ManStop( pAig1 );
+    Aig_ManStop( pAig2 );
     // cleanup
-    pMan1->pAig = pMan2->pAig = NULL;
     Ntl_ManFree( pMan1 );
     Ntl_ManFree( pMan2 );
     return pAig;

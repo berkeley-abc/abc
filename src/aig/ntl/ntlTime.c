@@ -88,13 +88,27 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     // start the timing manager
     pMan = Tim_ManStart( Aig_ManPiNum(p->pAig), Aig_ManPoNum(p->pAig) );
     // unpack the data in the arrival times
-    if ( pRoot->vArrivals )
-        Vec_IntForEachEntry( pRoot->vArrivals, Entry, i )
-            Tim_ManInitCiArrival( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vArrivals,++i)) );
+    if ( pRoot->vTimeInputs )
+    {
+        Vec_IntForEachEntry( pRoot->vTimeInputs, Entry, i )
+        {
+            if ( Entry == -1 )
+                Tim_ManSetCiArrivalAll( pMan, Aig_Int2Float(Vec_IntEntry(pRoot->vTimeInputs,++i)) );
+            else
+                Tim_ManInitCiArrival( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vTimeInputs,++i)) );
+        }
+    }
     // unpack the data in the required times
-    if ( pRoot->vRequireds )
-        Vec_IntForEachEntry( pRoot->vRequireds, Entry, i )
-            Tim_ManInitCoRequired( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vRequireds,++i)) );
+    if ( pRoot->vTimeOutputs )
+    {
+        Vec_IntForEachEntry( pRoot->vTimeOutputs, Entry, i )
+        {
+            if ( Entry == -1 )
+                Tim_ManSetCoRequiredAll( pMan, Aig_Int2Float(Vec_IntEntry(pRoot->vTimeOutputs,++i)) );
+            else
+                Tim_ManInitCoRequired( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vTimeOutputs,++i)) );
+        }
+    }
     // derive timing tables
     vDelayTables = Vec_PtrAlloc( Vec_PtrSize(p->vModels) );
     Ntl_ManForEachModel( p, pModel, i )
@@ -106,7 +120,7 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     Tim_ManSetDelayTables( pMan, vDelayTables );
     // set up the boxes
     iBox = 0;
-    curPi = Ntl_ModelCiNum(pRoot);
+    curPi = p->iLastCi;
     Ntl_ManForEachBox( p, pObj, i )
     {
         Tim_ManCreateBoxFirst( pMan, Vec_IntEntry(p->vBox1Cos, iBox), Ntl_ObjFaninNum(pObj), curPi, Ntl_ObjFanoutNum(pObj), pObj->pImplem->pDelayTable );

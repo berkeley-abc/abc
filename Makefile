@@ -24,7 +24,9 @@ MODULES := src/base/abc src/base/abci src/base/cmd \
 
 default: $(PROG)
 
-#OPTFLAGS  := -DNDEBUG -O3
+#OPTFLAGS  := -DNDEBUG -O3 -DLIN
+#OPTFLAGS  := -DNDEBUG -O3 -DLIN64
+#OPTFLAGS  := -g -O -DLIN
 OPTFLAGS  := -g -O -DLIN64
 
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 

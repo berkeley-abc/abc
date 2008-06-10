@@ -58,7 +58,9 @@
 #define PARSE_SYM_XOR1    '<'   // logic EXOR   (the 1st symbol) 
 #define PARSE_SYM_XOR2    '+'   // logic EXOR   (the 2nd symbol)
 #define PARSE_SYM_XOR3    '>'   // logic EXOR   (the 3rd symbol)
-#define PARSE_SYM_OR      '+'   // logic OR
+#define PARSE_SYM_XOR     '^'   // logic XOR
+#define PARSE_SYM_OR1     '+'   // logic OR
+#define PARSE_SYM_OR2     '|'   // logic OR
 #define PARSE_SYM_EQU1    '<'   // equvalence   (the 1st symbol)
 #define PARSE_SYM_EQU2    '='   // equvalence   (the 2nd symbol)
 #define PARSE_SYM_EQU3    '>'   // equvalence   (the 3rd symbol)
@@ -220,7 +222,9 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
 
         case PARSE_SYM_AND1:
         case PARSE_SYM_AND2:
-        case PARSE_SYM_OR:
+        case PARSE_SYM_OR1:
+        case PARSE_SYM_OR2:
+        case PARSE_SYM_XOR:
             if ( Flag != PARSE_FLAG_VAR )
             {
                 fprintf( pOutput, "Parse_FormulaParser(): There is no variable before AND, EXOR, or OR.\n" );
@@ -229,8 +233,10 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
             }
             if ( *pTemp == PARSE_SYM_AND1 || *pTemp == PARSE_SYM_AND2 )
                 Parse_StackOpPush( pStackOp, PARSE_OPER_AND );
-            else //if ( Str[Pos] == PARSE_SYM_OR )
+            else if ( *pTemp == PARSE_SYM_OR1 || *pTemp == PARSE_SYM_OR2 )
                 Parse_StackOpPush( pStackOp, PARSE_OPER_OR );
+            else //if ( Str[Pos] == PARSE_SYM_XOR )
+                Parse_StackOpPush( pStackOp, PARSE_OPER_XOR );
             Flag = PARSE_FLAG_OPER; 
             break;
 

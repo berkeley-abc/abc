@@ -139,7 +139,7 @@ extern void            Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus );
 extern void            Cnf_DataPrint( Cnf_Dat_t * p, int fReadable );
 extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable );
 extern void *          Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit );
-extern void            Cnf_DataWriteOrClause( void * pSat, Cnf_Dat_t * pCnf );
+extern int             Cnf_DataWriteOrClause( void * pSat, Cnf_Dat_t * pCnf );
 /*=== cnfMap.c ========================================================*/
 extern void            Cnf_DeriveMapping( Cnf_Man_t * p );
 extern int             Cnf_ManMapForCnf( Cnf_Man_t * p );

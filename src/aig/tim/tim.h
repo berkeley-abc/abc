@@ -81,6 +81,7 @@ extern void            Tim_ManInitCoRequired( Tim_Man_t * p, int iCo, float Dela
 extern void            Tim_ManSetCoArrival( Tim_Man_t * p, int iCo, float Delay );
 extern void            Tim_ManSetCiRequired( Tim_Man_t * p, int iCi, float Delay );
 extern void            Tim_ManSetCoRequired( Tim_Man_t * p, int iCo, float Delay );
+extern void            Tim_ManSetCiArrivalAll( Tim_Man_t * p, float Delay );
 extern void            Tim_ManSetCoRequiredAll( Tim_Man_t * p, float Delay );
 extern float           Tim_ManGetCiArrival( Tim_Man_t * p, int iCi );
 extern float           Tim_ManGetCoRequired( Tim_Man_t * p, int iCo );

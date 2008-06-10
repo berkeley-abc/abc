@@ -203,7 +203,7 @@ DdNode ** Aig_ManCreatePartitions( DdManager * dd, Aig_Man_t * p, int fReorder, 
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, DdNode * bInitial, DdNode ** pbOutputs, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose )
+int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, DdNode * bInitial, DdNode ** pbOutputs, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
 {
     int fInternalReorder = 0;
     Bbr_ImageTree_t * pTree;
@@ -231,7 +231,8 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     free( pbVarsY );
     if ( pTree == NULL )
     {
-        printf( "BDDs blew up during qualitification scheduling.  " );
+        if ( !fSilent )
+            printf( "BDDs blew up during qualitification scheduling.  " );
         return -1;
     }
 
@@ -247,7 +248,8 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
             bNext = Bbr_bddImageCompute2( pTree2, bCurrent );  
         if ( bNext == NULL )
         {
-            printf( "BDDs blew up during image computation.  " );
+            if ( !fSilent )
+                printf( "BDDs blew up during image computation.  " );
             if ( fPartition )
                 Bbr_bddImageTreeDelete( pTree );
             else
@@ -271,7 +273,8 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         {
             if ( !Cudd_bddLeq( dd, bNext, Cudd_Not(pbOutputs[i]) ) )
             {
-                printf( "Output %d was asserted in frame %d.  ", i, nIters );
+                if ( !fSilent )
+                    printf( "Output %d was asserted in frame %d.  ", i, nIters );
                 Cudd_RecursiveDeref( dd, bReached );
                 bReached = NULL;
                 break;
@@ -326,10 +329,12 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     Cudd_RecursiveDeref( dd, bReached );
     if ( nIters > nIterMax || Cudd_DagSize(bReached) > nBddMax )
     {
-         printf( "Verified only for states reachable in %d frames.  ", nIters );
-         return -1; // undecided
+        if ( !fSilent )
+            printf( "Verified only for states reachable in %d frames.  ", nIters );
+        return -1; // undecided
     }
-    printf( "The miter is proved unreachable after %d iterations.  ", nIters );
+    if ( !fSilent )
+        printf( "The miter is proved unreachable after %d iterations.  ", nIters );
     return 1; // unreachable
 }
 
@@ -344,7 +349,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose )
+int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
 {
     DdManager * dd;
     DdNode ** pbParts, ** pbOutputs;
@@ -357,7 +362,8 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     dd = Aig_ManComputeGlobalBdds( p, nBddMax, 1, fReorder, fVerbose );    
     if ( dd == NULL )
     {
-        printf( "The number of intermediate BDD nodes exceeded the limit (%d).\n", nBddMax );
+        if ( !fSilent )
+            printf( "The number of intermediate BDD nodes exceeded the limit (%d).\n", nBddMax );
         return -1;
     }
     if ( fVerbose )
@@ -378,14 +384,15 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     {
         if ( !Cudd_bddLeq( dd, bInitial, Cudd_Not(pbOutputs[i]) ) )
         {
-            printf( "The miter output %d is proved REACHABLE in the initial state.  ", i );
+            if ( !fSilent )
+                printf( "The miter output %d is proved REACHABLE in the initial state.  ", i );
             RetValue = 0;
             break;
         }
     }
     // explore reachable states
     if ( RetValue == -1 )
-        RetValue = Aig_ManComputeReachable( dd, p, pbParts, bInitial, pbOutputs, nBddMax, nIterMax, fPartition, fReorder, fVerbose ); 
+        RetValue = Aig_ManComputeReachable( dd, p, pbParts, bInitial, pbOutputs, nBddMax, nIterMax, fPartition, fReorder, fVerbose, fSilent ); 
 
     // cleanup
     Cudd_RecursiveDeref( dd, bInitial );
@@ -401,8 +408,11 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
         Bbr_StopManager( dd );
 
     // report the runtime
+    if ( !fSilent )
+    {
     PRT( "Time", clock() - clk );
     fflush( stdout );
+    }
     return RetValue;
 }
 

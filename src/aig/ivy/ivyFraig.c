@@ -2260,8 +2260,8 @@ p->timeSat += clock() - clk;
     {
 p->timeSatUnsat += clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
-        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
-        assert( RetValue );
+//        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
+//        assert( RetValue );
         // continue solving the other implication
         p->nSatCallsUnsat++;
     }

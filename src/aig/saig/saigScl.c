@@ -67,6 +67,42 @@ void Saig_ManReportUselessRegisters( Aig_Man_t * pAig )
         printf( "Network has %d (out of %d) registers driven by PIs.\n", Counter2, Saig_ManRegNum(pAig) );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Report the number of pairs of complemented registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManReportComplements( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj, * pFanin;
+    int i, Counter = 0, Diffs = 0;
+    assert( Aig_ManRegNum(p) > 0 );
+    Aig_ManForEachObj( p, pObj, i )
+        assert( !pObj->fMarkA );
+    Aig_ManForEachLiSeq( p, pObj, i )
+    {
+        pFanin = Aig_ObjFanin0(pObj);
+        if ( pFanin->fMarkA )
+            Counter++;
+        else
+            pFanin->fMarkA = 1;
+    }
+    // count fanins that have both attributes
+    Aig_ManForEachLiSeq( p, pObj, i )
+    {
+        pFanin = Aig_ObjFanin0(pObj);
+        pFanin->fMarkA = 0;
+    }
+    return Counter;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

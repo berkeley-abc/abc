@@ -257,7 +257,7 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
 ***********************************************************************/
 Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
 {
-    char Buffer[100];
+    char Buffer[100]; 
     Vec_Ptr_t * vObjs;
     Vec_Int_t * vTruth;
     Vec_Int_t * vCover;
