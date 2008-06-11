@@ -67,6 +67,96 @@ float * Ntl_ManCreateDelayTable( Vec_Int_t * vDelays, int nIns, int nOuts )
 
 /**Function*************************************************************
 
+  Synopsis    [Records the arrival times for the map leaves.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManUnpackLeafTiming( Ntl_Man_t * p, Tim_Man_t * pMan )
+{
+    Vec_Int_t * vTimes;
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet;
+    float dTime;
+    int i, k, v, Entry, Counter;
+    // clean the place
+    pRoot = Ntl_ManRootModel( p );
+    Ntl_ModelForEachMapLeaf( pRoot, pObj, i )
+        Ntl_ObjForEachFanout( pObj, pNet, k )
+            pNet->dTemp = 0;
+    // store the PI timing
+    vTimes = pRoot->vTimeInputs;
+    Vec_IntForEachEntry( vTimes, Entry, i )
+    {
+        dTime = Aig_Int2Float( Vec_IntEntry(vTimes,++i) );
+        if ( Entry == -1 )
+        {
+            Ntl_ModelForEachPi( pRoot, pObj, v )
+                Ntl_ObjFanout0(pObj)->dTemp = dTime;
+        }
+        else
+        {
+            pObj = Ntl_ModelPi( pRoot, Entry );
+            Ntl_ObjFanout0(pObj)->dTemp = dTime;
+        }
+    }
+    // store box timing
+    Ntl_ModelForEachMapLeaf( pRoot, pObj, k )
+    {
+        if ( !(Ntl_ObjIsBox(pObj) && Ntl_BoxIsSeq(pObj)) )
+            continue;
+        vTimes = pObj->pImplem->vTimeOutputs;
+        if ( vTimes == NULL )
+            continue;
+        Vec_IntForEachEntry( vTimes, Entry, i )
+        {
+            dTime = Aig_Int2Float( Vec_IntEntry(vTimes,++i) );
+            if ( Entry == -1 )
+            {
+                Ntl_ObjForEachFanout( pObj, pNet, v )
+                    pNet->dTemp = dTime;
+            }
+            else
+            {
+                pNet = Ntl_ObjFanout( pObj, Entry );
+                pNet->dTemp = dTime;
+            }
+        }
+    }
+    // load them into the timing manager
+    Counter = 0;
+    Ntl_ModelForEachMapLeaf( pRoot, pObj, i )
+        Ntl_ObjForEachFanout( pObj, pNet, k )
+        {
+            if ( pNet->dTemp == TIM_ETERNITY )
+                pNet->dTemp = -TIM_ETERNITY;
+            Tim_ManInitCiArrival( pMan, Counter++, pNet->dTemp );
+        }
+    assert( Counter == p->iLastCi );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Records the required times for the map leaves.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManUnpackRootTiming( Ntl_Man_t * p, Tim_Man_t * pMan )
+{
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -87,7 +177,10 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     pRoot = Ntl_ManRootModel( p );
     // start the timing manager
     pMan = Tim_ManStart( Aig_ManPiNum(p->pAig), Aig_ManPoNum(p->pAig) );
-    // unpack the data in the arrival times
+    // unpack the timing data
+    Ntl_ManUnpackLeafTiming( p, pMan );
+//    Ntl_ManUnpackRootTiming( p, pMan );
+/*
     if ( pRoot->vTimeInputs )
     {
         Vec_IntForEachEntry( pRoot->vTimeInputs, Entry, i )
@@ -109,7 +202,8 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
                 Tim_ManInitCoRequired( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vTimeOutputs,++i)) );
         }
     }
-    // derive timing tables
+*/
+    // derive timing tables for the whilte comb boxes
     vDelayTables = Vec_PtrAlloc( Vec_PtrSize(p->vModels) );
     Ntl_ManForEachModel( p, pModel, i )
     {
@@ -121,9 +215,11 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     // set up the boxes
     iBox = 0;
     curPi = p->iLastCi;
-    Ntl_ManForEachBox( p, pObj, i )
+    Vec_PtrForEachEntry( p->vVisNodes, pObj, i )
     {
-        Tim_ManCreateBoxFirst( pMan, Vec_IntEntry(p->vBox1Cos, iBox), Ntl_ObjFaninNum(pObj), curPi, Ntl_ObjFanoutNum(pObj), pObj->pImplem->pDelayTable );
+        if ( !Ntl_ObjIsBox(pObj) )
+            continue;
+        Tim_ManCreateBoxFirst( pMan, Vec_IntEntry(p->vBox1Cios, iBox), Ntl_ObjFaninNum(pObj), curPi, Ntl_ObjFanoutNum(pObj), pObj->pImplem->pDelayTable );
         curPi += Ntl_ObjFanoutNum(pObj);
         iBox++;
     }

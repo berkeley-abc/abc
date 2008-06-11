@@ -117,7 +117,7 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
 
 /**Function*************************************************************
 
-  Synopsis    [Uses equivalences in the AID to reduce the design.]
+  Synopsis    [Uses equivalences in the AIG to reduce the design.]
 
   Description [The AIG (pAig) was extracted from the netlist and still 
   points to it (pObj->pData is the pointer to the nets in the netlist).
@@ -138,7 +138,6 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
     int i, fCompl, Counter = 0;
     assert( pAig->pReprs );
     pRoot = Ntl_ManRootModel( p );
-
     Aig_ManForEachObj( pAig, pObj, i )
     {
         pObjRepr = Aig_ObjRepr( pAig, pObj );
@@ -146,6 +145,9 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
             continue;
         assert( pObj != pObjRepr );
         pNet = pObj->pData;
+        // do not reduce the net if it is driven by a multi-output box
+        if ( Ntl_ObjIsBox(pNet->pDriver) && Ntl_ObjFanoutNum(pNet->pDriver) > 1 )
+            continue;
         pNetRepr = pObjRepr->pData;
         if ( pNetRepr == NULL )
         {
@@ -310,9 +312,9 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
     pAigCol = Ntl_ManCollapseSeq( pNew );
+//Saig_ManDumpBlif( pAigCol, "1s.blif" );
 
     // perform SCL for the given design
-    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
     Aig_ManStop( pTemp );
 
@@ -346,7 +348,6 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     pAigCol = Ntl_ManCollapseSeq( pNew );
 
     // perform SCL for the given design
-    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
     Aig_ManStop( pTemp );
 
@@ -380,7 +381,6 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     pAigCol = Ntl_ManCollapseSeq( pNew );
 
     // perform SCL for the given design
-    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     pTemp = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pTemp );
 
@@ -555,7 +555,6 @@ Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     Aig_Man_t * pAigRed, * pAigCol;
     // collapse the AIG
     pAigCol = Ntl_ManCollapseSeq( p );
-    Aig_ManSetRegNum( pAigCol, Ntl_ModelLatchNum(Ntl_ManRootModel(p)) );
     // transform the collapsed AIG
     pAigRed = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pAigRed );

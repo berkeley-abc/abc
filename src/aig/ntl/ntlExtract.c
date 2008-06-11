@@ -181,7 +181,7 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
         assert( Ntl_BoxIsComb(pObj) );
         assert( Ntl_ModelLatchNum(pObj->pImplem) == 0 );
         assert( pObj->pImplem->vDelays != NULL );
-        Vec_IntPush( p->vBox1Cos, Aig_ManPoNum(p->pAig) );
+        Vec_IntPush( p->vBox1Cios, Aig_ManPoNum(p->pAig) );
         Ntl_ObjForEachFanin( pObj, pNetFanin, i )
         {
             LevelCur = Aig_ObjLevel( Aig_Regular(pNetFanin->pCopy) );
@@ -196,7 +196,7 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
             Aig_ObjSetLevel( pNetFanin->pCopy, LevelMax + 1 );
         }
     }
-    Vec_PtrPush( p->vNodes, pObj );
+    Vec_PtrPush( p->vVisNodes, pObj );
     if ( Ntl_ObjIsNode(pObj) )
         pNet->pCopy = Ntl_ManBuildNodeAig( pObj );
     pNet->nVisits = 2;
@@ -223,10 +223,10 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
     Ntl_Net_t * pNet;
     int i, k, nUselessObjects;
     Ntl_ManCleanup( p );
-    assert( Vec_PtrSize(p->vCis) == 0 );
-    assert( Vec_PtrSize(p->vCos) == 0 );
-    assert( Vec_PtrSize(p->vNodes) == 0 );
-    assert( Vec_IntSize(p->vBox1Cos) == 0 );
+    Vec_PtrClear( p->vCis );
+    Vec_PtrClear( p->vCos );
+    Vec_PtrClear( p->vVisNodes );
+    Vec_IntClear( p->vBox1Cios );
     // start the AIG manager
     assert( p->pAig == NULL );
     p->pAig = Aig_ManStart( 10000 );
@@ -279,9 +279,9 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
         }
     }
     // report the number of dangling objects
-    nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelLut1Num(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vNodes);
+    nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelLut1Num(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vVisNodes);
 //    if ( nUselessObjects )
-//        printf( "The number of nodes that do not feed into POs = %d.\n", nUselessObjects );
+//        printf( "The number of dangling objects = %d.\n", nUselessObjects );
     // cleanup the AIG
     Aig_ManCleanup( p->pAig );
     // extract the timing manager
@@ -307,7 +307,7 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManCollapseBox_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
+int Ntl_ManCollapseBoxComb_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
 {
     extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq );
     Ntl_Mod_t * pModel = pBox->pImplem;
@@ -326,17 +326,51 @@ int Ntl_ManCollapseBox_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
         pNet->pCopy = pNetBox->pCopy;
         pNet->nVisits = 2;
     }
-    // check if there are registers
-    if ( Ntl_ModelLatchNum(pModel) )
+    // compute AIG for the internal nodes
+    Ntl_ModelForEachPo( pModel, pObj, i )
     {
-        Ntl_ModelForEachLatch( pModel, pObj, i )
-        {
-            pNet = Ntl_ObjFanout0(pObj);
-            pNet->pCopy = Aig_ObjCreatePi( p->pAig );
-            if ( fSeq && Ntl_ObjIsInit1( pObj ) )
-                pNet->pCopy = Aig_Not(pNet->pCopy);
-            pNet->nVisits = 2;
-        }
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+            return 0;
+        pNetBox = Ntl_ObjFanout( pBox, i );
+        pNetBox->pCopy = pNet->pCopy;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes in a topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
+{
+    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq );
+    Ntl_Mod_t * pModel = pBox->pImplem;
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet, * pNetBox;
+    int i;
+    assert( Ntl_ModelLatchNum(pModel) > 0 );
+    assert( Ntl_ObjFaninNum(pBox) == Ntl_ModelPiNum(pModel) );
+    assert( Ntl_ObjFanoutNum(pBox) == Ntl_ModelPoNum(pModel) );
+    // clear net visited flags
+    Ntl_ModelClearNets( pModel );
+    // initialize the registers
+    Ntl_ModelForEachLatch( pModel, pObj, i )
+    {
+        pNet = Ntl_ObjFanout0(pObj);
+        pNet->pCopy = Aig_ObjCreatePi( p->pAig );
+        if ( fSeq && Ntl_ObjIsInit1( pObj ) )
+            pNet->pCopy = Aig_Not(pNet->pCopy);
+        pNet->nVisits = 2;
+        // remember the class of this register
+        Vec_IntPush( p->vRegClasses, pObj->LatchId.regClass );
     }
     // compute AIG for the internal nodes
     Ntl_ModelForEachPo( pModel, pObj, i )
@@ -347,19 +381,59 @@ int Ntl_ManCollapseBox_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
         pNetBox = Ntl_ObjFanout( pBox, i );
         pNetBox->pCopy = pNet->pCopy;
     }
-    // compute AIGs for the registers
-    if ( Ntl_ModelLatchNum(pModel) )
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes in a topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManCollapseBoxSeq2_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq, int iFirstPi )
+{
+    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq );
+    Ntl_Mod_t * pModel = pBox->pImplem;
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet, * pNetBox;
+    int i;
+    assert( Ntl_ModelLatchNum(pModel) > 0 );
+    assert( Ntl_ObjFaninNum(pBox) == Ntl_ModelPiNum(pModel) );
+    assert( Ntl_ObjFanoutNum(pBox) == Ntl_ModelPoNum(pModel) );
+    // clear net visited flags
+    Ntl_ModelClearNets( pModel );
+    // transfer from the box to the PIs of the model
+    Ntl_ModelForEachPi( pModel, pObj, i )
     {
-        Ntl_ModelForEachLatch( pModel, pObj, i )
-        {
-            pNet = Ntl_ObjFanin0(pObj);
-            if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
-                return 0;
-            if ( fSeq && Ntl_ObjIsInit1( pObj ) )
-                Vec_PtrPush( p->vLatchIns, Aig_Not(pNet->pCopy) );
-            else
-                Vec_PtrPush( p->vLatchIns, pNet->pCopy );
-        }
+        pNet = Ntl_ObjFanout0(pObj);
+        pNetBox = Ntl_ObjFanin( pBox, i );
+        pNet->pCopy = pNetBox->pCopy;
+        pNet->nVisits = 2;
+    }
+    // initialize the registers
+    Ntl_ModelForEachLatch( pModel, pObj, i )
+    {
+        pNet = Ntl_ObjFanout0(pObj);
+        pNet->pCopy = Aig_ManPi( p->pAig, iFirstPi++ );
+        if ( fSeq && Ntl_ObjIsInit1( pObj ) )
+            pNet->pCopy = Aig_Not(pNet->pCopy);
+        pNet->nVisits = 2;
+    }
+    // compute AIGs for the registers
+    Ntl_ModelForEachLatch( pModel, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+            return 0;
+        if ( fSeq && Ntl_ObjIsInit1( pObj ) )
+            Aig_ObjCreatePo( p->pAig, Aig_Not(pNet->pCopy) );
+        else
+            Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
     return 1;
 }
@@ -398,8 +472,8 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq )
     // add box inputs/outputs to COs/CIs
     if ( Ntl_ObjIsBox(pObj) )
     {
-        assert( Ntl_BoxIsWhite(pObj) );
-        if ( !Ntl_ManCollapseBox_rec( p, pObj, fSeq ) )
+        assert( Ntl_BoxIsWhite(pObj) && Ntl_BoxIsComb(pObj) );
+        if ( !Ntl_ManCollapseBoxComb_rec( p, pObj, fSeq ) )
             return 0;
     }
     if ( Ntl_ObjIsNode(pObj) )
@@ -423,17 +497,18 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq )
 Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
 {
     Aig_Man_t * pAig;
-    Aig_Obj_t * pTemp;
     Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pBox;
     Ntl_Net_t * pNet;
-    int i;
+    int i, k, nTruePis, nTruePos, iBox = 0;
     assert( Vec_PtrSize(p->vCis) != 0 );
     assert( Vec_PtrSize(p->vCos) != 0 );
-    assert( Vec_PtrSize(p->vLatchIns) == 0 );
+    Vec_IntClear( p->vBox1Cios );
+    Vec_IntClear( p->vRegClasses );
     // clear net visited flags
     pRoot = Ntl_ManRootModel(p);
-    Ntl_ModelClearNets( pRoot );
     assert( Ntl_ModelLatchNum(pRoot) == 0 );
+    Ntl_ModelClearNets( pRoot );
     // create the manager
     p->pAig = Aig_ManStart( 10000 );
     p->pAig->pName = Aig_UtilStrsav( p->pName );
@@ -444,26 +519,56 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
         pNet->pCopy = Aig_ObjCreatePi( p->pAig );
         if ( pNet->nVisits )
         {
-            printf( "Ntl_ManCollapseForCec(): Primary input appears twice in the list.\n" );
+            printf( "Ntl_ManCollapse(): Primary input appears twice in the list.\n" );
             return 0;
         }
         pNet->nVisits = 2;
+    }
+    nTruePis = Aig_ManPiNum(p->pAig);
+    // create inputs of seq boxes
+    if ( fSeq )
+    Ntl_ModelForEachBox( pRoot, pBox, i )
+    {
+        if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
+            continue;
+        Vec_IntPush( p->vBox1Cios, Aig_ManPiNum(p->pAig) );
+        Ntl_ManCollapseBoxSeq1_rec( p, pBox, fSeq );
+        Ntl_ObjForEachFanout( pBox, pNet, k )
+            pNet->nVisits = 2;
     }
     // derive the outputs
     Ntl_ManForEachCoNet( p, pNet, i )
     {
         if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
         {
-            printf( "Ntl_ManCollapseForCec(): Error: Combinational loop is detected.\n" );
+            printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
             return 0;
         }
         Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
-    // add the latch inputs
-    Vec_PtrForEachEntry( p->vLatchIns, pTemp, i )
-        Aig_ObjCreatePo( p->pAig, pTemp );
+    nTruePos = Aig_ManPoNum(p->pAig);
+    // create outputs of seq boxes
+    if ( fSeq )
+    Ntl_ModelForEachBox( pRoot, pBox, i )
+    {
+        if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
+            continue;
+        Ntl_ObjForEachFanin( pBox, pNet, k )
+            if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+            {
+                printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
+                return 0;
+            }
+        Ntl_ManCollapseBoxSeq2_rec( p, pBox, fSeq, Vec_IntEntry(p->vBox1Cios, iBox++) );
+    }
+    // make sure registers are added correctly
+    if ( Aig_ManPiNum(p->pAig) - nTruePis != Aig_ManPoNum(p->pAig) - nTruePos )
+    {
+        printf( "Ntl_ManCollapse(): Error: Registers are created incorrectly.\n" );
+        return 0;
+    }
     // cleanup the AIG
-    Aig_ManSetRegNum( p->pAig, Vec_PtrSize(p->vLatchIns) );
+    Aig_ManSetRegNum( p->pAig, Aig_ManPiNum(p->pAig) - nTruePis );
     Aig_ManCleanup( p->pAig );
     pAig = p->pAig; p->pAig = NULL;
     return pAig;    
@@ -490,7 +595,6 @@ Aig_Man_t * Ntl_ManCollapseComb( Ntl_Man_t * p )
     int i, k;
     Vec_PtrClear( p->vCis );
     Vec_PtrClear( p->vCos );
-    Vec_PtrClear( p->vLatchIns );
     // prepare the model
     pRoot = Ntl_ManRootModel(p);
     // collect the leaves for this traversal
@@ -519,13 +623,13 @@ Aig_Man_t * Ntl_ManCollapseComb( Ntl_Man_t * p )
 ***********************************************************************/
 Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p )
 {
+    Aig_Man_t * pAig;
     Ntl_Mod_t * pRoot;
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
     int i, k;
     Vec_PtrClear( p->vCis );
     Vec_PtrClear( p->vCos );
-    Vec_PtrClear( p->vLatchIns );
     // prepare the model
     pRoot = Ntl_ManRootModel(p);
     // collect the leaves for this traversal
@@ -537,7 +641,17 @@ Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p )
         Ntl_ObjForEachFanin( pObj, pNet, k )
             Vec_PtrPush( p->vCos, pNet );
     // perform the traversal
-    return Ntl_ManCollapse( p, 1 );
+    pAig = Ntl_ManCollapse( p, 1 );
+    // check if there are register classes
+    pAig->vClockDoms = Ntl_ManTransformRegClasses( p, 100, 1 );
+    if ( pAig->vClockDoms )
+    {
+        if ( Vec_VecSize(pAig->vClockDoms) == 0 )
+            printf( "Clock domains are small. Seq synthesis is not performed.\n" );
+        else
+            printf( "Performing seq synthesis for %d clock domains.\n", Vec_VecSize(pAig->vClockDoms) );
+    }
+    return pAig;
 }
 
 
@@ -577,13 +691,13 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
     Nwk_Obj_t * pNode;
     int i;
     if ( pNet->fMark )
-        return pNet->pCopy;
+        return pNet->pCopy2;
     pNet->fMark = 1;
     pNode = Nwk_ManCreateNode( pNtk, Ntl_ObjFaninNum(pNet->pDriver), (int)(long)pNet->pCopy );
     Ntl_ObjForEachFanin( pNet->pDriver, pFaninNet, i )
     {
         Ntl_ManExtractNwk_rec( p, pFaninNet, pNtk, vCover, vMemory );
-        Nwk_ObjAddFanin( pNode, pFaninNet->pCopy );
+        Nwk_ObjAddFanin( pNode, pFaninNet->pCopy2 );
     }
     if ( Ntl_ObjFaninNum(pNet->pDriver) == 0 )
         pNode->pFunc = Hop_NotCond( Hop_ManConst1(pNtk->pManHop), Kit_PlaIsConst0(pNet->pDriver->pSop) );
@@ -594,7 +708,7 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
         if ( Kit_PlaIsComplement(pNet->pDriver->pSop) )
             pNode->pFunc = Hop_Not(pNode->pFunc);
     }
-    return pNet->pCopy = pNode;
+    return pNet->pCopy2 = pNode;
 }
 
 /**Function*************************************************************
@@ -653,37 +767,31 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pMan
     pNtk = Nwk_ManAlloc();
     pNtk->pName = Aig_UtilStrsav( pAig->pName );
     pNtk->pSpec = Aig_UtilStrsav( pAig->pSpec );
-//    Aig_ManSetPioNumbers( pAig );
     Aig_ManForEachObj( pAig, pAnd, i )
     {
         if ( Aig_ObjIsPi(pAnd) )
         {
-//            pObj = Ntl_ModelPi( pRoot, Aig_ObjPioNum(pAnd) );
-//            pNet = Ntl_ObjFanout0(pObj);
             pNet = pAnd->pData;
             pNet->fMark = 1;
-            pNet->pCopy = Nwk_ManCreateCi( pNtk, (int)(long)pNet->pCopy ); 
+            pNet->pCopy2 = Nwk_ManCreateCi( pNtk, (int)(long)pNet->pCopy ); 
         }
         else if ( Aig_ObjIsPo(pAnd) )
         {
-//            pObj = Ntl_ModelPo( pRoot, Aig_ObjPioNum(pAnd) );
-//            pNet = Ntl_ObjFanin0(pObj);
             pNet = pAnd->pData;
             pNode = Nwk_ManCreateCo( pNtk );
             if ( (pNetSimple = Ntl_ModelFindSimpleNet( pNet )) )
             {
-                pNetSimple->pCopy = Ntl_ManExtractNwk_rec( p, pNetSimple, pNtk, vCover, vMemory ); 
-                Nwk_ObjAddFanin( pNode, pNetSimple->pCopy );
+                pNetSimple->pCopy2 = Ntl_ManExtractNwk_rec( p, pNetSimple, pNtk, vCover, vMemory ); 
+                Nwk_ObjAddFanin( pNode, pNetSimple->pCopy2 );
                 pNode->fInvert = Kit_PlaIsInv( pNet->pDriver->pSop );
             }
             else
             {
-                pNet->pCopy = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
-                Nwk_ObjAddFanin( pNode, pNet->pCopy );
+                pNet->pCopy2 = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
+                Nwk_ObjAddFanin( pNode, pNet->pCopy2 );
             }
         }
     }
-//    Aig_ManCleanPioNumbers( pAig );
     Ntl_ModelClearNets( pRoot );
     Vec_IntFree( vCover );
     Vec_IntFree( vMemory );

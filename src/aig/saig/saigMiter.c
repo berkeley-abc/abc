@@ -70,11 +70,12 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
     Saig_ManForEachPo( p1, pObj, i )
     {
         if ( Oper == 0 ) // XOR
-            pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild0Copy(Aig_ManPo(p2,0)) );
+            pObj = Aig_Exor( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild0Copy(Aig_ManPo(p2,i)) );
         else if ( Oper == 1 ) // implication is PO(p1) -> PO(p2)  ...  complement is PO(p1) & !PO(p2) 
-            pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p2,0))) );
+            pObj = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_Not(Aig_ObjChild0Copy(Aig_ManPo(p2,i))) );
         else
             assert( 0 );
+        Aig_ObjCreatePo( pNew, pObj );
     }
     // create register inputs
     Saig_ManForEachLi( p1, pObj, i )

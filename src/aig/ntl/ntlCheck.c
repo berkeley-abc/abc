@@ -31,6 +31,61 @@
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCheckCombPoPaths_rec( Ntl_Mod_t * pModel, Ntl_Net_t * pNet )
+{
+    Ntl_Net_t * pFanin;
+    int i;
+    // skip visited nets
+    if ( pNet->nVisits == 2 ) 
+        return 1;
+    pNet->nVisits = 2;
+    // process PIs
+    if ( Ntl_ObjIsPi(pNet->pDriver) )
+        return 0;
+    // process registers
+    if ( Ntl_ObjIsLatch(pNet->pDriver) )
+        return 1;
+    assert( Ntl_ObjIsNode(pNet->pDriver) );
+    // call recursively
+    Ntl_ObjForEachFanin( pNet->pDriver, pFanin, i )
+        if ( !Ntl_ModelCheckCombPoPaths_rec( pModel, pFanin ) )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the existence of combinational paths from POs to PIs.]
+
+  Description [Returns 0 if the path is found.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCheckCombPoPaths( Ntl_Mod_t * pModel )
+{
+    Ntl_Obj_t * pObj;
+    int i;
+    Ntl_ModelClearNets( pModel );
+    Ntl_ModelForEachPo( pModel, pObj, i )
+        if ( !Ntl_ModelCheckCombPoPaths_rec( pModel, Ntl_ObjFanin0(pObj) ) )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks one model.]
 
   Description []
@@ -91,14 +146,14 @@ int Ntl_ModelCheck( Ntl_Mod_t * pModel, int fMain )
             printf( "Warning: Seq model %s does not have input arrival/required time info. Default 0.0 is assumed.\n", pModel->pName );
             pModel->vTimeInputs = Vec_IntAlloc( 2 );
             Vec_IntPush( pModel->vTimeInputs, -1 );
-            Vec_IntPush( pModel->vTimeInputs, Aig_Float2Int(1.0) );        
+            Vec_IntPush( pModel->vTimeInputs, Aig_Float2Int(0.0) );        
         }
         if ( pModel->vTimeOutputs == NULL )
         {
-            printf( "Warning: Seq model %s does not have output arrival/required time info. Default 0.0 is assumed.\n", pModel->pName );
+//            printf( "Warning: Seq model %s does not have output arrival/required time info. Default 0.0 is assumed.\n", pModel->pName );
             pModel->vTimeOutputs = Vec_IntAlloc( 2 );
             Vec_IntPush( pModel->vTimeOutputs, -1 );
-            Vec_IntPush( pModel->vTimeOutputs, Aig_Float2Int(1.0) );        
+            Vec_IntPush( pModel->vTimeOutputs, Aig_Float2Int(0.0) );        
         }
     }
 
@@ -122,12 +177,22 @@ int Ntl_ModelCheck( Ntl_Mod_t * pModel, int fMain )
         // this is a white box
         if ( pModel->attrComb && Ntl_ModelNodeNum(pModel) + Ntl_ModelLut1Num(pModel) == 0 )
         {
-            printf( "Model %s is a comb blackbox, yet it has no nodes.\n", pModel->pName );
+            printf( "Model %s is a comb white box, yet it has no nodes.\n", pModel->pName );
+            fStatus = 0;
+        }
+        if ( pModel->attrComb && Ntl_ModelLatchNum(pModel) > 0 )
+        {
+            printf( "Model %s is a comb white box, yet it has registers.\n", pModel->pName );
             fStatus = 0;
         }
         if ( !pModel->attrComb && Ntl_ModelLatchNum(pModel) == 0 )
         {
-            printf( "Model %s is a seq blackbox, yet it has no registers.\n", pModel->pName );
+            printf( "Model %s is a seq white box, yet it has no registers.\n", pModel->pName );
+            fStatus = 0;
+        }
+        if ( !pModel->attrComb && !Ntl_ModelCheckCombPoPaths(pModel) )
+        {
+            printf( "Model %s is a seq white box with comb paths from PIs to POs.\n", pModel->pName );
             fStatus = 0;
         }
     }
@@ -292,7 +357,7 @@ void Ntl_ModelTransformLatches( Ntl_Mod_t * pModel )
         pLatch->pImplem = pMod[Init];
         pLatch->Type = NTL_OBJ_BOX;
     }
-    printf( "Root level model %s: %d registers turned into white seq boxes.\n", pModel->pName, Ntl_ModelLatchNum(pModel) );
+    printf( "In the main model \"%s\", %d latches are transformed into white seq boxes.\n", pModel->pName, Ntl_ModelLatchNum(pModel) );
     pModel->nObjs[NTL_OBJ_BOX] += Ntl_ModelLatchNum(pModel);
     pModel->nObjs[NTL_OBJ_LATCH] = 0;
 }

@@ -180,7 +180,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
         {
             if ( !Abc_NtkCheckRead( pNtk ) )
             {
-                printf( "Io_ReadBlifMv: The network check has failed for network %s.\n", pNtk->pName );
+                printf( "Io_ReadBlifMv: The network check has failed for model %s.\n", pNtk->pName );
                 Abc_LibFree( pDesign, NULL );
                 return NULL;
             }
@@ -624,11 +624,15 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
             fprintf( stdout, "Line %d: Skipping EXDC network.\n", Io_MvGetLine(p, pCur) );
             break;
         }
+        else if ( !strncmp(pCur, "attrib", 6) )
+        {}
         else if ( !strncmp(pCur, "delay", 5) )
         {}
-        else if ( !strncmp(pCur, "input_arrival", 13) )
+        else if ( !strncmp(pCur, "input_", 6) )
         {}
-        else if ( !strncmp(pCur, "output_required", 15) )
+        else if ( !strncmp(pCur, "output_", 7) )
+        {}
+        else if ( !strncmp(pCur, "no_merge", 8) )
         {}
         else
         {
@@ -747,6 +751,14 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
         Vec_PtrForEachEntry( pMod->vSubckts, pLine, k )
             if ( !Io_MvParseLineSubckt( pMod, pLine ) )
                 return NULL;
+
+        // allow for blackboxes without .blackbox line
+        if ( Abc_NtkLatchNum(pMod->pNtk) == 0 && Abc_NtkNodeNum(pMod->pNtk) == 0 )
+        {
+            if ( pMod->pNtk->ntkFunc == ABC_FUNC_SOP )
+                pMod->pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
+        }
+
         // finalize the network
         Abc_NtkFinalizeRead( pMod->pNtk );
         // read the one-hotness lines
@@ -824,9 +836,10 @@ static int Io_MvParseLineModel( Io_MvMod_t * p, char * pLine )
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BLIFMV, 1 );
     else 
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
-    for ( pPivot = pToken = Vec_PtrEntry(vTokens, 1); *pToken; pToken++ )
-        if ( *pToken == '/' || *pToken == '\\' )
-            pPivot = pToken+1;
+//    for ( pPivot = pToken = Vec_PtrEntry(vTokens, 1); *pToken; pToken++ )
+//        if ( *pToken == '/' || *pToken == '\\' )
+//            pPivot = pToken+1;
+    pPivot = pToken = Vec_PtrEntry(vTokens, 1);
     p->pNtk->pName = Extra_UtilStrsav( pPivot );
     return 1;
 }

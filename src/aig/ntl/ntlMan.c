@@ -48,9 +48,9 @@ Ntl_Man_t * Ntl_ManAlloc()
     p->vModels = Vec_PtrAlloc( 1000 );
     p->vCis = Vec_PtrAlloc( 1000 );
     p->vCos = Vec_PtrAlloc( 1000 );
-    p->vNodes = Vec_PtrAlloc( 1000 );
-    p->vBox1Cos = Vec_IntAlloc( 1000 );
-    p->vLatchIns = Vec_PtrAlloc( 1000 );
+    p->vVisNodes = Vec_PtrAlloc( 1000 );
+    p->vBox1Cios = Vec_IntAlloc( 1000 );
+    p->vRegClasses = Vec_IntAlloc( 1000 );
     // start the manager
     p->pMemObjs = Aig_MmFlexStart();
     p->pMemSops = Aig_MmFlexStart();
@@ -74,10 +74,6 @@ Ntl_Man_t * Ntl_ManAlloc()
 ***********************************************************************/
 void Ntl_ManCleanup( Ntl_Man_t * p )
 {
-    Vec_PtrClear( p->vCis );
-    Vec_PtrClear( p->vCos );
-    Vec_PtrClear( p->vNodes );
-    Vec_IntClear( p->vBox1Cos );
     if ( p->pAig )
     {
         Aig_ManStop( p->pAig );
@@ -190,70 +186,17 @@ void Ntl_ManFree( Ntl_Man_t * p )
             Ntl_ModelFree( pModel );
         Vec_PtrFree( p->vModels );
     }
-    if ( p->vCis )      Vec_PtrFree( p->vCis );
-    if ( p->vCos )      Vec_PtrFree( p->vCos );
-    if ( p->vNodes )    Vec_PtrFree( p->vNodes );
-    if ( p->vBox1Cos )  Vec_IntFree( p->vBox1Cos );
-    if ( p->vLatchIns ) Vec_PtrFree( p->vLatchIns );
-    if ( p->pMemObjs )  Aig_MmFlexStop( p->pMemObjs, 0 );
-    if ( p->pMemSops )  Aig_MmFlexStop( p->pMemSops, 0 );
-    if ( p->pAig )      Aig_ManStop( p->pAig );
-    if ( p->pManTime )  Tim_ManStop( p->pManTime );
+    if ( p->vCis )       Vec_PtrFree( p->vCis );
+    if ( p->vCos )       Vec_PtrFree( p->vCos );
+    if ( p->vVisNodes )  Vec_PtrFree( p->vVisNodes );
+    if ( p->vRegClasses) Vec_IntFree( p->vRegClasses );
+    if ( p->vBox1Cios )  Vec_IntFree( p->vBox1Cios );
+    if ( p->pMemObjs )   Aig_MmFlexStop( p->pMemObjs, 0 );
+    if ( p->pMemSops )   Aig_MmFlexStop( p->pMemSops, 0 );
+    if ( p->pAig )       Aig_ManStop( p->pAig );
+    if ( p->pManTime )   Tim_ManStop( p->pManTime );
     FREE( p->pModTable );
     free( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if the design is combinational.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManIsComb( Ntl_Man_t * p )          
-{ 
-    return Ntl_ModelLatchNum(Ntl_ManRootModel(p)) == 0; 
-} 
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the number of registers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManLatchNum( Ntl_Man_t * p )          
-{ 
-    return Ntl_ModelLatchNum(Ntl_ManRootModel(p)); 
-} 
-
-/**Function*************************************************************
-
-  Synopsis    [Find the model with the given name.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Ntl_Mod_t * Ntl_ManFindModel_old( Ntl_Man_t * p, char * pName )
-{
-    Ntl_Mod_t * pModel;
-    int i;
-    Vec_PtrForEachEntry( p->vModels, pModel, i )
-        if ( !strcmp( pModel->pName, pName ) )
-            return pModel;
-    return NULL;
 }
 
 /**Function*************************************************************
@@ -505,7 +448,7 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
         if ( Ntl_ObjIsLatch(pObj) )
         {
             ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
-            ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock->pCopy;
+            ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock? pObj->pClock->pCopy : NULL;
         }
         if ( Ntl_ObjIsNode(pObj) )
             ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObj->pSop );
@@ -576,8 +519,16 @@ Ntl_Mod_t * Ntl_ManCreateLatchModel( Ntl_Man_t * pMan, int Init )
     pNetLo = Ntl_ModelFindOrCreateNet( pModel, "lo" );
     Ntl_ModelSetNetDriver( pObj, pNetLo );
     pObj = Ntl_ModelCreatePo( pModel, pNetLo );
+    // set timing information
+    pModel->vTimeInputs = Vec_IntAlloc( 2 );
+    Vec_IntPush( pModel->vTimeInputs, -1 );
+    Vec_IntPush( pModel->vTimeInputs, Aig_Float2Int(0.0) );        
+    pModel->vTimeOutputs = Vec_IntAlloc( 2 );
+    Vec_IntPush( pModel->vTimeOutputs, -1 );
+    Vec_IntPush( pModel->vTimeOutputs, Aig_Float2Int(0.0) );        
     return pModel;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

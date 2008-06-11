@@ -209,6 +209,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vFlopReprs)Vec_IntFree( p->vFlopReprs );
     if ( p->pManExdc ) Aig_ManStop( p->pManExdc );
     if ( p->vOnehots ) Vec_VecFree( (Vec_Vec_t *)p->vOnehots );
+    if ( p->vClockDoms)Vec_VecFree( p->vClockDoms );
     FREE( p->pData );
     FREE( p->pSeqModel );
     FREE( p->pName );

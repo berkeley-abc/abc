@@ -279,10 +279,9 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
     vTruth = Vec_IntAlloc( 1 << 16 );
     vCover = Vec_IntAlloc( 1 << 16 );
     nDigits = Aig_Base10Log( Nwk_ManNodeNum(pNtk) );
-//    Nwk_ManForEachObj( pNtk, pObj, i )
+    // go through the nodes in the topological order
     vObjs = Nwk_ManDfs( pNtk );
     Vec_PtrForEachEntry( vObjs, pObj, i )
-//    Nwk_ManForEachNode( pNtk, pObj, i )
     {
         if ( !Nwk_ObjIsNode(pObj) )
             continue;

@@ -170,7 +170,6 @@ void Ntl_ManDeriveCommonCos( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, int fSeq )
     Vec_PtrClear( pMan2->vCos );
     if ( fSeq ) 
     {
-        assert( Ntl_ModelSeqRootNum(p1) == Ntl_ModelSeqRootNum(p2) );
         Ntl_ModelForEachSeqRoot( p1, pObj, i )
         {
             Ntl_ObjForEachFanin( pObj, pNext, k )
@@ -189,7 +188,6 @@ void Ntl_ManDeriveCommonCos( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, int fSeq )
     }
     else
     {
-        assert( Ntl_ModelCombRootNum(p1) == Ntl_ModelCombRootNum(p2) );
         Ntl_ModelForEachCombRoot( p1, pObj, i )
         {
             Ntl_ObjForEachFanin( pObj, pNext, k )
@@ -219,22 +217,11 @@ void Ntl_ManDeriveCommonCos( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, int fSeq )
   SeeAlso     []
 
 ***********************************************************************/
-void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan1, Aig_Man_t ** ppMan2 )
+void Ntl_ManPrepareCecMans( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, Aig_Man_t ** ppAig1, Aig_Man_t ** ppAig2 )
 {
-    Ntl_Man_t * pMan1, * pMan2;
     Ntl_Mod_t * pModel1, * pModel2;
-    *ppMan1 = NULL;
-    *ppMan2 = NULL;
-    // read the netlists
-    pMan1 = Ioa_ReadBlif( pFileName1, 1 );
-    pMan2 = Ioa_ReadBlif( pFileName2, 1 );
-    if ( !pMan1 || !pMan2 )
-    {
-        if ( pMan1 )  Ntl_ManFree( pMan1 );
-        if ( pMan2 )  Ntl_ManFree( pMan2 );
-        printf( "Ntl_ManPrepareCec(): Reading designs from file has failed.\n" );
-        return;
-    }
+    *ppAig1 = NULL;
+    *ppAig2 = NULL;
     // make sure they are compatible
     pModel1 = Ntl_ManRootModel( pMan1 );
     pModel2 = Ntl_ManRootModel( pMan2 );
@@ -267,8 +254,35 @@ void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan
         return;
     }
     // derive AIGs
-    *ppMan1 = Ntl_ManCollapseComb( pMan1 );
-    *ppMan2 = Ntl_ManCollapseComb( pMan2 );
+    *ppAig1 = Ntl_ManCollapse( pMan1, 0 );
+    *ppAig2 = Ntl_ManCollapse( pMan2, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares AIGs for combinational equivalence checking.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppAig1, Aig_Man_t ** ppAig2 )
+{
+    Ntl_Man_t * pMan1, * pMan2;
+    // read the netlists
+    pMan1 = Ioa_ReadBlif( pFileName1, 1 );
+    pMan2 = Ioa_ReadBlif( pFileName2, 1 );
+    if ( !pMan1 || !pMan2 )
+    {
+        if ( pMan1 )  Ntl_ManFree( pMan1 );
+        if ( pMan2 )  Ntl_ManFree( pMan2 );
+        printf( "Ntl_ManPrepareCec(): Reading designs from file has failed.\n" );
+        return;
+    }
+    Ntl_ManPrepareCecMans( pMan1, pMan2, ppAig1, ppAig2 );
     // cleanup 
     Ntl_ManFree( pMan1 );
     Ntl_ManFree( pMan2 );
@@ -303,15 +317,15 @@ Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 )
         return NULL;
     }
     // make sure they are compatible
-    pModel1 = Ntl_ManRootModel( pMan1 );
-    pModel2 = Ntl_ManRootModel( pMan2 );
-    if ( Ntl_ModelLatchNum(pModel1) == 0 || Ntl_ModelLatchNum(pModel2) == 0 )
+    if ( Ntl_ManLatchNum(pMan1) == 0 || Ntl_ManLatchNum(pMan2) == 0 )
     {
         if ( pMan1 )  Ntl_ManFree( pMan1 );
         if ( pMan2 )  Ntl_ManFree( pMan2 );
         printf( "Ntl_ManPrepareSec(): The designs have no latches. Use combinational command \"*cec\".\n" );
         return NULL;
     }
+    pModel1 = Ntl_ManRootModel( pMan1 );
+    pModel2 = Ntl_ManRootModel( pMan2 );
     if ( Ntl_ModelSeqLeafNum(pModel1) != Ntl_ModelSeqLeafNum(pModel2) )
     {
         printf( "Warning: The number of inputs in the designs is different (%d and %d).\n", 
@@ -334,8 +348,8 @@ Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 )
         return NULL;
     }
     // derive AIGs
-    pAig1 = Ntl_ManCollapseSeq( pMan1 );
-    pAig2 = Ntl_ManCollapseSeq( pMan2 );
+    pAig1 = Ntl_ManCollapse( pMan1, 1 );
+    pAig2 = Ntl_ManCollapse( pMan2, 1 );
     pAig = Saig_ManCreateMiter( pAig1, pAig2, 0 );
     Aig_ManStop( pAig1 );
     Aig_ManStop( pAig2 );

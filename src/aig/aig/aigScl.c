@@ -627,7 +627,7 @@ Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int 
     pAigNew = Aig_ManDupRepr( pAigInit, 0 );
     Aig_ManSeqCleanup( pAigNew );
 
-    Saig_ManReportUselessRegisters( pAigNew );
+//    Saig_ManReportUselessRegisters( pAigNew );
     if ( Aig_ManRegNum(pAigNew) == 0 )
         return pAigNew;
 //    nRegs = Saig_ManReportComplements( pAigNew );

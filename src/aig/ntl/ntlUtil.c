@@ -350,6 +350,132 @@ void Ntl_ManTransformInitValues( Ntl_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Transforms register classes.]
+
+  Description [Returns the vector of vectors containing the numbers
+  of registers belonging to the same class. Skips classes containing
+  less than the given number of registers.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVerbose )
+{
+    Vec_Ptr_t * vParts;
+    Vec_Int_t * vPart;
+    int * pClassNums, nClasses;
+    int Class, ClassMax, i, k;
+    if ( Vec_IntSize(pMan->vRegClasses) == 0 )
+    {
+        printf( "Ntl_ManReportRegClasses(): Register classes are not defined.\n" );
+        return NULL;
+    }
+    // find the largest class
+    ClassMax = -1;
+    Vec_IntForEachEntry( pMan->vRegClasses, Class, k )
+    {
+        if ( Class < 0 )
+        {
+            printf( "Ntl_ManReportRegClasses(): Register class (%d) is negative.\n", Class );
+            return NULL;
+        }
+        if ( ClassMax < Class )
+            ClassMax = Class;
+    }
+    if ( ClassMax > 1000000 )
+    {
+        printf( "Ntl_ManReportRegClasses(): The largest number of a register class (%d) is too large (> 1000000).\n", ClassMax );
+        return NULL;
+    }
+    // count the number of classes
+    pClassNums = CALLOC( int, ClassMax + 1 );
+    Vec_IntForEachEntry( pMan->vRegClasses, Class, k )
+        pClassNums[Class]++;
+    // count the number of classes
+    nClasses = 0;
+    for ( i = 0; i <= ClassMax; i++ )
+        nClasses += (int)(pClassNums[i] > 0);
+    // report the classes
+    if ( fVerbose && nClasses > 1 )
+    {
+        printf( "The number of register clases = %d.\n", nClasses );
+        for ( i = 0; i <= ClassMax; i++ )
+            printf( "%d:%d  ", Class, pClassNums[i] );
+        printf( "\n" );
+    }
+    // skip if there is only one class
+    if ( nClasses == 1 )
+    {
+        free( pClassNums );
+        return NULL;
+    }
+    // create classes
+    vParts = Vec_PtrAlloc( 100 );
+    for ( i = 0; i <= ClassMax; i++ )
+    {
+        if ( pClassNums[i] < nSizeMax )
+            continue;
+        vPart = Vec_IntAlloc( pClassNums[i] );
+        Vec_IntForEachEntry( pMan->vRegClasses, Class, k )
+            if ( Class == i )
+                Vec_IntPush( vPart, k );
+        assert( Vec_IntSize(vPart) == pClassNums[i] );
+        Vec_PtrPush( vParts, vPart );
+    }
+    free( pClassNums );
+    // report the selected classes
+    if ( fVerbose )
+    {
+        printf( "The number of selected register clases = %d.\n", Vec_PtrSize(vParts) );
+        Vec_PtrForEachEntry( vParts, vPart, i )
+            printf( "%d:%d  ", i, Vec_IntSize(vPart) );
+        printf( "\n" );
+    }
+    return (Vec_Vec_t *)vParts;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of CIs in the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManLatchNum( Ntl_Man_t * p )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    int i, Counter = 0;
+    pRoot = Ntl_ManRootModel(p);
+    Ntl_ModelForEachBox( pRoot, pObj, i )
+        Counter += Ntl_ModelLatchNum( pObj->pImplem );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the design is combinational.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManIsComb( Ntl_Man_t * p )          
+{ 
+    return Ntl_ManLatchNum(p) == 0; 
+} 
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of CIs in the model.]
 
   Description []
@@ -465,8 +591,8 @@ void Ntl_ModelClearNets( Ntl_Mod_t * pModel )
     int i;
     Ntl_ModelForEachNet( pModel, pNet, i )
     {
-        pNet->nVisits = 0;
-        pNet->pCopy = NULL;
+        pNet->nVisits = pNet->fMark = 0;
+        pNet->pCopy = pNet->pCopy2 = NULL;
     }
 }
 

@@ -473,7 +473,7 @@ Vec_Ptr_t * Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOve
     int i, Counter;
     if ( nOverSize >= nPartSize )
     {
-        printf( "Overlap size (%d) if more or equal to the partition size (%d).\n", nOverSize, nPartSize );
+        printf( "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
         printf( "Adjusting it to be equal to half of the partition size.\n" );
         nOverSize = nPartSize/2;
     }

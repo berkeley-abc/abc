@@ -32,6 +32,7 @@
 #include "mfs.h"
 #include "mfx.h"
 #include "fra.h"
+#include "saig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -15812,22 +15813,28 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     void * pTemp;
     int fAig;
+    int fCollapsed;
     int c;
     extern void Ioa_WriteBlif( void * p, char * pFileName );
     extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
     extern void * Ntl_ManInsertAig( void * p, Aig_Man_t * pAig );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
+    extern Aig_Man_t * Ntl_ManCollapseSeq( void * p );
 
     // set defaults
     fAig = 0;
+    fCollapsed = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ach" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fAig ^= 1;
+            break;
+        case 'c':
+            fCollapsed ^= 1;
             break;
         case 'h':
             goto usage;
@@ -15844,21 +15851,30 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFileName = argv[globalUtilOptind];
     if ( fAig )
     {
-        if ( pAbc->pAbc8Aig != NULL )
+        if ( fCollapsed )
         {
-            pTemp = Ntl_ManInsertAig( pAbc->pAbc8Ntl, pAbc->pAbc8Aig );
-            if ( pTemp == NULL )
-            {
-                printf( "Abc_CommandAbc8Write(): Inserting AIG has failed.\n" );
-                return 1;
-            }
-            Ioa_WriteBlif( pTemp, pFileName );
-            Ntl_ManFree( pTemp );
+            pTemp = Ntl_ManCollapseSeq( pAbc->pAbc8Ntl );
+            Saig_ManDumpBlif( pTemp, pFileName );
+            Aig_ManStop( pTemp );
         }
         else
         {
-            printf( "There is no AIG to write.\n" );
-            return 1;
+            if ( pAbc->pAbc8Aig != NULL )
+            {
+                pTemp = Ntl_ManInsertAig( pAbc->pAbc8Ntl, pAbc->pAbc8Aig );
+                if ( pTemp == NULL )
+                {
+                    printf( "Abc_CommandAbc8Write(): Inserting AIG has failed.\n" );
+                    return 1;
+                }
+                Ioa_WriteBlif( pTemp, pFileName );
+                Ntl_ManFree( pTemp );
+            }
+            else
+            {
+                printf( "There is no AIG to write.\n" );
+                return 1;
+            }
         }
     }
     else 
@@ -15884,9 +15900,10 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *w [-ah]\n" );
+    fprintf( stdout, "usage: *w [-ach]\n" );
     fprintf( stdout, "\t        write the design with whiteboxes\n" );
     fprintf( stdout, "\t-a    : toggle writing mapped network or AIG [default = %s]\n", fAig? "AIG": "mapped" );
+    fprintf( stdout, "\t-c    : toggle writing collapsed sequential AIG [default = %s]\n", fCollapsed? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -17810,7 +17827,7 @@ usage:
 int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Aig_Man_t * pAig1, * pAig2;
-    void * pTemp;
+    void * pTemp1, * pTemp2;
     char ** pArgvNew;
     int nArgcNew;
     int c;
@@ -17823,6 +17840,7 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Ntl_ManFree( void * p );
     extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
 
+    extern void  Ntl_ManPrepareCecMans( void * pMan1, void * pMan2, Aig_Man_t ** ppAig1, Aig_Man_t ** ppAig2 );
     extern void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan1, Aig_Man_t ** ppMan2 );
     extern int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int nPartSize, int fSmart, int fVerbose );
 
@@ -17897,25 +17915,25 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Cec(): There is no mapped network to verify.\n" );
         return 1;
     }
+//    printf( "Currently *cec works only for two designs given on command line.\n" );
 
-    printf( "Currently *cec works only for two designs given on command line.\n" );
-/*
-    // derive AIGs
-    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl, 0 );
-    pTemp = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
-    if ( pTemp == NULL )
+    // insert the mapped network
+    pTemp1 = Ntl_ManDup( pAbc->pAbc8Ntl );
+    pTemp2 = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
+    if ( pTemp2 == NULL )
     {
+        Ntl_ManFree( pTemp1 );
         printf( "Abc_CommandAbc8Cec(): Inserting the design has failed.\n" );
         return 1;
     }
-    pAig2 = Ntl_ManCollapse( pTemp, 0 );
-    Ntl_ManFree( pTemp );
-
-    // perform verification
+    Ntl_ManPrepareCecMans( pTemp1, pTemp2, &pAig1, &pAig2 );
+    Ntl_ManFree( pTemp1 );
+    Ntl_ManFree( pTemp2 );
+    if ( !pAig1 || !pAig2 )
+        return 1;
     Fra_FraigCecTop( pAig1, pAig2, nConfLimit, nPartSize, fSmart, fVerbose );
     Aig_ManStop( pAig1 );
     Aig_ManStop( pAig2 );
-*/
     return 0;
 
 usage:
@@ -17958,7 +17976,7 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     Fra_SecSetDefaultParams( pSecPar );
-    pSecPar->nFramesMax     = 2;
+    pSecPar->nFramesMax     = 4;
     pSecPar->fPhaseAbstract = 0;
     pSecPar->fRetimeFirst   = 0;
     pSecPar->fRetimeRegs    = 0;

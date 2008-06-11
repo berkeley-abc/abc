@@ -73,12 +73,12 @@ struct Ntl_Man_t_
     // extracted representation
     Vec_Ptr_t *        vCis;           // the primary inputs of the extracted part
     Vec_Ptr_t *        vCos;           // the primary outputs of the extracted part 
-    Vec_Ptr_t *        vNodes;         // the nodes of the abstracted part
-    Vec_Int_t *        vBox1Cos;       // the first COs of the boxes
+    Vec_Ptr_t *        vVisNodes;      // the nodes of the abstracted part
+    Vec_Int_t *        vBox1Cios;      // the first COs of the boxes
+    Vec_Int_t *        vRegClasses;    // the classes of registers in the AIG
     Aig_Man_t *        pAig;           // the extracted AIG
     Tim_Man_t *        pManTime;       // the timing manager
     int                iLastCi;        // the last true CI
-    Vec_Ptr_t *        vLatchIns;      // the AIG nodes driving latch inputs for internal latches
     // hashing names into models
     Ntl_Mod_t **       pModTable;      // the hash table of names into models
     int                nModTableSize;  // the allocated table size
@@ -146,7 +146,11 @@ struct Ntl_Net_t_
 {
     Ntl_Net_t *        pNext;          // next net in the hash table
     void *             pCopy;          // the copy of this object
-    void *             pCopy2;         // the copy of this object
+    union {
+        void *         pCopy2;         // the copy of this object
+        int            iTemp;          // other data
+        float          dTemp;          // other data
+    };
     Ntl_Obj_t *        pDriver;        // driver of the net
     char               nVisits;        // the number of times the net is visited
     char               fMark;          // temporary mark
@@ -240,12 +244,6 @@ static inline int         Ntl_ObjIsSeqRoot( Ntl_Obj_t * p )       { return Ntl_O
     Vec_PtrForEachEntry( p->vCis, pNet, i )
 #define Ntl_ManForEachCoNet( p, pNet, i )                                       \
     Vec_PtrForEachEntry( p->vCos, pNet, i )
-#define Ntl_ManForEachNode( p, pObj, i )                                        \
-    for ( i = 0; (i < Vec_PtrSize(p->vNodes)) && (((pObj) = Vec_PtrEntry(p->vNodes, i)), 1); i++ ) \
-        if ( (pObj) == NULL || !Ntl_ObjIsNode(pObj) ) {} else
-#define Ntl_ManForEachBox( p, pObj, i )                                         \
-    for ( i = 0; (i < Vec_PtrSize(p->vNodes)) && (((pObj) = Vec_PtrEntry(p->vNodes, i)), 1); i++ ) \
-        if ( (pObj) == NULL || !Ntl_ObjIsBox(pObj) ) {} else
 
 #define Ntl_ModelForEachPi( pNwk, pObj, i )                                     \
     for ( i = 0; (i < Vec_PtrSize(pNwk->vPis)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vPis, i)), 1); i++ )
@@ -299,10 +297,12 @@ static inline int         Ntl_ObjIsSeqRoot( Ntl_Obj_t * p )       { return Ntl_O
 extern ABC_DLL int             Ntl_ManInsertTest( Ntl_Man_t * p, Aig_Man_t * pAig );
 extern ABC_DLL int             Ntl_ManInsertTestIf( Ntl_Man_t * p, Aig_Man_t * pAig );
 /*=== ntlEc.c ==========================================================*/
-extern ABC_DLL void            Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan1, Aig_Man_t ** ppMan2 );
+extern ABC_DLL void            Ntl_ManPrepareCecMans( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, Aig_Man_t ** ppAig1, Aig_Man_t ** ppAig2 );
+extern ABC_DLL void            Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppAig1, Aig_Man_t ** ppAig2 );
 extern ABC_DLL Aig_Man_t *     Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
 /*=== ntlExtract.c ==========================================================*/
 extern ABC_DLL Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
+extern ABC_DLL Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p, int fSeq );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseComb( Ntl_Man_t * p );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseSeq( Ntl_Man_t * p );
 /*=== ntlInsert.c ==========================================================*/
@@ -320,8 +320,6 @@ extern ABC_DLL void            Ntl_ManCleanup( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManStartFrom( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManDup( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManFree( Ntl_Man_t * p );
-extern ABC_DLL int             Ntl_ManIsComb( Ntl_Man_t * p );
-extern ABC_DLL int             Ntl_ManLatchNum( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
 extern ABC_DLL void            Ntl_ManPrintStats( Ntl_Man_t * p );
 extern ABC_DLL Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
@@ -377,6 +375,9 @@ extern ABC_DLL void            Ntl_ManMarkCiCoNets( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManUnmarkCiCoNets( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManSetZeroInitValues( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManTransformInitValues( Ntl_Man_t * p );
+extern ABC_DLL Vec_Vec_t *     Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVerbose );
+extern ABC_DLL int             Ntl_ManLatchNum( Ntl_Man_t * p );
+extern ABC_DLL int             Ntl_ManIsComb( Ntl_Man_t * p );
 extern ABC_DLL int             Ntl_ModelCombLeafNum( Ntl_Mod_t * p );
 extern ABC_DLL int             Ntl_ModelCombRootNum( Ntl_Mod_t * p );
 extern ABC_DLL int             Ntl_ModelSeqLeafNum( Ntl_Mod_t * p );
