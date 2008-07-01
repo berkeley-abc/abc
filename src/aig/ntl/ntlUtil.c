@@ -402,14 +402,23 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
     {
         printf( "The number of register clases = %d.\n", nClasses );
         for ( i = 0; i <= ClassMax; i++ )
-            printf( "%d:%d  ", Class, pClassNums[i] );
+            if ( pClassNums[i] )
+                printf( "%d:%d  ", i, pClassNums[i] );
         printf( "\n" );
     }
     // skip if there is only one class
     if ( nClasses == 1 )
     {
+        vParts = NULL;
+        if ( Vec_IntSize(pMan->vRegClasses) >= nSizeMax )
+        {
+            vParts = Vec_PtrAlloc( 100 );
+            vPart = Vec_IntStartNatural( Vec_IntSize(pMan->vRegClasses) );
+            Vec_PtrPush( vParts, vPart );
+        }
+        printf( "There is only one clock domain with %d registers.\n", Vec_IntSize(pMan->vRegClasses) );
         free( pClassNums );
-        return NULL;
+        return (Vec_Vec_t *)vParts;
     }
     // create classes
     vParts = Vec_PtrAlloc( 100 );

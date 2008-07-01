@@ -324,10 +324,11 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
     // start the manager
     p = ALLOC( Ntl_Mod_t, 1 );
     memset( p, 0, sizeof(Ntl_Mod_t) );
-    p->attrBox   = 1;
-    p->attrComb  = 1;
-    p->attrWhite = 1;
-    p->attrKeep  = 0;
+    p->attrBox     = 1;
+    p->attrComb    = 1;
+    p->attrWhite   = 1;
+    p->attrKeep    = 0;
+    p->attrNoMerge = 0;
     p->pMan  = pMan;
     p->pName = Ntl_ManStoreName( p->pMan, pName );
     p->vObjs = Vec_PtrAlloc( 100 );

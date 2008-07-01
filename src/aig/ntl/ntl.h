@@ -95,10 +95,11 @@ struct Ntl_Mod_t_
     Vec_Ptr_t *        vPos;           // the array of PO objects
     int                nObjs[NTL_OBJ_VOID]; // counter of objects of each type
     // box attributes
-    unsigned int       attrWhite :  1; // box has known logic
-    unsigned int       attrBox   :  1; // box is to remain unmapped
-    unsigned int       attrComb  :  1; // box is combinational
-    unsigned int       attrKeep  :  1; // box cannot be removed by structural sweep
+    unsigned int       attrWhite   :1; // box has known logic
+    unsigned int       attrBox     :1; // box is to remain unmapped
+    unsigned int       attrComb    :1; // box is combinational
+    unsigned int       attrKeep    :1; // box cannot be removed by structural sweep
+    unsigned int       attrNoMerge :1; // box outputs cannot be merged
     // hashing names into nets
     Ntl_Net_t **       pTable;         // the hash table of names into nets
     int                nTableSize;     // the allocated table size
@@ -304,7 +305,7 @@ extern ABC_DLL Aig_Man_t *     Ntl_ManPrepareSec( char * pFileName1, char * pFil
 extern ABC_DLL Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p, int fSeq );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseComb( Ntl_Man_t * p );
-extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseSeq( Ntl_Man_t * p );
+extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize );
 /*=== ntlInsert.c ==========================================================*/
 extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig );

@@ -586,7 +586,7 @@ Dar_Cut_t * Dar_ObjPrepareCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
     // create the cutset of the node
     pCutSet = (Dar_Cut_t *)Aig_MmFixedEntryFetch( p->pMemCuts );
     Dar_ObjSetCuts( pObj, pCutSet );
-    Dar_ObjForEachCut( pObj, pCut, i )
+    Dar_ObjForEachCutAll( pObj, pCut, i )
         pCut->fUsed = 0;
     // add unit cut if needed
     pCut = pCutSet;

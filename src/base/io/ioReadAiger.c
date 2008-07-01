@@ -20,6 +20,7 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
+#include <bzlib.h>
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -85,6 +86,92 @@ Vec_Int_t * Io_WriteDecodeLiterals( char ** ppPos, int nEntries )
     return vLits;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the file into a character buffer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+typedef struct buflist {
+  char buf[1<<20];
+  int nBuf;
+  struct buflist * next;
+} buflist;
+
+static char * Ioa_ReadLoadFileBz2Aig( char * pFileName )
+{
+    FILE    * pFile;
+    int       nFileSize = 0;
+    char    * pContents;
+    BZFILE  * b;
+    int       bzError;
+    struct buflist * pNext;
+    buflist * bufHead = NULL, * buf = NULL;
+
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Ioa_ReadLoadFileBz2(): The file is unavailable (absent or open).\n" );
+        return NULL;
+    }
+    b = BZ2_bzReadOpen(&bzError,pFile,0,0,NULL,0);
+    if (bzError != BZ_OK) {
+        printf( "Ioa_ReadLoadFileBz2(): BZ2_bzReadOpen() failed with error %d.\n",bzError );
+        return NULL;
+    }
+    do {
+        if (!bufHead)
+            buf = bufHead = ALLOC( buflist, 1 );
+        else
+            buf = buf->next = ALLOC( buflist, 1 );
+        nFileSize += buf->nBuf = BZ2_bzRead(&bzError,b,buf->buf,1<<20);
+        buf->next = NULL;
+    } while (bzError == BZ_OK);
+    if (bzError == BZ_STREAM_END) {
+        // we're okay
+        char * p;
+        int nBytes = 0;
+        BZ2_bzReadClose(&bzError,b);
+        p = pContents = ALLOC( char, nFileSize + 10 );
+        buf = bufHead;
+        do {
+            memcpy(p+nBytes,buf->buf,buf->nBuf);
+            nBytes += buf->nBuf;
+//        } while((buf = buf->next));
+            pNext = buf->next;
+            free( buf );
+        } while((buf = pNext));
+    } else if (bzError == BZ_DATA_ERROR_MAGIC) {
+        // not a BZIP2 file
+        BZ2_bzReadClose(&bzError,b);
+        fseek( pFile, 0, SEEK_END );
+        nFileSize = ftell( pFile );
+        if ( nFileSize == 0 )
+        {
+            printf( "Ioa_ReadLoadFileBz2(): The file is empty.\n" );
+            return NULL;
+        }
+        pContents = ALLOC( char, nFileSize + 10 );
+        rewind( pFile );
+        fread( pContents, nFileSize, 1, pFile );
+    } else { 
+        // Some other error.
+        printf( "Ioa_ReadLoadFileBz2(): Unable to read the compressed BLIF.\n" );
+        return NULL;
+    }
+    fclose( pFile );
+    // finish off the file with the spare .end line
+    // some benchmarks suddenly break off without this line
+    strcpy( pContents + nFileSize, "\n.end\n" );
+    return pContents;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Reads the AIG in the binary AIGER format.]
@@ -109,11 +196,18 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     unsigned uLit0, uLit1, uLit;
 
     // read the file into the buffer
-    nFileSize = Extra_FileSize( pFileName );
-    pFile = fopen( pFileName, "rb" );
-    pContents = ALLOC( char, nFileSize );
-    fread( pContents, nFileSize, 1, pFile );
-    fclose( pFile );
+    if ( !strncmp(pFileName+strlen(pFileName)-4,".bz2",4) )
+        pContents = Ioa_ReadLoadFileBz2Aig( pFileName );
+    else
+    {
+//        pContents = Ioa_ReadLoadFile( pFileName );
+        nFileSize = Extra_FileSize( pFileName );
+        pFile = fopen( pFileName, "rb" );
+        pContents = ALLOC( char, nFileSize );
+        fread( pContents, nFileSize, 1, pFile );
+        fclose( pFile );
+    }
+
 
     // check if the input file format is correct
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )

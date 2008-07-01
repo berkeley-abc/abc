@@ -482,8 +482,8 @@ Vec_Ptr_t * Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOve
     for ( Counter = 0; Counter < Aig_ManRegNum(pAig); Counter -= nOverSize )
     {
         vPart = Vec_IntAlloc( nPartSize );
-        for ( i = 0; i < nPartSize; i++ )
-            if ( ++Counter < Aig_ManRegNum(pAig) )
+        for ( i = 0; i < nPartSize; i++, Counter++ )
+            if ( Counter < Aig_ManRegNum(pAig) )
                 Vec_IntPush( vPart, Counter );
         if ( Vec_IntSize(vPart) <= nOverSize )
             Vec_IntFree(vPart);

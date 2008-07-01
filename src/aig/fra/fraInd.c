@@ -235,6 +235,43 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
 
 /**Function*************************************************************
 
+  Synopsis    [Divides a large partition into several ones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_FraigInductionPartDivide( Vec_Ptr_t * vResult, Vec_Int_t * vDomain, int nPartSize, int nOverSize )
+{
+    Vec_Int_t * vPart;
+    int i, Counter;
+    assert( nPartSize && Vec_IntSize(vDomain) > nPartSize );
+    if ( nOverSize >= nPartSize )
+    {
+        printf( "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
+        printf( "Adjusting it to be equal to half of the partition size.\n" );
+        nOverSize = nPartSize/2;
+    }
+    assert( nOverSize < nPartSize );
+    for ( Counter = 0; Counter < Vec_IntSize(vDomain); Counter -= nOverSize )
+    {
+        vPart = Vec_IntAlloc( nPartSize );
+        for ( i = 0; i < nPartSize; i++, Counter++ )
+            if ( Counter < Vec_IntSize(vDomain) )
+                Vec_IntPush( vPart, Vec_IntEntry(vDomain, Counter) );
+        if ( Vec_IntSize(vPart) <= nOverSize )
+            Vec_IntFree(vPart);
+        else
+            Vec_PtrPush( vResult, vPart );
+    }
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Performs partitioned sequential SAT sweepingG.]
 
   Description []
@@ -260,7 +297,20 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     nPartSize = pPars->nPartSize; pPars->nPartSize = 0;
     fVerbose  = pPars->fVerbose;  pPars->fVerbose = 0;
     // generate partitions
-    vResult = Aig_ManRegPartitionSimple( pAig, nPartSize, pPars->nOverSize );
+    if ( pAig->vClockDoms )
+    {
+        // divide large clock domains into separate partitions
+        vResult = Vec_PtrAlloc( 100 );
+        Vec_PtrForEachEntry( (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
+        {
+            if ( nPartSize && Vec_IntSize(vPart) > nPartSize )
+                Fra_FraigInductionPartDivide( vResult, vPart, nPartSize, pPars->nOverSize );
+            else
+                Vec_PtrPush( vResult, Vec_IntDup(vPart) );
+        }
+    }
+    else
+        vResult = Aig_ManRegPartitionSimple( pAig, nPartSize, pPars->nOverSize );
 //    vResult = Aig_ManPartitionSmartRegisters( pAig, nPartSize, 0 ); 
 //    vResult = Aig_ManRegPartitionSmart( pAig, nPartSize );
     if ( fPrintParts )
@@ -344,6 +394,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
         pParams->nIters = 0;
+        // Ntl_ManFinalize() needs the following to satisfy an assertion
+        Aig_ManReprStart(pManAig,Aig_ManObjNumMax(pManAig));
         return Aig_ManDupOrdered(pManAig);
     }
     assert( Aig_ManRegNum(pManAig) > 0 );
@@ -356,7 +408,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
         printf( "Partitioning was disabled to allow implication writing.\n" );
     }
     // perform partitioning
-    if ( pParams->nPartSize > 0 && pParams->nPartSize < Aig_ManRegNum(pManAig) )
+    if ( (pParams->nPartSize > 0 && pParams->nPartSize < Aig_ManRegNum(pManAig))
+         || (pManAig->vClockDoms && Vec_VecSize(pManAig->vClockDoms) > 1)  )
         return Fra_FraigInductionPart( pManAig, pParams );
  
     nNodesBeg = Aig_ManNodeNum(pManAig);

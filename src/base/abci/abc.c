@@ -17462,22 +17462,23 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Ntl_ManIsComb( void * p );
 
     // set defaults
-    pPars->nPartSize  = 0;
-    pPars->nOverSize  = 0;
-    pPars->nFramesP   = 0;
-    pPars->nFramesK   = 1;
-    pPars->nMaxImps   = 5000;
-    pPars->nMaxLevs   = 0;
-    pPars->fUseImps   = 0;
-    pPars->fRewrite   = 0;
-    pPars->fFraiging  = 0;
-    pPars->fLatchCorr = 0;
-    pPars->fWriteImps = 0;
-    pPars->fUse1Hot   = 0;
-    pPars->fVerbose   = 0;
-    pPars->TimeLimit  = 0;
+    pPars->nPartSize   = 0;
+    pPars->nOverSize   = 0;
+    pPars->nFramesP    = 0;
+    pPars->nFramesK    = 1;
+    pPars->nMaxImps    = 5000;
+    pPars->nMaxLevs    = 0;
+    pPars->nMinDomSize = 100;
+    pPars->fUseImps    = 0;
+    pPars->fRewrite    = 0;
+    pPars->fFraiging   = 0;
+    pPars->fLatchCorr  = 0;
+    pPars->fWriteImps  = 0;
+    pPars->fUse1Hot    = 0;
+    pPars->fVerbose    = 0;
+    pPars->TimeLimit   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILirfletvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILCirfletvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17545,6 +17546,17 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nMaxLevs <= 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMinDomSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMinDomSize <= 0 ) 
                 goto usage;
             break;
         case 'i':
@@ -17623,13 +17635,14 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *ssw [-PQNFL num] [-lrfetvh]\n" );
+    fprintf( stdout, "usage: *ssw [-PQNFLC num] [-lrfetvh]\n" );
     fprintf( stdout, "\t         performs sequential sweep using K-step induction on the netlist \n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
     fprintf( stdout, "\t-N num : number of time frames to use as the prefix [default = %d]\n", pPars->nFramesP );
     fprintf( stdout, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", pPars->nFramesK );
     fprintf( stdout, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
+    fprintf( stdout, "\t-C num : min size of a clock domain used for synthesis [default = %d]\n", pPars->nMinDomSize );
 //    fprintf( stdout, "\t-I num : max number of implications to consider [default = %d]\n", pPars->nMaxImps );
 //    fprintf( stdout, "\t-i     : toggle using implications [default = %s]\n", pPars->fUseImps? "yes": "no" );
     fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );

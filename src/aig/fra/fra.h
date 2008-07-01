@@ -97,6 +97,7 @@ struct Fra_Ssw_t_
     int              nFramesK;          // number of frames for induction (1=simple) 
     int              nMaxImps;          // max implications to consider
     int              nMaxLevs;          // max levels to consider
+    int              nMinDomSize;       // min clock domain considered for optimization
     int              fUseImps;          // use implications  
     int              fRewrite;          // enable rewriting of the specualatively reduced model
     int              fFraiging;         // enable comb SAT sweeping as preprocessing 

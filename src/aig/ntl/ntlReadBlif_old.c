@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "ntl.h"
-#include <bzlib.h>
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -42,11 +41,6 @@ struct Ioa_ReadMod_t_
     Vec_Ptr_t *          vTimeInputs;  // .input_arrival/required lines
     Vec_Ptr_t *          vTimeOutputs; // .output_required/arrival lines
     int                  fBlackBox;    // indicates blackbox model
-    int                  fNoMerge;     // indicates no-merge model
-    char                 fInArr;     
-    char                 fInReq;     
-    char                 fOutArr;     
-    char                 fOutReq;     
     // the resulting network
     Ntl_Mod_t *          pNtk;   
     // the parent manager
@@ -81,7 +75,6 @@ static void              Ioa_ReadFree( Ioa_ReadMan_t * p );
 static Ioa_ReadMod_t *   Ioa_ReadModAlloc();
 static void              Ioa_ReadModFree( Ioa_ReadMod_t * p );
 static char *            Ioa_ReadLoadFile( char * pFileName );
-static char *            Ioa_ReadLoadFileBz2( char * pFileName );
 static void              Ioa_ReadReadPreparse( Ioa_ReadMan_t * p );
 static int               Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p );
 static Ntl_Man_t *       Ioa_ReadParse( Ioa_ReadMan_t * p );
@@ -97,7 +90,6 @@ static int               Ioa_ReadParseLineNamesBlif( Ioa_ReadMod_t * p, char * p
 
 static int               Ioa_ReadCharIsSpace( char s )   { return s == ' ' || s == '\t' || s == '\r' || s == '\n';             }
 static int               Ioa_ReadCharIsSopSymb( char s ) { return s == '0' || s == '1' || s == '-' || s == '\r' || s == '\n';  }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -133,10 +125,7 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
     // start the file reader
     p = Ioa_ReadAlloc();
     p->pFileName = pFileName;
-    if ( !strncmp(pFileName+strlen(pFileName)-4,".bz2",4) )
-        p->pBuffer = Ioa_ReadLoadFileBz2( pFileName );
-    else
-        p->pBuffer = Ioa_ReadLoadFile( pFileName );
+    p->pBuffer   = Ioa_ReadLoadFile( pFileName );
     if ( p->pBuffer == NULL )
     {
         Ioa_ReadFree( p );
@@ -184,12 +173,6 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
 //    if ( (nNodes = Ntl_ManReconnectCoDrivers(pDesign)) )
 //        printf( "The design was transformed by removing %d buf/inv CO drivers.\n", nNodes );
 //Ioa_WriteBlif( pDesign, "_temp_.blif" );
-/*
-    {   
-        Aig_Man_t * p = Ntl_ManCollapseSeq( pDesign );
-        Aig_ManStop( p );
-    }
-*/
     return pDesign;
 }
 
@@ -454,91 +437,6 @@ static char * Ioa_ReadLoadFile( char * pFileName )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the file into a character buffer.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-typedef struct buflist {
-  char buf[1<<20];
-  int nBuf;
-  struct buflist * next;
-} buflist;
-
-static char * Ioa_ReadLoadFileBz2( char * pFileName )
-{
-    FILE    * pFile;
-    int       nFileSize = 0;
-    char    * pContents;
-    BZFILE  * b;
-    int       bzError;
-    struct buflist * pNext;
-    buflist * bufHead = NULL, * buf = NULL;
-
-    pFile = fopen( pFileName, "rb" );
-    if ( pFile == NULL )
-    {
-        printf( "Ioa_ReadLoadFileBz2(): The file is unavailable (absent or open).\n" );
-        return NULL;
-    }
-    b = BZ2_bzReadOpen(&bzError,pFile,0,0,NULL,0);
-    if (bzError != BZ_OK) {
-        printf( "Ioa_ReadLoadFileBz2(): BZ2_bzReadOpen() failed with error %d.\n",bzError );
-        return NULL;
-    }
-    do {
-        if (!bufHead)
-            buf = bufHead = ALLOC( buflist, 1 );
-        else
-            buf = buf->next = ALLOC( buflist, 1 );
-        nFileSize += buf->nBuf = BZ2_bzRead(&bzError,b,buf->buf,1<<20);
-        buf->next = NULL;
-    } while (bzError == BZ_OK);
-    if (bzError == BZ_STREAM_END) {
-        // we're okay
-        char * p;
-        int nBytes = 0;
-        BZ2_bzReadClose(&bzError,b);
-        p = pContents = ALLOC( char, nFileSize + 10 );
-        buf = bufHead;
-        do {
-            memcpy(p+nBytes,buf->buf,buf->nBuf);
-            nBytes += buf->nBuf;
-//        } while((buf = buf->next));
-            pNext = buf->next;
-            free( buf );
-        } while((buf = pNext));
-    } else if (bzError == BZ_DATA_ERROR_MAGIC) {
-        // not a BZIP2 file
-        BZ2_bzReadClose(&bzError,b);
-        fseek( pFile, 0, SEEK_END );
-        nFileSize = ftell( pFile );
-        if ( nFileSize == 0 )
-        {
-            printf( "Ioa_ReadLoadFileBz2(): The file is empty.\n" );
-            return NULL;
-        }
-        pContents = ALLOC( char, nFileSize + 10 );
-        rewind( pFile );
-        fread( pContents, nFileSize, 1, pFile );
-    } else { 
-        // Some other error.
-        printf( "Ioa_ReadLoadFileBz2(): Unable to read the compressed BLIF.\n" );
-        return NULL;
-    }
-    fclose( pFile );
-    // finish off the file with the spare .end line
-    // some benchmarks suddenly break off without this line
-    strcpy( pContents + nFileSize, "\n.end\n" );
-    return pContents;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Prepares the parsing.]
 
   Description [Performs several preliminary operations:
@@ -587,7 +485,7 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             if ( !Ioa_ReadCharIsSpace(*pPrev) )
                 break;
         // if it is the line extender, overwrite it with spaces
-        if ( pPrev >= p->pBuffer && *pPrev == '\\' )
+        if ( *pPrev == '\\' )
         {
             for ( ; *pPrev; pPrev++ )
                 *pPrev = ' ';
@@ -613,22 +511,10 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             Vec_PtrPush( p->pLatest->vDelays, pCur );
         else if ( !strncmp(pCur, "input_arrival", 13) ||
                   !strncmp(pCur, "input_required", 14) )
-        {
-            if ( !strncmp(pCur, "input_arrival", 13) )
-                p->pLatest->fInArr = 1;
-            if ( !strncmp(pCur, "input_required", 14) )
-                p->pLatest->fInReq = 1;
             Vec_PtrPush( p->pLatest->vTimeInputs, pCur );
-        }
-        else if ( !strncmp(pCur, "output_required", 15) ||
-                  !strncmp(pCur, "output_arrival", 14) )
-        {
-            if ( !strncmp(pCur, "output_required", 15) )
-                p->pLatest->fOutReq = 1;
-            if ( !strncmp(pCur, "output_arrival", 14) )
-                p->pLatest->fOutArr = 1;
+        else if ( !strncmp(pCur, "output_required", 14) ||
+                  !strncmp(pCur, "output_arrival", 13) )
             Vec_PtrPush( p->pLatest->vTimeOutputs, pCur );
-        }
         else if ( !strncmp(pCur, "blackbox", 8) )
             p->pLatest->fBlackBox = 1;
         else if ( !strncmp(pCur, "model", 5) ) 
@@ -657,7 +543,6 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
         }
         else if ( !strncmp(pCur, "no_merge", 8) ) 
         {
-            p->pLatest->fNoMerge = 1;
         }
         else
         {
@@ -694,9 +579,6 @@ static int Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
         // parse the model attributes
         if ( pMod->pAttrib && !Ioa_ReadParseLineAttrib( pMod, pMod->pAttrib ) )
             return 0;
-        // parse no-merge
-        if ( pMod->fNoMerge )
-            pMod->pNtk->attrNoMerge = 1;
         // parse the inputs
         Vec_PtrForEachEntry( pMod->vInputs, pLine, k )
             if ( !Ioa_ReadParseLineInputs( pMod, pLine ) )
@@ -715,15 +597,6 @@ static int Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
         Vec_PtrForEachEntry( pMod->vTimeOutputs, pLine, k )
             if ( !Ioa_ReadParseLineTimes( pMod, pLine, 1 ) )
                 return 0;
-        // report timing line stats
-        if ( pMod->fInArr && pMod->fInReq )
-            printf( "Model %s has both .input_arrival and .input_required.\n", pMod->pNtk->pName );
-        if ( pMod->fOutArr && pMod->fOutReq )
-            printf( "Model %s has both .output_arrival and .output_required.\n", pMod->pNtk->pName );
-        if ( !pMod->vDelays && !pMod->fInArr && !pMod->fInReq )
-            printf( "Model %s has neither .input_arrival nor .input_required.\n", pMod->pNtk->pName );
-        if ( !pMod->vDelays && !pMod->fOutArr && !pMod->fOutReq )
-            printf( "Model %s has neither .output_arrival nor .output_required.\n", pMod->pNtk->pName );
     }
     return 1;
 }

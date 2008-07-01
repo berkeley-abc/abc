@@ -148,6 +148,9 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
         // do not reduce the net if it is driven by a multi-output box
         if ( Ntl_ObjIsBox(pNet->pDriver) && Ntl_ObjFanoutNum(pNet->pDriver) > 1 )
             continue;
+        // do not reduce the net if it has no-merge attribute
+        if ( Ntl_ObjIsBox(pNet->pDriver) && pNet->pDriver->pImplem->attrNoMerge )
+            continue;
         pNetRepr = pObjRepr->pData;
         if ( pNetRepr == NULL )
         {
@@ -311,7 +314,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew );
+    pAigCol = Ntl_ManCollapseSeq( pNew, 0 );
 //Saig_ManDumpBlif( pAigCol, "1s.blif" );
 
     // perform SCL for the given design
@@ -345,7 +348,7 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew );
+    pAigCol = Ntl_ManCollapseSeq( pNew, 0 );
 
     // perform SCL for the given design
     pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
@@ -378,7 +381,7 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew );
+    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize );
 
     // perform SCL for the given design
     pTemp = Fra_FraigInduction( pAigCol, pPars );
@@ -554,7 +557,7 @@ Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     Ntl_Man_t * pNew;
     Aig_Man_t * pAigRed, * pAigCol;
     // collapse the AIG
-    pAigCol = Ntl_ManCollapseSeq( p );
+    pAigCol = Ntl_ManCollapseSeq( p, pPars->nMinDomSize );
     // transform the collapsed AIG
     pAigRed = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pAigRed );

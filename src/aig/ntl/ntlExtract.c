@@ -621,7 +621,7 @@ Aig_Man_t * Ntl_ManCollapseComb( Ntl_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p )
+Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize )
 {
     Aig_Man_t * pAig;
     Ntl_Mod_t * pRoot;
@@ -643,13 +643,14 @@ Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p )
     // perform the traversal
     pAig = Ntl_ManCollapse( p, 1 );
     // check if there are register classes
-    pAig->vClockDoms = Ntl_ManTransformRegClasses( p, 100, 1 );
+    pAig->vClockDoms = Ntl_ManTransformRegClasses( p, nMinDomSize, 1 );
     if ( pAig->vClockDoms )
     {
         if ( Vec_VecSize(pAig->vClockDoms) == 0 )
             printf( "Clock domains are small. Seq synthesis is not performed.\n" );
         else
             printf( "Performing seq synthesis for %d clock domains.\n", Vec_VecSize(pAig->vClockDoms) );
+        printf( "\n" );
     }
     return pAig;
 }

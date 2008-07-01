@@ -540,6 +540,8 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;
+        // Ntl_ManFinalize() requires the following to satisfy an assertion.
+        Aig_ManReprStart(pAig,Aig_ManObjNumMax(pAig));
         return Aig_ManDupOrdered(pAig);
     }
     assert( Aig_ManRegNum(pAig) > 0 ); 

@@ -91,6 +91,7 @@ void Ntl_ManUnpackLeafTiming( Ntl_Man_t * p, Tim_Man_t * pMan )
             pNet->dTemp = 0;
     // store the PI timing
     vTimes = pRoot->vTimeInputs;
+    if ( vTimes )
     Vec_IntForEachEntry( vTimes, Entry, i )
     {
         dTime = Aig_Int2Float( Vec_IntEntry(vTimes,++i) );
@@ -172,7 +173,7 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     Vec_Ptr_t * vDelayTables;
     Ntl_Mod_t * pRoot, * pModel;
     Ntl_Obj_t * pObj;
-    int i, curPi, iBox, Entry;
+    int i, curPi, iBox;//, Entry;
     assert( p->pAig != NULL );
     pRoot = Ntl_ManRootModel( p );
     // start the timing manager

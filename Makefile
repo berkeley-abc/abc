@@ -32,7 +32,7 @@ OPTFLAGS  := -g -O -DLIN64
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 
 
-LIBS := -ldl -rdynamic -lreadline -ltermcap
+LIBS := -ldl -rdynamic -lreadline -ltermcap -lbz2
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG)
 
