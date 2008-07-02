@@ -83,7 +83,7 @@ pPLA PLA1, PLA2;
  *  Discard any columns of PLA1 which are not in PLA2
  *  Association is strictly by the names of the columns of the cover.
  */
-PLA_permute(PLA1, PLA2)
+void PLA_permute(PLA1, PLA2)
 pPLA PLA1, PLA2;
 {
     register int i, j, *permute, npermute;

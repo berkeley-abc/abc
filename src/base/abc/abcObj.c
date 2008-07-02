@@ -70,7 +70,7 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 void Abc_ObjRecycle( Abc_Obj_t * pObj )
 {
     Abc_Ntk_t * pNtk = pObj->pNtk;
-    int LargePiece = (4 << ABC_NUM_STEPS);
+//    int LargePiece = (4 << ABC_NUM_STEPS);
     // free large fanout arrays
 //    if ( pNtk->pMmStep && pObj->vFanouts.nCap * 4 > LargePiece )
 //        FREE( pObj->vFanouts.pArray );

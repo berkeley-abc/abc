@@ -212,7 +212,7 @@ void Io_NtkWriteEqnCos( FILE * pFile, Abc_Ntk_t * pNtk )
 int Io_NtkWriteEqnCheck( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    char * pName;
+    char * pName = NULL;
     int i, k, Length;
     int RetValue = 1;
 

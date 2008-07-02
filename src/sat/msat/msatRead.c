@@ -196,8 +196,8 @@ static void Msat_ReadClause( char ** pIn, Msat_Solver_t * p, Msat_IntVec_t * pLi
 ***********************************************************************/
 static bool Msat_ReadDimacs( char * pText, Msat_Solver_t ** pS, bool fVerbose ) 
 {
-    Msat_Solver_t * p;
-    Msat_IntVec_t * pLits;
+    Msat_Solver_t * p = NULL; // Suppress "might be used uninitialized"
+    Msat_IntVec_t * pLits = NULL; // Suppress "might be used uninitialized"
     char * pIn = pText;
     int nVars, nClas;
     while ( 1 )

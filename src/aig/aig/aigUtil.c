@@ -699,7 +699,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     fprintf( pFile, ".inputs" );
     Aig_ManForEachPiSeq( p, pObj, i )
         if ( vPiNames )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, i) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, i) );
         else
             fprintf( pFile, " n%0*d", nDigits, pObj->iData );
     fprintf( pFile, "\n" );
@@ -707,7 +707,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     fprintf( pFile, ".outputs" );
     Aig_ManForEachPoSeq( p, pObj, i )
         if ( vPoNames )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPoNames, i) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPoNames, i) );
         else
             fprintf( pFile, " n%0*d", nDigits, pObj->iData );
     fprintf( pFile, "\n" );
@@ -719,11 +719,11 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
         {
             fprintf( pFile, ".latch" );
             if ( vPoNames )
-                fprintf( pFile, " %s", Vec_PtrEntry(vPoNames, Aig_ManPoNum(p)-Aig_ManRegNum(p)+i) );
+                fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPoNames, Aig_ManPoNum(p)-Aig_ManRegNum(p)+i) );
             else
                 fprintf( pFile, " n%0*d", nDigits, pObjLi->iData );
             if ( vPiNames )
-                fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ManPiNum(p)-Aig_ManRegNum(p)+i) );
+                fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ManPiNum(p)-Aig_ManRegNum(p)+i) );
             else
                 fprintf( pFile, " n%0*d", nDigits, pObjLo->iData );
             fprintf( pFile, " 0\n" );
@@ -738,11 +738,11 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     {
         fprintf( pFile, ".names" );
         if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
         if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin1(pObj)) )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin1(pObj))) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin1(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin1(pObj)->iData );
         fprintf( pFile, " n%0*d\n", nDigits, pObj->iData );
@@ -753,11 +753,11 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     {
         fprintf( pFile, ".names" );
         if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
         if ( vPoNames )
-            fprintf( pFile, " %s\n", Vec_PtrEntry(vPoNames, Aig_ObjPioNum(pObj)) );
+            fprintf( pFile, " %s\n", (char*)Vec_PtrEntry(vPoNames, Aig_ObjPioNum(pObj)) );
         else
             fprintf( pFile, " n%0*d\n", nDigits, pObj->iData );
         fprintf( pFile, "%d 1\n", !Aig_ObjFaninC0(pObj) );
@@ -901,9 +901,9 @@ void Aig_ManSetPioNumbers( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     Aig_ManForEachPi( p, pObj, i )
-        pObj->pNext = (Aig_Obj_t *)i;
+        pObj->PioNum = i;
     Aig_ManForEachPo( p, pObj, i )
-        pObj->pNext = (Aig_Obj_t *)i;
+        pObj->PioNum = i;
 }
 
 /**Function*************************************************************
@@ -961,7 +961,7 @@ int Aig_ManCountChoices( Aig_Man_t * p )
 void Aig_ManPrintControlFanouts( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj, * pFanin0, * pFanin1, * pCtrl;
-    int i, Counter = 0;
+    int i;
 
     pCtrl = Aig_ManPi( p, Aig_ManPiNum(p) - 1 );
 
@@ -1072,8 +1072,8 @@ void Aig_ManRandomTest1()
 }
 
  
-#define NUMBER1  3716960521
-#define NUMBER2  2174103536
+#define NUMBER1  3716960521u
+#define NUMBER2  2174103536u
 
 /**Function*************************************************************
 

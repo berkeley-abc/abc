@@ -95,7 +95,7 @@ void Hop_ManAddMemory( Hop_Man_t * p )
     pMemory = ALLOC( char, nBytes );
     Vec_PtrPush( p->vChunks, pMemory );
     // align memory at the 32-byte boundary
-    pMemory = pMemory + 64 - (((int)pMemory) & 63);
+    pMemory = pMemory + 64 - (((int)(PORT_PTRUINT_T)pMemory) & 63);
     // remember the manager in the first entry
     Vec_PtrPush( p->vPages, pMemory );
     // break the memory down into nodes

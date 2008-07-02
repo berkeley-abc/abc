@@ -836,7 +836,7 @@ cuddLinearInPlace(
     int    posn;
     int    isolated;
     DdNode *f,*f0,*f1,*f01,*f00,*f11,*f10,*newf1,*newf0;
-    DdNode *g,*next,*last;
+    DdNode *g,*next,*last = NULL; // Suppress "might be used uninitialized"
     DdNodePtr *previousP;
     DdNode *tmp;
     DdNode *sentinel = &(table->sentinel);

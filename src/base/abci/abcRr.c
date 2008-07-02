@@ -729,16 +729,16 @@ void Abc_NtkRRSimulateStart( Abc_Ntk_t * pNtk )
     int i;
     Abc_AigConst1(pNtk)->pData = (void *)~((unsigned)0);
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pData = (void *)SIM_RANDOM_UNSIGNED;
+        pObj->pData = (void *)(PORT_PTRUINT_T)SIM_RANDOM_UNSIGNED;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( i == 0 ) continue;
-        uData0 = (unsigned)Abc_ObjFanin0(pObj)->pData;
-        uData1 = (unsigned)Abc_ObjFanin1(pObj)->pData;
+        uData0 = (unsigned)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pData;
+        uData1 = (unsigned)(PORT_PTRUINT_T)Abc_ObjFanin1(pObj)->pData;
         uData  = Abc_ObjFaninC0(pObj)? ~uData0 : uData0;
         uData &= Abc_ObjFaninC1(pObj)? ~uData1 : uData1;
         assert( pObj->pData == NULL );
-        pObj->pData = (void *)uData;
+        pObj->pData = (void *)(PORT_PTRUINT_T)uData;
     }
 }
 
@@ -802,24 +802,24 @@ Vec_Str_t * Abc_NtkRRSimulate( Abc_Ntk_t * pNtk )
     // simulate patters and store them in copy
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)~((unsigned)0);
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)SIM_RANDOM_UNSIGNED;
+        pObj->pCopy = (Abc_Obj_t *)(PORT_PTRUINT_T)SIM_RANDOM_UNSIGNED;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( i == 0 ) continue;
-        uData0 = (unsigned)Abc_ObjFanin0(pObj)->pData;
-        uData1 = (unsigned)Abc_ObjFanin1(pObj)->pData;
+        uData0 = (unsigned)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pData;
+        uData1 = (unsigned)(PORT_PTRUINT_T)Abc_ObjFanin1(pObj)->pData;
         uData  = Abc_ObjFaninC0(pObj)? ~uData0 : uData0;
         uData &= Abc_ObjFaninC1(pObj)? ~uData1 : uData1;
-        pObj->pCopy = (Abc_Obj_t *)uData;
+        pObj->pCopy = (Abc_Obj_t *)(PORT_PTRUINT_T)uData;
     }
     // store the result in data
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
-        uData0 = (unsigned)Abc_ObjFanin0(pObj)->pData;
+        uData0 = (unsigned)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pData;
         if ( Abc_ObjFaninC0(pObj) )
-            pObj->pData = (void *)~uData0;
+            pObj->pData = (void *)(PORT_PTRUINT_T)~uData0;
         else
-            pObj->pData = (void *)uData0;
+            pObj->pData = (void *)(PORT_PTRUINT_T)uData0;
     }
 
     // refine the candidates
@@ -904,7 +904,7 @@ void Sim_CollectNodes_rec( Abc_Obj_t * pRoot, Vec_Ptr_t * vField )
     Abc_ObjForEachFanin( pRoot, pFanin, i )
         Sim_CollectNodes_rec( pFanin, vField );
     if ( !Abc_ObjIsCo(pRoot) )
-        pRoot->pData = (void *)Vec_PtrSize(vField);
+        pRoot->pData = (void *)(PORT_PTRUINT_T)Vec_PtrSize(vField);
     Vec_PtrPush( vField, pRoot );
 }
 
@@ -934,13 +934,13 @@ void Sim_SimulateCollected( Vec_Str_t * vTargets, Vec_Ptr_t * vNodes, Vec_Ptr_t 
         {
             pUnsigned = Vec_PtrEntry( vSims, i );
             for ( k = 0; k < Vec_PtrSize(vNodes); k++ )
-                pUnsigned[k] = (unsigned)pObj->pCopy;
+                pUnsigned[k] = (unsigned)(PORT_PTRUINT_T)pObj->pCopy;
             continue;
         }
         if ( Abc_ObjIsCo(pObj) )
         {
             pUnsigned  = Vec_PtrEntry( vSims, i );
-            pUnsignedF = Vec_PtrEntry( vSims, (int)Abc_ObjFanin0(pObj)->pData );
+            pUnsignedF = Vec_PtrEntry( vSims, (int)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pData );
             if ( Abc_ObjFaninC0(pObj) )
                 for ( k = 0; k < Vec_PtrSize(vNodes); k++ )
                     pUnsigned[k] = ~pUnsignedF[k];
@@ -950,7 +950,7 @@ void Sim_SimulateCollected( Vec_Str_t * vTargets, Vec_Ptr_t * vNodes, Vec_Ptr_t 
             // update targets
             for ( k = 0; k < Vec_PtrSize(vNodes); k++ )
             {
-                if ( pUnsigned[k] == (unsigned)pObj->pData )
+                if ( pUnsigned[k] == (unsigned)(PORT_PTRUINT_T)pObj->pData )
                     continue;
                 pDisproved = Vec_PtrEntry( vNodes, k );
                 fCompl = Abc_ObjIsComplement(pDisproved);

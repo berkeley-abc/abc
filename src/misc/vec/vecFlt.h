@@ -570,7 +570,7 @@ static inline int Vec_FltRemove( Vec_Flt_t * p, float Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_FltSortCompare1( float * pp1, float * pp2 )
+static int Vec_FltSortCompare1( float * pp1, float * pp2 )
 {
     // for some reason commenting out lines (as shown) led to crashing of the release version
     if ( *pp1 < *pp2 )
@@ -591,7 +591,7 @@ static inline int Vec_FltSortCompare1( float * pp1, float * pp2 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_FltSortCompare2( float * pp1, float * pp2 )
+static int Vec_FltSortCompare2( float * pp1, float * pp2 )
 {
     // for some reason commenting out lines (as shown) led to crashing of the release version
     if ( *pp1 > *pp2 )

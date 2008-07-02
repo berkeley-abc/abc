@@ -197,10 +197,11 @@ Vec_Ptr_t * Abc_NtkDfsReverse( Abc_Ntk_t * pNtk )
             Abc_NtkDfsReverse_rec( pFanout, vNodes );
     }
     // add constant nodes in the end
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) ) {
         Abc_NtkForEachNode( pNtk, pObj, i )
             if ( Abc_NodeIsConst(pObj) )
                 Vec_PtrPush( vNodes, pObj );
+    }
     return vNodes;
 }
 
@@ -492,7 +493,7 @@ void Abc_NtkDfs_iter( Vec_Ptr_t * vStack, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes 
     while ( Vec_PtrSize(vStack) > 0 )
     {
         // get the node and its fanin
-        iFanin = (int)Vec_PtrPop(vStack);
+        iFanin = (int)(PORT_PTRINT_T)Vec_PtrPop(vStack);
         pNode  = Vec_PtrPop(vStack);
         assert( !Abc_ObjIsNet(pNode) );
         // add it to the array of nodes if we finished
@@ -503,7 +504,7 @@ void Abc_NtkDfs_iter( Vec_Ptr_t * vStack, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes 
         }
         // explore the next fanin
         Vec_PtrPush( vStack, pNode );
-        Vec_PtrPush( vStack, (void *)(iFanin+1) );
+        Vec_PtrPush( vStack, (void *)(PORT_PTRINT_T)(iFanin+1) );
         // get the fanin
         pFanin = Abc_ObjFanin0Ntk( Abc_ObjFanin(pNode,iFanin) );
         // if this node is already visited, skip
@@ -1112,7 +1113,7 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     Abc_NodeSetTravIdCurrent( pNode );
     // visit the transitive fanin
     Abc_ObjForEachFanin( pNode, pFanin, i )
-    {
+    { 
         pFanin = Abc_ObjFanin0Ntk(pFanin);
         // make sure there is no mixing of networks
         assert( pFanin->pNtk == pNode->pNtk );
@@ -1120,7 +1121,7 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
         if ( Abc_NodeIsTravIdPrevious(pFanin) ) 
             continue;
         // traverse the fanin's cone searching for the loop
-        if ( fAcyclic = Abc_NtkIsAcyclic_rec(pFanin) )
+        if ( (fAcyclic = Abc_NtkIsAcyclic_rec(pFanin)) )
             continue;
         // return as soon as the loop is detected
         fprintf( stdout, " %s ->", Abc_ObjName(pFanin) );
@@ -1135,7 +1136,7 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
             if ( Abc_NodeIsTravIdPrevious(pFanin) ) 
                 continue;
             // traverse the fanin's cone searching for the loop
-            if ( fAcyclic = Abc_NtkIsAcyclic_rec(pFanin) )
+            if ( (fAcyclic = Abc_NtkIsAcyclic_rec(pFanin)) )
                 continue;
             // return as soon as the loop is detected
             fprintf( stdout, " %s", Abc_ObjName(pFanin) );
@@ -1184,7 +1185,7 @@ bool Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
         if ( Abc_NodeIsTravIdPrevious(pNode) )
             continue;
         // traverse the output logic cone
-        if ( fAcyclic = Abc_NtkIsAcyclic_rec(pNode) )
+        if ( (fAcyclic = Abc_NtkIsAcyclic_rec(pNode)) )
             continue;
         // stop as soon as the first loop is detected
         fprintf( stdout, " CO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
@@ -1211,7 +1212,7 @@ int Abc_NodeSetChoiceLevel_rec( Abc_Obj_t * pNode, int fMaximum )
     int Level1, Level2, Level, LevelE;
     // skip the visited node
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
-        return (int)pNode->pCopy;
+        return (int)(PORT_PTRINT_T)pNode->pCopy;
     Abc_NodeSetTravIdCurrent( pNode );
     // compute levels of the children nodes
     Level1 = Abc_NodeSetChoiceLevel_rec( Abc_ObjFanin0(pNode), fMaximum );
@@ -1226,9 +1227,9 @@ int Abc_NodeSetChoiceLevel_rec( Abc_Obj_t * pNode, int fMaximum )
             Level = ABC_MIN( Level, LevelE );
         // set the level of all equivalent nodes to be the same minimum
         for ( pTemp = pNode->pData; pTemp; pTemp = pTemp->pData )
-            pTemp->pCopy = (void *)Level;
+            pTemp->pCopy = (void *)(PORT_PTRINT_T)Level;
     }
-    pNode->pCopy = (void *)Level;
+    pNode->pCopy = (void *)(PORT_PTRINT_T)Level;
     return Level;
 }
 
@@ -1297,7 +1298,7 @@ Vec_Ptr_t * Abc_AigGetLevelizedOrder( Abc_Ntk_t * pNtk, int fCollectCis )
     vLevels = Vec_PtrStart( LevelMax + 1 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        ppHead = ((Abc_Obj_t **)vLevels->pArray) + (int)pNode->pCopy;
+        ppHead = ((Abc_Obj_t **)vLevels->pArray) + (int)(PORT_PTRINT_T)pNode->pCopy;
         pNode->pCopy = *ppHead;
         *ppHead = pNode;
     }

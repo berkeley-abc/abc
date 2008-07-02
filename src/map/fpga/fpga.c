@@ -138,7 +138,7 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL ) )
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
             fprintf( pErr, "Did you mean \"%s\"?", FileName );
         fprintf( pErr, "\n" );
         return 1;

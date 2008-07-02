@@ -46,7 +46,7 @@ CloudNode * Lpk_CutTruthBdd_rec( CloudManager * dd, Hop_Man_t * pMan, Hop_Obj_t 
     assert( !Hop_IsComplement(pObj) );
     if ( pObj->pData )
     {
-        assert( ((unsigned)pObj->pData) & 0xffff0000 );
+        assert( ((unsigned)(PORT_PTRUINT_T)pObj->pData) & 0xffff0000 );
         return pObj->pData;
     }
     // get the plan for a new truth table
@@ -84,8 +84,8 @@ CloudNode * Lpk_CutTruthBdd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
     Hop_Man_t * pManHop = p->pNtk->pManFunc;
     Hop_Obj_t * pObjHop;
     Abc_Obj_t * pObj, * pFanin;
-    CloudNode * pTruth;
-    int i, k, iCount = 0;
+    CloudNode * pTruth = NULL; // Suppress "might be used uninitialized"
+    int i, k;
 
 //    return NULL;
 //    Lpk_NodePrintCut( p, pCut );
@@ -103,7 +103,7 @@ CloudNode * Lpk_CutTruthBdd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
         // set the initial truth tables at the fanins
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
-            assert( ((unsigned)pFanin->pCopy) & 0xffff0000 );
+            assert( ((unsigned)(PORT_PTRUINT_T)pFanin->pCopy) & 0xffff0000 );
             Hop_ManPi( pManHop, k )->pData = pFanin->pCopy;
         }
         // compute the truth table of internal nodes
@@ -138,7 +138,7 @@ unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_
     assert( !Hop_IsComplement(pObj) );
     if ( pObj->pData )
     {
-        assert( ((unsigned)pObj->pData) & 0xffff0000 );
+        assert( ((unsigned)(PORT_PTRUINT_T)pObj->pData) & 0xffff0000 );
         return pObj->pData;
     }
     // get the plan for a new truth table
@@ -173,8 +173,9 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
 {
     Hop_Man_t * pManHop = p->pNtk->pManFunc;
     Hop_Obj_t * pObjHop;
-    Abc_Obj_t * pObj, * pFanin;
-    unsigned * pTruth;
+    Abc_Obj_t * pObj = NULL; // Suppress "might be used uninitialized"
+    Abc_Obj_t * pFanin;
+    unsigned * pTruth = NULL; // Suppress "might be used uninitialized"
     int i, k, iCount = 0;
 //    Lpk_NodePrintCut( p, pCut );
     assert( pCut->nNodes > 0 );
@@ -193,7 +194,7 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
         // set the initial truth tables at the fanins
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
-            assert( ((unsigned)pFanin->pCopy) & 0xffff0000 );
+            assert( ((unsigned)(PORT_PTRUINT_T)pFanin->pCopy) & 0xffff0000 );
             Hop_ManPi( pManHop, k )->pData = pFanin->pCopy;
         }
         // compute the truth table of internal nodes
@@ -208,7 +209,7 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
     if ( fInv == 0 )
     {
         pTruth = Vec_PtrEntry( p->vTtNodes, iCount++ );
-        Kit_TruthCopy( pTruth, (unsigned *)pObj->pCopy, pCut->nLeaves );
+        Kit_TruthCopy( pTruth, (unsigned *)(PORT_PTRUINT_T)pObj->pCopy, pCut->nLeaves );
     }
     assert( iCount <= Vec_PtrSize(p->vTtNodes) );
     return pTruth;
@@ -243,14 +244,14 @@ void Lpk_NodeRecordImpact( Lpk_Man_t * p )
             if ( pNode->fMarkC )
                 continue;
             pNode->fMarkC = 1;
-            Vec_PtrPush( vNodes, (void *)pNode->Id );
-            Vec_PtrPush( vNodes, (void *)Abc_ObjFanoutNum(pNode) );
+            Vec_PtrPush( vNodes, (void *)(PORT_PTRUINT_T)pNode->Id );
+            Vec_PtrPush( vNodes, (void *)(PORT_PTRUINT_T)Abc_ObjFanoutNum(pNode) );
         }
     }
     // clear the marks
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        pNode = Abc_NtkObj( p->pNtk, (int)pNode );
+        pNode = Abc_NtkObj( p->pNtk, (int)(PORT_PTRUINT_T)pNode );
         pNode->fMarkC = 0;
         i++;
     }
@@ -280,7 +281,7 @@ int Lpk_NodeCutsCheckDsd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
     {
         assert( pObj->fMarkA == 0 );
         pObj->fMarkA = 1;
-        pObj->pCopy = (void *)i;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)i;
     }
     // ref leaves pointed from the internal nodes
     nCands = 0;
@@ -289,7 +290,7 @@ int Lpk_NodeCutsCheckDsd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
         fLeavesOnly = 1;
         Abc_ObjForEachFanin( pObj, pFanin, k )
             if ( pFanin->fMarkA )
-                p->pRefs[(int)pFanin->pCopy]++;
+                p->pRefs[(int)(PORT_PTRUINT_T)pFanin->pCopy]++;
             else
                 fLeavesOnly = 0;
         if ( fLeavesOnly )
@@ -303,7 +304,7 @@ int Lpk_NodeCutsCheckDsd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
             assert( pFanin->fMarkA == 1 );
-            if ( p->pRefs[(int)pFanin->pCopy] > 1 )
+            if ( p->pRefs[(int)(PORT_PTRUINT_T)pFanin->pCopy] > 1 )
                 break;
         }
         if ( k == Abc_ObjFaninNum(pObj) )

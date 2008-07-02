@@ -18,10 +18,12 @@
 
 ***********************************************************************/
 
+// The code in this file is developed in collaboration with Mark Jarvin of Toronto.
+
 #include "ntl.h"
 #include "ioa.h"
 
-#include <bzlib.h>
+#include "bzlib.h"
 #include <stdarg.h>
 
 #ifdef _WIN32

@@ -58,9 +58,12 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     Dec_Graph_t * pGraph;
     Cut_Cut_t * pCut;//, * pTemp;
     Abc_Obj_t * pFanin;
-    unsigned uPhase, uTruthBest, uTruth;
+    unsigned uPhase;
+    unsigned uTruthBest = 0; // Suppress "might be used uninitialized"
+    unsigned uTruth;
     char * pPerm;
-    int Required, nNodesSaved, nNodesSaveCur;
+    int Required, nNodesSaved;
+    int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, GainCur, GainBest = -1;
     int clk, clk2;//, Counter;
 
@@ -92,14 +95,14 @@ clk = clock();
 
         // get the fanin permutation
         uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
-        pPerm = p->pPerms4[ p->pPerms[uTruth] ];
+        pPerm = p->pPerms4[ (int)p->pPerms[uTruth] ];
         uPhase = p->pPhases[uTruth];
         // collect fanins with the corresponding permutation/phase
         Vec_PtrClear( p->vFaninsCur );
         Vec_PtrFill( p->vFaninsCur, (int)pCut->nLeaves, 0 );
         for ( i = 0; i < (int)pCut->nLeaves; i++ )
         {
-            pFanin = Abc_NtkObj( pNode->pNtk, pCut->pLeaves[pPerm[i]] );
+            pFanin = Abc_NtkObj( pNode->pNtk, pCut->pLeaves[(int)pPerm[i]] );
             if ( pFanin == NULL )
                 break;
             pFanin = Abc_ObjNotCond(pFanin, ((uPhase & (1<<i)) > 0) );
@@ -247,7 +250,8 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
 {
     extern int            Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax, int LevelMax );
     Vec_Ptr_t * vSubgraphs;
-    Dec_Graph_t * pGraphBest, * pGraphCur;
+    Dec_Graph_t * pGraphBest = NULL; // Suppress "might be used uninitialized"
+    Dec_Graph_t * pGraphCur;
     Rwr_Node_t * pNode, * pFanin;
     int nNodesAdded, GainBest, i, k;
     unsigned uTruth;

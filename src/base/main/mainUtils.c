@@ -22,6 +22,7 @@
 
 #ifndef _WIN32
 #include <readline/readline.h>
+#include <readline/history.h>
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -64,14 +65,17 @@ char * Abc_UtilsGetVersion( Abc_Frame_t * pAbc )
 ***********************************************************************/
 char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
 {
-    static char Buffer[1000], Prompt[1000];
+    static char Prompt[1000];
+#ifndef _WIN32
+    static char * line = NULL;
+#endif
+
     sprintf( Prompt, "abc %02d> ", pAbc->nSteps );
 #ifdef _WIN32
     fprintf( pAbc->Out, "%s", Prompt );
-    fgets( Buffer, 999, stdin );
-    return Buffer;
+    fgets( Prompt, 999, stdin );
+    return Prompt;
 #else
-    static char* line = NULL;
     if (line != NULL) free(line);
     line = readline(Prompt);  
     if (line == NULL){ printf("***EOF***\n"); exit(0); }

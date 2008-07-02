@@ -258,7 +258,7 @@ DdManager * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDrop
     // start the manager
     assert( Abc_NtkGlobalBdd(pNtk) == NULL );
     dd = Cudd_Init( Abc_NtkCiNum(pNtk), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    pAttMan = Vec_AttAlloc( 0, Abc_NtkObjNumMax(pNtk) + 1, dd, Extra_StopManager, NULL, Cudd_RecursiveDeref );
+    pAttMan = Vec_AttAlloc( Abc_NtkObjNumMax(pNtk) + 1, dd, (void (*)(void*))Extra_StopManager, NULL, (void (*)(void*,void*))Cudd_RecursiveDeref );
     Vec_PtrWriteEntry( pNtk->vAttrs, VEC_ATTR_GLOBAL_BDD, pAttMan );
 
     // set reordering

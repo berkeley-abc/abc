@@ -343,14 +343,31 @@ If_Obj_t * Lpk_MapTreeMulti_rec( Lpk_Man_t * p, Kit_DsdNtk_t ** ppNtks, int * pi
 ***********************************************************************/
 If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj_t ** ppLeaves )
 {
-    static Counter = 0;
+    static int Counter = 0;
     If_Obj_t * pResult;
     Kit_DsdNtk_t * ppNtks[8] = {0}, * pTemp;
     Kit_DsdObj_t * pRoot;
     int piCofVar[4], pPrios[16], pFreqs[16] = {0}, piLits[16];
     int i, k, nCBars, nSize, nMemSize;
     unsigned * ppCofs[4][8], uSupport;
-    char pTable[16][16] = {0};
+    char pTable[16][16] = {
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    };
     int fVerbose = p->pPars->fVeryVerbose;
 
     Counter++;
@@ -422,10 +439,6 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
     if ( fVerbose )
         printf( "After restructuring with priority:\n" );
 
-    if ( Counter == 1 )
-    {
-        int x = 0;
-    }
     // transform all networks according to the variable order
     for ( i = 0; i < nSize; i++ )
     {

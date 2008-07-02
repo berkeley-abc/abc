@@ -932,7 +932,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     void * pAttrMan;
     int TotalMemory, i;
-    int LargePiece = (4 << ABC_NUM_STEPS);
+//    int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
     // free the HAIG

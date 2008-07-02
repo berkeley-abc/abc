@@ -1015,7 +1015,7 @@ DdNode * extraBddMove(
     if ( Cudd_IsConstant(bF) )
         return bF;
 
-    if ( bRes = cuddCacheLookup2(dd, extraBddMove, bF, bDist) )
+    if ( (bRes = cuddCacheLookup2(dd, extraBddMove, bF, bDist)) )
         return bRes;
     else
     {

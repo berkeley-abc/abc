@@ -43,7 +43,7 @@
 Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
 {
     Abc_Obj_t * pAnd0, * pAnd1;
-    Dec_Node_t * pNode;
+    Dec_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )
@@ -77,7 +77,7 @@ Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
 Abc_Obj_t * Dec_GraphToNetworkNoStrash( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
 {
     Abc_Obj_t * pAnd, * pAnd0, * pAnd1;
-    Dec_Node_t * pNode;
+    Dec_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )
@@ -217,7 +217,7 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpda
 ***********************************************************************/
 Hop_Obj_t * Dec_GraphToNetworkAig( Hop_Man_t * pMan, Dec_Graph_t * pGraph )
 {
-    Dec_Node_t * pNode;
+    Dec_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     Hop_Obj_t * pAnd0, * pAnd1;
     int i;
     // check for constant function
@@ -278,7 +278,7 @@ Hop_Obj_t * Dec_GraphFactorSop( Hop_Man_t * pMan, char * pSop )
 ***********************************************************************/
 Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph )
 {
-    Dec_Node_t * pNode;
+    Dec_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     Ivy_Obj_t * pAnd0, * pAnd1;
     int i;
     // check for constant function

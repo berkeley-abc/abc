@@ -55,9 +55,9 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     Fxu_Cube * pCube1, * pCube2;
     Fxu_Var * pVar;
     int nCubes, nBitsMax, nSum;
-    int CutOffNum, CutOffQuant;
+    int CutOffNum = -1, CutOffQuant = -1; // Suppress "might be used uninitialized"
     int iPair, iQuant, k, c;
-    int clk = clock();
+//    int clk = clock();
     char * pSopCover;
     int nFanins;
 
@@ -69,7 +69,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     iPair    =  0;
     nBitsMax = -1;
     for ( c = 0; c < vCovers->nSize; c++ )
-        if ( pSopCover = vCovers->pArray[c] )
+        if ( (pSopCover = vCovers->pArray[c]) )
         {
             nFanins = Abc_SopGetVarNum(pSopCover);
             // precompute the differences
@@ -135,7 +135,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     // collect the corresponding pairs and add the divisors
     iPair = 0;
     for ( c = 0; c < vCovers->nSize; c++ )
-        if ( pSopCover = vCovers->pArray[c] )
+        if ( (pSopCover = vCovers->pArray[c]) )
         {
             // get the var
             pVar = p->ppVars[2*c+1];

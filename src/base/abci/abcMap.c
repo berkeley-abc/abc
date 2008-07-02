@@ -59,7 +59,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
     Map_Man_t * pMan;
-    Vec_Int_t * vSwitching;
+    Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
     int clk;
 

@@ -526,15 +526,16 @@ int Aig_TransferMappedClasses( Aig_Man_t * pAig, Aig_Man_t * pPart, int * pMapBa
     Aig_Obj_t * pObj;
     int nClasses, k;
     nClasses = 0;
-    if ( pPart->pReprs )
-    Aig_ManForEachObj( pPart, pObj, k )
-    {
-        if ( pPart->pReprs[pObj->Id] == NULL )
-            continue;
-        nClasses++;
-        Aig_ObjSetRepr( pAig, 
-            Aig_ManObj(pAig, pMapBack[pObj->Id]), 
-            Aig_ManObj(pAig, pMapBack[pPart->pReprs[pObj->Id]->Id]) );
+    if ( pPart->pReprs ) {
+      Aig_ManForEachObj( pPart, pObj, k )
+      {
+          if ( pPart->pReprs[pObj->Id] == NULL )
+              continue;
+          nClasses++;
+          Aig_ObjSetRepr( pAig,
+              Aig_ManObj(pAig, pMapBack[pObj->Id]),
+              Aig_ManObj(pAig, pMapBack[pPart->pReprs[pObj->Id]->Id]) );
+      }
     }
     return nClasses;
 }

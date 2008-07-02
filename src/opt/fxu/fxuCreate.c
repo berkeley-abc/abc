@@ -71,7 +71,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     nPairsStore =  0;
     nBitsMax    = -1; 
     for ( i = 0; i < pData->nNodesOld; i++ )
-        if ( pSopCover = pData->vSops->pArray[i] )
+        if ( (pSopCover = pData->vSops->pArray[i]) )
         {
             nCubes       = Abc_SopGetCubeNum( pSopCover );
             nFanins      = Abc_SopGetVarNum( pSopCover );
@@ -109,7 +109,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     iCube = 0;
     iPair = 0;
     for ( i = 0; i < pData->nNodesOld; i++ )
-        if ( pSopCover = pData->vSops->pArray[i] )
+        if ( (pSopCover = pData->vSops->pArray[i]) )
         {
             // get the number of cubes
             nCubes = Abc_SopGetCubeNum( pSopCover );
@@ -136,7 +136,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     pOrder = ALLOC( int, nBitsMax );
     // create the rows
     for ( i = 0; i < pData->nNodesOld; i++ )
-    if ( pSopCover = pData->vSops->pArray[i] )
+    if ( (pSopCover = pData->vSops->pArray[i]) )
     {
         // get the new var in the matrix
         pVar = p->ppVars[2*i+1];
@@ -272,7 +272,7 @@ void Fxu_CreateCovers( Fxu_Matrix * p, Fxu_Data_t * pData )
 
     // go through the internal nodes
     for ( n = 0; n < pData->nNodesOld; n++ )
-    if ( pSopCover = pData->vSops->pArray[n] )
+    if ( (pSopCover = pData->vSops->pArray[n]) )
     {
         // get the number of this node
         iNode = n;

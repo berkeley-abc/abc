@@ -41,7 +41,7 @@
 DdNode * Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph )
 {
     DdNode * bFunc, * bFunc0, * bFunc1;
-    Dec_Node_t * pNode;
+    Dec_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     int i;
 
     // sanity checks
@@ -91,7 +91,8 @@ DdNode * Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph )
 unsigned Dec_GraphDeriveTruth( Dec_Graph_t * pGraph )
 {
     unsigned uTruths[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
-    unsigned uTruth, uTruth0, uTruth1;
+    unsigned uTruth = 0; // Suppress "might be used uninitialized"
+    unsigned uTruth0, uTruth1;
     Dec_Node_t * pNode;
     int i;
 
@@ -109,17 +110,17 @@ unsigned Dec_GraphDeriveTruth( Dec_Graph_t * pGraph )
 
     // assign the elementary variables
     Dec_GraphForEachLeaf( pGraph, pNode, i )
-        pNode->pFunc = (void *)uTruths[i];
+        pNode->pFunc = (void *)(PORT_PTRUINT_T)uTruths[i];
 
     // compute the function for each internal node
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        uTruth0 = (unsigned)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc;
-        uTruth1 = (unsigned)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc;
+        uTruth0 = (unsigned)(PORT_PTRUINT_T)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc;
+        uTruth1 = (unsigned)(PORT_PTRUINT_T)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc;
         uTruth0 = pNode->eEdge0.fCompl? ~uTruth0 : uTruth0;
         uTruth1 = pNode->eEdge1.fCompl? ~uTruth1 : uTruth1;
         uTruth = uTruth0 & uTruth1;
-        pNode->pFunc = (void *)uTruth;
+        pNode->pFunc = (void *)(PORT_PTRUINT_T)uTruth;
     }
 
     // complement the result if necessary

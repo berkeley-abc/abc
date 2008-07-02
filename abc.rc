@@ -1,7 +1,7 @@
 # global parameters
-set check         # checks intermediate networks
+#set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
-set checkread     # checks new networks after reading from file
+#set checkread     # checks new networks after reading from file
 set backup        # saves backup networks retrived by "undo" and "recall"
 set savesteps 1   # sets the maximum number of backup networks to save 
 set progressbar   # display the progress bar
@@ -51,6 +51,7 @@ alias psy print_symm
 alias pun print_unate
 alias q quit
 alias r read
+alias ra read_aiger
 alias r3 retime -M 3
 alias r3f retime -M 3 -f
 alias r3b retime -M 3 -b

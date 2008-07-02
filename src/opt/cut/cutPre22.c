@@ -74,30 +74,30 @@ struct Cut_CMan_t_
 };
 
 // NP-classes of functions of 3 variables (22)
-static char * s_NP3[22] = {
-    " 0\n",                          // 00    const 0            // 0 vars 
-    " 1\n",                          // 01    const 1            // 0 vars  
-    "1 1\n",                         // 02    a                  // 1 vars  
-    "11 1\n",                        // 03    ab                 // 2 vars  
-    "11 0\n",                        // 04    (ab)'              // 2 vars  
-    "10 1\n01 1\n",                  // 05    a<+>b              // 2 vars  
-    "111 1\n",                       // 06 0s abc                // 3 vars  
-    "111 0\n",                       // 07    (abc)'             // 
-    "11- 1\n1-1 1\n",                // 08 1p a(b+c)             // 
-    "11- 0\n1-1 0\n",                // 09    (a(b+c))'          // 
-    "111 1\n100 1\n010 1\n001 1\n",  // 10 2s a<+>b<+>c          // 
-    "10- 0\n1-0 0\n011 0\n",         // 11 3p a<+>bc             // 
-    "101 1\n110 1\n",                // 12 4p a(b<+>c)           // 
-    "101 0\n110 0\n",                // 13    (a(b<+>c))'        // 
-    "11- 1\n1-1 1\n-11 1\n",         // 14 5s ab+bc+ac           // 
-    "111 1\n000 1\n",                // 15 6s abc+a'b'c'         // 
-    "111 0\n000 0\n",                // 16    (abc+a'b'c')'      // 
-    "11- 1\n-11 1\n0-1 1\n",         // 17 7  ab+bc+a'c          // 
-    "011 1\n101 1\n110 1\n",         // 18 8s a'bc+ab'c+abc'     // 
-    "011 0\n101 0\n110 0\n",         // 19    (a'bc+ab'c+abc')'  // 
-    "100 1\n-11 1\n",                // 20 9p ab'c'+bc           // 
-    "100 0\n-11 0\n"                 // 21    (ab'c'+bc)'        // 
-};
+//static char * s_NP3[22] = {
+//    " 0\n",                          // 00    const 0            // 0 vars
+//    " 1\n",                          // 01    const 1            // 0 vars
+//    "1 1\n",                         // 02    a                  // 1 vars
+//    "11 1\n",                        // 03    ab                 // 2 vars
+//    "11 0\n",                        // 04    (ab)'              // 2 vars
+//    "10 1\n01 1\n",                  // 05    a<+>b              // 2 vars
+//    "111 1\n",                       // 06 0s abc                // 3 vars
+//    "111 0\n",                       // 07    (abc)'             //
+//    "11- 1\n1-1 1\n",                // 08 1p a(b+c)             //
+//    "11- 0\n1-1 0\n",                // 09    (a(b+c))'          //
+//    "111 1\n100 1\n010 1\n001 1\n",  // 10 2s a<+>b<+>c          //
+//    "10- 0\n1-0 0\n011 0\n",         // 11 3p a<+>bc             //
+//    "101 1\n110 1\n",                // 12 4p a(b<+>c)           //
+//    "101 0\n110 0\n",                // 13    (a(b<+>c))'        //
+//    "11- 1\n1-1 1\n-11 1\n",         // 14 5s ab+bc+ac           //
+//    "111 1\n000 1\n",                // 15 6s abc+a'b'c'         //
+//    "111 0\n000 0\n",                // 16    (abc+a'b'c')'      //
+//    "11- 1\n-11 1\n0-1 1\n",         // 17 7  ab+bc+a'c          //
+//    "011 1\n101 1\n110 1\n",         // 18 8s a'bc+ab'c+abc'     //
+//    "011 0\n101 0\n110 0\n",         // 19    (a'bc+ab'c+abc')'  //
+//    "100 1\n-11 1\n",                // 20 9p ab'c'+bc           //
+//    "100 0\n-11 0\n"                 // 21    (ab'c'+bc)'        //
+//};
 
 // NP-classes of functions of 3 variables (22)
 static char * s_NP3Names[22] = {
@@ -126,16 +126,16 @@ static char * s_NP3Names[22] = {
 };
 
 // the number of variables in each function
-static int s_NP3VarNums[22] = { 0, 0, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 };
+//static int s_NP3VarNums[22] = { 0, 0, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 };
 
 // NPN classes of functions of exactly 3 inputs (10)
 static int s_NPNe3[10] = { 6, 8, 10, 11, 12, 14, 15, 17, 18, 20 };
 
 // NPN classes of functions of exactly 3 inputs that are symmetric (5)
-static int s_NPNe3s[10] = { 6, 10, 14, 15, 18 };
+//static int s_NPNe3s[10] = { 6, 10, 14, 15, 18 };
 
 // NPN classes of functions of exactly 3 inputs (4)
-static int s_NPNe3p[10] = { 8, 11, 12, 20 };
+//static int s_NPNe3p[10] = { 8, 11, 12, 20 };
 
 static Cut_CMan_t * Cut_CManStart();
 static void Cut_CManStop( Cut_CMan_t * p );
@@ -231,7 +231,7 @@ void Cut_CellPrecompute()
 {
     Cut_CMan_t * p;
     Cut_Cell_t * pCell, * pTemp;
-    int i1, i2, i3, i, j, k, c, clk = clock(), clk2 = clock();
+    int i1, i2, i3, i, j, k, c, clk = clock(); //, clk2 = clock();
 
     p = Cut_CManStart();
 
@@ -397,7 +397,7 @@ void Cut_CellPrecompute()
         }
     }
 
-    printf( "BASIC: Total = %d. Good = %d. Entry = %d. ", p->nTotal, p->nGood, sizeof(Cut_Cell_t) );
+    printf( "BASIC: Total = %d. Good = %d. Entry = %d. ", (int)p->nTotal, (int)p->nGood, (int)sizeof(Cut_Cell_t) );
     PRT( "Time", clock() - clk );
     printf( "Cells:  " );
     for ( i = 0; i <= 9; i++ )
@@ -481,7 +481,7 @@ void Cut_CellPrecompute()
 //p->timeTable += clock() - clk2;
         }
 
-        printf( "VAR %d: Total = %d. Good = %d. Entry = %d. ", k, p->nTotal, p->nGood, sizeof(Cut_Cell_t) );
+        printf( "VAR %d: Total = %d. Good = %d. Entry = %d. ", k, p->nTotal, p->nGood, (int)sizeof(Cut_Cell_t) );
         PRT( "Time", clock() - clk );
         printf( "Cells:  " );
         for ( i = 0; i <= 9; i++ )
@@ -517,7 +517,7 @@ int Cut_CellTableLookup( Cut_CMan_t * p, Cut_Cell_t * pCell )
     Cut_Cell_t ** pSlot, * pTemp;
     unsigned Hash;
     Hash = Extra_TruthHash( pCell->uTruth, Extra_TruthWordNum( pCell->nVars ) );
-    if ( !st_find_or_add( p->tTable, (char *)Hash, (char ***)&pSlot ) )
+    if ( !st_find_or_add( p->tTable, (char *)(PORT_PTRUINT_T)Hash, (char ***)&pSlot ) )
         *pSlot = NULL;
     for ( pTemp = *pSlot; pTemp; pTemp = pTemp->pNext )
     {
@@ -863,15 +863,15 @@ void Cut_CellDumpToFile()
 
             for ( i = 0; i < 4; i++ )
                 if ( pTemp->nUsed == 0 )
-                    BoxUsed[ pTemp->Box[i] ][0]++;
+                    BoxUsed[ (int)pTemp->Box[i] ][0]++;
                 else if ( pTemp->nUsed < 10 )
-                    BoxUsed[ pTemp->Box[i] ][1]++;
+                    BoxUsed[ (int)pTemp->Box[i] ][1]++;
                 else if ( pTemp->nUsed < 100 )
-                    BoxUsed[ pTemp->Box[i] ][2]++;
+                    BoxUsed[ (int)pTemp->Box[i] ][2]++;
                 else if ( pTemp->nUsed < 1000 )
-                    BoxUsed[ pTemp->Box[i] ][3]++;
+                    BoxUsed[ (int)pTemp->Box[i] ][3]++;
                 else 
-                    BoxUsed[ pTemp->Box[i] ][4]++;
+                    BoxUsed[ (int)pTemp->Box[i] ][4]++;
         }
     }
 
@@ -962,7 +962,7 @@ int Cut_CellTruthLookup( unsigned * pTruth, int nVars )
 
     // check if the cell exists
     Hash = Extra_TruthHash( pCell->uTruth, Extra_TruthWordNum(pCell->nVars) );
-    if ( st_lookup( p->tTable, (char *)Hash, (char **)&pTemp ) )
+    if ( st_lookup( p->tTable, (char *)(PORT_PTRUINT_T)Hash, (char **)&pTemp ) )
     {
         for ( ; pTemp; pTemp = pTemp->pNext )
         {

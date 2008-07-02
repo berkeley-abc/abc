@@ -384,8 +384,8 @@ int Abc_NodeBuildCutLevelOne_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLeaves, int
 ***********************************************************************/
 int Abc_NodeBuildCutLevelTwo_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLeaves, int nFaninLimit )
 {
-    Abc_Obj_t * pNode, * pLeafToAdd, * pNodeToMark1, * pNodeToMark2;
-    int CostCur, i;
+    Abc_Obj_t * pNode = NULL, * pLeafToAdd, * pNodeToMark1, * pNodeToMark2;
+    int CostCur = 0, i;
     // find the best fanin
     Vec_PtrForEachEntry( vLeaves, pNode, i )
     {
@@ -494,7 +494,7 @@ void Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited )
 DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vVisited )
 {
     Abc_Obj_t * pNode;
-    DdNode * bFunc0, * bFunc1, * bFunc;
+    DdNode * bFunc0, * bFunc1, * bFunc = NULL;
     int i;
     // get the nodes in the cut without fanins in the DFS order
     Abc_NodeConeCollect( &pRoot, 1, vLeaves, vVisited, 0 );
@@ -510,6 +510,7 @@ DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pRoot, V
         bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );    Cudd_Ref( bFunc );
         pNode->pCopy = (Abc_Obj_t *)bFunc;
     }
+    assert(bFunc);
     Cudd_Ref( bFunc );
     // dereference the intermediate ones
     Vec_PtrForEachEntry( vVisited, pNode, i )

@@ -120,7 +120,8 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
     char * pTemp;
     int nParans, fFound, Flag;
     int Oper, Oper1, Oper2;
-    int i, v, fLower;
+    int i, fLower;
+    int v = -1; // Suppress "might be used uninitialized"
 
     // make sure that the number of vars and ranks is correct
     if ( nVars * (nRanks + 1) > dd->size )

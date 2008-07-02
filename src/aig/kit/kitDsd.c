@@ -1018,7 +1018,7 @@ unsigned Kit_DsdNonDsdSupports( Kit_DsdNtk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdExpandCollectAnd_rec( Kit_DsdNtk_t * p, int iLit, int * piLitsNew, int * nLitsNew )
+void Kit_DsdExpandCollectAnd_rec( Kit_DsdNtk_t * p, unsigned iLit, unsigned * piLitsNew, int * nLitsNew )
 {
     Kit_DsdObj_t * pObj;
     unsigned i, iLitFanin;
@@ -1045,7 +1045,7 @@ void Kit_DsdExpandCollectAnd_rec( Kit_DsdNtk_t * p, int iLit, int * piLitsNew, i
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdExpandCollectXor_rec( Kit_DsdNtk_t * p, int iLit, int * piLitsNew, int * nLitsNew )
+void Kit_DsdExpandCollectXor_rec( Kit_DsdNtk_t * p, unsigned iLit, unsigned * piLitsNew, int * nLitsNew )
 {
     Kit_DsdObj_t * pObj;
     unsigned i, iLitFanin;
@@ -1179,7 +1179,7 @@ Kit_DsdNtk_t * Kit_DsdExpand( Kit_DsdNtk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdCompSort( int pPrios[], unsigned uSupps[], unsigned char * piLits, int nVars, int piLitsRes[] )
+void Kit_DsdCompSort( int pPrios[], unsigned uSupps[], unsigned char * piLits, int nVars, unsigned piLitsRes[] )
 {
     int nSuppSizes[16], Priority[16], pOrder[16];
     int i, k, iVarBest, SuppMax, PrioMax;
@@ -1236,7 +1236,8 @@ void Kit_DsdCompSort( int pPrios[], unsigned uSupps[], unsigned char * piLits, i
 ***********************************************************************/
 int Kit_DsdShrink_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit, int pPrios[] )
 {
-    Kit_DsdObj_t * pObj, * pObjNew;
+    Kit_DsdObj_t * pObj;
+    Kit_DsdObj_t * pObjNew = NULL; // Suppress "might be used uninitialized"
     unsigned * pTruth, * pTruthNew;
     unsigned i, piLitsNew[16], uSupps[16];
     int iLitFanin, iLitNew;
@@ -2265,7 +2266,14 @@ int Kit_DsdCofactoringGetVars( Kit_DsdNtk_t ** ppNtk, int nSize, int * pVars )
 ***********************************************************************/
 int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit, int fVerbose )
 {
-    Kit_DsdNtk_t * ppNtks[5][16] = {0}, * pTemp;
+    Kit_DsdNtk_t * ppNtks[5][16] = {
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+      {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    };
+    Kit_DsdNtk_t * pTemp;
     unsigned * ppCofs[5][16];
     int pTryVars[16], nTryVars;
     int nPrimeSizeMin, nPrimeSizeMax, nPrimeSizeCur;

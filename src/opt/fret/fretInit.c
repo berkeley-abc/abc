@@ -1205,9 +1205,9 @@ static void Abc_FlowRetime_ConnectBiasNode(Abc_Obj_t *pBiasNode, Abc_Obj_t *pObj
 ***********************************************************************/
 void Abc_FlowRetime_AddInitBias( ) {
   Abc_Ntk_t *pNtk = pManMR->pNtk;
-  Abc_Obj_t *pBiasNode, *pObj, *pNext, *pNext2;
+  Abc_Obj_t *pBiasNode, *pObj;
   InitConstraint_t *pConstraint;
-  int i, j, k, l, id;
+  int i, j, id;
   const int nConstraints = Vec_PtrSize( pManMR->vInitConstraints );
 
   pManMR->pDataArray = REALLOC( Flow_Data_t, pManMR->pDataArray, pManMR->nNodes + (nConstraints*(pManMR->iteration+1)) );

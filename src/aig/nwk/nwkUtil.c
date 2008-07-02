@@ -261,7 +261,7 @@ void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, 
     Aig_MmFlex_t * pMem;
     char * pSop = NULL;
     unsigned * pTruth;
-    int i, k, nDigits, Counter = 0;
+    int i, k, nDigits;
     if ( Nwk_ManPoNum(pNtk) == 0 )
     {
         printf( "Nwk_ManDumpBlif(): Network does not have POs.\n" );
@@ -278,7 +278,7 @@ void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, 
     fprintf( pFile, ".inputs" );
     Nwk_ManForEachCi( pNtk, pObj, i )
         if ( vPiNames )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, i) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, i) );
         else
             fprintf( pFile, " n%0*d", nDigits, pObj->Id );
     fprintf( pFile, "\n" );
@@ -286,7 +286,7 @@ void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, 
     fprintf( pFile, ".outputs" );
     Nwk_ManForEachCo( pNtk, pObj, i )
         if ( vPoNames )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPoNames, i) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPoNames, i) );
         else
             fprintf( pFile, " n%0*d", nDigits, pObj->Id );
     fprintf( pFile, "\n" );
@@ -310,7 +310,7 @@ void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, 
         {
             Nwk_ObjForEachFanin( pObj, pFanin, k )
                 if ( vPiNames && Nwk_ObjIsPi(pFanin) )
-                    fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Nwk_ObjPioNum(pFanin)) );
+                    fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Nwk_ObjPioNum(pFanin)) );
                 else
                     fprintf( pFile, " n%0*d", nDigits, pFanin->Id );
         }
@@ -327,11 +327,11 @@ void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, 
     {
         fprintf( pFile, ".names" );
         if ( vPiNames && Nwk_ObjIsPi(Nwk_ObjFanin0(pObj)) )
-            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Nwk_ObjPioNum(Nwk_ObjFanin0(pObj))) );
+            fprintf( pFile, " %s", (char*)Vec_PtrEntry(vPiNames, Nwk_ObjPioNum(Nwk_ObjFanin0(pObj))) );
         else
             fprintf( pFile, " n%0*d", nDigits, Nwk_ObjFanin0(pObj)->Id );
         if ( vPoNames )
-            fprintf( pFile, " %s\n", Vec_PtrEntry(vPoNames, Nwk_ObjPioNum(pObj)) );
+            fprintf( pFile, " %s\n", (char*)Vec_PtrEntry(vPoNames, Nwk_ObjPioNum(pObj)) );
         else
             fprintf( pFile, " n%0*d\n", nDigits, pObj->Id );
         fprintf( pFile, "%d 1\n", !pObj->fInvert );

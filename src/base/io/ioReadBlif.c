@@ -206,7 +206,7 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
 ***********************************************************************/
 Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
 {
-    ProgressBar * pProgress;
+    ProgressBar * pProgress = NULL;
     Abc_Ntk_t * pNtk;
     char * pDirective;
     int iLine, fTokensReady, fStatus;
@@ -235,7 +235,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
     else if ( strcmp( p->vTokens->pArray[0], ".exdc" ) != 0 ) 
     {
         printf( "%s: File parsing skipped after line %d (\"%s\").\n", p->pFileName, 
-            Extra_FileReaderGetLineNumber(p->pReader, 0), p->vTokens->pArray[0] );
+            Extra_FileReaderGetLineNumber(p->pReader, 0), (char*)p->vTokens->pArray[0] );
         Abc_NtkDelete(pNtk);
         p->pNtkCur = NULL;
         return NULL;
@@ -243,12 +243,12 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
 
     // read the inputs/outputs
     if ( p->pNtkMaster == NULL )
-    pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );
+        pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );
     fTokensReady = fStatus = 0;
     for ( iLine = 0; fTokensReady || (p->vTokens = Io_ReadBlifGetTokens(p)); iLine++ )
     {
         if ( p->pNtkMaster == NULL && iLine % 1000 == 0 )
-        Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p->pReader), NULL );
+            Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p->pReader), NULL );
 
         // consider different line types
         fTokensReady = 0;
@@ -298,7 +298,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
         }
     }
     if ( p->pNtkMaster == NULL )
-    Extra_ProgressBarStop( pProgress );
+        Extra_ProgressBarStop( pProgress );
     return pNtk;
 }
 
@@ -393,7 +393,7 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         if ( ResetValue != 0 && ResetValue != 1 && ResetValue != 2 )
         {
             p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
-            sprintf( p->sError, "The .latch line has an unknown reset value (%s).", vTokens->pArray[3] );
+            sprintf( p->sError, "The .latch line has an unknown reset value (%s).", (char*)vTokens->pArray[3] );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
         }
@@ -445,7 +445,7 @@ int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens )
     nFanins = vTokens->nSize - 2;
     if ( nFanins == 0 )
     {
-        while ( vTokens = Io_ReadBlifGetTokens(p) )
+        while ( (vTokens = Io_ReadBlifGetTokens(p)) )
         {
             pToken = vTokens->pArray[0];
             if ( pToken[0] == '.' )
@@ -467,7 +467,7 @@ int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens )
     }
     else
     {
-        while ( vTokens = Io_ReadBlifGetTokens(p) )
+        while ( (vTokens = Io_ReadBlifGetTokens(p)) )
         {
             pToken = vTokens->pArray[0];
             if ( pToken[0] == '.' )
@@ -567,7 +567,7 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     if ( pGate == NULL )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
-        sprintf( p->sError, "Cannot find gate \"%s\" in the library.", vTokens->pArray[1] );
+        sprintf( p->sError, "Cannot find gate \"%s\" in the library.", (char*)vTokens->pArray[1] );
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
@@ -642,7 +642,7 @@ int Io_ReadBlifNetworkSubcircuit( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     // set the pointer to the node names
     Abc_ObjSetData( pBox, vNames );
     // remember the line of the file
-    pBox->pCopy = (void *)Extra_FileReaderGetLineNumber(p->pReader, 0);
+    pBox->pCopy = (void *)(PORT_PTRINT_T)Extra_FileReaderGetLineNumber(p->pReader, 0);
     return 0;
 }
 
@@ -697,7 +697,7 @@ int Io_ReadBlifNetworkInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     if ( pNet == NULL )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
-        sprintf( p->sError, "Cannot find object corresponding to %s on .input_arrival line.", vTokens->pArray[1] );
+        sprintf( p->sError, "Cannot find object corresponding to %s on .input_arrival line.", (char*)vTokens->pArray[1] );
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
@@ -706,7 +706,7 @@ int Io_ReadBlifNetworkInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     if ( *pFoo1 != '\0' || *pFoo2 != '\0' )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
-        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .input_arrival line.", vTokens->pArray[2], vTokens->pArray[3] );
+        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .input_arrival line.", (char*)vTokens->pArray[2], (char*)vTokens->pArray[3] );
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
@@ -745,7 +745,7 @@ int Io_ReadBlifNetworkDefaultInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vToken
     if ( *pFoo1 != '\0' || *pFoo2 != '\0' )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
-        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .default_input_arrival line.", vTokens->pArray[1], vTokens->pArray[2] );
+        sprintf( p->sError, "Bad value (%s %s) for rise or fall time on .default_input_arrival line.", (char*)vTokens->pArray[1], (char*)vTokens->pArray[2] );
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
@@ -914,15 +914,15 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
     Vec_Ptr_t * pNames;
     Abc_Ntk_t * pNtkModel;
     Abc_Obj_t * pObj, * pNet;
-    char * pName, * pActual;
-    int i, Length, Start;
+    char * pName = NULL, * pActual;
+    int i, Length, Start = -1;
 
     // get the model for this box
     pNames = pBox->pData;
     if ( !stmm_lookup( tName2Model, Vec_PtrEntry(pNames, 0), (char **)&pNtkModel ) )
     {
-        p->LineCur = (int)pBox->pCopy;
-        sprintf( p->sError, "Cannot find the model for subcircuit %s.", Vec_PtrEntry(pNames, 0) );
+        p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+        sprintf( p->sError, "Cannot find the model for subcircuit %s.", (char*)Vec_PtrEntry(pNames, 0) );
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
     }
@@ -939,7 +939,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
             pActual = Io_ReadBlifCleanName(pName);
             if ( pActual == NULL )
             {
-                p->LineCur = (int)pBox->pCopy;
+                p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
                 sprintf( p->sError, "Cannot parse formal/actual name pair \"%s\".", pName );
                 Io_ReadBlifPrintErrorMessage( p );
                 return 1;
@@ -950,8 +950,8 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
             pObj = Abc_NtkFindNet( pNtkModel, pName );
             if ( pObj == NULL )
             {
-                p->LineCur = (int)pBox->pCopy;
-                sprintf( p->sError, "Cannot find formal input \"%s\" as an PI of model \"%s\".", pName, Vec_PtrEntry(pNames, 0) );
+                p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+                sprintf( p->sError, "Cannot find formal input \"%s\" as an PI of model \"%s\".", pName, (char*)Vec_PtrEntry(pNames, 0) );
                 Io_ReadBlifPrintErrorMessage( p );
                 return 1;
             }
@@ -967,7 +967,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
             // remember the actual name in the net
             if ( pObj->pCopy != NULL )
             {
-                p->LineCur = (int)pBox->pCopy;
+                p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
                 sprintf( p->sError, "Formal input \"%s\" is used more than once.", pName );
                 Io_ReadBlifPrintErrorMessage( p );
                 return 1;
@@ -987,8 +987,8 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pActual = (void *)pObj->pCopy;
         if ( pActual == NULL )
         {
-            p->LineCur = (int)pBox->pCopy;
-            sprintf( p->sError, "Formal input \"%s\" of model %s is not driven.", pName, Vec_PtrEntry(pNames, 0) );
+            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            sprintf( p->sError, "Formal input \"%s\" of model %s is not driven.", pName, (char*)Vec_PtrEntry(pNames, 0) );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
         }
@@ -1006,7 +1006,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pActual = Io_ReadBlifCleanName(pName);
         if ( pActual == NULL )
         {
-            p->LineCur = (int)pBox->pCopy;
+            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
             sprintf( p->sError, "Cannot parse formal/actual name pair \"%s\".", pName );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
@@ -1017,8 +1017,8 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pObj = Abc_NtkFindNet( pNtkModel, pName );
         if ( pObj == NULL )
         {
-            p->LineCur = (int)pBox->pCopy;
-            sprintf( p->sError, "Cannot find formal output \"%s\" as an PO of model \"%s\".", pName, Vec_PtrEntry(pNames, 0) );
+            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            sprintf( p->sError, "Cannot find formal output \"%s\" as an PO of model \"%s\".", pName, (char*)Vec_PtrEntry(pNames, 0) );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
         }
@@ -1026,7 +1026,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pObj = Abc_ObjFanout0(pObj);
         if ( pObj->pCopy != NULL )
         {
-            p->LineCur = (int)pBox->pCopy;
+            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
             sprintf( p->sError, "Formal output \"%s\" is used more than once.", pName );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
@@ -1039,8 +1039,8 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pActual = (void *)pObj->pCopy;
         if ( pActual == NULL )
         {
-            p->LineCur = (int)pBox->pCopy;
-            sprintf( p->sError, "Formal output \"%s\" of model %s is not driven.", pName, Vec_PtrEntry(pNames, 0) );
+            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            sprintf( p->sError, "Formal output \"%s\" of model %s is not driven.", pName, (char*)Vec_PtrEntry(pNames, 0) );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
         }

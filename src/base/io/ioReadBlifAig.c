@@ -713,7 +713,7 @@ static int Io_BlifParseLatch( Io_BlifMan_t * p, char * pLine )
         Init = 2;
     if ( Init < 0 || Init > 2 )
     {
-        sprintf( p->sError, "Line %d: Initial state of the latch is incorrect (%s).", Io_BlifGetLine(p, pToken), Vec_PtrEntry(p->vTokens,3) );
+        sprintf( p->sError, "Line %d: Initial state of the latch is incorrect (%s).", Io_BlifGetLine(p, pToken), (char*)Vec_PtrEntry(p->vTokens,3) );
         return 0;
     }
     if ( Init == 0 )
@@ -731,12 +731,12 @@ static int Io_BlifParseLatch( Io_BlifMan_t * p, char * pLine )
     pObj = Io_BlifHashFindOrAdd( p, Vec_PtrEntry(p->vTokens,2) );
     if ( pObj->fPi )
     {
-        sprintf( p->sError, "Line %d: Primary input (%s) is also defined latch output.", Io_BlifGetLine(p, pToken), Vec_PtrEntry(p->vTokens,2) );
+        sprintf( p->sError, "Line %d: Primary input (%s) is also defined latch output.", Io_BlifGetLine(p, pToken), (char*)Vec_PtrEntry(p->vTokens,2) );
         return 0;
     }
     if ( pObj->fLo )
     {
-        sprintf( p->sError, "Line %d: Latch output (%s) is defined as the output of another latch.", Io_BlifGetLine(p, pToken), Vec_PtrEntry(p->vTokens,2) );
+        sprintf( p->sError, "Line %d: Latch output (%s) is defined as the output of another latch.", Io_BlifGetLine(p, pToken), (char*)Vec_PtrEntry(p->vTokens,2) );
         return 0;
     }
     pObj->fLo = 1;
@@ -970,7 +970,7 @@ static int Io_BlifParseConstruct( Io_BlifMan_t * p )
         
         // add the latch box
         pLatch = Abc_NtkCreateLatch( pAig );
-        pLatch->pData = (void *)pObjIo->Init;
+        pLatch->pData = (void *)(PORT_PTRUINT_T)pObjIo->Init;
         Abc_ObjAssignName( pLatch, pObjIo->pName, "L" );
         Abc_ObjAddFanin( pLatch, pObj  );
 

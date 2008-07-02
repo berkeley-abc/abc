@@ -41,6 +41,24 @@ typedef unsigned int PORT_PTRUINT_T;
    #error unknown platform
 #endif /* defined(PLATFORM) */
 
+/**
+ * Signed integral type that can contain a pointer.
+ *
+ * This is a signed integral type that is the same size as a pointer.
+ *
+ * NOTE: This type may be different sizes on different platforms.
+ */
+#if       defined(__ccdoc__)
+typedef platform_dependent_type PORT_PTRINT_T;
+#elif     defined(LIN64)
+typedef long PORT_PTRINT_T;
+#elif     defined(NT64)
+typedef long long PORT_PTRINT_T;
+#elif     defined(NT) || defined(LIN) || defined(WIN32)
+typedef int PORT_PTRINT_T;
+#else
+   #error unknown platform
+#endif /* defined(PLATFORM) */
 
 /**
  * 64-bit signed integral type.

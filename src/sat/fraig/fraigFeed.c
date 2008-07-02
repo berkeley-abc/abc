@@ -634,7 +634,6 @@ void Fraig_FeedBackCheckTable( Fraig_Man_t * p )
     Fraig_HashTable_t * pT = p->pTableF;
     Fraig_Node_t * pEntF, * pEntD;
     int i, k, m, nPairs;
-    int clk = clock();
 
     nPairs = 0;
     for ( i = 0; i < pT->nBins; i++ )

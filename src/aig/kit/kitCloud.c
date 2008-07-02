@@ -304,14 +304,16 @@ unsigned * Kit_TruthCompose( CloudManager * dd, unsigned * pTruth, int nVars,
 void Kit_TruthCofSupports( Vec_Int_t * vBddDir, Vec_Int_t * vBddInv, int nVars, Vec_Int_t * vMemory, unsigned * puSupps )
 {
     Kit_Mux_t Mux;
-    unsigned * puSuppAll, * pThis, * pFan0, * pFan1;
+    unsigned * puSuppAll;
+    unsigned * pThis = NULL; // Suppress "might be used uninitialized"
+    unsigned * pFan0, * pFan1;
     int i, v, Var, Entry, nSupps;
     nSupps = 2 * nVars;
 
     // extend storage
     if ( Vec_IntSize( vMemory ) < nSupps * Vec_IntSize(vBddDir) )
         Vec_IntGrow( vMemory, nSupps * Vec_IntSize(vBddDir) );
-    puSuppAll = Vec_IntArray( vMemory );
+    puSuppAll = (unsigned *)Vec_IntArray( vMemory );
     // clear storage for the const node
     memset( puSuppAll, 0, sizeof(unsigned) * nSupps );
     // compute supports from nodes
@@ -336,7 +338,7 @@ void Kit_TruthCofSupports( Vec_Int_t * vBddDir, Vec_Int_t * vBddInv, int nVars, 
     // extend storage
     if ( Vec_IntSize( vMemory ) < nSupps * Vec_IntSize(vBddInv) )
         Vec_IntGrow( vMemory, nSupps * Vec_IntSize(vBddInv) );
-    puSuppAll = Vec_IntArray( vMemory );
+    puSuppAll = (unsigned *)Vec_IntArray( vMemory );
     // clear storage for the const node
     memset( puSuppAll, 0, sizeof(unsigned) * nSupps );
     // compute supports from nodes

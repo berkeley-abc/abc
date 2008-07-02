@@ -523,7 +523,7 @@ static inline char Vec_StrPop( Vec_Str_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_StrSortCompare1( char * pp1, char * pp2 )
+static int Vec_StrSortCompare1( char * pp1, char * pp2 )
 {
     // for some reason commenting out lines (as shown) led to crashing of the release version
     if ( *pp1 < *pp2 )
@@ -544,7 +544,7 @@ static inline int Vec_StrSortCompare1( char * pp1, char * pp2 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_StrSortCompare2( char * pp1, char * pp2 )
+static int Vec_StrSortCompare2( char * pp1, char * pp2 )
 {
     // for some reason commenting out lines (as shown) led to crashing of the release version
     if ( *pp1 > *pp2 )

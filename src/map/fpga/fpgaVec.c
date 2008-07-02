@@ -370,8 +370,8 @@ void Fpga_NodeVecPushOrder( Fpga_NodeVec_t * vNodes, Fpga_Node_t * pNode, int fI
     {
         pNode1 = vNodes->pArray[i  ];
         pNode2 = vNodes->pArray[i-1];
-        if ( fIncreasing && pNode1->pCutBest->tArrival >= pNode2->pCutBest->tArrival ||
-            !fIncreasing && pNode1->pCutBest->tArrival <= pNode2->pCutBest->tArrival )
+        if (( fIncreasing && pNode1->pCutBest->tArrival >= pNode2->pCutBest->tArrival) ||
+            (!fIncreasing && pNode1->pCutBest->tArrival <= pNode2->pCutBest->tArrival) )
             break;
         vNodes->pArray[i  ] = pNode2;
         vNodes->pArray[i-1] = pNode1;

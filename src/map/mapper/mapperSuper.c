@@ -80,7 +80,8 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     char pBuffer[2000];
     FILE * pFileGen;
     Map_Super_t * pGate;
-    char * pTemp, * pLibName;
+    char * pTemp = NULL; // Suppress "might be used uninitialized"
+    char * pLibName;
     int nCounter, nGatesTotal;
     unsigned uCanon[2];
 
@@ -400,7 +401,7 @@ void Map_LibraryPrintSupergate( Map_Super_t * pGate )
     printf( "%5d : ",  pGate->nUsed );
     printf( "%5d   ",  pGate->Num );
     printf( "A = %5.2f   ",  pGate->Area );
-    printf( "D = %5.2f   ",  pGate->tDelayMax );
+    printf( "D = %5.2f/%5.2f/%5.2f   ", pGate->tDelayMax.Rise, pGate->tDelayMax.Fall, pGate->tDelayMax.Worst );
     printf( "%s",    pGate->pFormula );
     printf( "\n" );
 }

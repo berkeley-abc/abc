@@ -399,8 +399,8 @@ void Msat_IntVecPushUniqueOrder( Msat_IntVec_t * p, int Entry, int fIncrease )
     {
         Entry1 = p->pArray[i  ];
         Entry2 = p->pArray[i-1];
-        if ( fIncrease && Entry1 >= Entry2 || 
-            !fIncrease && Entry1 <= Entry2 )
+        if (( fIncrease && Entry1 >= Entry2) ||
+            (!fIncrease && Entry1 <= Entry2) )
             break;
         p->pArray[i  ] = Entry2;
         p->pArray[i-1] = Entry1;

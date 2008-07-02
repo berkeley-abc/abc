@@ -12,6 +12,7 @@
     purpose: cube and cover input routines
 */
 
+#include <ctype.h>
 #include "espresso.h"
 
 static bool line_length_error;
@@ -658,7 +659,7 @@ pPLA new_PLA()
 }
 
 
-PLA_labels(PLA)
+void PLA_labels(PLA)
 pPLA PLA;
 {
     int i;

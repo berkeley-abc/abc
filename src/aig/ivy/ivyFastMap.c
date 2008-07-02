@@ -309,7 +309,7 @@ int Ivy_FastMapArea( Ivy_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Ivy_ObjIsNodeInt1( Ivy_Obj_t * pObj )
+static inline int Ivy_ObjIsNodeInt1( Ivy_Obj_t * pObj )
 {
     return Ivy_ObjIsNode(pObj) && Ivy_ObjRefs(pObj) == 1;
 }
@@ -325,7 +325,7 @@ static inline Ivy_ObjIsNodeInt1( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Ivy_ObjIsNodeInt2( Ivy_Obj_t * pObj )
+static inline int Ivy_ObjIsNodeInt2( Ivy_Obj_t * pObj )
 {
     return Ivy_ObjIsNode(pObj) && Ivy_ObjRefs(pObj) <= 2;
 }
@@ -612,30 +612,30 @@ void Ivy_FastMapNode( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit )
                 pFaninA = Ivy_ObjFanin0(pFanin0);
                 pFaninB = Ivy_ObjFanin1(pFanin0);
                 if ( Ivy_ObjIsNodeInt1(pFaninA) && Ivy_ObjIsNodeInt1(pFaninB) )
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin0);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin0);
                 else
                 {
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninA);
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninB);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninA);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninB);
                 }
             }
             else
-                pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin0);
+                pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin0);
             // process the second fanin
             if ( Ivy_ObjIsNodeInt1(pFanin1) )
             {
                 pFaninA = Ivy_ObjFanin0(pFanin1);
                 pFaninB = Ivy_ObjFanin1(pFanin1);
                 if ( Ivy_ObjIsNodeInt1(pFaninA) && Ivy_ObjIsNodeInt1(pFaninB) )
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin1);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin1);
                 else
                 {
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninA);
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninB);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninA);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninB);
                 }
             }
             else
-                pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin1);
+                pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin1);
             // sort the fanins
             Vec_IntSelectSort( pSupp->pArray, pSupp->nSize );
             pSupp->nSize = Vec_IntRemoveDup( pSupp->pArray, pSupp->nSize );
@@ -681,30 +681,30 @@ void Ivy_FastMapNode( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit )
                 pFaninA = Ivy_ObjFanin0(pFanin0);
                 pFaninB = Ivy_ObjFanin1(pFanin0);
                 if ( Ivy_ObjIsNodeInt1(pFaninA) && Ivy_ObjIsNodeInt1(pFaninB) )
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin0);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin0);
                 else
                 {
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninA);
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninB);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninA);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninB);
                 }
             }
             else
-                pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin0);
+                pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin0);
             // process the second fanin
             if ( Ivy_ObjIsNodeInt1(pFanin1) )
             {
                 pFaninA = Ivy_ObjFanin0(pFanin1);
                 pFaninB = Ivy_ObjFanin1(pFanin1);
                 if ( Ivy_ObjIsNodeInt1(pFaninA) && Ivy_ObjIsNodeInt1(pFaninB) )
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin1);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin1);
                 else
                 {
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninA);
-                    pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFaninB);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninA);
+                    pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFaninB);
                 }
             }
             else
-                pSupp->pArray[pSupp->nSize++] = Ivy_ObjId(pFanin1);
+                pSupp->pArray[(int)(pSupp->nSize++)] = Ivy_ObjId(pFanin1);
             // sort the fanins
             Vec_IntSelectSort( pSupp->pArray, pSupp->nSize );
             pSupp->nSize = Vec_IntRemoveDup( pSupp->pArray, pSupp->nSize );
@@ -1497,10 +1497,6 @@ void Ivy_FastMapNodeRecover( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit, Vec
     AreaBef = Ivy_FastMapNodeAreaRefed( pAig, pObj );
 //    if ( AreaBef == 1 )
 //        return;
-    if ( pObj->Id == 102 )
-    {
-        int x = 0;
-    }
     // the cut is non-trivial
     Ivy_FastMapNodePrepare( pAig, pObj, nLimit, vFront, vFrontOld );
     // iteratively modify the cut

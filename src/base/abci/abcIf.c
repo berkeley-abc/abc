@@ -453,8 +453,8 @@ Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
 ***********************************************************************/
 int Abc_ObjCompareFlow( Abc_Obj_t ** ppNode0, Abc_Obj_t ** ppNode1 )
 {
-    float Flow0 = Abc_Int2Float((int)(*ppNode0)->pCopy);
-    float Flow1 = Abc_Int2Float((int)(*ppNode1)->pCopy);
+    float Flow0 = Abc_Int2Float((int)(PORT_PTRINT_T)(*ppNode0)->pCopy);
+    float Flow1 = Abc_Int2Float((int)(PORT_PTRINT_T)(*ppNode1)->pCopy);
     if ( Flow0 > Flow1 )
         return -1;
     if ( Flow0 < Flow1 )
@@ -517,9 +517,9 @@ Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk )
     {
         pFanin0 = Abc_ObjFanin0(pNode);
         pFanin1 = Abc_ObjFanin1(pNode);
-        Flow0 = Abc_Int2Float((int)pFanin0->pCopy)/Abc_ObjFanoutNum(pFanin0);
-        Flow1 = Abc_Int2Float((int)pFanin1->pCopy)/Abc_ObjFanoutNum(pFanin1);
-        pNode->pCopy = (Abc_Obj_t *)Abc_Float2Int(Flow0 + Flow1+(float)1.0);
+        Flow0 = Abc_Int2Float((int)(PORT_PTRINT_T)pFanin0->pCopy)/Abc_ObjFanoutNum(pFanin0);
+        Flow1 = Abc_Int2Float((int)(PORT_PTRINT_T)pFanin1->pCopy)/Abc_ObjFanoutNum(pFanin1);
+        pNode->pCopy = (Abc_Obj_t *)(PORT_PTRINT_T)Abc_Float2Int(Flow0 + Flow1+(float)1.0);
     }
     // find the flow of the COs
     vCos = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
@@ -536,7 +536,7 @@ Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk )
     // verify sorting
     pFanin0 = Vec_PtrEntry(vCos, 0);
     pFanin1 = Vec_PtrEntryLast(vCos);
-    assert( Abc_Int2Float((int)pFanin0->pCopy) >= Abc_Int2Float((int)pFanin1->pCopy) );
+    assert( Abc_Int2Float((int)(PORT_PTRINT_T)pFanin0->pCopy) >= Abc_Int2Float((int)(PORT_PTRINT_T)pFanin1->pCopy) );
 
     // collect the nodes in the topological order from the new array
     Abc_NtkIncrementTravId( pNtk );

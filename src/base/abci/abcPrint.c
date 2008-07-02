@@ -80,11 +80,11 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
     ParsNew.nPis  = Abc_NtkPiNum( pNtk );
     ParsNew.nPos  = Abc_NtkPoNum( pNtk );
     // reset the parameters if the network has the same name
-    if ( ParsBest.pName == NULL || 
-         strcmp(ParsBest.pName, pNtk->pName) ||
-         ParsBest.Depth >  ParsNew.Depth || 
-         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops || 
-         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes )
+    if (  ParsBest.pName == NULL ||
+          strcmp(ParsBest.pName, pNtk->pName) ||
+          ParsBest.Depth >  ParsNew.Depth ||
+         (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops) ||
+         (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes) )
     {
         FREE( ParsBest.pName );
         ParsBest.pName = Extra_UtilStrsav( pNtk->pName );
@@ -145,9 +145,9 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
     else if ( Abc_NtkIsStrash(pNtk) )
     {        
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
-        if ( Num = Abc_NtkGetChoiceNum(pNtk) )
+        if ( (Num = Abc_NtkGetChoiceNum(pNtk)) )
             fprintf( pFile, " (choice = %d)", Num );
-        if ( Num = Abc_NtkGetExorNum(pNtk) )
+        if ( (Num = Abc_NtkGetExorNum(pNtk)) )
             fprintf( pFile, " (exor = %d)", Num );
 //        if ( Num2 = Abc_NtkGetMuxNum(pNtk) )
 //            fprintf( pFile, " (mux = %d)", Num2-Num );
@@ -930,7 +930,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
         return;
 
     // transform logic functions from BDD to SOP
-    if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
+    if ( (fHasBdds = Abc_NtkIsBddLogic(pNtk)) )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
@@ -955,9 +955,11 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
             CountBuf++;
         else if ( Abc_SopIsInv(pSop) )
             CountInv++;
-        else if ( !Abc_SopIsComplement(pSop) && Abc_SopIsAndType(pSop) ||  Abc_SopIsComplement(pSop) && Abc_SopIsOrType(pSop) )
+        else if ( (!Abc_SopIsComplement(pSop) && Abc_SopIsAndType(pSop)) ||
+                  ( Abc_SopIsComplement(pSop) && Abc_SopIsOrType(pSop)) )
             CountAnd++;
-        else if (  Abc_SopIsComplement(pSop) && Abc_SopIsAndType(pSop) || !Abc_SopIsComplement(pSop) && Abc_SopIsOrType(pSop) )
+        else if ( ( Abc_SopIsComplement(pSop) && Abc_SopIsAndType(pSop)) ||
+                  (!Abc_SopIsComplement(pSop) && Abc_SopIsOrType(pSop)) )
             CountOr++;
         else
             CountOther++;
@@ -1127,7 +1129,7 @@ void Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj )
 */
     // print the logic function
     if ( Abc_ObjIsNode(pObj) && Abc_NtkIsSopLogic(pObj->pNtk) )
-        fprintf( pFile, " %s", pObj->pData );
+        fprintf( pFile, " %s", (char*)pObj->pData );
     else
         fprintf( pFile, "\n" );
 }

@@ -237,7 +237,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
             v = Ver_FormulaParserFindVar( pTemp, vNames );
             if ( *pTemp == '\\' )
                 pTemp++;
-            pTemp += (int)Vec_PtrEntry( vNames, 2*v ) - 1;
+            pTemp += (int)(PORT_PTRUINT_T)Vec_PtrEntry( vNames, 2*v ) - 1;
 
             // assume operation AND, if vars follow one another
             if ( Flag == VER_PARSE_FLAG_VAR )
@@ -404,7 +404,7 @@ int Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames )
     nLength = pTemp - pString;
     for ( i = 0; i < Vec_PtrSize(vNames)/2; i++ )
     {
-        nLength2 = (int)Vec_PtrEntry( vNames, 2*i + 0 );
+        nLength2 = (int)(PORT_PTRUINT_T)Vec_PtrEntry( vNames, 2*i + 0 );
         if ( nLength2 != nLength )
             continue;
         pTemp2   = Vec_PtrEntry( vNames, 2*i + 1 );
@@ -413,7 +413,7 @@ int Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames )
         return i;
     }
     // could not find - add and return the number
-    Vec_PtrPush( vNames, (void *)nLength );
+    Vec_PtrPush( vNames, (void *)(PORT_PTRUINT_T)nLength );
     Vec_PtrPush( vNames, pString );
     return i;
 }
@@ -431,7 +431,7 @@ int Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames )
 ***********************************************************************/
 void * Ver_FormulaReduction( char * pFormula, void * pMan, Vec_Ptr_t * vNames, char * pErrorMessage )
 {
-    Hop_Obj_t * pRes;
+    Hop_Obj_t * pRes = NULL;
     int v, fCompl;
     char Symbol;
 
@@ -453,7 +453,7 @@ void * Ver_FormulaReduction( char * pFormula, void * pMan, Vec_Ptr_t * vNames, c
     while ( *pFormula != '}' )
     {
         v = Ver_FormulaParserFindVar( pFormula, vNames );
-        pFormula += (int)Vec_PtrEntry( vNames, 2*v );
+        pFormula += (int)(PORT_PTRUINT_T)Vec_PtrEntry( vNames, 2*v );
         while ( *pFormula == ' ' || *pFormula == ',' )
             pFormula++;
     }

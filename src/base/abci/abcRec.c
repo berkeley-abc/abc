@@ -232,11 +232,6 @@ p->timeTruth += clock() - clk;
         pObj = Abc_ObjFanin0(pObj);
         pTruth = Vec_PtrEntry( p->vTtNodes, pObj->Id );
 
-        if ( pTruth[0] == 1128481603 )
-        {
-            int x = 0;
-        }
-
         // add the resulting truth table to the hash table 
         ppSpot = Abc_NtkRecTableLookup( p, pTruth, p->nVars );
         assert( pObj->pEquiv == NULL );
@@ -777,7 +772,7 @@ int Abc_NtkRecAddCut( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     static int s_MaxSize[16] = { 0 };
     char Buffer[40], Name[20], Truth[20];
     char pCanonPerm[16];
-    Abc_Obj_t * pObj, * pFanin0, * pFanin1, ** ppSpot, * pObjPo;
+    Abc_Obj_t * pObj = NULL, * pFanin0, * pFanin1, ** ppSpot, * pObjPo;
     Abc_Ntk_t * pAig = s_pMan->pNtk;
     If_Obj_t * pIfObj;
     Vec_Ptr_t * vNodes = s_pMan->vNodes;
@@ -787,11 +782,6 @@ int Abc_NtkRecAddCut( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = If_CutLeaveNum(pCut);
     unsigned uCanonPhase;
     int clk;
-
-    if ( pRoot->Id == 2639 )
-    {
-        int y = 0;
-    }
 
     assert( nInputs <= 16 );
     assert( nInputs == (int)pCut->nLimit );
@@ -848,7 +838,7 @@ s_pMan->timeCanon += clock() - clk;
     for ( i = 0; i < nLeaves; i++ )
     {
         // get hold of the corresponding leaf
-        pIfObj = If_ManObj( pIfMan, pCut->pLeaves[pCanonPerm[i]] );
+        pIfObj = If_ManObj( pIfMan, pCut->pLeaves[(int)pCanonPerm[i]] );
         // get hold of the corresponding new node
         pObj = Abc_NtkPi( pAig, i );
         pObj = Abc_ObjNotCond( pObj, (uCanonPhase & (1 << i)) );
@@ -897,6 +887,7 @@ s_pMan->timeCanon += clock() - clk;
         }
     }
 
+    assert(pObj);
     pTruth = Vec_PtrEntry( s_pMan->vTtNodes, pObj->Id );
     if ( Kit_TruthSupport(pTruth, nInputs) != Kit_BitMask(nLeaves) )
     {

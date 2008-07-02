@@ -74,9 +74,11 @@ int Abc_NtkRetimeMinDelayTry( Abc_Ntk_t * pNtk, int fForward, int fInitial, int 
 {
     Abc_Ntk_t * pNtkNew = NULL;
     Vec_Ptr_t * vCritical;
-    Vec_Int_t * vValues;
+    Vec_Int_t * vValues = NULL; // Suppress "might be used uninitialized"
     Abc_Obj_t * pObj;
-    int i, k, IterBest, DelayCur, DelayBest, DelayStart, LatchesBest;
+    int i, k, IterBest, DelayCur, DelayBest;
+    int DelayStart = -1; // Suppress "might be used uninitialized"
+    int LatchesBest;
     // transfer intitial values
     if ( fInitial )
     {

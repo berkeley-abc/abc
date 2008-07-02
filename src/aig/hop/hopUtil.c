@@ -333,7 +333,7 @@ void Hop_ObjPrintEqn( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, int L
     // PI case
     if ( Hop_ObjIsPi(pObj) )
     {
-        fprintf( pFile, "%s%s", fCompl? "!" : "", pObj->pData );
+        fprintf( pFile, "%s%s", fCompl? "!" : "", (char*)pObj->pData );
         return;
     }
     // AND case
@@ -380,7 +380,7 @@ void Hop_ObjPrintVerilog( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, i
     // PI case
     if ( Hop_ObjIsPi(pObj) )
     {
-        fprintf( pFile, "%s%s", fCompl? "~" : "", pObj->pData );
+        fprintf( pFile, "%s%s", fCompl? "~" : "", (char*)pObj->pData );
         return;
     }
     // EXOR case
@@ -516,13 +516,13 @@ void Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName )
     // collect nodes in the DFS order
     vNodes = Hop_ManDfs( p );
     // assign IDs to objects
-    Hop_ManConst1(p)->pData = (void *)Counter++;
+    Hop_ManConst1(p)->pData = (void *)(PORT_PTRUINT_T)Counter++;
     Hop_ManForEachPi( p, pObj, i )
-        pObj->pData = (void *)Counter++;
+        pObj->pData = (void *)(PORT_PTRUINT_T)Counter++;
     Hop_ManForEachPo( p, pObj, i )
-        pObj->pData = (void *)Counter++;
+        pObj->pData = (void *)(PORT_PTRUINT_T)Counter++;
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pData = (void *)Counter++;
+        pObj->pData = (void *)(PORT_PTRUINT_T)Counter++;
     nDigits = Hop_Base10Log( Counter );
     // write the file
     pFile = fopen( pFileName, "w" );
@@ -532,34 +532,34 @@ void Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName )
     // write PIs
     fprintf( pFile, ".inputs" );
     Hop_ManForEachPi( p, pObj, i )
-        fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
+        fprintf( pFile, " n%0*d", nDigits, (int)(PORT_PTRUINT_T)pObj->pData );
     fprintf( pFile, "\n" );
     // write POs
     fprintf( pFile, ".outputs" );
     Hop_ManForEachPo( p, pObj, i )
-        fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
+        fprintf( pFile, " n%0*d", nDigits, (int)(PORT_PTRUINT_T)pObj->pData );
     fprintf( pFile, "\n" );
     // write nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         fprintf( pFile, ".names n%0*d n%0*d n%0*d\n", 
-            nDigits, (int)Hop_ObjFanin0(pObj)->pData, 
-            nDigits, (int)Hop_ObjFanin1(pObj)->pData, 
-            nDigits, (int)pObj->pData );
+            nDigits, (int)(PORT_PTRUINT_T)Hop_ObjFanin0(pObj)->pData, 
+            nDigits, (int)(PORT_PTRUINT_T)Hop_ObjFanin1(pObj)->pData, 
+            nDigits, (int)(PORT_PTRUINT_T)pObj->pData );
         fprintf( pFile, "%d%d 1\n", !Hop_ObjFaninC0(pObj), !Hop_ObjFaninC1(pObj) );
     }
     // write POs
     Hop_ManForEachPo( p, pObj, i )
     {
         fprintf( pFile, ".names n%0*d n%0*d\n", 
-            nDigits, (int)Hop_ObjFanin0(pObj)->pData, 
-            nDigits, (int)pObj->pData );
+            nDigits, (int)(PORT_PTRUINT_T)Hop_ObjFanin0(pObj)->pData, 
+            nDigits, (int)(PORT_PTRUINT_T)pObj->pData );
         fprintf( pFile, "%d 1\n", !Hop_ObjFaninC0(pObj) );
         if ( Hop_ObjIsConst1(Hop_ObjFanin0(pObj)) )
             pConst1 = Hop_ManConst1(p);
     }
     if ( pConst1 )
-        fprintf( pFile, ".names n%0*d\n 1\n", nDigits, (int)pConst1->pData );
+        fprintf( pFile, ".names n%0*d\n 1\n", nDigits, (int)(PORT_PTRUINT_T)pConst1->pData );
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
     Vec_PtrFree( vNodes );

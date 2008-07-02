@@ -95,13 +95,13 @@ void Prove_ParamsPrint( Prove_Params_t * pParams )
     printf( "Multiplicative coeficient for mitering: %.2f\n", pParams->nMiteringLimitMulti );
     printf( "Starting number of rewriting iterations: %d\n", pParams->nRewritingLimitStart );
     printf( "Multiplicative coeficient for rewriting: %.2f\n", pParams->nRewritingLimitMulti );
-    printf( "Starting number of conflicts in fraiging: %d\n", pParams->nFraigingLimitMulti );
+    printf( "Starting number of conflicts in fraiging: %.2f\n", pParams->nFraigingLimitMulti );
     printf( "Multiplicative coeficient for fraiging: %.2f\n", pParams->nRewritingLimitMulti );
-    printf( "BDD size limit for bailing out: %.2f\n", pParams->nBddSizeLimit );
+    printf( "BDD size limit for bailing out: %d\n", pParams->nBddSizeLimit );
     printf( "BDD reordering enabled: %s\n", pParams->fBddReorder? "yes":"no" );
     printf( "Last-gasp mitering limit: %d\n", pParams->nMiteringLimitLast );
-    printf( "Total conflict limit: %d\n", pParams->nTotalBacktrackLimit );
-    printf( "Total inspection limit: %d\n", pParams->nTotalInspectLimit );
+    printf( "Total conflict limit: %lld\n", pParams->nTotalBacktrackLimit );
+    printf( "Total inspection limit: %lld\n", pParams->nTotalInspectLimit );
     printf( "Parameter dump complete.\n" );
 }
 
@@ -347,7 +347,6 @@ void Fraig_ManCreateSolver( Fraig_Man_t * p )
 void Fraig_ManPrintStats( Fraig_Man_t * p )
 {
     double nMemory;
-    int clk = clock();
     nMemory = ((double)(p->vInputs->nSize + p->vNodes->nSize) * 
         (sizeof(Fraig_Node_t) + sizeof(unsigned)*(p->nWordsRand + p->nWordsDyna) /*+ p->nSuppWords*sizeof(unsigned)*/))/(1<<20);
     printf( "Words: Random = %d. Dynamic = %d. Used = %d. Memory = %0.2f Mb.\n", 

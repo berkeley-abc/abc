@@ -9,7 +9,7 @@
  */
 #include "espresso.h"
 
-map_dcset(PLA)
+void map_dcset(PLA)
 pPLA PLA;
 {
     int var, i;
@@ -83,7 +83,7 @@ pPLA PLA;
     PLA->D = sf_delc(PLA->D, 2*var, 2*var+1);
 }
 
-map_output_symbolic(PLA)
+void map_output_symbolic(PLA)
 pPLA PLA;
 {
     pset_family newF, newD;
@@ -187,7 +187,7 @@ pPLA PLA;
 }
 
 
-find_inputs(A, PLA, list, base, value, newF, newD)
+void find_inputs(A, PLA, list, base, value, newF, newD)
 pcover A;
 pPLA PLA;
 symbolic_list_t *list;
@@ -282,7 +282,7 @@ pcover *newF, *newD;
 }
 #endif
 
-map_symbolic(PLA)
+void map_symbolic(PLA)
 pPLA PLA;
 {
     symbolic_t *p1;
@@ -377,7 +377,7 @@ int base;
 }
 
 
-form_bitvector(p, base, value, list)
+void form_bitvector(p, base, value, list)
 pset p;            /* old cube, looking at binary variables */
 int base;        /* where in mv cube the new variable starts */
 int value;        /* current value for this recursion */
@@ -404,7 +404,7 @@ symbolic_list_t *list;    /* current place in the symbolic list */
 }
 
 
-symbolic_hack_labels(PLA, list, compress, new_size, old_size, size_added)
+void symbolic_hack_labels(PLA, list, compress, new_size, old_size, size_added)
 pPLA PLA;
 symbolic_t *list;
 pset compress;
@@ -476,7 +476,7 @@ pcover F;
 }
 
 
-disassemble_fsm(PLA, verbose_mode)
+void disassemble_fsm(PLA, verbose_mode)
 pPLA PLA;
 int verbose_mode;
 {

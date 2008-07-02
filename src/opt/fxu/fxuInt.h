@@ -365,7 +365,7 @@ struct FxuSingle // 7 words
 #define Fxu_CubeForEachPair( pCube, pPair, i )\
   for ( i = 0;\
         i < pCube->pVar->nCubes &&\
-        (((unsigned)(pPair = pCube->pVar->ppPairs[pCube->iCube][i])) >= 0);\
+        (((unsigned)(PORT_PTRUINT_T)(pPair = pCube->pVar->ppPairs[pCube->iCube][i])) >= 0);\
         i++ )\
         if ( pPair )
 

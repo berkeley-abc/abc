@@ -177,7 +177,7 @@ Ntl_Obj_t * Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts )
 ***********************************************************************/
 Ntl_Obj_t * Ntl_ModelDupObj( Ntl_Mod_t * pModel, Ntl_Obj_t * pOld )
 {
-    Ntl_Obj_t * pNew;
+    Ntl_Obj_t * pNew = NULL; // Supprses "might be used uninitialized"
     if ( Ntl_ObjIsPi( pOld ) )
         pNew = Ntl_ModelCreatePi( pModel ); 
     else if ( Ntl_ObjIsPo( pOld ) )

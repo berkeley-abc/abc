@@ -144,7 +144,7 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
 {
     Abc_Obj_t * pObj;
     Vec_Ptr_t * vNodes;
-    int i, clk = clock();
+    int i; //, clk = clock();
     int fDrop = Cut_OracleReadDrop(p);
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -327,7 +327,7 @@ int Abc_NtkComputeArea( Abc_Ntk_t * pNtk, Cut_Man_t * p )
 void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
 {
     void * pList;
-    if ( pList = Abc_NodeReadCuts( p, pObj ) )
+    if ( (pList = Abc_NodeReadCuts( p, pObj )) )
         return pList;
     Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj), fDag, fTree );
     Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj), fDag, fTree );
@@ -459,7 +459,6 @@ void Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj )
 ***********************************************************************/
 void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq )
 {
-    Cut_Man_t * pMan = p;
     Cut_Cut_t * pList;
     Abc_Obj_t * pObj;
     int i;
@@ -485,7 +484,6 @@ void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq )
 ***********************************************************************/
 void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
 {
-    Cut_Man_t * pMan = p;
     Cut_Cut_t * pList;
     Abc_Obj_t * pObj;
     pObj = Abc_NtkObj( pNtk, 2 * Abc_NtkObjNum(pNtk) / 3 );

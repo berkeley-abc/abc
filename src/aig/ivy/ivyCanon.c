@@ -53,7 +53,7 @@ Ivy_Obj_t * Ivy_CanonPair_rec( Ivy_Man_t * p, Ivy_Obj_t * pGhost )
     // consider the case when the pair is canonical
     if ( !Ivy_ObjIsLatch(Ivy_ObjFanin0(pGhost)) || !Ivy_ObjIsLatch(Ivy_ObjFanin1(pGhost)) )
     {
-        if ( pResult = Ivy_TableLookup( p, pGhost ) )
+        if ( (pResult = Ivy_TableLookup( p, pGhost )) )
             return pResult;
         return Ivy_ObjCreate( p, pGhost );
     }

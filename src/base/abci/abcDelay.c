@@ -526,8 +526,8 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
         printf( "\n" );
     }
     // mark the timing critical nodes and edges
-    puTCEdges = ALLOC( int, Abc_NtkObjNumMax(pNtk) );
-    memset( puTCEdges, 0, sizeof(int) * Abc_NtkObjNumMax(pNtk) );
+    puTCEdges = ALLOC( unsigned, Abc_NtkObjNumMax(pNtk) );
+    memset( puTCEdges, 0, sizeof(unsigned) * Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         if ( Abc_ObjSlack(pNode) >= tDelta )

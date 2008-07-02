@@ -73,7 +73,6 @@ extern int timeRetime;
 Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
 {
     Ivy_Man_t * pMan;
-    int fCleanup = 1;
 //timeRetime = clock();
     assert( !Abc_NtkIsNetlist(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
@@ -588,9 +587,9 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 {
 //    Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;//, * pTemp;
-    int fCleanup = 1;
+//    int fCleanup = 1;
 //    int nNodes;
-    int nLatches = Abc_NtkLatchNum(pNtk);
+//    int nLatches = Abc_NtkLatchNum(pNtk);
     Vec_Int_t * vInit = Abc_NtkCollectLatchValuesIvy( pNtk, 0 );
 
     assert( !Abc_NtkIsNetlist(pNtk) );

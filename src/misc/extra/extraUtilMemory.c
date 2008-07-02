@@ -562,7 +562,7 @@ char * Extra_MmStepEntryFetch( Extra_MmStep_t * p, int nBytes )
             if ( p->nLargeChunksAlloc == 0 )
                 p->nLargeChunksAlloc = 32;
             p->nLargeChunksAlloc *= 2;
-            p->pLargeChunks = REALLOC( char *, p->pLargeChunks, p->nLargeChunksAlloc ); 
+            p->pLargeChunks = REALLOC( void *, p->pLargeChunks, p->nLargeChunksAlloc );
         }
         p->pLargeChunks[ p->nLargeChunks++ ] = ALLOC( char, nBytes );
         return p->pLargeChunks[ p->nLargeChunks - 1 ];

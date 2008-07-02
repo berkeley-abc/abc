@@ -434,7 +434,7 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
     int Reset;
     pNetLi = Abc_ObjFanin0( Abc_ObjFanin0(pLatch) );
     pNetLo = Abc_ObjFanout0( Abc_ObjFanout0(pLatch) );
-    Reset  = (int)Abc_ObjData( pLatch );
+    Reset  = (int)(PORT_PTRUINT_T)Abc_ObjData( pLatch );
     // write the latch line
     fprintf( pFile, ".latch" );
     fprintf( pFile, " %10s",    Abc_ObjName(pNetLi) );
@@ -470,7 +470,7 @@ void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length )
         Io_NtkWriteNodeFanins( pFile, pNode );
         fprintf( pFile, "\n" );
         // write the cubes
-        fprintf( pFile, "%s", Abc_ObjData(pNode) );
+        fprintf( pFile, "%s", (char*)Abc_ObjData(pNode) );
     }
 }
 

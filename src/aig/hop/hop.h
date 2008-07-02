@@ -166,13 +166,13 @@ static inline int          Hop_ObjIsMarkA( Hop_Obj_t * pObj )     { return pObj-
 static inline void         Hop_ObjSetMarkA( Hop_Obj_t * pObj )    { pObj->fMarkA = 1;     }
 static inline void         Hop_ObjClearMarkA( Hop_Obj_t * pObj )  { pObj->fMarkA = 0;     }
  
-static inline void         Hop_ObjSetTravId( Hop_Obj_t * pObj, int TravId )                { pObj->pData = (void *)(long)TravId;                      }
-static inline void         Hop_ObjSetTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )      { pObj->pData = (void *)(long)p->nTravIds;                 }
-static inline void         Hop_ObjSetTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )     { pObj->pData = (void *)(long)(p->nTravIds - 1);           }
-static inline int          Hop_ObjIsTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )       { return (int)((int)(long)pObj->pData == p->nTravIds);     }
-static inline int          Hop_ObjIsTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )      { return (int)((int)(long)pObj->pData == p->nTravIds - 1); }
+static inline void         Hop_ObjSetTravId( Hop_Obj_t * pObj, int TravId )                { pObj->pData = (void *)(PORT_PTRINT_T)TravId;                      }
+static inline void         Hop_ObjSetTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )      { pObj->pData = (void *)(PORT_PTRINT_T)p->nTravIds;                 }
+static inline void         Hop_ObjSetTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )     { pObj->pData = (void *)(PORT_PTRINT_T)(p->nTravIds - 1);           }
+static inline int          Hop_ObjIsTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )       { return (int)((int)(PORT_PTRINT_T)pObj->pData == p->nTravIds);     }
+static inline int          Hop_ObjIsTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )      { return (int)((int)(PORT_PTRINT_T)pObj->pData == p->nTravIds - 1); }
 
-static inline int          Hop_ObjTravId( Hop_Obj_t * pObj )      { return (int)pObj->pData;                       }
+static inline int          Hop_ObjTravId( Hop_Obj_t * pObj )      { return (int)(PORT_PTRINT_T)pObj->pData;        }
 static inline int          Hop_ObjPhase( Hop_Obj_t * pObj )       { return pObj->fPhase;                           }
 static inline int          Hop_ObjRefs( Hop_Obj_t * pObj )        { return pObj->nRefs;                            }
 static inline void         Hop_ObjRef( Hop_Obj_t * pObj )         { pObj->nRefs++;                                 }

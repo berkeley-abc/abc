@@ -141,7 +141,7 @@ static inline Ivy_Obj_t * Ivy_ObjNodeHashNext( Ivy_Obj_t * pObj )               
 static inline Ivy_Obj_t * Ivy_ObjEquivListNext( Ivy_Obj_t * pObj )                       { return pObj->pPrevFan0;  }
 static inline Ivy_Obj_t * Ivy_ObjEquivListPrev( Ivy_Obj_t * pObj )                       { return pObj->pPrevFan1;  }
 static inline Ivy_Obj_t * Ivy_ObjFraig( Ivy_Obj_t * pObj )                               { return pObj->pEquiv;     }
-static inline int         Ivy_ObjSatNum( Ivy_Obj_t * pObj )                              { return (int)pObj->pNextFan0;         }
+static inline int         Ivy_ObjSatNum( Ivy_Obj_t * pObj )                              { return (int)(PORT_PTRUINT_T)pObj->pNextFan0;         }
 static inline Vec_Ptr_t * Ivy_ObjFaninVec( Ivy_Obj_t * pObj )                            { return (Vec_Ptr_t *)pObj->pNextFan1; }
 
 static inline void        Ivy_ObjSetSim( Ivy_Obj_t * pObj, Ivy_FraigSim_t * pSim )       { pObj->pFanout = (Ivy_Obj_t *)pSim; }
@@ -152,7 +152,7 @@ static inline void        Ivy_ObjSetNodeHashNext( Ivy_Obj_t * pObj, Ivy_Obj_t * 
 static inline void        Ivy_ObjSetEquivListNext( Ivy_Obj_t * pObj, Ivy_Obj_t * pNext ) { pObj->pPrevFan0 = pNext; }
 static inline void        Ivy_ObjSetEquivListPrev( Ivy_Obj_t * pObj, Ivy_Obj_t * pPrev ) { pObj->pPrevFan1 = pPrev; }
 static inline void        Ivy_ObjSetFraig( Ivy_Obj_t * pObj, Ivy_Obj_t * pNode )         { pObj->pEquiv    = pNode; }
-static inline void        Ivy_ObjSetSatNum( Ivy_Obj_t * pObj, int Num )                  { pObj->pNextFan0 = (Ivy_Obj_t *)Num;     }
+static inline void        Ivy_ObjSetSatNum( Ivy_Obj_t * pObj, int Num )                  { pObj->pNextFan0 = (Ivy_Obj_t *)(PORT_PTRUINT_T)Num;     }
 static inline void        Ivy_ObjSetFaninVec( Ivy_Obj_t * pObj, Vec_Ptr_t * vFanins )    { pObj->pNextFan1 = (Ivy_Obj_t *)vFanins; }
 
 static inline unsigned    Ivy_ObjRandomSim()                       { return (rand() << 24) ^ (rand() << 12) ^ rand(); }
@@ -252,8 +252,8 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
     Prove_Params_t * pParams = pPars;
     Ivy_FraigParams_t Params, * pIvyParams = &Params; 
     Ivy_Man_t * pManAig, * pManTemp;
-    int RetValue, nIter, clk, timeStart = clock();//, Counter;
-    sint64 nSatConfs, nSatInspects;
+    int RetValue, nIter, clk;//, Counter;
+    sint64 nSatConfs = 0, nSatInspects = 0;
 
     // start the network and parameters
     pManAig = *ppManAig;
@@ -2076,7 +2076,7 @@ void Ivy_FraigPrintActivity( Ivy_FraigMan_t * p )
 ***********************************************************************/
 int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
 {
-    int pLits[4], RetValue, RetValue1, nBTLimit, clk, clk2 = clock();
+    int pLits[4], RetValue, RetValue1, nBTLimit, clk; //, clk2 = clock();
 
     // make sure the nodes are not complemented
     assert( !Ivy_IsComplement(pNew) );
@@ -2225,7 +2225,8 @@ p->timeSatFail += clock() - clk;
 ***********************************************************************/
 int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
 {
-    int pLits[2], RetValue1, RetValue, clk;
+    int pLits[2], RetValue1, clk;
+//    int RetValue;
 
     // make sure the nodes are not complemented
     assert( !Ivy_IsComplement(pNew) );

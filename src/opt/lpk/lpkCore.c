@@ -100,7 +100,7 @@ int Lpk_NodeHasChanged( Lpk_Man_t * p, int iNode )
     Vec_PtrForEachEntry( vNodes, pTemp, i )
     {
         // check if the node has changed
-        pTemp = Abc_NtkObj( p->pNtk, (int)pTemp );
+        pTemp = Abc_NtkObj( p->pNtk, (int)(PORT_PTRUINT_T)pTemp );
         if ( pTemp == NULL )
             return 1;
         // check if the number of fanouts has changed
@@ -233,7 +233,7 @@ p->timeMap += clock() - clk;
 ***********************************************************************/
 int Lpk_ResynthesizeNode( Lpk_Man_t * p )
 {
-    static int Count = 0;
+//    static int Count = 0;
     Kit_DsdNtk_t * pDsdNtk;
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
@@ -361,7 +361,7 @@ void Lpk_ComputeSupports( Lpk_Man_t * p, Lpk_Cut_t * pCut, unsigned * pTruth )
 ***********************************************************************/
 int Lpk_ResynthesizeNodeNew( Lpk_Man_t * p )
 {
-    static int Count = 0;
+//    static int Count = 0;
     Abc_Obj_t * pObjNew, * pLeaf;
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
@@ -497,7 +497,7 @@ p->timeEval += clock() - clk;
 ***********************************************************************/
 int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
 {
-    ProgressBar * pProgress;
+    ProgressBar * pProgress = NULL; // Suppress "might be used uninitialized"
     Lpk_Man_t * p;
     Abc_Obj_t * pObj;
     double Delta;

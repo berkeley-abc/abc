@@ -169,8 +169,10 @@ void ABC_UseOnlyCoreSatSolver( ABC_Manager mng )
 ***********************************************************************/
 int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, char ** fanins, int dc_attr )
 {
-    Abc_Obj_t * pObj, * pFanin;
-    char * pSop, * pNewName;
+    Abc_Obj_t * pObj = NULL; // Suppress "might be used uninitialized"
+    Abc_Obj_t * pFanin;
+    char * pSop = NULL; // Suppress "might be used uninitialized"
+    char * pNewName;
     int i;
 
     // save the name in the local memory manager

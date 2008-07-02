@@ -506,7 +506,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
         Dar_LibStart();
     }
     {
-        extern Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
+        extern void Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
 //        Bdc_ManDecomposeTest( 0x0f0f0f0f, 3 );
     }
 
@@ -3710,7 +3710,6 @@ int Abc_CommandTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-    Mfs_Par_t Pars, * pPars = &Pars;
     int c;
     int fUseLutLib;
     int fVerbose;
@@ -3780,7 +3779,6 @@ int Abc_CommandSpeedup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    Mfs_Par_t Pars, * pPars = &Pars;
     int c;
     int fUseLutLib;
     int Percentage;
@@ -6568,7 +6566,7 @@ int Abc_CommandExdcSet( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" )) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -6655,7 +6653,7 @@ int Abc_CommandCareSet( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" )) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -6706,7 +6704,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cut_Params_t Params, * pParams = &Params;
     Cut_Man_t * pCutMan;
-    Cut_Oracle_t * pCutOracle;
+    Cut_Oracle_t * pCutOracle = NULL;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
@@ -6829,6 +6827,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cut_ManStop( pCutMan );
     if ( fOracle )
     {
+        assert(pCutOracle);
         Abc_NtkCutsOracle( pNtk, pCutOracle );
         Cut_OracleStop( pCutOracle );
     }
@@ -15673,7 +15672,7 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
         fprintf( stdout, "Cannot open input file \"%s\". ", pFileName );
-        if ( pFileName = Extra_FileGetSimilarName( pFileName, ".blif", NULL, NULL, NULL, NULL ) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", NULL, NULL, NULL, NULL )) )
             fprintf( stdout, "Did you mean \"%s\"?", pFileName );
         fprintf( stdout, "\n" );
         return 1;
@@ -15763,7 +15762,7 @@ int Abc_CommandAbc8ReadLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
         fprintf( stdout, "Cannot open input file \"%s\". ", pFileName );
-        if ( pFileName = Extra_FileGetSimilarName( pFileName, ".blif", NULL, NULL, NULL, NULL ) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", NULL, NULL, NULL, NULL )) )
             fprintf( stdout, "Did you mean \"%s\"?", pFileName );
         fprintf( stdout, "\n" );
         return 1;
@@ -16032,7 +16031,7 @@ int Abc_CommandAbc8ReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( stdout, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".lut", NULL, NULL, NULL, NULL ) )
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".lut", NULL, NULL, NULL, NULL )) )
             fprintf( stdout, "Did you mean \"%s\"?", FileName );
         fprintf( stdout, "\n" );
         return 1;
@@ -17041,11 +17040,11 @@ int Abc_CommandAbc8Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Aig_Man_t * pAigNew;
     int c;
-    int fUseLutLib;
-    int Percentage;
-    int Degree;
-    int fVerbose;
-    int fVeryVerbose;
+    int fUseLutLib = 0;
+    int Percentage = 100;
+    int Degree = 5;
+    int fVerbose = 0;
+    int fVeryVerbose = 0;
     extern Aig_Man_t * Nwk_ManSpeedup( void * pNtk, int fUseLutLib, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
 
     // set defaults

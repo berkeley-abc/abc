@@ -78,7 +78,7 @@ static inline void Nwk_ObjSetVisitedTop( Nwk_Obj_t * pObj )
     else
         assert( 0 );
 }
-static inline Nwk_ManIncrementTravIdFlow( Nwk_Man_t * pMan )
+static inline void Nwk_ManIncrementTravIdFlow( Nwk_Man_t * pMan )
 {
     Nwk_ManIncrementTravId( pMan );
     Nwk_ManIncrementTravId( pMan );

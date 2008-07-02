@@ -16,6 +16,12 @@
 
 ***********************************************************************/
 
+#define _BSD_SOURCE
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #include "abc.h"
 #include "mvc.h"
 #include "mainInt.h"

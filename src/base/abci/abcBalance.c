@@ -96,7 +96,6 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective, 
 ***********************************************************************/
 void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate, bool fSelective, bool fUpdateLevel )
 {
-    int fCheck = 1;
     ProgressBar * pProgress;
     Vec_Vec_t * vStorage;
     Abc_Obj_t * pNode, * pDriver;

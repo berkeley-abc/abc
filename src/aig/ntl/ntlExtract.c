@@ -85,7 +85,7 @@ Aig_Obj_t * Ntl_ConvertSopToAigInternal( Aig_Man_t * pMan, Ntl_Obj_t * pNode, ch
 ***********************************************************************/
 Aig_Obj_t * Ntl_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
 {
-    Dec_Node_t * pNode;
+    Dec_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     Aig_Obj_t * pAnd0, * pAnd1;
     int i;
     // check for constant function
@@ -526,15 +526,16 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
     }
     nTruePis = Aig_ManPiNum(p->pAig);
     // create inputs of seq boxes
-    if ( fSeq )
-    Ntl_ModelForEachBox( pRoot, pBox, i )
-    {
-        if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
-            continue;
-        Vec_IntPush( p->vBox1Cios, Aig_ManPiNum(p->pAig) );
-        Ntl_ManCollapseBoxSeq1_rec( p, pBox, fSeq );
-        Ntl_ObjForEachFanout( pBox, pNet, k )
-            pNet->nVisits = 2;
+    if ( fSeq ) {
+      Ntl_ModelForEachBox( pRoot, pBox, i )
+      {
+          if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
+              continue;
+          Vec_IntPush( p->vBox1Cios, Aig_ManPiNum(p->pAig) );
+          Ntl_ManCollapseBoxSeq1_rec( p, pBox, fSeq );
+          Ntl_ObjForEachFanout( pBox, pNet, k )
+              pNet->nVisits = 2;
+      }
     }
     // derive the outputs
     Ntl_ManForEachCoNet( p, pNet, i )
@@ -548,18 +549,19 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
     }
     nTruePos = Aig_ManPoNum(p->pAig);
     // create outputs of seq boxes
-    if ( fSeq )
-    Ntl_ModelForEachBox( pRoot, pBox, i )
-    {
-        if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
-            continue;
-        Ntl_ObjForEachFanin( pBox, pNet, k )
-            if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
-            {
-                printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
-                return 0;
-            }
-        Ntl_ManCollapseBoxSeq2_rec( p, pBox, fSeq, Vec_IntEntry(p->vBox1Cios, iBox++) );
+    if ( fSeq ) {
+      Ntl_ModelForEachBox( pRoot, pBox, i )
+      {
+          if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
+              continue;
+          Ntl_ObjForEachFanin( pBox, pNet, k )
+              if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+              {
+                  printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
+                  return 0;
+              }
+          Ntl_ManCollapseBoxSeq2_rec( p, pBox, fSeq, Vec_IntEntry(p->vBox1Cios, iBox++) );
+      }
     }
     // make sure registers are added correctly
     if ( Aig_ManPiNum(p->pAig) - nTruePis != Aig_ManPoNum(p->pAig) - nTruePos )

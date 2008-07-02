@@ -70,7 +70,6 @@ static Cut_Cut_t * Cut_CutMerge( Cut_Oracle_t * p, Cut_Cut_t * pCut0, Cut_Cut_t 
 Cut_Oracle_t * Cut_OracleStart( Cut_Man_t * pMan )
 {
     Cut_Oracle_t * p;
-    int clk = clock();
 
     assert( pMan->pParams->nVarsMax >= 3 && pMan->pParams->nVarsMax <= CUT_SIZE_MAX );
     assert( pMan->pParams->fRecord );
@@ -135,10 +134,7 @@ void Cut_OracleStop( Cut_Oracle_t * p )
     }
 
     Vec_PtrForEachEntry( p->vCutsNew, pCut, i )
-        if ( pCut != NULL )
-        {
-            int k = 0;
-        }
+
     if ( p->vCuts0 )      Vec_PtrFree( p->vCuts0 );
     if ( p->vCuts1 )      Vec_PtrFree( p->vCuts1 );
     if ( p->vCutsNew )    Vec_PtrFree( p->vCutsNew );

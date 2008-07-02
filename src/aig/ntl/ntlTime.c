@@ -91,20 +91,21 @@ void Ntl_ManUnpackLeafTiming( Ntl_Man_t * p, Tim_Man_t * pMan )
             pNet->dTemp = 0;
     // store the PI timing
     vTimes = pRoot->vTimeInputs;
-    if ( vTimes )
-    Vec_IntForEachEntry( vTimes, Entry, i )
-    {
-        dTime = Aig_Int2Float( Vec_IntEntry(vTimes,++i) );
-        if ( Entry == -1 )
-        {
-            Ntl_ModelForEachPi( pRoot, pObj, v )
-                Ntl_ObjFanout0(pObj)->dTemp = dTime;
-        }
-        else
-        {
-            pObj = Ntl_ModelPi( pRoot, Entry );
-            Ntl_ObjFanout0(pObj)->dTemp = dTime;
-        }
+    if ( vTimes ) {
+      Vec_IntForEachEntry( vTimes, Entry, i )
+      {
+          dTime = Aig_Int2Float( Vec_IntEntry(vTimes,++i) );
+          if ( Entry == -1 )
+          {
+              Ntl_ModelForEachPi( pRoot, pObj, v )
+                  Ntl_ObjFanout0(pObj)->dTemp = dTime;
+          }
+          else
+          {
+              pObj = Ntl_ModelPi( pRoot, Entry );
+              Ntl_ObjFanout0(pObj)->dTemp = dTime;
+          }
+      }
     }
     // store box timing
     Ntl_ModelForEachMapLeaf( pRoot, pObj, k )

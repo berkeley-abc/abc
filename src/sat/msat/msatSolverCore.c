@@ -138,8 +138,6 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
     double nConflictsLimit, nLearnedLimit;
     Msat_Type_t Status;
     int timeStart = clock();
-    int64 nConflictsOld = p->Stats.nConflicts;
-    int64 nDecisionsOld = p->Stats.nDecisions;
 
 //    p->pFreq = ALLOC( int, p->nVarsAlloc );
 //    memset( p->pFreq, 0, sizeof(int) * p->nVarsAlloc );

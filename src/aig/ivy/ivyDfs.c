@@ -382,7 +382,7 @@ int Ivy_ManIsAcyclic( Ivy_Man_t * p )
     Ivy_ManForEachCo( p, pObj, i )
     {
         // traverse the output logic cone
-        if ( fAcyclic = Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pObj)) )
+        if ( (fAcyclic = Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pObj))) )
             continue;
         // stop as soon as the first loop is detected
         fprintf( stdout, " (cone of %s \"%d\")\n", Ivy_ObjIsLatch(pObj)? "latch" : "PO", Ivy_ObjId(pObj) );

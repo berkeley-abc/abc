@@ -83,7 +83,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
     Vec_Ptr_t * vTokens;
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pTermPi, * pTermPo, * pNode;
-    Vec_Str_t ** ppSops;
+    Vec_Str_t ** ppSops = NULL;
     char Buffer[100];
     int nInputs = -1, nOutputs = -1, nProducts = -1;
     char * pCubeIn, * pCubeOut;
@@ -95,7 +95,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
     // go through the lines of the file
     nCubes = 0;
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
-    for ( iLine = 0; vTokens = Extra_FileReaderGetTokens(p); iLine++ )
+    for ( iLine = 0; (vTokens = Extra_FileReaderGetTokens(p)); iLine++ )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
 
@@ -193,14 +193,14 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
             pCubeOut = vTokens->pArray[1];
             if ( strlen(pCubeIn) != (unsigned)nInputs )
             {
-                printf( "%s (line %d): Input cube length (%d) differs from the number of inputs (%d).\n", 
+                printf( "%s (line %d): Input cube length (%zu) differs from the number of inputs (%d).\n",
                     Extra_FileReaderGetFileName(p), iLine+1, strlen(pCubeIn), nInputs );
                 Abc_NtkDelete( pNtk );
                 return NULL;
             }
             if ( strlen(pCubeOut) != (unsigned)nOutputs )
             {
-                printf( "%s (line %d): Output cube length (%d) differs from the number of outputs (%d).\n", 
+                printf( "%s (line %d): Output cube length (%zu) differs from the number of outputs (%d).\n",
                     Extra_FileReaderGetFileName(p), iLine+1, strlen(pCubeOut), nOutputs );
                 Abc_NtkDelete( pNtk );
                 return NULL;

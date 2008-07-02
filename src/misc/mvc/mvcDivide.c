@@ -81,7 +81,8 @@ void Mvc_CoverDivideInternal( Mvc_Cover_t * pCover, Mvc_Cover_t * pDiv, Mvc_Cove
     Mvc_Cube_t * pCubeC, * pCubeD, * pCubeCopy;
     Mvc_Cube_t * pCube1, * pCube2;
     int * pGroups, nGroups;    // the cube groups
-    int nCubesC, nCubesD, nMerges, iCubeC, iCubeD, iMerge;
+    int nCubesC, nCubesD, nMerges, iCubeC, iCubeD;
+    int iMerge = -1; // Suppress "might be used uninitialized"
     int fSkipG, GroupSize, g, c, RetValue;
     int nCubes;
 

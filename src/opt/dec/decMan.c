@@ -42,7 +42,7 @@
 Dec_Man_t * Dec_ManStart()
 {
     Dec_Man_t * p;
-    int clk = clock();
+//    int clk = clock();
     p = ALLOC( Dec_Man_t, 1 );
     p->pMvcMem = Mvc_ManagerStart();
     p->vCubes = Vec_IntAlloc( 8 );

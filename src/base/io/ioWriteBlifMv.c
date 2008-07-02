@@ -341,7 +341,7 @@ void Io_NtkWriteBlifMvLatch( FILE * pFile, Abc_Obj_t * pLatch )
     int Reset;
     pNetLi = Abc_ObjFanin0( Abc_ObjFanin0(pLatch) );
     pNetLo = Abc_ObjFanout0( Abc_ObjFanout0(pLatch) );
-    Reset  = (int)Abc_ObjData( pLatch );
+    Reset  = (int)(PORT_PTRUINT_T)Abc_ObjData( pLatch );
     // write the latch line
     fprintf( pFile, ".latch" );
     fprintf( pFile, " %10s",    Abc_ObjName(pNetLi) );

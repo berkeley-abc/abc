@@ -132,10 +132,10 @@ DdNode ** Abc_NtkCreatePartitions( DdManager * dd, Abc_Ntk_t * pNtk, int fReorde
 DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pbParts, DdNode * bInitial, DdNode * bOutput, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose )
 {
     int fInternalReorder = 0;
-    Extra_ImageTree_t * pTree;
-    Extra_ImageTree2_t * pTree2;
+    Extra_ImageTree_t * pTree = NULL;
+    Extra_ImageTree2_t * pTree2 = NULL;
     DdNode * bReached, * bCubeCs;
-    DdNode * bCurrent, * bNext, * bTemp;
+    DdNode * bCurrent, * bNext = NULL, * bTemp;
     DdNode ** pbVarsY;
     Abc_Obj_t * pLatch;
     int i, nIters, nBddSize;
@@ -159,6 +159,7 @@ DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pb
     // perform reachability analisys
     bCurrent = bInitial;   Cudd_Ref( bCurrent );
     bReached = bInitial;   Cudd_Ref( bReached );
+    assert( nIterMax > 1 ); // required to not deref uninitialized bNext
     for ( nIters = 1; nIters <= nIterMax; nIters++ )
     {
         // compute the next states

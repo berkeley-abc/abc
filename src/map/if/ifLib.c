@@ -80,7 +80,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
 
         // read delays
         k = 0;
-        while ( pToken = strtok( NULL, " \t\n" ) )
+        while ( (pToken = strtok( NULL, " \t\n" )) )
             p->pLutDelays[i][k++] = (float)atof(pToken);
 
         // check for out-of-bound
@@ -124,7 +124,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
         {
             if ( p->pLutDelays[i][0] <= 0.0 )
                 printf( "Warning: LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
-                    k, i, p->pLutDelays[i][0] );
+                    i, p->pLutDelays[i][0] );
         }
     }
 

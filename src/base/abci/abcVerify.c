@@ -669,18 +669,18 @@ int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel )
     // set the CI values
     Abc_AigConst1(pNtk)->pCopy = (void *)1;
     Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->pCopy = (void *)pModel[i];
+        pNode->pCopy = (void *)(PORT_PTRINT_T)pModel[i];
     // simulate in the topological order
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        Value0 = ((int)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
-        Value1 = ((int)Abc_ObjFanin1(pNode)->pCopy) ^ Abc_ObjFaninC1(pNode);
-        pNode->pCopy = (void *)(Value0 & Value1);
+        Value0 = ((int)(PORT_PTRINT_T)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
+        Value1 = ((int)(PORT_PTRINT_T)Abc_ObjFanin1(pNode)->pCopy) ^ Abc_ObjFaninC1(pNode);
+        pNode->pCopy = (void *)(PORT_PTRINT_T)(Value0 & Value1);
     }
     // fill the output values
     pValues = ALLOC( int, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
-        pValues[i] = ((int)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
+        pValues[i] = ((int)(PORT_PTRINT_T)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
     if ( fStrashed )
         Abc_NtkDelete( pNtk );
     return pValues;
@@ -740,7 +740,7 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
         vNodes = Abc_NtkNodeSupport( pNtk1, &pNode, 1 );
         // set the PI numbers
         Abc_NtkForEachCi( pNtk1, pNode, i )
-            pNode->pCopy = (void*)i;
+            pNode->pCopy = (void*)(PORT_PTRINT_T)i;
         // print the model
         pNode = Vec_PtrEntry( vNodes, 0 );
         if ( Abc_ObjIsCi(pNode) )
@@ -748,7 +748,7 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
             Vec_PtrForEachEntry( vNodes, pNode, i )
             {
                 assert( Abc_ObjIsCi(pNode) );
-                printf( " %s=%d", Abc_ObjName(pNode), pModel[(int)pNode->pCopy] );
+                printf( " %s=%d", Abc_ObjName(pNode), pModel[(int)(PORT_PTRINT_T)pNode->pCopy] );
             }
         }
         printf( "\n" );
@@ -819,9 +819,9 @@ void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pM
 {
     Vec_Ptr_t * vInfo1, * vInfo2;
     Abc_Obj_t * pObj, * pObjError, * pObj1, * pObj2;
-    int ValueError1, ValueError2;
+    int ValueError1 = -1, ValueError2 = -1;
     unsigned * pPats1, * pPats2;
-    int i, o, k, nErrors, iFrameError, iNodePo, nPrinted;
+    int i, o, k, nErrors, iFrameError = -1, iNodePo = -1, nPrinted;
     int fRemove1 = 0, fRemove2 = 0;
 
     if ( !Abc_NtkIsStrash(pNtk1) )
@@ -991,7 +991,7 @@ void Abc_NtkSimulteBuggyMiter( Abc_Ntk_t * pNtk )
     Abc_NtkForEachPi( pNtk, pObj, i )
         pModel1[i] = vPiValues1[i] - '0';
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        pModel1[Abc_NtkPiNum(pNtk)+i] = ((int)pObj->pData) - 1;
+        pModel1[Abc_NtkPiNum(pNtk)+i] = ((int)(PORT_PTRINT_T)pObj->pData) - 1;
 
     pResult1 = Abc_NtkVerifySimulatePattern( pNtk, pModel1 );
     printf( "Value = %d\n", pResult1[0] );

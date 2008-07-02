@@ -176,8 +176,8 @@ struct cloudCacheEntry3  // the three-argument cache
 #define DD_P2                         4256249
 #define DD_P3                         741457
 #define DD_P4                         1618033999
-#define cloudHashCudd2(f,g,s)        ((((unsigned)(f) * DD_P1 + (unsigned)(g)) * DD_P2) >> (s))
-#define cloudHashCudd3(f,g,h,s)      (((((unsigned)(f) * DD_P1 + (unsigned)(g)) * DD_P2 + (unsigned)(h)) * DD_P3) >> (s))
+#define cloudHashCudd2(f,g,s)        ((((unsigned)(PORT_PTRUINT_T)(f) * DD_P1 + (unsigned)(PORT_PTRUINT_T)(g)) * DD_P2) >> (s))
+#define cloudHashCudd3(f,g,h,s)      (((((unsigned)(PORT_PTRUINT_T)(f) * DD_P1 + (unsigned)(PORT_PTRUINT_T)(g)) * DD_P2 + (unsigned)(PORT_PTRUINT_T)(h)) * DD_P3) >> (s))
 
 // node complementation (using node)
 #define Cloud_Regular(p)             ((CloudNode*)(((PORT_PTRUINT_T)(p)) & ~01))   // get the regular node (w/o bubble)

@@ -41,7 +41,7 @@
 ***********************************************************************/
 If_Obj_t * Lpk_MapPrimeInternal( If_Man_t * pIfMan, Kit_Graph_t * pGraph )
 {
-    Kit_Node_t * pNode;
+    Kit_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     If_Obj_t * pAnd0, * pAnd1;
     int i;
     // check for constant function

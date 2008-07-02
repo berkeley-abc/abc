@@ -333,10 +333,12 @@ void Extra_PrintKMap(
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         if ( s != nCellsHor-1 )
+        {
             if ( s&1 )
                 fprintf( Output, "%c", D_JOINS_D_HOR_BOT );
             else
                 fprintf( Output, "%c", S_JOINS_D_HOR_BOT );
+        }
     }
     fprintf( Output, "%c", DOUBLE_TOP_RIGHT );
     fprintf( Output, "\n" );
@@ -394,10 +396,12 @@ void Extra_PrintKMap(
             fprintf( Output, " " );
 
             if ( h != nCellsHor-1 )
+            {
                 if ( h&1 )
                     fprintf( Output, "%c", DOUBLE_VERTICAL );
                 else
                     fprintf( Output, "%c", SINGLE_VERTICAL );
+            }
         }
         fprintf( Output, "%c", DOUBLE_VERTICAL );
         fprintf( Output, "\n" );
@@ -417,10 +421,12 @@ void Extra_PrintKMap(
                     fprintf( Output, "%c", DOUBLE_HORIZONTAL );
                     fprintf( Output, "%c", DOUBLE_HORIZONTAL );
                     if ( s != nCellsHor-1 )
+                    {
                         if ( s&1 )
                             fprintf( Output, "%c", DOUBLES_CROSS );
                         else
                             fprintf( Output, "%c", S_VER_CROSS_D_HOR );
+                    }
                 }
                 fprintf( Output, "%c", D_JOINS_D_VER_LEFT );
             }
@@ -433,10 +439,12 @@ void Extra_PrintKMap(
                     fprintf( Output, "%c", SINGLE_HORIZONTAL );
                     fprintf( Output, "%c", SINGLE_HORIZONTAL );
                     if ( s != nCellsHor-1 )
+                    {
                         if ( s&1 )
                             fprintf( Output, "%c", S_HOR_CROSS_D_VER );
                         else
                             fprintf( Output, "%c", SINGLES_CROSS );
+                    }
                 }
                 fprintf( Output, "%c", S_JOINS_D_VER_LEFT );
             }
@@ -454,10 +462,12 @@ void Extra_PrintKMap(
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         if ( s != nCellsHor-1 )
+        {
             if ( s&1 )
                 fprintf( Output, "%c", D_JOINS_D_HOR_TOP );
             else
                 fprintf( Output, "%c", S_JOINS_D_HOR_TOP );
+        }
     }
     fprintf( Output, "%c", DOUBLE_BOT_RIGHT );
     fprintf( Output, "\n" );
@@ -588,10 +598,12 @@ void Extra_PrintKMapRelation(
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         if ( s != nCellsHor-1 )
+        {
             if ( s&1 )
                 fprintf( Output, "%c", D_JOINS_D_HOR_BOT );
             else
                 fprintf( Output, "%c", S_JOINS_D_HOR_BOT );
+        }
     }
     fprintf( Output, "%c", DOUBLE_TOP_RIGHT );
     fprintf( Output, "\n" );
@@ -651,10 +663,12 @@ void Extra_PrintKMapRelation(
             fprintf( Output, " " );
 
             if ( h != nCellsHor-1 )
+            {
                 if ( h&1 )
                     fprintf( Output, "%c", DOUBLE_VERTICAL );
                 else
                     fprintf( Output, "%c", SINGLE_VERTICAL );
+            }
         }
         fprintf( Output, "%c", DOUBLE_VERTICAL );
         fprintf( Output, "\n" );
@@ -674,10 +688,12 @@ void Extra_PrintKMapRelation(
                     fprintf( Output, "%c", DOUBLE_HORIZONTAL );
                     fprintf( Output, "%c", DOUBLE_HORIZONTAL );
                     if ( s != nCellsHor-1 )
+                    {
                         if ( s&1 )
                             fprintf( Output, "%c", DOUBLES_CROSS );
                         else
                             fprintf( Output, "%c", S_VER_CROSS_D_HOR );
+                    }
                 }
                 fprintf( Output, "%c", D_JOINS_D_VER_LEFT );
             }
@@ -690,10 +706,12 @@ void Extra_PrintKMapRelation(
                     fprintf( Output, "%c", SINGLE_HORIZONTAL );
                     fprintf( Output, "%c", SINGLE_HORIZONTAL );
                     if ( s != nCellsHor-1 )
+                    {
                         if ( s&1 )
                             fprintf( Output, "%c", S_HOR_CROSS_D_VER );
                         else
                             fprintf( Output, "%c", SINGLES_CROSS );
+                    }
                 }
                 fprintf( Output, "%c", S_JOINS_D_VER_LEFT );
             }
@@ -711,10 +729,12 @@ void Extra_PrintKMapRelation(
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         fprintf( Output, "%c", DOUBLE_HORIZONTAL );
         if ( s != nCellsHor-1 )
+        {
             if ( s&1 )
                 fprintf( Output, "%c", D_JOINS_D_HOR_TOP );
             else
                 fprintf( Output, "%c", S_JOINS_D_HOR_TOP );
+        }
     }
     fprintf( Output, "%c", DOUBLE_BOT_RIGHT );
     fprintf( Output, "\n" );

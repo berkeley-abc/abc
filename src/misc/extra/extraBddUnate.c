@@ -395,7 +395,7 @@ extraZddUnateInfoCompute(
     }
     assert( bVars != b1 );
 
-    if ( zRes = cuddCacheLookup2Zdd(dd, extraZddUnateInfoCompute, bFunc, bVars) )
+    if ( (zRes = cuddCacheLookup2Zdd(dd, extraZddUnateInfoCompute, bFunc, bVars)) )
         return zRes;
     else
     {
@@ -573,7 +573,7 @@ DdNode * extraZddGetSingletonsBoth(
     if ( bVars == b1 )
         return z1;
 
-    if ( zRes = cuddCacheLookup1Zdd(dd, extraZddGetSingletonsBoth, bVars) )
+    if ( (zRes = cuddCacheLookup1Zdd(dd, extraZddGetSingletonsBoth, bVars)) )
         return zRes;
     else
     {

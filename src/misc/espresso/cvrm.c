@@ -357,7 +357,7 @@ int i;
  *
  *  Each function returns TRUE if process is to continue
  */
-foreach_output_function(PLA, func, func1)
+void foreach_output_function(PLA, func, func1)
 pPLA PLA;
 int (*func)();
 int (*func1)();

@@ -84,7 +84,7 @@ void reoUnitsRecycleUnit( reo_man * p, reo_unit * pUnit )
 void reoUnitsRecycleUnitList( reo_man * p, reo_plane * pPlane )
 {
     reo_unit * pUnit;
-    reo_unit * pTail;
+    reo_unit * pTail = NULL; // Suppress "might be used uninitialized"
 
     if ( pPlane->pHead == NULL )
         return;

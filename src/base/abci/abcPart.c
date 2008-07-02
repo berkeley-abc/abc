@@ -115,7 +115,7 @@ char * Supp_ManFetch( Supp_Man_t * p, int nSize )
     assert( nSize > 0 );
     Type = Supp_SizeType( nSize, p->nStepSize );
     Vec_PtrFillExtra( p->vFree, Type + 1, NULL );
-    if ( pMemory = Vec_PtrEntry( p->vFree, Type ) )
+    if ( (pMemory = Vec_PtrEntry( p->vFree, Type )) )
     {
         Vec_PtrWriteEntry( p->vFree, Type, Supp_OneNext(pMemory) );
         return pMemory;
@@ -321,9 +321,9 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
     int i;
     // set the number of PIs/POs
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pNext = (Abc_Obj_t *)i;
+        pObj->pNext = (Abc_Obj_t *)(PORT_PTRINT_T)i;
     Abc_NtkForEachCo( pNtk, pObj, i )
-        pObj->pNext = (Abc_Obj_t *)i;
+        pObj->pNext = (Abc_Obj_t *)(PORT_PTRINT_T)i;
     // start the support computation manager
     p = Supp_ManStart( 1 << 20, 1 << 6 );
     // consider objects in the topological order
@@ -353,7 +353,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
             if ( Abc_ObjIsNode(Abc_ObjFanin0(pObj)) )
             {
                 vSupp = Supp_ManTransferEntry(pPart0);
-                Vec_IntPush( vSupp, (int)pObj->pNext );
+                Vec_IntPush( vSupp, (int)(PORT_PTRINT_T)pObj->pNext );
                 Vec_PtrPush( vSupports, vSupp );
             }
             assert( pPart0->nRefs > 0 );
@@ -366,7 +366,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
             if ( Abc_ObjFanoutNum(pObj) )
             {
                 pPart0 = (Supp_One_t *)Supp_ManFetchEntry( p, 1, Abc_ObjFanoutNum(pObj) );
-                pPart0->pOuts[ pPart0->nOuts++ ] = (int)pObj->pNext;
+                pPart0->pOuts[ pPart0->nOuts++ ] = (int)(PORT_PTRINT_T)pObj->pNext;
                 pObj->pCopy = (Abc_Obj_t *)pPart0;
             }
             continue;
@@ -417,7 +417,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsNaive( Abc_Ntk_t * pNtk )
     int i, k;
     // set the PI numbers
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pNext = (void *)i;
+        pObj->pNext = (void *)(PORT_PTRINT_T)i;
     // save the CI numbers
     vSupports = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
@@ -427,7 +427,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsNaive( Abc_Ntk_t * pNtk )
         vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vSuppI = (Vec_Int_t *)vSupp;
         Vec_PtrForEachEntry( vSupp, pTemp, k )
-            Vec_IntWriteEntry( vSuppI, k, (int)pTemp->pNext );
+            Vec_IntWriteEntry( vSuppI, k, (int)(PORT_PTRINT_T)pTemp->pNext );
         Vec_IntSort( vSuppI, 0 );
         // append the number of this output
         Vec_IntPush( vSuppI, i );

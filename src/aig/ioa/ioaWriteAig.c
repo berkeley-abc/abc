@@ -208,13 +208,13 @@ Vec_Str_t * Ioa_WriteEncodeLiterals( Vec_Int_t * vLits )
     int Pos = 0, Lit, LitPrev, Diff, i;
     vBinary = Vec_StrAlloc( 2 * Vec_IntSize(vLits) );
     LitPrev = Vec_IntEntry( vLits, 0 );
-    Pos = Ioa_WriteAigerEncode( Vec_StrArray(vBinary), Pos, LitPrev ); 
+    Pos = Ioa_WriteAigerEncode( (unsigned char *)Vec_StrArray(vBinary), Pos, LitPrev ); 
     Vec_IntForEachEntryStart( vLits, Lit, i, 1 )
     {
         Diff = Lit - LitPrev;
         Diff = (Lit < LitPrev)? -Diff : Diff;
         Diff = (Diff << 1) | (int)(Lit < LitPrev);
-        Pos = Ioa_WriteAigerEncode( Vec_StrArray(vBinary), Pos, Diff );
+        Pos = Ioa_WriteAigerEncode( (unsigned char *)Vec_StrArray(vBinary), Pos, Diff );
         LitPrev = Lit;
         if ( Pos + 10 > vBinary->nCap )
             Vec_StrGrow( vBinary, vBinary->nCap+1 );
@@ -254,7 +254,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
 //    Bar_Progress_t * pProgress;
     FILE * pFile;
     Aig_Obj_t * pObj, * pDriver;
-    int i, nNodes, Pos, nBufferSize;
+    int i, nNodes, nBufferSize, Pos;
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
 

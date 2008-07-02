@@ -99,10 +99,11 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreatePi(pMan);
     // complement the 1-values registers
-    if ( fRegisters )
+    if ( fRegisters ) {
         Abc_NtkForEachLatch( pNtk, pObj, i )
             if ( Abc_LatchIsInit1(pObj) )
                 Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNot(Abc_ObjFanout0(pObj)->pCopy);
+    }
     // perform the conversion of the internal nodes (assumes DFS ordering)
 //    pMan->fAddStrash = 1;
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -1894,7 +1895,7 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelation
 {
     Abc_Ntk_t * pNtkOn1, * pNtkOff1, * pNtkInter1, * pNtkInter;
     Abc_Obj_t * pObj;
-    int i, clk = clock();
+    int i; //, clk = clock();
     if ( Abc_NtkCoNum(pNtkOn) != Abc_NtkCoNum(pNtkOff) )
     {
         printf( "Currently works only for networks with equal number of POs.\n" );

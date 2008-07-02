@@ -231,7 +231,6 @@ Dec_Edge_t Dec_FactorTrivial( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
     Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Vec_Int_t * vEdgeCubes = pManDec->vCubes;
     Vec_Int_t * vEdgeLits  = pManDec->vLits;
-    Mvc_Manager_t * pMem = pManDec->pMvcMem;
     Dec_Edge_t eNode;
     Mvc_Cube_t * pCube;
     // create the factored form for each cube

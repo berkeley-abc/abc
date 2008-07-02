@@ -96,7 +96,7 @@ void Ivy_ManAddMemory( Ivy_Man_t * p )
     pMemory = ALLOC( char, nBytes );
     Vec_PtrPush( p->vChunks, pMemory );
     // align memory at the 32-byte boundary
-    pMemory = pMemory + EntrySizeMax - (((int)pMemory) & (EntrySizeMax-1));
+    pMemory = pMemory + EntrySizeMax - (((int)(PORT_PTRUINT_T)pMemory) & (EntrySizeMax-1));
     // remember the manager in the first entry
     Vec_PtrPush( p->vPages, pMemory );
     // break the memory down into nodes

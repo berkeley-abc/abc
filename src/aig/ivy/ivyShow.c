@@ -44,7 +44,7 @@ static void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig, Vec_
 void Ivy_ManShow( Ivy_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold )
 {
     extern void Abc_ShowFile( char * FileNameDot );
-    static Counter = 0;
+    static int Counter = 0;
     char FileNameDot[200];
     FILE * pFile;
     // create the file name

@@ -106,7 +106,7 @@ int Ntl_ModelCheck( Ntl_Mod_t * pModel, int fMain )
     {
         if ( Ntl_ModelLatchNum(pModel) > 0 )
         {
-            printf( "Root level model has %d registers.\n", pModel->pName, Ntl_ModelLatchNum(pModel) );
+            printf( "Root level model %s has %d registers.\n", pModel->pName, Ntl_ModelLatchNum(pModel) );
             fStatus = 0;
         }
         goto checkobjs;

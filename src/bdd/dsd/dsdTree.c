@@ -38,11 +38,6 @@ static void Dsd_NodePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char
 static int s_DepthMax;
 static int s_GateSizeMax;
 
-static int s_CounterBlocks;
-static int s_CounterPos;
-static int s_CounterNeg;
-static int s_CounterNo;
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -1009,7 +1004,6 @@ DdNode * Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fR
 {
     DdNode * bCof0,  * bCof1, * bCube0, * bCube1, * bNewFunc, * bTemp;
     int i;
-    int fAllBuffs = 1;
     static int Permute[MAXINPUTS];
 
     assert( pNode );

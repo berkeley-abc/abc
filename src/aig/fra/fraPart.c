@@ -76,7 +76,7 @@ clk = clock();
     {
         vSup = Vec_VecEntry( vSupps, i );
         Vec_IntForEachEntry( vSup, Entry, k )
-            Vec_VecPush( vSuppsIn, Entry, (void *)i );
+            Vec_VecPush( vSuppsIn, Entry, (void *)(PORT_PTRUINT_T)i );
     }
 PRT( "Inverse ", clock() - clk );
 
@@ -212,7 +212,7 @@ clk = clock();
             break;
         vSup = Vec_VecEntry( vSupps, i );
         Vec_IntForEachEntry( vSup, Entry, k )
-            Vec_VecPush( vSuppsIn, Entry, (void *)i );
+            Vec_VecPush( vSuppsIn, Entry, (void *)(PORT_PTRUINT_T)i );
     }
 PRT( "Inverse ", clock() - clk );
 

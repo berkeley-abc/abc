@@ -107,7 +107,7 @@
 // copied from "extra.h" for stand-aloneness
 #define Fraig_PrintTime(a,t)      printf( "%s = ", (a) ); printf( "%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC) )
 
-#define Fraig_HashKey2(a,b,TSIZE) (((unsigned)(a) + (unsigned)(b) * 12582917) % TSIZE)
+#define Fraig_HashKey2(a,b,TSIZE) (((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b) * 12582917) % TSIZE)
 //#define Fraig_HashKey2(a,b,TSIZE) (( ((unsigned)(a)->Num * 19) ^ ((unsigned)(b)->Num * 1999) ) % TSIZE)
 //#define Fraig_HashKey2(a,b,TSIZE) ( ((unsigned)((a)->Num + (b)->Num) * ((a)->Num + (b)->Num + 1) / 2) % TSIZE)
 // the other two hash functions give bad distribution of hash chain lengths (not clear why)

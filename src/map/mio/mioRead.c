@@ -16,6 +16,7 @@
 
 ***********************************************************************/
 
+#include <ctype.h>
 #include "mioInt.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -33,10 +34,6 @@ static Mio_Pin_t *  Mio_LibraryReadPin( char ** ppToken, bool fExtendedFormat );
 static char *       chomp( char *s );
 static void         Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib );
 static void         Io_ReadFileRemoveComments( char * pBuffer, int * pnDots, int * pnLines );
-
-#ifdef WIN32
-extern int          isspace( int c );  // to silence the warning in VS
-#endif
 
 /**Function*************************************************************
 

@@ -116,7 +116,7 @@ Hop_Obj_t * Hop_And( Hop_Man_t * p, Hop_Obj_t * p0, Hop_Obj_t * p1 )
 //        return Hop_Exor( p, pFan0, pFan1 );
     // check the table
     pGhost = Hop_ObjCreateGhost( p, p0, p1, AIG_AND );
-    if ( pResult = Hop_TableLookup( p, pGhost ) )
+    if ( (pResult = Hop_TableLookup( p, pGhost )) )
         return pResult;
     return Hop_ObjCreate( p, pGhost );
 }

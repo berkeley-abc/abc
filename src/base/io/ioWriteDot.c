@@ -95,7 +95,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     }
 
     // transform logic functions from BDD to SOP
-    if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
+    if ( (fHasBdds = Abc_NtkIsBddLogic(pNtk)) )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
@@ -430,7 +430,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     }
 
     // transform logic functions from BDD to SOP
-    if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
+    if ( (fHasBdds = Abc_NtkIsBddLogic(pNtk)) )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {

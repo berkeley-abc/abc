@@ -37,7 +37,6 @@ static unsigned Map_MappingExpandTruth_rec( unsigned uTruth, int nVars );
 static void Map_MappingGetChoiceLevels( Map_Man_t * pMan, Map_Node_t * p1, Map_Node_t * p2, int * pMin, int * pMax );
 static float Map_MappingGetChoiceVolumes( Map_Man_t * pMan, Map_Node_t * p1, Map_Node_t * p2 );
 static int Map_MappingCountUsedNodes( Map_Man_t * pMan, int fChoices );
-static Map_Man_t * s_pMan = NULL;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

@@ -338,9 +338,9 @@ void Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUs
 //        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
 //        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
         if (  Arrival1 > Arrival2 ||
-              Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level || 
-              Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level && 
-              Abc_NodeDroppingCost(pNodeMin) < Abc_NodeDroppingCost(pNode)  )
+              (Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level) ||
+              (Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level &&
+              Abc_NodeDroppingCost(pNodeMin) < Abc_NodeDroppingCost(pNode))  )
             pNodeMin = pNode;
     }
 
@@ -358,9 +358,9 @@ void Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUs
 //        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
 //        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
         if (  Arrival1 > Arrival2 ||
-              Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level || 
-              Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level && 
-              Abc_NodeDroppingCost(pNodeMin) < Abc_NodeDroppingCost(pNode)  )
+              (Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level) ||
+              (Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level &&
+              Abc_NodeDroppingCost(pNodeMin) < Abc_NodeDroppingCost(pNode))  )
             pNodeMin = pNode;
     }
 

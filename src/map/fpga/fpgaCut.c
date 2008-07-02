@@ -418,8 +418,8 @@ Fpga_Cut_t * Fpga_CutMergeLists( Fpga_Man_t * p, Fpga_CutTable_t * pTable,
             // create the signature
             pCut->uSign = pTemp1->uSign | pTemp2->uSign;
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == FPGA_CUTS_MAX_COMPUTE )
@@ -453,8 +453,8 @@ Fpga_Cut_t * Fpga_CutMergeLists( Fpga_Man_t * p, Fpga_CutTable_t * pTable,
             // create the signature
             pCut->uSign = pTemp1->uSign | pTemp2->uSign;
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == FPGA_CUTS_MAX_COMPUTE )
@@ -493,8 +493,8 @@ Fpga_Cut_t * Fpga_CutMergeLists( Fpga_Man_t * p, Fpga_CutTable_t * pTable,
             // create the signature
             pCut->uSign = pTemp1->uSign | pTemp2->uSign;
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == FPGA_CUTS_MAX_COMPUTE )
@@ -560,8 +560,8 @@ Fpga_Cut_t * Fpga_CutMergeLists2( Fpga_Man_t * p, Fpga_CutTable_t * pTable,
             pCut->pOne = Fpga_CutNotCond( pTemp1, fComp1 );
             pCut->pTwo = Fpga_CutNotCond( pTemp2, fComp2 );
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == FPGA_CUTS_MAX_COMPUTE )

@@ -206,10 +206,12 @@ DdNode ** Aig_ManCreatePartitions( DdManager * dd, Aig_Man_t * p, int fReorder, 
 int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, DdNode * bInitial, DdNode ** pbOutputs, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
 {
     int fInternalReorder = 0;
-    Bbr_ImageTree_t * pTree;
-    Bbr_ImageTree2_t * pTree2;
+    Bbr_ImageTree_t * pTree = NULL; // Suppress "might be used uninitialized"
+    Bbr_ImageTree2_t * pTree2 = NULL; // Supprses "might be used uninitialized"
     DdNode * bReached, * bCubeCs;
-    DdNode * bCurrent, * bNext, * bTemp;
+    DdNode * bCurrent;
+    DdNode * bNext = NULL; // Suppress "might be used uninitialized"
+    DdNode * bTemp;
     DdNode ** pbVarsY;
     Aig_Obj_t * pLatch;
     int i, nIters, nBddSize;

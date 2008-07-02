@@ -295,7 +295,8 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
 {
     Super_Gate_t * pSupers[6], * pGate0, * pGate1, * pGate2, * pGate3, * pGate4, * pGate5, * pGateNew;
     float tPinDelaysRes[6], * ptPinDelays[6], tPinDelayMax, tDelayMio;
-    float Area, Area0, Area1, Area2, Area3, Area4, AreaMio;
+    float Area = 0.0; // Suppress "might be used uninitialized"
+    float Area0, Area1, Area2, Area3, Area4, AreaMio;
     unsigned uTruth[2], uTruths[6][2];
     int i0, i1, i2, i3, i4, i5; 
     Super_Gate_t ** ppGatesLimit;
@@ -731,7 +732,7 @@ void Super_AddGateToTable( Super_Man_t * pMan, Super_Gate_t * pGate )
     unsigned Key;
 //    Key = pGate->uTruth[0] + 2003 * pGate->uTruth[1];
     Key = pGate->uTruth[0] ^ pGate->uTruth[1];
-    if ( !stmm_find_or_add( pMan->tTable, (char *)Key, (char ***)&ppList ) )
+    if ( !stmm_find_or_add( pMan->tTable, (char *)(PORT_PTRUINT_T)Key, (char ***)&ppList ) )
         *ppList = NULL;
     pGate->pNext = *ppList;
     *ppList = pGate;
@@ -772,7 +773,7 @@ bool Super_CompareGates( Super_Man_t * pMan, unsigned uTruth[], float Area, floa
     // get hold of the place where the entry is stored
 //    Key = uTruth[0] + 2003 * uTruth[1];
     Key = uTruth[0] ^ uTruth[1];
-    if ( !stmm_find( pMan->tTable, (char *)Key, (char ***)&ppList ) )
+    if ( !stmm_find( pMan->tTable, (char *)(PORT_PTRUINT_T)Key, (char ***)&ppList ) )
         return 1; 
     // the entry with this truth table is found
     pPrev = NULL;

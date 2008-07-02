@@ -183,7 +183,7 @@ int Dsd_CheckRootFunctionIdentity_rec( DdManager * dd, DdNode * bF1, DdNode * bF
          pCache->pTable[HKey].bX[3] == bC2 )
     {
         pCache->nSuccess++;
-        return (int)pCache->pTable[HKey].bX[4]; // the last bit records the result (yes/no)
+        return (int)(PORT_PTRUINT_T)pCache->pTable[HKey].bX[4]; // the last bit records the result (yes/no)
     }
     else
     {
@@ -302,7 +302,7 @@ int Dsd_CheckRootFunctionIdentity_rec( DdManager * dd, DdNode * bF1, DdNode * bF
         // set cache
         for ( i = 0; i < 4; i++ )
             pCache->pTable[HKey].bX[i] = bA[i];
-        pCache->pTable[HKey].bX[4] = (DdNode*)RetValue;
+        pCache->pTable[HKey].bX[4] = (DdNode*)(PORT_PTRUINT_T)RetValue;
 
         return RetValue;
     }

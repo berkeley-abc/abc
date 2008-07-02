@@ -151,7 +151,8 @@ Aig_Man_t * Saig_ManDuplicated( Aig_Man_t * p )
 Aig_Man_t * Saig_ManTransformed( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pCtrl;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    Aig_Obj_t * pCtrl = NULL; // Suppress "might be used uninitialized"
     int i;
     assert( Aig_ManRegNum(p) > 0 );
     // create the new manager
@@ -583,12 +584,6 @@ p->timeCnf += clock() - clk;
                 printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 
                     i+1, i + 1 + p->nFrames, Aig_ManNodeNum(p->pInter), Aig_ManLevelNum(p->pInter), p->nConfCur );
                 PRT( "Time", clock() - clk );
-                if ( Aig_ManNodeNum(p->pInter) == 0 )
-                {
-                    Aig_Obj_t * pObj = Aig_ManPo(p->pInter, 0);
-                    Aig_Obj_t * pObjR = Aig_Regular(pObj);
-                    int x = 0;
-                }
             }
             if ( RetValue == 0 ) // found a (spurious?) counter-example
             {

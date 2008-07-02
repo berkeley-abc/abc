@@ -575,11 +575,11 @@ DdNode * extraBddSpaceFromFunction( DdManager * dd, DdNode * bF, DdNode * bG )
     // both bFunc and bCore are not constants
 
     // the operation is commutative - normalize the problem
-    if ( (unsigned)bF > (unsigned)bG )
+    if ( (unsigned)(PORT_PTRUINT_T)bF > (unsigned)(PORT_PTRUINT_T)bG )
         return extraBddSpaceFromFunction(dd, bG, bF);
 
 
-    if ( bRes = cuddCacheLookup2(dd, extraBddSpaceFromFunction, bF, bG) )
+    if ( (bRes = cuddCacheLookup2(dd, extraBddSpaceFromFunction, bF, bG)) )
         return bRes;
     else
     {
@@ -741,7 +741,7 @@ DdNode * extraBddSpaceFromFunctionPos( DdManager * dd, DdNode * bF )
     if ( cuddIsConstant(bFR) )
         return b1;
 
-    if ( bRes = cuddCacheLookup1(dd, extraBddSpaceFromFunctionPos, bF) )
+    if ( (bRes = cuddCacheLookup1(dd, extraBddSpaceFromFunctionPos, bF)) )
         return bRes;
     else
     {
@@ -872,7 +872,7 @@ DdNode * extraBddSpaceFromFunctionNeg( DdManager * dd, DdNode * bF )
     if ( cuddIsConstant(bFR) )
         return b0;
 
-    if ( bRes = cuddCacheLookup1(dd, extraBddSpaceFromFunctionNeg, bF) )
+    if ( (bRes = cuddCacheLookup1(dd, extraBddSpaceFromFunctionNeg, bF)) )
         return bRes;
     else
     {
@@ -1003,7 +1003,7 @@ DdNode * extraBddSpaceCanonVars( DdManager * dd, DdNode * bF )
     if ( cuddIsConstant(bFR) )
         return bF;
 
-    if ( bRes = cuddCacheLookup1(dd, extraBddSpaceCanonVars, bF) )
+    if ( (bRes = cuddCacheLookup1(dd, extraBddSpaceCanonVars, bF)) )
         return bRes;
     else
     {
@@ -1075,7 +1075,7 @@ DdNode * extraBddSpaceEquationsPos( DdManager * dd, DdNode * bF )
     if ( bF == b1 )
         return z0;
     
-    if ( zRes = cuddCacheLookup1Zdd(dd, extraBddSpaceEquationsPos, bF) )
+    if ( (zRes = cuddCacheLookup1Zdd(dd, extraBddSpaceEquationsPos, bF)) )
         return zRes;
     else
     {
@@ -1205,7 +1205,7 @@ DdNode * extraBddSpaceEquationsNeg( DdManager * dd, DdNode * bF )
     if ( bF == b1 )
         return z0;
     
-    if ( zRes = cuddCacheLookup1Zdd(dd, extraBddSpaceEquationsNeg, bF) )
+    if ( (zRes = cuddCacheLookup1Zdd(dd, extraBddSpaceEquationsNeg, bF)) )
         return zRes;
     else
     {
@@ -1337,7 +1337,7 @@ DdNode * extraBddSpaceFromMatrixPos( DdManager * dd, DdNode * zA )
     if ( zA == z1 )
         return b1;
 
-    if ( bRes = cuddCacheLookup1(dd, extraBddSpaceFromMatrixPos, zA) )
+    if ( (bRes = cuddCacheLookup1(dd, extraBddSpaceFromMatrixPos, zA)) )
         return bRes;
     else
     {
@@ -1455,7 +1455,7 @@ DdNode * extraBddSpaceFromMatrixNeg( DdManager * dd, DdNode * zA )
     if ( zA == z1 )
         return b0;
 
-    if ( bRes = cuddCacheLookup1(dd, extraBddSpaceFromMatrixNeg, zA) )
+    if ( (bRes = cuddCacheLookup1(dd, extraBddSpaceFromMatrixNeg, zA)) )
         return bRes;
     else
     {

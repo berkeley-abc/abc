@@ -813,7 +813,9 @@ clk = clock();
     p->nClauses = Vec_IntSize( p->vClauses );
     if ( Vec_IntSize( p->vClausesProven ) > 0 )
     {
-        int RetValue, k, Beg, End, * pStart;
+        int RetValue, k, Beg;
+        int End = -1; // Suppress "might be used uninitialized"
+        int * pStart;
         // reset the solver
         if ( p->pSatMain )  sat_solver_delete( p->pSatMain );
         p->pSatMain = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );

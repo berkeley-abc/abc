@@ -306,7 +306,7 @@ Super2_Lib_t * Super2_LibFirst( Super2_Man_t * pMan, int nInputs )
     {
         pLib->pGates[v+1] = (Super2_Gate_t *)Extra_MmFixedEntryFetch( pMan->pMem );
         memset( pLib->pGates[v+1], 0, sizeof(Super2_Gate_t) );
-        pLib->pGates[v+1]->pTwo = (Super2_Gate_t *)v;
+        pLib->pGates[v+1]->pTwo = (Super2_Gate_t *)(PORT_PTRUINT_T)v;
     }
 
     // set up their truth tables
@@ -347,7 +347,7 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
     {
         uTruthR = ((pGate1->uTruth & pLibNew->uMaskBit)? Mask & ~pGate1->uTruth : pGate1->uTruth);
 
-        if ( stmm_lookup( pMan->tTable, (char *)uTruthR, (char **)&pGate2 ) )
+        if ( stmm_lookup( pMan->tTable, (char *)(PORT_PTRUINT_T)uTruthR, (char **)&pGate2 ) )
         {
             printf( "New gate:\n" );
             Super2_LibWriteGate( stdout, pLibNew, pGate1 );
@@ -355,7 +355,7 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
             Super2_LibWriteGate( stdout, pLibNew, pGate2 );
             assert( 0 );
         }
-        stmm_insert( pMan->tTable, (char *)uTruthR, (char *)pGate1 );
+        stmm_insert( pMan->tTable, (char *)(PORT_PTRUINT_T)uTruthR, (char *)(PORT_PTRUINT_T)pGate1 );
     }
 
 
@@ -382,7 +382,7 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
             uTruth  = uTruth1  & uTruth2;
             uTruthR = ((uTruth & pLibNew->uMaskBit)? Mask & ~uTruth : uTruth);
 
-            if ( !stmm_find_or_add( pMan->tTable, (char *)uTruthR, (char ***)&ppGate ) )
+            if ( !stmm_find_or_add( pMan->tTable, (char *)(PORT_PTRUINT_T)uTruthR, (char ***)&ppGate ) )
             {
                 pGateNew = (Super2_Gate_t *)Extra_MmFixedEntryFetch( pMan->pMem );
                 pGateNew->pOne  = pGate1;
@@ -396,7 +396,7 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
             uTruth  = uTruth1c & uTruth2;
             uTruthR = ((uTruth & pLibNew->uMaskBit)? Mask & ~uTruth : uTruth);
 
-            if ( !stmm_find_or_add( pMan->tTable, (char *)uTruthR, (char ***)&ppGate ) )
+            if ( !stmm_find_or_add( pMan->tTable, (char *)(PORT_PTRUINT_T)uTruthR, (char ***)&ppGate ) )
             {
                 pGateNew = (Super2_Gate_t *)Extra_MmFixedEntryFetch( pMan->pMem );
                 pGateNew->pOne  = Super2_Not(pGate1);
@@ -410,7 +410,7 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
             uTruth  = uTruth1  & uTruth2c;
             uTruthR = ((uTruth & pLibNew->uMaskBit)? Mask & ~uTruth : uTruth);
 
-            if ( !stmm_find_or_add( pMan->tTable, (char *)uTruthR, (char ***)&ppGate ) )
+            if ( !stmm_find_or_add( pMan->tTable, (char *)(PORT_PTRUINT_T)uTruthR, (char ***)&ppGate ) )
             {
                 pGateNew = (Super2_Gate_t *)Extra_MmFixedEntryFetch( pMan->pMem );
                 pGateNew->pOne  = pGate1;
@@ -424,7 +424,7 @@ Super2_Lib_t * Super2_LibCompute( Super2_Man_t * pMan, Super2_Lib_t * pLib )
             uTruth  = uTruth1c & uTruth2c;
             uTruthR = ((uTruth & pLibNew->uMaskBit)? Mask & ~uTruth : uTruth);
 
-            if ( !stmm_find_or_add( pMan->tTable, (char *)uTruthR, (char ***)&ppGate ) )
+            if ( !stmm_find_or_add( pMan->tTable, (char *)(PORT_PTRUINT_T)uTruthR, (char ***)&ppGate ) )
             {
                 pGateNew = (Super2_Gate_t *)Extra_MmFixedEntryFetch( pMan->pMem );
                 pGateNew->pOne  = Super2_Not(pGate1);
@@ -600,7 +600,7 @@ char * Super2_LibWriteGate_rec( Super2_Gate_t * pGate, int fInv, int Level )
         }
         else
         {
-            pBuffer1[0] = (fInv? 'A' + ((int)pGate->pTwo): 'a' + ((int)pGate->pTwo));
+            pBuffer1[0] = (fInv? 'A' + ((int)(PORT_PTRUINT_T)pGate->pTwo): 'a' + ((int)(PORT_PTRUINT_T)pGate->pTwo));
             pBuffer1[1] = 0;
         }
         return pBuffer1;

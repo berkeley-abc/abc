@@ -219,8 +219,8 @@ pcube RAISE, FREESET;
     if ((dist = cdist01(p, r)) > 1) goto exit_if;
 #else
  {register int w,last;register unsigned int x;dist=0;if((last=cube.inword)!=-1)
-{x=p[last]&r[last];if(x=~(x|x>>1)&cube.inmask)if((dist=count_ones(x))>1)goto
-exit_if;for(w=1;w<last;w++){x=p[w]&r[w];if(x=~(x|x>>1)&DISJOINT)if(dist==1||(
+{x=p[last]&r[last];if((x=~(x|x>>1)&cube.inmask))if((dist=count_ones(x))>1)goto
+exit_if;for(w=1;w<last;w++){x=p[w]&r[w];if((x=~(x|x>>1)&DISJOINT))if(dist==1||(
 dist+=count_ones(x))>1)goto exit_if;}}}{register int w,var,last;register pcube
 mask;for(var=cube.num_binary_vars;var<cube.num_vars;var++){mask=cube.var_mask[
 var];last=cube.last_word[var];for(w=cube.first_word[var];w<=last;w++)if(p[w]&r[
@@ -403,7 +403,9 @@ pcover BB, CC;
 pcube RAISE, FREESET, SUPER_CUBE;
 int *num_covered;
 {
-    register pcube p, last, bestfeas, *feas;
+    register pcube p, last;
+    register pcube bestfeas = NULL; // Suppress "might be used uninitialized"
+    register pcube *feas;
     register int i, j;
     pcube *feas_new_lower;
     int bestcount, bestsize, count, size, numfeas, lastfeas;
@@ -527,8 +529,8 @@ pcube c, RAISE, new_lower;
     if ((dist = cdist01(p, r)) > 1) goto exit_if;
 #else
  {register int w,last;register unsigned int x;dist=0;if((last=cube.inword)!=-1)
-{x=p[last]&r[last];if(x=~(x|x>>1)&cube.inmask)if((dist=count_ones(x))>1)goto
-exit_if;for(w=1;w<last;w++){x=p[w]&r[w];if(x=~(x|x>>1)&DISJOINT)if(dist==1||(
+{x=p[last]&r[last];if((x=~(x|x>>1)&cube.inmask))if((dist=count_ones(x))>1)goto
+exit_if;for(w=1;w<last;w++){x=p[w]&r[w];if((x=~(x|x>>1)&DISJOINT))if(dist==1||(
 dist+=count_ones(x))>1)goto exit_if;}}}{register int w,var,last;register pcube
 mask;for(var=cube.num_binary_vars;var<cube.num_vars;var++){mask=cube.var_mask[
 var];last=cube.last_word[var];for(w=cube.first_word[var];w<=last;w++)if(p[w]&r[

@@ -193,14 +193,14 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
         Aig_ManIncrementTravId( p->pCare );
         Vec_PtrForEachEntry( p->vSupp, pFanin, i )
         {
-            pPi = Aig_ManPi( p->pCare, (int)pFanin->pData );
+            pPi = Aig_ManPi( p->pCare, (int)(PORT_PTRUINT_T)pFanin->pData );
             Aig_ObjSetTravIdCurrent( p->pCare, pPi );
             pPi->pData = pFanin->pCopy;
         }
         // construct the constraints
         Vec_PtrForEachEntry( p->vSupp, pFanin, i )
         {
-            vOuts = Vec_PtrEntry( p->vSuppsInv, (int)pFanin->pData );
+            vOuts = Vec_PtrEntry( p->vSuppsInv, (int)(PORT_PTRUINT_T)pFanin->pData );
             Vec_IntForEachEntry( vOuts, iOut, k )
             {
                 pPo = Aig_ManPo( p->pCare, iOut );
@@ -280,7 +280,7 @@ Aig_Man_t * Abc_NtkAigForConstraints( Mfs_Man_t * p, Abc_Obj_t * pNode )
     Aig_ManIncrementTravId( p->pCare );
     Vec_PtrForEachEntry( p->vSupp, pFanin, i )
     {
-        pPi = Aig_ManPi( p->pCare, (int)pFanin->pData );
+        pPi = Aig_ManPi( p->pCare, (int)(PORT_PTRUINT_T)pFanin->pData );
         Aig_ObjSetTravIdCurrent( p->pCare, pPi );
         pPi->pData = Aig_ObjCreatePi(pMan);
     }
@@ -288,7 +288,7 @@ Aig_Man_t * Abc_NtkAigForConstraints( Mfs_Man_t * p, Abc_Obj_t * pNode )
     pObjRoot = Aig_ManConst1(pMan);
     Vec_PtrForEachEntry( p->vSupp, pFanin, i )
     {
-        vOuts = Vec_PtrEntry( p->vSuppsInv, (int)pFanin->pData );
+        vOuts = Vec_PtrEntry( p->vSuppsInv, (int)(PORT_PTRUINT_T)pFanin->pData );
         Vec_IntForEachEntry( vOuts, iOut, k )
         {
             pPo = Aig_ManPo( p->pCare, iOut );

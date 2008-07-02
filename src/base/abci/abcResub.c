@@ -164,9 +164,10 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLeve
     if ( fUpdateLevel )
         Abc_NtkStartReverseLevels( pNtk, 0 );
 
-    if ( Abc_NtkLatchNum(pNtk) )
+    if ( Abc_NtkLatchNum(pNtk) ) {
         Abc_NtkForEachLatch(pNtk, pNode, i)
             pNode->pNext = pNode->pData;
+    }
 
     // resynthesize each node once
     pManRes->nNodesBeg = Abc_NtkNodeNum(pNtk);
@@ -249,9 +250,10 @@ pManRes->timeTotal = clock() - clkStart;
     Abc_NtkForEachObj( pNtk, pNode, i )
         pNode->pData = NULL;
 
-    if ( Abc_NtkLatchNum(pNtk) )
+    if ( Abc_NtkLatchNum(pNtk) ) {
         Abc_NtkForEachLatch(pNtk, pNode, i)
             pNode->pData = pNode->pNext, pNode->pNext = NULL;
+    }
 
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );
@@ -1131,7 +1133,7 @@ Dec_Graph_t * Abc_ManResubDivs1( Abc_ManRes_t * p, int Required )
 ***********************************************************************/
 Dec_Graph_t * Abc_ManResubDivs12( Abc_ManRes_t * p, int Required )
 {
-    Abc_Obj_t * pObj0, * pObj1, * pObj2, * pObjMax, * pObjMin0, * pObjMin1;
+    Abc_Obj_t * pObj0, * pObj1, * pObj2, * pObjMax, * pObjMin0 = NULL, * pObjMin1 = NULL;
     unsigned * puData0, * puData1, * puData2, * puDataR;
     int i, k, j, w, LevelMax;
     puDataR = p->pRoot->pData;
@@ -1169,6 +1171,8 @@ Dec_Graph_t * Abc_ManResubDivs12( Abc_ManRes_t * p, int Required )
                     }
 
                     p->nUsedNode2Or++;
+                    assert(pObjMin0);
+                    assert(pObjMin1);
                     return Abc_ManResubQuit21( p->pRoot, pObjMin0, pObjMin1, pObjMax, 1 );
                 }
             }
@@ -1208,6 +1212,8 @@ Dec_Graph_t * Abc_ManResubDivs12( Abc_ManRes_t * p, int Required )
                     }
 
                     p->nUsedNode2And++;
+                    assert(pObjMin0);
+                    assert(pObjMin1);
                     return Abc_ManResubQuit21( p->pRoot, pObjMin0, pObjMin1, pObjMax, 0 );
                 }
             }
@@ -1341,7 +1347,7 @@ Dec_Graph_t * Abc_ManResubDivs3( Abc_ManRes_t * p, int Required )
 {
     Abc_Obj_t * pObj0, * pObj1, * pObj2, * pObj3;
     unsigned * puData0, * puData1, * puData2, * puData3, * puDataR;
-    int i, k, w, Flag;
+    int i, k, w = 0, Flag;
     puDataR = p->pRoot->pData;
     // check positive unate divisors
     Vec_PtrForEachEntry( p->vDivs2UP0, pObj0, i )
@@ -1653,7 +1659,7 @@ p->timeSim += clock() - clk;
 
 clk = clock();
     // consider constants
-    if ( pGraph = Abc_ManResubQuit( p ) )
+    if ( (pGraph = Abc_ManResubQuit( p )) )
     {
         p->nUsedNodeC++;
         p->nLastGain = p->nMffc;
@@ -1661,7 +1667,7 @@ clk = clock();
     }
 
     // consider equal nodes
-    if ( pGraph = Abc_ManResubDivs0( p ) )
+    if ( (pGraph = Abc_ManResubDivs0( p )) )
     {
 p->timeRes1 += clock() - clk;
         p->nUsedNode0++;
@@ -1678,7 +1684,7 @@ p->timeRes1 += clock() - clk;
     Abc_ManResubDivsS( p, Required );
 
     // consider one node
-    if ( pGraph = Abc_ManResubDivs1( p, Required ) )
+    if ( (pGraph = Abc_ManResubDivs1( p, Required )) )
     {
 p->timeRes1 += clock() - clk;
         p->nLastGain = p->nMffc - 1;
@@ -1690,7 +1696,7 @@ p->timeRes1 += clock() - clk;
 
 clk = clock();
     // consider triples
-    if ( pGraph = Abc_ManResubDivs12( p, Required ) )
+    if ( (pGraph = Abc_ManResubDivs12( p, Required )) )
     {
 p->timeRes2 += clock() - clk;
         p->nLastGain = p->nMffc - 2;
@@ -1705,7 +1711,7 @@ p->timeResD += clock() - clk;
 
     // consider two nodes
 clk = clock();
-    if ( pGraph = Abc_ManResubDivs2( p, Required ) )
+    if ( (pGraph = Abc_ManResubDivs2( p, Required )) )
     {
 p->timeRes2 += clock() - clk;
         p->nLastGain = p->nMffc - 2;
@@ -1717,7 +1723,7 @@ p->timeRes2 += clock() - clk;
 
     // consider two nodes
 clk = clock();
-    if ( pGraph = Abc_ManResubDivs3( p, Required ) )
+    if ( (pGraph = Abc_ManResubDivs3( p, Required )) )
     {
 p->timeRes3 += clock() - clk;
         p->nLastGain = p->nMffc - 3;
@@ -1880,7 +1886,7 @@ Vec_Ptr_t * Abc_CutFactorLarge( Abc_Obj_t * pNode, int nLeavesMax )
     vFeasible = Vec_IntAlloc( nLeavesMax );
     while ( 1 )
     {
-        BestCut = -1;
+        BestCut = -1, BestShare = -1;
         // find the next feasible cut to add
         Vec_IntClear( vFeasible );
         Vec_PtrForEachEntry( vFactors, vFact, i )

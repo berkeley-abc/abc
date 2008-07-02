@@ -937,7 +937,8 @@ cuddCProjectionRecur(
 {
     DdNode *res, *res1, *res2, *resA;
     DdNode *r, *y, *RT, *RE, *YT, *YE, *Yrest, *Ra, *Ran, *Gamma, *Alpha;
-    unsigned int topR, topY, top, index;
+    unsigned int topR, topY, top;
+    unsigned int index = 0; // Suppress "might be used uninitialized"
     DdNode *one = DD_ONE(dd);
 
     statLine(dd);

@@ -118,7 +118,7 @@ void Sim_UtilInfoDetectDiffs( unsigned * pInfo1, unsigned * pInfo2, int nWords, 
     unsigned uMask;
     vDiffs->nSize = 0;
     for ( w = 0; w < nWords; w++ )
-        if ( uMask = (pInfo2[w] ^ pInfo1[w]) )
+        if ( (uMask = (pInfo2[w] ^ pInfo1[w])) )
             for ( b = 0; b < 32; b++ )
                 if ( uMask & (1 << b) )
                     Vec_IntPush( vDiffs, 32*w + b );
@@ -141,7 +141,7 @@ void Sim_UtilInfoDetectNews( unsigned * pInfo1, unsigned * pInfo2, int nWords, V
     unsigned uMask;
     vDiffs->nSize = 0;
     for ( w = 0; w < nWords; w++ )
-        if ( uMask = (pInfo2[w] & ~pInfo1[w]) )
+        if ( (uMask = (pInfo2[w] & ~pInfo1[w])) )
             for ( b = 0; b < 32; b++ )
                 if ( uMask & (1 << b) )
                     Vec_IntPush( vDiffs, 32*w + b );

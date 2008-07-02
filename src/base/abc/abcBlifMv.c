@@ -43,7 +43,7 @@ void Abc_NtkStartMvVars( Abc_Ntk_t * pNtk )
 {
     Vec_Att_t * pAttMan;
     assert( Abc_NtkMvVar(pNtk) == NULL );
-    pAttMan = Vec_AttAlloc( 0, Abc_NtkObjNumMax(pNtk) + 1, Extra_MmFlexStart(), Extra_MmFlexStop, NULL, NULL );
+    pAttMan = Vec_AttAlloc( Abc_NtkObjNumMax(pNtk) + 1, Extra_MmFlexStart(), (void(*)(void*))Extra_MmFlexStop, NULL, NULL );
     Vec_PtrWriteEntry( pNtk->vAttrs, VEC_ATTR_MVVAR, pAttMan );
 //printf( "allocing attr\n" );
 }

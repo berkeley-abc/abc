@@ -709,7 +709,8 @@ int Abc_NtkMaxFlowVerifyCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward
 ***********************************************************************/
 void Abc_NtkMaxFlowPrintFlow( Abc_Ntk_t * pNtk, int fForward )
 {
-    Abc_Obj_t * pLatch, * pNext, * pPrev;
+    Abc_Obj_t * pLatch, * pNext;
+    Abc_Obj_t * pPrev = NULL; // Suppress "might be used uninitialized"
     int i;
     if ( fForward )
     {

@@ -198,7 +198,6 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
     Bdc_Par_t Pars = {0}, * pDecPars = &Pars;
     Bar_Progress_t * pProgress;
     Mfx_Man_t * p;
-    Tim_Man_t * pManTimeOld = NULL;
     Nwk_Obj_t * pObj;
     Vec_Vec_t * vLevels;
     Vec_Ptr_t * vNodes;

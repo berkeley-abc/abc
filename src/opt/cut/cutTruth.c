@@ -30,9 +30,10 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern int nTotal = 0;
-extern int nGood  = 0;
-extern int nEqual = 0;
+// used in abcCut.c
+int nTotal = 0;
+int nGood  = 0;
+int nEqual = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

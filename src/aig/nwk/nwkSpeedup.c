@@ -221,8 +221,8 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
         printf( "\n" );
     }
     // mark the timing critical nodes and edges
-    puTCEdges = ALLOC( int, Nwk_ManObjNumMax(pNtk) );
-    memset( puTCEdges, 0, sizeof(int) * Nwk_ManObjNumMax(pNtk) );
+    puTCEdges = ALLOC( unsigned, Nwk_ManObjNumMax(pNtk) );
+    memset( puTCEdges, 0, sizeof(unsigned) * Nwk_ManObjNumMax(pNtk) );
     Nwk_ManForEachNode( pNtk, pNode, i )
     {
         if ( Nwk_ObjSlack(pNode) >= tDelta )

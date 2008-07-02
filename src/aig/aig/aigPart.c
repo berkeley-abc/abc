@@ -1514,10 +1514,6 @@ void Aig_ManChoiceEval( Aig_Man_t * p )
     {
         if ( !Aig_ObjIsChoice(p, pNode) )
             continue; 
-        if ( pNode->Id == 4225 )
-        {
-            int x = 0;
-        }
         Counter = 0;
         for ( pTemp = pNode; pTemp; pTemp = Aig_ObjEquiv(p, pTemp) )
             Counter++;

@@ -211,7 +211,9 @@ IN int (*compare)();
 int rm_contain(A1)
 INOUT pset *A1;                 /* updated in place */
 {
-    register pset *pa, *pb, *pcheck, a, b;
+    register pset *pa, *pb;
+    register pset *pcheck = NULL; // Suppress "might be used uninitialized"
+    register pset a, b;
     pset *pdest = A1;
     int last_size = -1;
 
@@ -239,7 +241,9 @@ INOUT pset *A1;                 /* updated in place */
 int rm_rev_contain(A1)
 INOUT pset *A1;                 /* updated in place */
 {
-    register pset *pa, *pb, *pcheck, a, b;
+    register pset *pa, *pb;
+    register pset *pcheck = NULL; // Suppress "might be used uninitialized"
+    register pset a, b;
     pset *pdest = A1;
     int last_size = -1;
 

@@ -1357,7 +1357,8 @@ Cudd_bddPickArbitraryMinterms(
     DdNode **old, *neW;
     double minterms;
     char *saveString;
-    int saveFlag, savePoint, isSame;
+    int saveFlag, isSame;
+    int savePoint = 0; // Suppress "might be used uninitialized"
 
     minterms = Cudd_CountMinterm(dd,f,n);
     if ((double)k > minterms) {

@@ -35,9 +35,10 @@ stats_t *stats;
 solution_t **best;
 {
     register sm_row *prow, *save_sec;
-    register sm_col *c1, *c2;
+    register sm_col *c1 = NULL, *c2 = NULL; // Suppress "might be used uninitialized"
     register sm_element *p, *p1;
-    int c1_col_num, c2_col_num, primary_row_num, secondary_row_num;
+    int c1_col_num, c2_col_num;
+    int primary_row_num = -1, secondary_row_num = -1; // Suppress "might be used uninitialized"
     int reduce_it; 
 
     reduce_it = 0;

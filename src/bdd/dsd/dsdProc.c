@@ -48,27 +48,21 @@ static int dsdKernelVerifyDecomposition( Dsd_Manager_t * pDsdMan, Dsd_Node_t * p
 static int s_Mark;
 
 // debugging flag
-static int s_Show = 0;
+//static int s_Show = 0;
 // temporary var used for debugging
 static int Depth = 0;
 
 static int s_Loops1;
 static int s_Loops2;
 static int s_Loops3;
-static int s_Pivot;
-static int s_PivotNo;
 static int s_Common;
 static int s_CommonNo;
 
 static int s_Case4Calls;
 static int s_Case4CallsSpecial;
 
-static int s_Case5;
-static int s_Loops2Useless;
-
-
-static int s_DecNodesTotal;
-static int s_DecNodesUsed;
+//static int s_Case5;
+//static int s_Loops2Useless;
 
 // statistical variables
 static int   s_nDecBlocks;
@@ -76,10 +70,6 @@ static int   s_nLiterals;
 static int   s_nExorGates; 
 static int   s_nReusedBlocks;
 static int   s_nCascades;
-static float s_nArea;    
-static float s_MaxDelay;
-static long  s_Time;
-static int   s_nInvertors;
 static int   s_nPrimeBlocks;
 
 static int HashSuccess = 0;
@@ -451,14 +441,14 @@ if ( s_Show )
     if ( fContained )
     {
         Dsd_Node_t * pSmall, * pLarge;
-        int c, iCompLarge; // the number of the component is Large is equal to the whole of Small
+        int c, iCompLarge = -1; // the number of the component is Large is equal to the whole of Small; suppress "might be used uninitialized"
         int fLowIsLarge;
 
         DdNode * bFTemp;     // the changed input function
         Dsd_Node_t * pDETemp, * pDENew;
 
         Dsd_Node_t * pComp = NULL;
-        int  nComp;
+        int  nComp = -1; // Suppress "might be used uninitialized"
 
         if ( pSmallR == pLR )
         { // Low is Small => High is Large
@@ -495,7 +485,7 @@ if ( s_Show )
             // as discribed in the previous example.
 
             // find the component, which when substituted for 0 or 1, produces the desired result
-            int g, fFoundComp; // {0,1} depending on whether setting cofactor to 0 or 1 worked out
+            int g, fFoundComp = -1; // {0,1} depending on whether setting cofactor to 0 or 1 worked out; suppress "might be used uninitialized"
 
             DdNode * bLarge, * bSmall;
             if ( fLowIsLarge )
@@ -575,7 +565,7 @@ if ( s_Show )
 
             // try to find a group of common components
             if ( pLargeR->Type == pSmallR->Type &&
-                (pLargeR->Type == DSD_NODE_EXOR || pSmallR->Type == DSD_NODE_OR&& ((pLarge==pLargeR) == (pSmall==pSmallR))) )
+                (pLargeR->Type == DSD_NODE_EXOR || (pSmallR->Type == DSD_NODE_OR && ((pLarge==pLargeR) == (pSmall==pSmallR)))) )
             {
                 Dsd_Node_t ** pCommon, * pLastDiffL = NULL, * pLastDiffH = NULL; 
                 int nCommon = dsdKernelFindCommonComponents( pDsdMan, pLargeR, pSmallR, &pCommon, &pLastDiffL, &pLastDiffH );
@@ -618,12 +608,12 @@ if ( s_Show )
                     //              <>    <> .......<=>... /..|..<> | 
                     //             /        \             /   |    \|
                     //          [OR]        [C]          S1   S2    C 
-                    //          /  \
-                    //        <>    \
-                    //       /       \
-                    //     [OR]      [x]
-                    //     /  \
-                    //    S1   S2
+                    //          /  \      .
+                    //        <>    \     .
+                    //       /       \    .
+                    //     [OR]      [x]  .
+                    //     /  \           .
+                    //    S1   S2         .
                     //
 
 
@@ -673,12 +663,12 @@ if ( s_Show )
                 //              /     \                /  |  \  | 
                 //             /        \             /   |    \|
                 //          [OR]        [C]          S1   S2    C 
-                //          /  \
-                //        <>    \
-                //       /       \
-                //    [XOR]      [x]
-                //     /  \
-                //    S1   S2
+                //          /  \     .
+                //        <>    \    .
+                //       /       \   .
+                //    [XOR]      [x] .
+                //     /  \          .
+                //    S1   S2        .
                 //
 
                 assert( fComp2 == 0 );
@@ -740,7 +730,7 @@ if ( s_Show )
     // and if they are PRIME, their dec numbers should be the same
     if ( pLR->Type == pHR->Type && 
          pLR->Type != DSD_NODE_BUF &&           
-        (pLR->Type != DSD_NODE_OR    || ( pL == pLR && pH == pHR || pL != pLR && pH != pHR ) ) &&
+        (pLR->Type != DSD_NODE_OR    || ( (pL == pLR && pH == pHR) || (pL != pLR && pH != pHR) ) ) &&
         (pLR->Type != DSD_NODE_PRIME || pLR->nDecs == pHR->nDecs)  )
     {
         // array to store common comps in pL and pH
@@ -947,7 +937,8 @@ if ( s_Show )
     int nEntries = 0;
 
     DdNode * SuppL, * SuppH, * SuppL_init, * SuppH_init;
-    Dsd_Node_t *pHigher, *pLower, * pTemp, * pDENew;
+    Dsd_Node_t *pHigher = NULL; // Suppress "might be used uninitialized"
+        Dsd_Node_t *pLower, * pTemp, * pDENew;
 
 
     int levTopSuppL;
@@ -1146,7 +1137,7 @@ if ( s_Show )
                     pMarkedLeft[ nMarkedLeft ] = pTempL;
                     pMarkedPols[ nMarkedLeft ] = fPolarity;
                     nMarkedLeft++;
-                } while ( pTempL = dsdKernelFindContainingComponent( pDsdMan, pTempL, bVarTop, &fPolarity ) );
+                } while ( (pTempL = dsdKernelFindContainingComponent( pDsdMan, pTempL, bVarTop, &fPolarity )) );
 
                 // go over the dec list of pH, and find the component that is marked and the previos one
                 // (such component always exists, because they have common variables)
@@ -1431,7 +1422,8 @@ int dsdKernelFindCommonComponents( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pL, Dsd
 void dsdKernelComputeSumOfComponents( Dsd_Manager_t * pDsdMan, Dsd_Node_t ** pCommon, int nCommon, DdNode ** pCompF, DdNode ** pCompS, int fExor )
 {
     DdManager * dd = pDsdMan->dd;
-    DdNode * bF, * bS, * bFadd, * bTemp;
+    DdNode * bF, * bFadd, * bTemp;
+        DdNode * bS = NULL; // Suppress "might be used uninitialized"
     Dsd_Node_t * pDE, * pDER;
     int i;
 
@@ -1565,7 +1557,6 @@ int dsdKernelVerifyDecomposition( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pDE )
 {
     DdManager * dd = pDsdMan->dd;
     Dsd_Node_t * pR    = Dsd_Regular(pDE);
-    int fCompP = (int)( pDE != pR );
     int RetValue;
 
     DdNode * bRes;

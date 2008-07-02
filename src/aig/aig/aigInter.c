@@ -51,7 +51,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
     Cnf_Dat_t * pCnfOn, * pCnfOff;
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
-    int clk = clock();
+//    int clk = clock();
 
     assert( Aig_ManPiNum(pManOn) == Aig_ManPiNum(pManOff) );
     assert( Aig_ManPoNum(pManOn) == Aig_ManPoNum(pManOff) );
@@ -154,7 +154,7 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
     int clk;
-    int iLast;
+    int iLast = -1; // Suppress "might be used uninitialized"
 
     assert( Aig_ManPiNum(pManOn) == Aig_ManPiNum(pManOff) );
 

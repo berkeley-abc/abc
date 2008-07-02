@@ -88,7 +88,7 @@ DdNode * Kit_SopToBdd( DdManager * dd, Kit_Sop_t * cSop, int nVars )
 DdNode * Kit_GraphToBdd( DdManager * dd, Kit_Graph_t * pGraph )
 {
     DdNode * bFunc, * bFunc0, * bFunc1;
-    Kit_Node_t * pNode;
+    Kit_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     int i;
 
     // sanity checks

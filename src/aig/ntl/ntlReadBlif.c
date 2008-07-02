@@ -18,8 +18,10 @@
 
 ***********************************************************************/
 
+// The code in this file is developed in collaboration with Mark Jarvin of Toronto.
+
 #include "ntl.h"
-#include <bzlib.h>
+#include "bzlib.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -803,7 +805,7 @@ static int Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine )
     p->pNtk = Ntl_ModelAlloc( p->pMan->pDesign, Vec_PtrEntry(vTokens, 1) );
     if ( p->pNtk == NULL )
     {
-        sprintf( p->pMan->sError, "Line %d: Model %s already exists.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1) );
+        sprintf( p->pMan->sError, "Line %d: Model %s already exists.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
         return 0;
     }
     return 1;
@@ -961,7 +963,7 @@ static int Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine )
         pObj->LatchId.regInit = 2;
     if ( pObj->LatchId.regInit < 0 || pObj->LatchId.regInit > 2 )
     {
-        sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens,3) );
+        sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
         return 0;
     }
     // get the register class
@@ -988,7 +990,7 @@ static int Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine )
     }
     if ( pObj->LatchId.regClass < 0 || pObj->LatchId.regClass > (1<<24) )
     {
-        sprintf( p->pMan->sError, "Line %d: Class of the latch is incorrect \"%s\".", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens,3) );
+        sprintf( p->pMan->sError, "Line %d: Class of the latch is incorrect \"%s\".", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
         return 0;
     }
     // get the clock
@@ -1134,7 +1136,7 @@ static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
     Delay = atof( pTokenNum );
     if ( Delay == 0.0 && pTokenNum[0] != '0' )
     {
-        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntryLast(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntryLast(vTokens) );
         return 0;
     }
     // find the PI/PO numbers
@@ -1144,7 +1146,7 @@ static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
         RetValue1 = Ntl_ModelFindPioNumber( p->pNtk, 0, 0, Vec_PtrEntry(vTokens, 1), &Number1 );
         if ( RetValue1 == 0 )
         {
-            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1) );
+            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
             return 0;
         }
     }
@@ -1154,14 +1156,14 @@ static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
         RetValue2 = Ntl_ModelFindPioNumber( p->pNtk, 0, 0, Vec_PtrEntry(vTokens, 2), &Number2 );
         if ( RetValue2 == 0 )
         {
-            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 2) );
+            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 2) );
             return 0;
         }
     }
     if ( RetValue1 == RetValue2 && RetValue1 )
     {
         sprintf( p->pMan->sError, "Line %d: Both signals \"%s\" and \"%s\" listed appear to be PIs or POs.", 
-            Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1), Vec_PtrEntry(vTokens, 2) );
+            Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1), (char*)Vec_PtrEntry(vTokens, 2) );
         return 0;
     }
     if ( RetValue2 < RetValue1 )
@@ -1219,7 +1221,7 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
         Delay = atof( pTokenNum );
     if ( Delay == 0.0 && pTokenNum[0] != '0' )
     {
-        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntryLast(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntryLast(vTokens) );
         return 0;
     }
     // find the PI/PO numbers
@@ -1230,7 +1232,7 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
             RetValue = Ntl_ModelFindPioNumber( p->pNtk, 0, 1, Vec_PtrEntry(vTokens, 1), &Number );
             if ( RetValue == 0 )
             {
-                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among POs.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1) );
+                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among POs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
                 return 0;
             }
         }
@@ -1247,7 +1249,7 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
             RetValue = Ntl_ModelFindPioNumber( p->pNtk, 1, 0, Vec_PtrEntry(vTokens, 1), &Number );
             if ( RetValue == 0 )
             {
-                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1) );
+                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
                 return 0;
             }
         }

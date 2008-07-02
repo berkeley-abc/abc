@@ -72,7 +72,7 @@ Ivy_Man_t * Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
         Ivy_ObjCreatePo( pNew, Ivy_EdgeToNode(pNew, NewNodeId) );
     }
     Vec_VecFree( vStore );
-    if ( i = Ivy_ManCleanup( pNew ) )
+    if ( (i = Ivy_ManCleanup( pNew )) )
     {
 //        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
     }

@@ -355,8 +355,8 @@ Map_Cut_t * Map_CutMergeLists( Map_Man_t * p, Map_CutTable_t * pTable,
 //            if ( p->nVarsMax == 5 )
 //            pCut->uTruth = Map_CutComputeTruth( p, pCut, pTemp1, pTemp2, fComp1, fComp2 );
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == MAP_CUTS_MAX_COMPUTE )
@@ -389,8 +389,8 @@ Map_Cut_t * Map_CutMergeLists( Map_Man_t * p, Map_CutTable_t * pTable,
 //            if ( p->nVarsMax == 5 )
 //            pCut->uTruth = Map_CutComputeTruth( p, pCut, pTemp1, pTemp2, fComp1, fComp2 );
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == MAP_CUTS_MAX_COMPUTE )
@@ -426,8 +426,8 @@ Map_Cut_t * Map_CutMergeLists( Map_Man_t * p, Map_CutTable_t * pTable,
 //            if ( p->nVarsMax == 5 )
 //            pCut->uTruth = Map_CutComputeTruth( p, pCut, pTemp1, pTemp2, fComp1, fComp2 );
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == MAP_CUTS_MAX_COMPUTE )
@@ -493,8 +493,8 @@ Map_Cut_t * Map_CutMergeLists2( Map_Man_t * p, Map_CutTable_t * pTable,
             pCut->pOne = Map_CutNotCond( pTemp1, fComp1 );
             pCut->pTwo = Map_CutNotCond( pTemp2, fComp2 );
             // add it to the corresponding list
-            pCut->pNext = pLists[pCut->nLeaves];
-            pLists[pCut->nLeaves] = pCut;
+            pCut->pNext = pLists[(int)pCut->nLeaves];
+            pLists[(int)pCut->nLeaves] = pCut;
             // count this cut and quit if limit is reached
             Counter++;
             if ( Counter == MAP_CUTS_MAX_COMPUTE )

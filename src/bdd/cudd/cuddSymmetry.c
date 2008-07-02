@@ -1445,10 +1445,10 @@ ddSymmGroupMove(
   Move ** moves)
 {
     Move *move;
-    int     size;
+    int     size = 0; // Suppress "might be used uninitialized"
     int  i,j;
     int  xtop,xbot,xsize,ytop,ybot,ysize,newxtop;
-    int  swapx,swapy;
+    int  swapx = 0,swapy = 0; // Suppress "might be used uninitialized"
 
 #if DD_DEBUG
     assert(x < y);    /* we assume that x < y */
@@ -1524,7 +1524,7 @@ ddSymmGroupMoveBackward(
   int  x,
   int  y)
 {
-    int    size;
+    int    size = 0; // Suppress "might be used uninitialized"
     int i,j;
     int    xtop,xbot,xsize,ytop,ybot,ysize,newxtop;
 

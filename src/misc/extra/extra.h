@@ -93,21 +93,21 @@ typedef unsigned long long uint64;
 
 // hash key macros
 #define hashKey1(a,TSIZE) \
-((unsigned)(a) % TSIZE)
+((PORT_PTRUINT_T)(a) % TSIZE)
 
 #define hashKey2(a,b,TSIZE) \
-(((unsigned)(a) + (unsigned)(b) * DD_P1) % TSIZE)
+(((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b) * DD_P1) % TSIZE)
 
 #define hashKey3(a,b,c,TSIZE) \
-(((((unsigned)(a) + (unsigned)(b)) * DD_P1 + (unsigned)(c)) * DD_P2 ) % TSIZE)
+(((((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b)) * DD_P1 + (PORT_PTRUINT_T)(c)) * DD_P2 ) % TSIZE)
 
 #define hashKey4(a,b,c,d,TSIZE) \
-((((((unsigned)(a) + (unsigned)(b)) * DD_P1 + (unsigned)(c)) * DD_P2 + \
-   (unsigned)(d)) * DD_P3) % TSIZE)
+((((((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b)) * DD_P1 + (PORT_PTRUINT_T)(c)) * DD_P2 + \
+   (PORT_PTRUINT_T)(d)) * DD_P3) % TSIZE)
 
 #define hashKey5(a,b,c,d,e,TSIZE) \
-(((((((unsigned)(a) + (unsigned)(b)) * DD_P1 + (unsigned)(c)) * DD_P2 + \
-   (unsigned)(d)) * DD_P3 + (unsigned)(e)) * DD_P1) % TSIZE)
+(((((((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b)) * DD_P1 + (PORT_PTRUINT_T)(c)) * DD_P2 + \
+   (PORT_PTRUINT_T)(d)) * DD_P3 + (PORT_PTRUINT_T)(e)) * DD_P1) % TSIZE)
 
 #ifndef PRT
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))

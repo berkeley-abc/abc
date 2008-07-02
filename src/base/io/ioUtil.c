@@ -101,7 +101,7 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     if ( pFile == NULL )
     {
         fprintf( stdout, "Cannot open input file \"%s\". ", pFileName );
-        if ( pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" )) )
             fprintf( stdout, "Did you mean \"%s\"?", pFileName );
         fprintf( stdout, "\n" );
        return NULL;
@@ -715,7 +715,7 @@ FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mo
     }
     else
     {
-        if ( c = Abc_FrameReadFlag( (char*)PathVar ) )
+        if ( (c = Abc_FrameReadFlag( (char*)PathVar )) )
         {
             char ActualFileName[4096];
             FILE * fp = 0;

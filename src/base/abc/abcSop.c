@@ -804,7 +804,7 @@ bool Abc_SopCheck( char * pSop, int nFanins )
         if ( pCubes - pCubesOld != nFanins )
         {
             fprintf( stdout, "Abc_SopCheck: SOP has a mismatch between its cover size (%d) and its fanin number (%d).\n",
-                pCubes - pCubesOld, nFanins );
+                (int)(PORT_PTRDIFF_T)(pCubes - pCubesOld), nFanins );
             return 0;
         }
         // check the output values for this cube

@@ -577,7 +577,7 @@ cuddSwapping(
     int    iterate;
     int previousSize;
     Move *moves, *move;
-    int    pivot;
+    int    pivot = 0; // Suppress "might be used uninitialized"
     int    modulo;
     int result;
 
@@ -2005,7 +2005,7 @@ ddUpdateMtrTree(
   int * invperm)
 {
     int    i, size, index, level;
-    int    minLevel, maxLevel, minIndex;
+    int    minLevel = table->size, maxLevel = 0, minIndex = 0; // Suppress "might be used uninitialized"
 
     if (treenode == NULL) return(1);
 

@@ -1536,9 +1536,9 @@ void Abc_NtkTransferCopy( Abc_Ntk_t * pNtk )
 static inline int Abc_ObjCrossCutInc( Abc_Obj_t * pObj )
 {
 //    pObj->pCopy = (void *)(((int)pObj->pCopy)++);
-    int Value = (int)pObj->pCopy;
-    pObj->pCopy = (void *)(Value + 1);
-    return (int)pObj->pCopy == Abc_ObjFanoutNum(pObj);
+    int Value = (int)(PORT_PTRINT_T)pObj->pCopy;
+    pObj->pCopy = (void *)(PORT_PTRINT_T)(Value + 1);
+    return (int)(PORT_PTRINT_T)pObj->pCopy == Abc_ObjFanoutNum(pObj);
 }
 
 /**Function*************************************************************

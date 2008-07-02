@@ -77,7 +77,7 @@ int Nm_ManTableAdd( Nm_Man_t * p, Nm_Entry_t * pEntry )
     pEntry->pNextI2N = *ppSpot;
     *ppSpot = pEntry;
     // check if an entry with the same name already exists
-    if ( pOther = Nm_ManTableLookupName(p, pEntry->Name, -1) )
+    if ( (pOther = Nm_ManTableLookupName(p, pEntry->Name, -1)) )
     {
         // entry with the same name already exists - add it to the ring
         pEntry->pNameSake = pOther->pNameSake? pOther->pNameSake : pOther;
@@ -188,7 +188,6 @@ Nm_Entry_t * Nm_ManTableLookupId( Nm_Man_t * p, int ObjId )
 Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, int Type )
 {
     Nm_Entry_t * pEntry, * pTemp;
-    int Counter = 0;
     for ( pEntry = p->pBinsN2I[ Nm_HashString(pName, p->nBins) ]; pEntry; pEntry = pEntry->pNextN2I )
     {
         // check the entry itself

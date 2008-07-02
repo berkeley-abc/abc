@@ -199,7 +199,7 @@ void Rwt_Man5ExploreStart()
 void Rwt_Man5ExploreCount( unsigned uTruth )
 {
     int * pCounter;
-    if ( !stmm_find_or_add( s_pManRwrExp5->tTableNN, (char *)uTruth, (char***)&pCounter ) )
+    if ( !stmm_find_or_add( s_pManRwrExp5->tTableNN, (char *)(PORT_PTRUINT_T)uTruth, (char***)&pCounter ) )
         *pCounter = 0;
     (*pCounter)++;
 }
@@ -271,7 +271,7 @@ void Rwt_Man5ExplorePrint()
     pFile = fopen( "nnclass_stats5.txt", "w" );
     Vec_IntForEachEntry( vClassesNN, uTruth, i )
     {
-        if ( !stmm_lookup( s_pManRwrExp5->tTableNN, (char *)uTruth, (char **)&Counter ) )
+        if ( !stmm_lookup( s_pManRwrExp5->tTableNN, (char *)(PORT_PTRUINT_T)uTruth, (char **)&Counter ) )
         {
             assert( 0 );
         }
@@ -288,9 +288,9 @@ clk = clock();
     {
         int * pCounter;
         uTruthC = Extra_TruthCanonNPN( uTruth, 5 );
-        if ( !stmm_find_or_add( s_pManRwrExp5->tTableNPN, (char *)uTruthC, (char***)&pCounter ) )
+        if ( !stmm_find_or_add( s_pManRwrExp5->tTableNPN, (char *)(PORT_PTRUINT_T)uTruthC, (char***)&pCounter ) )
             *pCounter = 0;
-        if ( !stmm_lookup( s_pManRwrExp5->tTableNN, (char *)uTruth, (char **)&Counter ) )
+        if ( !stmm_lookup( s_pManRwrExp5->tTableNN, (char *)(PORT_PTRUINT_T)uTruth, (char **)&Counter ) )
         {
             assert( 0 );
         }
@@ -309,7 +309,7 @@ PRT( "Computing NPN classes", clock() - clk );
     pFile = fopen( "npnclass_stats5.txt", "w" );
     Vec_IntForEachEntry( vClassesNPN, uTruth, i )
     {
-        if ( !stmm_lookup( s_pManRwrExp5->tTableNPN, (char *)uTruth, (char **)&Counter ) )
+        if ( !stmm_lookup( s_pManRwrExp5->tTableNPN, (char *)(PORT_PTRUINT_T)uTruth, (char **)&Counter ) )
         {
             assert( 0 );
         }
@@ -323,8 +323,6 @@ PRT( "Computing NPN classes", clock() - clk );
     // can they be uniquely characterized?
 
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

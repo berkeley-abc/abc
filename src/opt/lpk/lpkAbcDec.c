@@ -143,7 +143,6 @@ Abc_Obj_t * Lpk_Implement( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeav
 ***********************************************************************/
 int Lpk_Decompose_rec( Lpk_Man_t * pMan, Lpk_Fun_t * p )
 {
-    static Lpk_Res_t Res0, * pRes0 = &Res0;
     Lpk_Res_t * pResMux, * pResDsd;
     Lpk_Fun_t * p2;
     int clk;

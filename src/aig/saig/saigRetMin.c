@@ -150,13 +150,14 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
         printf( "\n" );
     }
     // collect the nodes
-    if ( fVeryVerbose )
-    Aig_ManForEachObj( p, pObj, i )
-        if ( pCnf->pVarNums[pObj->Id] >= 0 && pVars[ pCnf->pVarNums[pObj->Id] ] == 1 )
-        {
-            Aig_ObjPrint( p, pObj );
-            printf( "\n" );
-        }
+    if ( fVeryVerbose ) {
+      Aig_ManForEachObj( p, pObj, i )
+          if ( pCnf->pVarNums[pObj->Id] >= 0 && pVars[ pCnf->pVarNums[pObj->Id] ] == 1 )
+          {
+              Aig_ObjPrint( p, pObj );
+              printf( "\n" );
+          }
+    }
     // pick the first PO in the list
     nPos = 0;
     iBadPo = -1;

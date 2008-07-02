@@ -267,7 +267,7 @@ clk = clock();
     nNodesAdded = Dec_GraphToNetworkCount( pNode, pFForm, nNodesSaved, Required );
 p->timeEval += clock() - clk;
     // quit if there is no improvement
-    if ( nNodesAdded == -1 || nNodesAdded == nNodesSaved && !fUseZeros )
+    if ( nNodesAdded == -1 || (nNodesAdded == nNodesSaved && !fUseZeros) )
     {
         Cudd_RecursiveDeref( p->dd, bNodeFunc );
         Dec_GraphFree( pFForm );

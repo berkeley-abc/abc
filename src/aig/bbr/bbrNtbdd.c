@@ -48,7 +48,6 @@ static inline void     Aig_ObjCleanGlobalBdd( DdManager * dd, Aig_Obj_t * pObj )
 DdNode * Bbr_NodeGlobalBdds_rec( DdManager * dd, Aig_Obj_t * pNode, int nBddSizeMax, int fDropInternal, ProgressBar * pProgress, int * pCounter, int fVerbose )
 {
     DdNode * bFunc, * bFunc0, * bFunc1;
-    int fDetectMuxes = 1;
     assert( !Aig_IsComplement(pNode) );
     if ( Cudd_ReadKeys(dd)-Cudd_ReadDead(dd) > (unsigned)nBddSizeMax )
     {

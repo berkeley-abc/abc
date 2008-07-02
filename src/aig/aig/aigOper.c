@@ -236,7 +236,7 @@ Aig_Obj_t * Aig_Exor( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
     p1 = Aig_Regular(p1);
     pGhost = Aig_ObjCreateGhost( p, p0, p1, AIG_OBJ_EXOR );
     // check the table
-    if ( pResult = Aig_TableLookup( p, pGhost ) )
+    if ( (pResult = Aig_TableLookup( p, pGhost )) )
         return Aig_NotCond( pResult, fCompl );
     pResult = Aig_ObjCreate( p, pGhost );
     return Aig_NotCond( pResult, fCompl );

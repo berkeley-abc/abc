@@ -79,7 +79,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             Weight1 = Fxu_HeapSingleReadMaxWeight( p->pHeapSingle );
             if ( pData->fVerbose )
                 printf( "Div %5d : Best single = %5d.\r", Counter++, Weight1 );
-            if ( Weight1 > 0 || Weight1 == 0 && pData->fUse0 )
+            if ( Weight1 > 0 || (Weight1 == 0 && pData->fUse0) )
                 Fxu_UpdateSingle( p );
             else
                 break;
@@ -94,7 +94,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
             if ( pData->fVerbose )
                 printf( "Div %5d : Best double = %5d.\r", Counter++, Weight2 );
-            if ( Weight2 > 0 || Weight2 == 0 && pData->fUse0 )
+            if ( Weight2 > 0 || (Weight2 == 0 && pData->fUse0) )
                 Fxu_UpdateDouble( p );
             else
                 break;
@@ -115,14 +115,14 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
 
             if ( Weight1 >= Weight2 )
             {
-                if ( Weight1 > 0 || Weight1 == 0 && pData->fUse0 )
+                if ( Weight1 > 0 || (Weight1 == 0 && pData->fUse0) )
                     Fxu_UpdateSingle( p );
                 else
                     break;
             }
             else
             {
-                if ( Weight2 > 0 || Weight2 == 0 && pData->fUse0 )
+                if ( Weight2 > 0 || (Weight2 == 0 && pData->fUse0) )
                     Fxu_UpdateDouble( p );
                 else
                     break;
@@ -144,7 +144,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
                 printf( "Div %5d : Best double = %5d. Best single = %5d. Best complement = %5d.\r", 
                     Counter++, Weight2, Weight1, Weight3 );
 
-            if ( Weight3 > 0 || Weight3 == 0 && pData->fUse0 )
+            if ( Weight3 > 0 || (Weight3 == 0 && pData->fUse0) )
                 Fxu_Update( p, pSingle, pDouble );
             else
                 break;

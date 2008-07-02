@@ -322,7 +322,8 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
     if ( fShowFanouts && p->pFanData )
     {
         Aig_Obj_t * pFanout;
-        int i, iFan;
+        int i;
+        int iFan = -1; // Suppress "might be used uninitialized"
         printf( "\nFanouts:\n" );
         Aig_ObjForEachFanout( p, pObj, pFanout, iFan, i )
         {

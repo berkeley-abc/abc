@@ -28,7 +28,7 @@ static void            Fpga_TableResize( Fpga_Man_t * p );
 static Fpga_Node_t *   Fpga_TableLookup( Fpga_Man_t * p, Fpga_Node_t * p1, Fpga_Node_t * p2 );
 
 // hash key for the structural hash table
-static inline unsigned Fpga_HashKey2( Fpga_Node_t * p0, Fpga_Node_t * p1, int TableSize ) { return ((unsigned)(p0) + (unsigned)(p1) * 12582917) % TableSize; }
+static inline unsigned Fpga_HashKey2( Fpga_Node_t * p0, Fpga_Node_t * p1, int TableSize ) { return (unsigned)(((PORT_PTRUINT_T)(p0) + (PORT_PTRUINT_T)(p1) * 12582917) % TableSize); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -252,8 +252,8 @@ void Fpga_ManFree( Fpga_Man_t * p )
 ***********************************************************************/
 void Fpga_ManPrintTimeStats( Fpga_Man_t * p )
 {
-    extern char * pNetName;
-    extern int TotalLuts;
+//    extern char * pNetName;
+//    extern int TotalLuts;
 //    FILE * pTable;
 
     

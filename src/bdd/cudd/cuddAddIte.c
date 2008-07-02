@@ -421,7 +421,7 @@ cuddAddIteRecur(
     DdNode *one,*zero;
     DdNode *r,*Fv,*Fnv,*Gv,*Gnv,*Hv,*Hnv,*t,*e;
     unsigned int topf,topg,toph,v;
-    int index;
+    int index = 0; // Suppress "might be used uninitialized"
 
     statLine(dd);
     /* Trivial cases. */

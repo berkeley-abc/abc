@@ -91,7 +91,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
 
         // read delays
         k = 0;
-        while ( pToken = strtok( NULL, " \t\n" ) )
+        while ( (pToken = strtok( NULL, " \t\n" )) )
             p->pLutDelays[i][k++] = (float)atof(pToken);
 
         // check for out-of-bound
@@ -141,7 +141,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         {
             if ( p->pLutDelays[i][0] <= 0.0 )
                 printf( "Warning: LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
-                    k, i, p->pLutDelays[i][0] );
+                    i, p->pLutDelays[i][0] );
         }
     }
 

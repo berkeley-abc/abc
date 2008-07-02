@@ -27,7 +27,7 @@ static void            Map_TableResize( Map_Man_t * p );
 static Map_Node_t *    Map_TableLookup( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 );
 
 // hash key for the structural hash table
-static inline unsigned Map_HashKey2( Map_Node_t * p0, Map_Node_t * p1, int TableSize ) { return ((unsigned)(p0) + (unsigned)(p1) * 12582917) % TableSize; }
+static inline unsigned Map_HashKey2( Map_Node_t * p0, Map_Node_t * p1, int TableSize ) { return (unsigned)(((PORT_PTRUINT_T)(p0) + (PORT_PTRUINT_T)(p1) * 12582917) % TableSize); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

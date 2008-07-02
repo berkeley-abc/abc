@@ -768,7 +768,7 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
             Abc_Obj_t * pObj;
             // set register numbers
             Abc_NtkForEachLatch( pMod->pNtk, pObj, k )
-                pObj->pNext = (Abc_Obj_t *)k;
+                pObj->pNext = (Abc_Obj_t *)(PORT_PTRINT_T)k;
             // derive register
             pMod->pNtk->vOnehots = Vec_PtrAlloc( Vec_PtrSize(pMod->vOnehots) );
             Vec_PtrForEachEntry( pMod->vOnehots, pLine, k )
@@ -932,7 +932,7 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
                 Init = 2;
             if ( Init < 0 || Init > 2 )
             {
-                sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Io_MvGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens,3) );
+                sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Io_MvGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
                 return 0;
             }
             if ( Init == 0 )
@@ -1099,9 +1099,9 @@ static Vec_Int_t * Io_MvParseLineOnehot( Io_MvMod_t * p, char * pLine )
         }
         // save register name
 //        Vec_PtrPush( vResult, Abc_ObjName(pNet) );
-        Vec_IntPush( vResult, (int)Abc_ObjFanin0(pTerm)->pNext );
+        Vec_IntPush( vResult, (int)(PORT_PTRINT_T)Abc_ObjFanin0(pTerm)->pNext );
 //        printf( "%d(%d) ", (int)Abc_ObjFanin0(pTerm)->pNext, ((int)Abc_ObjFanin0(pTerm)->pData) -1 );
-        printf( "%d", ((int)Abc_ObjFanin0(pTerm)->pData)-1 );
+        printf( "%d", ((int)(PORT_PTRINT_T)Abc_ObjFanin0(pTerm)->pData)-1 );
     }
     printf( "\n" );
     return vResult;
@@ -1123,7 +1123,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Abc_Obj_t * pObj;
-    Io_MvVar_t * pVar;
+    Io_MvVar_t * pVar = NULL;
     Extra_MmFlex_t * pFlex;
     char * pName;
     int nCommas, nValues, i, k;
@@ -1135,7 +1135,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
     // get the number of values
     if ( Vec_PtrSize(vTokens) <= nCommas + 2 )
     {
-        sprintf( p->pMan->sError, "Line %d: The number of values in not specified in .mv line.", Io_MvGetLine(p->pMan, pName), pName );
+        sprintf( p->pMan->sError, "Line %d: The number of values in not specified in .mv line.", Io_MvGetLine(p->pMan, pName) );
         return 0;
     }
     nValues = atoi( Vec_PtrEntry(vTokens,nCommas+2) );
@@ -1178,6 +1178,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
         Abc_ObjSetMvVar( pObj, pVar );
     }
     // make sure the names are unique
+    assert(pVar);
     if ( pVar->pNames )
     {
         for ( i = 0; i < nValues; i++ )
@@ -1398,7 +1399,7 @@ static Abc_Obj_t * Io_MvParseAddResetCircuit( Io_MvMod_t * p, char * pName )
     if ( p->pMan->fBlifMv )
     {
 //        Vec_Att_t * p = Abc_NtkMvVar( pNtk );
-        int nValues = Abc_ObjMvVarNum(pOutNet);
+//        int nValues = Abc_ObjMvVarNum(pOutNet);
 //        sprintf( Buffer, "2 %d %d %d\n1 - - =1\n0 - - =2\n", nValues, nValues, nValues );
         sprintf( Buffer, "1 - - =1\n0 - - =2\n" );
         pNode->pData = Abc_SopRegister( p->pNtk->pManFunc, Buffer );
@@ -1776,7 +1777,7 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     pGate = Mio_LibraryReadGateByName( pGenlib, vTokens->pArray[1] );
     if ( pGate == NULL )
     {
-        sprintf( p->pMan->sError, "Line %d: Cannot find gate \"%s\" in the library.", Io_MvGetLine(p->pMan, pName), vTokens->pArray[1] );
+        sprintf( p->pMan->sError, "Line %d: Cannot find gate \"%s\" in the library.", Io_MvGetLine(p->pMan, pName), (char*)vTokens->pArray[1] );
         return 0;
     }
 

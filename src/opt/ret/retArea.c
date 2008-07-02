@@ -75,7 +75,7 @@ int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly,
         if ( fOneFrame )
             pNtkTotal = Abc_NtkRetimeMinAreaOne( pNtk, 0, fVerbose );
         else
-            while ( pNtkBottom = Abc_NtkRetimeMinAreaOne( pNtk, 0, fVerbose ) )
+            while ( (pNtkBottom = Abc_NtkRetimeMinAreaOne( pNtk, 0, fVerbose )) )
                 pNtkTotal = Abc_NtkAttachBottom( pNtkTotal, pNtkBottom );  
     }
     // compute initial values
@@ -109,7 +109,6 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaOne( Abc_Ntk_t * pNtk, int fForward, int fVerbos
 { 
     Abc_Ntk_t * pNtkNew = NULL;
     Vec_Ptr_t * vMinCut;
-    int nLatches = Abc_NtkLatchNum(pNtk);
     // mark current latches and TFI(POs)
     Abc_NtkRetimeMinAreaPrepare( pNtk, fForward );
     // run the maximum forward flow
@@ -265,22 +264,22 @@ int Abc_NtkRetimeMinAreaInitValues_rec( Abc_Obj_t * pObj )
     int i;
     // skip visited nodes
     if ( Abc_NodeIsTravIdCurrent(pObj) )
-        return (int)pObj->pCopy;
+        return (int)(PORT_PTRUINT_T)pObj->pCopy;
     Abc_NodeSetTravIdCurrent(pObj);
     // consider the case of a latch output
     if ( Abc_ObjIsBo(pObj) )
     {
         assert( Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) );
-        pObj->pCopy = (void *)Abc_NtkRetimeMinAreaInitValues_rec( Abc_ObjFanin0(pObj) );
-        return (int)pObj->pCopy;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_NtkRetimeMinAreaInitValues_rec( Abc_ObjFanin0(pObj) );
+        return (int)(PORT_PTRUINT_T)pObj->pCopy;
     }
     assert( Abc_ObjIsNode(pObj) );
     // visit the fanins
     Abc_ObjForEachFanin( pObj, pFanin, i )
         Abc_NtkRetimeMinAreaInitValues_rec( pFanin );
     // compute the value of the node
-    pObj->pCopy = (void *)Abc_ObjSopSimulate(pObj);
-    return (int)pObj->pCopy;
+    pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_ObjSopSimulate(pObj);
+    return (int)(PORT_PTRUINT_T)pObj->pCopy;
 }
 
 /**Function*************************************************************
@@ -302,7 +301,7 @@ void Abc_NtkRetimeMinAreaInitValues( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut )
     Abc_NtkIncrementTravId(pNtk);
     Abc_NtkForEachLatch( pNtk, pObj, i )
     {
-        pObj->pCopy = (void *)Abc_LatchIsInit1(pObj);
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_LatchIsInit1(pObj);
         Abc_NodeSetTravIdCurrent( pObj );
     }
     // propagate initial values
@@ -479,7 +478,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             Abc_ObjAddFanin( pLatch, pLatchIn );
             if ( fForward )
             {
-                pLatch->pData = (void *)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
+                pLatch->pData = (void *)(PORT_PTRUINT_T)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
                 // redirect edges to the unvisited fanouts of the node
                 Abc_NodeCollectFanouts( pObj, vNodes );
                 Vec_PtrForEachEntry( vNodes, pNext, k )

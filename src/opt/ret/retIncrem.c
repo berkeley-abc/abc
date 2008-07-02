@@ -48,7 +48,8 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int
     st_table * tLatches;
     int nLatches = Abc_NtkLatchNum(pNtk);
     int nIdMaxStart = Abc_NtkObjNumMax(pNtk);
-    int RetValue, nIterLimit;
+    int RetValue;
+    int nIterLimit = -1; // Suppress "might be used uninitialized"
     if ( Abc_NtkNodeNum(pNtk) == 0 )
         return 0;
     // reorder CI/CO/latch inputs
@@ -112,7 +113,7 @@ st_table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk )
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         // map latch into its true number
-        st_insert( tLatches, (void *)pLatch, (void *)(i-nOffSet) );
+        st_insert( tLatches, (void *)(PORT_PTRUINT_T)pLatch, (void *)(PORT_PTRUINT_T)(i-nOffSet) );
         // disconnect LI     
         pLatchIn = Abc_ObjFanin0(pLatch);
         pFanin = Abc_ObjFanin0(pLatchIn);
@@ -220,8 +221,8 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
 ***********************************************************************/
 int Abc_NtkRetimeOneWay( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
 {
-    Abc_Ntk_t * pNtkNew;
-    Vec_Int_t * vValues;
+    Abc_Ntk_t * pNtkNew = NULL; // Suppress "might be used uninitialized"
+    Vec_Int_t * vValues = NULL; // Suppress "might be used uninitialized"
     Abc_Obj_t * pObj;
     int i, fChanges, nTotalMoves = 0, nTotalMovesLimit = 10000;
     if ( fForward )
@@ -319,7 +320,7 @@ void Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial )
     {
         // compute the initial value
         if ( fInitial )
-            pObj->pCopy = (void *)Abc_ObjSopSimulate( pObj );
+            pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_ObjSopSimulate( pObj );
         // collect fanins
         Abc_NodeCollectFanins( pObj, vNodes );
         // make the node point to the fanins fanins
@@ -399,10 +400,10 @@ int Abc_NtkRetimeCheckCompatibleLatchFanouts( Abc_Obj_t * pObj )
             continue;
         if ( Init == -1 )
         {
-            Init = (int)pObj->pData;
+            Init = (int)(PORT_PTRUINT_T)pObj->pData;
             nLatches++;
         }
-        else if ( Init == (int)pObj->pData )
+        else if ( Init == (int)(PORT_PTRUINT_T)pObj->pData )
             nLatches++;
     }
     return nLatches;

@@ -49,7 +49,7 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int
     int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
     Fpga_Man_t * pMan;
-    Vec_Int_t * vSwitching;
+    Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
     int Num;
 
@@ -70,7 +70,7 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int
 
     // perform FPGA mapping
     pMan = Abc_NtkToFpga( pNtk, fRecovery, pSwitching, fLatchPaths, fVerbose );    
-    if ( pSwitching ) Vec_IntFree( vSwitching );
+    if ( pSwitching ) { assert(vSwitching); Vec_IntFree( vSwitching ); }
     if ( pMan == NULL )
         return NULL;
     Fpga_ManSetSwitching( pMan, fSwitching );

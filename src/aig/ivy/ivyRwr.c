@@ -81,7 +81,7 @@ int Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fV
             break;
         // for each cut, try to resynthesize it
         nGain = Ivy_NodeRewrite( p, pManRwt, pNode, fUpdateLevel, fUseZeroCost );
-        if ( nGain > 0 || nGain == 0 && fUseZeroCost )
+        if ( nGain > 0 || (nGain == 0 && fUseZeroCost) )
         {
             Dec_Graph_t * pGraph = Rwt_ManReadDecs(pManRwt);
             int fCompl           = Rwt_ManReadCompl(pManRwt);
@@ -122,7 +122,7 @@ Rwt_ManAddTimeTotal( pManRwt, clock() - clkStart );
     else
         Ivy_ManResetLevels( p );
     // check
-    if ( i = Ivy_ManCleanup(p) )
+    if ( (i = Ivy_ManCleanup(p)) )
         printf( "Cleanup after rewriting removed %d dangling nodes.\n", i );
     if ( !Ivy_ManCheck(p) )
         printf( "Ivy_ManRewritePre(): The check has failed.\n" );
@@ -154,9 +154,12 @@ int Ivy_NodeRewrite( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int fUp
     Ivy_Store_t * pStore;
     Ivy_Cut_t * pCut;
     Ivy_Obj_t * pFanin;
-    unsigned uPhase, uTruthBest, uTruth;
+    unsigned uPhase;
+    unsigned uTruthBest = 0; // Suppress "might be used uninitialized"
+    unsigned uTruth;
     char * pPerm;
-    int Required, nNodesSaved, nNodesSaveCur;
+    int Required, nNodesSaved;
+    int nNodesSaveCur = -1; // Suppress "might be used uninitialized"
     int i, c, GainCur, GainBest = -1;
     int clk, clk2;
 
@@ -190,14 +193,14 @@ clk = clock();
 clk2 = clock();
         uTruth = 0xFFFF & Ivy_NodeGetTruth( pNode, pCut->pArray, pCut->nSize );  // truth table
 p->timeTruth += clock() - clk2;
-        pPerm = p->pPerms4[ p->pPerms[uTruth] ];
+        pPerm = p->pPerms4[ (int) p->pPerms[uTruth] ];
         uPhase = p->pPhases[uTruth];
         // collect fanins with the corresponding permutation/phase
         Vec_PtrClear( p->vFaninsCur );
         Vec_PtrFill( p->vFaninsCur, (int)pCut->nSize, 0 );
         for ( i = 0; i < (int)pCut->nSize; i++ )
         {
-            pFanin = Ivy_ManObj( pMan, pCut->pArray[pPerm[i]] );
+            pFanin = Ivy_ManObj( pMan, pCut->pArray[(int)pPerm[i]] );
             assert( Ivy_ObjIsNode(pFanin) || Ivy_ObjIsCi(pFanin) );
             pFanin = Ivy_NotCond(pFanin, ((uPhase & (1<<i)) > 0) );
             Vec_PtrWriteEntry( p->vFaninsCur, i, pFanin );
@@ -355,7 +358,8 @@ unsigned Ivy_NodeGetTruth( Ivy_Obj_t * pObj, int * pNums, int nNums )
 Dec_Graph_t * Rwt_CutEvaluate( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pRoot, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest, unsigned uTruth )
 {
     Vec_Ptr_t * vSubgraphs;
-    Dec_Graph_t * pGraphBest, * pGraphCur;
+    Dec_Graph_t * pGraphBest = NULL; // Suppress "might be used uninitialized"
+    Dec_Graph_t * pGraphCur;
     Rwt_Node_t * pNode, * pFanin;
     int nNodesAdded, GainBest, i, k;
     // find the matching class of subgraphs
@@ -478,7 +482,7 @@ int Ivy_GraphToNetworkCount( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Dec_Graph_t * pGr
 Ivy_Obj_t * Ivy_GraphToNetwork( Ivy_Man_t * p, Dec_Graph_t * pGraph )
 {
     Ivy_Obj_t * pAnd0, * pAnd1;
-    Dec_Node_t * pNode;
+    Dec_Node_t * pNode = NULL; // Suppress "might be used uninitialized"
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )

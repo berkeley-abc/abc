@@ -212,7 +212,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
             Abc_ObjSetData( pObj, Abc_SopCreateBuf(pNtk->pManFunc) );
         else
         {
-            printf( "%s: Unknown gate type \"%s\".\n", Extra_FileReaderGetFileName(p), pObj->pData );
+            printf( "%s: Unknown gate type \"%s\".\n", Extra_FileReaderGetFileName(p), (char*)pObj->pData );
             Abc_NtkDelete( pNtk );
             return NULL;
         }

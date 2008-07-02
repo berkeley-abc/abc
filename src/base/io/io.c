@@ -970,7 +970,7 @@ int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", pFileName );
-        if ( pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" )) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", pFileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -1061,7 +1061,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", pFileName );
-        if ( pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".blif", ".bench", ".pla", ".baf", ".aig" )) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", pFileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -1120,6 +1120,11 @@ int IoCommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the output file name
@@ -1167,6 +1172,11 @@ int IoCommandWriteHie( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
     if ( argc != globalUtilOptind + 2 )
         goto usage;
@@ -1226,6 +1236,11 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the output file name
@@ -1276,6 +1291,11 @@ int IoCommandWriteBaf( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the output file name
@@ -1319,6 +1339,11 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the output file name
@@ -1361,6 +1386,11 @@ int IoCommandWriteBlifMv( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
@@ -1409,6 +1439,11 @@ int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
@@ -1467,14 +1502,14 @@ int IoCommandWriteCellNet( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
-    pNtk = pAbc->pNtkCur;
-    if ( pNtk == NULL )
+    if ( pAbc->pNtkCur == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
     }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    pNtk = pAbc->pNtkCur;
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
@@ -1532,6 +1567,11 @@ int IoCommandWriteCnf( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the output file name
@@ -1587,6 +1627,11 @@ int IoCommandWriteDot( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
@@ -1763,6 +1808,11 @@ int IoCommandWriteEqn( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the output file name
@@ -1805,6 +1855,11 @@ int IoCommandWriteGml( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
@@ -1857,13 +1912,13 @@ int IoCommandWriteList( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
     if ( pAbc->pNtkCur == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
     }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
 /*
     if ( !Abc_NtkIsSeq(pAbc->pNtkCur) )
     {
@@ -1913,6 +1968,11 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     // get the output file name
@@ -1955,6 +2015,11 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
             default:
                 goto usage;
         }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;

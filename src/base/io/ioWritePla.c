@@ -126,7 +126,7 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
 
     // mark the CI nodes
     Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)i;
+        pNode->pCopy = (Abc_Obj_t *)(PORT_PTRUINT_T)i;
 
     // write the cubes
     pProgress = Extra_ProgressBarStart( stdout, nOutputs );
@@ -142,9 +142,9 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
         if ( !Abc_ObjIsNode(pDriver) )
         {
             assert( Abc_ObjIsCi(pDriver) );
-            pCubeIn[(int)pDriver->pCopy] = '1' - Abc_ObjFaninC0(pNode);
+            pCubeIn[(int)(PORT_PTRUINT_T)pDriver->pCopy] = '1' - Abc_ObjFaninC0(pNode);
             fprintf( pFile, "%s %s\n", pCubeIn, pCubeOut );
-            pCubeIn[(int)pDriver->pCopy] = '-';
+            pCubeIn[(int)(PORT_PTRUINT_T)pDriver->pCopy] = '-';
             continue;
         }
         if ( Abc_NodeIsConst(pDriver) )
@@ -164,8 +164,8 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
             Abc_ObjForEachFanin( pDriver, pFanin, k )
             {
                 pFanin = Abc_ObjFanin0Ntk(pFanin);
-                assert( (int)pFanin->pCopy < nInputs );
-                pCubeIn[(int)pFanin->pCopy] = pCube[k];
+                assert( (int)(PORT_PTRUINT_T)pFanin->pCopy < nInputs );
+                pCubeIn[(int)(PORT_PTRUINT_T)pFanin->pCopy] = pCube[k];
             }
             fprintf( pFile, "%s %s\n", pCubeIn, pCubeOut );
         }
@@ -174,7 +174,7 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
         {
             pFanin = Abc_ObjFanin0Ntk(pFanin);
             assert( Abc_ObjIsCi(pFanin) );
-            pCubeIn[(int)pFanin->pCopy] = '-';
+            pCubeIn[(int)(PORT_PTRUINT_T)pFanin->pCopy] = '-';
         }
         Extra_ProgressBarUpdate( pProgress, i, NULL );
     }

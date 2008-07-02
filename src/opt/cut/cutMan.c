@@ -44,7 +44,6 @@ extern void Npn_StartTruth8( uint8 uTruths[][32] );
 Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
 {
     Cut_Man_t * p;
-    int clk = clock();
 //    extern int nTruthDsd;
 //    nTruthDsd = 0;
     assert( pParams->nVarsMax >= 3 && pParams->nVarsMax <= CUT_SIZE_MAX );
@@ -121,16 +120,6 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
 ***********************************************************************/
 void Cut_ManStop( Cut_Man_t * p )
 {
-    Cut_Cut_t * pCut;
-    int i;
-//    extern int nTruthDsd;
-//    printf( "Decomposable cuts = %d.\n", nTruthDsd );
-
-    Vec_PtrForEachEntry( p->vCutsNew, pCut, i )
-        if ( pCut != NULL )
-        {
-            int k = 0;
-        }
     if ( p->vCutsNew )    Vec_PtrFree( p->vCutsNew );
     if ( p->vCutsOld )    Vec_PtrFree( p->vCutsOld );
     if ( p->vCutsTemp )   Vec_PtrFree( p->vCutsTemp );

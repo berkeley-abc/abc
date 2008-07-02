@@ -478,7 +478,7 @@ int
 Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, bool fVerbose ) {
   int i, j, flow = 0, last, srcDist = 0;
   Abc_Obj_t   *pObj, *pObj2;
-  int clk = clock();
+//  int clk = clock();
 
   pManMR->constraintMask |= BLOCK;
 

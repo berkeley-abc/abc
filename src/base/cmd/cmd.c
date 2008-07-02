@@ -20,6 +20,8 @@
  
 #ifdef WIN32
 #include <process.h> 
+#else
+#include <unistd.h>
 #endif
 
 #include "mainInt.h"
@@ -346,7 +348,7 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
     size = pAbc->aHistory->nSize;
     num = ( num < size ) ? num : size;
     for ( i = size - num; i < size; i++ )
-        fprintf( pAbc->Out, "%s", pAbc->aHistory->pArray[i] );
+        fprintf( pAbc->Out, "%s", (char*)pAbc->aHistory->pArray[i] );
     return 0;
 
 usage:

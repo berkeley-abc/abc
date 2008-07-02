@@ -194,7 +194,7 @@ void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
 void Map_TruthsCutOne( Map_Man_t * p, Map_Cut_t * pCut, unsigned uTruth[] )
 {
     unsigned uTruth1[2], uTruth2[2];
-    Map_Cut_t * pTemp;
+    Map_Cut_t * pTemp = NULL; // Suppress "might be used uninitialized"
     int i;
     // mark the cut leaves
     for ( i = 0; i < pCut->nLeaves; i++ )

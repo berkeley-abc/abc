@@ -60,7 +60,7 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
         for ( pNode = p->pTable[i]; pNode; pNode = pNode->pNext )
         {
             assert( pNode->uTruth == p->pTable[i]->uTruth );
-            assert( p->pMap[pNode->uTruth] >= 0 && p->pMap[pNode->uTruth] < 222 );
+            assert( p->pMap[pNode->uTruth] < 222 ); // Guaranteed to be >=0 b/c unsigned
             Vec_VecPush( p->vClasses, p->pMap[pNode->uTruth], pNode );
             p->pMapInv[ p->pMap[pNode->uTruth] ] = p->puCanons[pNode->uTruth];
         }

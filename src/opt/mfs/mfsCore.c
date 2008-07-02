@@ -267,7 +267,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     if ( p->pCare )
     {
         Abc_NtkForEachCi( pNtk, pObj, i )
-            pObj->pData = (void *)i;
+            pObj->pData = (void *)(PORT_PTRUINT_T)i;
     }
  
     // compute levels

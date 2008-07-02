@@ -939,7 +939,7 @@ int Bbr_FindBestVariable( DdManager * dd,
     int iVarBest, v;
     double CostBest, CostCur;
 
-    CostBest = 100000000000000;
+    CostBest = 100000000000000.0;
     iVarBest = -1;
     for ( v = 0; v < nVars; v++ )
         if ( pVars[v] )

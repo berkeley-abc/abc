@@ -82,7 +82,7 @@ void Saig_ManReportUselessRegisters( Aig_Man_t * pAig )
 int Saig_ManReportComplements( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj, * pFanin;
-    int i, Counter = 0, Diffs = 0;
+    int i, Counter = 0;
     assert( Aig_ManRegNum(p) > 0 );
     Aig_ManForEachObj( p, pObj, i )
         assert( !pObj->fMarkA );

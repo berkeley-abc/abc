@@ -111,7 +111,7 @@ char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, int Type, char * pName, char 
     Nm_Entry_t * pEntry;
     int RetValue, nEntrySize;
     // check if the object with this ID is already stored
-    if ( pEntry = Nm_ManTableLookupId(p, ObjId) )
+    if ( (pEntry = Nm_ManTableLookupId(p, ObjId)) )
     {
         printf( "Nm_ManStoreIdName(): Entry with the same ID already exists.\n" );
         return NULL;
@@ -173,7 +173,7 @@ char * Nm_ManCreateUniqueName( Nm_Man_t * p, int ObjId )
     static char NameStr[1000];
     Nm_Entry_t * pEntry;
     int i;
-    if ( pEntry = Nm_ManTableLookupId(p, ObjId) )
+    if ( (pEntry = Nm_ManTableLookupId(p, ObjId)) )
         return pEntry->Name;
     sprintf( NameStr, "n%d", ObjId );
     for ( i = 1; Nm_ManTableLookupName(p, NameStr, -1); i++ )
@@ -195,7 +195,7 @@ char * Nm_ManCreateUniqueName( Nm_Man_t * p, int ObjId )
 char * Nm_ManFindNameById( Nm_Man_t * p, int ObjId )
 {
     Nm_Entry_t * pEntry;
-    if ( pEntry = Nm_ManTableLookupId(p, ObjId) )
+    if ( (pEntry = Nm_ManTableLookupId(p, ObjId)) )
         return pEntry->Name;
     return NULL;
 }
@@ -215,7 +215,7 @@ char * Nm_ManFindNameById( Nm_Man_t * p, int ObjId )
 int Nm_ManFindIdByName( Nm_Man_t * p, char * pName, int Type )
 {
     Nm_Entry_t * pEntry;
-    if ( pEntry = Nm_ManTableLookupName(p, pName, Type) )
+    if ( (pEntry = Nm_ManTableLookupName(p, pName, Type)) )
         return pEntry->ObjId;
     return -1;
 }

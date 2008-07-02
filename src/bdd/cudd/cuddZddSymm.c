@@ -1459,7 +1459,7 @@ zdd_group_move(
     Move    *move;
     int        size;
     int        i, temp, gxtop, gxbot, gytop, gybot, yprev;
-    int        swapx, swapy;
+    int        swapx = 0, swapy = 0; // Suppress "might be used uninitialized"
 
 #ifdef DD_DEBUG
     assert(x < y);    /* we assume that x < y */
@@ -1563,7 +1563,7 @@ zdd_group_move_backward(
   int  x,
   int  y)
 {
-    int           size;
+    int           size = -1; // Suppress "might be used uninitialized"
     int        i, temp, gxtop, gxbot, gytop, gybot, yprev;
 
 #ifdef DD_DEBUG

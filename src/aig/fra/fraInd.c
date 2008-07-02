@@ -388,7 +388,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pManAigNew = NULL;
     int nNodesBeg, nRegsBeg;
-    int nIter, i, clk = clock(), clk2;
+    int nIter = -1; // Suppress "might be used uninitialized"
+    int i, clk = clock(), clk2;
     int TimeToStop = (pParams->TimeLimit == 0.0)? 0 : clock() + (int)(pParams->TimeLimit * CLOCKS_PER_SEC);
 
     if ( Aig_ManNodeNum(pManAig) == 0 )

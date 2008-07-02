@@ -439,10 +439,10 @@ static inline bool        Abc_LatchIsInitNone( Abc_Obj_t * pLatch )  { assert(Ab
 static inline bool        Abc_LatchIsInit0( Abc_Obj_t * pLatch )     { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ZERO; }
 static inline bool        Abc_LatchIsInit1( Abc_Obj_t * pLatch )     { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ONE;  }
 static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_DC;   }
-static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )        { assert(Abc_ObjIsLatch(pLatch)); return (int)pLatch->pData;                     }
+static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )        { assert(Abc_ObjIsLatch(pLatch)); return (int)(PORT_PTRINT_T)pLatch->pData;      }
 
 // global BDDs of the nodes
-static inline void *      Abc_NtkGlobalBdd( Abc_Ntk_t * pNtk )          { return (void *)Vec_PtrEntry(pNtk->vAttrs, VEC_ATTR_GLOBAL_BDD);             }
+static inline void *      Abc_NtkGlobalBdd( Abc_Ntk_t * pNtk )          { return (void *)Vec_PtrEntry(pNtk->vAttrs, VEC_ATTR_GLOBAL_BDD);                          }
 static inline DdManager * Abc_NtkGlobalBddMan( Abc_Ntk_t * pNtk )       { return (DdManager *)Vec_AttMan( (Vec_Att_t *)Abc_NtkGlobalBdd(pNtk) );                   }
 static inline DdNode **   Abc_NtkGlobalBddArray( Abc_Ntk_t * pNtk )     { return (DdNode **)Vec_AttArray( (Vec_Att_t *)Abc_NtkGlobalBdd(pNtk) );                   }
 static inline DdNode *    Abc_ObjGlobalBdd( Abc_Obj_t * pObj )          { return (DdNode *)Vec_AttEntry( (Vec_Att_t *)Abc_NtkGlobalBdd(pObj->pNtk), pObj->Id );    }

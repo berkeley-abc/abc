@@ -819,7 +819,7 @@ void Extra_Truth3VarN( unsigned ** puCanons, char *** puPhases, char ** ppCounte
             {
                 assert( uCanons[uPhase] == uTruth32 );
                 if ( pCounters[uPhase] < nPhasesMax )
-                    uPhases[uPhase][ pCounters[uPhase]++ ] = i;
+                    uPhases[uPhase][ (int)pCounters[uPhase]++ ] = i;
             }
         }
     }
@@ -885,7 +885,7 @@ void Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** pp
             {
                 assert( uCanons[uPhase] == uTruth );
                 if ( pCounters[uPhase] < nPhasesMax )
-                    uPhases[uPhase][ pCounters[uPhase]++ ] = i;
+                    uPhases[uPhase][ (int)pCounters[uPhase]++ ] = i;
             }
         }
     }
@@ -917,15 +917,15 @@ void Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** pp
 ***********************************************************************/
 void ** Extra_ArrayAlloc( int nCols, int nRows, int Size )
 {
-    char ** pRes;
+    void ** pRes;
     char * pBuffer;
     int i;
     assert( nCols > 0 && nRows > 0 && Size > 0 );
     pBuffer = ALLOC( char, nCols * (sizeof(void *) + nRows * Size) );
-    pRes = (char **)pBuffer;
+    pRes = (void **)pBuffer;
     pRes[0] = pBuffer + nCols * sizeof(void *);
     for ( i = 1; i < nCols; i++ )
-        pRes[i] = pRes[0] + i * nRows * Size;
+        pRes[i] = (void *)((char *)pRes[0] + i * nRows * Size);
     return pRes;
 }
 
@@ -1860,7 +1860,7 @@ void Extra_TruthExpand( int nVars, int nWords, unsigned * puTruth, unsigned uPha
     {
         int i;
         for ( i = 0; i < nWords; i++ )
-            puTruthR[i] = uTruths[Cases[uPhase]][i];
+            puTruthR[i] = uTruths[(int)Cases[uPhase]][i];
         return;
     }
 

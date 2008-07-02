@@ -234,7 +234,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pObj = NULL; // Ensure pObj isn't used uninitialized.
     Vec_Int_t * vNameIds;
     char * pName;
     int i, NameId;
@@ -261,6 +261,8 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
             return 0;
         }
     }
+
+    assert(pObj); // pObj should point to something here.
 
     // return the array of all IDs, which have names
     vNameIds = Nm_ManReturnNameIds( pNtk->pManName );
@@ -571,10 +573,10 @@ bool Abc_NtkCheckLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pLatch )
         Value = 0;
     }
     // make sure the latch has a reasonable return value
-    if ( (int)pLatch->pData < ABC_INIT_ZERO || (int)pLatch->pData > ABC_INIT_DC )
+    if ( (int)(PORT_PTRINT_T)pLatch->pData < ABC_INIT_ZERO || (int)(PORT_PTRINT_T)pLatch->pData > ABC_INIT_DC )
     {
         fprintf( stdout, "NodeCheck: Latch \"%s\" has incorrect reset value (%d).\n", 
-            Abc_ObjName(pLatch), (int)pLatch->pData );
+            Abc_ObjName(pLatch), (int)(PORT_PTRINT_T)pLatch->pData );
         Value = 0;
     }
     // make sure the latch has only one fanin
@@ -857,7 +859,7 @@ int Abc_NtkCheckUniqueCiNames( Abc_Ntk_t * pNtk )
     for ( i = 1; i < Abc_NtkCiNum(pNtk); i++ )
         if ( !strcmp( Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) ) )
         {
-            printf( "Abc_NtkCheck: Repeated CI names: %s and %s.\n", Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) );
+            printf( "Abc_NtkCheck: Repeated CI names: %s and %s.\n", (char*)Vec_PtrEntry(vNames,i-1), (char*)Vec_PtrEntry(vNames,i) );
             fRetValue = 0;
         }
     Vec_PtrFree( vNames );
@@ -890,7 +892,7 @@ int Abc_NtkCheckUniqueCoNames( Abc_Ntk_t * pNtk )
 //        printf( "%s\n", Vec_PtrEntry(vNames,i) );
         if ( !strcmp( Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) ) )
         {
-            printf( "Abc_NtkCheck: Repeated CO names: %s and %s.\n", Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) );
+            printf( "Abc_NtkCheck: Repeated CO names: %s and %s.\n", (char*)Vec_PtrEntry(vNames,i-1), (char*)Vec_PtrEntry(vNames,i) );
             fRetValue = 0;
         }
     }

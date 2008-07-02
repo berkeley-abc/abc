@@ -1768,7 +1768,8 @@ cuddInsertSubtables(
     int oldsize,newsize;
     int i,j,index,reorderSave;
     unsigned int numSlots = unique->initSlots;
-    int *newperm, *newinvperm, *newmap;
+    int *newperm, *newinvperm;
+    int *newmap = NULL; // Suppress "might be used uninitialized"
     DdNode *one, *zero;
 
 #ifdef DD_DEBUG
@@ -2499,7 +2500,8 @@ ddResizeTable(
     int oldsize,newsize;
     int i,j,reorderSave;
     int numSlots = unique->initSlots;
-    int *newperm, *newinvperm, *newmap;
+    int *newperm, *newinvperm;
+    int *newmap = NULL; // Suppress "might be used uninitialized"
     DdNode *one, *zero;
 
     oldsize = unique->size;

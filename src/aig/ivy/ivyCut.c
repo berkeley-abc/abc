@@ -300,7 +300,8 @@ int Ivy_ManFindBoolCutCost( Ivy_Obj_t * pObj )
 ***********************************************************************/
 int Ivy_ManFindBoolCut( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVolume, Vec_Ptr_t * vLeaves )
 {
-    Ivy_Obj_t * pObj, * pFaninC, * pFanin0, * pFanin1, * pPivot;
+    Ivy_Obj_t * pObj = NULL; // Suppress "might be used uninitialized"
+    Ivy_Obj_t * pFaninC, * pFanin0, * pFanin1, * pPivot;
     int RetValue, LevelLimit, Lev, k;
     assert( !Ivy_IsComplement(pRoot) );
     // clear the frontier and collect the nodes

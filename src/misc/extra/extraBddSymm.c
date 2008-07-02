@@ -515,7 +515,7 @@ DdNode* Extra_zddTuplesFromBdd(
             return NULL;
 
         /* the second argument in the recursive call stannds for <n>;
-        /* reate the first argument, which stands for <k> 
+         * reate the first argument, which stands for <k>
          * as when we are talking about the tuple of <k> out of <n> */
         for ( i = 0; i < nVars-K; i++ )
             bVarsK = cuddT( bVarsK );
@@ -603,7 +603,7 @@ extraZddSymmPairsCompute(
     }
     assert( bVars != b1 );
 
-    if ( zRes = cuddCacheLookup2Zdd(dd, extraZddSymmPairsCompute, bFunc, bVars) )
+    if ( (zRes = cuddCacheLookup2Zdd(dd, extraZddSymmPairsCompute, bFunc, bVars)) )
         return zRes;
     else
     {
@@ -817,7 +817,7 @@ DdNode * extraZddGetSymmetricVars(
     }
     assert( bVars != b1 );
 
-    if ( zRes = cuddCacheLookupZdd(dd, DD_GET_SYMM_VARS_TAG, bF, bG, bVars) )
+    if ( (zRes = cuddCacheLookupZdd(dd, DD_GET_SYMM_VARS_TAG, bF, bG, bVars)) )
         return zRes;
     else
     {
@@ -1005,7 +1005,7 @@ DdNode * extraZddGetSingletons(
 //    if ( bVars == b0 )  // bug fixed by Jin Zhang, Jan 23, 2004
         return z1;
 
-    if ( zRes = cuddCacheLookup1Zdd(dd, extraZddGetSingletons, bVars) )
+    if ( (zRes = cuddCacheLookup1Zdd(dd, extraZddGetSingletons, bVars)) )
         return zRes;
     else
     {
@@ -1067,7 +1067,7 @@ DdNode * extraBddReduceVarSet(
     if ( cuddIsConstant(bFR) || bVars == b1 )
         return bVars;
 
-    if ( bRes = cuddCacheLookup2(dd, extraBddReduceVarSet, bVars, bF) )
+    if ( (bRes = cuddCacheLookup2(dd, extraBddReduceVarSet, bVars, bF)) )
         return bRes;
     else
     {
@@ -1175,7 +1175,7 @@ DdNode * extraBddCheckVarsSymmetric(
 
     assert( bVars != b1 );
     
-    if ( bRes = cuddCacheLookup2(dd, extraBddCheckVarsSymmetric, bF, bVars) )
+    if ( (bRes = cuddCacheLookup2(dd, extraBddCheckVarsSymmetric, bF, bVars)) )
         return bRes;
     else
     {
@@ -1425,7 +1425,7 @@ DdNode * extraZddSelectOneSubset(
     if ( zS == z1 )    return z1;
     
     // check cache
-    if ( zRes = cuddCacheLookup1Zdd( dd, extraZddSelectOneSubset, zS ) )
+    if ( (zRes = cuddCacheLookup1Zdd( dd, extraZddSelectOneSubset, zS )) )
         return zRes;
     else
     {

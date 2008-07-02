@@ -295,7 +295,7 @@ Dec_Graph_t * Abc_NodeRestructure( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_
     {
         if ( pCut->nLeaves < 4 )
             continue;
-        if ( pGraph = Abc_NodeRestructureCut( p, pNode, pCut ) )
+        if ( (pGraph = Abc_NodeRestructureCut( p, pNode, pCut )) )
             return pGraph;
     }
     return NULL;
@@ -335,11 +335,6 @@ Dec_Graph_t * Abc_NodeRestructureCut( Abc_ManRst_t * p, Abc_Obj_t * pRoot, Cut_C
         if ( pLeaf == NULL )  // the so-called "bad cut phenomenon" is due to removed nodes
             return NULL;
         Vec_PtrPush( p->vLeaves, pLeaf );
-    }
-
-    if ( pRoot->Id == 29 )
-    {
-        int x = 0;
     }
 
 clk = clock();
@@ -430,7 +425,7 @@ clk = clock();
 p->timeEval += clock() - clk;
 
     // quit if there is no improvement
-    if ( pGraph == NULL || nNodesAdded == -1 || nNodesAdded == nNodesSaved && !p->fUseZeros )
+    if ( pGraph == NULL || nNodesAdded == -1 || (nNodesAdded == nNodesSaved && !p->fUseZeros) )
     {
         Cudd_RecursiveDeref( p->dd, bFunc );
         if ( pGraph ) Dec_GraphFree( pGraph );
@@ -1206,16 +1201,16 @@ void Abc_NodeMffcSimulate( Vec_Ptr_t * vDecs, int nLeaves, Vec_Int_t * vRands, V
     Vec_PtrForEachEntryStop( vDecs, pObj, i, nLeaves )
     {
         uData = (unsigned)Vec_IntEntry( vRands, i );
-        pObj->pData = (void *)uData;
+        pObj->pData = (void *)(PORT_PTRUINT_T)uData;
         Vec_IntPush( vSims, uData );
     }
     // simulate
     Vec_PtrForEachEntryStart( vDecs, pObj, i, nLeaves )
     {
-        uData0 = (unsigned)Abc_ObjFanin0(pObj)->pData;
-        uData1 = (unsigned)Abc_ObjFanin1(pObj)->pData;
+        uData0 = (unsigned)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pData;
+        uData1 = (unsigned)(PORT_PTRUINT_T)Abc_ObjFanin1(pObj)->pData;
         uData = (Abc_ObjFaninC0(pObj)? ~uData0 : uData0) & (Abc_ObjFaninC1(pObj)? ~uData1 : uData1);
-        pObj->pData = (void *)uData;
+        pObj->pData = (void *)(PORT_PTRUINT_T)uData;
         Vec_IntPush( vSims, uData );
     }
 }
@@ -1248,7 +1243,7 @@ int Abc_NodeCheckFull( Abc_ManRst_t * p, Dec_Graph_t * pGraph )
 ***********************************************************************/
 Dec_Graph_t * Abc_NodeMffcConstants( Abc_ManRst_t * p, Vec_Int_t * vSims )
 {
-    Dec_Graph_t * pGraph;
+    Dec_Graph_t * pGraph = NULL;
     unsigned uRoot;
     // get the root node
     uRoot = (unsigned)Vec_IntEntryLast( vSims );
@@ -1258,6 +1253,7 @@ Dec_Graph_t * Abc_NodeMffcConstants( Abc_ManRst_t * p, Vec_Int_t * vSims )
     else if ( uRoot == ~(unsigned)0 )
         pGraph = Dec_GraphCreateConst1();
     // check the graph
+    assert(pGraph);
     if ( Abc_NodeCheckFull( p, pGraph ) )
         return pGraph;
     Dec_GraphFree( pGraph );

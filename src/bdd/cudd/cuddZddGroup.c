@@ -1060,7 +1060,7 @@ zddGroupMove(
     Move *move;
     int  size;
     int  i,j,xtop,xbot,xsize,ytop,ybot,ysize,newxtop;
-    int  swapx,swapy;
+    int  swapx = 0,swapy = 0; // Suppress "might be used uninitialized"
 #if defined(DD_DEBUG) && defined(DD_VERBOSE)
     int  initialSize,bestSize;
 #endif

@@ -140,11 +140,11 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
     ParsNew.nPis  = Nwk_ManPiNum( pNtk );
     ParsNew.nPos  = Nwk_ManPoNum( pNtk );
     // reset the parameters if the network has the same name
-    if ( ParsBest.pName == NULL || 
-         strcmp(ParsBest.pName, pNtk->pName) ||
-         ParsBest.Depth >  ParsNew.Depth || 
-         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops || 
-         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes )
+    if (  ParsBest.pName == NULL ||
+          strcmp(ParsBest.pName, pNtk->pName) ||
+          ParsBest.Depth >  ParsNew.Depth ||
+         (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops) ||
+         (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes) )
     {
         FREE( ParsBest.pName );
         ParsBest.pName = Aig_UtilStrsav( pNtk->pName );

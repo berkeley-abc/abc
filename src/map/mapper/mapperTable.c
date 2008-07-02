@@ -231,7 +231,7 @@ void Map_SuperTableResize( Map_HashTable_t * p )
 {
     Map_HashEntry_t ** pBinsNew;
     Map_HashEntry_t * pEnt, * pEnt2;
-    int nBinsNew, Counter, i, clk = clock();
+    int nBinsNew, Counter, i;
     unsigned Key;
     // get the new table size
     nBinsNew = Cudd_Prime(2 * p->nBins); 

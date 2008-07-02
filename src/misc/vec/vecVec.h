@@ -340,7 +340,7 @@ static inline void Vec_VecPushUnique( Vec_Vec_t * p, int Level, void * Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_VecSortCompare1( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
+static int Vec_VecSortCompare1( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
 {
     if ( Vec_PtrSize(*pp1) < Vec_PtrSize(*pp2) )
         return -1;
@@ -360,7 +360,7 @@ static inline int Vec_VecSortCompare1( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_VecSortCompare2( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
+static int Vec_VecSortCompare2( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
 {
     if ( Vec_PtrSize(*pp1) > Vec_PtrSize(*pp2) )
         return -1;

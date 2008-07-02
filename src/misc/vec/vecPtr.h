@@ -625,7 +625,7 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
 {
     if ( p->nSize < 2 )
         return;
@@ -644,7 +644,7 @@ static inline void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
 {
     int i, k;
     if ( p->nSize < 2 )

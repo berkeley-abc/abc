@@ -24,7 +24,7 @@
 
 #define MAX_PRIMES      304
 
-static s_Primes[MAX_PRIMES] =
+static int s_Primes[MAX_PRIMES] =
 {
     2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 
     41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 

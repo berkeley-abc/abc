@@ -62,7 +62,7 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
     Cut_Man_t * pManCut;
     Rwr_Man_t * pManRwr;
     Abc_Obj_t * pNode;
-    Vec_Ptr_t * vAddedCells = NULL, * vUpdatedNets = NULL;
+//    Vec_Ptr_t * vAddedCells = NULL, * vUpdatedNets = NULL;
     Dec_Graph_t * pGraph;
     int i, nNodes, nGain, fCompl;
     int clk, clkStart = clock();
@@ -120,7 +120,7 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
 
         // for each cut, try to resynthesize it
         nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUpdateLevel, fUseZeros, fPlaceEnable );
-        if ( !(nGain > 0 || nGain == 0 && fUseZeros) )
+        if ( !(nGain > 0 || (nGain == 0 && fUseZeros)) )
             continue;
         // if we end up here, a rewriting step is accepted
 

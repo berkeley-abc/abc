@@ -137,7 +137,8 @@ int Map_MatchNodePhase( Map_Man_t * p, Map_Node_t * pNode, int fPhase )
 {
     Map_Match_t MatchBest, * pMatch;
     Map_Cut_t * pCut, * pCutBest;
-    float Area1, Area2, fWorstLimit;
+    float Area1 = 0.0; // Suppress "might be used uninitialized
+    float Area2, fWorstLimit;
 
     // skip the cuts that have been unassigned during area recovery
     pCutBest = pNode->pCutBest[fPhase];

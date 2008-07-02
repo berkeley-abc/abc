@@ -41,7 +41,8 @@
 ***********************************************************************/
 void Bdc_SuppMinimize2( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
 {
-    int v, clk;
+    int v;
+    int clk = 0; // Suppress "might be used uninitialized"
     if ( p->pPars->fVerbose )
         clk = clock();
     // compute support
@@ -82,7 +83,8 @@ void Bdc_SuppMinimize2( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
 ***********************************************************************/
 void Bdc_SuppMinimize( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
 {
-    int v, clk;
+    int v;
+    int clk = 0; // Suppress "might be used uninitialized"
     if ( p->pPars->fVerbose )
         clk = clock();
     // go through the support variables
@@ -245,7 +247,9 @@ int Bdc_DecomposeFindInitialVarSet( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t *
 ***********************************************************************/
 int Bdc_DecomposeWeakOr( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL, Bdc_Isf_t * pIsfR )
 {
-    int v, VarCost, VarBest, Cost, VarCostBest = 0;
+    int v, VarCost;
+  int VarBest = -1; // Suppress "might be used uninitialized"
+  int Cost, VarCostBest = 0;
 
     for ( v = 0; v < p->nVars; v++ )
     {
@@ -542,7 +546,7 @@ int Bdc_DecomposeStepMux( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL, Bd
 {
     int Var, VarMin, nSuppMin, nSuppCur;
     unsigned uSupp0, uSupp1;
-    int clk;
+    int clk = 0; // Suppress "might be used uninitialized"
     if ( p->pPars->fVerbose )
         clk = clock();
     VarMin = -1;
@@ -667,13 +671,14 @@ Bdc_Fun_t * Bdc_ManCreateGate( Bdc_Man_t * p, Bdc_Fun_t * pFunc0, Bdc_Fun_t * pF
 ***********************************************************************/
 Bdc_Fun_t * Bdc_ManDecompose_rec( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
 {
-    int static Counter = 0;
-    int LocalCounter = Counter++;
+//    int static Counter = 0;
+//    int LocalCounter = Counter++;
     Bdc_Type_t Type;
     Bdc_Fun_t * pFunc, * pFunc0, * pFunc1;
     Bdc_Isf_t IsfL, * pIsfL = &IsfL;
     Bdc_Isf_t IsfB, * pIsfR = &IsfB;
-    int iVar, clk;
+    int iVar;
+    int clk = 0; // Suppress "might be used uninitialized"
 /*
 printf( "Init function (%d):\n", LocalCounter );
 Extra_PrintBinary( stdout, pIsf->puOn, 1<<4 );printf("\n");

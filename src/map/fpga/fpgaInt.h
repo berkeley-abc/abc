@@ -64,19 +64,19 @@
 #define FPGA_INT_LARGE            (10000000)
 
 // the macro to compute the signature
-#define FPGA_SEQ_SIGN(p)        (1 << (((unsigned)p)%31));
+#define FPGA_SEQ_SIGN(p)        (1 << (((PORT_PTRUINT_T)p)%31));
 
 // internal macros to work with cuts
-#define Fpga_CutIsComplement(p)  (((int)((unsigned long) (p) & 01)))
-#define Fpga_CutRegular(p)       ((Fpga_Cut_t *)((unsigned long)(p) & ~01)) 
-#define Fpga_CutNot(p)           ((Fpga_Cut_t *)((unsigned long)(p) ^ 01)) 
-#define Fpga_CutNotCond(p,c)     ((Fpga_Cut_t *)((unsigned long)(p) ^ (c)))
+#define Fpga_CutIsComplement(p)  (((int)((PORT_PTRUINT_T)(p) & 01)))
+#define Fpga_CutRegular(p)       ((Fpga_Cut_t *)((PORT_PTRUINT_T)(p) & ~01)) 
+#define Fpga_CutNot(p)           ((Fpga_Cut_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
+#define Fpga_CutNotCond(p,c)     ((Fpga_Cut_t *)((PORT_PTRUINT_T)(p) ^ (c)))
 
 // the cut nodes
-#define Fpga_SeqIsComplement( p )      (((int)((unsigned long) (p) & 01)))
-#define Fpga_SeqRegular( p )           ((Fpga_Node_t *)((unsigned long)(p) & ~015))
-#define Fpga_SeqIndex( p )             ((((unsigned long)(p)) >> 1) & 07)
-#define Fpga_SeqIndexCreate( p, Ind )  (((unsigned long)(p)) | (1 << (((unsigned)(Ind)) & 07)))
+#define Fpga_SeqIsComplement( p )      (((int)((PORT_PTRUINT_T) (p) & 01)))
+#define Fpga_SeqRegular( p )           ((Fpga_Node_t *)((PORT_PTRUINT_T)(p) & ~015))
+#define Fpga_SeqIndex( p )             ((((PORT_PTRUINT_T)(p)) >> 1) & 07)
+#define Fpga_SeqIndexCreate( p, Ind )  (((PORT_PTRUINT_T)(p)) | (1 << (((PORT_PTRUINT_T)(Ind)) & 07)))
 
 // internal macros for referencing of nodes
 #define Fpga_NodeReadRef(p)      ((Fpga_Regular(p))->nRefs)
@@ -275,9 +275,9 @@ struct Fpga_NodeVecStruct_t_
           pFanout  = pFanout2,                                   \
           pFanout2 = Fpga_NodeReadNextFanout(pNode, pFanout) )
 
-static inline Fpga_FloatMoreThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 > Arg2 + p->fEpsilon; }
-static inline Fpga_FloatLessThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 < Arg2 - p->fEpsilon; }
-static inline Fpga_FloatEqual( Fpga_Man_t * p, float Arg1, float Arg2 )    { return Arg1 > Arg2 - p->fEpsilon && Arg1 < Arg2 + p->fEpsilon; }
+static inline int Fpga_FloatMoreThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 > Arg2 + p->fEpsilon; }
+static inline int Fpga_FloatLessThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 < Arg2 - p->fEpsilon; }
+static inline int Fpga_FloatEqual( Fpga_Man_t * p, float Arg1, float Arg2 )    { return Arg1 > Arg2 - p->fEpsilon && Arg1 < Arg2 + p->fEpsilon; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///

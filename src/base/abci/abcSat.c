@@ -27,7 +27,7 @@
 
 static sat_solver * Abc_NtkMiterSatCreateLogic( Abc_Ntk_t * pNtk, int fAllPrimes );
 extern Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );
-static nMuxes;
+static int nMuxes;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -151,7 +151,7 @@ Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk )
     int i;
     vCiIds = Vec_IntAlloc( Abc_NtkCiNum(pNtk) );
     Abc_NtkForEachCi( pNtk, pObj, i )
-        Vec_IntPush( vCiIds, (int)pObj->pCopy );
+        Vec_IntPush( vCiIds, (int)(PORT_PTRINT_T)pObj->pCopy );
     return vCiIds;
 }
 
@@ -172,7 +172,7 @@ int Abc_NtkClauseTriv( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars )
 {
 //printf( "Adding triv %d.         %d\n", Abc_ObjRegular(pNode)->Id, (int)pSat->sat_solver_stats.clauses );
     vVars->nSize = 0;
-    Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->pCopy, Abc_ObjIsComplement(pNode) ) );
+    Vec_IntPush( vVars, toLitCond( (int)(PORT_PTRINT_T)Abc_ObjRegular(pNode)->pCopy, Abc_ObjIsComplement(pNode) ) );
 //    Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->Id, Abc_ObjIsComplement(pNode) ) );
     return sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
 }
@@ -195,7 +195,7 @@ int Abc_NtkClauseTop( sat_solver * pSat, Vec_Ptr_t * vNodes, Vec_Int_t * vVars )
 //printf( "Adding triv %d.         %d\n", Abc_ObjRegular(pNode)->Id, (int)pSat->sat_solver_stats.clauses );
     vVars->nSize = 0;
     Vec_PtrForEachEntry( vNodes, pNode, i )
-        Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->pCopy, Abc_ObjIsComplement(pNode) ) );
+        Vec_IntPush( vVars, toLitCond( (int)(PORT_PTRINT_T)Abc_ObjRegular(pNode)->pCopy, Abc_ObjIsComplement(pNode) ) );
 //    Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->Id, Abc_ObjIsComplement(pNode) ) );
     return sat_solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
 }
@@ -220,7 +220,7 @@ int Abc_NtkClauseAnd( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, 
     assert( Abc_ObjIsNode( pNode ) );
 
 //    nVars = sat_solver_nvars(pSat);
-    Var = (int)pNode->pCopy;
+    Var = (int)(PORT_PTRINT_T)pNode->pCopy;
 //    Var = pNode->Id;
 
 //    assert( Var  < nVars ); 
@@ -230,7 +230,7 @@ int Abc_NtkClauseAnd( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, 
         // get the complemented attributes of the nodes
         fComp1 = Abc_ObjIsComplement(vSuper->pArray[i]);
         // determine the variable numbers
-        Var1 = (int)Abc_ObjRegular(vSuper->pArray[i])->pCopy;
+        Var1 = (int)(PORT_PTRINT_T)Abc_ObjRegular(vSuper->pArray[i])->pCopy;
 //        Var1 = (int)Abc_ObjRegular(vSuper->pArray[i])->Id;
 
         // check that the variables are in the SAT manager
@@ -255,7 +255,7 @@ int Abc_NtkClauseAnd( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, 
         // get the complemented attributes of the nodes
         fComp1 = Abc_ObjIsComplement(vSuper->pArray[i]);
         // determine the variable numbers
-        Var1 = (int)Abc_ObjRegular(vSuper->pArray[i])->pCopy;
+        Var1 = (int)(PORT_PTRINT_T)Abc_ObjRegular(vSuper->pArray[i])->pCopy;
 //        Var1 = (int)Abc_ObjRegular(vSuper->pArray[i])->Id;
         // add this variable to the array
         Vec_IntPush( vVars, toLitCond(Var1, !fComp1) );
@@ -283,10 +283,10 @@ int Abc_NtkClauseMux( sat_solver * pSat, Abc_Obj_t * pNode, Abc_Obj_t * pNodeC, 
     assert( !Abc_ObjIsComplement( pNode ) );
     assert( Abc_NodeIsMuxType( pNode ) );
     // get the variable numbers
-    VarF = (int)pNode->pCopy;
-    VarI = (int)pNodeC->pCopy;
-    VarT = (int)Abc_ObjRegular(pNodeT)->pCopy;
-    VarE = (int)Abc_ObjRegular(pNodeE)->pCopy;
+    VarF = (int)(PORT_PTRINT_T)pNode->pCopy;
+    VarI = (int)(PORT_PTRINT_T)pNodeC->pCopy;
+    VarT = (int)(PORT_PTRINT_T)Abc_ObjRegular(pNodeT)->pCopy;
+    VarE = (int)(PORT_PTRINT_T)Abc_ObjRegular(pNodeE)->pCopy;
 //    VarF = (int)pNode->Id;
 //    VarI = (int)pNodeC->Id;
 //    VarT = (int)Abc_ObjRegular(pNodeT)->Id;
@@ -379,12 +379,12 @@ int Abc_NtkCollectSupergate_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, int fFir
     }
     // if the new node is complemented or a PI, another gate begins
     if ( !fFirst )
-    if ( Abc_ObjIsComplement(pNode) || !Abc_ObjIsNode(pNode) || Abc_ObjFanoutNum(pNode) > 1 || fStopAtMux && Abc_NodeIsMuxType(pNode) )
-    {
-        Vec_PtrPush( vSuper, pNode );
-        Abc_ObjRegular(pNode)->fMarkB = 1;
-        return 0;
-    }
+        if ( Abc_ObjIsComplement(pNode) || !Abc_ObjIsNode(pNode) || Abc_ObjFanoutNum(pNode) > 1 || (fStopAtMux && Abc_NodeIsMuxType(pNode)) )
+        {
+            Vec_PtrPush( vSuper, pNode );
+            Abc_ObjRegular(pNode)->fMarkB = 1;
+            return 0;
+        }
     assert( !Abc_ObjIsComplement(pNode) );
     assert( Abc_ObjIsNode(pNode) );
     // go through the branches
@@ -462,9 +462,7 @@ int Abc_NtkMiterSatCreateInt( sat_solver * pSat, Abc_Ntk_t * pNtk )
     Vec_Ptr_t * vNodes, * vSuper;
     Vec_Int_t * vVars;
     int i, k, fUseMuxes = 1;
-    int clk1 = clock();
 //    int fOrderCiVarsFirst = 0;
-    int nLevelsMax = Abc_AigLevel(pNtk);
     int RetValue = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -481,7 +479,7 @@ int Abc_NtkMiterSatCreateInt( sat_solver * pSat, Abc_Ntk_t * pNtk )
     // add the clause for the constant node
     pNode = Abc_AigConst1(pNtk);
     pNode->fMarkA = 1;
-    pNode->pCopy = (Abc_Obj_t *)vNodes->nSize;
+    pNode->pCopy = (Abc_Obj_t *)(PORT_PTRINT_T)vNodes->nSize;
     Vec_PtrPush( vNodes, pNode );
     Abc_NtkClauseTriv( pSat, pNode, vVars );
 /*
@@ -503,7 +501,7 @@ int Abc_NtkMiterSatCreateInt( sat_solver * pSat, Abc_Ntk_t * pNtk )
         if ( pFanin->fMarkA == 0 )
         {
             pFanin->fMarkA = 1;
-            pFanin->pCopy = (Abc_Obj_t *)vNodes->nSize;
+            pFanin->pCopy = (Abc_Obj_t *)(PORT_PTRINT_T)vNodes->nSize;
             Vec_PtrPush( vNodes, pFanin );
         }
         // add the trivial clause
@@ -538,7 +536,7 @@ int Abc_NtkMiterSatCreateInt( sat_solver * pSat, Abc_Ntk_t * pNtk )
                 if ( pFanin->fMarkA == 0 )
                 {
                     pFanin->fMarkA = 1;
-                    pFanin->pCopy = (Abc_Obj_t *)vNodes->nSize;
+                    pFanin->pCopy = (Abc_Obj_t *)(PORT_PTRINT_T)vNodes->nSize;
                     Vec_PtrPush( vNodes, pFanin );
                 }
             }
@@ -557,7 +555,7 @@ int Abc_NtkMiterSatCreateInt( sat_solver * pSat, Abc_Ntk_t * pNtk )
                 if ( pFanin->fMarkA == 0 )
                 {
                     pFanin->fMarkA = 1;
-                    pFanin->pCopy = (Abc_Obj_t *)vNodes->nSize;
+                    pFanin->pCopy = (Abc_Obj_t *)(PORT_PTRINT_T)vNodes->nSize;
                     Vec_PtrPush( vNodes, pFanin );
                 }
             }
@@ -625,7 +623,7 @@ void * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fAllPrimes )
 {
     sat_solver * pSat;
     Abc_Obj_t * pNode;
-    int RetValue, i, clk = clock();
+    int RetValue, i; //, clk = clock();
 
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsBddLogic(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
@@ -842,7 +840,7 @@ sat_solver * Abc_NtkMiterSatCreateLogic( Abc_Ntk_t * pNtk, int fAllPrimes )
 
     // transfer the IDs to the copy field
     Abc_NtkForEachPi( pNtk, pNode, i )
-        pNode->pCopy = (void *)pNode->Id;
+        pNode->pCopy = (void *)(PORT_PTRINT_T)pNode->Id;
 
     // start the data structures
     pSat    = sat_solver_new();
@@ -913,7 +911,7 @@ void Abc_NtkWriteSorterCnf( char * pFileName, int nVars, int nQueens )
 
     if ( nQueens <= 0 && nQueens >= nVars )
     {
-        printf( "The number of queens (Q = %d) should belong to the interval: 0 < Q < %d.\n", nQueens, nQueens, nVars );
+        printf( "The number of queens (Q = %d) should belong to the interval: 0 < Q < %d.\n", nQueens, nQueens);
         return;
     }
     assert( nQueens > 0 && nQueens < nVars );
@@ -947,9 +945,9 @@ void Abc_NtkWriteSorterCnf( char * pFileName, int nVars, int nQueens )
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pCopy = (void *)~0;
     Abc_NtkForEachPi( pNtk, pObj, i )
-        pObj->pCopy = (void *)Counter++;
+        pObj->pCopy = (void *)(PORT_PTRINT_T)Counter++;
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = (void *)Counter++;
+        pObj->pCopy = (void *)(PORT_PTRINT_T)Counter++;
 
 /*
         OutVar   = pCnf->pVarNums[ pObj->Id ];
@@ -977,14 +975,14 @@ void Abc_NtkWriteSorterCnf( char * pFileName, int nVars, int nQueens )
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         // positive phase
-        fprintf( pFile, "%d %s%d %s%d 0\n", 1+(int)pObj->pCopy, 
-            Abc_ObjFaninC0(pObj)? "" : "-", 1+(int)Abc_ObjFanin0(pObj)->pCopy,
-            Abc_ObjFaninC1(pObj)? "" : "-", 1+(int)Abc_ObjFanin1(pObj)->pCopy );
+        fprintf( pFile, "%d %s%d %s%d 0\n", 1+(int)(PORT_PTRINT_T)pObj->pCopy,
+            Abc_ObjFaninC0(pObj)? "" : "-", 1+(int)(PORT_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy,
+            Abc_ObjFaninC1(pObj)? "" : "-", 1+(int)(PORT_PTRINT_T)Abc_ObjFanin1(pObj)->pCopy );
         // negative phase
-        fprintf( pFile, "-%d %s%d 0\n", 1+(int)pObj->pCopy, 
-            Abc_ObjFaninC0(pObj)? "-" : "", 1+(int)Abc_ObjFanin0(pObj)->pCopy );
-        fprintf( pFile, "-%d %s%d 0\n", 1+(int)pObj->pCopy, 
-            Abc_ObjFaninC1(pObj)? "-" : "", 1+(int)Abc_ObjFanin1(pObj)->pCopy );
+        fprintf( pFile, "-%d %s%d 0\n",     1+(int)(PORT_PTRINT_T)pObj->pCopy,
+            Abc_ObjFaninC0(pObj)? "-" : "", 1+(int)(PORT_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy );
+        fprintf( pFile, "-%d %s%d 0\n",     1+(int)(PORT_PTRINT_T)pObj->pCopy,
+            Abc_ObjFaninC1(pObj)? "-" : "", 1+(int)(PORT_PTRINT_T)Abc_ObjFanin1(pObj)->pCopy );
     }
     Vec_PtrFree( vNodes );
 
@@ -994,10 +992,10 @@ void Abc_NtkWriteSorterCnf( char * pFileName, int nVars, int nQueens )
 */
     // assert the first literal to zero
     fprintf( pFile, "%s%d 0\n", 
-        Abc_ObjFaninC0(ppNodes[0])? "" : "-", 1+(int)Abc_ObjFanin0(ppNodes[0])->pCopy );
+        Abc_ObjFaninC0(ppNodes[0])? "" : "-", 1+(int)(PORT_PTRINT_T)Abc_ObjFanin0(ppNodes[0])->pCopy );
     // assert the second literal to one
     fprintf( pFile, "%s%d 0\n", 
-        Abc_ObjFaninC0(ppNodes[1])? "-" : "", 1+(int)Abc_ObjFanin0(ppNodes[1])->pCopy );
+        Abc_ObjFaninC0(ppNodes[1])? "-" : "", 1+(int)(PORT_PTRINT_T)Abc_ObjFanin0(ppNodes[1])->pCopy );
     fclose( pFile );
 }
 

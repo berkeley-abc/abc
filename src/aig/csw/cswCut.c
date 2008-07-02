@@ -555,7 +555,7 @@ p->timeCuts += clock() - clk;
         }
         if ( nVars == 2 && nFanins > 2 && fUseResub )
         {
-            if ( pObjNew = Csw_ObjTwoVarCut( p, pCut ) )
+            if ( (pObjNew = Csw_ObjTwoVarCut( p, pCut )) )
             {
                 p->nNodesTriv2++;
                 return pObjNew;

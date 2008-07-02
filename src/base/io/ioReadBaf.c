@@ -112,9 +112,9 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
     }
 
     // get the pointer to the beginning of the node array
-    pBufferNode = (int *)(pContents + (nFileSize - (2 * nAnds + nOutputs + nLatches) * sizeof(int)) );
+    pBufferNode = (unsigned *)(pContents + (nFileSize - (2 * nAnds + nOutputs + nLatches) * sizeof(int)) );
     // make sure we are at the place where the nodes begin
-    if ( pBufferNode != (int *)pCur )
+    if ( pBufferNode != (unsigned *)pCur )
     {
         free( pContents );
         Vec_PtrFree( vNodes );
@@ -140,7 +140,7 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
         Num = pBufferNode[2*nAnds+i];
         if ( Abc_ObjFanoutNum(pObj) > 0 && Abc_ObjIsLatch(Abc_ObjFanout0(pObj)) )
         {
-            Abc_ObjSetData( Abc_ObjFanout0(pObj), (void *)(Num & 3) );
+            Abc_ObjSetData( Abc_ObjFanout0(pObj), (void *)(PORT_PTRINT_T)(Num & 3) );
             Num >>= 2;
         }
         pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, Num >> 1), Num & 1 );

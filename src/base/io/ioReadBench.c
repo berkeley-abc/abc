@@ -95,7 +95,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     // go through the lines of the file
     vString = Vec_StrAlloc( 100 );
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
-    for ( iLine = 0; vTokens = Extra_FileReaderGetTokens(p); iLine++ )
+    for ( iLine = 0; (vTokens = Extra_FileReaderGetTokens(p)); iLine++ )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
 

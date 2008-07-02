@@ -19,8 +19,11 @@
 
 ***********************************************************************/
 
+// The code in this file is developed in collaboration with Mark Jarvin of Toronto.
+
 #include "ioAbc.h"
-#include <bzlib.h>
+#include "bzlib.h"
+#include "zlib.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -104,7 +107,7 @@ typedef struct buflist {
   struct buflist * next;
 } buflist;
 
-static char * Ioa_ReadLoadFileBz2Aig( char * pFileName )
+static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
 {
     FILE    * pFile;
     int       nFileSize = 0;
@@ -168,9 +171,45 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName )
     fclose( pFile );
     // finish off the file with the spare .end line
     // some benchmarks suddenly break off without this line
-    strcpy( pContents + nFileSize, "\n.end\n" );
+//    strcpy( pContents + nFileSize, "\n.end\n" );
+    *pFileSize = nFileSize;
     return pContents;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the file into a character buffer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static char * Ioa_ReadLoadFileGzAig( char * pFileName, int * pFileSize )
+{
+    const int READ_BLOCK_SIZE = 100000;
+    FILE * pFile;
+    char * pContents;
+    int amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
+    pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
+    pContents = ALLOC( char, nFileSize );        
+    readBlock = 0;
+    while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
+        //printf("%d: read %d bytes\n", readBlock, amtRead);
+        nFileSize += READ_BLOCK_SIZE;
+        pContents = REALLOC(char, pContents, nFileSize);
+        ++readBlock;
+    }
+    //printf("%d: read %d bytes\n", readBlock, amtRead);
+    assert( amtRead != -1 ); // indicates a zlib error
+    nFileSize -= (READ_BLOCK_SIZE - amtRead);
+    gzclose(pFile);
+    *pFileSize = nFileSize;
+    return pContents;
+}
+
 
 /**Function*************************************************************
 
@@ -191,13 +230,15 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     Vec_Int_t * vLits = NULL;
     Abc_Obj_t * pObj, * pNode0, * pNode1;
     Abc_Ntk_t * pNtkNew;
-    int nTotal, nInputs, nOutputs, nLatches, nAnds, nFileSize, iTerm, nDigits, i;
-    char * pContents, * pDrivers, * pSymbols, * pCur, * pName, * pType;
+    int nTotal, nInputs, nOutputs, nLatches, nAnds, nFileSize = -1, iTerm, nDigits, i;
+    char * pContents, * pDrivers = NULL, * pSymbols, * pCur, * pName, * pType;
     unsigned uLit0, uLit1, uLit;
 
     // read the file into the buffer
     if ( !strncmp(pFileName+strlen(pFileName)-4,".bz2",4) )
-        pContents = Ioa_ReadLoadFileBz2Aig( pFileName );
+        pContents = Ioa_ReadLoadFileBz2Aig( pFileName, &nFileSize );
+    else if ( !strncmp(pFileName+strlen(pFileName)-3,".gz",3) )
+        pContents = Ioa_ReadLoadFileGzAig( pFileName, &nFileSize );
     else
     {
 //        pContents = Ioa_ReadLoadFile( pFileName );

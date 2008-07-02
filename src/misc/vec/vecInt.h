@@ -667,7 +667,7 @@ static inline int Vec_IntRemove( Vec_Int_t * p, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_IntSortCompare1( int * pp1, int * pp2 )
+static int Vec_IntSortCompare1( int * pp1, int * pp2 )
 {
     // for some reason commenting out lines (as shown) led to crashing of the release version
     if ( *pp1 < *pp2 )
@@ -688,7 +688,7 @@ static inline int Vec_IntSortCompare1( int * pp1, int * pp2 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_IntSortCompare2( int * pp1, int * pp2 )
+static int Vec_IntSortCompare2( int * pp1, int * pp2 )
 {
     // for some reason commenting out lines (as shown) led to crashing of the release version
     if ( *pp1 > *pp2 )
@@ -731,7 +731,7 @@ static inline void Vec_IntSort( Vec_Int_t * p, int fReverse )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_IntSortCompareUnsigned( unsigned * pp1, unsigned * pp2 )
+static int Vec_IntSortCompareUnsigned( unsigned * pp1, unsigned * pp2 )
 {
     if ( *pp1 < *pp2 )
         return -1;

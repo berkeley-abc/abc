@@ -119,7 +119,9 @@ void Aig_ManRegManStop( Aig_ManPre_t * p )
 int Aig_ManRegFindSeed( Aig_ManPre_t * p )
 {
     Vec_Int_t * vRegs;
-    int i, k, iReg, iMax, nRegsCur, nRegsMax = -1;
+    int i, k, iReg;
+    int iMax = -1; // Suppress "might be used uninitialized"
+    int nRegsCur, nRegsMax = -1;
     for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
     {
         if ( p->pfUsedRegs[i] )

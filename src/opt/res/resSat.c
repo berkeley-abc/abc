@@ -63,44 +63,44 @@ void * Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins )
 
     // assign unique numbers to each node
     nNodes = 0;
-    Abc_AigConst1(pAig)->pCopy = (void *)nNodes++;
+    Abc_AigConst1(pAig)->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
     Abc_NtkForEachPi( pAig, pObj, i )
-        pObj->pCopy = (void *)nNodes++;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = (void *)nNodes++;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
     Vec_PtrForEachEntry( vFanins, pObj, i ) // useful POs
-        pObj->pCopy = (void *)nNodes++;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
 
     // start the solver
     pSat = sat_solver_new();
     sat_solver_store_alloc( pSat );
 
     // add clause for the constant node
-    Res_SatAddConst1( pSat, (int)Abc_AigConst1(pAig)->pCopy, 0 );
+    Res_SatAddConst1( pSat, (int)(PORT_PTRUINT_T)Abc_AigConst1(pAig)->pCopy, 0 );
     // add clauses for AND gates
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        Res_SatAddAnd( pSat, (int)pObj->pCopy, 
-            (int)Abc_ObjFanin0(pObj)->pCopy, (int)Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+        Res_SatAddAnd( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 
+            (int)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, (int)(PORT_PTRUINT_T)Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     Vec_PtrFree( vNodes );
     // add clauses for POs
     Vec_PtrForEachEntry( vFanins, pObj, i )
-        Res_SatAddEqual( pSat, (int)pObj->pCopy, 
-            (int)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
+        Res_SatAddEqual( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 
+            (int)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
     // add trivial clauses
     pObj = Vec_PtrEntry(vFanins, 0);
-    Res_SatAddConst1( pSat, (int)pObj->pCopy, 0 ); // care-set
+    Res_SatAddConst1( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 0 ); // care-set
     pObj = Vec_PtrEntry(vFanins, 1);
-    Res_SatAddConst1( pSat, (int)pObj->pCopy, 0 ); // on-set
+    Res_SatAddConst1( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 0 ); // on-set
 
     // bookmark the clauses of A
     sat_solver_store_mark_clauses_a( pSat );
 
     // duplicate the clauses
     pObj = Vec_PtrEntry(vFanins, 1);
-    Sat_SolverDoubleClauses( pSat, (int)pObj->pCopy );
+    Sat_SolverDoubleClauses( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy );
     // add the equality constraints
     Vec_PtrForEachEntryStart( vFanins, pObj, i, 2 )
-        Res_SatAddEqual( pSat, (int)pObj->pCopy, ((int)pObj->pCopy) + nNodes, 0 );
+        Res_SatAddEqual( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, ((int)(PORT_PTRUINT_T)pObj->pCopy) + nNodes, 0 );
 
     // bookmark the roots
     sat_solver_store_mark_roots( pSat );
@@ -155,39 +155,39 @@ void * Res_SatSimulateConstr( Abc_Ntk_t * pAig, int fOnSet )
 
     // assign unique numbers to each node
     nNodes = 0;
-    Abc_AigConst1(pAig)->pCopy = (void *)nNodes++;
+    Abc_AigConst1(pAig)->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
     Abc_NtkForEachPi( pAig, pObj, i )
-        pObj->pCopy = (void *)nNodes++;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = (void *)nNodes++;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
     Vec_PtrForEachEntry( vFanins, pObj, i ) // useful POs
-        pObj->pCopy = (void *)nNodes++;
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)nNodes++;
 
     // start the solver
     pSat = sat_solver_new();
 
     // add clause for the constant node
-    Res_SatAddConst1( pSat, (int)Abc_AigConst1(pAig)->pCopy, 0 );
+    Res_SatAddConst1( pSat, (int)(PORT_PTRUINT_T)Abc_AigConst1(pAig)->pCopy, 0 );
     // add clauses for AND gates
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        Res_SatAddAnd( pSat, (int)pObj->pCopy, 
-            (int)Abc_ObjFanin0(pObj)->pCopy, (int)Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+        Res_SatAddAnd( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 
+            (int)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, (int)(PORT_PTRUINT_T)Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     Vec_PtrFree( vNodes );
     // add clauses for the first PO
     pObj = Abc_NtkPo( pAig, 0 );
-    Res_SatAddEqual( pSat, (int)pObj->pCopy, 
-        (int)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
+    Res_SatAddEqual( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 
+        (int)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
     // add clauses for the second PO
     pObj = Abc_NtkPo( pAig, 1 );
-    Res_SatAddEqual( pSat, (int)pObj->pCopy, 
-        (int)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
+    Res_SatAddEqual( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 
+        (int)(PORT_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
 
     // add trivial clauses
     pObj = Abc_NtkPo( pAig, 0 );
-    Res_SatAddConst1( pSat, (int)pObj->pCopy, 0 ); // care-set
+    Res_SatAddConst1( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, 0 ); // care-set
 
     pObj = Abc_NtkPo( pAig, 1 );
-    Res_SatAddConst1( pSat, (int)pObj->pCopy, !fOnSet ); // on-set
+    Res_SatAddConst1( pSat, (int)(PORT_PTRUINT_T)pObj->pCopy, !fOnSet ); // on-set
 
     Vec_PtrFree( vFanins );
     return pSat;
@@ -211,13 +211,14 @@ int Res_SatSimulate( Res_Sim_t * p, int nPatsLimit, int fOnSet )
     Vec_Int_t * vLits;
     Vec_Ptr_t * vPats;
     sat_solver * pSat;
-    int RetValue, i, k, value, status, Lit, Var, iPat;
+    int RetValue = -1; // Suppress "might be used uninitialized"
+    int i, k, value, status, Lit, Var, iPat;
     int clk = clock();
 
 //printf( "Looking for %s:  ", fOnSet? "onset " : "offset" );
 
     // decide what problem should be solved
-    Lit = toLitCond( (int)Abc_NtkPo(p->pAig,1)->pCopy, !fOnSet );
+    Lit = toLitCond( (int)(PORT_PTRUINT_T)Abc_NtkPo(p->pAig,1)->pCopy, !fOnSet );
     if ( fOnSet )
     {
         iPat = p->nPats1;
@@ -274,7 +275,7 @@ int Res_SatSimulate( Res_Sim_t * p, int nPatsLimit, int fOnSet )
             Vec_IntClear( vLits );
             for ( i = 0; i < p->nTruePis; i++ )
             {
-                Var = (int)Abc_NtkPi(p->pAig,i)->pCopy;
+                Var = (int)(PORT_PTRUINT_T)Abc_NtkPi(p->pAig,i)->pCopy;
                 value = (int)(pSat->model.ptr[Var] == l_True);
                 if ( value )
                     Abc_InfoSetBit( Vec_PtrEntry(vPats, i), k );

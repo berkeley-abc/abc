@@ -662,10 +662,10 @@ void * Abc_NtkDontCareTransfer_rec( Odc_Man_t * p, Abc_Obj_t * pNode, Abc_Obj_t 
     assert( Abc_ObjIsNode(pNode) );
     // consider the case when the node is the pivot
     if ( pNode == pPivot )
-        return pNode->pCopy = (void *)((Odc_Const1() << 16) | Odc_Const0());
+        return pNode->pCopy = (void *)(PORT_PTRUINT_T)((Odc_Const1() << 16) | Odc_Const0());
     // compute the cofactors
-    uData0 = (unsigned)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin0(pNode), pPivot );
-    uData1 = (unsigned)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin1(pNode), pPivot );
+    uData0 = (unsigned)(PORT_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin0(pNode), pPivot );
+    uData1 = (unsigned)(PORT_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin1(pNode), pPivot );
     // find the 0-cofactor
     uLit0 = Odc_NotCond( (Odc_Lit_t)(uData0 & 0xffff), Abc_ObjFaninC0(pNode) );
     uLit1 = Odc_NotCond( (Odc_Lit_t)(uData1 & 0xffff), Abc_ObjFaninC1(pNode) );
@@ -675,7 +675,7 @@ void * Abc_NtkDontCareTransfer_rec( Odc_Man_t * p, Abc_Obj_t * pNode, Abc_Obj_t 
     uLit1 = Odc_NotCond( (Odc_Lit_t)(uData1 >> 16), Abc_ObjFaninC1(pNode) );
     uRes1 = Odc_And( p, uLit0, uLit1 );
     // find the result
-    return pNode->pCopy = (void *)((uRes1 << 16) | uRes0);
+    return pNode->pCopy = (void *)(PORT_PTRUINT_T)((uRes1 << 16) | uRes0);
 }
 
 /**Function*************************************************************
@@ -701,21 +701,21 @@ int Abc_NtkDontCareTransfer( Odc_Man_t * p )
     Vec_PtrForEachEntry( p->vLeaves, pObj, i )
     {
         uLit = Odc_Var( p, i );
-        pObj->pCopy = (void *)((uLit << 16) | uLit);
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)((uLit << 16) | uLit);
         Abc_NodeSetTravIdCurrent(pObj);
     }
     // set elementary variables at the branched 
     Vec_PtrForEachEntry( p->vBranches, pObj, i )
     {
         uLit = Odc_Var( p, i+p->nVarsMax );
-        pObj->pCopy = (void *)((uLit << 16) | uLit);
+        pObj->pCopy = (void *)(PORT_PTRUINT_T)((uLit << 16) | uLit);
         Abc_NodeSetTravIdCurrent(pObj);
     }
     // compute the AIG for the window
     p->iRoot = Odc_Const0();
     Vec_PtrForEachEntry( p->vRoots, pObj, i )
     {
-        uData = (unsigned)Abc_NtkDontCareTransfer_rec( p, pObj, p->pNode );
+        uData = (unsigned)(PORT_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, pObj, p->pNode );
         // get the cofactors
         uRes0 = uData & 0xffff;
         uRes1 = uData >> 16;

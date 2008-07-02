@@ -327,7 +327,7 @@ static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { 
 static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;           } 
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
 static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) );      } 
-static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(long)pObj->pNext;                                                   }
+static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(PORT_PTRINT_T)pObj->pNext;                                                   }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 

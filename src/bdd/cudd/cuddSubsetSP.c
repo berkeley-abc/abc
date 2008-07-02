@@ -1224,12 +1224,14 @@ BuildSubsetBdd(
 {
     DdNode *N, *Nv, *Nnv;
     DdNode *ThenBranch, *ElseBranch, *childBranch;
-    DdNode *child, *regChild, *regNnv, *regNv;
+    DdNode *child, *regChild;
+    DdNode *regNnv = NULL, *regNv = NULL; // Suppress "might be used uninitialized"
     NodeDist_t *nodeStatNv, *nodeStat, *nodeStatNnv;
     DdNode *neW, *topv, *regNew;
     char *entry;
     unsigned int topid;
-    unsigned int childPathLength, oddLen, evenLen, NnvPathLength, NvPathLength;
+    unsigned int childPathLength, oddLen, evenLen;
+    unsigned int NnvPathLength = -1, NvPathLength = -1; // Suppress "might be used uninitialized"
     unsigned int NvBotDist, NnvBotDist;
     int tiebreakChild;
     int  processingDone, thenDone, elseDone;

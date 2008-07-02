@@ -264,7 +264,8 @@ float Nwk_NodePropagateRequired( Nwk_Obj_t * pObj, int fUseSorting )
     int pPinPerm[32];
     float pPinDelays[32];
     Nwk_Obj_t * pFanin;
-    float tRequired, * pDelays;
+    float tRequired = 0.0; // Suppress "might be used uninitialized"
+    float * pDelays;
     int k;
     assert( Nwk_ObjIsNode(pObj) );
     if ( pLutLib == NULL )
@@ -557,10 +558,10 @@ void Nwk_NodeUpdateAddToQueue( Vec_Ptr_t * vQueue, Nwk_Obj_t * pObj, int iCurren
 ***********************************************************************/
 void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
 {
-    If_Lib_t * pLutLib = pObj->pMan->pLutLib;
     Tim_Man_t * pManTime = pObj->pMan->pManTime;
     Vec_Ptr_t * vQueue = pObj->pMan->vTemp;
-    Nwk_Obj_t * pTemp, * pNext;
+    Nwk_Obj_t * pTemp;
+    Nwk_Obj_t * pNext = NULL; // Suppress "might be used uninitialized"
     float tArrival;
     int iCur, k, iBox, iTerm1, nTerms;
     assert( Nwk_ObjIsNode(pObj) );
@@ -636,10 +637,10 @@ void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
 ***********************************************************************/
 void Nwk_NodeUpdateRequired( Nwk_Obj_t * pObj )
 {
-    If_Lib_t * pLutLib = pObj->pMan->pLutLib;
     Tim_Man_t * pManTime = pObj->pMan->pManTime;
     Vec_Ptr_t * vQueue = pObj->pMan->vTemp;
-    Nwk_Obj_t * pTemp, * pNext;
+    Nwk_Obj_t * pTemp;
+    Nwk_Obj_t * pNext = NULL; // Suppress "might be used uninitialized"
     float tRequired;
     int iCur, k, iBox, iTerm1, nTerms;
     assert( Nwk_ObjIsNode(pObj) );
@@ -763,7 +764,8 @@ void Nwk_ManUpdateLevel( Nwk_Obj_t * pObj )
 {
     Tim_Man_t * pManTime = pObj->pMan->pManTime;
     Vec_Ptr_t * vQueue = pObj->pMan->vTemp;
-    Nwk_Obj_t * pTemp, * pNext;
+    Nwk_Obj_t * pTemp;
+    Nwk_Obj_t * pNext = NULL; // Suppress "might be used uninitialized"
     int LevelNew, iCur, k, iBox, iTerm1, nTerms;
     assert( Nwk_ObjIsNode(pObj) );
     // initialize the queue with the node

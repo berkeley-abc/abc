@@ -20,7 +20,10 @@
 
 #ifdef WIN32
 #include <process.h> 
+#else
+#include <unistd.h>
 #endif
+
 
 #include "abc.h"
 #include "main.h"

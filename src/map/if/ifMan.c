@@ -320,7 +320,7 @@ void If_ManSetupCut( If_Man_t * p, If_Cut_t * pCut )
     if ( p->pPars->fUsePerm )
         pCut->pPerm  = (char *)(pCut->pLeaves + p->pPars->nLutSize);
     if ( p->pPars->fTruth )
-        pCut->pTruth = pCut->pLeaves + p->pPars->nLutSize + p->nPermWords;
+        pCut->pTruth = (unsigned *)pCut->pLeaves + p->pPars->nLutSize + p->nPermWords;
 }
 
 /**Function*************************************************************

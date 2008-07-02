@@ -46,7 +46,7 @@ static void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int fAl
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
 {
-    extern int timeRetime;
+//    extern int timeRetime;
     Abc_Ntk_t * pNtkAig;
     Abc_Obj_t * pObj;
     int i, nNodes;//, RetValue;
@@ -99,7 +99,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
 {
-    extern int timeRetime;
+//    extern int timeRetime;
     Abc_Ntk_t * pNtkAig;
     Abc_Obj_t * pObj;
     int i, nNodes;//, RetValue;
@@ -311,7 +311,7 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, int fAllNod
     ProgressBar * pProgress;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNodeOld;
-    int i, clk = clock();
+    int i; //, clk = clock();
     assert( Abc_NtkIsLogic(pNtkOld) );
     assert( Abc_NtkIsStrash(pNtkNew) );
 //    vNodes = Abc_NtkDfs( pNtkOld, fAllNodes );

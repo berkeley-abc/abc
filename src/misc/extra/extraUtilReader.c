@@ -232,7 +232,7 @@ int Extra_FileReaderGetLineNumber( Extra_FileReader_t * p, int iToken )
 void * Extra_FileReaderGetTokens( Extra_FileReader_t * p )
 {
     Vec_Ptr_t * vTokens;
-    while ( vTokens = Extra_FileReaderGetTokens_int( p ) )
+    while ( (vTokens = Extra_FileReaderGetTokens_int( p )) )
         if ( vTokens->nSize > 0 )
             break;
     return vTokens;
@@ -272,7 +272,7 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
         if ( *pChar == '\n' )
             p->nLineCounter++;
         // switch depending on the character
-        MapValue = p->pCharMap[*pChar];
+        MapValue = p->pCharMap[(int)*pChar];
 
 //        printf( "Char value = %d. Map value = %d.\n", *pChar, MapValue );
 

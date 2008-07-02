@@ -441,7 +441,6 @@ int Fra_ClauCheckClause( Cla_Man_t * p, Vec_Int_t * vClause, Vec_Int_t * vCex )
 {
     int nBTLimit = 0;
     int RetValue, iVar, i;
-    int nClauseSize = Vec_IntSize( vClause );
     // complement literals
     Vec_IntPush( vClause, toLit( p->nSatVarsTestCur++ ) ); // helper positive
     Vec_IntComplement( vClause ); // helper negative (the clause is C v h')

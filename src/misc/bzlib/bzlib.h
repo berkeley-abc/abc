@@ -18,9 +18,10 @@
    in the file LICENSE.
    ------------------------------------------------------------------ */
 
-//#define O_BINARY 0
+#ifdef _WIN32
 #ifdef __STDC__
 #undef __STDC__
+#endif
 #endif
 
 #ifndef _BZLIB_H

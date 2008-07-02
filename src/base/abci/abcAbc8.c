@@ -253,7 +253,6 @@ Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib )
     extern Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
     extern Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
 
-    Mfx_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
     Nwk_Man_t * pMan;
     pMan = Abc_NtkToNtkNew( pNtk );
