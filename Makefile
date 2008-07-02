@@ -20,7 +20,7 @@ MODULES := src/base/abc src/base/abci src/base/cmd \
 	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \
 	src/aig/csw src/aig/ioa src/aig/aig src/aig/kit \
 	src/aig/bdc src/aig/bar src/aig/ntl src/aig/nwk src/aig/mfx \
-	src/aig/tim src/aig/saig src/aig/bbr
+	src/aig/tim src/aig/saig src/aig/bbr src/misc/bzlib
 
 default: $(PROG)
 
@@ -32,7 +32,7 @@ OPTFLAGS  := -g -O -DLIN64
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 
 
-LIBS := -ldl -rdynamic -lreadline -ltermcap -lbz2
+LIBS := -ldl -rdynamic -lreadline -ltermcap
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG)
 
