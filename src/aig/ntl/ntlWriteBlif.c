@@ -23,8 +23,9 @@
 #include "ntl.h"
 #include "ioa.h"
 
-#include "bzlib.h"
 #include <stdarg.h>
+#include "bzlib.h"
+#include "zlib.h"
 
 #ifdef _WIN32
 #define vsnprintf _vsnprintf
@@ -286,6 +287,180 @@ int fprintfBz2(bz2file * b, char * fmt, ...) {
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Writes one model into the BLIF file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ioa_WriteBlifModelGz( gzFile pFile, Ntl_Mod_t * pModel, int fMain )
+{
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet;
+    float Delay;
+    int i, k;
+    gzprintf( pFile, ".model %s\n", pModel->pName );
+    if ( pModel->attrWhite || pModel->attrBox || pModel->attrComb || pModel->attrKeep )
+    {
+        gzprintf( pFile, ".attrib" );
+        gzprintf( pFile, " %s", pModel->attrWhite? "white": "black" );
+        gzprintf( pFile, " %s", pModel->attrBox?   "box"  : "logic" );
+        gzprintf( pFile, " %s", pModel->attrComb?  "comb" : "seq"   );
+//        gzprintf( pFile, " %s", pModel->attrKeep?  "keep" : "sweep" );
+        gzprintf( pFile, "\n" );
+    }
+    gzprintf( pFile, ".inputs" );
+    Ntl_ModelForEachPi( pModel, pObj, i )
+        gzprintf( pFile, " %s", Ntl_ObjFanout0(pObj)->pName );
+    gzprintf( pFile, "\n" );
+    gzprintf( pFile, ".outputs" );
+    Ntl_ModelForEachPo( pModel, pObj, i )
+        gzprintf( pFile, " %s", Ntl_ObjFanin0(pObj)->pName );
+    gzprintf( pFile, "\n" );
+    // write delays
+    if ( pModel->vDelays )
+    {
+        for ( i = 0; i < Vec_IntSize(pModel->vDelays); i += 3 )
+        {
+            gzprintf( pFile, ".delay" );
+            if ( Vec_IntEntry(pModel->vDelays,i) != -1 )
+                gzprintf( pFile, " %s", Ntl_ObjFanout0(Ntl_ModelPi(pModel, Vec_IntEntry(pModel->vDelays,i)))->pName );
+            if ( Vec_IntEntry(pModel->vDelays,i+1) != -1 )
+                gzprintf( pFile, " %s", Ntl_ObjFanin0(Ntl_ModelPo(pModel, Vec_IntEntry(pModel->vDelays,i+1)))->pName );
+            gzprintf( pFile, " %.3f", Aig_Int2Float(Vec_IntEntry(pModel->vDelays,i+2)) );
+            gzprintf( pFile, "\n" );
+        }
+    }
+    if ( pModel->vTimeInputs )
+    {
+        for ( i = 0; i < Vec_IntSize(pModel->vTimeInputs); i += 2 )
+        {
+            if ( fMain )
+                gzprintf( pFile, ".input_arrival" );
+            else
+                gzprintf( pFile, ".input_required" );
+            if ( Vec_IntEntry(pModel->vTimeInputs,i) != -1 )
+                gzprintf( pFile, " %s", Ntl_ObjFanout0(Ntl_ModelPi(pModel, Vec_IntEntry(pModel->vTimeInputs,i)))->pName );
+            Delay = Aig_Int2Float(Vec_IntEntry(pModel->vTimeInputs,i+1));
+            if ( Delay == -TIM_ETERNITY )
+                gzprintf( pFile, " -inf" );
+            else if ( Delay == TIM_ETERNITY )
+                gzprintf( pFile, " inf" );
+            else
+                gzprintf( pFile, " %.3f", Delay );
+            gzprintf( pFile, "\n" );
+        }
+    }
+    if ( pModel->vTimeOutputs )
+    {
+        for ( i = 0; i < Vec_IntSize(pModel->vTimeOutputs); i += 2 )
+        {
+            if ( fMain )
+                gzprintf( pFile, ".output_required" );
+            else
+                gzprintf( pFile, ".output_arrival" );
+            if ( Vec_IntEntry(pModel->vTimeOutputs,i) != -1 )
+                gzprintf( pFile, " %s", Ntl_ObjFanin0(Ntl_ModelPo(pModel, Vec_IntEntry(pModel->vTimeOutputs,i)))->pName );
+            Delay = Aig_Int2Float(Vec_IntEntry(pModel->vTimeOutputs,i+1));
+            if ( Delay == -TIM_ETERNITY )
+                gzprintf( pFile, " -inf" );
+            else if ( Delay == TIM_ETERNITY )
+                gzprintf( pFile, " inf" );
+            else
+                gzprintf( pFile, " %.3f", Delay );
+            gzprintf( pFile, "\n" );
+        }
+    }
+    // write objects
+    Ntl_ModelForEachObj( pModel, pObj, i )
+    {
+        if ( Ntl_ObjIsNode(pObj) )
+        {
+            gzprintf( pFile, ".names" );
+            Ntl_ObjForEachFanin( pObj, pNet, k )
+                gzprintf( pFile, " %s", pNet->pName );
+            gzprintf( pFile, " %s\n", Ntl_ObjFanout0(pObj)->pName );
+            gzprintf( pFile, "%s", pObj->pSop );
+        }
+        else if ( Ntl_ObjIsLatch(pObj) )
+        {
+            gzprintf( pFile, ".latch" );
+            gzprintf( pFile, " %s", Ntl_ObjFanin0(pObj)->pName );
+            gzprintf( pFile, " %s", Ntl_ObjFanout0(pObj)->pName );
+            assert( pObj->LatchId.regType == 0 || pObj->LatchId.regClass == 0 );
+            if ( pObj->LatchId.regType )
+            {
+                if ( pObj->LatchId.regType == 1 )
+                    gzprintf( pFile, " fe" );
+                else if ( pObj->LatchId.regType == 2 )
+                    gzprintf( pFile, " re" );
+                else if ( pObj->LatchId.regType == 3 )
+                    gzprintf( pFile, " ah" );
+                else if ( pObj->LatchId.regType == 4 )
+                    gzprintf( pFile, " al" );
+                else if ( pObj->LatchId.regType == 5 )
+                    gzprintf( pFile, " as" );
+                else
+                    assert( 0 );
+            }
+            else if ( pObj->LatchId.regClass )
+                gzprintf( pFile, " %d", pObj->LatchId.regClass );
+            if ( pObj->pClock )
+                gzprintf( pFile, " %s", pObj->pClock->pName );
+            gzprintf( pFile, " %d", pObj->LatchId.regInit );
+            gzprintf( pFile, "\n" );
+        }
+        else if ( Ntl_ObjIsBox(pObj) )
+        {
+            gzprintf( pFile, ".subckt %s", pObj->pImplem->pName );
+            Ntl_ObjForEachFanin( pObj, pNet, k )
+                gzprintf( pFile, " %s=%s", Ntl_ModelPiName(pObj->pImplem, k), pNet->pName );
+            Ntl_ObjForEachFanout( pObj, pNet, k )
+                gzprintf( pFile, " %s=%s", Ntl_ModelPoName(pObj->pImplem, k), pNet->pName );
+            gzprintf( pFile, "\n" );
+        }
+    }
+    gzprintf( pFile, ".end\n\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the logic network into the BLIF file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ioa_WriteBlifGz( Ntl_Man_t * p, char * pFileName )
+{
+    Ntl_Mod_t * pModel;
+    int i;
+    gzFile pFile;
+
+    // start the output stream
+    pFile = gzopen( pFileName, "wb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Ioa_WriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
+        return;
+    }
+
+    gzprintf( pFile, "# Benchmark \"%s\" written by ABC-8 on %s\n", p->pName, Ioa_TimeStamp() );
+    // write the models
+    Ntl_ManForEachModel( p, pModel, i )
+        Ioa_WriteBlifModelGz( pFile, pModel, i==0 );
+    // close the file
+    gzclose( pFile );
+}
+
 
 /**Function*************************************************************
 
@@ -443,8 +618,15 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
 {
     Ntl_Mod_t * pModel;
     int i, bzError;
-
     bz2file b;
+
+    // write the GZ file
+    if (!strncmp(pFileName+strlen(pFileName)-3,".gz",3)) 
+    {
+        Ioa_WriteBlifGz( p, pFileName );
+        return;
+    }
+
     memset(&b,0,sizeof(b));
     b.nBytesMax = (1<<12);
     b.buf = ALLOC( char,b.nBytesMax );
