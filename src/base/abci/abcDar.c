@@ -932,9 +932,9 @@ Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t 
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
 {
-    Vec_Ptr_t * vMapped;
+    Vec_Ptr_t * vMapped = NULL;
     Aig_Man_t * pMan;
-    Cnf_Man_t * pManCnf;
+    Cnf_Man_t * pManCnf = NULL;
     Cnf_Dat_t * pCnf;
     Abc_Ntk_t * pNtkNew = NULL;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -954,13 +954,14 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
 
     // derive CNF
     pCnf = Cnf_Derive( pMan, 0 );
-    pManCnf = Cnf_ManRead();
-
+    Cnf_DataTranformPolarity( pCnf );
+/*
     // write the network for verification
+    pManCnf = Cnf_ManRead();
     vMapped = Cnf_ManScanMapping( pManCnf, 1, 0 );
     pNtkNew = Abc_NtkConstructFromCnf( pNtk, pManCnf, vMapped );
     Vec_PtrFree( vMapped );
-
+*/
     // write CNF into a file
     Cnf_DataWriteIntoFile( pCnf, pFileName, 0 );
     Cnf_DataFree( pCnf );
@@ -982,7 +983,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVerbose )
+int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue;//, clk = clock();
@@ -990,7 +991,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
     assert( Abc_NtkLatchNum(pNtk) == 0 );
     assert( Abc_NtkPoNum(pNtk) == 1 );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
-    RetValue = Fra_FraigSat( pMan, nConfLimit, nInsLimit, fVerbose ); 
+    RetValue = Fra_FraigSat( pMan, nConfLimit, nInsLimit, fFlipBits, fAndOuts, fVerbose ); 
     pNtk->pModel = pMan->pData, pMan->pData = NULL;
     Aig_ManStop( pMan );
     return RetValue;

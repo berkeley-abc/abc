@@ -443,7 +443,7 @@ Abc_Obj_t * Abc_NtkTopmost_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int Leve
 Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
 {
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObjNew, * pPoNew;
+    Abc_Obj_t * pObjNew, * pObjPo;
     int LevelCut;
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkCoNum(pNtk) == 1 );
@@ -458,10 +458,10 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     pObjNew = Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin0(Abc_NtkPo(pNtk, 0)), LevelCut );
     pObjNew = Abc_ObjNotCond( pObjNew, Abc_ObjFaninC0(Abc_NtkPo(pNtk, 0)) );
     // add the PO node and name
-    pPoNew = Abc_NtkCreatePo(pNtkNew);
-    Abc_ObjAddFanin( pPoNew, pObjNew );
+    pObjPo = Abc_NtkCreatePo(pNtkNew);
+    Abc_ObjAddFanin( pObjPo, pObjNew );
     Abc_NtkAddDummyPiNames( pNtkNew );
-    Abc_ObjAssignName( pPoNew, Abc_ObjName(Abc_NtkPo(pNtk, 0)), NULL );
+    Abc_ObjAssignName( pObjPo, Abc_ObjName(Abc_NtkPo(pNtk, 0)), NULL );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
@@ -472,6 +472,131 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     return pNtkNew;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison procedure for two integers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Vec_CompareNodeIds( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    if ( Abc_ObjRegular(*pp1)->Id < Abc_ObjRegular(*pp2)->Id )
+        return -1;
+    if ( Abc_ObjRegular(*pp1)->Id > Abc_ObjRegular(*pp2)->Id ) //
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the large supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeGetSuper( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vSuper, * vFront;
+    Abc_Obj_t * pAnd, * pFanin;
+    int i;
+    assert( Abc_ObjIsNode(pNode) && !Abc_ObjIsComplement(pNode) );
+    vSuper = Vec_PtrAlloc( 100 ); 
+    // explore the frontier
+    vFront = Vec_PtrAlloc( 100 );
+    Vec_PtrPush( vFront, pNode );
+    Vec_PtrForEachEntry( vFront, pAnd, i )
+    {
+        pFanin = Abc_ObjChild0(pAnd);
+        if ( Abc_ObjIsNode(pFanin) && !Abc_ObjIsComplement(pFanin) && Abc_ObjFanoutNum(pFanin) == 1 )
+            Vec_PtrPush( vFront, pFanin );
+        else
+            Vec_PtrPush( vSuper, pFanin );
+
+        pFanin = Abc_ObjChild1(pAnd);
+        if ( Abc_ObjIsNode(pFanin) && !Abc_ObjIsComplement(pFanin) && Abc_ObjFanoutNum(pFanin) == 1 )
+            Vec_PtrPush( vFront, pFanin );
+        else
+            Vec_PtrPush( vSuper, pFanin );
+    }
+    Vec_PtrFree( vFront );
+    // reverse the array of pointers to start with lower IDs
+    vFront = Vec_PtrAlloc( Vec_PtrSize(vSuper) );
+    Vec_PtrForEachEntryReverse( vSuper, pNode, i )
+        Vec_PtrPush( vFront, pNode );
+    Vec_PtrFree( vSuper );
+    vSuper = vFront;
+    // uniquify and return the frontier
+    Vec_PtrUniqify( vSuper, Vec_CompareNodeIds );
+    return vSuper;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copies the topmost levels of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkTopAnd( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes, * vOrder;
+    Abc_Ntk_t * pNtkAig;
+    Abc_Obj_t * pObj, * pDriver, * pObjPo;
+    int i, nNodes;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // get the first PO
+    pObjPo = Abc_NtkPo(pNtk, 0);
+    vNodes = Abc_NodeGetSuper( Abc_ObjChild0(pObjPo) );
+    assert( Vec_PtrSize(vNodes) >= 2 );
+    // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
+    Abc_NtkCleanCopy( pNtk );
+    pNtkAig = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
+    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkAig);
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkAig, pObj, 1 );
+    // restrash the nodes reachable from the roots
+    vOrder = Abc_NtkDfsIterNodes( pNtk, vNodes );
+    Vec_PtrForEachEntry( vOrder, pObj, i )
+        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    Vec_PtrFree( vOrder );
+    // finalize the network
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        pObjPo = Abc_NtkCreatePo(pNtkAig);
+        pDriver = Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj));
+        Abc_ObjAddFanin( pObjPo, pDriver );
+        Abc_ObjAssignName( pObjPo, Abc_ObjName(pObjPo), NULL );
+    }
+    Vec_PtrFree( vNodes );
+    // perform cleanup if requested
+    if ( (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) ) 
+        printf( "Abc_NtkTopAnd(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+    {
+        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+    }
+    return pNtkAig;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

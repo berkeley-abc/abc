@@ -40,7 +40,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVerbose )
+int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose )
 {
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
@@ -53,6 +53,10 @@ int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVe
     // derive CNF
     pCnf = Cnf_Derive( pMan, Aig_ManPoNum(pMan) );
 //    pCnf = Cnf_DeriveSimple( pMan, Aig_ManPoNum(pMan) );
+
+    if ( fFlipBits ) 
+        Cnf_DataTranformPolarity( pCnf );
+
     // convert into SAT solver
     pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     if ( pSat == NULL )
@@ -60,12 +64,27 @@ int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVe
         Cnf_DataFree( pCnf );
         return 1;
     }
-    // add the OR clause for the outputs
-    if ( !Cnf_DataWriteOrClause( pSat, pCnf ) )
+
+
+    if ( fAndOuts )
     {
-        sat_solver_delete( pSat );
-        Cnf_DataFree( pCnf );
-        return 1;
+        // assert each output independently
+        if ( !Cnf_DataWriteAndClauses( pSat, pCnf ) )
+        {
+            sat_solver_delete( pSat );
+            Cnf_DataFree( pCnf );
+            return 1;
+        }
+    }
+    else
+    {
+        // add the OR clause for the outputs
+        if ( !Cnf_DataWriteOrClause( pSat, pCnf ) )
+        {
+            sat_solver_delete( pSat );
+            Cnf_DataFree( pCnf );
+            return 1;
+        }
     }
     vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
     Cnf_DataFree( pCnf );
@@ -160,7 +179,7 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int fVerbose )
 
     // if SAT only, solve without iteration
 clk = clock();
-    RetValue = Fra_FraigSat( pAig, (sint64)2*nBTLimitStart, (sint64)0, 0 );
+    RetValue = Fra_FraigSat( pAig, (sint64)2*nBTLimitStart, (sint64)0, 1, 0, 0 );
     if ( fVerbose )
     {
         printf( "Initial SAT:      Nodes = %6d.  ", Aig_ManNodeNum(pAig) );
@@ -228,7 +247,7 @@ PRT( "Time", clock() - clk );
     if ( RetValue == -1 )
     {
 clk = clock();
-        RetValue = Fra_FraigSat( pAig, (sint64)nBTLimitLast, (sint64)0, 0 );
+        RetValue = Fra_FraigSat( pAig, (sint64)nBTLimitLast, (sint64)0, 1, 0, 0 );
         if ( fVerbose )
         {
             printf( "Final SAT:            Nodes = %6d.  ", Aig_ManNodeNum(pAig) );

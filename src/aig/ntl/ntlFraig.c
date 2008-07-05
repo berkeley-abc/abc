@@ -320,6 +320,8 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     // perform SCL for the given design
     pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
     Aig_ManStop( pTemp );
+    if ( pNew->vRegClasses && Vec_IntSize(pNew->vRegClasses) && pAigCol->pReprs )
+        Ntl_ManFilterRegisterClasses( pAigCol, pNew->vRegClasses, fVerbose );
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
@@ -353,6 +355,8 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     // perform SCL for the given design
     pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
     Aig_ManStop( pTemp );
+    if ( p->vRegClasses && Vec_IntSize(p->vRegClasses) && pAigCol->pReprs )
+        Ntl_ManFilterRegisterClasses( pAigCol, p->vRegClasses, fVerbose );
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );

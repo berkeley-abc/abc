@@ -558,6 +558,33 @@ Vec_Ptr_t * Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll )
     return vNodes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the DFS ordered array of logic nodes.]
+
+  Description [Collects only the internal nodes, leaving CIs and CO.
+  However it marks with the current TravId both CIs and COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsIterNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots )
+{
+    Vec_Ptr_t * vNodes, * vStack;
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkIncrementTravId( pNtk );
+    vNodes = Vec_PtrAlloc( 1000 );
+    vStack = Vec_PtrAlloc( 1000 );
+    Vec_PtrForEachEntry( vRoots, pObj, i )
+        if ( !Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pObj)) )
+            Abc_NtkDfs_iter( vStack, Abc_ObjRegular(pObj), vNodes );
+    Vec_PtrFree( vStack );
+    return vNodes;
+}
+
 
 /**Function*************************************************************
 

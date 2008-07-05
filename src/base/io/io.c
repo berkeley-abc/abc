@@ -144,7 +144,7 @@ void Io_End()
 int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
-    char * pFileName;
+    char * pFileName, * pTemp;
     int fCheck;
     int c;
 
@@ -171,6 +171,10 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     // get the input file name
     pFileName = argv[globalUtilOptind];
+    // fix the wrong symbol
+    for ( pTemp = pFileName; *pTemp; pTemp++ )
+        if ( *pTemp == '>' )
+            *pTemp = '\\';
     // read the file using the corresponding file reader
     pNtk = Io_Read( pFileName, Io_ReadFileType(pFileName), fCheck );
     if ( pNtk == NULL )

@@ -140,6 +140,7 @@ int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
     else
     {
         pCutBest = pObj->pData;
+//        assert( pCutBest->nFanins > 0 );
         assert( pCutBest->Cost < 127 );
         aArea = pCutBest->Cost;
         Cnf_CutForEachLeaf( p->pManAig, pCutBest, pLeaf, i )

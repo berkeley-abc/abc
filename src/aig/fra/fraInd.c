@@ -437,6 +437,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
  
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
+    p->pPars->nBTLimitNode = 0;
     // derive and refine e-classes using K initialized frames
     if ( fUseOldSimulation )
     {
@@ -529,6 +530,7 @@ p->timeTrav += clock() - clk2;
             pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
         else
             pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
+//        Cnf_DataTranformPolarity( pCnf );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 
         p->pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );

@@ -589,6 +589,7 @@ extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsReverseNodesContained( Abc_Ntk_t * p
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsSeq( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsSeqReverse( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll );
+extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsIterNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsHie( Abc_Ntk_t * pNtk, int fCollectAll );
 extern ABC_DLL bool               Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkSupport( Abc_Ntk_t * pNtk );

@@ -20,6 +20,7 @@
 
 #include "cnf.h"
 #include "satSolver.h"
+#include "zlib.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -237,7 +238,7 @@ void Cnf_DataPrint( Cnf_Dat_t * p, int fReadable )
   SeeAlso     []
 
 ***********************************************************************/
-void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
+void Cnf_DataWriteIntoFile_old( Cnf_Dat_t * p, char * pFileName, int fReadable )
 {
     FILE * pFile;
     int * pLit, * pStop, i;
@@ -257,6 +258,39 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
     }
     fprintf( pFile, "\n" );
     fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes CNF into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
+{
+    gzFile pFile;
+    int * pLit, * pStop, i;
+    pFile = gzopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cnf_WriteIntoFile(): Output file cannot be opened.\n" );
+        return;
+    }
+    gzprintf( pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n" );
+    gzprintf( pFile, "p cnf %d %d\n", p->nVars, p->nClauses );
+    for ( i = 0; i < p->nClauses; i++ )
+    {
+        for ( pLit = p->pClauses[i], pStop = p->pClauses[i+1]; pLit < pStop; pLit++ )
+            gzprintf( pFile, "%d ", fReadable? Cnf_Lit2Var2(*pLit) : Cnf_Lit2Var(*pLit) );
+        gzprintf( pFile, "0\n" );
+    }
+    gzprintf( pFile, "\n" );
+    gzclose( pFile );
 }
 
 /**Function*************************************************************
@@ -377,6 +411,63 @@ int Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
     }
     free( pLits );
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the OR-clause.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cnf_DataWriteAndClauses( void * p, Cnf_Dat_t * pCnf )
+{
+    sat_solver * pSat = p;
+    Aig_Obj_t * pObj;
+    int i, Lit;
+    Aig_ManForEachPo( pCnf->pMan, pObj, i )
+    {
+        Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
+        if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
+            return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms polarity of the internal veriables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf )
+{
+    Aig_Obj_t * pObj;
+    int * pVarToPol;
+    int i, iVar;
+    // create map from the variable number to its polarity
+    pVarToPol = CALLOC( int, pCnf->nVars );
+    Aig_ManForEachObj( pCnf->pMan, pObj, i )
+        if ( !Aig_ObjIsPo(pObj) && pCnf->pVarNums[pObj->Id] >= 0 )
+            pVarToPol[ pCnf->pVarNums[pObj->Id] ] = pObj->fPhase;
+    // transform literals
+    for ( i = 0; i < pCnf->nLiterals; i++ )
+    {
+        iVar = lit_var(pCnf->pClauses[0][i]);
+        assert( iVar < pCnf->nVars );
+        if ( pVarToPol[iVar] )
+            pCnf->pClauses[0][i] = lit_neg( pCnf->pClauses[0][i] );
+    }
+    free( pVarToPol );
 }
 
 ////////////////////////////////////////////////////////////////////////

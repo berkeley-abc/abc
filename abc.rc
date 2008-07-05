@@ -2,7 +2,7 @@
 #set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
 #set checkread     # checks new networks after reading from file
-set backup        # saves backup networks retrived by "undo" and "recall"
+#set backup        # saves backup networks retrived by "undo" and "recall"
 set savesteps 1   # sets the maximum number of backup networks to save 
 set progressbar   # display the progress bar
 

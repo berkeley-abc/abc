@@ -85,8 +85,12 @@ int cmdCheckShellEscape( Abc_Frame_t * pAbc, int argc, char ** argv)
   SeeAlso     []
 
 ***********************************************************************/
-int CmdCommandDispatch( Abc_Frame_t * pAbc, int argc, char **argv )
+int CmdCommandDispatch( Abc_Frame_t * pAbc, int * pargc, char *** pargv )
 {
+    int argc = *pargc;
+    char ** argv = *pargv;
+    char ** argv2;
+
     Abc_Ntk_t * pNetCopy;
     int (*pFunc) ( Abc_Frame_t *, int, char ** );
     Abc_Command * pCommand;
@@ -103,8 +107,17 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the command
     if ( !st_lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
     {   // the command is not in the table
-        fprintf( pAbc->Err, "** cmd error: unknown command '%s'\n", argv[0] );
-        return 1;
+//        fprintf( pAbc->Err, "** cmd error: unknown command '%s'\n", argv[0] );
+//        return 1;
+        // add command 'read' assuming that this is the file name
+        argv2 = CmdAddToArgv( argc, argv );
+        CmdFreeArgv( argc, argv );
+        argc = argc+1;
+        argv = argv2;
+        *pargc = argc;
+        *pargv = argv;
+        if ( !st_lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
+            assert( 0 );
     }
 
     // get the backup network if the command is going to change the network
@@ -303,7 +316,7 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
                 fError = CmdApplyAlias( pAbc, &newc, &newv, loop );
                 if ( fError == 0 )
                 {
-                       fError = CmdCommandDispatch( pAbc, newc, newv );
+                       fError = CmdCommandDispatch( pAbc, &newc, &newv );
                 }
                 CmdFreeArgv( newc, newv );
             }
@@ -451,6 +464,28 @@ void CmdFreeArgv( int argc, char **argv )
     for ( i = 0; i < argc; i++ )
         FREE( argv[i] );
     FREE( argv );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the previously allocated argv array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char ** CmdAddToArgv( int argc, char ** argv )
+{
+    char ** argv2;
+    int i;
+    argv2 = ALLOC( char *, argc + 1 ); 
+    argv2[0] = Extra_UtilStrsav( "read" ); 
+    for ( i = 0; i < argc; i++ )
+        argv2[i+1] = Extra_UtilStrsav( argv[i] ); 
+    return argv2;
 }
 
 /**Function*************************************************************

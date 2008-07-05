@@ -282,7 +282,7 @@ static inline int          Fra_ImpCreate( int Left, int Right )                 
 ////////////////////////////////////////////////////////////////////////
 
 /*=== fraCec.c ========================================================*/
-extern int                 Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVerbose );
+extern int                 Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
 extern int                 Fra_FraigCec( Aig_Man_t ** ppAig, int fVerbose );
 extern int                 Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nPartSize, int fSmart, int fVerbose );
 /*=== fraClass.c ========================================================*/

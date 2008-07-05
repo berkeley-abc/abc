@@ -377,6 +377,7 @@ extern ABC_DLL void            Ntl_ManUnmarkCiCoNets( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManSetZeroInitValues( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManTransformInitValues( Ntl_Man_t * p );
 extern ABC_DLL Vec_Vec_t *     Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVerbose );
+extern ABC_DLL void            Ntl_ManFilterRegisterClasses( Aig_Man_t * pAig, Vec_Int_t * vRegClasses, int fVerbose );
 extern ABC_DLL int             Ntl_ManLatchNum( Ntl_Man_t * p );
 extern ABC_DLL int             Ntl_ManIsComb( Ntl_Man_t * p );
 extern ABC_DLL int             Ntl_ModelCombLeafNum( Ntl_Mod_t * p );

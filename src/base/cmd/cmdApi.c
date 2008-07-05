@@ -90,7 +90,7 @@ int Cmd_CommandExecute( Abc_Frame_t * pAbc, char * sCommand )
         loop = 0;
         fStatus = CmdApplyAlias( pAbc, &argc, &argv, &loop );
         if ( fStatus == 0 ) 
-            fStatus = CmdCommandDispatch( pAbc, argc, argv );
+            fStatus = CmdCommandDispatch( pAbc, &argc, &argv );
            CmdFreeArgv( argc, argv );
     } 
     while ( fStatus == 0 && *sCommandNext != '\0' );

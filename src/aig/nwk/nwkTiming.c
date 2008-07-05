@@ -589,14 +589,14 @@ void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
         {
             if ( pManTime )
             {
-                // it may happen that a box-input (CO) was already marked as visited
-                // when some other box-input of the same box was visited - here we undo this
                 iBox = Tim_ManBoxForCo( pManTime, pTemp->PioId );
-                if ( Tim_ManIsCoTravIdCurrent( pManTime, pTemp->PioId ) )
-                    Tim_ManSetPreviousTravIdBoxInputs( pManTime, iBox );
-                Tim_ManSetCoArrival( pManTime, pTemp->PioId, tArrival );
                 if ( iBox >= 0 ) // this CO is an input of the box
                 {
+                    // it may happen that a box-input (CO) was already marked as visited
+                    // when some other box-input of the same box was visited - here we undo this
+                    if ( Tim_ManIsCoTravIdCurrent( pManTime, pTemp->PioId ) )
+                        Tim_ManSetPreviousTravIdBoxInputs( pManTime, iBox );
+                    Tim_ManSetCoArrival( pManTime, pTemp->PioId, tArrival );
                     Tim_ManSetCurrentTravIdBoxInputs( pManTime, iBox );
                     iTerm1 = Tim_ManBoxOutputFirst( pManTime, iBox );
                     nTerms = Tim_ManBoxOutputNum( pManTime, iBox );
@@ -673,14 +673,14 @@ void Nwk_NodeUpdateRequired( Nwk_Obj_t * pObj )
         {
             if ( pManTime )
             {
-                // it may happen that a box-output (CI) was already marked as visited
-                // when some other box-output of the same box was visited - here we undo this
                 iBox = Tim_ManBoxForCi( pManTime, pTemp->PioId );
-                if ( Tim_ManIsCiTravIdCurrent( pManTime, pTemp->PioId ) )
-                    Tim_ManSetPreviousTravIdBoxOutputs( pManTime, iBox );
-                Tim_ManSetCiRequired( pManTime, pTemp->PioId, tRequired );
                 if ( iBox >= 0 ) // this CI is an output of the box
                 {
+                    // it may happen that a box-output (CI) was already marked as visited
+                    // when some other box-output of the same box was visited - here we undo this
+                    if ( Tim_ManIsCiTravIdCurrent( pManTime, pTemp->PioId ) )
+                        Tim_ManSetPreviousTravIdBoxOutputs( pManTime, iBox );
+                    Tim_ManSetCiRequired( pManTime, pTemp->PioId, tRequired );
                     Tim_ManSetCurrentTravIdBoxOutputs( pManTime, iBox );
                     iTerm1 = Tim_ManBoxInputFirst( pManTime, iBox );
                     nTerms = Tim_ManBoxInputNum( pManTime, iBox );

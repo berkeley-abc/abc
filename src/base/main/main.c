@@ -221,8 +221,8 @@ int main( int argc, char * argv[] )
     // if the memory should be freed, quit packages
     if ( fStatus < 0 ) 
     {
-        Abc_Stop();
-    } 
+        Abc_Stop(); 
+    }  
     return 0; 
 
 usage:

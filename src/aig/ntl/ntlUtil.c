@@ -403,7 +403,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
         printf( "The number of register clases = %d.\n", nClasses );
         for ( i = 0; i <= ClassMax; i++ )
             if ( pClassNums[i] )
-                printf( "%d:%d  ", i, pClassNums[i] );
+                printf( "(%d, %d)  ", i, pClassNums[i] );
         printf( "\n" );
     }
     // skip if there is only one class
@@ -416,7 +416,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
             vPart = Vec_IntStartNatural( Vec_IntSize(pMan->vRegClasses) );
             Vec_PtrPush( vParts, vPart );
         }
-        printf( "There is only one clock domain with %d registers.\n", Vec_IntSize(pMan->vRegClasses) );
+        printf( "There is only one class with %d registers.\n", Vec_IntSize(pMan->vRegClasses) );
         free( pClassNums );
         return (Vec_Vec_t *)vParts;
     }
@@ -434,16 +434,68 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
         Vec_PtrPush( vParts, vPart );
     }
     free( pClassNums );
+    Vec_VecSort( (Vec_Vec_t *)vParts, 1 );
     // report the selected classes
     if ( fVerbose )
     {
         printf( "The number of selected register clases = %d.\n", Vec_PtrSize(vParts) );
         Vec_PtrForEachEntry( vParts, vPart, i )
-            printf( "%d:%d  ", i, Vec_IntSize(vPart) );
+            printf( "(%d, %d)  ", i, Vec_IntSize(vPart) );
         printf( "\n" );
     }
     return (Vec_Vec_t *)vParts;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Filter register clases using clock-domain information.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManFilterRegisterClasses( Aig_Man_t * pAig, Vec_Int_t * vRegClasses, int fVerbose )
+{
+    Aig_Obj_t * pObj, * pRepr;
+    int i, k, nOmitted, nTotal;
+    if ( pAig->pReprs == NULL )
+        return;
+    assert( pAig->nRegs > 0 );
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->PioNum = -1;
+    k = 0;
+    Aig_ManForEachLoSeq( pAig, pObj, i )
+        pObj->PioNum = k++;
+    // consider equivalences
+    nOmitted = nTotal = 0;
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        pRepr = pAig->pReprs[pObj->Id];
+        if ( pRepr == NULL )
+            continue;
+        nTotal++;
+        assert( Aig_ObjIsPi(pObj) );
+        assert( Aig_ObjIsPi(pRepr) || Aig_ObjIsConst1(pRepr) );
+        if ( Aig_ObjIsConst1(pRepr) )
+            continue;
+        assert( pObj->PioNum >= 0 && pRepr->PioNum >= 0 );
+        // remove equivalence if they belong to different classes
+        if ( Vec_IntEntry( vRegClasses, pObj->PioNum ) == 
+             Vec_IntEntry( vRegClasses, pRepr->PioNum ) )
+             continue;
+         pAig->pReprs[pObj->Id] = NULL;
+         nOmitted++;
+    }
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->PioNum = -1;
+    if ( fVerbose )
+        printf( "Omitted %d (out of %d) equivs due to register class mismatch.\n", 
+            nOmitted, nTotal );
+}
+
 
 /**Function*************************************************************
 
