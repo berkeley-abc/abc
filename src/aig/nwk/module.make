@@ -6,6 +6,7 @@ SRC +=    src/aig/nwk/nwkAig.c \
     src/aig/nwk/nwkFlow.c \
     src/aig/nwk/nwkMan.c \
     src/aig/nwk/nwkMap.c \
+    src/aig/nwk/nwkMerge.c \
     src/aig/nwk/nwkObj.c \
     src/aig/nwk/nwkSpeedup.c \
     src/aig/nwk/nwkStrash.c \

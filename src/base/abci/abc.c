@@ -123,6 +123,7 @@ static int Abc_CommandTest           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandQuaVar         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandQuaRel         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandQuaReach       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSenseInput     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandIStrash        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -228,6 +229,7 @@ static int Abc_CommandAbc8Mfs        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Lutpack    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Balance    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Speedup    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Merge      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc8Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -380,6 +382,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "qvar",          Abc_CommandQuaVar,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "qrel",          Abc_CommandQuaRel,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "qreach",        Abc_CommandQuaReach,         1 );
+    Cmd_CommandAdd( pAbc, "Various",      "senseinput",    Abc_CommandSenseInput,       1 );
 
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
@@ -480,6 +483,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*lp",           Abc_CommandAbc8Lutpack,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*b",            Abc_CommandAbc8Balance,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*speedup",      Abc_CommandAbc8Speedup,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*merge",        Abc_CommandAbc8Merge,        0 );
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*fraig",        Abc_CommandAbc8Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
@@ -8091,6 +8095,98 @@ usage:
     fprintf( pErr, "\t         assumes that the current network is a transition relation\n" );
     fprintf( pErr, "\t         assumes that the initial state is composed of all zeros\n" );
     fprintf( pErr, "\t-I num : the number of image computations to perform [default = %d]\n", nIters );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSenseInput( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    Vec_Int_t * vResult;
+    int c, nConfLim, fVerbose;
+
+    extern Vec_Int_t * Abc_NtkSensitivity( Abc_Ntk_t * pNtk, int nConfLim, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nConfLim   = 1000;
+    fVerbose   =    1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfLim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfLim < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+    {
+        fprintf( pErr, "This command cannot be applied to an AIG with choice nodes.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "This command works only for combinational transition relations.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
+    if ( Abc_NtkPoNum(pNtk) < 2 )
+    {
+        fprintf( pErr, "The network should have at least two outputs.\n" );
+        return 1;
+    }
+
+    vResult = Abc_NtkSensitivity( pNtk, nConfLim, fVerbose );
+    Vec_IntFree( vResult );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: senseinput [-C num] [-vh]\n" );
+    fprintf( pErr, "\t         computes sensitivity of POs to PIs under constaint\n" );
+    fprintf( pErr, "\t         constraint should be represented as the last PO" );
+    fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfLim );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -17220,6 +17316,156 @@ usage:
     fprintf( stdout, "\t-l       : toggle using unit- or LUT-library-delay model [default = %s]\n", fUseLutLib? "lib" : "unit" );
     fprintf( stdout, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+
+//#include "nwk.h"
+
+// the LUT merging parameters
+typedef struct Nwk_LMPars_t_  Nwk_LMPars_t;
+struct Nwk_LMPars_t_
+{
+    int  nMaxLutSize;       // the max LUT size for merging (N=5)
+    int  nMaxSuppSize;      // the max total support size after merging (S=5)
+    int  nMaxDistance;      // the max number of nodes separating LUTs
+    int  nMaxLevelDiff;     // the max difference in levels
+    int  nMaxFanout;        // the max number of fanouts to traverse
+    int  fUseTfiTfo;        // enables the use of TFO/TFO nodes as candidates
+    int  fVeryVerbose;      // enables additional verbose output
+    int  fVerbose;          // enables verbose output
+};
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Merge( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Nwk_LMPars_t Pars, * pPars = &Pars;
+    Vec_Int_t * vResult;
+    int c;
+    int fUseLutLib = 0;
+    int Percentage = 100;
+    int Degree = 5;
+    int fVerbose = 0;
+    int fVeryVerbose = 0;
+    extern Vec_Int_t * Nwk_ManLutMerge( void * pNtk, Nwk_LMPars_t * pPars );
+
+    // set defaults
+    memset( pPars, 0, sizeof(Nwk_LMPars_t) );
+    pPars->nMaxLutSize    = 5;   // the max LUT size for merging (N=5)
+    pPars->nMaxSuppSize   = 5;   // the max total support size after merging (S=5)
+    pPars->nMaxDistance   = 3;   // the max number of nodes separating LUTs
+    pPars->nMaxLevelDiff  = 2;   // the max difference in levels
+    pPars->nMaxFanout     = 100; // the max number of fanouts to traverse
+    pPars->fUseTfiTfo     = 0;   // enables the use of TFO/TFO nodes as candidates
+    pPars->fVeryVerbose   = 0;   // enables additional verbose output
+    pPars->fVerbose       = 1;   // enables verbose output
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NSDLFcvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxLutSize < 2 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxSuppSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxSuppSize < 2 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxDistance = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxDistance < 2 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxLevelDiff = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxLevelDiff < 2 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxFanout = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxFanout < 2 ) 
+                goto usage;
+            break;
+        case 'c':
+            pPars->fUseTfiTfo ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Nwk == NULL )
+    {
+        printf( "Abc_CommandAbc8Speedup(): There is no mapped network to merge LUTs.\n" );
+        return 1;
+    }
+       
+    vResult = Nwk_ManLutMerge( pAbc->pAbc8Nwk, pPars );
+    Vec_IntFree( vResult );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *merge [-NSDLF num] [-cwvh]\n" );
+    fprintf( stdout, "\t           creates pairs of topologically-related LUTs\n" );
+    fprintf( stdout, "\t-N <num> : the max LUT size for merging (1 < num) [default = %d]\n", pPars->nMaxLutSize );
+    fprintf( stdout, "\t-S <num> : the max total support size after merging (1 < num) [default = %d]\n", pPars->nMaxSuppSize );
+    fprintf( stdout, "\t-D <num> : the max distance in terms of LUTs (0 < num) [default = %d]\n", pPars->nMaxDistance );
+    fprintf( stdout, "\t-L <num> : the max difference in levels (0 <= num) [default = %d]\n", pPars->nMaxLevelDiff );
+    fprintf( stdout, "\t-F <num> : the max number of fanouts to stop traversal (0 < num) [default = %d]\n", pPars->nMaxFanout );
+    fprintf( stdout, "\t-c       : toggle the use of TFI/TFO nodes as candidates [default = %s]\n", pPars->fUseTfiTfo? "yes" : "no" );
+    fprintf( stdout, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( stdout, "\t-v       : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h       : print the command usage\n");
     return 1;
 }

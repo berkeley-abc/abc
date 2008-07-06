@@ -48,6 +48,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcRewrite.c \
     src/base/abci/abcRr.c \
     src/base/abci/abcSat.c \
+    src/base/abci/abcSense.c \
     src/base/abci/abcStrash.c \
     src/base/abci/abcSweep.c \
     src/base/abci/abcSymm.c \

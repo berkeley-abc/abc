@@ -109,6 +109,20 @@ struct Nwk_Obj_t_
 };
 
 
+// the LUT merging parameters
+typedef struct Nwk_LMPars_t_  Nwk_LMPars_t;
+struct Nwk_LMPars_t_
+{
+    int  nMaxLutSize;       // the max LUT size for merging (N=5)
+    int  nMaxSuppSize;      // the max total support size after merging (S=5)
+    int  nMaxDistance;      // the max number of nodes separating LUTs
+    int  nMaxLevelDiff;     // the max difference in levels
+    int  nMaxFanout;        // the max number of fanouts to traverse
+    int  fUseTfiTfo;        // enables the use of TFO/TFO nodes as candidates
+    int  fVeryVerbose;      // enables additional verbose output
+    int  fVerbose;          // enables verbose output
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////

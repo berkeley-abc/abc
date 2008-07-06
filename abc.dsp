@@ -386,6 +386,10 @@ SOURCE=.\src\base\abci\abcSat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcSense.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcStrash.c
 # End Source File
 # Begin Source File
@@ -3311,6 +3315,10 @@ SOURCE=.\src\aig\nwk\nwkMan.c
 # Begin Source File
 
 SOURCE=.\src\aig\nwk\nwkMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkMerge.c
 # End Source File
 # Begin Source File
 
