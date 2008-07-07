@@ -3322,6 +3322,10 @@ SOURCE=.\src\aig\nwk\nwkMerge.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\nwk\nwkMerge.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\nwk\nwkObj.c
 # End Source File
 # Begin Source File

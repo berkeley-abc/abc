@@ -33,6 +33,7 @@
 #include "mfx.h"
 #include "fra.h"
 #include "saig.h"
+#include "nwkMerge.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -7578,13 +7579,15 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-    Abc_Ntk_t * pNtkRes;
+//    Abc_Ntk_t * pNtkRes;
     int c;
     int fBmc;
     int nFrames;
     int nLevels;
     int fVerbose;
     int fVeryVerbose;
+    char * pFileName;
+
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
@@ -7605,13 +7608,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
 
 
-
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-    printf( "This command is temporarily disabled.\n" );
-    return 0;
+//    printf( "This command is temporarily disabled.\n" );
+//    return 0;
 
     // set defaults
     fVeryVerbose = 0;
@@ -7789,6 +7791,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_NtkDarPartition( pNtk );
 //Abc_NtkDarTest( pNtk );
 
+/*
 //    pNtkRes = Abc_NtkDarRetimeStep( pNtk, 0 );
     pNtkRes = Abc_NtkDarHaigRecord( pNtk, 3, 3000, 0, 0, 0, 0 );
     if ( pNtkRes == NULL )
@@ -7798,12 +7801,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    pFileName = argv[globalUtilOptind];
+    Nwk_ManLutMergeGraphTest( pFileName );
     return 0;
 usage:
-    fprintf( pErr, "usage: test [-bvwh]\n" );
+    fprintf( pErr, "usage: test [-h] <file_name>\n" );
     fprintf( pErr, "\t         testbench for new procedures\n" );
-    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
+//    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+//    fprintf( pErr, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -17321,21 +17329,6 @@ usage:
 }
 
 
-//#include "nwk.h"
-
-// the LUT merging parameters
-typedef struct Nwk_LMPars_t_  Nwk_LMPars_t;
-struct Nwk_LMPars_t_
-{
-    int  nMaxLutSize;       // the max LUT size for merging (N=5)
-    int  nMaxSuppSize;      // the max total support size after merging (S=5)
-    int  nMaxDistance;      // the max number of nodes separating LUTs
-    int  nMaxLevelDiff;     // the max difference in levels
-    int  nMaxFanout;        // the max number of fanouts to traverse
-    int  fUseTfiTfo;        // enables the use of TFO/TFO nodes as candidates
-    int  fVeryVerbose;      // enables additional verbose output
-    int  fVerbose;          // enables verbose output
-};
 
 /**Function*************************************************************
 
@@ -17353,11 +17346,6 @@ int Abc_CommandAbc8Merge( Abc_Frame_t * pAbc, int argc, char ** argv )
     Nwk_LMPars_t Pars, * pPars = &Pars;
     Vec_Int_t * vResult;
     int c;
-    int fUseLutLib = 0;
-    int Percentage = 100;
-    int Degree = 5;
-    int fVerbose = 0;
-    int fVeryVerbose = 0;
     extern Vec_Int_t * Nwk_ManLutMerge( void * pNtk, Nwk_LMPars_t * pPars );
 
     // set defaults
@@ -17367,11 +17355,12 @@ int Abc_CommandAbc8Merge( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nMaxDistance   = 3;   // the max number of nodes separating LUTs
     pPars->nMaxLevelDiff  = 2;   // the max difference in levels
     pPars->nMaxFanout     = 100; // the max number of fanouts to traverse
+    pPars->fUseDiffSupp   = 0;   // enables the use of nodes with different support
     pPars->fUseTfiTfo     = 0;   // enables the use of TFO/TFO nodes as candidates
     pPars->fVeryVerbose   = 0;   // enables additional verbose output
     pPars->fVerbose       = 1;   // enables verbose output
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NSDLFcvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NSDLFscvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17430,6 +17419,9 @@ int Abc_CommandAbc8Merge( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nMaxFanout < 2 ) 
                 goto usage;
             break;
+        case 's':
+            pPars->fUseDiffSupp ^= 1;
+            break;
         case 'c':
             pPars->fUseTfiTfo ^= 1;
             break;
@@ -17456,13 +17448,14 @@ int Abc_CommandAbc8Merge( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *merge [-NSDLF num] [-cwvh]\n" );
+    fprintf( stdout, "usage: *merge [-NSDLF num] [-scwvh]\n" );
     fprintf( stdout, "\t           creates pairs of topologically-related LUTs\n" );
     fprintf( stdout, "\t-N <num> : the max LUT size for merging (1 < num) [default = %d]\n", pPars->nMaxLutSize );
     fprintf( stdout, "\t-S <num> : the max total support size after merging (1 < num) [default = %d]\n", pPars->nMaxSuppSize );
     fprintf( stdout, "\t-D <num> : the max distance in terms of LUTs (0 < num) [default = %d]\n", pPars->nMaxDistance );
     fprintf( stdout, "\t-L <num> : the max difference in levels (0 <= num) [default = %d]\n", pPars->nMaxLevelDiff );
     fprintf( stdout, "\t-F <num> : the max number of fanouts to stop traversal (0 < num) [default = %d]\n", pPars->nMaxFanout );
+    fprintf( stdout, "\t-s       : toggle the use of nodes without support overlap [default = %s]\n", pPars->fUseDiffSupp? "yes" : "no" );
     fprintf( stdout, "\t-c       : toggle the use of TFI/TFO nodes as candidates [default = %s]\n", pPars->fUseTfiTfo? "yes" : "no" );
     fprintf( stdout, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( stdout, "\t-v       : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
