@@ -505,6 +505,7 @@ extern int             Aig_ManPoCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
 extern void            Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew );
 extern void            Aig_ManSetRegNum( Aig_Man_t * p, int nRegs );
+extern void            Aig_ManFlipFirstPo( Aig_Man_t * p );
 /*=== aigMem.c ==========================================================*/
 extern void            Aig_ManStartMemory( Aig_Man_t * p );
 extern void            Aig_ManStopMemory( Aig_Man_t * p );

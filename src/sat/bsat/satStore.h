@@ -135,6 +135,12 @@ extern Inta_Man_t * Inta_ManAlloc();
 extern void         Inta_ManFree( Inta_Man_t * p );
 extern void *       Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, int fVerbose );
 
+/*=== satInterB.c ==========================================================*/
+typedef struct Intb_Man_t_ Intb_Man_t;
+extern Intb_Man_t * Intb_ManAlloc();
+extern void         Intb_ManFree( Intb_Man_t * p );
+extern void *       Intb_ManInterpolate( Intb_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, int fVerbose );
+
 /*=== satInterP.c ==========================================================*/
 typedef struct Intp_Man_t_ Intp_Man_t;
 extern Intp_Man_t * Intp_ManAlloc();

@@ -238,40 +238,7 @@ void Cnf_DataPrint( Cnf_Dat_t * p, int fReadable )
   SeeAlso     []
 
 ***********************************************************************/
-void Cnf_DataWriteIntoFile_old( Cnf_Dat_t * p, char * pFileName, int fReadable )
-{
-    FILE * pFile;
-    int * pLit, * pStop, i;
-    pFile = fopen( pFileName, "w" );
-    if ( pFile == NULL )
-    {
-        printf( "Cnf_WriteIntoFile(): Output file cannot be opened.\n" );
-        return;
-    }
-    fprintf( pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n" );
-    fprintf( pFile, "p cnf %d %d\n", p->nVars, p->nClauses );
-    for ( i = 0; i < p->nClauses; i++ )
-    {
-        for ( pLit = p->pClauses[i], pStop = p->pClauses[i+1]; pLit < pStop; pLit++ )
-            fprintf( pFile, "%d ", fReadable? Cnf_Lit2Var2(*pLit) : Cnf_Lit2Var(*pLit) );
-        fprintf( pFile, "0\n" );
-    }
-    fprintf( pFile, "\n" );
-    fclose( pFile );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Writes CNF into a file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
+void Cnf_DataWriteIntoFileGz( Cnf_Dat_t * p, char * pFileName, int fReadable )
 {
     gzFile pFile;
     int * pLit, * pStop, i;
@@ -291,6 +258,44 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
     }
     gzprintf( pFile, "\n" );
     gzclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes CNF into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
+{
+    FILE * pFile;
+    int * pLit, * pStop, i;
+    if ( !strncmp(pFileName+strlen(pFileName)-3,".gz",3) ) 
+    {
+        Cnf_DataWriteIntoFileGz( p, pFileName, fReadable );
+        return;
+    }
+    pFile = fopen( pFileName, "w" );
+    if ( pFile == NULL )
+    {
+        printf( "Cnf_WriteIntoFile(): Output file cannot be opened.\n" );
+        return;
+    }
+    fprintf( pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n" );
+    fprintf( pFile, "p cnf %d %d\n", p->nVars, p->nClauses );
+    for ( i = 0; i < p->nClauses; i++ )
+    {
+        for ( pLit = p->pClauses[i], pStop = p->pClauses[i+1]; pLit < pStop; pLit++ )
+            fprintf( pFile, "%d ", fReadable? Cnf_Lit2Var2(*pLit) : Cnf_Lit2Var(*pLit) );
+        fprintf( pFile, "0\n" );
+    }
+    fprintf( pFile, "\n" );
+    fclose( pFile );
 }
 
 /**Function*************************************************************

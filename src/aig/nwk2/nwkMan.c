@@ -91,6 +91,7 @@ void Nwk_ManFree( Nwk_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+/*
 void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
 {
     Nwk_Obj_t * pObj;
@@ -101,6 +102,7 @@ void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
     for ( i = 0; i <= pLutLib->LutMax; i++ )
         printf( "%d:%d ", i, Counters[i] );
 }
+*/
 
 /**Function*************************************************************
 
@@ -154,7 +156,7 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
         ParsBest.nPis  = ParsNew.nPis; 
         ParsBest.nPos  = ParsNew.nPos;
         // write the network
-        Ioa_WriteBlifLogic( pNtk, pNtl, "best.blif" );
+//        Ioa_WriteBlifLogic( pNtk, pNtl, "best.blif" );
 //        Nwk_ManDumpBlif( pNtk, "best_map.blif", NULL, NULL );
         return 1;
     }
@@ -192,6 +194,7 @@ char * Nwk_FileNameGeneric( char * FileName )
   SeeAlso     []
 
 ***********************************************************************/
+/*
 void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl )
 {
     extern int Ntl_ManLatchNum( void * p );
@@ -227,6 +230,7 @@ void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int
 //    Nwk_ManDelayTracePrint( pNtk, pLutLib );
     fflush( stdout );
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

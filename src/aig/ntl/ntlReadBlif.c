@@ -876,6 +876,8 @@ static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
             p->pNtk->attrWhite = 0;
         else if ( strcmp( pToken, "box" ) == 0 )
             p->pNtk->attrBox = 1;
+        else if ( strcmp( pToken, "logic" ) == 0 )
+            p->pNtk->attrBox = 0;
         else if ( strcmp( pToken, "white" ) == 0 )
             p->pNtk->attrWhite = 1;
         else if ( strcmp( pToken, "comb" ) == 0 )

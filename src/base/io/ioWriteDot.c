@@ -275,10 +275,16 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         fprintf( pFile, "  Level%d;\n",  Level );
         Vec_PtrForEachEntry( vNodes, pNode, i )
         {
+            int SuppSize;
+            Vec_Ptr_t * vSupp;
             if ( (int)pNode->Level != Level )
                 continue;
             if ( Abc_ObjFaninNum(pNode) == 0 )
                 continue;
+            vSupp = Abc_NtkNodeSupport( pNtk, &pNode, 1 );
+            SuppSize = Vec_PtrSize( vSupp );
+            Vec_PtrFree( vSupp ); 
+
 //            fprintf( pFile, "  Node%d [label = \"%d\"", pNode->Id, pNode->Id );
             if ( Abc_NtkIsStrash(pNtk) )
                 pSopString = "";
@@ -288,7 +294,10 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
                 pSopString = Abc_NtkPrintSop(Mio_GateReadSop(pNode->pData));
             else
                 pSopString = Abc_NtkPrintSop(pNode->pData);
-            fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id, pSopString );
+//            fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id, pSopString );
+            fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, 
+                SuppSize, 
+                pSopString );
 
             fprintf( pFile, ", shape = ellipse" );
             if ( pNode->fMarkB )

@@ -433,6 +433,23 @@ void Aig_ManSetRegNum( Aig_Man_t * p, int nRegs )
     p->nTruePos = Aig_ManPoNum(p) - nRegs;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManFlipFirstPo( Aig_Man_t * p )
+{
+    Aig_ObjChild0Flip( Aig_ManPo(p, 0) ); 
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

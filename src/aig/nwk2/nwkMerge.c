@@ -348,45 +348,6 @@ void Nwk_ManGraphPrepare( Nwk_Grf_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Sort pairs by the first vertex in the topological order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Nwk_ManGraphSortPairs( Nwk_Grf_t * p )
-{
-    int nSize = Vec_IntSize(p->vPairs);
-    int * pIdToPair, i;
-    // allocate storage
-    pIdToPair = ALLOC( int, p->nObjs+1 );
-    for ( i = 0; i <= p->nObjs; i++ )
-        pIdToPair[i] = -1;
-    // create mapping
-    for ( i = 0; i < p->vPairs->nSize; i += 2 )
-    {
-        assert( pIdToPair[ p->vPairs->pArray[i] ] == -1 );
-        pIdToPair[ p->vPairs->pArray[i] ] = p->vPairs->pArray[i+1];
-    }
-    // recreate pairs
-    Vec_IntClear( p->vPairs );
-    for ( i = 0; i <= p->nObjs; i++ )
-        if ( pIdToPair[i] >= 0 )
-        {
-            assert( i < pIdToPair[i] );
-            Vec_IntPush( p->vPairs, i );
-            Vec_IntPush( p->vPairs, pIdToPair[i] );
-        }
-    assert( nSize == Vec_IntSize(p->vPairs) );
-    free( pIdToPair );
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Updates the problem after pulling out one edge.]
 
   Description []
@@ -654,7 +615,6 @@ void Nwk_ManGraphSolve( Nwk_Grf_t * p )
         if ( j == NWK_MAX_LIST + 1 )
             break;
     }
-    Nwk_ManGraphSortPairs( p );
 }
 
 /**Function*************************************************************
@@ -1022,9 +982,6 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
         Nwk_ManGraphReportMemoryUsage( p );
     }
     vResult = p->vPairs; p->vPairs = NULL;
-    for ( i = 0; i < vResult->nSize; i += 2 )
-        printf( "(%d,%d) ", vResult->pArray[i], vResult->pArray[i+1] );
-    printf( "\n" );
     Nwk_ManGraphFree( p );
     return vResult;
 }

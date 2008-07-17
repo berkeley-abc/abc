@@ -56,7 +56,9 @@ int main( int argc, char * argv[] )
 
     // added to detect memory leaks:
 #ifdef _DEBUG
+#ifdef ABC_CHECK_LEAKS
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
 #endif
     
 //    Npn_Experiment();
@@ -255,7 +257,9 @@ void Abc_Start()
     Abc_Frame_t * pAbc;
     // added to detect memory leaks:
 #ifdef _DEBUG
+#ifdef ABC_CHECK_LEAKS
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
 #endif
     // start the glocal frame
     pAbc = Abc_FrameGetGlobalFrame();

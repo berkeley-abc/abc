@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -239,10 +239,6 @@ SOURCE=.\src\base\abci\abcDress.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcDsd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcEspresso.c
 # End Source File
 # Begin Source File
 
@@ -1194,6 +1190,10 @@ SOURCE=.\src\sat\bsat\satInterA.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satInterB.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satInterP.c
 # End Source File
 # Begin Source File
@@ -1940,86 +1940,10 @@ SOURCE=.\src\map\if\ifUtil.c
 # Begin Group "pcm"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmCut.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmReduce.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmTime.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmTruth.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmUtil.c
-# End Source File
 # End Group
 # Begin Group "ply"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\map\ply\ply.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyAbc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyAig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyLib.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyNtk.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\ply\plyPar.c
-# End Source File
 # End Group
 # End Group
 # Begin Group "misc"
@@ -2219,186 +2143,6 @@ SOURCE=.\src\misc\vec\vecStr.h
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vecVec.h
-# End Source File
-# End Group
-# Begin Group "espresso"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cofactor.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cols.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\compl.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\contain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cubehack.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cubestr.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cvrin.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cvrm.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cvrmisc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\cvrout.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\dominate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\equiv.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\espresso.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\espresso.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\essen.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\exact.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\expand.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\gasp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\gimpel.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\globals.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\hack.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\indep.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\irred.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\map.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\matrix.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\mincov.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\mincov.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\mincov_int.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\opo.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\pair.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\part.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\primes.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\reduce.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\rows.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\set.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\setc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\sharp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\sminterf.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\solution.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\sparse.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\sparse.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\sparse_int.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\unate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\espresso\verify.c
 # End Source File
 # End Group
 # Begin Group "util"

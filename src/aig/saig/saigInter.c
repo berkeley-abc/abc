@@ -336,6 +336,68 @@ sat_solver * Saig_DeriveSatSolver(
 
 /**Function*************************************************************
 
+  Synopsis    [Checks constainment of two interpolants.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld )
+{
+    Aig_Man_t * pMiter, * pAigTemp;
+    int RetValue;
+    pMiter = Aig_ManCreateMiter( pNew, pOld, 1 );
+//    pMiter = Dar_ManRwsat( pAigTemp = pMiter, 1, 0 );
+//    Aig_ManStop( pAigTemp );
+    RetValue = Fra_FraigMiterStatus( pMiter );
+    if ( RetValue == -1 )
+    {
+        pAigTemp = Fra_FraigEquivence( pMiter, 1000000, 1 );
+        RetValue = Fra_FraigMiterStatus( pAigTemp );
+        Aig_ManStop( pAigTemp );
+//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0, 0 );
+    }
+    assert( RetValue != -1 );
+    Aig_ManStop( pMiter );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks constainment of two interpolants.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManCheckEquivalence( Aig_Man_t * pNew, Aig_Man_t * pOld )
+{
+    Aig_Man_t * pMiter, * pAigTemp;
+    int RetValue;
+    pMiter = Aig_ManCreateMiter( pNew, pOld, 0 );
+//    pMiter = Dar_ManRwsat( pAigTemp = pMiter, 1, 0 );
+//    Aig_ManStop( pAigTemp );
+    RetValue = Fra_FraigMiterStatus( pMiter );
+    if ( RetValue == -1 )
+    {
+        pAigTemp = Fra_FraigEquivence( pMiter, 1000000, 1 );
+        RetValue = Fra_FraigMiterStatus( pAigTemp );
+        Aig_ManStop( pAigTemp );
+//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0, 0 );
+    }
+    assert( RetValue != -1 );
+    Aig_ManStop( pMiter );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs one SAT run with interpolation.]
 
   Description [Returns 1 if proven. 0 if failed. -1 if undecided.]
@@ -345,11 +407,12 @@ sat_solver * Saig_DeriveSatSolver(
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_PerformOneStep( Saig_IntMan_t * p )
+int Saig_PerformOneStep_old( Saig_IntMan_t * p, int fUseIp )
 {
     sat_solver * pSat;
     void * pSatCnf = NULL;
-    Inta_Man_t * pManInter; 
+    Inta_Man_t * pManInterA; 
+    Intb_Man_t * pManInterB; 
     int clk, status, RetValue;
     assert( p->pInterNew == NULL );
 
@@ -380,9 +443,18 @@ p->timeSat += clock() - clk;
 
     // create the resulting manager
 clk = clock();
-    pManInter = Inta_ManAlloc();
-    p->pInterNew = Inta_ManInterpolate( pManInter, pSatCnf, p->vVarsAB, 0 );
-    Inta_ManFree( pManInter );
+    if ( !fUseIp )
+    {
+        pManInterA = Inta_ManAlloc();
+        p->pInterNew = Inta_ManInterpolate( pManInterA, pSatCnf, p->vVarsAB, 0 );
+        Inta_ManFree( pManInterA );
+    }
+    else
+    {
+        pManInterB = Intb_ManAlloc();
+        p->pInterNew = Intb_ManInterpolate( pManInterB, pSatCnf, p->vVarsAB, 0 );
+        Intb_ManFree( pManInterB );
+    }
 p->timeInt += clock() - clk;
     Sto_ManFree( pSatCnf );
     return RetValue;
@@ -390,7 +462,7 @@ p->timeInt += clock() - clk;
 
 /**Function*************************************************************
 
-  Synopsis    [Checks constainment of two interpolants.]
+  Synopsis    []
 
   Description []
                
@@ -399,23 +471,192 @@ p->timeInt += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld )
+Aig_Man_t * Aig_ManDupExpand( Aig_Man_t * pInter, Aig_Man_t * pOther )
 {
-    Aig_Man_t * pMiter, * pAigTemp;
-    int RetValue;
-    pMiter = Aig_ManCreateMiter( pNew, pOld, 1 );
-//    pMiter = Dar_ManRwsat( pAigTemp = pMiter, 1, 0 );
-//    Aig_ManStop( pAigTemp );
-    RetValue = Fra_FraigMiterStatus( pMiter );
-    if ( RetValue == -1 )
+    Aig_Man_t * pInterC;
+    assert( Aig_ManPiNum(pInter) <= Aig_ManPiNum(pOther) );
+    pInterC = Aig_ManDupSimple( pInter );
+    Aig_IthVar( pInterC, Aig_ManPiNum(pOther)-1 );
+    assert( Aig_ManPiNum(pInterC) == Aig_ManPiNum(pOther) );
+    return pInterC;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_VerifyInterpolant1( Inta_Man_t * pMan, Sto_Man_t * pCnf, Aig_Man_t * pInter )
+{
+    extern Aig_Man_t * Inta_ManDeriveClauses( Inta_Man_t * pMan, Sto_Man_t * pCnf, int fClausesA );
+    Aig_Man_t * pLower, * pUpper, * pInterC;
+    int RetValue1, RetValue2;
+
+    pLower = Inta_ManDeriveClauses( pMan, pCnf, 1 );
+    pUpper = Inta_ManDeriveClauses( pMan, pCnf, 0 );
+    Aig_ManFlipFirstPo( pUpper );
+
+    pInterC = Aig_ManDupExpand( pInter, pLower );
+    RetValue1 = Saig_ManCheckContainment( pLower, pInterC );
+    Aig_ManStop( pInterC );
+
+    pInterC = Aig_ManDupExpand( pInter, pUpper );
+    RetValue2 = Saig_ManCheckContainment( pInterC, pUpper );
+    Aig_ManStop( pInterC );
+    
+    if ( RetValue1 && RetValue2 )
+        printf( "Im is correct.\n" );
+    if ( !RetValue1 )
+        printf( "Property A => Im fails.\n" );
+    if ( !RetValue2 )
+        printf( "Property Im => !B fails.\n" );
+
+    Aig_ManStop( pLower );
+    Aig_ManStop( pUpper );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_VerifyInterpolant2( Intb_Man_t * pMan, Sto_Man_t * pCnf, Aig_Man_t * pInter )
+{
+    extern Aig_Man_t * Intb_ManDeriveClauses( Intb_Man_t * pMan, Sto_Man_t * pCnf, int fClausesA );
+    Aig_Man_t * pLower, * pUpper, * pInterC;
+    int RetValue1, RetValue2;
+
+    pLower = Intb_ManDeriveClauses( pMan, pCnf, 1 );
+    pUpper = Intb_ManDeriveClauses( pMan, pCnf, 0 );
+    Aig_ManFlipFirstPo( pUpper );
+
+    pInterC = Aig_ManDupExpand( pInter, pLower );
+//Aig_ManPrintStats( pLower );
+//Aig_ManPrintStats( pUpper );
+//Aig_ManPrintStats( pInterC );
+//Aig_ManDumpBlif( pInterC, "inter_c.blif", NULL, NULL );
+    RetValue1 = Saig_ManCheckContainment( pLower, pInterC );
+    Aig_ManStop( pInterC );
+
+    pInterC = Aig_ManDupExpand( pInter, pUpper );
+    RetValue2 = Saig_ManCheckContainment( pInterC, pUpper );
+    Aig_ManStop( pInterC );
+    
+    if ( RetValue1 && RetValue2 )
+        printf( "Ip is correct.\n" );
+    if ( !RetValue1 )
+        printf( "Property A => Ip fails.\n" );
+    if ( !RetValue2 )
+        printf( "Property Ip => !B fails.\n" );
+
+    Aig_ManStop( pLower );
+    Aig_ManStop( pUpper );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs one SAT run with interpolation.]
+
+  Description [Returns 1 if proven. 0 if failed. -1 if undecided.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_PerformOneStep( Saig_IntMan_t * p, int fUseIp )
+{
+    sat_solver * pSat;
+    void * pSatCnf = NULL;
+    Inta_Man_t * pManInterA; 
+    Intb_Man_t * pManInterB; 
+    int clk, status, RetValue;
+    assert( p->pInterNew == NULL );
+
+    // derive the SAT solver
+    pSat = Saig_DeriveSatSolver( p->pInter, p->pCnfInter, p->pAigTrans, p->pCnfAig, p->pFrames, p->pCnfFrames, p->vVarsAB );
+//Sat_SolverWriteDimacs( pSat, "test.cnf", NULL, NULL, 1 );
+    // solve the problem
+clk = clock();
+    status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+    p->nConfCur = pSat->stats.conflicts;
+p->timeSat += clock() - clk;
+    if ( status == l_False )
     {
-        pAigTemp = Fra_FraigEquivence( pMiter, 1000000, 1 );
-        RetValue = Fra_FraigMiterStatus( pAigTemp );
-        Aig_ManStop( pAigTemp );
-//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0, 0 );
+        pSatCnf = sat_solver_store_release( pSat );
+        RetValue = 1;
     }
-    assert( RetValue != -1 );
-    Aig_ManStop( pMiter );
+    else if ( status == l_True )
+    {
+        RetValue = 0;
+    }
+    else
+    {
+        RetValue = -1;
+    }
+    sat_solver_delete( pSat );
+    if ( pSatCnf == NULL )
+        return RetValue;
+
+    // create the resulting manager
+clk = clock();
+    if ( !fUseIp )
+    {
+        pManInterA = Inta_ManAlloc();
+        p->pInterNew = Inta_ManInterpolate( pManInterA, pSatCnf, p->vVarsAB, 0 );
+        Inta_ManFree( pManInterA );
+    }
+    else
+    {
+        Aig_Man_t * pInterNew2;
+        int RetValue;
+
+        pManInterA = Inta_ManAlloc();
+        p->pInterNew = Inta_ManInterpolate( pManInterA, pSatCnf, p->vVarsAB, 0 );
+//        Saig_VerifyInterpolant1( pManInterA, pSatCnf, p->pInterNew );
+        Inta_ManFree( pManInterA );
+
+        pManInterB = Intb_ManAlloc();
+        pInterNew2 = Intb_ManInterpolate( pManInterB, pSatCnf, p->vVarsAB, 0 );
+        Saig_VerifyInterpolant2( pManInterB, pSatCnf, pInterNew2 );
+        Intb_ManFree( pManInterB );
+
+        // check relationship
+        RetValue = Saig_ManCheckEquivalence( pInterNew2, p->pInterNew );
+        if ( RetValue )
+            printf( "Equivalence \"Ip == Im\" holds\n" );
+        else
+        {
+//            printf( "Equivalence \"Ip == Im\" does not hold\n" );
+            RetValue = Saig_ManCheckContainment( pInterNew2, p->pInterNew );
+            if ( RetValue )
+                printf( "Containment \"Ip -> Im\" holds\n" );
+            else
+                printf( "Containment \"Ip -> Im\" does not hold\n" );
+
+            RetValue = Saig_ManCheckContainment( p->pInterNew, pInterNew2 );
+            if ( RetValue )
+                printf( "Containment \"Im -> Ip\" holds\n" );
+            else
+                printf( "Containment \"Im -> Ip\" does not hold\n" );
+        }
+
+        Aig_ManStop( pInterNew2 );
+    }
+p->timeInt += clock() - clk;
+    Sto_ManFree( pSatCnf );
     return RetValue;
 }
 
@@ -497,7 +738,7 @@ void Saig_ManagerFree( Saig_IntMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose, int * pDepth )
+int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fUseIp, int fVerbose, int * pDepth )
 {
     Saig_IntMan_t * p;
     Aig_Man_t * pAigTemp;
@@ -578,7 +819,7 @@ p->timeCnf += clock() - clk;
             }
             // perform interplation
             clk = clock();
-            RetValue = Saig_PerformOneStep( p );
+            RetValue = Saig_PerformOneStep( p, fUseIp );
             if ( fVerbose )
             {
                 printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 

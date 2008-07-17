@@ -297,6 +297,7 @@ void Abc_FrameClearDesign()
 void Abc_Init( Abc_Frame_t * pAbc )
 {
 //    Abc_NtkBddImplicationTest();
+//    Ply_LutPairTest();
 
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 ); 
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
@@ -7072,6 +7073,9 @@ int Abc_CommandEspresso( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
+    printf( "This command is currently disabled.\n" );
+    return 0;
+
     // set defaults
     fVerbose = 0;
     Extra_UtilGetoptReset();
@@ -7098,7 +7102,7 @@ int Abc_CommandEspresso( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "SOP minimization is possible for logic networks (run \"renode\").\n" );
         return 1;
     }
-    Abc_NtkEspresso( pNtk, fVerbose );
+//    Abc_NtkEspresso( pNtk, fVerbose );
     return 0;
 
 usage:
@@ -7764,6 +7768,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 */
+
+
 /*
 //    pNtkRes = Abc_NtkDar( pNtk );
 //    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
@@ -7776,7 +7782,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
 */
+
 
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
 /*
@@ -15337,9 +15345,10 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nBTLimit;
     int fRewrite;
     int fTransLoop;
+    int fUsePudlak;
     int fVerbose;
 
-    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose );
+    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTransLoop, int fUsePudlak, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -15349,9 +15358,10 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     nBTLimit   = 20000;
     fRewrite   = 0;
     fTransLoop = 1;
+    fUsePudlak = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Crtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Crtpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15371,6 +15381,9 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 't':
             fTransLoop ^= 1;
+            break;
+        case 'p':
+            fUsePudlak ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -15401,15 +15414,16 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for single-output miters (run \"orpos\").\n" );
         return 0;
     }
-    Abc_NtkDarBmcInter( pNtk, nBTLimit, fRewrite, fTransLoop, fVerbose );
+    Abc_NtkDarBmcInter( pNtk, nBTLimit, fRewrite, fTransLoop, fUsePudlak, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: int [-C num] [-rtvh]\n" );
+    fprintf( pErr, "usage: int [-C num] [-rtpvh]\n" );
     fprintf( pErr, "\t         uses interpolation to prove the property\n" );
     fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", nBTLimit );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-t     : toggle adding transition into the init state [default = %s]\n", fTransLoop? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", fUsePudlak? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

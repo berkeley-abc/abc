@@ -14,7 +14,6 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcDelay.c \
     src/base/abci/abcDress.c \
     src/base/abci/abcDsd.c \
-    src/base/abci/abcEspresso.c \
     src/base/abci/abcExtract.c \
     src/base/abci/abcFpga.c \
     src/base/abci/abcFpgaFast.c \

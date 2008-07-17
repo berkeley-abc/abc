@@ -43,7 +43,9 @@ extern "C" {
 
 // this include should be the first one in the list
 // it is used to catch memory leaks on Windows
+#ifdef ABC_CHECK_LEAKS
 #include "leaks.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>

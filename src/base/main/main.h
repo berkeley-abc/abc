@@ -40,10 +40,6 @@ typedef struct Abc_Frame_t_      Abc_Frame_t;
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-// this include should be the first one in the list
-// it is used to catch memory leaks on Windows
-#include "leaks.h"       
-
 // data structure packages
 #include "extra.h"
 #include "vec.h"

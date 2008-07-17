@@ -1270,7 +1270,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTransLoop, int fVerbose )
+int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTransLoop, int fUsePudlak, int fVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue, Depth, clk = clock();
@@ -1282,7 +1282,7 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTra
         return -1;
     }
     assert( pMan->nRegs > 0 );
-    RetValue = Saig_Interpolate( pMan, nConfLimit, fRewrite, fTransLoop, fVerbose, &Depth );
+    RetValue = Saig_Interpolate( pMan, nConfLimit, fRewrite, fTransLoop, fUsePudlak, fVerbose, &Depth );
     if ( RetValue == 1 )
         printf( "Property proved.  " );
     else if ( RetValue == 0 )
@@ -2148,12 +2148,12 @@ Abc_Ntk_t * Abc_NtkDarCleanupAig( Abc_Ntk_t * pNtk, int fCleanupPis, int fCleanu
 ***********************************************************************/
 void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose )
 {
-    extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
+    extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent );
     Aig_Man_t * pMan;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return;
-    Aig_ManVerifyUsingBdds( pMan, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
+    Aig_ManVerifyUsingBdds( pMan, nBddMax, nIterMax, fPartition, fReorder, fVerbose, 0 );
     Aig_ManStop( pMan );
 }
 

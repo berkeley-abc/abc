@@ -114,8 +114,8 @@ Abc_Frame_t * Abc_FrameAllocate()
     // networks to be used by choice
     p->vStore = Vec_PtrAlloc( 16 );
     // initialize decomposition manager
-    define_cube_size(20);
-    set_espresso_flags();
+//    define_cube_size(20);
+//    set_espresso_flags();
     // initialize the trace manager
 //    Abc_HManStart();
     return p;
@@ -139,7 +139,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     extern void undefine_cube_size();
 //    extern void Ivy_TruthManStop();
 //    Abc_HManStop();
-    undefine_cube_size();
+//    undefine_cube_size();
     Rwt_ManGlobalStop();
 //    Ivy_TruthManStop();
     if ( p->pLibVer ) Abc_LibFree( p->pLibVer, NULL );
