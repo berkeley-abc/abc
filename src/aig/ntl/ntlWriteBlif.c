@@ -66,6 +66,8 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel, int fMain )
 //        fprintf( pFile, " %s", pModel->attrKeep?  "keep" : "sweep" );
         fprintf( pFile, "\n" );
     }
+    if ( pModel->attrNoMerge )
+        fprintf( pFile, ".no_merge\n" );
     fprintf( pFile, ".inputs" );
     Ntl_ModelForEachPi( pModel, pObj, i )
         fprintf( pFile, " %s", Ntl_ObjFanout0(pObj)->pName );

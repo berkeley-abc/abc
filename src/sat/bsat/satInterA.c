@@ -941,7 +941,7 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
 
     // stop the proof
     if ( p->fProofWrite )
-    {
+    { 
         fclose( p->pFile );
         p->pFile = NULL;    
     }

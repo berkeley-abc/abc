@@ -15343,12 +15343,14 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int nBTLimit;
+    int nFramesMax;
     int fRewrite;
     int fTransLoop;
     int fUsePudlak;
+    int fCheckInd;
     int fVerbose;
 
-    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTransLoop, int fUsePudlak, int fVerbose );
+    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fCheckInd, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -15356,12 +15358,14 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nBTLimit   = 20000;
+    nFramesMax = 40;
     fRewrite   = 0;
     fTransLoop = 1;
     fUsePudlak = 0;
+    fCheckInd  = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Crtpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CFrtpivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15376,6 +15380,17 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nBTLimit < 0 ) 
                 goto usage;
             break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesMax < 0 ) 
+                goto usage;
+            break;
         case 'r':
             fRewrite ^= 1;
             break;
@@ -15384,6 +15399,9 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fUsePudlak ^= 1;
+            break;
+        case 'i':
+            fCheckInd ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -15414,16 +15432,18 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for single-output miters (run \"orpos\").\n" );
         return 0;
     }
-    Abc_NtkDarBmcInter( pNtk, nBTLimit, fRewrite, fTransLoop, fUsePudlak, fVerbose );
+    Abc_NtkDarBmcInter( pNtk, nBTLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fCheckInd, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: int [-C num] [-rtpvh]\n" );
+    fprintf( pErr, "usage: int [-CF num] [-rtpivh]\n" );
     fprintf( pErr, "\t         uses interpolation to prove the property\n" );
     fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", nBTLimit );
+    fprintf( pErr, "\t-F num : the limit on number of frames to unroll [default = %d]\n", nFramesMax );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-t     : toggle adding transition into the init state [default = %s]\n", fTransLoop? "yes": "no" );
     fprintf( pErr, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", fUsePudlak? "yes": "no" );
+    fprintf( pErr, "\t-i     : toggle inductive containment checking [default = %s]\n", fCheckInd? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

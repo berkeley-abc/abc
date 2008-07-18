@@ -50,7 +50,7 @@ typedef long long          sint64;
 
 // this include should be the first one in the list
 // it is used to catch memory leaks on Windows
-#ifdef ABC_CHECK_LEAKS
+#if defined(_DEBUG) && defined(_MSC_VER) && (_MSC_VER <= 1200) // 1200 = MSVC 6.0
 #include "leaks.h"       
 #endif
 

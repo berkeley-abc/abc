@@ -878,14 +878,14 @@ static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
             p->pNtk->attrBox = 1;
         else if ( strcmp( pToken, "logic" ) == 0 )
             p->pNtk->attrBox = 0;
-        else if ( strcmp( pToken, "white" ) == 0 )
-            p->pNtk->attrWhite = 1;
         else if ( strcmp( pToken, "comb" ) == 0 )
             p->pNtk->attrComb = 1;
         else if ( strcmp( pToken, "seq" ) == 0 )
             p->pNtk->attrComb = 0;
         else if ( strcmp( pToken, "keep" ) == 0 )
             p->pNtk->attrKeep = 1;
+        else if ( strcmp( pToken, "sweep" ) == 0 )
+            p->pNtk->attrKeep = 0;
         else 
         {
             sprintf( p->pMan->sError, "Line %d: Unknown attribute (%s) in the .attrib line of model %s.", Ioa_ReadGetLine(p->pMan, pToken), pToken, p->pNtk->pName );

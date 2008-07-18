@@ -66,7 +66,7 @@ struct Ntl_Man_t_
     char *             pName;          // the name of this design
     char *             pSpec;          // the name of input file
     Vec_Ptr_t *        vModels;        // the array of all models used to represent boxes
-    int                BoxTypes[15];   // the array of box types among the models
+    int                BoxTypes[32];   // the array of box types among the models
     // memory managers
     Aig_MmFlex_t *     pMemObjs;       // memory for objects
     Aig_MmFlex_t *     pMemSops;       // memory for SOPs
@@ -225,6 +225,7 @@ static inline int         Ntl_BoxIsWhite( Ntl_Obj_t * p )         { assert( Ntl_
 static inline int         Ntl_BoxIsBlack( Ntl_Obj_t * p )         { assert( Ntl_ObjIsBox(p) ); return !p->pImplem->attrWhite;   } 
 static inline int         Ntl_BoxIsComb( Ntl_Obj_t * p )          { assert( Ntl_ObjIsBox(p) ); return p->pImplem->attrComb;     } 
 static inline int         Ntl_BoxIsSeq( Ntl_Obj_t * p )           { assert( Ntl_ObjIsBox(p) ); return !p->pImplem->attrComb;    } 
+static inline int         Ntl_BoxIsNoMerge( Ntl_Obj_t * p )       { assert( Ntl_ObjIsBox(p) ); return !p->pImplem->attrNoMerge; } 
 
 static inline int         Ntl_ObjIsMapLeaf( Ntl_Obj_t * p )       { return Ntl_ObjIsPi(p) || (Ntl_ObjIsBox(p) && Ntl_BoxIsSeq(p));   } 
 static inline int         Ntl_ObjIsMapRoot( Ntl_Obj_t * p )       { return Ntl_ObjIsPo(p) || (Ntl_ObjIsBox(p) && Ntl_BoxIsSeq(p));   } 

@@ -222,7 +222,7 @@ void Ntl_ManPrintStats( Ntl_Man_t * p )
     printf( "inv/buf = %5d  ", Ntl_ModelLut1Num(pRoot) );
     printf( "box = %4d  ",     Ntl_ModelBoxNum(pRoot) );
     printf( "mod = %3d  ",     Vec_PtrSize(p->vModels) );
-    printf( "net = %d",       Ntl_ModelCountNets(pRoot) );
+    printf( "net = %d",        Ntl_ModelCountNets(pRoot) );
     printf( "\n" );
     fflush( stdout );
     assert( Ntl_ModelLut1Num(pRoot) == Ntl_ModelCountLut1(pRoot) );
@@ -262,10 +262,11 @@ void Ntl_ManSaveBoxType( Ntl_Obj_t * pObj )
     Ntl_Mod_t * pModel = pObj->pImplem;
     int Number = 0;
     assert( Ntl_ObjIsBox(pObj) );
-    Number |= (pModel->attrWhite << 0);
-    Number |= (pModel->attrBox   << 1);
-    Number |= (pModel->attrComb  << 2);
-    Number |= (pModel->attrKeep  << 3);
+    Number |= (pModel->attrWhite   << 0);
+    Number |= (pModel->attrBox     << 1);
+    Number |= (pModel->attrComb    << 2);
+    Number |= (pModel->attrKeep    << 3);
+    Number |= (pModel->attrNoMerge << 4);
     pModel->pMan->BoxTypes[Number]++;
 }
 
@@ -291,19 +292,20 @@ void Ntl_ManPrintTypes( Ntl_Man_t * p )
     printf( "BOX STATISTICS:\n" );
     Ntl_ModelForEachBox( pModel, pObj, i )
         Ntl_ManSaveBoxType( pObj );
-    for ( i = 0; i < 15; i++ )
+    for ( i = 0; i < 32; i++ )
     {
         if ( !p->BoxTypes[i] )
             continue;
         printf( "%5d :", p->BoxTypes[i] );
-        printf( " %s", ((i & 1) > 0)? "white": "black" );
-        printf( " %s", ((i & 2) > 0)? "box  ": "logic" );
-        printf( " %s", ((i & 4) > 0)? "comb ": "seq  " );
-        printf( " %s", ((i & 8) > 0)? "keep ": "sweep" );
+        printf( " %s", ((i &  1) > 0)? "white   ": "black   " );
+        printf( " %s", ((i &  2) > 0)? "box     ": "logic   " );
+        printf( " %s", ((i &  4) > 0)? "comb    ": "seq     " );
+        printf( " %s", ((i &  8) > 0)? "keep    ": "sweep   " );
+        printf( " %s", ((i & 16) > 0)? "no_merge": "merge   " );
         printf( "\n" );
     }
     printf( "Total box instances = %6d.\n\n", Ntl_ModelBoxNum(pModel) );
-    for ( i = 0; i < 15; i++ )
+    for ( i = 0; i < 32; i++ )
         p->BoxTypes[i] = 0;
 }
 
@@ -366,6 +368,11 @@ Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     Ntl_Obj_t * pObj;
     int i, k;
     pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
+    pModelNew->attrWhite   = pModelOld->attrWhite;
+    pModelNew->attrBox       = pModelOld->attrBox;
+    pModelNew->attrComb       = pModelOld->attrComb;
+    pModelNew->attrKeep       = pModelOld->attrKeep;
+    pModelNew->attrNoMerge = pModelOld->attrNoMerge;
     Ntl_ModelForEachObj( pModelOld, pObj, i )
     {
         if ( Ntl_ObjIsNode(pObj) )
@@ -423,10 +430,11 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     Ntl_Obj_t * pObj;
     int i, k;
     pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
-    pModelNew->attrWhite = pModelOld->attrWhite;
-    pModelNew->attrBox     = pModelOld->attrBox;
-    pModelNew->attrComb     = pModelOld->attrComb;
-    pModelNew->attrKeep     = pModelOld->attrKeep;
+    pModelNew->attrWhite   = pModelOld->attrWhite;
+    pModelNew->attrBox       = pModelOld->attrBox;
+    pModelNew->attrComb       = pModelOld->attrComb;
+    pModelNew->attrKeep       = pModelOld->attrKeep;
+    pModelNew->attrNoMerge = pModelOld->attrNoMerge;
     Ntl_ModelForEachObj( pModelOld, pObj, i )
         pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
     Ntl_ModelForEachNet( pModelOld, pNet, i )
@@ -504,10 +512,11 @@ Ntl_Mod_t * Ntl_ManCreateLatchModel( Ntl_Man_t * pMan, int Init )
     // create model
     sprintf( Name, "%s%d", "latch", Init );
     pModel = Ntl_ModelAlloc( pMan, Name );
-    pModel->attrWhite = 1;
-    pModel->attrBox   = 1;
-    pModel->attrComb  = 0;
-    pModel->attrKeep  = 0;
+    pModel->attrWhite   = 1;
+    pModel->attrBox     = 1;
+    pModel->attrComb    = 0;
+    pModel->attrKeep    = 0;
+    pModel->attrNoMerge = 0;
     // create primary input
     pObj = Ntl_ModelCreatePi( pModel );
     pNetLi = Ntl_ModelFindOrCreateNet( pModel, "li" );

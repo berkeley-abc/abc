@@ -1,24 +1,24 @@
-# Microsoft Developer Studio Project File - Name="abc" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="abclib" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
-# TARGTYPE "Win32 (x86) Console Application" 0x0103
+# TARGTYPE "Win32 (x86) Static Library" 0x0104
 
-CFG=abc - Win32 Debug
+CFG=abclib - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "abc.mak".
+!MESSAGE NMAKE /f "abclib.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "abc.mak" CFG="abc - Win32 Debug"
+!MESSAGE NMAKE /f "abclib.mak" CFG="abclib - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "abc - Win32 Release" (based on "Win32 (x86) Console Application")
-!MESSAGE "abc - Win32 Debug" (based on "Win32 (x86) Console Application")
+!MESSAGE "abclib - Win32 Release" (based on "Win32 (x86) Static Library")
+!MESSAGE "abclib - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE 
 
 # Begin Project
@@ -28,61 +28,58 @@ CFG=abc - Win32 Debug
 CPP=cl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "abc - Win32 Release"
+!IF  "$(CFG)" == "abclib - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "Release"
-# PROP BASE Intermediate_Dir "Release"
+# PROP BASE Output_Dir "abclib___Win32_Release"
+# PROP BASE Intermediate_Dir "abclib___Win32_Release"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "Release"
-# PROP Intermediate_Dir "Release"
-# PROP Ignore_Export_Lib 0
+# PROP Output_Dir "abclib\ReleaseLib"
+# PROP Intermediate_Dir "abclib\ReleaseLib"
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/sat/nsat" /I "src/sat/psat" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /FR /YX /FD /c
+# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib m114pr.lib /nologo /subsystem:console /profile /machine:I386 /out:"_TEST/abc.exe" /libpath:"lib"
+LIB32=link.exe -lib
+# ADD BASE LIB32 /nologo
+# ADD LIB32 /nologo /out:"abclib\abclib_release.lib"
 
-!ELSEIF  "$(CFG)" == "abc - Win32 Debug"
+!ELSEIF  "$(CFG)" == "abclib - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "Debug"
-# PROP BASE Intermediate_Dir "Debug"
+# PROP BASE Output_Dir "abclib___Win32_Debug"
+# PROP BASE Intermediate_Dir "abclib___Win32_Debug"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "Debug"
-# PROP Intermediate_Dir "Debug"
-# PROP Ignore_Export_Lib 0
+# PROP Output_Dir "abclib\DebugLib"
+# PROP Intermediate_Dir "abclib\DebugLib"
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/sat/nsat" /I "src/sat/psat" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /FR /YX /FD /GZ /c
-# SUBTRACT CPP /X
+# ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib m114pd.lib /nologo /subsystem:console /debug /machine:I386 /out:"_TEST/abc.exe" /pdbtype:sept /libpath:"lib"
+LIB32=link.exe -lib
+# ADD BASE LIB32 /nologo
+# ADD LIB32 /nologo /out:"abclib\abclib_debug.lib"
 
 !ENDIF 
 
 # Begin Target
 
-# Name "abc - Win32 Release"
-# Name "abc - Win32 Debug"
+# Name "abclib - Win32 Release"
+# Name "abclib - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
@@ -182,10 +179,6 @@ SOURCE=.\src\base\abci\abc.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcAbc8.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcAttach.c
 # End Source File
 # Begin Source File
@@ -195,10 +188,6 @@ SOURCE=.\src\base\abci\abcAuto.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcBalance.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcBidec.c
 # End Source File
 # Begin Source File
 
@@ -230,15 +219,15 @@ SOURCE=.\src\base\abci\abcDebug.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcDelay.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcDress.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcDsd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcEspresso.c
 # End Source File
 # Begin Source File
 
@@ -338,10 +327,6 @@ SOURCE=.\src\base\abci\abcQuant.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcReach.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcRec.c
 # End Source File
 # Begin Source File
@@ -379,10 +364,6 @@ SOURCE=.\src\base\abci\abcRr.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcSat.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcSense.c
 # End Source File
 # Begin Source File
 
@@ -462,7 +443,7 @@ SOURCE=.\src\base\io\io.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\ioabc.h
+SOURCE=.\src\base\io\io.h
 # End Source File
 # Begin Source File
 
@@ -994,10 +975,6 @@ SOURCE=.\src\bdd\reo\reoProfile.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\bdd\reo\reoShuffle.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\bdd\reo\reoSift.c
 # End Source File
 # Begin Source File
@@ -1186,18 +1163,6 @@ SOURCE=.\src\sat\bsat\satInter.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\bsat\satInterA.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\bsat\satInterB.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\bsat\satInterP.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\sat\bsat\satMem.c
 # End Source File
 # Begin Source File
@@ -1244,22 +1209,6 @@ SOURCE=.\src\sat\proof\pr.c
 
 SOURCE=.\src\sat\proof\pr.h
 # End Source File
-# End Group
-# Begin Group "psat"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\sat\psat\m114p.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\psat\m114p_types.h
-# End Source File
-# End Group
-# Begin Group "nsat"
-
-# PROP Default_Filter ""
 # End Group
 # End Group
 # Begin Group "opt"
@@ -1629,74 +1578,6 @@ SOURCE=.\src\opt\lpk\lpkMux.c
 SOURCE=.\src\opt\lpk\lpkSets.c
 # End Source File
 # End Group
-# Begin Group "fret"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretFlow.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretime.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretInit.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretMain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretTime.c
-# End Source File
-# End Group
-# Begin Group "mfs"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfs.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsDiv.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsInter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsResub.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsSat.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsStrash.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\mfs\mfsWin.c
-# End Source File
-# End Group
 # End Group
 # Begin Group "map"
 
@@ -1926,10 +1807,6 @@ SOURCE=.\src\map\if\ifCut.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifLib.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\map\if\ifMan.c
 # End Source File
 # Begin Source File
@@ -1939,6 +1816,10 @@ SOURCE=.\src\map\if\ifMap.c
 # Begin Source File
 
 SOURCE=.\src\map\if\ifReduce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\if\ifSeq.c
 # End Source File
 # Begin Source File
 
@@ -1952,14 +1833,6 @@ SOURCE=.\src\map\if\ifTruth.c
 
 SOURCE=.\src\map\if\ifUtil.c
 # End Source File
-# End Group
-# Begin Group "pcm"
-
-# PROP Default_Filter ""
-# End Group
-# Begin Group "ply"
-
-# PROP Default_Filter ""
 # End Group
 # End Group
 # Begin Group "misc"
@@ -1979,10 +1852,6 @@ SOURCE=.\src\misc\extra\extraBddAuto.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraBddCas.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\extra\extraBddImage.c
 # End Source File
 # Begin Source File
 
@@ -2055,6 +1924,14 @@ SOURCE=.\src\misc\st\stmm.c
 # Begin Source File
 
 SOURCE=.\src\misc\st\stmm.h
+# End Source File
+# End Group
+# Begin Group "util"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\misc\util\util_hack.h
 # End Source File
 # End Group
 # Begin Group "mvc"
@@ -2161,16 +2038,188 @@ SOURCE=.\src\misc\vec\vecStr.h
 SOURCE=.\src\misc\vec\vecVec.h
 # End Source File
 # End Group
-# Begin Group "util"
+# Begin Group "espresso"
 
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\misc\util\port_type.h
+SOURCE=.\src\misc\espresso\cofactor.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\misc\util\util_hack.h
+SOURCE=.\src\misc\espresso\cols.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\compl.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\contain.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cubehack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cubestr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrmisc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\dominate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\equiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espresso.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espresso.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\essen.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\exact.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\expand.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\gasp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\gimpel.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\globals.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\hack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\indep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\irred.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\matrix.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\opo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\pair.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\part.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\primes.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\reduce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\rows.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\set.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\setc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sharp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sminterf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\solution.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\unate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\util_old.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\verify.c
 # End Source File
 # End Group
 # Begin Group "nm"
@@ -2211,138 +2260,6 @@ SOURCE=.\src\misc\hash\hashInt.h
 # Begin Source File
 
 SOURCE=.\src\misc\hash\hashPtr.h
-# End Source File
-# End Group
-# Begin Group "bzlib"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\blocksort.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\bzlib.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\bzlib.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\bzlib_private.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\compress.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\crctable.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\decompress.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\huffman.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\bzlib\randtable.c
-# End Source File
-# End Group
-# Begin Group "zlib"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\adler32.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\compress_.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\crc32.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\crc32.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\deflate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\deflate.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\gzio.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\infback.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\inffast.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\inffast.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\inffixed.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\inflate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\inflate.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\inftrees.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\inftrees.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\trees.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\trees.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\uncompr.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\zconf.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\zlib.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\zutil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\zlib\zutil.h
 # End Source File
 # End Group
 # End Group
@@ -2387,10 +2304,6 @@ SOURCE=.\src\aig\hop\hopOper.c
 # Begin Source File
 
 SOURCE=.\src\aig\hop\hopTable.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\hop\hopTruth.c
 # End Source File
 # Begin Source File
 
@@ -2626,14 +2539,6 @@ SOURCE=.\src\aig\fra\fraClass.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\fra\fraClau.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\fra\fraClaus.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\fra\fraCnf.c
 # End Source File
 # Begin Source File
@@ -2642,19 +2547,11 @@ SOURCE=.\src\aig\fra\fraCore.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\fra\fraHot.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\fra\fraImp.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\fra\fraInd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\fra\fraIndVer.c
 # End Source File
 # Begin Source File
 
@@ -2798,10 +2695,6 @@ SOURCE=.\src\aig\kit\kitIsop.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\kit\kitPla.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\kit\kitSop.c
 # End Source File
 # Begin Source File
@@ -2846,27 +2739,11 @@ SOURCE=.\src\aig\aig\aigCheck.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigCuts.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\aig\aigDfs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigDup.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\aig\aigFanout.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\aig\aigFrames.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\aig\aigInter.c
 # End Source File
 # Begin Source File
 
@@ -2898,10 +2775,6 @@ SOURCE=.\src\aig\aig\aigPart.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigPartReg.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\aig\aigRepr.c
 # End Source File
 # Begin Source File
@@ -2910,11 +2783,11 @@ SOURCE=.\src\aig\aig\aigRet.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigRetF.c
+SOURCE=.\src\aig\aig\aigScl.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigScl.c
+SOURCE=.\src\aig\aig\aigSeq.c
 # End Source File
 # Begin Source File
 
@@ -2923,6 +2796,10 @@ SOURCE=.\src\aig\aig\aigShow.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigTime.c
 # End Source File
 # Begin Source File
 
@@ -2957,283 +2834,11 @@ SOURCE=.\src\aig\bar\bar.c
 SOURCE=.\src\aig\bar\bar.h
 # End Source File
 # End Group
-# Begin Group "ntl"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntl.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlEc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlExtract.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlFraig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlInsert.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlObj.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlReadBlif.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlSweep.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlTable.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlTime.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlUtil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntl\ntlWriteBlif.c
-# End Source File
-# End Group
-# Begin Group "tim"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\tim\tim.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\tim\tim.h
-# End Source File
-# End Group
-# Begin Group "nwk"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwk.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkAig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkBidec.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkDfs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkFanio.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkFlow.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkMerge.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkMerge.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkObj.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkSpeedup.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkStrash.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkTiming.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\nwk\nwkUtil.c
-# End Source File
-# End Group
-# Begin Group "mfx"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfx.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxDiv.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxInter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxResub.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxSat.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxStrash.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\mfx\mfxWin.c
-# End Source File
-# End Group
-# Begin Group "bbr"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbr.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbrImage.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbrNtbdd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\bbr\bbrReach.c
-# End Source File
-# End Group
-# Begin Group "saig"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saig.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigBmc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigCone.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigHaig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigInter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigIoa.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigMiter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigPhase.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigRetFwd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigRetMin.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigRetStep.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigScl.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigTrans.c
-# End Source File
-# End Group
 # End Group
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
-# End Group
-# Begin Group "Resource Files"
-
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # End Group
 # End Target
 # End Project

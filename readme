@@ -11,6 +11,10 @@ Modify Makefile to have -DLIN (for 32-bits) or -DLIN64 (for 64-bits)
 If compiling as a static library, it is necessary to uncomment
 #define _LIB in "src/abc/main/main.c"
 
+To compile with Microsoft Visual Studio higher than 6.0,
+remove ABC_CHECK_LEAKS from the preprocessor definitions
+for the debug version (Project->Settings->C/C++->Preprocessor Definitions)
+
 Several things to try if it does not compile on your platform:
 - Try running all code (not only Makefile and depends.sh) through dos2unix
 - Try the following actions:

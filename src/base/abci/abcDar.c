@@ -1270,7 +1270,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTransLoop, int fUsePudlak, int fVerbose )
+int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fCheckInd, int fVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue, Depth, clk = clock();
@@ -1282,7 +1282,7 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int fRewrite, int fTra
         return -1;
     }
     assert( pMan->nRegs > 0 );
-    RetValue = Saig_Interpolate( pMan, nConfLimit, fRewrite, fTransLoop, fUsePudlak, fVerbose, &Depth );
+    RetValue = Saig_Interpolate( pMan, nConfLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fCheckInd, fVerbose, &Depth );
     if ( RetValue == 1 )
         printf( "Property proved.  " );
     else if ( RetValue == 0 )
