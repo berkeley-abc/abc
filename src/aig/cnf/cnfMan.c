@@ -213,6 +213,22 @@ void Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus )
   SeeAlso     []
 
 ***********************************************************************/
+void Cnf_DataFlipLastLiteral( Cnf_Dat_t * p )
+{
+    p->pClauses[0][p->nLiterals-1] = lit_neg( p->pClauses[0][p->nLiterals-1] );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes CNF into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Cnf_DataPrint( Cnf_Dat_t * p, int fReadable )
 {
     FILE * pFile = stdout;

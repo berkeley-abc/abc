@@ -9,4 +9,5 @@ SRC +=    src/aig/saig/saigBmc.c \
     src/aig/saig/saigRetMin.c \
     src/aig/saig/saigRetStep.c \
     src/aig/saig/saigScl.c \
-    src/aig/saig/saigTrans.c
+    src/aig/saig/saigTrans.c \
+    src/aig/saig/saigUnique.c

@@ -50,6 +50,7 @@ struct Saig_IntMan_t_
     Vec_Int_t *      vVarsAB;      // the variables participating in 
     // temporary place for the new interpolant
     Aig_Man_t *      pInterNew;
+    Vec_Ptr_t *      vInters;
     // parameters
     int              nFrames;      // the number of timeframes
     int              nConfCur;     // the current number of conflicts
@@ -65,7 +66,9 @@ struct Saig_IntMan_t_
     int              timeTotal;
 };
 
+#ifdef ABC_USE_LIBRARIES
 static int Saig_M144pPerformOneStep( Saig_IntMan_t * p );
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -328,7 +331,10 @@ sat_solver * Saig_DeriveSatSolver(
     for ( i = 0; i < pCnfFrames->nClauses; i++ )
     {
         if ( !sat_solver_addclause( pSat, pCnfFrames->pClauses[i], pCnfFrames->pClauses[i+1] ) )
-            assert( 0 );
+        {
+            pSat->fSolved = 1;
+            break;
+        }
     }
     sat_solver_store_mark_roots( pSat );
     // return clauses to the original state
@@ -604,7 +610,7 @@ p->timeSat += clock() - clk;
     else if ( status == l_True )
     {
         RetValue = 0;
-    }
+    } 
     else
     {
         RetValue = -1;
@@ -697,6 +703,26 @@ void Saig_ManagerClean( Saig_IntMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Saig_ManagerFreeInters( Saig_IntMan_t * p )
+{
+    Aig_Man_t * pTemp;
+    int i;
+    Vec_PtrForEachEntry( p->vInters, pTemp, i )
+        Aig_ManStop( pTemp );
+    Vec_PtrClear( p->vInters );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the interpolation manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Saig_ManagerFree( Saig_IntMan_t * p )
 {
     if ( p->fVerbose )
@@ -727,6 +753,8 @@ void Saig_ManagerFree( Saig_IntMan_t * p )
         Aig_ManStop( p->pInter );
     if ( p->pInterNew )
         Aig_ManStop( p->pInterNew );
+    Saig_ManagerFreeInters( p );
+    Vec_PtrFree( p->vInters );
     free( p );
 }
 
@@ -743,7 +771,7 @@ void Saig_ManagerFree( Saig_IntMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManCheckInductiveContainment( Saig_IntMan_t * p )
+int Saig_ManCheckInductiveContainment( Saig_IntMan_t * p, int fSubtractOld )
 {
     sat_solver * pSat;
     Aig_Man_t * pInterOld = p->pInter;
@@ -757,7 +785,10 @@ int Saig_ManCheckInductiveContainment( Saig_IntMan_t * p )
 
     // start the solver
     pSat = sat_solver_new();
-    sat_solver_setnvars( pSat, 2 * pCnfNew->nVars + pCnfTrans->nVars );
+    if ( fSubtractOld )
+        sat_solver_setnvars( pSat, 2 * pCnfNew->nVars + pCnfTrans->nVars + pCnfOld->nVars );
+    else
+        sat_solver_setnvars( pSat, 2 * pCnfNew->nVars + pCnfTrans->nVars );
 
     // interpolant
     for ( i = 0; i < pCnfNew->nClauses; i++ )
@@ -803,21 +834,48 @@ int Saig_ManCheckInductiveContainment( Saig_IntMan_t * p )
     }
 
     // complement the last literal
-    Lits[0] = pCnfNew->pClauses[0][pCnfNew->nLiterals-1];
-    pCnfNew->pClauses[0][pCnfNew->nLiterals-1] = lit_neg(Lits[0]);
     // add clauses of B
+    Cnf_DataFlipLastLiteral( pCnfNew );
     for ( i = 0; i < pCnfNew->nClauses; i++ )
     {
         if ( !sat_solver_addclause( pSat, pCnfNew->pClauses[i], pCnfNew->pClauses[i+1] ) )
-            assert( 0 );
+        {
+//            assert( 0 );
+            Cnf_DataFree( pCnfNew );
+            return 1;
+        }
     }
-    // complement the last literal
-    Lits[0] = pCnfNew->pClauses[0][pCnfNew->nLiterals-1];
-    pCnfNew->pClauses[0][pCnfNew->nLiterals-1] = lit_neg(Lits[0]);
+    Cnf_DataFlipLastLiteral( pCnfNew );
 
     // return clauses to the original state
     Cnf_DataLift( pCnfTrans, -pCnfNew->nVars );
     Cnf_DataLift( pCnfNew, -pCnfNew->nVars -pCnfTrans->nVars );
+    if ( fSubtractOld )
+    {
+        Cnf_DataLift( pCnfOld, 2 * pCnfNew->nVars + pCnfTrans->nVars );
+        // old interpolant clauses
+        Cnf_DataFlipLastLiteral( pCnfOld );
+        for ( i = 0; i < pCnfOld->nClauses; i++ )
+        {
+            if ( !sat_solver_addclause( pSat, pCnfOld->pClauses[i], pCnfOld->pClauses[i+1] ) )
+                assert( 0 );
+        }
+        Cnf_DataFlipLastLiteral( pCnfOld );
+        // connector clauses
+        Aig_ManForEachPi( pInterOld, pObj, i )
+        {
+            pObj2 = Aig_ManPi( pInterNew, i );
+            Lits[0] = toLitCond( pCnfOld->pVarNums[pObj->Id], 0 );
+            Lits[1] = toLitCond( pCnfNew->pVarNums[pObj2->Id], 1 );
+            if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
+                assert( 0 );
+            Lits[0] = toLitCond( pCnfOld->pVarNums[pObj->Id], 1 );
+            Lits[1] = toLitCond( pCnfNew->pVarNums[pObj2->Id], 0 );
+            if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
+                assert( 0 );
+        }
+        Cnf_DataLift( pCnfOld, - 2 * pCnfNew->nVars - pCnfTrans->nVars );
+    }
     Cnf_DataFree( pCnfNew );
 
     // solve the problem
@@ -838,8 +896,9 @@ int Saig_ManCheckInductiveContainment( Saig_IntMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUseIp, int fCheckInd, int fVerbose, int * pDepth )
+int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUseIp, int fCheckInd, int fCheckKstep, int fVerbose, int * pDepth )
 {
+    extern int Saig_ManUniqueState( Aig_Man_t * pTrans, Vec_Ptr_t * vInters );
     Saig_IntMan_t * p;
     Aig_Man_t * pAigTemp;
     int s, i, RetValue, Status, clk, clk2, clkTotal = clock();
@@ -856,6 +915,7 @@ int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRew
     p->nFrames = 1;
     p->nConfLimit = nConfLimit;
     p->fVerbose = fVerbose;
+    p->vInters = Vec_PtrAlloc( 10 );
     // can perform SAT sweeping and/or rewriting of this AIG...
     p->pAig = pAig;      
     if ( fTransLoop )
@@ -878,9 +938,11 @@ p->timeCnf += clock() - clk;
     *pDepth = -1;
     for ( s = 0; ; s++ )
     {
+        Saig_ManagerFreeInters( p );
 clk2 = clock();
         // initial state
         p->pInter = Saig_ManInit( Aig_ManRegNum(pAig) );
+        Vec_PtrPush( p->vInters, Aig_ManDupSimple(p->pInter) );
 clk = clock();
         p->pCnfInter = Cnf_Derive( p->pInter, 0 );  
 p->timeCnf += clock() - clk;    
@@ -919,10 +981,13 @@ p->timeCnf += clock() - clk;
             }
             // perform interplation
             clk = clock();
+#ifdef ABC_USE_LIBRARIES
             if ( fUseIp )
                 RetValue = Saig_M144pPerformOneStep( p );
             else
+#endif
                 RetValue = Saig_PerformOneStep( p, 0 );
+
             if ( fVerbose )
             {
                 printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 
@@ -960,11 +1025,15 @@ clk = clock();
             p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 1, 0 );
             Aig_ManStop( pAigTemp );
 p->timeRwr += clock() - clk;
+            // save the new interpolant
+            Vec_PtrPush( p->vInters, Aig_ManDupSimple(p->pInterNew) );
             // check containment of interpolants
 clk = clock();
-            if ( fCheckInd )
-                Status = Saig_ManCheckInductiveContainment( p );
-            else
+            if ( fCheckKstep ) // k-step unique-state induction
+                Status = Saig_ManUniqueState( p->pAigTrans, p->vInters );
+            else if ( fCheckInd ) // simple induction
+                Status = Saig_ManCheckInductiveContainment( p, 1 );
+            else // combinational containment
                 Status = Saig_ManCheckContainment( p->pInterNew, p->pInter );
 p->timeEqu += clock() - clk;
             if ( Status ) // contained
@@ -1003,6 +1072,8 @@ p->timeCnf += clock() - clk;
     return RetValue;
 }
 
+
+#ifdef ABC_USE_LIBRARIES
 
 #include "m114p.h"
 
@@ -1134,10 +1205,14 @@ Aig_Man_t * Saig_M144pInterpolate( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_
     Aig_Man_t * p;
     Aig_Obj_t * pInter, * pInter2, * pVar;
     Vec_Ptr_t * vInters;
+    Vec_Int_t * vASteps;
     int * pLits, * pClauses, * pVars;
-    int nLits, nVars, i, k, iVar;
+    int nLits, nVars, i, k, iVar, haveASteps;
+    int CountA, CountB, CountC, CountCsaved;
+
     assert( M114p_SolverProofIsReady(s) );
     vInters = Vec_PtrAlloc( 1000 );
+    vASteps = Vec_IntAlloc( 1000 );
     // process root clauses
     p = Aig_ManStart( 10000 );
     M114p_SolverForEachRoot( s, &pLits, nLits, i )
@@ -1157,26 +1232,50 @@ Aig_Man_t * Saig_M144pInterpolate( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_
             }
         }
         Vec_PtrPush( vInters, pInter );
+        Vec_IntPush( vASteps, 0 );
     }
     assert( Vec_PtrSize(vInters) == Vec_IntSize(vMapRoots) );
 
     // process learned clauses
+    CountA = CountB = CountC = CountCsaved = 0;
     M114p_SolverForEachChain( s, &pClauses, &pVars, nVars, i )
     {
         pInter = Vec_PtrEntry( vInters, pClauses[0] );
+        haveASteps = Vec_IntEntry( vASteps, pClauses[0] );
         for ( k = 0; k < nVars; k++ )
         {
             iVar = Vec_IntEntry( vMapVars, pVars[k] );
             pInter2 = Vec_PtrEntry( vInters, pClauses[k+1] );
+            haveASteps |= Vec_IntEntry( vASteps, pClauses[k+1] );
             if ( iVar == -1 ) // var of A
+            {
+                haveASteps = 1;
                 pInter = Aig_Or( p, pInter, pInter2 );
+            }
             else // var of B or C
                 pInter = Aig_And( p, pInter, pInter2 );
+
+            if ( iVar == -1 )
+                CountA++;
+            else if ( iVar == -2 )
+                CountB++;
+            else 
+            {
+                if ( haveASteps == 0 )
+                    CountCsaved++;
+                CountC++;
+            }
         }
         Vec_PtrPush( vInters, pInter );
+        Vec_IntPush( vASteps, haveASteps );
     }
+//    printf( "ResSteps: A = %6d. B = %6d. C = %6d. C_saved = %6d. (%6.2f %%)\n", 
+//        CountA, CountB, CountC, CountCsaved, 100.0 * CountCsaved/CountC );
+
     assert( Vec_PtrSize(vInters) == M114p_SolverProofClauseNum(s) );
     Vec_PtrFree( vInters );
+    Vec_IntFree( vASteps );
+
     Aig_ObjCreatePo( p, pInter );
     Aig_ManCleanup( p );
     return p;
@@ -1228,6 +1327,8 @@ p->timeInt += clock() - clk;
     Vec_IntFree( vMapVars );
     return RetValue;
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

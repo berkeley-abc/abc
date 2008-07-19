@@ -809,8 +809,12 @@ int Inta_ManProcessRoots( Inta_Man_t * p )
         if ( !Inta_ManEnqueue( p, pClause->pLits[0], pClause ) )
         {
             // detected root level conflict
-            printf( "Error in Inta_ManProcessRoots(): Detected a root-level conflict too early!\n" );
-            assert( 0 );
+//            printf( "Error in Inta_ManProcessRoots(): Detected a root-level conflict too early!\n" );
+//            assert( 0 );
+            // detected root level conflict
+            Inta_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
+            if ( p->fVerbose )
+                printf( "Found root level conflict!\n" );
             return 0;
         }
     }

@@ -389,11 +389,11 @@ PRT( "Time", clock() - clkTotal );
 clk = clock();
     if ( pParSec->fInterpolation && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) == 1 )
     {
-        extern int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int fRewrite, int fTransLoop, int fUsePudlak, int fVerbose, int * pDepth );
+        extern int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUseIp, int fCheckInd, int fCheckKstep, int fVerbose, int * pDepth );
         int Depth;
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-        RetValue = Saig_Interpolate( pNew, 5000, 0, 1, 0, pParSec->fVeryVerbose, &Depth );
+        RetValue = Saig_Interpolate( pNew, 5000, 40, 0, 1, 0, 1, 1, pParSec->fVeryVerbose, &Depth );
         if ( pParSec->fVerbose )
         {
         if ( RetValue == 1 )

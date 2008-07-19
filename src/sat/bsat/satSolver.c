@@ -1061,7 +1061,8 @@ bool sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
     begin = veci_begin( &s->temp_clause );
     end = begin + veci_size( &s->temp_clause );
 
-    if (begin == end) return false;
+    if (begin == end) 
+        return false;
 
     //printlits(begin,end); printf("\n");
     // insertion sort
@@ -1075,6 +1076,16 @@ bool sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
     }
     sat_solver_setnvars(s,maxvar+1);
 //    sat_solver_setnvars(s, lit_var(*(end-1))+1 );
+
+    ///////////////////////////////////
+    // add clause to internal storage
+    if ( s->pStore )
+    {
+        extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
+        int RetValue = Sto_ManAddClause( s->pStore, begin, end );
+        assert( RetValue );
+    }
+    ///////////////////////////////////
 
     //printlits(begin,end); printf("\n");
     values = s->assigns;
@@ -1094,16 +1105,6 @@ bool sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
 
     if (j == begin)          // empty clause
         return false;
-
-    ///////////////////////////////////
-    // add clause to internal storage
-    if ( s->pStore )
-    {
-        extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
-        int RetValue = Sto_ManAddClause( s->pStore, begin, j );
-        assert( RetValue );
-    }
-    ///////////////////////////////////
 
     if (j - begin == 1) // unit clause
         return enqueue(s,*begin,(clause*)0);
@@ -1163,6 +1164,19 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
     lit*    i;
+
+    ////////////////////////////////////////////////
+    if ( s->fSolved )
+    {
+        if ( s->pStore )
+        {
+            extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
+            int RetValue = Sto_ManAddClause( s->pStore, NULL, NULL );
+            assert( RetValue );
+        }
+        return l_False;
+    }
+    ////////////////////////////////////////////////
 
     // set the external limits
     s->nCalls++;

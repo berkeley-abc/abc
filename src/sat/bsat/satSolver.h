@@ -182,6 +182,7 @@ struct sat_solver_t
 
     // clause store
     void *   pStore;
+    int      fSolved;
 
     // trace recording
     FILE *   pFile;
