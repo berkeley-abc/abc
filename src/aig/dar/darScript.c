@@ -54,7 +54,7 @@ Aig_Man_t * Dar_ManRewriteDefault( Aig_Man_t * pAig )
 
 /**Function*************************************************************
 
-  Synopsis    [Reproduces script "compress2".]
+  Synopsis    [Reproduces script "rwsat".]
 
   Description []
                

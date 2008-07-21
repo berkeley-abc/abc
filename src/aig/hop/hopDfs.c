@@ -394,7 +394,7 @@ Hop_Obj_t * Hop_Compose( Hop_Man_t * p, Hop_Obj_t * pRoot, Hop_Obj_t * pFunc, in
 
 /**Function*************************************************************
 
-  Synopsis    [Composes the AIG (pRoot) with the function (pFunc) using PI var (iVar).]
+  Synopsis    [Remaps the AIG (pRoot) to have the given support (uSupp).]
 
   Description []
                
@@ -417,7 +417,7 @@ void Hop_Remap_rec( Hop_Man_t * p, Hop_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Composes the AIG (pRoot) with the function (pFunc) using PI var (iVar).]
+  Synopsis    [Remaps the AIG (pRoot) to have the given support (uSupp).]
 
   Description []
                

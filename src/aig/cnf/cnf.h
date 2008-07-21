@@ -108,6 +108,10 @@ static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut
 ///                           ITERATORS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// iterator over the clauses
+#define Cnf_CnfForClause( p, pBeg, pEnd, i )                         \
+    for ( i = 0; i < p->nClauses && (pBeg = p->pClauses[i]) && (pEnd = p->pClauses[i+1]); i++ )
+
 // iterator over leaves of the cut
 #define Cnf_CutForEachLeaf( p, pCut, pLeaf, i )                         \
     for ( i = 0; (i < (int)(pCut)->nFanins) && ((pLeaf) = Aig_ManObj(p, (pCut)->pFanins[i])); i++ )
@@ -142,7 +146,7 @@ extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, i
 extern void *          Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit );
 extern int             Cnf_DataWriteOrClause( void * pSat, Cnf_Dat_t * pCnf );
 extern int             Cnf_DataWriteAndClauses( void * p, Cnf_Dat_t * pCnf );
-extern void            Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf );
+extern void            Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos );
 /*=== cnfMap.c ========================================================*/
 extern void            Cnf_DeriveMapping( Cnf_Man_t * p );
 extern int             Cnf_ManMapForCnf( Cnf_Man_t * p );

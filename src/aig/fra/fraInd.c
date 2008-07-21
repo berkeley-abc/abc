@@ -530,7 +530,7 @@ p->timeTrav += clock() - clk2;
             pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
         else
             pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
-//        Cnf_DataTranformPolarity( pCnf );
+//        Cnf_DataTranformPolarity( pCnf, 0 );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 
         p->pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );

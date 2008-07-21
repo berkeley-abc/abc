@@ -658,6 +658,52 @@ static inline int Vec_IntRemove( Vec_Int_t * p, int Entry )
 
 /**Function*************************************************************
 
+  Synopsis    [Find entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntFindMax( Vec_Int_t * p )
+{
+    int i, Best;
+    if ( p->nSize == 0 )
+        return 0;
+    Best = p->pArray[0];
+    for ( i = 1; i < p->nSize; i++ )
+        if ( Best < p->pArray[i] )
+            Best = p->pArray[i];
+    return Best;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntFindMin( Vec_Int_t * p )
+{
+    int i, Best;
+    if ( p->nSize == 0 )
+        return 0;
+    Best = p->pArray[0];
+    for ( i = 1; i < p->nSize; i++ )
+        if ( Best > p->pArray[i] )
+            Best = p->pArray[i];
+    return Best;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Comparison procedure for two integers.]
 
   Description []

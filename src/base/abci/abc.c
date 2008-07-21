@@ -200,6 +200,7 @@ static int Abc_CommandSec            ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandDSec           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSat            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDSat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPSat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDebug          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -218,6 +219,7 @@ static int Abc_CommandAbc8Write      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8WriteLogic ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8ReadLut    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8PrintLut   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Check      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc8Ps         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Pfan       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -458,6 +460,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "dprove",        Abc_CommandDProve,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dsat",          Abc_CommandDSat,             0 );
+    Cmd_CommandAdd( pAbc, "Verification", "psat",          Abc_CommandPSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "debug",         Abc_CommandDebug,            0 );
@@ -473,6 +476,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*wlogic",       Abc_CommandAbc8WriteLogic,   0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*rlut",         Abc_CommandAbc8ReadLut,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*plut",         Abc_CommandAbc8PrintLut,     0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*check",        Abc_CommandAbc8Check,        0 );
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*ps",           Abc_CommandAbc8Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*pfan",         Abc_CommandAbc8Pfan,         0 );
@@ -6357,7 +6361,7 @@ int Abc_CommandTopAnd( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: topand [-h]\n" );
-    fprintf( pErr, "\t         AND-decomposition of single-output combinational miter\n" );
+    fprintf( pErr, "\t         performs AND-decomposition of single-output combinational miter\n" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\tname   : the node name\n");
     return 1;
@@ -14196,7 +14200,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fPartition;
     int fMiter;
 
-    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
+    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fAlignPol, int fAndOuts, int fVerbose );
     extern int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -14850,14 +14854,14 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int RetValue;
-    int fFlipBits;
+    int fAlignPol;
     int fAndOuts;
     int fVerbose;
     int nConfLimit;
     int nInsLimit;
     int clk;
 
-    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
+    extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fAlignPol, int fAndOuts, int fVerbose );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -14865,13 +14869,13 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fFlipBits  = 0;
+    fAlignPol  = 0;
     fAndOuts   = 0;
     fVerbose   = 0;
     nConfLimit = 100000;   
     nInsLimit  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CIfavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CIpavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14897,8 +14901,8 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nInsLimit < 0 ) 
                 goto usage;
             break;
-        case 'f':
-            fFlipBits ^= 1;
+        case 'p':
+            fAlignPol ^= 1;
             break;
         case 'a':
             fAndOuts ^= 1;
@@ -14937,7 +14941,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     clk = clock();
-    RetValue = Abc_NtkDSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fFlipBits, fAndOuts, fVerbose );
+    RetValue = Abc_NtkDSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fAlignPol, fAndOuts, fVerbose );
     // verify that the pattern is correct
     if ( RetValue == 0 && Abc_NtkPoNum(pNtk) == 1 )
     {
@@ -14970,13 +14974,177 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dsat [-C num] [-I num] [-favh]\n" );
+    fprintf( pErr, "usage: dsat [-C num] [-I num] [-pavh]\n" );
     fprintf( pErr, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
     fprintf( pErr, "\t         derives CNF from the current network and leave it unchanged\n" );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     fprintf( pErr, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
-    fprintf( pErr, "\t-f     : flip polarity of SAT variables [default = %s]\n", fFlipBits? "yes": "no" );  
-    fprintf( pErr, "\t-a     : constrain each output of multi-output miter [default = %s]\n", fAndOuts? "yes": "no" );  
+    fprintf( pErr, "\t-p     : alighn polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );  
+    fprintf( pErr, "\t-a     : toggle ANDing/ORing of miter outputs [default = %s]\n", fAndOuts? "ANDing": "ORing" );  
+    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPSat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int RetValue;
+    int c, clk;
+    int nAlgo;
+    int nPartSize;
+    int nConfPart;
+    int nConfTotal;
+    int fAlignPol;
+    int fSynthesize;
+    int fVerbose;
+
+    extern int Abc_NtkPartitionedSat( Abc_Ntk_t * pNtk, int nAlgo, int nPartSize, int nConfPart, int nConfTotal, int fAlignPol, int fSynthesize, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nAlgo       =        0;
+    nPartSize   =    10000;
+    nConfPart   =        0;
+    nConfTotal  =  1000000;
+    fAlignPol   =        1;
+    fSynthesize =        0;
+    fVerbose    =        1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "APCpsvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nAlgo = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nAlgo < 0 ) 
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPartSize < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfTotal = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfTotal < 0 ) 
+                goto usage;
+            break;
+        case 'p':
+            fAlignPol ^= 1;
+            break;
+        case 's':
+            fSynthesize ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkLatchNum(pNtk) > 0 )
+    {
+        fprintf( stdout, "Currently can only solve the miter for combinational circuits.\n" );
+        return 0;
+    } 
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+
+    clk = clock();
+    RetValue = Abc_NtkPartitionedSat( pNtk, nAlgo, nPartSize, nConfPart, nConfTotal, fAlignPol, fSynthesize, fVerbose );
+    // verify that the pattern is correct
+    if ( RetValue == 0 && Abc_NtkPoNum(pNtk) == 1 )
+    {
+        //int i;
+        //Abc_Obj_t * pObj;
+        int * pSimInfo = Abc_NtkVerifySimulatePattern( pNtk, pNtk->pModel );
+        if ( pSimInfo[0] != 1 )
+            printf( "ERROR in Abc_NtkMiterSat(): Generated counter example is invalid.\n" );
+        free( pSimInfo );
+        /*
+        // print model
+        Abc_NtkForEachPi( pNtk, pObj, i )
+        {
+            printf( "%d", (int)(pNtk->pModel[i] > 0) );
+            if ( i == 70 )
+                break;
+        }
+        printf( "\n" );
+        */
+    }
+
+    if ( RetValue == -1 )
+        printf( "UNDECIDED      " );
+    else if ( RetValue == 0 )
+        printf( "SATISFIABLE    " );
+    else
+        printf( "UNSATISFIABLE  " );
+    //printf( "\n" );
+    PRT( "Time", clock() - clk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: psat [-APC num] [-psvh]\n" );
+    fprintf( pErr, "\t         solves the combinational miter using partitioning\n" );
+    fprintf( pErr, "\t         (derives CNF from the current network and leave it unchanged)\n" );
+    fprintf( pErr, "\t         for multi-output miters, tries to prove that the AND of POs is always 0\n" );
+    fprintf( pErr, "\t         (if POs should be ORed instead of ANDed, use command \"orpos\")\n" );
+    fprintf( pErr, "\t-A num : partitioning algorithm [default = %d]\n", nAlgo );
+    fprintf( pErr, "\t         0 : no partitioning\n" );
+    fprintf( pErr, "\t         1 : partitioning by level\n" );
+    fprintf( pErr, "\t         2 : DFS post-order\n" );
+    fprintf( pErr, "\t         3 : DFS pre-order\n" );
+    fprintf( pErr, "\t         4 : bit-slicing\n" );
+    fprintf( pErr, "\t         partitions are ordered by level (high level first)\n" );
+    fprintf( pErr, "\t-P num : limit on the partition size [default = %d]\n", nPartSize );
+    fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfTotal );
+    fprintf( pErr, "\t-p     : align polarity of SAT variables [default = %s]\n", fAlignPol? "yes": "no" );  
+    fprintf( pErr, "\t-s     : apply logic synthesis to each partition [default = %s]\n", fSynthesize? "yes": "no" );  
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -15347,11 +15515,13 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fRewrite;
     int fTransLoop;
     int fUsePudlak;
+    int fUseOther;
+    int fUseMiniSat;
     int fCheckInd;
     int fCheckKstep;
     int fVerbose;
 
-    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fCheckInd, int fCheckKstep, int fVerbose );
+    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fUseOther, int fUseMiniSat, int fCheckInd, int fCheckKstep, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -15363,11 +15533,13 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     fRewrite   = 0;
     fTransLoop = 1;
     fUsePudlak = 0;
+    fUseOther  = 0;
+    fUseMiniSat= 0;
     fCheckInd  = 0;
     fCheckKstep= 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CFrtpikvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CFrtpomikvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15401,6 +15573,12 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fUsePudlak ^= 1;
+            break;
+        case 'o':
+            fUseOther ^= 1;
+            break;
+        case 'm':
+            fUseMiniSat ^= 1;
             break;
         case 'i':
             fCheckInd ^= 1;
@@ -15437,18 +15615,19 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for single-output miters (run \"orpos\").\n" );
         return 0;
     }
-    Abc_NtkDarBmcInter( pNtk, nBTLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fCheckInd, fCheckKstep, fVerbose );
+    Abc_NtkDarBmcInter( pNtk, nBTLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fUseOther, fUseMiniSat, fCheckInd, fCheckKstep, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: int [-CF num] [-rtpikvh]\n" );
+    fprintf( pErr, "usage: int [-CF num] [-rtpomikvh]\n" );
     fprintf( pErr, "\t         uses interpolation to prove the property\n" );
     fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", nBTLimit );
     fprintf( pErr, "\t-F num : the limit on number of frames to unroll [default = %d]\n", nFramesMax );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-t     : toggle adding transition into the init state [default = %s]\n", fTransLoop? "yes": "no" );
-//    fprintf( pErr, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", fUsePudlak? "yes": "no" );
-    fprintf( pErr, "\t-p     : toggle using MiniSat-1.14p (now, Windows-only) [default = %s]\n", fUsePudlak? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", fUsePudlak? "yes": "no" );
+    fprintf( pErr, "\t-o     : toggle using optimized Pudlak's interpolation procedure [default = %s]\n", fUseOther? "yes": "no" );
+    fprintf( pErr, "\t-m     : toggle using MiniSat-1.14p (now, Windows-only) [default = %s]\n", fUseMiniSat? "yes": "no" );
     fprintf( pErr, "\t-i     : toggle inductive containment checking [default = %s]\n", fCheckInd? "yes": "no" );
     fprintf( pErr, "\t-k     : toggle simple and k-step induction [default = %s]\n", fCheckKstep? "k-step": "simple" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -16360,6 +16539,55 @@ int Abc_CommandAbc8PrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( stdout, "\nusage: *plut [-h]\n");
     fprintf( stdout, "\t          print the current LUT library\n" );  
+    fprintf( stdout, "\t-h      : print the command usage\n");
+    return 1;       /* error exit */
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Check( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c;
+    extern int Nwk_ManCheck( void * p );
+
+    // set the defaults
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "h")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind )
+    {
+        goto usage;
+    }
+
+    // set the new network
+    if ( pAbc->pAbc8Nwk == NULL )
+        printf( "Abc_CommandAbc8Check(): There is no mapped network.\n" );
+    else
+        Nwk_ManCheck( pAbc->pAbc8Nwk );
+    return 0;
+
+usage:
+    fprintf( stdout, "\nusage: *check [-h]\n");
+    fprintf( stdout, "\t          checks if the current mapped network has duplicated fanins\n" );  
     fprintf( stdout, "\t-h      : print the command usage\n");
     return 1;       /* error exit */
 }

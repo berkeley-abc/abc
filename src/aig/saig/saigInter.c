@@ -67,7 +67,7 @@ struct Saig_IntMan_t_
 };
 
 #ifdef ABC_USE_LIBRARIES
-static int Saig_M144pPerformOneStep( Saig_IntMan_t * p );
+static int Saig_M144pPerformOneStep( Saig_IntMan_t * p, int fUsePudlak, int fUseOther );
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -896,7 +896,7 @@ int Saig_ManCheckInductiveContainment( Saig_IntMan_t * p, int fSubtractOld )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUseIp, int fCheckInd, int fCheckKstep, int fVerbose, int * pDepth )
+int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fUseOther, int fUseMiniSat, int fCheckInd, int fCheckKstep, int fVerbose, int * pDepth )
 {
     extern int Saig_ManUniqueState( Aig_Man_t * pTrans, Vec_Ptr_t * vInters );
     Saig_IntMan_t * p;
@@ -982,8 +982,8 @@ p->timeCnf += clock() - clk;
             // perform interplation
             clk = clock();
 #ifdef ABC_USE_LIBRARIES
-            if ( fUseIp )
-                RetValue = Saig_M144pPerformOneStep( p );
+            if ( fUseMiniSat )
+                RetValue = Saig_M144pPerformOneStep( p, fUsePudlak, fUseOther );
             else
 #endif
                 RetValue = Saig_PerformOneStep( p, 0 );
@@ -1177,7 +1177,10 @@ M114p_Solver_t Saig_M144pDeriveSatSolver(
     {
         Vec_IntPush( *pvMapRoots, 1 );
         if ( !M114p_SolverAddClause( pSat, pCnfFrames->pClauses[i], pCnfFrames->pClauses[i+1] ) )
-            assert( 0 );
+        {
+//            assert( 0 );
+            break;
+        }
     }
     // return clauses to the original state
     Cnf_DataLift( pCnfAig, -pCnfFrames->nVars );
@@ -1200,19 +1203,148 @@ M114p_Solver_t Saig_M144pDeriveSatSolver(
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_M144pInterpolate( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_Int_t * vMapVars )
+void Saig_M144pInterpolateReport( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_Int_t * vMapVars )
 {
-    Aig_Man_t * p;
-    Aig_Obj_t * pInter, * pInter2, * pVar;
-    Vec_Ptr_t * vInters;
     Vec_Int_t * vASteps;
     int * pLits, * pClauses, * pVars;
     int nLits, nVars, i, k, iVar, haveASteps;
     int CountA, CountB, CountC, CountCsaved;
 
     assert( M114p_SolverProofIsReady(s) );
-    vInters = Vec_PtrAlloc( 1000 );
     vASteps = Vec_IntAlloc( 1000 );
+    // process root clauses
+    M114p_SolverForEachRoot( s, &pLits, nLits, i )
+    {
+        if ( Vec_IntEntry(vMapRoots, i) == 1 ) // clause of B
+        {
+        }
+        else // clause of A
+        {
+        }
+        Vec_IntPush( vASteps, Vec_IntEntry(vMapRoots, i) );
+    }
+//    assert( Vec_IntSize(vASteps) == Vec_IntSize(vMapRoots) );
+ 
+    // process learned clauses
+    CountA = CountB = CountC = CountCsaved = 0;
+    M114p_SolverForEachChain( s, &pClauses, &pVars, nVars, i )
+    {
+        haveASteps = Vec_IntEntry( vASteps, pClauses[0] );
+        for ( k = 0; k < nVars; k++ )
+        {
+            iVar = Vec_IntEntry( vMapVars, pVars[k] );
+            haveASteps |= Vec_IntEntry( vASteps, pClauses[k+1] );
+            if ( iVar == -1 ) // var of A
+            {
+                haveASteps = 1;
+            }
+            else // var of B or C
+            {
+            }
+
+            if ( iVar == -1 )
+                CountA++;
+            else if ( iVar == -2 )
+                CountB++;
+            else 
+            {
+                if ( haveASteps == 0 )
+                    CountCsaved++;
+                CountC++;
+            }
+        }
+        Vec_IntPush( vASteps, haveASteps );
+    }
+    assert( Vec_IntSize(vASteps) == M114p_SolverProofClauseNum(s) );
+
+    printf( "ResSteps: A = %6d. B = %6d. C = %6d. C_saved = %6d. (%6.2f %%)\n", 
+        CountA, CountB, CountC, CountCsaved, 100.0 * CountCsaved/CountC );
+    Vec_IntFree( vASteps );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes interpolant using MiniSat-1.14p.]
+
+  Description [Assumes that the solver returned UNSAT and proof
+  logging was enabled. Array vMapRoots maps number of each root clause 
+  into 0 (clause of A) or 1 (clause of B). Array vMapVars maps each SAT
+  solver variable into -1 (var of A), -2 (var of B), and <num> (var of C),
+  where <num> is the var's 0-based number in the ordering of C variables.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_M144pInterpolateLastStep( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_Int_t * vMapVars )
+{
+    int * pLits, * pClauses, * pVars;
+    int nLits, nVars, i, k, iVar;
+    int nSteps, iStepA, iStepB;
+    assert( M114p_SolverProofIsReady(s) );
+    // process root clauses
+    M114p_SolverForEachRoot( s, &pLits, nLits, i )
+    {
+        if ( Vec_IntEntry(vMapRoots, i) == 1 ) // clause of B
+        {
+        }
+        else // clause of A
+        {
+        }
+    }
+//    assert( Vec_IntSize(vASteps) == Vec_IntSize(vMapRoots) );
+    // process learned clauses
+    nSteps = 0;
+    M114p_SolverForEachChain( s, &pClauses, &pVars, nVars, i )
+    {
+        for ( k = 0; k < nVars; k++ )
+        {
+            iVar = Vec_IntEntry( vMapVars, pVars[k] );
+            if ( iVar == -1 ) // var of A
+            {
+                iStepA = nSteps;
+            }
+            else if ( iVar == -2 ) // var of B
+            {
+                iStepB = nSteps;
+            }
+            else // var of C
+            {
+            }
+            nSteps++;
+        }
+    }
+//    assert( Vec_IntSize(vASteps) == M114p_SolverProofClauseNum(s) );
+    if ( iStepA < iStepB )
+        return iStepB;
+    return iStepA;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes interpolant using MiniSat-1.14p.]
+
+  Description [Assumes that the solver returned UNSAT and proof
+  logging was enabled. Array vMapRoots maps number of each root clause 
+  into 0 (clause of A) or 1 (clause of B). Array vMapVars maps each SAT
+  solver variable into -1 (var of A), -2 (var of B), and <num> (var of C),
+  where <num> is the var's 0-based number in the ordering of C variables.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_M144pInterpolate( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_Int_t * vMapVars )
+{
+    Aig_Man_t * p;
+    Aig_Obj_t * pInter, * pInter2, * pVar;
+    Vec_Ptr_t * vInters;
+    int * pLits, * pClauses, * pVars;
+    int nLits, nVars, i, k, iVar;
+    assert( M114p_SolverProofIsReady(s) );
+    vInters = Vec_PtrAlloc( 1000 );
     // process root clauses
     p = Aig_ManStart( 10000 );
     M114p_SolverForEachRoot( s, &pLits, nLits, i )
@@ -1232,50 +1364,306 @@ Aig_Man_t * Saig_M144pInterpolate( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_
             }
         }
         Vec_PtrPush( vInters, pInter );
-        Vec_IntPush( vASteps, 0 );
+    }
+//    assert( Vec_PtrSize(vInters) == Vec_IntSize(vMapRoots) );
+
+    // process learned clauses
+    M114p_SolverForEachChain( s, &pClauses, &pVars, nVars, i )
+    {
+        pInter = Vec_PtrEntry( vInters, pClauses[0] );
+        for ( k = 0; k < nVars; k++ )
+        {
+            iVar = Vec_IntEntry( vMapVars, pVars[k] );
+            pInter2 = Vec_PtrEntry( vInters, pClauses[k+1] );
+            if ( iVar == -1 ) // var of A
+                pInter = Aig_Or( p, pInter, pInter2 );
+            else // var of B or C
+                pInter = Aig_And( p, pInter, pInter2 );
+        }
+        Vec_PtrPush( vInters, pInter );
+    }
+    assert( Vec_PtrSize(vInters) == M114p_SolverProofClauseNum(s) );
+    Vec_PtrFree( vInters );
+    Aig_ObjCreatePo( p, pInter );
+    Aig_ManCleanup( p );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs one resolution step.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_M144pResolve( Vec_Int_t * vResolvent, int * pLits, int nLits, int iVar )
+{
+    int i, k, iLit = -1, fFound = 0;
+    // find the variable in the clause
+    for ( i = 0; i < vResolvent->nSize; i++ )
+        if ( lit_var(vResolvent->pArray[i]) == iVar )
+        {
+            iLit = vResolvent->pArray[i];
+            vResolvent->pArray[i] = vResolvent->pArray[--vResolvent->nSize];
+            break;
+        }
+    assert( iLit != -1 );
+    // add other variables
+    for ( i = 0; i < nLits; i++ )
+    {
+        if ( lit_var(pLits[i]) == iVar )
+        {
+            assert( iLit == lit_neg(pLits[i]) );
+            fFound = 1;
+            continue;
+        }
+        // check if this literal appears
+        for ( k = 0; k < vResolvent->nSize; k++ )
+            if ( vResolvent->pArray[k] == pLits[i] )
+                break;
+        if ( k < vResolvent->nSize )
+            continue;
+        // add this literal
+        Vec_IntPush( vResolvent, pLits[i] );
+    }
+    assert( fFound );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes interpolant using MiniSat-1.14p.]
+
+  Description [Assumes that the solver returned UNSAT and proof
+  logging was enabled. Array vMapRoots maps number of each root clause 
+  into 0 (clause of A) or 1 (clause of B). Array vMapVars maps each SAT
+  solver variable into -1 (var of A), -2 (var of B), and <num> (var of C),
+  where <num> is the var's 0-based number in the ordering of C variables.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_M144pInterpolatePudlak( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_Int_t * vMapVars )
+{
+    Aig_Man_t * p;
+    Aig_Obj_t * pInter, * pInter2, * pVar;
+    Vec_Ptr_t * vInters;
+    Vec_Int_t * vLiterals, * vClauses, * vResolvent;
+    int * pLitsNext, nLitsNext, nOffset, iLit;
+    int * pLits, * pClauses, * pVars;
+    int nLits, nVars, i, k, v, iVar;
+    assert( M114p_SolverProofIsReady(s) );
+    vInters = Vec_PtrAlloc( 1000 );
+
+    vLiterals = Vec_IntAlloc( 10000 );
+    vClauses = Vec_IntAlloc( 1000 );
+    vResolvent = Vec_IntAlloc( 100 );
+
+    // create elementary variables
+    p = Aig_ManStart( 10000 );
+    Vec_IntForEachEntry( vMapVars, iVar, i )
+        if ( iVar >= 0 )
+            Aig_IthVar(p, iVar);
+    // process root clauses
+    M114p_SolverForEachRoot( s, &pLits, nLits, i )
+    {
+        if ( Vec_IntEntry(vMapRoots, i) == 1 ) // clause of B
+            pInter = Aig_ManConst1(p);
+        else // clause of A
+            pInter = Aig_ManConst0(p);
+        Vec_PtrPush( vInters, pInter );
+
+        // save the root clause
+        Vec_IntPush( vClauses, Vec_IntSize(vLiterals) );
+        Vec_IntPush( vLiterals, nLits );
+        for ( v = 0; v < nLits; v++ )
+            Vec_IntPush( vLiterals, pLits[v] );
     }
     assert( Vec_PtrSize(vInters) == Vec_IntSize(vMapRoots) );
 
     // process learned clauses
-    CountA = CountB = CountC = CountCsaved = 0;
+    M114p_SolverForEachChain( s, &pClauses, &pVars, nVars, i )
+    {
+        pInter = Vec_PtrEntry( vInters, pClauses[0] );
+
+        // initialize the resolvent
+        nOffset = Vec_IntEntry( vClauses, pClauses[0] );
+        nLitsNext = Vec_IntEntry( vLiterals, nOffset );
+        pLitsNext = Vec_IntArray(vLiterals) + nOffset + 1;
+        Vec_IntClear( vResolvent );
+        for ( v = 0; v < nLitsNext; v++ )
+            Vec_IntPush( vResolvent, pLitsNext[v] );
+
+        for ( k = 0; k < nVars; k++ )
+        {
+            iVar = Vec_IntEntry( vMapVars, pVars[k] );
+            pInter2 = Vec_PtrEntry( vInters, pClauses[k+1] );
+
+            // resolve it with the next clause
+            nOffset = Vec_IntEntry( vClauses, pClauses[k+1] );
+            nLitsNext = Vec_IntEntry( vLiterals, nOffset );
+            pLitsNext = Vec_IntArray(vLiterals) + nOffset + 1;
+            Saig_M144pResolve( vResolvent, pLitsNext, nLitsNext, pVars[k] );
+
+            if ( iVar == -1 ) // var of A
+                pInter = Aig_Or( p, pInter, pInter2 );
+            else if ( iVar == -2 ) // var of B
+                pInter = Aig_And( p, pInter, pInter2 );
+            else // var of C
+            {
+                // check polarity of the pivot variable in the clause
+                for ( v = 0; v < nLitsNext; v++ )
+                    if ( lit_var(pLitsNext[v]) == pVars[k] )
+                        break;
+                assert( v < nLitsNext );
+                pVar = Aig_NotCond( Aig_IthVar(p, iVar), lit_sign(pLitsNext[v]) );
+                pInter = Aig_Mux( p, pVar, pInter, pInter2 );
+            }
+        }
+        Vec_PtrPush( vInters, pInter );
+
+        // store the resulting clause
+        Vec_IntPush( vClauses, Vec_IntSize(vLiterals) );
+        Vec_IntPush( vLiterals, Vec_IntSize(vResolvent) );
+        Vec_IntForEachEntry( vResolvent, iLit, v )
+            Vec_IntPush( vLiterals, iLit );
+    }
+    assert( Vec_PtrSize(vInters) == M114p_SolverProofClauseNum(s) );
+    assert( Vec_IntSize(vResolvent) == 0 ); // the empty clause
+    Vec_PtrFree( vInters );
+    Vec_IntFree( vLiterals );
+    Vec_IntFree( vClauses );
+    Vec_IntFree( vResolvent );
+    Aig_ObjCreatePo( p, pInter );
+    Aig_ManCleanup( p );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes interpolant using MiniSat-1.14p.]
+
+  Description [Assumes that the solver returned UNSAT and proof
+  logging was enabled. Array vMapRoots maps number of each root clause 
+  into 0 (clause of A) or 1 (clause of B). Array vMapVars maps each SAT
+  solver variable into -1 (var of A), -2 (var of B), and <num> (var of C),
+  where <num> is the var's 0-based number in the ordering of C variables.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_M144pInterpolatePudlakASteps( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_Int_t * vMapVars )
+{
+    Aig_Man_t * p;
+    Aig_Obj_t * pInter, * pInter2, * pVar;
+    Vec_Ptr_t * vInters;
+    Vec_Int_t * vASteps;
+    Vec_Int_t * vLiterals, * vClauses, * vResolvent;
+    int * pLitsNext, nLitsNext, nOffset, iLit;
+    int * pLits, * pClauses, * pVars;
+    int nLits, nVars, i, k, v, iVar, haveASteps;
+    assert( M114p_SolverProofIsReady(s) );
+    vInters = Vec_PtrAlloc( 1000 );
+    vASteps = Vec_IntAlloc( 1000 );
+
+    vLiterals = Vec_IntAlloc( 10000 );
+    vClauses = Vec_IntAlloc( 1000 );
+    vResolvent = Vec_IntAlloc( 100 );
+
+    // create elementary variables
+    p = Aig_ManStart( 10000 );
+    Vec_IntForEachEntry( vMapVars, iVar, i )
+        if ( iVar >= 0 )
+            Aig_IthVar(p, iVar);
+    // process root clauses
+    M114p_SolverForEachRoot( s, &pLits, nLits, i )
+    {
+        if ( Vec_IntEntry(vMapRoots, i) == 1 ) // clause of B
+            pInter = Aig_ManConst1(p);
+        else // clause of A
+            pInter = Aig_ManConst0(p);
+        Vec_PtrPush( vInters, pInter );
+        Vec_IntPush( vASteps, Vec_IntEntry(vMapRoots, i) );
+
+        // save the root clause
+        Vec_IntPush( vClauses, Vec_IntSize(vLiterals) );
+        Vec_IntPush( vLiterals, nLits );
+        for ( v = 0; v < nLits; v++ )
+            Vec_IntPush( vLiterals, pLits[v] );
+    }
+    assert( Vec_PtrSize(vInters) == Vec_IntSize(vMapRoots) );
+
+    // process learned clauses
     M114p_SolverForEachChain( s, &pClauses, &pVars, nVars, i )
     {
         pInter = Vec_PtrEntry( vInters, pClauses[0] );
         haveASteps = Vec_IntEntry( vASteps, pClauses[0] );
+
+        // initialize the resolvent
+        nOffset = Vec_IntEntry( vClauses, pClauses[0] );
+        nLitsNext = Vec_IntEntry( vLiterals, nOffset );
+        pLitsNext = Vec_IntArray(vLiterals) + nOffset + 1;
+        Vec_IntClear( vResolvent );
+        for ( v = 0; v < nLitsNext; v++ )
+            Vec_IntPush( vResolvent, pLitsNext[v] );
+
         for ( k = 0; k < nVars; k++ )
         {
             iVar = Vec_IntEntry( vMapVars, pVars[k] );
             pInter2 = Vec_PtrEntry( vInters, pClauses[k+1] );
             haveASteps |= Vec_IntEntry( vASteps, pClauses[k+1] );
-            if ( iVar == -1 ) // var of A
-            {
-                haveASteps = 1;
-                pInter = Aig_Or( p, pInter, pInter2 );
-            }
-            else // var of B or C
-                pInter = Aig_And( p, pInter, pInter2 );
 
-            if ( iVar == -1 )
-                CountA++;
-            else if ( iVar == -2 )
-                CountB++;
-            else 
+            // resolve it with the next clause
+            nOffset = Vec_IntEntry( vClauses, pClauses[k+1] );
+            nLitsNext = Vec_IntEntry( vLiterals, nOffset );
+            pLitsNext = Vec_IntArray(vLiterals) + nOffset + 1;
+            Saig_M144pResolve( vResolvent, pLitsNext, nLitsNext, pVars[k] );
+
+            if ( iVar == -1 ) // var of A
+                pInter = Aig_Or( p, pInter, pInter2 ), haveASteps = 1;
+            else if ( iVar == -2 ) // var of B
+                pInter = Aig_And( p, pInter, pInter2 );
+            else // var of C
             {
                 if ( haveASteps == 0 )
-                    CountCsaved++;
-                CountC++;
+                    pInter = Aig_ManConst0(p);
+                else
+                {
+                    // check polarity of the pivot variable in the clause
+                    for ( v = 0; v < nLitsNext; v++ )
+                        if ( lit_var(pLitsNext[v]) == pVars[k] )
+                            break;
+                    assert( v < nLitsNext );
+                    pVar = Aig_NotCond( Aig_IthVar(p, iVar), lit_sign(pLitsNext[v]) );
+                    pInter = Aig_Mux( p, pVar, pInter, pInter2 );
+                }
             }
         }
         Vec_PtrPush( vInters, pInter );
         Vec_IntPush( vASteps, haveASteps );
-    }
-//    printf( "ResSteps: A = %6d. B = %6d. C = %6d. C_saved = %6d. (%6.2f %%)\n", 
-//        CountA, CountB, CountC, CountCsaved, 100.0 * CountCsaved/CountC );
 
+        // store the resulting clause
+        Vec_IntPush( vClauses, Vec_IntSize(vLiterals) );
+        Vec_IntPush( vLiterals, Vec_IntSize(vResolvent) );
+        Vec_IntForEachEntry( vResolvent, iLit, v )
+            Vec_IntPush( vLiterals, iLit );
+    }
     assert( Vec_PtrSize(vInters) == M114p_SolverProofClauseNum(s) );
+    assert( Vec_IntSize(vResolvent) == 0 ); // the empty clause
     Vec_PtrFree( vInters );
     Vec_IntFree( vASteps );
 
+    Vec_IntFree( vLiterals );
+    Vec_IntFree( vClauses );
+    Vec_IntFree( vResolvent );
     Aig_ObjCreatePo( p, pInter );
     Aig_ManCleanup( p );
     return p;
@@ -1292,7 +1680,7 @@ Aig_Man_t * Saig_M144pInterpolate( M114p_Solver_t s, Vec_Int_t * vMapRoots, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_M144pPerformOneStep( Saig_IntMan_t * p )
+int Saig_M144pPerformOneStep( Saig_IntMan_t * p, int fUsePudlak, int fUseOther )
 {
     M114p_Solver_t pSat;
     Vec_Int_t * vMapRoots, * vMapVars;
@@ -1310,8 +1698,18 @@ p->timeSat += clock() - clk;
     if ( status == 0 )
     {
         RetValue = 1;
+
+        ///// report the savings of the modified Pudlak's approach
+        Saig_M144pInterpolateReport( pSat, vMapRoots, vMapVars );
+        /////
+
 clk = clock();
-        p->pInterNew = Saig_M144pInterpolate( pSat, vMapRoots, vMapVars );
+        if ( fUseOther )
+            p->pInterNew = Saig_M144pInterpolatePudlakASteps( pSat, vMapRoots, vMapVars );
+        else if ( fUsePudlak )
+            p->pInterNew = Saig_M144pInterpolatePudlak( pSat, vMapRoots, vMapVars );
+        else
+            p->pInterNew = Saig_M144pInterpolate( pSat, vMapRoots, vMapVars );
 p->timeInt += clock() - clk;
     }
     else if ( status == 1 )

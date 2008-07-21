@@ -954,7 +954,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
 
     // derive CNF
     pCnf = Cnf_Derive( pMan, 0 );
-    Cnf_DataTranformPolarity( pCnf );
+    Cnf_DataTranformPolarity( pCnf, 0 );
 /*
     // write the network for verification
     pManCnf = Cnf_ManRead();
@@ -983,7 +983,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose )
+int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fAlignPol, int fAndOuts, int fVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue;//, clk = clock();
@@ -991,7 +991,32 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fFli
     assert( Abc_NtkLatchNum(pNtk) == 0 );
     assert( Abc_NtkPoNum(pNtk) == 1 );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
-    RetValue = Fra_FraigSat( pMan, nConfLimit, nInsLimit, fFlipBits, fAndOuts, fVerbose ); 
+    RetValue = Fra_FraigSat( pMan, nConfLimit, nInsLimit, fAlignPol, fAndOuts, fVerbose ); 
+    pNtk->pModel = pMan->pData, pMan->pData = NULL;
+    Aig_ManStop( pMan );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Solves combinational miter using a SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkPartitionedSat( Abc_Ntk_t * pNtk, int nAlgo, int nPartSize, int nConfPart, int nConfTotal, int fAlignPol, int fSynthesize, int fVerbose )
+{
+    extern int Aig_ManPartitionedSat( Aig_Man_t * pNtk, int nAlgo, int nPartSize, int nConfPart, int nConfTotal, int fAlignPol, int fSynthesize, int fVerbose );
+    Aig_Man_t * pMan;
+    int RetValue;//, clk = clock();
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+    pMan = Abc_NtkToDar( pNtk, 0, 0 );
+    RetValue = Aig_ManPartitionedSat( pMan, nAlgo, nPartSize, nConfPart, nConfTotal, fAlignPol, fSynthesize, fVerbose ); 
     pNtk->pModel = pMan->pData, pMan->pData = NULL;
     Aig_ManStop( pMan );
     return RetValue;
@@ -1270,7 +1295,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fCheckInd, int fCheckKstep, int fVerbose )
+int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fUseOther, int fUseMiniSat, int fCheckInd, int fCheckKstep, int fVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue, Depth, clk = clock();
@@ -1282,7 +1307,7 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fR
         return -1;
     }
     assert( pMan->nRegs > 0 );
-    RetValue = Saig_Interpolate( pMan, nConfLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fCheckInd, fCheckKstep, fVerbose, &Depth );
+    RetValue = Saig_Interpolate( pMan, nConfLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fUseOther, fUseMiniSat, fCheckInd, fCheckKstep, fVerbose, &Depth );
     if ( RetValue == 1 )
         printf( "Property proved.  " );
     else if ( RetValue == 0 )

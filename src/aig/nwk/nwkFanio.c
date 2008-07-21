@@ -188,19 +188,25 @@ void Nwk_ObjAddFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin )
 ***********************************************************************/
 void Nwk_ObjDeleteFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin )
 {
-    int i, k, Limit;
+    int i, k, Limit, fFound;
     // remove pFanin from the fanin list of pObj
     Limit = pObj->nFanins + pObj->nFanouts;
+    fFound = 0;
     for ( k = i = 0; i < Limit; i++ )
-        if ( pObj->pFanio[i] != pFanin )
+        if ( fFound || pObj->pFanio[i] != pFanin )
             pObj->pFanio[k++] = pObj->pFanio[i];
+        else
+            fFound = 1;
     assert( i == k + 1 ); // if it fails, likely because of duplicated fanin
     pObj->nFanins--;
     // remove pObj from the fanout list of pFanin
     Limit = pFanin->nFanins + pFanin->nFanouts;
+    fFound = 0;
     for ( k = i = pFanin->nFanins; i < Limit; i++ )
-        if ( pFanin->pFanio[i] != pObj )
+        if ( fFound || pFanin->pFanio[i] != pObj )
             pFanin->pFanio[k++] = pFanin->pFanio[i];
+        else
+            fFound = 1;
     assert( i == k + 1 ); // if it fails, likely because of duplicated fanout
     pFanin->nFanouts--; 
 }

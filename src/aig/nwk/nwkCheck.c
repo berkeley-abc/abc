@@ -41,7 +41,7 @@
 ***********************************************************************/
 int Nwk_ManCheck( Nwk_Man_t * p )
 {
-    Nwk_Obj_t * pObj;
+    Nwk_Obj_t * pObj, * pNext;
     int i, k, m;
     // check if the nodes have duplicated fanins
     Nwk_ManForEachNode( p, pObj, i )
@@ -51,7 +51,6 @@ int Nwk_ManCheck( Nwk_Man_t * p )
                 if ( pObj->pFanio[k] == pObj->pFanio[m] )
                     printf( "Node %d has duplicated fanin %d.\n", pObj->Id, pObj->pFanio[k]->Id );
     }
-/*
     // check if all nodes are in the correct fanin/fanout relationship
     Nwk_ManForEachObj( p, pObj, i )
     {
@@ -62,7 +61,6 @@ int Nwk_ManCheck( Nwk_Man_t * p )
             if ( Nwk_ObjFindFanin( pNext, pObj ) == -1 )
                 printf( "Nwk_ManCheck(): Object %d has fanout %d which does not have a corresponding fanin.\n", pObj->Id, pNext->Id );
     }
-*/
     return 1;
 }
 

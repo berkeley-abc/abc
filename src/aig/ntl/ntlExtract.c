@@ -803,6 +803,8 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pMan
         pNtk->pManTime = Tim_ManDup( pManTime, 0 );
     else
         pNtk->pManTime = Tim_ManDup( p->pManTime, 0 );
+//    Nwk_ManRemoveDupFanins( pNtk, 0 );
+//    assert( Nwk_ManCheck( pNtk ) );
     return pNtk;
 }
 

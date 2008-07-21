@@ -477,34 +477,113 @@ void Nwk_ManCleanMarks( Nwk_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose )
+int Nwk_ManMinimumBaseNode( Nwk_Obj_t * pObj, Vec_Int_t * vTruth, int fVerbose )
 {
     unsigned * pTruth;
+    Nwk_Obj_t * pFanin, * pObjNew;
+    Nwk_Man_t * pNtk = pObj->pMan;
+    int uSupp, nSuppSize, k, Counter = 0;
+    pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
+    nSuppSize = Kit_TruthSupportSize(pTruth, Nwk_ObjFaninNum(pObj));
+    if ( nSuppSize == Nwk_ObjFaninNum(pObj) )
+        return 0;
+    Counter++;
+    uSupp = Kit_TruthSupport( pTruth, Nwk_ObjFaninNum(pObj) );
+    // create new node with the given support
+    pObjNew = Nwk_ManCreateNode( pNtk, nSuppSize, Nwk_ObjFanoutNum(pObj) );
+    Nwk_ObjForEachFanin( pObj, pFanin, k )
+        if ( uSupp & (1 << k) )
+            Nwk_ObjAddFanin( pObjNew, pFanin );
+    pObjNew->pFunc = Hop_Remap( pNtk->pManHop, pObj->pFunc, uSupp, Nwk_ObjFaninNum(pObj) );
+    if ( fVerbose )
+        printf( "Reducing node %d fanins from %d to %d.\n", 
+            pObj->Id, Nwk_ObjFaninNum(pObj), Nwk_ObjFaninNum(pObjNew) );
+    Nwk_ObjReplace( pObj, pObjNew );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes the support of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose )
+{
     Vec_Int_t * vTruth;
-    Nwk_Obj_t * pObj, * pFanin, * pObjNew;
-    int uSupp, nSuppSize, i, k, Counter = 0;
+    Nwk_Obj_t * pObj;
+    int i, Counter = 0;
+    vTruth = Vec_IntAlloc( 1 << 16 );
+    Nwk_ManForEachNode( pNtk, pObj, i )
+        Counter += Nwk_ManMinimumBaseNode( pObj, vTruth, fVerbose );
+    if ( fVerbose && Counter )
+        printf( "Support minimization reduced support of %d nodes.\n", Counter );
+    Vec_IntFree( vTruth );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes the support of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManRemoveDupFaninsNode( Nwk_Obj_t * pObj, int iFan0, int iFan1, Vec_Int_t * vTruth )
+{
+    Hop_Man_t * pManHop = pObj->pMan->pManHop;
+//    Nwk_Obj_t * pFanin0 = pObj->pFanio[iFan0];
+//    Nwk_Obj_t * pFanin1 = pObj->pFanio[iFan1];
+    assert( pObj->pFanio[iFan0] == pObj->pFanio[iFan1] );
+    pObj->pFunc = Hop_Compose( pManHop, pObj->pFunc, Hop_IthVar(pManHop,iFan0), iFan1 );
+    Nwk_ManMinimumBaseNode( pObj, vTruth, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes the support of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManRemoveDupFanins( Nwk_Man_t * pNtk, int fVerbose )
+{
+    Vec_Int_t * vTruth;
+    Nwk_Obj_t * pObj;
+    int i, k, m, fFound;
+    // check if the nodes have duplicated fanins
     vTruth = Vec_IntAlloc( 1 << 16 );
     Nwk_ManForEachNode( pNtk, pObj, i )
     {
-        pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
-        nSuppSize = Kit_TruthSupportSize(pTruth, Nwk_ObjFaninNum(pObj));
-        if ( nSuppSize == Nwk_ObjFaninNum(pObj) )
-            continue;
-        Counter++;
-        uSupp = Kit_TruthSupport( pTruth, Nwk_ObjFaninNum(pObj) );
-        // create new node with the given support
-        pObjNew = Nwk_ManCreateNode( pNtk, nSuppSize, Nwk_ObjFanoutNum(pObj) );
-        Nwk_ObjForEachFanin( pObj, pFanin, k )
-            if ( uSupp & (1 << k) )
-                Nwk_ObjAddFanin( pObjNew, pFanin );
-        pObjNew->pFunc = Hop_Remap( pNtk->pManHop, pObj->pFunc, uSupp, Nwk_ObjFaninNum(pObj) );
-        if ( fVerbose )
-            printf( "Reducing node %d fanins from %d to %d.\n", 
-                pObj->Id, Nwk_ObjFaninNum(pObj), Nwk_ObjFaninNum(pObjNew) );
-        Nwk_ObjReplace( pObj, pObjNew );
+        fFound = 0;
+        for ( k = 0; k < pObj->nFanins; k++ )
+        {
+            for ( m = k + 1; m < pObj->nFanins; m++ )
+                if ( pObj->pFanio[k] == pObj->pFanio[m] )
+                {
+                    if ( fVerbose )
+                        printf( "Removing duplicated fanins of node %d (fanins %d and %d).\n", 
+                            pObj->Id, pObj->pFanio[k]->Id, pObj->pFanio[m]->Id );
+                    Nwk_ManRemoveDupFaninsNode( pObj, k, m, vTruth );
+                    fFound = 1;
+                    break;
+                }
+            if ( fFound )
+                break;
+        }
     }
-    if ( fVerbose && Counter )
-        printf( "Support minimization reduced support of %d nodes.\n", Counter );
     Vec_IntFree( vTruth );
 }
 

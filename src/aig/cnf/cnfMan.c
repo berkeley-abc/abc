@@ -470,7 +470,7 @@ int Cnf_DataWriteAndClauses( void * p, Cnf_Dat_t * pCnf )
   SeeAlso     []
 
 ***********************************************************************/
-void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf )
+void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos )
 {
     Aig_Obj_t * pObj;
     int * pVarToPol;
@@ -478,8 +478,12 @@ void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf )
     // create map from the variable number to its polarity
     pVarToPol = CALLOC( int, pCnf->nVars );
     Aig_ManForEachObj( pCnf->pMan, pObj, i )
-        if ( !Aig_ObjIsPo(pObj) && pCnf->pVarNums[pObj->Id] >= 0 )
+    {
+        if ( !fTransformPos && Aig_ObjIsPo(pObj) )
+            continue;
+        if ( pCnf->pVarNums[pObj->Id] >= 0 )
             pVarToPol[ pCnf->pVarNums[pObj->Id] ] = pObj->fPhase;
+    }
     // transform literals
     for ( i = 0; i < pCnf->nLiterals; i++ )
     {

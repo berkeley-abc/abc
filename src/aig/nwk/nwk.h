@@ -301,6 +301,7 @@ extern ABC_DLL void            Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileNa
 extern ABC_DLL void            Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk );
 extern ABC_DLL void            Nwk_ManCleanMarks( Nwk_Man_t * pNtk );
 extern ABC_DLL void            Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose );
+extern ABC_DLL void            Nwk_ManRemoveDupFanins( Nwk_Man_t * pNtk, int fVerbose );
 
 #ifdef __cplusplus
 }

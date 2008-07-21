@@ -55,7 +55,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fFl
 //    pCnf = Cnf_DeriveSimple( pMan, Aig_ManPoNum(pMan) );
 
     if ( fFlipBits ) 
-        Cnf_DataTranformPolarity( pCnf );
+        Cnf_DataTranformPolarity( pCnf, 0 );
 
     // convert into SAT solver
     pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );

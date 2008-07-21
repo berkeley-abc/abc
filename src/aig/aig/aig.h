@@ -460,6 +460,7 @@ extern void            Aig_ManCutStop( Aig_ManCut_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern int             Aig_ManVerifyTopoOrder( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p, int fNodesOnly );
+extern Vec_Ptr_t *     Aig_ManDfsPreorder( Aig_Man_t * p, int fNodesOnly );
 extern Vec_Vec_t *     Aig_ManLevelize( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *     Aig_ManDfsChoices( Aig_Man_t * p );

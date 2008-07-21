@@ -549,7 +549,7 @@ Vec_Ptr_t * Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll )
     }
     // collect dangling nodes if asked to
     if ( fCollectAll )
-    {
+    { 
         Abc_NtkForEachNode( pNtk, pObj, i )
             if ( !Abc_NodeIsTravIdCurrent(pObj) )
                 Abc_NtkDfs_iter( vStack, pObj, vNodes );
