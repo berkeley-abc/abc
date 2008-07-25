@@ -180,6 +180,7 @@ struct sat_solver_t
 
     int      fSkipSimplify; // set to one to skip simplification of the clause database
 
+    int *    pGlobalVars;   // for experiments with global vars during interpolation
     // clause store
     void *   pStore;
     int      fSolved;

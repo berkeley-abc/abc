@@ -30,6 +30,7 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig.h"
+#include "int.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -85,7 +86,7 @@ extern Aig_Man_t *       Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSte
 extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
 /*=== saigInter.c ==========================================================*/
-extern int               Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fUseOther, int fUseMiniSat, int fCheckInd, int fCheckKstep, int fVerbose, int * pDepth );
+extern int               Saig_Interpolate( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * pDepth );
 /*=== saigMiter.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
 /*=== saigPhase.c ==========================================================*/

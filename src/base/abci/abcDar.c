@@ -25,6 +25,7 @@
 #include "cnf.h"
 #include "fra.h"
 #include "fraig.h"
+#include "int.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1295,7 +1296,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fUseOther, int fUseMiniSat, int fCheckInd, int fCheckKstep, int fVerbose )
+int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, Inter_ManParams_t * pPars )
 {
     Aig_Man_t * pMan;
     int RetValue, Depth, clk = clock();
@@ -1307,7 +1308,7 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fR
         return -1;
     }
     assert( pMan->nRegs > 0 );
-    RetValue = Saig_Interpolate( pMan, nConfLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fUseOther, fUseMiniSat, fCheckInd, fCheckKstep, fVerbose, &Depth );
+    RetValue = Inter_ManPerformInterpolation( pMan, pPars, &Depth );
     if ( RetValue == 1 )
         printf( "Property proved.  " );
     else if ( RetValue == 0 )

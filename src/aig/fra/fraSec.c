@@ -20,6 +20,7 @@
 
 #include "fra.h"
 #include "ioa.h"
+#include "int.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -389,11 +390,15 @@ PRT( "Time", clock() - clkTotal );
 clk = clock();
     if ( pParSec->fInterpolation && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) == 1 )
     {
-        extern int Saig_Interpolate( Aig_Man_t * pAig, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fUseOther, int fUseMiniSat, int fCheckInd, int fCheckKstep, int fVerbose, int * pDepth );
+        Inter_ManParams_t Pars, * pPars = &Pars;
         int Depth;
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-        RetValue = Saig_Interpolate( pNew, 5000, 40, 0, 1, 0, 0, 0, 1, 1, pParSec->fVeryVerbose, &Depth );
+
+        Inter_ManSetDefaultParams( pPars );
+        pPars->fVerbose = pParSec->fVeryVerbose;
+        RetValue = Inter_ManPerformInterpolation( pNew, pPars, &Depth );
+
         if ( pParSec->fVerbose )
         {
         if ( RetValue == 1 )
@@ -454,7 +459,7 @@ PRT( "Time", clock() - clk );
             iCount++;
             if ( !pParSec->fSilent )
                 printf( "*** Running output %d of the miter (number %d out of %d unsolved).\n", i, iCount, Counter );
-            pNew2 = Aig_ManDupOneOutput( pNew, i );
+            pNew2 = Aig_ManDupOneOutput( pNew, i, 1 );
             
             TimeLimitCopy = pParSec->TimeLimit;
             pParSec->TimeLimit = TimeLimit2;

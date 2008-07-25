@@ -542,6 +542,35 @@ void Fra_SmlNodeSimulate( Fra_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
   SeeAlso     []
 
 ***********************************************************************/
+int Fra_SmlNodesCompareInFrame( Fra_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1, int iFrame0, int iFrame1 )
+{
+    unsigned * pSims0, * pSims1;
+    int i;
+    assert( !Aig_IsComplement(pObj0) );
+    assert( !Aig_IsComplement(pObj1) );
+    assert( iFrame0 == 0 || p->nWordsFrame < p->nWordsTotal );
+    assert( iFrame1 == 0 || p->nWordsFrame < p->nWordsTotal );
+    // get hold of the simulation information
+    pSims0  = Fra_ObjSim(p, pObj0->Id) + p->nWordsFrame * iFrame0;
+    pSims1  = Fra_ObjSim(p, pObj1->Id) + p->nWordsFrame * iFrame1;
+    // compare
+    for ( i = 0; i < p->nWordsFrame; i++ )
+        if ( pSims0[i] != pSims1[i] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Fra_SmlNodeCopyFanin( Fra_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
 {
     unsigned * pSims, * pSims0;

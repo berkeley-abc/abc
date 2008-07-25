@@ -486,7 +486,7 @@ extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepres( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepresDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int fImpl );
-extern Aig_Man_t *     Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum );
+extern Aig_Man_t *     Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs );
 /*=== aigFanout.c ==========================================================*/
 extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );

@@ -111,7 +111,7 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib )
+void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes )
 {
     int Num;
 
@@ -153,6 +153,12 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
 //            fprintf( pFile, " (mux = %d)", Num2-Num );
 //        if ( Num2 )
 //            fprintf( pFile, " (other = %d)", Abc_NtkNodeNum(pNtk)-3*Num2 );
+        if ( fPrintMuxes )
+        {
+            extern int Abc_NtkCountMuxes( Abc_Ntk_t * pNtk );
+            fprintf( pFile, " (mux = %d)", Abc_NtkCountMuxes(pNtk)-Num );
+            fprintf( pFile, " (pure and = %d)", Abc_NtkNodeNum(pNtk) - (Abc_NtkCountMuxes(pNtk) * 3) );
+        }
     }
     else 
     {

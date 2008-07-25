@@ -145,13 +145,20 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
             continue;
         assert( pObj != pObjRepr );
         pNet = pObj->pData;
-        // do not reduce the net if it is driven by a multi-output box
-        if ( Ntl_ObjIsBox(pNet->pDriver) && Ntl_ObjFanoutNum(pNet->pDriver) > 1 )
-            continue;
-        // do not reduce the net if it has no-merge attribute
-        if ( Ntl_ObjIsBox(pNet->pDriver) && pNet->pDriver->pImplem->attrNoMerge )
-            continue;
         pNetRepr = pObjRepr->pData;
+        // consider special cases, when the net should not be reduced
+        if ( Ntl_ObjIsBox(pNet->pDriver) )
+        {
+            // do not reduce the net if it is driven by a multi-output box
+            if ( Ntl_ObjFanoutNum(pNet->pDriver) > 1 )
+                continue;
+            // do not reduce the net if it has no-merge attribute
+            if ( pNet->pDriver->pImplem->attrNoMerge )
+                continue;
+            // do not reduce the net if the replacement net has no-merge attribute
+            if ( pNetRepr != NULL && pNetRepr->pDriver->pImplem->attrNoMerge )
+                continue;
+        }
         if ( pNetRepr == NULL )
         {
             // this is the constant node

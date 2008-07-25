@@ -226,7 +226,8 @@ static inline void act_var_rescale(sat_solver* s) {
 }
 
 static inline void act_var_bump(sat_solver* s, int v) {
-    s->activity[v] += s->var_inc;
+//    s->activity[v] += s->var_inc;
+    s->activity[v] += (s->pGlobalVars? 3.0 : 1.0) * s->var_inc;
     if (s->activity[v] > 1e100)
         act_var_rescale(s);
     //printf("bump %d %f\n", v-1, activity[v]);
@@ -236,6 +237,15 @@ static inline void act_var_bump(sat_solver* s, int v) {
 
 static inline void act_var_bump_factor(sat_solver* s, int v) {
     s->activity[v] += (s->var_inc * s->factors[v]);
+    if (s->activity[v] > 1e100)
+        act_var_rescale(s);
+    //printf("bump %d %f\n", v-1, activity[v]);
+    if (s->orderpos[v] != -1)
+        order_update(s,v);
+}
+
+static inline void act_var_bump_global(sat_solver* s, int v) {
+    s->activity[v] += (s->var_inc * 3.0 * s->pGlobalVars[v]);
     if (s->activity[v] > 1e100)
         act_var_rescale(s);
     //printf("bump %d %f\n", v-1, activity[v]);
@@ -844,6 +854,11 @@ static lbool sat_solver_search(sat_solver* s, sint64 nof_conflicts, sint64 nof_l
     if ( (s->nRestarts & 1) && veci_size(&s->act_vars) > 0 )
         for ( i = 0; i < s->act_vars.size; i++ )
             act_var_bump_factor(s, s->act_vars.ptr[i]);
+
+    // use activity factors in every restart
+    if ( s->pGlobalVars && veci_size(&s->act_vars) > 0 )
+        for ( i = 0; i < s->act_vars.size; i++ )
+            act_var_bump_global(s, s->act_vars.ptr[i]);
 
     for (;;){
         clause* confl = sat_solver_propagate(s);

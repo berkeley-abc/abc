@@ -748,7 +748,7 @@ extern ABC_DLL bool               Abc_NodeIsBuf( Abc_Obj_t * pNode );
 extern ABC_DLL bool               Abc_NodeIsInv( Abc_Obj_t * pNode );    
 extern ABC_DLL void               Abc_NodeComplement( Abc_Obj_t * pNode );
 /*=== abcPrint.c ==========================================================*/
-extern ABC_DLL void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib );
+extern ABC_DLL void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes );
 extern ABC_DLL void               Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk );

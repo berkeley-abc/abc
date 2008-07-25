@@ -60,9 +60,9 @@ static void Bar_ProgressClean( Bar_Progress_t * p );
 Bar_Progress_t * Bar_ProgressStart( FILE * pFile, int nItemsTotal )
 {
     Bar_Progress_t * p;
-//    extern int Abc_FrameShowProgress( void * p );
-//    extern void * Abc_FrameGetGlobalFrame();
-//    if ( !Abc_FrameShowProgress(Abc_FrameGetGlobalFrame()) ) return NULL;
+    extern int Abc_FrameShowProgress( void * p );
+    extern void * Abc_FrameGetGlobalFrame();
+    if ( !Abc_FrameShowProgress(Abc_FrameGetGlobalFrame()) ) return NULL;
     p = (Bar_Progress_t *) malloc(sizeof(Bar_Progress_t));
     memset( p, 0, sizeof(Bar_Progress_t) );
     p->pFile       = pFile;

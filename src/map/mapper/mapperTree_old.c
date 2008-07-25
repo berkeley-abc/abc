@@ -125,11 +125,9 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     // get the genlib file name (base)
     pLibName = strtok( pTemp, " \t\r\n" );
 #ifdef __linux__
-    if( strchr( pLibName, '/' ) != NULL )
-        pLibName = strrchr( pLibName, '/' ) + 1;
+    pLibName = strrchr( pLibName, '/' )+1;
 #else
-    if( strchr( pLibName, '\\' ) != NULL )
-        pLibName = strrchr( pLibName, '\\' ) + 1;
+    pLibName = strrchr( pLibName, '\\' )+1;
 #endif
 
     if ( strcmp( pLibName, "GATE" ) == 0 )

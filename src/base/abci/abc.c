@@ -34,6 +34,7 @@
 #include "fra.h"
 #include "saig.h"
 #include "nwkMerge.h"
+#include "int.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -65,6 +66,7 @@ static int Abc_CommandShowCut        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandCollapse       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandStrash         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBalance        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMuxStruct      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMulti          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRenode         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -327,6 +329,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "balance",       Abc_CommandBalance,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "mux_struct",    Abc_CommandMuxStruct,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "multi",         Abc_CommandMulti,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Abc_CommandRenode,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Abc_CommandCleanup,          1 );
@@ -588,6 +591,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fDumpResult;
     int fUseLutLib;
     int fPrintTime;
+    int fPrintMuxes;
     int c;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -600,8 +604,9 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     fDumpResult = 0;
     fUseLutLib = 0;
     fPrintTime = 0;
+    fPrintMuxes = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdlth" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdltmh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -620,6 +625,9 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fPrintTime ^= 1;
             break;
+        case 'm':
+            fPrintMuxes ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -632,7 +640,12 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( Abc_FrameReadErr(pAbc), "Empty network.\n" );
         return 1;
     }
-    Abc_NtkPrintStats( pOut, pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib );
+    if ( !Abc_NtkIsLogic(pNtk) && fUseLutLib )
+    {
+        fprintf( Abc_FrameReadErr(pAbc), "Cannot print LUT delay for a non-logic network.\n" );
+        return 1;
+    }
+    Abc_NtkPrintStats( pOut, pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes );
     if ( fPrintTime )
     {
         pAbc->TimeTotal += pAbc->TimeCommand;
@@ -643,13 +656,14 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_stats [-fbdlth]\n" );
+    fprintf( pErr, "usage: print_stats [-fbdltmh]\n" );
     fprintf( pErr, "\t        prints the network statistics\n" );
     fprintf( pErr, "\t-f    : toggles printing the literal count in the factored forms [default = %s]\n", fFactor? "yes": "no" );
     fprintf( pErr, "\t-b    : toggles saving the best logic network in \"best.blif\" [default = %s]\n", fSaveBest? "yes": "no" );
     fprintf( pErr, "\t-d    : toggles dumping network into file \"<input_file_name>_dump.blif\" [default = %s]\n", fDumpResult? "yes": "no" );
     fprintf( pErr, "\t-l    : toggles printing delay of LUT mapping using LUT library [default = %s]\n", fSaveBest? "yes": "no" );
     fprintf( pErr, "\t-t    : toggles printing runtime statistics [default = %s]\n", fPrintTime? "yes": "no" );
+    fprintf( pErr, "\t-m    : toggles printing MUX statistics [default = %s]\n", fPrintMuxes? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -735,7 +749,7 @@ int Abc_CommandPrintExdc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
         printf( "EXDC network statistics: \n" );
-    Abc_NtkPrintStats( pOut, pNtk->pExdc, 0, 0, 0, 0 );
+    Abc_NtkPrintStats( pOut, pNtk->pExdc, 0, 0, 0, 0, 0 );
     return 0;
 
 usage:
@@ -2467,6 +2481,78 @@ usage:
     fprintf( pErr, "\t-d    : toggle duplication of logic [default = %s]\n", fDuplicate? "yes": "no" );
     fprintf( pErr, "\t-s    : toggle duplication on the critical paths [default = %s]\n", fSelective? "yes": "no" );
     fprintf( pErr, "\t-x    : toggle balancing multi-input EXORs [default = %s]\n", fExor? "yes": "no" );
+    fprintf( pErr, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMuxStruct( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int fVerbose;
+
+    extern Abc_Ntk_t * Abc_NtkMuxRestructure( Abc_Ntk_t * pNtk, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    // get the new network
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Does not work for a logic network.\n" );
+        return 1;
+    }
+    // check if balancing worked
+//    pNtkRes = Abc_NtkMuxRestructure( pNtk, fVerbose );
+    pNtkRes = NULL;
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "MUX restructuring has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: mux_struct [-vh]\n" );
+    fprintf( pErr, "\t        performs MUX restructuring of the current network\n" );
     fprintf( pErr, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
@@ -15494,6 +15580,7 @@ usage:
     return 1;
 }
   
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -15507,39 +15594,21 @@ usage:
 ***********************************************************************/
 int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Inter_ManParams_t Pars, * pPars = &Pars;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    int nBTLimit;
-    int nFramesMax;
-    int fRewrite;
-    int fTransLoop;
-    int fUsePudlak;
-    int fUseOther;
-    int fUseMiniSat;
-    int fCheckInd;
-    int fCheckKstep;
-    int fVerbose;
 
-    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, int nConfLimit, int nFramesMax, int fRewrite, int fTransLoop, int fUsePudlak, int fUseOther, int fUseMiniSat, int fCheckInd, int fCheckKstep, int fVerbose );
+    extern int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, Inter_ManParams_t * pPars );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nBTLimit   = 20000;
-    nFramesMax = 40;
-    fRewrite   = 0;
-    fTransLoop = 1;
-    fUsePudlak = 0;
-    fUseOther  = 0;
-    fUseMiniSat= 0;
-    fCheckInd  = 0;
-    fCheckKstep= 0;
-    fVerbose   = 0;
+    Inter_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CFrtpomikvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CNFrtpomcgbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15549,9 +15618,20 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nBTLimit = atoi(argv[globalUtilOptind]);
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nBTLimit < 0 ) 
+            if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesMax < 0 ) 
                 goto usage;
             break;
         case 'F':
@@ -15560,34 +15640,37 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFramesMax = atoi(argv[globalUtilOptind]);
+            pPars->nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesMax < 0 ) 
+            if ( pPars->nFramesK < 0 ) 
                 goto usage;
             break;
         case 'r':
-            fRewrite ^= 1;
+            pPars->fRewrite ^= 1;
             break;
         case 't':
-            fTransLoop ^= 1;
+            pPars->fTransLoop ^= 1;
             break;
         case 'p':
-            fUsePudlak ^= 1;
+            pPars->fUsePudlak ^= 1;
             break;
         case 'o':
-            fUseOther ^= 1;
+            pPars->fUseOther ^= 1;
             break;
         case 'm':
-            fUseMiniSat ^= 1;
+            pPars->fUseMiniSat ^= 1;
             break;
-        case 'i':
-            fCheckInd ^= 1;
+        case 'c':
+            pPars->fCheckKstep ^= 1;
             break;
-        case 'k':
-            fCheckKstep ^= 1;
+        case 'g':
+            pPars->fUseBias ^= 1;
+            break;
+        case 'b':
+            pPars->fUseBackward ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -15615,22 +15698,24 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for single-output miters (run \"orpos\").\n" );
         return 0;
     }
-    Abc_NtkDarBmcInter( pNtk, nBTLimit, nFramesMax, fRewrite, fTransLoop, fUsePudlak, fUseOther, fUseMiniSat, fCheckInd, fCheckKstep, fVerbose );
+    Abc_NtkDarBmcInter( pNtk, pPars );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: int [-CF num] [-rtpomikvh]\n" );
+    fprintf( pErr, "usage: int [-CNF num] [-rtpomcgbvh]\n" );
     fprintf( pErr, "\t         uses interpolation to prove the property\n" );
-    fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", nBTLimit );
-    fprintf( pErr, "\t-F num : the limit on number of frames to unroll [default = %d]\n", nFramesMax );
-    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
-    fprintf( pErr, "\t-t     : toggle adding transition into the init state [default = %s]\n", fTransLoop? "yes": "no" );
-    fprintf( pErr, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", fUsePudlak? "yes": "no" );
-    fprintf( pErr, "\t-o     : toggle using optimized Pudlak's interpolation procedure [default = %s]\n", fUseOther? "yes": "no" );
-    fprintf( pErr, "\t-m     : toggle using MiniSat-1.14p (now, Windows-only) [default = %s]\n", fUseMiniSat? "yes": "no" );
-    fprintf( pErr, "\t-i     : toggle inductive containment checking [default = %s]\n", fCheckInd? "yes": "no" );
-    fprintf( pErr, "\t-k     : toggle simple and k-step induction [default = %s]\n", fCheckKstep? "k-step": "simple" );
-    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", pPars->nBTLimit );
+    fprintf( pErr, "\t-N num : the limit on number of frames to unroll [default = %d]\n", pPars->nFramesMax );
+    fprintf( pErr, "\t-F num : the number of steps in inductive checking [default = %d]\n", pPars->nFramesK );
+    fprintf( pErr, "\t-r     : toggle the use of rewriting unrolled timeframes [default = %s]\n", pPars->fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-t     : toggle adding transition into the init state [default = %s]\n", pPars->fTransLoop? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", pPars->fUsePudlak? "yes": "no" );
+    fprintf( pErr, "\t-o     : toggle using optimized Pudlak's interpolation procedure [default = %s]\n", pPars->fUseOther? "yes": "no" );
+    fprintf( pErr, "\t-m     : toggle using MiniSat-1.14p (now, Windows-only) [default = %s]\n", pPars->fUseMiniSat? "yes": "no" );
+    fprintf( pErr, "\t-c     : toggle using inductive containment check [default = %s]\n", pPars->fCheckKstep? "yes": "no" );
+    fprintf( pErr, "\t-g     : toggle using bias for global variables using SAT [default = %s]\n", pPars->fUseBias? "yes": "no" );
+    fprintf( pErr, "\t-b     : toggle using backward interpolation [default = %s]\n", pPars->fUseBackward? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }

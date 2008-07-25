@@ -905,7 +905,7 @@ Aig_Man_t * Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum )
+Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
@@ -922,8 +922,8 @@ Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum )
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
     // set registers
-    pNew->nRegs    = p->nRegs;
-    pNew->nTruePis = p->nTruePis;
+    pNew->nRegs    = fAddRegs? p->nRegs : 0;
+    pNew->nTruePis = fAddRegs? p->nTruePis : p->nTruePis + p->nRegs;
     pNew->nTruePos = 1;
     // duplicate internal nodes
     Aig_ManForEachNode( p, pObj, i )
@@ -932,8 +932,11 @@ Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum )
     pObj = Aig_ManPo( p, iPoNum );
     Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     // create register inputs with MUXes
-    Aig_ManForEachLiSeq( p, pObj, i )
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    if ( fAddRegs )
+    {
+        Aig_ManForEachLiSeq( p, pObj, i )
+            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    }
     Aig_ManCleanup( pNew );
     return pNew;
 }

@@ -24,7 +24,8 @@ MODULES := \
 	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \
 	src/aig/csw src/aig/ioa src/aig/aig src/aig/kit \
 	src/aig/bdc src/aig/bar src/aig/ntl src/aig/nwk \
-	src/aig/mfx src/aig/tim src/aig/saig src/aig/bbr
+	src/aig/mfx src/aig/tim src/aig/saig src/aig/bbr \
+	src/aig/int
 
 default: $(PROG)
 

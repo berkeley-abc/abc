@@ -933,13 +933,34 @@ bool Abc_NodeIsMuxType( Abc_Obj_t * pNode )
     pNode0 = Abc_ObjFanin0(pNode);
     pNode1 = Abc_ObjFanin1(pNode);
     // if the children are not ANDs, this is not MUX
-    if ( Abc_ObjFaninNum(pNode0) != 2 || Abc_ObjFaninNum(pNode1) != 2 )
+    if ( !Abc_AigNodeIsAnd(pNode0) || !Abc_AigNodeIsAnd(pNode1) )
         return 0;
-    // otherwise the node is MUX iff it has a pair of equal grandchildren
+    // otherwise the node is MUX iff it has a pair of equal grandchildren with opposite polarity
     return (Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId0(pNode1) && (Abc_ObjFaninC0(pNode0) ^ Abc_ObjFaninC0(pNode1))) || 
            (Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId1(pNode1) && (Abc_ObjFaninC0(pNode0) ^ Abc_ObjFaninC1(pNode1))) ||
            (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId0(pNode1) && (Abc_ObjFaninC1(pNode0) ^ Abc_ObjFaninC0(pNode1))) ||
            (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId1(pNode1) && (Abc_ObjFaninC1(pNode0) ^ Abc_ObjFaninC1(pNode1)));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the node is the root of MUX or EXOR/NEXOR.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCountMuxes( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    int Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Counter += Abc_NodeIsMuxType( pNode );
+    return Counter;
 }
 
 /**Function*************************************************************
