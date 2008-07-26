@@ -15707,8 +15707,8 @@ usage:
     fprintf( pErr, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", pPars->nBTLimit );
     fprintf( pErr, "\t-N num : the limit on number of frames to unroll [default = %d]\n", pPars->nFramesMax );
     fprintf( pErr, "\t-F num : the number of steps in inductive checking [default = %d]\n", pPars->nFramesK );
-    fprintf( pErr, "\t-r     : toggle the use of rewriting unrolled timeframes [default = %s]\n", pPars->fRewrite? "yes": "no" );
-    fprintf( pErr, "\t-t     : toggle adding transition into the init state [default = %s]\n", pPars->fTransLoop? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle rewriting of the unrolled timeframes [default = %s]\n", pPars->fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-t     : toggle adding transition into the initial state [default = %s]\n", pPars->fTransLoop? "yes": "no" );
     fprintf( pErr, "\t-p     : toggle using original Pudlak's interpolation procedure [default = %s]\n", pPars->fUsePudlak? "yes": "no" );
     fprintf( pErr, "\t-o     : toggle using optimized Pudlak's interpolation procedure [default = %s]\n", pPars->fUseOther? "yes": "no" );
     fprintf( pErr, "\t-m     : toggle using MiniSat-1.14p (now, Windows-only) [default = %s]\n", pPars->fUseMiniSat? "yes": "no" );
