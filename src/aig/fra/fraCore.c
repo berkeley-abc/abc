@@ -38,7 +38,7 @@
     SAT solver run may return a counter-ex that  distinguishes the given 
     representative node from the constant-1 node but this counter-ex
     does not distinguish the nodes in the non-costant class... This is why 
-    there is no check of refinment after a counter-ex in the sequential case.
+    there is no check of refinement after a counter-ex in the sequential case.
 */
 
 ////////////////////////////////////////////////////////////////////////

@@ -649,7 +649,11 @@ Aig_Man_t * Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize )
     if ( pAig->vClockDoms )
     {
         if ( Vec_VecSize(pAig->vClockDoms) == 0 )
-            printf( "Register classes are small. Seq synthesis is not performed.\n" );
+        {
+            printf( "Register classes are below the limit (%d). Seq synthesis is not performed.\n", nMinDomSize );
+            Aig_ManStop( pAig );
+            pAig = NULL;
+        }
         else
             printf( "Performing seq synthesis for %d register classes.\n", Vec_VecSize(pAig->vClockDoms) );
         printf( "\n" );

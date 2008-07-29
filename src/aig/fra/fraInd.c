@@ -410,7 +410,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     }
     // perform partitioning
     if ( (pParams->nPartSize > 0 && pParams->nPartSize < Aig_ManRegNum(pManAig))
-         || (pManAig->vClockDoms && Vec_VecSize(pManAig->vClockDoms) > 1)  )
+         || (pManAig->vClockDoms && Vec_VecSize(pManAig->vClockDoms) > 0)  )
         return Fra_FraigInductionPart( pManAig, pParams );
  
     nNodesBeg = Aig_ManNodeNum(pManAig);

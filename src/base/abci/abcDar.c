@@ -26,6 +26,7 @@
 #include "fra.h"
 #include "fraig.h"
 #include "int.h"
+#include "dch.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -812,6 +813,42 @@ Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, in
     Aig_ManStop( pTemp );
     pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
     Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDch( Abc_Ntk_t * pNtk, Dch_Pars_t * pPars )
+{
+    extern Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose );
+
+    Vec_Ptr_t * vAigs;
+    Aig_Man_t * pMan, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    vAigs = Dar_ManChoiceSynthesis( pMan, 1, 1, pPars->fVerbose );
+    Aig_ManStop( pMan );
+    pMan = Dch_ComputeChoices( vAigs, pPars );
+//    pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    // cleanup
+    Vec_PtrForEachEntry( vAigs, pTemp, i )
+        Aig_ManStop( pTemp );
+    Vec_PtrFree( vAigs );
     return pNtkAig;
 }
 

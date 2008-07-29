@@ -31,6 +31,80 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Remaps representatives of the equivalence classes.]
+
+  Description [For each equivalence class, if the current representative 
+  of the class cannot be used because its corresponding net has no-merge 
+  attribute, find the topologically-shallowest node, which can be used 
+  as a representative.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManUpdateNoMergeReprs( Aig_Man_t * pAig, Aig_Obj_t ** pReprs )
+{
+    Aig_Obj_t ** pReprsNew = NULL;
+    Aig_Obj_t * pObj, * pRepres, * pRepresNew;
+    Ntl_Net_t * pNet, * pNetObj;
+    int i;
+
+    // allocate room for the new representative
+    pReprsNew = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    memset( pReprsNew, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pAig) );
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        // get the old representative node
+        pRepres = pReprs[pObj->Id];
+        if ( pRepres == NULL )
+            continue;
+        // if this representative node is already remapped, skip it
+        pRepresNew = pReprsNew[ pRepres->Id ];
+        if ( pRepresNew != NULL )
+            continue;
+        // get the net of the representative node
+        pNet = pRepres->pData;
+        assert( pRepres->pData != NULL );
+        if ( Ntl_ObjIsBox(pNet->pDriver) && pNet->pDriver->pImplem->attrNoMerge )
+        {
+            // the net belongs to the no-merge box
+            pNetObj = pObj->pData;
+            if ( Ntl_ObjIsBox(pNetObj->pDriver) && pNetObj->pDriver->pImplem->attrNoMerge )
+                continue;
+            // the object's net does not belong to the no-merge box
+            // pObj can be used instead of pRepres
+            pReprsNew[ pRepres->Id ] = pObj;
+        }
+        else
+        {
+            // otherwise, it is fine to use pRepres
+            pReprsNew[ pRepres->Id ] = pRepres;
+        }
+    }
+    // update the representatives
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        // get the representative node
+        pRepres = pReprs[ pObj->Id ];
+        if ( pRepres == NULL )
+            continue;
+        // if the representative has no mapping, undo the mapping of the node
+        pRepresNew = pReprsNew[ pRepres->Id ];
+        if ( pRepresNew == NULL || pRepresNew == pObj )
+        {
+            pReprs[ pObj->Id ] = NULL;
+            continue;
+        }
+        // remap the representative
+        assert( pObj->Id > pRepresNew->Id );        
+        pReprs[ pObj->Id ] = pRepresNew;
+    }
+    free( pReprsNew );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transfers equivalence class info from pAigCol to pAig.]
 
   Description [pAig points to the nodes of netlist (pNew) derived using it.
@@ -112,6 +186,10 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
     // recall pointers to the nets of pNew
     Aig_ManForEachObj( pAig, pObj, i )
         pObj->pData = pObj->pNext, pObj->pNext = NULL;
+
+    // remap no-merge representatives to point to 
+    // the shallowest nodes in the class without no-merge
+    Ntl_ManUpdateNoMergeReprs( pAig, pReprs );
     return pReprs;
 }
 
@@ -156,7 +234,8 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
             if ( pNet->pDriver->pImplem->attrNoMerge )
                 continue;
             // do not reduce the net if the replacement net has no-merge attribute
-            if ( pNetRepr != NULL && pNetRepr->pDriver->pImplem->attrNoMerge )
+            if ( pNetRepr != NULL && Ntl_ObjIsBox(pNetRepr->pDriver) && 
+                 pNetRepr->pDriver->pImplem->attrNoMerge )
                 continue;
         }
         if ( pNetRepr == NULL )
@@ -393,6 +472,11 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
     pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize );
+    if ( pAigCol == NULL )
+    {
+        Aig_ManStop( pAig );
+        return pNew;
+    }
 
     // perform SCL for the given design
     pTemp = Fra_FraigInduction( pAigCol, pPars );

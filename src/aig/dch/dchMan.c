@@ -1,24 +1,24 @@
 /**CFile****************************************************************
 
-  FileName    [intMan.c]
+  FileName    [dchMan.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Interpolation engine.]
+  PackageName [Computation of equivalence classes using simulation.]
 
-  Synopsis    [Interpolation manager procedures.]
+  Synopsis    [Calls to the SAT solver.]
 
   Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 24, 2008.]
+  Date        [Ver. 1.0. Started - June 29, 2008.]
 
-  Revision    [$Id: intMan.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: dchMan.c,v 1.00 2008/07/29 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "intInt.h"
+#include "dchInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,40 +39,22 @@
   SeeAlso     []
 
 ***********************************************************************/
-Inter_Man_t * Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars )
+Dch_Man_t * Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
 {
-    Inter_Man_t * p;
+    Dch_Man_t * p;
     // create interpolation manager
-    p = ALLOC( Inter_Man_t, 1 );
-    memset( p, 0, sizeof(Inter_Man_t) );
-    p->vVarsAB = Vec_IntAlloc( Aig_ManRegNum(pAig) );
-    p->nConfLimit = pPars->nBTLimit;
-    p->fVerbose = pPars->fVerbose;
-    p->pAig = pAig;   
+    p = ALLOC( Dch_Man_t, 1 );
+    memset( p, 0, sizeof(Dch_Man_t) );
+    p->pPars      = pPars;
+    // AIGs
+    p->vAigs      = vAigs;
+    p->pAigTotal  = Dch_DeriveTotalAig( vAigs );
+    // equivalence classes
+    Aig_ManReprStart( p->pAigTotal, Aig_ManObjNumMax(p->pAigTotal) );
+    // SAT solving
+    p->ppSatVars  = CALLOC( Vec_Int_t *, Aig_ManObjNumMax(p->pAigTotal) );
+    p->vUsedNodes = Vec_PtrAlloc( 1000 );
     return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Cleans the interpolation manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Inter_ManClean( Inter_Man_t * p )
-{
-    if ( p->pCnfInter )
-        Cnf_DataFree( p->pCnfInter );
-    if ( p->pCnfFrames )
-        Cnf_DataFree( p->pCnfFrames );
-    if ( p->pInter )
-        Aig_ManStop( p->pInter );
-    if ( p->pFrames )
-        Aig_ManStop( p->pFrames );
 }
 
 /**Function*************************************************************
@@ -86,10 +68,11 @@ void Inter_ManClean( Inter_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Inter_ManStop( Inter_Man_t * p )
+void Dch_ManStop( Dch_Man_t * p )
 {
-    if ( p->fVerbose )
+    if ( p->pPars->fVerbose )
     {
+/*
         p->timeOther = p->timeTotal-p->timeRwr-p->timeCnf-p->timeSat-p->timeInt-p->timeEqu;
         printf( "Runtime statistics:\n" );
         PRTP( "Rewriting  ", p->timeRwr,   p->timeTotal );
@@ -99,26 +82,17 @@ void Inter_ManStop( Inter_Man_t * p )
         PRTP( "Containment", p->timeEqu,   p->timeTotal );
         PRTP( "Other      ", p->timeOther, p->timeTotal );
         PRTP( "TOTAL      ", p->timeTotal, p->timeTotal );
+*/
     }
-
-    if ( p->pCnfAig )
-        Cnf_DataFree( p->pCnfAig );
-    if ( p->pCnfFrames )
-        Cnf_DataFree( p->pCnfFrames );
-    if ( p->pCnfInter )
-        Cnf_DataFree( p->pCnfInter );
-    Vec_IntFree( p->vVarsAB );
-    if ( p->pAigTrans )
-        Aig_ManStop( p->pAigTrans );
-    if ( p->pFrames )
-        Aig_ManStop( p->pFrames );
-    if ( p->pInter )
-        Aig_ManStop( p->pInter );
-    if ( p->pInterNew )
-        Aig_ManStop( p->pInterNew );
+    if ( p->pAigTotal )
+        Aig_ManStop( p->pAigTotal );
+    if ( p->pAigFraig )
+        Aig_ManStop( p->pAigFraig );
+    FREE( p->ppClasses );
+    FREE( p->ppSatVars );
+    Vec_PtrFree( p->vUsedNodes );
     free( p );
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////

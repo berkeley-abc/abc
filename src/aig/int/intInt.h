@@ -43,7 +43,7 @@ extern "C" {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// simulation manager
+// interpolation manager
 typedef struct Inter_Man_t_ Inter_Man_t;
 struct Inter_Man_t_
 {

@@ -5,7 +5,7 @@
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Network and node package.]
-
+ 
   Synopsis    [Command file.]
 
   Author      [Alan Mishchenko]
@@ -35,6 +35,7 @@
 #include "saig.h"
 #include "nwkMerge.h"
 #include "int.h"
+#include "dch.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -135,6 +136,7 @@ static int Abc_CommandDRewrite       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandDRefactor      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCompress2     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDChoice        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDch            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDrwsat         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -398,6 +400,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "drf",           Abc_CommandDRefactor,        1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "dcompress2",    Abc_CommandDCompress2,       1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "dchoice",       Abc_CommandDChoice,          1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "dch",           Abc_CommandDch,              1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "drwsat",        Abc_CommandDrwsat,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irws",          Abc_CommandIRewriteSeq,      1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
@@ -8943,6 +8946,110 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Dch_Pars_t Pars, * pPars = &Pars;
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+
+    extern Abc_Ntk_t * Abc_NtkDch( Abc_Ntk_t * pNtk, Dch_Pars_t * pPars );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Dch_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWords < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nSatVarMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nSatVarMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkDch( pNtk, pPars );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dch [-WCS num] [-vh]\n" );
+    fprintf( pErr, "\t         performs computation of structural choices\n" );
+    fprintf( pErr, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
+    fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    fprintf( pErr, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandDrwsat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -16328,7 +16435,7 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void * Ntl_ManInsertAig( void * p, Aig_Man_t * pAig );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
-    extern Aig_Man_t * Ntl_ManCollapseSeq( void * p );
+    extern Aig_Man_t * Ntl_ManCollapseSeq( void * p, int nMinDomSize );
 
     // set defaults
     fAig = 0;
@@ -16361,7 +16468,7 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( fCollapsed )
         {
-            pTemp = Ntl_ManCollapseSeq( pAbc->pAbc8Ntl );
+            pTemp = Ntl_ManCollapseSeq( pAbc->pAbc8Ntl, 0 );
             Saig_ManDumpBlif( pTemp, pFileName );
             Aig_ManStop( pTemp );
         }
