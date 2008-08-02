@@ -322,6 +322,9 @@ Aig_Man_t * Inter_ManpInterpolateM114( M114p_Solver_t s, Vec_Int_t * vMapRoots, 
     Vec_Ptr_t * vInters;
     int * pLits, * pClauses, * pVars;
     int nLits, nVars, i, k, iVar;
+    int nClauses;
+
+    nClauses = M114p_SolverProofClauseNum(s);
 
     assert( M114p_SolverProofIsReady(s) );
 
@@ -346,7 +349,7 @@ Aig_Man_t * Inter_ManpInterpolateM114( M114p_Solver_t s, Vec_Int_t * vMapRoots, 
             }
         }
         Vec_PtrPush( vInters, pInter );
-    }
+    } 
 //    assert( Vec_PtrSize(vInters) == Vec_IntSize(vMapRoots) );
 
     // process learned clauses

@@ -206,7 +206,7 @@ int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward )
     int * pGlobalVars;
     int clk, status, RetValue;
     int i, Var;
-    assert( p->pInterNew == NULL );
+//    assert( p->pInterNew == NULL );
 
     // derive the SAT solver
     pSat = Inter_ManDeriveSatSolver( p->pInter, p->pCnfInter, p->pAigTrans, p->pCnfAig, p->pFrames, p->pCnfFrames, p->vVarsAB, fUseBackward );

@@ -2930,6 +2930,10 @@ SOURCE=.\src\aig\aig\aigTable.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigTest.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigTiming.c
 # End Source File
 # Begin Source File
@@ -3286,6 +3290,18 @@ SOURCE=.\src\aig\dch\dchAig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\dch\dchChoice.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dch\dchClass.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dch\dchCnf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\dch\dchCore.c
 # End Source File
 # Begin Source File
@@ -3303,6 +3319,10 @@ SOURCE=.\src\aig\dch\dchSat.c
 # Begin Source File
 
 SOURCE=.\src\aig\dch\dchSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dch\dchSweep.c
 # End Source File
 # End Group
 # End Group

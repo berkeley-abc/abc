@@ -43,8 +43,9 @@ void Dch_ManSetDefaultParams( Dch_Pars_t * p )
 {
     memset( p, 0, sizeof(Dch_Pars_t) );
     p->nWords     =     4;    // the number of simulation words
-    p->nBTLimit   =  1000;    // conflict limit at a node
-    p->nSatVarMax =  5000;    // the max number of SAT variables
+    p->nBTLimit   =   100;    // conflict limit at a node
+    p->nSatVarMax = 10000;    // the max number of SAT variables
+    p->fSynthesis =     1;    // derives three snapshots
     p->fVerbose   =     1;    // verbose stats
 }
 
@@ -63,30 +64,30 @@ Aig_Man_t * Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
     Aig_Man_t * pResult;
-    int i;
-
+    int clk, clkTotal = clock();
     assert( Vec_PtrSize(vAigs) > 0 );
-
-    printf( "AIGs considered for choicing:\n" );
-    Vec_PtrForEachEntry( vAigs, pResult, i )
-    {
-        Aig_ManPrintStats( pResult );
-    }
-
     // start the choicing manager
     p = Dch_ManCreate( vAigs, pPars );
     // compute candidate equivalence classes
+clk = clock(); 
     p->ppClasses = Dch_CreateCandEquivClasses( p->pAigTotal, pPars->nWords, pPars->fVerbose );
-
-    
-
-
-
+p->timeSimInit = clock() - clk;
+//    Dch_ClassesPrint( p->ppClasses, 0 );
+    p->nLits = Dch_ClassesLitNum( p->ppClasses );
+    // perform SAT sweeping
+    Dch_ManSweep( p );
+    // count the number of representatives
+    p->nReprs = Dch_DeriveChoiceCountReprs( p->pAigTotal );
     // create choices
-//    pResult = Dch_DeriveChoiceAig( p->pAigTotal );
-    Aig_ManCleanup( p->pAigTotal );
-    pResult = Aig_ManDupSimpleDfs( p->pAigTotal );
-
+clk = clock();
+    pResult = Dch_DeriveChoiceAig( p->pAigTotal );
+p->timeChoice = clock() - clk;
+//    Aig_ManCleanup( p->pAigTotal );
+//    pResult = Aig_ManDupSimpleDfs( p->pAigTotal );
+    // count the number of equivalences and choices
+    p->nEquivs = Dch_DeriveChoiceCountEquivs( pResult );
+    p->nChoices = Aig_ManCountChoices( pResult );
+p->timeTotal = clock() - clkTotal;
     Dch_ManStop( p );
     return pResult;
 }

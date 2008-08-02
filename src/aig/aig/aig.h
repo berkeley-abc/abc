@@ -102,8 +102,8 @@ struct Aig_Man_t_
     Aig_Obj_t *      pConst1;        // the constant 1 node
     Aig_Obj_t        Ghost;          // the ghost node
     int              nRegs;          // the number of registers (registers are last POs)
-    int              nTruePis;       // the number of registers (registers are last POs)
-    int              nTruePos;       // the number of registers (registers are last POs)
+    int              nTruePis;       // the number of true primary inputs
+    int              nTruePos;       // the number of true primary outputs
     int              nAsserts;       // the number of asserts among POs (asserts are first POs)
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
@@ -326,8 +326,9 @@ static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;           } 
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
+static inline void         Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )     { assert(p->pReprs); p->pReprs[pObj->Id] = pRepr;                                } 
 static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) );      } 
-static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(PORT_PTRINT_T)pObj->pNext;                                                   }
+static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(PORT_PTRINT_T)pObj->pNext;                                          }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 

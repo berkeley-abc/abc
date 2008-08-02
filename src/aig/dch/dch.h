@@ -44,7 +44,9 @@ struct Dch_Pars_t_
     int              nWords;       // the number of simulation words
     int              nBTLimit;     // conflict limit at a node
     int              nSatVarMax;   // the max number of SAT variables
+    int              fSynthesis;   // set to 1 to perform synthesis
     int              fVerbose;     // verbose stats
+    int              timeSynth;    // synthesis runtime
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -56,8 +58,8 @@ struct Dch_Pars_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== dchCore.c ==========================================================*/
-extern void             Dch_ManSetDefaultParams( Dch_Pars_t * p );
-extern Aig_Man_t *      Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
+extern void          Dch_ManSetDefaultParams( Dch_Pars_t * p );
+extern Aig_Man_t *   Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
 
 
 #ifdef __cplusplus

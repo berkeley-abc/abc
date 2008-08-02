@@ -5860,7 +5860,7 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: muxes [-h]\n" );
-    fprintf( pErr, "\t        converts the current network by a network derived by\n" );
+    fprintf( pErr, "\t        converts the current network into a network derived by\n" );
     fprintf( pErr, "\t        replacing all nodes by DAGs isomorphic to the local BDDs\n" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
@@ -7683,7 +7683,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLevels;
     int fVerbose;
     int fVeryVerbose;
-    char * pFileName;
+//    char * pFileName;
 
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
@@ -7703,6 +7703,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
     extern Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose );
     extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
+    extern void Aig_ProcedureTest();
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -7902,11 +7903,15 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
+*//*
+
     if ( argc != globalUtilOptind + 1 )
         goto usage;
     pFileName = argv[globalUtilOptind];
     Nwk_ManLutMergeGraphTest( pFileName );
+*/
+    Aig_ProcedureTest();
+
     return 0;
 usage:
     fprintf( pErr, "usage: test [-h] <file_name>\n" );
@@ -8962,7 +8967,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8999,6 +9004,9 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nSatVarMax < 0 ) 
                 goto usage;
             break;
+        case 's':
+            pPars->fSynthesis ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -9029,11 +9037,12 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dch [-WCS num] [-vh]\n" );
+    fprintf( pErr, "usage: dch [-WCS num] [-svh]\n" );
     fprintf( pErr, "\t         performs computation of structural choices\n" );
     fprintf( pErr, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( pErr, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
+    fprintf( pErr, "\t-s     : toggle synthesizing three snapshots [default = %s]\n", pPars->fSynthesis? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

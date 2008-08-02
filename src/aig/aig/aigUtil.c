@@ -130,7 +130,7 @@ void Aig_ManResetRefs( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Cleans MarkB.]
+  Synopsis    [Cleans fMarkA.]
 
   Description []
                
@@ -149,7 +149,7 @@ void Aig_ManCleanMarkA( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Cleans MarkB.]
+  Synopsis    [Cleans fMarkB.]
 
   Description []
                

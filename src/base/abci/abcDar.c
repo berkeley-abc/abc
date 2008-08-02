@@ -834,16 +834,27 @@ Abc_Ntk_t * Abc_NtkDch( Abc_Ntk_t * pNtk, Dch_Pars_t * pPars )
     Vec_Ptr_t * vAigs;
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
-    int i;
+    int i, clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
-    vAigs = Dar_ManChoiceSynthesis( pMan, 1, 1, pPars->fVerbose );
-    Aig_ManStop( pMan );
+clk = clock();
+    if ( pPars->fSynthesis )
+    {
+//        vAigs = Dar_ManChoiceSynthesis( pMan, 1, 1, pPars->fVerbose );
+        vAigs = Dar_ManChoiceSynthesis( pMan, 1, 1, 0 );
+        Aig_ManStop( pMan );
+    }
+    else
+    {
+        vAigs = Vec_PtrAlloc( 1 );
+        Vec_PtrPush( vAigs, pMan );
+    }
+pPars->timeSynth = clock() - clk;
     pMan = Dch_ComputeChoices( vAigs, pPars );
-//    pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
+//    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
     Aig_ManStop( pMan );
     // cleanup
     Vec_PtrForEachEntry( vAigs, pTemp, i )

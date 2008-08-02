@@ -97,8 +97,12 @@ void Ntl_ManUpdateNoMergeReprs( Aig_Man_t * pAig, Aig_Obj_t ** pReprs )
             continue;
         }
         // remap the representative
-        assert( pObj->Id > pRepresNew->Id );        
-        pReprs[ pObj->Id ] = pRepresNew;
+//        assert( pObj->Id > pRepresNew->Id );        
+//        pReprs[ pObj->Id ] = pRepresNew;
+        if ( pObj->Id > pRepresNew->Id )
+            pReprs[ pObj->Id ] = pRepresNew;
+        else
+            pReprs[ pObj->Id ] = NULL;
     }
     free( pReprsNew );
 }

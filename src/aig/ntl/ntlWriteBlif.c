@@ -316,6 +316,8 @@ void Ioa_WriteBlifModelGz( gzFile pFile, Ntl_Mod_t * pModel, int fMain )
 //        gzprintf( pFile, " %s", pModel->attrKeep?  "keep" : "sweep" );
         gzprintf( pFile, "\n" );
     }
+    if ( pModel->attrNoMerge )
+        gzprintf( pFile, ".no_merge\n" );    
     gzprintf( pFile, ".inputs" );
     Ntl_ModelForEachPi( pModel, pObj, i )
         gzprintf( pFile, " %s", Ntl_ObjFanout0(pObj)->pName );
@@ -491,6 +493,8 @@ void Ioa_WriteBlifModelBz2( bz2file * b, Ntl_Mod_t * pModel, int fMain )
 //        fprintfBz2( b, " %s", pModel->attrKeep?  "keep" : "sweep" );
         fprintfBz2( b, "\n" );
     }
+    if ( pModel->attrNoMerge )
+        fprintfBz2( b, ".no_merge\n" );    
     fprintfBz2( b, ".inputs" );
     Ntl_ModelForEachPi( pModel, pObj, i )
         fprintfBz2( b, " %s", Ntl_ObjFanout0(pObj)->pName );

@@ -259,7 +259,7 @@ Vec_Int_t * Part_ManTransferEntry( Part_One_t * p )
   Synopsis    [Computes supports of the POs in the multi-output AIG.]
 
   Description [Returns the array of integer arrays containing indices
-  of the primary inputsf or each primary output.]
+  of the primary inputs for each primary output.]
                
   SideEffects [Adds the integer PO number at end of each array.]
 
@@ -1417,7 +1417,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 )
+static inline void Aig_ObjSetRepr_( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 )
 {
     assert( p->pReprs != NULL );
     assert( !Aig_IsComplement(pNode1) );
@@ -1481,14 +1481,14 @@ void Aig_ManChoiceConstructiveOne( Aig_Man_t * pNew, Aig_Man_t * pPrev, Aig_Man_
         if ( pObj->pHaig == NULL )
             continue;
         // pObj->pData and pObj->pHaig->pData are equivalent
-        Aig_ObjSetRepr( pNew, Aig_Regular(pObj->pData), Aig_Regular(pObj->pHaig->pData) );
+        Aig_ObjSetRepr_( pNew, Aig_Regular(pObj->pData), Aig_Regular(pObj->pHaig->pData) );
     }
     // set the inputs of POs as equivalent
     Aig_ManForEachPo( pThis, pObj, i )
     {
         pObjNew = Aig_ObjFanin0( Aig_ManPo(pNew,i) );
         // pObjNew and Aig_ObjFanin0(pObj)->pData are equivalent
-        Aig_ObjSetRepr( pNew, pObjNew, Aig_Regular(Aig_ObjFanin0(pObj)->pData) );
+        Aig_ObjSetRepr_( pNew, pObjNew, Aig_Regular(Aig_ObjFanin0(pObj)->pData) );
     }
 }
 

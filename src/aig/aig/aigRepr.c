@@ -99,7 +99,7 @@ void Aig_ObjCreateRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 )
+static inline void Aig_ObjSetRepr_( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 )
 {
     assert( p->pReprs != NULL );
     assert( !Aig_IsComplement(pNode1) );
@@ -221,7 +221,7 @@ void Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * pOld )
     // go through the nodes which have representatives
     Aig_ManForEachObj( pOld, pObj, k )
         if ( (pRepr = Aig_ObjFindRepr(pOld, pObj)) )
-            Aig_ObjSetRepr( pNew, Aig_Regular(pRepr->pData), Aig_Regular(pObj->pData) ); 
+            Aig_ObjSetRepr_( pNew, Aig_Regular(pRepr->pData), Aig_Regular(pObj->pData) ); 
 }
 
 /**Function*************************************************************
@@ -349,7 +349,7 @@ int Aig_ManRemapRepr( Aig_Man_t * p )
         if ( pRepr == NULL )
             continue;
         assert( pRepr->Id < pObj->Id );
-        Aig_ObjSetRepr( p, pObj, pRepr );
+        Aig_ObjSetRepr_( p, pObj, pRepr );
         nFanouts += (pObj->nRefs > 0);
     }
     return nFanouts;
@@ -473,11 +473,17 @@ void Aig_ManMarkValidChoices( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj, * pRepr;
     int i;
+    int nReprs, nEquivs;
+
+extern int           Dch_DeriveChoiceCountReprs( Aig_Man_t * pAig );
+extern int           Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig );
+
     assert( p->pReprs != NULL );
     // create equivalent nodes in the manager
     assert( p->pEquivs == NULL );
     p->pEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
     memset( p->pEquivs, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p) );
+
     // make the choice nodes
     Aig_ManForEachNode( p, pObj, i )
     {
@@ -507,6 +513,11 @@ void Aig_ManMarkValidChoices( Aig_Man_t * p )
         p->pEquivs[pObj->Id] = p->pEquivs[pRepr->Id];
         p->pEquivs[pRepr->Id] = pObj;
     }
+
+    nReprs = Dch_DeriveChoiceCountReprs( p );
+    nEquivs = Dch_DeriveChoiceCountEquivs( p );
+    printf( "\nReprs = %d. Equivs = %d. Choices = %d.\n", 
+        nReprs, nEquivs, Aig_ManCountChoices(p) );
 }
 
 
@@ -532,7 +543,7 @@ int Aig_TransferMappedClasses( Aig_Man_t * pAig, Aig_Man_t * pPart, int * pMapBa
           if ( pPart->pReprs[pObj->Id] == NULL )
               continue;
           nClasses++;
-          Aig_ObjSetRepr( pAig,
+          Aig_ObjSetRepr_( pAig,
               Aig_ManObj(pAig, pMapBack[pObj->Id]),
               Aig_ManObj(pAig, pMapBack[pPart->pReprs[pObj->Id]->Id]) );
       }
