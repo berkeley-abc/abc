@@ -68,21 +68,45 @@ void Dch_AddClausesMux( Dch_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarI, 1);
     pLits[1] = toLitCond(VarT, 1^fCompT);
     pLits[2] = toLitCond(VarF, 0);
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
+        if ( Aig_Regular(pNodeT)->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
+    }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarI, 1);
     pLits[1] = toLitCond(VarT, 0^fCompT);
     pLits[2] = toLitCond(VarF, 1);
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
+        if ( Aig_Regular(pNodeT)->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
+    }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarI, 0);
     pLits[1] = toLitCond(VarE, 1^fCompE);
     pLits[2] = toLitCond(VarF, 0);
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
+        if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
+    }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarI, 0);
     pLits[1] = toLitCond(VarE, 0^fCompE);
     pLits[2] = toLitCond(VarF, 1);
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
+        if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
+    }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
     assert( RetValue );
 
@@ -102,11 +126,23 @@ void Dch_AddClausesMux( Dch_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarT, 0^fCompT);
     pLits[1] = toLitCond(VarE, 0^fCompE);
     pLits[2] = toLitCond(VarF, 1);
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( Aig_Regular(pNodeT)->fPhase )  pLits[0] = lit_neg( pLits[0] );
+        if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
+    }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarT, 1^fCompT);
     pLits[1] = toLitCond(VarE, 1^fCompE);
     pLits[2] = toLitCond(VarF, 0);
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( Aig_Regular(pNodeT)->fPhase )  pLits[0] = lit_neg( pLits[0] );
+        if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
+    }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
     assert( RetValue );
 }
@@ -137,13 +173,28 @@ void Dch_AddClausesSuper( Dch_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     {
         pLits[0] = toLitCond(Dch_ObjSatNum(p,Aig_Regular(pFanin)), Aig_IsComplement(pFanin));
         pLits[1] = toLitCond(Dch_ObjSatNum(p,pNode), 1);
+        if ( p->pPars->fPolarFlip )
+        {
+            if ( Aig_Regular(pFanin)->fPhase )  pLits[0] = lit_neg( pLits[0] );
+            if ( pNode->fPhase )                pLits[1] = lit_neg( pLits[1] );
+        }
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
     Vec_PtrForEachEntry( vSuper, pFanin, i )
+    {
         pLits[i] = toLitCond(Dch_ObjSatNum(p,Aig_Regular(pFanin)), !Aig_IsComplement(pFanin));
+        if ( p->pPars->fPolarFlip )
+        {
+            if ( Aig_Regular(pFanin)->fPhase )  pLits[i] = lit_neg( pLits[i] );
+        }
+    }
     pLits[nLits-1] = toLitCond(Dch_ObjSatNum(p,pNode), 0);
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pNode->fPhase )  pLits[nLits-1] = lit_neg( pLits[nLits-1] );
+    }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + nLits );
     assert( RetValue );
     free( pLits );
@@ -213,6 +264,7 @@ void Dch_ObjAddToFrontier( Dch_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontie
     assert( Dch_ObjSatNum(p,pObj) == 0 );
     if ( Aig_ObjIsConst1(pObj) )
         return;
+    Vec_PtrPush( p->vUsedNodes, pObj );
     Dch_ObjSetSatNum( p, pObj, p->nSatVars++ );
     if ( Aig_ObjIsNode(pObj) )
         Vec_PtrPush( vFrontier, pObj );

@@ -6,7 +6,7 @@
 
   PackageName [Computation of equivalence classes using simulation.]
 
-  Synopsis    [Calls to the SAT solver.]
+  Synopsis    [Performs random simulation at the beginning.]
 
   Author      [Alan Mishchenko]
   
@@ -36,6 +36,38 @@ static inline unsigned Dch_ObjRandomSim()
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the node appears to be constant 1 candidate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dch_NodeIsConstCex( void * p, Aig_Obj_t * pObj )
+{
+    return pObj->fPhase == pObj->fMarkB;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the nodes appear equal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dch_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
+{
+    return (pObj0->fPhase == pObj1->fPhase) == (pObj0->fMarkB == pObj1->fMarkB);
+}
 
 /**Function*************************************************************
 
@@ -241,14 +273,15 @@ Dch_Cla_t * Dch_CreateCandEquivClasses( Aig_Man_t * pAig, int nWords, int fVerbo
     // hash nodes by sim info
     Dch_ClassesPrepare( pClasses, 0, 0 );
     // iterate random simulation
-    for ( i = 0; i < 3; i++ )
+    for ( i = 0; i < 7; i++ )
     {
         Dch_PerformRandomSimulation( pAig, vSims );
         Dch_ClassesRefine( pClasses );
     }
     // clean up and return
-    Dch_ClassesSetData( pClasses, NULL, NULL, NULL, NULL );
     Vec_PtrFree( vSims );
+    // prepare class refinement procedures
+    Dch_ClassesSetData( pClasses, NULL, NULL, Dch_NodeIsConstCex, Dch_NodesAreEqualCex );
     return pClasses;
 }
 

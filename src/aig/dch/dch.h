@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [dch.h]
+  FileName    [dch.h] 
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -41,12 +41,16 @@ extern "C" {
 typedef struct Dch_Pars_t_ Dch_Pars_t;
 struct Dch_Pars_t_
 {
-    int              nWords;       // the number of simulation words
-    int              nBTLimit;     // conflict limit at a node
-    int              nSatVarMax;   // the max number of SAT variables
-    int              fSynthesis;   // set to 1 to perform synthesis
-    int              fVerbose;     // verbose stats
-    int              timeSynth;    // synthesis runtime
+    int              nWords;        // the number of simulation words
+    int              nBTLimit;      // conflict limit at a node
+    int              nSatVarMax;    // the max number of SAT variables
+    int              fSynthesis;    // set to 1 to perform synthesis
+    int              fPolarFlip;    // uses polarity adjustment
+    int              fSimulateTfo;  // uses simulatin of TFO classes
+    int              fVerbose;      // verbose stats
+    int              timeSynth;     // synthesis runtime
+    int              nNodesAhead;   // the lookahead in terms of nodes
+    int              nCallsRecycle; // calls to perform before recycling SAT solver
 };
 
 ////////////////////////////////////////////////////////////////////////

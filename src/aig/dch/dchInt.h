@@ -63,8 +63,10 @@ struct Dch_Man_t_
     int *            pSatVars;       // mapping of each node into its SAT var
     Vec_Ptr_t *      vUsedNodes;     // nodes whose SAT vars are assigned
     int              nRecycles;      // the number of times SAT solver was recycled
+    int              nCallsSince;    // the number of calls since the last recycle
     Vec_Ptr_t *      vFanins;        // fanins of the CNF node
-    Vec_Ptr_t *      vRoots;         // the roots of the current equiv class
+    Vec_Ptr_t *      vSimRoots;      // the roots of cand const 1 nodes to simulate
+    Vec_Ptr_t *      vSimClasses;    // the roots of cand equiv classes to simulate
     // solver cone size
     int              nConeThis;
     int              nConeMax;
@@ -95,6 +97,12 @@ struct Dch_Man_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline int  Dch_ObjSatNum( Dch_Man_t * p, Aig_Obj_t * pObj )             { return p->pSatVars[pObj->Id]; }
+static inline void Dch_ObjSetSatNum( Dch_Man_t * p, Aig_Obj_t * pObj, int Num ) { p->pSatVars[pObj->Id] = Num;  }
+
+static inline Aig_Obj_t * Dch_ObjFraig( Aig_Obj_t * pObj )                       { return pObj->pData;  }
+static inline void        Dch_ObjSetFraig( Aig_Obj_t * pObj, Aig_Obj_t * pNode ) { pObj->pData = pNode; }
+
 static inline int  Dch_ObjIsConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj ) 
 {
     return Aig_ObjRepr(pAig, pObj) == Aig_ManConst1(pAig);
@@ -104,9 +112,6 @@ static inline void Dch_ObjSetConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj )
     assert( !Dch_ObjIsConst1Cand( pAig, pObj ) );
     Aig_ObjSetRepr( pAig, pObj, Aig_ManConst1(pAig) );
 }
-
-static inline int  Dch_ObjSatNum( Dch_Man_t * p, Aig_Obj_t * pObj )             { return p->pSatVars[pObj->Id]; }
-static inline void Dch_ObjSetSatNum( Dch_Man_t * p, Aig_Obj_t * pObj, int Num ) { p->pSatVars[pObj->Id] = Num;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -126,6 +131,7 @@ extern void          Dch_ClassesSetData( Dch_Cla_t * p, void * pManData,
                          int (*pFuncNodesAreEqual)(void *,Aig_Obj_t *, Aig_Obj_t *) );
 extern void          Dch_ClassesStop( Dch_Cla_t * p );
 extern int           Dch_ClassesLitNum( Dch_Cla_t * p );
+extern Aig_Obj_t **  Dch_ClassesReadClass( Dch_Cla_t * p, Aig_Obj_t * pRepr, int * pnSize );
 extern void          Dch_ClassesPrint( Dch_Cla_t * p, int fVeryVerbose );
 extern void          Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs );
 extern int           Dch_ClassesRefine( Dch_Cla_t * p );
@@ -143,7 +149,10 @@ extern void          Dch_ManSatSolverRecycle( Dch_Man_t * p );
 extern int           Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pObj1, Aig_Obj_t * pObj2 );
 /*=== dchSim.c ===================================================*/
 extern Dch_Cla_t *   Dch_CreateCandEquivClasses( Aig_Man_t * pAig, int nWords, int fVerbose );
-/*=== dchSim.c ===================================================*/
+/*=== dchSimSat.c ===================================================*/
+extern void          Dch_ManResimulateCex( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr );
+extern void          Dch_ManResimulateCex2( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr );
+/*=== dchSweep.c ===================================================*/
 extern void          Dch_ManSweep( Dch_Man_t * p );
 
 #ifdef __cplusplus

@@ -416,6 +416,86 @@ PRT( "Choicing time ", clock() - clk );
 //    return NULL;
 }
 
+#include "dch.h"
+
+/**Function*************************************************************
+
+  Synopsis    [Reproduces script "compress2".]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
+{
+    extern Aig_Man_t * Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
+
+    int fVerbose = pPars->fVerbose;
+    int fConstruct = 0;
+    Aig_Man_t * pMan, * pTemp;
+    Vec_Ptr_t * vAigs;
+    int i, clk;
+
+clk = clock();
+//    vAigs = Dar_ManChoiceSynthesisExt();
+    vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, fVerbose );
+
+    // swap the first and last network
+    // this should lead to the primary choice being "better" because of synthesis
+    // (it is also important when constructing choices)
+    if ( !fConstruct )
+    {
+        pMan = Vec_PtrPop( vAigs );
+        Vec_PtrPush( vAigs, Vec_PtrEntry(vAigs,0) );
+        Vec_PtrWriteEntry( vAigs, 0, pMan );
+    }
+
+if ( fVerbose )
+{
+PRT( "Synthesis time", clock() - clk );
+}
+//    pPars->timeSynth = clock() - clk;
+
+clk = clock();
+/*
+    if ( fConstruct )
+        pMan = Aig_ManChoiceConstructive( vAigs, fVerbose );
+    else
+        pMan = Aig_ManChoicePartitioned( vAigs, 300, nConfMax, nLevelMax, fVerbose );
+*/
+    pMan = Dch_ComputeChoices( vAigs, pPars );
+
+    // reconstruct the network
+    pMan = Aig_ManDupDfsGuided( pTemp = pMan, Vec_PtrEntry(vAigs,0) );
+    Aig_ManStop( pTemp );
+    // duplicate the timing manager
+    pTemp = Vec_PtrEntry( vAigs, 0 );
+    if ( pTemp->pManTime )
+    {
+        extern void * Tim_ManDup( void * p, int fDiscrete );     
+        pMan->pManTime = Tim_ManDup( pTemp->pManTime, 0 );
+    }
+    // reset levels
+    Aig_ManChoiceLevel( pMan );
+    pMan->pName = Aig_UtilStrsav( pTemp->pName );
+    pMan->pSpec = Aig_UtilStrsav( pTemp->pSpec );
+
+    // cleanup
+    Vec_PtrForEachEntry( vAigs, pTemp, i )
+        Aig_ManStop( pTemp );
+    Vec_PtrFree( vAigs );
+
+if ( fVerbose )
+{
+//PRT( "Choicing time ", clock() - clk );
+}
+    return pMan;
+//    return NULL;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -229,6 +229,7 @@ static int Abc_CommandAbc8Ps         ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Pfan       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Dch        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DC2        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Bidec      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Strash     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -488,6 +489,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*pfan",         Abc_CommandAbc8Pfan,         0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*if",           Abc_CommandAbc8If,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dchoice",      Abc_CommandAbc8DChoice,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*dch",          Abc_CommandAbc8Dch,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dc2",          Abc_CommandAbc8DC2,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*bidec",        Abc_CommandAbc8Bidec,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*st",           Abc_CommandAbc8Strash,       0 );
@@ -7703,7 +7705,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
     extern Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose );
     extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
-    extern void Aig_ProcedureTest();
+//    extern void Aig_ProcedureTest();
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -7910,7 +7912,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFileName = argv[globalUtilOptind];
     Nwk_ManLutMergeGraphTest( pFileName );
 */
-    Aig_ProcedureTest();
+//    Aig_ProcedureTest();
 
     return 0;
 usage:
@@ -8929,7 +8931,7 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: dchoice [-C num] [-L num] [-blcvh]\n" );
-    fprintf( pErr, "\t         performs partitioned choicing using a new AIG package\n" );
+    fprintf( pErr, "\t         performs partitioned choicing using new AIG package\n" );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-L num : the max level of nodes to consider (0 = not used) [default = %d]\n", nLevelMax );
     fprintf( pErr, "\t-b     : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
@@ -8967,7 +8969,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9007,6 +9009,12 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fSynthesis ^= 1;
             break;
+        case 'p':
+            pPars->fPolarFlip ^= 1;
+            break;
+        case 't':
+            pPars->fSimulateTfo ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -9037,12 +9045,14 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dch [-WCS num] [-svh]\n" );
-    fprintf( pErr, "\t         performs computation of structural choices\n" );
+    fprintf( pErr, "usage: dch [-WCS num] [-sptvh]\n" );
+    fprintf( pErr, "\t         computes structural choices using a new approach\n" );
     fprintf( pErr, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( pErr, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
     fprintf( pErr, "\t-s     : toggle synthesizing three snapshots [default = %s]\n", pPars->fSynthesis? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
+    fprintf( pErr, "\t-t     : toggle simulation of the TFO classes [default = %s]\n", pPars->fSimulateTfo? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -17155,7 +17165,7 @@ int Abc_CommandAbc8DChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pAigNew;
     int fBalance, fVerbose, fUpdateLevel, fConstruct, c;
     int nConfMax, nLevelMax;
-    extern Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
+    extern Aig_Man_t * Ntl_ManPerformChoicing( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
 
     // set defaults
     fBalance     = 1;
@@ -17216,7 +17226,7 @@ int Abc_CommandAbc8DChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pAigNew = Ntl_ManPerformSynthesis( pAbc->pAbc8Aig, fBalance, fUpdateLevel, fConstruct, nConfMax, nLevelMax, fVerbose );
+    pAigNew = Ntl_ManPerformChoicing( pAbc->pAbc8Aig, fBalance, fUpdateLevel, fConstruct, nConfMax, nLevelMax, fVerbose );
     if ( pAigNew == NULL )
     {
         printf( "Abc_CommandAbc8DChoice(): Tranformation of the AIG has failed.\n" );
@@ -17235,6 +17245,113 @@ usage:
     fprintf( stdout, "\t-l     : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle constructive computation of choices [default = %s]\n", fConstruct? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Dch_Pars_t Pars, * pPars = &Pars;
+    Aig_Man_t * pAigNew;
+    int c;
+    extern Aig_Man_t * Ntl_ManPerformChoicingNew( Aig_Man_t * pAig, Dch_Pars_t * pPars );
+
+    // set defaults
+    Dch_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWords < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nSatVarMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nSatVarMax < 0 ) 
+                goto usage;
+            break;
+        case 's':
+            pPars->fSynthesis ^= 1;
+            break;
+        case 'p':
+            pPars->fPolarFlip ^= 1;
+            break;
+        case 't':
+            pPars->fSimulateTfo ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Dch(): There is no AIG to synthesize.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pAigNew = Ntl_ManPerformChoicingNew( pAbc->pAbc8Aig, pPars );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Dch(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *dch [-WCS num] [-sptvh]\n" );
+    fprintf( stdout, "\t         computes structural choices using a new approach\n" );
+    fprintf( stdout, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
+    fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    fprintf( stdout, "\t-S num : the max number of SAT variables [default = %d]\n", pPars->nSatVarMax );
+    fprintf( stdout, "\t-s     : toggle synthesizing three snapshots [default = %s]\n", pPars->fSynthesis? "yes": "no" );
+    fprintf( stdout, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
+    fprintf( stdout, "\t-t     : toggle simulation of the TFO classes [default = %s]\n", pPars->fSimulateTfo? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }

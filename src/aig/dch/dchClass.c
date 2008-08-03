@@ -26,7 +26,7 @@
     The first node of the class is its representative node.
     The representative has the smallest topological order among the class nodes.
     The nodes inside each class are ordered according to their topological order.
-    The classes are ordered according to the topological order of their representatives.
+    The classes are ordered according to the topo order of their representatives.
 */
 
 // internal representation of candidate equivalence classes
@@ -203,6 +203,25 @@ void Dch_ClassesStop( Dch_Cla_t * p )
 int Dch_ClassesLitNum( Dch_Cla_t * p )
 {
     return p->nLits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stop representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t ** Dch_ClassesReadClass( Dch_Cla_t * p, Aig_Obj_t * pRepr, int * pnSize )
+{
+    assert( p->pId2Class[pRepr->Id] != NULL );
+    assert( p->pClassSizes[pRepr->Id] > 1 );
+    *pnSize = p->pClassSizes[pRepr->Id];
+    return p->pId2Class[pRepr->Id];
 }
 
 /**Function*************************************************************

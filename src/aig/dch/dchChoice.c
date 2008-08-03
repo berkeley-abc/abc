@@ -67,18 +67,27 @@ int Dch_DeriveChoiceCountReprs( Aig_Man_t * pAig )
 ***********************************************************************/
 int Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig )
 {
-    Aig_Obj_t * pObj, * pTemp;
-    int i, nEquivs = 0;
+    Aig_Obj_t * pObj, * pTemp, * pPrev;
+    int i, nEquivs = 0, Counter = 0;
     Aig_ManForEachObj( pAig, pObj, i )
     {
         if ( !Aig_ObjIsChoice(pAig, pObj) )
             continue;
-        for ( pTemp = Aig_ObjEquiv(pAig, pObj); pTemp; pTemp = Aig_ObjEquiv(pAig, pTemp) )
+        for ( pPrev = pObj, pTemp = Aig_ObjEquiv(pAig, pObj); pTemp; 
+              pPrev = pTemp, pTemp = Aig_ObjEquiv(pAig, pTemp) )
         {
-            assert( pTemp->nRefs == 0 );
+            if ( pTemp->nRefs > 0 )
+            {
+                // remove referenced node from equivalence class
+                assert( pAig->pEquivs[pPrev->Id] == pTemp );
+                pAig->pEquivs[pPrev->Id] = pAig->pEquivs[pTemp->Id];
+                Counter++;
+            }
             nEquivs++;
         }
     }
+//    if ( Counter )
+//    printf( "Removed %d equiv nodes because of non-zero ref counter.\n", Counter );
     return nEquivs;
 }
 
@@ -146,51 +155,6 @@ int Dch_ObjCheckTfi( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the AIG with choices from representatives.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dch_DeriveChoiceAig_rec( Aig_Man_t * pAigNew, Aig_Man_t * pAigOld, Aig_Obj_t * pObj )
-{
-    Aig_Obj_t * pRepr, * pObjNew, * pReprNew;
-    if ( pObj->pData )
-        return;
-    // construct AIG for the representative
-    if ( (pRepr = Aig_ObjRepr(pAigOld, pObj)) )
-        Dch_DeriveChoiceAig_rec( pAigNew, pAigOld, pRepr );
-    // construct AIG for the fanins
-    Dch_DeriveChoiceAig_rec( pAigNew, pAigOld, Aig_ObjFanin0(pObj) );
-    Dch_DeriveChoiceAig_rec( pAigNew, pAigOld, Aig_ObjFanin1(pObj) );
-    pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-    if ( pRepr == NULL )
-        return;
-    // get the corresponding new nodes
-    pObjNew  = Aig_Regular(pObj->pData);
-    pReprNew = Aig_Regular(pRepr->pData);
-    if ( pObjNew == pReprNew )
-        return;
-    assert( pObjNew->nRefs == 0 );
-    // update new nodes of the object
-    pObj->pData = Aig_NotCond( pRepr->pData, pObj->fPhase ^ pRepr->fPhase );
-    if ( !Aig_ObjIsNode(pRepr) )
-        return;
-    // skip choices with combinational loops
-    if ( Dch_ObjCheckTfi( pAigNew, pObjNew, pReprNew ) )
-//    if ( Aig_ObjCheckTfi( pAigNew, pObjNew, pReprNew ) )
-        return;
-    // add choice
-    pAigNew->pEquivs[pObjNew->Id] = pAigNew->pEquivs[pReprNew->Id];
-    pAigNew->pEquivs[pReprNew->Id] = pObjNew;
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Returns representatives of fanin in approapriate polarity.]
 
   Description []
@@ -237,19 +201,24 @@ void Dch_DeriveChoiceAigNode( Aig_Man_t * pAigNew, Aig_Man_t * pAigOld, Aig_Obj_
     pReprNew = Aig_Regular(pRepr->pData);
     if ( pObjNew == pReprNew )
         return;
-//    assert( pObjNew->nRefs == 0 );
+    // skip the earlier nodes
+    if ( pReprNew->Id > pObjNew->Id )
+        return;
+    assert( pReprNew->Id < pObjNew->Id );
     // set the representatives
     Aig_ObjSetRepr( pAigNew, pObjNew, pReprNew );
+    // skip used nodes
+    if ( pObjNew->nRefs > 0 )
+        return;
+    assert( pObjNew->nRefs == 0 );
     // update new nodes of the object
     if ( !Aig_ObjIsNode(pRepr) )
-        return;
-    if ( pObjNew->nRefs > 0 )
         return;
     // skip choices with combinational loops
     if ( Dch_ObjCheckTfi( pAigNew, pObjNew, pReprNew ) )
         return;
     // add choice
-    pAigNew->pEquivs[pObjNew->Id] = pAigNew->pEquivs[pReprNew->Id];
+    pAigNew->pEquivs[pObjNew->Id]  = pAigNew->pEquivs[pReprNew->Id];
     pAigNew->pEquivs[pReprNew->Id] = pObjNew;
 }
 
@@ -272,21 +241,14 @@ Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig )
     // start recording equivalences
     pChoices = Aig_ManStart( Aig_ManObjNumMax(pAig) );
     pChoices->pEquivs = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
-    pChoices->pReprs = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    pChoices->pReprs  = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
     // map constants and PIs
     Aig_ManCleanData( pAig );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pChoices);
     Aig_ManForEachPi( pAig, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pChoices );
-    // construct choice nodes from the POs
+    // construct choices for the internal nodes
     assert( pAig->pReprs != NULL );
-/*
-    Aig_ManForEachPo( pAig, pObj, i )
-    {
-        Dch_DeriveChoiceAig_rec( pChoices, pAig, Aig_ObjFanin0(pObj) );
-        Aig_ObjCreatePo( pChoices, Aig_ObjChild0Copy(pObj) );
-    }
-*/
     Aig_ManForEachNode( pAig, pObj, i )
         Dch_DeriveChoiceAigNode( pChoices, pAig, pObj );
     Aig_ManForEachPo( pAig, pObj, i )

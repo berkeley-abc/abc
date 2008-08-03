@@ -2930,10 +2930,6 @@ SOURCE=.\src\aig\aig\aigTable.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigTest.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\aig\aigTiming.c
 # End Source File
 # Begin Source File
@@ -3319,6 +3315,10 @@ SOURCE=.\src\aig\dch\dchSat.c
 # Begin Source File
 
 SOURCE=.\src\aig\dch\dchSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dch\dchSimSat.c
 # End Source File
 # Begin Source File
 

@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "ntl.h"
+#include "dch.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,7 +40,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose )
+Aig_Man_t * Ntl_ManPerformChoicing( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose )
 {
     extern Aig_Man_t * Dar_ManBalance( Aig_Man_t * pAig, int fUpdateLevel );
     extern Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose );
@@ -54,6 +55,23 @@ Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdate
 //printf( "Post-synthesis AIG: " );
 //Aig_ManPrintStats( pTemp );
     return pTemp;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts AIG from the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ntl_ManPerformChoicingNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
+{
+    extern Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars );
+    return Dar_ManChoiceNew( pAig, pPars );
 }
 
 /**Function*************************************************************

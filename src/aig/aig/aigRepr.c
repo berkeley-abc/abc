@@ -473,17 +473,11 @@ void Aig_ManMarkValidChoices( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj, * pRepr;
     int i;
-    int nReprs, nEquivs;
-
-extern int           Dch_DeriveChoiceCountReprs( Aig_Man_t * pAig );
-extern int           Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig );
-
     assert( p->pReprs != NULL );
     // create equivalent nodes in the manager
     assert( p->pEquivs == NULL );
     p->pEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
     memset( p->pEquivs, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p) );
-
     // make the choice nodes
     Aig_ManForEachNode( p, pObj, i )
     {
@@ -513,11 +507,6 @@ extern int           Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig );
         p->pEquivs[pObj->Id] = p->pEquivs[pRepr->Id];
         p->pEquivs[pRepr->Id] = pObj;
     }
-
-    nReprs = Dch_DeriveChoiceCountReprs( p );
-    nEquivs = Dch_DeriveChoiceCountEquivs( p );
-    printf( "\nReprs = %d. Equivs = %d. Choices = %d.\n", 
-        nReprs, nEquivs, Aig_ManCountChoices(p) );
 }
 
 

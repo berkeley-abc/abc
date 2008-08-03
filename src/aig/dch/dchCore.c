@@ -42,11 +42,15 @@
 void Dch_ManSetDefaultParams( Dch_Pars_t * p )
 {
     memset( p, 0, sizeof(Dch_Pars_t) );
-    p->nWords     =     4;    // the number of simulation words
-    p->nBTLimit   =   100;    // conflict limit at a node
-    p->nSatVarMax = 10000;    // the max number of SAT variables
-    p->fSynthesis =     1;    // derives three snapshots
-    p->fVerbose   =     1;    // verbose stats
+    p->nWords         =     8;  // the number of simulation words
+    p->nBTLimit       =  1000;  // conflict limit at a node
+    p->nSatVarMax     =  5000;  // the max number of SAT variables
+    p->fSynthesis     =     1;  // derives three snapshots
+    p->fPolarFlip     =     1;  // uses polarity adjustment
+    p->fSimulateTfo   =     1;  // simulate TFO
+    p->fVerbose       =     0;  // verbose stats
+    p->nNodesAhead    =  1000;  // the lookahead in terms of nodes
+    p->nCallsRecycle  =   100;  // calls to perform before recycling SAT solver
 }
 
 /**Function*************************************************************
@@ -66,6 +70,8 @@ Aig_Man_t * Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
     Aig_Man_t * pResult;
     int clk, clkTotal = clock();
     assert( Vec_PtrSize(vAigs) > 0 );
+    // reset random numbers
+    Aig_ManRandom(1);
     // start the choicing manager
     p = Dch_ManCreate( vAigs, pPars );
     // compute candidate equivalence classes

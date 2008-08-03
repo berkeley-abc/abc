@@ -6,4 +6,5 @@ SRC +=    src/aig/dch/dchAig.c \
     src/aig/dch/dchMan.c \
     src/aig/dch/dchSat.c \
     src/aig/dch/dchSim.c \
+    src/aig/dch/dchSimSat.c \
     src/aig/dch/dchSweep.c

@@ -51,7 +51,10 @@ int Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     assert( pNew != pOld );
     
     // check if SAT solver needs recycling
-    if ( p->pSat == NULL || (p->pPars->nSatVarMax && p->nSatVars > p->pPars->nSatVarMax) )
+    if ( p->pSat == NULL || 
+        (p->pPars->nSatVarMax && 
+         p->nSatVars > p->pPars->nSatVarMax && 
+         ++p->nCallsSince > p->pPars->nCallsRecycle) )
         Dch_ManSatSolverRecycle( p );
 
     // if the nodes do not have SAT variables, allocate them
@@ -70,6 +73,11 @@ int Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     // A = 1; B = 0     OR     A = 1; B = 1 
     pLits[0] = toLitCond( Dch_ObjSatNum(p,pOld), 0 );
     pLits[1] = toLitCond( Dch_ObjSatNum(p,pNew), pOld->fPhase == pNew->fPhase );
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
+        if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
+    }
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
 clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
@@ -108,6 +116,11 @@ p->timeSatUndec += clock() - clk;
     // A = 0; B = 1     OR     A = 0; B = 0 
     pLits[0] = toLitCond( Dch_ObjSatNum(p,pOld), 1 );
     pLits[1] = toLitCond( Dch_ObjSatNum(p,pNew), pOld->fPhase ^ pNew->fPhase );
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
+        if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
+    }
 clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
         (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
