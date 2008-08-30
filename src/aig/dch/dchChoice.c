@@ -81,11 +81,18 @@ int Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig )
                 // remove referenced node from equivalence class
                 assert( pAig->pEquivs[pPrev->Id] == pTemp );
                 pAig->pEquivs[pPrev->Id] = pAig->pEquivs[pTemp->Id];
+                pAig->pEquivs[pTemp->Id] = NULL;
+                // how about the need to continue iterating over the list?
+                // pPrev = pTemp ???
                 Counter++;
             }
             nEquivs++;
         }
     }
+    printf( "Removed %d classes.\n", Counter );
+
+    if ( Counter )
+        Dch_DeriveChoiceCountEquivs( pAig );
 //    if ( Counter )
 //    printf( "Removed %d equiv nodes because of non-zero ref counter.\n", Counter );
     return nEquivs;
