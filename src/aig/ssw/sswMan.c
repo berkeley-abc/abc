@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [dchMan.c]
+  FileName    [sswMan.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Choice computation for tech-mapping.]
+  PackageName [Inductive prover with constraints.]
 
   Synopsis    [Calls to the SAT solver.]
 
@@ -12,13 +12,13 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 29, 2008.]
+  Date        [Ver. 1.0. Started - September 1, 2008.]
 
-  Revision    [$Id: dchMan.c,v 1.00 2008/07/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: sswMan.c,v 1.00 2008/09/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "dchInt.h"
+#include "sswInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,25 +39,25 @@
   SeeAlso     []
 
 ***********************************************************************/
-Dch_Man_t * Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
+Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 {
-    Dch_Man_t * p;
+    Ssw_Man_t * p;
     // create interpolation manager
-    p = ALLOC( Dch_Man_t, 1 );
-    memset( p, 0, sizeof(Dch_Man_t) );
+    p = ALLOC( Ssw_Man_t, 1 );
+    memset( p, 0, sizeof(Ssw_Man_t) );
     p->pPars        = pPars;
-    p->vAigs        = vAigs;
-    p->pAigTotal    = Dch_DeriveTotalAig( vAigs );
-    Aig_ManFanoutStart( p->pAigTotal );
+    p->pAig         = pAig;
+    p->nFrames      = pPars->nFramesK + 1;
+    Aig_ManFanoutStart( pAig );
     // SAT solving
     p->nSatVars     = 1;
-    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(p->pAigTotal) );
-    p->vUsedNodes   = Vec_PtrAlloc( 1000 );
+    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(p->pAig) );
     p->vFanins      = Vec_PtrAlloc( 100 );
     p->vSimRoots    = Vec_PtrAlloc( 1000 );
     p->vSimClasses  = Vec_PtrAlloc( 1000 );
     // equivalences proved
-    p->pReprsProved = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAigTotal) );
+//    p->pReprsProved = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
+    p->pNodeToFraig = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     return p;
 }
 
@@ -72,42 +72,49 @@ Dch_Man_t * Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ManPrintStats( Dch_Man_t * p )
+int Ssw_ManCountEquivs( Ssw_Man_t * p )
 {
-//    Aig_Man_t * pAig;
-//    int i;
-//    printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(p->vAigs) );
-//    Vec_PtrForEachEntry( p->vAigs, pAig, i )
-//        Aig_ManPrintStats( pAig );
-    printf( "Parameters: Sim words = %d. Conf limit = %d. SAT var max = %d.\n", 
-        p->pPars->nWords, p->pPars->nBTLimit, p->pPars->nSatVarMax );
-    printf( "AIG nodes : Total = %6d. Dangling = %6d. Main = %6d. (%6.2f %%)\n", 
-        Aig_ManNodeNum(p->pAigTotal), 
-        Aig_ManNodeNum(p->pAigTotal)-Aig_ManNodeNum(Vec_PtrEntry(p->vAigs,0)),
-        Aig_ManNodeNum(Vec_PtrEntry(p->vAigs,0)),
-        100.0 * Aig_ManNodeNum(Vec_PtrEntry(p->vAigs,0))/Aig_ManNodeNum(p->pAigTotal) );
-    printf( "SAT solver: Vars = %d. Max cone = %d. Recycles = %d.\n", 
-        p->nSatVars, p->nConeMax, p->nRecycles );
+    Aig_Obj_t * pObj;
+    int i, nEquivs = 0;
+    Aig_ManForEachObj( p->pAig, pObj, i )
+//        nEquivs += ( p->pReprsProved[i] != NULL );
+        nEquivs += ( Aig_ObjRepr(p->pAig, pObj) != NULL );
+    return nEquivs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats of the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManPrintStats( Ssw_Man_t * p )
+{
+    printf( "Parameters: Frames = %d. Conf limit = %d. Constrs = %d.\n", 
+        p->pPars->nFramesK, p->pPars->nBTLimit, p->pPars->nConstrs );
+    printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.\n", 
+        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig) );
+    printf( "SAT solver: Vars = %d.\n", p->nSatVars );
     printf( "SAT calls : All = %6d. Unsat = %6d. Sat = %6d. Fail = %6d.\n", 
         p->nSatCalls, p->nSatCalls-p->nSatCallsSat-p->nSatFailsReal, 
         p->nSatCallsSat, p->nSatFailsReal );
-    printf( "Choices   : Lits = %6d. Reprs = %5d. Equivs = %5d. Choices = %5d.\n", 
-        p->nLits, p->nReprs, p->nEquivs, p->nChoices );
-    printf( "Choicing runtime statistics:\n" );
-    p->timeOther = p->timeTotal-p->timeSimInit-p->timeSimSat-p->timeSat-p->timeChoice;
-    PRTP( "Sim init   ", p->timeSimInit,  p->timeTotal );
+    printf( "Equivs    : All = %6d.\n", Ssw_ManCountEquivs(p) );
+    printf( "Runtime statistics:\n" );
+    p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeSimSat-p->timeSat;
+    PRTP( "BMC        ", p->timeBmc,      p->timeTotal );
+    PRTP( "Spec reduce", p->timeReduce,   p->timeTotal );
     PRTP( "Sim SAT    ", p->timeSimSat,   p->timeTotal );
     PRTP( "SAT solving", p->timeSat,      p->timeTotal );
     PRTP( "  sat      ", p->timeSatSat,   p->timeTotal );
     PRTP( "  unsat    ", p->timeSatUnsat, p->timeTotal );
     PRTP( "  undecided", p->timeSatUndec, p->timeTotal );
-    PRTP( "Choice     ", p->timeChoice,   p->timeTotal );
     PRTP( "Other      ", p->timeOther,    p->timeTotal );
     PRTP( "TOTAL      ", p->timeTotal,    p->timeTotal );
-    if ( p->pPars->timeSynth )
-    {
-    PRT( "Synthesis  ", p->pPars->timeSynth );
-    }
 }
 
 /**Function*************************************************************
@@ -121,30 +128,28 @@ void Dch_ManPrintStats( Dch_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ManStop( Dch_Man_t * p )
+void Ssw_ManCleanup( Ssw_Man_t * p )
 {
-    if ( p->pPars->fVerbose )
-        Dch_ManPrintStats( p );
-    if ( p->pAigTotal )
-        Aig_ManStop( p->pAigTotal );
-    if ( p->pAigFraig )
-        Aig_ManStop( p->pAigFraig );
-    if ( p->ppClasses )
-        Dch_ClassesStop( p->ppClasses );
+    Aig_ManCleanMarkB( p->pAig );
+    if ( p->pFrames )
+    {
+        Aig_ManStop( p->pFrames );
+        p->pFrames = NULL;
+    }
     if ( p->pSat )
+    {
         sat_solver_delete( p->pSat );
-    Vec_PtrFree( p->vUsedNodes );
-    Vec_PtrFree( p->vFanins );
-    Vec_PtrFree( p->vSimRoots );
-    Vec_PtrFree( p->vSimClasses );
-    FREE( p->pReprsProved );
-    FREE( p->pSatVars );
-    free( p );
+        p->pSat = NULL;
+        p->nSatVars = 0;
+    }
+    memset( p->pNodeToFraig, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
+    p->nConstrTotal = 0;
+    p->nConstrReduced = 0;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Recycles the SAT solver.]
+  Synopsis    [Frees the manager.]
 
   Description []
                
@@ -153,21 +158,38 @@ void Dch_ManStop( Dch_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ManSatSolverRecycle( Dch_Man_t * p )
+void Ssw_ManStop( Ssw_Man_t * p )
+{
+    if ( p->pPars->fVerbose )
+        Ssw_ManPrintStats( p );
+    if ( p->ppClasses )
+        Ssw_ClassesStop( p->ppClasses );
+    Vec_PtrFree( p->vFanins );
+    Vec_PtrFree( p->vSimRoots );
+    Vec_PtrFree( p->vSimClasses );
+    FREE( p->pNodeToFraig );
+//    FREE( p->pReprsProved );
+    FREE( p->pSatVars );
+    free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManStartSolver( Ssw_Man_t * p )
 {
     int Lit;
-    if ( p->pSat )
-    {
-        Aig_Obj_t * pObj;
-        int i;
-        Vec_PtrForEachEntry( p->vUsedNodes, pObj, i )
-            Dch_ObjSetSatNum( p, pObj, 0 );
-        Vec_PtrClear( p->vUsedNodes );
-//        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAigTotal) );
-        sat_solver_delete( p->pSat );
-    }
+    assert( p->pSat == NULL );
     p->pSat = sat_solver_new();
-    sat_solver_setnvars( p->pSat, 1000 );
+    sat_solver_setnvars( p->pSat, 10000 );
     // var 0 is not used
     // var 1 is reserved for const1 node - add the clause
     Lit = toLit( 1 );
@@ -175,10 +197,7 @@ void Dch_ManSatSolverRecycle( Dch_Man_t * p )
         Lit = lit_neg( Lit );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     p->nSatVars = 2;
-    p->nRecycles++;
-    p->nCallsSince = 0;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

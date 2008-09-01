@@ -524,7 +524,7 @@ void If_ManDerefChoiceCutSet( If_Man_t * p, If_Obj_t * pObj )
     // consider the nodes in the choice class
     for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
     {
-        assert( pTemp == pObj || pTemp->nVisits == 1 );
+//        assert( pTemp == pObj || pTemp->nVisits == 1 );
         if ( --pTemp->nVisits == 0 )
         {
 //            Mem_FixedEntryRecycle( p->pMemSet, (char *)pTemp->pCutSet );

@@ -86,6 +86,7 @@ void Dch_ManSweepNode( Dch_Man_t * p, Aig_Obj_t * pObj )
         Dch_ManResimulateCex( p, pObj, pObjRepr );
     else
         Dch_ManResimulateCex2( p, pObj, pObjRepr );
+    assert( Aig_ObjRepr( p->pAigTotal, pObj ) != pObjRepr );
 }
 
 /**Function*************************************************************

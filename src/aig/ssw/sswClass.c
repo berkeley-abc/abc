@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [dchClass.c]
+  FileName    [sswClass.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Choice computation for tech-mapping.]
+  PackageName [Inductive prover with constraints.]
 
   Synopsis    [Representation of candidate equivalence classes.]
 
@@ -12,13 +12,13 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 29, 2008.]
+  Date        [Ver. 1.0. Started - September 1, 2008.]
 
-  Revision    [$Id: dchClass.c,v 1.00 2008/07/29 00:00:00 alanmi Exp $]
+  Revision    [$Id: sswClass.c,v 1.00 2008/09/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "dchInt.h"
+#include "sswInt.h"
 
 /*
     The candidate equivalence classes are stored as a vector of pointers 
@@ -30,7 +30,7 @@
 */
 
 // internal representation of candidate equivalence classes
-struct Dch_Cla_t_
+struct Ssw_Cla_t_
 {
     // class information
     Aig_Man_t *      pAig;             // original AIG manager
@@ -57,15 +57,15 @@ struct Dch_Cla_t_
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline Aig_Obj_t *  Dch_ObjNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pObj )                       { return ppNexts[pObj->Id];  }
-static inline void         Dch_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pObj, Aig_Obj_t * pNext ) { ppNexts[pObj->Id] = pNext; }
+static inline Aig_Obj_t *  Ssw_ObjNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pObj )                       { return ppNexts[pObj->Id];  }
+static inline void         Ssw_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pObj, Aig_Obj_t * pNext ) { ppNexts[pObj->Id] = pNext; }
 
 // iterator through the equivalence classes
-#define Dch_ManForEachClass( p, ppClass, i )                 \
+#define Ssw_ManForEachClass( p, ppClass, i )                 \
     for ( i = 0; i < Aig_ManObjNumMax(p->pAig); i++ )        \
         if ( ((ppClass) = p->pId2Class[i]) == NULL ) {} else
 // iterator through the nodes in one class
-#define Dch_ClassForEachNode( p, pRepr, pNode, i )           \
+#define Ssw_ClassForEachNode( p, pRepr, pNode, i )           \
     for ( i = 0; i < p->pClassSizes[pRepr->Id]; i++ )        \
         if ( ((pNode) = p->pId2Class[pRepr->Id][i]) == NULL ) {} else
 
@@ -84,7 +84,7 @@ static inline void         Dch_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Dch_ObjAddClass( Dch_Cla_t * p, Aig_Obj_t * pRepr, Aig_Obj_t ** pClass, int nSize ) 
+static inline void Ssw_ObjAddClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, Aig_Obj_t ** pClass, int nSize ) 
 {
     assert( p->pId2Class[pRepr->Id] == NULL );
     p->pId2Class[pRepr->Id] = pClass; 
@@ -106,7 +106,7 @@ static inline void Dch_ObjAddClass( Dch_Cla_t * p, Aig_Obj_t * pRepr, Aig_Obj_t 
   SeeAlso     []
 
 ***********************************************************************/
-static inline Aig_Obj_t ** Dch_ObjRemoveClass( Dch_Cla_t * p, Aig_Obj_t * pRepr ) 
+static inline Aig_Obj_t ** Ssw_ObjRemoveClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr ) 
 {
     Aig_Obj_t ** pClass = p->pId2Class[pRepr->Id];
     int nSize;
@@ -131,11 +131,11 @@ static inline Aig_Obj_t ** Dch_ObjRemoveClass( Dch_Cla_t * p, Aig_Obj_t * pRepr 
   SeeAlso     []
 
 ***********************************************************************/
-Dch_Cla_t * Dch_ClassesStart( Aig_Man_t * pAig )
+Ssw_Cla_t * Ssw_ClassesStart( Aig_Man_t * pAig )
 {
-    Dch_Cla_t * p;
-    p = ALLOC( Dch_Cla_t, 1 );
-    memset( p, 0, sizeof(Dch_Cla_t) );
+    Ssw_Cla_t * p;
+    p = ALLOC( Ssw_Cla_t, 1 );
+    memset( p, 0, sizeof(Ssw_Cla_t) );
     p->pAig         = pAig;
     p->pId2Class    = CALLOC( Aig_Obj_t **, Aig_ManObjNumMax(pAig) );
     p->pClassSizes  = CALLOC( int, Aig_ManObjNumMax(pAig) );
@@ -157,7 +157,7 @@ Dch_Cla_t * Dch_ClassesStart( Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ClassesSetData( Dch_Cla_t * p, void * pManData, 
+void Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData, 
     unsigned (*pFuncNodeHash)(void *,Aig_Obj_t *),               // returns hash key of the node
     int (*pFuncNodeIsConst)(void *,Aig_Obj_t *),                 // returns 1 if the node is a constant
     int (*pFuncNodesAreEqual)(void *,Aig_Obj_t *, Aig_Obj_t *) ) // returns 1 if nodes are equal up to a complement
@@ -179,7 +179,7 @@ void Dch_ClassesSetData( Dch_Cla_t * p, void * pManData,
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ClassesStop( Dch_Cla_t * p )
+void Ssw_ClassesStop( Ssw_Cla_t * p )
 {
     if ( p->vClassNew )    Vec_PtrFree( p->vClassNew );
     if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
@@ -200,7 +200,39 @@ void Dch_ClassesStop( Dch_Cla_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Dch_ClassesLitNum( Dch_Cla_t * p )
+int Ssw_ClassesCand1Num( Ssw_Cla_t * p )
+{
+    return p->nCands1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stop representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ClassesClassNum( Ssw_Cla_t * p )
+{
+    return p->nClasses;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stop representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ClassesLitNum( Ssw_Cla_t * p )
 {
     return p->nLits;
 }
@@ -216,7 +248,7 @@ int Dch_ClassesLitNum( Dch_Cla_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t ** Dch_ClassesReadClass( Dch_Cla_t * p, Aig_Obj_t * pRepr, int * pnSize )
+Aig_Obj_t ** Ssw_ClassesReadClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int * pnSize )
 {
     assert( p->pId2Class[pRepr->Id] != NULL );
     assert( p->pClassSizes[pRepr->Id] > 1 );
@@ -235,15 +267,15 @@ Aig_Obj_t ** Dch_ClassesReadClass( Dch_Cla_t * p, Aig_Obj_t * pRepr, int * pnSiz
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ClassesCheck( Dch_Cla_t * p )
+void Ssw_ClassesCheck( Ssw_Cla_t * p )
 {
     Aig_Obj_t * pObj, * pPrev, ** ppClass;
     int i, k, nLits, nClasses, nCands1;
     nClasses = nLits = 0;
-    Dch_ManForEachClass( p, ppClass, k )
+    Ssw_ManForEachClass( p, ppClass, k )
     {
         pPrev = NULL;
-        Dch_ClassForEachNode( p, ppClass[0], pObj, i )
+        Ssw_ClassForEachNode( p, ppClass[0], pObj, i )
         {
             if ( i == 0 )
                 assert( Aig_ObjRepr(p->pAig, pObj) == NULL );
@@ -259,7 +291,7 @@ void Dch_ClassesCheck( Dch_Cla_t * p )
     }
     nCands1 = 0;
     Aig_ManForEachObj( p->pAig, pObj, i )
-        nCands1 += Dch_ObjIsConst1Cand( p->pAig, pObj );
+        nCands1 += Ssw_ObjIsConst1Cand( p->pAig, pObj );
     assert( p->nLits == nLits );
     assert( p->nCands1 == nCands1 );
     assert( p->nClasses == nClasses );
@@ -276,12 +308,12 @@ void Dch_ClassesCheck( Dch_Cla_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ClassesPrintOne( Dch_Cla_t * p, Aig_Obj_t * pRepr )
+void Ssw_ClassesPrintOne( Ssw_Cla_t * p, Aig_Obj_t * pRepr )
 {
     Aig_Obj_t * pObj;
     int i;
     printf( "{ " );
-    Dch_ClassForEachNode( p, pRepr, pObj, i )
+    Ssw_ClassForEachNode( p, pRepr, pObj, i )
         printf( "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
     printf( "}\n" );
 }
@@ -297,7 +329,7 @@ void Dch_ClassesPrintOne( Dch_Cla_t * p, Aig_Obj_t * pRepr )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ClassesPrint( Dch_Cla_t * p, int fVeryVerbose )
+void Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose )
 {
     Aig_Obj_t ** ppClass;
     Aig_Obj_t * pObj;
@@ -308,15 +340,61 @@ void Dch_ClassesPrint( Dch_Cla_t * p, int fVeryVerbose )
         return;
     printf( "Constants { " );
     Aig_ManForEachObj( p->pAig, pObj, i )
-        if ( Dch_ObjIsConst1Cand( p->pAig, pObj ) )
+        if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
             printf( "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
     printf( "}\n" );
-    Dch_ManForEachClass( p, ppClass, i )
+    Ssw_ManForEachClass( p, ppClass, i )
     {
         printf( "%3d (%3d) : ", i, p->pClassSizes[i] );
-        Dch_ClassesPrintOne( p, ppClass[0] );
+        Ssw_ClassesPrintOne( p, ppClass[0] );
     }
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints simulation classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pRepr, * pTemp;
+    assert( p->pId2Class[pObj->Id] == NULL );
+    pRepr = Aig_ObjRepr( p->pAig, pObj );
+    assert( pRepr != NULL );
+    Aig_ObjSetRepr( p->pAig, pObj, NULL );
+    if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
+    {
+        p->nCands1--;
+        return;
+    }
+    assert( p->pId2Class[pRepr->Id][0] == pRepr );
+    assert( p->pClassSizes[pRepr->Id] >= 2 );
+    if ( p->pClassSizes[pRepr->Id] == 2 )
+    {
+        p->pId2Class[pObj->Id] = NULL;
+        p->nClasses--;
+        p->pClassSizes[pRepr->Id] = 0;
+        p->nLits--;
+    }
+    else
+    {
+        int i, k = 0;
+        // remove the entry from the class
+        Ssw_ClassForEachNode( p, pRepr, pTemp, i )
+            if ( pTemp != pObj )
+                p->pId2Class[pRepr->Id][k++] = pTemp;
+        assert( k + 1 == p->pClassSizes[pRepr->Id] );
+        // reduce the class
+        p->pClassSizes[pRepr->Id]--;
+        p->nLits--;
+    }
 }
 
 /**Function*************************************************************
@@ -330,7 +408,7 @@ void Dch_ClassesPrint( Dch_Cla_t * p, int fVeryVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
+void Ssw_ClassesPrepare( Ssw_Cla_t * p, int fLatchCorr, int nMaxLevs )
 {
     Aig_Obj_t ** ppTable, ** ppNexts, ** ppClassNew;
     Aig_Obj_t * pObj, * pTemp, * pRepr;
@@ -361,7 +439,7 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
         // check if the node belongs to the class of constant 1
         if ( p->pFuncNodeIsConst( p->pManData, pObj ) )
         {
-            Dch_ObjSetConst1Cand( p->pAig, pObj );
+            Ssw_ObjSetConst1Cand( p->pAig, pObj );
             p->nCands1++;
             continue;
         }
@@ -376,14 +454,14 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
             pRepr = ppTable[iEntry];
             Aig_ObjSetRepr( p->pAig, pObj, pRepr );
             // add node to the table
-            if ( Dch_ObjNext( ppNexts, pRepr ) == NULL )
+            if ( Ssw_ObjNext( ppNexts, pRepr ) == NULL )
             { // this will be the second entry
                 p->pClassSizes[pRepr->Id]++;
                 nEntries++;
             }
             // add the entry to the list
-            Dch_ObjSetNext( ppNexts, pObj, Dch_ObjNext( ppNexts, pRepr ) );
-            Dch_ObjSetNext( ppNexts, pRepr, pObj );
+            Ssw_ObjSetNext( ppNexts, pObj, Ssw_ObjNext( ppNexts, pRepr ) );
+            Ssw_ObjSetNext( ppNexts, pRepr, pObj );
             p->pClassSizes[pRepr->Id]++;
             nEntries++;
         }
@@ -407,14 +485,14 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
         // add the nodes to the class in the topological order
         ppClassNew = p->pMemClasses + nEntries2;
         ppClassNew[0] = pObj;
-        for ( pTemp = Dch_ObjNext(ppNexts, pObj), k = 1; pTemp; 
-              pTemp = Dch_ObjNext(ppNexts, pTemp), k++ )
+        for ( pTemp = Ssw_ObjNext(ppNexts, pObj), k = 1; pTemp; 
+              pTemp = Ssw_ObjNext(ppNexts, pTemp), k++ )
         {
             ppClassNew[nNodes-k] = pTemp;
         }
         // add the class of nodes
         p->pClassSizes[pObj->Id] = 0;
-        Dch_ObjAddClass( p, pObj, ppClassNew, nNodes );
+        Ssw_ObjAddClass( p, pObj, ppClassNew, nNodes );
         // increment the number of entries
         nEntries2 += nNodes;
     }
@@ -422,8 +500,86 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
     free( ppTable );
     free( ppNexts );
     // now it is time to refine the classes
-    Dch_ClassesRefine( p );
-    Dch_ClassesCheck( p );
+    Ssw_ClassesRefine( p );
+    Ssw_ClassesCheck( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the node appears to be constant 1 candidate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_NodeIsConstCex( void * p, Aig_Obj_t * pObj )
+{
+    return pObj->fPhase == pObj->fMarkB;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the nodes appear equal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
+{
+    return (pObj0->fPhase == pObj1->fPhase) == (pObj0->fMarkB == pObj1->fMarkB);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates initial simulation classes.]
+
+  Description [Assumes that simulation info is assigned.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs )
+{
+    Ssw_Cla_t * p;
+    Aig_Obj_t * pObj;
+    int i;
+    // start the classes
+    p = Ssw_ClassesStart( pAig );
+    // go through the nodes
+    p->nCands1 = 0;
+    Aig_ManForEachObj( p->pAig, pObj, i )
+    {
+        if ( fLatchCorr )
+        {
+            if ( !Saig_ObjIsLo(pAig, pObj) )
+                continue;
+        }
+        else
+        {
+            if ( !Aig_ObjIsNode(pObj) && !Saig_ObjIsLo(pAig, pObj) )
+                continue;
+            // skip the node with more that the given number of levels
+            if ( nMaxLevs && (int)pObj->Level >= nMaxLevs )
+                continue;
+        }
+        Ssw_ObjSetConst1Cand( p->pAig, pObj );
+        p->nCands1++;
+    }
+    // allocate room for classes
+    p->pMemClassesFree = p->pMemClasses = ALLOC( Aig_Obj_t *, p->nCands1 );
+    // set comparison procedures
+    Ssw_ClassesSetData( p, NULL, NULL, Ssw_NodeIsConstCex, Ssw_NodesAreEqualCex );
+//    Ssw_ClassesPrint( p, 0 );
+    return p;
 }
 
 /**Function*************************************************************
@@ -437,7 +593,7 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
   SeeAlso     []
 
 ***********************************************************************/
-int Dch_ClassesRefineOneClass( Dch_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursive )
+int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursive )
 {
     Aig_Obj_t ** pClassOld, ** pClassNew;
     Aig_Obj_t * pObj, * pReprNew;
@@ -446,7 +602,7 @@ int Dch_ClassesRefineOneClass( Dch_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
     // split the class
     Vec_PtrClear( p->vClassOld );
     Vec_PtrClear( p->vClassNew );
-    Dch_ClassForEachNode( p, pReprOld, pObj, i )
+    Ssw_ClassForEachNode( p, pReprOld, pObj, i )
         if ( p->pFuncNodesAreEqual(p->pManData, pReprOld, pObj) )
             Vec_PtrPush( p->vClassOld, pObj );
         else
@@ -461,7 +617,7 @@ int Dch_ClassesRefineOneClass( Dch_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
     assert( Vec_PtrSize(p->vClassNew) > 0 );
 
     // create old class
-    pClassOld = Dch_ObjRemoveClass( p, pReprOld );
+    pClassOld = Ssw_ObjRemoveClass( p, pReprOld );
     Vec_PtrForEachEntry( p->vClassOld, pObj, i )
     {
         pClassOld[i] = pObj;
@@ -477,13 +633,13 @@ int Dch_ClassesRefineOneClass( Dch_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
 
     // put classes back
     if ( Vec_PtrSize(p->vClassOld) > 1 )
-        Dch_ObjAddClass( p, pReprOld, pClassOld, Vec_PtrSize(p->vClassOld) );
+        Ssw_ObjAddClass( p, pReprOld, pClassOld, Vec_PtrSize(p->vClassOld) );
     if ( Vec_PtrSize(p->vClassNew) > 1 )
-        Dch_ObjAddClass( p, pReprNew, pClassNew, Vec_PtrSize(p->vClassNew) );
+        Ssw_ObjAddClass( p, pReprNew, pClassNew, Vec_PtrSize(p->vClassNew) );
 
     // check if the class should be recursively refined
     if ( fRecursive && Vec_PtrSize(p->vClassNew) > 1 )
-        return 1 + Dch_ClassesRefineOneClass( p, pReprNew, 1 );
+        return 1 + Ssw_ClassesRefineOneClass( p, pReprNew, 1 );
     return 1;
 }
 
@@ -498,59 +654,13 @@ int Dch_ClassesRefineOneClass( Dch_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
   SeeAlso     []
 
 ***********************************************************************/
-int Dch_ClassesRefine( Dch_Cla_t * p )
+int Ssw_ClassesRefine( Ssw_Cla_t * p )
 {
     Aig_Obj_t ** ppClass;
     int i, nRefis = 0;
-    Dch_ManForEachClass( p, ppClass, i )
-        nRefis += Dch_ClassesRefineOneClass( p, ppClass[0], 0 );
+    Ssw_ManForEachClass( p, ppClass, i )
+        nRefis += Ssw_ClassesRefineOneClass( p, ppClass[0], 0 );
     return nRefis;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Returns equivalence class of the given node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dch_ClassesCollectOneClass( Dch_Cla_t * p, Aig_Obj_t * pRepr, Vec_Ptr_t * vRoots )
-{
-    Aig_Obj_t * pObj;
-    int i;
-    Vec_PtrClear( vRoots );
-    Dch_ClassForEachNode( p, pRepr, pObj, i )
-        Vec_PtrPush( vRoots, pObj );
-    assert( Vec_PtrSize(vRoots) > 1 ); 
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns equivalence class of the given node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dch_ClassesCollectConst1Group( Dch_Cla_t * p, Aig_Obj_t * pObj, int nNodes, Vec_Ptr_t * vRoots )
-{
-    int i, Limit;
-    Vec_PtrClear( vRoots );
-    Limit = AIG_MIN( pObj->Id + nNodes, Aig_ManObjNumMax(p->pAig) );
-    for ( i = pObj->Id; i < Limit; i++ )
-    {
-        pObj = Aig_ManObj( p->pAig, i );
-        if ( pObj && Dch_ObjIsConst1Cand( p->pAig, pObj ) )
-            Vec_PtrPush( vRoots, pObj );
-    }
 }
 
 /**Function*************************************************************
@@ -564,7 +674,7 @@ void Dch_ClassesCollectConst1Group( Dch_Cla_t * p, Aig_Obj_t * pObj, int nNodes,
   SeeAlso     []
 
 ***********************************************************************/
-int Dch_ClassesRefineConst1Group( Dch_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive )
+int Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive )
 {
     Aig_Obj_t * pObj, * pReprNew, ** ppClassNew;
     int i;
@@ -591,10 +701,10 @@ int Dch_ClassesRefineConst1Group( Dch_Cla_t * p, Vec_Ptr_t * vRoots, int fRecurs
         ppClassNew[i] = pObj;
         Aig_ObjSetRepr( p->pAig, pObj, i? pReprNew : NULL );
     }
-    Dch_ObjAddClass( p, pReprNew, ppClassNew, Vec_PtrSize(p->vClassNew) );
+    Ssw_ObjAddClass( p, pReprNew, ppClassNew, Vec_PtrSize(p->vClassNew) );
     // refine them recursively
     if ( fRecursive )
-        return 1 + Dch_ClassesRefineOneClass( p, pReprNew, 1 );
+        return 1 + Ssw_ClassesRefineOneClass( p, pReprNew, 1 );
     return 1;
 }
 

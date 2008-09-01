@@ -89,7 +89,7 @@ int Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig )
             nEquivs++;
         }
     }
-    printf( "Removed %d classes.\n", Counter );
+//    printf( "Removed %d classes.\n", Counter );
 
     if ( Counter )
         Dch_DeriveChoiceCountEquivs( pAig );

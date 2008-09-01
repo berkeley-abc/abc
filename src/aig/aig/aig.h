@@ -626,6 +626,7 @@ extern int             Aig_ObjIsMuxType( Aig_Obj_t * pObj );
 extern int             Aig_ObjRecognizeExor( Aig_Obj_t * pObj, Aig_Obj_t ** ppFan0, Aig_Obj_t ** ppFan1 );
 extern Aig_Obj_t *     Aig_ObjRecognizeMux( Aig_Obj_t * pObj, Aig_Obj_t ** ppObjT, Aig_Obj_t ** ppObjE );
 extern Aig_Obj_t *     Aig_ObjReal_rec( Aig_Obj_t * pObj );
+extern int             Aig_ObjCompareIdIncrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 );
 extern void            Aig_ObjPrintEqn( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level );
 extern void            Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level );
 extern void            Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig );

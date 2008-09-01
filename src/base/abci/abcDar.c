@@ -27,6 +27,7 @@
 #include "fraig.h"
 #include "int.h"
 #include "dch.h"
+#include "ssw.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1233,6 +1234,45 @@ PRT( "Initial fraiging time", clock() - clk );
         }
         Aig_ManStop( pMan );
     }
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarSeqSweep2( Abc_Ntk_t * pNtk, Ssw_Pars_t * pPars )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+
+    pMan = Ssw_SignalCorrespondence( pTemp = pMan, pPars );
+    Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
+
+    if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
+        pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    else
+    {
+        Abc_Obj_t * pObj;
+        int i;
+        pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+        Abc_NtkForEachLatch( pNtkAig, pObj, i )
+            Abc_LatchSetInit0( pObj );
+    }
+    Aig_ManStop( pMan );
     return pNtkAig;
 }
 

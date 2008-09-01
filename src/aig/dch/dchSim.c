@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Computation of equivalence classes using simulation.]
+  PackageName [Choice computation for tech-mapping.]
 
   Synopsis    [Performs random simulation at the beginning.]
 

@@ -438,6 +438,27 @@ Aig_Obj_t * Aig_ObjReal_rec( Aig_Obj_t * pObj )
     return Aig_NotCond( pObjNew, Aig_IsComplement(pObj) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Procedure used for sorting the nodes in increasing order of IDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ObjCompareIdIncrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
+{
+    int Diff = Aig_ObjId(*pp1) - Aig_ObjId(*pp2);
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
+}
+
 
 /**Function*************************************************************
 
