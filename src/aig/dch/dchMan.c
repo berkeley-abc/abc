@@ -170,14 +170,19 @@ void Dch_ManSatSolverRecycle( Dch_Man_t * p )
     sat_solver_setnvars( p->pSat, 1000 );
     // var 0 is not used
     // var 1 is reserved for const1 node - add the clause
-    Lit = toLit( 1 );
+    p->nSatVars = 1;
+//    p->nSatVars = 0;
+    Lit = toLit( p->nSatVars );
     if ( p->pPars->fPolarFlip )
         Lit = lit_neg( Lit );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    p->nSatVars = 2;
+    Dch_ObjSetSatNum( p, Aig_ManConst1(p->pAigFraig), p->nSatVars++ );
+
     p->nRecycles++;
     p->nCallsSince = 0;
 }
+
+
 
 
 ////////////////////////////////////////////////////////////////////////

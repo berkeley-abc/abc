@@ -42,22 +42,25 @@
 Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 {
     Ssw_Man_t * p;
+    // prepare the sequential AIG
+    assert( Saig_ManRegNum(pAig) > 0 );
+    Aig_ManFanoutStart( pAig );
+    Aig_ManSetPioNumbers( pAig );
     // create interpolation manager
     p = ALLOC( Ssw_Man_t, 1 );
     memset( p, 0, sizeof(Ssw_Man_t) );
     p->pPars        = pPars;
     p->pAig         = pAig;
     p->nFrames      = pPars->nFramesK + 1;
-    Aig_ManFanoutStart( pAig );
+    p->pNodeToFraig = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     // SAT solving
     p->nSatVars     = 1;
-    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(p->pAig) );
+    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     p->vFanins      = Vec_PtrAlloc( 100 );
     p->vSimRoots    = Vec_PtrAlloc( 1000 );
     p->vSimClasses  = Vec_PtrAlloc( 1000 );
     // equivalences proved
 //    p->pReprsProved = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
-    p->pNodeToFraig = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     return p;
 }
 
@@ -97,21 +100,19 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 {
     printf( "Parameters: Frames = %d. Conf limit = %d. Constrs = %d.\n", 
         p->pPars->nFramesK, p->pPars->nBTLimit, p->pPars->nConstrs );
-    printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.\n", 
-        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig) );
-    printf( "SAT solver: Vars = %d.\n", p->nSatVars );
-    printf( "SAT calls : All = %6d. Unsat = %6d. Sat = %6d. Fail = %6d.\n", 
+    printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  SAT vars = %d.\n", 
+        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), p->nSatVars );
+    printf( "SAT calls : All = %6d. Unsat = %6d. Sat = %6d. Fail = %6d.  Equivs = %d. Str = %d.\n", 
         p->nSatCalls, p->nSatCalls-p->nSatCallsSat-p->nSatFailsReal, 
-        p->nSatCallsSat, p->nSatFailsReal );
-    printf( "Equivs    : All = %6d.\n", Ssw_ManCountEquivs(p) );
+        p->nSatCallsSat, p->nSatFailsReal, Ssw_ManCountEquivs(p), p->nStragers );
     printf( "Runtime statistics:\n" );
     p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeSimSat-p->timeSat;
     PRTP( "BMC        ", p->timeBmc,      p->timeTotal );
     PRTP( "Spec reduce", p->timeReduce,   p->timeTotal );
     PRTP( "Sim SAT    ", p->timeSimSat,   p->timeTotal );
     PRTP( "SAT solving", p->timeSat,      p->timeTotal );
-    PRTP( "  sat      ", p->timeSatSat,   p->timeTotal );
     PRTP( "  unsat    ", p->timeSatUnsat, p->timeTotal );
+    PRTP( "  sat      ", p->timeSatSat,   p->timeTotal );
     PRTP( "  undecided", p->timeSatUndec, p->timeTotal );
     PRTP( "Other      ", p->timeOther,    p->timeTotal );
     PRTP( "TOTAL      ", p->timeTotal,    p->timeTotal );
@@ -135,14 +136,15 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
     {
         Aig_ManStop( p->pFrames );
         p->pFrames = NULL;
+        memset( p->pNodeToFraig, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
     }
     if ( p->pSat )
     {
         sat_solver_delete( p->pSat );
         p->pSat = NULL;
-        p->nSatVars = 0;
+//        p->nSatVars = 0;
+        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
     }
-    memset( p->pNodeToFraig, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
     p->nConstrTotal = 0;
     p->nConstrReduced = 0;
 }
@@ -192,11 +194,12 @@ void Ssw_ManStartSolver( Ssw_Man_t * p )
     sat_solver_setnvars( p->pSat, 10000 );
     // var 0 is not used
     // var 1 is reserved for const1 node - add the clause
-    Lit = toLit( 1 );
+    p->nSatVars = 1;
+    Lit = toLit( p->nSatVars );
     if ( p->pPars->fPolarFlip )
         Lit = lit_neg( Lit );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    p->nSatVars = 2;
+    Ssw_ObjSetSatNum( p, Aig_ManConst1(p->pAig), p->nSatVars++ );
 }
 
 ////////////////////////////////////////////////////////////////////////

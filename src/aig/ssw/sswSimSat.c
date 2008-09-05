@@ -92,6 +92,32 @@ void Ssw_ManCollectTfoCands( Ssw_Man_t * p, Aig_Obj_t * pObj1, Aig_Obj_t * pObj2
 
 /**Function*************************************************************
 
+  Synopsis    [Retrives value of the PI in the original AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ManOriginalPiValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
+{
+    Aig_Obj_t * pObjFraig;
+    int nVarNum, Value;
+    assert( Aig_ObjIsPi(pObj) );
+    pObjFraig = Ssw_ObjFraig( p, pObj, f );
+    nVarNum = Ssw_ObjSatNum( p, Aig_Regular(pObjFraig) );
+    Value = (!nVarNum)? 0 : (Aig_IsComplement(pObjFraig) ^ sat_solver_var_value( p->pSat, nVarNum ));
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( Aig_Regular(pObjFraig)->fPhase )  Value ^= 1;
+    }
+    return Value;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Resimulates the cone of influence of the solved nodes.]
 
   Description []
@@ -108,11 +134,7 @@ void Ssw_ManResimulateSolved_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
     Aig_ObjSetTravIdCurrent(p->pAig, pObj);
     if ( Aig_ObjIsPi(pObj) )
     {
-        Aig_Obj_t * pObjFraig = Ssw_ObjFraig( p, pObj, f );
-        int nVarNum = Ssw_ObjSatNum( p, pObjFraig );
-        // get the value from the SAT solver
-        // (account for the fact that some vars may be minimized away)
-        pObj->fMarkB = !nVarNum? 0 : sat_solver_var_value( p->pSat, nVarNum );
+        pObj->fMarkB = Ssw_ManOriginalPiValue( p, pObj, f );
         return;
     }
     Ssw_ManResimulateSolved_rec( p, Aig_ObjFanin0(pObj), f );
@@ -186,6 +208,40 @@ void Ssw_ManResimulateCex( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, i
         // refine this class
         RetValue2 += Ssw_ClassesRefineOneClass( p->ppClasses, pRoot, 0 );
     }
+    // make sure refinement happened
+    if ( Aig_ObjIsConst1(pRepr) )
+        assert( RetValue1 );
+    else
+        assert( RetValue2 );
+p->timeSimSat += clock() - clk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Handle the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f )
+{
+    Aig_Obj_t * pObj;
+    int i, RetValue1, RetValue2, clk = clock();
+    // set the PI simulation information
+    Aig_ManConst1(p->pAig)->fMarkB = 1;
+    Aig_ManForEachPi( p->pAig, pObj, i )
+        pObj->fMarkB = Ssw_ManOriginalPiValue( p, pObj, f );
+    // simulate internal nodes
+    Aig_ManForEachNode( p->pAig, pObj, i )
+        pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
+                     & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
+    // check equivalence classes
+    RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 0 );
+    RetValue2 = Ssw_ClassesRefine( p->ppClasses );
     // make sure refinement happened
     if ( Aig_ObjIsConst1(pRepr) )
         assert( RetValue1 );

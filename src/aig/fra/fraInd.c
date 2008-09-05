@@ -505,6 +505,7 @@ PRT( "Time", clock() - clk );
         int nLitsOld = Fra_ClassesCountLits(p->pCla);
         int nImpsOld = p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0;
         int nHotsOld = p->vOneHots? Fra_OneHotCount(p, p->vOneHots) : 0;
+        int clk3 = clock();
 
         if ( pParams->TimeLimit != 0.0 && clock() > TimeToStop )
         {
@@ -571,7 +572,7 @@ p->timeTrav += clock() - clk2;
         // report the intermediate results
         if ( pPars->fVerbose )
         {
-            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  ", 
+            printf( "%3d : Const = %6d. Cl = %6d.  L = %6d. LR = %6d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
                 Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts );
             if ( p->pCla->vImps )
@@ -579,7 +580,8 @@ p->timeTrav += clock() - clk2;
             if ( p->pPars->fUse1Hot )
                 printf( "1h = %6d. ", Fra_OneHotCount(p, p->vOneHots) );
             printf( "NR = %6d. ", Aig_ManNodeNum(p->pManFraig) );
-            printf( "\n" );
+            PRT( "T", clock() - clk3 );
+//            printf( "\n" );
         } 
 
         // perform sweeping

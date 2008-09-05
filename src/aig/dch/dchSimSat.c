@@ -108,8 +108,11 @@ void Dch_ManResimulateSolved_rec( Dch_Man_t * p, Aig_Obj_t * pObj )
     Aig_ObjSetTravIdCurrent(p->pAigTotal, pObj);
     if ( Aig_ObjIsPi(pObj) )
     {
-        Aig_Obj_t * pObjFraig = Dch_ObjFraig( pObj );
-        int nVarNum = Dch_ObjSatNum( p, pObjFraig );
+        Aig_Obj_t * pObjFraig;
+        int nVarNum;
+        pObjFraig = Dch_ObjFraig( pObj );
+        assert( !Aig_IsComplement(pObjFraig) );
+        nVarNum = Dch_ObjSatNum( p, pObjFraig );
         // get the value from the SAT solver
         // (account for the fact that some vars may be minimized away)
         pObj->fMarkB = !nVarNum? 0 : sat_solver_var_value( p->pSat, nVarNum );

@@ -296,7 +296,7 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
             if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
                 continue;
             // skip the node with more that the given number of levels
-            if ( nMaxLevs && (int)pObj->Level >= nMaxLevs )
+            if ( nMaxLevs && (int)pObj->Level > nMaxLevs )
                 continue;
         }
         // hash the node by its simulation info

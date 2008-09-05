@@ -48,7 +48,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nConstrs       =     0;  // treat the last nConstrs POs as seq constraints
     p->nBTLimit       =  1000;  // conflict limit at a node
     p->fPolarFlip     =     0;  // uses polarity adjustment
-    p->fLatchCorr     =     0;  // performs register correspondence
+    p->fLatchCorr     =     1;  // performs register correspondence
     p->fVerbose       =     1;  // verbose stats
     p->nIters         =     0;  // the number of iterations performed
 }
@@ -66,6 +66,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
 ***********************************************************************/
 Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 {
+    Aig_Man_t * pAigNew;
     Ssw_Man_t * p;
     int RetValue, nIter, clk, clkTotal = clock();
     // reset random numbers
@@ -75,27 +76,33 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     // compute candidate equivalence classes
     p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
     // refine classes using BMC
-    Ssw_ClassesPrint( p->ppClasses, 0 );
+    if ( pPars->fVerbose )
+        Ssw_ClassesPrint( p->ppClasses, 0 );
     Ssw_ManSweepBmc( p );
-    Ssw_ClassesPrint( p->ppClasses, 0 );
+    Ssw_ManCleanup( p );
+    if ( pPars->fVerbose )
+        Ssw_ClassesPrint( p->ppClasses, 0 );
     // refine classes using induction
     for ( nIter = 0; ; nIter++ )
     {
 clk = clock();
-        RetValue = Ssw_ManSweep(p);
+        RetValue = Ssw_ManSweep( p );
         if ( pPars->fVerbose )
         {
-            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  NR = %6d. ", 
+            printf( "%3d : Const = %6d. Cl = %6d.  L = %6d. LR = %6d.  NR = %6d. ", 
                 nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
-                p->nConstrTotal, p->nConstrReduced, p->nFrameNodes );
+                p->nConstrTotal, p->nConstrReduced, Aig_ManNodeNum(p->pFrames) );
             PRT( "T", clock() - clk );
         } 
+        Ssw_ManCleanup( p );
         if ( !RetValue )
             break;
-    }
+    } 
 p->timeTotal = clock() - clkTotal;
     Ssw_ManStop( p );
-    return Aig_ManDupRepr( pAig, 0 );
+    pAigNew = Aig_ManDupRepr( pAig, 0 );
+    Aig_ManSeqCleanup( pAigNew );
+    return pAigNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -55,7 +55,6 @@ struct Ssw_Man_t_
     Aig_Man_t *      pAig;           // user-given AIG
     Aig_Man_t *      pFrames;        // final AIG
     Aig_Obj_t **     pNodeToFraig;   // mapping of AIG nodes into FRAIG nodes
-    int              nFrameNodes;    // the number of nodes in the timeframes
     // equivalence classes
     Ssw_Cla_t *      ppClasses;      // equivalence classes of nodes
 //    Aig_Obj_t **     pReprsProved;   // equivalences proved
@@ -70,6 +69,7 @@ struct Ssw_Man_t_
     // constraints
     int              nConstrTotal;   // the number of total constraints
     int              nConstrReduced; // the number of reduced constraints
+    int              nStragers;
     // SAT calls statistics
     int              nSatCalls;      // the number of SAT calls
     int              nSatProof;      // the number of proofs
@@ -136,6 +136,7 @@ extern Ssw_Cla_t *   Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr,
 extern int           Ssw_ClassesRefine( Ssw_Cla_t * p );
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
 extern int           Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive );
+extern int           Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive );
 /*=== sswCnf.c ===================================================*/
 extern void          Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj );
 /*=== sswMan.c ===================================================*/
@@ -148,6 +149,7 @@ extern int           Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj
 extern int           Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 /*=== sswSimSat.c ===================================================*/
 extern void          Ssw_ManResimulateCex( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
+extern void          Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
 /*=== sswSweep.c ===================================================*/
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );

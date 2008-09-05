@@ -425,15 +425,15 @@ void Ssw_ClassesPrepare( Ssw_Cla_t * p, int fLatchCorr, int nMaxLevs )
     {
         if ( fLatchCorr )
         {
-            if ( !Aig_ObjIsPi(pObj) )
+            if ( !Saig_ObjIsPi(p->pAig, pObj) )
                 continue;
         }
         else
         {
-            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            if ( !Aig_ObjIsNode(pObj) && !Saig_ObjIsPi(p->pAig, pObj) )
                 continue;
             // skip the node with more that the given number of levels
-            if ( nMaxLevs && (int)pObj->Level >= nMaxLevs )
+            if ( nMaxLevs && (int)pObj->Level > nMaxLevs )
                 continue;
         }
         // check if the node belongs to the class of constant 1
@@ -556,7 +556,7 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
     p = Ssw_ClassesStart( pAig );
     // go through the nodes
     p->nCands1 = 0;
-    Aig_ManForEachObj( p->pAig, pObj, i )
+    Aig_ManForEachObj( pAig, pObj, i )
     {
         if ( fLatchCorr )
         {
@@ -568,10 +568,10 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
             if ( !Aig_ObjIsNode(pObj) && !Saig_ObjIsLo(pAig, pObj) )
                 continue;
             // skip the node with more that the given number of levels
-            if ( nMaxLevs && (int)pObj->Level >= nMaxLevs )
+            if ( nMaxLevs && (int)pObj->Level > nMaxLevs )
                 continue;
         }
-        Ssw_ObjSetConst1Cand( p->pAig, pObj );
+        Ssw_ObjSetConst1Cand( pAig, pObj );
         p->nCands1++;
     }
     // allocate room for classes
@@ -685,6 +685,53 @@ int Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecurs
     Vec_PtrForEachEntry( vRoots, pObj, i )
         if ( !p->pFuncNodeIsConst( p->pManData, pObj ) )
             Vec_PtrPush( p->vClassNew, pObj );
+    // check if there is a new class
+    if ( Vec_PtrSize(p->vClassNew) == 0 )
+        return 0;
+    p->nCands1 -= Vec_PtrSize(p->vClassNew);
+    pReprNew = Vec_PtrEntry( p->vClassNew, 0 );
+    Aig_ObjSetRepr( p->pAig, pReprNew, NULL );
+    if ( Vec_PtrSize(p->vClassNew) == 1 )
+        return 1;
+    // create a new class composed of these nodes
+    ppClassNew = p->pMemClassesFree;
+    p->pMemClassesFree += Vec_PtrSize(p->vClassNew);
+    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    {
+        ppClassNew[i] = pObj;
+        Aig_ObjSetRepr( p->pAig, pObj, i? pReprNew : NULL );
+    }
+    Ssw_ObjAddClass( p, pReprNew, ppClassNew, Vec_PtrSize(p->vClassNew) );
+    // refine them recursively
+    if ( fRecursive )
+        return 1 + Ssw_ClassesRefineOneClass( p, pReprNew, 1 );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Refine the group of constant 1 nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive )
+{
+    Aig_Obj_t * pObj, * pReprNew, ** ppClassNew;
+    int i;
+    // collect the nodes to be refined
+    Vec_PtrClear( p->vClassNew );
+    for ( i = 0; i < Vec_PtrSize(p->pAig->vObjs); i++ )
+        if ( p->pAig->pReprs[i] == Aig_ManConst1(p->pAig) )
+        {
+            pObj = Aig_ManObj( p->pAig, i );
+            if ( !p->pFuncNodeIsConst( p->pManData, pObj ) )
+                Vec_PtrPush( p->vClassNew, pObj );
+        }
     // check if there is a new class
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;

@@ -2226,7 +2226,7 @@ p->timeSatFail += clock() - clk;
 int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
 {
     int pLits[2], RetValue1, clk;
-//    int RetValue;
+    int RetValue;
 
     // make sure the nodes are not complemented
     assert( !Ivy_IsComplement(pNew) );
@@ -2261,8 +2261,8 @@ p->timeSat += clock() - clk;
     {
 p->timeSatUnsat += clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
-//        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
-//        assert( RetValue );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
+        assert( RetValue );
         // continue solving the other implication
         p->nSatCallsUnsat++;
     }
@@ -2533,6 +2533,7 @@ void Ivy_FraigNodeAddToSolver( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t *
         Ivy_ObjSetFaninVec( pNode, vFanins );
     }
     Vec_PtrFree( vFrontier );
+    sat_solver_simplify( p->pSat );
 }
 
 /**Function*************************************************************
