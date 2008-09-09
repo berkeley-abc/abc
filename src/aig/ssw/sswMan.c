@@ -49,18 +49,18 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     // create interpolation manager
     p = ALLOC( Ssw_Man_t, 1 );
     memset( p, 0, sizeof(Ssw_Man_t) );
-    p->pPars        = pPars;
-    p->pAig         = pAig;
-    p->nFrames      = pPars->nFramesK + 1;
-    p->pNodeToFraig = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
+    p->pPars         = pPars;
+    p->pAig          = pAig;
+    p->nFrames       = pPars->nFramesK + 1;
+    p->pNodeToFraig  = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     // SAT solving
-    p->nSatVars     = 1;
-    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(p->pAig) * p->nFrames );
-    p->vFanins      = Vec_PtrAlloc( 100 );
-    p->vSimRoots    = Vec_PtrAlloc( 1000 );
-    p->vSimClasses  = Vec_PtrAlloc( 1000 );
-    // equivalences proved
-//    p->pReprsProved = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
+    p->pSatVars      = CALLOC( int, Aig_ManObjNumMax(p->pAig) * p->nFrames );
+    p->vFanins       = Vec_PtrAlloc( 100 );
+    p->vSimRoots     = Vec_PtrAlloc( 1000 );
+    p->vSimClasses   = Vec_PtrAlloc( 1000 );
+    // allocate storage for sim pattern
+    p->nPatWords     = Aig_BitWordNum( Saig_ManPiNum(pAig) * p->nFrames + Saig_ManRegNum(pAig) );
+    p->pPatWords     = ALLOC( unsigned, p->nPatWords ); 
     return p;
 }
 
@@ -80,7 +80,6 @@ int Ssw_ManCountEquivs( Ssw_Man_t * p )
     Aig_Obj_t * pObj;
     int i, nEquivs = 0;
     Aig_ManForEachObj( p->pAig, pObj, i )
-//        nEquivs += ( p->pReprsProved[i] != NULL );
         nEquivs += ( Aig_ObjRepr(p->pAig, pObj) != NULL );
     return nEquivs;
 }
@@ -98,14 +97,19 @@ int Ssw_ManCountEquivs( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManPrintStats( Ssw_Man_t * p )
 {
-    printf( "Parameters: Frames = %d. Conf limit = %d. Constrs = %d.\n", 
-        p->pPars->nFramesK, p->pPars->nBTLimit, p->pPars->nConstrs );
-    printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  SAT vars = %d.\n", 
-        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), p->nSatVars );
-    printf( "SAT calls : All = %6d. Unsat = %6d. Sat = %6d. Fail = %6d.  Equivs = %d. Str = %d.\n", 
-        p->nSatCalls, p->nSatCalls-p->nSatCallsSat-p->nSatFailsReal, 
-        p->nSatCallsSat, p->nSatFailsReal, Ssw_ManCountEquivs(p), p->nStragers );
-    printf( "Runtime statistics:\n" );
+    double nMemory = 1.0*Aig_ManObjNumMax(p->pAig)*p->nFrames*(2*sizeof(int)+2*sizeof(void*))/(1<<20);
+
+    printf( "Parameters: Frames = %d. Conf limit = %d. Constrs = %d. Max lev = %d. Mem = %0.2f Mb.\n", 
+        p->pPars->nFramesK, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->nMaxLevs, nMemory );
+    printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
+        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
+        p->nSatVarsTotal/p->pPars->nIters );
+    printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. FailReal = %d.  Equivs = %d. Str = %d.\n", 
+        p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, Ssw_ManCountEquivs(p), p->nStrangers );
+    printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+        p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
+        p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
+
     p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeSimSat-p->timeSat;
     PRTP( "BMC        ", p->timeBmc,      p->timeTotal );
     PRTP( "Spec reduce", p->timeReduce,   p->timeTotal );
@@ -140,9 +144,10 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
     }
     if ( p->pSat )
     {
+//        printf( "Vars = %d. Clauses = %d. Learnts = %d.\n", p->pSat->size, p->pSat->clauses.size, p->pSat->learnts.size );
+        p->nSatVarsTotal += p->pSat->size;
         sat_solver_delete( p->pSat );
         p->pSat = NULL;
-//        p->nSatVars = 0;
         memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
     }
     p->nConstrTotal = 0;
@@ -166,12 +171,14 @@ void Ssw_ManStop( Ssw_Man_t * p )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )
         Ssw_ClassesStop( p->ppClasses );
+    if ( p->pSml )      
+        Ssw_SmlStop( p->pSml );
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vSimRoots );
     Vec_PtrFree( p->vSimClasses );
     FREE( p->pNodeToFraig );
-//    FREE( p->pReprsProved );
     FREE( p->pSatVars );
+    FREE( p->pPatWords );
     free( p );
 }
 
@@ -191,7 +198,7 @@ void Ssw_ManStartSolver( Ssw_Man_t * p )
     int Lit;
     assert( p->pSat == NULL );
     p->pSat = sat_solver_new();
-    sat_solver_setnvars( p->pSat, 10000 );
+    sat_solver_setnvars( p->pSat, 1000 );
     // var 0 is not used
     // var 1 is reserved for const1 node - add the clause
     p->nSatVars = 1;

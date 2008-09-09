@@ -241,7 +241,60 @@ void Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pR
                      & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
     // check equivalence classes
     RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 0 );
-    RetValue2 = Ssw_ClassesRefine( p->ppClasses );
+    RetValue2 = Ssw_ClassesRefine( p->ppClasses, 0 );
+    // make sure refinement happened
+    if ( Aig_ObjIsConst1(pRepr) )
+        assert( RetValue1 );
+    else
+        assert( RetValue2 );
+p->timeSimSat += clock() - clk;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlSavePatternAig( Ssw_Man_t * p, int f )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+    Aig_ManForEachPi( p->pAig, pObj, i )
+        if ( Ssw_ManOriginalPiValue( p, pObj, f ) )
+            Aig_InfoSetBit( p->pPatWords, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Handle the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f )
+{
+    int RetValue1, RetValue2, clk = clock();
+    // save the counter-example
+    Ssw_SmlSavePatternAig( p, f );
+    // set the PI simulation information
+    Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
+    // simulate internal nodes
+    Ssw_SmlSimulateOne( p->pSml );
+    // check equivalence classes
+    RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 1 );
+    RetValue2 = Ssw_ClassesRefine( p->ppClasses, 1 );
     // make sure refinement happened
     if ( Aig_ObjIsConst1(pRepr) )
         assert( RetValue1 );

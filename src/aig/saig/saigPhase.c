@@ -886,6 +886,11 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     Saig_TsiStop( pTsi );
     if ( pNew == NULL )
         pNew = Aig_ManDupSimple( p );
+    if ( Aig_ManPiNum(pNew) == Aig_ManRegNum(pNew) )
+    {
+        Aig_ManStop( pNew);
+        pNew = Aig_ManDupSimple( p );
+    }
     return pNew;
 }
 

@@ -48,8 +48,8 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nConstrs       =     0;  // treat the last nConstrs POs as seq constraints
     p->nBTLimit       =  1000;  // conflict limit at a node
     p->fPolarFlip     =     0;  // uses polarity adjustment
-    p->fLatchCorr     =     1;  // performs register correspondence
-    p->fVerbose       =     1;  // verbose stats
+    p->fLatchCorr     =     0;  // performs register correspondence
+    p->fVerbose       =     0;  // verbose stats
     p->nIters         =     0;  // the number of iterations performed
 }
 
@@ -70,18 +70,40 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     Ssw_Man_t * p;
     int RetValue, nIter, clk, clkTotal = clock();
     // reset random numbers
-    Aig_ManRandom(1);
+    Aig_ManRandom( 1 );
     // start the choicing manager
     p = Ssw_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
-    p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
+    if ( p->pPars->nConstrs == 0 )
+    {
+        p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
+        p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + 2, 2 );
+        Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlNodeHash, Ssw_SmlNodeIsConst, Ssw_SmlNodesAreEqual );
+    }
+    else
+    {
+        assert( 0 );
+        p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
+    }
+//    Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_NodeIsConstCex, Ssw_NodesAreEqualCex );
+
+    // get the starting stats
+    p->nLitsBeg  = Ssw_ClassesLitNum( p->ppClasses );
+    p->nNodesBeg = Aig_ManNodeNum(pAig);
+    p->nRegsBeg  = Aig_ManRegNum(pAig);
     // refine classes using BMC
     if ( pPars->fVerbose )
+    {
+        printf( "Before BMC: " );
         Ssw_ClassesPrint( p->ppClasses, 0 );
+    }
     Ssw_ManSweepBmc( p );
     Ssw_ManCleanup( p );
     if ( pPars->fVerbose )
+    {
+        printf( "After  BMC: " );
         Ssw_ClassesPrint( p->ppClasses, 0 );
+    }
     // refine classes using induction
     for ( nIter = 0; ; nIter++ )
     {
@@ -98,10 +120,16 @@ clk = clock();
         if ( !RetValue )
             break;
     } 
+    p->pPars->nIters = nIter + 1;
 p->timeTotal = clock() - clkTotal;
-    Ssw_ManStop( p );
     pAigNew = Aig_ManDupRepr( pAig, 0 );
     Aig_ManSeqCleanup( pAigNew );
+    // get the final stats
+    p->nLitsEnd  = Ssw_ClassesLitNum( p->ppClasses );
+    p->nNodesEnd = Aig_ManNodeNum(pAigNew);
+    p->nRegsEnd  = Aig_ManRegNum(pAigNew);
+    // cleanup
+    Ssw_ManStop( p );
     return pAigNew;
 }
 

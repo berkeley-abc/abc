@@ -41,11 +41,10 @@ extern "C" {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// equivalence classes
-typedef struct Ssw_Cla_t_ Ssw_Cla_t;
+typedef struct Ssw_Man_t_ Ssw_Man_t; // signal correspondence manager
+typedef struct Ssw_Cla_t_ Ssw_Cla_t; // equivalence classe manager
+typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager
 
-// manager
-typedef struct Ssw_Man_t_ Ssw_Man_t;
 struct Ssw_Man_t_
 {
     // parameters
@@ -57,25 +56,38 @@ struct Ssw_Man_t_
     Aig_Obj_t **     pNodeToFraig;   // mapping of AIG nodes into FRAIG nodes
     // equivalence classes
     Ssw_Cla_t *      ppClasses;      // equivalence classes of nodes
-//    Aig_Obj_t **     pReprsProved;   // equivalences proved
     int              fRefined;       // is set to 1 when refinement happens
     // SAT solving
     sat_solver *     pSat;           // recyclable SAT solver
     int              nSatVars;       // the counter of SAT variables
     int *            pSatVars;       // mapping of each node into its SAT var
+    int              nSatVarsTotal;  // the total number of SAT vars created
     Vec_Ptr_t *      vFanins;        // fanins of the CNF node
     Vec_Ptr_t *      vSimRoots;      // the roots of cand const 1 nodes to simulate
     Vec_Ptr_t *      vSimClasses;    // the roots of cand equiv classes to simulate
+    // sequential simulator
+    Ssw_Sml_t *      pSml;
+    // counter example storage
+    int              nPatWords;      // the number of words in the counter example
+    unsigned *       pPatWords;      // the counter example
     // constraints
     int              nConstrTotal;   // the number of total constraints
     int              nConstrReduced; // the number of reduced constraints
-    int              nStragers;
+    int              nStrangers;     // the number of strange situations
     // SAT calls statistics
     int              nSatCalls;      // the number of SAT calls
     int              nSatProof;      // the number of proofs
+    int              nSatFails;      // the number of timeouts
     int              nSatFailsReal;  // the number of timeouts
     int              nSatCallsUnsat; // the number of unsat SAT calls
     int              nSatCallsSat;   // the number of sat SAT calls
+    // node/register/lit statistics
+    int              nLitsBeg;
+    int              nLitsEnd;
+    int              nNodesBeg;
+    int              nNodesEnd;
+    int              nRegsBeg;
+    int              nRegsEnd;
     // runtime stats
     int              timeBmc;        // bounded model checking
     int              timeReduce;     // speculative reduction
@@ -131,12 +143,14 @@ extern Aig_Obj_t **  Ssw_ClassesReadClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int
 extern void          Ssw_ClassesCheck( Ssw_Cla_t * p );
 extern void          Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose );
 extern void          Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj );
-extern void          Ssw_ClassesPrepare( Ssw_Cla_t * p, int fLatchCorr, int nMaxLevs );
+extern Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
-extern int           Ssw_ClassesRefine( Ssw_Cla_t * p );
+extern int           Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive );
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
 extern int           Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive );
 extern int           Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive );
+extern int           Ssw_NodeIsConstCex( void * p, Aig_Obj_t * pObj );
+extern int           Ssw_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 /*=== sswCnf.c ===================================================*/
 extern void          Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj );
 /*=== sswMan.c ===================================================*/
@@ -147,9 +161,19 @@ extern void          Ssw_ManStartSolver( Ssw_Man_t * p );
 /*=== sswSat.c ===================================================*/
 extern int           Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 extern int           Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
+/*=== sswSim.c ===================================================*/
+extern Ssw_Sml_t *   Ssw_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame );
+extern void          Ssw_SmlStop( Ssw_Sml_t * p );
+extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
+extern unsigned      Ssw_SmlNodeHash( Ssw_Sml_t * p, Aig_Obj_t * pObj );
+extern int           Ssw_SmlNodeIsConst( Ssw_Sml_t * p, Aig_Obj_t * pObj );
+extern int           Ssw_SmlNodesAreEqual( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
+extern void          Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat );
+extern void          Ssw_SmlSimulateOne( Ssw_Sml_t * p );
 /*=== sswSimSat.c ===================================================*/
 extern void          Ssw_ManResimulateCex( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
 extern void          Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
+extern void          Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );
 /*=== sswSweep.c ===================================================*/
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );

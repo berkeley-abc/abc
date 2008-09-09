@@ -7681,7 +7681,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-//    Abc_Ntk_t * pNtkRes;
+    Abc_Ntk_t * pNtkRes;
     int c;
     int fBmc;
     int nFrames;
@@ -7700,7 +7700,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-//    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
@@ -7869,9 +7869,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 
-/*
+
 //    pNtkRes = Abc_NtkDar( pNtk );
-//    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
+//    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 ); 
+//    pNtkRes = Abc_NtkPcmTestAig( pNtk, fVerbose );
     pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
 //    pNtkRes = NULL;
     if ( pNtkRes == NULL )
@@ -7882,7 +7883,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
-*/
+
 
 
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );

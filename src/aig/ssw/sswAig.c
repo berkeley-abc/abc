@@ -28,7 +28,6 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-
 /**Function*************************************************************
 
   Synopsis    [Performs speculative reduction for one node.]

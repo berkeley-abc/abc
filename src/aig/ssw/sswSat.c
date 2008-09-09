@@ -68,8 +68,11 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     }
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
 
-    RetValue = sat_solver_simplify(p->pSat);
-    assert( RetValue != 0 );
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        RetValue = sat_solver_simplify(p->pSat);
+        assert( RetValue != 0 );
+    }
 
 clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
@@ -114,8 +117,11 @@ p->timeSatUndec += clock() - clk;
         if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
     }
 
-    RetValue = sat_solver_simplify(p->pSat);
-    assert( RetValue != 0 );
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        RetValue = sat_solver_simplify(p->pSat);
+        assert( RetValue != 0 );
+    }
 
 clk = clock();
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 

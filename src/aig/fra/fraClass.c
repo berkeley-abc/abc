@@ -378,6 +378,7 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
     free( ppNexts );
     // now it is time to refine the classes
     Fra_ClassesRefine( p );
+//    Fra_ClassesPrint( p, 0 );
 }
 
 /**Function*************************************************************

@@ -335,7 +335,7 @@ void Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose )
     Aig_Obj_t * pObj;
     int i;
     printf( "Equivalence classes: Const1 = %5d. Class = %5d. Lit = %5d.\n", 
-        p->nCands1, p->nClasses, p->nLits );
+        p->nCands1, p->nClasses, p->nCands1+p->nLits );
     if ( !fVeryVerbose )
         return;
     printf( "Constants { " );
@@ -368,12 +368,13 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
     assert( p->pId2Class[pObj->Id] == NULL );
     pRepr = Aig_ObjRepr( p->pAig, pObj );
     assert( pRepr != NULL );
-    Aig_ObjSetRepr( p->pAig, pObj, NULL );
     if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
     {
+        Aig_ObjSetRepr( p->pAig, pObj, NULL );
         p->nCands1--;
         return;
     }
+    Aig_ObjSetRepr( p->pAig, pObj, NULL );
     assert( p->pId2Class[pRepr->Id][0] == pRepr );
     assert( p->pClassSizes[pRepr->Id] >= 2 );
     if ( p->pClassSizes[pRepr->Id] == 2 )
@@ -408,11 +409,26 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_ClassesPrepare( Ssw_Cla_t * p, int fLatchCorr, int nMaxLevs )
+Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs )
 {
+    Ssw_Cla_t * p;
+    Ssw_Sml_t * pSml;
     Aig_Obj_t ** ppTable, ** ppNexts, ** ppClassNew;
     Aig_Obj_t * pObj, * pTemp, * pRepr;
     int i, k, nTableSize, nNodes, iEntry, nEntries, nEntries2;
+    int clk;
+
+    // start the classes
+    p = Ssw_ClassesStart( pAig );
+
+    // perform sequential simulation
+clk = clock();
+    pSml = Ssw_SmlSimulateSeq( pAig, 0, 32, 4 );
+PRT( "Simulation of 32 frames with 4 words", clock() - clk );
+
+    // set comparison procedures
+clk = clock();
+    Ssw_ClassesSetData( p, pSml, Ssw_SmlNodeHash, Ssw_SmlNodeIsConst, Ssw_SmlNodesAreEqual );
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Aig_PrimeCudd( Aig_ManObjNumMax(p->pAig)/4 );
@@ -430,7 +446,7 @@ void Ssw_ClassesPrepare( Ssw_Cla_t * p, int fLatchCorr, int nMaxLevs )
         }
         else
         {
-            if ( !Aig_ObjIsNode(pObj) && !Saig_ObjIsPi(p->pAig, pObj) )
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
                 continue;
             // skip the node with more that the given number of levels
             if ( nMaxLevs && (int)pObj->Level > nMaxLevs )
@@ -499,9 +515,14 @@ void Ssw_ClassesPrepare( Ssw_Cla_t * p, int fLatchCorr, int nMaxLevs )
     assert( nEntries == nEntries2 );
     free( ppTable );
     free( ppNexts );
+
     // now it is time to refine the classes
-    Ssw_ClassesRefine( p );
+    Ssw_ClassesRefine( p, 1 );
     Ssw_ClassesCheck( p );
+    Ssw_SmlStop( pSml );
+//    Ssw_ClassesPrint( p, 0 );
+PRT( "Collecting candidate equival classes", clock() - clk );
+    return p;
 }
 
 /**Function*************************************************************
@@ -654,12 +675,12 @@ int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ClassesRefine( Ssw_Cla_t * p )
+int Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive )
 {
     Aig_Obj_t ** ppClass;
     int i, nRefis = 0;
     Ssw_ManForEachClass( p, ppClass, i )
-        nRefis += Ssw_ClassesRefineOneClass( p, ppClass[0], 0 );
+        nRefis += Ssw_ClassesRefineOneClass( p, ppClass[0], fRecursive );
     return nRefis;
 }
 

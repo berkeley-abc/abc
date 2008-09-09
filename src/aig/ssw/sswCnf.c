@@ -264,8 +264,8 @@ void Ssw_ObjAddToFrontier( Ssw_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontie
     assert( Ssw_ObjSatNum(p,pObj) == 0 );
     if ( Aig_ObjIsConst1(pObj) )
         return;
-//    Vec_PtrPush( p->vUsedNodes, pObj );
     Ssw_ObjSetSatNum( p, pObj, p->nSatVars++ );
+    sat_solver_setnvars( p->pSat, 100 * (1 + p->nSatVars / 100) );
     if ( Aig_ObjIsNode(pObj) )
         Vec_PtrPush( vFrontier, pObj );
 }

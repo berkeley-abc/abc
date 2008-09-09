@@ -629,6 +629,9 @@ clk2 = clock();
 p->timeFraig += clock() - clk2;
             Vec_PtrPush( p->vFraigs, pAigTemp );
             Aig_ManStop( pAigPart );
+
+//intf( "finished part %d (out of %d)\n", i, Vec_PtrSize(p->vParts) );
+
         }
         Fra_ClassNodesUnmark( p );
         // report the intermediate results

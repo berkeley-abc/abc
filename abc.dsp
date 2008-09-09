@@ -2010,6 +2010,10 @@ SOURCE=.\src\map\ply\plyAig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\ply\plyFake.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\ply\plyInt.h
 # End Source File
 # Begin Source File
@@ -3439,6 +3443,10 @@ SOURCE=.\src\aig\ssw\sswMan.c
 # Begin Source File
 
 SOURCE=.\src\aig\ssw\sswSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssw\sswSim.c
 # End Source File
 # Begin Source File
 

@@ -206,6 +206,9 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pErr, "usage: read_library [-vh]\n");
     fprintf( pErr, "\t         read the library from a genlib file\n" );  
+    fprintf( pErr, "\t         (if the library contains more than one gate\n" );  
+    fprintf( pErr, "\t         with the same Boolean function, only the first gate\n" );  
+    fprintf( pErr, "\t         in the order of their appearance in the file is used)\n" );  
     fprintf( pErr, "\t-h     : enable verbose output\n");
     return 1;       /* error exit */
 }

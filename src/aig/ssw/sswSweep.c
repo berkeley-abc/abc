@@ -74,16 +74,12 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
                 p->pSat->model.ptr[iVar] = (int)(p->pPars->fPolarFlip? 0 : (pObj->fPhase? l_True : l_False));
                 p->pSat->model.size = p->pSat->size;
             }
-        p->nStragers++;
+        p->nStrangers++;
         return;
     }
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-    {
-        // remember the proved equivalence
-//        p->pReprsProved[ pObj->Id ] = pObjRepr;
         return;
-    }
 //    assert( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) );
     if ( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) )
         RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
@@ -92,7 +88,7 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
 
     if ( RetValue == -1 ) // timed out
     {
-        assert( 0 );
+//        assert( 0 );
         Ssw_ClassesRemoveNode( p->ppClasses, pObj );
         p->fRefined = 1;
         return;
@@ -101,13 +97,12 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
     {
         pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
         Ssw_ObjSetFraig( p, pObj, f, pObjFraig2 );
-        // remember the proved equivalence
-//        p->pReprsProved[ pObj->Id ] = pObjRepr;
         return;
     }
     // disproved the equivalence
 //    Ssw_ManResimulateCex( p, pObj, pObjRepr, f );
-    Ssw_ManResimulateCexTotal( p, pObj, pObjRepr, f );
+//    Ssw_ManResimulateCexTotal( p, pObj, pObjRepr, f );
+    Ssw_ManResimulateCexTotalSim( p, pObj, pObjRepr, f );
     assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
     p->fRefined = 1;
 }
@@ -126,7 +121,7 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
 int Ssw_ManSweepBmc( Ssw_Man_t * p )
 {
     Bar_Progress_t * pProgress = NULL;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
     int i, f, clk;
 clk = clock();
 
@@ -154,6 +149,12 @@ clk = clock();
             Ssw_ObjSetFraig( p, pObj, f, pObjNew );
             Ssw_ManSweepNode( p, pObj, f );
         }
+        // quit if this is the last timeframe
+        if ( f == p->pPars->nFramesK - 1 )
+            break;
+        // transfer latch input to the latch outputs 
+        Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+            Ssw_ObjSetFraig( p, pObjLo, f+1, Ssw_ObjChild0Fra(p, pObjLi,f) );
     }
     if ( p->pPars->fVerbose )
         Bar_ProgressStop( pProgress );
@@ -223,7 +224,7 @@ p->timeReduce += clock() - clk;
         if ( Saig_ObjIsLo(p->pAig, pObj) )
             Ssw_ManSweepNode( p, pObj, f );
         else if ( Aig_ObjIsNode(pObj) )
-        {
+        { 
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFraig( p, pObj, f, pObjNew );
             Ssw_ManSweepNode( p, pObj, f );

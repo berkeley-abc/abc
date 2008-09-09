@@ -119,6 +119,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters )
     Abc_NtkForEachCo( pNtk, pObj, i )
         Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj) );
     // complement the 1-valued registers
+    Aig_ManSetRegNum( pMan, Abc_NtkLatchNum(pNtk) );
     if ( fRegisters )
         Aig_ManForEachLiSeq( pMan, pObjNew, i )
             if ( Abc_LatchIsInit1(Abc_ObjFanout0(Abc_NtkCo(pNtk,i))) )

@@ -568,7 +568,7 @@ p->timeTrav += clock() - clk2;
             Fra_OneHotAssume( p, p->vOneHots );
 //        if ( p->pManAig->vOnehots )
 //            Fra_OneHotAddKnownConstraint( p, p->pManAig->vOnehots );
-
+ 
         // report the intermediate results
         if ( pPars->fVerbose )
         {
@@ -580,7 +580,6 @@ p->timeTrav += clock() - clk2;
             if ( p->pPars->fUse1Hot )
                 printf( "1h = %6d. ", Fra_OneHotCount(p, p->vOneHots) );
             printf( "NR = %6d. ", Aig_ManNodeNum(p->pManFraig) );
-            PRT( "T", clock() - clk3 );
 //            printf( "\n" );
         } 
 
@@ -593,12 +592,13 @@ clk2 = clock();
         Fra_FraigSweep( p );
         if ( pPars->fVerbose )
         {
-//            PRT( "t", clock() - clk2 ); 
+            PRT( "T", clock() - clk3 );
         } 
 
 //        Sat_SolverPrintStats( stdout, p->pSat );
         // remove FRAIG and SAT solver
         Aig_ManStop( p->pManFraig );   p->pManFraig = NULL;
+//        printf( "Vars = %d. Clauses = %d. Learnts = %d.\n", p->pSat->size, p->pSat->clauses.size, p->pSat->learnts.size );
         sat_solver_delete( p->pSat );  p->pSat = NULL; 
         memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
 //        printf( "Recent SAT called = %d. Skipped = %d.\n", p->nSatCallsRecent, p->nSatCallsSkipped );
