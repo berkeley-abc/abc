@@ -498,6 +498,42 @@ Vec_Ptr_t * Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOve
 
 /**Function*************************************************************
 
+  Synopsis    [Divides a large partition into several ones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManPartDivide( Vec_Ptr_t * vResult, Vec_Int_t * vDomain, int nPartSize, int nOverSize )
+{
+    Vec_Int_t * vPart;
+    int i, Counter;
+    assert( nPartSize && Vec_IntSize(vDomain) > nPartSize );
+    if ( nOverSize >= nPartSize )
+    {
+        printf( "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
+        printf( "Adjusting it to be equal to half of the partition size.\n" );
+        nOverSize = nPartSize/2;
+    }
+    assert( nOverSize < nPartSize );
+    for ( Counter = 0; Counter < Vec_IntSize(vDomain); Counter -= nOverSize )
+    {
+        vPart = Vec_IntAlloc( nPartSize );
+        for ( i = 0; i < nPartSize; i++, Counter++ )
+            if ( Counter < Vec_IntSize(vDomain) )
+                Vec_IntPush( vPart, Vec_IntEntry(vDomain, Counter) );
+        if ( Vec_IntSize(vPart) <= nOverSize )
+            Vec_IntFree(vPart);
+        else
+            Vec_PtrPush( vResult, vPart );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes partitioning of registers.]
 
   Description []

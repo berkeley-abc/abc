@@ -234,7 +234,8 @@ void Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pR
     // set the PI simulation information
     Aig_ManConst1(p->pAig)->fMarkB = 1;
     Aig_ManForEachPi( p->pAig, pObj, i )
-        pObj->fMarkB = Ssw_ManOriginalPiValue( p, pObj, f );
+//        pObj->fMarkB = Ssw_ManOriginalPiValue( p, pObj, f );
+        pObj->fMarkB = Aig_InfoHasBit( p->pPatWords, i );
     // simulate internal nodes
     Aig_ManForEachNode( p->pAig, pObj, i )
         pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
@@ -253,27 +254,6 @@ p->timeSimSat += clock() - clk;
 
 /**Function*************************************************************
 
-  Synopsis    [Copy pattern from the solver into the internal storage.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_SmlSavePatternAig( Ssw_Man_t * p, int f )
-{
-    Aig_Obj_t * pObj;
-    int i;
-    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Aig_ManForEachPi( p->pAig, pObj, i )
-        if ( Ssw_ManOriginalPiValue( p, pObj, f ) )
-            Aig_InfoSetBit( p->pPatWords, i );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Handle the counter-example.]
 
   Description []
@@ -287,7 +267,7 @@ void Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t *
 {
     int RetValue1, RetValue2, clk = clock();
     // save the counter-example
-    Ssw_SmlSavePatternAig( p, f );
+//    Ssw_SmlSavePatternAig( p, f );
     // set the PI simulation information
     Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
     // simulate internal nodes

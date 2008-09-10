@@ -233,42 +233,6 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
     free( pLatches );
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Divides a large partition into several ones.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fra_FraigInductionPartDivide( Vec_Ptr_t * vResult, Vec_Int_t * vDomain, int nPartSize, int nOverSize )
-{
-    Vec_Int_t * vPart;
-    int i, Counter;
-    assert( nPartSize && Vec_IntSize(vDomain) > nPartSize );
-    if ( nOverSize >= nPartSize )
-    {
-        printf( "Overlap size (%d) is more or equal than the partition size (%d).\n", nOverSize, nPartSize );
-        printf( "Adjusting it to be equal to half of the partition size.\n" );
-        nOverSize = nPartSize/2;
-    }
-    assert( nOverSize < nPartSize );
-    for ( Counter = 0; Counter < Vec_IntSize(vDomain); Counter -= nOverSize )
-    {
-        vPart = Vec_IntAlloc( nPartSize );
-        for ( i = 0; i < nPartSize; i++, Counter++ )
-            if ( Counter < Vec_IntSize(vDomain) )
-                Vec_IntPush( vPart, Vec_IntEntry(vDomain, Counter) );
-        if ( Vec_IntSize(vPart) <= nOverSize )
-            Vec_IntFree(vPart);
-        else
-            Vec_PtrPush( vResult, vPart );
-    }
-}
-
 
 /**Function*************************************************************
 
@@ -304,7 +268,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
         Vec_PtrForEachEntry( (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
         {
             if ( nPartSize && Vec_IntSize(vPart) > nPartSize )
-                Fra_FraigInductionPartDivide( vResult, vPart, nPartSize, pPars->nOverSize );
+                Aig_ManPartDivide( vResult, vPart, nPartSize, pPars->nOverSize );
             else
                 Vec_PtrPush( vResult, Vec_IntDup(vPart) );
         }

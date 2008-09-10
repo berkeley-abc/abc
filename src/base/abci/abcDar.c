@@ -1084,7 +1084,7 @@ int Abc_NtkPartitionedSat( Abc_Ntk_t * pNtk, int nAlgo, int nPartSize, int nConf
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVerbose )
+int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPartition, int fVerbose )
 {
     Aig_Man_t * pMan, * pMan1, * pMan2;
     Abc_Ntk_t * pMiter;
@@ -1102,7 +1102,7 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVe
     {
         pMan1 = Abc_NtkToDar( pNtk1, 0, 0 );
         pMan2 = Abc_NtkToDar( pNtk2, 0, 0 );
-        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, 100, 1, fVerbose );
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, nConfLimit, 100, 1, fVerbose );
         Aig_ManStop( pMan1 );
         Aig_ManStop( pMan2 );
         goto finish;
@@ -1152,7 +1152,7 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVe
         return -1;
     }
     // perform verification
-    RetValue = Fra_FraigCec( &pMan, fVerbose );
+    RetValue = Fra_FraigCec( &pMan, 100000, fVerbose );
     // transfer model if given
     if ( pNtk2 == NULL )
         pNtk1->pModel = pMan->pData, pMan->pData = NULL;

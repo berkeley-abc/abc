@@ -31,6 +31,95 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Mark nodes affected by sweep in the previous iteration.]
+
+  Description [Assumes that affected nodes are in p->ppClasses->vRefined.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManSweepMarkRefinement( Ssw_Man_t * p )
+{
+    Vec_Ptr_t * vRefined, * vSupp;
+    Aig_Obj_t * pObj, * pObjLo, * pObjLi;
+    int i, k;
+    vRefined = Ssw_ClassesGetRefined( p->ppClasses );
+    if ( Vec_PtrSize(vRefined) == 0 )
+    {
+        Aig_ManForEachObj( p->pAig, pObj, i )
+            pObj->fMarkA = 1;
+        return;
+    }
+    // mark the nodes to be refined
+    Aig_ManCleanMarkA( p->pAig );
+    Vec_PtrForEachEntry( vRefined, pObj, i )
+    {
+        if ( Aig_ObjIsPi(pObj) )
+        {
+            pObj->fMarkA = 1;
+            continue;
+        }
+        assert( Aig_ObjIsNode(pObj) );
+        vSupp = Aig_Support( p->pAig, pObj );
+        Vec_PtrForEachEntry( vSupp, pObjLo, k )
+            pObjLo->fMarkA = 1;
+        Vec_PtrFree( vSupp );
+    }
+    // mark refinement
+    Aig_ManForEachNode( p->pAig, pObj, i )
+        pObj->fMarkA = Aig_ObjFanin0(pObj)->fMarkA | Aig_ObjFanin1(pObj)->fMarkA;
+    Saig_ManForEachLi( p->pAig, pObj, i )
+        pObj->fMarkA |= Aig_ObjFanin0(pObj)->fMarkA;
+    Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+        pObjLo->fMarkA |= pObjLi->fMarkA;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlSavePatternAig( Ssw_Man_t * p, int f )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+    Aig_ManForEachPi( p->pAig, pObj, i )
+        if ( Ssw_ManOriginalPiValue( p, pObj, f ) )
+            Aig_InfoSetBit( p->pPatWords, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlSavePatternAigPhase( Ssw_Man_t * p, int f )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+    Aig_ManForEachPi( p->pAig, pObj, i )
+        if ( Aig_ObjPhaseReal( Ssw_ObjFraig(p, pObj, f) ) )
+            Aig_InfoSetBit( p->pPatWords, i );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs fraiging for one node.]
 
   Description [Returns the fraiged node.]
@@ -40,7 +129,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
+void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
 { 
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
@@ -50,59 +139,58 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
         return;
     // get the fraiged node
     pObjFraig = Ssw_ObjFraig( p, pObj, f );
-    assert( pObjFraig != NULL );
     // get the fraiged representative
     pObjReprFraig = Ssw_ObjFraig( p, pObjRepr, f );
-    assert( pObjReprFraig != NULL );
     // check if constant 0 pattern distinquishes these nodes
+    assert( pObjFraig != NULL && pObjReprFraig != NULL );
     if ( (pObj->fPhase == pObjRepr->fPhase) != (Aig_ObjPhaseReal(pObjFraig) == Aig_ObjPhaseReal(pObjReprFraig)) )
     {
-        Aig_Obj_t * pObj;
-        int i;
-        if ( p->pSat->model.cap < p->pSat->size )
-        {
-            veci_resize(&p->pSat->model, 0);
-            for ( i = 0; i < p->pSat->size; i++ ) 
-                veci_push( &p->pSat->model, (int)l_False );
-        }
-        // set the values of SAT vars to be equal to the phase of the nodes
-        Aig_ManForEachObj( p->pFrames, pObj, i )
-            if ( Ssw_ObjSatNum( p, pObj ) )
-            {
-                int iVar = Ssw_ObjSatNum( p, pObj );
-                assert( iVar < p->pSat->size );
-                p->pSat->model.ptr[iVar] = (int)(p->pPars->fPolarFlip? 0 : (pObj->fPhase? l_True : l_False));
-                p->pSat->model.size = p->pSat->size;
-            }
         p->nStrangers++;
-        return;
+        Ssw_SmlSavePatternAigPhase( p, f );
     }
-    // if the fraiged nodes are the same, return
-    if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-        return;
-//    assert( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) );
-    if ( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) )
-        RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
     else
-        RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjFraig), Aig_Regular(pObjReprFraig) );
-
-    if ( RetValue == -1 ) // timed out
     {
-//        assert( 0 );
-        Ssw_ClassesRemoveNode( p->ppClasses, pObj );
-        p->fRefined = 1;
-        return;
+        // if the fraiged nodes are the same, return
+        if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
+            return;
+        // count the number of skipped calls
+        if ( !pObj->fMarkA && !pObjRepr->fMarkA )
+            p->nRefSkip++;
+        else
+            p->nRefUse++;
+        // call equivalence checking
+        if ( p->pPars->fSkipCheck && !fBmc && !pObj->fMarkA && !pObjRepr->fMarkA )
+            RetValue = 1;
+        else if ( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pFrames) )
+            RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
+        else
+            RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjFraig), Aig_Regular(pObjReprFraig) );
+        if ( RetValue == 1 )  // proved equivalent
+        {
+            pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
+            Ssw_ObjSetFraig( p, pObj, f, pObjFraig2 );
+            return;
+        }
+        if ( RetValue == -1 ) // timed out
+        {
+            Ssw_ClassesRemoveNode( p->ppClasses, pObj );
+            p->fRefined = 1;
+            return;
+        }
+        // check if skipping calls works correctly
+        if ( p->pPars->fSkipCheck && !fBmc && !pObj->fMarkA && !pObjRepr->fMarkA )
+        {
+            assert( 0 );
+            printf( "\nMistake!!!\n" );
+        }
+        // disproved the equivalence
+        Ssw_SmlSavePatternAig( p, f );
     }
-    if ( RetValue == 1 )  // proved equivalent
-    {
-        pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
-        Ssw_ObjSetFraig( p, pObj, f, pObjFraig2 );
-        return;
-    }
-    // disproved the equivalence
 //    Ssw_ManResimulateCex( p, pObj, pObjRepr, f );
-//    Ssw_ManResimulateCexTotal( p, pObj, pObjRepr, f );
-    Ssw_ManResimulateCexTotalSim( p, pObj, pObjRepr, f );
+    if ( p->pPars->nConstrs == 0 )
+        Ssw_ManResimulateCexTotalSim( p, pObj, pObjRepr, f );
+    else
+        Ssw_ManResimulateCexTotal( p, pObj, pObjRepr, f );
     assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
     p->fRefined = 1;
 }
@@ -147,7 +235,7 @@ clk = clock();
                 Bar_ProgressUpdate( pProgress, Aig_ManObjNumMax(p->pAig) * f + i, NULL );
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFraig( p, pObj, f, pObjNew );
-            Ssw_ManSweepNode( p, pObj, f );
+            Ssw_ManSweepNode( p, pObj, f, 1 );
         }
         // quit if this is the last timeframe
         if ( f == p->pPars->nFramesK - 1 )
@@ -205,6 +293,12 @@ clk = clock();
     sat_solver_simplify( p->pSat );
 p->timeReduce += clock() - clk;
 
+    // mark nodes that do not have to be refined
+clk = clock();
+    if ( p->pPars->fSkipCheck )
+        Ssw_ManSweepMarkRefinement( p );
+p->timeMarkCones += clock() - clk;
+
     // map constants and PIs of the last frame
     f = p->pPars->nFramesK;
     Ssw_ObjSetFraig( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
@@ -215,6 +309,9 @@ p->timeReduce += clock() - clk;
         assert( Ssw_ObjFraig( p, pObj, f ) != NULL );
     // sweep internal nodes
     p->fRefined = 0;
+    p->nSatFailsReal = 0;
+    p->nRefUse = p->nRefSkip = 0;
+    Ssw_ClassesClearRefined( p->ppClasses );
     if ( p->pPars->fVerbose )
         pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) );
     Aig_ManForEachObj( p->pAig, pObj, i )
@@ -222,14 +319,16 @@ p->timeReduce += clock() - clk;
         if ( p->pPars->fVerbose )
             Bar_ProgressUpdate( pProgress, i, NULL );
         if ( Saig_ObjIsLo(p->pAig, pObj) )
-            Ssw_ManSweepNode( p, pObj, f );
+            Ssw_ManSweepNode( p, pObj, f, 0 );
         else if ( Aig_ObjIsNode(pObj) )
         { 
+            pObj->fMarkA = Aig_ObjFanin0(pObj)->fMarkA | Aig_ObjFanin1(pObj)->fMarkA;
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFraig( p, pObj, f, pObjNew );
-            Ssw_ManSweepNode( p, pObj, f );
+            Ssw_ManSweepNode( p, pObj, f, 0 );
         }
     }
+    p->nSatFailsTotal += p->nSatFailsReal;
     if ( p->pPars->fVerbose )
         Bar_ProgressStop( pProgress );
 

@@ -44,11 +44,14 @@ struct Ssw_Pars_t_
     int              nPartSize;     // size of the partition
     int              nOverSize;     // size of the overlap between partitions
     int              nFramesK;      // the induction depth
+    int              nFramesAddSim; // the number of additional frames to simulate
     int              nConstrs;      // treat the last nConstrs POs as seq constraints
     int              nMaxLevs;      // the max number of levels of nodes to consider
     int              nBTLimit;      // conflict limit at a node
+    int              nMinDomSize;   // min clock domain considered for optimization
     int              fPolarFlip;    // uses polarity adjustment
     int              fLatchCorr;    // perform register correspondence
+    int              fSkipCheck;    // does not run equivalence check for unaffected cones
     int              fVerbose;      // verbose stats
     // internal parameters
     int              nIters;        // the number of iterations performed
@@ -77,6 +80,8 @@ struct Ssw_Cex_t_
 /*=== sswCore.c ==========================================================*/
 extern void          Ssw_ManSetDefaultParams( Ssw_Pars_t * p );
 extern Aig_Man_t *   Ssw_SignalCorrespondence( Aig_Man_t * p, Ssw_Pars_t * pPars );
+/*=== sswPart.c ==========================================================*/
+extern Aig_Man_t *   Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 
 
 #ifdef __cplusplus

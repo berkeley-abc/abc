@@ -99,27 +99,28 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjNumMax(p->pAig)*p->nFrames*(2*sizeof(int)+2*sizeof(void*))/(1<<20);
 
-    printf( "Parameters: Frames = %d. Conf limit = %d. Constrs = %d. Max lev = %d. Mem = %0.2f Mb.\n", 
-        p->pPars->nFramesK, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->nMaxLevs, nMemory );
+    printf( "Parameters: Fr = %d. C-limit = %d. Constr = %d. SkipCheck = %d. MaxLev = %d. Mem = %0.2f Mb.\n", 
+        p->pPars->nFramesK, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->fSkipCheck, p->pPars->nMaxLevs, nMemory );
     printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
         Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
         p->nSatVarsTotal/p->pPars->nIters );
-    printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. FailReal = %d.  Equivs = %d. Str = %d.\n", 
-        p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, Ssw_ManCountEquivs(p), p->nStrangers );
+    printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Equivs = %d. Str = %d.\n", 
+        p->nSatProof, p->nSatCallsSat, p->nSatFailsTotal, Ssw_ManCountEquivs(p), p->nStrangers );
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
 
-    p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeSimSat-p->timeSat;
-    PRTP( "BMC        ", p->timeBmc,      p->timeTotal );
-    PRTP( "Spec reduce", p->timeReduce,   p->timeTotal );
-    PRTP( "Sim SAT    ", p->timeSimSat,   p->timeTotal );
-    PRTP( "SAT solving", p->timeSat,      p->timeTotal );
-    PRTP( "  unsat    ", p->timeSatUnsat, p->timeTotal );
-    PRTP( "  sat      ", p->timeSatSat,   p->timeTotal );
-    PRTP( "  undecided", p->timeSatUndec, p->timeTotal );
-    PRTP( "Other      ", p->timeOther,    p->timeTotal );
-    PRTP( "TOTAL      ", p->timeTotal,    p->timeTotal );
+    p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeMarkCones-p->timeSimSat-p->timeSat;
+    PRTP( "BMC        ", p->timeBmc,       p->timeTotal );
+    PRTP( "Spec reduce", p->timeReduce,    p->timeTotal );
+    PRTP( "Mark cones ", p->timeMarkCones, p->timeTotal );
+    PRTP( "Sim SAT    ", p->timeSimSat,    p->timeTotal );
+    PRTP( "SAT solving", p->timeSat,       p->timeTotal );
+    PRTP( "  unsat    ", p->timeSatUnsat,  p->timeTotal );
+    PRTP( "  sat      ", p->timeSatSat,    p->timeTotal );
+    PRTP( "  undecided", p->timeSatUndec,  p->timeTotal );
+    PRTP( "Other      ", p->timeOther,     p->timeTotal );
+    PRTP( "TOTAL      ", p->timeTotal,     p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -167,6 +168,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManStop( Ssw_Man_t * p )
 {
+    Aig_ManCleanMarkA( p->pAig );
     if ( p->pPars->fVerbose )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )

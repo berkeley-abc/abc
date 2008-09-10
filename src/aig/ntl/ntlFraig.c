@@ -20,6 +20,7 @@
 
 #include "ntl.h"
 #include "fra.h"
+#include "ssw.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -494,7 +495,43 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     return pNew;
 }
 
+/**Function*************************************************************
 
+  Synopsis    [Returns AIG with WB after fraiging.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Man_t * Ntl_ManScorr( Ntl_Man_t * p, Ssw_Pars_t * pPars )
+{
+    Ntl_Man_t * pNew, * pAux;
+    Aig_Man_t * pAig, * pAigCol, * pTemp;
+
+    // collapse the AIG
+    pAig = Ntl_ManExtract( p );
+    pNew = Ntl_ManInsertAig( p, pAig );
+    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize );
+    if ( pAigCol == NULL )
+    {
+        Aig_ManStop( pAig );
+        return pNew;
+    }
+
+    // perform SCL for the given design
+    pTemp = Ssw_SignalCorrespondence( pAigCol, pPars );
+    Aig_ManStop( pTemp );
+
+    // finalize the transformation
+    pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, pPars->fVerbose );
+    Ntl_ManFree( pAux );
+    Aig_ManStop( pAig );
+    Aig_ManStop( pAigCol );
+    return pNew;
+}
 
 
 /**Function*************************************************************

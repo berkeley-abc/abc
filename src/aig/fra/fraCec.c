@@ -157,11 +157,11 @@ int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fFl
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigCec( Aig_Man_t ** ppAig, int fVerbose )
+int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
 {
-    int nBTLimitStart =     300;  // starting SAT run
-    int nBTLimitFirst =       2;  // first fraiging iteration
-    int nBTLimitLast  = 1000000;  // the last-gasp SAT run
+    int nBTLimitStart =        300;   // starting SAT run
+    int nBTLimitFirst =          2;   // first fraiging iteration
+    int nBTLimitLast  = nConfLimit;   // the last-gasp SAT run
 
     Fra_Par_t Params, * pParams = &Params;
     Aig_Man_t * pAig = *ppAig, * pTemp;
@@ -270,7 +270,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nPartSize, int fSmart, int fVerbose )
+int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int nPartSize, int fSmart, int fVerbose )
 {
     Aig_Man_t * pAig;
     Vec_Ptr_t * vParts;
@@ -294,7 +294,7 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nPartSize
             continue;
         if ( RetValue == 0 )
             break;
-        RetValue = Fra_FraigCec( &pAig, 0 );
+        RetValue = Fra_FraigCec( &pAig, nConfLimit, 0 );
         Vec_PtrWriteEntry( vParts, i, pAig );
         if ( RetValue == 1 )
             continue;
@@ -361,9 +361,9 @@ int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int n
     assert( Aig_ManNodeNum(pMan1) >= Aig_ManNodeNum(pMan2) );
 
     if ( nPartSize )
-        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, nPartSize, fSmart, fVerbose );
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, nConfLimit, nPartSize, fSmart, fVerbose );
     else // no partitioning
-        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, Aig_ManPoNum(pMan1), 0, fVerbose );
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, nConfLimit, Aig_ManPoNum(pMan1), 0, fVerbose );
 
     // report the miter
     if ( RetValue == 1 )

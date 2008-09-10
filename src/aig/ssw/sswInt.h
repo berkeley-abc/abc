@@ -57,6 +57,8 @@ struct Ssw_Man_t_
     // equivalence classes
     Ssw_Cla_t *      ppClasses;      // equivalence classes of nodes
     int              fRefined;       // is set to 1 when refinement happens
+    int              nRefUse;
+    int              nRefSkip;  
     // SAT solving
     sat_solver *     pSat;           // recyclable SAT solver
     int              nSatVars;       // the counter of SAT variables
@@ -77,8 +79,8 @@ struct Ssw_Man_t_
     // SAT calls statistics
     int              nSatCalls;      // the number of SAT calls
     int              nSatProof;      // the number of proofs
-    int              nSatFails;      // the number of timeouts
     int              nSatFailsReal;  // the number of timeouts
+    int              nSatFailsTotal; // the number of timeouts
     int              nSatCallsUnsat; // the number of unsat SAT calls
     int              nSatCallsSat;   // the number of sat SAT calls
     // node/register/lit statistics
@@ -91,6 +93,7 @@ struct Ssw_Man_t_
     // runtime stats
     int              timeBmc;        // bounded model checking
     int              timeReduce;     // speculative reduction
+    int              timeMarkCones;  // marking the cones not to be refined
     int              timeSimSat;     // simulation of the counter-examples
     int              timeSat;        // solving SAT
     int              timeSatSat;     // sat
@@ -136,6 +139,8 @@ extern void          Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData,
                          int (*pFuncNodeIsConst)(void *,Aig_Obj_t *),
                          int (*pFuncNodesAreEqual)(void *,Aig_Obj_t *, Aig_Obj_t *) );
 extern void          Ssw_ClassesStop( Ssw_Cla_t * p );
+extern Vec_Ptr_t *   Ssw_ClassesGetRefined( Ssw_Cla_t * p );
+extern void          Ssw_ClassesClearRefined( Ssw_Cla_t * p );
 extern int           Ssw_ClassesCand1Num( Ssw_Cla_t * p );
 extern int           Ssw_ClassesClassNum( Ssw_Cla_t * p );
 extern int           Ssw_ClassesLitNum( Ssw_Cla_t * p );
@@ -143,7 +148,7 @@ extern Aig_Obj_t **  Ssw_ClassesReadClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int
 extern void          Ssw_ClassesCheck( Ssw_Cla_t * p );
 extern void          Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose );
 extern void          Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj );
-extern Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
+extern Ssw_Cla_t *   Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, int fVerbose );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
 extern int           Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive );
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
@@ -171,6 +176,7 @@ extern int           Ssw_SmlNodesAreEqual( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig
 extern void          Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat );
 extern void          Ssw_SmlSimulateOne( Ssw_Sml_t * p );
 /*=== sswSimSat.c ===================================================*/
+extern int           Ssw_ManOriginalPiValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f );
 extern void          Ssw_ManResimulateCex( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
 extern void          Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
 extern void          Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );

@@ -46,6 +46,7 @@ struct Ssw_Cla_t_
     // temporary data
     Vec_Ptr_t *      vClassOld;        // old equivalence class after splitting
     Vec_Ptr_t *      vClassNew;        // new equivalence class(es) after splitting
+    Vec_Ptr_t *      vRefined;         // the nodes refined since the last iteration
     // procedures used for class refinement
     void *           pManData;
     unsigned (*pFuncNodeHash) (void *,Aig_Obj_t *);              // returns hash key of the node
@@ -141,6 +142,7 @@ Ssw_Cla_t * Ssw_ClassesStart( Aig_Man_t * pAig )
     p->pClassSizes  = CALLOC( int, Aig_ManObjNumMax(pAig) );
     p->vClassOld    = Vec_PtrAlloc( 100 );
     p->vClassNew    = Vec_PtrAlloc( 100 );
+    p->vRefined     = Vec_PtrAlloc( 1000 );
     assert( pAig->pReprs == NULL );
     Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
     return p;
@@ -183,10 +185,43 @@ void Ssw_ClassesStop( Ssw_Cla_t * p )
 {
     if ( p->vClassNew )    Vec_PtrFree( p->vClassNew );
     if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
+    Vec_PtrFree( p->vRefined );
     FREE( p->pId2Class );
     FREE( p->pClassSizes );
     FREE( p->pMemClasses );
     free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Ssw_ClassesGetRefined( Ssw_Cla_t * p )
+{
+    return p->vRefined;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ClassesClearRefined( Ssw_Cla_t * p )
+{
+    Vec_PtrClear( p->vRefined );
 }
 
 /**Function*************************************************************
@@ -368,12 +403,14 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
     assert( p->pId2Class[pObj->Id] == NULL );
     pRepr = Aig_ObjRepr( p->pAig, pObj );
     assert( pRepr != NULL );
+    Vec_PtrPush( p->vRefined, pObj );
     if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
     {
         Aig_ObjSetRepr( p->pAig, pObj, NULL );
         p->nCands1--;
         return;
     }
+    Vec_PtrPush( p->vRefined, pRepr );
     Aig_ObjSetRepr( p->pAig, pObj, NULL );
     assert( p->pId2Class[pRepr->Id][0] == pRepr );
     assert( p->pClassSizes[pRepr->Id] >= 2 );
@@ -409,7 +446,7 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs )
+Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, int fVerbose )
 {
     Ssw_Cla_t * p;
     Ssw_Sml_t * pSml;
@@ -424,7 +461,10 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs )
     // perform sequential simulation
 clk = clock();
     pSml = Ssw_SmlSimulateSeq( pAig, 0, 32, 4 );
+if ( fVerbose )
+{
 PRT( "Simulation of 32 frames with 4 words", clock() - clk );
+}
 
     // set comparison procedures
 clk = clock();
@@ -441,7 +481,7 @@ clk = clock();
     {
         if ( fLatchCorr )
         {
-            if ( !Saig_ObjIsPi(p->pAig, pObj) )
+            if ( !Saig_ObjIsLo(p->pAig, pObj) )
                 continue;
         }
         else
@@ -521,7 +561,10 @@ clk = clock();
     Ssw_ClassesCheck( p );
     Ssw_SmlStop( pSml );
 //    Ssw_ClassesPrint( p, 0 );
+if ( fVerbose )
+{
 PRT( "Collecting candidate equival classes", clock() - clk );
+}
     return p;
 }
 
@@ -597,8 +640,6 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
     }
     // allocate room for classes
     p->pMemClassesFree = p->pMemClasses = ALLOC( Aig_Obj_t *, p->nCands1 );
-    // set comparison procedures
-    Ssw_ClassesSetData( p, NULL, NULL, Ssw_NodeIsConstCex, Ssw_NodesAreEqualCex );
 //    Ssw_ClassesPrint( p, 0 );
     return p;
 }
@@ -631,6 +672,9 @@ int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
     // check if splitting happened
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
+    // remember that this class is refined
+    Ssw_ClassForEachNode( p, pReprOld, pObj, i )
+        Vec_PtrPush( p->vRefined, pObj );
 
     // get the new representative
     pReprNew = Vec_PtrEntry( p->vClassNew, 0 );
@@ -751,7 +795,10 @@ int Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive )
         {
             pObj = Aig_ManObj( p->pAig, i );
             if ( !p->pFuncNodeIsConst( p->pManData, pObj ) )
+            {
                 Vec_PtrPush( p->vClassNew, pObj );
+                Vec_PtrPush( p->vRefined, pObj );
+            }
         }
     // check if there is a new class
     if ( Vec_PtrSize(p->vClassNew) == 0 )

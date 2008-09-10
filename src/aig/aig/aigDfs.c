@@ -685,6 +685,55 @@ int Aig_SupportSize( Aig_Man_t * p, Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_Support_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vSupp )
+{
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        Vec_PtrPush( vSupp, pObj );
+        return;
+    }
+    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
+    Aig_Support_rec( p, Aig_ObjFanin0(pObj), vSupp );
+    if ( Aig_ObjFanin1(pObj) )
+        Aig_Support_rec( p, Aig_ObjFanin1(pObj), vSupp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_Support( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Vec_Ptr_t * vSupp;
+    assert( !Aig_IsComplement(pObj) );
+    assert( !Aig_ObjIsPo(pObj) );
+    Aig_ManIncrementTravId( p );
+    vSupp = Vec_PtrAlloc( 100 );
+    Aig_Support_rec( p, pObj, vSupp );
+    return vSupp;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transfers the AIG from one manager into another.]
 
   Description []

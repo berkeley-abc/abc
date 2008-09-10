@@ -230,7 +230,7 @@ PRT( "Time", clock() - clk );
     }
 
     if ( pNew->nRegs == 0 )
-        RetValue = Fra_FraigCec( &pNew, 0 );
+        RetValue = Fra_FraigCec( &pNew, 100000, 0 );
 
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue >= 0 )

@@ -3442,6 +3442,10 @@ SOURCE=.\src\aig\ssw\sswMan.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ssw\sswPart.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ssw\sswSat.c
 # End Source File
 # Begin Source File

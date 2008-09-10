@@ -45,8 +45,10 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nPartSize      =     0;  // size of the partition
     p->nOverSize      =     0;  // size of the overlap between partitions
     p->nFramesK       =     1;  // the induction depth
+    p->nFramesAddSim  =     2;  // additional frames to simulate
     p->nConstrs       =     0;  // treat the last nConstrs POs as seq constraints
     p->nBTLimit       =  1000;  // conflict limit at a node
+    p->nMinDomSize    =   100;  // min clock domain considered for optimization
     p->fPolarFlip     =     0;  // uses polarity adjustment
     p->fLatchCorr     =     0;  // performs register correspondence
     p->fVerbose       =     0;  // verbose stats
@@ -71,21 +73,44 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     int RetValue, nIter, clk, clkTotal = clock();
     // reset random numbers
     Aig_ManRandom( 1 );
+
+    // consider the case of empty AIG
+    if ( Aig_ManNodeNum(pAig) == 0 )
+    {
+        pPars->nIters = 0;
+        // Ntl_ManFinalize() needs the following to satisfy an assertion
+        Aig_ManReprStart( pAig,Aig_ManObjNumMax(pAig) );
+        return Aig_ManDupOrdered(pAig);
+    }
+
+    // check and update parameters
+    assert( Aig_ManRegNum(pAig) > 0 );
+    assert( pPars->nFramesK > 0 );
+    if ( pPars->nFramesK > 1 )
+        pPars->fSkipCheck = 0;
+
+    // perform partitioning
+    if ( (pPars->nPartSize > 0 && pPars->nPartSize < Aig_ManRegNum(pAig))
+         || (pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0)  )
+        return Ssw_SignalCorrespondencePart( pAig, pPars );
+
     // start the choicing manager
     p = Ssw_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
+//    p->pPars->nConstrs = 1;
     if ( p->pPars->nConstrs == 0 )
     {
-        p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
-        p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + 2, 2 );
+        // perform one round of seq simulation and generate candidate equivalence classes
+        p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
+        p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
         Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlNodeHash, Ssw_SmlNodeIsConst, Ssw_SmlNodesAreEqual );
     }
     else
     {
-        assert( 0 );
+        // create trivial equivalence classes with all nodes being candidates for constant 1
         p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
+        Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_NodeIsConstCex, Ssw_NodesAreEqualCex );
     }
-//    Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_NodeIsConstCex, Ssw_NodesAreEqualCex );
 
     // get the starting stats
     p->nLitsBeg  = Ssw_ClassesLitNum( p->ppClasses );
@@ -111,9 +136,11 @@ clk = clock();
         RetValue = Ssw_ManSweep( p );
         if ( pPars->fVerbose )
         {
-            printf( "%3d : Const = %6d. Cl = %6d.  L = %6d. LR = %6d.  NR = %6d. ", 
+            printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
                 nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
-                p->nConstrTotal, p->nConstrReduced, Aig_ManNodeNum(p->pFrames) );
+                p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nSatFailsReal );
+            printf( "Use = %5d. Skip = %5d. ", 
+                p->nRefUse, p->nRefSkip );
             PRT( "T", clock() - clk );
         } 
         Ssw_ManCleanup( p );
@@ -132,6 +159,8 @@ p->timeTotal = clock() - clkTotal;
     Ssw_ManStop( p );
     return pAigNew;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

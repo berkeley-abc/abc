@@ -245,6 +245,7 @@ static int Abc_CommandAbc8Fraig      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Ssw        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Scorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Sweep      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Zero       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -506,6 +507,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*ssw",          Abc_CommandAbc8Ssw,          0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*scorr",        Abc_CommandAbc8Scorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*sw",           Abc_CommandAbc8Sweep,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*zero",         Abc_CommandAbc8Zero,         0 );
 
@@ -7681,7 +7683,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-    Abc_Ntk_t * pNtkRes;
+//    Abc_Ntk_t * pNtkRes;
     int c;
     int fBmc;
     int nFrames;
@@ -7700,7 +7702,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+//    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
@@ -7869,7 +7871,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 
-
+/*
 //    pNtkRes = Abc_NtkDar( pNtk );
 //    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 ); 
 //    pNtkRes = Abc_NtkPcmTestAig( pNtk, fVerbose );
@@ -7883,7 +7885,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
-
+*/
 
 
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
@@ -13483,7 +13485,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-PQNFL num] [-lrfetvh]\n" );
+    fprintf( pErr, "usage: ssweep [-PQNFL <num>] [-lrfetvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -13528,7 +13530,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNplvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13595,7 +13597,18 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nConstrs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nConstrs <= 0 ) 
+            if ( pPars->nConstrs < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesAddSim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesAddSim < 0 ) 
                 goto usage;
             break;
         case 'p':
@@ -13603,6 +13616,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'l':
             pPars->fLatchCorr ^= 1;
+            break;
+        case 's':
+            pPars->fSkipCheck ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -13656,7 +13672,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scorr [-PQFCLN num] [-plvh]\n" );
+    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -13664,8 +13680,10 @@ usage:
     fprintf( pErr, "\t-C num : max number of conflicts at a node (0=inifinite) [default = %d]\n", pPars->nBTLimit );
     fprintf( pErr, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
     fprintf( pErr, "\t-N num : number of last POs treated as constraints (0=none) [default = %d]\n", pPars->nConstrs );
+    fprintf( pErr, "\t-S num : additional simulation frames for c-examples (0=none) [default = %d]\n", pPars->nFramesAddSim );
     fprintf( pErr, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle skipping unaffected cones [default = %s]\n", pPars->fSkipCheck? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -14586,7 +14604,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMiter;
 
     extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fAlignPol, int fAndOuts, int fVerbose );
-    extern int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVerbose );
+    extern int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPartition, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -14687,7 +14705,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fSat && fMiter )
         Abc_NtkDSat( pNtk1, nConfLimit, nInsLimit, 0, 0, fVerbose );
     else
-        Abc_NtkDarCec( pNtk1, pNtk2, fPartition, fVerbose );
+        Abc_NtkDarCec( pNtk1, pNtk2, nConfLimit, fPartition, fVerbose );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
@@ -18764,6 +18782,182 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    void * pNtlNew;
+    Ssw_Pars_t Pars, * pPars = &Pars;
+    int c;
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+    extern void * Ntl_ManScorr( void * p, Ssw_Pars_t * pPars );
+    extern int Ntl_ManIsComb( void * p );
+
+    // set defaults
+    Ssw_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPartSize < 2 ) 
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nOverSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nOverSize < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesK = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesK <= 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit <= 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxLevs <= 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConstrs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConstrs < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesAddSim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesAddSim < 0 ) 
+                goto usage;
+            break;
+        case 'p':
+            pPars->fPolarFlip ^= 1;
+            break;
+        case 'l':
+            pPars->fLatchCorr ^= 1;
+            break;
+        case 's':
+            pPars->fSkipCheck ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): There is no design to SAT sweep.\n" );
+        return 1;
+    }
+
+    if ( Ntl_ManIsComb(pAbc->pAbc8Ntl) )
+    {
+        fprintf( stdout, "The network is combinational (run \"*fraig\").\n" );
+        return 0;
+    }
+
+    // get the input file name
+    pNtlNew = Ntl_ManScorr( pAbc->pAbc8Ntl, pPars );
+    if ( pNtlNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Scorr(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Scorr(): Reading BLIF has failed.\n" );
+        return 1;
+    }
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Scorr(): AIG extraction has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *scorr [-PQFCLNS <num>] [-plsvh]\n" );
+    fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
+    fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
+    fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
+    fprintf( stdout, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", pPars->nFramesK );
+    fprintf( stdout, "\t-C num : max number of conflicts at a node (0=inifinite) [default = %d]\n", pPars->nBTLimit );
+    fprintf( stdout, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
+    fprintf( stdout, "\t-N num : number of last POs treated as constraints (0=none) [default = %d]\n", pPars->nConstrs );
+    fprintf( stdout, "\t-S num : additional simulation frames for c-examples (0=none) [default = %d]\n", pPars->nFramesAddSim );
+    fprintf( stdout, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
+    fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
+    fprintf( stdout, "\t-s     : toggle skipping unaffected cones [default = %s]\n", pPars->fSkipCheck? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     void * pNtlTemp;
@@ -18956,7 +19150,7 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int nPartSize, int fSmart, int fVerbose );
 
     // set defaults
-    nConfLimit = 10000;   
+    nConfLimit = 100000;   
     nPartSize  = 100;
     fSmart     = 0;
     fVerbose   = 0;
