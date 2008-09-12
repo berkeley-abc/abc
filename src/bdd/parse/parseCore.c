@@ -362,6 +362,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
 
         default:
             // scan the next name
+/*
             fFound = 0;
             for ( i = 0; pTemp[i] && pTemp[i] != ' ' && pTemp[i] != '\t' && pTemp[i] != '\r' && pTemp[i] != '\n'; i++ )
             {
@@ -375,13 +376,31 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
                 if ( fFound )
                     break;
             }
+*/ 
+            // bug fix by SV (9/11/08)
+            fFound = 0;
+            for ( i = 0; pTemp[i] && pTemp[i] != ' ' && pTemp[i] != '\t' && pTemp[i] != '\r' && pTemp[i] != '\n' && 
+                         pTemp[i] != PARSE_SYM_AND1 && pTemp[i] != PARSE_SYM_AND2 && pTemp[i] != PARSE_SYM_XOR1 &&
+                         pTemp[i] != PARSE_SYM_XOR2 && pTemp[i] != PARSE_SYM_XOR3 && pTemp[i] != PARSE_SYM_XOR  &&
+                         pTemp[i] != PARSE_SYM_OR1  && pTemp[i] != PARSE_SYM_OR2  && pTemp[i] != PARSE_SYM_CLOSE;
+                  i++ )
+            {}
+            for ( v = 0; v < nVars; v++ ) 
+            {
+                if ( strncmp( pTemp, ppVarNames[v], i ) == 0 && strlen(ppVarNames[v]) == (unsigned)(i) )
+                {
+                    pTemp += i-1;
+                    fFound = 1;
+                    break;
+                }
+            }
+
             if ( !fFound )
             { 
                 fprintf( pOutput, "Parse_FormulaParser(): The parser cannot find var \"%s\" in the input var list.\n", pTemp ); 
                 Flag = PARSE_FLAG_ERROR; 
                 break; 
             }
-
             // assume operation AND, if vars follow one another
             if ( Flag == PARSE_FLAG_VAR )
                 Parse_StackOpPush( pStackOp, PARSE_OPER_AND );

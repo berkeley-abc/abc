@@ -222,6 +222,7 @@ clk = clock();
     p->fRefined = 0;
     if ( p->pPars->fVerbose )
         pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
+    Ssw_ManStartSolver( p );
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // map constants and PIs
@@ -241,8 +242,13 @@ clk = clock();
         if ( f == p->pPars->nFramesK - 1 )
             break;
         // transfer latch input to the latch outputs 
+        // build logic cones for register outputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
-            Ssw_ObjSetFraig( p, pObjLo, f+1, Ssw_ObjChild0Fra(p, pObjLi,f) );
+        {
+            pObjNew = Ssw_ObjChild0Fra(p, pObjLi,f);
+            Ssw_ObjSetFraig( p, pObjLo, f+1, pObjNew );
+            Ssw_CnfNodeAddToSolver( p, Aig_Regular(pObjNew) );
+        }
     }
     if ( p->pPars->fVerbose )
         Bar_ProgressStop( pProgress );

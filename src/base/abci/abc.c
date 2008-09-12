@@ -199,6 +199,7 @@ static int Abc_CommandCycle          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandXsim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDarPhase       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSynch          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -463,6 +464,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "xsim",          Abc_CommandXsim,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "sim",           Abc_CommandSim,              0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "phase",         Abc_CommandDarPhase,         1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "synch",         Abc_CommandSynch,            1 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
@@ -4862,7 +4864,6 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
-
     // compute the miter
     pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize, fImplic, fMulti );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
@@ -14424,6 +14425,121 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSynch( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtkRes, * pNtk1, * pNtk2, * pNtk;
+    char ** pArgvNew;
+    int nArgcNew;
+    int fDelete1, fDelete2;
+    int c;
+    int nWords;
+    int fVerbose;
+
+    extern Abc_Ntk_t * Abc_NtkDarSynch( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nWords, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarSynchOne( Abc_Ntk_t * pNtk, int nWords, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nWords   =  32;
+    fVerbose =   1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Wvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords <= 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew == 0 )
+    {
+        if ( pNtk == NULL )
+        {
+            fprintf( pErr, "Empty network.\n" );
+            return 1;
+        }
+        pNtkRes = Abc_NtkDarSynchOne( pNtk, nWords, fVerbose );
+    }
+    else
+    {
+        if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+            return 1;
+        if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
+        {
+            if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
+            if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
+            printf( "The network has no latches..\n" );
+            return 0;
+        }
+
+        // modify the current network
+        pNtkRes = Abc_NtkDarSynch( pNtk1, pNtk2, nWords, fVerbose );
+        if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
+        if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
+    }
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Synchronization has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: synch [-W <num>] [-vh] <file1> <file2>\n" );
+    fprintf( pErr, "\t         derives and applies synchronization sequence\n" );
+    fprintf( pErr, "\t-W num : the number of simulation words [default = %d]\n", nWords );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\tfile1  : (optional) the file with the first design\n");
+    fprintf( pErr, "\tfile2  : (optional) the file with the second design\n\n");
+    fprintf( pErr, "\t         If no designs are given on the command line,\n" );
+    fprintf( pErr, "\t         assumes the current network has no initial state,\n" );
+    fprintf( pErr, "\t         derives synchronization sequence and applies it.\n\n" );
+    fprintf( pErr, "\t         If two designs are given on the command line\n" );
+    fprintf( pErr, "\t         assumes both of them have no initial state,\n" );
+    fprintf( pErr, "\t         derives sequences for both designs, synchorinizes\n" );
+    fprintf( pErr, "\t         them, and creates SEC miter comparing two designs.\n\n" );
+    fprintf( pErr, "\t         If only one design is given on the command line,\n" );
+    fprintf( pErr, "\t         considers the second design to be the current network,\n" );
+    fprintf( pErr, "\t         and derives SEC miter for them, as described above.\n" );
+    return 1;
+}
 
 
 /**Function*************************************************************
@@ -14842,6 +14958,8 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
     {
+        if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
+        if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
         printf( "The network has no latches. Used combinational command \"cec\".\n" );
         return 0;
     }
@@ -14960,9 +15078,10 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
-
     if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
     {
+        if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
+        if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
         printf( "The network has no latches. Used combinational command \"cec\".\n" );
         return 0;
     }

@@ -234,7 +234,6 @@ void Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pR
     // set the PI simulation information
     Aig_ManConst1(p->pAig)->fMarkB = 1;
     Aig_ManForEachPi( p->pAig, pObj, i )
-//        pObj->fMarkB = Ssw_ManOriginalPiValue( p, pObj, f );
         pObj->fMarkB = Aig_InfoHasBit( p->pPatWords, i );
     // simulate internal nodes
     Aig_ManForEachNode( p->pAig, pObj, i )
@@ -244,10 +243,18 @@ void Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pR
     RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 0 );
     RetValue2 = Ssw_ClassesRefine( p->ppClasses, 0 );
     // make sure refinement happened
-    if ( Aig_ObjIsConst1(pRepr) )
+    if ( Aig_ObjIsConst1(pRepr) ) 
+    {
         assert( RetValue1 );
+        if ( RetValue1 == 0 )
+            printf( "\nSsw_ManResimulateCexTotal() Error: RetValue1 does not hold.\n" );
+    }
     else
+    {
         assert( RetValue2 );
+        if ( RetValue2 == 0 )
+            printf( "\nSsw_ManResimulateCexTotal() Error: RetValue2 does not hold.\n" );
+    }
 p->timeSimSat += clock() - clk;
 }
 
@@ -266,8 +273,6 @@ p->timeSimSat += clock() - clk;
 void Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f )
 {
     int RetValue1, RetValue2, clk = clock();
-    // save the counter-example
-//    Ssw_SmlSavePatternAig( p, f );
     // set the PI simulation information
     Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
     // simulate internal nodes
@@ -277,9 +282,17 @@ void Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t *
     RetValue2 = Ssw_ClassesRefine( p->ppClasses, 1 );
     // make sure refinement happened
     if ( Aig_ObjIsConst1(pRepr) )
+    {
         assert( RetValue1 );
+        if ( RetValue1 == 0 )
+            printf( "\nSsw_ManResimulateCexTotalSim() Error: RetValue1 does not hold.\n" );
+    }
     else
+    {
         assert( RetValue2 );
+        if ( RetValue2 == 0 )
+            printf( "\nSsw_ManResimulateCexTotalSim() Error: RetValue2 does not hold.\n" );
+    }
 p->timeSimSat += clock() - clk;
 }
 

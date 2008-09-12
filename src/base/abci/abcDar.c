@@ -2195,6 +2195,71 @@ Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, in
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarSynchOne( Abc_Ntk_t * pNtk, int nWords, int fVerbose )
+{
+    extern Aig_Man_t * Saig_SynchSequenceApply( Aig_Man_t * pAig, int nWords, int fVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Saig_SynchSequenceApply( pTemp = pMan, nWords, fVerbose );
+    Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs phase abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarSynch( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nWords, int fVerbose )
+{
+    extern Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, int fVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan1, * pMan2, * pMan;
+    pMan1 = Abc_NtkToDar( pNtk1, 0, 1 );
+    if ( pMan1 == NULL )
+        return NULL;
+    pMan2 = Abc_NtkToDar( pNtk2, 0, 1 );
+    if ( pMan2 == NULL )
+    {
+        Aig_ManStop( pMan1 );
+        return NULL;
+    }
+    pMan = Saig_Synchronize( pMan1, pMan2, nWords, fVerbose );
+    Aig_ManStop( pMan1 );
+    Aig_ManStop( pMan2 );
+    if ( pMan == NULL )
+        return NULL;
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav("miter");
+    pNtkAig->pSpec = NULL;
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs phase abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarFrames( Abc_Ntk_t * pNtk, int nPrefix, int nFrames, int fInit, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;

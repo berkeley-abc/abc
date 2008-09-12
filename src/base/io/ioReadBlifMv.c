@@ -146,7 +146,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     // start the file reader
     p = Io_MvAlloc();
     p->fBlifMv   = fBlifMv;
-    p->fUseReset = 0;
+    p->fUseReset = 1;
     p->pFileName = pFileName;
     p->pBuffer   = Io_MvLoadFile( pFileName );
     if ( p->pBuffer == NULL )
@@ -704,7 +704,7 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
     int i, k;
     // iterate through the models
     Vec_PtrForEachEntry( p->vModels, pMod, i )
-    {
+    { 
         // check if there any MV lines
         if ( Vec_PtrSize(pMod->vMvs) > 0 )
             Abc_NtkStartMvVars( pMod->pNtk );

@@ -47,14 +47,14 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     Aig_ManFanoutStart( pAig );
     Aig_ManSetPioNumbers( pAig );
     // create interpolation manager
-    p = ALLOC( Ssw_Man_t, 1 );
+    p = ALLOC( Ssw_Man_t, 1 ); 
     memset( p, 0, sizeof(Ssw_Man_t) );
     p->pPars         = pPars;
     p->pAig          = pAig;
     p->nFrames       = pPars->nFramesK + 1;
     p->pNodeToFraig  = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     // SAT solving
-    p->pSatVars      = CALLOC( int, Aig_ManObjNumMax(p->pAig) * p->nFrames );
+    p->pSatVars      = CALLOC( int, Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
     p->vFanins       = Vec_PtrAlloc( 100 );
     p->vSimRoots     = Vec_PtrAlloc( 1000 );
     p->vSimClasses   = Vec_PtrAlloc( 1000 );
@@ -99,8 +99,8 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjNumMax(p->pAig)*p->nFrames*(2*sizeof(int)+2*sizeof(void*))/(1<<20);
 
-    printf( "Parameters: Fr = %d. C-limit = %d. Constr = %d. SkipCheck = %d. MaxLev = %d. Mem = %0.2f Mb.\n", 
-        p->pPars->nFramesK, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->fSkipCheck, p->pPars->nMaxLevs, nMemory );
+    printf( "Parameters: F = %d. AddF = %d. C-lim = %d. Constr = %d. SkipCheck = %d. MaxLev = %d. Mem = %0.2f Mb.\n", 
+        p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->fSkipCheck, p->pPars->nMaxLevs, nMemory );
     printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
         Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
         p->nSatVarsTotal/p->pPars->nIters );
@@ -149,7 +149,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
         p->nSatVarsTotal += p->pSat->size;
         sat_solver_delete( p->pSat );
         p->pSat = NULL;
-        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
+        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
     }
     p->nConstrTotal = 0;
     p->nConstrReduced = 0;

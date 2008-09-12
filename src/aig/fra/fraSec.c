@@ -21,6 +21,7 @@
 #include "fra.h"
 #include "ioa.h"
 #include "int.h"
+#include "ssw.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -75,6 +76,7 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
 ***********************************************************************/
 int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec )
 {
+    Ssw_Pars_t Pars2, * pPars2 = &Pars2;
     Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
     Aig_Man_t * pNew, * pTemp;
@@ -89,6 +91,8 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec )
     if ( RetValue >= 0 )
         goto finish;
 
+    // prepare parameters
+    Ssw_ManSetDefaultParams( pPars2 );
     // prepare parameters
     memset( pPars, 0, sizeof(Fra_Ssw_t) );
     pPars->fLatchCorr  = fLatchCorr;
@@ -288,12 +292,17 @@ PRT( "Time", clock() - clk );
                 goto finish;
             }
         }
-
+ 
 clk = clock();
         pPars->nFramesK = nFrames;
         pPars->TimeLimit = TimeLeft;
         pPars->fSilent = pParSec->fSilent;
-        pNew = Fra_FraigInduction( pTemp = pNew, pPars );
+//        pNew = Fra_FraigInduction( pTemp = pNew, pPars );
+
+        pPars2->nFramesK = nFrames;
+        pPars2->nBTLimit = 1000 * nFrames;
+        Aig_ManSetRegNum( pNew, pNew->nRegs );
+        pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
         if ( pNew == NULL )
         {
             pNew = pTemp;
@@ -306,7 +315,7 @@ clk = clock();
         if ( pParSec->fVerbose )
         { 
             printf( "K-step (K=%2d,I=%3d):  Latches = %5d. Nodes = %6d. ", 
-                nFrames, pPars->nIters, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
+                nFrames, pPars2->nIters, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
         }
         if ( RetValue != -1 )

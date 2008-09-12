@@ -89,6 +89,7 @@ extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
 extern int               Saig_Interpolate( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * pDepth );
 /*=== saigMiter.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
+extern Aig_Man_t *       Saig_ManDupInitZero( Aig_Man_t * p );
 /*=== saigPhase.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose );
 /*=== saigRetFwd.c ==========================================================*/

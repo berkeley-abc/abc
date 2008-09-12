@@ -3306,6 +3306,10 @@ SOURCE=.\src\aig\saig\saigScl.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigSynch.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigTrans.c
 # End Source File
 # End Group

@@ -139,8 +139,9 @@ clk = clock();
             printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
                 nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
                 p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nSatFailsReal );
-            printf( "Use = %5d. Skip = %5d. ", 
-                p->nRefUse, p->nRefSkip );
+            if ( p->pPars->fSkipCheck )
+                printf( "Use = %5d. Skip = %5d. ", 
+                    p->nRefUse, p->nRefSkip );
             PRT( "T", clock() - clk );
         } 
         Ssw_ManCleanup( p );
