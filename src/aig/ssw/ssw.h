@@ -82,7 +82,9 @@ extern void          Ssw_ManSetDefaultParams( Ssw_Pars_t * p );
 extern Aig_Man_t *   Ssw_SignalCorrespondence( Aig_Man_t * p, Ssw_Pars_t * pPars );
 /*=== sswPart.c ==========================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
-
+/*=== sswPairs.c ===================================================*/
+extern int           Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, Vec_Int_t * vIds2, Ssw_Pars_t * pPars );
+extern int           Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars );
 
 #ifdef __cplusplus
 }

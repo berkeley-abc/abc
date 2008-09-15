@@ -66,14 +66,79 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
+Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
 {
     Aig_Man_t * pAigNew;
+    int RetValue, nIter;
+    int clk, clkTotal = clock();
+    // get the starting stats
+    p->nLitsBeg  = Ssw_ClassesLitNum( p->ppClasses );
+    p->nNodesBeg = Aig_ManNodeNum(p->pAig);
+    p->nRegsBeg  = Aig_ManRegNum(p->pAig);
+    // refine classes using BMC
+    if ( p->pPars->fVerbose )
+    {
+        printf( "Before BMC: " );
+        Ssw_ClassesPrint( p->ppClasses, 0 );
+    }
+    Ssw_ManSweepBmc( p );
+    Ssw_ManCleanup( p );
+    if ( p->pPars->fVerbose )
+    {
+        printf( "After  BMC: " );
+        Ssw_ClassesPrint( p->ppClasses, 0 );
+    }
+    // refine classes using induction
+    for ( nIter = 0; ; nIter++ )
+    {
+clk = clock();
+        RetValue = Ssw_ManSweep( p );
+        if ( p->pPars->fVerbose )
+        {
+            printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
+                nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
+                p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nSatFailsReal );
+            if ( p->pPars->fSkipCheck )
+                printf( "Use = %5d. Skip = %5d. ", 
+                    p->nRefUse, p->nRefSkip );
+            PRT( "T", clock() - clk );
+        } 
+        Ssw_ManCleanup( p );
+        if ( !RetValue )
+            break;
+    } 
+    p->pPars->nIters = nIter + 1;
+p->timeTotal = clock() - clkTotal;
+    pAigNew = Aig_ManDupRepr( p->pAig, 0 );
+    Aig_ManSeqCleanup( pAigNew );
+    // get the final stats
+    p->nLitsEnd  = Ssw_ClassesLitNum( p->ppClasses );
+    p->nNodesEnd = Aig_ManNodeNum(pAigNew);
+    p->nRegsEnd  = Aig_ManRegNum(pAigNew);
+    return pAigNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs computation of signal correspondence with constraints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
+{
+    Ssw_Pars_t Pars;
+    Aig_Man_t * pAigNew;
     Ssw_Man_t * p;
-    int RetValue, nIter, clk, clkTotal = clock();
     // reset random numbers
     Aig_ManRandom( 1 );
-
+    // if parameters are not given, create them
+    if ( pPars == NULL )
+        Ssw_ManSetDefaultParams( pPars = &Pars );
     // consider the case of empty AIG
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
@@ -82,19 +147,16 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         Aig_ManReprStart( pAig,Aig_ManObjNumMax(pAig) );
         return Aig_ManDupOrdered(pAig);
     }
-
     // check and update parameters
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( pPars->nFramesK > 0 );
     if ( pPars->nFramesK > 1 )
         pPars->fSkipCheck = 0;
-
     // perform partitioning
     if ( (pPars->nPartSize > 0 && pPars->nPartSize < Aig_ManRegNum(pAig))
          || (pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0)  )
         return Ssw_SignalCorrespondencePart( pAig, pPars );
-
-    // start the choicing manager
+    // start the induction manager
     p = Ssw_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
 //    p->pPars->nConstrs = 1;
@@ -111,51 +173,8 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
         Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_NodeIsConstCex, Ssw_NodesAreEqualCex );
     }
-
-    // get the starting stats
-    p->nLitsBeg  = Ssw_ClassesLitNum( p->ppClasses );
-    p->nNodesBeg = Aig_ManNodeNum(pAig);
-    p->nRegsBeg  = Aig_ManRegNum(pAig);
-    // refine classes using BMC
-    if ( pPars->fVerbose )
-    {
-        printf( "Before BMC: " );
-        Ssw_ClassesPrint( p->ppClasses, 0 );
-    }
-    Ssw_ManSweepBmc( p );
-    Ssw_ManCleanup( p );
-    if ( pPars->fVerbose )
-    {
-        printf( "After  BMC: " );
-        Ssw_ClassesPrint( p->ppClasses, 0 );
-    }
-    // refine classes using induction
-    for ( nIter = 0; ; nIter++ )
-    {
-clk = clock();
-        RetValue = Ssw_ManSweep( p );
-        if ( pPars->fVerbose )
-        {
-            printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
-                nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
-                p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nSatFailsReal );
-            if ( p->pPars->fSkipCheck )
-                printf( "Use = %5d. Skip = %5d. ", 
-                    p->nRefUse, p->nRefSkip );
-            PRT( "T", clock() - clk );
-        } 
-        Ssw_ManCleanup( p );
-        if ( !RetValue )
-            break;
-    } 
-    p->pPars->nIters = nIter + 1;
-p->timeTotal = clock() - clkTotal;
-    pAigNew = Aig_ManDupRepr( pAig, 0 );
-    Aig_ManSeqCleanup( pAigNew );
-    // get the final stats
-    p->nLitsEnd  = Ssw_ClassesLitNum( p->ppClasses );
-    p->nNodesEnd = Aig_ManNodeNum(pAigNew);
-    p->nRegsEnd  = Aig_ManRegNum(pAigNew);
+    // perform refinement of classes
+    pAigNew = Ssw_SignalCorrespondenceRefine( p );    
     // cleanup
     Ssw_ManStop( p );
     return pAigNew;

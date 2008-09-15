@@ -2351,20 +2351,58 @@ void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartitio
 ***********************************************************************/
 void Abc_NtkDarTest( Abc_Ntk_t * pNtk )
 {
-    Aig_Man_t * pMan;
+    extern Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig );
+
+    Aig_Man_t * pMan, * pTemp;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return;
-
+/*
 Aig_ManSetRegNum( pMan, pMan->nRegs );
 Aig_ManPrintStats( pMan );
 Saig_ManDumpBlif( pMan, "_temp_.blif" );
 Aig_ManStop( pMan );
 pMan = Saig_ManReadBlif( "_temp_.blif" );
 Aig_ManPrintStats( pMan );
-
+*/
+    Aig_ManSetRegNum( pMan, pMan->nRegs );
+    pTemp = Ssw_SignalCorrespondeceTestPairs( pMan );
+    Aig_ManStop( pTemp );
     Aig_ManStop( pMan );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs BDD-based reachability analysis.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
+{
+    extern Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig );
+
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+
+    Aig_ManSetRegNum( pMan, pMan->nRegs );
+    pMan = Ssw_SignalCorrespondeceTestPairs( pTemp = pMan );
+    Aig_ManStop( pTemp );
+
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    Aig_ManStop( pMan );
+    return pNtkAig;
 }
 
 ////////////////////////////////////////////////////////////////////////

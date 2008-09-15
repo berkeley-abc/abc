@@ -7684,7 +7684,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-//    Abc_Ntk_t * pNtkRes;
+    Abc_Ntk_t * pNtkRes = NULL;
     int c;
     int fBmc;
     int nFrames;
@@ -7712,6 +7712,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose );
     extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
 //    extern void Aig_ProcedureTest();
+    extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -7912,14 +7914,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*//*
-
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
-    pFileName = argv[globalUtilOptind];
-    Nwk_ManLutMergeGraphTest( pFileName );
 */
-//    Aig_ProcedureTest();
+
+    pNtkRes = Abc_NtkDarTestNtk( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 
     return 0;
 usage:

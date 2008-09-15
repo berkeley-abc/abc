@@ -88,6 +88,7 @@ static inline void         Ssw_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pOb
 static inline void Ssw_ObjAddClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, Aig_Obj_t ** pClass, int nSize ) 
 {
     assert( p->pId2Class[pRepr->Id] == NULL );
+    assert( pClass[0] == pRepr );
     p->pId2Class[pRepr->Id] = pClass; 
     assert( p->pClassSizes[pRepr->Id] == 0 );
     assert( nSize > 1 );
@@ -640,6 +641,72 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
     }
     // allocate room for classes
     p->pMemClassesFree = p->pMemClasses = ALLOC( Aig_Obj_t *, p->nCands1 );
+//    Ssw_ClassesPrint( p, 0 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates classes from the temporary representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cla_t * Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses )
+{
+    Ssw_Cla_t * p;
+    Aig_Obj_t ** ppClassNew;
+    Aig_Obj_t * pObj, * pRepr, * pPrev;
+    int i, k, nTotalObjs, nEntries, Entry;
+    // start the classes
+    p = Ssw_ClassesStart( pAig );
+    // count the number of entries in the classes
+    nTotalObjs = 0;
+    for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
+        nTotalObjs += pvClasses[i] ? Vec_IntSize(pvClasses[i]) : 0; 
+    // allocate memory for classes
+    p->pMemClasses = ALLOC( Aig_Obj_t *, nTotalObjs );
+    // create constant-1 class
+    if ( pvClasses[0] )
+    Vec_IntForEachEntry( pvClasses[0], Entry, i )
+    {
+        assert( (i == 0) == (Entry == 0) );
+        if ( i == 0 )
+            continue;
+        pObj = Aig_ManObj( pAig, Entry );
+        Ssw_ObjSetConst1Cand( pAig, pObj );
+        p->nCands1++;
+    }
+    // create classes
+    nEntries = 0;
+    for ( i = 1; i < Aig_ManObjNumMax(pAig); i++ )
+    {
+        if ( pvClasses[i] == NULL )
+            continue;
+        // get room for storing the class
+        ppClassNew = p->pMemClasses + nEntries;
+        nEntries  += Vec_IntSize( pvClasses[i] );
+        // store the nodes of the class
+        pPrev = pRepr = Aig_ManObj( pAig, Vec_IntEntry(pvClasses[i],0) );
+        ppClassNew[0] = pRepr;
+        Vec_IntForEachEntryStart( pvClasses[i], Entry, k, 1 )
+        {
+            pObj = Aig_ManObj( pAig, Entry );
+            assert( pPrev->Id < pObj->Id );
+            pPrev = pObj;
+            ppClassNew[k] = pObj;
+            Aig_ObjSetRepr( pAig, pObj, pRepr );
+        }
+        // create new class
+        Ssw_ObjAddClass( p, pRepr, ppClassNew, Vec_IntSize(pvClasses[i]) );
+    }
+    // prepare room for new classes
+    p->pMemClassesFree = p->pMemClasses + nEntries;
+    Ssw_ClassesCheck( p );
 //    Ssw_ClassesPrint( p, 0 );
     return p;
 }

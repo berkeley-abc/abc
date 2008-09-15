@@ -149,7 +149,7 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
         Ssw_SmlSavePatternAigPhase( p, f );
     }
     else
-    {
+    { 
         // if the fraiged nodes are the same, return
         if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
             return;

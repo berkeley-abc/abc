@@ -612,6 +612,7 @@ p->timePart += clock() - clk2;
         Vec_PtrClear( p->vFraigs );
         Vec_PtrForEachEntry( p->vParts, vPart, i )
         {
+            int clk3 = clock();
             if ( TimeLimit != 0.0 && clock() > TimeToStop )
             {
                 Vec_PtrForEachEntry( p->vFraigs, pAigPart, i )
@@ -628,9 +629,15 @@ clk2 = clock();
             pAigTemp  = Fra_FraigEquivence( pAigPart, nConfMax, 0 );
 p->timeFraig += clock() - clk2;
             Vec_PtrPush( p->vFraigs, pAigTemp );
+            {
+                char Name[1000];
+                sprintf( Name, "part%04d.blif", i );
+                Aig_ManDumpBlif( pAigPart, Name, NULL, NULL );
+            }
             Aig_ManStop( pAigPart );
 
-//intf( "finished part %d (out of %d)\n", i, Vec_PtrSize(p->vParts) );
+printf( "Finished part %4d (out of %4d).  ", i, Vec_PtrSize(p->vParts) );
+PRT( "Time", clock() - clk3 );
 
         }
         Fra_ClassNodesUnmark( p );

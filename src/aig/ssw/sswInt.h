@@ -150,6 +150,7 @@ extern void          Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose );
 extern void          Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj );
 extern Ssw_Cla_t *   Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, int fVerbose );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
+extern Ssw_Cla_t *   Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses );
 extern int           Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive );
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
 extern int           Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive );
@@ -158,6 +159,8 @@ extern int           Ssw_NodeIsConstCex( void * p, Aig_Obj_t * pObj );
 extern int           Ssw_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 /*=== sswCnf.c ===================================================*/
 extern void          Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj );
+/*=== sswCore.c ===================================================*/
+extern Aig_Man_t *   Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p );
 /*=== sswMan.c ===================================================*/
 extern Ssw_Man_t *   Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 extern void          Ssw_ManCleanup( Ssw_Man_t * p );
@@ -183,6 +186,7 @@ extern void          Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pC
 /*=== sswSweep.c ===================================================*/
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );
+
 
 #ifdef __cplusplus
 }

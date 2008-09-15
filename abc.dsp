@@ -3446,6 +3446,10 @@ SOURCE=.\src\aig\ssw\sswMan.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ssw\sswPairs.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ssw\sswPart.c
 # End Source File
 # Begin Source File
