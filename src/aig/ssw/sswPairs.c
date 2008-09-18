@@ -430,6 +430,39 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Runs inductive SEC for the miter of two AIGs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
+{
+    Aig_Man_t * pAigRes;
+    int RetValue, clk = clock();
+    // try the new AIGs
+//    printf( "Performing general verification without node pairs.\n" );
+    pAigRes = Ssw_SignalCorrespondence( pMiter, pPars );
+    // report the results
+    RetValue = Ssw_MiterStatus( pAigRes, 1 );
+    if ( RetValue == 1 )
+        printf( "Verification successful.  " );
+    else if ( RetValue == 0 )
+        printf( "Verification failed with a counter-example.  " );
+    else
+        printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
+            Aig_ManRegNum(pAigRes), Aig_ManRegNum(pMiter) );
+    PRT( "Time", clock() - clk );
+    // cleanup
+    Aig_ManStop( pAigRes );
+    return RetValue;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

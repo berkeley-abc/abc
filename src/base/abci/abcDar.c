@@ -1468,7 +1468,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
             }
             return RetValue;
         }
-    }
+    } 
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -1478,12 +1478,19 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
     }
     assert( pMan->nRegs > 0 );
     // perform verification
-    RetValue = Fra_FraigSec( pMan, pSecPar );
-    pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
-    if ( pNtk->pSeqModel )
+    if ( pSecPar->fUseNewProver )
     {
-        Fra_Cex_t * pCex = pNtk->pSeqModel;
-        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump the trace).\n", pCex->iPo, pCex->iFrame );
+        RetValue = Ssw_SecGeneralMiter( pMan, NULL );
+    }
+    else
+    {
+        RetValue = Fra_FraigSec( pMan, pSecPar );
+        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+        if ( pNtk->pSeqModel )
+        {
+            Fra_Cex_t * pCex = pNtk->pSeqModel;
+            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump the trace).\n", pCex->iPo, pCex->iFrame );
+        }
     }
     Aig_ManStop( pMan );
     return RetValue;

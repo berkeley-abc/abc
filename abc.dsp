@@ -3246,6 +3246,10 @@ SOURCE=.\src\aig\bbr\bbr.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\bbr\bbrCex.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\bbr\bbrImage.c
 # End Source File
 # Begin Source File

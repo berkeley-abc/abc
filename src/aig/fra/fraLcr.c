@@ -629,16 +629,17 @@ clk2 = clock();
             pAigTemp  = Fra_FraigEquivence( pAigPart, nConfMax, 0 );
 p->timeFraig += clock() - clk2;
             Vec_PtrPush( p->vFraigs, pAigTemp );
+/*
             {
                 char Name[1000];
                 sprintf( Name, "part%04d.blif", i );
                 Aig_ManDumpBlif( pAigPart, Name, NULL, NULL );
             }
-            Aig_ManStop( pAigPart );
-
 printf( "Finished part %4d (out of %4d).  ", i, Vec_PtrSize(p->vParts) );
 PRT( "Time", clock() - clk3 );
+*/
 
+            Aig_ManStop( pAigPart );
         }
         Fra_ClassNodesUnmark( p );
         // report the intermediate results

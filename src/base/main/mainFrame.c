@@ -495,6 +495,21 @@ Abc_Frame_t * Abc_FrameGetGlobalFrame()
     return s_GlobalFrame;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Frame_t * Abc_FrameReadGlobalFrame()
+{
+    return s_GlobalFrame;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

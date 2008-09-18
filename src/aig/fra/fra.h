@@ -123,6 +123,7 @@ struct Fra_Sec_t_
     int              fInterpolation;    // enables interpolation
     int              fReachability;     // enables BDD based reachability
     int              fStopOnFirstFail;  // enables stopping after first output of a miter has failed to prove
+    int              fUseNewProver;     // the new prover
     int              fSilent;           // disables all output
     int              fVerbose;          // enables verbose reporting of statistics
     int              fVeryVerbose;      // enables very verbose reporting  

@@ -15145,7 +15145,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Fra_SecSetDefaultParams( pSecPar );
     pSecPar->TimeLimit = 300;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cbTFarmfwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbTFarmfnwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15189,6 +15189,9 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pSecPar->fFraiging ^= 1;
             break;
+        case 'n':
+            pSecPar->fUseNewProver ^= 1;
+            break;
         case 'w':
             pSecPar->fVeryVerbose ^= 1;
             break;
@@ -15214,7 +15217,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-F num] [-T num] [-cbarmfwvh]\n" );
+    fprintf( pErr, "usage: dprove [-F num] [-T num] [-cbarmfnwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
     fprintf( pErr, "\t-T num : the approximate runtime limit (in seconds) [default = %d]\n", pSecPar->TimeLimit );
@@ -15224,6 +15227,7 @@ usage:
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", pSecPar->fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-m     : toggles min-register retiming [default = %s]\n", pSecPar->fRetimeRegs? "yes": "no" );
     fprintf( pErr, "\t-f     : toggles the internal use of fraiging [default = %s]\n", pSecPar->fFraiging? "yes": "no" );
+    fprintf( pErr, "\t-n     : toggles the use of different induction prover [default = %s]\n", pSecPar->fUseNewProver? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", pSecPar->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", pSecPar->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -18717,7 +18721,7 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fVerbose    = 0;
     pPars->TimeLimit   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILCirfletvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILDirfletvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18787,10 +18791,10 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nMaxLevs <= 0 ) 
                 goto usage;
             break;
-        case 'C':
+        case 'D':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                fprintf( stdout, "Command line switch \"-D\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nMinDomSize = atoi(argv[globalUtilOptind]);
@@ -18874,14 +18878,14 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *ssw [-PQNFLC num] [-lrfetvh]\n" );
+    fprintf( stdout, "usage: *ssw [-PQNFLD num] [-lrfetvh]\n" );
     fprintf( stdout, "\t         performs sequential sweep using K-step induction on the netlist \n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
     fprintf( stdout, "\t-N num : number of time frames to use as the prefix [default = %d]\n", pPars->nFramesP );
     fprintf( stdout, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", pPars->nFramesK );
     fprintf( stdout, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
-    fprintf( stdout, "\t-C num : min size of a clock domain used for synthesis [default = %d]\n", pPars->nMinDomSize );
+    fprintf( stdout, "\t-D num : min size of a clock domain used for synthesis [default = %d]\n", pPars->nMinDomSize );
 //    fprintf( stdout, "\t-I num : max number of implications to consider [default = %d]\n", pPars->nMaxImps );
 //    fprintf( stdout, "\t-i     : toggle using implications [default = %s]\n", pPars->fUseImps? "yes": "no" );
     fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
@@ -18917,7 +18921,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSDplsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18998,6 +19002,17 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nFramesAddSim < 0 ) 
                 goto usage;
             break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMinDomSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMinDomSize < 0 ) 
+                goto usage;
+            break;
         case 'p':
             pPars->fPolarFlip ^= 1;
             break;
@@ -19053,7 +19068,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *scorr [-PQFCLNS <num>] [-plsvh]\n" );
+    fprintf( stdout, "usage: *scorr [-PQFCLNSD <num>] [-plsvh]\n" );
     fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -19062,6 +19077,7 @@ usage:
     fprintf( stdout, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
     fprintf( stdout, "\t-N num : number of last POs treated as constraints (0=none) [default = %d]\n", pPars->nConstrs );
     fprintf( stdout, "\t-S num : additional simulation frames for c-examples (0=none) [default = %d]\n", pPars->nFramesAddSim );
+    fprintf( stdout, "\t-D num : min size of a clock domain used for synthesis [default = %d]\n", pPars->nMinDomSize );
     fprintf( stdout, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
     fprintf( stdout, "\t-s     : toggle skipping unaffected cones [default = %s]\n", pPars->fSkipCheck? "yes": "no" );
