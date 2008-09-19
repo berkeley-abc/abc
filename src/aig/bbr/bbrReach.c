@@ -24,6 +24,10 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern void * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd, 
+    DdNode ** pbParts, Vec_Ptr_t * vOnionRings, DdNode * bCubeFirst, 
+    int iOutput, int fVerbose, int fSilent );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -212,25 +216,20 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     DdNode * bCurrent;
     DdNode * bNext = NULL; // Suppress "might be used uninitialized"
     DdNode * bTemp;
-    DdNode ** pbVarsY;
-    Aig_Obj_t * pLatch;
     int i, nIters, nBddSize;
     int nThreshold = 10000;
+    Vec_Ptr_t * vOnionRings;
 
-    // collect the NS variables
-    // set the variable mapping for Cudd_bddVarMap()
-    pbVarsY = ALLOC( DdNode *, dd->size );
-    Saig_ManForEachLo( p, pLatch, i )
-        pbVarsY[i] = dd->vars[ Saig_ManCiNum(p) + i ];
+    // start the onion rings
+    vOnionRings = Vec_PtrAlloc( 1000 );
 
     // start the image computation
     bCubeCs  = Bbr_bddComputeRangeCube( dd, Saig_ManPiNum(p), Saig_ManCiNum(p) );    Cudd_Ref( bCubeCs );
     if ( fPartition )
-        pTree = Bbr_bddImageStart( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), pbVarsY, fVerbose );
+        pTree = Bbr_bddImageStart( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), dd->vars+Saig_ManCiNum(p), fVerbose );
     else
-        pTree2 = Bbr_bddImageStart2( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), pbVarsY, fVerbose );
+        pTree2 = Bbr_bddImageStart2( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), dd->vars+Saig_ManCiNum(p), fVerbose );
     Cudd_RecursiveDeref( dd, bCubeCs );
-    free( pbVarsY );
     if ( pTree == NULL )
     {
         if ( !fSilent )
@@ -241,6 +240,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     // perform reachability analisys
     bCurrent = bInitial;   Cudd_Ref( bCurrent );
     bReached = bInitial;   Cudd_Ref( bReached );
+    Vec_PtrPush( vOnionRings, bCurrent );  Cudd_Ref( bCurrent );
     for ( nIters = 1; nIters <= nIterMax; nIters++ )
     { 
         // compute the next states
@@ -275,8 +275,14 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         {
             if ( !Cudd_bddLeq( dd, bNext, Cudd_Not(pbOutputs[i]) ) )
             {
+                DdNode * bIntersect;
+                bIntersect = Cudd_bddIntersect( dd, bNext, pbOutputs[i] );  Cudd_Ref( bIntersect );
+                assert( p->pSeqModel == NULL );
+                p->pSeqModel = Aig_ManVerifyUsingBddsCountExample( p, dd, pbParts, 
+                    vOnionRings, bIntersect, i, fVerbose, fSilent ); 
+                Cudd_RecursiveDeref( dd, bIntersect );
                 if ( !fSilent )
-                    printf( "Output %d was asserted in frame %d.  ", i, nIters );
+                    printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", i, Vec_PtrSize(vOnionRings) );
                 Cudd_RecursiveDeref( dd, bReached );
                 bReached = NULL;
                 break;
@@ -286,6 +292,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
             break;
         // get the new states
         bCurrent = Cudd_bddAnd( dd, bNext, Cudd_Not(bReached) );        Cudd_Ref( bCurrent );
+        Vec_PtrPush( vOnionRings, bCurrent );  Cudd_Ref( bCurrent );
         // minimize the new states with the reached states
 //        bCurrent = Cudd_bddConstrain( dd, bTemp = bCurrent, Cudd_Not(bReached) ); Cudd_Ref( bCurrent );
 //        Cudd_RecursiveDeref( dd, bTemp );
@@ -309,6 +316,10 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
             fprintf( stdout, "\r" );
     }
     Cudd_RecursiveDeref( dd, bNext );
+    // free the onion rings
+    Vec_PtrForEachEntry( vOnionRings, bTemp, i )
+        Cudd_RecursiveDeref( dd, bTemp );
+    Vec_PtrFree( vOnionRings );
     // undo the image tree
     if ( fPartition )
         Bbr_bddImageTreeDelete( pTree );
@@ -355,10 +366,14 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
 {
     DdManager * dd;
     DdNode ** pbParts, ** pbOutputs;
-    DdNode * bInitial;
+    DdNode * bInitial, * bTemp;
     int RetValue, i, clk = clock();
+    Vec_Ptr_t * vOnionRings;
 
     assert( Saig_ManRegNum(p) > 0 );
+
+    // start the onion rings
+    vOnionRings = Vec_PtrAlloc( 1000 );
 
     // compute the global BDDs of the latches
     dd = Aig_ManComputeGlobalBdds( p, nBddMax, 1, fReorder, fVerbose );    
@@ -386,12 +401,22 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     {
         if ( !Cudd_bddLeq( dd, bInitial, Cudd_Not(pbOutputs[i]) ) )
         {
+            DdNode * bIntersect;
+            bIntersect = Cudd_bddIntersect( dd, bInitial, pbOutputs[i] );  Cudd_Ref( bIntersect );
+            assert( p->pSeqModel == NULL );
+            p->pSeqModel = Aig_ManVerifyUsingBddsCountExample( p, dd, pbParts, 
+                vOnionRings, bIntersect, i, fVerbose, fSilent ); 
+            Cudd_RecursiveDeref( dd, bIntersect );
             if ( !fSilent )
-                printf( "The miter output %d is proved REACHABLE in the initial state.  ", i );
+                printf( "The miter output %d is proved REACHABLE in the initial state (use \"write_counter\" to dump a witness). ", i );
             RetValue = 0;
             break;
         }
     }
+    // free the onion rings
+    Vec_PtrForEachEntry( vOnionRings, bTemp, i )
+        Cudd_RecursiveDeref( dd, bTemp );
+    Vec_PtrFree( vOnionRings );
     // explore reachable states
     if ( RetValue == -1 )
         RetValue = Aig_ManComputeReachable( dd, p, pbParts, bInitial, pbOutputs, nBddMax, nIterMax, fPartition, fReorder, fVerbose, fSilent ); 

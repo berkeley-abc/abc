@@ -1734,7 +1734,7 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         fclose( pFile );
     }
     else
-    {
+    { 
         Fra_Cex_t * pCex = pNtk->pSeqModel;
         Abc_Obj_t * pObj;
         FILE * pFile;

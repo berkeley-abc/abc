@@ -1021,6 +1021,49 @@ int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
+{
+    Ssw_Sml_t * pSml;
+    Aig_Obj_t * pObj;
+    int i, k, iBit, iOut;
+    assert( Aig_ManRegNum(pAig) > 0 );
+    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
+    // start a new sequential simulator
+    pSml = Ssw_SmlStart( pAig, 0, p->iFrame+1, 1 );
+    // assign simulation info for the registers
+    iBit = 0;
+    Saig_ManForEachLo( pAig, pObj, i )
+        Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
+    // assign simulation info for the primary inputs
+    for ( i = 0; i <= p->iFrame; i++ )
+        Saig_ManForEachPi( pAig, pObj, k )
+            Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
+    assert( iBit == p->nBits );
+    // run random simulation
+    Ssw_SmlSimulateOne( pSml );
+    // check if the given output has failed
+    iOut = -1;
+    Saig_ManForEachPo( pAig, pObj, k )
+        if ( !Ssw_SmlNodeIsZero( pSml, Aig_ManPo(pAig, k) ) )
+        {
+            iOut = k;
+            break;
+        }
+    Ssw_SmlStop( pSml );
+    return iOut;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates sequential counter-example from the simulation info.]
 
   Description []
@@ -1177,6 +1220,30 @@ Ssw_Cex_t * Ssw_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
     pCex = Ssw_SmlAllocCounterExample( Aig_ManRegNum(pAig), nTruePis, iFrame + 1 );
     pCex->iPo    = iPo;
     pCex->iFrame = iFrame;
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Make the trivial counter-example for the trivially asserted output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cex_t * Ssw_SmlDupCounterExample( Ssw_Cex_t * p, int nRegsNew )
+{
+    Ssw_Cex_t * pCex;
+    int i;
+    pCex = Ssw_SmlAllocCounterExample( nRegsNew, p->nPis, p->iFrame+1 );
+    pCex->iPo    = p->iPo;
+    pCex->iFrame = p->iFrame;
+    for ( i = p->nRegs; i < p->nBits; i++ )
+        if ( Aig_InfoHasBit(p->pData, i) )
+            Aig_InfoSetBit( pCex->pData, pCex->nRegs + i - p->nRegs );
     return pCex;
 }
 

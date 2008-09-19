@@ -113,6 +113,14 @@ int Ssw_ManOriginalPiValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
     {
         if ( Aig_Regular(pObjFraig)->fPhase )  Value ^= 1;
     }
+/*
+    if ( nVarNum==0 )
+        printf( "x" );
+    else if ( Value == 0 )
+        printf( "0" );
+    else
+        printf( "1" );
+*/
     return Value;
 }
 

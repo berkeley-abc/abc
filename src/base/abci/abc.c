@@ -3131,7 +3131,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: fx [-S num] [-D num] [-N num] [-sdzcvh]\n");
+    fprintf( pErr, "usage: fx [-SDN num] [-sdzcvh]\n");
     fprintf( pErr, "\t         performs unate fast extract on the current network\n");
     fprintf( pErr, "\t-S num : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );  
     fprintf( pErr, "\t-D num : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );  
@@ -13876,19 +13876,24 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nFramesP;
     int nConfMax;
+    int nVarsMax;
+    int fNewAlgor;
     int fVerbose;
     extern Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFramesP   = 0;
+    nFramesP   =     0;
     nConfMax   = 10000;
-    fVerbose   = 0;
+    nVarsMax   =  5000;
+    fNewAlgor  =     0;
+    fVerbose   =     1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PCvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCSnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13913,6 +13918,20 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nConfMax < 0 ) 
                 goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVarsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVarsMax < 0 ) 
+                goto usage;
+            break;
+        case 'n':
+            fNewAlgor ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -13943,7 +13962,10 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDarLcorr( pNtk, nFramesP, nConfMax, fVerbose );
+    if ( fNewAlgor )
+        pNtkRes = Abc_NtkDarLcorrNew( pNtk, nVarsMax, nConfMax, fVerbose );
+    else
+        pNtkRes = Abc_NtkDarLcorr( pNtk, nFramesP, nConfMax, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -13954,10 +13976,12 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: lcorr [-P num] [-C num] [-vh]\n" );
+    fprintf( pErr, "usage: lcorr [-PCS num] [-nvh]\n" );
     fprintf( pErr, "\t         computes latch correspondence using 1-step induction\n" );
     fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( pErr, "\t-C num : max conflict number when proving latch equivalence [default = %d]\n", nConfMax );
+    fprintf( pErr, "\t-S num : the max number of SAT variables [default = %d]\n", nVarsMax );
+    fprintf( pErr, "\t-n     : toggle new algorithm [default = %s]\n", fNewAlgor? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

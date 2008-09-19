@@ -52,6 +52,11 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->fPolarFlip     =     0;  // uses polarity adjustment
     p->fLatchCorr     =     0;  // performs register correspondence
     p->fVerbose       =     0;  // verbose stats
+    // latch correspondence
+    p->fLatchCorrOpt  =     0;  // performs optimized register correspondence
+    p->nSatVarMax     =  5000;  // the max number of SAT variables
+    p->nCallsRecycle  =   100;  // calls to perform before recycling SAT solver
+    // return values
     p->nIters         =     0;  // the number of iterations performed
 }
 
@@ -81,8 +86,11 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
         printf( "Before BMC: " );
         Ssw_ClassesPrint( p->ppClasses, 0 );
     }
-    Ssw_ManSweepBmc( p );
-    Ssw_ManCleanup( p );
+    if ( !p->pPars->fLatchCorr )
+    { 
+        Ssw_ManSweepBmc( p );
+        Ssw_ManCleanup( p );
+    }
     if ( p->pPars->fVerbose )
     {
         printf( "After  BMC: " );
@@ -92,7 +100,10 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     for ( nIter = 0; ; nIter++ )
     {
 clk = clock();
-        RetValue = Ssw_ManSweep( p );
+        if ( p->pPars->fLatchCorrOpt )
+            RetValue = Ssw_ManSweepLatch( p );
+        else
+            RetValue = Ssw_ManSweep( p );
         if ( p->pPars->fVerbose )
         {
             printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
@@ -134,6 +145,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     Ssw_Pars_t Pars;
     Aig_Man_t * pAigNew;
     Ssw_Man_t * p;
+    assert( Aig_ManRegNum(pAig) > 0 );
     // reset random numbers
     Aig_ManRandom( 1 );
     // if parameters are not given, create them
@@ -148,14 +160,18 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         return Aig_ManDupOrdered(pAig);
     }
     // check and update parameters
-    assert( Aig_ManRegNum(pAig) > 0 );
-    assert( pPars->nFramesK > 0 );
-    if ( pPars->nFramesK > 1 )
-        pPars->fSkipCheck = 0;
-    // perform partitioning
-    if ( (pPars->nPartSize > 0 && pPars->nPartSize < Aig_ManRegNum(pAig))
-         || (pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0)  )
-        return Ssw_SignalCorrespondencePart( pAig, pPars );
+    if ( pPars->fLatchCorrOpt )
+        pPars->fLatchCorr = 1;
+    else
+    {
+        assert( pPars->nFramesK > 0 );
+        if ( pPars->nFramesK > 1 )
+            pPars->fSkipCheck = 0;
+        // perform partitioning
+        if ( (pPars->nPartSize > 0 && pPars->nPartSize < Aig_ManRegNum(pAig))
+             || (pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0)  )
+            return Ssw_SignalCorrespondencePart( pAig, pPars );
+    }
     // start the induction manager
     p = Ssw_ManCreate( pAig, pPars );
     // compute candidate equivalence classes

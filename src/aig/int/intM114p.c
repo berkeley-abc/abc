@@ -108,7 +108,7 @@ M114p_Solver_t Inter_ManDeriveSatSolverM114p(
     }
     // connector clauses
     Aig_ManForEachPi( pFrames, pObj, i )
-    {
+    { 
         if ( i == Aig_ManRegNum(pAig) )
             break;
 //        Vec_IntPush( vVarsAB, pCnfFrames->pVarNums[pObj->Id] );

@@ -1,5 +1,6 @@
 SRC +=    src/aig/int/intContain.c \
     src/aig/int/intCore.c \
+    src/aig/int/intCtrex.c \
     src/aig/int/intDup.c \
     src/aig/int/intFrames.c \
     src/aig/int/intInter.c \

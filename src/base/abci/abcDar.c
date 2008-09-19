@@ -1316,6 +1316,50 @@ Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int f
 
 /**Function*************************************************************
 
+  Synopsis    [Computes latch correspondence.]
+
+  Description [] 
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, int fVerbose )
+{
+    Ssw_Pars_t Pars, * pPars = &Pars;
+    Aig_Man_t * pMan, * pTemp;
+    Abc_Ntk_t * pNtkAig = NULL;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    Ssw_ManSetDefaultParams( pPars );
+    pPars->fLatchCorrOpt = 1;
+//    pPars->nFramesAddSim = 0;
+    pPars->nBTLimit      = nConfMax;
+    pPars->nSatVarMax    = nVarsMax;
+    pPars->fVerbose      = fVerbose;
+    pMan = Ssw_SignalCorrespondence( pTemp = pMan, pPars );
+    Aig_ManStop( pTemp );
+    if ( pMan )
+    {
+        if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
+            pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+        else
+        {
+            Abc_Obj_t * pObj;
+            int i;
+            pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+            Abc_NtkForEachLatch( pNtkAig, pObj, i )
+                Abc_LatchSetInit0( pObj );
+        }
+        Aig_ManStop( pMan );
+    }
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Gives the current ABC network to AIG manager for processing.]
 
   Description []
@@ -1342,6 +1386,8 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
     {
         int iFrame;
         RetValue = Saig_ManBmcSimple( pMan, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &iFrame );
+        FREE( pNtk->pModel );
+        FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( RetValue == 1 )
             printf( "No output was asserted in %d frames. ", iFrame );
@@ -1350,17 +1396,19 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
         else // if ( RetValue == 0 )
         {
             Fra_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump the trace). ", pCex->iPo, pCex->iFrame );
+            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
         }
     }
     else
     {
         Fra_BmcPerformSimple( pMan, nFrames, nBTLimit, fRewrite, fVerbose );
+        FREE( pNtk->pModel );
+        FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( pNtk->pSeqModel )
         {
             Fra_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump the trace). ", pCex->iPo, pCex->iFrame );
+            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
             RetValue = 0;
         }
         else
@@ -1388,7 +1436,7 @@ PRT( "Time", clock() - clk );
 int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, Inter_ManParams_t * pPars )
 {
     Aig_Man_t * pMan;
-    int RetValue, Depth, clk = clock();
+    int RetValue, iFrame, clk = clock();
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -1397,11 +1445,16 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, Inter_ManParams_t * pPars )
         return -1;
     }
     assert( pMan->nRegs > 0 );
-    RetValue = Inter_ManPerformInterpolation( pMan, pPars, &Depth );
+    RetValue = Inter_ManPerformInterpolation( pMan, pPars, &iFrame );
     if ( RetValue == 1 )
         printf( "Property proved.  " );
     else if ( RetValue == 0 )
-        printf( "Property DISPROVED with counter-example at depth %d.  ", Depth );
+    {
+        printf( "Property DISPROVED in frame %d (use \"write_counter\" to dump a witness).  ", iFrame );
+        FREE( pNtk->pModel );
+        FREE( pNtk->pSeqModel );
+        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+    }
     else if ( RetValue == -1 )
         printf( "Property UNDECIDED.  " );
     else
@@ -1440,7 +1493,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
         Prove_ParamsSetDefault( pParams );
         RetValue = Abc_NtkIvyProve( &pNtkComb, pParams );
         // transfer model if given
-        pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
+//        pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
         Abc_NtkDelete( pNtkComb );
         // return the result, if solved
         if ( RetValue == 1 )
@@ -1485,11 +1538,15 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
     else
     {
         RetValue = Fra_FraigSec( pMan, pSecPar );
+        FREE( pNtk->pModel );
+        FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( pNtk->pSeqModel )
         {
             Fra_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump the trace).\n", pCex->iPo, pCex->iFrame );
+            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).\n", pCex->iPo, pCex->iFrame );
+            if ( !Ssw_SmlRunCounterExample( pMan, pNtk->pSeqModel ) )
+                printf( "Abc_NtkDarProve(): Counter-example verification has FAILED.\n" );
         }
     }
     Aig_ManStop( pMan );
@@ -1842,6 +1899,8 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int fVerbose )
         if ( pCex )
             printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                 nFrames, nWords, pCex->iPo, pCex->iFrame );
+        FREE( pNtk->pModel );
+        FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pCex;
         RetValue = 1;
     }
@@ -2341,6 +2400,9 @@ void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartitio
     if ( pMan == NULL )
         return;
     Aig_ManVerifyUsingBdds( pMan, nBddMax, nIterMax, fPartition, fReorder, fVerbose, 0 );
+    FREE( pNtk->pModel );
+    FREE( pNtk->pSeqModel );
+    pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
     Aig_ManStop( pMan );
 }
 

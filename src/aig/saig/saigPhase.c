@@ -756,7 +756,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
 //Aig_ManPrintStats( pFrames );
     Aig_ManSeqCleanup( pFrames );
 //Aig_ManPrintStats( pFrames );
-    Aig_ManPiCleanup( pFrames );
+//    Aig_ManPiCleanup( pFrames );
 //Aig_ManPrintStats( pFrames );
     free( pObjMap );
     return pFrames;

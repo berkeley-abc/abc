@@ -3278,6 +3278,10 @@ SOURCE=.\src\aig\saig\saigCone.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigDup.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigHaig.c
 # End Source File
 # Begin Source File
@@ -3331,6 +3335,10 @@ SOURCE=.\src\aig\int\intContain.c
 # Begin Source File
 
 SOURCE=.\src\aig\int\intCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\int\intCtrex.c
 # End Source File
 # Begin Source File
 
@@ -3443,6 +3451,10 @@ SOURCE=.\src\aig\ssw\sswCore.c
 # Begin Source File
 
 SOURCE=.\src\aig\ssw\sswInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssw\sswLcorr.c
 # End Source File
 # Begin Source File
 

@@ -58,6 +58,9 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     p->vFanins       = Vec_PtrAlloc( 100 );
     p->vSimRoots     = Vec_PtrAlloc( 1000 );
     p->vSimClasses   = Vec_PtrAlloc( 1000 );
+    // SAT solving (latch corr only)
+    p->vUsedNodes    = Vec_PtrAlloc( 1000 );
+    p->vUsedPis      = Vec_PtrAlloc( 1000 );
     // allocate storage for sim pattern
     p->nPatWords     = Aig_BitWordNum( Saig_ManPiNum(pAig) * p->nFrames + Saig_ManRegNum(pAig) );
     p->pPatWords     = ALLOC( unsigned, p->nPatWords ); 
@@ -178,6 +181,8 @@ void Ssw_ManStop( Ssw_Man_t * p )
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vSimRoots );
     Vec_PtrFree( p->vSimClasses );
+    Vec_PtrFree( p->vUsedNodes );
+    Vec_PtrFree( p->vUsedPis );
     FREE( p->pNodeToFraig );
     FREE( p->pSatVars );
     FREE( p->pPatWords );
@@ -209,6 +214,9 @@ void Ssw_ManStartSolver( Ssw_Man_t * p )
         Lit = lit_neg( Lit );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     Ssw_ObjSetSatNum( p, Aig_ManConst1(p->pAig), p->nSatVars++ );
+
+    Vec_PtrClear( p->vUsedNodes );
+    Vec_PtrClear( p->vUsedPis );
 }
 
 ////////////////////////////////////////////////////////////////////////

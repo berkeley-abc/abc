@@ -544,7 +544,13 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     int i, v, Var, PrevId;
     int fPrint = 0;
     int clk = clock();
-
+/*
+    if ( pFinal->Id == 5187 )
+    {
+        int x = 0;
+        Inta_ManPrintClause( p, pConflict );
+    }
+*/
     // collect resolvent literals
     if ( p->fProofVerif )
     {
@@ -573,13 +579,23 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         if ( !p->pSeens[Var] )
             continue;
         p->pSeens[Var] = 0;
-
+/*
+        if ( pFinal->Id == 5187 )
+        {
+            printf( "pivot = %d  ", p->pTrail[i] );
+        }
+*/
         // skip literals of the resulting clause
         pReason = p->pReasons[Var];
         if ( pReason == NULL )
             continue;
         assert( p->pTrail[i] == pReason->pLits[0] );
-
+/*
+        if ( pFinal->Id == 5187 )
+        {
+            Inta_ManPrintClause( p, pReason );
+        }
+*/
         // add the variables to seen
         for ( v = 1; v < (int)pReason->nLits; v++ )
             p->pSeens[lit_var(pReason->pLits[v])] = 1;
@@ -657,6 +673,20 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         int v1, v2; 
         if ( fPrint )
             Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+/*
+        if ( pFinal->Id == 5187 )
+        {
+            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+            Inta_ManPrintClause( p, pFinal );
+        }
+*/
+/*
+        if ( p->nResLits != pFinal->nLits )
+        {
+            printf( "Recording clause %d: The resolvent is wrong (nRetLits = %d, pFinal->nLits = %d).\n", 
+                pFinal->Id, p->nResLits, pFinal->nLits );
+        }
+*/
         for ( v1 = 0; v1 < p->nResLits; v1++ )
         {
             for ( v2 = 0; v2 < (int)pFinal->nLits; v2++ )

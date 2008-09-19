@@ -40,13 +40,13 @@
 
 ***********************************************************************/
 void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
-{
+{ 
     memset( p, 0, sizeof(Inter_ManParams_t) );
     p->nBTLimit     = 10000; // limit on the number of conflicts
     p->nFramesMax   = 40;    // the max number timeframes to unroll
     p->nFramesK     = 1;     // the number of timeframes to use in induction
     p->fRewrite     = 0;     // use additional rewriting to simplify timeframes
-    p->fTransLoop   = 1;     // add transition into the init state under new PI var
+    p->fTransLoop   = 0;     // add transition into the init state under new PI var
     p->fUsePudlak   = 0;     // use Pudluk interpolation procedure
     p->fUseOther    = 0;     // use other undisclosed option
     p->fUseMiniSat  = 0;     // use MiniSat-1.14p instead of internal proof engine
@@ -67,7 +67,7 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * pDepth )
+int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * piFrame )
 {
     extern int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, int nSteps, int fBackward );
     Inter_Man_t * p;
@@ -109,7 +109,7 @@ p->timeCnf += clock() - clk;
     }
 
     // derive interpolant
-    *pDepth = -1;
+    *piFrame = -1;
     p->nFrames = 1;
     for ( s = 0; ; s++ )
     {
@@ -183,9 +183,10 @@ p->timeCnf += clock() - clk;
                 if ( i == 0 ) // real counterexample
                 {
                     if ( pPars->fVerbose )
-                        printf( "Found a real counterexample in the first frame.\n" );
+                        printf( "Found a real counterexample in frame %d.\n", p->nFrames );
                     p->timeTotal = clock() - clkTotal;
-                    *pDepth = p->nFrames + 1;
+                    *piFrame = p->nFrames;
+                    pAig->pSeqModel = Inter_ManGetCounterExample( pAig, p->nFrames+1, pPars->fVerbose );
                     Inter_ManStop( p );
                     return 0;
                 }

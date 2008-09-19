@@ -294,6 +294,28 @@ Aig_Obj_t ** Ssw_ClassesReadClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int * pnSiz
 
 /**Function*************************************************************
 
+  Synopsis    [Stop representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ClassesCollectClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, Vec_Ptr_t * vClass )
+{
+    int i;
+    Vec_PtrClear( vClass );
+    if ( p->pId2Class[pRepr->Id] == NULL )
+        return;
+    assert( p->pClassSizes[pRepr->Id] > 1 );
+    for ( i = 1; i < p->pClassSizes[pRepr->Id]; i++ )
+        Vec_PtrPush( vClass, p->pId2Class[pRepr->Id][i] );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks candidate equivalence classes.]
 
   Description []

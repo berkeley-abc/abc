@@ -51,6 +51,9 @@ struct Ssw_Pars_t_
     int              nMinDomSize;   // min clock domain considered for optimization
     int              fPolarFlip;    // uses polarity adjustment
     int              fLatchCorr;    // perform register correspondence
+    int              fLatchCorrOpt; // perform register correspondence (optimized)
+    int              nSatVarMax;    // max number of SAT vars before recycling SAT solver (optimized latch corr only)
+    int              nCallsRecycle; // calls to perform before recycling SAT solver (optimized latch corr only)
     int              fSkipCheck;    // does not run equivalence check for unaffected cones
     int              fVerbose;      // verbose stats
     // internal parameters
@@ -86,6 +89,12 @@ extern Aig_Man_t *   Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t 
 extern int           Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, Vec_Int_t * vIds2, Ssw_Pars_t * pPars );
 extern int           Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars );
 extern int           Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars );
+/*=== sswSim.c ===================================================*/
+extern Ssw_Cex_t *   Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
+extern void          Ssw_SmlFreeCounterExample( Ssw_Cex_t * pCex );
+extern int           Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p );
+extern int           Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p );
+extern Ssw_Cex_t *   Ssw_SmlDupCounterExample( Ssw_Cex_t * p, int nRegsNew );
 
 #ifdef __cplusplus
 }

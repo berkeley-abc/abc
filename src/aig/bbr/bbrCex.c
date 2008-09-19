@@ -19,10 +19,13 @@
 ***********************************************************************/
 
 #include "bbr.h"
+#include "ssw.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+extern DdNode * Bbr_bddComputeRangeCube( DdManager * dd, int iStart, int iStop );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -30,7 +33,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the initial state and sets up the variable map.]
+  Synopsis    [Derives the counter-example using the set of reached states.]
 
   Description []
                
@@ -39,135 +42,122 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManStateVarMap( DdManager * dd, Aig_Man_t * p, int fVerbose )
+Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd, 
+    DdNode ** pbParts, Vec_Ptr_t * vOnionRings, DdNode * bCubeFirst,
+    int iOutput, int fVerbose, int fSilent )
 {
-    DdNode ** pbVarsX, ** pbVarsY;
-    Aig_Obj_t * pLatch;
-    int i;
-
-    // set the variable mapping for Cudd_bddVarMap()
-    pbVarsX = ALLOC( DdNode *, dd->size );
-    pbVarsY = ALLOC( DdNode *, dd->size );
-    Saig_ManForEachLo( p, pLatch, i )
-    {
-        pbVarsY[i] = dd->vars[ Saig_ManPiNum(p) + i ];
-        pbVarsX[i] = dd->vars[ Saig_ManCiNum(p) + i ];
-    }
-    Cudd_SetVarMap( dd, pbVarsX, pbVarsY, Saig_ManRegNum(p) );
-    FREE( pbVarsX );
-    FREE( pbVarsY );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Aig_ManComputeCountExample( Aig_Man_t * p, DdManager * dd, DdNode ** pbParts, Vec_Ptr_t * vCareSets, int nBddMax, int fVerbose, int fSilent )
-{
-/*
-    Bbr_ImageTree_t * pTree = NULL; // Suppress "might be used uninitialized"
-    DdNode * bCubeCs;
-    DdNode * bCurrent;
-    DdNode * bNext = NULL; // Suppress "might be used uninitialized"
-    DdNode * bTemp;
-    DdNode ** pbVarsY;
+    Ssw_Cex_t * pCex;
     Aig_Obj_t * pObj;
-    int i, nIters, nBddSize;
-    int nThreshold = 10000;
-    int * pCex;
+    Bbr_ImageTree_t * pTree;
+    DdNode * bCubeNs, * bState, * bImage;
+    DdNode * bTemp, * bVar, * bRing;
+    int i, v, RetValue, nPiOffset;
     char * pValues;
+    int clk = clock();
 
     // allocate room for the counter-example
-    pCex = ALLOC( int, Vec_PtrSize(vCareSets) );
+    pCex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(p), Saig_ManPiNum(p), Vec_PtrSize(vOnionRings)+1 );
+    pCex->iFrame = Vec_PtrSize(vOnionRings);
+    pCex->iPo = iOutput;
+    nPiOffset = Saig_ManRegNum(p) + Saig_ManPiNum(p) * Vec_PtrSize(vOnionRings);
 
-    // allocate room for the cube
-    pValues = ALLOC( char, dd->size );
-
-    // collect the NS variables
-    // set the variable mapping for Cudd_bddVarMap()
-    pbVarsY = ALLOC( DdNode *, dd->size );
-    Aig_ManForEachPi( p, pObj, i )
-        pbVarsY[i] = dd->vars[ i ];
-
-    // create the initial state and the variable map
-    Aig_ManStateVarMap( dd, p, fVerbose );
-
-    // start the image computation
-    bCubeCs  = Bbr_bddComputeRangeCube( dd, Aig_ManPiNum(p), 2*Saig_ManCiNum(p) );    Cudd_Ref( bCubeCs );
-    pTree = Bbr_bddImageStart( dd, bCubeCs, Saig_ManRegNum(p), pbParts, Saig_ManRegNum(p), pbVarsY, fVerbose );
-    Cudd_RecursiveDeref( dd, bCubeCs );
-    free( pbVarsY );
+    // create the cube of NS variables
+    bCubeNs  = Bbr_bddComputeRangeCube( dd, Saig_ManCiNum(p), Saig_ManCiNum(p)+Saig_ManRegNum(p) );    Cudd_Ref( bCubeNs );
+    pTree = Bbr_bddImageStart( dd, bCubeNs, Saig_ManRegNum(p), pbParts, Saig_ManCiNum(p), dd->vars, fVerbose );
+    Cudd_RecursiveDeref( dd, bCubeNs );
     if ( pTree == NULL )
     {
         if ( !fSilent )
             printf( "BDDs blew up during qualitification scheduling.  " );
-        return -1;
+        return NULL;
     }
 
-    // create counter-example in terms of next state variables
-    // pNext = ...
+    // allocate room for the cube
+    pValues = ALLOC( char, dd->size );
 
-    // perform reachability analisys
-    Vec_PtrForEachEntryReverse( vCareSets, pCurrent, i )
+    // get the last cube
+    RetValue = Cudd_bddPickOneCube( dd, bCubeFirst, pValues );
+    assert( RetValue );
+
+    // write PIs of counter-example
+    Saig_ManForEachPi( p, pObj, i )
+        if ( pValues[i] == 1 )
+            Aig_InfoSetBit( pCex->pData, nPiOffset + i );
+    nPiOffset -= Saig_ManPiNum(p);
+
+    // write state in terms of NS variables
+    bState = (dd)->one; Cudd_Ref( bState );
+    Saig_ManForEachLo( p, pObj, i )
+    {
+        bVar = Cudd_NotCond( dd->vars[Saig_ManCiNum(p)+i], pValues[Saig_ManPiNum(p)+i] != 1 );
+        bState = Cudd_bddAnd( dd, bTemp = bState, bVar );  Cudd_Ref( bState );
+        Cudd_RecursiveDeref( dd, bTemp ); 
+    }
+
+    // perform backward analysis
+    Vec_PtrForEachEntryReverse( vOnionRings, bRing, v )
     { 
         // compute the next states
-        bImage = Bbr_bddImageCompute( pTree, bCurrent );           
+        bImage = Bbr_bddImageCompute( pTree, bState );           
         if ( bImage == NULL )
         {
+            Cudd_RecursiveDeref( dd, bState );
             if ( !fSilent )
                 printf( "BDDs blew up during image computation.  " );
             Bbr_bddImageTreeDelete( pTree );
-            return -1;
+            free( pValues );
+            return NULL;
         }
         Cudd_Ref( bImage );
+        Cudd_RecursiveDeref( dd, bState );
 
         // intersect with the previous set
-        bImage = Cudd_bddAnd( dd, pTemp = bImage, pCurrent );
-        Cudd_RecursiveDeref( dd, pTemp );
+        bImage = Cudd_bddAnd( dd, bTemp = bImage, bRing );  Cudd_Ref( bImage );
+        Cudd_RecursiveDeref( dd, bTemp );
 
         // find any assignment of the BDD
         RetValue = Cudd_bddPickOneCube( dd, bImage, pValues );
+        assert( RetValue );
+        Cudd_RecursiveDeref( dd, bImage );
 
-        // transform the assignment into the cube in terms of the next state vars
+        // write PIs of counter-example
+        Saig_ManForEachPi( p, pObj, i )
+            if ( pValues[i] == 1 )
+                Aig_InfoSetBit( pCex->pData, nPiOffset + i );
+        nPiOffset -= Saig_ManPiNum(p);
 
-
-        
-        // pCurrent = ...
-
-        // save values of the PI variables
-
-
-        // check if there are any new states
-        if ( Cudd_bddLeq( dd, bNext, bReached ) )
-            break;
-        // check the BDD size
-        nBddSize = Cudd_DagSize(bNext);
-        if ( nBddSize > nBddMax )
-            break;
-        // check the result
-        for ( i = 0; i < Saig_ManPoNum(p); i++ )
+        // check that we get the init state
+        if ( v == 0 )
         {
-            if ( !Cudd_bddLeq( dd, bNext, Cudd_Not(pbOutputs[i]) ) )
-            {
-                if ( !fSilent )
-                    printf( "Output %d was asserted in frame %d.  ", i, nIters );
-                Cudd_RecursiveDeref( dd, bReached );
-                bReached = NULL;
-                break;
-            }
-        }
-        if ( i < Saig_ManPoNum(p) )
+            Saig_ManForEachLo( p, pObj, i )
+                assert( pValues[Saig_ManPiNum(p)+i] == 0 );
             break;
-        // get the new states
-        bCurrent = Cudd_bddAnd( dd, bNext, Cudd_Not(bReached) );        Cudd_Ref( bCurrent );
-*/
+        }
+
+        // write state in terms of NS variables
+        bState = (dd)->one; Cudd_Ref( bState );
+        Saig_ManForEachLo( p, pObj, i )
+        {
+            bVar = Cudd_NotCond( dd->vars[Saig_ManCiNum(p)+i], pValues[Saig_ManPiNum(p)+i] != 1 );
+            bState = Cudd_bddAnd( dd, bTemp = bState, bVar );  Cudd_Ref( bState );
+            Cudd_RecursiveDeref( dd, bTemp ); 
+        }
+    }
+    // cleanup
+    Bbr_bddImageTreeDelete( pTree );
+    free( pValues );
+    // verify the counter example
+    if ( Vec_PtrSize(vOnionRings) < 1000 )
+    {
+    RetValue = Ssw_SmlRunCounterExample( p, pCex );
+    if ( RetValue == 0 && !fSilent )
+        printf( "Aig_ManVerifyUsingBdds(): Counter-example verification has FAILED.\n" );
+    }
+    if ( fVerbose && !fSilent )
+    {
+    PRT( "Counter-example generation time", clock() - clk );
+    }
+    return pCex;
 }
 
 ////////////////////////////////////////////////////////////////////////

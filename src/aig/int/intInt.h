@@ -90,6 +90,9 @@ extern int           Inter_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pO
 extern int           Inter_ManCheckEquivalence( Aig_Man_t * pNew, Aig_Man_t * pOld );
 extern int           Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, int nSteps, int fBackward );
 
+/*=== intCtrex.c ==========================================================*/
+extern void *        Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose );
+
 /*=== intDup.c ==========================================================*/
 extern Aig_Man_t *   Inter_ManStartInitState( int nRegs );
 extern Aig_Man_t *   Inter_ManStartDuplicated( Aig_Man_t * p );

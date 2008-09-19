@@ -67,6 +67,11 @@ struct Ssw_Man_t_
     Vec_Ptr_t *      vFanins;        // fanins of the CNF node
     Vec_Ptr_t *      vSimRoots;      // the roots of cand const 1 nodes to simulate
     Vec_Ptr_t *      vSimClasses;    // the roots of cand equiv classes to simulate
+    // SAT solving (latch corr only)
+    int              nCallsSince;    // the number of calls since last recycling
+    int              nRecycles;      // the number of time SAT solver was recycled
+    Vec_Ptr_t *      vUsedNodes;     // the nodes with SAT variables
+    Vec_Ptr_t *      vUsedPis;       // the PIs with SAT variables
     // sequential simulator
     Ssw_Sml_t *      pSml;
     // counter example storage
@@ -145,6 +150,7 @@ extern int           Ssw_ClassesCand1Num( Ssw_Cla_t * p );
 extern int           Ssw_ClassesClassNum( Ssw_Cla_t * p );
 extern int           Ssw_ClassesLitNum( Ssw_Cla_t * p );
 extern Aig_Obj_t **  Ssw_ClassesReadClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int * pnSize );
+extern void          Ssw_ClassesCollectClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, Vec_Ptr_t * vClass );
 extern void          Ssw_ClassesCheck( Ssw_Cla_t * p );
 extern void          Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose );
 extern void          Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj );
@@ -161,6 +167,8 @@ extern int           Ssw_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_
 extern void          Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj );
 /*=== sswCore.c ===================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p );
+/*=== sswLcorr.c ==========================================================*/
+extern int           Ssw_ManSweepLatch( Ssw_Man_t * p );
 /*=== sswMan.c ===================================================*/
 extern Ssw_Man_t *   Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 extern void          Ssw_ManCleanup( Ssw_Man_t * p );

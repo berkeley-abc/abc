@@ -22,6 +22,7 @@
 #include "ioa.h"
 #include "int.h"
 #include "ssw.h"
+#include "saig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -172,7 +173,19 @@ clk = clock();
         }
     }
     pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 1000, 1, pParSec->fVeryVerbose, &nIter, TimeLeft );
-    p->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
+    if ( pTemp->pSeqModel )
+    {
+        if ( !Ssw_SmlRunCounterExample( pTemp, pTemp->pSeqModel ) )
+            printf( "Fra_FraigLatchCorrespondence(): Counter-example verification has FAILED.\n" );
+        if ( Saig_ManPiNum(p) != Saig_ManPiNum(pTemp) )
+            printf( "The counter-example is invalid because of phase abstraction.\n" );
+        else
+        {
+        FREE( p->pSeqModel );
+        p->pSeqModel = Ssw_SmlDupCounterExample( pTemp->pSeqModel, Aig_ManRegNum(p) );
+        FREE( pTemp->pSeqModel );
+        }
+    }
     if ( pNew == NULL )
     {
         if ( p->pSeqModel )
@@ -188,6 +201,7 @@ PRT( "Time", clock() - clkTotal );
             printf( "SOLUTION: FAIL       " );
 PRT( "Time", clock() - clkTotal );
             }
+            Aig_ManStop( pTemp );
             return RetValue;
         }
         pNew = pTemp;
@@ -372,7 +386,17 @@ PRT( "Time", clock() - clk );
         }
         if ( pSml->fNonConstOut )
         {
-            p->pSeqModel = Fra_SmlGetCounterExample( pSml );
+            pNew->pSeqModel = Fra_SmlGetCounterExample( pSml );
+            // transfer to the original manager
+            if ( Saig_ManPiNum(p) != Saig_ManPiNum(pNew) )
+                printf( "The counter-example is invalid because of phase abstraction.\n" );
+            else
+            {
+            FREE( p->pSeqModel );
+            p->pSeqModel = Ssw_SmlDupCounterExample( pNew->pSeqModel, Aig_ManRegNum(p) );
+            FREE( pNew->pSeqModel );
+            }
+
             Fra_SmlStop( pSml );
             Aig_ManStop( pNew );
             RetValue = 0;
@@ -397,23 +421,38 @@ PRT( "Time", clock() - clkTotal );
 
     // try interplation
 clk = clock();
-    if ( pParSec->fInterpolation && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) == 1 )
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(pNew) );
+    if ( pParSec->fInterpolation && RetValue == -1 && Aig_ManRegNum(pNew) > 0 )
     {
         Inter_ManParams_t Pars, * pPars = &Pars;
         int Depth;
-        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
-        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
 
         Inter_ManSetDefaultParams( pPars );
         pPars->fVerbose = pParSec->fVeryVerbose;
-        RetValue = Inter_ManPerformInterpolation( pNew, pPars, &Depth );
+        if ( Saig_ManPoNum(pNew) == 1 )
+        {
+            RetValue = Inter_ManPerformInterpolation( pNew, pPars, &Depth );
+        }
+        else
+        {
+            Aig_Man_t * pNewOrpos = Said_ManDupOrpos( pNew );
+            RetValue = Inter_ManPerformInterpolation( pNewOrpos, pPars, &Depth );
+            if ( pNewOrpos->pSeqModel )
+            {
+                Ssw_Cex_t * pCex;
+                FREE( pNew->pSeqModel );
+                pCex = pNew->pSeqModel = pNewOrpos->pSeqModel; pNewOrpos->pSeqModel = NULL;
+                pCex->iPo = Ssw_SmlFindOutputCounterExample( pNew, pNew->pSeqModel );
+            }
+            Aig_ManStop( pNewOrpos );
+        }
 
         if ( pParSec->fVerbose )
         {
         if ( RetValue == 1 )
             printf( "Property proved using interpolation.  " );
         else if ( RetValue == 0 )
-            printf( "Property DISPROVED with cex at depth %d using interpolation.  ", Depth );
+            printf( "Property DISPROVED in frame %d using interpolation.  ", Depth );
         else if ( RetValue == -1 )
             printf( "Property UNDECIDED after interpolation.  " );
         else
@@ -429,70 +468,6 @@ PRT( "Time", clock() - clk );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
         RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0, pParSec->fSilent );
-    }
-
-    // try one-output at a time
-    if ( RetValue == -1 && Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) > 1 )
-    {
-        Aig_Man_t * pNew2;
-        int i, TimeLimit2, RetValue2, fOneUnsolved = 0, iCount, Counter = 0;
-        // count unsolved outputs
-        for ( i = 0; i < Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew); i++ )
-            if ( !Aig_ObjIsConst1( Aig_ObjFanin0(Aig_ManPo(pNew,i)) ) )
-                Counter++;
-        if ( !pParSec->fSilent )
-            printf( "*** The miter has %d outputs (out of %d total) unsolved in the multi-output form.\n", 
-                Counter, Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew) );
-        iCount = 0;
-        for ( i = 0; i < Aig_ManPoNum(pNew)-Aig_ManRegNum(pNew); i++ )
-        {
-            int TimeLimitCopy = 0;
-            // get the remaining time for this output
-            if ( pParSec->TimeLimit )
-            {
-                TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
-                TimeLeft = AIG_MAX( TimeLeft, 0.0 );
-                if ( TimeLeft == 0.0 )
-                {
-                    if ( !pParSec->fSilent )
-                        printf( "Runtime limit exceeded.\n" );
-                    TimeOut = 1;
-                    goto finish;
-                }
-                TimeLimit2 = 1 + (int)TimeLeft;
-            }
-            else
-                TimeLimit2 = 0;
-            if ( Aig_ObjIsConst1( Aig_ObjFanin0(Aig_ManPo(pNew,i)) ) )
-                continue;
-            iCount++;
-            if ( !pParSec->fSilent )
-                printf( "*** Running output %d of the miter (number %d out of %d unsolved).\n", i, iCount, Counter );
-            pNew2 = Aig_ManDupOneOutput( pNew, i, 1 );
-            
-            TimeLimitCopy = pParSec->TimeLimit;
-            pParSec->TimeLimit = TimeLimit2;
-            pParSec->fRecursive = 1;
-            RetValue2 = Fra_FraigSec( pNew2, pParSec );
-            pParSec->fRecursive = 0;
-            pParSec->TimeLimit = TimeLimitCopy;
-
-            Aig_ManStop( pNew2 );
-            if ( RetValue2 == 0 )
-                goto finish;
-            if ( RetValue2 == -1 )
-            {
-                fOneUnsolved = 1;
-                if ( pParSec->fStopOnFirstFail )
-                    break;
-            }
-        }
-        if ( fOneUnsolved )
-            RetValue = -1;
-        else
-            RetValue = 1;
-        if ( !pParSec->fSilent )
-            printf( "*** Finished running separate outputs of the miter.\n" );
     }
 
 finish:
@@ -542,6 +517,17 @@ PRT( "Time", clock() - clkTotal );
             sprintf( pFileName, "sm%03d.aig", Counter++ );
             Ioa_WriteAiger( pNew, pFileName, 0, 0 );
             printf( "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
+        }
+    }
+    if ( pNew->pSeqModel )
+    {
+        if ( Saig_ManPiNum(p) != Saig_ManPiNum(pNew) )
+            printf( "The counter-example is invalid because of phase abstraction.\n" );
+        else
+        {
+        FREE( p->pSeqModel );
+        p->pSeqModel = Ssw_SmlDupCounterExample( pNew->pSeqModel, Aig_ManRegNum(p) );
+        FREE( pNew->pSeqModel );
         }
     }
     if ( pNew )

@@ -70,7 +70,7 @@ struct Inter_ManParams_t_
 
 /*=== intCore.c ==========================================================*/
 extern void       Inter_ManSetDefaultParams( Inter_ManParams_t * p );
-extern int        Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * pDepth );
+extern int        Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * piFrame );
 
 
 #ifdef __cplusplus

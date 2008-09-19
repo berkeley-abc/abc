@@ -200,19 +200,19 @@ int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, 
     assert( Vec_PtrSize(vMapRegs) == (nSteps + 1) * nRegs );
     // add main constraints to the timeframes
     ppNodes = (Aig_Obj_t **)Vec_PtrArray(vMapRegs);
-    if ( fBackward )
-    {
-        // p -> !p -> ... -> !p
-        Inter_ManAppendCone( pInter, pFrames, ppNodes + 0 * nRegs, 1 );
-        for ( f = 1; f <= nSteps; f++ )
-            Inter_ManAppendCone( pInter, pFrames, ppNodes + f * nRegs, 0 );
-    }
-    else
-    {
-        // !p -> p -> ... -> p
+    if ( !fBackward )
+    { 
+        // forward inductive check: p -> p -> ... -> !p
         for ( f = 0; f < nSteps; f++ )
             Inter_ManAppendCone( pInter, pFrames, ppNodes + f * nRegs, 0 );
         Inter_ManAppendCone( pInter, pFrames, ppNodes + f * nRegs, 1 );
+    }
+    else
+    {
+        // backward inductive check: p -> !p -> ... -> !p
+        Inter_ManAppendCone( pInter, pFrames, ppNodes + 0 * nRegs, 1 );
+        for ( f = 1; f <= nSteps; f++ )
+            Inter_ManAppendCone( pInter, pFrames, ppNodes + f * nRegs, 0 );
     }
     Vec_PtrFree( vMapRegs );
     Aig_ManCleanup( pFrames );

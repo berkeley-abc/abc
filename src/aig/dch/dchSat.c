@@ -49,6 +49,8 @@ int Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     assert( !Aig_IsComplement(pNew) );
     assert( !Aig_IsComplement(pOld) );
     assert( pNew != pOld );
+
+//    p->nCallsSince++;  // experiment with this!!!
     
     // check if SAT solver needs recycling
     if ( p->pSat == NULL || 

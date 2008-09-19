@@ -324,6 +324,11 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
         if ( RetValue >= 0 )
             break;
 
+        // catch the situation when ref pattern detects the bug
+        RetValue = Ivy_FraigMiterStatus( pManAig );
+        if ( RetValue >= 0 )
+            break;
+
         // try fraiging followed by mitering
         if ( pParams->fUseFraiging )
         {
@@ -1338,10 +1343,10 @@ int Ivy_FraigCheckOutputSims( Ivy_FraigMan_t * p )
     Ivy_Obj_t * pObj;
     int i;
     // make sure the reference simulation pattern does not detect the bug
-    pObj = Ivy_ManPo( p->pManAig, 0 );
-    assert( Ivy_ObjFanin0(pObj)->fPhase == (unsigned)Ivy_ObjFaninC0(pObj) ); // Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj)) == 0
+//    pObj = Ivy_ManPo( p->pManAig, 0 );
     Ivy_ManForEachPo( p->pManAig, pObj, i )
     {
+        assert( Ivy_ObjFanin0(pObj)->fPhase == (unsigned)Ivy_ObjFaninC0(pObj) ); // Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj)) == 0
         // complement simulation info
 //        if ( Ivy_ObjFanin0(pObj)->fPhase ^ Ivy_ObjFaninC0(pObj) ) // Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj))
 //            Ivy_NodeComplementSim( p, Ivy_ObjFanin0(pObj) );
