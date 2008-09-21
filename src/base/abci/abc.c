@@ -13888,10 +13888,10 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nFramesP   =     0;
-    nConfMax   = 10000;
-    nVarsMax   =  5000;
+    nConfMax   =  1000;
+    nVarsMax   =  1000;
     fNewAlgor  =     0;
-    fVerbose   =     1;
+    fVerbose   =     0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PCSnvh" ) ) != EOF )
     {

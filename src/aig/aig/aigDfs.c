@@ -734,6 +734,33 @@ Vec_Ptr_t * Aig_Support( Aig_Man_t * p, Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_SupportNodes( Aig_Man_t * p, Aig_Obj_t ** ppObjs, int nObjs, Vec_Ptr_t * vSupp )
+{
+    int i;
+    Vec_PtrClear( vSupp );
+    Aig_ManIncrementTravId( p );
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    for ( i = 0; i < nObjs; i++ )
+    {
+        assert( !Aig_IsComplement(ppObjs[i]) );
+        if ( Aig_ObjIsPo(ppObjs[i]) )
+            Aig_Support_rec( p, Aig_ObjFanin0(ppObjs[i]), vSupp );
+        else
+            Aig_Support_rec( p, ppObjs[i], vSupp );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transfers the AIG from one manager into another.]
 
   Description []

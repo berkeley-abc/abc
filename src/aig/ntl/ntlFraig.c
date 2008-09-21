@@ -435,6 +435,7 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 ***********************************************************************/
 Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
 {
+    Ssw_Pars_t Pars, * pPars = &Pars;
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
 
@@ -444,7 +445,12 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     pAigCol = Ntl_ManCollapseSeq( pNew, 0 );
 
     // perform SCL for the given design
-    pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
+//    pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
+    Ssw_ManSetDefaultParamsLcorr( pPars );
+    pPars->nBTLimit = nConfMax;
+    pPars->fVerbose = fVerbose;
+    pTemp = Ssw_LatchCorrespondence( pAigCol, pPars );
+
     Aig_ManStop( pTemp );
     if ( p->vRegClasses && Vec_IntSize(p->vRegClasses) && pAigCol->pReprs )
         Ntl_ManFilterRegisterClasses( pAigCol, p->vRegClasses, fVerbose );

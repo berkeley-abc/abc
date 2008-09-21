@@ -57,7 +57,7 @@ static inline unsigned   Ssw_ObjRandomSim()                   { return Aig_ManRa
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Ssw_SmlNodeHash( Ssw_Sml_t * p, Aig_Obj_t * pObj )
+unsigned Ssw_SmlObjHashWord( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 {
     static int s_SPrimes[128] = { 
         1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
@@ -96,7 +96,7 @@ unsigned Ssw_SmlNodeHash( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SmlNodeIsConst( Ssw_Sml_t * p, Aig_Obj_t * pObj )
+int Ssw_SmlObjIsConstWord( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
     int i;
@@ -118,7 +118,7 @@ int Ssw_SmlNodeIsConst( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SmlNodesAreEqual( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
+int Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
     unsigned * pSims0, * pSims1;
     int i;
@@ -129,6 +129,39 @@ int Ssw_SmlNodesAreEqual( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
             return 0;
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the node appears to be constant 1 candidate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlObjIsConstBit( void * p, Aig_Obj_t * pObj )
+{
+    return pObj->fPhase == pObj->fMarkB;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the nodes appear equal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlObjsAreEqualBit( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
+{
+    return (pObj0->fPhase == pObj1->fPhase) == (pObj0->fMarkB == pObj1->fMarkB);
+}
+
 
 /**Function*************************************************************
 
@@ -340,7 +373,7 @@ int * Ssw_SmlCheckOutput( Ssw_Sml_t * p )
     assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
     Aig_ManForEachPo( p->pAig, pObj, i )
     {
-        if ( !Ssw_SmlNodeIsConst( p, Aig_ObjFanin0(pObj) ) )
+        if ( !Ssw_SmlObjIsConstWord( p, Aig_ObjFanin0(pObj) ) )
         {
             // create the counter-example from this pattern
             return Ssw_SmlCheckOutputSavePattern( p, pObj );
@@ -404,7 +437,7 @@ void Ssw_SmlAssignRandomFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_SmlAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFrame )
+void Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFrame )
 {
     unsigned * pSims;
     int i;
@@ -412,6 +445,25 @@ void Ssw_SmlAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFram
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
         pSims[i] = fConst1? ~(unsigned)0 : 0;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns constant patterns to the PI node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlObjSetWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, unsigned Word, int iWord, int iFrame )
+{
+    unsigned * pSims;
+    assert( Aig_ObjIsPi(pObj) );
+    pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
+    pSims[iWord] = Word;
 } 
 
 /**Function*************************************************************
@@ -438,7 +490,7 @@ void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
             Ssw_SmlAssignRandom( p, pObj );
         // assign the initial state for the latches
         Saig_ManForEachLo( p->pAig, pObj, i )
-            Ssw_SmlAssignConst( p, pObj, 0, 0 );
+            Ssw_SmlObjAssignConst( p, pObj, 0, 0 );
     }
     else
     {
@@ -467,7 +519,7 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
     {
         // copy the PI info 
         Aig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_SmlAssignConst( p, pObj, Aig_InfoHasBit(pPat, i), 0 );
+            Ssw_SmlObjAssignConst( p, pObj, Aig_InfoHasBit(pPat, i), 0 );
         // flip one bit
         Limit = AIG_MIN( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
         for ( i = 0; i < Limit; i++ )
@@ -481,11 +533,11 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
         nTruePis = Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig);
         for ( f = 0; f < p->nFrames; f++ )
             Saig_ManForEachPi( p->pAig, pObj, i )
-                Ssw_SmlAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * f + i), f );
+                Ssw_SmlObjAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * f + i), f );
         // copy the latch info 
         k = 0;
         Saig_ManForEachLo( p->pAig, pObj, i )
-            Ssw_SmlAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * p->nFrames + k++), 0 );
+            Ssw_SmlObjAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * p->nFrames + k++), 0 );
 //        assert( p->pFrames == NULL || nTruePis * p->nFrames + k == Aig_ManPiNum(p->pFrames) );
 
         // flip one bit of the last frame
@@ -517,7 +569,7 @@ void Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat )
 
     // copy the pattern into the primary inputs
     Aig_ManForEachPi( p->pAig, pObj, i )
-        Ssw_SmlAssignConst( p, pObj, Aig_InfoHasBit(pPat, i), 0 );
+        Ssw_SmlObjAssignConst( p, pObj, Aig_InfoHasBit(pPat, i), 0 );
 
     // set distance one PIs for the first frame
     Limit = AIG_MIN( Saig_ManPiNum(p->pAig), p->nWordsFrame * 32 - 1 );
@@ -529,7 +581,6 @@ void Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat )
         Saig_ManForEachPi( p->pAig, pObj, i )
             Ssw_SmlAssignRandomFrame( p, pObj, f );
 }
-
 
 /**Function*************************************************************
 
@@ -746,117 +797,35 @@ p->timeSim += clock() - clk;
 p->nSimRounds++;
 }
 
-
-#if 0
-
 /**Function*************************************************************
 
-  Synopsis    [Resimulates fraiging manager after finding a counter-example.]
+  Synopsis    [Simulates AIG manager.]
 
-  Description []
+  Description [Assumes that the PI simulation info is attached.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_SmlResimulate( Ssw_Man_t * p )
+void Ssw_SmlSimulateOneFrame( Ssw_Sml_t * p )
 {
-    int nChanges, clk;
-    Ssw_SmlAssignDist1( p, p->pPatWords );
-    Ssw_SmlSimulateOne( p );
-//    if ( p->pPars->fPatScores )
-//        Ssw_CleanPatScores( p );
-    if ( p->pPars->fProve && Ssw_SmlCheckOutput(p) )
-        return;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    int i, clk;
 clk = clock();
-    nChanges = Ssw_ClassesRefine( p->pCla, 1 );
-    nChanges += Ssw_ClassesRefine1( p->pCla, 1, NULL );
-    if ( p->pCla->vImps )
-        nChanges += Ssw_ImpRefineUsingCex( p, p->pCla->vImps );
-    if ( p->vOneHots )
-        nChanges += Ssw_OneHotRefineUsingCex( p, p->vOneHots );
-p->timeRef += clock() - clk;
-    if ( !p->pPars->nFramesK && nChanges < 1 )
-        printf( "Error: A counter-example did not refine classes!\n" );
-//    assert( nChanges >= 1 );
-//printf( "Refined classes = %5d.   Changes = %4d.\n", Vec_PtrSize(p->vClasses), nChanges );
+    // simulate the nodes
+    Aig_ManForEachNode( p->pAig, pObj, i )
+        Ssw_SmlNodeSimulate( p, pObj, 0 );
+    // copy simulation info into outputs
+    Saig_ManForEachLi( p->pAig, pObj, i )
+        Ssw_SmlNodeCopyFanin( p, pObj, 0 );
+    // copy simulation info into the inputs
+    Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+        Ssw_SmlNodeTransferNext( p, pObjLi, pObjLo, 0 );
+p->timeSim += clock() - clk;
+p->nSimRounds++;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Performs simulation of the manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_SmlSimulate( Ssw_Man_t * p, int fInit )
-{
-    int fVerbose = 0;
-    int nChanges, nClasses, clk;
-    assert( !fInit || Aig_ManRegNum(p->pAig) );
-    // start the classes
-    Ssw_SmlInitialize( p, fInit );
-    Ssw_SmlSimulateOne( p );
-    if ( p->pPars->fProve && Ssw_SmlCheckOutput(p) )
-        return;
-    Ssw_ClassesPrepare( p->pCla, p->pPars->fLatchCorr, 0 );
-//    Ssw_ClassesPrint( p->pCla, 0 );
-if ( fVerbose )
-printf( "Starting classes = %5d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), Ssw_ClassesCountLits(p->pCla) );
-
-//return;
-
-    // refine classes by walking 0/1 patterns
-    Ssw_SmlSavePattern0( p, fInit );
-    Ssw_SmlAssignDist1( p, p->pPatWords );
-    Ssw_SmlSimulateOne( p );
-    if ( p->pPars->fProve && Ssw_SmlCheckOutput(p) )
-        return;
-clk = clock();
-    nChanges = Ssw_ClassesRefine( p->pCla, 1 );
-    nChanges += Ssw_ClassesRefine1( p->pCla, 1, NULL );
-p->timeRef += clock() - clk;
-if ( fVerbose )
-printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Ssw_ClassesCountLits(p->pCla) );
-    Ssw_SmlSavePattern1( p, fInit );
-    Ssw_SmlAssignDist1( p, p->pPatWords );
-    Ssw_SmlSimulateOne( p );
-    if ( p->pPars->fProve && Ssw_SmlCheckOutput(p) )
-        return;
-clk = clock();
-    nChanges = Ssw_ClassesRefine( p->pCla, 1 );
-    nChanges += Ssw_ClassesRefine1( p->pCla, 1, NULL );
-p->timeRef += clock() - clk;
-
-if ( fVerbose )
-printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Ssw_ClassesCountLits(p->pCla) );
-    // refine classes by random simulation
-    do {
-        Ssw_SmlInitialize( p, fInit );
-        Ssw_SmlSimulateOne( p );
-        nClasses = Vec_PtrSize(p->pCla->vClasses);
-        if ( p->pPars->fProve && Ssw_SmlCheckOutput(p) )
-            return;
-clk = clock();
-        nChanges = Ssw_ClassesRefine( p->pCla, 1 );
-        nChanges += Ssw_ClassesRefine1( p->pCla, 1, NULL );
-p->timeRef += clock() - clk;
-if ( fVerbose )
-printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Ssw_ClassesCountLits(p->pCla) );
-    } while ( (double)nChanges / nClasses > p->pPars->dSimSatur );
-
-//    if ( p->pPars->fVerbose )
-//    printf( "Consts = %6d. Classes = %6d. Literals = %6d.\n", 
-//        Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Ssw_ClassesCountLits(p->pCla) );
-//    Ssw_ClassesPrint( p->pCla, 0 );
-}
- 
-#endif
 
 /**Function*************************************************************
 
@@ -881,6 +850,22 @@ Ssw_Sml_t * Ssw_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFr
     p->nWordsTotal = (nPref + nFrames) * nWordsFrame;
     p->nWordsPref  = nPref * nWordsFrame;
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates simulation manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlClean( Ssw_Sml_t * p )
+{
+    memset( p->pData, 0, sizeof(unsigned) * Aig_ManObjNumMax(p->pAig) * p->nWordsTotal );
 }
 
 /**Function*************************************************************
@@ -1005,11 +990,11 @@ int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
     // assign simulation info for the registers
     iBit = 0;
     Saig_ManForEachLo( pAig, pObj, i )
-        Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
+        Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
     // assign simulation info for the primary inputs
     for ( i = 0; i <= p->iFrame; i++ )
         Saig_ManForEachPi( pAig, pObj, k )
-            Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
+            Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
     assert( iBit == p->nBits );
     // run random simulation
     Ssw_SmlSimulateOne( pSml );
@@ -1042,11 +1027,11 @@ int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
     // assign simulation info for the registers
     iBit = 0;
     Saig_ManForEachLo( pAig, pObj, i )
-        Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
+        Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
     // assign simulation info for the primary inputs
     for ( i = 0; i <= p->iFrame; i++ )
         Saig_ManForEachPi( pAig, pObj, k )
-            Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
+            Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
     assert( iBit == p->nBits );
     // run random simulation
     Ssw_SmlSimulateOne( pSml );
@@ -1271,13 +1256,13 @@ int Ssw_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Ssw_Cex_t * p )
     // assign simulation info for the registers
     iBit = 0;
     Saig_ManForEachLo( pAig, pObj, i )
-//        Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
-        Ssw_SmlAssignConst( pSml, pObj, 0, 0 );
+//        Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
+        Ssw_SmlObjAssignConst( pSml, pObj, 0, 0 );
     // assign simulation info for the primary inputs
     iBit = p->nRegs;
     for ( i = 0; i <= p->iFrame; i++ )
         Saig_ManForEachPi( pAig, pObj, k )
-            Ssw_SmlAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
+            Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
     assert( iBit == p->nBits );
     // run random simulation
     Ssw_SmlSimulateOne( pSml );

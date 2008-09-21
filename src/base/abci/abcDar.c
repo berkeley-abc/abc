@@ -1335,7 +1335,6 @@ Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, in
         return NULL;
     Ssw_ManSetDefaultParams( pPars );
     pPars->fLatchCorrOpt = 1;
-//    pPars->nFramesAddSim = 0;
     pPars->nBTLimit      = nConfMax;
     pPars->nSatVarMax    = nVarsMax;
     pPars->fVerbose      = fVerbose;

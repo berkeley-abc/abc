@@ -544,13 +544,7 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     int i, v, Var, PrevId;
     int fPrint = 0;
     int clk = clock();
-/*
-    if ( pFinal->Id == 5187 )
-    {
-        int x = 0;
-        Inta_ManPrintClause( p, pConflict );
-    }
-*/
+
     // collect resolvent literals
     if ( p->fProofVerif )
     {
@@ -579,27 +573,16 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         if ( !p->pSeens[Var] )
             continue;
         p->pSeens[Var] = 0;
-/*
-        if ( pFinal->Id == 5187 )
-        {
-            printf( "pivot = %d  ", p->pTrail[i] );
-        }
-*/
+
         // skip literals of the resulting clause
         pReason = p->pReasons[Var];
         if ( pReason == NULL )
             continue;
         assert( p->pTrail[i] == pReason->pLits[0] );
-/*
-        if ( pFinal->Id == 5187 )
-        {
-            Inta_ManPrintClause( p, pReason );
-        }
-*/
+
         // add the variables to seen
         for ( v = 1; v < (int)pReason->nLits; v++ )
             p->pSeens[lit_var(pReason->pLits[v])] = 1;
-
 
         // record the reason clause
         assert( Inta_ManProofGet(p, pReason) > 0 );
@@ -656,7 +639,6 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
                 printf( "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
             }
         }
-
 //        Vec_PtrPush( pFinal->pAntis, pReason );
     }
 
@@ -673,20 +655,6 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         int v1, v2; 
         if ( fPrint )
             Inta_ManPrintResolvent( p->pResLits, p->nResLits );
-/*
-        if ( pFinal->Id == 5187 )
-        {
-            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
-            Inta_ManPrintClause( p, pFinal );
-        }
-*/
-/*
-        if ( p->nResLits != pFinal->nLits )
-        {
-            printf( "Recording clause %d: The resolvent is wrong (nRetLits = %d, pFinal->nLits = %d).\n", 
-                pFinal->Id, p->nResLits, pFinal->nLits );
-        }
-*/
         for ( v1 = 0; v1 < p->nResLits; v1++ )
         {
             for ( v2 = 0; v2 < (int)pFinal->nLits; v2++ )
@@ -702,6 +670,27 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
             Inta_ManPrintClause( p, pConflict );
             Inta_ManPrintResolvent( p->pResLits, p->nResLits );
             Inta_ManPrintClause( p, pFinal );
+        }
+
+        // if there are literals in the clause that are not in the resolvent
+        // it means that the derived resolvent is stronger than the clause
+        // we can replace the clause with the resolvent by removing these literals
+        if ( p->nResLits != (int)pFinal->nLits )
+        {
+            for ( v1 = 0; v1 < (int)pFinal->nLits; v1++ )
+            {
+                for ( v2 = 0; v2 < p->nResLits; v2++ )
+                    if ( pFinal->pLits[v1] == p->pResLits[v2] )
+                        break;
+                if ( v2 < p->nResLits )
+                    continue;
+                // remove literal v1 from the final clause
+                pFinal->nLits--;
+                for ( v2 = v1; v2 < (int)pFinal->nLits; v2++ )
+                    pFinal->pLits[v2] = pFinal->pLits[v2+1];
+                v1--;
+            }
+            assert( p->nResLits == (int)pFinal->nLits );
         }
     }
 p->timeTrace += clock() - clk;
@@ -736,9 +725,16 @@ int Inta_ManProofRecordOne( Inta_Man_t * p, Sto_Cls_t * pClause )
     if ( pClause->nLits == 0 )
         printf( "Error: Empty clause is attempted.\n" );
 
-    // add assumptions to the trail
     assert( !pClause->fRoot );
     assert( p->nTrailSize == p->nRootSize );
+
+    // if any of the clause literals are already assumed
+    // it means that the clause is redundant and can be skipped
+    for ( i = 0; i < (int)pClause->nLits; i++ )
+        if ( p->pAssigns[lit_var(pClause->pLits[i])] == pClause->pLits[i] )
+            return 1;
+
+    // add assumptions to the trail
     for ( i = 0; i < (int)pClause->nLits; i++ )
         if ( !Inta_ManEnqueue( p, lit_neg(pClause->pLits[i]), NULL ) )
         {

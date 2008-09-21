@@ -52,12 +52,10 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     p->pPars         = pPars;
     p->pAig          = pAig;
     p->nFrames       = pPars->nFramesK + 1;
-    p->pNodeToFraig  = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
+    p->pNodeToFrames = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     // SAT solving
     p->pSatVars      = CALLOC( int, Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
     p->vFanins       = Vec_PtrAlloc( 100 );
-    p->vSimRoots     = Vec_PtrAlloc( 1000 );
-    p->vSimClasses   = Vec_PtrAlloc( 1000 );
     // SAT solving (latch corr only)
     p->vUsedNodes    = Vec_PtrAlloc( 1000 );
     p->vUsedPis      = Vec_PtrAlloc( 1000 );
@@ -102,13 +100,15 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjNumMax(p->pAig)*p->nFrames*(2*sizeof(int)+2*sizeof(void*))/(1<<20);
 
-    printf( "Parameters: F = %d. AddF = %d. C-lim = %d. Constr = %d. SkipCheck = %d. MaxLev = %d. Mem = %0.2f Mb.\n", 
-        p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->fSkipCheck, p->pPars->nMaxLevs, nMemory );
+    printf( "Parameters: F = %d. AddF = %d. C-lim = %d. Constr = %d. MaxLev = %d. Mem = %0.2f Mb.\n", 
+        p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->nMaxLevs, nMemory );
     printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
         Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
         p->nSatVarsTotal/p->pPars->nIters );
     printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Equivs = %d. Str = %d.\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFailsTotal, Ssw_ManCountEquivs(p), p->nStrangers );
+    printf( "SAT solver: Vars = %d. Max cone = %d. Recycles = %d. Rounds = %d.\n", 
+        p->nSatVars, p->nConeMax, p->nRecycles, p->nSimRounds );
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
@@ -139,12 +139,11 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManCleanup( Ssw_Man_t * p )
 {
-    Aig_ManCleanMarkB( p->pAig );
     if ( p->pFrames )
     {
         Aig_ManStop( p->pFrames );
         p->pFrames = NULL;
-        memset( p->pNodeToFraig, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
+        memset( p->pNodeToFrames, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
     }
     if ( p->pSat )
     {
@@ -153,6 +152,11 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
         sat_solver_delete( p->pSat );
         p->pSat = NULL;
         memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
+    }
+    if ( p->vSimInfo )  
+    {
+        Vec_PtrFree( p->vSimInfo );
+        p->vSimInfo = NULL;
     }
     p->nConstrTotal = 0;
     p->nConstrReduced = 0;
@@ -172,6 +176,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
 void Ssw_ManStop( Ssw_Man_t * p )
 {
     Aig_ManCleanMarkA( p->pAig );
+    Aig_ManCleanMarkB( p->pAig );
     if ( p->pPars->fVerbose )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )
@@ -179,11 +184,9 @@ void Ssw_ManStop( Ssw_Man_t * p )
     if ( p->pSml )      
         Ssw_SmlStop( p->pSml );
     Vec_PtrFree( p->vFanins );
-    Vec_PtrFree( p->vSimRoots );
-    Vec_PtrFree( p->vSimClasses );
     Vec_PtrFree( p->vUsedNodes );
     Vec_PtrFree( p->vUsedPis );
-    FREE( p->pNodeToFraig );
+    FREE( p->pNodeToFrames );
     FREE( p->pSatVars );
     FREE( p->pPatWords );
     free( p );

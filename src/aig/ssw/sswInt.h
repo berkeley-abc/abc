@@ -53,25 +53,31 @@ struct Ssw_Man_t_
     // AIGs used in the package
     Aig_Man_t *      pAig;           // user-given AIG
     Aig_Man_t *      pFrames;        // final AIG
-    Aig_Obj_t **     pNodeToFraig;   // mapping of AIG nodes into FRAIG nodes
+    Aig_Obj_t **     pNodeToFrames;  // mapping of AIG nodes into FRAIG nodes
     // equivalence classes
     Ssw_Cla_t *      ppClasses;      // equivalence classes of nodes
     int              fRefined;       // is set to 1 when refinement happens
-    int              nRefUse;
-    int              nRefSkip;  
+    int              nRefUse;        // the number of equivalences used
+    int              nRefSkip;       // the number of equivalences skipped  
     // SAT solving
     sat_solver *     pSat;           // recyclable SAT solver
     int              nSatVars;       // the counter of SAT variables
     int *            pSatVars;       // mapping of each node into its SAT var
     int              nSatVarsTotal;  // the total number of SAT vars created
     Vec_Ptr_t *      vFanins;        // fanins of the CNF node
-    Vec_Ptr_t *      vSimRoots;      // the roots of cand const 1 nodes to simulate
-    Vec_Ptr_t *      vSimClasses;    // the roots of cand equiv classes to simulate
     // SAT solving (latch corr only)
-    int              nCallsSince;    // the number of calls since last recycling
-    int              nRecycles;      // the number of time SAT solver was recycled
     Vec_Ptr_t *      vUsedNodes;     // the nodes with SAT variables
     Vec_Ptr_t *      vUsedPis;       // the PIs with SAT variables
+    Vec_Ptr_t *      vSimInfo;       // simulation information for the framed PIs
+    int              nPatterns;      // the number of patterns saved
+    int              nSimRounds;     // the number of simulation rounds performed
+    int              nCallsCount;    // the number of calls in this round
+    int              nCallsDelta;    // the number of calls to skip
+    int              nCallsSat;      // the number of SAT calls in this round
+    int              nCallsUnsat;    // the number of UNSAT calls in this round
+    int              nRecycleCalls;  // the number of calls since last recycling
+    int              nRecycles;      // the number of time SAT solver was recycled
+    int              nConeMax;       // the maximum cone size
     // sequential simulator
     Ssw_Sml_t *      pSml;
     // counter example storage
@@ -125,11 +131,11 @@ static inline void Ssw_ObjSetConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj )
     Aig_ObjSetRepr( pAig, pObj, Aig_ManConst1(pAig) );
 }
 
-static inline Aig_Obj_t * Ssw_ObjFraig( Ssw_Man_t * p, Aig_Obj_t * pObj, int i )                       { return p->pNodeToFraig[p->nFrames*pObj->Id + i];  }
-static inline void        Ssw_ObjSetFraig( Ssw_Man_t * p, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { p->pNodeToFraig[p->nFrames*pObj->Id + i] = pNode; }
+static inline Aig_Obj_t * Ssw_ObjFrame( Ssw_Man_t * p, Aig_Obj_t * pObj, int i )                       { return p->pNodeToFrames[p->nFrames*pObj->Id + i];  }
+static inline void        Ssw_ObjSetFrame( Ssw_Man_t * p, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { p->pNodeToFrames[p->nFrames*pObj->Id + i] = pNode; }
 
-static inline Aig_Obj_t * Ssw_ObjChild0Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Ssw_ObjFraig(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj)) : NULL;  }
-static inline Aig_Obj_t * Ssw_ObjChild1Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Ssw_ObjFraig(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj)) : NULL;  }
+static inline Aig_Obj_t * Ssw_ObjChild0Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Ssw_ObjFrame(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj)) : NULL;  }
+static inline Aig_Obj_t * Ssw_ObjChild1Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Ssw_ObjFrame(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj)) : NULL;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -161,8 +167,6 @@ extern int           Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive );
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
 extern int           Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive );
 extern int           Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive );
-extern int           Ssw_NodeIsConstCex( void * p, Aig_Obj_t * pObj );
-extern int           Ssw_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 /*=== sswCnf.c ===================================================*/
 extern void          Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj );
 /*=== sswCore.c ===================================================*/
@@ -178,19 +182,23 @@ extern void          Ssw_ManStartSolver( Ssw_Man_t * p );
 extern int           Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 extern int           Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 /*=== sswSim.c ===================================================*/
+extern unsigned      Ssw_SmlObjHashWord( Ssw_Sml_t * p, Aig_Obj_t * pObj );
+extern int           Ssw_SmlObjIsConstWord( Ssw_Sml_t * p, Aig_Obj_t * pObj );
+extern int           Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
+extern int           Ssw_SmlObjIsConstBit( void * p, Aig_Obj_t * pObj );
+extern int           Ssw_SmlObjsAreEqualBit( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 extern Ssw_Sml_t *   Ssw_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame );
+extern void          Ssw_SmlClean( Ssw_Sml_t * p );
 extern void          Ssw_SmlStop( Ssw_Sml_t * p );
-extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
-extern unsigned      Ssw_SmlNodeHash( Ssw_Sml_t * p, Aig_Obj_t * pObj );
-extern int           Ssw_SmlNodeIsConst( Ssw_Sml_t * p, Aig_Obj_t * pObj );
-extern int           Ssw_SmlNodesAreEqual( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
+extern void          Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFrame );
+extern void          Ssw_SmlObjSetWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, unsigned Word, int iWord, int iFrame );
 extern void          Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat );
 extern void          Ssw_SmlSimulateOne( Ssw_Sml_t * p );
+extern void          Ssw_SmlSimulateOneFrame( Ssw_Sml_t * p );
+extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
 /*=== sswSimSat.c ===================================================*/
-extern int           Ssw_ManOriginalPiValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f );
-extern void          Ssw_ManResimulateCex( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
-extern void          Ssw_ManResimulateCexTotal( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr, int f );
-extern void          Ssw_ManResimulateCexTotalSim( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );
+extern void          Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr );
+extern void          Ssw_ManResimulateWord( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );
 /*=== sswSweep.c ===================================================*/
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );

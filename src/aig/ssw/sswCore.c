@@ -50,14 +50,33 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nBTLimit       =  1000;  // conflict limit at a node
     p->nMinDomSize    =   100;  // min clock domain considered for optimization
     p->fPolarFlip     =     0;  // uses polarity adjustment
+    p->fSkipCheck     =     0;  // do not run equivalence check for unaffected cones
     p->fLatchCorr     =     0;  // performs register correspondence
     p->fVerbose       =     0;  // verbose stats
     // latch correspondence
     p->fLatchCorrOpt  =     0;  // performs optimized register correspondence
-    p->nSatVarMax     =  5000;  // the max number of SAT variables
-    p->nCallsRecycle  =   100;  // calls to perform before recycling SAT solver
+    p->nSatVarMax     =  1000;  // the max number of SAT variables
+    p->nRecycleCalls  =    50;  // calls to perform before recycling SAT solver
     // return values
     p->nIters         =     0;  // the number of iterations performed
+}
+
+/**Function*************************************************************
+
+  Synopsis    [This procedure sets default parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManSetDefaultParamsLcorr( Ssw_Pars_t * p )
+{
+    Ssw_ManSetDefaultParams( p );
+    p->fLatchCorrOpt = 1;
+    p->nBTLimit      = 10000;
 }
 
 /**Function*************************************************************
@@ -73,6 +92,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
 ***********************************************************************/
 Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
 {
+    int nSatProof, nSatCallsSat, nRecycles, nSatFailsReal;
     Aig_Man_t * pAigNew;
     int RetValue, nIter;
     int clk, clkTotal = clock();
@@ -97,23 +117,40 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
         Ssw_ClassesPrint( p->ppClasses, 0 );
     }
     // refine classes using induction
+    nSatProof = nSatCallsSat = nRecycles = nSatFailsReal = 0;
     for ( nIter = 0; ; nIter++ )
     {
 clk = clock();
         if ( p->pPars->fLatchCorrOpt )
-            RetValue = Ssw_ManSweepLatch( p );
-        else
-            RetValue = Ssw_ManSweep( p );
-        if ( p->pPars->fVerbose )
         {
-            printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
-                nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
-                p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nSatFailsReal );
-            if ( p->pPars->fSkipCheck )
-                printf( "Use = %5d. Skip = %5d. ", 
-                    p->nRefUse, p->nRefSkip );
-            PRT( "T", clock() - clk );
-        } 
+            RetValue = Ssw_ManSweepLatch( p );
+            if ( p->pPars->fVerbose )
+            {
+                printf( "%3d : Const = %6d. Cl = %6d. Pr = %5d. Cex = %5d. Rcl = %3d. F = %3d. ", 
+                    nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
+                    p->nSatProof-nSatProof, p->nSatCallsSat-nSatCallsSat, 
+                    p->nRecycles-nRecycles, p->nSatFailsReal-nSatFailsReal );
+                PRT( "T", clock() - clk );
+                nSatProof     = p->nSatProof;
+                nSatCallsSat  = p->nSatCallsSat;
+                nRecycles     = p->nRecycles;
+                nSatFailsReal = p->nSatFailsReal;
+            } 
+        }
+        else
+        {
+            RetValue = Ssw_ManSweep( p );
+            if ( p->pPars->fVerbose )
+            {
+                printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
+                    nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
+                    p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nSatFailsReal );
+                if ( p->pPars->fSkipCheck )
+                    printf( "Use = %5d. Skip = %5d. ", 
+                        p->nRefUse, p->nRefSkip );
+                PRT( "T", clock() - clk );
+            } 
+        }
         Ssw_ManCleanup( p );
         if ( !RetValue )
             break;
@@ -161,7 +198,10 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     }
     // check and update parameters
     if ( pPars->fLatchCorrOpt )
+    {
         pPars->fLatchCorr = 1;
+        pPars->nFramesAddSim = 0;
+    }
     else
     {
         assert( pPars->nFramesK > 0 );
@@ -181,13 +221,13 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         // perform one round of seq simulation and generate candidate equivalence classes
         p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
         p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
-        Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlNodeHash, Ssw_SmlNodeIsConst, Ssw_SmlNodesAreEqual );
+        Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
     }
     else
     {
         // create trivial equivalence classes with all nodes being candidates for constant 1
         p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
-        Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_NodeIsConstCex, Ssw_NodesAreEqualCex );
+        Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_SmlObjIsConstBit, Ssw_SmlObjsAreEqualBit );
     }
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );    
@@ -196,6 +236,24 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     return pAigNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs computation of latch correspondence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
+{
+    Ssw_Pars_t Pars;
+    if ( pPars == NULL )
+        Ssw_ManSetDefaultParamsLcorr( pPars = &Pars );
+    return Ssw_SignalCorrespondence( pAig, pPars );
+}
 
 
 ////////////////////////////////////////////////////////////////////////

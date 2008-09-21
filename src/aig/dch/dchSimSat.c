@@ -60,10 +60,10 @@ void Dch_ManCollectTfoCands_rec( Dch_Man_t * p, Aig_Obj_t * pObj )
         Vec_PtrPush( p->vSimRoots, pObj );
         return;
     }
-    // pRepr is the representative of the equivalence class
-    if ( Aig_ObjIsTravIdCurrent(p->pAigTotal, pRepr) )
+    // pRepr is the representative of an equivalence class
+    if ( pRepr->fMarkA )
         return;
-    Aig_ObjSetTravIdCurrent(p->pAigTotal, pRepr);
+    pRepr->fMarkA = 1;
     Vec_PtrPush( p->vSimClasses, pRepr );
 }
 
@@ -80,6 +80,8 @@ void Dch_ManCollectTfoCands_rec( Dch_Man_t * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 void Dch_ManCollectTfoCands( Dch_Man_t * p, Aig_Obj_t * pObj1, Aig_Obj_t * pObj2 )
 {
+    Aig_Obj_t * pObj;
+    int i;
     Vec_PtrClear( p->vSimRoots );
     Vec_PtrClear( p->vSimClasses );
     Aig_ManIncrementTravId( p->pAigTotal );
@@ -88,6 +90,8 @@ void Dch_ManCollectTfoCands( Dch_Man_t * p, Aig_Obj_t * pObj1, Aig_Obj_t * pObj2
     Dch_ManCollectTfoCands_rec( p, pObj2 );
     Vec_PtrSort( p->vSimRoots, Aig_ObjCompareIdIncrease );
     Vec_PtrSort( p->vSimClasses, Aig_ObjCompareIdIncrease );
+    Vec_PtrForEachEntry( p->vSimClasses, pObj, i )
+        pObj->fMarkA = 0;
 }
 
 /**Function*************************************************************
@@ -116,6 +120,7 @@ void Dch_ManResimulateSolved_rec( Dch_Man_t * p, Aig_Obj_t * pObj )
         // get the value from the SAT solver
         // (account for the fact that some vars may be minimized away)
         pObj->fMarkB = !nVarNum? 0 : sat_solver_var_value( p->pSat, nVarNum );
+//        pObj->fMarkB = !nVarNum? Aig_ManRandom(0) & 1 : sat_solver_var_value( p->pSat, nVarNum );
         return;
     }
     Dch_ManResimulateSolved_rec( p, Aig_ObjFanin0(pObj) );

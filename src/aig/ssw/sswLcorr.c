@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "sswInt.h"
-#include "bar.h"
+//#include "bar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -67,12 +67,13 @@ void Ssw_ManSatSolverRecycle( Ssw_Man_t * p )
     Ssw_ObjSetSatNum( p, Aig_ManConst1(p->pFrames), p->nSatVars++ );
 
     p->nRecycles++;
-    p->nCallsSince = 0;
+    p->nRecycleCalls = 0;
 }
+
 
 /**Function*************************************************************
 
-  Synopsis    [Copy pattern from the solver into the internal storage.]
+  Synopsis    [Tranfers simulation information from FRAIG to AIG.]
 
   Description []
                
@@ -81,19 +82,30 @@ void Ssw_ManSatSolverRecycle( Ssw_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_SmlSavePatternLatch( Ssw_Man_t * p )
+void Ssw_ManSweepTransfer( Ssw_Man_t * p )
 {
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj, * pObjFraig;
+    unsigned * pInfo;
     int i;
-    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+    // transfer simulation information
     Aig_ManForEachPi( p->pAig, pObj, i )
-        if ( Ssw_ManOriginalPiValue( p, pObj, 0 ) )
-            Aig_InfoSetBit( p->pPatWords, i );
+    {
+        pObjFraig = Ssw_ObjFrame( p, pObj, 0 );
+        if ( pObjFraig == Aig_ManConst0(p->pFrames) )
+        {
+            Ssw_SmlObjAssignConst( p->pSml, pObj, 0, 0 );
+            continue;
+        }
+        assert( !Aig_IsComplement(pObjFraig) );
+        assert( Aig_ObjIsPi(pObjFraig) );
+        pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
+        Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, 0 );
+    }
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Copy pattern from the solver into the internal storage.]
+  Synopsis    [Performs one round of simulation with counter-examples.]
 
   Description []
                
@@ -102,14 +114,50 @@ void Ssw_SmlSavePatternLatch( Ssw_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_SmlSavePatternLatchPhase( Ssw_Man_t * p, int f )
+int Ssw_ManSweepResimulate( Ssw_Man_t * p )
+{
+    int RetValue1, RetValue2, clk = clock();
+    // transfer PI simulation information from storage
+    Ssw_ManSweepTransfer( p );
+    // simulate internal nodes
+    Ssw_SmlSimulateOneFrame( p->pSml );
+    // check equivalence classes
+    RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 1 );
+    RetValue2 = Ssw_ClassesRefine( p->ppClasses, 1 );
+    // prepare simulation info for the next round
+    Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
+    p->nPatterns = 0;
+    p->nSimRounds++;
+p->timeSimSat += clock() - clk;
+    return RetValue1 > 0 || RetValue2 > 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Saves one counter-example into internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlAddPattern( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pCand )
 {
     Aig_Obj_t * pObj;
-    int i;
-    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Aig_ManForEachPi( p->pAig, pObj, i )
-        if ( Aig_ObjPhaseReal( Ssw_ObjFraig(p, pObj, f) ) )
-            Aig_InfoSetBit( p->pPatWords, i );
+    unsigned * pInfo;
+    int i, nVarNum, Value;
+    Vec_PtrForEachEntry( p->vUsedPis, pObj, i )
+    {
+        nVarNum = Ssw_ObjSatNum( p, pObj );
+        assert( nVarNum > 0 );
+        Value = sat_solver_var_value( p->pSat, nVarNum );
+        if ( Value == 0 )
+            continue;
+        pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
+        Aig_InfoSetBit( pInfo, p->nPatterns );
+    }
 }
 
 /**Function*************************************************************
@@ -127,13 +175,13 @@ void Ssw_ManBuildCone_rec( Ssw_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pObjNew;
     assert( !Aig_IsComplement(pObj) );
-    if ( Ssw_ObjFraig( p, pObj, 0 ) )
+    if ( Ssw_ObjFrame( p, pObj, 0 ) )
         return;
     assert( Aig_ObjIsNode(pObj) );
     Ssw_ManBuildCone_rec( p, Aig_ObjFanin0(pObj) );
     Ssw_ManBuildCone_rec( p, Aig_ObjFanin1(pObj) );
     pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, 0), Ssw_ObjChild1Fra(p, pObj, 0) );
-    Ssw_ObjSetFraig( p, pObj, 0, pObjNew );
+    Ssw_ObjSetFrame( p, pObj, 0, pObjNew );
 }
 
 /**Function*************************************************************
@@ -149,10 +197,18 @@ void Ssw_ManBuildCone_rec( Ssw_Man_t * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj )
 {
-    Aig_Obj_t * pObjFraig, * pObjFraig2, * pObjReprFraig, * pObjLi;
-    int RetValue;
+    Aig_Obj_t * pObjFraig, * pObjReprFraig, * pObjLi;
+    int RetValue, clk;
     assert( Aig_ObjIsPi(pObj) );
     assert( Aig_ObjIsPi(pObjRepr) || Aig_ObjIsConst1(pObjRepr) );
+    // check if it makes sense to skip some calls
+    if ( p->nCallsCount > 100 && p->nCallsUnsat < p->nCallsSat )
+    {
+        if ( ++p->nCallsDelta < 0 )
+            return;
+    }
+    p->nCallsDelta = 0;
+clk = clock();
     // get the fraiged node
     pObjLi = Saig_ObjLoToLi( p->pAig, pObj ); 
     Ssw_ManBuildCone_rec( p, Aig_ObjFanin0(pObjLi) );
@@ -165,43 +221,44 @@ void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj
         pObjReprFraig = Ssw_ObjChild0Fra( p, pObjLi, 0 );
     }
     else 
-        pObjReprFraig = Ssw_ObjFraig( p, pObjRepr, 0 );
+        pObjReprFraig = Ssw_ObjFrame( p, pObjRepr, 0 );
+p->timeReduce += clock() - clk;
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
         return;
-    p->nCallsSince++;
+    p->nRecycleCalls++;
+    p->nCallsCount++;
+
     // check equivalence of the two nodes
     if ( (pObj->fPhase == pObjRepr->fPhase) != (Aig_ObjPhaseReal(pObjFraig) == Aig_ObjPhaseReal(pObjReprFraig)) )
     {
+        p->nPatterns++;
         p->nStrangers++;
-        Ssw_SmlSavePatternLatchPhase( p, 0 );
+        p->fRefined = 1;
     }
     else
     { 
         RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
-        if ( RetValue == 1 )  // proved equivalent
+        if ( RetValue == 1 )  // proved equivalence
         {
-            pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
-            Ssw_ObjSetFraig( p, pObj, 0, pObjFraig2 );
+            p->nCallsUnsat++;
             return;
         }
-        else if ( RetValue == -1 ) // timed out
+        if ( RetValue == -1 ) // timed out
         {
             Ssw_ClassesRemoveNode( p->ppClasses, pObj );
+            p->nCallsUnsat++;
             p->fRefined = 1;
             return;
         }
-        else // disproved the equivalence
+        else // disproved equivalence
         {       
-            Ssw_SmlSavePatternLatch( p );
+            Ssw_SmlAddPattern( p, pObjRepr, pObj );
+            p->nPatterns++;
+            p->nCallsSat++;
+            p->fRefined = 1;
         }
     }
-    if ( p->pPars->nConstrs == 0 )
-        Ssw_ManResimulateCexTotalSim( p, pObj, pObjRepr, 0 );
-    else
-        Ssw_ManResimulateCexTotal( p, pObj, pObjRepr, 0 );
-    assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
-    p->fRefined = 1;
 }
 
 /**Function*************************************************************
@@ -217,7 +274,7 @@ void Ssw_ManSweepLatchOne( Ssw_Man_t * p, Aig_Obj_t * pObjRepr, Aig_Obj_t * pObj
 ***********************************************************************/
 int Ssw_ManSweepLatch( Ssw_Man_t * p )
 {
-    Bar_Progress_t * pProgress = NULL;
+//    Bar_Progress_t * pProgress = NULL;
     Vec_Ptr_t * vClass;
     Aig_Obj_t * pObj, * pRepr, * pTemp;
     int i, k;
@@ -225,30 +282,40 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
     // start the timeframe
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) );
     // map constants and PIs
-    Ssw_ObjSetFraig( p, Aig_ManConst1(p->pAig), 0, Aig_ManConst1(p->pFrames) );
+    Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), 0, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
-        Ssw_ObjSetFraig( p, pObj, 0, Aig_ObjCreatePi(p->pFrames) );
+        Ssw_ObjSetFrame( p, pObj, 0, Aig_ObjCreatePi(p->pFrames) );
 
     // implement equivalence classes
     Saig_ManForEachLo( p->pAig, pObj, i )
     {
         pRepr = Aig_ObjRepr( p->pAig, pObj );
         if ( pRepr == NULL )
+        {
             pTemp = Aig_ObjCreatePi(p->pFrames);
+            pTemp->pData = pObj;
+        }
         else
-            pTemp = Aig_NotCond( Ssw_ObjFraig(p, pRepr, 0), pRepr->fPhase ^ pObj->fPhase );
-        Ssw_ObjSetFraig( p, pObj, 0, pTemp );
+            pTemp = Aig_NotCond( Ssw_ObjFrame(p, pRepr, 0), pRepr->fPhase ^ pObj->fPhase );
+        Ssw_ObjSetFrame( p, pObj, 0, pTemp );
     }
+    Aig_ManSetPioNumbers( p->pFrames );
+
+    // prepare simulation info
+    assert( p->vSimInfo == NULL );
+    p->vSimInfo = Vec_PtrAllocSimInfo( Aig_ManPiNum(p->pFrames), 1 );
+    Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
 
     // go through the registers
-    if ( p->pPars->fVerbose )
-        pProgress = Bar_ProgressStart( stdout, Aig_ManRegNum(p->pAig) );
+//    if ( p->pPars->fVerbose )
+//        pProgress = Bar_ProgressStart( stdout, Aig_ManRegNum(p->pAig) );
     vClass = Vec_PtrAlloc( 100 );
     p->fRefined = 0;
+    p->nCallsCount = p->nCallsSat = p->nCallsUnsat = 0;
     Saig_ManForEachLo( p->pAig, pObj, i )
     {
-        if ( p->pPars->fVerbose )
-            Bar_ProgressUpdate( pProgress, i, NULL );
+//        if ( p->pPars->fVerbose )
+//            Bar_ProgressUpdate( pProgress, i, NULL );
         // consider the case of constant candidate
         if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
             Ssw_ManSweepLatchOne( p, Aig_ManConst1(p->pAig), pObj );
@@ -261,21 +328,32 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
             // try to prove equivalences in this class
             Vec_PtrForEachEntry( vClass, pTemp, k )
                 if ( Aig_ObjRepr(p->pAig, pTemp) == pObj )
+                {
                     Ssw_ManSweepLatchOne( p, pObj, pTemp );
+                    if ( p->nPatterns == 32 )
+                        break;
+                }
         }
+        // resimulate
+        if ( p->nPatterns == 32 )
+            Ssw_ManSweepResimulate( p );
         // attempt recycling the SAT solver
         if ( p->pPars->nSatVarMax && 
              p->nSatVars > p->pPars->nSatVarMax &&
-             p->nCallsSince > p->pPars->nCallsRecycle )
+             p->nRecycleCalls > p->pPars->nRecycleCalls )
              Ssw_ManSatSolverRecycle( p );
     }
+    // resimulate
+    if ( p->nPatterns > 0 )
+        Ssw_ManSweepResimulate( p );
+    // cleanup
     Vec_PtrFree( vClass );
     p->nSatFailsTotal += p->nSatFailsReal;
-    if ( p->pPars->fVerbose )
-        Bar_ProgressStop( pProgress );
+//    if ( p->pPars->fVerbose )
+//        Bar_ProgressStop( pProgress );
 
     // cleanup
-    Ssw_ClassesCheck( p->ppClasses );
+//    Ssw_ClassesCheck( p->ppClasses );
     return p->fRefined;
 }
 

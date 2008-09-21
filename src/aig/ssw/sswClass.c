@@ -286,6 +286,8 @@ int Ssw_ClassesLitNum( Ssw_Cla_t * p )
 ***********************************************************************/
 Aig_Obj_t ** Ssw_ClassesReadClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int * pnSize )
 {
+    if ( p->pId2Class[pRepr->Id] == NULL )
+        return NULL;
     assert( p->pId2Class[pRepr->Id] != NULL );
     assert( p->pClassSizes[pRepr->Id] > 1 );
     *pnSize = p->pClassSizes[pRepr->Id];
@@ -333,6 +335,7 @@ void Ssw_ClassesCheck( Ssw_Cla_t * p )
     Ssw_ManForEachClass( p, ppClass, k )
     {
         pPrev = NULL;
+        assert( p->pClassSizes[ppClass[0]->Id] >= 2 );
         Ssw_ClassForEachNode( p, ppClass[0], pObj, i )
         {
             if ( i == 0 )
@@ -423,12 +426,15 @@ void Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose )
 void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pRepr, * pTemp;
+    assert( p->pClassSizes[pObj->Id] == 0 );
     assert( p->pId2Class[pObj->Id] == NULL );
     pRepr = Aig_ObjRepr( p->pAig, pObj );
     assert( pRepr != NULL );
     Vec_PtrPush( p->vRefined, pObj );
     if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
     {
+        assert( p->pClassSizes[pRepr->Id] == 0 );
+        assert( p->pId2Class[pRepr->Id] == NULL );
         Aig_ObjSetRepr( p->pAig, pObj, NULL );
         p->nCands1--;
         return;
@@ -439,7 +445,7 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
     assert( p->pClassSizes[pRepr->Id] >= 2 );
     if ( p->pClassSizes[pRepr->Id] == 2 )
     {
-        p->pId2Class[pObj->Id] = NULL;
+        p->pId2Class[pRepr->Id] = NULL;
         p->nClasses--;
         p->pClassSizes[pRepr->Id] = 0;
         p->nLits--;
@@ -491,7 +497,7 @@ PRT( "Simulation of 32 frames with 4 words", clock() - clk );
 
     // set comparison procedures
 clk = clock();
-    Ssw_ClassesSetData( p, pSml, Ssw_SmlNodeHash, Ssw_SmlNodeIsConst, Ssw_SmlNodesAreEqual );
+    Ssw_ClassesSetData( p, pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Aig_PrimeCudd( Aig_ManObjNumMax(p->pAig)/4 );
@@ -589,38 +595,6 @@ if ( fVerbose )
 PRT( "Collecting candidate equival classes", clock() - clk );
 }
     return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if the node appears to be constant 1 candidate.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ssw_NodeIsConstCex( void * p, Aig_Obj_t * pObj )
-{
-    return pObj->fPhase == pObj->fMarkB;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if the nodes appear equal.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ssw_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
-{
-    return (pObj0->fPhase == pObj1->fPhase) == (pObj0->fMarkB == pObj1->fMarkB);
 }
 
 /**Function*************************************************************

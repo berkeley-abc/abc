@@ -50,11 +50,12 @@ struct Ssw_Pars_t_
     int              nBTLimit;      // conflict limit at a node
     int              nMinDomSize;   // min clock domain considered for optimization
     int              fPolarFlip;    // uses polarity adjustment
+    int              fSkipCheck;    // do not run equivalence check for unaffected cones
     int              fLatchCorr;    // perform register correspondence
+    // optimized latch correspondence
     int              fLatchCorrOpt; // perform register correspondence (optimized)
     int              nSatVarMax;    // max number of SAT vars before recycling SAT solver (optimized latch corr only)
-    int              nCallsRecycle; // calls to perform before recycling SAT solver (optimized latch corr only)
-    int              fSkipCheck;    // does not run equivalence check for unaffected cones
+    int              nRecycleCalls; // calls to perform before recycling SAT solver (optimized latch corr only)
     int              fVerbose;      // verbose stats
     // internal parameters
     int              nIters;        // the number of iterations performed
@@ -82,7 +83,9 @@ struct Ssw_Cex_t_
 
 /*=== sswCore.c ==========================================================*/
 extern void          Ssw_ManSetDefaultParams( Ssw_Pars_t * p );
-extern Aig_Man_t *   Ssw_SignalCorrespondence( Aig_Man_t * p, Ssw_Pars_t * pPars );
+extern void          Ssw_ManSetDefaultParamsLcorr( Ssw_Pars_t * p );
+extern Aig_Man_t *   Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
+extern Aig_Man_t *   Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 /*=== sswPart.c ==========================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 /*=== sswPairs.c ===================================================*/

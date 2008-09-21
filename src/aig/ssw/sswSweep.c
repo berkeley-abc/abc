@@ -78,6 +78,33 @@ void Ssw_ManSweepMarkRefinement( Ssw_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Retrives value of the PI in the original AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ManOriginalPiValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
+{
+    Aig_Obj_t * pObjFraig;
+    int nVarNum, Value;
+    assert( Aig_ObjIsPi(pObj) );
+    pObjFraig = Ssw_ObjFrame( p, pObj, f );
+    nVarNum = Ssw_ObjSatNum( p, Aig_Regular(pObjFraig) );
+    Value = (!nVarNum)? 0 : (Aig_IsComplement(pObjFraig) ^ sat_solver_var_value( p->pSat, nVarNum ));
+//    Value = (!nVarNum)? Aig_ManRandom(0) & 1 : (Aig_IsComplement(pObjFraig) ^ sat_solver_var_value( p->pSat, nVarNum ));
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( Aig_Regular(pObjFraig)->fPhase )  Value ^= 1;
+    }
+    return Value;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Copy pattern from the solver into the internal storage.]
 
   Description []
@@ -114,7 +141,7 @@ void Ssw_SmlSavePatternAigPhase( Ssw_Man_t * p, int f )
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
     Aig_ManForEachPi( p->pAig, pObj, i )
-        if ( Aig_ObjPhaseReal( Ssw_ObjFraig(p, pObj, f) ) )
+        if ( Aig_ObjPhaseReal( Ssw_ObjFrame(p, pObj, f) ) )
             Aig_InfoSetBit( p->pPatWords, i );
 }
 
@@ -138,9 +165,9 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
     if ( pObjRepr == NULL )
         return;
     // get the fraiged node
-    pObjFraig = Ssw_ObjFraig( p, pObj, f );
+    pObjFraig = Ssw_ObjFrame( p, pObj, f );
     // get the fraiged representative
-    pObjReprFraig = Ssw_ObjFraig( p, pObjRepr, f );
+    pObjReprFraig = Ssw_ObjFrame( p, pObjRepr, f );
     // check if constant 0 pattern distinquishes these nodes
     assert( pObjFraig != NULL && pObjReprFraig != NULL );
     if ( (pObj->fPhase == pObjRepr->fPhase) != (Aig_ObjPhaseReal(pObjFraig) == Aig_ObjPhaseReal(pObjReprFraig)) )
@@ -168,7 +195,7 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
         if ( RetValue == 1 )  // proved equivalent
         {
             pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
-            Ssw_ObjSetFraig( p, pObj, f, pObjFraig2 );
+            Ssw_ObjSetFrame( p, pObj, f, pObjFraig2 );
             return;
         }
         if ( RetValue == -1 ) // timed out
@@ -181,16 +208,15 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
         if ( p->pPars->fSkipCheck && !fBmc && !pObj->fMarkA && !pObjRepr->fMarkA )
         {
             assert( 0 );
-            printf( "\nMistake!!!\n" );
+            printf( "\nSsw_ManSweepNode(): Error!\n" );
         }
         // disproved the equivalence
         Ssw_SmlSavePatternAig( p, f );
     }
-//    Ssw_ManResimulateCex( p, pObj, pObjRepr, f );
     if ( p->pPars->nConstrs == 0 )
-        Ssw_ManResimulateCexTotalSim( p, pObj, pObjRepr, f );
+        Ssw_ManResimulateWord( p, pObj, pObjRepr, f );
     else
-        Ssw_ManResimulateCexTotal( p, pObj, pObjRepr, f );
+        Ssw_ManResimulateBit( p, pObj, pObjRepr );
     assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
     p->fRefined = 1;
 }
@@ -216,7 +242,7 @@ clk = clock();
     // start initialized timeframes
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
     Saig_ManForEachLo( p->pAig, pObj, i )
-        Ssw_ObjSetFraig( p, pObj, 0, Aig_ManConst0(p->pFrames) );
+        Ssw_ObjSetFrame( p, pObj, 0, Aig_ManConst0(p->pFrames) );
 
     // sweep internal nodes
     p->fRefined = 0;
@@ -226,16 +252,16 @@ clk = clock();
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // map constants and PIs
-        Ssw_ObjSetFraig( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
+        Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_ObjSetFraig( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
+            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
         // sweep internal nodes
         Aig_ManForEachNode( p->pAig, pObj, i )
         {
             if ( p->pPars->fVerbose )
                 Bar_ProgressUpdate( pProgress, Aig_ManObjNumMax(p->pAig) * f + i, NULL );
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
-            Ssw_ObjSetFraig( p, pObj, f, pObjNew );
+            Ssw_ObjSetFrame( p, pObj, f, pObjNew );
             Ssw_ManSweepNode( p, pObj, f, 1 );
         }
         // quit if this is the last timeframe
@@ -246,7 +272,7 @@ clk = clock();
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
         {
             pObjNew = Ssw_ObjChild0Fra(p, pObjLi,f);
-            Ssw_ObjSetFraig( p, pObjLo, f+1, pObjNew );
+            Ssw_ObjSetFrame( p, pObjLo, f+1, pObjNew );
             Ssw_CnfNodeAddToSolver( p, Aig_Regular(pObjNew) );
         }
     }
@@ -307,12 +333,12 @@ p->timeMarkCones += clock() - clk;
 
     // map constants and PIs of the last frame
     f = p->pPars->nFramesK;
-    Ssw_ObjSetFraig( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
+    Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )
-        Ssw_ObjSetFraig( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
+        Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
     // make sure LOs are assigned
     Saig_ManForEachLo( p->pAig, pObj, i )
-        assert( Ssw_ObjFraig( p, pObj, f ) != NULL );
+        assert( Ssw_ObjFrame( p, pObj, f ) != NULL );
     // sweep internal nodes
     p->fRefined = 0;
     p->nSatFailsReal = 0;
@@ -330,7 +356,7 @@ p->timeMarkCones += clock() - clk;
         { 
             pObj->fMarkA = Aig_ObjFanin0(pObj)->fMarkA | Aig_ObjFanin1(pObj)->fMarkA;
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
-            Ssw_ObjSetFraig( p, pObj, f, pObjNew );
+            Ssw_ObjSetFrame( p, pObj, f, pObjNew );
             Ssw_ManSweepNode( p, pObj, f, 0 );
         }
     }

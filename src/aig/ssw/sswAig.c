@@ -49,9 +49,9 @@ static inline void Ssw_FramesConstrainNode( Ssw_Man_t * p, Aig_Man_t * pFrames, 
     p->nConstrTotal++;
     assert( pObjRepr->Id < pObj->Id );
     // get the new node 
-    pObjNew = Ssw_ObjFraig( p, pObj, iFrame );
+    pObjNew = Ssw_ObjFrame( p, pObj, iFrame );
     // get the new node of the representative
-    pObjReprNew = Ssw_ObjFraig( p, pObjRepr, iFrame );
+    pObjReprNew = Ssw_ObjFrame( p, pObjRepr, iFrame );
     // if this is the same node, no need to add constraints
     if ( pObj->fPhase == pObjRepr->fPhase )
     {
@@ -69,7 +69,7 @@ static inline void Ssw_FramesConstrainNode( Ssw_Man_t * p, Aig_Man_t * pFrames, 
     // these are different nodes - perform speculative reduction
     pObjNew2 = Aig_NotCond( pObjReprNew, pObj->fPhase ^ pObjRepr->fPhase );
     // set the new node
-    Ssw_ObjSetFraig( p, pObj, iFrame, pObjNew2 );
+    Ssw_ObjSetFrame( p, pObj, iFrame, pObjNew2 );
     // add the constraint
     Aig_ObjCreatePo( pFrames, pObjNew2 );
     Aig_ObjCreatePo( pFrames, pObjNew );
@@ -99,15 +99,15 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
     pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->nFrames );
     // create latches for the first frame
     Saig_ManForEachLo( p->pAig, pObj, i )
-        Ssw_ObjSetFraig( p, pObj, 0, Aig_ObjCreatePi(pFrames) );
+        Ssw_ObjSetFrame( p, pObj, 0, Aig_ObjCreatePi(pFrames) );
     // add timeframes
     p->nConstrTotal = p->nConstrReduced = 0;
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // map constants and PIs
-        Ssw_ObjSetFraig( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(pFrames) );
+        Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(pFrames) );
         Aig_ManForEachPiSeq( p->pAig, pObj, i )
-            Ssw_ObjSetFraig( p, pObj, f, Aig_ObjCreatePi(pFrames) );
+            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(pFrames) );
         // set the constraints on the latch outputs
         Aig_ManForEachLoSeq( p->pAig, pObj, i )
             Ssw_FramesConstrainNode( p, pFrames, p->pAig, pObj, f );
@@ -115,16 +115,16 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
         Aig_ManForEachNode( p->pAig, pObj, i )
         {
             pObjNew = Aig_And( pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
-            Ssw_ObjSetFraig( p, pObj, f, pObjNew );
+            Ssw_ObjSetFrame( p, pObj, f, pObjNew );
             Ssw_FramesConstrainNode( p, pFrames, p->pAig, pObj, f );
         }
         // transfer latch input to the latch outputs 
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
-            Ssw_ObjSetFraig( p, pObjLo, f+1, Ssw_ObjChild0Fra(p, pObjLi,f) );
+            Ssw_ObjSetFrame( p, pObjLo, f+1, Ssw_ObjChild0Fra(p, pObjLi,f) );
     }
     // add the POs for the latch outputs of the last frame
     Saig_ManForEachLo( p->pAig, pObj, i )
-        Aig_ObjCreatePo( pFrames, Ssw_ObjFraig( p, pObj, p->pPars->nFramesK ) );
+        Aig_ObjCreatePo( pFrames, Ssw_ObjFrame( p, pObj, p->pPars->nFramesK ) );
 
     // remove dangling nodes
     Aig_ManCleanup( pFrames );

@@ -93,8 +93,6 @@ int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec )
         goto finish;
 
     // prepare parameters
-    Ssw_ManSetDefaultParams( pPars2 );
-    // prepare parameters
     memset( pPars, 0, sizeof(Fra_Ssw_t) );
     pPars->fLatchCorr  = fLatchCorr;
     pPars->fVerbose = pParSec->fVeryVerbose;
@@ -142,7 +140,8 @@ PRT( "Time", clock() - clk );
     if ( pParSec->fRetimeFirst && pNew->nRegs )
     {
 clk = clock();
-    pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
+//    pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
+    pNew = Saig_ManRetimeForward( pTemp = pNew, 100, 0 );
     Aig_ManStop( pTemp );
     if ( pParSec->fVerbose )
     {
@@ -172,11 +171,21 @@ clk = clock();
             goto finish;
         }
     }
-    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 1000, 1, pParSec->fVeryVerbose, &nIter, TimeLeft );
+
+
+//    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 1000, 1, pParSec->fVeryVerbose, &nIter, TimeLeft );
+//Aig_ManDumpBlif( pNew, "ex.blif", NULL, NULL );
+    Ssw_ManSetDefaultParamsLcorr( pPars2 );
+    pNew = Ssw_LatchCorrespondence( pTemp = pNew, pPars2 );
+    nIter = pPars2->nIters;
+
+    // prepare parameters for scorr
+    Ssw_ManSetDefaultParams( pPars2 );
+
     if ( pTemp->pSeqModel )
     {
         if ( !Ssw_SmlRunCounterExample( pTemp, pTemp->pSeqModel ) )
-            printf( "Fra_FraigLatchCorrespondence(): Counter-example verification has FAILED.\n" );
+            printf( "Fra_FraigSec(): Counter-example verification has FAILED.\n" );
         if ( Saig_ManPiNum(p) != Saig_ManPiNum(pTemp) )
             printf( "The counter-example is invalid because of phase abstraction.\n" );
         else

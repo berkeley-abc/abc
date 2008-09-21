@@ -66,7 +66,10 @@ Aig_Man_t * Inter_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
             break;
         // transfer to register outputs
         Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
-            pObjLo->pData = pObjLi->pData = Aig_ObjChild0Copy(pObjLi);
+            pObjLi->pData = Aig_ObjChild0Copy(pObjLi);
+        // transfer to register outputs
+        Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
+            pObjLo->pData = pObjLi->pData;
     }
     // create POs for the output of the last frame
     pObj = Aig_ManPo( pAig, 0 );

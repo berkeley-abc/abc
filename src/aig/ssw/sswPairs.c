@@ -289,7 +289,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pA
     // create equivalence classes using these IDs
     p->ppClasses = Ssw_ClassesPreparePairs( pMiter, pvClasses );
     p->pSml = Ssw_SmlStart( pMiter, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
-    Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlNodeHash, Ssw_SmlNodeIsConst, Ssw_SmlNodesAreEqual );
+    Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );
     // cleanup

@@ -50,13 +50,13 @@ int Dch_NodesAreEquiv( Dch_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     assert( !Aig_IsComplement(pOld) );
     assert( pNew != pOld );
 
-//    p->nCallsSince++;  // experiment with this!!!
+    p->nCallsSince++;  // experiment with this!!!
     
     // check if SAT solver needs recycling
     if ( p->pSat == NULL || 
         (p->pPars->nSatVarMax && 
          p->nSatVars > p->pPars->nSatVarMax && 
-         ++p->nCallsSince > p->pPars->nCallsRecycle) )
+         p->nCallsSince > p->pPars->nCallsRecycle) )
         Dch_ManSatSolverRecycle( p );
 
     // if the nodes do not have SAT variables, allocate them
