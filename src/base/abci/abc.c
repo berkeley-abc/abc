@@ -13890,7 +13890,7 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFramesP   =     0;
     nConfMax   =  1000;
     nVarsMax   =  1000;
-    fNewAlgor  =     0;
+    fNewAlgor  =     1;
     fVerbose   =     0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PCSnvh" ) ) != EOF )
@@ -13981,7 +13981,7 @@ usage:
     fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( pErr, "\t-C num : max conflict number when proving latch equivalence [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-S num : the max number of SAT variables [default = %d]\n", nVarsMax );
-    fprintf( pErr, "\t-n     : toggle new algorithm [default = %s]\n", fNewAlgor? "yes": "no" );
+    fprintf( pErr, "\t-n     : toggle using new algorithm [default = %s]\n", fNewAlgor? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

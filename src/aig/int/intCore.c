@@ -46,7 +46,7 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
     p->nFramesMax   = 40;    // the max number timeframes to unroll
     p->nFramesK     = 1;     // the number of timeframes to use in induction
     p->fRewrite     = 0;     // use additional rewriting to simplify timeframes
-    p->fTransLoop   = 0;     // add transition into the init state under new PI var
+    p->fTransLoop   = 1;     // add transition into the init state under new PI var
     p->fUsePudlak   = 0;     // use Pudluk interpolation procedure
     p->fUseOther    = 0;     // use other undisclosed option
     p->fUseMiniSat  = 0;     // use MiniSat-1.14p instead of internal proof engine
