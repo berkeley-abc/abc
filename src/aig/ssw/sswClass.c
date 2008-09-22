@@ -195,6 +195,22 @@ void Ssw_ClassesStop( Ssw_Cla_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Stop representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ssw_ClassesReadAig( Ssw_Cla_t * p )
+{
+    return p->pAig;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -633,6 +649,37 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
                 continue;
         }
         Ssw_ObjSetConst1Cand( pAig, pObj );
+        p->nCands1++;
+    }
+    // allocate room for classes
+    p->pMemClassesFree = p->pMemClasses = ALLOC( Aig_Obj_t *, p->nCands1 );
+//    Ssw_ClassesPrint( p, 0 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates initial simulation classes.]
+
+  Description [Assumes that simulation info is assigned.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cla_t * Ssw_ClassesPrepareTargets( Aig_Man_t * pAig )
+{
+    Ssw_Cla_t * p;
+    Aig_Obj_t * pObj;
+    int i;
+    // start the classes
+    p = Ssw_ClassesStart( pAig );
+    // go through the nodes
+    p->nCands1 = 0;
+    Saig_ManForEachPo( pAig, pObj, i )
+    {
+        Ssw_ObjSetConst1Cand( pAig, Aig_ObjFanin0(pObj) );
         p->nCands1++;
     }
     // allocate room for classes

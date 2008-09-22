@@ -1,4 +1,5 @@
 SRC +=    src/aig/ssw/sswAig.c \
+    src/aig/ssw/sswBmc.c \
     src/aig/ssw/sswClass.c \
     src/aig/ssw/sswCnf.c \
     src/aig/ssw/sswCore.c \

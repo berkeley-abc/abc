@@ -54,7 +54,7 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     p->nFrames       = pPars->nFramesK + 1;
     p->pNodeToFrames = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     // SAT solving
-    p->pSatVars      = CALLOC( int, Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
+    p->vSatVars      = Vec_IntStart( Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
     p->vFanins       = Vec_PtrAlloc( 100 );
     // SAT solving (latch corr only)
     p->vUsedNodes    = Vec_PtrAlloc( 1000 );
@@ -147,11 +147,14 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
     }
     if ( p->pSat )
     {
+        int i;
 //        printf( "Vars = %d. Clauses = %d. Learnts = %d.\n", p->pSat->size, p->pSat->clauses.size, p->pSat->learnts.size );
         p->nSatVarsTotal += p->pSat->size;
         sat_solver_delete( p->pSat );
         p->pSat = NULL;
-        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
+//        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
+        for ( i = 0; i < Vec_IntSize(p->vSatVars); i++ )
+            p->vSatVars->pArray[i] = 0;
     }
     if ( p->vSimInfo )  
     {
@@ -186,8 +189,8 @@ void Ssw_ManStop( Ssw_Man_t * p )
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vUsedNodes );
     Vec_PtrFree( p->vUsedPis );
+    Vec_IntFree( p->vSatVars );
     FREE( p->pNodeToFrames );
-    FREE( p->pSatVars );
     FREE( p->pPatWords );
     free( p );
 }

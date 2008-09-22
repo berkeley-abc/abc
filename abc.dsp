@@ -3438,6 +3438,10 @@ SOURCE=.\src\aig\ssw\sswAig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ssw\sswBmc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ssw\sswClass.c
 # End Source File
 # Begin Source File

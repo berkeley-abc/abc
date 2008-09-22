@@ -424,6 +424,25 @@ static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntWriteEntryFill( Vec_Int_t * p, int i, int Entry )
+{
+    assert( i >= 0 );
+    if ( i >= p->nSize )
+        Vec_IntFillExtra( p, 2 * i, 0 );
+    Vec_IntWriteEntry( p, i, Entry );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_IntShrink( Vec_Int_t * p, int nSizeNew )
 {
     assert( p->nSize >= nSizeNew );

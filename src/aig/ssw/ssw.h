@@ -52,11 +52,12 @@ struct Ssw_Pars_t_
     int              fPolarFlip;    // uses polarity adjustment
     int              fSkipCheck;    // do not run equivalence check for unaffected cones
     int              fLatchCorr;    // perform register correspondence
+    int              fSemiFormal;   // enable semiformal filtering
+    int              fVerbose;      // verbose stats
     // optimized latch correspondence
     int              fLatchCorrOpt; // perform register correspondence (optimized)
     int              nSatVarMax;    // max number of SAT vars before recycling SAT solver (optimized latch corr only)
     int              nRecycleCalls; // calls to perform before recycling SAT solver (optimized latch corr only)
-    int              fVerbose;      // verbose stats
     // internal parameters
     int              nIters;        // the number of iterations performed
 };

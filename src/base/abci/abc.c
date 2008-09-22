@@ -13535,7 +13535,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13625,6 +13625,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fSkipCheck ^= 1;
             break;
+        case 'f':
+            pPars->fSemiFormal ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -13677,7 +13680,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsvh]\n" );
+    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsfvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -13689,6 +13692,7 @@ usage:
     fprintf( pErr, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
     fprintf( pErr, "\t-s     : toggle skipping unaffected cones [default = %s]\n", pPars->fSkipCheck? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle filtering using interative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

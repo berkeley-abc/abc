@@ -156,14 +156,14 @@ void Ssw_SmlSavePatternAigPhase( Ssw_Man_t * p, int f )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
+int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
 { 
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
     // get representative of this class
     pObjRepr = Aig_ObjRepr( p->pAig, pObj );
     if ( pObjRepr == NULL )
-        return;
+        return 0;
     // get the fraiged node
     pObjFraig = Ssw_ObjFrame( p, pObj, f );
     // get the fraiged representative
@@ -179,7 +179,7 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
     { 
         // if the fraiged nodes are the same, return
         if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-            return;
+            return 0;
         // count the number of skipped calls
         if ( !pObj->fMarkA && !pObjRepr->fMarkA )
             p->nRefSkip++;
@@ -196,13 +196,12 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
         {
             pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
             Ssw_ObjSetFrame( p, pObj, f, pObjFraig2 );
-            return;
+            return 0;
         }
         if ( RetValue == -1 ) // timed out
         {
             Ssw_ClassesRemoveNode( p->ppClasses, pObj );
-            p->fRefined = 1;
-            return;
+            return 1;
         }
         // check if skipping calls works correctly
         if ( p->pPars->fSkipCheck && !fBmc && !pObj->fMarkA && !pObjRepr->fMarkA )
@@ -218,7 +217,7 @@ void Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
     else
         Ssw_ManResimulateBit( p, pObj, pObjRepr );
     assert( Aig_ObjRepr( p->pAig, pObj ) != pObjRepr );
-    p->fRefined = 1;
+    return 1;
 }
 
 /**Function*************************************************************
@@ -262,7 +261,7 @@ clk = clock();
                 Bar_ProgressUpdate( pProgress, Aig_ManObjNumMax(p->pAig) * f + i, NULL );
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
-            Ssw_ManSweepNode( p, pObj, f, 1 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 1 );
         }
         // quit if this is the last timeframe
         if ( f == p->pPars->nFramesK - 1 )
@@ -351,13 +350,13 @@ p->timeMarkCones += clock() - clk;
         if ( p->pPars->fVerbose )
             Bar_ProgressUpdate( pProgress, i, NULL );
         if ( Saig_ObjIsLo(p->pAig, pObj) )
-            Ssw_ManSweepNode( p, pObj, f, 0 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0 );
         else if ( Aig_ObjIsNode(pObj) )
         { 
             pObj->fMarkA = Aig_ObjFanin0(pObj)->fMarkA | Aig_ObjFanin1(pObj)->fMarkA;
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
-            Ssw_ManSweepNode( p, pObj, f, 0 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0 );
         }
     }
     p->nSatFailsTotal += p->nSatFailsReal;

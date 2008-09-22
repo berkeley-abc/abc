@@ -62,7 +62,7 @@ struct Ssw_Man_t_
     // SAT solving
     sat_solver *     pSat;           // recyclable SAT solver
     int              nSatVars;       // the counter of SAT variables
-    int *            pSatVars;       // mapping of each node into its SAT var
+    Vec_Int_t *      vSatVars;       // mapping of each node into its SAT var
     int              nSatVarsTotal;  // the total number of SAT vars created
     Vec_Ptr_t *      vFanins;        // fanins of the CNF node
     // SAT solving (latch corr only)
@@ -118,8 +118,8 @@ struct Ssw_Man_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int  Ssw_ObjSatNum( Ssw_Man_t * p, Aig_Obj_t * pObj )             { return p->pSatVars[pObj->Id]; }
-static inline void Ssw_ObjSetSatNum( Ssw_Man_t * p, Aig_Obj_t * pObj, int Num ) { p->pSatVars[pObj->Id] = Num;  }
+static inline int  Ssw_ObjSatNum( Ssw_Man_t * p, Aig_Obj_t * pObj )             { return Vec_IntEntry( p->vSatVars, pObj->Id );         }
+static inline void Ssw_ObjSetSatNum( Ssw_Man_t * p, Aig_Obj_t * pObj, int Num ) { Vec_IntWriteEntryFill( p->vSatVars, pObj->Id, Num );  }
 
 static inline int  Ssw_ObjIsConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj ) 
 {
@@ -143,6 +143,9 @@ static inline Aig_Obj_t * Ssw_ObjChild1Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int
 
 /*=== sswAig.c ===================================================*/
 extern Aig_Man_t *   Ssw_FramesWithClasses( Ssw_Man_t * p );
+extern Aig_Man_t *   Ssw_SpeculativeReduction( Ssw_Man_t * p );
+/*=== sswBmc.c ===================================================*/
+extern int           Ssw_FilterUsingBmc( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose );
 /*=== sswClass.c =================================================*/
 extern Ssw_Cla_t *   Ssw_ClassesStart( Aig_Man_t * pAig );
 extern void          Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData,
@@ -150,6 +153,7 @@ extern void          Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData,
                          int (*pFuncNodeIsConst)(void *,Aig_Obj_t *),
                          int (*pFuncNodesAreEqual)(void *,Aig_Obj_t *, Aig_Obj_t *) );
 extern void          Ssw_ClassesStop( Ssw_Cla_t * p );
+extern Aig_Man_t *   Ssw_ClassesReadAig( Ssw_Cla_t * p );
 extern Vec_Ptr_t *   Ssw_ClassesGetRefined( Ssw_Cla_t * p );
 extern void          Ssw_ClassesClearRefined( Ssw_Cla_t * p );
 extern int           Ssw_ClassesCand1Num( Ssw_Cla_t * p );
@@ -162,6 +166,7 @@ extern void          Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose );
 extern void          Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj );
 extern Ssw_Cla_t *   Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, int fVerbose );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
+extern Ssw_Cla_t *   Ssw_ClassesPrepareTargets( Aig_Man_t * pAig );
 extern Ssw_Cla_t *   Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses );
 extern int           Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive );
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
@@ -200,6 +205,7 @@ extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrame
 extern void          Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr );
 extern void          Ssw_ManResimulateWord( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );
 /*=== sswSweep.c ===================================================*/
+extern int           Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc );
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );
 

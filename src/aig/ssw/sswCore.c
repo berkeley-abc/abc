@@ -52,6 +52,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->fPolarFlip     =     0;  // uses polarity adjustment
     p->fSkipCheck     =     0;  // do not run equivalence check for unaffected cones
     p->fLatchCorr     =     0;  // performs register correspondence
+    p->fSemiFormal    =     0;  // enable semiformal filtering
     p->fVerbose       =     0;  // verbose stats
     // latch correspondence
     p->fLatchCorrOpt  =     0;  // performs optimized register correspondence
@@ -116,6 +117,16 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
         printf( "After  BMC: " );
         Ssw_ClassesPrint( p->ppClasses, 0 );
     }
+    // apply semi-formal filtering
+    if ( p->pPars->fSemiFormal )
+    {
+        Aig_Man_t * pSRed;
+        Ssw_FilterUsingBmc( p, 0, 2000, p->pPars->fVerbose );
+//        Ssw_FilterUsingBmc( p, 1, 100000, p->pPars->fVerbose );
+        pSRed = Ssw_SpeculativeReduction( p );
+        Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
+        Aig_ManStop( pSRed );
+    }
     // refine classes using induction
     nSatProof = nSatCallsSat = nRecycles = nSatFailsReal = 0;
     for ( nIter = 0; ; nIter++ )
@@ -154,6 +165,18 @@ clk = clock();
         Ssw_ManCleanup( p );
         if ( !RetValue )
             break;
+
+        {
+            static int Flag = 0;
+            if ( Flag++ == 4 && nIter == 4 )
+            {
+                Aig_Man_t * pSRed;
+                pSRed = Ssw_SpeculativeReduction( p );
+                Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
+                Aig_ManStop( pSRed );
+            }
+        }
+
     } 
     p->pPars->nIters = nIter + 1;
 p->timeTotal = clock() - clkTotal;
@@ -220,6 +243,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     {
         // perform one round of seq simulation and generate candidate equivalence classes
         p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
+//        p->ppClasses = Ssw_ClassesPrepareTargets( pAig );
         p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
         Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
     }
