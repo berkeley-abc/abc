@@ -84,6 +84,7 @@ extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int n
 extern void              Saig_ManPrintCones( Aig_Man_t * p );
 /*=== saigDup.c ==========================================================*/
 extern Aig_Man_t *       Said_ManDupOrpos( Aig_Man_t * p );
+extern Aig_Man_t *       Saig_ManAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops );
 /*=== saigHaig.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 /*=== saigIoa.c ==========================================================*/

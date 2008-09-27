@@ -34,8 +34,7 @@
 
   Synopsis    [Create timeframes of the manager for BMC.]
 
-  Description [The resulting manager is combinational. The primary inputs
-  corresponding to register outputs are ordered first. POs correspond to \
+  Description [The resulting manager is combinational. POs correspond to \
   the property outputs in each time-frame.]
                
   SideEffects []
@@ -106,8 +105,7 @@ int Saig_ManFramesCount_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
 
   Synopsis    [Create timeframes of the manager for BMC.]
 
-  Description [The resulting manager is combinational. The primary inputs
-  corresponding to register outputs are ordered first. POs correspond to 
+  Description [The resulting manager is combinational. POs correspond to 
   the property outputs in each time-frame.
   The unrolling is stopped as soon as the number of nodes in the frames
   exceeds the given maximum size.]

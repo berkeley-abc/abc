@@ -42,7 +42,7 @@
 int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int nBTLimit = p->pPars->nBTLimit;
-    int pLits[2], RetValue, RetValue1, clk;//, status;
+    int pLits[3], nLits, RetValue, RetValue1, clk;//, status;
     p->nSatCalls++;
 
     // sanity checks
@@ -59,8 +59,11 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
+    nLits = 2;
     pLits[0] = toLitCond( Ssw_ObjSatNum(p,pOld), 0 );
     pLits[1] = toLitCond( Ssw_ObjSatNum(p,pNew), pOld->fPhase == pNew->fPhase );
+    if ( p->iOutputLit > -1 )
+        pLits[nLits++] = p->iOutputLit;
     if ( p->pPars->fPolarFlip )
     {
         if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
@@ -75,16 +78,19 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     }
 
 clk = clock();
-    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + nLits, 
         (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
 p->timeSatUnsat += clock() - clk;
-        pLits[0] = lit_neg( pLits[0] );
-        pLits[1] = lit_neg( pLits[1] );
-        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
-        assert( RetValue );
+        if ( nLits == 2 )
+        {
+            pLits[0] = lit_neg( pLits[0] );
+            pLits[1] = lit_neg( pLits[1] );
+            RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+            assert( RetValue );
+        }
         p->nSatCallsUnsat++;
     }
     else if ( RetValue1 == l_True )
@@ -109,8 +115,11 @@ p->timeSatUndec += clock() - clk;
 
     // solve under assumptions
     // A = 0; B = 1     OR     A = 0; B = 0 
+    nLits = 2;
     pLits[0] = toLitCond( Ssw_ObjSatNum(p,pOld), 1 );
     pLits[1] = toLitCond( Ssw_ObjSatNum(p,pNew), pOld->fPhase ^ pNew->fPhase );
+    if ( p->iOutputLit > -1 )
+        pLits[nLits++] = p->iOutputLit;
     if ( p->pPars->fPolarFlip )
     {
         if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
@@ -124,16 +133,19 @@ p->timeSatUndec += clock() - clk;
     }
 
 clk = clock();
-    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + nLits, 
         (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
 p->timeSatUnsat += clock() - clk;
-        pLits[0] = lit_neg( pLits[0] );
-        pLits[1] = lit_neg( pLits[1] );
-        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
-        assert( RetValue );
+        if ( nLits == 2 )
+        {
+            pLits[0] = lit_neg( pLits[0] );
+            pLits[1] = lit_neg( pLits[1] );
+            RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+            assert( RetValue );
+        }
         p->nSatCallsUnsat++;
     }
     else if ( RetValue1 == l_True )

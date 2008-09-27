@@ -3270,6 +3270,10 @@ SOURCE=.\src\aig\saig\saig.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigAbs.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigBmc.c
 # End Source File
 # Begin Source File
@@ -3287,6 +3291,10 @@ SOURCE=.\src\aig\saig\saigHaig.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigIoa.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigLoc.c
 # End Source File
 # Begin Source File
 
@@ -3487,6 +3495,10 @@ SOURCE=.\src\aig\ssw\sswSimSat.c
 # Begin Source File
 
 SOURCE=.\src\aig\ssw\sswSweep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssw\sswUnique.c
 # End Source File
 # End Group
 # End Group

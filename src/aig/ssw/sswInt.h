@@ -78,6 +78,10 @@ struct Ssw_Man_t_
     int              nRecycleCalls;  // the number of calls since last recycling
     int              nRecycles;      // the number of time SAT solver was recycled
     int              nConeMax;       // the maximum cone size
+    // uniqueness
+    Vec_Ptr_t *      vCommon;        // the set of common variables in the logic cones
+    int              iOutputLit;     // the output literal of the uniqueness constaint
+    int              nUniques;       // the number of uniqueness constaints used 
     // sequential simulator
     Ssw_Sml_t *      pSml;
     // counter example storage
@@ -205,10 +209,13 @@ extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrame
 extern void          Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr );
 extern void          Ssw_ManResimulateWord( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );
 /*=== sswSweep.c ===================================================*/
+extern int           Ssw_ManGetSatVarValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f );
 extern int           Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc );
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );
-
+/*=== sswUnique.c ===================================================*/
+extern int           Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj );
+extern int           Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int f2 );
 
 #ifdef __cplusplus
 }

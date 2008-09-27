@@ -56,6 +56,7 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     p->fInterpolation    =   1;  // enables interpolation
     p->fReachability     =   1;  // enables BDD based reachability
     p->fStopOnFirstFail  =   1;  // enables stopping after first output of a miter has failed to prove
+    p->fUseNewProver     =   0;  // enables new prover
     p->fSilent           =   0;  // disables all output
     p->fVerbose          =   0;  // enables verbose reporting of statistics
     p->fVeryVerbose      =   0;  // enables very verbose reporting  

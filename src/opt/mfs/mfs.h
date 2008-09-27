@@ -52,6 +52,7 @@ struct Mfs_Par_t_
     int           fArea;         // performs optimization for area
     int           fMoreEffort;   // performs high-affort minimization
     int           fSwapEdge;     // performs edge swapping
+    int           fOneHotness;   // adds one-hotness conditions
     int           fDelay;        // performs optimization for delay
     int           fVerbose;      // enable basic stats
     int           fVeryVerbose;  // enable detailed stats

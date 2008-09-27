@@ -480,6 +480,7 @@ extern int             Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper
 /*=== aigDup.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManDupSimple( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupSimpleDfs( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupSimpleDfsPart( Aig_Man_t * p, Vec_Ptr_t * vPis, Vec_Ptr_t * vPos );
 extern Aig_Man_t *     Aig_ManDupOrdered( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );

@@ -1974,6 +1974,44 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     Aig_ManStop( pMan );
     return pNtkAig;
 }
+/**Function*************************************************************
+
+  Synopsis    [Performs targe enlargement.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDarLocalize( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose )
+{
+    Aig_Man_t * pMan, * pTemp;
+    int clkTotal = clock();
+    int RetValue;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return;
+    RetValue = Saig_ManLocalization( pTemp = pMan, nFramesMax, nConfMax, fVerbose );
+    Aig_ManStop( pTemp );
+    if ( RetValue == 1 )
+    {
+        printf( "Networks are equivalent.   " );
+PRT( "Time", clock() - clkTotal );
+    }
+    else if ( RetValue == 0 )
+    {
+        printf( "Networks are NOT EQUIVALENT.   " );
+PRT( "Time", clock() - clkTotal );
+    }
+    else
+    {
+        printf( "Networks are UNDECIDED.   " );
+PRT( "Time", clock() - clkTotal );
+    }
+}
+
 
 /**Function*************************************************************
 
@@ -2453,6 +2491,7 @@ Aig_ManPrintStats( pMan );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
 {
+/*
     extern Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig );
 
     Abc_Ntk_t * pNtkAig;
@@ -2471,6 +2510,26 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
     pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
     Aig_ManStop( pMan );
     return pNtkAig;
+*/
+    Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose );
+
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+
+    Aig_ManSetRegNum( pMan, pMan->nRegs );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, 10, 1000, 1 );
+    Aig_ManStop( pTemp );
+
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    Aig_ManStop( pMan );
+    return pNtkAig;
+
 }
 
 ////////////////////////////////////////////////////////////////////////

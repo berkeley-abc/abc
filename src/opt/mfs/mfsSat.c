@@ -133,6 +133,38 @@ int Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds one-hotness constraints for the window inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+int Abc_NtkAddOneHotness( Mfs_Man_t * p )
+{
+    Aig_Obj_t * pObj1, * pObj2;
+    int i, k, Lits[2];
+    for ( i = 0; i < Vec_PtrSize(p->pAigWin->vPis); i++ )
+    for ( k = i+1; k < Vec_PtrSize(p->pAigWin->vPis); k++ )
+    {
+        pObj1 = Aig_ManPi( p->pAigWin, i );
+        pObj2 = Aig_ManPi( p->pAigWin, k );
+        Lits[0] = toLitCond( p->pCnf->pVarNums[pObj1->Id], 1 );
+        Lits[1] = toLitCond( p->pCnf->pVarNums[pObj2->Id], 1 );
+        if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )
+        {
+            sat_solver_delete( p->pSat );
+            p->pSat = NULL;
+            return 0;
+        }
+    }
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

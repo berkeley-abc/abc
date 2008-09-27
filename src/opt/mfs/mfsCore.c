@@ -41,6 +41,7 @@
 ***********************************************************************/
 void Abc_NtkMfsParsDefault( Mfs_Par_t * pPars )
 {
+    memset( pPars, 0, sizeof(Mfs_Par_t) );
     pPars->nWinTfoLevs  =    2;
     pPars->nFanoutsMax  =   10;
     pPars->nDepthMax    =   20;
@@ -52,6 +53,7 @@ void Abc_NtkMfsParsDefault( Mfs_Par_t * pPars )
     pPars->fArea        =    0;
     pPars->fMoreEffort  =    0;
     pPars->fSwapEdge    =    0;
+    pPars->fOneHotness  =    0;
     pPars->fVerbose     =    0;
     pPars->fVeryVerbose =    0;
 }
@@ -155,6 +157,8 @@ p->timeCnf += clock() - clk;
     // create the SAT problem
 clk = clock();
     p->pSat = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
+    if ( p->pSat && p->pPars->fOneHotness )
+        Abc_NtkAddOneHotness( p );
     if ( p->pSat == NULL )
         return 0;
     // solve the SAT problem

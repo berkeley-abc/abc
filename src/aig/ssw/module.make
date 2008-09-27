@@ -10,4 +10,5 @@ SRC +=    src/aig/ssw/sswAig.c \
     src/aig/ssw/sswSat.c \
     src/aig/ssw/sswSim.c \
     src/aig/ssw/sswSimSat.c \
-    src/aig/ssw/sswSweep.c
+    src/aig/ssw/sswSweep.c \
+    src/aig/ssw/sswUnique.c

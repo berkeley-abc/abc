@@ -123,6 +123,15 @@ sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands, 
         return NULL;
     }
 
+    // add one-hotness constraints
+    if ( p->pPars->fOneHotness )
+    {
+        p->pSat = pSat;
+        if ( !Abc_NtkAddOneHotness( p ) )
+            return NULL;
+        p->pSat = NULL;
+    }
+
     // bookmark the clauses of A
     if ( pCands )
         sat_solver_store_mark_clauses_a( pSat );
@@ -138,6 +147,14 @@ sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands, 
             sat_solver_delete( pSat );
             return NULL;
         }
+    }
+    // add one-hotness constraints
+    if ( p->pPars->fOneHotness )
+    {
+        p->pSat = pSat;
+        if ( !Abc_NtkAddOneHotness( p ) )
+            return NULL;
+        p->pSat = NULL;
     }
     // transform the literals
     for ( i = 0; i < p->pCnf->nLiterals; i++ )

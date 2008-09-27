@@ -24,7 +24,7 @@
 #include <assert.h>
 #include <time.h>
 #include "satStore.h"
-#include "vec.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -34,10 +34,11 @@
 static const lit    LIT_UNDEF = 0xffffffff;
 
 // interpolation manager
-struct Intp_Man_t_
+struct Inta_Man_t_
 {
     // clauses of the problems
     Sto_Man_t *     pCnf;         // the set of CNF clauses for A and B
+    Vec_Int_t *     vVarsAB;      // the array of global variables
     // various parameters
     int             fVerbose;     // verbosiness flag
     int             fProofVerif;  // verifies the proof
@@ -52,9 +53,11 @@ struct Intp_Man_t_
     char *          pSeens;       // temporary mark (size nVars)
     Sto_Cls_t **    pReasons;     // reasons for each assignment (size nVars)          
     Sto_Cls_t **    pWatches;     // watched clauses for each literal (size 2*nVars)          
-    // proof data
-    Vec_Int_t *     vAnties;      // anticedents for all clauses
-    Vec_Int_t *     vBreaks;      // beginnings of anticedents for each clause
+    // interpolation data
+    Aig_Man_t *     pAig;         // the AIG manager for recording the interpolant
+    int *           pVarTypes;    // variable type (size nVars) [1=A, 0=B, <0=AB]
+    Aig_Obj_t **    pInters;      // storage for interpolants as truth tables (size nClauses)
+    int             nIntersAlloc; // the allocated size of truth table array
     // proof recording
     int             Counter;      // counter of resolved clauses
     int *           pProofNums;   // the proof numbers for each clause (size nClauses)
@@ -69,9 +72,20 @@ struct Intp_Man_t_
     int             timeTotal;    // the total runtime of interpolation
 };
 
+// procedure to get hold of the clauses' truth table 
+static inline Aig_Obj_t ** Inta_ManAigRead( Inta_Man_t * pMan, Sto_Cls_t * pCls )                   { return pMan->pInters + pCls->Id;          }
+static inline void         Inta_ManAigClear( Inta_Man_t * pMan, Aig_Obj_t ** p )                    { *p = Aig_ManConst0(pMan->pAig);           }
+static inline void         Inta_ManAigFill( Inta_Man_t * pMan, Aig_Obj_t ** p )                     { *p = Aig_ManConst1(pMan->pAig);           }
+static inline void         Inta_ManAigCopy( Inta_Man_t * pMan, Aig_Obj_t ** p, Aig_Obj_t ** q )     { *p = *q;                                  }
+static inline void         Inta_ManAigAnd( Inta_Man_t * pMan, Aig_Obj_t ** p, Aig_Obj_t ** q )      { *p = Aig_And(pMan->pAig, *p, *q);         }
+static inline void         Inta_ManAigOr( Inta_Man_t * pMan, Aig_Obj_t ** p, Aig_Obj_t ** q )       { *p = Aig_Or(pMan->pAig, *p, *q);          }
+static inline void         Inta_ManAigOrNot( Inta_Man_t * pMan, Aig_Obj_t ** p, Aig_Obj_t ** q )    { *p = Aig_Or(pMan->pAig, *p, Aig_Not(*q)); }
+static inline void         Inta_ManAigOrVar( Inta_Man_t * pMan, Aig_Obj_t ** p, int v )             { *p = Aig_Or(pMan->pAig, *p, Aig_IthVar(pMan->pAig, v));          }
+static inline void         Inta_ManAigOrNotVar( Inta_Man_t * pMan, Aig_Obj_t ** p, int v )          { *p = Aig_Or(pMan->pAig, *p, Aig_Not(Aig_IthVar(pMan->pAig, v))); }
+
 // reading/writing the proof for a clause
-static inline int          Intp_ManProofGet( Intp_Man_t * p, Sto_Cls_t * pCls )                  { return p->pProofNums[pCls->Id];           }
-static inline void         Intp_ManProofSet( Intp_Man_t * p, Sto_Cls_t * pCls, int n )           { p->pProofNums[pCls->Id] = n;              }
+static inline int          Inta_ManProofGet( Inta_Man_t * p, Sto_Cls_t * pCls )                  { return p->pProofNums[pCls->Id];           }
+static inline void         Inta_ManProofSet( Inta_Man_t * p, Sto_Cls_t * pCls, int n )           { p->pProofNums[pCls->Id] = n;              }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -88,22 +102,75 @@ static inline void         Intp_ManProofSet( Intp_Man_t * p, Sto_Cls_t * pCls, i
   SeeAlso     []
 
 ***********************************************************************/
-Intp_Man_t * Intp_ManAlloc()
+Inta_Man_t * Inta_ManAlloc()
 {
-    Intp_Man_t * p;
+    Inta_Man_t * p;
     // allocate the manager
-    p = (Intp_Man_t *)malloc( sizeof(Intp_Man_t) );
-    memset( p, 0, sizeof(Intp_Man_t) );
+    p = (Inta_Man_t *)malloc( sizeof(Inta_Man_t) );
+    memset( p, 0, sizeof(Inta_Man_t) );
     // verification
     p->nResLitsAlloc = (1<<16);
     p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
-    // proof recording
-    p->vAnties = Vec_IntAlloc( 1000 );
-    p->vBreaks = Vec_IntAlloc( 1000 );
     // parameters
-    p->fProofWrite = 0;
+    p->fProofWrite = 1;
     p->fProofVerif = 1;
     return p;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count common variables in the clauses of A and B.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Inta_ManGlobalVars( Inta_Man_t * p )
+{
+    Sto_Cls_t * pClause;
+    int LargeNum = -100000000;
+    int Var, nVarsAB, v;
+
+    // mark the variable encountered in the clauses of A
+    Sto_ManForEachClauseRoot( p->pCnf, pClause )
+    {
+        if ( !pClause->fA )
+            break;
+        for ( v = 0; v < (int)pClause->nLits; v++ )
+            p->pVarTypes[lit_var(pClause->pLits[v])] = 1;
+    }
+
+    // check variables that appear in clauses of B
+    nVarsAB = 0;
+    Sto_ManForEachClauseRoot( p->pCnf, pClause )
+    {
+        if ( pClause->fA )
+            continue;
+        for ( v = 0; v < (int)pClause->nLits; v++ )
+        {
+            Var = lit_var(pClause->pLits[v]);
+            if ( p->pVarTypes[Var] == 1 ) // var of A
+            {
+                // change it into a global variable
+                nVarsAB++;
+                p->pVarTypes[Var] = LargeNum;
+            }
+        }
+    }
+    assert( nVarsAB <= Vec_IntSize(p->vVarsAB) );
+
+    // order global variables
+    nVarsAB = 0;
+    Vec_IntForEachEntry( p->vVarsAB, Var, v )
+        p->pVarTypes[Var] = -(1+nVarsAB++);
+
+    // check that there is no extra global variables
+    for ( v = 0; v < p->pCnf->nVars; v++ )
+        assert( p->pVarTypes[v] != LargeNum );
+    return nVarsAB;
 }
 
 /**Function*************************************************************
@@ -117,7 +184,7 @@ Intp_Man_t * Intp_ManAlloc()
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManResize( Intp_Man_t * p )
+void Inta_ManResize( Inta_Man_t * p )
 {
     // check if resizing is needed
     if ( p->nVarsAlloc < p->pCnf->nVars )
@@ -131,7 +198,7 @@ void Intp_ManResize( Intp_Man_t * p )
         p->pTrail    = (lit *)       realloc( p->pTrail,    sizeof(lit) * p->nVarsAlloc );
         p->pAssigns  = (lit *)       realloc( p->pAssigns,  sizeof(lit) * p->nVarsAlloc );
         p->pSeens    = (char *)      realloc( p->pSeens,    sizeof(char) * p->nVarsAlloc );
-//        p->pVarTypes = (int *)       realloc( p->pVarTypes, sizeof(int) * p->nVarsAlloc );
+        p->pVarTypes = (int *)       realloc( p->pVarTypes, sizeof(int) * p->nVarsAlloc );
         p->pReasons  = (Sto_Cls_t **)realloc( p->pReasons,  sizeof(Sto_Cls_t *) * p->nVarsAlloc );
         p->pWatches  = (Sto_Cls_t **)realloc( p->pWatches,  sizeof(Sto_Cls_t *) * p->nVarsAlloc*2 );
     }
@@ -139,9 +206,12 @@ void Intp_ManResize( Intp_Man_t * p )
     // clean the free space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
-//    memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
+    memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
     memset( p->pReasons , 0,    sizeof(Sto_Cls_t *) * p->pCnf->nVars );
     memset( p->pWatches , 0,    sizeof(Sto_Cls_t *) * p->pCnf->nVars*2 );
+
+    // compute the number of common variables
+    Inta_ManGlobalVars( p );
 
     // check if resizing of clauses is needed
     if ( p->nClosAlloc < p->pCnf->nClauses )
@@ -155,6 +225,14 @@ void Intp_ManResize( Intp_Man_t * p )
         p->pProofNums = (int *) realloc( p->pProofNums,  sizeof(int) * p->nClosAlloc );
     }
     memset( p->pProofNums, 0, sizeof(int) * p->pCnf->nClauses );
+
+    // check if resizing of truth tables is needed
+    if ( p->nIntersAlloc < p->pCnf->nClauses )
+    {
+        p->nIntersAlloc = p->pCnf->nClauses;
+        p->pInters = (Aig_Obj_t **) realloc( p->pInters, sizeof(Aig_Obj_t *) * p->nIntersAlloc );
+    }
+    memset( p->pInters, 0, sizeof(Aig_Obj_t *) * p->pCnf->nClauses );
 }
 
 /**Function*************************************************************
@@ -168,7 +246,7 @@ void Intp_ManResize( Intp_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManFree( Intp_Man_t * p )
+void Inta_ManFree( Inta_Man_t * p )
 {
 /*
     printf( "Runtime stats:\n" );
@@ -176,14 +254,12 @@ PRT( "BCP     ", p->timeBcp   );
 PRT( "Trace   ", p->timeTrace );
 PRT( "TOTAL   ", p->timeTotal );
 */
-    Vec_IntFree( p->vAnties );
-    Vec_IntFree( p->vBreaks );
-//    free( p->pInters );
+    free( p->pInters );
     free( p->pProofNums );
     free( p->pTrail );
     free( p->pAssigns );
     free( p->pSeens );
-//    free( p->pVarTypes );
+    free( p->pVarTypes );
     free( p->pReasons );
     free( p->pWatches );
     free( p->pResLits );
@@ -204,12 +280,22 @@ PRT( "TOTAL   ", p->timeTotal );
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManPrintClause( Intp_Man_t * p, Sto_Cls_t * pClause )
+void Inta_ManPrintClause( Inta_Man_t * p, Sto_Cls_t * pClause )
 {
     int i;
-    printf( "Clause ID = %d. Proof = %d. {", pClause->Id, Intp_ManProofGet(p, pClause) );
+    printf( "Clause ID = %d. Proof = %d. {", pClause->Id, Inta_ManProofGet(p, pClause) );
     for ( i = 0; i < (int)pClause->nLits; i++ )
         printf( " %d", pClause->pLits[i] );
+    printf( " }\n" );
+}
+
+// Yu Hu
+void Inta_ManPrintClauseEx( lit * pResLits, int nResLits )
+{
+    int i;
+    printf( " {" );
+    for ( i = 0; i < nResLits; i++ )
+        printf( " %d", lit_print(pResLits[i]) );
     printf( " }\n" );
 }
 
@@ -224,12 +310,12 @@ void Intp_ManPrintClause( Intp_Man_t * p, Sto_Cls_t * pClause )
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManPrintResolvent( lit * pResLits, int nResLits )
+void Inta_ManPrintResolvent( lit * pResLits, int nResLits )
 {
     int i;
     printf( "Resolvent: {" );
     for ( i = 0; i < nResLits; i++ )
-        printf( " %d", pResLits[i] );
+        printf( " %d", lit_print(pResLits[i]) );
     printf( " }\n" );
 }
 
@@ -244,10 +330,10 @@ void Intp_ManPrintResolvent( lit * pResLits, int nResLits )
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManPrintInterOne( Intp_Man_t * p, Sto_Cls_t * pClause )
+void Inta_ManPrintInterOne( Inta_Man_t * p, Sto_Cls_t * pClause )
 {
     printf( "Clause %2d :  ", pClause->Id );
-//    Extra_PrintBinary___( stdout, Intp_ManAigRead(p, pClause), (1 << p->nVarsAB) );
+//    Extra_PrintBinary___( stdout, Inta_ManAigRead(p, pClause), (1 << p->nVarsAB) );
     printf( "\n" );
 }
 
@@ -264,7 +350,7 @@ void Intp_ManPrintInterOne( Intp_Man_t * p, Sto_Cls_t * pClause )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Intp_ManWatchClause( Intp_Man_t * p, Sto_Cls_t * pClause, lit Lit )
+static inline void Inta_ManWatchClause( Inta_Man_t * p, Sto_Cls_t * pClause, lit Lit )
 {
     assert( lit_check(Lit, p->pCnf->nVars) );
     if ( pClause->pLits[0] == Lit )
@@ -289,7 +375,7 @@ static inline void Intp_ManWatchClause( Intp_Man_t * p, Sto_Cls_t * pClause, lit
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Intp_ManEnqueue( Intp_Man_t * p, lit Lit, Sto_Cls_t * pReason )
+static inline int Inta_ManEnqueue( Inta_Man_t * p, lit Lit, Sto_Cls_t * pReason )
 {
     int Var = lit_var(Lit);
     if ( p->pAssigns[Var] != LIT_UNDEF )
@@ -312,7 +398,7 @@ static inline int Intp_ManEnqueue( Intp_Man_t * p, lit Lit, Sto_Cls_t * pReason 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Intp_ManCancelUntil( Intp_Man_t * p, int Level )
+static inline void Inta_ManCancelUntil( Inta_Man_t * p, int Level )
 {
     lit Lit;
     int i, Var;
@@ -338,7 +424,7 @@ static inline void Intp_ManCancelUntil( Intp_Man_t * p, int Level )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Sto_Cls_t * Intp_ManPropagateOne( Intp_Man_t * p, lit Lit )
+static inline Sto_Cls_t * Inta_ManPropagateOne( Inta_Man_t * p, lit Lit )
 {
     Sto_Cls_t ** ppPrev, * pCur, * pTemp;
     lit LitF = lit_neg(Lit);
@@ -377,14 +463,14 @@ static inline Sto_Cls_t * Intp_ManPropagateOne( Intp_Man_t * p, lit Lit )
             // remove this clause from the watch list of Lit
             *ppPrev = pCur->pNext1;
             // add this clause to the watch list of pCur->pLits[i] (now it is pCur->pLits[1])
-            Intp_ManWatchClause( p, pCur, pCur->pLits[1] );
+            Inta_ManWatchClause( p, pCur, pCur->pLits[1] );
             break;
         }
         if ( i < (int)pCur->nLits ) // found new watch
             continue;
 
         // clause is unit - enqueue new implication
-        if ( Intp_ManEnqueue(p, pCur->pLits[0], pCur) )
+        if ( Inta_ManEnqueue(p, pCur->pLits[0], pCur) )
         {
             ppPrev = &pCur->pNext1;
             continue;
@@ -407,14 +493,14 @@ static inline Sto_Cls_t * Intp_ManPropagateOne( Intp_Man_t * p, lit Lit )
   SeeAlso     []
 
 ***********************************************************************/
-Sto_Cls_t * Intp_ManPropagate( Intp_Man_t * p, int Start )
+Sto_Cls_t * Inta_ManPropagate( Inta_Man_t * p, int Start )
 {
     Sto_Cls_t * pClause;
     int i;
     int clk = clock();
     for ( i = Start; i < p->nTrailSize; i++ )
     {
-        pClause = Intp_ManPropagateOne( p, p->pTrail[i] );
+        pClause = Inta_ManPropagateOne( p, p->pTrail[i] );
         if ( pClause )
         {
 p->timeBcp += clock() - clk;
@@ -437,14 +523,14 @@ p->timeBcp += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManProofWriteOne( Intp_Man_t * p, Sto_Cls_t * pClause )
+void Inta_ManProofWriteOne( Inta_Man_t * p, Sto_Cls_t * pClause )
 {
-    Intp_ManProofSet( p, pClause, ++p->Counter );
+    Inta_ManProofSet( p, pClause, ++p->Counter );
 
     if ( p->fProofWrite )
     {
         int v;
-        fprintf( p->pFile, "%d", Intp_ManProofGet(p, pClause) );
+        fprintf( p->pFile, "%d", Inta_ManProofGet(p, pClause) );
         for ( v = 0; v < (int)pClause->nLits; v++ )
             fprintf( p->pFile, " %d", lit_print(pClause->pLits[v]) );
         fprintf( p->pFile, " 0 0\n" );
@@ -462,11 +548,11 @@ void Intp_ManProofWriteOne( Intp_Man_t * p, Sto_Cls_t * pClause )
   SeeAlso     []
 
 ***********************************************************************/
-int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFinal )
+int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFinal )
 {
     Sto_Cls_t * pReason;
     int i, v, Var, PrevId;
-    int fPrint = 0;
+    int fPrint = 1; // Yu Hu
     int clk = clock();
 
     // collect resolvent literals
@@ -484,15 +570,12 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     // start the anticedents
 //    pFinal->pAntis = Vec_PtrAlloc( 32 );
 //    Vec_PtrPush( pFinal->pAntis, pConflict );
-    assert( pFinal->Id == Vec_IntSize(p->vBreaks) );
-    Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
-    Vec_IntPush( p->vAnties, pConflict->Id );
 
-//    if ( p->pCnf->nClausesA )
-//        Intp_ManAigCopy( p, Intp_ManAigRead(p, pFinal), Intp_ManAigRead(p, pConflict) );
+    if ( p->pCnf->nClausesA )
+        Inta_ManAigCopy( p, Inta_ManAigRead(p, pFinal), Inta_ManAigRead(p, pConflict) );
 
     // follow the trail backwards
-    PrevId = Intp_ManProofGet(p, pConflict);
+    PrevId = Inta_ManProofGet(p, pConflict);
     for ( i = p->nTrailSize - 1; i >= 0; i-- )
     {
         // skip literals that are not involved
@@ -513,26 +596,35 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
 
 
         // record the reason clause
-        assert( Intp_ManProofGet(p, pReason) > 0 );
+        assert( Inta_ManProofGet(p, pReason) > 0 );
         p->Counter++;
-        if ( p->fProofWrite )
-            fprintf( p->pFile, "%d * %d %d 0\n", p->Counter, PrevId, Intp_ManProofGet(p, pReason) );
+        if ( p->fProofWrite ) {
+            fprintf( p->pFile, "%d * %d %d 0\n", p->Counter, PrevId, Inta_ManProofGet(p, pReason) );
+            // Yu Hu
+            printf( "%d * %d %d 0\n", p->Counter, PrevId, Inta_ManProofGet(p, pReason) );
+        }
         PrevId = p->Counter;
 
-//        if ( p->pCnf->nClausesA )
-//       {
-//            if ( p->pVarTypes[Var] == 1 ) // var of A
-//                Intp_ManAigOr( p, Intp_ManAigRead(p, pFinal), Intp_ManAigRead(p, pReason) );
-//            else
-//                Intp_ManAigAnd( p, Intp_ManAigRead(p, pFinal), Intp_ManAigRead(p, pReason) );
-//        }
+        if ( p->pCnf->nClausesA )
+        {
+            if ( p->pVarTypes[Var] == 1 ) // var of A
+                Inta_ManAigOr( p, Inta_ManAigRead(p, pFinal), Inta_ManAigRead(p, pReason) );
+            else
+                Inta_ManAigAnd( p, Inta_ManAigRead(p, pFinal), Inta_ManAigRead(p, pReason) );
+        }
  
         // resolve the temporary resolvent with the reason clause
         if ( p->fProofVerif )
         {
             int v1, v2; 
-            if ( fPrint )
-                Intp_ManPrintResolvent( p->pResLits, p->nResLits );
+            // Yu Hu
+//            if ( fPrint )
+//                Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+            if ( fPrint ) {
+                printf("pivot = %d,\n", lit_print(p->pTrail[i]));
+                Inta_ManPrintClauseEx( p->pResLits, p->nResLits);
+            }
+ 
             // check that the var is present in the resolvent
             for ( v1 = 0; v1 < p->nResLits; v1++ )
                 if ( lit_var(p->pResLits[v1]) == Var )
@@ -566,10 +658,15 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
                 // the literal is different
                 printf( "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
             }
+
+            // Yu Hu
+            if ( fPrint ) {
+                Inta_ManPrintClauseEx( pReason->pLits, pReason->nLits);
+                Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+            }
         }
 
 //        Vec_PtrPush( pFinal->pAntis, pReason );
-        Vec_IntPush( p->vAnties, pReason->Id );
     }
 
     // unmark all seen variables
@@ -583,8 +680,10 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     if ( p->fProofVerif )
     {
         int v1, v2; 
-        if ( fPrint )
-            Intp_ManPrintResolvent( p->pResLits, p->nResLits );
+        if ( fPrint ){
+            // Yu Hu
+//            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+        }
         for ( v1 = 0; v1 < p->nResLits; v1++ )
         {
             for ( v2 = 0; v2 < (int)pFinal->nLits; v2++ )
@@ -597,19 +696,19 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         if ( v1 < p->nResLits )
         {
             printf( "Recording clause %d: The final resolvent is wrong.\n", pFinal->Id );
-            Intp_ManPrintClause( p, pConflict );
-            Intp_ManPrintResolvent( p->pResLits, p->nResLits );
-            Intp_ManPrintClause( p, pFinal );
+            Inta_ManPrintClause( p, pConflict );
+            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+            Inta_ManPrintClause( p, pFinal );
         }
     }
 p->timeTrace += clock() - clk;
 
     // return the proof pointer 
-//    if ( p->pCnf->nClausesA )
-//    {
-//        Intp_ManPrintInterOne( p, pFinal );
-//    }
-    Intp_ManProofSet( p, pFinal, p->Counter );
+    if ( p->pCnf->nClausesA )
+    {
+//        Inta_ManPrintInterOne( p, pFinal );
+    }
+    Inta_ManProofSet( p, pFinal, p->Counter );
     return p->Counter;
 }
 
@@ -624,7 +723,7 @@ p->timeTrace += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
+int Inta_ManProofRecordOne( Inta_Man_t * p, Sto_Cls_t * pClause )
 {
     Sto_Cls_t * pConflict;
     int i;
@@ -638,14 +737,14 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
     assert( !pClause->fRoot );
     assert( p->nTrailSize == p->nRootSize );
     for ( i = 0; i < (int)pClause->nLits; i++ )
-        if ( !Intp_ManEnqueue( p, lit_neg(pClause->pLits[i]), NULL ) )
+        if ( !Inta_ManEnqueue( p, lit_neg(pClause->pLits[i]), NULL ) )
         {
             assert( 0 ); // impossible
             return 0;
         }
 
     // propagate the assumptions
-    pConflict = Intp_ManPropagate( p, p->nRootSize );
+    pConflict = Inta_ManPropagate( p, p->nRootSize );
     if ( pConflict == NULL )
     {
         assert( 0 ); // cannot prove
@@ -653,33 +752,33 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
     }
 
     // construct the proof
-    Intp_ManProofTraceOne( p, pConflict, pClause );
+    Inta_ManProofTraceOne( p, pConflict, pClause );
 
     // undo to the root level
-    Intp_ManCancelUntil( p, p->nRootSize );
+    Inta_ManCancelUntil( p, p->nRootSize );
 
     // add large clauses to the watched lists
     if ( pClause->nLits > 1 )
     {
-        Intp_ManWatchClause( p, pClause, pClause->pLits[0] );
-        Intp_ManWatchClause( p, pClause, pClause->pLits[1] );
+        Inta_ManWatchClause( p, pClause, pClause->pLits[0] );
+        Inta_ManWatchClause( p, pClause, pClause->pLits[1] );
         return 1;
     }
     assert( pClause->nLits == 1 );
 
     // if the clause proved is unit, add it and propagate
-    if ( !Intp_ManEnqueue( p, pClause->pLits[0], pClause ) )
+    if ( !Inta_ManEnqueue( p, pClause->pLits[0], pClause ) )
     {
         assert( 0 ); // impossible
         return 0;
     }
 
     // propagate the assumption
-    pConflict = Intp_ManPropagate( p, p->nRootSize );
+    pConflict = Inta_ManPropagate( p, p->nRootSize );
     if ( pConflict )
     {
         // construct the proof
-        Intp_ManProofTraceOne( p, pConflict, p->pCnf->pEmpty );
+        Inta_ManProofTraceOne( p, pConflict, p->pCnf->pEmpty );
 //        if ( p->fVerbose )
 //            printf( "Found last conflict after adding unit clause number %d!\n", pClause->Id );
         return 0;
@@ -701,7 +800,7 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
   SeeAlso     []
 
 ***********************************************************************/
-int Intp_ManProcessRoots( Intp_Man_t * p )
+int Inta_ManProcessRoots( Inta_Man_t * p )
 {
     Sto_Cls_t * pClause;
     int Counter;
@@ -726,29 +825,33 @@ int Intp_ManProcessRoots( Intp_Man_t * p )
         // create watcher lists for the root clauses
         if ( pClause->nLits > 1 )
         {
-            Intp_ManWatchClause( p, pClause, pClause->pLits[0] );
-            Intp_ManWatchClause( p, pClause, pClause->pLits[1] );
+            Inta_ManWatchClause( p, pClause, pClause->pLits[0] );
+            Inta_ManWatchClause( p, pClause, pClause->pLits[1] );
         }
         // empty clause and large clauses
         if ( pClause->nLits != 1 )
             continue;
         // unit clause
         assert( lit_check(pClause->pLits[0], p->pCnf->nVars) );
-        if ( !Intp_ManEnqueue( p, pClause->pLits[0], pClause ) )
+        if ( !Inta_ManEnqueue( p, pClause->pLits[0], pClause ) )
         {
             // detected root level conflict
-            printf( "Error in Intp_ManProcessRoots(): Detected a root-level conflict too early!\n" );
-            assert( 0 );
+//            printf( "Error in Inta_ManProcessRoots(): Detected a root-level conflict too early!\n" );
+//            assert( 0 );
+            // detected root level conflict
+            Inta_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
+            if ( p->fVerbose )
+                printf( "Found root level conflict!\n" );
             return 0;
         }
     }
 
     // propagate the root unit clauses
-    pClause = Intp_ManPropagate( p, 0 );
+    pClause = Inta_ManPropagate( p, 0 );
     if ( pClause )
     {
         // detected root level conflict
-        Intp_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
+        Inta_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
         if ( p->fVerbose )
             printf( "Found root level conflict!\n" );
         return 0;
@@ -759,10 +862,9 @@ int Intp_ManProcessRoots( Intp_Man_t * p )
     return 1;
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Recursively computes the UNSAT core.]
+  Synopsis    [Records the proof.]
 
   Description []
                
@@ -771,44 +873,57 @@ int Intp_ManProcessRoots( Intp_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManUnsatCore_rec( Vec_Int_t * vAnties, Vec_Int_t * vBreaks, int iThis, Vec_Int_t * vCore, int nRoots )
+void Inta_ManPrepareInter( Inta_Man_t * p )
 {
-    int i, iStop, iStart;
-    // skip of this clause was visited
-    iStart = Vec_IntEntry( vBreaks, iThis );
-    if ( iStart == -1 )
-        return;
-    // mark this clause as visited
-    Vec_IntWriteEntry( vBreaks, iThis, -1 );
-    // add a root clause to the core
-    if ( iThis < nRoots )
+    Sto_Cls_t * pClause;
+    int Var, VarAB, v;
+
+    // set interpolants for root clauses
+    Sto_ManForEachClauseRoot( p->pCnf, pClause )
     {
-        Vec_IntPush( vCore, iThis );
-        return;
+        if ( !pClause->fA ) // clause of B
+        {
+            Inta_ManAigFill( p, Inta_ManAigRead(p, pClause) );
+//            Inta_ManPrintInterOne( p, pClause );
+            continue;
+        }
+        // clause of A
+        Inta_ManAigClear( p, Inta_ManAigRead(p, pClause) );
+        for ( v = 0; v < (int)pClause->nLits; v++ )
+        {
+            Var = lit_var(pClause->pLits[v]);
+            if ( p->pVarTypes[Var] < 0 ) // global var
+            {
+                VarAB = -p->pVarTypes[Var]-1;
+                assert( VarAB >= 0 && VarAB < Vec_IntSize(p->vVarsAB) );
+                if ( lit_sign(pClause->pLits[v]) ) // negative var
+                    Inta_ManAigOrNotVar( p, Inta_ManAigRead(p, pClause), VarAB );
+                else
+                    Inta_ManAigOrVar( p, Inta_ManAigRead(p, pClause), VarAB );
+            }
+        }
+//        Inta_ManPrintInterOne( p, pClause );
     }
-    // iterate through the clauses
-    iStop = Vec_IntEntry( vBreaks, iThis+1 );
-    for ( i = iStart; i < iStop; i++ )
-        Intp_ManUnsatCore_rec( vAnties, vBreaks, Vec_IntEntry(vAnties, i), vCore, nRoots );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Computes UNSAT core of the satisfiablity problem.]
+  Synopsis    [Computes interpolant for the given CNF.]
 
-  Description [Takes the interpolation manager, the CNF derived by the SAT
-  solver, which includes the root clauses and the learned clauses. Returns
-  the array of integers representing the number of root clauses that are in
-  the UNSAT core.]
+  Description [Takes the interpolation manager, the CNF deriving by the SAT
+  solver, which includes ClausesA, ClausesB, and learned clauses. Additional
+  arguments are the vector of variables common to AB and the verbosiness flag.
+  Returns the AIG manager with a single output, containing the interpolant.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
+void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, int fVerbose )
 {
-    Vec_Int_t * vCore;
+    Aig_Man_t * pRes;
+    Aig_Obj_t * pObj;
     Sto_Cls_t * pClause;
     int RetValue = 1;
     int clkTotal = clock();
@@ -817,9 +932,15 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );
     p->pCnf = pCnf;
     p->fVerbose = fVerbose;
+    p->vVarsAB = vVarsAB;
+    p->pAig = pRes = Aig_ManStart( 10000 );
+    Aig_IthVar( p->pAig, Vec_IntSize(p->vVarsAB) - 1 );
 
     // adjust the manager
-    Intp_ManResize( p );
+    Inta_ManResize( p );
+
+    // prepare the interpolant computation
+    Inta_ManPrepareInter( p );
 
     // construct proof for each clause
     // start the proof
@@ -830,20 +951,18 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
     }
 
     // write the root clauses
-    Vec_IntClear( p->vAnties );
-    Vec_IntFill( p->vBreaks, p->pCnf->nRoots, 0 );
     Sto_ManForEachClauseRoot( p->pCnf, pClause )
-        Intp_ManProofWriteOne( p, pClause );
+        Inta_ManProofWriteOne( p, pClause );
 
     // propagate root level assignments
-    if ( Intp_ManProcessRoots( p ) )
+    if ( Inta_ManProcessRoots( p ) )
     {
         // if there is no conflict, consider learned clauses
         Sto_ManForEachClause( p->pCnf, pClause )
         {
             if ( pClause->fRoot )
                 continue;
-            if ( !Intp_ManProofRecordOne( p, pClause ) )
+            if ( !Inta_ManProofRecordOne( p, pClause ) )
             {
                 RetValue = 0;
                 break;
@@ -851,20 +970,16 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
         }
     }
 
-    // add the last breaker
-    assert( p->pCnf->pEmpty->Id == Vec_IntSize(p->vBreaks) - 1 );
-    Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
-
     // stop the proof
     if ( p->fProofWrite )
-    {
+    { 
         fclose( p->pFile );
         p->pFile = NULL;    
     }
 
     if ( fVerbose )
     {
-        PRT( "Core", clock() - clkTotal );
+//        PRT( "Interpo", clock() - clkTotal );
     printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f Mb\n", 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 
@@ -872,13 +987,58 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
 p->timeTotal += clock() - clkTotal;
     }
 
-    // derive the UNSAT core
-    vCore = Vec_IntAlloc( 1000 );
-    Intp_ManUnsatCore_rec( p->vAnties, p->vBreaks, p->pCnf->pEmpty->Id, vCore, p->pCnf->nRoots );
-    if ( fVerbose )
-        printf( "Root clauses = %d. Learned clauses = %d. UNSAT core size = %d.\n", 
-            p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, Vec_IntSize(vCore) );
-    return vCore;   
+    pObj = *Inta_ManAigRead( p, p->pCnf->pTail );
+    Aig_ObjCreatePo( pRes, pObj );
+    Aig_ManCleanup( pRes );
+
+    p->pAig = NULL;
+    return pRes;
+    
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Inta_ManDeriveClauses( Inta_Man_t * pMan, Sto_Man_t * pCnf, int fClausesA )
+{
+    Aig_Man_t * p;
+    Aig_Obj_t * pMiter, * pSum, * pLit;
+    Sto_Cls_t * pClause;
+    int Var, VarAB, v;
+    p = Aig_ManStart( 10000 );
+    pMiter = Aig_ManConst1(p);
+    Sto_ManForEachClauseRoot( pCnf, pClause )
+    {
+        if ( fClausesA ^ pClause->fA ) // clause of B
+            continue;
+        // clause of A
+        pSum = Aig_ManConst0(p);
+        for ( v = 0; v < (int)pClause->nLits; v++ )
+        {
+            Var = lit_var(pClause->pLits[v]);
+            if ( pMan->pVarTypes[Var] < 0 ) // global var
+            {
+                VarAB = -pMan->pVarTypes[Var]-1;
+                assert( VarAB >= 0 && VarAB < Vec_IntSize(pMan->vVarsAB) );
+                pLit = Aig_NotCond( Aig_IthVar(p, VarAB), lit_sign(pClause->pLits[v]) );
+            }
+            else
+                pLit = Aig_NotCond( Aig_IthVar(p, Vec_IntSize(pMan->vVarsAB)+1+Var), lit_sign(pClause->pLits[v]) );
+            pSum = Aig_Or( p, pSum, pLit );
+        }
+        pMiter = Aig_And( p, pMiter, pSum );
+    }
+    Aig_ObjCreatePo( p, pMiter );
+    return p;
 }
 
 ////////////////////////////////////////////////////////////////////////

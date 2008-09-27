@@ -53,6 +53,7 @@ struct Ssw_Pars_t_
     int              fSkipCheck;    // do not run equivalence check for unaffected cones
     int              fLatchCorr;    // perform register correspondence
     int              fSemiFormal;   // enable semiformal filtering
+    int              fUniqueness;   // enable uniqueness constraints
     int              fVerbose;      // verbose stats
     // optimized latch correspondence
     int              fLatchCorrOpt; // perform register correspondence (optimized)
@@ -82,11 +83,15 @@ struct Ssw_Cex_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== sswAbs.c ==========================================================*/
+extern Aig_Man_t *   Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose );
 /*=== sswCore.c ==========================================================*/
 extern void          Ssw_ManSetDefaultParams( Ssw_Pars_t * p );
 extern void          Ssw_ManSetDefaultParamsLcorr( Ssw_Pars_t * p );
 extern Aig_Man_t *   Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 extern Aig_Man_t *   Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
+/*=== sswLoc.c ==========================================================*/
+extern int           Saig_ManLocalization( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose );
 /*=== sswPart.c ==========================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 /*=== sswPairs.c ===================================================*/

@@ -215,6 +215,7 @@ static int Abc_CommandBmc            ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandBmcInter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIndcut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEnlarge        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLocalize       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -481,6 +482,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "int",           Abc_CommandBmcInter,         0 );
     Cmd_CommandAdd( pAbc, "Verification", "indcut",        Abc_CommandIndcut,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
+    Cmd_CommandAdd( pAbc, "Verification", "loc",           Abc_CommandLocalize,         0 );
 
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
@@ -3671,7 +3673,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Abc_NtkMfsParsDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCraesvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCraestvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3753,6 +3755,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fSwapEdge ^= 1;
             break;
+        case 't':
+            pPars->fOneHotness ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -3786,7 +3791,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: mfs [-WFDMLC <num>] [-raesvh]\n" );
+    fprintf( pErr, "usage: mfs [-WFDMLC <num>] [-raestvh]\n" );
     fprintf( pErr, "\t           performs don't-care-based optimization of logic networks\n" );
     fprintf( pErr, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
     fprintf( pErr, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
@@ -3798,6 +3803,7 @@ usage:
     fprintf( pErr, "\t-a       : toggle minimizing area or area+edges [default = %s]\n", pPars->fArea? "area": "area+edges" );
     fprintf( pErr, "\t-e       : toggle high-effort resubstitution [default = %s]\n", pPars->fMoreEffort? "yes": "no" );
     fprintf( pErr, "\t-s       : toggle evaluation of edge swapping [default = %s]\n", pPars->fSwapEdge? "yes": "no" );
+    fprintf( pErr, "\t-t       : toggle using artificial one-hotness conditions [default = %s]\n", pPars->fOneHotness? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");
@@ -13535,7 +13541,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsfuvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13628,6 +13634,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pPars->fSemiFormal ^= 1;
             break;
+        case 'u':
+            pPars->fUniqueness ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -13680,7 +13689,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsfvh]\n" );
+    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsfuvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -13693,6 +13702,7 @@ usage:
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
     fprintf( pErr, "\t-s     : toggle skipping unaffected cones [default = %s]\n", pPars->fSkipCheck? "yes": "no" );
     fprintf( pErr, "\t-f     : toggle filtering using interative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
+    fprintf( pErr, "\t-u     : toggle using uniqueness constraints [default = %s]\n", pPars->fUniqueness? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -16471,6 +16481,105 @@ usage:
     fprintf( pErr, "usage: enlarge [-F num] [-vh]\n" );
     fprintf( pErr, "\t         performs structural K-step target enlargement\n" );
     fprintf( pErr, "\t-F num : the number of timeframes for enlargement [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandLocalize( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int nFramesMax;
+    int nConfMax;
+    int fVerbose;
+    int c;
+    extern void Abc_NtkDarLocalize( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFramesMax =    50;
+    nConfMax   =   500;
+    fVerbose   =     0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+    if ( Abc_NtkPoNum(pNtk) != 1 )
+    {
+        fprintf( pErr, "Currently this command works only for single-output miter.\n" );
+        return 0;
+    }
+
+    // modify the current network
+    Abc_NtkDarLocalize( pNtk, nFramesMax, nConfMax, fVerbose );
+    return 0;
+usage:
+    fprintf( pErr, "usage: loc [-FC num] [-vh]\n" );
+    fprintf( pErr, "\t         performs localization for single-output miter\n" );
+    fprintf( pErr, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
+    fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

@@ -87,14 +87,15 @@ void Ssw_ManSweepMarkRefinement( Ssw_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ManOriginalPiValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
+int Ssw_ManGetSatVarValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
 {
     Aig_Obj_t * pObjFraig;
     int nVarNum, Value;
-    assert( Aig_ObjIsPi(pObj) );
+//    assert( Aig_ObjIsPi(pObj) );
     pObjFraig = Ssw_ObjFrame( p, pObj, f );
     nVarNum = Ssw_ObjSatNum( p, Aig_Regular(pObjFraig) );
     Value = (!nVarNum)? 0 : (Aig_IsComplement(pObjFraig) ^ sat_solver_var_value( p->pSat, nVarNum ));
+//    Value = (Aig_IsComplement(pObjFraig) ^ ((!nVarNum)? 0 : sat_solver_var_value( p->pSat, nVarNum )));
 //    Value = (!nVarNum)? Aig_ManRandom(0) & 1 : (Aig_IsComplement(pObjFraig) ^ sat_solver_var_value( p->pSat, nVarNum ));
     if ( p->pPars->fPolarFlip )
     {
@@ -120,7 +121,7 @@ void Ssw_SmlSavePatternAig( Ssw_Man_t * p, int f )
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
     Aig_ManForEachPi( p->pAig, pObj, i )
-        if ( Ssw_ManOriginalPiValue( p, pObj, f ) )
+        if ( Ssw_ManGetSatVarValue( p, pObj, f ) )
             Aig_InfoSetBit( p->pPatWords, i );
 }
 
@@ -179,7 +180,7 @@ int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
     { 
         // if the fraiged nodes are the same, return
         if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-            return 0;
+            return 0; 
         // count the number of skipped calls
         if ( !pObj->fMarkA && !pObjRepr->fMarkA )
             p->nRefSkip++;
@@ -211,6 +212,18 @@ int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
         }
         // disproved the equivalence
         Ssw_SmlSavePatternAig( p, f );
+    }
+    if ( !fBmc && p->pPars->fUniqueness && p->pPars->nFramesK > 1 && 
+        Ssw_ManUniqueOne( p, pObjRepr, pObj ) && p->iOutputLit == -1 )
+    {
+        if ( Ssw_ManUniqueAddConstraint( p, p->vCommon, 0, 1 ) )
+        {
+            int RetValue;
+            assert( p->iOutputLit > -1 );
+            RetValue = Ssw_ManSweepNode( p, pObj, f, 0 );
+            p->iOutputLit = -1;
+            return RetValue;
+        }
     }
     if ( p->pPars->nConstrs == 0 )
         Ssw_ManResimulateWord( p, pObj, pObjRepr, f );
@@ -300,6 +313,7 @@ int Ssw_ManSweep( Ssw_Man_t * p )
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
     int nConstrPairs, clk, i, f;
+    int v;
 
     // perform speculative reduction
 clk = clock();
@@ -330,6 +344,8 @@ clk = clock();
         Ssw_ManSweepMarkRefinement( p );
 p->timeMarkCones += clock() - clk;
 
+//Ssw_ManUnique( p );
+
     // map constants and PIs of the last frame
     f = p->pPars->nFramesK;
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
@@ -338,10 +354,18 @@ p->timeMarkCones += clock() - clk;
     // make sure LOs are assigned
     Saig_ManForEachLo( p->pAig, pObj, i )
         assert( Ssw_ObjFrame( p, pObj, f ) != NULL );
+////    
+    // bring up the previous frames
+    if ( p->pPars->fUniqueness )
+        for ( v = 0; v < f; v++ )
+            Saig_ManForEachLo( p->pAig, pObj, i )
+                Ssw_CnfNodeAddToSolver( p, Aig_Regular(Ssw_ObjFrame(p, pObj, v)) );
+////
     // sweep internal nodes
     p->fRefined = 0;
     p->nSatFailsReal = 0;
     p->nRefUse = p->nRefSkip = 0;
+    p->nUniques = 0;
     Ssw_ClassesClearRefined( p->ppClasses );
     if ( p->pPars->fVerbose )
         pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) );

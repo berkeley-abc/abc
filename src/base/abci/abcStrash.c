@@ -122,7 +122,15 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
     // complement the 1-valued registers
     Abc_NtkForEachLatch( pNtkAig, pObj, i )
         if ( Abc_LatchIsInit1(pObj) )
+        {
             Abc_ObjXorFaninC( Abc_ObjFanin0(pObj), 0 );
+            // if latch has PO as one of its fanouts change latch name
+            if ( Abc_NodeFindCoFanout( Abc_ObjFanout0(pObj) ) )
+            {
+                Nm_ManDeleteIdName( pObj->pNtk->pManName, Abc_ObjFanout0(pObj)->Id );
+                Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjName(Abc_ObjFanout0(pObj)), "_inv" );
+            }
+        }
     // set all constant-0 values
     Abc_NtkForEachLatch( pNtkAig, pObj, i )
         Abc_LatchSetInit0( pObj );

@@ -194,6 +194,43 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates part of the AIG manager.]
+
+  Description [Orders nodes as follows: PIs, ANDs, POs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupSimpleDfsPart( Aig_Man_t * p, Vec_Ptr_t * vPis, Vec_Ptr_t * vPos )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjNew;
+    int i;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1( pNew );
+    Vec_PtrForEachEntry( vPis, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    // duplicate internal nodes
+    Vec_PtrForEachEntry( vPos, pObj, i )
+    {
+        pObjNew = Aig_ManDupSimpleDfs_rec( pNew, p, Aig_ObjFanin0(pObj) );        
+        pObjNew = Aig_NotCond( pObjNew, Aig_ObjFaninC0(pObj) );
+        Aig_ObjCreatePo( pNew, pObjNew );
+    }
+    Aig_ManSetRegNum( pNew, 0 );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG manager.]
 
   Description [Assumes topological ordering of the nodes.]

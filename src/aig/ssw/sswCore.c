@@ -45,7 +45,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nPartSize      =     0;  // size of the partition
     p->nOverSize      =     0;  // size of the overlap between partitions
     p->nFramesK       =     1;  // the induction depth
-    p->nFramesAddSim  =     2;  // additional frames to simulate
+    p->nFramesAddSim  =     0;  // additional frames to simulate
     p->nConstrs       =     0;  // treat the last nConstrs POs as seq constraints
     p->nBTLimit       =  1000;  // conflict limit at a node
     p->nMinDomSize    =   100;  // min clock domain considered for optimization
@@ -53,6 +53,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->fSkipCheck     =     0;  // do not run equivalence check for unaffected cones
     p->fLatchCorr     =     0;  // performs register correspondence
     p->fSemiFormal    =     0;  // enable semiformal filtering
+    p->fUniqueness    =     0;  // enable uniqueness constraints
     p->fVerbose       =     0;  // verbose stats
     // latch correspondence
     p->fLatchCorrOpt  =     0;  // performs optimized register correspondence
@@ -153,9 +154,9 @@ clk = clock();
             RetValue = Ssw_ManSweep( p );
             if ( p->pPars->fVerbose )
             {
-                printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. F = %5d. ", 
+                printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. U = %3d. F = %2d. ", 
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
-                    p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nSatFailsReal );
+                    p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nUniques, p->nSatFailsReal );
                 if ( p->pPars->fSkipCheck )
                     printf( "Use = %5d. Skip = %5d. ", 
                         p->nRefUse, p->nRefSkip );
@@ -165,7 +166,7 @@ clk = clock();
         Ssw_ManCleanup( p );
         if ( !RetValue )
             break;
-
+/*
         {
             static int Flag = 0;
             if ( Flag++ == 4 && nIter == 4 )
@@ -176,6 +177,7 @@ clk = clock();
                 Aig_ManStop( pSRed );
             }
         }
+*/
 
     } 
     p->pPars->nIters = nIter + 1;

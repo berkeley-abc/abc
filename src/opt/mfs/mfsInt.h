@@ -141,6 +141,7 @@ extern int              Abc_NtkMfsResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode );
 extern int              Abc_NtkMfsResubNode2( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsSat.c ==========================================================*/
 extern int              Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern int              Abc_NtkAddOneHotness( Mfs_Man_t * p );
 /*=== mfsStrash.c ==========================================================*/
 extern Aig_Man_t *      Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode );
 extern double           Abc_NtkConstraintRatio( Mfs_Man_t * p, Abc_Obj_t * pNode );
