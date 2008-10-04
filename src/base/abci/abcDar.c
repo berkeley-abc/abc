@@ -1240,6 +1240,96 @@ PRT( "Initial fraiging time", clock() - clk );
 
 /**Function*************************************************************
 
+  Synopsis    [Print Latch Equivalence Classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintLatchEquivClasses( Abc_Ntk_t * pNtk, Aig_Man_t * pAig )
+{
+    bool header_dumped = false;
+    int num_orig_latches = Abc_NtkLatchNum(pNtk);
+    char **pNames = ALLOC( char *, num_orig_latches );
+    bool *p_irrelevant = ALLOC( bool, num_orig_latches );
+    char * pFlopName, * pReprName;
+    Aig_Obj_t * pFlop, * pRepr;
+    Abc_Obj_t * pNtkFlop; 
+    int repr_idx;
+    int i;
+
+    Abc_NtkForEachLatch( pNtk, pNtkFlop, i )
+    {
+        char *temp_name = Abc_ObjName( Abc_ObjFanout0(pNtkFlop) );
+        pNames[i] = ALLOC( char , strlen(temp_name)+1);
+        strcpy(pNames[i], temp_name);
+    }
+    i = 0;
+    
+    Aig_ManSetPioNumbers( pAig );
+    Saig_ManForEachLo( pAig, pFlop, i )
+    {
+        p_irrelevant[i] = false;
+        
+        pFlopName = pNames[i];
+
+        pRepr = Aig_ObjRepr(pAig, pFlop);
+
+        if ( pRepr == NULL )
+        {
+            // printf("Nothing equivalent to flop %s\n", pFlopName);
+            p_irrelevant[i] = true;
+            continue;
+        }
+
+        if (!header_dumped)
+        {
+            printf("Here are the flop equivalences:\n");
+            header_dumped = true;
+        }
+
+        // pRepr is representative of the equivalence class, to which pFlop belongs
+        if ( Aig_ObjIsConst1(pRepr) )
+        {
+            printf( "Original flop %s is proved equivalent to constant.\n", pFlopName );
+            // printf( "Original flop # %d is proved equivalent to constant.\n", i );
+            continue;
+        }
+
+        assert( Saig_ObjIsLo( pAig, pRepr ) );
+        repr_idx = Aig_ObjPioNum(pRepr) - Saig_ManPiNum(pAig);
+        pReprName = pNames[repr_idx];
+        printf( "Original flop %s is proved equivalent to flop %s.\n",  pFlopName, pReprName );
+        // printf( "Original flop # %d is proved equivalent to flop # %d.\n",  i, repr_idx );
+    }
+
+    header_dumped = false;
+    for (i=0; i<num_orig_latches; ++i)
+    {
+        if (p_irrelevant[i])
+        {
+            if (!header_dumped)
+            {
+                printf("The following flops have been deemed irrelevant:\n");
+                header_dumped = true;
+            }
+            printf("%s ", pNames[i]);
+        }
+        
+        FREE(pNames[i]);
+    }
+    if (header_dumped)
+        printf("\n");
+    
+    FREE(pNames);
+    FREE(p_irrelevant);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Gives the current ABC network to AIG manager for processing.]
 
   Description []
@@ -1259,7 +1349,11 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep2( Abc_Ntk_t * pNtk, Ssw_Pars_t * pPars )
         return NULL;
 
     pMan = Ssw_SignalCorrespondence( pTemp = pMan, pPars );
-    Aig_ManStop( pTemp );
+
+    if ( pPars->fFlopVerbose )
+        Abc_NtkPrintLatchEquivClasses(pNtk, pTemp);
+
+        Aig_ManStop( pTemp );
     if ( pMan == NULL )
         return NULL;
 
@@ -1459,6 +1553,47 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, Inter_ManParams_t * pPars )
     else
         assert( 0 );
 PRT( "Time", clock() - clk );
+    Aig_ManStop( pMan );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
+{ 
+    Aig_Man_t * pMan, * pPart0, * pPart1, * pMiter;
+    // derive the AIG manager
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+    {
+        printf( "Converting network into AIG has failed.\n" );
+        return 0;
+    }
+    if ( !Saig_ManDemiterSimple( pMan, &pPart0, &pPart1 ) )
+    {
+        printf( "Demitering has failed.\n" );
+        return 0;
+    }
+    Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
+    Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
+    printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
+    // create two-level miter
+    pMiter = Saig_ManCreateMiterTwo( pPart0, pPart1, 2 );
+    Aig_ManDumpBlif( pMiter, "miter01.blif", NULL, NULL );
+    Aig_ManStop( pMiter );
+    printf( "The new miter is written into file \"%s\".\n", "miter01.blif" );
+
+    Aig_ManStop( pPart0 );
+    Aig_ManStop( pPart1 );
     Aig_ManStop( pMan );
     return 1;
 }
@@ -2457,9 +2592,9 @@ void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartitio
 ***********************************************************************/
 void Abc_NtkDarTest( Abc_Ntk_t * pNtk )
 {
-    extern Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig );
+//    extern Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig );
 
-    Aig_Man_t * pMan, * pTemp;
+    Aig_Man_t * pMan;//, * pTemp;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -2472,9 +2607,13 @@ Aig_ManStop( pMan );
 pMan = Saig_ManReadBlif( "_temp_.blif" );
 Aig_ManPrintStats( pMan );
 */
+/*
     Aig_ManSetRegNum( pMan, pMan->nRegs );
     pTemp = Ssw_SignalCorrespondeceTestPairs( pMan );
     Aig_ManStop( pTemp );
+*/
+    Ssw_SecSpecialMiter( pMan, 0 );
+
     Aig_ManStop( pMan );
 }
 

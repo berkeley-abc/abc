@@ -701,10 +701,6 @@ p->timeTrace += clock() - clk;
 //        Inta_ManPrintInterOne( p, pFinal );
     }
     Inta_ManProofSet( p, pFinal, p->Counter );
-    // make sure the same proof ID is not asssigned to two consecutive clauses
-    assert( p->pProofNums[pFinal->Id-1] != p->Counter );
-//    if ( p->pProofNums[pFinal->Id] == p->pProofNums[pFinal->Id-1] )
-//        p->pProofNums[pFinal->Id] = p->pProofNums[pConflict->Id];
     return p->Counter;
 }
 
@@ -752,27 +748,6 @@ int Inta_ManProofRecordOne( Inta_Man_t * p, Sto_Cls_t * pClause )
     {
         assert( 0 ); // cannot prove
         return 0;
-    } 
-
-    // skip the clause if it is weaker or the same as the conflict clause
-    if ( pClause->nLits >= pConflict->nLits )
-    {
-        // check if every literal of conflict clause can be found in the given clause
-        int j;
-        for ( i = 0; i < (int)pConflict->nLits; i++ )
-        {
-            for ( j = 0; j < (int)pClause->nLits; j++ )
-                if ( pConflict->pLits[i] == pClause->pLits[j] )
-                    break;
-            if ( j == (int)pClause->nLits ) // literal pConflict->pLits[i] is not found
-                break;
-        }
-        if ( i == (int)pConflict->nLits ) // all lits are found
-        {
-            // undo to the root level
-            Inta_ManCancelUntil( p, p->nRootSize );
-            return 1;
-        }
     }
 
     // construct the proof
@@ -998,7 +973,6 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
     if ( p->fProofWrite )
     { 
         fclose( p->pFile );
-//        Sat_ProofChecker( "proof.cnf_" );
         p->pFile = NULL;    
     }
 

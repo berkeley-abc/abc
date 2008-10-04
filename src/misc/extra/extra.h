@@ -76,6 +76,18 @@ extern "C" {
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#else  /* defined(WIN32) */
+#define DLLIMPORT
+#endif /* defined(WIN32) */
+
+#ifndef ABC_DLL
+#define ABC_DLL DLLIMPORT
+#endif
+
+
 typedef unsigned char      uint8;
 typedef unsigned short     uint16;
 typedef unsigned int       uint32;
@@ -633,19 +645,19 @@ extern unsigned    Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux
 #endif
 
 
-extern long        Extra_CpuTime();
-extern double      Extra_CpuTimeDouble();
-extern int         Extra_GetSoftDataLimit();
-extern void        Extra_UtilGetoptReset();
-extern int         Extra_UtilGetopt( int argc, char *argv[], char *optstring );
-extern char *      Extra_UtilPrintTime( long t );
-extern char *      Extra_UtilStrsav( char *s );
-extern char *      Extra_UtilTildeExpand( char *fname );
-extern char *      Extra_UtilFileSearch( char *file, char *path, char *mode );
-extern void        (*Extra_UtilMMoutOfMemory)();
+extern long          Extra_CpuTime();
+extern double        Extra_CpuTimeDouble();
+extern int           Extra_GetSoftDataLimit();
+extern ABC_DLL void  Extra_UtilGetoptReset();
+extern int           Extra_UtilGetopt( int argc, char *argv[], char *optstring );
+extern char *        Extra_UtilPrintTime( long t );
+extern char *        Extra_UtilStrsav( char *s );
+extern char *        Extra_UtilTildeExpand( char *fname );
+extern char *        Extra_UtilFileSearch( char *file, char *path, char *mode );
+extern void          (*Extra_UtilMMoutOfMemory)();
 
-extern char *      globalUtilOptarg;
-extern int         globalUtilOptind;
+extern char *        globalUtilOptarg;
+extern int           globalUtilOptind;
 
 /**AutomaticEnd***************************************************************/
 

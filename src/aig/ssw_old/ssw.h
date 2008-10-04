@@ -55,7 +55,6 @@ struct Ssw_Pars_t_
     int              fSemiFormal;   // enable semiformal filtering
     int              fUniqueness;   // enable uniqueness constraints
     int              fVerbose;      // verbose stats
-    int              fFlopVerbose;  // verbose printout of redundant flops
     // optimized latch correspondence
     int              fLatchCorrOpt; // perform register correspondence (optimized)
     int              nSatVarMax;    // max number of SAT vars before recycling SAT solver (optimized latch corr only)
@@ -93,8 +92,6 @@ extern Aig_Man_t *   Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pP
 extern Aig_Man_t *   Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 /*=== sswLoc.c ==========================================================*/
 extern int           Saig_ManLocalization( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose );
-/*=== sswMiter.c ===================================================*/
-extern int           Ssw_SecSpecialMiter( Aig_Man_t * pMiter, int fVerbose );
 /*=== sswPart.c ==========================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 /*=== sswPairs.c ===================================================*/

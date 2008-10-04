@@ -94,7 +94,9 @@ extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
 extern int               Saig_Interpolate( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * pDepth );
 /*=== saigMiter.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
-extern Aig_Man_t *       Saig_ManDupInitZero( Aig_Man_t * p );
+extern Aig_Man_t *       Saig_ManCreateMiterComb( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
+extern Aig_Man_t *       Saig_ManCreateMiterTwo( Aig_Man_t * pOld, Aig_Man_t * pNew, int nFrames );
+extern int               Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 );
 /*=== saigPhase.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose );
 /*=== saigRetFwd.c ==========================================================*/
@@ -107,6 +109,8 @@ extern Aig_Man_t *       Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, in
 extern int               Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs );
 /*=== saigScl.c ==========================================================*/
 extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
+/*=== saigSynch.c ==========================================================*/
+extern Aig_Man_t *       Saig_ManDupInitZero( Aig_Man_t * p );
 /*=== saigTrans.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManTimeframeSimplify( Aig_Man_t * pAig, int nFrames, int nFramesMax, int fInit, int fVerbose );
 

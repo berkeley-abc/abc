@@ -40,6 +40,17 @@ extern "C" {
 typedef struct MvCommand    Abc_Command;  // one command
 typedef struct MvAlias      Abc_Alias;    // one alias
 
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#else  /* defined(WIN32) */
+#define DLLIMPORT
+#endif /* defined(WIN32) */
+
+#ifndef ABC_DLL
+#define ABC_DLL DLLIMPORT
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
@@ -53,7 +64,7 @@ extern void        Cmd_Init();
 extern void        Cmd_End();
 /*=== cmdApi.c ========================================================*/
 extern void        Cmd_CommandAdd( Abc_Frame_t * pAbc, char * sGroup, char * sName, void * pFunc, int fChanges );
-extern int         Cmd_CommandExecute( Abc_Frame_t * pAbc, char * sCommand );
+extern ABC_DLL int Cmd_CommandExecute( Abc_Frame_t * pAbc, char * sCommand );
 /*=== cmdFlag.c ========================================================*/
 extern char *      Cmd_FlagReadByName( Abc_Frame_t * pAbc, char * flag );
 extern void        Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, char * key );

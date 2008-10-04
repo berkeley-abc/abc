@@ -85,7 +85,13 @@ static inline void         Inta_ManAigOrNotVar( Inta_Man_t * pMan, Aig_Obj_t ** 
 
 // reading/writing the proof for a clause
 static inline int          Inta_ManProofGet( Inta_Man_t * p, Sto_Cls_t * pCls )                  { return p->pProofNums[pCls->Id];           }
-static inline void         Inta_ManProofSet( Inta_Man_t * p, Sto_Cls_t * pCls, int n )           { p->pProofNums[pCls->Id] = n;              }
+static inline void         Inta_ManProofSet( Inta_Man_t * p, Sto_Cls_t * pCls, int n )           { 
+    p->pProofNums[pCls->Id] = n;              
+    if ( pCls->Id == 5552 || pCls->Id == 5553 )
+    {
+        int x = 0;
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -112,8 +118,9 @@ Inta_Man_t * Inta_ManAlloc()
     p->nResLitsAlloc = (1<<16);
     p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
     // parameters
-    p->fProofWrite = 0;
+    p->fProofWrite = 1;
     p->fProofVerif = 1;
+
     return p;    
 }
 
@@ -305,7 +312,9 @@ void Inta_ManPrintResolvent( lit * pResLits, int nResLits )
     int i;
     printf( "Resolvent: {" );
     for ( i = 0; i < nResLits; i++ )
-        printf( " %d", pResLits[i] );
+        // Yu Hu
+        // printf( " %d", pResLits[i] );
+        printf( " %d", lit_print(pResLits[i]) );
     printf( " }\n" );
 }
 
@@ -527,6 +536,17 @@ void Inta_ManProofWriteOne( Inta_Man_t * p, Sto_Cls_t * pClause )
     }
 }
 
+// Yu Hu
+void Inta_ManPrintClauseEx( lit * pResLits, int nResLits )
+{
+    int i;
+    printf( " {" );
+    for ( i = 0; i < nResLits; i++ )
+        printf( " %d", lit_print(pResLits[i]) );
+    printf( " }\n" );
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Traces the proof for one clause.]
@@ -542,7 +562,7 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
 {
     Sto_Cls_t * pReason;
     int i, v, Var, PrevId;
-    int fPrint = 0;
+    int fPrint = 1; // Yu Hu
     int clk = clock();
 
     // collect resolvent literals
@@ -587,8 +607,16 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         // record the reason clause
         assert( Inta_ManProofGet(p, pReason) > 0 );
         p->Counter++;
-        if ( p->fProofWrite )
+        if ( p->fProofWrite && p->Counter >= 8370 &&  p->Counter <= 8380 ) {
             fprintf( p->pFile, "%d * %d %d 0\n", p->Counter, PrevId, Inta_ManProofGet(p, pReason) );
+            // Yu Hu
+            printf( "%d * %d %d 0\n", p->Counter, PrevId, Inta_ManProofGet(p, pReason) );
+
+            if ( p->Counter == 8371 )
+            {
+                int s = 0;
+            }
+        }
         PrevId = p->Counter;
 
         if ( p->pCnf->nClausesA )
@@ -603,8 +631,15 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         if ( p->fProofVerif )
         {
             int v1, v2; 
-            if ( fPrint )
-                Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+
+            // Yu Hu
+            // if ( fPrint )
+            //     Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+            if ( fPrint && p->Counter >= 8370 &&  p->Counter <= 8380 ) {                                                                                                
+                printf("pivot = %d,\n", lit_print(p->pTrail[i]));                                                          
+                Inta_ManPrintClauseEx( p->pResLits, p->nResLits);                                                          
+            }                                                          
+
             // check that the var is present in the resolvent
             for ( v1 = 0; v1 < p->nResLits; v1++ )
                 if ( lit_var(p->pResLits[v1]) == Var )
@@ -638,6 +673,13 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
                 // the literal is different
                 printf( "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
             }
+
+            // Yu Hu
+            if ( fPrint && p->Counter >= 8370 &&  p->Counter <= 8380 ) {                                                                                                
+                Inta_ManPrintClauseEx( pReason->pLits, pReason->nLits);                                                    
+                Inta_ManPrintResolvent( p->pResLits, p->nResLits);                                                        
+            }            
+
         }
 //        Vec_PtrPush( pFinal->pAntis, pReason );
     }
@@ -653,8 +695,11 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     if ( p->fProofVerif )
     {
         int v1, v2; 
-        if ( fPrint )
-            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+
+        // Yu Hu
+//        if ( fPrint )
+//            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+
         for ( v1 = 0; v1 < p->nResLits; v1++ )
         {
             for ( v2 = 0; v2 < (int)pFinal->nLits; v2++ )
@@ -693,7 +738,7 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
             assert( p->nResLits == (int)pFinal->nLits );
         }
     }
-p->timeTrace += clock() - clk;
+p->timeTrace += clock() - clk;  
 
     // return the proof pointer 
     if ( p->pCnf->nClausesA )
@@ -701,10 +746,14 @@ p->timeTrace += clock() - clk;
 //        Inta_ManPrintInterOne( p, pFinal );
     }
     Inta_ManProofSet( p, pFinal, p->Counter );
-    // make sure the same proof ID is not asssigned to two consecutive clauses
-    assert( p->pProofNums[pFinal->Id-1] != p->Counter );
-//    if ( p->pProofNums[pFinal->Id] == p->pProofNums[pFinal->Id-1] )
-//        p->pProofNums[pFinal->Id] = p->pProofNums[pConflict->Id];
+    if ( pFinal->Id == 5552 || pFinal->Id == 5553 )
+    {
+        int x = 0;
+    }
+
+    if ( p->pProofNums[pFinal->Id] == p->pProofNums[pFinal->Id-1] )
+        p->pProofNums[pFinal->Id] = p->pProofNums[pConflict->Id];
+
     return p->Counter;
 }
 
@@ -752,27 +801,6 @@ int Inta_ManProofRecordOne( Inta_Man_t * p, Sto_Cls_t * pClause )
     {
         assert( 0 ); // cannot prove
         return 0;
-    } 
-
-    // skip the clause if it is weaker or the same as the conflict clause
-    if ( pClause->nLits >= pConflict->nLits )
-    {
-        // check if every literal of conflict clause can be found in the given clause
-        int j;
-        for ( i = 0; i < (int)pConflict->nLits; i++ )
-        {
-            for ( j = 0; j < (int)pClause->nLits; j++ )
-                if ( pConflict->pLits[i] == pClause->pLits[j] )
-                    break;
-            if ( j == (int)pClause->nLits ) // literal pConflict->pLits[i] is not found
-                break;
-        }
-        if ( i == (int)pConflict->nLits ) // all lits are found
-        {
-            // undo to the root level
-            Inta_ManCancelUntil( p, p->nRootSize );
-            return 1;
-        }
     }
 
     // construct the proof
@@ -984,6 +1012,10 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
         // if there is no conflict, consider learned clauses
         Sto_ManForEachClause( p->pCnf, pClause )
         {
+            if ( pClause->Id == 5552 )
+            {
+                int s = 0;
+            }
             if ( pClause->fRoot )
                 continue;
             if ( !Inta_ManProofRecordOne( p, pClause ) )
@@ -998,7 +1030,6 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
     if ( p->fProofWrite )
     { 
         fclose( p->pFile );
-//        Sat_ProofChecker( "proof.cnf_" );
         p->pFile = NULL;    
     }
 

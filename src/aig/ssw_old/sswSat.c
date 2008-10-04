@@ -1,0 +1,264 @@
+/**CFile****************************************************************
+
+  FileName    [sswSat.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Inductive prover with constraints.]
+
+  Synopsis    [Calls to the SAT solver.]
+
+  Author      [Alan Mishchenko]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - September 1, 2008.]
+
+  Revision    [$Id: sswSat.c,v 1.00 2008/09/01 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
+#include "sswInt.h"
+
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Runs equivalence test for the two nodes.]
+
+  Description [Both nodes should be regular and different from each other.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
+{
+    int nBTLimit = p->pPars->nBTLimit;
+    int pLits[3], nLits, RetValue, RetValue1, clk;//, status;
+    p->nSatCalls++;
+
+    // sanity checks
+    assert( !Aig_IsComplement(pOld) );
+    assert( !Aig_IsComplement(pNew) );
+    assert( pOld != pNew );
+
+    if ( p->pSat == NULL )
+        Ssw_ManStartSolver( p );
+
+    // if the nodes do not have SAT variables, allocate them
+    Ssw_CnfNodeAddToSolver( p, pOld );
+    Ssw_CnfNodeAddToSolver( p, pNew );
+
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        RetValue = sat_solver_simplify(p->pSat);
+        assert( RetValue != 0 );
+    }
+
+    // solve under assumptions
+    // A = 1; B = 0     OR     A = 1; B = 1 
+    nLits = 2;
+    pLits[0] = toLitCond( Ssw_ObjSatNum(p,pOld), 0 );
+    pLits[1] = toLitCond( Ssw_ObjSatNum(p,pNew), pOld->fPhase == pNew->fPhase );
+    if ( p->iOutputLit > -1 )
+        pLits[nLits++] = p->iOutputLit;
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
+        if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
+    }
+//Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
+
+clk = clock();
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + nLits, 
+        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+p->timeSat += clock() - clk;
+    if ( RetValue1 == l_False )
+    {
+p->timeSatUnsat += clock() - clk;
+        if ( nLits == 2 )
+        {
+            pLits[0] = lit_neg( pLits[0] );
+            pLits[1] = lit_neg( pLits[1] );
+            RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+            assert( RetValue );
+        }
+        p->nSatCallsUnsat++;
+    }
+    else if ( RetValue1 == l_True )
+    {
+p->timeSatSat += clock() - clk;
+        p->nSatCallsSat++;
+        return 0;
+    }
+    else // if ( RetValue1 == l_Undef )
+    {
+p->timeSatUndec += clock() - clk;
+        p->nSatFailsReal++;
+        return -1;
+    }
+
+    // if the old node was constant 0, we already know the answer
+    if ( pOld == Aig_ManConst1(p->pFrames) )
+    {
+        p->nSatProof++;
+        return 1;
+    }
+
+    // solve under assumptions
+    // A = 0; B = 1     OR     A = 0; B = 0 
+    nLits = 2;
+    pLits[0] = toLitCond( Ssw_ObjSatNum(p,pOld), 1 );
+    pLits[1] = toLitCond( Ssw_ObjSatNum(p,pNew), pOld->fPhase ^ pNew->fPhase );
+    if ( p->iOutputLit > -1 )
+        pLits[nLits++] = p->iOutputLit;
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
+        if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
+    }
+/*
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        RetValue = sat_solver_simplify(p->pSat);
+        assert( RetValue != 0 );
+    }
+*/
+clk = clock();
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + nLits, 
+        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+p->timeSat += clock() - clk;
+    if ( RetValue1 == l_False )
+    {
+p->timeSatUnsat += clock() - clk;
+        if ( nLits == 2 )
+        {
+            pLits[0] = lit_neg( pLits[0] );
+            pLits[1] = lit_neg( pLits[1] );
+            RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+            assert( RetValue );
+        }
+        p->nSatCallsUnsat++;
+    }
+    else if ( RetValue1 == l_True )
+    {
+p->timeSatSat += clock() - clk;
+        p->nSatCallsSat++;
+        return 0;
+    }
+    else // if ( RetValue1 == l_Undef )
+    {
+p->timeSatUndec += clock() - clk;
+        p->nSatFailsReal++;
+        return -1;
+    }
+    // return SAT proof
+    p->nSatProof++;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Constrains two nodes to be equivalent in the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
+{
+    int pLits[2], RetValue, fComplNew;
+    Aig_Obj_t * pTemp;
+
+    // sanity checks
+    assert( Aig_Regular(pOld) != Aig_Regular(pNew) );
+
+    // move constant to the old node
+    if ( Aig_Regular(pNew) == Aig_ManConst1(p->pFrames) )
+    {
+        assert( Aig_Regular(pOld) != Aig_ManConst1(p->pFrames) );
+        pTemp = pOld;
+        pOld  = pNew;
+        pNew  = pTemp;
+    }
+
+    // move complement to the new node
+    if ( Aig_IsComplement(pOld) )
+    {
+        pOld = Aig_Regular(pOld);
+        pNew = Aig_Not(pNew);
+    }
+
+    // start the solver
+    if ( p->pSat == NULL )
+        Ssw_ManStartSolver( p );
+
+    // if the nodes do not have SAT variables, allocate them
+    Ssw_CnfNodeAddToSolver( p, pOld );
+    Ssw_CnfNodeAddToSolver( p, Aig_Regular(pNew) );
+
+    // transform the new node
+    fComplNew = Aig_IsComplement( pNew );
+    pNew = Aig_Regular( pNew );
+
+    // consider the constant 1 case
+    if ( pOld == Aig_ManConst1(p->pFrames) )
+    {
+        // add constaint A = 1  ---->  A
+        pLits[0] = toLitCond( Ssw_ObjSatNum(p,pNew), fComplNew );
+        if ( p->pPars->fPolarFlip )
+        {
+            if ( pNew->fPhase )  pLits[0] = lit_neg( pLits[0] );
+        }
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
+        assert( RetValue );
+    }
+    else
+    {
+        // add constaint A = B  ---->  (A v !B)(!A v B)
+
+        // (A v !B)
+        pLits[0] = toLitCond( Ssw_ObjSatNum(p,pOld), 0 );
+        pLits[1] = toLitCond( Ssw_ObjSatNum(p,pNew), !fComplNew );
+        if ( p->pPars->fPolarFlip )
+        {
+            if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
+            if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        }
+        pLits[0] = lit_neg( pLits[0] );
+        pLits[1] = lit_neg( pLits[1] );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        assert( RetValue );
+
+        // (!A v B)
+        pLits[0] = toLitCond( Ssw_ObjSatNum(p,pOld), 1 );
+        pLits[1] = toLitCond( Ssw_ObjSatNum(p,pNew), fComplNew);
+        if ( p->pPars->fPolarFlip )
+        {
+            if ( pOld->fPhase )  pLits[0] = lit_neg( pLits[0] );
+            if ( pNew->fPhase )  pLits[1] = lit_neg( pLits[1] );
+        }
+        pLits[0] = lit_neg( pLits[0] );
+        pLits[1] = lit_neg( pLits[1] );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        assert( RetValue );
+    }
+    return 1;
+}
+
+////////////////////////////////////////////////////////////////////////
+///                       END OF FILE                                ///
+////////////////////////////////////////////////////////////////////////
+
+

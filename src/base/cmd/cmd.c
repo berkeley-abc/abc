@@ -50,6 +50,7 @@ static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandScrGen        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
+static int CmdCommandVersion       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -68,7 +69,7 @@ static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 
 ******************************************************************************/
 void Cmd_Init( Abc_Frame_t * pAbc )
-{
+{ 
     pAbc->tCommands = st_init_table(strcmp, st_strhash);
     pAbc->tAliases  = st_init_table(strcmp, st_strhash);
     pAbc->tFlags    = st_init_table(strcmp, st_strhash);
@@ -91,6 +92,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "ls",        CmdCommandLs,             0 );
     Cmd_CommandAdd( pAbc, "Basic", "scrgen",    CmdCommandScrGen,         0 );
 #endif
+    Cmd_CommandAdd( pAbc, "Basic", "version",   CmdCommandVersion,        0); 
 
     Cmd_CommandAdd( pAbc, "Various", "sis",     CmdCommandSis,            1); 
     Cmd_CommandAdd( pAbc, "Various", "mvsis",   CmdCommandMvsis,          1); 
@@ -1910,6 +1912,22 @@ usage:
     return 1;                    // error exit 
 }
 
+/**Function********************************************************************
+
+  Synopsis    [Print the version string.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int CmdCommandVersion( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    printf("%s\n", Abc_UtilsGetVersion(pAbc));
+    return 0;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

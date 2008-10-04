@@ -114,6 +114,7 @@ Inta_Man_t * Inta_ManAlloc()
     // parameters
     p->fProofWrite = 1;
     p->fProofVerif = 1;
+
     return p;    
 }
 
@@ -289,16 +290,6 @@ void Inta_ManPrintClause( Inta_Man_t * p, Sto_Cls_t * pClause )
     printf( " }\n" );
 }
 
-// Yu Hu
-void Inta_ManPrintClauseEx( lit * pResLits, int nResLits )
-{
-    int i;
-    printf( " {" );
-    for ( i = 0; i < nResLits; i++ )
-        printf( " %d", lit_print(pResLits[i]) );
-    printf( " }\n" );
-}
-
 /**Function*************************************************************
 
   Synopsis    [Prints the resolvent.]
@@ -315,6 +306,8 @@ void Inta_ManPrintResolvent( lit * pResLits, int nResLits )
     int i;
     printf( "Resolvent: {" );
     for ( i = 0; i < nResLits; i++ )
+        // Yu Hu
+        // printf( " %d", pResLits[i] );
         printf( " %d", lit_print(pResLits[i]) );
     printf( " }\n" );
 }
@@ -537,6 +530,17 @@ void Inta_ManProofWriteOne( Inta_Man_t * p, Sto_Cls_t * pClause )
     }
 }
 
+// Yu Hu
+void Inta_ManPrintClauseEx( lit * pResLits, int nResLits )
+{
+    int i;
+    printf( " {" );
+    for ( i = 0; i < nResLits; i++ )
+        printf( " %d", lit_print(pResLits[i]) );
+    printf( " }\n" );
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Traces the proof for one clause.]
@@ -594,7 +598,6 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         for ( v = 1; v < (int)pReason->nLits; v++ )
             p->pSeens[lit_var(pReason->pLits[v])] = 1;
 
-
         // record the reason clause
         assert( Inta_ManProofGet(p, pReason) > 0 );
         p->Counter++;
@@ -617,14 +620,15 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         if ( p->fProofVerif )
         {
             int v1, v2; 
+
             // Yu Hu
-//            if ( fPrint )
-//                Inta_ManPrintResolvent( p->pResLits, p->nResLits );
-            if ( fPrint ) {
-                printf("pivot = %d,\n", lit_print(p->pTrail[i]));
-                Inta_ManPrintClauseEx( p->pResLits, p->nResLits);
-            }
- 
+            // if ( fPrint )
+            //     Inta_ManPrintResolvent( p->pResLits, p->nResLits );
+            if ( fPrint ) {                                                                                                
+                printf("pivot = %d,\n", lit_print(p->pTrail[i]));                                                          
+                Inta_ManPrintClauseEx( p->pResLits, p->nResLits);                                                          
+            }                                                          
+
             // check that the var is present in the resolvent
             for ( v1 = 0; v1 < p->nResLits; v1++ )
                 if ( lit_var(p->pResLits[v1]) == Var )
@@ -660,12 +664,12 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
             }
 
             // Yu Hu
-            if ( fPrint ) {
-                Inta_ManPrintClauseEx( pReason->pLits, pReason->nLits);
-                Inta_ManPrintResolvent( p->pResLits, p->nResLits );
-            }
-        }
+            if ( fPrint ) {                                                                                                
+                Inta_ManPrintClauseEx( pReason->pLits, pReason->nLits);                                                    
+                Inta_ManPrintResolvent( p->pResLits, p->nResLits);                                                        
+            }            
 
+        }
 //        Vec_PtrPush( pFinal->pAntis, pReason );
     }
 
@@ -680,10 +684,11 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     if ( p->fProofVerif )
     {
         int v1, v2; 
-        if ( fPrint ){
-            // Yu Hu
+
+        // Yu Hu
+//        if ( fPrint )
 //            Inta_ManPrintResolvent( p->pResLits, p->nResLits );
-        }
+
         for ( v1 = 0; v1 < p->nResLits; v1++ )
         {
             for ( v2 = 0; v2 < (int)pFinal->nLits; v2++ )
@@ -699,6 +704,27 @@ int Inta_ManProofTraceOne( Inta_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
             Inta_ManPrintClause( p, pConflict );
             Inta_ManPrintResolvent( p->pResLits, p->nResLits );
             Inta_ManPrintClause( p, pFinal );
+        }
+
+        // if there are literals in the clause that are not in the resolvent
+        // it means that the derived resolvent is stronger than the clause
+        // we can replace the clause with the resolvent by removing these literals
+        if ( p->nResLits != (int)pFinal->nLits )
+        {
+            for ( v1 = 0; v1 < (int)pFinal->nLits; v1++ )
+            {
+                for ( v2 = 0; v2 < p->nResLits; v2++ )
+                    if ( pFinal->pLits[v1] == p->pResLits[v2] )
+                        break;
+                if ( v2 < p->nResLits )
+                    continue;
+                // remove literal v1 from the final clause
+                pFinal->nLits--;
+                for ( v2 = v1; v2 < (int)pFinal->nLits; v2++ )
+                    pFinal->pLits[v2] = pFinal->pLits[v2+1];
+                v1--;
+            }
+            assert( p->nResLits == (int)pFinal->nLits );
         }
     }
 p->timeTrace += clock() - clk;
@@ -733,9 +759,16 @@ int Inta_ManProofRecordOne( Inta_Man_t * p, Sto_Cls_t * pClause )
     if ( pClause->nLits == 0 )
         printf( "Error: Empty clause is attempted.\n" );
 
-    // add assumptions to the trail
     assert( !pClause->fRoot );
     assert( p->nTrailSize == p->nRootSize );
+
+    // if any of the clause literals are already assumed
+    // it means that the clause is redundant and can be skipped
+    for ( i = 0; i < (int)pClause->nLits; i++ )
+        if ( p->pAssigns[lit_var(pClause->pLits[i])] == pClause->pLits[i] )
+            return 1;
+
+    // add assumptions to the trail
     for ( i = 0; i < (int)pClause->nLits; i++ )
         if ( !Inta_ManEnqueue( p, lit_neg(pClause->pLits[i]), NULL ) )
         {

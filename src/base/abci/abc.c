@@ -254,6 +254,7 @@ static int Abc_CommandAbc8Zero       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DSec       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandAbcTestNew     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -518,6 +519,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dsec",         Abc_CommandAbc8DSec,         0 );
  
+    Cmd_CommandAdd( pAbc, "Various",      "testnew",         Abc_CommandAbcTestNew,     0 );
 
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
@@ -4919,22 +4921,24 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;//, * pNtkRes;
-    int fComb;
+    int fSeq;
     int c;
     extern int Abc_NtkDemiter( Abc_Ntk_t * pNtk );
+    extern int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fSeq = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'c':
-            fComb ^= 1;
+        case 's':
+            fSeq ^= 1;
             break;
         default:
             goto usage;
@@ -4947,12 +4951,6 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( Abc_NtkPoNum(pNtk) != 1 )
-    {
-        fprintf( pErr, "The network is not a miter.\n" );
-        return 1;
-    }
-
     if ( !Abc_NodeIsExorType(Abc_ObjFanin0(Abc_NtkPo(pNtk,0))) )
     {
         fprintf( pErr, "The miter's PO is not an EXOR.\n" );
@@ -4960,19 +4958,35 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( !Abc_NtkDemiter( pNtk ) )
+    if ( fSeq )
     {
-        fprintf( pErr, "Demitering has failed.\n" );
-        return 1;
+        if ( !Abc_NtkDarDemiter( pNtk ) )
+        {
+            fprintf( pErr, "Demitering has failed.\n" );
+            return 1;
+        }
+    }
+    else
+    {
+        if ( Abc_NtkPoNum(pNtk) != 1 )
+        {
+            fprintf( pErr, "The network is not a single-output miter.\n" );
+            return 1;
+        }
+        if ( !Abc_NtkDemiter( pNtk ) )
+        {
+            fprintf( pErr, "Demitering has failed.\n" );
+            return 1;
+        }
     }
     // replace the current network
 //    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: demiter [-h]\n" );
+    fprintf( pErr, "usage: demiter [-sh]\n" );
     fprintf( pErr, "\t        removes topmost EXOR from the miter to create two POs\n" );
-//    fprintf( pErr, "\t-c    : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    fprintf( pErr, "\t-s    : applied multi-output algorithm [default = %s]\n", fSeq? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -7720,7 +7734,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Aig_ProcedureTest();
     extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk );
-
+    extern int Ssw_SecSpecialMiter( Aig_Man_t * pMiter, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -7922,6 +7936,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 
+/*
     pNtkRes = Abc_NtkDarTestNtk( pNtk );
     if ( pNtkRes == NULL )
     {
@@ -7930,6 +7945,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
+
+    Abc_NtkDarTest( pNtk );
 
     return 0;
 usage:
@@ -13541,7 +13559,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsfuvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsfuvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13640,6 +13658,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pPars->fVerbose ^= 1;
             break;
+        case 'w':
+            pPars->fFlopVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -13689,7 +13710,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsfuvh]\n" );
+    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsfuvwh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -13704,6 +13725,7 @@ usage:
     fprintf( pErr, "\t-f     : toggle filtering using interative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
     fprintf( pErr, "\t-u     : toggle using uniqueness constraints [default = %s]\n", pPars->fUniqueness? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w     : toggle printout of flop equivalences [default = %s]\n", pPars->fFlopVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -19630,6 +19652,64 @@ usage:
     fprintf( stdout, "\tfile2  : the file with the second design\n");
 //    fprintf( stdout, "\t         if no files are given, uses the current network and its spec\n");
 //    fprintf( stdout, "\t         if one file is given, uses the current network and the file\n");
+    return 1;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbcTestNew( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_NtkTestProcedure( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
+
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( stdout, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash( pNtk) )
+    {
+        fprintf( stdout, "The current network is not an AIG. Cannot continue.\n" );
+        return 1;
+    }
+
+//    Abc_NtkTestProcedure( pNtk, NULL );
+
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: testnew [-h]\n" );
+    fprintf( stdout, "\t        new testing procedure\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }
 

@@ -194,6 +194,17 @@ struct Aig_ManCut_t_
     unsigned *      puTemp[4];       // used for the truth table computation
 };
 
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#else  /* defined(WIN32) */
+#define DLLIMPORT
+#endif /* defined(WIN32) */
+
+#ifndef ABC_DLL
+#define ABC_DLL DLLIMPORT
+#endif
+
 static inline Aig_Cut_t *  Aig_ObjCuts( Aig_ManCut_t * p, Aig_Obj_t * pObj )                         { return p->pCuts[pObj->Id];  }
 static inline void         Aig_ObjSetCuts( Aig_ManCut_t * p, Aig_Obj_t * pObj, Aig_Cut_t * pCuts )   { p->pCuts[pObj->Id] = pCuts; }
 
@@ -452,7 +463,7 @@ static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iF
 ////////////////////////////////////////////////////////////////////////
 
 /*=== aigCheck.c ========================================================*/
-extern int             Aig_ManCheck( Aig_Man_t * p );
+extern ABC_DLL int     Aig_ManCheck( Aig_Man_t * p );
 extern void            Aig_ManCheckMarkA( Aig_Man_t * p );
 extern void            Aig_ManCheckPhase( Aig_Man_t * p );
 /*=== aigCuts.c ========================================================*/
@@ -502,7 +513,7 @@ extern Aig_Man_t *     Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int 
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
-extern void            Aig_ManStop( Aig_Man_t * p );
+extern ABC_DLL void    Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
 extern int             Aig_ManAntiCleanup( Aig_Man_t * p );
 extern int             Aig_ManPiCleanup( Aig_Man_t * p );

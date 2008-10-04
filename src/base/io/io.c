@@ -1710,30 +1710,7 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write the counter-example into the file
-    if ( pNtk->pModel )
-    {
-        Abc_Obj_t * pObj;
-        FILE * pFile = fopen( pFileName, "w" );
-        int i;
-        if ( pFile == NULL )
-        {
-            fprintf( stdout, "IoCommandWriteCounter(): Cannot open the output file \"%s\".\n", pFileName );
-            return 1;
-        }
-        if ( fNames )
-        {
-            Abc_NtkForEachPi( pNtk, pObj, i )
-                fprintf( pFile, "%s=%c ", Abc_ObjName(pObj), '0'+(pNtk->pModel[i]==1) );
-        }
-        else
-        {
-            Abc_NtkForEachPi( pNtk, pObj, i )
-                fprintf( pFile, "%c", '0'+(pNtk->pModel[i]==1) );
-        }
-        fprintf( pFile, "\n" );
-        fclose( pFile );
-    }
-    else
+    if ( pNtk->pSeqModel )
     { 
         Fra_Cex_t * pCex = pNtk->pSeqModel;
         Abc_Obj_t * pObj;
@@ -1767,6 +1744,29 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
                 fprintf( pFile, "%c", '0'+!Abc_LatchIsInit0(pObj) );
             for ( i = pCex->nRegs; i < pCex->nBits; i++ )
                 fprintf( pFile, "%c", '0'+Abc_InfoHasBit(pCex->pData, i) );
+        }
+        fprintf( pFile, "\n" );
+        fclose( pFile );
+    }
+    else
+    {
+        Abc_Obj_t * pObj;
+        FILE * pFile = fopen( pFileName, "w" );
+        int i;
+        if ( pFile == NULL )
+        {
+            fprintf( stdout, "IoCommandWriteCounter(): Cannot open the output file \"%s\".\n", pFileName );
+            return 1;
+        }
+        if ( fNames )
+        {
+            Abc_NtkForEachPi( pNtk, pObj, i )
+                fprintf( pFile, "%s=%c ", Abc_ObjName(pObj), '0'+(pNtk->pModel[i]==1) );
+        }
+        else
+        {
+            Abc_NtkForEachPi( pNtk, pObj, i )
+                fprintf( pFile, "%c", '0'+(pNtk->pModel[i]==1) );
         }
         fprintf( pFile, "\n" );
         fclose( pFile );
