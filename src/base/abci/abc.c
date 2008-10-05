@@ -15203,9 +15203,9 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     Fra_SecSetDefaultParams( pSecPar );
-    pSecPar->TimeLimit = 300;
+//    pSecPar->TimeLimit = 300;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cbTFarmfnwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGBRarmfijwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15214,17 +15214,6 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             pSecPar->fTryBmc ^= 1;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pSecPar->TimeLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pSecPar->TimeLimit < 0 ) 
-                goto usage;
             break;
         case 'F':
             if ( globalUtilOptind >= argc )
@@ -15235,6 +15224,50 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             pSecPar->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pSecPar->nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->nBTLimitGlobal = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->nBTLimitGlobal < 0 ) 
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->nBddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->nBddMax < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->nBddIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->nBddIterMax < 0 ) 
                 goto usage;
             break;
         case 'a':
@@ -15249,8 +15282,11 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pSecPar->fFraiging ^= 1;
             break;
-        case 'n':
-            pSecPar->fUseNewProver ^= 1;
+        case 'i':
+            pSecPar->fInduction ^= 1;
+            break;
+        case 'j':
+            pSecPar->fInterpolation ^= 1;
             break;
         case 'w':
             pSecPar->fVeryVerbose ^= 1;
@@ -15277,17 +15313,22 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-F num] [-T num] [-cbarmfnwvh]\n" );
+    fprintf( pErr, "usage: dprove [-FCGBR num] [-cbarmfijwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
-    fprintf( pErr, "\t-T num : the approximate runtime limit (in seconds) [default = %d]\n", pSecPar->TimeLimit );
+    fprintf( pErr, "\t-C num : the conflict limit at a node during induction [default = %d]\n", pSecPar->nBTLimit );
+    fprintf( pErr, "\t-G num : the global conflict limit during induction [default = %d]\n", pSecPar->nBTLimitGlobal );
+    fprintf( pErr, "\t-B num : the BDD size limit in BDD-based reachablity [default = %d]\n", pSecPar->nBddMax );
+    fprintf( pErr, "\t-R num : the max number of reachability iterations [default = %d]\n", pSecPar->nBddIterMax );
     fprintf( pErr, "\t-c     : toggles using CEC before attempting SEC [default = %s]\n", pSecPar->fTryComb? "yes": "no" );
     fprintf( pErr, "\t-b     : toggles using BMC before attempting SEC [default = %s]\n", pSecPar->fTryBmc? "yes": "no" );
     fprintf( pErr, "\t-a     : toggles the use of phase abstraction [default = %s]\n", pSecPar->fPhaseAbstract? "yes": "no" );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", pSecPar->fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-m     : toggles min-register retiming [default = %s]\n", pSecPar->fRetimeRegs? "yes": "no" );
     fprintf( pErr, "\t-f     : toggles the internal use of fraiging [default = %s]\n", pSecPar->fFraiging? "yes": "no" );
-    fprintf( pErr, "\t-n     : toggles the use of different induction prover [default = %s]\n", pSecPar->fUseNewProver? "yes": "no" );
+    fprintf( pErr, "\t-i     : toggles the use of induction [default = %s]\n", pSecPar->fInduction? "yes": "no" );
+    fprintf( pErr, "\t-j     : toggles the use of interpolation [default = %s]\n", pSecPar->fInterpolation? "yes": "no" );
+//    fprintf( pErr, "\t-n     : toggles the use of different induction prover [default = %s]\n", pSecPar->fUseNewProver? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", pSecPar->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", pSecPar->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");

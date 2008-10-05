@@ -46,23 +46,28 @@
 void Fra_SecSetDefaultParams( Fra_Sec_t * p )
 {
     memset( p, 0, sizeof(Fra_Sec_t) );
-    p->fTryComb          =   1;  // try CEC call as a preprocessing step
-    p->fTryBmc           =   1;  // try BMC call as a preprocessing step 
-    p->nFramesMax        =   4;  // the max number of frames used for induction
-    p->fPhaseAbstract    =   1;  // enables phase abstraction
-    p->fRetimeFirst      =   1;  // enables most-forward retiming at the beginning
-    p->fRetimeRegs       =   1;  // enables min-register retiming at the beginning
-    p->fFraiging         =   1;  // enables fraiging at the beginning
-    p->fInterpolation    =   1;  // enables interpolation
-    p->fReachability     =   1;  // enables BDD based reachability
-    p->fStopOnFirstFail  =   1;  // enables stopping after first output of a miter has failed to prove
-    p->fUseNewProver     =   0;  // enables new prover
-    p->fSilent           =   0;  // disables all output
-    p->fVerbose          =   0;  // enables verbose reporting of statistics
-    p->fVeryVerbose      =   0;  // enables very verbose reporting  
-    p->TimeLimit         =   0;  // enables the timeout
+    p->fTryComb          =       1;  // try CEC call as a preprocessing step
+    p->fTryBmc           =       1;  // try BMC call as a preprocessing step 
+    p->nFramesMax        =       4;  // the max number of frames used for induction
+    p->nBTLimit          =    1000;  // conflict limit at a node during induction 
+    p->nBTLimitGlobal    = 5000000;  // global conflict limit during induction
+    p->nBddMax           =   50000;  // the limit on the number of BDD nodes 
+    p->nBddIterMax       = 1000000;  // the limit on the number of BDD iterations
+    p->fPhaseAbstract    =       0;  // enables phase abstraction
+    p->fRetimeFirst      =       1;  // enables most-forward retiming at the beginning
+    p->fRetimeRegs       =       1;  // enables min-register retiming at the beginning
+    p->fFraiging         =       1;  // enables fraiging at the beginning
+    p->fInduction        =       1;  // enables the use of induction (signal correspondence)
+    p->fInterpolation    =       1;  // enables interpolation
+    p->fReachability     =       1;  // enables BDD based reachability
+    p->fStopOnFirstFail  =       1;  // enables stopping after first output of a miter has failed to prove
+    p->fUseNewProver     =       0;  // enables new prover
+    p->fSilent           =       0;  // disables all output
+    p->fVerbose          =       0;  // enables verbose reporting of statistics
+    p->fVeryVerbose      =       0;  // enables very verbose reporting  
+    p->TimeLimit         =       0;  // enables the timeout
     // internal parameters
-    p->fReportSolution   =   0;  // enables specialized format for reporting solution
+    p->fReportSolution   =       0;  // enables specialized format for reporting solution
 }
 
 /**Function*************************************************************
@@ -159,6 +164,7 @@ clk = clock();
     pNew = Aig_ManDupOrdered( pTemp = pNew );
 //    pNew = Aig_ManDupDfs( pTemp = pNew );
     Aig_ManStop( pTemp );
+/*
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
         TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
@@ -172,7 +178,7 @@ clk = clock();
             goto finish;
         }
     }
-
+*/
 
 //    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 1000, 1, pParSec->fVeryVerbose, &nIter, TimeLeft );
 //Aig_ManDumpBlif( pNew, "ex.blif", NULL, NULL );
@@ -228,7 +234,7 @@ PRT( "Time", clock() - clkTotal );
 PRT( "Time", clock() - clk );
     }
     }
-
+/*
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
         TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
@@ -242,7 +248,7 @@ PRT( "Time", clock() - clk );
             goto finish;
         }
     }
-
+*/
     // perform fraiging
     if ( pParSec->fFraiging )
     {
@@ -263,7 +269,7 @@ PRT( "Time", clock() - clk );
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue >= 0 )
         goto finish;
-
+/*
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
         TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
@@ -277,7 +283,7 @@ PRT( "Time", clock() - clk );
             goto finish;
         }
     }
-
+*/
     // perform min-area retiming
     if ( pParSec->fRetimeRegs && pNew->nRegs )
     {
@@ -300,9 +306,10 @@ PRT( "Time", clock() - clk );
 
     // perform seq sweeping while increasing the number of frames
     RetValue = Fra_FraigMiterStatus( pNew );
-    if ( RetValue == -1 )
+    if ( RetValue == -1 && pParSec->fInduction )
     for ( nFrames = 1; nFrames <= pParSec->nFramesMax; nFrames *= 2 )
     {
+/*
         if ( RetValue == -1 && pParSec->TimeLimit )
         {
             TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
@@ -316,7 +323,8 @@ PRT( "Time", clock() - clk );
                 goto finish;
             }
         }
- 
+*/ 
+
 clk = clock();
         pPars->nFramesK = nFrames;
         pPars->TimeLimit = TimeLeft;
@@ -324,7 +332,19 @@ clk = clock();
 //        pNew = Fra_FraigInduction( pTemp = pNew, pPars );
 
         pPars2->nFramesK = nFrames;
-        pPars2->nBTLimit = 1000 * nFrames;
+        pPars2->nBTLimit = pParSec->nBTLimit;
+        pPars2->nBTLimitGlobal = pParSec->nBTLimitGlobal;
+//        pPars2->nBTLimit = 1000 * nFrames;
+
+        if ( RetValue == -1 && pPars2->nConflicts > pPars2->nBTLimitGlobal )
+        {
+            if ( !pParSec->fSilent )
+                printf( "Global conflict limit (%d) exceeded.\n", pPars2->nBTLimitGlobal );
+            RetValue = -1;
+            TimeOut = 1;
+            goto finish;
+        }
+
         Aig_ManSetRegNum( pNew, pNew->nRegs );
         pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
         if ( pNew == NULL )
@@ -334,6 +354,9 @@ clk = clock();
             TimeOut = 1;
             goto finish;
         }
+
+//        printf( "Total conflicts = %d.\n", pPars2->nConflicts );
+
         Aig_ManStop( pTemp );
         RetValue = Fra_FraigMiterStatus( pNew );
         if ( pParSec->fVerbose )
@@ -477,7 +500,7 @@ PRT( "Time", clock() - clk );
         extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-        RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0, pParSec->fSilent );
+        RetValue = Aig_ManVerifyUsingBdds( pNew, pParSec->nBddMax, pParSec->nBddIterMax, 1, 1, 0, pParSec->fSilent );
     }
 
 finish:

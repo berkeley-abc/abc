@@ -116,10 +116,15 @@ struct Fra_Sec_t_
     int              fTryComb;          // try CEC call as a preprocessing step
     int              fTryBmc;           // try BMC call as a preprocessing step 
     int              nFramesMax;        // the max number of frames used for induction
+    int              nBTLimit;          // the conflict limit at a node
+    int              nBTLimitGlobal;    // the global conflict limit
+    int              nBddMax;           // the max number of BDD nodes
+    int              nBddIterMax;       // the limit on the number of BDD iterations
     int              fPhaseAbstract;    // enables phase abstraction
     int              fRetimeFirst;      // enables most-forward retiming at the beginning
     int              fRetimeRegs;       // enables min-register retiming at the beginning
     int              fFraiging;         // enables fraiging at the beginning
+    int              fInduction;        // enable the use of induction
     int              fInterpolation;    // enables interpolation
     int              fReachability;     // enables BDD based reachability
     int              fStopOnFirstFail;  // enables stopping after first output of a miter has failed to prove

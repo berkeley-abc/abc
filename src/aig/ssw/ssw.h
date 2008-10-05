@@ -48,6 +48,7 @@ struct Ssw_Pars_t_
     int              nConstrs;      // treat the last nConstrs POs as seq constraints
     int              nMaxLevs;      // the max number of levels of nodes to consider
     int              nBTLimit;      // conflict limit at a node
+    int              nBTLimitGlobal;// conflict limit for multiple runs
     int              nMinDomSize;   // min clock domain considered for optimization
     int              fPolarFlip;    // uses polarity adjustment
     int              fSkipCheck;    // do not run equivalence check for unaffected cones
@@ -62,6 +63,7 @@ struct Ssw_Pars_t_
     int              nRecycleCalls; // calls to perform before recycling SAT solver (optimized latch corr only)
     // internal parameters
     int              nIters;        // the number of iterations performed
+    int              nConflicts;    // the total number of conflicts performed
 };
 
 // sequential counter-example

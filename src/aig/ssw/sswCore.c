@@ -42,25 +42,26 @@
 void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
 {
     memset( p, 0, sizeof(Ssw_Pars_t) );
-    p->nPartSize      =     0;  // size of the partition
-    p->nOverSize      =     0;  // size of the overlap between partitions
-    p->nFramesK       =     1;  // the induction depth
-    p->nFramesAddSim  =     0;  // additional frames to simulate
-    p->nConstrs       =     0;  // treat the last nConstrs POs as seq constraints
-    p->nBTLimit       =  1000;  // conflict limit at a node
-    p->nMinDomSize    =   100;  // min clock domain considered for optimization
-    p->fPolarFlip     =     0;  // uses polarity adjustment
-    p->fSkipCheck     =     0;  // do not run equivalence check for unaffected cones
-    p->fLatchCorr     =     0;  // performs register correspondence
-    p->fSemiFormal    =     0;  // enable semiformal filtering
-    p->fUniqueness    =     0;  // enable uniqueness constraints
-    p->fVerbose       =     0;  // verbose stats
+    p->nPartSize      =       0;  // size of the partition
+    p->nOverSize      =       0;  // size of the overlap between partitions
+    p->nFramesK       =       1;  // the induction depth
+    p->nFramesAddSim  =       0;  // additional frames to simulate
+    p->nConstrs       =       0;  // treat the last nConstrs POs as seq constraints
+    p->nBTLimit       =    1000;  // conflict limit at a node
+    p->nBTLimitGlobal = 5000000;  // conflict limit for all runs
+    p->nMinDomSize    =     100;  // min clock domain considered for optimization
+    p->fPolarFlip     =       0;  // uses polarity adjustment
+    p->fSkipCheck     =       0;  // do not run equivalence check for unaffected cones
+    p->fLatchCorr     =       0;  // performs register correspondence
+    p->fSemiFormal    =       0;  // enable semiformal filtering
+    p->fUniqueness    =       0;  // enable uniqueness constraints
+    p->fVerbose       =       0;  // verbose stats
     // latch correspondence
-    p->fLatchCorrOpt  =     0;  // performs optimized register correspondence
-    p->nSatVarMax     =  1000;  // the max number of SAT variables
-    p->nRecycleCalls  =    50;  // calls to perform before recycling SAT solver
+    p->fLatchCorrOpt  =       0;  // performs optimized register correspondence
+    p->nSatVarMax     =    1000;  // the max number of SAT variables
+    p->nRecycleCalls  =      50;  // calls to perform before recycling SAT solver
     // return values
-    p->nIters         =     0;  // the number of iterations performed
+    p->nIters         =       0;  // the number of iterations performed
 }
 
 /**Function*************************************************************
@@ -152,6 +153,7 @@ clk = clock();
         else
         {
             RetValue = Ssw_ManSweep( p );
+            p->pPars->nConflicts += p->pSat->stats.conflicts;
             if ( p->pPars->fVerbose )
             {
                 printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. U = %3d. F = %2d. ", 
