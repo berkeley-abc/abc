@@ -51,7 +51,7 @@ Aig_Man_t * Saig_ManFramesBmcLast( Aig_Man_t * pAig, int nFrames, Aig_Obj_t *** 
 {
     Aig_Man_t * pFrames;
     Aig_Obj_t ** ppMap;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pResult;
     int i, f;
     assert( Saig_ManRegNum(pAig) > 0 );
     // start the mapping
@@ -61,10 +61,12 @@ Aig_Man_t * Saig_ManFramesBmcLast( Aig_Man_t * pAig, int nFrames, Aig_Obj_t *** 
     // create variables for register outputs
     Saig_ManForEachLo( pAig, pObj, i )
     {
-        pObj->pData = Aig_ManConst0( pFrames );
+//        pObj->pData = Aig_ManConst0( pFrames );
+        pObj->pData = Aig_ObjCreatePi( pFrames );
         Saig_ObjSetFrame( ppMap, nFrames, pObj, 0, pObj->pData );
     }
     // add timeframes
+    pResult = Aig_ManConst0(pFrames);
     for ( f = 0; f < nFrames; f++ )
     {
         // map the constant node
@@ -82,14 +84,17 @@ Aig_Man_t * Saig_ManFramesBmcLast( Aig_Man_t * pAig, int nFrames, Aig_Obj_t *** 
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
             Saig_ObjSetFrame( ppMap, nFrames, pObj, f, pObj->pData );
         }
+        // OR the POs
+        Saig_ManForEachPo( pAig, pObj, i )
+            pResult = Aig_Or( pFrames, pResult, Aig_ObjChild0Copy(pObj) );
         // create POs for this frame
         if ( f == nFrames - 1 )
         {
-            Saig_ManForEachPo( pAig, pObj, i )
-            {
-                pObj->pData = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
-                Saig_ObjSetFrame( ppMap, nFrames, pObj, f, pObj->pData );
-            }
+//            Saig_ManForEachPo( pAig, pObj, i )
+//            {
+//               pObj->pData = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
+//               Saig_ObjSetFrame( ppMap, nFrames, pObj, f, pObj->pData );
+//            }
             break;
         }
         // save register inputs
@@ -105,6 +110,7 @@ Aig_Man_t * Saig_ManFramesBmcLast( Aig_Man_t * pAig, int nFrames, Aig_Obj_t *** 
             Saig_ObjSetFrame( ppMap, nFrames, pObjLo, f, pObjLo->pData );
         }
     }
+    Aig_ObjCreatePo( pFrames, pResult );
     Aig_ManCleanup( pFrames );
     // remove mapping for the nodes that are no longer there
     for ( i = 0; i < Aig_ManObjNumMax(pAig) * nFrames; i++ )
@@ -124,14 +130,15 @@ Aig_Man_t * Saig_ManFramesBmcLast( Aig_Man_t * pAig, int nFrames, Aig_Obj_t *** 
   SeeAlso     []
 
 ***********************************************************************/
-int * Saig_ManFindUnsatVariables( Cnf_Dat_t * pCnf, int nConfMax, int fVerbose )
+int * Saig_ManFindUnsatVariables( Cnf_Dat_t * pCnf, int nRegs, int nConfMax, int fVerbose )
 {
     void * pSatCnf; 
     Intp_Man_t * pManProof;
+    Aig_Obj_t * pObj;
     sat_solver * pSat;
     Vec_Int_t * vCore;
     int * pClause1, * pClause2, * pLit, * pVars, iClause, nVars;
-    int i, RetValue;
+    int i, Lit, RetValue;
     // create the SAT solver
     pSat = sat_solver_new();
     sat_solver_store_alloc( pSat ); 
@@ -144,6 +151,15 @@ int * Saig_ManFindUnsatVariables( Cnf_Dat_t * pCnf, int nConfMax, int fVerbose )
             sat_solver_delete( pSat );
             return NULL;
         }
+    }
+    Aig_ManForEachPi( pCnf->pMan, pObj, i )
+    {
+        if ( i == nRegs )
+            break;
+        assert( pCnf->pVarNums[pObj->Id] >= 0 );
+        Lit = toLitCond( pCnf->pVarNums[pObj->Id], 1 );
+        if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
+            assert( 0 );
     }
     sat_solver_store_mark_roots( pSat ); 
     // solve the problem
@@ -240,11 +256,12 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         printf( "Performing proof-based abstraction with %d frames and %d max conflicts.\n", nFrames, nConfMax );
     // create the timeframes
     pFrames = Saig_ManFramesBmcLast( p, nFrames, &ppAigToFrames );
+    printf( "AIG nodes = %d. Frames = %d.\n", Aig_ManNodeNum(p), Aig_ManNodeNum(pFrames) );
     // convert them into CNF
 //    pCnf = Cnf_Derive( pFrames, 0 );
     pCnf = Cnf_DeriveSimple( pFrames, 0 );
     // collect CNF variables involved in UNSAT core
-    pUnsatCoreVars = Saig_ManFindUnsatVariables( pCnf, nConfMax, 0 );
+    pUnsatCoreVars = Saig_ManFindUnsatVariables( pCnf, Saig_ManRegNum(p), nConfMax, 0 );
     if ( pUnsatCoreVars == NULL )
     {
         Aig_ManStop( pFrames );

@@ -249,8 +249,10 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         {
             Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
             if ( fVerbose )
+            {
                 printf( "Solving output %2d of frame %3d ... \r", 
                     i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
+            }
             clk = clock();
             status = sat_solver_solve( pSat, &Lit, &Lit + 1, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
             if ( fVerbose && (i % Saig_ManPoNum(pAig) == Saig_ManPoNum(pAig) - 1) )
@@ -258,12 +260,22 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                 printf( "Solved %2d outputs of frame %3d.  ", 
                     Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
                 printf( "Conf =%8.0f. Imp =%11.0f. ", (double)pSat->stats.conflicts, (double)pSat->stats.propagations );
-                PRT( "Time", clock() - clkPart );
+                PRT( "T", clock() - clkPart );
                 clkPart = clock();
                 fflush( stdout );
             }
             if ( status == l_False )
             {
+/*
+                Lit = lit_neg( Lit );
+                RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
+                assert( RetValue );
+                if ( pSat->qtail != pSat->qhead )
+                {
+                    RetValue = sat_solver_simplify(pSat);
+                    assert( RetValue );
+                }
+*/
             }
             else if ( status == l_True )
             {

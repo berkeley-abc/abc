@@ -6,7 +6,7 @@
 
   PackageName [Inductive prover with constraints.]
 
-  Synopsis    [Bounded model checker for equivalence clases.]
+  Synopsis    [Bounded model checker using dynamic unrolling.]
 
   Author      [Alan Mishchenko]
   
@@ -24,32 +24,13 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Ssw_Bmc_t_ Ssw_Bmc_t; // BMC manager
-
-struct Ssw_Bmc_t_
-{
-    // parameters
-    int              nConfMaxStart;  // the starting conflict limit
-    int              nConfMax;       // the intermediate conflict limit
-    int              nFramesSweep;   // the number of frames to sweep
-    int              fVerbose;       // prints output statistics
-    // equivalences considered
-    Ssw_Man_t *      pMan;           // SAT sweeping manager
-    Vec_Ptr_t *      vTargets;       // the nodes that are watched
-    // storage for patterns
-    int              nPatternsAlloc; // the max number of interesting states
-    int              nPatterns;      // the number of patterns
-    Vec_Ptr_t *      vPatterns;      // storage for the interesting states
-    Vec_Int_t *      vHistory;       // what state and how many steps
-};
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Incrementally unroll the timeframes.]
 
   Description []
                
@@ -58,108 +39,43 @@ struct Ssw_Bmc_t_
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Bmc_t * Ssw_BmcManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
+Aig_Obj_t * Ssw_BmcUnroll_rec( Ssw_Frm_t * pFrm, Aig_Obj_t * pObj, int f )
 {
-    Ssw_Bmc_t * p;
-    Aig_Obj_t * pObj;
-    int i;
-    // create interpolation manager
-    p = ALLOC( Ssw_Bmc_t, 1 ); 
-    memset( p, 0, sizeof(Ssw_Bmc_t) );
-    p->nConfMaxStart  = nConfMax;
-    p->nConfMax       = nConfMax;
-    p->nFramesSweep   = AIG_MAX( (1<<21)/Aig_ManNodeNum(pMan->pAig), pMan->nFrames );
-    p->fVerbose       = fVerbose;
-    // equivalences considered
-    p->pMan           = pMan;
-    p->vTargets       = Vec_PtrAlloc( Saig_ManPoNum(p->pMan->pAig) );
-    Saig_ManForEachPo( p->pMan->pAig, pObj, i )
-        Vec_PtrPush( p->vTargets, Aig_ObjFanin0(pObj) );
-    // storage for patterns
-    p->nPatternsAlloc = 512;
-    p->nPatterns      = 1;
-    p->vPatterns      = Vec_PtrAllocSimInfo( Aig_ManRegNum(p->pMan->pAig), Aig_BitWordNum(p->nPatternsAlloc) );
-    Vec_PtrCleanSimInfo( p->vPatterns, 0, Aig_BitWordNum(p->nPatternsAlloc) );
-    p->vHistory       = Vec_IntAlloc( 100 );
-    Vec_IntPush( p->vHistory, 0 );
-    // update arrays of the manager
-    free( p->pMan->pNodeToFrames );
-    Vec_IntFree( p->pMan->vSatVars );
-    p->pMan->pNodeToFrames = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pMan->pAig) * p->nFramesSweep );
-    p->pMan->vSatVars      = Vec_IntStart( Aig_ManObjNumMax(p->pMan->pAig) * (p->nFramesSweep+1) );
-    return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_BmcManStop( Ssw_Bmc_t * p )
-{
-    Vec_PtrFree( p->vTargets );
-    Vec_PtrFree( p->vPatterns );
-    Vec_IntFree( p->vHistory );
-    free( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ssw_BmcCheckTargets( Ssw_Bmc_t * p )
-{
-    Aig_Obj_t * pObj;
-    int i;
-    Vec_PtrForEachEntry( p->vTargets, pObj, i )
-        if ( !Ssw_ObjIsConst1Cand(p->pMan->pAig, pObj) )
-            return 1;
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_ManFilterBmcSavePattern( Ssw_Bmc_t * p )
-{
-    unsigned * pInfo;
-    Aig_Obj_t * pObj;
-    int i;
-    if ( p->nPatterns >= p->nPatternsAlloc )
-        return;
-    Saig_ManForEachLo( p->pMan->pAig, pObj, i )
+    Aig_Obj_t * pRes, * pRes0, * pRes1;
+    if ( (pRes = Ssw_ObjFrame_(pFrm, pObj, f)) )
+        return pRes;
+    if ( Aig_ObjIsConst1(pObj) )
+        pRes = Aig_ManConst1( pFrm->pFrames );
+    else if ( Saig_ObjIsPi(pFrm->pAig, pObj) )
+        pRes = Aig_ObjCreatePi( pFrm->pFrames );
+    else if ( Aig_ObjIsPo(pObj) )
     {
-        pInfo = Vec_PtrEntry( p->vPatterns, i );
-        if ( Aig_InfoHasBit( p->pMan->pPatWords, Saig_ManPiNum(p->pMan->pAig) + i ) )
-            Aig_InfoSetBit( pInfo, p->nPatterns );
+        Ssw_BmcUnroll_rec( pFrm, Aig_ObjFanin0(pObj), f );
+        pRes = Ssw_ObjChild0Fra_( pFrm, pObj, f );
     }
-    p->nPatterns++;
+    else if ( Saig_ObjIsLo(pFrm->pAig, pObj) )
+    {
+        if ( f == 0 )
+            pRes = Aig_ManConst0( pFrm->pFrames );
+        else 
+            pRes = Ssw_BmcUnroll_rec( pFrm, Saig_ObjLoToLi(pFrm->pAig, pObj), f-1 );
+    }
+    else 
+    {
+        assert( Aig_ObjIsNode(pObj) );
+        Ssw_BmcUnroll_rec( pFrm, Aig_ObjFanin0(pObj), f );
+        Ssw_BmcUnroll_rec( pFrm, Aig_ObjFanin1(pObj), f );
+        pRes0 = Ssw_ObjChild0Fra_( pFrm, pObj, f );
+        pRes1 = Ssw_ObjChild1Fra_( pFrm, pObj, f );
+        pRes = Aig_And( pFrm->pFrames, pRes0, pRes1 );
+    }
+    Ssw_ObjSetFrame_( pFrm, pObj, f, pRes );
+    return pRes;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging for the internal nodes.]
+  Synopsis    [Derives counter-example.]
 
   Description []
                
@@ -168,143 +84,131 @@ void Ssw_ManFilterBmcSavePattern( Ssw_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ManFilterBmc( Ssw_Bmc_t * pBmc, int iPat, int fCheckTargets )
+Ssw_Cex_t * Ssw_BmcGetCounterExample( Ssw_Frm_t * pFrm, Ssw_Sat_t * pSat, int iPo, int iFrame )
 {
-    Ssw_Man_t * p = pBmc->pMan;
-    Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
-    unsigned * pInfo;
-    int i, f, clk, RetValue, fFirst = 0;
-clk = clock();
-
-    // start initialized timeframes
-    p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * 3 );
-    Saig_ManForEachLo( p->pAig, pObj, i )
-    {
-        pInfo = Vec_PtrEntry( pBmc->vPatterns, i );
-        pObjNew = Aig_NotCond( Aig_ManConst1(p->pFrames), !Aig_InfoHasBit(pInfo, iPat) );
-        Ssw_ObjSetFrame( p, pObj, 0, pObjNew );
-    }
-
-    // sweep internal nodes
-    Ssw_ManStartSolver( p );
-    RetValue = pBmc->nFramesSweep;
-    for ( f = 0; f < pBmc->nFramesSweep; f++ )
-    {
-        // map constants and PIs
-        Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
-        Saig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
-        // sweep internal nodes
-        Aig_ManForEachNode( p->pAig, pObj, i )
+    Ssw_Cex_t * pCex;
+    Aig_Obj_t * pObj, * pObjFrames;
+    int f, i, nShift;
+    assert( Saig_ManRegNum(pFrm->pAig) > 0 );
+    // allocate the counter example
+    pCex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(pFrm->pAig), Saig_ManPiNum(pFrm->pAig), iFrame + 1 );
+    pCex->iPo    = iPo;
+    pCex->iFrame = iFrame;
+    // create data-bits
+    nShift = Saig_ManRegNum(pFrm->pAig);
+    for ( f = 0; f <= iFrame; f++, nShift += Saig_ManPiNum(pFrm->pAig) )
+        Saig_ManForEachPi( pFrm->pAig, pObj, i )
         {
-            pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
-            Ssw_ObjSetFrame( p, pObj, f, pObjNew );
-            if ( Ssw_ManSweepNode( p, pObj, f, 1 ) )
+            pObjFrames = Ssw_ObjFrame_(pFrm, pObj, f);
+            if ( pObjFrames == NULL )
+                continue;
+            if ( Ssw_CnfGetNodeValue( pSat, pObjFrames ) )
+                Aig_InfoSetBit( pCex->pData, nShift + i );
+        }
+    return pCex;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs BMC for the given AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbose, int * piFrame )
+{
+    Ssw_Frm_t * pFrm;
+    Ssw_Sat_t * pSat;
+    Aig_Obj_t * pObj, * pObjFrame;
+    int status, clkPart, Lit, i, f, RetValue;
+
+    // start managers
+    assert( Saig_ManRegNum(pAig) > 0 );
+    Aig_ManSetPioNumbers( pAig );
+    pSat = Ssw_SatStart( 0 );
+    pFrm = Ssw_FrmStart( pAig );
+    pFrm->pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * 3 );
+    // report statistics
+    if ( fVerbose )
+    {
+        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+            Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
+            Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
+        fflush( stdout );
+    }
+    // perform dynamic unrolling
+    RetValue = -1;
+    for ( f = 0; f < nFramesMax; f++ )
+    {
+        clkPart = clock();
+        Saig_ManForEachPo( pAig, pObj, i )
+        {
+            // unroll the circuit for this output
+            Ssw_BmcUnroll_rec( pFrm, pObj, f );
+            pObjFrame = Ssw_ObjFrame_( pFrm, pObj, f );
+            Ssw_CnfNodeAddToSolver( pSat, Aig_Regular(pObjFrame) );
+            status = sat_solver_simplify(pSat->pSat);
+            assert( status );
+            // solve
+            Lit = toLitCond( Ssw_ObjSatNum(pSat,pObjFrame), Aig_IsComplement(pObjFrame) );
+            if ( fVerbose )
             {
-                Ssw_ManFilterBmcSavePattern( pBmc );
-                if ( fFirst == 0 )
-                {
-                    fFirst = 1;
-                    pBmc->nConfMax *= 10;
-                } 
+                printf( "Solving output %2d of frame %3d ... \r", 
+                    i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
             }
-            if ( f > 0 && p->pSat->stats.conflicts >= pBmc->nConfMax )
+            status = sat_solver_solve( pSat->pSat, &Lit, &Lit + 1, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+            if ( status == l_False )
             {
+/*
+                Lit = lit_neg( Lit );
+                RetValue = sat_solver_addclause( pSat->pSat, &Lit, &Lit + 1 );
+                assert( RetValue );
+                if ( pSat->pSat->qtail != pSat->pSat->qhead )
+                {
+                    RetValue = sat_solver_simplify(pSat->pSat);
+                    assert( RetValue );
+                }
+*/
+                RetValue = 1;
+                continue;
+            }
+            else if ( status == l_True )
+            {
+                pAig->pSeqModel = Ssw_BmcGetCounterExample( pFrm, pSat, i, f );
+                if ( piFrame )
+                    *piFrame = f;
+                RetValue = 0;
+                break;
+            }
+            else
+            {
+                if ( piFrame )
+                    *piFrame = f;
                 RetValue = -1;
                 break;
             }
         }
-        // quit if this is the last timeframe
-        if ( p->pSat->stats.conflicts >= pBmc->nConfMax )
-        {
-            RetValue += f + 1;
-            break;
-        }
-        if ( fCheckTargets && Ssw_BmcCheckTargets( pBmc ) )
-            break;
-        // transfer latch input to the latch outputs 
-        // build logic cones for register outputs
-        Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
-        {
-            pObjNew = Ssw_ObjChild0Fra(p, pObjLi,f);
-            Ssw_ObjSetFrame( p, pObjLo, f+1, pObjNew );
-            Ssw_CnfNodeAddToSolver( p, Aig_Regular(pObjNew) );
-        }
-//printf( "Frame %2d : Conflicts = %6d. \n", f, p->pSat->stats.conflicts );
-    }
-    if ( fFirst )
-        pBmc->nConfMax /= 10;
-
-    // cleanup
-    Ssw_ClassesCheck( p->ppClasses );
-p->timeBmc += clock() - clk;
-    return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if one of the targets has failed.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ssw_FilterUsingBmc( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose )
-{
-    Ssw_Bmc_t * p;
-    int RetValue, Frames, Iter, clk = clock();
-    p = Ssw_BmcManStart( pMan, nConfMax, fVerbose );
-    if ( fCheckTargets && Ssw_BmcCheckTargets( p ) )
-    {
-        assert( 0 );
-        Ssw_BmcManStop( p );
-        return 1;
-    }
-    if ( fVerbose )
-    {
-        printf( "AIG : Const = %6d. Cl = %6d. Nodes = %6d.  ConfMax = %6d. FramesMax = %6d.\n", 
-            Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
-            Aig_ManNodeNum(p->pMan->pAig), p->nConfMax, p->nFramesSweep );
-    } 
-    RetValue = 0;
-    for ( Iter = 0; Iter < p->nPatterns; Iter++ )
-    {
-clk = clock();
-        Frames = Ssw_ManFilterBmc( p, Iter, fCheckTargets );
         if ( fVerbose )
         {
-            printf( "%3d : Const = %6d. Cl = %6d. NR = %6d. F = %3d. C = %5d. P = %3d. %s ", 
-                Iter, Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
-                Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pSat->stats.conflicts, p->nPatterns, 
-                p->pMan->nSatFailsReal? "f" : " " );
-            PRT( "T", clock() - clk );
-        } 
-        Ssw_ManCleanup( p->pMan );
-        if ( fCheckTargets && Ssw_BmcCheckTargets( p ) )
-        {
-            printf( "Target is hit!!!\n" );
-            RetValue = 1;
+            printf( "Solved %2d outputs of frame %3d.  ", Saig_ManPoNum(pAig), f );
+            printf( "Conf =%8.0f. Var =%8d. AIG=%9d. ", 
+                (double)pSat->pSat->stats.conflicts, 
+                pSat->nSatVars, Aig_ManNodeNum(pFrm->pFrames) );
+            PRT( "T", clock() - clkPart );
+            clkPart = clock();
+            fflush( stdout );
         }
-        if ( p->nPatterns >= p->nPatternsAlloc )
+        if ( RetValue != 1 )
             break;
     }
-    Ssw_BmcManStop( p );
 
-    pMan->nStrangers = 0;
-    pMan->nSatCalls = 0;
-    pMan->nSatProof = 0;
-    pMan->nSatFailsReal = 0; 
-    pMan->nSatFailsTotal = 0;
-    pMan->nSatCallsUnsat = 0;
-    pMan->nSatCallsSat = 0;  
-    pMan->timeSimSat = 0;    
-    pMan->timeSat = 0;       
-    pMan->timeSatSat = 0;    
-    pMan->timeSatUnsat = 0;  
-    pMan->timeSatUndec = 0;  
+    Ssw_SatStop( pSat );
+    Ssw_FrmStop( pFrm );
     return RetValue;
 }
 

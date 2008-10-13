@@ -654,6 +654,8 @@ extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
 extern int             Aig_ManCountChoices( Aig_Man_t * p );
 extern char *          Aig_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern unsigned        Aig_ManRandom( int fReset );
+extern void            Aig_NodeUnionLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );
+extern void            Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );
 
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );

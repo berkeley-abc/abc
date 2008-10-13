@@ -718,6 +718,27 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
             Int_ManPrintResolvent( p->pResLits, p->nResLits );
             Int_ManPrintClause( p, pFinal );
         }
+
+        // if there are literals in the clause that are not in the resolvent
+        // it means that the derived resolvent is stronger than the clause
+        // we can replace the clause with the resolvent by removing these literals
+        if ( p->nResLits != (int)pFinal->nLits )
+        {
+            for ( v1 = 0; v1 < (int)pFinal->nLits; v1++ )
+            {
+                for ( v2 = 0; v2 < p->nResLits; v2++ )
+                    if ( pFinal->pLits[v1] == p->pResLits[v2] )
+                        break;
+                if ( v2 < p->nResLits )
+                    continue;
+                // remove literal v1 from the final clause
+                pFinal->nLits--;
+                for ( v2 = v1; v2 < (int)pFinal->nLits; v2++ )
+                    pFinal->pLits[v2] = pFinal->pLits[v2+1];
+                v1--;
+            }
+            assert( p->nResLits == (int)pFinal->nLits );
+        }
     }
 p->timeTrace += clock() - clk;
 
@@ -727,6 +748,8 @@ p->timeTrace += clock() - clk;
 //        Int_ManPrintInterOne( p, pFinal );
     }
     Int_ManProofSet( p, pFinal, p->Counter );
+    // make sure the same proof ID is not asssigned to two consecutive clauses
+    assert( p->pProofNums[pFinal->Id-1] != p->Counter );
     return p->Counter;
 }
 
@@ -754,6 +777,13 @@ int Int_ManProofRecordOne( Int_Man_t * p, Sto_Cls_t * pClause )
     // add assumptions to the trail
     assert( !pClause->fRoot );
     assert( p->nTrailSize == p->nRootSize );
+
+    // if any of the clause literals are already assumed
+    // it means that the clause is redundant and can be skipped
+    for ( i = 0; i < (int)pClause->nLits; i++ )
+        if ( p->pAssigns[lit_var(pClause->pLits[i])] == pClause->pLits[i] )
+            return 1;
+
     for ( i = 0; i < (int)pClause->nLits; i++ )
         if ( !Int_ManEnqueue( p, lit_neg(pClause->pLits[i]), NULL ) )
         {
@@ -767,6 +797,27 @@ int Int_ManProofRecordOne( Int_Man_t * p, Sto_Cls_t * pClause )
     {
         assert( 0 ); // cannot prove
         return 0;
+    }
+
+    // skip the clause if it is weaker or the same as the conflict clause
+    if ( pClause->nLits >= pConflict->nLits )
+    {
+        // check if every literal of conflict clause can be found in the given clause
+        int j;
+        for ( i = 0; i < (int)pConflict->nLits; i++ )
+        {
+            for ( j = 0; j < (int)pClause->nLits; j++ )
+                if ( pConflict->pLits[i] == pClause->pLits[j] )
+                    break;
+            if ( j == (int)pClause->nLits ) // literal pConflict->pLits[i] is not found
+                break;
+        }
+        if ( i == (int)pConflict->nLits ) // all lits are found
+        {
+            // undo to the root level
+            Int_ManCancelUntil( p, p->nRootSize );
+            return 1;
+        }
     }
 
     // construct the proof
@@ -854,8 +905,12 @@ int Int_ManProcessRoots( Int_Man_t * p )
         if ( !Int_ManEnqueue( p, pClause->pLits[0], pClause ) )
         {
             // detected root level conflict
-            printf( "Error in Int_ManProcessRoots(): Detected a root-level conflict too early!\n" );
-            assert( 0 );
+//            printf( "Error in Int_ManProcessRoots(): Detected a root-level conflict too early!\n" );
+//            assert( 0 );
+            // detected root level conflict
+            Int_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
+            if ( p->fVerbose )
+                printf( "Found root level conflict!\n" );
             return 0;
         }
     }

@@ -114,7 +114,6 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
 void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes )
 {
     int Num;
-
     if ( fSaveBest )
         Abc_NtkCompareAndSaveBest( pNtk );
     if ( fDumpResult )
@@ -147,15 +146,11 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
         if ( (Num = Abc_NtkGetChoiceNum(pNtk)) )
             fprintf( pFile, " (choice = %d)", Num );
-        if ( (Num = Abc_NtkGetExorNum(pNtk)) )
-            fprintf( pFile, " (exor = %d)", Num );
-//        if ( Num2 = Abc_NtkGetMuxNum(pNtk) )
-//            fprintf( pFile, " (mux = %d)", Num2-Num );
-//        if ( Num2 )
-//            fprintf( pFile, " (other = %d)", Abc_NtkNodeNum(pNtk)-3*Num2 );
         if ( fPrintMuxes )
         {
             extern int Abc_NtkCountMuxes( Abc_Ntk_t * pNtk );
+            Num = Abc_NtkGetExorNum(pNtk);
+            fprintf( pFile, " (exor = %d)", Num );
             fprintf( pFile, " (mux = %d)", Abc_NtkCountMuxes(pNtk)-Num );
             fprintf( pFile, " (pure and = %d)", Abc_NtkNodeNum(pNtk) - (Abc_NtkCountMuxes(pNtk) * 3) );
         }

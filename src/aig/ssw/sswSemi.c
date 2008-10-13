@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [sswBmc.c]
+  FileName    [sswSemi.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Inductive prover with constraints.]
 
-  Synopsis    [Bounded model checker for equivalence clases.]
+  Synopsis    [Semiformal for equivalence clases.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - September 1, 2008.]
 
-  Revision    [$Id: sswBmc.c,v 1.00 2008/09/01 00:00:00 alanmi Exp $]
+  Revision    [$Id: sswSemi.c,v 1.00 2008/09/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -24,9 +24,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Ssw_Bmc_t_ Ssw_Bmc_t; // BMC manager
+typedef struct Ssw_Sem_t_ Ssw_Sem_t; // BMC manager
 
-struct Ssw_Bmc_t_
+struct Ssw_Sem_t_
 {
     // parameters
     int              nConfMaxStart;  // the starting conflict limit
@@ -58,14 +58,14 @@ struct Ssw_Bmc_t_
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Bmc_t * Ssw_BmcManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
+Ssw_Sem_t * Ssw_SemManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
 {
-    Ssw_Bmc_t * p;
+    Ssw_Sem_t * p;
     Aig_Obj_t * pObj;
     int i;
     // create interpolation manager
-    p = ALLOC( Ssw_Bmc_t, 1 ); 
-    memset( p, 0, sizeof(Ssw_Bmc_t) );
+    p = ALLOC( Ssw_Sem_t, 1 ); 
+    memset( p, 0, sizeof(Ssw_Sem_t) );
     p->nConfMaxStart  = nConfMax;
     p->nConfMax       = nConfMax;
     p->nFramesSweep   = AIG_MAX( (1<<21)/Aig_ManNodeNum(pMan->pAig), pMan->nFrames );
@@ -83,10 +83,13 @@ Ssw_Bmc_t * Ssw_BmcManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
     p->vHistory       = Vec_IntAlloc( 100 );
     Vec_IntPush( p->vHistory, 0 );
     // update arrays of the manager
+    assert( 0 );
+/*
     free( p->pMan->pNodeToFrames );
     Vec_IntFree( p->pMan->vSatVars );
     p->pMan->pNodeToFrames = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pMan->pAig) * p->nFramesSweep );
     p->pMan->vSatVars      = Vec_IntStart( Aig_ManObjNumMax(p->pMan->pAig) * (p->nFramesSweep+1) );
+*/
     return p;
 }
 
@@ -101,7 +104,7 @@ Ssw_Bmc_t * Ssw_BmcManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_BmcManStop( Ssw_Bmc_t * p )
+void Ssw_SemManStop( Ssw_Sem_t * p )
 {
     Vec_PtrFree( p->vTargets );
     Vec_PtrFree( p->vPatterns );
@@ -120,7 +123,7 @@ void Ssw_BmcManStop( Ssw_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_BmcCheckTargets( Ssw_Bmc_t * p )
+int Ssw_SemCheckTargets( Ssw_Sem_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
@@ -141,7 +144,7 @@ int Ssw_BmcCheckTargets( Ssw_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_ManFilterBmcSavePattern( Ssw_Bmc_t * p )
+void Ssw_ManFilterBmcSavePattern( Ssw_Sem_t * p )
 {
     unsigned * pInfo;
     Aig_Obj_t * pObj;
@@ -168,7 +171,7 @@ void Ssw_ManFilterBmcSavePattern( Ssw_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ManFilterBmc( Ssw_Bmc_t * pBmc, int iPat, int fCheckTargets )
+int Ssw_ManFilterBmc( Ssw_Sem_t * pBmc, int iPat, int fCheckTargets )
 {
     Ssw_Man_t * p = pBmc->pMan;
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
@@ -186,7 +189,6 @@ clk = clock();
     }
 
     // sweep internal nodes
-    Ssw_ManStartSolver( p );
     RetValue = pBmc->nFramesSweep;
     for ( f = 0; f < pBmc->nFramesSweep; f++ )
     {
@@ -208,19 +210,19 @@ clk = clock();
                     pBmc->nConfMax *= 10;
                 } 
             }
-            if ( f > 0 && p->pSat->stats.conflicts >= pBmc->nConfMax )
+            if ( f > 0 && p->pMSat->pSat->stats.conflicts >= pBmc->nConfMax )
             {
                 RetValue = -1;
                 break;
             }
         }
         // quit if this is the last timeframe
-        if ( p->pSat->stats.conflicts >= pBmc->nConfMax )
+        if ( p->pMSat->pSat->stats.conflicts >= pBmc->nConfMax )
         {
             RetValue += f + 1;
             break;
         }
-        if ( fCheckTargets && Ssw_BmcCheckTargets( pBmc ) )
+        if ( fCheckTargets && Ssw_SemCheckTargets( pBmc ) )
             break;
         // transfer latch input to the latch outputs 
         // build logic cones for register outputs
@@ -228,7 +230,7 @@ clk = clock();
         {
             pObjNew = Ssw_ObjChild0Fra(p, pObjLi,f);
             Ssw_ObjSetFrame( p, pObjLo, f+1, pObjNew );
-            Ssw_CnfNodeAddToSolver( p, Aig_Regular(pObjNew) );
+            Ssw_CnfNodeAddToSolver( p->pMSat, Aig_Regular(pObjNew) );
         }
 //printf( "Frame %2d : Conflicts = %6d. \n", f, p->pSat->stats.conflicts );
     }
@@ -252,15 +254,15 @@ p->timeBmc += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_FilterUsingBmc( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose )
+int Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose )
 {
-    Ssw_Bmc_t * p;
+    Ssw_Sem_t * p;
     int RetValue, Frames, Iter, clk = clock();
-    p = Ssw_BmcManStart( pMan, nConfMax, fVerbose );
-    if ( fCheckTargets && Ssw_BmcCheckTargets( p ) )
+    p = Ssw_SemManStart( pMan, nConfMax, fVerbose );
+    if ( fCheckTargets && Ssw_SemCheckTargets( p ) )
     {
         assert( 0 );
-        Ssw_BmcManStop( p );
+        Ssw_SemManStop( p );
         return 1;
     }
     if ( fVerbose )
@@ -273,17 +275,18 @@ int Ssw_FilterUsingBmc( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int f
     for ( Iter = 0; Iter < p->nPatterns; Iter++ )
     {
 clk = clock();
+        pMan->pMSat = Ssw_SatStart( 0 );
         Frames = Ssw_ManFilterBmc( p, Iter, fCheckTargets );
         if ( fVerbose )
         {
             printf( "%3d : Const = %6d. Cl = %6d. NR = %6d. F = %3d. C = %5d. P = %3d. %s ", 
                 Iter, Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
-                Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pSat->stats.conflicts, p->nPatterns, 
+                Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pMSat->pSat->stats.conflicts, p->nPatterns, 
                 p->pMan->nSatFailsReal? "f" : " " );
             PRT( "T", clock() - clk );
         } 
         Ssw_ManCleanup( p->pMan );
-        if ( fCheckTargets && Ssw_BmcCheckTargets( p ) )
+        if ( fCheckTargets && Ssw_SemCheckTargets( p ) )
         {
             printf( "Target is hit!!!\n" );
             RetValue = 1;
@@ -291,7 +294,7 @@ clk = clock();
         if ( p->nPatterns >= p->nPatternsAlloc )
             break;
     }
-    Ssw_BmcManStop( p );
+    Ssw_SemManStop( p );
 
     pMan->nStrangers = 0;
     pMan->nSatCalls = 0;

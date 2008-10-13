@@ -30,6 +30,50 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Starts the SAT manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Frm_t * Ssw_FrmStart( Aig_Man_t * pAig )
+{
+    Ssw_Frm_t * p;
+    p = ALLOC( Ssw_Frm_t, 1 ); 
+    memset( p, 0, sizeof(Ssw_Frm_t) );
+    p->pAig          = pAig;
+    p->nObjs         = Aig_ManObjNumMax( pAig );
+    p->nFrames       = 0;
+    p->pFrames       = NULL;
+    p->vAig2Frm      = Vec_PtrAlloc( 0 );
+    Vec_PtrFill( p->vAig2Frm, 2 * p->nObjs, NULL );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the SAT manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_FrmStop( Ssw_Frm_t * p )
+{
+    if ( p->pFrames )
+        Aig_ManStop( p->pFrames );
+    Vec_PtrFree( p->vAig2Frm );
+    free( p );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs speculative reduction for one node.]
 
   Description []
@@ -164,7 +208,7 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
     assert( Aig_ManRegNum(p->pAig) > 0 );
     assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
     p->nConstrTotal = p->nConstrReduced = 0;
-
+ 
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->nFrames );
     // map constants and PIs
@@ -190,8 +234,8 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
     // remove dangling nodes
     Aig_ManCleanup( pFrames );
     Aig_ManSetRegNum( pFrames, Aig_ManRegNum(p->pAig) );
-    printf( "SpecRed: Total constraints = %d. Reduced constraints = %d.\n", 
-        p->nConstrTotal, p->nConstrReduced );
+//    printf( "SpecRed: Total constraints = %d. Reduced constraints = %d.\n", 
+//        p->nConstrTotal, p->nConstrReduced );
     return pFrames;
 }
 

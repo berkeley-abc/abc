@@ -30,6 +30,63 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Starts the SAT manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Sat_t * Ssw_SatStart( int fPolarFlip )
+{
+    Ssw_Sat_t * p;
+    int Lit;
+    p = ALLOC( Ssw_Sat_t, 1 ); 
+    memset( p, 0, sizeof(Ssw_Sat_t) );
+    p->pAig          = NULL;
+    p->fPolarFlip    = fPolarFlip;
+    p->vSatVars      = Vec_IntStart( 10000 );
+    p->vFanins       = Vec_PtrAlloc( 100 );
+    p->vUsedPis      = Vec_PtrAlloc( 100 );
+    p->pSat          = sat_solver_new();
+    sat_solver_setnvars( p->pSat, 1000 );
+    // var 0 is not used
+    // var 1 is reserved for const1 node - add the clause
+    p->nSatVars = 1;
+    Lit = toLit( p->nSatVars );
+    if ( fPolarFlip )
+        Lit = lit_neg( Lit );
+    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+//    Ssw_ObjSetSatNum( p, Aig_ManConst1(p->pAig), p->nSatVars++ );
+    Vec_IntWriteEntry( p->vSatVars, 0, p->nSatVars++ );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stop the SAT manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SatStop( Ssw_Sat_t * p )
+{
+    if ( p->pSat )
+        sat_solver_delete( p->pSat );
+    Vec_IntFree( p->vSatVars );
+    Vec_PtrFree( p->vFanins );
+    Vec_PtrFree( p->vUsedPis );
+    free( p );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Addes clauses to the solver.]
 
   Description []
@@ -39,7 +96,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
+void Ssw_AddClausesMux( Ssw_Sat_t * p, Aig_Obj_t * pNode )
 {
     Aig_Obj_t * pNodeI, * pNodeT, * pNodeE;
     int pLits[4], RetValue, VarF, VarI, VarT, VarE, fCompT, fCompE;
@@ -68,7 +125,7 @@ void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarI, 1);
     pLits[1] = toLitCond(VarT, 1^fCompT);
     pLits[2] = toLitCond(VarF, 0);
-    if ( p->pPars->fPolarFlip )
+    if ( p->fPolarFlip )
     {
         if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
         if ( Aig_Regular(pNodeT)->fPhase )  pLits[1] = lit_neg( pLits[1] );
@@ -79,7 +136,7 @@ void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarI, 1);
     pLits[1] = toLitCond(VarT, 0^fCompT);
     pLits[2] = toLitCond(VarF, 1);
-    if ( p->pPars->fPolarFlip )
+    if ( p->fPolarFlip )
     {
         if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
         if ( Aig_Regular(pNodeT)->fPhase )  pLits[1] = lit_neg( pLits[1] );
@@ -90,7 +147,7 @@ void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarI, 0);
     pLits[1] = toLitCond(VarE, 1^fCompE);
     pLits[2] = toLitCond(VarF, 0);
-    if ( p->pPars->fPolarFlip )
+    if ( p->fPolarFlip )
     {
         if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
         if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
@@ -101,7 +158,7 @@ void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarI, 0);
     pLits[1] = toLitCond(VarE, 0^fCompE);
     pLits[2] = toLitCond(VarF, 1);
-    if ( p->pPars->fPolarFlip )
+    if ( p->fPolarFlip )
     {
         if ( pNodeI->fPhase )               pLits[0] = lit_neg( pLits[0] );
         if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
@@ -126,7 +183,7 @@ void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarT, 0^fCompT);
     pLits[1] = toLitCond(VarE, 0^fCompE);
     pLits[2] = toLitCond(VarF, 1);
-    if ( p->pPars->fPolarFlip )
+    if ( p->fPolarFlip )
     {
         if ( Aig_Regular(pNodeT)->fPhase )  pLits[0] = lit_neg( pLits[0] );
         if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
@@ -137,7 +194,7 @@ void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
     pLits[0] = toLitCond(VarT, 1^fCompT);
     pLits[1] = toLitCond(VarE, 1^fCompE);
     pLits[2] = toLitCond(VarF, 0);
-    if ( p->pPars->fPolarFlip )
+    if ( p->fPolarFlip )
     {
         if ( Aig_Regular(pNodeT)->fPhase )  pLits[0] = lit_neg( pLits[0] );
         if ( Aig_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
@@ -158,7 +215,7 @@ void Ssw_AddClausesMux( Ssw_Man_t * p, Aig_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_AddClausesSuper( Ssw_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
+void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
 {
     Aig_Obj_t * pFanin;
     int * pLits, nLits, RetValue, i;
@@ -173,7 +230,7 @@ void Ssw_AddClausesSuper( Ssw_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     {
         pLits[0] = toLitCond(Ssw_ObjSatNum(p,Aig_Regular(pFanin)), Aig_IsComplement(pFanin));
         pLits[1] = toLitCond(Ssw_ObjSatNum(p,pNode), 1);
-        if ( p->pPars->fPolarFlip )
+        if ( p->fPolarFlip )
         {
             if ( Aig_Regular(pFanin)->fPhase )  pLits[0] = lit_neg( pLits[0] );
             if ( pNode->fPhase )                pLits[1] = lit_neg( pLits[1] );
@@ -185,13 +242,13 @@ void Ssw_AddClausesSuper( Ssw_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     Vec_PtrForEachEntry( vSuper, pFanin, i )
     {
         pLits[i] = toLitCond(Ssw_ObjSatNum(p,Aig_Regular(pFanin)), !Aig_IsComplement(pFanin));
-        if ( p->pPars->fPolarFlip )
+        if ( p->fPolarFlip )
         {
             if ( Aig_Regular(pFanin)->fPhase )  pLits[i] = lit_neg( pLits[i] );
         }
     }
     pLits[nLits-1] = toLitCond(Ssw_ObjSatNum(p,pNode), 0);
-    if ( p->pPars->fPolarFlip )
+    if ( p->fPolarFlip )
     {
         if ( pNode->fPhase )  pLits[nLits-1] = lit_neg( pLits[nLits-1] );
     }
@@ -221,6 +278,7 @@ void Ssw_CollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int
         Vec_PtrPushUnique( vSuper, pObj );
         return;
     }
+//    pObj->fMarkA = 1;
     // go through the branches
     Ssw_CollectSuper_rec( Aig_ObjChild0(pObj), vSuper, 0, fUseMuxes );
     Ssw_CollectSuper_rec( Aig_ObjChild1(pObj), vSuper, 0, fUseMuxes );
@@ -256,7 +314,7 @@ void Ssw_CollectSuper( Aig_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_ObjAddToFrontier( Ssw_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontier )
+void Ssw_ObjAddToFrontier( Ssw_Sat_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontier )
 {
     assert( !Aig_IsComplement(pObj) );
     if ( Ssw_ObjSatNum(p,pObj) )
@@ -264,12 +322,10 @@ void Ssw_ObjAddToFrontier( Ssw_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontie
     assert( Ssw_ObjSatNum(p,pObj) == 0 );
     if ( Aig_ObjIsConst1(pObj) )
         return;
-    if ( p->pPars->fLatchCorrOpt )
-    {
-        Vec_PtrPush( p->vUsedNodes, pObj );
-        if ( Aig_ObjIsPi(pObj) )
-            Vec_PtrPush( p->vUsedPis, pObj );
-    }
+//    pObj->fMarkA = 1;
+    // save PIs (used by register correspondence)
+    if ( Aig_ObjIsPi(pObj) )
+        Vec_PtrPush( p->vUsedPis, pObj );
     Ssw_ObjSetSatNum( p, pObj, p->nSatVars++ );
     sat_solver_setnvars( p->pSat, 100 * (1 + p->nSatVars / 100) );
     if ( Aig_ObjIsNode(pObj) )
@@ -287,7 +343,7 @@ void Ssw_ObjAddToFrontier( Ssw_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontie
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj )
+void Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj )
 { 
     Vec_Ptr_t * vFrontier;
     Aig_Obj_t * pNode, * pFanin;
@@ -326,6 +382,36 @@ void Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj )
     Vec_PtrFree( vFrontier );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_CnfGetNodeValue( Ssw_Sat_t * p, Aig_Obj_t * pObj )
+{
+    int Value0, Value1, nVarNum;
+    assert( !Aig_IsComplement(pObj) );
+    nVarNum = Ssw_ObjSatNum( p, pObj );
+    if ( nVarNum > 0 )
+        return sat_solver_var_value( p->pSat, nVarNum );
+//    if ( pObj->fMarkA == 1 )
+//        return 0;
+    if ( Aig_ObjIsPi(pObj) )
+        return 0;
+    assert( Aig_ObjIsNode(pObj) );
+    Value0 = Ssw_CnfGetNodeValue( p, Aig_ObjFanin0(pObj) );
+    Value0 ^= Aig_ObjFaninC0(pObj);
+    Value1 = Ssw_CnfGetNodeValue( p, Aig_ObjFanin1(pObj) );
+    Value1 ^= Aig_ObjFaninC1(pObj);
+    return Value0 & Value1;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

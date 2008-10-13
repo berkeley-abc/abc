@@ -8,6 +8,7 @@ SRC +=    src/aig/ssw/sswAig.c \
     src/aig/ssw/sswPart.c \
     src/aig/ssw/sswPairs.c \
     src/aig/ssw/sswSat.c \
+    src/aig/ssw/sswSemi.c \
     src/aig/ssw/sswSim.c \
     src/aig/ssw/sswSimSat.c \
     src/aig/ssw/sswSweep.c \

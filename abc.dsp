@@ -3298,6 +3298,10 @@ SOURCE=.\src\aig\saig\saigHaig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigInd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigIoa.c
 # End Source File
 # Begin Source File
@@ -3491,6 +3495,10 @@ SOURCE=.\src\aig\ssw\sswPart.c
 # Begin Source File
 
 SOURCE=.\src\aig\ssw\sswSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssw\sswSemi.c
 # End Source File
 # Begin Source File
 

@@ -30,83 +30,39 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the result of merging the two vectors.]
+  Synopsis    [Performs computation of signal correspondence with constraints.]
 
-  Description [Assumes that the vectors are sorted in the increasing order.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrTwoMerge( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr )
+void Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p )
 {
-    Aig_Obj_t ** pBeg  = (Aig_Obj_t **)vArr->pArray;
-    Aig_Obj_t ** pBeg1 = (Aig_Obj_t **)vArr1->pArray;
-    Aig_Obj_t ** pBeg2 = (Aig_Obj_t **)vArr2->pArray;
-    Aig_Obj_t ** pEnd1 = (Aig_Obj_t **)vArr1->pArray + vArr1->nSize;
-    Aig_Obj_t ** pEnd2 = (Aig_Obj_t **)vArr2->pArray + vArr2->nSize;
-    Vec_PtrGrow( vArr, Vec_PtrSize(vArr1) + Vec_PtrSize(vArr2) );
-    pBeg  = (Aig_Obj_t **)vArr->pArray;
-    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    Aig_Obj_t * pObjLo, * pObj0, * pObj1;
+    int i;
+    if ( p->vDiffPairs == NULL )
+        p->vDiffPairs = Vec_IntAlloc( Saig_ManRegNum(p->pAig) );
+    Vec_IntClear( p->vDiffPairs );
+    Saig_ManForEachLo( p->pAig, pObjLo, i )
     {
-        if ( (*pBeg1)->Id == (*pBeg2)->Id )
-            *pBeg++ = *pBeg1++, pBeg2++;
-        else if ( (*pBeg1)->Id < (*pBeg2)->Id )
-            *pBeg++ = *pBeg1++;
+        pObj0 = Ssw_ObjFrame( p, pObjLo, 0 );
+        pObj1 = Ssw_ObjFrame( p, pObjLo, 1 );
+        if ( pObj0 == pObj1 )
+            Vec_IntPush( p->vDiffPairs, 0 );
+        else if ( pObj0 == Aig_Not(pObj1) )
+            Vec_IntPush( p->vDiffPairs, 1 );
         else 
-            *pBeg++ = *pBeg2++;
+        {
+            // assume that if the nodes are structurally different
+            // they can also be functionally different
+            Vec_IntPush( p->vDiffPairs, 1 );
+        }
     }
-    while ( pBeg1 < pEnd1 )
-        *pBeg++ = *pBeg1++;
-    while ( pBeg2 < pEnd2 )
-        *pBeg++ = *pBeg2++;
-    vArr->nSize = pBeg - (Aig_Obj_t **)vArr->pArray;
-    assert( vArr->nSize <= vArr->nCap );
-    assert( vArr->nSize >= vArr1->nSize );
-    assert( vArr->nSize >= vArr2->nSize );
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Returns the result of merging the two vectors.]
-
-  Description [Assumes that the vectors are sorted in the increasing order.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Vec_PtrTwoCommon( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr )
-{
-    Aig_Obj_t ** pBeg  = (Aig_Obj_t **)vArr->pArray;
-    Aig_Obj_t ** pBeg1 = (Aig_Obj_t **)vArr1->pArray;
-    Aig_Obj_t ** pBeg2 = (Aig_Obj_t **)vArr2->pArray;
-    Aig_Obj_t ** pEnd1 = (Aig_Obj_t **)vArr1->pArray + vArr1->nSize;
-    Aig_Obj_t ** pEnd2 = (Aig_Obj_t **)vArr2->pArray + vArr2->nSize;
-    Vec_PtrGrow( vArr, AIG_MAX( Vec_PtrSize(vArr1), Vec_PtrSize(vArr2) ) );
-    pBeg  = (Aig_Obj_t **)vArr->pArray;
-    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
-    {
-        if ( (*pBeg1)->Id == (*pBeg2)->Id )
-            *pBeg++ = *pBeg1++, pBeg2++;
-        else if ( (*pBeg1)->Id < (*pBeg2)->Id )
-//            *pBeg++ = *pBeg1++;
-            pBeg1++;
-        else 
-//            *pBeg++ = *pBeg2++;
-            pBeg2++;
-    }
-//    while ( pBeg1 < pEnd1 )
-//        *pBeg++ = *pBeg1++;
-//    while ( pBeg2 < pEnd2 )
-//        *pBeg++ = *pBeg2++;
-    vArr->nSize = pBeg - (Aig_Obj_t **)vArr->pArray;
-    assert( vArr->nSize <= vArr->nCap );
-    assert( vArr->nSize <= vArr1->nSize );
-    assert( vArr->nSize <= vArr2->nSize );
-}
 
 /**Function*************************************************************
 
@@ -123,56 +79,32 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
 {
     int fVerbose = 0;
     Aig_Obj_t * ppObjs[2], * pTemp;
-    Vec_Ptr_t * vSupp, * vSupp2;
-    int i, k, Value0, Value1, RetValue;
-    assert( p->pPars->nFramesK > 1 );
+    int i, k, Value0, Value1, RetValue, fFeasible;
 
-    vSupp  = Vec_PtrAlloc( 100 );
-    vSupp2 = Vec_PtrAlloc( 100 );
-    Vec_PtrClear( p->vCommon );
+    assert( p->pPars->nFramesK > 1 );
+    assert( p->vDiffPairs && Vec_IntSize(p->vDiffPairs) == Saig_ManRegNum(p->pAig) );
 
     // compute the first support in terms of LOs
     ppObjs[0] = pRepr; 
     ppObjs[1] = pObj;
-    Aig_SupportNodes( p->pAig, ppObjs, 2, vSupp );
-    // modify support to be in terms of LIs
+    Aig_SupportNodes( p->pAig, ppObjs, 2, p->vCommon );
+    // keep only LOs
+    RetValue = Vec_PtrSize( p->vCommon );
+    fFeasible = 0;
     k = 0;
-    Vec_PtrForEachEntry( vSupp, pTemp, i )
+    Vec_PtrForEachEntry( p->vCommon, pTemp, i )
         if ( Saig_ObjIsLo(p->pAig, pTemp) )
-            Vec_PtrWriteEntry( vSupp, k++, Saig_ObjLoToLi(p->pAig, pTemp) );
-    Vec_PtrShrink( vSupp, k );
-    // compute the support of support
-    Aig_SupportNodes( p->pAig, (Aig_Obj_t **)Vec_PtrArray(vSupp), Vec_PtrSize(vSupp), vSupp2 );
-    // return support to LO
-    Vec_PtrForEachEntry( vSupp, pTemp, i )
-        Vec_PtrWriteEntry( vSupp, i, Saig_ObjLiToLo(p->pAig, pTemp) );
-    // find the number of common vars
-    Vec_PtrSort( vSupp, Aig_ObjCompareIdIncrease );
-    Vec_PtrSort( vSupp2, Aig_ObjCompareIdIncrease );
-    Vec_PtrTwoCommon( vSupp, vSupp2, p->vCommon );
-/*
-    {
-        Vec_Ptr_t * vNew = Vec_PtrDup(vSupp);
-        Vec_PtrUniqify( vNew, Aig_ObjCompareIdIncrease );
-        if ( Vec_PtrSize(vNew) != Vec_PtrSize(vSupp) )
-            printf( "Not unique!\n" );
-    }
-    {
-        Vec_Ptr_t * vNew = Vec_PtrDup(vSupp2);
-        Vec_PtrUniqify( vNew, Aig_ObjCompareIdIncrease );
-        if ( Vec_PtrSize(vNew) != Vec_PtrSize(vSupp2) )
-            printf( "Not unique!\n" );
-    }
-    {
-        Vec_Ptr_t * vNew = Vec_PtrDup(p->vCommon);
-        Vec_PtrUniqify( vNew, Aig_ObjCompareIdIncrease );
-        if ( Vec_PtrSize(vNew) != Vec_PtrSize(p->vCommon) )
-            printf( "Not unique!\n" );
-    }
-*/
+        {
+            Vec_PtrWriteEntry( p->vCommon, k++, pTemp );
+            if ( Vec_IntEntry(p->vDiffPairs, Aig_ObjPioNum(pTemp) - Saig_ManPiNum(p->pAig)) )
+                fFeasible = 1;
+        }
+    Vec_PtrShrink( p->vCommon, k );
+
     if ( fVerbose )
-        printf( "Node = %5d : One = %3d. Two = %3d. Common = %3d.  ",
-            Aig_ObjId(pObj), Vec_PtrSize(vSupp), Vec_PtrSize(vSupp2), Vec_PtrSize(p->vCommon) );
+        printf( "Node = %5d : Supp = %3d. Regs = %3d. Feasible = %s. ",
+            Aig_ObjId(pObj), RetValue, Vec_PtrSize(p->vCommon),
+            fFeasible? "yes": "no " );
 
     // check the current values
     RetValue = 1;
@@ -185,14 +117,10 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
         if ( fVerbose )
             printf( "%d", Value0 ^ Value1 );
     }
-    if ( Vec_PtrSize(p->vCommon) == 0 )
-        RetValue = 0;
     if ( fVerbose )
         printf( "\n" );
 
-    Vec_PtrFree( vSupp );
-    Vec_PtrFree( vSupp2 );
-    return RetValue;
+    return RetValue && fFeasible;
 }
 
 /**Function*************************************************************
@@ -227,11 +155,10 @@ int Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int 
 //        printf( "Skipped\n" );
         return 0;
     }
-    p->nUniques++;
     // create CNF
-    Ssw_CnfNodeAddToSolver( p, Aig_Regular(pTotal) );
+    Ssw_CnfNodeAddToSolver( p->pMSat, Aig_Regular(pTotal) );
     // add output constraint
-    pLits[0] = toLitCond( Ssw_ObjSatNum(p,Aig_Regular(pTotal)), Aig_IsComplement(pTotal) );
+    pLits[0] = toLitCond( Ssw_ObjSatNum(p->pMSat,Aig_Regular(pTotal)), Aig_IsComplement(pTotal) );
 /*
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
     assert( RetValue );

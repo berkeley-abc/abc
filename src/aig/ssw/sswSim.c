@@ -271,45 +271,6 @@ void Ssw_SmlSavePattern1( Ssw_Man_t * p, int fInit )
         Aig_InfoXorBit( p->pPatWords, nTruePis * p->nFrames + k++ );
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Copy pattern from the solver into the internal storage.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_SmlSavePattern( Ssw_Man_t * p )
-{
-    Aig_Obj_t * pObj;
-    int i;
-    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Aig_ManForEachPi( p->pFrames, pObj, i )
-        if ( p->pSat->model.ptr[Ssw_ObjSatNum(p, pObj)] == l_True )
-            Aig_InfoSetBit( p->pPatWords, i );
-/*
-    if ( p->vCex )
-    {
-        Vec_IntClear( p->vCex );
-        for ( i = 0; i < Saig_ManPiNum(p->pAig); i++ )
-            Vec_IntPush( p->vCex, Aig_InfoHasBit( p->pPatWords, i ) );
-        for ( i = Saig_ManPiNum(p->pFrames); i < Aig_ManPiNum(p->pFrames); i++ )
-            Vec_IntPush( p->vCex, Aig_InfoHasBit( p->pPatWords, i ) );
-    }
-*/
-
-/*
-    printf( "Pattern: " );
-    Aig_ManForEachPi( p->pFrames, pObj, i )
-        printf( "%d", Aig_InfoHasBit( p->pPatWords, i ) );
-    printf( "\n" );
-*/
-}
-
-
 
 /**Function*************************************************************
 

@@ -3,6 +3,7 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigCone.c \
     src/aig/saig/saigDup.c \
     src/aig/saig/saigHaig.c \
+    src/aig/saig/saigInd.c \
     src/aig/saig/saigIoa.c \
     src/aig/saig/saigLoc.c \
     src/aig/saig/saigMiter.c \

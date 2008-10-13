@@ -42,6 +42,8 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct Ssw_Man_t_ Ssw_Man_t; // signal correspondence manager
+typedef struct Ssw_Frm_t_ Ssw_Frm_t; // unrolled frames manager
+typedef struct Ssw_Sat_t_ Ssw_Sat_t; // SAT solver manager
 typedef struct Ssw_Cla_t_ Ssw_Cla_t; // equivalence classe manager
 typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager
 
@@ -57,17 +59,10 @@ struct Ssw_Man_t_
     // equivalence classes
     Ssw_Cla_t *      ppClasses;      // equivalence classes of nodes
     int              fRefined;       // is set to 1 when refinement happens
-    int              nRefUse;        // the number of equivalences used
-    int              nRefSkip;       // the number of equivalences skipped  
-    // SAT solving
-    sat_solver *     pSat;           // recyclable SAT solver
-    int              nSatVars;       // the counter of SAT variables
-    Vec_Int_t *      vSatVars;       // mapping of each node into its SAT var
-    int              nSatVarsTotal;  // the total number of SAT vars created
-    Vec_Ptr_t *      vFanins;        // fanins of the CNF node
+    // SAT solving 
+    Ssw_Sat_t *      pMSatBmc;       // SAT manager for base case
+    Ssw_Sat_t *      pMSat;          // SAT manager for inductive case
     // SAT solving (latch corr only)
-    Vec_Ptr_t *      vUsedNodes;     // the nodes with SAT variables
-    Vec_Ptr_t *      vUsedPis;       // the PIs with SAT variables
     Vec_Ptr_t *      vSimInfo;       // simulation information for the framed PIs
     int              nPatterns;      // the number of patterns saved
     int              nSimRounds;     // the number of simulation rounds performed
@@ -81,7 +76,10 @@ struct Ssw_Man_t_
     // uniqueness
     Vec_Ptr_t *      vCommon;        // the set of common variables in the logic cones
     int              iOutputLit;     // the output literal of the uniqueness constaint
+    Vec_Int_t *      vDiffPairs;     // is set to 1 if reg pair can be diff
     int              nUniques;       // the number of uniqueness constaints used 
+    int              nUniquesAdded;  // useful uniqueness constraints
+    int              nUniquesUseful; // useful uniqueness constraints
     // sequential simulator
     Ssw_Sml_t *      pSml;
     // counter example storage
@@ -118,12 +116,35 @@ struct Ssw_Man_t_
     int              timeTotal;      // total runtime
 };
 
+// internal SAT manager
+struct Ssw_Sat_t_
+{
+    Aig_Man_t *      pAig;           // the AIG manager
+    int              fPolarFlip;     // flips polarity 
+    sat_solver *     pSat;           // recyclable SAT solver
+    int              nSatVars;       // the counter of SAT variables
+    Vec_Int_t *      vSatVars;       // mapping of each node into its SAT var
+    int              nSatVarsTotal;  // the total number of SAT vars created
+    Vec_Ptr_t *      vFanins;        // fanins of the CNF node
+    Vec_Ptr_t *      vUsedPis;       // the PIs with SAT variables 
+};
+
+// internal frames manager
+struct Ssw_Frm_t_
+{
+    Aig_Man_t *      pAig;           // user-given AIG
+    int              nObjs;          // offset in terms of AIG nodes
+    int              nFrames;        // the number of frames in current unrolling
+    Aig_Man_t *      pFrames;        // unrolled AIG
+    Vec_Ptr_t *      vAig2Frm;       // mapping of AIG nodes into frame nodes
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int  Ssw_ObjSatNum( Ssw_Man_t * p, Aig_Obj_t * pObj )             { return Vec_IntEntry( p->vSatVars, pObj->Id );         }
-static inline void Ssw_ObjSetSatNum( Ssw_Man_t * p, Aig_Obj_t * pObj, int Num ) { Vec_IntWriteEntryFill( p->vSatVars, pObj->Id, Num );  }
+static inline int  Ssw_ObjSatNum( Ssw_Sat_t * p, Aig_Obj_t * pObj )             { return Vec_IntGetEntry( p->vSatVars, pObj->Id );  }
+static inline void Ssw_ObjSetSatNum( Ssw_Sat_t * p, Aig_Obj_t * pObj, int Num ) { Vec_IntSetEntry(p->vSatVars, pObj->Id, Num);      }
 
 static inline int  Ssw_ObjIsConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj ) 
 {
@@ -141,15 +162,22 @@ static inline void        Ssw_ObjSetFrame( Ssw_Man_t * p, Aig_Obj_t * pObj, int 
 static inline Aig_Obj_t * Ssw_ObjChild0Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Ssw_ObjFrame(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj)) : NULL;  }
 static inline Aig_Obj_t * Ssw_ObjChild1Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Ssw_ObjFrame(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj)) : NULL;  }
 
+static inline Aig_Obj_t * Ssw_ObjFrame_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i )                       { return Vec_PtrGetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id );     }
+static inline void        Ssw_ObjSetFrame_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { Vec_PtrSetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id, pNode );     }
+
+static inline Aig_Obj_t * Ssw_ObjChild0Fra_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Ssw_ObjFrame_(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj)) : NULL;  }
+static inline Aig_Obj_t * Ssw_ObjChild1Fra_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Ssw_ObjFrame_(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj)) : NULL;  }
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== sswAig.c ===================================================*/
+extern Ssw_Frm_t *   Ssw_FrmStart( Aig_Man_t * pAig );
+extern void          Ssw_FrmStop( Ssw_Frm_t * p );
 extern Aig_Man_t *   Ssw_FramesWithClasses( Ssw_Man_t * p );
 extern Aig_Man_t *   Ssw_SpeculativeReduction( Ssw_Man_t * p );
 /*=== sswBmc.c ===================================================*/
-extern int           Ssw_FilterUsingBmc( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose );
 /*=== sswClass.c =================================================*/
 extern Ssw_Cla_t *   Ssw_ClassesStart( Aig_Man_t * pAig );
 extern void          Ssw_ClassesSetData( Ssw_Cla_t * p, void * pManData,
@@ -177,7 +205,10 @@ extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr
 extern int           Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive );
 extern int           Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive );
 /*=== sswCnf.c ===================================================*/
-extern void          Ssw_CnfNodeAddToSolver( Ssw_Man_t * p, Aig_Obj_t * pObj );
+extern Ssw_Sat_t *   Ssw_SatStart( int fPolarFlip );
+extern void          Ssw_SatStop( Ssw_Sat_t * p );
+extern void          Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj );
+extern int           Ssw_CnfGetNodeValue( Ssw_Sat_t * p, Aig_Obj_t * pObjFraig );
 /*=== sswCore.c ===================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p );
 /*=== sswLcorr.c ==========================================================*/
@@ -190,6 +221,8 @@ extern void          Ssw_ManStartSolver( Ssw_Man_t * p );
 /*=== sswSat.c ===================================================*/
 extern int           Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 extern int           Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
+/*=== sswSemi.c ===================================================*/
+extern int           Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose );
 /*=== sswSim.c ===================================================*/
 extern unsigned      Ssw_SmlObjHashWord( Ssw_Sml_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_SmlObjIsConstWord( Ssw_Sml_t * p, Aig_Obj_t * pObj );
@@ -214,6 +247,7 @@ extern int           Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, i
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );
 /*=== sswUnique.c ===================================================*/
+extern void          Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p );
 extern int           Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj );
 extern int           Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int f2 );
 

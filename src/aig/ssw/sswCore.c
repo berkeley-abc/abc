@@ -45,13 +45,13 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nPartSize      =       0;  // size of the partition
     p->nOverSize      =       0;  // size of the overlap between partitions
     p->nFramesK       =       1;  // the induction depth
-    p->nFramesAddSim  =       0;  // additional frames to simulate
+    p->nFramesAddSim  =       2;  // additional frames to simulate
     p->nConstrs       =       0;  // treat the last nConstrs POs as seq constraints
     p->nBTLimit       =    1000;  // conflict limit at a node
     p->nBTLimitGlobal = 5000000;  // conflict limit for all runs
     p->nMinDomSize    =     100;  // min clock domain considered for optimization
+    p->nItersStop     =       0;  // stop after the given number of iterations
     p->fPolarFlip     =       0;  // uses polarity adjustment
-    p->fSkipCheck     =       0;  // do not run equivalence check for unaffected cones
     p->fLatchCorr     =       0;  // performs register correspondence
     p->fSemiFormal    =       0;  // enable semiformal filtering
     p->fUniqueness    =       0;  // enable uniqueness constraints
@@ -111,7 +111,12 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     }
     if ( !p->pPars->fLatchCorr )
     { 
+        p->pMSat = Ssw_SatStart( 0 );
         Ssw_ManSweepBmc( p );
+        if ( p->pPars->nFramesK > 1 && p->pPars->fUniqueness )
+            Ssw_UniqueRegisterPairInfo( p );
+        Ssw_SatStop( p->pMSat );
+        p->pMSat = NULL;
         Ssw_ManCleanup( p );
     }
     if ( p->pPars->fVerbose )
@@ -120,20 +125,23 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
         Ssw_ClassesPrint( p->ppClasses, 0 );
     }
     // apply semi-formal filtering
+/*
     if ( p->pPars->fSemiFormal )
     {
         Aig_Man_t * pSRed;
-        Ssw_FilterUsingBmc( p, 0, 2000, p->pPars->fVerbose );
-//        Ssw_FilterUsingBmc( p, 1, 100000, p->pPars->fVerbose );
+        Ssw_FilterUsingSemi( p, 0, 2000, p->pPars->fVerbose );
+//        Ssw_FilterUsingSemi( p, 1, 100000, p->pPars->fVerbose );
         pSRed = Ssw_SpeculativeReduction( p );
         Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
         Aig_ManStop( pSRed );
     }
+*/
     // refine classes using induction
     nSatProof = nSatCallsSat = nRecycles = nSatFailsReal = 0;
     for ( nIter = 0; ; nIter++ )
     {
 clk = clock();
+        p->pMSat = Ssw_SatStart( 0 );
         if ( p->pPars->fLatchCorrOpt )
         {
             RetValue = Ssw_ManSweepLatch( p );
@@ -153,34 +161,32 @@ clk = clock();
         else
         {
             RetValue = Ssw_ManSweep( p );
-            p->pPars->nConflicts += p->pSat->stats.conflicts;
+            p->pPars->nConflicts += p->pMSat->pSat->stats.conflicts;
             if ( p->pPars->fVerbose )
             {
                 printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. U = %3d. F = %2d. ", 
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
                     p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nUniques, p->nSatFailsReal );
-                if ( p->pPars->fSkipCheck )
-                    printf( "Use = %5d. Skip = %5d. ", 
-                        p->nRefUse, p->nRefSkip );
                 PRT( "T", clock() - clk );
             } 
         }
+        Ssw_SatStop( p->pMSat );
+        p->pMSat = NULL;
         Ssw_ManCleanup( p );
-        if ( !RetValue )
+        if ( !RetValue ) 
             break;
-/*
-        {
-            static int Flag = 0;
-            if ( Flag++ == 4 && nIter == 4 )
-            {
-                Aig_Man_t * pSRed;
-                pSRed = Ssw_SpeculativeReduction( p );
-                Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
-                Aig_ManStop( pSRed );
-            }
-        }
-*/
 
+        if ( p->pPars->nItersStop && p->pPars->nItersStop == nIter )
+        {
+            Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
+            Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
+            Aig_ManStop( pSRed );
+            printf( "Iterative refinement is stopped after iteration %d.\n", nIter );
+            printf( "The network is reduced using candidate equivalences.\n" );
+            printf( "Speculatively reduced miter is saved in file \"%s\".\n", "srm.blif" );
+            printf( "If the miter is SAT, the reduced result is incorrect.\n" );
+            break;
+        }
     } 
     p->pPars->nIters = nIter + 1;
 p->timeTotal = clock() - clkTotal;
@@ -224,6 +230,13 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         return Aig_ManDupOrdered(pAig);
     }
     // check and update parameters
+    if ( pPars->fUniqueness )
+    {
+        pPars->nFramesAddSim = 0;
+        if ( pPars->nFramesK != 2 )
+            printf( "Setting K = 2 for uniqueness constaints to work.\n" );
+        pPars->nFramesK = 2;
+    }
     if ( pPars->fLatchCorrOpt )
     {
         pPars->fLatchCorr = 1;
@@ -232,8 +245,6 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     else
     {
         assert( pPars->nFramesK > 0 );
-        if ( pPars->nFramesK > 1 )
-            pPars->fSkipCheck = 0;
         // perform partitioning
         if ( (pPars->nPartSize > 0 && pPars->nPartSize < Aig_ManRegNum(pAig))
              || (pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0)  )
@@ -259,6 +270,9 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     }
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );    
+    if ( pPars->fUniqueness )
+        printf( "Uniqueness constaint = %3d. Prevented counter-examples = %3d.\n", 
+            p->nUniquesAdded, p->nUniquesUseful );
     // cleanup
     Ssw_ManStop( p );
     return pAigNew;

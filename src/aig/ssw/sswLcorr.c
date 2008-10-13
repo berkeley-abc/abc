@@ -31,48 +31,6 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Recycles the SAT solver.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_ManSatSolverRecycle( Ssw_Man_t * p )
-{
-    int Lit;
-    if ( p->pSat )
-    {
-        Aig_Obj_t * pObj;
-        int i;
-        Vec_PtrForEachEntry( p->vUsedNodes, pObj, i )
-            Ssw_ObjSetSatNum( p, pObj, 0 );
-        Vec_PtrClear( p->vUsedNodes );
-        Vec_PtrClear( p->vUsedPis );
-//        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAigTotal) );
-        sat_solver_delete( p->pSat );
-    }
-    p->pSat = sat_solver_new();
-    sat_solver_setnvars( p->pSat, 1000 );
-    // var 0 is not used
-    // var 1 is reserved for const1 node - add the clause
-    p->nSatVars = 1;
-//    p->nSatVars = 0;
-    Lit = toLit( p->nSatVars );
-    if ( p->pPars->fPolarFlip )
-        Lit = lit_neg( Lit );
-    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    Ssw_ObjSetSatNum( p, Aig_ManConst1(p->pFrames), p->nSatVars++ );
-
-    p->nRecycles++;
-    p->nRecycleCalls = 0;
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Tranfers simulation information from FRAIG to AIG.]
 
   Description []
@@ -148,11 +106,11 @@ void Ssw_SmlAddPattern( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pCand )
     Aig_Obj_t * pObj;
     unsigned * pInfo;
     int i, nVarNum, Value;
-    Vec_PtrForEachEntry( p->vUsedPis, pObj, i )
+    Vec_PtrForEachEntry( p->pMSat->vUsedPis, pObj, i )
     {
-        nVarNum = Ssw_ObjSatNum( p, pObj );
+        nVarNum = Ssw_ObjSatNum( p->pMSat, pObj );
         assert( nVarNum > 0 );
-        Value = sat_solver_var_value( p->pSat, nVarNum );
+        Value = sat_solver_var_value( p->pMSat->pSat, nVarNum );
         if ( Value == 0 )
             continue;
         pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
@@ -339,9 +297,14 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
             Ssw_ManSweepResimulate( p );
         // attempt recycling the SAT solver
         if ( p->pPars->nSatVarMax && 
-             p->nSatVars > p->pPars->nSatVarMax &&
+             p->pMSat->nSatVars > p->pPars->nSatVarMax &&
              p->nRecycleCalls > p->pPars->nRecycleCalls )
-             Ssw_ManSatSolverRecycle( p );
+        {
+            Ssw_SatStop( p->pMSat );
+            p->pMSat = Ssw_SatStart( 0 );
+            p->nRecycles++;
+            p->nRecycleCalls = 0;
+        }
     }
     // resimulate
     if ( p->nPatterns > 0 )

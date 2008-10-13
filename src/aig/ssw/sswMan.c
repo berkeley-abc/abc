@@ -53,12 +53,6 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     p->pAig          = pAig;
     p->nFrames       = pPars->nFramesK + 1;
     p->pNodeToFrames = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
-    // SAT solving
-    p->vSatVars      = Vec_IntStart( Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
-    p->vFanins       = Vec_PtrAlloc( 100 );
-    // SAT solving (latch corr only)
-    p->vUsedNodes    = Vec_PtrAlloc( 1000 );
-    p->vUsedPis      = Vec_PtrAlloc( 1000 );
     p->vCommon       = Vec_PtrAlloc( 100 );
     p->iOutputLit    = -1;
     // allocate storage for sim pattern
@@ -106,11 +100,11 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
         p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->nMaxLevs, nMemory );
     printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
         Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
-        p->nSatVarsTotal/p->pPars->nIters );
+        0/p->pPars->nIters );
     printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Equivs = %d. Str = %d.\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFailsTotal, Ssw_ManCountEquivs(p), p->nStrangers );
     printf( "SAT solver: Vars = %d. Max cone = %d. Recycles = %d. Rounds = %d.\n", 
-        p->nSatVars, p->nConeMax, p->nRecycles, p->nSimRounds );
+        0, p->nConeMax, p->nRecycles, p->nSimRounds );
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
@@ -141,22 +135,13 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManCleanup( Ssw_Man_t * p )
 {
+    assert( p->pMSat == NULL );
     if ( p->pFrames )
     {
+        Aig_ManCleanMarkA( p->pFrames );
         Aig_ManStop( p->pFrames );
         p->pFrames = NULL;
         memset( p->pNodeToFrames, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
-    }
-    if ( p->pSat )
-    {
-        int i;
-//        printf( "Vars = %d. Clauses = %d. Learnts = %d.\n", p->pSat->size, p->pSat->clauses.size, p->pSat->learnts.size );
-        p->nSatVarsTotal += p->pSat->size;
-        sat_solver_delete( p->pSat );
-        p->pSat = NULL;
-//        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) * (p->nFrames+1) );
-        for ( i = 0; i < Vec_IntSize(p->vSatVars); i++ )
-            p->vSatVars->pArray[i] = 0;
     }
     if ( p->vSimInfo )  
     {
@@ -188,44 +173,12 @@ void Ssw_ManStop( Ssw_Man_t * p )
         Ssw_ClassesStop( p->ppClasses );
     if ( p->pSml )      
         Ssw_SmlStop( p->pSml );
-    Vec_PtrFree( p->vFanins );
-    Vec_PtrFree( p->vUsedNodes );
-    Vec_PtrFree( p->vUsedPis );
-    Vec_IntFree( p->vSatVars );
+    if ( p->vDiffPairs )
+        Vec_IntFree( p->vDiffPairs );
     Vec_PtrFree( p->vCommon );
     FREE( p->pNodeToFrames );
     FREE( p->pPatWords );
     free( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Starts the SAT solver.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_ManStartSolver( Ssw_Man_t * p )
-{
-    int Lit;
-    assert( p->pSat == NULL );
-    p->pSat = sat_solver_new();
-    sat_solver_setnvars( p->pSat, 1000 );
-    // var 0 is not used
-    // var 1 is reserved for const1 node - add the clause
-    p->nSatVars = 1;
-    Lit = toLit( p->nSatVars );
-    if ( p->pPars->fPolarFlip )
-        Lit = lit_neg( Lit );
-    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    Ssw_ObjSetSatNum( p, Aig_ManConst1(p->pAig), p->nSatVars++ );
-
-    Vec_PtrClear( p->vUsedNodes );
-    Vec_PtrClear( p->vUsedPis );
 }
 
 ////////////////////////////////////////////////////////////////////////

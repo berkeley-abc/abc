@@ -382,12 +382,12 @@ static inline void Vec_IntGrow( Vec_Int_t * p, int nCapMin )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntFill( Vec_Int_t * p, int nSize, int Entry )
+static inline void Vec_IntFill( Vec_Int_t * p, int nSize, int Fill )
 {
     int i;
     Vec_IntGrow( p, nSize );
     for ( i = 0; i < nSize; i++ )
-        p->pArray[i] = Entry;
+        p->pArray[i] = Fill;
     p->nSize = nSize;
 }
 
@@ -402,20 +402,23 @@ static inline void Vec_IntFill( Vec_Int_t * p, int nSize, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Entry )
+static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Fill )
 {
     int i;
     if ( p->nSize >= nSize )
         return;
-    Vec_IntGrow( p, nSize );
+    if ( 2 * p->nSize > nSize )
+        Vec_IntGrow( p, 2 * nSize );
+    else
+        Vec_IntGrow( p, nSize );
     for ( i = p->nSize; i < nSize; i++ )
-        p->pArray[i] = Entry;
+        p->pArray[i] = Fill;
     p->nSize = nSize;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns the entry even if the place not exist.]
 
   Description []
                
@@ -424,11 +427,26 @@ static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntWriteEntryFill( Vec_Int_t * p, int i, int Entry )
+static inline int Vec_IntGetEntry( Vec_Int_t * p, int i )
 {
-    assert( i >= 0 );
-    if ( i >= p->nSize )
-        Vec_IntFillExtra( p, 2 * i, 0 );
+    Vec_IntFillExtra( p, i + 1, 0 );
+    return Vec_IntEntry( p, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts the entry even if the place does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntSetEntry( Vec_Int_t * p, int i, int Entry )
+{
+    Vec_IntFillExtra( p, i + 1, 0 );
     Vec_IntWriteEntry( p, i, Entry );
 }
 

@@ -215,7 +215,7 @@ static int Abc_CommandBmc            ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandBmcInter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIndcut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEnlarge        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandLocalize       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInduction      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -483,7 +483,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "int",           Abc_CommandBmcInter,         0 );
     Cmd_CommandAdd( pAbc, "Verification", "indcut",        Abc_CommandIndcut,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
-    Cmd_CommandAdd( pAbc, "Verification", "loc",           Abc_CommandLocalize,         0 );
+    Cmd_CommandAdd( pAbc, "Verification", "ind",           Abc_CommandInduction,        0 );
 
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
@@ -620,7 +620,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     fDumpResult = 0;
     fUseLutLib = 0;
     fPrintTime = 0;
-    fPrintMuxes = 1;
+    fPrintMuxes = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "fbdltmh" ) ) != EOF )
     {
@@ -7936,7 +7936,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 
-/*
+
     pNtkRes = Abc_NtkDarTestNtk( pNtk );
     if ( pNtkRes == NULL )
     {
@@ -7945,9 +7945,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
 
-    Abc_NtkDarTest( pNtk );
+
+//    Abc_NtkDarTest( pNtk );
 
     return 0;
 usage:
@@ -13559,7 +13559,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSplsfuvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSIplfuvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13640,14 +13640,22 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nFramesAddSim < 0 ) 
                 goto usage;
             break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nItersStop = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nItersStop < 0 ) 
+                goto usage;
+            break;
         case 'p':
             pPars->fPolarFlip ^= 1;
             break;
         case 'l':
             pPars->fLatchCorr ^= 1;
-            break;
-        case 's':
-            pPars->fSkipCheck ^= 1;
             break;
         case 'f':
             pPars->fSemiFormal ^= 1;
@@ -13710,7 +13718,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scorr [-PQFCLNS <num>] [-plsfuvwh]\n" );
+    fprintf( pErr, "usage: scorr [-PQFCLNSI <num>] [-plfuvwh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -13719,10 +13727,10 @@ usage:
     fprintf( pErr, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
     fprintf( pErr, "\t-N num : number of last POs treated as constraints (0=none) [default = %d]\n", pPars->nConstrs );
     fprintf( pErr, "\t-S num : additional simulation frames for c-examples (0=none) [default = %d]\n", pPars->nFramesAddSim );
+    fprintf( pErr, "\t-I num : iteration number to stop and output SR-model (0=none) [default = %d]\n", pPars->nItersStop );
     fprintf( pErr, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
-    fprintf( pErr, "\t-s     : toggle skipping unaffected cones [default = %s]\n", pPars->fSkipCheck? "yes": "no" );
-    fprintf( pErr, "\t-f     : toggle filtering using interative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
+//    fprintf( pErr, "\t-f     : toggle filtering using interative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
     fprintf( pErr, "\t-u     : toggle using uniqueness constraints [default = %s]\n", pPars->fUniqueness? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggle printout of flop equivalences [default = %s]\n", pPars->fFlopVerbose? "yes": "no" );
@@ -16560,7 +16568,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandLocalize( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -16575,8 +16583,8 @@ int Abc_CommandLocalize( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFramesMax =    50;
-    nConfMax   =   500;
+    nFramesMax =   100;
+    nConfMax   =  1000;
     fVerbose   =     0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FCvh" ) ) != EOF )
@@ -16639,8 +16647,8 @@ int Abc_CommandLocalize( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_NtkDarLocalize( pNtk, nFramesMax, nConfMax, fVerbose );
     return 0;
 usage:
-    fprintf( pErr, "usage: loc [-FC num] [-vh]\n" );
-    fprintf( pErr, "\t         performs localization for single-output miter\n" );
+    fprintf( pErr, "usage: ind [-FC num] [-vh]\n" );
+    fprintf( pErr, "\t         runs K-step induction for the property output\n" );
     fprintf( pErr, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
     fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -19121,7 +19129,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSDplsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSDplvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19219,9 +19227,6 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'l':
             pPars->fLatchCorr ^= 1;
             break;
-        case 's':
-            pPars->fSkipCheck ^= 1;
-            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -19268,7 +19273,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *scorr [-PQFCLNSD <num>] [-plsvh]\n" );
+    fprintf( stdout, "usage: *scorr [-PQFCLNSD <num>] [-plvh]\n" );
     fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -19280,7 +19285,6 @@ usage:
     fprintf( stdout, "\t-D num : min size of a clock domain used for synthesis [default = %d]\n", pPars->nMinDomSize );
     fprintf( stdout, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
-    fprintf( stdout, "\t-s     : toggle skipping unaffected cones [default = %s]\n", pPars->fSkipCheck? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;

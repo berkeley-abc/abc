@@ -1122,6 +1122,86 @@ unsigned Aig_ManRandom( int fReset )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the result of merging the two vectors.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_NodeUnionLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr )
+{
+    Aig_Obj_t ** pBeg  = (Aig_Obj_t **)vArr->pArray;
+    Aig_Obj_t ** pBeg1 = (Aig_Obj_t **)vArr1->pArray;
+    Aig_Obj_t ** pBeg2 = (Aig_Obj_t **)vArr2->pArray;
+    Aig_Obj_t ** pEnd1 = (Aig_Obj_t **)vArr1->pArray + vArr1->nSize;
+    Aig_Obj_t ** pEnd2 = (Aig_Obj_t **)vArr2->pArray + vArr2->nSize;
+    Vec_PtrGrow( vArr, Vec_PtrSize(vArr1) + Vec_PtrSize(vArr2) );
+    pBeg  = (Aig_Obj_t **)vArr->pArray;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( (*pBeg1)->Id == (*pBeg2)->Id )
+            *pBeg++ = *pBeg1++, pBeg2++;
+        else if ( (*pBeg1)->Id < (*pBeg2)->Id )
+            *pBeg++ = *pBeg1++;
+        else 
+            *pBeg++ = *pBeg2++;
+    }
+    while ( pBeg1 < pEnd1 )
+        *pBeg++ = *pBeg1++;
+    while ( pBeg2 < pEnd2 )
+        *pBeg++ = *pBeg2++;
+    vArr->nSize = pBeg - (Aig_Obj_t **)vArr->pArray;
+    assert( vArr->nSize <= vArr->nCap );
+    assert( vArr->nSize >= vArr1->nSize );
+    assert( vArr->nSize >= vArr2->nSize );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the result of intersecting the two vectors.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr )
+{
+    Aig_Obj_t ** pBeg  = (Aig_Obj_t **)vArr->pArray;
+    Aig_Obj_t ** pBeg1 = (Aig_Obj_t **)vArr1->pArray;
+    Aig_Obj_t ** pBeg2 = (Aig_Obj_t **)vArr2->pArray;
+    Aig_Obj_t ** pEnd1 = (Aig_Obj_t **)vArr1->pArray + vArr1->nSize;
+    Aig_Obj_t ** pEnd2 = (Aig_Obj_t **)vArr2->pArray + vArr2->nSize;
+    Vec_PtrGrow( vArr, AIG_MAX( Vec_PtrSize(vArr1), Vec_PtrSize(vArr2) ) );
+    pBeg  = (Aig_Obj_t **)vArr->pArray;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( (*pBeg1)->Id == (*pBeg2)->Id )
+            *pBeg++ = *pBeg1++, pBeg2++;
+        else if ( (*pBeg1)->Id < (*pBeg2)->Id )
+//            *pBeg++ = *pBeg1++;
+            pBeg1++;
+        else 
+//            *pBeg++ = *pBeg2++;
+            pBeg2++;
+    }
+//    while ( pBeg1 < pEnd1 )
+//        *pBeg++ = *pBeg1++;
+//    while ( pBeg2 < pEnd2 )
+//        *pBeg++ = *pBeg2++;
+    vArr->nSize = pBeg - (Aig_Obj_t **)vArr->pArray;
+    assert( vArr->nSize <= vArr->nCap );
+    assert( vArr->nSize <= vArr1->nSize );
+    assert( vArr->nSize <= vArr2->nSize );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

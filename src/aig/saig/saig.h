@@ -87,6 +87,8 @@ extern Aig_Man_t *       Said_ManDupOrpos( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops );
 /*=== saigHaig.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
+/*=== saigInd.c ==========================================================*/
+extern int               Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose );
 /*=== saigIoa.c ==========================================================*/
 extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );

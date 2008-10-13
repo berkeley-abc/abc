@@ -50,8 +50,8 @@ struct Ssw_Pars_t_
     int              nBTLimit;      // conflict limit at a node
     int              nBTLimitGlobal;// conflict limit for multiple runs
     int              nMinDomSize;   // min clock domain considered for optimization
+    int              nItersStop;    // stop after the given number of iterations
     int              fPolarFlip;    // uses polarity adjustment
-    int              fSkipCheck;    // do not run equivalence check for unaffected cones
     int              fLatchCorr;    // perform register correspondence
     int              fSemiFormal;   // enable semiformal filtering
     int              fUniqueness;   // enable uniqueness constraints
@@ -88,13 +88,13 @@ struct Ssw_Cex_t_
 
 /*=== sswAbs.c ==========================================================*/
 extern Aig_Man_t *   Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose );
+/*=== sswBmc.c ==========================================================*/
+extern int           Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbose, int * piFrame );
 /*=== sswCore.c ==========================================================*/
 extern void          Ssw_ManSetDefaultParams( Ssw_Pars_t * p );
 extern void          Ssw_ManSetDefaultParamsLcorr( Ssw_Pars_t * p );
 extern Aig_Man_t *   Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 extern Aig_Man_t *   Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
-/*=== sswLoc.c ==========================================================*/
-extern int           Saig_ManLocalization( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose );
 /*=== sswMiter.c ===================================================*/
 extern int           Ssw_SecSpecialMiter( Aig_Man_t * pMiter, int fVerbose );
 /*=== sswPart.c ==========================================================*/

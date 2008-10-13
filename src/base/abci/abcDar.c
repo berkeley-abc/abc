@@ -1465,7 +1465,7 @@ Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, in
 int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose )
 {
     Aig_Man_t * pMan;
-    int RetValue = -1, clk = clock();
+    int status, RetValue = -1, clk = clock();
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -1494,6 +1494,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
     }
     else
     {
+/*
         Fra_BmcPerformSimple( pMan, nFrames, nBTLimit, fRewrite, fVerbose );
         FREE( pNtk->pModel );
         FREE( pNtk->pSeqModel );
@@ -1509,8 +1510,30 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
             printf( "No output was asserted in %d frames. ", nFrames );
             RetValue = 1;
         }
+*/
+        int iFrame;
+        RetValue = Ssw_BmcDynamic( pMan, nFrames, nBTLimit, fVerbose, &iFrame );
+        FREE( pNtk->pModel );
+        FREE( pNtk->pSeqModel );
+        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+        if ( RetValue == 1 )
+            printf( "No output was asserted in %d frames. ", iFrame );
+        else if ( RetValue == -1 )
+            printf( "No output was asserted in %d frames. Reached conflict limit (%d). ", iFrame, nBTLimit );
+        else // if ( RetValue == 0 )
+        {
+            Fra_Cex_t * pCex = pNtk->pSeqModel;
+            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
+        }
     }
 PRT( "Time", clock() - clk );
+    // verify counter-example
+    if ( pNtk->pSeqModel ) 
+    {
+        status = Ssw_SmlRunCounterExample( pMan, pNtk->pSeqModel );
+        if ( status == 0 )
+            printf( "Abc_NtkDarBmc(): Counter-example verification has FAILED.\n" );
+    }
     Aig_ManStop( pMan );
     return RetValue;
 }
@@ -2128,7 +2151,7 @@ void Abc_NtkDarLocalize( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVe
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return;
-    RetValue = Saig_ManLocalization( pTemp = pMan, nFramesMax, nConfMax, fVerbose );
+    RetValue = Saig_ManInduction( pTemp = pMan, nFramesMax, nConfMax, fVerbose );
     Aig_ManStop( pTemp );
     if ( RetValue == 1 )
     {
