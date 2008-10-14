@@ -60,6 +60,9 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->fLatchCorrOpt  =       0;  // performs optimized register correspondence
     p->nSatVarMax     =    1000;  // the max number of SAT variables
     p->nRecycleCalls  =      50;  // calls to perform before recycling SAT solver
+    // signal correspondence
+    p->nSatVarMax2    =    5000;  // the max number of SAT variables
+    p->nRecycleCalls2 =     250;  // calls to perform before recycling SAT solver
     // return values
     p->nIters         =       0;  // the number of iterations performed
 }
@@ -95,7 +98,7 @@ void Ssw_ManSetDefaultParamsLcorr( Ssw_Pars_t * p )
 ***********************************************************************/
 Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
 {
-    int nSatProof, nSatCallsSat, nRecycles, nSatFailsReal;
+    int nSatProof, nSatCallsSat, nRecycles, nSatFailsReal, nUniques;
     Aig_Man_t * pAigNew;
     int RetValue, nIter;
     int clk, clkTotal = clock();
@@ -137,7 +140,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     }
 */
     // refine classes using induction
-    nSatProof = nSatCallsSat = nRecycles = nSatFailsReal = 0;
+    nSatProof = nSatCallsSat = nRecycles = nSatFailsReal = nUniques = 0;
     for ( nIter = 0; ; nIter++ )
     {
 clk = clock();
@@ -147,29 +150,44 @@ clk = clock();
             RetValue = Ssw_ManSweepLatch( p );
             if ( p->pPars->fVerbose )
             {
-                printf( "%3d : Const = %6d. Cl = %6d. Pr = %5d. Cex = %5d. Rcl = %3d. F = %3d. ", 
+                printf( "%3d : C =%7d. Cl =%7d. Pr =%6d. Cex =%5d. Rcl = %3d. F = %3d. ", 
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
                     p->nSatProof-nSatProof, p->nSatCallsSat-nSatCallsSat, 
                     p->nRecycles-nRecycles, p->nSatFailsReal-nSatFailsReal );
                 PRT( "T", clock() - clk );
-                nSatProof     = p->nSatProof;
-                nSatCallsSat  = p->nSatCallsSat;
-                nRecycles     = p->nRecycles;
-                nSatFailsReal = p->nSatFailsReal;
             } 
         }
         else
         {
-            RetValue = Ssw_ManSweep( p );
+            if ( p->pPars->fDynamic )
+                RetValue = Ssw_ManSweepDyn( p );
+            else
+                RetValue = Ssw_ManSweep( p );
             p->pPars->nConflicts += p->pMSat->pSat->stats.conflicts;
             if ( p->pPars->fVerbose )
             {
-                printf( "%3d : Const = %6d. Cl = %6d. LR = %6d. NR = %6d. U = %3d. F = %2d. ", 
+                printf( "%3d : C =%7d. Cl =%7d. LR =%6d. NR =%6d. ", 
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
-                    p->nConstrReduced, Aig_ManNodeNum(p->pFrames), p->nUniques, p->nSatFailsReal );
+                    p->nConstrReduced, Aig_ManNodeNum(p->pFrames) );
+                if ( p->pPars->fUniqueness )
+                    printf( "U =%4d. ", p->nUniques-nUniques );
+                else if ( p->pPars->fDynamic )
+                {
+                    printf( "Cex =%5d. ", p->nSatCallsSat-nSatCallsSat );
+                    printf( "R =%3d. ",   p->nRecycles-nRecycles );
+                }
+                printf( "F =%3d. ", p->nSatFailsReal-nSatFailsReal );
                 PRT( "T", clock() - clk );
             } 
         }
+        nSatProof     = p->nSatProof;
+        nSatCallsSat  = p->nSatCallsSat;
+        nRecycles     = p->nRecycles;
+        nSatFailsReal = p->nSatFailsReal;
+        nUniques      = p->nUniques;
+
+        p->nVarsMax  = AIG_MAX( p->nVarsMax,  p->pMSat->nSatVars );
+        p->nCallsMax = AIG_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
         Ssw_SatStop( p->pMSat );
         p->pMSat = NULL;
         Ssw_ManCleanup( p );
@@ -234,13 +252,12 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     {
         pPars->nFramesAddSim = 0;
         if ( pPars->nFramesK != 2 )
-            printf( "Setting K = 2 for uniqueness constaints to work.\n" );
+            printf( "Setting K = 2 for uniqueness constraints to work.\n" );
         pPars->nFramesK = 2;
     }
     if ( pPars->fLatchCorrOpt )
     {
         pPars->fLatchCorr = 1;
-        pPars->nFramesAddSim = 0;
     }
     else
     {
@@ -259,7 +276,12 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         // perform one round of seq simulation and generate candidate equivalence classes
         p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
 //        p->ppClasses = Ssw_ClassesPrepareTargets( pAig );
-        p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
+        if ( pPars->fLatchCorrOpt )
+            p->pSml = Ssw_SmlStart( pAig, 0, 2, 1 );
+        else if ( pPars->fDynamic )
+            p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
+        else
+            p->pSml = Ssw_SmlStart( pAig, 0, 1 + p->pPars->nFramesAddSim, 1 );
         Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
     }
     else
@@ -271,7 +293,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );    
     if ( pPars->fUniqueness )
-        printf( "Uniqueness constaint = %3d. Prevented counter-examples = %3d.\n", 
+        printf( "Uniqueness constraints = %3d. Prevented counter-examples = %3d.\n", 
             p->nUniquesAdded, p->nUniquesUseful );
     // cleanup
     Ssw_ManStop( p );

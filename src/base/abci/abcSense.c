@@ -140,7 +140,7 @@ Abc_Ntk_t * Abc_NtkSensitivityMiter( Abc_Ntk_t * pNtk, int iVar )
 
 /**Function*************************************************************
 
-  Synopsis    [Computing sensitivity of POs to POs under constaints.]
+  Synopsis    [Computing sensitivity of POs to POs under constraints.]
 
   Description [The input network is a combinatonal AIG. The last output
   is a constraint. The procedure returns the list of number of PIs, 

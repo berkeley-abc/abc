@@ -634,6 +634,7 @@ extern int             Aig_ManLevels( Aig_Man_t * p );
 extern void            Aig_ManResetRefs( Aig_Man_t * p );
 extern void            Aig_ManCleanMarkA( Aig_Man_t * p );
 extern void            Aig_ManCleanMarkB( Aig_Man_t * p );
+extern void            Aig_ManCleanMarkAB( Aig_Man_t * p );
 extern void            Aig_ManCleanData( Aig_Man_t * p );
 extern void            Aig_ObjCleanData_rec( Aig_Obj_t * pObj );
 extern void            Aig_ObjCollectMulti( Aig_Obj_t * pFunc, Vec_Ptr_t * vSuper );

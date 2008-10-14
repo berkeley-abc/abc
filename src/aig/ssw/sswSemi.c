@@ -267,7 +267,7 @@ int Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int 
     }
     if ( fVerbose )
     {
-        printf( "AIG : Const = %6d. Cl = %6d. Nodes = %6d.  ConfMax = %6d. FramesMax = %6d.\n", 
+        printf( "AIG : C = %6d. Cl = %6d. Nodes = %6d.  ConfMax = %6d. FramesMax = %6d.\n", 
             Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
             Aig_ManNodeNum(p->pMan->pAig), p->nConfMax, p->nFramesSweep );
     } 
@@ -279,7 +279,7 @@ clk = clock();
         Frames = Ssw_ManFilterBmc( p, Iter, fCheckTargets );
         if ( fVerbose )
         {
-            printf( "%3d : Const = %6d. Cl = %6d. NR = %6d. F = %3d. C = %5d. P = %3d. %s ", 
+            printf( "%3d : C = %6d. Cl = %6d. NR = %6d. F = %3d. C = %5d. P = %3d. %s ", 
                 Iter, Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
                 Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pMSat->pSat->stats.conflicts, p->nPatterns, 
                 p->pMan->nSatFailsReal? "f" : " " );
@@ -300,7 +300,6 @@ clk = clock();
     pMan->nSatCalls = 0;
     pMan->nSatProof = 0;
     pMan->nSatFailsReal = 0; 
-    pMan->nSatFailsTotal = 0;
     pMan->nSatCallsUnsat = 0;
     pMan->nSatCallsSat = 0;  
     pMan->timeSimSat = 0;    

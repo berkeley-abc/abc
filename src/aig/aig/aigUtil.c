@@ -168,6 +168,25 @@ void Aig_ManCleanMarkB( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Cleans fMarkB.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCleanMarkAB( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachObj( p, pObj, i )
+        pObj->fMarkA = pObj->fMarkB = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Cleans the data pointers for the nodes.]
 
   Description []

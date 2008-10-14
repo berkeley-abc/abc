@@ -58,6 +58,9 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     // allocate storage for sim pattern
     p->nPatWords     = Aig_BitWordNum( Saig_ManPiNum(pAig) * p->nFrames + Saig_ManRegNum(pAig) );
     p->pPatWords     = ALLOC( unsigned, p->nPatWords ); 
+    // other
+    p->vNewLos       = Vec_PtrAlloc( 100 );
+    p->vNewPos       = Vec_IntAlloc( 100 );
     return p;
 }
 
@@ -101,10 +104,10 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
     printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
         Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
         0/p->pPars->nIters );
-    printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Equivs = %d. Str = %d.\n", 
-        p->nSatProof, p->nSatCallsSat, p->nSatFailsTotal, Ssw_ManCountEquivs(p), p->nStrangers );
-    printf( "SAT solver: Vars = %d. Max cone = %d. Recycles = %d. Rounds = %d.\n", 
-        0, p->nConeMax, p->nRecycles, p->nSimRounds );
+    printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Lits proved = %d.\n", 
+        p->nSatProof, p->nSatCallsSat, p->nSatFailsReal, Ssw_ManCountEquivs(p) );
+    printf( "SAT solver: Vars max = %d. Calls max = %d. Recycles = %d. Sim rounds = %d.\n", 
+        p->nVarsMax, p->nCallsMax, p->nRecyclesTotal, p->nSimRounds );
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
@@ -135,10 +138,11 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManCleanup( Ssw_Man_t * p )
 {
+//    Aig_ManCleanMarkAB( p->pAig );
     assert( p->pMSat == NULL );
     if ( p->pFrames )
     {
-        Aig_ManCleanMarkA( p->pFrames );
+        Aig_ManCleanMarkAB( p->pFrames );
         Aig_ManStop( p->pFrames );
         p->pFrames = NULL;
         memset( p->pNodeToFrames, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) * p->nFrames );
@@ -165,8 +169,6 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManStop( Ssw_Man_t * p )
 {
-    Aig_ManCleanMarkA( p->pAig );
-    Aig_ManCleanMarkB( p->pAig );
     if ( p->pPars->fVerbose )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )
@@ -175,6 +177,8 @@ void Ssw_ManStop( Ssw_Man_t * p )
         Ssw_SmlStop( p->pSml );
     if ( p->vDiffPairs )
         Vec_IntFree( p->vDiffPairs );
+    Vec_PtrFree( p->vNewLos );
+    Vec_IntFree( p->vNewPos );
     Vec_PtrFree( p->vCommon );
     FREE( p->pNodeToFrames );
     FREE( p->pPatWords );

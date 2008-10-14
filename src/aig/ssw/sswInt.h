@@ -72,14 +72,20 @@ struct Ssw_Man_t_
     int              nCallsUnsat;    // the number of UNSAT calls in this round
     int              nRecycleCalls;  // the number of calls since last recycling
     int              nRecycles;      // the number of time SAT solver was recycled
-    int              nConeMax;       // the maximum cone size
+    int              nRecyclesTotal; // the number of time SAT solver was recycled
+    int              nVarsMax;       // the maximum variables in the solver
+    int              nCallsMax;      // the maximum number of SAT calls
     // uniqueness
     Vec_Ptr_t *      vCommon;        // the set of common variables in the logic cones
-    int              iOutputLit;     // the output literal of the uniqueness constaint
+    int              iOutputLit;     // the output literal of the uniqueness constraint
     Vec_Int_t *      vDiffPairs;     // is set to 1 if reg pair can be diff
-    int              nUniques;       // the number of uniqueness constaints used 
+    int              nUniques;       // the number of uniqueness constraints used 
     int              nUniquesAdded;  // useful uniqueness constraints
     int              nUniquesUseful; // useful uniqueness constraints
+    // dynamic constraint addition
+    int              nSRMiterMaxId;  // max ID after which the last frame begins
+    Vec_Ptr_t *      vNewLos;        // new time frame LOs of to constrain
+    Vec_Int_t *      vNewPos;        // new time frame POs of to add constraints
     // sequential simulator
     Ssw_Sml_t *      pSml;
     // counter example storage
@@ -93,7 +99,6 @@ struct Ssw_Man_t_
     int              nSatCalls;      // the number of SAT calls
     int              nSatProof;      // the number of proofs
     int              nSatFailsReal;  // the number of timeouts
-    int              nSatFailsTotal; // the number of timeouts
     int              nSatCallsUnsat; // the number of unsat SAT calls
     int              nSatCallsSat;   // the number of sat SAT calls
     // node/register/lit statistics
@@ -124,9 +129,9 @@ struct Ssw_Sat_t_
     sat_solver *     pSat;           // recyclable SAT solver
     int              nSatVars;       // the counter of SAT variables
     Vec_Int_t *      vSatVars;       // mapping of each node into its SAT var
-    int              nSatVarsTotal;  // the total number of SAT vars created
     Vec_Ptr_t *      vFanins;        // fanins of the CNF node
     Vec_Ptr_t *      vUsedPis;       // the PIs with SAT variables 
+    int              nSolverCalls;   // the total number of SAT calls
 };
 
 // internal frames manager
@@ -211,6 +216,9 @@ extern void          Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_CnfGetNodeValue( Ssw_Sat_t * p, Aig_Obj_t * pObjFraig );
 /*=== sswCore.c ===================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p );
+/*=== sswDyn.c ===================================================*/
+extern void          Ssw_ManLoadSolver( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj );
+extern int           Ssw_ManSweepDyn( Ssw_Man_t * p );
 /*=== sswLcorr.c ==========================================================*/
 extern int           Ssw_ManSweepLatch( Ssw_Man_t * p );
 /*=== sswMan.c ===================================================*/
@@ -229,15 +237,18 @@ extern int           Ssw_SmlObjIsConstWord( Ssw_Sml_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 extern int           Ssw_SmlObjIsConstBit( void * p, Aig_Obj_t * pObj );
 extern int           Ssw_SmlObjsAreEqualBit( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
+extern void          Ssw_SmlAssignRandomFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame );
 extern Ssw_Sml_t *   Ssw_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame );
 extern void          Ssw_SmlClean( Ssw_Sml_t * p );
 extern void          Ssw_SmlStop( Ssw_Sml_t * p );
+extern int           Ssw_SmlNumFrames( Ssw_Sml_t * p );
 extern void          Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFrame );
 extern void          Ssw_SmlObjSetWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, unsigned Word, int iWord, int iFrame );
 extern void          Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat );
 extern void          Ssw_SmlSimulateOne( Ssw_Sml_t * p );
 extern void          Ssw_SmlSimulateOneFrame( Ssw_Sml_t * p );
 extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
+extern void          Ssw_SmlResimulateSeq( Ssw_Sml_t * p );
 /*=== sswSimSat.c ===================================================*/
 extern void          Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr );
 extern void          Ssw_ManResimulateWord( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );
@@ -248,7 +259,7 @@ extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );
 /*=== sswUnique.c ===================================================*/
 extern void          Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p );
-extern int           Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj );
+extern int           Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fVerbose );
 extern int           Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int f2 );
 
 #ifdef __cplusplus

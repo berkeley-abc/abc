@@ -77,6 +77,8 @@ Ssw_Sat_t * Ssw_SatStart( int fPolarFlip )
 ***********************************************************************/
 void Ssw_SatStop( Ssw_Sat_t * p )
 {
+//    printf( "Recycling SAT solver with %d vars and %d restarts.\n", 
+//        p->pSat->size, p->pSat->stats.starts );
     if ( p->pSat )
         sat_solver_delete( p->pSat );
     Vec_IntFree( p->vSatVars );

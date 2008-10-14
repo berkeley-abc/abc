@@ -51,6 +51,8 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     p->nFramesMax        =       4;  // the max number of frames used for induction
     p->nBTLimit          =    1000;  // conflict limit at a node during induction 
     p->nBTLimitGlobal    = 5000000;  // global conflict limit during induction
+    p->nBTLimitInter     =   10000;  // conflict limit during interpolation
+    p->nBddVarsMax       =     150;  // the limit on the number of registers in BDD reachability
     p->nBddMax           =   50000;  // the limit on the number of BDD nodes 
     p->nBddIterMax       = 1000000;  // the limit on the number of BDD iterations
     p->fPhaseAbstract    =       0;  // enables phase abstraction
@@ -81,7 +83,7 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec )
+int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec, Aig_Man_t ** ppResult )
 {
     Ssw_Pars_t Pars2, * pPars2 = &Pars2;
     Fra_Ssw_t Pars, * pPars = &Pars;
@@ -461,6 +463,7 @@ clk = clock();
         int Depth;
 
         Inter_ManSetDefaultParams( pPars );
+        pPars->nBTLimit = pParSec->nBTLimitInter;
         pPars->fVerbose = pParSec->fVeryVerbose;
         if ( Saig_ManPoNum(pNew) == 1 )
         {
@@ -495,7 +498,7 @@ PRT( "Time", clock() - clk );
     }
 
     // try reachability analysis
-    if ( pParSec->fReachability && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManRegNum(pNew) < 150 )
+    if ( pParSec->fReachability && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManRegNum(pNew) < pParSec->nBddVarsMax )
     {
         extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
@@ -563,6 +566,8 @@ PRT( "Time", clock() - clkTotal );
         FREE( pNew->pSeqModel );
         }
     }
+    if ( ppResult != NULL )
+        *ppResult = Aig_ManDupSimpleDfs( pNew );
     if ( pNew )
         Aig_ManStop( pNew );
     return RetValue;

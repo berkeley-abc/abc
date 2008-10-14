@@ -32,7 +32,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Performs AIG rewriting on the constaint manager.]
+  Synopsis    [Performs AIG rewriting on the constraint manager.]
 
   Description []
                
@@ -536,7 +536,7 @@ p->timeTrav += clock() - clk2;
         // report the intermediate results
         if ( pPars->fVerbose )
         {
-            printf( "%3d : Const = %6d. Cl = %6d.  L = %6d. LR = %6d.  ", 
+            printf( "%3d : C = %6d. Cl = %6d.  L = %6d. LR = %6d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
                 Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts );
             if ( p->pCla->vImps )

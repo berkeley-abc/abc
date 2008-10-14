@@ -359,11 +359,15 @@ int * Ssw_SmlCheckOutput( Ssw_Sml_t * p )
 void Ssw_SmlAssignRandom( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
-    int i;
+    int i, f;
     assert( Aig_ObjIsPi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id );
     for ( i = 0; i < p->nWordsTotal; i++ )
         pSims[i] = Ssw_ObjRandomSim();
+    // set the first bit 0 in each frame
+    assert( p->nWordsFrame * p->nFrames == p->nWordsTotal );
+    for ( f = 0; f < p->nFrames; f++ )
+        pSims[p->nWordsFrame*f] <<= 1;
 }
 
 /**Function*************************************************************
@@ -381,6 +385,7 @@ void Ssw_SmlAssignRandomFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
 {
     unsigned * pSims;
     int i;
+    assert( iFrame < p->nFrames );
     assert( Aig_ObjIsPi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
@@ -402,6 +407,7 @@ void Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iF
 {
     unsigned * pSims;
     int i;
+    assert( iFrame < p->nFrames );
     assert( Aig_ObjIsPi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     for ( i = 0; i < p->nWordsFrame; i++ )
@@ -422,43 +428,11 @@ void Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iF
 void Ssw_SmlObjSetWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, unsigned Word, int iWord, int iFrame )
 {
     unsigned * pSims;
+    assert( iFrame < p->nFrames );
     assert( Aig_ObjIsPi(pObj) );
     pSims = Ssw_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
     pSims[iWord] = Word;
 } 
-
-/**Function*************************************************************
-
-  Synopsis    [Assings random simulation info for the PIs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
-{
-    Aig_Obj_t * pObj;
-    int i;
-    if ( fInit )
-    {
-        assert( Aig_ManRegNum(p->pAig) > 0 );
-        assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
-        // assign random info for primary inputs
-        Saig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_SmlAssignRandom( p, pObj );
-        // assign the initial state for the latches
-        Saig_ManForEachLo( p->pAig, pObj, i )
-            Ssw_SmlObjAssignConst( p, pObj, 0, 0 );
-    }
-    else
-    {
-        Aig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_SmlAssignRandom( p, pObj );
-    }
-}
 
 /**Function*************************************************************
 
@@ -558,6 +532,7 @@ void Ssw_SmlNodeSimulate( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
 {
     unsigned * pSims, * pSims0, * pSims1;
     int fCompl, fCompl0, fCompl1, i;
+    assert( iFrame < p->nFrames );
     assert( !Aig_IsComplement(pObj) );
     assert( Aig_ObjIsNode(pObj) );
     assert( iFrame == 0 || p->nWordsFrame < p->nWordsTotal );
@@ -623,6 +598,8 @@ int Ssw_SmlNodesCompareInFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pO
 {
     unsigned * pSims0, * pSims1;
     int i;
+    assert( iFrame0 < p->nFrames );
+    assert( iFrame1 < p->nFrames );
     assert( !Aig_IsComplement(pObj0) );
     assert( !Aig_IsComplement(pObj1) );
     assert( iFrame0 == 0 || p->nWordsFrame < p->nWordsTotal );
@@ -652,6 +629,7 @@ void Ssw_SmlNodeCopyFanin( Ssw_Sml_t * p, Aig_Obj_t * pObj, int iFrame )
 {
     unsigned * pSims, * pSims0;
     int fCompl, fCompl0, i;
+    assert( iFrame < p->nFrames );
     assert( !Aig_IsComplement(pObj) );
     assert( Aig_ObjIsPo(pObj) );
     assert( iFrame == 0 || p->nWordsFrame < p->nWordsTotal );
@@ -685,6 +663,7 @@ void Ssw_SmlNodeTransferNext( Ssw_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn, 
 {
     unsigned * pSims0, * pSims1;
     int i;
+    assert( iFrame < p->nFrames );
     assert( !Aig_IsComplement(pOut) );
     assert( !Aig_IsComplement(pIn) );
     assert( Aig_ObjIsPo(pOut) );
@@ -698,6 +677,92 @@ void Ssw_SmlNodeTransferNext( Ssw_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn, 
         pSims1[i] = pSims0[i];
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Simulates one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlNodeTransferFirst( Ssw_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn )
+{
+    unsigned * pSims0, * pSims1;
+    int i;
+    assert( !Aig_IsComplement(pOut) );
+    assert( !Aig_IsComplement(pIn) );
+    assert( Aig_ObjIsPo(pOut) );
+    assert( Aig_ObjIsPi(pIn) );
+    assert( p->nWordsFrame < p->nWordsTotal );
+    // get hold of the simulation information
+    pSims0 = Ssw_ObjSim(p, pOut->Id) + p->nWordsFrame * (p->nFrames-1);
+    pSims1 = Ssw_ObjSim(p, pIn->Id);
+    // copy information as it is
+    for ( i = 0; i < p->nWordsFrame; i++ )
+        pSims1[i] = pSims0[i];
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Assings random simulation info for the PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    if ( fInit )
+    {
+        assert( Aig_ManRegNum(p->pAig) > 0 );
+        assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+        // assign random info for primary inputs
+        Saig_ManForEachPi( p->pAig, pObj, i )
+            Ssw_SmlAssignRandom( p, pObj );
+        // assign the initial state for the latches
+        Saig_ManForEachLo( p->pAig, pObj, i )
+            Ssw_SmlObjAssignConst( p, pObj, 0, 0 );
+    }
+    else
+    {
+        Aig_ManForEachPi( p->pAig, pObj, i )
+            Ssw_SmlAssignRandom( p, pObj );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assings random simulation info for the PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlReinitialize( Ssw_Sml_t * p )
+{
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    int i;
+    assert( Aig_ManRegNum(p->pAig) > 0 );
+    assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+    // assign random info for primary inputs
+    Saig_ManForEachPi( p->pAig, pObj, i )
+        Ssw_SmlAssignRandom( p, pObj );
+    // copy simulation info into the inputs
+    Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+        Ssw_SmlNodeTransferFirst( p, pObjLi, pObjLo );
+}
 
 /**Function*************************************************************
 
@@ -744,12 +809,12 @@ clk = clock();
         // copy simulation info into outputs
         Saig_ManForEachPo( p->pAig, pObj, i )
             Ssw_SmlNodeCopyFanin( p, pObj, f );
-        // quit if this is the last timeframe
-        if ( f == p->nFrames - 1 )
-            break;
         // copy simulation info into outputs
         Saig_ManForEachLi( p->pAig, pObj, i )
             Ssw_SmlNodeCopyFanin( p, pObj, f );
+        // quit if this is the last timeframe
+        if ( f == p->nFrames - 1 )
+            break;
         // copy simulation info into the inputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
             Ssw_SmlNodeTransferNext( p, pObjLi, pObjLo, f );
@@ -845,6 +910,22 @@ void Ssw_SmlStop( Ssw_Sml_t * p )
     free( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Deallocates simulation manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlNumFrames( Ssw_Sml_t * p )
+{
+    return p->nFrames;
+}
+
 
 /**Function*************************************************************
 
@@ -885,6 +966,24 @@ Ssw_Sml_t * Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nW
     Ssw_SmlSimulateOne( p );
     p->fNonConstOut = Ssw_SmlCheckNonConstOutputs( p );
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs next round of sequential simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlResimulateSeq( Ssw_Sml_t * p )
+{
+    Ssw_SmlReinitialize( p );
+    Ssw_SmlSimulateOne( p );
+    p->fNonConstOut = Ssw_SmlCheckNonConstOutputs( p );
 }
 
 

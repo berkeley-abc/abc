@@ -44,6 +44,7 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     int nBTLimit = p->pPars->nBTLimit;
     int pLits[3], nLits, RetValue, RetValue1, clk;//, status;
     p->nSatCalls++;
+    p->pMSat->nSolverCalls++;
 
     // sanity checks
     assert( !Aig_IsComplement(pOld) );
@@ -231,7 +232,7 @@ int Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     // consider the constant 1 case
     if ( pOld == Aig_ManConst1(p->pFrames) )
     {
-        // add constaint A = 1  ---->  A
+        // add constraint A = 1  ---->  A
         pLits[0] = toLitCond( Ssw_ObjSatNum(p->pMSat,pNew), fComplNew );
         if ( p->pPars->fPolarFlip )
         {
@@ -242,7 +243,7 @@ int Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     }
     else
     {
-        // add constaint A = B  ---->  (A v !B)(!A v B)
+        // add constraint A = B  ---->  (A v !B)(!A v B)
 
         // (A v !B)
         pLits[0] = toLitCond( Ssw_ObjSatNum(p->pMSat,pOld), 0 );

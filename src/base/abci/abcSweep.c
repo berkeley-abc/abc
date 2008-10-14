@@ -88,6 +88,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, 
 
     // perform fraiging of the AIG
     Fraig_ParamsSetDefault( &Params );
+    Params.fInternal = 1;
     pMan = Abc_NtkToFraig( pNtkAig, &Params, 0, 0 );   
     // cannot use EXDC with FRAIG because it can create classes of equivalent FRAIG nodes
     // with representative nodes that do not correspond to the nodes with the current network

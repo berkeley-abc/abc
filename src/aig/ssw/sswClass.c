@@ -493,11 +493,22 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, int fVerbose )
 {
+//    int nFrames =  4;
+//    int nWords  =  1;
+//    int nIters  = 16;
+
+//    int nFrames = 32;
+//    int nWords  =  4;
+//    int nIters  =  0;
+
+    int nFrames =  4;
+    int nWords  =  2;
+    int nIters  = 16;
     Ssw_Cla_t * p;
     Ssw_Sml_t * pSml;
     Aig_Obj_t ** ppTable, ** ppNexts, ** ppClassNew;
     Aig_Obj_t * pObj, * pTemp, * pRepr;
-    int i, k, nTableSize, nNodes, iEntry, nEntries, nEntries2;
+    int i, k, nTableSize, nNodes, iEntry, nEntries, nEntries2, RetValue;
     int clk;
 
     // start the classes
@@ -505,10 +516,13 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, 
 
     // perform sequential simulation
 clk = clock();
-    pSml = Ssw_SmlSimulateSeq( pAig, 0, 32, 4 );
+    pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
 if ( fVerbose )
 {
-PRT( "Simulation of 32 frames with 4 words", clock() - clk );
+    printf( "Allocated %.2f Mb for simulation information.\n", 
+        1.0*(sizeof(unsigned) * Aig_ManObjNumMax(pAig) * nFrames * nWords)/(1<<20) );
+    printf( "Initial simulation of %d frames with %d words.     ", nFrames, nWords );
+    PRT( "Time", clock() - clk );
 }
 
     // set comparison procedures
@@ -603,13 +617,36 @@ clk = clock();
 
     // now it is time to refine the classes
     Ssw_ClassesRefine( p, 1 );
-    Ssw_ClassesCheck( p );
-    Ssw_SmlStop( pSml );
-//    Ssw_ClassesPrint( p, 0 );
 if ( fVerbose )
 {
-PRT( "Collecting candidate equival classes", clock() - clk );
+    printf( "Collecting candidate equivalence classes.        " );
+PRT( "Time", clock() - clk );
 }
+
+clk = clock();
+    // perform iterative refinement using simulation
+    k = 0;
+    for ( i = 1; i < nIters; i++ )
+    {
+        Ssw_SmlResimulateSeq( pSml );
+        // simulate internal nodes
+        Ssw_SmlSimulateOne( pSml );
+        // check equivalence classes
+        RetValue = Ssw_ClassesRefineConst1( p, 1 );
+        RetValue += Ssw_ClassesRefine( p, 1 );
+        k++;
+        if ( RetValue == 0 )
+            break;
+    }
+    Ssw_ClassesCheck( p );
+    Ssw_SmlStop( pSml );
+if ( fVerbose )
+{
+    printf( "Simulation of %d frames with %d words (%2d rounds). ", 
+        nFrames, nWords, k );
+    PRT( "Time", clock() - clk );
+}
+//    Ssw_ClassesPrint( p, 0 );
     return p;
 }
 

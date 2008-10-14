@@ -699,6 +699,8 @@ void Aig_Support_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vSupp )
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsConst1(pObj) )
+        return;
     if ( Aig_ObjIsPi(pObj) )
     {
         Vec_PtrPush( vSupp, pObj );

@@ -463,6 +463,9 @@ int Mfx_ResubNode( Mfx_Man_t * p, Nwk_Obj_t * pNode )
     }
     if ( Nwk_ObjFaninNum(pNode) == p->nFaninMax )
         return 0;
+
+    return 0; /// !!!!! temporary workaround
+
     // try replacing area critical fanins while adding two new fanins
     Nwk_ObjForEachFanin( pNode, pFanin, i )
         if ( !Nwk_ObjIsCi(pFanin) && Nwk_ObjFanoutNum(pFanin) == 1 )

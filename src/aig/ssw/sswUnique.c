@@ -42,7 +42,7 @@
 void Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p )
 {
     Aig_Obj_t * pObjLo, * pObj0, * pObj1;
-    int i;
+    int i, RetValue, Counter;
     if ( p->vDiffPairs == NULL )
         p->vDiffPairs = Vec_IntAlloc( Saig_ManRegNum(p->pAig) );
     Vec_IntClear( p->vDiffPairs );
@@ -54,13 +54,22 @@ void Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p )
             Vec_IntPush( p->vDiffPairs, 0 );
         else if ( pObj0 == Aig_Not(pObj1) )
             Vec_IntPush( p->vDiffPairs, 1 );
+//        else
+//            Vec_IntPush( p->vDiffPairs, 1 );
+        else if ( Aig_ObjPhaseReal(pObj0) != Aig_ObjPhaseReal(pObj1) )
+            Vec_IntPush( p->vDiffPairs, 1 );
         else 
         {
-            // assume that if the nodes are structurally different
-            // they can also be functionally different
-            Vec_IntPush( p->vDiffPairs, 1 );
+            RetValue = Ssw_NodesAreEquiv( p, Aig_Regular(pObj0), Aig_Regular(pObj1) );
+            Vec_IntPush( p->vDiffPairs, RetValue!=1 );
         }
     }
+    assert( Vec_IntSize(p->vDiffPairs) == Saig_ManRegNum(p->pAig) );
+    // count the number of ones
+    Counter = 0;
+    Vec_IntForEachEntry( p->vDiffPairs, RetValue, i )
+        Counter += RetValue;
+//    printf( "The number of different register pairs = %d.\n", Counter );
 }
 
 
@@ -75,9 +84,8 @@ void Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
+int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fVerbose )
 {
-    int fVerbose = 0;
     Aig_Obj_t * ppObjs[2], * pTemp;
     int i, k, Value0, Value1, RetValue, fFeasible;
 
@@ -93,12 +101,15 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
     fFeasible = 0;
     k = 0;
     Vec_PtrForEachEntry( p->vCommon, pTemp, i )
-        if ( Saig_ObjIsLo(p->pAig, pTemp) )
-        {
-            Vec_PtrWriteEntry( p->vCommon, k++, pTemp );
-            if ( Vec_IntEntry(p->vDiffPairs, Aig_ObjPioNum(pTemp) - Saig_ManPiNum(p->pAig)) )
-                fFeasible = 1;
-        }
+    {
+        assert( Aig_ObjIsPi(pTemp) );
+        if ( !Saig_ObjIsLo(p->pAig, pTemp) )
+            continue;
+        assert( Aig_ObjPioNum(pTemp) > 0 );
+        Vec_PtrWriteEntry( p->vCommon, k++, pTemp );
+        if ( Vec_IntEntry(p->vDiffPairs, Aig_ObjPioNum(pTemp) - Saig_ManPiNum(p->pAig)) )
+            fFeasible = 1;
+    }
     Vec_PtrShrink( p->vCommon, k );
 
     if ( fVerbose )

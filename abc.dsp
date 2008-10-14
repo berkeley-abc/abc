@@ -3474,6 +3474,10 @@ SOURCE=.\src\aig\ssw\sswCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ssw\sswDyn.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ssw\sswInt.h
 # End Source File
 # Begin Source File

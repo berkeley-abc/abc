@@ -118,6 +118,8 @@ struct Fra_Sec_t_
     int              nFramesMax;        // the max number of frames used for induction
     int              nBTLimit;          // the conflict limit at a node
     int              nBTLimitGlobal;    // the global conflict limit
+    int              nBTLimitInter;     // the conflict limit for interpolation
+    int              nBddVarsMax;       // the state space limit for BDD reachability
     int              nBddMax;           // the max number of BDD nodes
     int              nBddIterMax;       // the limit on the number of BDD iterations
     int              fPhaseAbstract;    // enables phase abstraction
@@ -361,7 +363,7 @@ extern int                 Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, 
 extern int                 Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew );
 /*=== fraSec.c ========================================================*/
 extern void                Fra_SecSetDefaultParams( Fra_Sec_t * p );
-extern int                 Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec );
+extern int                 Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pParSec, Aig_Man_t ** ppResult );
 /*=== fraSim.c ========================================================*/
 extern int                 Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize );
 extern int                 Fra_SmlNodeIsConst( Aig_Obj_t * pObj );

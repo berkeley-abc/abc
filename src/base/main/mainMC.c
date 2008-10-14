@@ -107,7 +107,7 @@ int main( int argc, char * argv[] )
             pSecPar->fSilent         =   1;  // disable phase-abstraction
 
             Dar_LibStart();
-            RetValue = Fra_FraigSec( pAig, pSecPar );
+            RetValue = Fra_FraigSec( pAig, pSecPar, NULL );
             Dar_LibStop();
             Cnf_ClearMemory();
         }

@@ -17,7 +17,7 @@
   Revision    [$Id: ssw.h,v 1.00 2008/09/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #ifndef __SSW_H__
 #define __SSW_H__
 
@@ -55,12 +55,16 @@ struct Ssw_Pars_t_
     int              fLatchCorr;    // perform register correspondence
     int              fSemiFormal;   // enable semiformal filtering
     int              fUniqueness;   // enable uniqueness constraints
+    int              fDynamic;      // enable dynamic addition of constraints
     int              fVerbose;      // verbose stats
     int              fFlopVerbose;  // verbose printout of redundant flops
     // optimized latch correspondence
     int              fLatchCorrOpt; // perform register correspondence (optimized)
     int              nSatVarMax;    // max number of SAT vars before recycling SAT solver (optimized latch corr only)
     int              nRecycleCalls; // calls to perform before recycling SAT solver (optimized latch corr only)
+    // optimized signal correspondence
+    int              nSatVarMax2;   // max number of SAT vars before recycling SAT solver (optimized latch corr only)
+    int              nRecycleCalls2;// calls to perform before recycling SAT solver (optimized latch corr only)
     // internal parameters
     int              nIters;        // the number of iterations performed
     int              nConflicts;    // the total number of conflicts performed

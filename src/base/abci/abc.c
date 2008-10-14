@@ -8335,7 +8335,7 @@ int Abc_CommandSenseInput( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: senseinput [-C num] [-vh]\n" );
-    fprintf( pErr, "\t         computes sensitivity of POs to PIs under constaint\n" );
+    fprintf( pErr, "\t         computes sensitivity of POs to PIs under constraint\n" );
     fprintf( pErr, "\t         constraint should be represented as the last PO" );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfLim );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -13559,7 +13559,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSIplfuvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSIVMplfudvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13651,6 +13651,28 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nItersStop < 0 ) 
                 goto usage;
             break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nSatVarMax2 = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nSatVarMax2 < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRecycleCalls2 = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRecycleCalls2 < 0 ) 
+                goto usage;
+            break;
         case 'p':
             pPars->fPolarFlip ^= 1;
             break;
@@ -13662,6 +13684,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'u':
             pPars->fUniqueness ^= 1;
+            break;
+        case 'd':
+            pPars->fDynamic ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -13693,19 +13718,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "This command works only for structrally hashed networks. Run \"st\".\n" );
         return 0;
     }
-/*
-    if ( pPars->nFramesK > 1 && pPars->fUse1Hot )
-    {
-        printf( "Currrently can only use one-hotness for simple induction (K=1).\n" );
-        return 0;
-    }
 
-    if ( pPars->nFramesP && pPars->fUse1Hot )
-    {
-        printf( "Currrently can only use one-hotness without prefix.\n" );
-        return 0;
-    }
-*/
     // get the new network
     pNtkRes = Abc_NtkDarSeqSweep2( pNtk, pPars );
     if ( pNtkRes == NULL )
@@ -13718,7 +13731,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scorr [-PQFCLNSI <num>] [-plfuvwh]\n" );
+    fprintf( pErr, "usage: scorr [-PQFCLNSIVM <num>] [-pludvwh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -13728,12 +13741,15 @@ usage:
     fprintf( pErr, "\t-N num : number of last POs treated as constraints (0=none) [default = %d]\n", pPars->nConstrs );
     fprintf( pErr, "\t-S num : additional simulation frames for c-examples (0=none) [default = %d]\n", pPars->nFramesAddSim );
     fprintf( pErr, "\t-I num : iteration number to stop and output SR-model (0=none) [default = %d]\n", pPars->nItersStop );
+    fprintf( pErr, "\t-V num : min var num needed to recycle the SAT solver [default = %d]\n", pPars->nSatVarMax2 );
+    fprintf( pErr, "\t-M num : min call num needed to recycle the SAT solver [default = %d]\n", pPars->nRecycleCalls2 );
     fprintf( pErr, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
-//    fprintf( pErr, "\t-f     : toggle filtering using interative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
+//    fprintf( pErr, "\t-f     : toggle filtering using iterative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
     fprintf( pErr, "\t-u     : toggle using uniqueness constraints [default = %s]\n", pPars->fUniqueness? "yes": "no" );
-    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
     fprintf( pErr, "\t-w     : toggle printout of flop equivalences [default = %s]\n", pPars->fFlopVerbose? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -15213,7 +15229,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Fra_SecSetDefaultParams( pSecPar );
 //    pSecPar->TimeLimit = 300;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGBRarmfijwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGDVBRarmfijwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15254,6 +15270,28 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             pSecPar->nBTLimitGlobal = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pSecPar->nBTLimitGlobal < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->nBTLimitInter = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->nBTLimitInter < 0 ) 
+                goto usage;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->nBddVarsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->nBddVarsMax < 0 ) 
                 goto usage;
             break;
         case 'B':
@@ -15321,11 +15359,13 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-FCGBR num] [-cbarmfijwvh]\n" );
+    fprintf( pErr, "usage: dprove [-FCGDVBR num] [-cbarmfijwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
     fprintf( pErr, "\t-C num : the conflict limit at a node during induction [default = %d]\n", pSecPar->nBTLimit );
     fprintf( pErr, "\t-G num : the global conflict limit during induction [default = %d]\n", pSecPar->nBTLimitGlobal );
+    fprintf( pErr, "\t-D num : the conflict limit during interpolation [default = %d]\n", pSecPar->nBTLimitInter );
+    fprintf( pErr, "\t-V num : the flop count limit for BDD-based reachablity [default = %d]\n", pSecPar->nBddVarsMax );
     fprintf( pErr, "\t-B num : the BDD size limit in BDD-based reachablity [default = %d]\n", pSecPar->nBddMax );
     fprintf( pErr, "\t-R num : the max number of reachability iterations [default = %d]\n", pSecPar->nBddIterMax );
     fprintf( pErr, "\t-c     : toggles using CEC before attempting SEC [default = %s]\n", pSecPar->fTryComb? "yes": "no" );
@@ -19221,11 +19261,36 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nMinDomSize < 0 ) 
                 goto usage;
             break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nSatVarMax2 = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nSatVarMax2 < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRecycleCalls2 = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRecycleCalls2 < 0 ) 
+                goto usage;
+            break;
         case 'p':
             pPars->fPolarFlip ^= 1;
             break;
         case 'l':
             pPars->fLatchCorr ^= 1;
+            break;
+        case 'd':
+            pPars->fDynamic ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -19247,6 +19312,13 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         fprintf( stdout, "The network is combinational (run \"*fraig\").\n" );
         return 0;
+    }
+
+    if ( pPars->fDynamic && (pPars->nPartSize || pPars->nOverSize) )
+    {
+        pPars->nPartSize = 0;
+        pPars->nOverSize = 0;
+        printf( "With dynamic partitioning (-d) enabled, static one (-P <num> -Q <num>) is ignored.\n" );
     }
 
     // get the input file name
@@ -19273,7 +19345,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *scorr [-PQFCLNSD <num>] [-plvh]\n" );
+    fprintf( stdout, "usage: *scorr [-PQFCLNSDVM <num>] [-plvh]\n" );
     fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -19283,8 +19355,11 @@ usage:
     fprintf( stdout, "\t-N num : number of last POs treated as constraints (0=none) [default = %d]\n", pPars->nConstrs );
     fprintf( stdout, "\t-S num : additional simulation frames for c-examples (0=none) [default = %d]\n", pPars->nFramesAddSim );
     fprintf( stdout, "\t-D num : min size of a clock domain used for synthesis [default = %d]\n", pPars->nMinDomSize );
+    fprintf( stdout, "\t-V num : min var num needed to recycle the SAT solver [default = %d]\n", pPars->nSatVarMax2 );
+    fprintf( stdout, "\t-M num : min call num needed to recycle the SAT solver [default = %d]\n", pPars->nRecycleCalls2 );
     fprintf( stdout, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
+    fprintf( stdout, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
@@ -19619,7 +19694,7 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
 
     extern void Fra_SecSetDefaultParams( Fra_Sec_t * pSecPar );
-    extern int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pSecPar );
+    extern int Fra_FraigSec( Aig_Man_t * p, Fra_Sec_t * pSecPar, Aig_Man_t ** ppResult );
     extern Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
 
     // set defaults
@@ -19678,7 +19753,7 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAig = Ntl_ManPrepareSec( pArgvNew[0], pArgvNew[1] );
     if ( pAig == NULL )
         return 0;
-    Fra_FraigSec( pAig, pSecPar );
+    Fra_FraigSec( pAig, pSecPar, NULL );
     Aig_ManStop( pAig );
     return 0;
 

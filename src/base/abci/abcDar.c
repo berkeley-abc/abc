@@ -1694,7 +1694,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
     }
     else
     {
-        RetValue = Fra_FraigSec( pMan, pSecPar );
+        RetValue = Fra_FraigSec( pMan, pSecPar, NULL );
         FREE( pNtk->pModel );
         FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
@@ -1793,7 +1793,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
     assert( pMan->nRegs > 0 );
 
     // perform verification
-    RetValue = Fra_FraigSec( pMan, pSecPar );
+    RetValue = Fra_FraigSec( pMan, pSecPar, NULL );
     Aig_ManStop( pMan );
     return RetValue;
 }

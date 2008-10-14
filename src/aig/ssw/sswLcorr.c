@@ -300,6 +300,8 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
              p->pMSat->nSatVars > p->pPars->nSatVarMax &&
              p->nRecycleCalls > p->pPars->nRecycleCalls )
         {
+            p->nVarsMax  = AIG_MAX( p->nVarsMax,  p->pMSat->nSatVars );
+            p->nCallsMax = AIG_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
             Ssw_SatStop( p->pMSat );
             p->pMSat = Ssw_SatStart( 0 );
             p->nRecycles++;
@@ -311,7 +313,6 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
         Ssw_ManSweepResimulate( p );
     // cleanup
     Vec_PtrFree( vClass );
-    p->nSatFailsTotal += p->nSatFailsReal;
 //    if ( p->pPars->fVerbose )
 //        Bar_ProgressStop( pProgress );
 
