@@ -19169,7 +19169,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSDplvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSDVMpldvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19345,7 +19345,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *scorr [-PQFCLNSDVM <num>] [-plvh]\n" );
+    fprintf( stdout, "usage: *scorr [-PQFCLNSDVM <num>] [-pldvh]\n" );
     fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
