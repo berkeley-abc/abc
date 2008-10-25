@@ -745,6 +745,7 @@ static int Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
             if ( !Ioa_ReadParseLineOutputs( pMod, pLine ) )
                 return 0;
         // parse the delay info
+        Ntl_ModelSetPioNumbers( pMod->pNtk );
         Vec_PtrForEachEntry( pMod->vDelays, pLine, k )
             if ( !Ioa_ReadParseLineDelay( pMod, pLine ) )
                 return 0;
@@ -954,6 +955,7 @@ static int Ioa_ReadParseLineOutputs( Ioa_ReadMod_t * p, char * pLine )
     {
         pNet = Ntl_ModelFindOrCreateNet( p->pNtk, pToken );
         pObj = Ntl_ModelCreatePo( p->pNtk, pNet );
+        pNet->pCopy = pObj;
     }
     return 1;
 }

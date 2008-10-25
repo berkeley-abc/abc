@@ -446,7 +446,7 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
     assert( p->pId2Class[pObj->Id] == NULL );
     pRepr = Aig_ObjRepr( p->pAig, pObj );
     assert( pRepr != NULL );
-    Vec_PtrPush( p->vRefined, pObj );
+//    Vec_PtrPush( p->vRefined, pObj );
     if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
     {
         assert( p->pClassSizes[pRepr->Id] == 0 );
@@ -455,7 +455,7 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
         p->nCands1--;
         return;
     }
-    Vec_PtrPush( p->vRefined, pRepr );
+//    Vec_PtrPush( p->vRefined, pRepr );
     Aig_ObjSetRepr( p->pAig, pObj, NULL );
     assert( p->pId2Class[pRepr->Id][0] == pRepr );
     assert( p->pClassSizes[pRepr->Id] >= 2 );
@@ -793,6 +793,48 @@ Ssw_Cla_t * Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates classes from the temporary representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cla_t * Ssw_ClassesFromIslands( Aig_Man_t * pMiter, Vec_Int_t * vPairs )
+{
+    Ssw_Cla_t * p;
+    Aig_Obj_t ** ppClassNew;
+    Aig_Obj_t * pObj, * pRepr;
+    int i;
+    // start the classes
+    p = Ssw_ClassesStart( pMiter );
+    // allocate memory for classes
+    p->pMemClasses = ALLOC( Aig_Obj_t *, Vec_IntSize(vPairs) );
+    // create classes
+    for ( i = 0; i < Vec_IntSize(vPairs); i += 2 )
+    {
+        pRepr = Aig_ManObj( pMiter, Vec_IntEntry(vPairs, i) );
+        pObj  = Aig_ManObj( pMiter, Vec_IntEntry(vPairs, i+1) );
+        assert( Aig_ObjId(pRepr) < Aig_ObjId(pObj) );
+        Aig_ObjSetRepr( pMiter, pObj, pRepr );
+        // get room for storing the class
+        ppClassNew = p->pMemClasses + i;
+        ppClassNew[0] = pRepr;
+        ppClassNew[1] = pObj;
+        // create new class
+        Ssw_ObjAddClass( p, pRepr, ppClassNew, 2 );
+    }
+    // prepare room for new classes
+    p->pMemClassesFree = NULL;
+    Ssw_ClassesCheck( p );
+//    Ssw_ClassesPrint( p, 0 );
+    return p;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Iteratively refines the classes after simulation.]
 
   Description [Returns the number of refinements performed.]
@@ -820,8 +862,8 @@ int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
     // remember that this class is refined
-    Ssw_ClassForEachNode( p, pReprOld, pObj, i )
-        Vec_PtrPush( p->vRefined, pObj );
+//    Ssw_ClassForEachNode( p, pReprOld, pObj, i )
+//        Vec_PtrPush( p->vRefined, pObj );
 
     // get the new representative
     pReprNew = Vec_PtrEntry( p->vClassNew, 0 );
@@ -944,7 +986,7 @@ int Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive )
             if ( !p->pFuncNodeIsConst( p->pManData, pObj ) )
             {
                 Vec_PtrPush( p->vClassNew, pObj );
-                Vec_PtrPush( p->vRefined, pObj );
+//                Vec_PtrPush( p->vRefined, pObj );
             }
         }
     // check if there is a new class

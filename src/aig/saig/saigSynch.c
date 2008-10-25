@@ -632,6 +632,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     pAig1z = Saig_ManDupInitZero( pAig1 );
     pAig2z = Saig_ManDupInitZero( pAig2 );
     pMiter = Saig_ManCreateMiter( pAig1z, pAig2z, 0 );
+    Aig_ManCleanup( pMiter );
     Aig_ManStop( pAig1z );
     Aig_ManStop( pAig2z );
 

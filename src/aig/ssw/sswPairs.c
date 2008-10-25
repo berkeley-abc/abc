@@ -276,6 +276,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pA
     assert( Vec_IntSize(vIds1) == Vec_IntSize(vIds2) );
     // create sequential miter
     pMiter = Saig_ManCreateMiter( pAig1, pAig2, 0 );
+    Aig_ManCleanup( pMiter );
     // transfer information to the miter
     vPairs = Ssw_TransferSignalPairs( pMiter, pAig1, pAig2, vIds1, vIds2 );
     // create representation of the classes
@@ -413,6 +414,7 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
     // try the new AIGs
     printf( "Performing general verification without node pairs.\n" );
     pMiter = Saig_ManCreateMiter( pAig1, pAig2, 0 );
+    Aig_ManCleanup( pMiter );
     pAigRes = Ssw_SignalCorrespondence( pMiter, pPars );
     Aig_ManStop( pMiter );
     // report the results

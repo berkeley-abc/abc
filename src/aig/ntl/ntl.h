@@ -139,6 +139,7 @@ struct Ntl_Obj_t_
     union {                            // clock / other data
         Ntl_Net_t *    pClock;         // clock (for registers)
         void *         pTemp;          // other data 
+        int            iTemp;          // other data
     };
     Ntl_Net_t *        pFanio[0];      // fanins/fanouts
 };
@@ -149,8 +150,8 @@ struct Ntl_Net_t_
     void *             pCopy;          // the copy of this object
     union {
         void *         pCopy2;         // the copy of this object
-        int            iTemp;          // other data
         float          dTemp;          // other data
+        int            iTemp;          // other data
     };
     Ntl_Obj_t *        pDriver;        // driver of the net
     char               nVisits;        // the number of times the net is visited
@@ -352,6 +353,7 @@ extern ABC_DLL int             Ntl_ManSweep( Ntl_Man_t * p, int fVerbose );
 /*=== ntlTable.c ==========================================================*/
 extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
 extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
+extern ABC_DLL void            Ntl_ModelSetPioNumbers( Ntl_Mod_t * p );
 extern ABC_DLL int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber );
 extern ABC_DLL int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 extern ABC_DLL int             Ntl_ModelClearNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );

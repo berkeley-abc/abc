@@ -49,6 +49,8 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     assert( Saig_ManPoNum(p0) == Saig_ManPoNum(p1) );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p0) + Aig_ManObjNumMax(p1) );
     pNew->pName = Aig_UtilStrsav( "miter" );
+    Aig_ManCleanData( p0 );
+    Aig_ManCleanData( p1 );
     // map constant nodes
     Aig_ManConst1(p0)->pData = Aig_ManConst1(pNew);
     Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
@@ -85,7 +87,7 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
         pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     // cleanup
     Aig_ManSetRegNum( pNew, Saig_ManRegNum(p0) + Saig_ManRegNum(p1) );
-    Aig_ManCleanup( pNew );
+//    Aig_ManCleanup( pNew );
     return pNew;
 }
 
@@ -184,6 +186,9 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
                 Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
             break;
         }
+        // create POs for this frame
+        Saig_ManForEachPo( pAig, pObj, i )
+            Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -213,7 +218,7 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDupNodes_old( Aig_Man_t * p, Vec_Ptr_t * vSet )
+Aig_Man_t * Aig_ManDupNodesAll( Aig_Man_t * p, Vec_Ptr_t * vSet )
 {
     Aig_Man_t * pNew, * pCopy;
     Aig_Obj_t * pObj;
@@ -250,7 +255,7 @@ Aig_Man_t * Aig_ManDupNodes_old( Aig_Man_t * p, Vec_Ptr_t * vSet )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDupNodes( Aig_Man_t * p, Vec_Ptr_t * vSet, int iPart )
+Aig_Man_t * Aig_ManDupNodesHalf( Aig_Man_t * p, Vec_Ptr_t * vSet, int iPart )
 {
     Aig_Man_t * pNew, * pCopy;
     Aig_Obj_t * pObj;
@@ -337,6 +342,9 @@ int Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAi
             Vec_PtrFree( vSet1 );
             return 0;
         }
+        if ( Aig_ObjFaninC0(pObj) )
+            pObj0 = Aig_Not(pObj0);
+
 //        printf( "%d %d  ", Aig_Regular(pObj0)->Id, Aig_Regular(pObj1)->Id );
         if ( Aig_Regular(pObj0)->Id < Aig_Regular(pObj1)->Id )
         {
@@ -353,13 +361,83 @@ int Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAi
 //    printf( "\n" );
     if ( ppAig0 )
     {
-        *ppAig0 = Aig_ManDupNodes( p, vSet0, 0 );
+        *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 );
         FREE( (*ppAig0)->pName );
         (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
-        *ppAig1 = Aig_ManDupNodes( p, vSet1, 1 );
+        *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 );
+        FREE( (*ppAig1)->pName );
+        (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
+    }
+    Vec_PtrFree( vSet0 );
+    Vec_PtrFree( vSet1 );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG to have constant-0 initial state.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
+{
+    Vec_Ptr_t * vSet0, * vSet1;
+    Aig_Obj_t * pObj, * pFanin, * pObj0, * pObj1;
+    int i, Counter = 0;
+    assert( Saig_ManRegNum(p) % 2 == 0 );
+    vSet0 = Vec_PtrAlloc( Saig_ManPoNum(p) );
+    vSet1 = Vec_PtrAlloc( Saig_ManPoNum(p) );
+    Saig_ManForEachPo( p, pObj, i )
+    {
+        pFanin = Aig_ObjFanin0(pObj);
+        if ( Aig_ObjIsConst1( pFanin ) )
+        {
+            if ( !Aig_ObjFaninC0(pObj) )
+                printf( "The output number %d of the miter is constant 1.\n", i );
+            Counter++;
+            continue;
+        }
+        if ( !Aig_ObjIsNode(pFanin) || !Aig_ObjRecognizeExor( pFanin, &pObj0, &pObj1 ) )
+        {
+            printf( "The miter cannot be demitered.\n" );
+            Vec_PtrFree( vSet0 );
+            Vec_PtrFree( vSet1 );
+            return 0;
+        }
+        if ( Aig_ObjFaninC0(pObj) )
+            pObj0 = Aig_Not(pObj0);
+
+//        printf( "%d %d  ", Aig_Regular(pObj0)->Id, Aig_Regular(pObj1)->Id );
+        if ( Aig_Regular(pObj0)->Id < Aig_Regular(pObj1)->Id )
+        {
+            Vec_PtrPush( vSet0, pObj0 );
+            Vec_PtrPush( vSet1, pObj1 );
+        }
+        else
+        {
+            Vec_PtrPush( vSet0, pObj1 );
+            Vec_PtrPush( vSet1, pObj0 );
+        }
+    }
+//    printf( "Miter has %d constant outputs.\n", Counter );
+//    printf( "\n" );
+    if ( ppAig0 )
+    {
+        *ppAig0 = Aig_ManDupNodesAll( p, vSet0 );
+        FREE( (*ppAig0)->pName );
+        (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
+    }
+    if ( ppAig1 )
+    {
+        *ppAig1 = Aig_ManDupNodesAll( p, vSet1 );
         FREE( (*ppAig1)->pName );
         (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
     }
@@ -525,14 +603,14 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
     if ( ppAig0 )
     {
         assert( 0 );
-        *ppAig0 = Aig_ManDupNodes( p, vSet0, 0 ); // not ready
+        *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 ); // not ready
         FREE( (*ppAig0)->pName );
         (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
         assert( 0 );
-        *ppAig1 = Aig_ManDupNodes( p, vSet1, 1 ); // not ready
+        *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 ); // not ready
         FREE( (*ppAig1)->pName );
         (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
     }
@@ -566,6 +644,42 @@ Aig_Man_t * Saig_ManCreateMiterTwo( Aig_Man_t * pOld, Aig_Man_t * pNew, int nFra
     return pMiter;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates counter-example and returns the failed output number.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs )
+{
+    Aig_Obj_t * pObj;
+    int i, RetValue = -1;
+    *pnOutputs = 0;
+    Aig_ManConst1(p)->fMarkA = 1;
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->fMarkA = pModel[i];
+    Aig_ManForEachNode( p, pObj, i )
+        pObj->fMarkA = ( Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj) ) & 
+                      ( Aig_ObjFanin1(pObj)->fMarkA ^ Aig_ObjFaninC1(pObj) );
+    Aig_ManForEachPo( p, pObj, i )
+        pObj->fMarkA = Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj);
+    Aig_ManForEachPo( p, pObj, i )
+        if ( pObj->fMarkA )
+        {
+            if ( RetValue == -1 )
+                RetValue = i;
+            (*pnOutputs)++;
+        }
+    Aig_ManCleanMarkA(p);
+    return RetValue;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Reduces SEC to CEC for the special case of seq synthesis.]
@@ -578,12 +692,16 @@ Aig_Man_t * Saig_ManCreateMiterTwo( Aig_Man_t * pOld, Aig_Man_t * pNew, int nFra
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int fVerbose )
+int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVerbose )
 {
     extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
-    int nFrames = 2;   // modify to enable comparison over any number of frames
+    int iOut, nOuts;
     Aig_Man_t * pMiterCec;
     int RetValue, clkTotal = clock();
+    Aig_ManPrintStats( pPart0 );
+    Aig_ManPrintStats( pPart1 );
+//    Aig_ManDumpBlif( pPart0, "file0.blif", NULL, NULL );
+//    Aig_ManDumpBlif( pPart1, "file1.blif", NULL, NULL );
 //    assert( Aig_ManNodeNum(pPart0) <= Aig_ManNodeNum(pPart1) );
     if ( Aig_ManNodeNum(pPart0) >= Aig_ManNodeNum(pPart1) )
     {
@@ -605,7 +723,6 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int fVerbose )
     // transfer model if given
 //    if ( pNtk2 == NULL )
 //        pNtk1->pModel = pMiterCec->pData, pMiterCec->pData = NULL;
-    Aig_ManStop( pMiterCec );
     // report the miter
     if ( RetValue == 1 )
     {
@@ -616,6 +733,24 @@ PRT( "Time", clock() - clkTotal );
     {
         printf( "Networks are NOT EQUIVALENT.   " );
 PRT( "Time", clock() - clkTotal );
+        if ( pMiterCec->pData == NULL )
+            printf( "Counter-example is not available.\n" );
+        else
+        {
+            iOut = Ssw_SecCexResimulate( pMiterCec, pMiterCec->pData, &nOuts );
+            if ( iOut == -1 )
+                printf( "Counter-example verification has failed.\n" );
+            else 
+            {
+                if ( iOut < Saig_ManPoNum(pPart0) * nFrames )
+                    printf( "Primary output %d has failed in frame %d.\n", 
+                        iOut%Saig_ManPoNum(pPart0), iOut/Saig_ManPoNum(pPart0) );
+                else
+                    printf( "Flop input %d has failed in the last frame.\n", 
+                        iOut - Saig_ManPoNum(pPart0) * nFrames );
+                printf( "The counter-example detected %d incorrect POs or flop inputs.\n", nOuts );
+            }
+        }
     }
     else
     {
@@ -623,6 +758,7 @@ PRT( "Time", clock() - clkTotal );
 PRT( "Time", clock() - clkTotal );
     }
     fflush( stdout );
+    Aig_ManStop( pMiterCec );
     return RetValue;
 }
 
@@ -639,6 +775,7 @@ PRT( "Time", clock() - clkTotal );
 ***********************************************************************/
 int Ssw_SecSpecialMiter( Aig_Man_t * pMiter, int fVerbose )
 {
+    int nFrames = 2;   // modify to enable comparison over any number of frames
     Aig_Man_t * pPart0, * pPart1;
     int RetValue;
     if ( fVerbose )
@@ -657,7 +794,7 @@ int Ssw_SecSpecialMiter( Aig_Man_t * pMiter, int fVerbose )
 //        Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
 //        printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
     }
-    RetValue = Ssw_SecSpecial( pPart0, pPart1, fVerbose );
+    RetValue = Ssw_SecSpecial( pPart0, pPart1, nFrames, fVerbose );
     Aig_ManStop( pPart0 );
     Aig_ManStop( pPart1 );
     return RetValue;

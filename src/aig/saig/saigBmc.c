@@ -26,62 +26,49 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define AIG_VISITED       ((Aig_Obj_t *)(PORT_PTRUINT_T)1)
+
+typedef struct Saig_Bmc_t_ Saig_Bmc_t;
+struct Saig_Bmc_t_
+{
+    // parameters
+    int                   nFramesMax;     // the max number of timeframes to consider
+    int                   nConfMaxOne;    // the max number of conflicts at a target
+    int                   nConfMaxAll;    // the max number of conflicts for all targets
+    int                   nNodesMax;      // the max number of nodes to add
+    int                   fVerbose;       // enables verbose output
+    // AIG managers
+    Aig_Man_t *           pAig;           // the user's AIG manager
+    Aig_Man_t *           pFrm;           // Frames manager
+    Vec_Ptr_t *           vVisited;       // nodes visited in Frames
+    // node mapping
+    int                   nObjs;          // the largest number of an AIG object
+    Vec_Ptr_t *           vAig2Frm;       // mapping of AIG nodees into Frames nodes
+    // SAT solver
+    sat_solver *          pSat;           // SAT solver
+    Vec_Int_t *           vObj2Var;       // mapping of frames objects in CNF variables
+    int                   nSatVars;       // the number of used SAT variables
+    Vec_Ptr_t *           vTargets;       // targets to be solved in this interval
+    int                   iFramelast;     // last frame  
+    int                   iOutputLast;    // last output
+};
+
+static inline int         Saig_BmcSatNum( Saig_Bmc_t * p, Aig_Obj_t * pObj )                                { return Vec_IntGetEntry( p->vObj2Var, pObj->Id );  }
+static inline void        Saig_BmcSetSatNum( Saig_Bmc_t * p, Aig_Obj_t * pObj, int Num )                    { Vec_IntSetEntry(p->vObj2Var, pObj->Id, Num);      }
+
+static inline Aig_Obj_t * Saig_BmcObjFrame( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )                       { return Vec_PtrGetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id );     }
+static inline void        Saig_BmcObjSetFrame( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { Vec_PtrSetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id, pNode );     }
+
+static inline Aig_Obj_t * Saig_BmcObjChild0( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )                   { assert( !Aig_IsComplement(pObj) ); return Aig_NotCond(Saig_BmcObjFrame(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj));  }
+static inline Aig_Obj_t * Saig_BmcObjChild1( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )                   { assert( !Aig_IsComplement(pObj) ); return Aig_NotCond(Saig_BmcObjFrame(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj));  }
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
-  Synopsis    [Create timeframes of the manager for BMC.]
-
-  Description [The resulting manager is combinational. POs correspond to \
-  the property outputs in each time-frame.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Saig_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
-{
-    Aig_Man_t * pFrames;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i, f;
-    assert( Saig_ManRegNum(pAig) > 0 );
-    pFrames = Aig_ManStart( Aig_ManNodeNum(pAig) * nFrames );
-    // map the constant node
-    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
-    // create variables for register outputs
-    Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_ManConst0( pFrames );
-    // add timeframes
-    for ( f = 0; f < nFrames; f++ )
-    {
-        // create PI nodes for this frame
-        Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
-        // add internal nodes of this frame
-        Aig_ManForEachNode( pAig, pObj, i )
-            pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        // create POs for this frame
-        Saig_ManForEachPo( pAig, pObj, i )
-            Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
-        if ( f == nFrames - 1 )
-            break;
-        // save register inputs
-        Saig_ManForEachLi( pAig, pObj, i )
-            pObj->pData = Aig_ObjChild0Copy(pObj);
-        // transfer to register outputs
-        Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
-            pObjLo->pData = pObjLi->pData;
-    }
-    Aig_ManCleanup( pFrames );
-    return pFrames;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the number of internal nodes that are not counted yet.]
+  Synopsis    [Create manager.]
 
   Description []
                
@@ -90,222 +77,373 @@ Aig_Man_t * Saig_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManFramesCount_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
+Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nConfMaxOne, int nConfMaxAll, int nNodesMax, int fVerbose )
 {
-    if ( !Aig_ObjIsNode(pObj) )
-        return 0;
-    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
-        return 0;
-    Aig_ObjSetTravIdCurrent(p, pObj);
-    return 1 + Saig_ManFramesCount_rec( p, Aig_ObjFanin0(pObj) ) + 
-        Saig_ManFramesCount_rec( p, Aig_ObjFanin1(pObj) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create timeframes of the manager for BMC.]
-
-  Description [The resulting manager is combinational. POs correspond to 
-  the property outputs in each time-frame.
-  The unrolling is stopped as soon as the number of nodes in the frames
-  exceeds the given maximum size.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Saig_ManFramesBmcLimit( Aig_Man_t * pAig, int nFrames, int nSizeMax )
-{
-    Aig_Man_t * pFrames;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pObjPo;
-    int i, f, Counter = 0;
-    assert( Saig_ManRegNum(pAig) > 0 );
-    pFrames = Aig_ManStart( nSizeMax );
-    Aig_ManIncrementTravId( pFrames );
-    // map the constant node
-    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
-    // create variables for register outputs
-    Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_ManConst0( pFrames );
-    // add timeframes
-    Counter = 0;
-    for ( f = 0; f < nFrames; f++ )
-    {
-        // create PI nodes for this frame
-        Saig_ManForEachPi( pAig, pObj, i )
-            pObj->pData = Aig_ObjCreatePi( pFrames );
-        // add internal nodes of this frame
-        Aig_ManForEachNode( pAig, pObj, i )
-            pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        // create POs for this frame
-        Saig_ManForEachPo( pAig, pObj, i )
-        {
-            pObjPo = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
-            Counter += Saig_ManFramesCount_rec( pFrames, Aig_ObjFanin0(pObjPo) );
-        }
-        if ( Counter >= nSizeMax )
-        {
-            Aig_ManCleanup( pFrames );
-            return pFrames;
-        }
-        if ( f == nFrames - 1 )
-            break;
-        // save register inputs
-        Saig_ManForEachLi( pAig, pObj, i )
-            pObj->pData = Aig_ObjChild0Copy(pObj);
-        // transfer to register outputs
-        Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
-            pObjLo->pData = pObjLi->pData;
-    }
-    Aig_ManCleanup( pFrames );
-    return pFrames;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs BMC for the given AIG.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLimit, int fRewrite, int fVerbose, int * piFrame )
-{
-    sat_solver * pSat;
-    Cnf_Dat_t * pCnf;
-    Aig_Man_t * pFrames, * pAigTemp;
+    Saig_Bmc_t * p;
     Aig_Obj_t * pObj;
-    int status, clk, Lit, i, RetValue = 1;
-    // derive the timeframes
-    clk = clock();
-    if ( nSizeMax > 0 )
+    int i, Lit;
+    assert( Aig_ManRegNum(pAig) > 0 );
+    p = (Saig_Bmc_t *)malloc( sizeof(Saig_Bmc_t) );
+    memset( p, 0, sizeof(Saig_Bmc_t) );
+    // set parameters
+    p->nFramesMax   = 1000000;
+    p->nConfMaxOne  = nConfMaxOne;
+    p->nConfMaxAll  = nConfMaxAll;
+    p->nNodesMax    = nNodesMax;
+    p->fVerbose     = fVerbose;
+    p->pAig         = pAig;
+    p->nObjs        = Aig_ManObjNumMax(pAig);
+    // create node and variable mappings
+    p->vAig2Frm     = Vec_PtrAlloc( 0 );
+    Vec_PtrFill( p->vAig2Frm, 5 * p->nObjs, NULL );
+    p->vObj2Var     = Vec_IntAlloc( 0 );
+    Vec_IntFill( p->vObj2Var, 5 * p->nObjs, 0 );
+    // start the AIG manager and map primary inputs
+    p->pFrm         = Aig_ManStart( 5 * p->nObjs );
+    Saig_ManForEachLo( pAig, pObj, i )
+        Saig_BmcObjSetFrame( p, pObj, 0, Aig_ManConst0(p->pFrm) ); 
+    // create SAT solver
+    p->pSat         = sat_solver_new();
+    sat_solver_setnvars( p->pSat, 2000 );
+    p->nSatVars = 1;
+    Lit = toLit( p->nSatVars );
+    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+    Saig_BmcSetSatNum( p, Aig_ManConst1(p->pFrm), p->nSatVars++ );
+    // other data structures
+    p->vTargets     = Vec_PtrAlloc( 0 );
+    p->vVisited     = Vec_PtrAlloc( 0 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Delete manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_BmcManStop( Saig_Bmc_t * p )
+{
+    Aig_ManStop( p->pFrm  );
+    Vec_PtrFree( p->vAig2Frm );
+    Vec_IntFree( p->vObj2Var );
+    sat_solver_delete( p->pSat );
+    Vec_PtrFree( p->vTargets );
+    Vec_PtrFree( p->vVisited );
+    free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Explores the possibility of constructing the output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )
+{
+    Aig_Obj_t * pRes, * p0, * p1, * pConst1 = Aig_ManConst1(p->pAig);
+    pRes = Saig_BmcObjFrame( p, pObj, i );
+    if ( pRes != NULL )
+        return pRes;
+    if ( Saig_ObjIsPi( p->pAig, pObj ) )
+        pRes = AIG_VISITED;
+    else if ( Saig_ObjIsLo( p->pAig, pObj ) )
+        pRes = Saig_BmcIntervalExplore_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1 );
+    else if ( Aig_ObjIsPo( pObj ) )
     {
-        pFrames = Saig_ManFramesBmcLimit( pAig, nFrames, nSizeMax );
-        nFrames = Aig_ManPoNum(pFrames) / Saig_ManPoNum(pAig) + ((Aig_ManPoNum(pFrames) % Saig_ManPoNum(pAig)) > 0);
+        pRes = Saig_BmcIntervalExplore_rec( p, Aig_ObjFanin0(pObj), i );
+        if ( pRes != AIG_VISITED )
+            pRes = Saig_BmcObjChild0( p, pObj, i );
     }
-    else
-        pFrames = Saig_ManFramesBmc( pAig, nFrames );
-    if ( piFrame )
-        *piFrame = nFrames;
-    if ( fVerbose )
+    else 
     {
-        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
-            Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
-            Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
-        printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
-            nFrames, Aig_ManPiNum(pFrames), Aig_ManPoNum(pFrames), 
-            Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
-        PRT( "Time", clock() - clk );
-        fflush( stdout );
+        p0 = Saig_BmcIntervalExplore_rec( p, Aig_ObjFanin0(pObj), i );
+        if ( p0 != AIG_VISITED )
+            p0 = Saig_BmcObjChild0( p, pObj, i );
+        p1 = Saig_BmcIntervalExplore_rec( p, Aig_ObjFanin1(pObj), i );
+        if ( p1 != AIG_VISITED )
+            p1 = Saig_BmcObjChild1( p, pObj, i );
+
+        if ( p0 == Aig_Not(p1) )
+            pRes = Aig_Not(pConst1);
+        else if ( Aig_Regular(p0) == pConst1 )
+            pRes = (p0 == pConst1) ? p1 : Aig_Not(pConst1);
+        else if ( Aig_Regular(p1) == pConst1 )
+            pRes = (p1 == pConst1) ? p0 : Aig_Not(pConst1);
+        else 
+            pRes = AIG_VISITED;
+
+        if ( pRes != pConst1 && pRes != Aig_Not(pConst1) )
+            pRes = AIG_VISITED;
     }
-    // rewrite the timeframes
-    if ( fRewrite )
+    Saig_BmcObjSetFrame( p, pObj, i, pRes );
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs the actual construction of the output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )
+{
+    Aig_Obj_t * pRes;
+    pRes = Saig_BmcObjFrame( p, pObj, i );
+    assert( pRes != NULL );
+    if ( pRes != AIG_VISITED )
+        return pRes;
+    if ( Saig_ObjIsPi( p->pAig, pObj ) )
+        pRes = Aig_ObjCreatePi(p->pFrm);
+    else if ( Saig_ObjIsLo( p->pAig, pObj ) )
+        pRes = Saig_BmcIntervalConstruct_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1 );
+    else if ( Aig_ObjIsPo( pObj ) )
     {
-        clk = clock();
-//        pFrames = Dar_ManBalance( pAigTemp = pFrames, 0 );
-        pFrames = Dar_ManRwsat( pAigTemp = pFrames, 1, 0 );
-        Aig_ManStop( pAigTemp );
-        if ( fVerbose )
+        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i );
+        pRes = Saig_BmcObjChild0( p, pObj, i );
+    }
+    else 
+    {
+        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i );
+        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin1(pObj), i );
+        pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
+    }
+    Saig_BmcObjSetFrame( p, pObj, i, pRes );
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds new AIG nodes to the frames.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_BmcInterval( Saig_Bmc_t * p )
+{
+    Aig_Obj_t * pTarget, * pObj;
+    int i, nNodes = Aig_ManNodeNum( p->pFrm );
+    Vec_PtrClear( p->vTargets );
+    for ( ; p->iFramelast < p->nFramesMax; p->iFramelast++, p->iOutputLast = 0 )
+    {
+        if ( p->iOutputLast == 0 )
         {
-            printf( "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
-                Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
-            PRT( "Time", clock() - clk );
-            fflush( stdout );
+            Saig_BmcObjSetFrame( p, Aig_ManConst1(p->pAig), p->iFramelast, Aig_ManConst1(p->pFrm) );
+            Saig_ManForEachPi( p->pAig, pObj, i )
+                Saig_BmcObjSetFrame( p, pObj, p->iFramelast, Aig_ObjCreatePi(p->pFrm) ); 
+        }
+        for ( ; p->iOutputLast < Saig_ManPoNum(p->pAig); p->iOutputLast++ )
+        {
+            if ( Aig_ManNodeNum(p->pFrm) >= nNodes + p->nNodesMax )
+                return;
+            Saig_BmcIntervalExplore_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->nFramesMax );
+            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->nFramesMax );
+            Vec_PtrPush( p->vTargets, pTarget );
         }
     }
-    // create the SAT solver
-    clk = clock();
-    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) );  
-    pSat = sat_solver_new();
-    sat_solver_setnvars( pSat, pCnf->nVars );
-    for ( i = 0; i < pCnf->nClauses; i++ )
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs the actual construction of the output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Saig_BmcIntervalToAig_rec( Saig_Bmc_t * p, Aig_Man_t * pNew, Aig_Obj_t * pObj )
+{
+    if ( pObj->pData )
+        return pObj->pData;
+    Vec_PtrPush( p->vVisited, pObj );
+    if ( Saig_BmcSatNum(p, pObj) || Aig_ObjIsPi(pObj) )
+        return pObj->pData = Aig_ObjCreatePi(pNew);
+    Saig_BmcIntervalToAig_rec( p, pNew, Aig_ObjFanin0(pObj) );
+    Saig_BmcIntervalToAig_rec( p, pNew, Aig_ObjFanin1(pObj) );
+    return pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates AIG of the newly added nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_BmcIntervalToAig( Saig_Bmc_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjNew;
+    int i;
+    pNew = Aig_ManStart( p->nNodesMax );
+    Aig_ManConst1(p->pFrm)->pData = Aig_ManConst1(pNew);
+    Vec_PtrClear( p->vVisited );
+    Vec_PtrPush( p->vVisited, Aig_ManConst1(p->pFrm) );
+    Vec_PtrForEachEntry( p->vTargets, pObj, i )
     {
-        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+        pObjNew = Saig_BmcIntervalToAig_rec( p, pNew, Aig_Regular(pObj) );
+        Aig_ObjCreatePo( pNew, pObjNew );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives CNF for the newly added nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_BmcLoadCnf( Saig_Bmc_t * p, Cnf_Dat_t * pCnf )
+{
+    Aig_Obj_t * pObj, * pObjNew;
+    int i, Lits[2], VarNumOld, VarNumNew;
+    Vec_PtrForEachEntry( p->vVisited, pObj, i )
+    {
+        pObjNew   = pObj->pData;
+        pObj->pData = NULL;
+        VarNumNew = pCnf->pVarNums[ pObjNew->Id ];
+        if ( VarNumNew == -1 )
+            continue;
+        VarNumOld = Saig_BmcSatNum( p, pObj );
+        if ( VarNumOld == 0 )
+        {
+            Saig_BmcSetSatNum( p, pObj, VarNumNew );
+            continue;
+        }
+        // add clauses connecting existing variables
+        Lits[0] = toLitCond( VarNumOld, 0 );
+        Lits[1] = toLitCond( VarNumNew, 1 );
+        if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )
+            assert( 0 );
+        Lits[0] = toLitCond( VarNumOld, 1 );
+        Lits[1] = toLitCond( VarNumNew, 0 );
+        if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )
             assert( 0 );
     }
-    if ( fVerbose )
-    {
-        printf( "CNF: Variables = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
-        PRT( "Time", clock() - clk );
-        fflush( stdout );
-    }
-    status = sat_solver_simplify(pSat);
-    if ( status == 0 )
-    {
-        if ( fVerbose )
-        {
-            printf( "The BMC problem is trivially UNSAT\n" );
-            fflush( stdout );
-        }
-    }
-    else
-    {
-        int clkPart = clock();
-        Aig_ManForEachPo( pFrames, pObj, i )
-        {
-            Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
-            if ( fVerbose )
-            {
-                printf( "Solving output %2d of frame %3d ... \r", 
-                    i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
-            }
-            clk = clock();
-            status = sat_solver_solve( pSat, &Lit, &Lit + 1, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
-            if ( fVerbose && (i % Saig_ManPoNum(pAig) == Saig_ManPoNum(pAig) - 1) )
-            {
-                printf( "Solved %2d outputs of frame %3d.  ", 
-                    Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
-                printf( "Conf =%8.0f. Imp =%11.0f. ", (double)pSat->stats.conflicts, (double)pSat->stats.propagations );
-                PRT( "T", clock() - clkPart );
-                clkPart = clock();
-                fflush( stdout );
-            }
-            if ( status == l_False )
-            {
-/*
-                Lit = lit_neg( Lit );
-                RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
-                assert( RetValue );
-                if ( pSat->qtail != pSat->qhead )
-                {
-                    RetValue = sat_solver_simplify(pSat);
-                    assert( RetValue );
-                }
-*/
-            }
-            else if ( status == l_True )
-            {
-                extern void * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel );
-                Vec_Int_t * vCiIds = Cnf_DataCollectPiSatNums( pCnf, pFrames );
-                int * pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
-                pModel[Aig_ManPiNum(pFrames)] = pObj->Id;
-                pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pFrames, pModel );
-                free( pModel );
-                Vec_IntFree( vCiIds );
-
-//                if ( piFrame )
-//                    *piFrame = i / Saig_ManPoNum(pAig);
-                RetValue = 0;
-                break;
-            }
-            else
-            {
-                if ( piFrame )
-                    *piFrame = i / Saig_ManPoNum(pAig);
-                RetValue = -1;
-                break;
-            }
-        }
-    }
-    sat_solver_delete( pSat );
-    Cnf_DataFree( pCnf );
-    Aig_ManStop( pFrames );
-    return RetValue;
+    // add CNF to the SAT solver
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause( p->pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+            break;
+    if ( i < pCnf->nClauses )
+        printf( "SAT solver became UNSAT after adding clauses.\n" );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Solves targets with the given resource limit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_BmcSolveTargets( Saig_Bmc_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, VarNum, Lit, RetValue;
+    assert( Vec_PtrSize(p->vTargets) > 0 );
+    Vec_PtrForEachEntry( p->vTargets, pObj, i )
+    {
+        if ( p->pSat->stats.conflicts > p->nConfMaxAll )
+            return l_Undef;
+        VarNum = Saig_BmcSatNum( p, Aig_Regular(pObj) );
+        Lit = toLitCond( VarNum, Aig_IsComplement(pObj) );
+        RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (sint64)p->nConfMaxOne, (sint64)0, (sint64)0, (sint64)0 );
+        if ( RetValue == l_False ) // unsat
+            continue;
+        if ( RetValue == l_Undef ) // undecided
+            return l_Undef;
+        // generate counter-example
+        return l_True;
+    }
+    return l_False;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs BMC with the given parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_BmcPerform( Aig_Man_t * pAig, int nConfMaxOne, int nConfMaxAll, int nNodesMax, int fVerbose )
+{
+    Saig_Bmc_t * p;
+    Aig_Man_t * pNew;
+    Cnf_Dat_t * pCnf;
+    int RetValue, clk = clock();
+    p = Saig_BmcManStart( pAig, nConfMaxOne, nConfMaxAll, nNodesMax, fVerbose );
+    while ( 1 )
+    {
+        // add new logic slice to frames
+        Saig_BmcInterval( p );
+        if ( Vec_PtrSize(p->vTargets) == 0 )
+            break;
+        // convert logic slice into new AIG
+        pNew = Saig_BmcIntervalToAig( p );
+        // derive CNF for the new AIG
+        pCnf = Cnf_Derive( pNew, Aig_ManPoNum(pNew) );
+        Cnf_DataLift( pCnf, p->nSatVars );
+        p->nSatVars += pCnf->nVars;
+        // add this CNF to the solver
+        Saig_BmcLoadCnf( p, pCnf );
+        Cnf_DataFree( pCnf );
+        Aig_ManStop( pNew );
+        // solve the targets
+        RetValue = Saig_BmcSolveTargets( p );
+        if ( RetValue != l_False )
+            break;
+    }
+    if ( RetValue == l_True )
+        printf( "BMC failed for output %d in frame %d.  ", p->iOutputLast, p->iFramelast );
+    else // if ( RetValue == l_False || RetValue == l_Undef )
+        printf( "BMC completed for %d timeframes.  ", p->iFramelast );
+    PRT( "Time", clock() - clk );
+    if ( p->iFramelast >= p->nFramesMax )
+        printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
+    else if ( p->pSat->stats.conflicts > p->nConfMaxAll )
+        printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
+    else
+        printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+    Saig_BmcManStop( p );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

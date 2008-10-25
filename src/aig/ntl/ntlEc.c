@@ -351,6 +351,7 @@ Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 )
     pAig1 = Ntl_ManCollapse( pMan1, 1 );
     pAig2 = Ntl_ManCollapse( pMan2, 1 );
     pAig = Saig_ManCreateMiter( pAig1, pAig2, 0 );
+    Aig_ManCleanup( pAig );
     Aig_ManStop( pAig1 );
     Aig_ManStop( pAig2 );
     // cleanup

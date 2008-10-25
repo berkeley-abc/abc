@@ -7936,7 +7936,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 
-
+/*
     pNtkRes = Abc_NtkDarTestNtk( pNtk );
     if ( pNtkRes == NULL )
     {
@@ -7945,9 +7945,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
 
-
-//    Abc_NtkDarTest( pNtk );
+    Abc_NtkDarTest( pNtk );
 
     return 0;
 usage:

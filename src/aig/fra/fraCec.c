@@ -175,7 +175,11 @@ int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose )
     RetValue = Fra_FraigMiterStatus( pAig );
 //    assert( RetValue == -1 );
     if ( RetValue >= 0 )
+    {
+        pAig->pData = ALLOC( int, Aig_ManPiNum(pAig) );
+        memset( pAig->pData, 0, sizeof(int) * Aig_ManPiNum(pAig) );
         return RetValue;
+    }
 
     // if SAT only, solve without iteration
 clk = clock();

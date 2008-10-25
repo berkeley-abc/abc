@@ -180,6 +180,27 @@ Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName )
 
 /**Function*************************************************************
 
+  Synopsis    [Assigns numbers to PIs and POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ModelSetPioNumbers( Ntl_Mod_t * p )
+{
+    Ntl_Obj_t * pObj;
+    int i;
+    Ntl_ModelForEachPi( p, pObj, i )
+        pObj->iTemp = i;
+    Ntl_ModelForEachPo( p, pObj, i )
+        pObj->iTemp = i;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns -1, 0, +1 (when it is PI, not found, or PO).]
 
   Description []
@@ -189,7 +210,7 @@ Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber )
+int Ntl_ModelFindPioNumber_old( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber )
 {
     Ntl_Net_t * pNet;
     Ntl_Obj_t * pObj;
@@ -237,6 +258,60 @@ int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pNam
             *pNumber = i;
             return -1;
         }
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns -1, 0, +1 (when it is PI, not found, or PO).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber )
+{
+    Ntl_Net_t * pNet;
+    Ntl_Obj_t * pTerm;
+    *pNumber = -1;
+    pNet = Ntl_ModelFindNet( p, pName );
+    if ( pNet == NULL )
+        return 0;
+    if ( fPiOnly )
+    {
+        pTerm = pNet->pDriver;
+        if ( pTerm && Ntl_ObjIsPi(pTerm) )
+        {
+            *pNumber = pTerm->iTemp;
+            return -1;
+        }
+        return 0;
+    }
+    if ( fPoOnly )
+    {
+        pTerm = pNet->pCopy;
+        if ( pTerm && Ntl_ObjIsPo(pTerm) )
+        {
+            *pNumber = pTerm->iTemp;
+            return 1;
+        }
+        return 0;
+    }
+    pTerm = pNet->pCopy;
+    if ( pTerm && Ntl_ObjIsPo(pTerm) )
+    {
+        *pNumber = pTerm->iTemp;
+        return 1;
+    }
+    pTerm = pNet->pDriver;
+    if ( pTerm && Ntl_ObjIsPi(pTerm) )
+    {
+        *pNumber = pTerm->iTemp;
+        return -1;
     }
     return 0;
 }

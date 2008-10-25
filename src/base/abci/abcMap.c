@@ -109,9 +109,9 @@ clk = clock();
 
     // reconstruct the network after mapping
     pNtkNew = Abc_NtkFromMap( pMan, pNtk );
+    Map_ManFree( pMan );
     if ( pNtkNew == NULL )
         return NULL;
-    Map_ManFree( pMan );
 
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );

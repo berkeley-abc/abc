@@ -55,7 +55,7 @@ int Nwk_ManCheck( Nwk_Man_t * p )
     Nwk_ManForEachObj( p, pObj, i )
     {
         Nwk_ObjForEachFanin( pObj, pNext, k )
-            if ( Nwk_ObjFindFanout( pNext, pObj ) == -1 )
+            if ( Nwk_ObjFanoutNum(pNext) < 100 && Nwk_ObjFindFanout( pNext, pObj ) == -1 )
                 printf( "Nwk_ManCheck(): Object %d has fanin %d which does not have a corresponding fanout.\n", pObj->Id, pNext->Id );
         Nwk_ObjForEachFanout( pObj, pNext, k )
             if ( Nwk_ObjFindFanin( pNext, pObj ) == -1 )

@@ -3286,6 +3286,10 @@ SOURCE=.\src\aig\saig\saigBmc.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigBmc2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigCone.c
 # End Source File
 # Begin Source File
@@ -3479,6 +3483,10 @@ SOURCE=.\src\aig\ssw\sswDyn.c
 # Begin Source File
 
 SOURCE=.\src\aig\ssw\sswInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssw\sswIslands.c
 # End Source File
 # Begin Source File
 
