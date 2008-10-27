@@ -122,6 +122,7 @@ Vec_Int_t * Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
 Cnf_Dat_t * Cnf_DataAlloc( Aig_Man_t * pAig, int nVars, int nClauses, int nLiterals )
 {
     Cnf_Dat_t * pCnf;
+    int i;
     pCnf = ALLOC( Cnf_Dat_t, 1 );
     memset( pCnf, 0, sizeof(Cnf_Dat_t) );
     pCnf->pMan = pAig;
@@ -132,7 +133,9 @@ Cnf_Dat_t * Cnf_DataAlloc( Aig_Man_t * pAig, int nVars, int nClauses, int nLiter
     pCnf->pClauses[0] = ALLOC( int, nLiterals );
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
     pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(pAig) );
-    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(pAig) );
+//    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(pAig) );
+    for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
+        pCnf->pVarNums[i] = -1;
     return pCnf;
 }
 
@@ -196,7 +199,7 @@ void Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus )
     Aig_Obj_t * pObj;
     int v;
     Aig_ManForEachObj( p->pMan, pObj, v )
-        if ( p->pVarNums[pObj->Id] )
+        if ( p->pVarNums[pObj->Id] >= 0 )
             p->pVarNums[pObj->Id] += nVarsPlus;
     for ( v = 0; v < p->nLiterals; v++ )
         p->pClauses[0][v] += 2*nVarsPlus;

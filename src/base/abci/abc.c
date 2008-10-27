@@ -212,10 +212,13 @@ static int Abc_CommandProve          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDebug          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBmc2           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmcInter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIndcut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEnlarge        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInduction      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPBAbstraction  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 
 static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -480,10 +483,12 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "debug",         Abc_CommandDebug,            0 );
     Cmd_CommandAdd( pAbc, "Verification", "bmc",           Abc_CommandBmc,              0 );
+    Cmd_CommandAdd( pAbc, "Verification", "bmc2",          Abc_CommandBmc2,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "int",           Abc_CommandBmcInter,         0 );
     Cmd_CommandAdd( pAbc, "Verification", "indcut",        Abc_CommandIndcut,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
     Cmd_CommandAdd( pAbc, "Verification", "ind",           Abc_CommandInduction,        0 );
+    Cmd_CommandAdd( pAbc, "Verification", "abs",           Abc_CommandPBAbstraction,    0 );
 
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
@@ -7936,7 +7941,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 
-/*
+
     pNtkRes = Abc_NtkDarTestNtk( pNtk );
     if ( pNtkRes == NULL )
     {
@@ -7945,9 +7950,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
 
-    Abc_NtkDarTest( pNtk );
+
+//    Abc_NtkDarTest( pNtk );
 
     return 0;
 usage:
@@ -16059,7 +16064,7 @@ usage:
 
   Description []
                
-  SideEffects []
+  SideEffects [] 
 
   SeeAlso     []
 
@@ -16072,25 +16077,29 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFrames;
     int nSizeMax;
     int nBTLimit;
+    int nBTLimitAll;
+    int nNodeDelta;
     int fRewrite;
     int fNewAlgo;
     int fVerbose;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames  = 20;
-    nSizeMax = 100000;
-    nBTLimit = 10000;
-    fRewrite = 0;
-    fNewAlgo = 1;
-    fVerbose = 0;
+    nFrames     =       20;
+    nSizeMax    =   100000;
+    nBTLimit    =    10000;
+    nBTLimitAll = 10000000;
+    nNodeDelta  =     1000;
+    fRewrite    =        0;
+    fNewAlgo    =        1;
+    fVerbose    =        0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FNCravh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FNCGDrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16127,6 +16136,28 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nBTLimit < 0 ) 
                 goto usage;
             break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimitAll = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimitAll < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nNodeDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNodeDelta < 0 ) 
+                goto usage;
+            break;
         case 'r':
             fRewrite ^= 1;
             break;
@@ -16148,7 +16179,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
-    {
+    { 
         fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
@@ -16157,17 +16188,169 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Does not work for combinational networks.\n" );
         return 0;
     }
-    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nBTLimit, fRewrite, fNewAlgo, fVerbose );
+    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: bmc [-FNC num] [-ravh]\n" );
-    fprintf( pErr, "\t         perform bounded model checking\n" );
+//    fprintf( pErr, "usage: bmc [-FNCGD num] [-ravh]\n" );
+    fprintf( pErr, "usage: bmc [-FNC num] [-rvh]\n" );
+    fprintf( pErr, "\t         performs bounded model checking with static unrolling\n" );
     fprintf( pErr, "\t-F num : the number of time frames [default = %d]\n", nFrames );
     fprintf( pErr, "\t-N num : the max number of nodes in the frames [default = %d]\n", nSizeMax );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
+//    fprintf( pErr, "\t-G num : the max number of conflicts globally [default = %d]\n", nBTLimitAll );
+//    fprintf( pErr, "\t-D num : the delta in the number of nodes [default = %d]\n", nNodeDelta );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
-    fprintf( pErr, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
+//    fprintf( pErr, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects [] 
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int nFrames;
+    int nSizeMax;
+    int nBTLimit;
+    int nBTLimitAll;
+    int nNodeDelta;
+    int fRewrite;
+    int fNewAlgo;
+    int fVerbose;
+
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFrames     =     1000;
+    nSizeMax    =   200000;
+    nBTLimit    =    10000;
+    nBTLimitAll = 10000000;
+    nNodeDelta  =     1000;
+    fRewrite    =        0;
+    fNewAlgo    =        0;
+    fVerbose    =        0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FNCGDrvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSizeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBTLimitAll = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimitAll < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nNodeDelta = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNodeDelta < 0 ) 
+                goto usage;
+            break;
+        case 'r':
+            fRewrite ^= 1;
+            break;
+        case 'a':
+            fNewAlgo ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    { 
+        fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( stdout, "Does not work for combinational networks.\n" );
+        return 0;
+    }
+    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fVerbose );
+    return 0;
+
+usage:
+//    fprintf( pErr, "usage: bmc2 [-FNCGD num] [-ravh]\n" );
+    fprintf( pErr, "usage: bmc2 [-FCGD num] [-vh]\n" );
+    fprintf( pErr, "\t         performs bounded model checking with dynamic unrolling\n" );
+    fprintf( pErr, "\t-F num : the max number of time frames [default = %d]\n", nFrames );
+//    fprintf( pErr, "\t-N num : the max number of nodes in the frames [default = %d]\n", nSizeMax );
+    fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
+    fprintf( pErr, "\t-G num : the max number of conflicts globally [default = %d]\n", nBTLimitAll );
+    fprintf( pErr, "\t-D num : the delta in the number of nodes [default = %d]\n", nNodeDelta );
+//    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
+//    fprintf( pErr, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -16616,7 +16799,7 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfMax;
     int fVerbose;
     int c;
-    extern void Abc_NtkDarLocalize( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose );
+    extern void Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -16684,11 +16867,112 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    Abc_NtkDarLocalize( pNtk, nFramesMax, nConfMax, fVerbose );
+    Abc_NtkDarInduction( pNtk, nFramesMax, nConfMax, fVerbose );
     return 0;
 usage:
     fprintf( pErr, "usage: ind [-FC num] [-vh]\n" );
     fprintf( pErr, "\t         runs K-step induction for the property output\n" );
+    fprintf( pErr, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
+    fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int nFramesMax;
+    int nConfMax;
+    int fVerbose;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFramesMax =    10;
+    nConfMax   = 10000;
+    fVerbose   =     1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+
+    // modify the current network
+    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Target enlargement has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+usage:
+    fprintf( pErr, "usage: abs [-FC num] [-vh]\n" );
+    fprintf( pErr, "\t         proof-based abstraction from UNSAT core of the BMC instance\n" );
     fprintf( pErr, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
     fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

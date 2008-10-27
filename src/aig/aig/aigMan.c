@@ -431,6 +431,7 @@ void Aig_ManSetRegNum( Aig_Man_t * p, int nRegs )
     p->nRegs = nRegs;
     p->nTruePis = Aig_ManPiNum(p) - nRegs;
     p->nTruePos = Aig_ManPoNum(p) - nRegs;
+    Aig_ManSetPioNumbers( p );
 }
 
 /**Function*************************************************************

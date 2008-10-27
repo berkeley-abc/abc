@@ -108,13 +108,12 @@ Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops )
             pObj->fMarkA = 0;
             pObj->pData = Aig_ObjCreatePi( pAigNew );
         }
-    // add internal nodes of this frame
+    // add internal nodes 
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // create POs
-    Aig_ManForEachPo( pAig, pObj, i )
-        if ( !pObj->fMarkA )
-            Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+    Saig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
     // create LIs
     Aig_ManForEachPo( pAig, pObj, i )
         if ( pObj->fMarkA )
@@ -122,8 +121,8 @@ Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops )
             pObj->fMarkA = 0;
             Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
         }
-    Aig_ManCleanup( pAigNew );
     Aig_ManSetRegNum( pAigNew, Vec_IntSize(vFlops) );
+    Aig_ManSeqCleanup( pAigNew );
     return pAigNew;
 }
 

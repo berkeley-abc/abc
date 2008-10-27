@@ -1462,7 +1462,7 @@ Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, in
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fNewAlgo, int fVerbose )
+int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fVerbose )
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1, clk = clock();
@@ -1511,6 +1511,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
             RetValue = 1;
         }
 */
+/*
         int iFrame;
         RetValue = Ssw_BmcDynamic( pMan, nFrames, nBTLimit, fVerbose, &iFrame );
         FREE( pNtk->pModel );
@@ -1525,6 +1526,11 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nBTLimit, in
             Fra_Cex_t * pCex = pNtk->pSeqModel;
             printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
         }
+*/
+        Saig_BmcPerform( pMan, nFrames, nNodeDelta, nBTLimit, nBTLimitAll, fVerbose );
+        FREE( pNtk->pModel );
+        FREE( pNtk->pSeqModel );
+        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
     }
 PRT( "Time", clock() - clk );
     // verify counter-example
@@ -1667,7 +1673,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
     }
     if ( pSecPar->fTryBmc )
     {
-        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, 2000, 0, 1, 0 );
+        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, -1, 2000, -1, 0, 1, 0 );
         if ( RetValue == 0 )
         {
             printf( "Networks are not equivalent.\n" );
@@ -2132,9 +2138,10 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     Aig_ManStop( pMan );
     return pNtkAig;
 }
+
 /**Function*************************************************************
 
-  Synopsis    [Performs targe enlargement.]
+  Synopsis    [Performs induction for property only.]
 
   Description []
                
@@ -2143,7 +2150,7 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDarLocalize( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose )
+void Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose )
 {
     Aig_Man_t * pMan, * pTemp;
     int clkTotal = clock();
@@ -2170,6 +2177,41 @@ PRT( "Time", clock() - clkTotal );
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Performs proof-based abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose )
+{
+    Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose );
+
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+
+    Aig_ManSetRegNum( pMan, pMan->nRegs );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fVerbose );
+    Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
+
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
 
 /**Function*************************************************************
 
@@ -2683,8 +2725,10 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
         return NULL;
 
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, 10, 1000, 1 );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 1 );
     Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
 
     pNtkAig = Abc_NtkFromAigPhase( pMan );
     pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);

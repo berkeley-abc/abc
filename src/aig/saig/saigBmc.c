@@ -21,6 +21,7 @@
 #include "saig.h"
 #include "cnf.h"
 #include "satStore.h"
+#include "ssw.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -33,9 +34,9 @@ struct Saig_Bmc_t_
 {
     // parameters
     int                   nFramesMax;     // the max number of timeframes to consider
+    int                   nNodesMax;      // the max number of nodes to add
     int                   nConfMaxOne;    // the max number of conflicts at a target
     int                   nConfMaxAll;    // the max number of conflicts for all targets
-    int                   nNodesMax;      // the max number of nodes to add
     int                   fVerbose;       // enables verbose output
     // AIG managers
     Aig_Man_t *           pAig;           // the user's AIG manager
@@ -46,11 +47,14 @@ struct Saig_Bmc_t_
     Vec_Ptr_t *           vAig2Frm;       // mapping of AIG nodees into Frames nodes
     // SAT solver
     sat_solver *          pSat;           // SAT solver
-    Vec_Int_t *           vObj2Var;       // mapping of frames objects in CNF variables
     int                   nSatVars;       // the number of used SAT variables
+    Vec_Int_t *           vObj2Var;       // mapping of frames objects in CNF variables
+    // subproblems
     Vec_Ptr_t *           vTargets;       // targets to be solved in this interval
-    int                   iFramelast;     // last frame  
+    int                   iFrameLast;     // last frame  
     int                   iOutputLast;    // last output
+    int                   iFrameFail;     // failed frame 
+    int                   iOutputFail;    // failed output
 };
 
 static inline int         Saig_BmcSatNum( Saig_Bmc_t * p, Aig_Obj_t * pObj )                                { return Vec_IntGetEntry( p->vObj2Var, pObj->Id );  }
@@ -77,7 +81,7 @@ static inline Aig_Obj_t * Saig_BmcObjChild1( Saig_Bmc_t * p, Aig_Obj_t * pObj, i
   SeeAlso     []
 
 ***********************************************************************/
-Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nConfMaxOne, int nConfMaxAll, int nNodesMax, int fVerbose )
+Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose )
 {
     Saig_Bmc_t * p;
     Aig_Obj_t * pObj;
@@ -86,10 +90,10 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nConfMaxOne, int nConfMaxAl
     p = (Saig_Bmc_t *)malloc( sizeof(Saig_Bmc_t) );
     memset( p, 0, sizeof(Saig_Bmc_t) );
     // set parameters
-    p->nFramesMax   = 1000000;
+    p->nFramesMax   = nFramesMax;
+    p->nNodesMax    = nNodesMax;
     p->nConfMaxOne  = nConfMaxOne;
     p->nConfMaxAll  = nConfMaxAll;
-    p->nNodesMax    = nNodesMax;
     p->fVerbose     = fVerbose;
     p->pAig         = pAig;
     p->nObjs        = Aig_ManObjNumMax(pAig);
@@ -103,15 +107,17 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nConfMaxOne, int nConfMaxAl
     Saig_ManForEachLo( pAig, pObj, i )
         Saig_BmcObjSetFrame( p, pObj, 0, Aig_ManConst0(p->pFrm) ); 
     // create SAT solver
+    p->nSatVars     = 1;
     p->pSat         = sat_solver_new();
     sat_solver_setnvars( p->pSat, 2000 );
-    p->nSatVars = 1;
     Lit = toLit( p->nSatVars );
     sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     Saig_BmcSetSatNum( p, Aig_ManConst1(p->pFrm), p->nSatVars++ );
     // other data structures
     p->vTargets     = Vec_PtrAlloc( 0 );
     p->vVisited     = Vec_PtrAlloc( 0 );
+    p->iOutputFail  = -1;
+    p->iFrameFail   = -1;
     return p;
 }
 
@@ -174,15 +180,15 @@ Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i
             p1 = Saig_BmcObjChild1( p, pObj, i );
 
         if ( p0 == Aig_Not(p1) )
-            pRes = Aig_Not(pConst1);
+            pRes = Aig_ManConst0(p->pFrm);
         else if ( Aig_Regular(p0) == pConst1 )
-            pRes = (p0 == pConst1) ? p1 : Aig_Not(pConst1);
+            pRes = (p0 == pConst1) ? p1 : Aig_ManConst0(p->pFrm);
         else if ( Aig_Regular(p1) == pConst1 )
-            pRes = (p1 == pConst1) ? p0 : Aig_Not(pConst1);
+            pRes = (p1 == pConst1) ? p0 : Aig_ManConst0(p->pFrm);
         else 
             pRes = AIG_VISITED;
 
-        if ( pRes != pConst1 && pRes != Aig_Not(pConst1) )
+        if ( pRes != AIG_VISITED && !Aig_ObjIsConst1(Aig_Regular(pRes)) )
             pRes = AIG_VISITED;
     }
     Saig_BmcObjSetFrame( p, pObj, i, pRes );
@@ -222,6 +228,7 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
         Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin1(pObj), i );
         pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
     }
+    assert( pRes != AIG_VISITED );
     Saig_BmcObjSetFrame( p, pObj, i, pRes );
     return pRes;
 }
@@ -239,23 +246,30 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
 ***********************************************************************/
 void Saig_BmcInterval( Saig_Bmc_t * p )
 {
-    Aig_Obj_t * pTarget, * pObj;
-    int i, nNodes = Aig_ManNodeNum( p->pFrm );
+    Aig_Obj_t * pTarget;
+//    Aig_Obj_t * pObj;
+//    int i;
+    int nNodes = Aig_ManObjNum( p->pFrm );
     Vec_PtrClear( p->vTargets );
-    for ( ; p->iFramelast < p->nFramesMax; p->iFramelast++, p->iOutputLast = 0 )
+    for ( ; p->iFrameLast < p->nFramesMax; p->iFrameLast++, p->iOutputLast = 0 )
     {
         if ( p->iOutputLast == 0 )
         {
-            Saig_BmcObjSetFrame( p, Aig_ManConst1(p->pAig), p->iFramelast, Aig_ManConst1(p->pFrm) );
-            Saig_ManForEachPi( p->pAig, pObj, i )
-                Saig_BmcObjSetFrame( p, pObj, p->iFramelast, Aig_ObjCreatePi(p->pFrm) ); 
+            Saig_BmcObjSetFrame( p, Aig_ManConst1(p->pAig), p->iFrameLast, Aig_ManConst1(p->pFrm) );
+//            Saig_ManForEachPi( p->pAig, pObj, i )
+//                Saig_BmcObjSetFrame( p, pObj, p->iFrameLast, Aig_ObjCreatePi(p->pFrm) ); 
         }
         for ( ; p->iOutputLast < Saig_ManPoNum(p->pAig); p->iOutputLast++ )
         {
-            if ( Aig_ManNodeNum(p->pFrm) >= nNodes + p->nNodesMax )
+            if ( Aig_ManObjNum(p->pFrm) >= nNodes + p->nNodesMax )
                 return;
-            Saig_BmcIntervalExplore_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->nFramesMax );
-            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->nFramesMax );
+            Saig_BmcIntervalExplore_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast );
+            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast );
+
+            /////////
+//            if ( Aig_ObjIsConst1(Aig_Regular(pTarget)) )
+//                continue;
+
             Vec_PtrPush( p->vTargets, pTarget );
         }
     }
@@ -281,6 +295,7 @@ Aig_Obj_t * Saig_BmcIntervalToAig_rec( Saig_Bmc_t * p, Aig_Man_t * pNew, Aig_Obj
         return pObj->pData = Aig_ObjCreatePi(pNew);
     Saig_BmcIntervalToAig_rec( p, pNew, Aig_ObjFanin0(pObj) );
     Saig_BmcIntervalToAig_rec( p, pNew, Aig_ObjFanin1(pObj) );
+    assert( pObj->pData == NULL );
     return pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 }
 
@@ -300,13 +315,18 @@ Aig_Man_t * Saig_BmcIntervalToAig( Saig_Bmc_t * p )
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj, * pObjNew;
     int i;
+    Aig_ManForEachObj( p->pFrm, pObj, i )
+        assert( pObj->pData == NULL );
+
     pNew = Aig_ManStart( p->nNodesMax );
     Aig_ManConst1(p->pFrm)->pData = Aig_ManConst1(pNew);
     Vec_PtrClear( p->vVisited );
     Vec_PtrPush( p->vVisited, Aig_ManConst1(p->pFrm) );
     Vec_PtrForEachEntry( p->vTargets, pObj, i )
     {
+//        assert( !Aig_ObjIsConst1(Aig_Regular(pObj)) );
         pObjNew = Saig_BmcIntervalToAig_rec( p, pNew, Aig_Regular(pObj) );
+        assert( !Aig_IsComplement(pObjNew) );
         Aig_ObjCreatePo( pNew, pObjNew );
     }
     return pNew;
@@ -329,12 +349,14 @@ void Saig_BmcLoadCnf( Saig_Bmc_t * p, Cnf_Dat_t * pCnf )
     int i, Lits[2], VarNumOld, VarNumNew;
     Vec_PtrForEachEntry( p->vVisited, pObj, i )
     {
-        pObjNew   = pObj->pData;
+        // get the new variable of this node
+        pObjNew     = pObj->pData;
         pObj->pData = NULL;
-        VarNumNew = pCnf->pVarNums[ pObjNew->Id ];
+        VarNumNew   = pCnf->pVarNums[ pObjNew->Id ];
         if ( VarNumNew == -1 )
             continue;
-        VarNumOld = Saig_BmcSatNum( p, pObj );
+        // get the old variable of this node
+        VarNumOld   = Saig_BmcSatNum( p, pObj );
         if ( VarNumOld == 0 )
         {
             Saig_BmcSetSatNum( p, pObj, VarNumNew );
@@ -369,11 +391,88 @@ void Saig_BmcLoadCnf( Saig_Bmc_t * p, Cnf_Dat_t * pCnf )
   SeeAlso     []
 
 ***********************************************************************/
+void Saig_BmcDeriveFailed( Saig_Bmc_t * p, int iTargetFail )
+{
+    int k;
+    p->iOutputFail = p->iOutputLast;
+    p->iFrameFail  = p->iFrameLast;
+    for ( k = Vec_PtrSize(p->vTargets); k > iTargetFail; k-- )
+    {
+        if ( p->iOutputFail == 0 )
+        {
+            p->iOutputFail = Saig_ManPoNum(p->pAig);
+            p->iFrameFail--;
+        }
+        p->iOutputFail--;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Solves targets with the given resource limit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
+{
+    Ssw_Cex_t * pCex;
+    Aig_Obj_t * pObj, * pObjFrm;
+    int i, f, iVarNum;
+    // start the counter-example
+    pCex = Ssw_SmlAllocCounterExample( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), p->iFrameFail+1 );
+    pCex->iFrame = p->iFrameFail;
+    pCex->iPo    = p->iOutputFail;
+    // copy the bit data
+    for ( f = 0; f <= p->iFrameFail; f++ )
+    {
+        Saig_ManForEachPi( p->pAig, pObj, i )
+        {
+            pObjFrm = Saig_BmcObjFrame( p, pObj, f );
+            if ( pObjFrm == NULL )
+                continue;
+            iVarNum = Saig_BmcSatNum( p, pObjFrm );
+            if ( iVarNum == 0 )
+                continue;
+            if ( sat_solver_var_value( p->pSat, iVarNum ) )
+                Aig_InfoSetBit( pCex->pData, pCex->nRegs + Saig_ManPiNum(p->pAig) * f + i );
+        }
+    }
+    // verify the counter example
+    if ( !Ssw_SmlRunCounterExample( p->pAig, pCex ) )
+    {
+        printf( "Saig_BmcGenerateCounterExample(): Counter-example is invalid.\n" );
+        Ssw_SmlFreeCounterExample( pCex );
+        pCex = NULL;
+    }
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Solves targets with the given resource limit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Saig_BmcSolveTargets( Saig_Bmc_t * p )
 {
     Aig_Obj_t * pObj;
     int i, VarNum, Lit, RetValue;
     assert( Vec_PtrSize(p->vTargets) > 0 );
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        RetValue = sat_solver_simplify(p->pSat);
+        assert( RetValue != 0 );
+    }
     Vec_PtrForEachEntry( p->vTargets, pObj, i )
     {
         if ( p->pSat->stats.conflicts > p->nConfMaxAll )
@@ -386,9 +485,33 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p )
         if ( RetValue == l_Undef ) // undecided
             return l_Undef;
         // generate counter-example
+        Saig_BmcDeriveFailed( p, i );
+        p->pAig->pSeqModel = Saig_BmcGenerateCounterExample( p );
         return l_True;
     }
     return l_False;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_BmcAddTargetsAsPos( Saig_Bmc_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Vec_PtrForEachEntry( p->vTargets, pObj, i )
+        Aig_ObjCreatePo( p->pFrm, pObj );
+    Aig_ManPrintStats( p->pFrm );
+    Aig_ManCleanup( p->pFrm );
+    Aig_ManPrintStats( p->pFrm );
 }
 
 /**Function*************************************************************
@@ -402,17 +525,27 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_BmcPerform( Aig_Man_t * pAig, int nConfMaxOne, int nConfMaxAll, int nNodesMax, int fVerbose )
+void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose )
 {
     Saig_Bmc_t * p;
     Aig_Man_t * pNew;
     Cnf_Dat_t * pCnf;
-    int RetValue, clk = clock();
-    p = Saig_BmcManStart( pAig, nConfMaxOne, nConfMaxAll, nNodesMax, fVerbose );
-    while ( 1 )
+    int Iter, RetValue, clk = clock(), clk2;
+    p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
+    if ( fVerbose )
     {
-        // add new logic slice to frames
+        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+            Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
+            Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
+        printf( "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 
+            nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll );
+    }
+    for ( Iter = 0; ; Iter++ )
+    {
+        clk2 = clock();
+        // add new logic interval to frames
         Saig_BmcInterval( p );
+//        Saig_BmcAddTargetsAsPos( p );
         if ( Vec_PtrSize(p->vTargets) == 0 )
             break;
         // convert logic slice into new AIG
@@ -427,20 +560,30 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nConfMaxOne, int nConfMaxAll, int nN
         Aig_ManStop( pNew );
         // solve the targets
         RetValue = Saig_BmcSolveTargets( p );
+        if ( fVerbose )
+        {
+            printf( "%3d : F = %3d. O = %3d.  And = %7d. Var = %7d. Conf = %7d. ", 
+                Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
+            PRT( "Time", clock() - clk2 );
+        }
         if ( RetValue != l_False )
             break;
     }
     if ( RetValue == l_True )
-        printf( "BMC failed for output %d in frame %d.  ", p->iOutputLast, p->iFramelast );
+        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", 
+            p->iOutputFail, p->iFrameFail );
     else // if ( RetValue == l_False || RetValue == l_Undef )
-        printf( "BMC completed for %d timeframes.  ", p->iFramelast );
+        printf( "No output was asserted in %d frames.  ", p->iFrameLast );
     PRT( "Time", clock() - clk );
-    if ( p->iFramelast >= p->nFramesMax )
-        printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
-    else if ( p->pSat->stats.conflicts > p->nConfMaxAll )
-        printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
-    else
-        printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+    if ( RetValue != l_True )
+    {
+        if ( p->iFrameLast >= p->nFramesMax )
+            printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
+        else if ( p->pSat->stats.conflicts > p->nConfMaxAll )
+            printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
+        else
+            printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+    }
     Saig_BmcManStop( p );
 }
 

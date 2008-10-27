@@ -216,7 +216,9 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
 
     // create room for variable numbers
     pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
-    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p->pManAig) );
+//    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p->pManAig) );
+    for ( i = 0; i < Aig_ManObjNumMax(p->pManAig); i++ )
+        pCnf->pVarNums[i] = -1;
     // assign variables to the last (nOutputs) POs
     Number = 1;
     if ( nOutputs )
@@ -365,7 +367,9 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
 
     // create room for variable numbers
     pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p) );
-    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
+//    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
+    for ( i = 0; i < Aig_ManObjNumMax(p); i++ )
+        pCnf->pVarNums[i] = -1;
     // assign variables to the last (nOutputs) POs
     Number = 1;
     if ( nOutputs )
@@ -485,7 +489,9 @@ Cnf_Dat_t * Cnf_DeriveSimpleForRetiming( Aig_Man_t * p )
 
     // create room for variable numbers
     pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p) );
-    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
+//    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
+    for ( i = 0; i < Aig_ManObjNumMax(p); i++ )
+        pCnf->pVarNums[i] = -1;
     // assign variables to the last (nOutputs) POs
     Number = 1;
     Aig_ManForEachPo( p, pObj, i )

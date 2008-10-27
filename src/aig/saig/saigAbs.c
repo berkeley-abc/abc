@@ -28,100 +28,13 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline Aig_Obj_t * Saig_ObjFrame( Aig_Obj_t ** ppMap, int nFrames, Aig_Obj_t * pObj, int i )                       { return ppMap[nFrames*pObj->Id + i];  }
-static inline void        Saig_ObjSetFrame( Aig_Obj_t ** ppMap, int nFrames, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { ppMap[nFrames*pObj->Id + i] = pNode; }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
-  Synopsis    [Create timeframes of the manager for BMC.]
-
-  Description [The resulting manager is combinational. The only PO is
-  the output of the last frame.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Saig_ManFramesBmcLast( Aig_Man_t * pAig, int nFrames, Aig_Obj_t *** pppMap )
-{
-    Aig_Man_t * pFrames;
-    Aig_Obj_t ** ppMap;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pResult;
-    int i, f;
-    assert( Saig_ManRegNum(pAig) > 0 );
-    // start the mapping
-    ppMap = *pppMap = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) * nFrames );
-    // start the manager
-    pFrames = Aig_ManStart( Aig_ManNodeNum(pAig) * nFrames );
-    // create variables for register outputs
-    Saig_ManForEachLo( pAig, pObj, i )
-    {
-//        pObj->pData = Aig_ManConst0( pFrames );
-        pObj->pData = Aig_ObjCreatePi( pFrames );
-        Saig_ObjSetFrame( ppMap, nFrames, pObj, 0, pObj->pData );
-    }
-    // add timeframes
-    pResult = Aig_ManConst0(pFrames);
-    for ( f = 0; f < nFrames; f++ )
-    {
-        // map the constant node
-        Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
-        Saig_ObjSetFrame( ppMap, nFrames, Aig_ManConst1(pAig), f, Aig_ManConst1(pAig)->pData );
-        // create PI nodes for this frame
-        Saig_ManForEachPi( pAig, pObj, i )
-        {
-            pObj->pData = Aig_ObjCreatePi( pFrames );
-            Saig_ObjSetFrame( ppMap, nFrames, pObj, f, pObj->pData );
-        }
-        // add internal nodes of this frame
-        Aig_ManForEachNode( pAig, pObj, i )
-        {
-            pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-            Saig_ObjSetFrame( ppMap, nFrames, pObj, f, pObj->pData );
-        }
-        // OR the POs
-        Saig_ManForEachPo( pAig, pObj, i )
-            pResult = Aig_Or( pFrames, pResult, Aig_ObjChild0Copy(pObj) );
-        // create POs for this frame
-        if ( f == nFrames - 1 )
-        {
-//            Saig_ManForEachPo( pAig, pObj, i )
-//            {
-//               pObj->pData = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
-//               Saig_ObjSetFrame( ppMap, nFrames, pObj, f, pObj->pData );
-//            }
-            break;
-        }
-        // save register inputs
-        Saig_ManForEachLi( pAig, pObj, i )
-        {
-            pObj->pData = Aig_ObjChild0Copy(pObj);
-            Saig_ObjSetFrame( ppMap, nFrames, pObj, f, pObj->pData );
-        }
-        // transfer to register outputs
-        Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
-        {
-            pObjLo->pData = pObjLi->pData;
-            Saig_ObjSetFrame( ppMap, nFrames, pObjLo, f, pObjLo->pData );
-        }
-    }
-    Aig_ObjCreatePo( pFrames, pResult );
-    Aig_ManCleanup( pFrames );
-    // remove mapping for the nodes that are no longer there
-    for ( i = 0; i < Aig_ManObjNumMax(pAig) * nFrames; i++ )
-        if ( ppMap[i] && Aig_ObjIsNone( Aig_Regular(ppMap[i]) ) )
-            ppMap[i] = NULL;
-    return pFrames;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Finds the set of variables involved in the UNSAT core.]
+  Synopsis    [Creates SAT solver for BMC.]
 
   Description []
                
@@ -130,88 +43,129 @@ Aig_Man_t * Saig_ManFramesBmcLast( Aig_Man_t * pAig, int nFrames, Aig_Obj_t *** 
   SeeAlso     []
 
 ***********************************************************************/
-int * Saig_ManFindUnsatVariables( Cnf_Dat_t * pCnf, int nRegs, int nConfMax, int fVerbose )
+sat_solver * Saig_AbsCreateSolver( Cnf_Dat_t * pCnf, int nFrames )
 {
-    void * pSatCnf; 
-    Intp_Man_t * pManProof;
-    Aig_Obj_t * pObj;
     sat_solver * pSat;
-    Vec_Int_t * vCore;
-    int * pClause1, * pClause2, * pLit, * pVars, iClause, nVars;
-    int i, Lit, RetValue;
+    Vec_Int_t * vPoLits;
+    Aig_Obj_t * pObjPo, * pObjLi, * pObjLo;
+    int f, i, Lit, Lits[2], iVarOld, iVarNew;
+    // start array of output literals
+    vPoLits = Vec_IntAlloc( nFrames * Saig_ManPoNum(pCnf->pMan) );
     // create the SAT solver
     pSat = sat_solver_new();
     sat_solver_store_alloc( pSat ); 
-    sat_solver_setnvars( pSat, pCnf->nVars );
-    for ( i = 0; i < pCnf->nClauses; i++ )
+    sat_solver_setnvars( pSat, pCnf->nVars * nFrames );
+
+    // add clauses for the timeframes
+    for ( f = 0; f < nFrames; f++ )
     {
-        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+        for ( i = 0; i < pCnf->nClauses; i++ )
         {
-            printf( "The BMC problem is trivially UNSAT.\n" );
-            sat_solver_delete( pSat );
-            return NULL;
+            if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+            {
+                printf( "The BMC problem is trivially UNSAT.\n" );
+                sat_solver_delete( pSat );
+                Vec_IntFree( vPoLits );
+                return NULL;
+            }
         }
+        // remember output literal
+        Saig_ManForEachPo( pCnf->pMan, pObjPo, i )
+            Vec_IntPush( vPoLits, toLit(pCnf->pVarNums[pObjPo->Id]) );
+        // lift CNF to the next frame
+        Cnf_DataLift( pCnf, pCnf->nVars );
     }
-    Aig_ManForEachPi( pCnf->pMan, pObj, i )
+    // put CNF back to the original level
+    Cnf_DataLift( pCnf, - pCnf->nVars * nFrames );
+
+    // add auxiliary clauses (output, connectors, initial)
+    // add output clause
+    if ( !sat_solver_addclause( pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) ) )
+        assert( 0 );
+    Vec_IntFree( vPoLits );
+    // add connecting clauses
+    for ( f = 0; f < nFrames; f++ )
     {
-        if ( i == nRegs )
-            break;
-        assert( pCnf->pVarNums[pObj->Id] >= 0 );
-        Lit = toLitCond( pCnf->pVarNums[pObj->Id], 1 );
+        // connect to the previous timeframe
+        if ( f > 0 )
+        {
+            Saig_ManForEachLiLo( pCnf->pMan, pObjLi, pObjLo, i )
+            {
+                iVarOld = pCnf->pVarNums[pObjLi->Id] - pCnf->nVars;
+                iVarNew = pCnf->pVarNums[pObjLo->Id];
+                // add clauses connecting existing variables
+                Lits[0] = toLitCond( iVarOld, 0 );
+                Lits[1] = toLitCond( iVarNew, 1 );
+                if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
+                    assert( 0 );
+                Lits[0] = toLitCond( iVarOld, 1 );
+                Lits[1] = toLitCond( iVarNew, 0 );
+                if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
+                    assert( 0 );
+            }
+        }
+        // lift CNF to the next frame
+        Cnf_DataLift( pCnf, pCnf->nVars );
+    }
+    // put CNF back to the original level
+    Cnf_DataLift( pCnf, - pCnf->nVars * nFrames );
+    // add unit clauses
+    Saig_ManForEachLo( pCnf->pMan, pObjLo, i )
+    {
+        assert( pCnf->pVarNums[pObjLo->Id] >= 0 );
+        Lit = toLitCond( pCnf->pVarNums[pObjLo->Id], 1 );
         if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
             assert( 0 );
     }
     sat_solver_store_mark_roots( pSat ); 
+    return pSat;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds the set of clauses involved in the UNSAT core.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbose )
+{
+    Vec_Int_t * vCore;
+    void * pSatCnf; 
+    Intp_Man_t * pManProof;
+    int RetValue;
     // solve the problem
     RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfMax, (sint64)0, (sint64)0, (sint64)0 );
     if ( RetValue == l_Undef )
     {
         printf( "Conflict limit is reached.\n" );
-        sat_solver_delete( pSat );
         return NULL;
     }
     if ( RetValue == l_True )
     {
         printf( "The BMC problem is SAT.\n" );
-        sat_solver_delete( pSat );
         return NULL;
     }
-    printf( "SAT solver returned UNSAT after %d conflicts.\n", pSat->stats.conflicts );
+    if ( fVerbose )
+        printf( "SAT solver returned UNSAT after %d conflicts.\n", pSat->stats.conflicts );
     assert( RetValue == l_False );
     pSatCnf = sat_solver_store_release( pSat ); 
-    sat_solver_delete( pSat );
     // derive the UNSAT core
     pManProof = Intp_ManAlloc();
     vCore = Intp_ManUnsatCore( pManProof, pSatCnf, fVerbose );
     Intp_ManFree( pManProof );
     Sto_ManFree( pSatCnf );
-    // derive the set of variables on which the core depends
-    // collect the variable numbers
-    nVars = 0;
-    pVars = ALLOC( int, pCnf->nVars );
-    memset( pVars, 0, sizeof(int) * pCnf->nVars );
-    Vec_IntForEachEntry( vCore, iClause, i )
-    {
-        pClause1 = pCnf->pClauses[iClause];
-        pClause2 = pCnf->pClauses[iClause+1];
-        for ( pLit = pClause1; pLit < pClause2; pLit++ )
-        {
-            if ( pVars[ (*pLit) >> 1 ] == 0 )
-                nVars++;
-            pVars[ (*pLit) >> 1 ] = 1;
-            if ( fVerbose )
-            printf( "%s%d ", ((*pLit) & 1)? "-" : "+", (*pLit) >> 1 );
-        }
-        if ( fVerbose )
-        printf( "\n" );
-    }
-    Vec_IntFree( vCore );
-    return pVars;
+    return vCore;
 }
+
 
 /**Function*************************************************************
 
-  Synopsis    [Labels nodes with the given CNF variable.]
+  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
 
   Description []
                
@@ -220,15 +174,44 @@ int * Saig_ManFindUnsatVariables( Cnf_Dat_t * pCnf, int nRegs, int nConfMax, int
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManMarkIntoPresentVars_rec( Aig_Obj_t * pObj, Cnf_Dat_t * pCnf, int iVar )
+Vec_Int_t * Saig_AbsCollectRegisters( Cnf_Dat_t * pCnf, int nFrames, Vec_Int_t * vCore )
 {
-    int iVarThis = pCnf->pVarNums[pObj->Id];
-    if ( iVarThis >= 0 && iVarThis != iVar )
-        return;
-    assert( Aig_ObjIsNode(pObj) );
-    Saig_ManMarkIntoPresentVars_rec( Aig_ObjFanin0(pObj), pCnf, iVar );
-    Saig_ManMarkIntoPresentVars_rec( Aig_ObjFanin1(pObj), pCnf, iVar );
-    pCnf->pVarNums[pObj->Id] = iVar;
+    Aig_Obj_t * pObj;
+    Vec_Int_t * vFlops;
+    int * pVars, * pFlops;
+    int i, iClause, iReg, * piLit;
+    // mark register variables
+    pVars = ALLOC( int, pCnf->nVars );
+    for ( i = 0; i < pCnf->nVars; i++ )
+        pVars[i] = -1;
+    Saig_ManForEachLi( pCnf->pMan, pObj, i )
+        pVars[ pCnf->pVarNums[pObj->Id] ] = i;
+    Saig_ManForEachLo( pCnf->pMan, pObj, i )
+        pVars[ pCnf->pVarNums[pObj->Id] ] = i;
+    // mark used registers
+    pFlops = CALLOC( int, Aig_ManRegNum(pCnf->pMan) );
+    Vec_IntForEachEntry( vCore, iClause, i )
+    {
+        // skip auxiliary clauses
+        if ( iClause >= pCnf->nClauses * nFrames )
+            continue;
+        // consider the clause
+        iClause = iClause % pCnf->nClauses;
+        for ( piLit = pCnf->pClauses[iClause]; piLit < pCnf->pClauses[iClause+1]; piLit++ )
+        {
+            iReg = pVars[ lit_var(*piLit) ];
+            if ( iReg >= 0 )
+                pFlops[iReg] = 1;
+        }
+    }
+    // collect registers
+    vFlops = Vec_IntAlloc( Aig_ManRegNum(pCnf->pMan) );
+    for ( i = 0; i < Aig_ManRegNum(pCnf->pMan); i++ )
+        if ( pFlops[i] )
+            Vec_IntPush( vFlops, i );
+    free( pFlops );
+    free( pVars );
+    return vFlops;
 }
 
 /**Function*************************************************************
@@ -244,65 +227,32 @@ void Saig_ManMarkIntoPresentVars_rec( Aig_Obj_t * pObj, Cnf_Dat_t * pCnf, int iV
 ***********************************************************************/
 Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose )
 {
+    Aig_Man_t * pResult;
     Cnf_Dat_t * pCnf;
+    sat_solver * pSat;
+    Vec_Int_t * vCore;
     Vec_Int_t * vFlops;
-    Aig_Man_t * pFrames, * pResult;
-    Aig_Obj_t ** ppAigToFrames;
-    Aig_Obj_t * pObj, * pObjFrame;
-    int f, i, * pUnsatCoreVars, clk = clock();
-    assert( Saig_ManPoNum(p) == 1 );
+    int clk = clock();
+    assert( Aig_ManRegNum(p) > 0 );
     Aig_ManSetPioNumbers( p );
     if ( fVerbose )
         printf( "Performing proof-based abstraction with %d frames and %d max conflicts.\n", nFrames, nConfMax );
-    // create the timeframes
-    pFrames = Saig_ManFramesBmcLast( p, nFrames, &ppAigToFrames );
-    printf( "AIG nodes = %d. Frames = %d.\n", Aig_ManNodeNum(p), Aig_ManNodeNum(pFrames) );
-    // convert them into CNF
-//    pCnf = Cnf_Derive( pFrames, 0 );
-    pCnf = Cnf_DeriveSimple( pFrames, 0 );
-    // collect CNF variables involved in UNSAT core
-    pUnsatCoreVars = Saig_ManFindUnsatVariables( pCnf, Saig_ManRegNum(p), nConfMax, 0 );
-    if ( pUnsatCoreVars == NULL )
+    // create CNF for the AIG
+    pCnf = Cnf_DeriveSimple( p, Aig_ManPoNum(p) );
+    // create SAT solver for the unrolled AIG
+    pSat = Saig_AbsCreateSolver( pCnf, nFrames );
+    // compute UNSAT core
+    vCore = Saig_AbsSolverUnsatCore( pSat, nConfMax, fVerbose );
+    sat_solver_delete( pSat );
+    if ( vCore == NULL )
     {
-        Aig_ManStop( pFrames );
         Cnf_DataFree( pCnf );
         return NULL;
     }
-    if ( fVerbose )
-    {
-        int Counter = 0;
-        for ( i = 0; i < pCnf->nVars; i++ )
-            Counter += pUnsatCoreVars[i];
-        printf( "The number of variables in the UNSAT core is %d (out of %d).\n", Counter, pCnf->nVars );
-    }
-    // map other nodes into existing CNF variables
-    Aig_ManForEachNode( pFrames, pObj, i )
-        if ( pCnf->pVarNums[pObj->Id] >= 0 )
-            Saig_ManMarkIntoPresentVars_rec( pObj, pCnf, pCnf->pVarNums[pObj->Id] );
-    // collect relevant registers
-    for ( f = 0; f < nFrames; f++ )
-    {
-        Saig_ManForEachLo( p, pObj, i )
-        {
-            pObjFrame = Saig_ObjFrame( ppAigToFrames, nFrames, pObj, f );
-            if ( pObjFrame == NULL )
-                continue;
-            pObjFrame = Aig_Regular(pObjFrame);
-            if ( Aig_ObjIsConst1( pObjFrame ) )
-                continue;
-            assert( pCnf->pVarNums[pObjFrame->Id] >= 0 );
-            if ( pUnsatCoreVars[ pCnf->pVarNums[pObjFrame->Id] ] )
-                pObj->fMarkA = 1;
-        }
-    }
-    // collect the flops
-    vFlops = Vec_IntAlloc( 1000 );
-    Saig_ManForEachLo( p, pObj, i )
-        if ( pObj->fMarkA )
-        {
-            pObj->fMarkA = 0;
-            Vec_IntPush( vFlops, i );
-        }
+    // collect registers
+    vFlops = Saig_AbsCollectRegisters( pCnf, nFrames, vCore );
+    Cnf_DataFree( pCnf );
+    Vec_IntFree( vCore );
     if ( fVerbose )
     {
         printf( "The number of relevant registers is %d (out of %d).\n", Vec_IntSize(vFlops), Aig_ManRegNum(p) );
@@ -310,14 +260,8 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
     }
     // create the resulting AIG
     pResult = Saig_ManAbstraction( p, vFlops );
-    // cleanup
-    Aig_ManStop( pFrames );
-    Cnf_DataFree( pCnf );
-    free( ppAigToFrames );
-    free( pUnsatCoreVars );
     Vec_IntFree( vFlops );
     return pResult;
-
 }
 
 
