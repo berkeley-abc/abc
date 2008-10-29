@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntlCheck.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ntlCheck.c,v 1.1 2008/10/10 14:09:29 mjarvin Exp $]
 
 ***********************************************************************/
 
@@ -312,10 +312,11 @@ void Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel )
         Vec_PtrPush( vNets, pNet );
     }
 
+#if 0  // sjang
     // print the warning
     if ( Vec_PtrSize(vNets) > 0 )
     {
-        printf( "Warning: Constant-0 drivers added to %d non-driven nets in network \"%s\":\n", Vec_PtrSize(vNets), pModel->pName );
+        printf( "Warning: Constant-0 drivers added to %d non-driven nets in network \"%s\": ", Vec_PtrSize(vNets), pModel->pName );
         Vec_PtrForEachEntry( vNets, pNet, i )
         {
             printf( "%s%s", (i? ", ": ""), pNet->pName );
@@ -328,6 +329,7 @@ void Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel )
         }
         printf( "\n" );
     }
+#endif
     Vec_PtrFree( vNets );
 }
 

@@ -482,6 +482,100 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Takes the set of const1 cands and rehashes them using sim info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
+{
+    Aig_Man_t * pAig = p->pAig;
+    Aig_Obj_t ** ppTable, ** ppNexts, ** ppClassNew;
+    Aig_Obj_t * pObj, * pTemp, * pRepr;
+    int i, k, nTableSize, nNodes, iEntry, nEntries, nEntries2;
+
+    // allocate the hash table hashing simulation info into nodes
+    nTableSize = Aig_PrimeCudd( Vec_PtrSize(vCands)/2 );
+    ppTable = CALLOC( Aig_Obj_t *, nTableSize ); 
+    ppNexts = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) ); 
+
+    // sort through the candidates
+    nEntries = 0;
+    p->nCands1 = 0;
+    Vec_PtrForEachEntry( vCands, pObj, i )
+    {
+        assert( p->pClassSizes[pObj->Id] == 0 );
+        Aig_ObjSetRepr( p->pAig, pObj, NULL );
+        // check if the node belongs to the class of constant 1
+        if ( p->pFuncNodeIsConst( p->pManData, pObj ) )
+        {
+            Ssw_ObjSetConst1Cand( p->pAig, pObj );
+            p->nCands1++;
+            continue;
+        }
+        // hash the node by its simulation info
+        iEntry = p->pFuncNodeHash( p->pManData, pObj ) % nTableSize;
+        // add the node to the class
+        if ( ppTable[iEntry] == NULL )
+        {
+            ppTable[iEntry] = pObj;
+        }
+        else
+        {
+            // set the representative of this node
+            pRepr = ppTable[iEntry];
+            Aig_ObjSetRepr( p->pAig, pObj, pRepr );
+            // add node to the table
+            if ( Ssw_ObjNext( ppNexts, pRepr ) == NULL )
+            { // this will be the second entry
+                p->pClassSizes[pRepr->Id]++;
+                nEntries++;
+            }
+            // add the entry to the list
+            Ssw_ObjSetNext( ppNexts, pObj, Ssw_ObjNext( ppNexts, pRepr ) );
+            Ssw_ObjSetNext( ppNexts, pRepr, pObj );
+            p->pClassSizes[pRepr->Id]++;
+            nEntries++;
+        }
+    }
+ 
+    // copy the entries into storage in the topological order
+    nEntries2 = 0;
+    Vec_PtrForEachEntry( vCands, pObj, i )
+    {
+        nNodes = p->pClassSizes[pObj->Id];
+        // skip the nodes that are not representatives of non-trivial classes
+        if ( nNodes == 0 )
+            continue;
+        assert( nNodes > 1 );
+        // add the nodes to the class in the topological order
+        ppClassNew = p->pMemClassesFree + nEntries2;
+        ppClassNew[0] = pObj;
+        for ( pTemp = Ssw_ObjNext(ppNexts, pObj), k = 1; pTemp; 
+              pTemp = Ssw_ObjNext(ppNexts, pTemp), k++ )
+        {
+            ppClassNew[nNodes-k] = pTemp;
+        }
+        // add the class of nodes
+        p->pClassSizes[pObj->Id] = 0;
+        Ssw_ObjAddClass( p, pObj, ppClassNew, nNodes );
+        // increment the number of entries
+        nEntries2 += nNodes;
+    }
+    p->pMemClassesFree += nEntries2;
+    assert( nEntries == nEntries2 );
+    free( ppTable );
+    free( ppNexts );
+    // now it is time to refine the classes
+    return Ssw_ClassesRefine( p, 1 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates initial simulation classes.]
 
   Description [Assumes that simulation info is assigned.]
@@ -506,10 +600,9 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, 
     int nIters  = 16;
     Ssw_Cla_t * p;
     Ssw_Sml_t * pSml;
-    Aig_Obj_t ** ppTable, ** ppNexts, ** ppClassNew;
-    Aig_Obj_t * pObj, * pTemp, * pRepr;
-    int i, k, nTableSize, nNodes, iEntry, nEntries, nEntries2, RetValue;
-    int clk;
+    Vec_Ptr_t * vCands;
+    Aig_Obj_t * pObj;
+    int i, k, RetValue, clk;
 
     // start the classes
     p = Ssw_ClassesStart( pAig );
@@ -519,7 +612,7 @@ clk = clock();
     pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
 if ( fVerbose )
 {
-    printf( "Allocated %.2f Mb for simulation information.\n", 
+    printf( "Allocated %.2f Mb to store simulation information.\n", 
         1.0*(sizeof(unsigned) * Aig_ManObjNumMax(pAig) * nFrames * nWords)/(1<<20) );
     printf( "Initial simulation of %d frames with %d words.     ", nFrames, nWords );
     PRT( "Time", clock() - clk );
@@ -529,13 +622,8 @@ if ( fVerbose )
 clk = clock();
     Ssw_ClassesSetData( p, pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
 
-    // allocate the hash table hashing simulation info into nodes
-    nTableSize = Aig_PrimeCudd( Aig_ManObjNumMax(p->pAig)/4 );
-    ppTable = CALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) ); 
-
-    // add all the nodes to the hash table
-    nEntries = 0;
+    // collect nodes to be considered as candidates
+    vCands = Vec_PtrAlloc( 1000 );
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
         if ( fLatchCorr )
@@ -551,72 +639,15 @@ clk = clock();
             if ( nMaxLevs && (int)pObj->Level > nMaxLevs )
                 continue;
         }
-        // check if the node belongs to the class of constant 1
-        if ( p->pFuncNodeIsConst( p->pManData, pObj ) )
-        {
-            Ssw_ObjSetConst1Cand( p->pAig, pObj );
-            p->nCands1++;
-            continue;
-        }
-        // hash the node by its simulation info
-        iEntry = p->pFuncNodeHash( p->pManData, pObj ) % nTableSize;
-        // add the node to the class
-        if ( ppTable[iEntry] == NULL )
-            ppTable[iEntry] = pObj;
-        else
-        {
-            // set the representative of this node
-            pRepr = ppTable[iEntry];
-            Aig_ObjSetRepr( p->pAig, pObj, pRepr );
-            // add node to the table
-            if ( Ssw_ObjNext( ppNexts, pRepr ) == NULL )
-            { // this will be the second entry
-                p->pClassSizes[pRepr->Id]++;
-                nEntries++;
-            }
-            // add the entry to the list
-            Ssw_ObjSetNext( ppNexts, pObj, Ssw_ObjNext( ppNexts, pRepr ) );
-            Ssw_ObjSetNext( ppNexts, pRepr, pObj );
-            p->pClassSizes[pRepr->Id]++;
-            nEntries++;
-        }
+        Vec_PtrPush( vCands, pObj );
     }
 
     // allocate room for classes
-    p->pMemClasses = ALLOC( Aig_Obj_t *, nEntries + p->nCands1 );
-    p->pMemClassesFree = p->pMemClasses + nEntries;
- 
-    // copy the entries into storage in the topological order
-    nEntries2 = 0;
-    Aig_ManForEachObj( p->pAig, pObj, i )
-    {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
-            continue;
-        nNodes = p->pClassSizes[pObj->Id];
-        // skip the nodes that are not representatives of non-trivial classes
-        if ( nNodes == 0 )
-            continue;
-        assert( nNodes > 1 );
-        // add the nodes to the class in the topological order
-        ppClassNew = p->pMemClasses + nEntries2;
-        ppClassNew[0] = pObj;
-        for ( pTemp = Ssw_ObjNext(ppNexts, pObj), k = 1; pTemp; 
-              pTemp = Ssw_ObjNext(ppNexts, pTemp), k++ )
-        {
-            ppClassNew[nNodes-k] = pTemp;
-        }
-        // add the class of nodes
-        p->pClassSizes[pObj->Id] = 0;
-        Ssw_ObjAddClass( p, pObj, ppClassNew, nNodes );
-        // increment the number of entries
-        nEntries2 += nNodes;
-    }
-    assert( nEntries == nEntries2 );
-    free( ppTable );
-    free( ppNexts );
+    p->pMemClasses = ALLOC( Aig_Obj_t *, Vec_PtrSize(vCands) );
+    p->pMemClassesFree = p->pMemClasses;
 
     // now it is time to refine the classes
-    Ssw_ClassesRefine( p, 1 );
+    Ssw_ClassesPrepareRehash( p, vCands );
 if ( fVerbose )
 {
     printf( "Collecting candidate equivalence classes.        " );
@@ -625,27 +656,30 @@ PRT( "Time", clock() - clk );
 
 clk = clock();
     // perform iterative refinement using simulation
-    k = 0;
     for ( i = 1; i < nIters; i++ )
     {
+        // collect const1 candidates
+        Vec_PtrClear( vCands );
+        Aig_ManForEachObj( p->pAig, pObj, k )
+            if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
+                Vec_PtrPush( vCands, pObj );
+        assert( Vec_PtrSize(vCands) == p->nCands1 );
+        // perform new round of simulation
         Ssw_SmlResimulateSeq( pSml );
-        // simulate internal nodes
-        Ssw_SmlSimulateOne( pSml );
         // check equivalence classes
-        RetValue = Ssw_ClassesRefineConst1( p, 1 );
-        RetValue += Ssw_ClassesRefine( p, 1 );
-        k++;
+        RetValue = Ssw_ClassesPrepareRehash( p, vCands );
         if ( RetValue == 0 )
             break;
     }
-    Ssw_ClassesCheck( p );
     Ssw_SmlStop( pSml );
+    Vec_PtrFree( vCands );
 if ( fVerbose )
 {
     printf( "Simulation of %d frames with %d words (%2d rounds). ", 
-        nFrames, nWords, k );
+        nFrames, nWords, i-1 );
     PRT( "Time", clock() - clk );
 }
+    Ssw_ClassesCheck( p );
 //    Ssw_ClassesPrint( p, 0 );
     return p;
 }
@@ -848,7 +882,7 @@ int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
 {
     Aig_Obj_t ** pClassOld, ** pClassNew;
     Aig_Obj_t * pObj, * pReprNew;
-    int i;
+    int i; 
 
     // split the class
     Vec_PtrClear( p->vClassOld );

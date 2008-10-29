@@ -206,6 +206,25 @@ void Aig_ManCleanData( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Cleans the data pointers for the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCleanNext( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachObj( p, pObj, i )
+        pObj->pNext = NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Recursively cleans the data pointers in the cone of the node.]
 
   Description [Applicable to small AIGs only because no caching is performed.]

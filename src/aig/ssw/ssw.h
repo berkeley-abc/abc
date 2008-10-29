@@ -90,8 +90,6 @@ struct Ssw_Cex_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== sswAbs.c ==========================================================*/
-extern Aig_Man_t *   Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose );
 /*=== sswBmc.c ==========================================================*/
 extern int           Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbose, int * piFrame );
 /*=== sswCore.c ==========================================================*/

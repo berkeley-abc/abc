@@ -348,7 +348,12 @@ clk = clock();
         }
 
         Aig_ManSetRegNum( pNew, pNew->nRegs );
-        pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
+//        pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
+        if ( Aig_ManRegNum(pNew) > 0 )
+              pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
+        else
+              pNew = Aig_ManDupSimpleDfs( pTemp = pNew );
+
         if ( pNew == NULL )
         {
             pNew = pTemp;

@@ -336,13 +336,72 @@ static inline void Vec_StrGrow( Vec_Str_t * p, int nCapMin )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_StrFill( Vec_Str_t * p, int nSize, char Entry )
+static inline void Vec_StrFill( Vec_Str_t * p, int nSize, char Fill )
 {
     int i;
     Vec_StrGrow( p, nSize );
     p->nSize = nSize;
     for ( i = 0; i < p->nSize; i++ )
-        p->pArray[i] = Entry;
+        p->pArray[i] = Fill;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fills the vector with given number of entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrFillExtra( Vec_Str_t * p, int nSize, char Fill )
+{
+    int i;
+    if ( p->nSize >= nSize )
+        return;
+    if ( 2 * p->nSize > nSize )
+        Vec_StrGrow( p, 2 * nSize );
+    else
+        Vec_StrGrow( p, nSize );
+    for ( i = p->nSize; i < nSize; i++ )
+        p->pArray[i] = Fill;
+    p->nSize = nSize;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the entry even if the place not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline char Vec_StrGetEntry( Vec_Str_t * p, int i )
+{
+    Vec_StrFillExtra( p, i + 1, 0 );
+    return Vec_StrEntry( p, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts the entry even if the place does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrSetEntry( Vec_Str_t * p, int i, char Entry )
+{
+    Vec_StrFillExtra( p, i + 1, 0 );
+    Vec_StrWriteEntry( p, i, Entry );
 }
 
 /**Function*************************************************************

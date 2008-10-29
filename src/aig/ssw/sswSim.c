@@ -187,6 +187,70 @@ int Ssw_SmlNodeNotEquWeight( Ssw_Sml_t * p, int Left, int Right )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks implication.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlCheckXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo, Aig_Obj_t * pCand )
+{
+    unsigned * pSimLi, * pSimLo, * pSimCand;
+    int k;
+    pSimCand = Ssw_ObjSim( p, Aig_Regular(pCand)->Id );
+    pSimLi   = Ssw_ObjSim( p, pObjLi->Id );
+    pSimLo   = Ssw_ObjSim( p, pObjLo->Id );
+    if ( !Aig_IsComplement(pCand) )
+    {
+        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+            if ( pSimCand[k] & (pSimLi[k] ^ pSimLo[k]) )
+                return 0;
+    }
+    else
+    {
+        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+            if ( ~pSimCand[k] & (pSimLi[k] ^ pSimLo[k]) )
+                return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in the implication.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlCountXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo, Aig_Obj_t * pCand )
+{
+    unsigned * pSimLi, * pSimLo, * pSimCand;
+    int k, Counter = 0;
+    pSimCand = Ssw_ObjSim( p, Aig_Regular(pCand)->Id );
+    pSimLi   = Ssw_ObjSim( p, pObjLi->Id );
+    pSimLo   = Ssw_ObjSim( p, pObjLo->Id );
+    if ( !Aig_IsComplement(pCand) )
+    {
+        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+            Counter += Aig_WordCountOnes(pSimCand[k] & ~(pSimLi[k] ^ pSimLo[k]));
+    }
+    else
+    {
+        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+            Counter += Aig_WordCountOnes(~pSimCand[k] & ~(pSimLi[k] ^ pSimLo[k]));
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if simulation info is composed of all zeros.]
 
   Description []

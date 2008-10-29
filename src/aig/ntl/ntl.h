@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntl.h,v 1.1 2008/05/14 22:13:09 wudenni Exp $]
+  Revision    [$Id: ntl.h,v 1.3 2008/10/24 14:18:44 mjarvin Exp $]
 
 ***********************************************************************/
  
@@ -308,6 +308,7 @@ extern ABC_DLL Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p, int fSeq );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseComb( Ntl_Man_t * p );
 extern ABC_DLL Aig_Man_t *     Ntl_ManCollapseSeq( Ntl_Man_t * p, int nMinDomSize );
+extern ABC_DLL Nwk_Man_t *     Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
 /*=== ntlInsert.c ==========================================================*/
 extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig );
@@ -323,7 +324,6 @@ extern ABC_DLL void            Ntl_ManCleanup( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManStartFrom( Ntl_Man_t * p );
 extern ABC_DLL Ntl_Man_t *     Ntl_ManDup( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManFree( Ntl_Man_t * p );
-extern ABC_DLL Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
 extern ABC_DLL void            Ntl_ManPrintStats( Ntl_Man_t * p );
 extern ABC_DLL Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
 extern ABC_DLL void            Ntl_ManPrintTypes( Ntl_Man_t * p );
@@ -351,16 +351,17 @@ extern ABC_DLL char *          Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFile
 /*=== ntlSweep.c ==========================================================*/
 extern ABC_DLL int             Ntl_ManSweep( Ntl_Man_t * p, int fVerbose );
 /*=== ntlTable.c ==========================================================*/
-extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
-extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
+extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, const char * pName );
+extern ABC_DLL Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, const char * pName );
+extern ABC_DLL Ntl_Net_t *     Ntl_ModelDontFindCreateNet( Ntl_Mod_t * p, const char * pName );
 extern ABC_DLL void            Ntl_ModelSetPioNumbers( Ntl_Mod_t * p );
-extern ABC_DLL int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber );
+extern ABC_DLL int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, const char * pName, int * pNumber );
 extern ABC_DLL int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 extern ABC_DLL int             Ntl_ModelClearNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 extern ABC_DLL void            Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet );
 extern ABC_DLL int             Ntl_ModelCountNets( Ntl_Mod_t * p );
 extern ABC_DLL int             Ntl_ManAddModel( Ntl_Man_t * p, Ntl_Mod_t * pModel );
-extern ABC_DLL Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
+extern ABC_DLL Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, const char * pName );
 /*=== ntlTime.c ==========================================================*/
 extern ABC_DLL Tim_Man_t *     Ntl_ManCreateTiming( Ntl_Man_t * p );
 /*=== ntlReadBlif.c ==========================================================*/

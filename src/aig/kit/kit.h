@@ -140,6 +140,17 @@ struct Kit_DsdMan_t_
     Vec_Int_t *    vNodes;          // temporary array for BDD nodes
 };
 
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport)
+#define DLLIMPORT __declspec(dllimport)
+#else  /* defined(WIN32) */
+#define DLLIMPORT
+#endif /* defined(WIN32) */
+
+#ifndef ABC_DLL
+#define ABC_DLL DLLIMPORT
+#endif
+
 static inline int             Kit_DsdVar2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
 static inline int             Kit_DsdLit2Var( int Lit )              { return Lit >> 1;           }
 static inline int             Kit_DsdLitIsCompl( int Lit )           { return Lit & 1;            }
@@ -558,7 +569,7 @@ extern char *          Kit_PlaStart( void * p, int nCubes, int nVars );
 extern char *          Kit_PlaCreateFromIsop( void * p, int nVars, Vec_Int_t * vCover );
 extern void            Kit_PlaToIsop( char * pSop, Vec_Int_t * vCover );
 extern char *          Kit_PlaStoreSop( void * p, char * pSop );
-extern char *          Kit_PlaFromTruth( void * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
+extern ABC_DLL char *  Kit_PlaFromTruth( void * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
 /*=== kitSop.c ==========================================================*/
 extern void            Kit_SopCreate( Kit_Sop_t * cResult, Vec_Int_t * vInput, int nVars, Vec_Int_t * vMemory );
 extern void            Kit_SopCreateInverse( Kit_Sop_t * cResult, Vec_Int_t * vInput, int nVars, Vec_Int_t * vMemory );

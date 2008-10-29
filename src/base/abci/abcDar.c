@@ -28,6 +28,7 @@
 #include "int.h"
 #include "dch.h"
 #include "ssw.h"
+#include "cgt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -2189,10 +2190,8 @@ PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fVerbose )
 {
-    Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose );
-
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -2201,7 +2200,7 @@ Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConf
         return NULL;
 
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fVerbose );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, fVerbose );
     Aig_ManStop( pTemp );
     if ( pMan == NULL )
         return NULL;
@@ -2563,6 +2562,44 @@ Abc_Ntk_t * Abc_NtkDarSynch( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nWords, i
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarClockGate( Abc_Ntk_t * pNtk, Abc_Ntk_t * pCare, Cgt_Par_t * pPars )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan1, * pMan2 = NULL, * pMan;
+    pMan1 = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan1 == NULL )
+        return NULL;
+    if ( pCare )
+    {
+        pMan2 = Abc_NtkToDar( pCare, 0, 0 );
+        if ( pMan2 == NULL )
+        {
+            Aig_ManStop( pMan1 );
+            return NULL;
+        }
+    }
+    pMan = Cgt_ClockGating( pMan1, pMan2, pPars );
+    Aig_ManStop( pMan1 );
+    if ( pMan2 )
+        Aig_ManStop( pMan2 );
+    if ( pMan == NULL )
+        return NULL;
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs phase abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarFrames( Abc_Ntk_t * pNtk, int nPrefix, int nFrames, int fInit, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
@@ -2677,7 +2714,7 @@ Aig_ManPrintStats( pMan );
     pTemp = Ssw_SignalCorrespondeceTestPairs( pMan );
     Aig_ManStop( pTemp );
 */
-    Ssw_SecSpecialMiter( pMan, 0 );
+    Ssw_SecSpecialMiter( pMan, 1 );
 
     Aig_ManStop( pMan );
 }
@@ -2708,6 +2745,8 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
     Aig_ManSetRegNum( pMan, pMan->nRegs );
     pMan = Ssw_SignalCorrespondeceTestPairs( pTemp = pMan );
     Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
 
     pNtkAig = Abc_NtkFromAigPhase( pMan );
     pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
@@ -2715,8 +2754,6 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
     Aig_ManStop( pMan );
     return pNtkAig;
 */
-    Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fVerbose );
-
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -2725,7 +2762,7 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
         return NULL;
 
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 1 );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 0, 0, 1 );
     Aig_ManStop( pTemp );
     if ( pMan == NULL )
         return NULL;

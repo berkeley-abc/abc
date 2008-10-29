@@ -79,6 +79,10 @@ struct Abc_Frame_t_
     void *          pAbc8Nwk;    // the current mapped network
     void *          pAbc8Aig;    // the current AIG
     void *          pAbc8Lib;    // the current LUT library
+
+    // the addition to keep the best Ntl that can be used to restore
+    void *            pAbc8NtlBestDelay;    // the best delay, Ntl
+    void *            pAbc8NtlBestArea;    // the best area
 };
 
 ////////////////////////////////////////////////////////////////////////

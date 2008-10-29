@@ -212,6 +212,7 @@ void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float *
         pPinPerm[i] = pPinPerm[best_i]; 
         pPinPerm[best_i] = temp;
     }
+/*
     // verify
     assert( pPinPerm[0] < (int)pCut->nLeaves );
     for ( i = 1; i < (int)pCut->nLeaves; i++ )
@@ -219,6 +220,7 @@ void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float *
         assert( pPinPerm[i] < (int)pCut->nLeaves );
         assert( pPinDelays[pPinPerm[i-1]] >= pPinDelays[pPinPerm[i]] );
     }
+*/
 }
 
 /**Function*************************************************************

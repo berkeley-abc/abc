@@ -37,6 +37,7 @@
 #include "int.h"
 #include "dch.h"
 #include "ssw.h"
+#include "cgt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -200,6 +201,7 @@ static int Abc_CommandXsim           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDarPhase       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSynch          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandClockGate      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -470,6 +472,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "sim",           Abc_CommandSim,              0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "phase",         Abc_CommandDarPhase,         1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "synch",         Abc_CommandSynch,            1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "clockgate",     Abc_CommandClockGate,        1 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
@@ -7941,7 +7944,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 
-
+/*
     pNtkRes = Abc_NtkDarTestNtk( pNtk );
     if ( pNtkRes == NULL )
     {
@@ -7950,9 +7953,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
 
-
-//    Abc_NtkDarTest( pNtk );
+    Abc_NtkDarTest( pNtk );
 
     return 0;
 usage:
@@ -14634,6 +14637,162 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandClockGate( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Cgt_Par_t Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtkRes, * pNtk, * pNtkCare;
+    int c;
+
+    extern Abc_Ntk_t * Abc_NtkDarClockGate( Abc_Ntk_t * pNtk, Abc_Ntk_t * pCare, Cgt_Par_t * pPars );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Cgt_SetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LNDCVKvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nLevelMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLevelMax <= 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCandMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCandMax <= 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nOdcMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nOdcMax <= 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConfMax <= 0 ) 
+                goto usage;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nVarsMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nVarsMin <= 0 ) 
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFlopsMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFlopsMin <= 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( argc == globalUtilOptind + 1 )
+    {
+        pNtkCare = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+        if ( pNtkCare == NULL )
+        {
+            printf( "Reading care network has failed.\n" );
+            return 1;
+        }
+        // modify the current network
+        pNtkRes = Abc_NtkDarClockGate( pNtk, pNtkCare, pPars );
+        Abc_NtkDelete( pNtkCare );
+    }
+    else if ( argc == globalUtilOptind )
+    {
+        pNtkRes = Abc_NtkDarClockGate( pNtk, NULL, pPars );
+    }
+    else
+    {
+        fprintf( pErr, "Wrong number of arguments.\n" );
+        return 0;
+    }
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Clock gating has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: clockgate [-LNDCVK <num>] [-vh] <file>\n" );
+    fprintf( pErr, "\t         sequential clock gating with observability don't-cares\n" );
+    fprintf( pErr, "\t-L num : max level number of a clock gate [default = %d]\n", pPars->nLevelMax );
+    fprintf( pErr, "\t-N num : max number of candidates for a flop [default = %d]\n", pPars->nCandMax );
+    fprintf( pErr, "\t-D num : max number of ODC levels to consider [default = %d]\n", pPars->nOdcMax );
+    fprintf( pErr, "\t-C num : max number of conflicts at a node [default = %d]\n", pPars->nConfMax );
+    fprintf( pErr, "\t-V num : min number of vars to recycle SAT solver [default = %d]\n", pPars->nVarsMin );
+    fprintf( pErr, "\t-K num : min number of flops to recycle SAT solver [default = %d]\n", pPars->nFlopsMin );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\tfile   : (optional) constraints for primary inputs and register outputs\n");
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -16239,11 +16398,11 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames     =     1000;
+    nFrames     =     2000;
     nSizeMax    =   200000;
-    nBTLimit    =    10000;
-    nBTLimitAll = 10000000;
-    nNodeDelta  =     1000;
+    nBTLimit    =     2000;
+    nBTLimitAll =  2000000;
+    nNodeDelta  =     2000;
     fRewrite    =        0;
     fNewAlgo    =        0;
     fVerbose    =        0;
@@ -16896,9 +17055,11 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int nFramesMax;
     int nConfMax;
+    int fDynamic;
+    int fExtend;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -16907,9 +17068,11 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nFramesMax =    10;
     nConfMax   = 10000;
-    fVerbose   =     1;
+    fDynamic   =     1;
+    fExtend    =     0;
+    fVerbose   =     0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCdevh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16934,6 +17097,12 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nConfMax < 0 ) 
                 goto usage;
+            break;
+        case 'd':
+            fDynamic ^= 1;
+            break;
+        case 'e':
+            fExtend ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -16961,7 +17130,7 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fVerbose );
+    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Target enlargement has failed.\n" );
@@ -16971,10 +17140,12 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 usage:
-    fprintf( pErr, "usage: abs [-FC num] [-vh]\n" );
+    fprintf( pErr, "usage: abs [-FC num] [-devh]\n" );
     fprintf( pErr, "\t         proof-based abstraction from UNSAT core of the BMC instance\n" );
     fprintf( pErr, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
     fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
+    fprintf( pErr, "\t-d     : toggle dynamic unrolling of timeframes [default = %s]\n", fDynamic? "yes": "no" );
+    fprintf( pErr, "\t-e     : toggle extending abstraction using COI of flops [default = %s]\n", fExtend? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

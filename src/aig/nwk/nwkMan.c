@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: nwkMan.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: nwkMan.c,v 1.1 2008/10/10 14:09:30 mjarvin Exp $]
 
 ***********************************************************************/
 
@@ -154,7 +154,7 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
         ParsBest.nPis  = ParsNew.nPis; 
         ParsBest.nPos  = ParsNew.nPos;
         // write the network
-        Ioa_WriteBlifLogic( pNtk, pNtl, "best.blif" );
+//        Ioa_WriteBlifLogic( pNtk, pNtl, "best.blif" );
 //        Nwk_ManDumpBlif( pNtk, "best_map.blif", NULL, NULL );
         return 1;
     }

@@ -51,6 +51,7 @@ struct Saig_Bmc_t_
     Vec_Int_t *           vObj2Var;       // mapping of frames objects in CNF variables
     // subproblems
     Vec_Ptr_t *           vTargets;       // targets to be solved in this interval
+    int                   iFramePrev;     // previous frame  
     int                   iFrameLast;     // last frame  
     int                   iOutputLast;    // last output
     int                   iFrameFail;     // failed frame 
@@ -251,6 +252,7 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
 //    int i;
     int nNodes = Aig_ManObjNum( p->pFrm );
     Vec_PtrClear( p->vTargets );
+    p->iFramePrev = p->iFrameLast;
     for ( ; p->iFrameLast < p->nFramesMax; p->iFrameLast++, p->iOutputLast = 0 )
     {
         if ( p->iOutputLast == 0 )
@@ -573,7 +575,7 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConf
         printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", 
             p->iOutputFail, p->iFrameFail );
     else // if ( RetValue == l_False || RetValue == l_Undef )
-        printf( "No output was asserted in %d frames.  ", p->iFrameLast );
+        printf( "No output was asserted in %d frames.  ", p->iFramePrev-1 );
     PRT( "Time", clock() - clk );
     if ( RetValue != l_True )
     {

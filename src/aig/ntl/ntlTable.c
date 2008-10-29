@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntlTable.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ntlTable.c,v 1.3 2008/10/24 14:18:44 mjarvin Exp $]
 
 ***********************************************************************/
 
@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // hashing for strings
-static unsigned Ntl_HashString( char * pName, int TableSize ) 
+static unsigned Ntl_HashString( const char * pName, int TableSize ) 
 {
     static int s_Primes[10] = { 
         1291, 1699, 2357, 4177, 5147, 
@@ -52,7 +52,7 @@ static unsigned Ntl_HashString( char * pName, int TableSize )
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Net_t * Ntl_ModelCreateNet( Ntl_Mod_t * p, char * pName )
+Ntl_Net_t * Ntl_ModelCreateNet( Ntl_Mod_t * p, const char * pName )
 {
     Ntl_Net_t * pNet;
     pNet = (Ntl_Net_t *)Aig_MmFlexEntryFetch( p->pMan->pMemObjs, sizeof(Ntl_Net_t) + strlen(pName) + 1 );
@@ -113,7 +113,7 @@ clk = clock();
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Net_t * Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName )
+Ntl_Net_t * Ntl_ModelFindNet( Ntl_Mod_t * p, const char * pName )
 {
     Ntl_Net_t * pEnt;
     unsigned Key = Ntl_HashString( pName, p->nTableSize );
@@ -163,13 +163,25 @@ void Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet )
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName )
+Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, const char * pName )
 {
     Ntl_Net_t * pEnt;
     unsigned Key = Ntl_HashString( pName, p->nTableSize );
     for ( pEnt = p->pTable[Key]; pEnt; pEnt = pEnt->pNext )
         if ( !strcmp( pEnt->pName, pName ) )
             return pEnt;
+    pEnt = Ntl_ModelCreateNet( p, pName );
+    pEnt->pNext = p->pTable[Key];
+    p->pTable[Key] = pEnt;
+    if ( ++p->nEntries > 2 * p->nTableSize )
+        Ntl_ModelTableResize( p );
+    return pEnt;
+}
+
+Ntl_Net_t * Ntl_ModelDontFindCreateNet( Ntl_Mod_t * p, const char * pName )
+{
+    Ntl_Net_t * pEnt;
+    unsigned Key = Ntl_HashString( pName, p->nTableSize );
     pEnt = Ntl_ModelCreateNet( p, pName );
     pEnt->pNext = p->pTable[Key];
     p->pTable[Key] = pEnt;
@@ -210,7 +222,7 @@ void Ntl_ModelSetPioNumbers( Ntl_Mod_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ModelFindPioNumber_old( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber )
+int Ntl_ModelFindPioNumber_old( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, const char * pName, int * pNumber )
 {
     Ntl_Net_t * pNet;
     Ntl_Obj_t * pObj;
@@ -273,7 +285,7 @@ int Ntl_ModelFindPioNumber_old( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * 
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, char * pName, int * pNumber )
+int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, const char * pName, int * pNumber )
 {
     Ntl_Net_t * pNet;
     Ntl_Obj_t * pTerm;
@@ -461,7 +473,7 @@ int Ntl_ManAddModel( Ntl_Man_t * p, Ntl_Mod_t * pModel )
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Mod_t * Ntl_ManFindModel( Ntl_Man_t * p, char * pName )
+Ntl_Mod_t * Ntl_ManFindModel( Ntl_Man_t * p, const char * pName )
 {
     Ntl_Mod_t * pEnt;
     unsigned Key = Ntl_HashString( pName, p->nModTableSize );

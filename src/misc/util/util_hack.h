@@ -32,7 +32,9 @@ extern "C" {
 #include <time.h>
 #include <math.h>
 
-#define EXTERN                 extern
+#ifndef EXTERN
+#define EXTERN extern
+#endif
 #define NIL(type)              ((type *) 0)
 #define random                 rand
 #define srandom                srand

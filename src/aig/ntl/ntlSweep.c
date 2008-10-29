@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntlSweep.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ntlSweep.c,v 1.1 2008/10/10 14:09:30 mjarvin Exp $]
 
 ***********************************************************************/
 
@@ -154,8 +154,10 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
 
 
     // print detailed statistics of sweeping
-    if ( fVerbose )
+    if ( fVerbose && Counter > 0)
     {
+        int numLutBox = 0;
+
         printf( "Swept away:" );
         printf( "  Node = %d (%4.1f %%)", 
             nObjsOld[NTL_OBJ_NODE] - pRoot->nObjs[NTL_OBJ_NODE],
@@ -175,8 +177,21 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
             printf( "Sweep removed %d boxed of %d types (out of %d types):\n", 
                 nObjsOld[NTL_OBJ_BOX] - pRoot->nObjs[NTL_OBJ_BOX], ModelCounter, Vec_PtrSize(p->vModels)-1 );
             Ntl_ManForEachModel( p, pMod, i )
-              if ( i )
-                printf( "Model %3d : %-40s  Swept = %5d. Left = %5d.\n", i, pMod->pName, pMod->nRems, pMod->nUsed-pMod->nRems );
+            {
+                if ( i && (pMod->nRems + pMod->nUsed-pMod->nRems) > 0)
+                {
+
+                    if (strncmp(pMod->pName, "LUT", 3) != 0)
+                    {
+                        //printf( "( M%d: %s,  S=%d, L=%d ) ", i, pMod->pName, pMod->nRems, pMod->nUsed-pMod->nRems );
+                        //printf( "Model %3d : %-40s  Swept = %5d. Left = %5d.\n", i, pMod->pName, pMod->nRems, pMod->nUsed-pMod->nRems );
+                    } else
+                    {
+                        numLutBox++;
+                    }
+                }
+            }
+            printf("\nLUTboxType =%d\n", numLutBox);
         }
     }
     if ( !Ntl_ManCheck( p ) )

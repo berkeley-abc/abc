@@ -150,7 +150,7 @@ clk = clock();
             RetValue = Ssw_ManSweepLatch( p );
             if ( p->pPars->fVerbose )
             {
-                printf( "%3d : C =%7d. Cl =%7d. Pr =%6d. Cex =%5d. Rcl = %3d. F = %3d. ", 
+                printf( "%3d : C =%7d. Cl =%7d. Pr =%6d. Cex =%5d. R =%4d. F =%4d. ", 
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
                     p->nSatProof-nSatProof, p->nSatCallsSat-nSatCallsSat, 
                     p->nRecycles-nRecycles, p->nSatFailsReal-nSatFailsReal );
@@ -174,11 +174,13 @@ clk = clock();
                 else if ( p->pPars->fDynamic )
                 {
                     printf( "Cex =%5d. ", p->nSatCallsSat-nSatCallsSat );
-                    printf( "R =%3d. ",   p->nRecycles-nRecycles );
+                    printf( "R =%4d. ",   p->nRecycles-nRecycles );
                 }
-                printf( "F =%3d. ", p->nSatFailsReal-nSatFailsReal );
+                printf( "F =%5d. ", p->nSatFailsReal-nSatFailsReal );
                 PRT( "T", clock() - clk );
             } 
+//            if ( p->pPars->fDynamic && p->nSatCallsSat-nSatCallsSat < 100 )
+//                p->pPars->nBTLimit = 10000;
         }
         nSatProof     = p->nSatProof;
         nSatCallsSat  = p->nSatCallsSat;

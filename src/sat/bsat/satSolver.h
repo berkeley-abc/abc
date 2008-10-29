@@ -210,5 +210,13 @@ static void sat_solver_act_var_clear(sat_solver* s)
         s->activity[i] = 0.0;
     s->var_inc = 1.0;
 }
+static void sat_solver_compress(sat_solver* s) 
+{
+    if ( s->qtail != s->qhead )
+    {
+        int RetValue = sat_solver_simplify(s);
+        assert( RetValue != 0 );
+    }
+}
 
 #endif

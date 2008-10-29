@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - January 8, 2007.]
 
-  Revision    [$Id: ntlReadBlif.c,v 1.00 2007/01/08 00:00:00 alanmi Exp $]
+  Revision    [$Id: ntlReadBlif.c,v 1.1 2008/10/10 14:09:30 mjarvin Exp $]
 
 ***********************************************************************/
 

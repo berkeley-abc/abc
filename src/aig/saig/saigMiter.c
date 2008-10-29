@@ -635,7 +635,7 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
 Aig_Man_t * Saig_ManCreateMiterTwo( Aig_Man_t * pOld, Aig_Man_t * pNew, int nFrames )
 {
     Aig_Man_t * pFrames0, * pFrames1, * pMiter;
-    assert( Aig_ManNodeNum(pOld) <= Aig_ManNodeNum(pNew) );
+//    assert( Aig_ManNodeNum(pOld) <= Aig_ManNodeNum(pNew) );
     pFrames0 = Saig_ManUnrollTwo( pOld, pOld, nFrames );
     pFrames1 = Saig_ManUnrollTwo( pNew, pOld, nFrames );
     pMiter = Saig_ManCreateMiterComb( pFrames0, pFrames1, 0 );
@@ -790,9 +790,9 @@ int Ssw_SecSpecialMiter( Aig_Man_t * pMiter, int fVerbose )
     {
         Aig_ManPrintStats( pPart0 );
         Aig_ManPrintStats( pPart1 );
-//        Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
-//        Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
-//        printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
+        Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
+        Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
+        printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
     }
     RetValue = Ssw_SecSpecial( pPart0, pPart1, nFrames, fVerbose );
     Aig_ManStop( pPart0 );
