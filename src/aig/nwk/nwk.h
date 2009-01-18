@@ -123,14 +123,14 @@ struct Nwk_Obj_t_
 //#pragma warning( disable : 4273 )
 
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
 
 static inline int         Nwk_ManCiNum( Nwk_Man_t * p )           { return p->nObjs[NWK_OBJ_CI];                } 
@@ -234,7 +234,7 @@ static inline int         Nwk_ManTimeMore( float f1, float f2, float Eps )   { r
 extern ABC_DLL Vec_Ptr_t *     Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose );
 /*=== nwkBidec.c ==========================================================*/
 extern ABC_DLL void            Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose );
-extern ABC_DLL Hop_Obj_t *     Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
+extern ABC_DLL Hop_Obj_t *     Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare, float dProb );
 /*=== nwkCheck.c ==========================================================*/
 extern ABC_DLL int             Nwk_ManCheck( Nwk_Man_t * p );
 /*=== nwkDfs.c ==========================================================*/
@@ -265,7 +265,8 @@ extern ABC_DLL Vec_Ptr_t *     Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int n
 /*=== nwkMan.c ============================================================*/
 extern ABC_DLL Nwk_Man_t *     Nwk_ManAlloc();
 extern ABC_DLL void            Nwk_ManFree( Nwk_Man_t * p );
-extern ABC_DLL void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl );
+extern ABC_DLL float           Nwl_ManComputeTotalSwitching( Nwk_Man_t * pNtk );
+extern ABC_DLL void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, void * pNtl );
 /*=== nwkMap.c ============================================================*/
 extern ABC_DLL Nwk_Man_t *     Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
 /*=== nwkObj.c ============================================================*/

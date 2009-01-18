@@ -88,6 +88,7 @@ struct If_Par_t_
     int                fExpRed;       // expand/reduce of the best cuts
     int                fLatchPaths;   // reset timing on latch paths
     int                fEdge;         // uses edge-based cut selection heuristics
+    int                fPower;        // uses power-aware cut selection heuristics
     int                fCutMin;       // performs cut minimization by removing functionally reducdant variables
     int                fSeqMap;       // sequential mapping
     int                fBidec;        // use bi-decomposition
@@ -141,12 +142,14 @@ struct If_Man_t_
     float              RequiredGlo2;  // global required times
     float              AreaGlo;       // global area
     int                nNets;         // the sum total of fanins of all LUTs in the mapping
+    float              dPower;        // the sum total of switching activities of all LUTs in the mapping
     int                nCutsUsed;     // the number of cuts currently used
     int                nCutsMerged;   // the total number of cuts merged
     unsigned *         puTemp[4];     // used for the truth table computation
     int                SortMode;      // one of the three sorting modes
     int                fNextRound;    // set to 1 after the first round
     int                nChoices;      // the number of choice nodes
+    Vec_Int_t *        vSwitching;    // switching activity of each node
     // sequential mapping
     Vec_Ptr_t *        vLatchOrder;   // topological ordering of latches
     Vec_Int_t *        vLags;         // sequentail lags of all nodes
@@ -177,6 +180,7 @@ struct If_Cut_t_
     float              Area;          // area (or area-flow) of the cut
     float              AveRefs;       // the average number of leaf references
     float              Edge;          // the edge flow
+    float              Power;         // the power flow
     float              Delay;         // delay of the cut
     unsigned           uSign;         // cut signature
     unsigned           Cost    : 14;  // the user's cost of the cut
@@ -351,6 +355,7 @@ extern void            If_CutLift( If_Cut_t * pCut );
 extern void            If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc );
 extern float           If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutPowerFlow( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
 extern float           If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutAreaDeref( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutAreaRef( If_Man_t * p, If_Cut_t * pCut );
@@ -360,6 +365,10 @@ extern float           If_CutEdgeDeref( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutPowerDeref( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
+extern float           If_CutPowerRef( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
+extern float           If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
+extern float           If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
 /*=== ifLib.c =============================================================*/
 extern If_Lib_t *      If_LutLibRead( char * FileName );
 extern If_Lib_t *      If_LutLibDup( If_Lib_t * p );

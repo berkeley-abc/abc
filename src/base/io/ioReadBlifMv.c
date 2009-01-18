@@ -130,7 +130,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     FILE * pFile;
     Io_MvMan_t * p;
     Abc_Ntk_t * pNtk;
-    Abc_Lib_t * pDesign = NULL;
+    Abc_Lib_t * pDesign = NULL; 
     char * pDesignName;
     int RetValue, i;
 
@@ -951,6 +951,7 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
         pNet = Abc_NtkFindOrCreateNet( p->pNtk, Abc_ObjNameSuffix(pNet, "_out") );
         // create latch
         pObj = Io_ReadCreateLatch( p->pNtk, Vec_PtrEntry(vTokens,1), Abc_ObjName(pNet) );
+//        Abc_LatchSetInit0( pObj );
         Abc_LatchSetInit0( pObj );
     }
     return 1;

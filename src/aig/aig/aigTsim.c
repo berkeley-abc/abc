@@ -44,10 +44,10 @@ static inline int  Aig_XsimInv( int Value )
 }
 static inline int  Aig_XsimAnd( int Value0, int Value1 )   
 { 
-    if ( Value0 == AIG_XVS0 || Value1 == AIG_XVS0 )
-        return AIG_XVS0;
     if ( Value0 == AIG_XVSX || Value1 == AIG_XVSX )
         return AIG_XVSX;
+    if ( Value0 == AIG_XVS0 || Value1 == AIG_XVS0 )
+        return AIG_XVS0;
     assert( Value0 == AIG_XVS1 && Value1 == AIG_XVS1 );
     return AIG_XVS1;
 }
@@ -371,7 +371,7 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
         }
 
 //        printf( "%d ", Aig_TsiStateCount(pTsi, pState) );
-//        Aig_TsiStatePrint( pTsi, pState );
+//Aig_TsiStatePrint( pTsi, pState );
         // check if this state exists
         if ( Aig_TsiStateLookup( pTsi, pState, pTsi->nWords ) )
             break;

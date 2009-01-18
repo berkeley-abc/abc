@@ -168,6 +168,8 @@ void Mfx_ManStop( Mfx_Man_t * p )
         Aig_ManStop( p->pCare );
     if ( p->vSuppsInv )
         Vec_VecFree( (Vec_Vec_t *)p->vSuppsInv );
+    if ( p->vProbs )
+        Vec_IntFree( p->vProbs );
     Mfx_ManClean( p );
     Int_ManFree( p->pMan );
     Vec_IntFree( p->vMem );

@@ -1322,6 +1322,7 @@ static char * Ioa_ReadParseTableBlif( Ioa_ReadMod_t * p, char * pTable, int nFan
     char * pProduct, * pOutput;
     int i, Polarity = -1;
 
+
     p->pMan->nTablesRead++;
     // get the tokens
     Ioa_ReadSplitIntoTokens( vTokens, pTable, '.' );
@@ -1330,6 +1331,8 @@ static char * Ioa_ReadParseTableBlif( Ioa_ReadMod_t * p, char * pTable, int nFan
     if ( Vec_PtrSize(vTokens) == 1 )
     {
         pOutput = Vec_PtrEntry( vTokens, 0 );
+        if ( *pOutput == '\"' )
+            return Ntl_ManStoreSop( p->pMan->pDesign->pMemSops, pOutput );
         if ( ((pOutput[0] - '0') & 0x8E) || pOutput[1] )
         {
             sprintf( p->pMan->sError, "Line %d: Constant table has wrong output value \"%s\".", Ioa_ReadGetLine(p->pMan, pOutput), pOutput );

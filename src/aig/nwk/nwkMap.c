@@ -59,6 +59,7 @@ void Nwk_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->fExpRed     =  1; ////
     pPars->fLatchPaths =  0;
     pPars->fEdge       =  1;
+    pPars->fPower      =  0;
     pPars->fCutMin     =  0;
     pPars->fSeqMap     =  0;
     pPars->fVerbose    =  0;
@@ -98,12 +99,29 @@ void Nwk_ManSetIfParsDefault( If_Par_t * pPars )
 ***********************************************************************/
 If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
 {
+    extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+    Vec_Int_t * vSwitching = NULL, * vSwitching2 = NULL;
+    float * pSwitching, * pSwitching2;
     If_Man_t * pIfMan;
     If_Obj_t * pIfObj;
     Aig_Obj_t * pNode, * pFanin, * pPrev;
-    int i;
+    int i, clk = clock();
+    // set the number of registers (switch activity will be combinational)
+    Aig_ManSetRegNum( p, 0 );
+    if ( pPars->fPower )
+    {
+        vSwitching  = Saig_ManComputeSwitchProbs( p, 48, 16, 0 );
+        if ( pPars->fVerbose )
+        {
+            PRT( "Computing switching activity", clock() - clk );
+        }
+        pSwitching  = (float *)vSwitching->pArray;
+        vSwitching2 = Vec_IntStart( Aig_ManObjNumMax(p) );
+        pSwitching2 = (float *)vSwitching2->pArray;
+    }
     // start the mapping manager and set its parameters
     pIfMan = If_ManStart( pPars );
+    pIfMan->vSwitching = vSwitching2;
     // load the AIG into the mapper
     Aig_ManForEachObj( p, pNode, i )
     {
@@ -116,6 +134,8 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
             pIfObj = If_ManCreateCi( pIfMan );
             If_ObjSetLevel( pIfObj, Aig_ObjLevel(pNode) );
 //            printf( "pi=%d ", pIfObj->Level );
+            if ( pIfMan->nLevelMax < (int)pIfObj->Level )
+                pIfMan->nLevelMax = (int)pIfObj->Level;
         }
         else if ( Aig_ObjIsPo(pNode) )
         {
@@ -130,6 +150,8 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         assert( Vec_PtrEntry(vAigToIf, i) == NULL );
         Vec_PtrWriteEntry( vAigToIf, i, pIfObj );
         pNode->pData = pIfObj;
+        if ( vSwitching2 )
+            pSwitching2[pIfObj->Id] = pSwitching[pNode->Id];            
         // set up the choice node
         if ( Aig_ObjIsChoice( p, pNode ) )
         {
@@ -140,6 +162,8 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         }
 //        assert( If_ObjLevel(pIfObj) == Aig_ObjLevel(pNode) );
     }
+    if ( vSwitching )
+        Vec_IntFree( vSwitching );
     return pIfMan;
 }
 

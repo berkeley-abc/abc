@@ -22,10 +22,10 @@ set gnuplotunix gnuplot
 
 # standard aliases
 alias b balance
+alias cg clockgate
 alias cl cleanup
 alias clp collapse
 alias cs care_set
-alias dc2 dcompress2
 alias esd ext_seq_dcs
 alias f fraig
 alias fs fraig_sweep
@@ -40,6 +40,7 @@ alias pd print_dsd
 alias pex print_exdc -d
 alias pf print_factor
 alias pfan print_fanio
+alias pg print_gates
 alias pl print_level
 alias plat print_latch
 alias pio print_io
@@ -138,4 +139,7 @@ alias t1        "r s27mc2.blif; st; test"
 alias t2        "r i/intel_001.aig; ps; indcut -v"
 alias t         "r c\s\0\000.aig; int"
 #alias t         "r test/interpol.blif; st; int"
+
+#read_library at\syn\brdcm.genlib
+
 

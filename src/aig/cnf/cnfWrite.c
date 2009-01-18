@@ -422,7 +422,7 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     OutVar = pCnf->pVarNums[ Aig_ManConst1(p)->Id ];
     assert( OutVar <= Aig_ManObjNumMax(p) );
     *pClas++ = pLits;
-    *pLits++ = 2 * OutVar; 
+    *pLits++ = 2 * OutVar;  
 
     // write the output literals
     Aig_ManForEachPo( p, pObj, i )

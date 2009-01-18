@@ -155,7 +155,7 @@ void Kit_TruthSwapAdjacentVars2( unsigned * pIn, unsigned * pOut, int nVars, int
   of variables is nVars. The total number of variables in nVarsAll. The last argument
   (Phase) contains shows where the variables should go.]
                
-  SideEffects []
+  SideEffects [The input truth table is modified.]
 
   SeeAlso     []
 
@@ -189,7 +189,7 @@ void Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll,
   of variables is nVars. The total number of variables in nVarsAll. The last argument
   (Phase) contains shows what variables should remain.]
                
-  SideEffects []
+  SideEffects [The input truth table is modified.]
 
   SeeAlso     []
 
@@ -215,6 +215,43 @@ void Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, 
         Kit_TruthCopy( pOut, pIn, nVarsAll );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Implement give permutation.]
+
+  Description [The input and output truth tables are in pIn/pOut. 
+  The number of variables is nVars. Permutation is in pPerm.]
+               
+  SideEffects [The input truth table is modified.]
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthPermute( unsigned * pOut, unsigned * pIn, int nVars, char * pPerm, int fReturnIn )
+{
+    int * pTemp;
+    int i, Temp, fChange, Counter = 0;
+    do {
+        fChange = 0;
+        for ( i = 0; i < nVars-1; i++ )
+        {
+            assert( pPerm[i] != pPerm[i+1] );
+            if ( pPerm[i] <= pPerm[i+1] )
+                continue;
+            Counter++;
+            fChange = 1;
+
+            Temp = pPerm[i];
+            pPerm[i] = pPerm[i+1];
+            pPerm[i+1] = Temp;
+
+            Kit_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
+            pTemp = pIn; pIn = pOut; pOut = pTemp;
+        }
+    } while ( fChange );
+    if ( fReturnIn ^ !(Counter & 1) )
+        Kit_TruthCopy( pOut, pIn, nVars );
+}
 
 /**Function*************************************************************
 
@@ -1291,6 +1328,60 @@ void Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of 1's in each negative cofactor.]
+
+  Description [The resulting numbers are stored in the array of shorts, 
+  whose length is nVars. The number of 1's is counted in a different
+  space than the original function. For example, if the function depends 
+  on k variables, the cofactors are assumed to depend on k-1 variables.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthCountOnesInCofs0( unsigned * pTruth, int nVars, short * pStore )
+{
+    int nWords = Kit_TruthWordNum( nVars );
+    int i, k, Counter;
+    memset( pStore, 0, sizeof(short) * nVars );
+    if ( nVars <= 5 )
+    {
+        if ( nVars > 0 )
+            pStore[0] = Kit_WordCountOnes( pTruth[0] & 0x55555555 );
+        if ( nVars > 1 )
+            pStore[1] = Kit_WordCountOnes( pTruth[0] & 0x33333333 );
+        if ( nVars > 2 )
+            pStore[2] = Kit_WordCountOnes( pTruth[0] & 0x0F0F0F0F );
+        if ( nVars > 3 )
+            pStore[3] = Kit_WordCountOnes( pTruth[0] & 0x00FF00FF );
+        if ( nVars > 4 )
+            pStore[4] = Kit_WordCountOnes( pTruth[0] & 0x0000FFFF );
+        return;
+    }
+    // nVars >= 6
+    // count 1's for all other variables
+    for ( k = 0; k < nWords; k++ )
+    {
+        Counter = Kit_WordCountOnes( pTruth[k] );
+        for ( i = 5; i < nVars; i++ )
+            if ( (k & (1 << (i-5))) == 0 )
+                pStore[i] += Counter;
+    }
+    // count 1's for the first five variables
+    for ( k = 0; k < nWords/2; k++ )
+    {
+        pStore[0] += Kit_WordCountOnes( (pTruth[0] & 0x55555555) | ((pTruth[1] & 0x55555555) <<  1) );
+        pStore[1] += Kit_WordCountOnes( (pTruth[0] & 0x33333333) | ((pTruth[1] & 0x33333333) <<  2) );
+        pStore[2] += Kit_WordCountOnes( (pTruth[0] & 0x0F0F0F0F) | ((pTruth[1] & 0x0F0F0F0F) <<  4) );
+        pStore[3] += Kit_WordCountOnes( (pTruth[0] & 0x00FF00FF) | ((pTruth[1] & 0x00FF00FF) <<  8) );
+        pStore[4] += Kit_WordCountOnes( (pTruth[0] & 0x0000FFFF) | ((pTruth[1] & 0x0000FFFF) << 16) );
+        pTruth += 2;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of 1's in each cofactor.]
 
   Description [Verifies the above procedure.]
@@ -1440,16 +1531,17 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
 */
     // collect the minterm counts
     Kit_TruthCountOnesInCofs( pIn, nVars, pStore );
-//    Kit_TruthCountOnesInCofsSlow( pIn, nVars, pStore2, pAux );
-//    for ( i = 0; i < 2*nVars; i++ )
-//    {
-//        assert( pStore[i] == pStore2[i] );
-//    }
-
+/*
+    Kit_TruthCountOnesInCofsSlow( pIn, nVars, pStore2, pAux );
+    for ( i = 0; i < 2*nVars; i++ )
+    {
+        assert( pStore[i] == pStore2[i] );
+    }
+*/
     // canonicize phase
     for ( i = 0; i < nVars; i++ )
     {
-        if ( pStore[2*i+0] >= pStore[2*i+1] )
+        if ( pStore[2*i+0] <= pStore[2*i+1] )
             continue;
         uCanonPhase |= (1 << i);
         Temp = pStore[2*i+0];
@@ -1463,11 +1555,12 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
 
     // permute
     Counter = 0;
+
     do {
         fChange = 0;
         for ( i = 0; i < nVars-1; i++ )
         {
-            if ( pStore[2*i] >= pStore[2*(i+1)] )
+            if ( pStore[2*i] <= pStore[2*(i+1)] )
                 continue;
             Counter++;
             fChange = 1;
@@ -1485,16 +1578,17 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
             pStore[2*(i+1)+1] = Temp;
 
             // if the polarity of variables is different, swap them
-            if ( ((uCanonPhase & (1 << i)) > 0) != ((uCanonPhase & (1 << (i+1))) > 0) )
-            {
-                uCanonPhase ^= (1 << i);
-                uCanonPhase ^= (1 << (i+1));
-            }
+//            if ( ((uCanonPhase & (1 << i)) > 0) != ((uCanonPhase & (1 << (i+1))) > 0) )
+//            {
+//                uCanonPhase ^= (1 << i);
+//                uCanonPhase ^= (1 << (i+1));
+//            }
 
             Kit_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
             pTemp = pIn; pIn = pOut; pOut = pTemp;
         }
     } while ( fChange );
+
 
 /*
     Extra_PrintBinary( stdout, &uCanonPhase, nVars+1 ); printf( " : " );

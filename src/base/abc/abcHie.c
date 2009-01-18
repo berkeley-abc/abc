@@ -472,9 +472,6 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
     Vec_PtrWriteEntry( pDesign->vModules, 0, pNtkNew );
     pNtkNew->pDesign = pDesign;
 
-//Abc_NtkPrintStats( stdout, pNtkH, 0 );
-//Abc_NtkPrintStats( stdout, pNtkNew, 0 );
-
     // check integrity
     if ( !Abc_NtkCheck( pNtkNew ) )
     {

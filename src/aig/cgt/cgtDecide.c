@@ -25,8 +25,11 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern int Ssw_SmlCountXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo, Aig_Obj_t * pCand );
 extern int Ssw_SmlCheckXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo, Aig_Obj_t * pCand );
+extern int Ssw_SmlCountXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo, Aig_Obj_t * pCand );
+extern int Ssw_SmlCountEqual( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo );
+extern int Ssw_SmlNodeCountOnesReal( Ssw_Sml_t * p, Aig_Obj_t * pObj );
+extern int Ssw_SmlNodeCountOnesRealVec( Ssw_Sml_t * p, Vec_Ptr_t * vObjs );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -34,7 +37,7 @@ extern int Ssw_SmlCheckXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Ob
 
 /**Function*************************************************************
 
-  Synopsis    [Chooses what clock-gate to use for each register.]
+  Synopsis    [Collects POs in the transitive fanout.]
 
   Description []
                
@@ -43,11 +46,127 @@ extern int Ssw_SmlCheckXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Ob
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Cgt_ManDecide( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll )
+void Cgt_ManCollectFanoutPos_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t * vFanout )
+{
+    Aig_Obj_t * pFanout;
+    int f, iFanout;
+    if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(pAig, pObj);
+    if ( Aig_ObjIsPo(pObj) )
+    {
+        Vec_PtrPush( vFanout, pObj );
+        return;
+    }
+    Aig_ObjForEachFanout( pAig, pObj, pFanout, iFanout, f )
+        Cgt_ManCollectFanoutPos_rec( pAig, pFanout, vFanout );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects POs in the transitive fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cgt_ManCollectFanoutPos( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t * vFanout )
+{
+    Vec_PtrClear( vFanout );
+    Aig_ManIncrementTravId( pAig );
+    Cgt_ManCollectFanoutPos_rec( pAig, pObj, vFanout );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if all PO fanouts can be gated by this node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cgt_ManCheckGateComplete( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, Aig_Obj_t * pGate, Vec_Ptr_t * vFanout )
 {
     Vec_Ptr_t * vGates;
-    vGates = Vec_PtrStart( Saig_ManRegNum(pAig) );
-    return vGates;
+    Aig_Obj_t * pObj;
+    int i;
+    Vec_PtrForEachEntry( vFanout, pObj, i )
+    {
+        if ( Saig_ObjIsPo(pAig, pObj) )
+            return 0;
+        vGates = Vec_VecEntry( vGatesAll, Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig) );
+        if ( Vec_PtrFind( vGates, pGate ) == -1 )
+            return 0;            
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the set of complete clock gates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Cgt_ManCompleteGates( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdcMax, int fVerbose )
+{
+    Vec_Ptr_t * vFanout, * vGatesFull;
+    Aig_Obj_t * pGate, * pGateR;
+    int i, k;
+    vFanout    = Vec_PtrAlloc( 100 );
+    vGatesFull = Vec_PtrAlloc( 100 );
+    Vec_VecForEachEntry( vGatesAll, pGate, i, k )
+    {
+        pGateR = Aig_Regular(pGate);
+        if ( pGateR->fMarkA )
+            continue;
+        pGateR->fMarkA = 1;
+        Cgt_ManCollectFanoutPos( pAig, pGateR, vFanout );
+        if ( Cgt_ManCheckGateComplete( pAig, vGatesAll, pGate, vFanout ) )
+            Vec_PtrPush( vGatesFull, pGate );
+    }
+    Vec_PtrFree( vFanout );
+    Vec_VecForEachEntry( vGatesAll, pGate, i, k )
+        Aig_Regular(pGate)->fMarkA = 0;
+    return vGatesFull;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Calculates coverage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Cgt_ManComputeCoverage( Aig_Man_t * pAig, Vec_Vec_t * vGates )
+{
+    int nFrames = 32;
+    int nWords  =  1;
+    Ssw_Sml_t * pSml;
+    Vec_Ptr_t * vOne;
+    int i, nTransTotal = 0, nTransSaved = 0;
+    pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
+    Vec_VecForEachLevel( vGates, vOne, i )
+    {
+        nTransSaved += Ssw_SmlNodeCountOnesRealVec( pSml, vOne );
+        nTransTotal += 32 * nFrames * nWords;
+    }
+    Ssw_SmlStop( pSml );
+    return (float)100.0*nTransSaved/nTransTotal;
 }
 
 /**Function*************************************************************
@@ -62,14 +181,18 @@ Vec_Ptr_t * Cgt_ManDecide( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll )
+Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdcMax, int fVerbose )
 {
+    int nFrames = 32;
+    int nWords  =  1;
     Ssw_Sml_t * pSml;
-    Vec_Ptr_t * vGates, * vCands;
+    Vec_Vec_t * vGates;
+    Vec_Ptr_t * vCands;
     Aig_Obj_t * pObjLi, * pObjLo, * pCand, * pCandBest;
-    int i, k, nHitsCur, nHitsMax;
-    vGates = Vec_PtrStart( Saig_ManRegNum(pAig) );
-    pSml = Ssw_SmlSimulateSeq( pAig, 0, 32, 1 );
+    int i, k, nHitsCur, nHitsMax, Counter = 0, clk = clock();
+    int nTransTotal = 0, nTransSaved = 0;
+    vGates = Vec_VecStart( Saig_ManRegNum(pAig) );
+    pSml = Ssw_SmlSimulateSeq( pAig, 0, nFrames, nWords );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
         nHitsMax = 0;
@@ -78,10 +201,10 @@ Vec_Ptr_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll )
         Vec_PtrForEachEntry( vCands, pCand, k )
         {
             // check if this is indeed a clock-gate
-            if ( !Ssw_SmlCheckXorImplication( pSml, pObjLi, pObjLo, pCand ) )
+            if ( nOdcMax == 0 && !Ssw_SmlCheckXorImplication( pSml, pObjLi, pObjLo, pCand ) )
                 printf( "Clock gate candidate is invalid!\n" );
             // find its characteristic number
-            nHitsCur = Ssw_SmlCountXorImplication( pSml, pObjLi, pObjLo, pCand );
+            nHitsCur = Ssw_SmlNodeCountOnesReal( pSml, pCand );
             if ( nHitsMax < nHitsCur )
             {
                 nHitsMax = nHitsCur;
@@ -89,9 +212,80 @@ Vec_Ptr_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll )
             }
         }
         if ( pCandBest != NULL )
-            Vec_PtrWriteEntry( vGates, i, pCandBest );
+        {
+            Vec_VecPush( vGates, i, pCandBest );
+            Counter++;
+            nTransSaved += nHitsMax;
+        }
+        nTransTotal += 32 * nFrames * nWords;
     }
     Ssw_SmlStop( pSml );
+    if ( fVerbose )
+    {
+        printf( "Gating signals = %6d. Gated flops = %6d. (Total flops = %6d.)\n", 
+            Vec_VecSizeSize(vGatesAll), Counter, Saig_ManRegNum(pAig) );
+//        printf( "Gated transitions = %5.2f %%. (%5.2f %%.) ", 
+//            100.0*nTransSaved/nTransTotal, Cgt_ManComputeCoverage(pAig, vGates) );
+        printf( "Gated transitions = %5.2f %%. ", Cgt_ManComputeCoverage(pAig, vGates) );
+        PRT( "Time", clock() - clk );
+    }
+/*
+    {
+        Vec_Ptr_t * vCompletes;
+        vCompletes = Cgt_ManCompleteGates( pAig, vGatesAll, nOdcMax, fVerbose );
+        printf( "Complete gates = %d. \n", Vec_PtrSize(vCompletes) );
+        Vec_PtrFree( vCompletes );
+    }
+*/
+    return vGates;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the set of complete clock gates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdcMax, int fVerbose )
+{
+    Vec_Vec_t * vGates;
+    Vec_Ptr_t * vCompletes, * vOne;
+    Aig_Obj_t * pGate;
+    int i, k, Counter = 0, clk = clock();
+    // derive and label complete gates
+    vCompletes = Cgt_ManCompleteGates( pAig, vGatesAll, nOdcMax, fVerbose );
+    // label complete gates
+    Vec_PtrForEachEntry( vCompletes, pGate, i )
+        Aig_Regular(pGate)->fMarkA = 1;
+    // select only complete gates
+    vGates = Vec_VecStart( Saig_ManRegNum(pAig) );
+    Vec_VecForEachEntry( vGatesAll, pGate, i, k )
+        if ( Aig_Regular(pGate)->fMarkA )
+            Vec_VecPush( vGates, i, pGate );
+    // unlabel complete gates
+    Vec_PtrForEachEntry( vCompletes, pGate, i )
+        Aig_Regular(pGate)->fMarkA = 0;
+    // count the number of gated flops
+    Vec_VecForEachLevel( vGates, vOne, i )
+    {
+        Counter += (int)(Vec_PtrSize(vOne) > 0);
+//        printf( "%d ", Vec_PtrSize(vOne) );
+    }
+//    printf( "\n" );
+    if ( fVerbose )
+    {
+        printf( "Gating signals = %6d. Gated flops = %6d. (Total flops = %6d.)\n", 
+            Vec_VecSizeSize(vGatesAll), Counter, Saig_ManRegNum(pAig) );
+        printf( "Complete gates = %6d. Gated transitions = %5.2f %%. ", 
+            Vec_PtrSize(vCompletes), Cgt_ManComputeCoverage(pAig, vGates) );
+        PRT( "Time", clock() - clk );
+    }
+    Vec_PtrFree( vCompletes );
     return vGates;
 }
 

@@ -11,5 +11,10 @@
 - area flow based AIG rewriting
 - cut frontier adjustment
 
+- box-aware dch, lcorr, and scorr with optional deboxing
+- mfs with boxes
+- power-aware mapping 
+- full support of required times
+
 
 

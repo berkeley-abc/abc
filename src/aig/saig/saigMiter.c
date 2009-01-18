@@ -30,6 +30,60 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Checks the status of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Sec_MtrStatus_t Sec_MiterStatus( Aig_Man_t * p )
+{
+    Sec_MtrStatus_t Status;
+    Aig_Obj_t * pObj, * pChild;
+    int i;
+    memset( &Status, 0, sizeof(Sec_MtrStatus_t) );
+    Status.iOut = -1;
+    Status.nInputs  = Saig_ManPiNum( p );
+    Status.nNodes   = Aig_ManNodeNum( p );
+    Status.nOutputs = Saig_ManPoNum(p);
+    Saig_ManForEachPo( p, pObj, i )
+    {
+        pChild = Aig_ObjChild0(pObj);
+        // check if the output is constant 0
+        if ( pChild == Aig_ManConst0(p) )
+            Status.nUnsat++;
+        // check if the output is constant 1
+        else if ( pChild == Aig_ManConst1(p) )
+        {
+            Status.nSat++;
+            if ( Status.iOut == -1 )
+                Status.iOut = i;
+        }
+        // check if the output is a primary input
+        else if ( Saig_ObjIsPi(p, Aig_Regular(pChild)) )
+        {
+            Status.nSat++;
+            if ( Status.iOut == -1 )
+                Status.iOut = i;
+        }
+    // check if the output is 1 for the 0000 pattern
+        else if ( Aig_Regular(pChild)->fPhase != (unsigned)Aig_IsComplement(pChild) )
+        {
+            Status.nSat++;
+            if ( Status.iOut == -1 )
+                Status.iOut = i;
+        }
+        else
+            Status.nUndec++;
+    }
+    return Status;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates sequential miter.]
 
   Description []
@@ -138,6 +192,116 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     // cleanup
     Aig_ManSetRegNum( pNew, 0 );
     Aig_ManCleanup( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives dual-rail AIG.]
+
+  Description [Orders nodes as follows: PIs, ANDs, POs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_AndDualRail( Aig_Man_t * pNew, Aig_Obj_t * pObj, Aig_Obj_t ** ppData, Aig_Obj_t ** ppNext )
+{
+    Aig_Obj_t * pFanin0 = Aig_ObjFanin0(pObj);
+    Aig_Obj_t * pFanin1 = Aig_ObjFanin1(pObj);
+    Aig_Obj_t * p0Data = Aig_ObjFaninC0(pObj)? pFanin0->pNext : pFanin0->pData;
+    Aig_Obj_t * p0Next = Aig_ObjFaninC0(pObj)? pFanin0->pData : pFanin0->pNext;
+    Aig_Obj_t * p1Data = Aig_ObjFaninC1(pObj)? pFanin1->pNext : pFanin1->pData;
+    Aig_Obj_t * p1Next = Aig_ObjFaninC1(pObj)? pFanin1->pData : pFanin1->pNext;
+    *ppData = Aig_Or( pNew, 
+        Aig_And(pNew, p0Data, Aig_Not(p0Next)),
+        Aig_And(pNew, p1Data, Aig_Not(p1Next)) );
+    *ppNext = Aig_And( pNew, 
+        Aig_And(pNew, Aig_Not(p0Data), p0Next),
+        Aig_And(pNew, Aig_Not(p1Data), p1Next) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives dual-rail AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManDualRail( Aig_Man_t * p, int fMiter )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pMiter;
+    int i;
+    Aig_ManCleanData( p );
+    Aig_ManCleanNext( p );
+    // create the new manager
+    pNew = Aig_ManStart( 4*Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    // create the PIs 
+    Aig_ManConst1(p)->pData = Aig_ManConst0(pNew);
+    Aig_ManConst1(p)->pNext = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+    {
+        pObj->pData = Aig_ObjCreatePi( pNew );
+        pObj->pNext = Aig_ObjCreatePi( pNew );
+    }
+    // duplicate internal nodes
+    Aig_ManForEachNode( p, pObj, i )
+        Saig_AndDualRail( pNew, pObj, (Aig_Obj_t **)&pObj->pData, &pObj->pNext );
+    // add the POs
+    if ( fMiter )
+    {
+        pMiter = Aig_ManConst1(pNew);
+        Saig_ManForEachLo( p, pObj, i )
+        {
+            pMiter = Aig_And( pNew, pMiter, 
+                Aig_Or(pNew, pObj->pData, pObj->pNext) );
+        } 
+        Aig_ObjCreatePo( pNew, pMiter );
+        Saig_ManForEachLi( p, pObj, i )
+        {
+            if ( !Aig_ObjFaninC0(pObj) )
+            {
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
+            }
+            else
+            {
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+            }
+        }
+    }
+    else
+    {
+        Aig_ManForEachPo( p, pObj, i )
+        {
+            if ( !Aig_ObjFaninC0(pObj) )
+            {
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
+            }
+            else
+            {
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
+                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+            }
+        }
+    }
+    Aig_ManSetRegNum( pNew, 2*Aig_ManRegNum(p) );
+    Aig_ManCleanData( p );
+    Aig_ManCleanNext( p );
+    Aig_ManCleanup( pNew );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 
@@ -392,7 +556,7 @@ int Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** 
     Vec_Ptr_t * vSet0, * vSet1;
     Aig_Obj_t * pObj, * pFanin, * pObj0, * pObj1;
     int i, Counter = 0;
-    assert( Saig_ManRegNum(p) % 2 == 0 );
+//    assert( Saig_ManRegNum(p) % 2 == 0 );
     vSet0 = Vec_PtrAlloc( Saig_ManPoNum(p) );
     vSet1 = Vec_PtrAlloc( Saig_ManPoNum(p) );
     Saig_ManForEachPo( p, pObj, i )
@@ -773,27 +937,47 @@ PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SecSpecialMiter( Aig_Man_t * pMiter, int fVerbose )
+int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbose )
 {
-    int nFrames = 2;   // modify to enable comparison over any number of frames
     Aig_Man_t * pPart0, * pPart1;
     int RetValue;
     if ( fVerbose )
-        Aig_ManPrintStats( pMiter );
-    // demiter the miter
-    if ( !Saig_ManDemiterSimple( pMiter, &pPart0, &pPart1 ) )
+        printf( "Performing sequential verification combinational A/B miter.\n" );
+    // consider the case when a miter is given
+    if ( p1 == NULL )
     {
-        printf( "Demitering has failed.\n" );
-        return -1;
+        if ( fVerbose )
+        {
+            Aig_ManPrintStats( p0 );
+        }
+        // demiter the miter
+        if ( !Saig_ManDemiterSimpleDiff( p0, &pPart0, &pPart1 ) )
+        {
+            printf( "Demitering has failed.\n" );
+            return -1;
+        }
+    }
+    else
+    {
+        pPart0 = Aig_ManDupSimple( p0 );
+        pPart1 = Aig_ManDupSimple( p1 );
     }
     if ( fVerbose )
     {
-        Aig_ManPrintStats( pPart0 );
-        Aig_ManPrintStats( pPart1 );
-        Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
-        Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
-        printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
+//        Aig_ManPrintStats( pPart0 );
+//        Aig_ManPrintStats( pPart1 );
+        if ( p1 == NULL )
+        {
+//        Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
+//        Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
+//        printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
+        }
     }
+    assert( Aig_ManRegNum(pPart0) > 0 );
+    assert( Aig_ManRegNum(pPart1) > 0 );
+    assert( Saig_ManPiNum(pPart0) == Saig_ManPiNum(pPart1) );
+    assert( Saig_ManPoNum(pPart0) == Saig_ManPoNum(pPart1) );
+    assert( Aig_ManRegNum(pPart0) == Aig_ManRegNum(pPart1) );
     RetValue = Ssw_SecSpecial( pPart0, pPart1, nFrames, fVerbose );
     Aig_ManStop( pPart0 );
     Aig_ManStop( pPart1 );

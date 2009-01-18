@@ -206,11 +206,13 @@ checkobjs:
             printf( "Net in bin %d does not have a name\n", i );
             fStatus = 0;
         }
+/*
         if ( pNet->pDriver == NULL )
         {
             printf( "Net %s does not have a driver\n", pNet->pName );
             fStatus = 0;
         }
+*/
     }
 
     // check objects

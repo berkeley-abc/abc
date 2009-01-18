@@ -28,12 +28,19 @@
 #include "mioInt.h"
 #include "mapper.h"
 
+extern void Amap_LibFree( void * p );
+extern void Amap_LibPrintSelectedGates( void * p, int fAllGates );
+extern void * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVerbose );
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 static int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv );
+
+static int Mio_CommandReadLibrary2( Abc_Frame_t * pAbc, int argc, char **argv );
+static int Mio_CommandPrintLibrary2( Abc_Frame_t * pAbc, int argc, char **argv );
 
 // internal version of GENLIB library
 static char * pMcncGenlib[25] = {
@@ -78,7 +85,7 @@ static char * pMcncGenlib[25] = {
 void Mio_Init( Abc_Frame_t * pAbc )
 {
     char * pFileTemp = "mcnc_temp.genlib";
-    Mio_Library_t * pLibGen;
+    void * pLibGen;
     FILE * pFile;
     int i;
 
@@ -90,6 +97,9 @@ void Mio_Init( Abc_Frame_t * pAbc )
     // read genlib from file
     pLibGen = Mio_LibraryRead( pAbc, pFileTemp, NULL, 0 );
     Abc_FrameSetLibGen( pLibGen );
+    pLibGen = Amap_LibReadAndPrepare( pFileTemp, 0, 0 );
+    Abc_FrameSetLibGen2( pLibGen );
+
 #ifdef WIN32
         _unlink( pFileTemp );
 #else
@@ -98,6 +108,9 @@ void Mio_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "SC mapping", "read_library",   Mio_CommandReadLibrary,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping", "print_library",  Mio_CommandPrintLibrary, 0 ); 
+
+    Cmd_CommandAdd( pAbc, "SC mapping", "read_library2",   Mio_CommandReadLibrary2,  0 ); 
+    Cmd_CommandAdd( pAbc, "SC mapping", "print_library2",  Mio_CommandPrintLibrary2, 0 ); 
 }
 
 /**Function*************************************************************
@@ -115,6 +128,7 @@ void Mio_End()
 {
 //    Mio_LibraryDelete( s_pLib );
     Mio_LibraryDelete( Abc_FrameReadLibGen() );
+    Amap_LibFree( Abc_FrameReadLibGen2() );
 }
 
 
@@ -190,25 +204,124 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( Abc_FrameReadLibSuper() )
     {
         extern void Map_SuperLibFree( Map_SuperLib_t * p );
-//        Map_SuperLibFree( s_pSuperLib );
-//        s_pSuperLib = NULL;
         Map_SuperLibFree( Abc_FrameReadLibSuper() );
         Abc_FrameSetLibSuper( NULL );
     }
 
     // replace the current library
-//    Mio_LibraryDelete( s_pLib );
-//    s_pLib = pLib;
     Mio_LibraryDelete( Abc_FrameReadLibGen() );
     Abc_FrameSetLibGen( pLib );
+
+    // set the new network
+    pLib = Amap_LibReadAndPrepare( FileName, 1, 0 );  
+    if ( pLib == NULL )
+    {
+        fprintf( pErr, "Reading GENLIB library has failed.\n" );
+        return 1;
+    }
+    // replace the current library
+    Amap_LibFree( Abc_FrameReadLibGen2() );
+    Abc_FrameSetLibGen2( pLib );
     return 0;
 
 usage:
     fprintf( pErr, "usage: read_library [-vh]\n");
     fprintf( pErr, "\t         read the library from a genlib file\n" );  
     fprintf( pErr, "\t         (if the library contains more than one gate\n" );  
-    fprintf( pErr, "\t         with the same Boolean function, only the first gate\n" );  
-    fprintf( pErr, "\t         in the order of their appearance in the file is used)\n" );  
+    fprintf( pErr, "\t         with the same Boolean function, only the gate\n" );  
+    fprintf( pErr, "\t         with the smallest area will be used)\n" );  
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : enable verbose output\n");
+    return 1;       /* error exit */
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_CommandReadLibrary2( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pFile;
+    FILE * pOut, * pErr;
+    Mio_Library_t * pLib;
+    Abc_Ntk_t * pNet;
+    char * FileName;
+    int fVerbose;
+    int fVeryVerbose;
+    int c;
+
+    pNet = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    fVerbose     = 1;
+    fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vwh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'w':
+                fVeryVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
+    {
+        fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+            fprintf( pErr, "Did you mean \"%s\"?", FileName );
+        fprintf( pErr, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    // set the new network
+    pLib = Amap_LibReadAndPrepare( FileName, fVerbose, fVeryVerbose );  
+    if ( pLib == NULL )
+    {
+        fprintf( pErr, "Reading GENLIB library has failed.\n" );
+        return 1;
+    }
+
+    // replace the current library
+    Amap_LibFree( Abc_FrameReadLibGen2() );
+    Abc_FrameSetLibGen2( pLib );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: read_library2 [-vh]\n");
+    fprintf( pErr, "\t         read the library from a genlib file\n" );  
+    fprintf( pErr, "\t         (if the library contains more than one gate\n" );  
+    fprintf( pErr, "\t         with the same Boolean function, only the gate\n" );  
+    fprintf( pErr, "\t         with the smallest area will be used)\n" );  
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w     : toggle detailed printout [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : enable verbose output\n");
     return 1;       /* error exit */
 }
@@ -271,6 +384,72 @@ usage:
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;       /* error exit */
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_CommandPrintLibrary2( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNet;
+    int fPrintAll;
+    int fVerbose;
+    int c;
+
+    pNet = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    fPrintAll = 0;
+    fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "avh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'a':
+                fPrintAll ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+
+    if ( argc != globalUtilOptind )
+    {
+        goto usage;
+    }
+
+    // set the new network
+    Amap_LibPrintSelectedGates( Abc_FrameReadLibGen2(), fPrintAll );
+    return 0;
+
+usage:
+    fprintf( pErr, "\nusage: print_library2 [-avh]\n");
+    fprintf( pErr, "\t          print gates used for area-oriented tech-mapping\n" );  
+    fprintf( pErr, "\t-a      : toggles printing all gates [default = %s]\n", (fPrintAll? "yes" : "no") );
+    fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    return 1;       /* error exit */
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

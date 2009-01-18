@@ -211,6 +211,7 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
  
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->nFrames );
+    pFrames->pName = Aig_UtilStrsav( p->pAig->pName );
     // map constants and PIs
     Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), 0, Aig_ManConst1(pFrames) );
     Saig_ManForEachPi( p->pAig, pObj, i )

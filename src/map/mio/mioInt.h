@@ -54,6 +54,8 @@ struct  Mio_LibraryStruct_t_
 {
     char *             pName;       // the name of the library
     int                nGates;      // the number of the gates
+    Mio_Gate_t **      ppGates0;    // the array of gates in the original order
+    Mio_Gate_t **      ppGatesName; // the array of gates sorted by name
     Mio_Gate_t *       pGates;      // the linked list of all gates in no particular order
     Mio_Gate_t *       pGate0;      // the constant zero gate
     Mio_Gate_t *       pGate1;      // the constant one gate
@@ -84,7 +86,8 @@ struct  Mio_GateStruct_t_
     int                nInputs;     // the number of inputs
     double             dDelayMax;   // the maximum delay
     DdNode *           bFunc;       // the functionality
-    char *             pSop;
+    char *             pSop;        // sum-of-products
+    int                Value;       // user's information
 };
 
 struct  Mio_PinStruct_t_

@@ -47,6 +47,7 @@ typedef enum {
     IO_FILE_BLIF,      
     IO_FILE_BLIFMV,      
     IO_FILE_BENCH,      
+    IO_FILE_BOOK,
     IO_FILE_CNF,      
     IO_FILE_DOT,      
     IO_FILE_EDIF,      
@@ -99,6 +100,8 @@ extern void               Io_WriteBlifMv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteBench.c =========================================================*/
 extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 extern int                Io_WriteBenchLut( Abc_Ntk_t * pNtk, char * FileName );
+/*=== abcWriteBook.c =========================================================*/
+extern void               Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteCnf.c ===========================================================*/
 extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName, int fAllPrimes );
 /*=== abcWriteDot.c ===========================================================*/

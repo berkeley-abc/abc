@@ -144,6 +144,7 @@ struct Aig_Man_t_
     void *           pImpData;       // implication checking data
     void *           pManTime;       // the timing manager
     void *           pManCuts;
+    int *            pFastSim; 
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
     Vec_Int_t *      vFlopReprs;      
@@ -154,6 +155,7 @@ struct Aig_Man_t_
     int              fCreatePios;
     Vec_Int_t *      vEquPairs;   
     Vec_Vec_t *      vClockDoms; 
+    Vec_Int_t *      vProbs;         // probability of node being 1 
     // timing statistics
     int              time1;
     int              time2;
@@ -195,14 +197,14 @@ struct Aig_ManCut_t_
 };
 
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
 
 static inline Aig_Cut_t *  Aig_ObjCuts( Aig_ManCut_t * p, Aig_Obj_t * pObj )                         { return p->pCuts[pObj->Id];  }
@@ -338,6 +340,7 @@ static inline int          Aig_ObjSetLevel( Aig_Obj_t * pObj, int i ) { assert( 
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;           } 
+static inline void         Aig_ObjSetEquiv( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pEqu ) { assert(p->pEquivs); p->pEquivs[pObj->Id] = pEqu;                  }
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
 static inline void         Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )     { assert(p->pReprs); p->pReprs[pObj->Id] = pRepr;                                } 
 static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) );      } 
@@ -529,9 +532,9 @@ extern void            Aig_ManStartMemory( Aig_Man_t * p );
 extern void            Aig_ManStopMemory( Aig_Man_t * p );
 /*=== aigMffc.c ==========================================================*/
 extern int             Aig_NodeRef_rec( Aig_Obj_t * pNode, unsigned LevelMin );
-extern int             Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin );
+extern int             Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin, float * pPower, float * pProbs );
 extern int             Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t * vSupp );
-extern int             Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode );
+extern int             Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode, float * pPower );
 extern int             Aig_NodeMffsLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 extern int             Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vResult );
 /*=== aigObj.c ==========================================================*/

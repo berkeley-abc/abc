@@ -61,7 +61,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     Map_Man_t * pMan;
     Vec_Int_t * vSwitching = NULL;
     float * pSwitching = NULL;
-    int clk;
+    int clk, clkTotal = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
 
@@ -115,6 +115,10 @@ clk = clock();
 
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+if ( fVerbose )
+{
+PRT( "Total runtime", clock() - clkTotal );
+}
 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )

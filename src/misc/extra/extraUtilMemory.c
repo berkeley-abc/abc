@@ -339,7 +339,7 @@ int Extra_MmFixedReadMaxEntriesUsed( Extra_MmFixed_t * p )
 
 ***********************************************************************/
 Extra_MmFlex_t * Extra_MmFlexStart()
-{
+{ 
     Extra_MmFlex_t * p;
 //printf( "allocing flex\n" );
     p = ALLOC( Extra_MmFlex_t, 1 );
@@ -349,7 +349,7 @@ Extra_MmFlex_t * Extra_MmFlexStart()
     p->pCurrent      = NULL;
     p->pEnd          = NULL;
 
-    p->nChunkSize    = (1 << 10);
+    p->nChunkSize    = (1 << 12);
     p->nChunksAlloc  = 64;
     p->nChunks       = 0;
     p->pChunks       = ALLOC( char *, p->nChunksAlloc );

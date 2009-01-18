@@ -24,6 +24,26 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline int  Extra_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
+static inline void Extra_TruthNot( unsigned * pOut, unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = ~pIn[w];
+}
+static inline void Extra_TruthOr( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = pIn0[w] | pIn1[w];
+}
+static inline void Extra_TruthSharp( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = pIn0[w] & ~pIn1[w];
+}
+
 static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCond( Bdc_FuncCopy(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
 
 ////////////////////////////////////////////////////////////////////////
@@ -41,7 +61,7 @@ static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCo
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare )
+Hop_Obj_t * Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare, float dProb )
 {
     unsigned * pTruth;
     Bdc_Fun_t * pFunc;
@@ -52,8 +72,33 @@ Hop_Obj_t * Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pR
     if ( Hop_IsComplement(pRoot) )
         for ( i = Aig_TruthWordNum(nVars)-1; i >= 0; i-- )
             pTruth[i] = ~pTruth[i];
-    // decompose truth table
-    Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
+    // perform power-aware decomposition
+    if ( dProb >= 0.0 )
+    {
+        float Prob = (float)2.0 * dProb * (1.0 - dProb);
+        assert( Prob >= 0.0 && Prob <= 0.5 );
+        if ( Prob >= 0.4 )
+        {
+            Extra_TruthNot( puCare, puCare, nVars );
+            if ( dProb > 0.5 ) // more 1s than 0s
+                Extra_TruthOr( pTruth, pTruth, puCare, nVars );
+            else
+                Extra_TruthSharp( pTruth, pTruth, puCare, nVars );
+            Extra_TruthNot( puCare, puCare, nVars );
+            // decompose truth table
+            Bdc_ManDecompose( p, pTruth, NULL, nVars, NULL, 1000 );
+        }
+        else
+        {
+            // decompose truth table
+            Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
+        }
+    }
+    else
+    {
+        // decompose truth table
+        Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
+    }
     // convert back into HOP
     Bdc_FuncSetCopy( Bdc_ManFunc( p, 0 ), Hop_ManConst1( pHop ) );
     for ( i = 0; i < nVars; i++ )
@@ -106,7 +151,7 @@ void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
         if ( Nwk_ObjFaninNum(pObj) > 15 )
             continue;
         nNodes1 = Hop_DagSize(pObj->pFunc);
-        pObj->pFunc = Nwk_NodeIfNodeResyn( p, pNtk->pManHop, pObj->pFunc, Nwk_ObjFaninNum(pObj), vTruth, NULL );
+        pObj->pFunc = Nwk_NodeIfNodeResyn( p, pNtk->pManHop, pObj->pFunc, Nwk_ObjFaninNum(pObj), vTruth, NULL, -1.0 );
         nNodes2 = Hop_DagSize(pObj->pFunc);
         nGainTotal += nNodes1 - nNodes2;
     }

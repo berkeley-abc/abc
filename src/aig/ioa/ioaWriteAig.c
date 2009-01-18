@@ -258,6 +258,12 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
 
+    if ( Aig_ManPoNum(pMan) == 0 )
+    {
+        printf( "AIG cannot be written because it has no POs.\n" );
+        return;
+    }
+
 //    assert( Aig_ManIsStrash(pMan) );
     // start the output stream
     pFile = fopen( pFileName, "wb" );

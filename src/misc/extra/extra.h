@@ -41,12 +41,6 @@ extern "C" {
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
 
-// this include should be the first one in the list
-// it is used to catch memory leaks on Windows
-#if defined(_DEBUG) && defined(_MSC_VER) && (_MSC_VER <= 1200) // 1200 = MSVC 6.0
-#include "leaks.h"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +49,12 @@ extern "C" {
 #include "st.h"
 #include "cuddInt.h"
 #include "port_type.h"
+
+// catch memory leaks in Visual Studio
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+#endif
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -77,16 +77,15 @@ extern "C" {
 /*---------------------------------------------------------------------------*/
 
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
-
 
 typedef unsigned char      uint8;
 typedef unsigned short     uint16;

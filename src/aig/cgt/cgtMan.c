@@ -53,7 +53,19 @@ Cgt_Man_t * Cgt_ManCreate( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPar
     p->pAig       = pAig;
     p->vGatesAll  = Vec_VecStart( Saig_ManRegNum(pAig) );
     p->vFanout    = Vec_PtrAlloc( 1000 );
+    p->vVisited   = Vec_PtrAlloc( 1000 );
     p->nPattWords = 16;
+    if ( pCare == NULL )
+        return p;
+    // check out the constraints
+    if ( Aig_ManPiNum(pCare) != Aig_ManPiNum(pAig) )
+    {
+        printf( "The PI count of care (%d) and AIG (%d) differ. Careset is not used.\n", 
+            Aig_ManPiNum(pCare), Aig_ManPiNum(pAig) );
+        return p;
+    }
+    p->pCare = pCare;
+    p->vSuppsInv = (Vec_Vec_t *)Aig_ManSupportsInverse( p->pCare );
     return p;
 }
 
@@ -106,27 +118,16 @@ void Cgt_ManClean( Cgt_Man_t * p )
 ***********************************************************************/
 void Cgt_ManPrintStats( Cgt_Man_t * p )
 {
+    printf( "Params: LevMax = %d. CandMax = %d. OdcMax = %d. ConfMax = %d. VarMin = %d. FlopMin = %d.\n", 
+        p->pPars->nLevelMax, p->pPars->nCandMax, p->pPars->nOdcMax, 
+        p->pPars->nConfMax, p->pPars->nVarsMin, p->pPars->nFlopsMin );
+    printf( "SAT   : Calls = %d. Unsat = %d. Sat = %d. Fails = %d.  Recycles = %d.  ", 
+        p->nCalls, p->nCallsUnsat, p->nCallsSat, p->nCallsUndec, p->nRecycles );
+    PRT( "Time", p->timeTotal );
 /*
-    double nMemory = 1.0*Aig_ManObjNumMax(p->pAig)*p->nFrames*(2*sizeof(int)+2*sizeof(void*))/(1<<20);
-
-    printf( "Parameters: F = %d. AddF = %d. C-lim = %d. Constr = %d. MaxLev = %d. Mem = %0.2f Mb.\n", 
-        p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->nMaxLevs, nMemory );
-    printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
-        Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
-        0/p->pPars->nIters );
-    printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Lits proved = %d.\n", 
-        p->nSatProof, p->nSatCallsSat, p->nSatFailsReal, Cgt_ManCountEquivs(p) );
-    printf( "SAT solver: Vars max = %d. Calls max = %d. Recycles = %d. Sim rounds = %d.\n", 
-        p->nVarsMax, p->nCallsMax, p->nRecyclesTotal, p->nSimRounds );
-    printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
-        p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
-        p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
-
-    p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeMarkCones-p->timeSimSat-p->timeSat;
-    PRTP( "BMC        ", p->timeBmc,       p->timeTotal );
-    PRTP( "Spec reduce", p->timeReduce,    p->timeTotal );
-    PRTP( "Mark cones ", p->timeMarkCones, p->timeTotal );
-    PRTP( "Sim SAT    ", p->timeSimSat,    p->timeTotal );
+    p->timeOther = p->timeTotal-p->timeAig-p->timePrepare-p->timeSat-p->timeDecision;
+    PRTP( "AIG        ", p->timeAig,       p->timeTotal );
+    PRTP( "Prepare    ", p->timePrepare,   p->timeTotal );
     PRTP( "SAT solving", p->timeSat,       p->timeTotal );
     PRTP( "  unsat    ", p->timeSatUnsat,  p->timeTotal );
     PRTP( "  sat      ", p->timeSatSat,    p->timeTotal );
@@ -155,8 +156,13 @@ void Cgt_ManStop( Cgt_Man_t * p )
         Aig_ManStop( p->pFrame );
     Cgt_ManClean( p );
     Vec_PtrFree( p->vFanout );
-    Vec_PtrFree( p->vGates );
-    Vec_VecFree( p->vGatesAll );
+    Vec_PtrFree( p->vVisited );
+    if ( p->vGates )
+        Vec_PtrFree( p->vGates );
+    if ( p->vGatesAll )
+        Vec_VecFree( p->vGatesAll );
+    if ( p->vSuppsInv )
+        Vec_VecFree( p->vSuppsInv );
     free( p );
 }
 

@@ -287,7 +287,12 @@ void Lpk_FunCompareBoundSets( Lpk_Fun_t * p, Vec_Int_t * vBSets, int nCofDepth, 
         if ( (uBoundSet & uLateArrSupp) ) // skip those boundsets that are late arriving
             continue;
 if ( fVerbose )
-Lpk_PrintSetOne( uBoundSet );
+{
+Lpk_PrintSetOne( uBoundSet & 0xFFFF );
+//printf( "\n" );
+//Lpk_PrintSetOne( uBoundSet >> 16 );
+//printf( "\n" );
+}
         assert( (uBoundSet & (uBoundSet >> 16)) == 0 );
         nVarsBS = Kit_WordCountOnes( uBoundSet & 0xFFFF );
         if ( nVarsBS == 1 )

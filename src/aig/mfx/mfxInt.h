@@ -81,6 +81,8 @@ struct Mfx_Man_t_
     Vec_Ptr_t *         vFanins;   // the new set of fanins
     int                 nTotConfLim; // total conflict limit
     int                 nTotConfLevel; // total conflicts on this level
+    // switching activity
+    Vec_Int_t *         vProbs; 
     // the result of solving
     int                 nFanins;   // the number of fanins
     int                 nWords;    // the number of words
@@ -136,6 +138,7 @@ extern void             Mfx_ManStop( Mfx_Man_t * p );
 extern void             Mfx_ManClean( Mfx_Man_t * p );
 /*=== mfxResub.c ==========================================================*/
 extern void             Mfx_PrintResubStats( Mfx_Man_t * p );
+extern int              Mfx_EdgePower( Mfx_Man_t * p, Nwk_Obj_t * pNode );
 extern int              Mfx_EdgeSwapEval( Mfx_Man_t * p, Nwk_Obj_t * pNode );
 extern int              Mfx_ResubNode( Mfx_Man_t * p, Nwk_Obj_t * pNode );
 extern int              Mfx_ResubNode2( Mfx_Man_t * p, Nwk_Obj_t * pNode );

@@ -39,6 +39,74 @@ static int Abc_NtkComputeArea( Abc_Ntk_t * pNtk, Cut_Man_t * p );
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCutsSubtractFanunt( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pFan0, * pFan1, * pFanC;
+    int i, Counter = 0;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        if ( !Abc_NodeIsMuxType(pObj) )
+            continue;
+        pFanC = Abc_NodeRecognizeMux( pObj, &pFan1, &pFan0 );
+        pFanC = Abc_ObjRegular(pFanC);
+        pFan0 = Abc_ObjRegular(pFan0);
+        assert( pFanC->vFanouts.nSize > 1 );
+        pFanC->vFanouts.nSize--;
+        Counter++;
+        if ( Abc_NodeIsExorType(pObj) )
+        {
+            assert( pFan0->vFanouts.nSize > 1 );
+            pFan0->vFanouts.nSize--;
+            Counter++;
+        }
+    }
+    printf("Substracted %d fanouts\n", Counter );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCutsAddFanunt( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pFan0, * pFan1, * pFanC;
+    int i, Counter = 0;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        if ( !Abc_NodeIsMuxType(pObj) )
+            continue;
+        pFanC = Abc_NodeRecognizeMux( pObj, &pFan1, &pFan0 );
+        pFanC = Abc_ObjRegular(pFanC);
+        pFan0 = Abc_ObjRegular(pFan0);
+        pFanC->vFanouts.nSize++;
+        Counter++;
+        if ( Abc_NodeIsExorType(pObj) )
+        {
+            pFan0->vFanouts.nSize++;
+            Counter++;
+        }
+    }
+    printf("Added %d fanouts\n", Counter );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the cuts for the network.]
 
   Description []
@@ -60,6 +128,9 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 
     extern void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk );
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
+
+    if ( pParams->fAdjust )
+    Abc_NtkCutsSubtractFanunt( pNtk );
 
     nTotal = nGood = nEqual = 0;
 
@@ -118,7 +189,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
     Cut_ManPrintStats( p );
-PRT( "TOTAL ", clock() - clk );
+PRT( "TOTAL", clock() - clk );
     printf( "Area = %d.\n", Abc_NtkComputeArea( pNtk, p ) );
 //Abc_NtkPrintCuts( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
@@ -126,6 +197,8 @@ PRT( "TOTAL ", clock() - clk );
     // temporary printout of stats
     if ( nTotal )
     printf( "Total cuts = %d. Good cuts = %d.  Ratio = %5.2f\n", nTotal, nGood, ((double)nGood)/nTotal );
+    if ( pParams->fAdjust )
+    Abc_NtkCutsAddFanunt( pNtk );
     return p;
 }
 

@@ -59,6 +59,8 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
         st_free_table( pLib->tName2Gate );
     if ( pLib->dd )
         Cudd_Quit( pLib->dd );
+    FREE( pLib->ppGates0 );
+    FREE( pLib->ppGatesName );
     free( pLib );
 }
 
@@ -82,7 +84,7 @@ void Mio_GateDelete( Mio_Gate_t * pGate )
     if ( pGate->bFunc )
         Cudd_RecursiveDeref( pGate->pLib->dd, pGate->bFunc );
     Mio_GateForEachPinSafe( pGate, pPin, pPin2 )
-        Mio_PinDelete( pPin );    
+        Mio_PinDelete( pPin );   
     free( pGate );
 }
 
@@ -142,11 +144,14 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 ***********************************************************************/
 void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops )
 {
-    Mio_Gate_t * pGate;
+//    Mio_Gate_t * pGate;
+    int i;
 
     fprintf( pFile, "# The genlib library \"%s\".\n", pLib->pName );
-    Mio_LibraryForEachGate( pLib, pGate )
-        Mio_WriteGate( pFile, pGate, fPrintSops );
+//    Mio_LibraryForEachGate( pLib, pGate )
+//        Mio_WriteGate( pFile, pGate, fPrintSops );
+    for ( i = 0; i < pLib->nGates; i++ )
+        Mio_WriteGate( pFile, pLib->ppGates0[i], fPrintSops );
 }
 
 /**Function*************************************************************

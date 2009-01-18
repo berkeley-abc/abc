@@ -153,7 +153,7 @@ void Dar_ManHaigPrintStats( Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose )
+Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fPower, int fVerbose )
 //alias compress2   "b -l; rw -l; rwz -l; b -l; rwz -l; b -l"
 {
     Aig_Man_t * pTemp;
@@ -166,6 +166,8 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
 
     pParsRwr->fUpdateLevel = fUpdateLevel;
     pParsRef->fUpdateLevel = fUpdateLevel;
+
+    pParsRwr->fPower = fPower;
 
     pParsRwr->fVerbose = 0;//fVerbose;
     pParsRef->fVerbose = 0;//fVerbose;
@@ -224,7 +226,7 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fVerbose )
+Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fPower, int fVerbose )
 //alias compress2   "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
 {
     Aig_Man_t * pTemp;
@@ -238,6 +240,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     pParsRwr->fUpdateLevel = fUpdateLevel;
     pParsRef->fUpdateLevel = fUpdateLevel;
     pParsRwr->fFanout = fFanout;
+    pParsRwr->fPower = fPower;
 
     pParsRwr->fVerbose = 0;//fVerbose;
     pParsRef->fVerbose = 0;//fVerbose;
@@ -329,7 +332,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose )
+Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fPower, int fVerbose )
 //alias resyn    "b; rw; rwz; b; rwz; b"
 //alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 {
@@ -344,7 +347,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
     Aig_ManForEachObj( pAig, pObj, i )
         pObj->pHaig = pObj;
 
-    pAig = Dar_ManCompress (pAig, fBalance, fUpdateLevel, fVerbose);
+    pAig = Dar_ManCompress(pAig, fBalance, fUpdateLevel, fPower, fVerbose);
     Vec_PtrPush( vAigs, pAig );
 //Aig_ManPrintStats( pAig );
 
@@ -354,7 +357,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
         pObj->pHaig = pObj;
     }
 
-    pAig = Dar_ManCompress2(pAig, fBalance, fUpdateLevel, 1, fVerbose);
+    pAig = Dar_ManCompress2(pAig, fBalance, fUpdateLevel, 1, fPower, fVerbose);
     Vec_PtrPush( vAigs, pAig );
 //Aig_ManPrintStats( pAig );
 
@@ -384,7 +387,7 @@ Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int
 
 clk = clock();
 //    vAigs = Dar_ManChoiceSynthesisExt();
-    vAigs = Dar_ManChoiceSynthesis( pAig, fBalance, fUpdateLevel, fVerbose );
+    vAigs = Dar_ManChoiceSynthesis( pAig, fBalance, fUpdateLevel, 0, fVerbose );
 
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis
@@ -441,7 +444,7 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 
 clk = clock();
 //    vAigs = Dar_ManChoiceSynthesisExt();
-    vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, fVerbose );
+    vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, fVerbose );
 
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis

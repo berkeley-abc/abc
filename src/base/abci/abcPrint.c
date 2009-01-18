@@ -22,7 +22,7 @@
 #include "dec.h"
 #include "main.h"
 #include "mio.h"
-//#include "seq.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -102,6 +102,49 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Marks nodes for power-optimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk )
+{
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+    Vec_Int_t * vSwitching;
+    float * pSwitching;
+    Abc_Ntk_t * pNtkStr;
+    Aig_Man_t * pAig;
+    Aig_Obj_t * pObjAig;
+    Abc_Obj_t * pObjAbc, * pObjAbc2;
+    float Result = (float)0;
+    int i;
+    // strash the network
+    pNtkStr = Abc_NtkStrash( pNtk, 0, 1, 0 );
+    Abc_NtkForEachObj( pNtk, pObjAbc, i )
+        if ( Abc_ObjRegular(pObjAbc->pTemp)->Type == ABC_FUNC_NONE )
+            pObjAbc->pTemp = NULL;
+    // map network into an AIG
+    pAig = Abc_NtkToDar( pNtkStr, 0, (int)(Abc_NtkLatchNum(pNtk) > 0) );
+    vSwitching = Saig_ManComputeSwitchProbs( pAig, 48, 16, 0 );
+    pSwitching = (float *)vSwitching->pArray;
+    Abc_NtkForEachObj( pNtk, pObjAbc, i )
+    {
+        if ( (pObjAbc2 = Abc_ObjRegular(pObjAbc->pTemp)) && (pObjAig = pObjAbc2->pTemp) )
+            Result += Abc_ObjFanoutNum(pObjAbc) * pSwitching[pObjAig->Id];
+    }
+    Vec_IntFree( vSwitching );
+    Aig_ManStop( pAig );
+    Abc_NtkDelete( pNtkStr );
+    return Result;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Print the vital stats of the network.]
 
   Description []
@@ -111,7 +154,7 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes )
+void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower )
 {
     int Num;
     if ( fSaveBest )
@@ -192,6 +235,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
         fprintf( pFile, "  lev = %3d", Abc_NtkLevel(pNtk) );
     if ( fUseLutLib && Abc_FrameReadLibLut() )
         fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTraceLut(pNtk, 1) );
+    if ( fPower )
+        fprintf( pFile, "  power = %7.2f", Abc_NtkMfsTotalSwitching(pNtk) );
     fprintf( pFile, "\n" );
 
 //    Abc_NtkCrossCut( pNtk );
@@ -898,32 +943,39 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
 
     if ( fUseLibrary && Abc_NtkHasMapping(pNtk) )
     {
-        stmm_table * tTable;
-        stmm_generator * gen;
-        char * pName;
-        int * pCounter, Counter;
+        Mio_Gate_t ** ppGates;
         double Area, AreaTotal;
+        int Counter, nGates, i;
+
+        // clean value of all gates
+        nGates = Mio_LibraryReadGateNum( pNtk->pManFunc );
+        ppGates = Mio_LibraryReadGatesByName( pNtk->pManFunc );
+        for ( i = 0; i < nGates; i++ )
+            Mio_GateSetValue( ppGates[i], 0 );
 
         // count the gates by name
         CounterTotal = 0;
-        tTable = stmm_init_table(strcmp, stmm_strhash);
         Abc_NtkForEachNode( pNtk, pObj, i )
         {
             if ( i == 0 ) continue;
-            if ( !stmm_find_or_add( tTable, Mio_GateReadName(pObj->pData), (char ***)&pCounter ) )
-                *pCounter = 0;
-            (*pCounter)++;
+            Mio_GateSetValue( pObj->pData, 1 + Mio_GateReadValue(pObj->pData) );
             CounterTotal++;
         }
         // print the gates
         AreaTotal = Abc_NtkGetMappedArea(pNtk);
-        stmm_foreach_item( tTable, gen, (char **)&pName, (char **)&Counter )
+        for ( i = 0; i < nGates; i++ )
         {
-            Area = Counter * Mio_GateReadArea(Mio_LibraryReadGateByName(pNtk->pManFunc,pName));
-            printf( "%-12s = %8d   %10.2f    %6.2f %%\n", pName, Counter, Area, 100.0 * Area / AreaTotal );
+            Counter = Mio_GateReadValue( ppGates[i] );
+            if ( Counter == 0 )
+                continue;
+            Area = Counter * Mio_GateReadArea( ppGates[i] );
+            printf( "%-12s   Fanin = %2d   Instance = %8d   Area = %10.2f   %6.2f %%\n", 
+                Mio_GateReadName( ppGates[i] ), 
+                Mio_GateReadInputs( ppGates[i] ), 
+                Counter, Area, 100.0 * Area / AreaTotal );
         }
-        printf( "%-12s = %8d   %10.2f    %6.2f %%\n", "TOTAL", CounterTotal, AreaTotal, 100.0 );
-        stmm_free_table( tTable );
+        printf( "%-12s                Instance = %8d   Area = %10.2f   %6.2f %%\n", "TOTAL", 
+            CounterTotal, AreaTotal, 100.0 );
         return;
     }
 

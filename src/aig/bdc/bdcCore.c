@@ -72,7 +72,8 @@ Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
     p->nNodesAlloc = 512;
     p->pNodes = ALLOC( Bdc_Fun_t, p->nNodesAlloc );
     // memory
-    p->vMemory = Vec_IntStart( 4 * p->nWords * p->nNodesAlloc );
+    p->vMemory = Vec_IntStart( 8 * p->nWords * p->nNodesAlloc );
+    Vec_IntClear(p->vMemory);
     // set up hash table
     p->nTableSize = (1 << p->pPars->nVarsMax);
     p->pTable = ALLOC( Bdc_Fun_t *, p->nTableSize );

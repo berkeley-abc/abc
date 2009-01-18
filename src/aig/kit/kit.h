@@ -141,14 +141,14 @@ struct Kit_DsdMan_t_
 };
 
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
 
 static inline int             Kit_DsdVar2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
@@ -169,7 +169,9 @@ static inline unsigned        Kit_DsdLitSupport( Kit_DsdNtk_t * pNtk, int Lit ) 
 #define Kit_DsdNtkForEachObj( pNtk, pObj, i )                                      \
     for ( i = 0; (i < (pNtk)->nNodes) && ((pObj) = (pNtk)->pNodes[i]); i++ )
 #define Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )                              \
-    for ( i = 0; (i < (pObj)->nFans) && ((iLit) = (pObj)->pFans[i], 1); i++ )
+    for ( i = 0; (i < (int)(pObj)->nFans) && ((iLit) = (pObj)->pFans[i], 1); i++ )
+#define Kit_DsdObjForEachFaninReverse( pNtk, pObj, iLit, i )                       \
+    for ( i = (int)(pObj)->nFans - 1; (i >= 0) && ((iLit) = (pObj)->pFans[i], 1); i-- )
 
 #define Kit_PlaForEachCube( pSop, nFanins, pCube )                \
     for ( pCube = (pSop); *pCube; pCube += (nFanins) + 3 )
@@ -528,6 +530,7 @@ extern Kit_DsdNtk_t *  Kit_DsdDecomposeMux( unsigned * pTruth, int nVars, int nD
 extern void            Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars );
 extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
 extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );
+extern Kit_DsdObj_t *  Kit_DsdNonDsdPrimeMax( Kit_DsdNtk_t * pNtk );
 extern unsigned        Kit_DsdNonDsdSupports( Kit_DsdNtk_t * pNtk );
 extern unsigned        Kit_DsdGetSupports( Kit_DsdNtk_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdExpand( Kit_DsdNtk_t * p );
@@ -586,6 +589,7 @@ extern void            Kit_SopBestLiteralCover( Kit_Sop_t * cResult, Kit_Sop_t *
 /*=== kitTruth.c ==========================================================*/
 extern void            Kit_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int Start );
 extern void            Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase, int fReturnIn );
+extern void            Kit_TruthPermute( unsigned * pOut, unsigned * pIn, int nVars, char * pPerm, int fReturnIn );
 extern void            Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase, int fReturnIn );
 extern int             Kit_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthSupportSize( unsigned * pTruth, int nVars );
@@ -608,6 +612,7 @@ extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int i
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
 extern int             Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigned * pCof1 );
 extern void            Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
+extern void            Kit_TruthCountOnesInCofs0( unsigned * pTruth, int nVars, short * pStore );
 extern void            Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, short * pStore, unsigned * pAux );
 extern unsigned        Kit_TruthHash( unsigned * pIn, int nWords );
 extern unsigned        Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );

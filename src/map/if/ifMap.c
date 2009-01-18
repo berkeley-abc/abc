@@ -95,6 +95,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
         if ( p->pPars->fEdge )
             pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
+        if ( p->pPars->fPower )
+            pCut->Power = (Mode == 2)? If_CutPowerDerefed( p, pCut, pObj ) : If_CutPowerFlow( p, pCut, pObj );
         // save the best cut from the previous iteration
         if ( !fPreprocess )
             If_CutCopy( p, pCutSet->ppCuts[pCutSet->nCuts++], pCut );
@@ -141,6 +143,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
         if ( p->pPars->fEdge )
             pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
+        if ( p->pPars->fPower )
+            pCut->Power = (Mode == 2)? If_CutPowerDerefed( p, pCut, pObj ) : If_CutPowerFlow( p, pCut, pObj );
         pCut->AveRefs = (Mode == 0)? (float)0.0 : If_CutAverageRefs( p, pCut );
         // insert the cut into storage
         If_CutSort( p, pCutSet, pCut );
@@ -227,6 +231,8 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
             pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
             if ( p->pPars->fEdge )
                 pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
+            if ( p->pPars->fPower )
+                pCut->Power = (Mode == 2)? If_CutPowerDerefed( p, pCut, pObj ) : If_CutPowerFlow( p, pCut, pObj );
             pCut->AveRefs = (Mode == 0)? (float)0.0 : If_CutAverageRefs( p, pCut );
             // insert the cut into storage
             If_CutSort( p, pCutSet, pCut );
@@ -334,8 +340,8 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     if ( p->pPars->fVerbose )
     {
         char Symb = fPreprocess? 'P' : ((Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A'));
-        printf( "%c: Del = %7.2f. Ar = %9.1f. Edge = %8d. Cut = %8d. ", 
-            Symb, p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged );
+        printf( "%c: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
+            Symb, p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
         PRT( "T", clock() - clk );
 //    printf( "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
 //        p->nCutsMax, 1.0 * p->nCutsMerged / If_ManAndNum(p) );

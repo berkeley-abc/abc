@@ -71,6 +71,7 @@ struct Abc_Frame_t_
     // libraries for mapping
     void *          pLibLut;     // the current LUT library
     void *          pLibGen;     // the current genlib
+    void *          pLibGen2;    // the current genlib
     void *          pLibSuper;   // the current supergate library
     void *          pLibVer;     // the current Verilog library
 
@@ -97,15 +98,16 @@ struct Abc_Frame_t_
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
 
 /*=== mvMain.c ===========================================================*/

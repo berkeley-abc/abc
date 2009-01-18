@@ -81,6 +81,8 @@ struct Mfs_Man_t_
     Vec_Ptr_t *         vFanins;   // the new set of fanins
     int                 nTotConfLim; // total conflict limit
     int                 nTotConfLevel; // total conflicts on this level
+    // switching activity
+    Vec_Int_t *         vProbs; 
     // the result of solving
     int                 nFanins;   // the number of fanins
     int                 nWords;    // the number of words
@@ -102,6 +104,8 @@ struct Mfs_Man_t_
     int                 nTotalNodesEnd;
     int                 nTotalEdgesBeg;
     int                 nTotalEdgesEnd;
+    float               TotalSwitchingBeg;
+    float               TotalSwitchingEnd;
     // statistics
     int                 timeWin;
     int                 timeDiv;
@@ -137,6 +141,7 @@ extern void             Mfs_ManClean( Mfs_Man_t * p );
 /*=== mfsResub.c ==========================================================*/
 extern void             Abc_NtkMfsPrintResubStats( Mfs_Man_t * p );
 extern int              Abc_NtkMfsEdgeSwapEval( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern int              Abc_NtkMfsEdgePower( Mfs_Man_t * p, Abc_Obj_t * pNode );
 extern int              Abc_NtkMfsResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode );
 extern int              Abc_NtkMfsResubNode2( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsSat.c ==========================================================*/

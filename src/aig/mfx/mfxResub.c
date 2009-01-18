@@ -206,6 +206,8 @@ p->timeInt += clock() - clk;
     iVar = -1;
     while ( 1 )
     {
+        float * pProbab = (float *)(p->vProbs? p->vProbs->pArray : NULL);
+        assert( (pProbab != NULL) == p->pPars->fPower );
         if ( fVeryVerbose )
         {
             printf( "%3d: %2d ", p->nCexes, iVar );
@@ -222,6 +224,13 @@ p->timeInt += clock() - clk;
         assert( nWords <= p->nDivWords );
         for ( iVar = 0; iVar < Vec_PtrSize(p->vDivs)-Nwk_ObjFaninNum(pNode); iVar++ )
         {
+            if ( p->pPars->fPower )
+            {
+                Nwk_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
+                // only accept the divisor if it is "cool"
+                if ( pProbab[Nwk_ObjId(pDiv)] >= 0.2 )
+                    continue;
+            }
             pData  = Vec_PtrEntry( p->vDivCexes, iVar );
             for ( w = 0; w < nWords; w++ )
                 if ( pData[w] != ~0 )
@@ -428,6 +437,33 @@ int Mfx_EdgeSwapEval( Mfx_Man_t * p, Nwk_Obj_t * pNode )
         Mfx_SolveSatResub( p, pNode, i, 0, 1 );
     return 0;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluates the possibility of replacing given edge by another edge.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mfx_EdgePower( Mfx_Man_t * p, Nwk_Obj_t * pNode )
+{
+    Nwk_Obj_t * pFanin;
+    float * pProbab = (float *)p->vProbs->pArray;
+    int i;
+    // try replacing area critical fanins
+    Nwk_ObjForEachFanin( pNode, pFanin, i )
+        if ( pProbab[pFanin->Id] >= 0.4 )
+        {
+            if ( Mfx_SolveSatResub( p, pNode, i, 0, 0 ) )
+                return 1;
+        }
+    return 0;
+}
+
 
 /**Function*************************************************************
 

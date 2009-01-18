@@ -45,7 +45,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Io_ReadAigerDecode( char ** ppPos )
+static inline unsigned Io_ReadAigerDecode( char ** ppPos )
 {
     unsigned x = 0, i = 0;
     unsigned char ch;

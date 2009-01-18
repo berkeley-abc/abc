@@ -47,6 +47,7 @@ Vec_Ptr_t * Abc_FrameReadStore()                     { return s_GlobalFrame->vSt
 int         Abc_FrameReadStoreSize()                 { return Vec_PtrSize(s_GlobalFrame->vStore); }
 void *      Abc_FrameReadLibLut()                    { return s_GlobalFrame->pLibLut;      } 
 void *      Abc_FrameReadLibGen()                    { return s_GlobalFrame->pLibGen;      } 
+void *      Abc_FrameReadLibGen2()                   { return s_GlobalFrame->pLibGen2;     } 
 void *      Abc_FrameReadLibSuper()                  { return s_GlobalFrame->pLibSuper;    } 
 void *      Abc_FrameReadLibVer()                    { return s_GlobalFrame->pLibVer;      } 
 void *      Abc_FrameReadManDd()                     { if ( s_GlobalFrame->dd == NULL )      s_GlobalFrame->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );  return s_GlobalFrame->dd;      } 
@@ -55,6 +56,7 @@ char *      Abc_FrameReadFlag( char * pFlag )        { return Cmd_FlagReadByName
 
 void        Abc_FrameSetLibLut( void * pLib )        { s_GlobalFrame->pLibLut   = pLib;    } 
 void        Abc_FrameSetLibGen( void * pLib )        { s_GlobalFrame->pLibGen   = pLib;    } 
+void        Abc_FrameSetLibGen2( void * pLib )       { s_GlobalFrame->pLibGen2  = pLib;    } 
 void        Abc_FrameSetLibSuper( void * pLib )      { s_GlobalFrame->pLibSuper = pLib;    } 
 void        Abc_FrameSetLibVer( void * pLib )        { s_GlobalFrame->pLibVer   = pLib;    } 
 void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateValue( s_GlobalFrame, pFlag, pValue );  } 

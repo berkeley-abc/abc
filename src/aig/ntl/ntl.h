@@ -79,6 +79,10 @@ struct Ntl_Man_t_
     Aig_Man_t *        pAig;           // the extracted AIG
     Tim_Man_t *        pManTime;       // the timing manager
     int                iLastCi;        // the last true CI
+    void *             pNal;           // additional data
+    void (*pNalF)(void *);             // additional data
+    void (*pNalD)(void *,void *);      // additional data
+    void (*pNalW)(void *,void *);      // additional data
     // hashing names into models
     Ntl_Mod_t **       pModTable;      // the hash table of names into models
     int                nModTableSize;  // the allocated table size
@@ -93,6 +97,7 @@ struct Ntl_Mod_t_
     Vec_Ptr_t *        vObjs;          // the array of all objects
     Vec_Ptr_t *        vPis;           // the array of PI objects
     Vec_Ptr_t *        vPos;           // the array of PO objects
+    Vec_Ptr_t *        vNets;          // the array of nets
     int                nObjs[NTL_OBJ_VOID]; // counter of objects of each type
     // box attributes
     unsigned int       attrWhite   :1; // box has known logic
@@ -104,6 +109,9 @@ struct Ntl_Mod_t_
     Ntl_Net_t **       pTable;         // the hash table of names into nets
     int                nTableSize;     // the allocated table size
     int                nEntries;       // the number of entries in the hash table
+    // clocks of the model
+    Vec_Ptr_t *        vClocks;        // the clock signals
+    Vec_Vec_t *        vClockFlops;    // the flops of each clock
     // delay information
     Vec_Int_t *        vDelays;
     Vec_Int_t *        vTimeInputs;
@@ -154,6 +162,7 @@ struct Ntl_Net_t_
         int            iTemp;          // other data
     };
     Ntl_Obj_t *        pDriver;        // driver of the net
+    int                NetId;          // unique ID of the net
     char               nVisits;        // the number of times the net is visited
     char               fMark;          // temporary mark
     char               pName[0];       // the name of this net
@@ -175,18 +184,19 @@ struct Ntl_Lut_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      INLINED FUNCTIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
 
-static inline Ntl_Mod_t * Ntl_ManRootModel( Ntl_Man_t * p )       { return (Ntl_Mod_t *)Vec_PtrEntry( p->vModels, 0 );       } 
+static inline Ntl_Mod_t * Ntl_ManRootModel( Ntl_Man_t * p )       { return (Ntl_Mod_t *)Vec_PtrEntry( p->vModels, 0 );   } 
 
 static inline int         Ntl_ModelPiNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PI];                } 
 static inline int         Ntl_ModelPoNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PO];                } 
@@ -195,8 +205,10 @@ static inline int         Ntl_ModelLut1Num( Ntl_Mod_t * p )       { return p->nO
 static inline int         Ntl_ModelLatchNum( Ntl_Mod_t * p )      { return p->nObjs[NTL_OBJ_LATCH];             } 
 static inline int         Ntl_ModelBoxNum( Ntl_Mod_t * p )        { return p->nObjs[NTL_OBJ_BOX];               } 
 
-static inline Ntl_Obj_t * Ntl_ModelPi( Ntl_Mod_t * p, int i )     { return (Ntl_Obj_t *)Vec_PtrEntry(p->vPis, i);            } 
-static inline Ntl_Obj_t * Ntl_ModelPo( Ntl_Mod_t * p, int i )     { return (Ntl_Obj_t *)Vec_PtrEntry(p->vPos, i);            } 
+static inline Ntl_Obj_t * Ntl_ModelPi( Ntl_Mod_t * p, int i )     { return (Ntl_Obj_t *)Vec_PtrEntry(p->vPis, i);        } 
+static inline Ntl_Obj_t * Ntl_ModelPo( Ntl_Mod_t * p, int i )     { return (Ntl_Obj_t *)Vec_PtrEntry(p->vPos, i);        } 
+static inline Ntl_Obj_t * Ntl_ModelObj( Ntl_Mod_t * p, int i )    { return (Ntl_Obj_t *)Vec_PtrEntry(p->vObjs, i);       } 
+static inline Ntl_Net_t * Ntl_ModelNet( Ntl_Mod_t * p, int i )    { return (Ntl_Net_t *)Vec_PtrEntry(p->vNets, i);       } 
 
 static inline char *      Ntl_ModelPiName( Ntl_Mod_t * p, int i ) { return Ntl_ModelPi(p, i)->pFanio[0]->pName; } 
 static inline char *      Ntl_ModelPoName( Ntl_Mod_t * p, int i ) { return Ntl_ModelPo(p, i)->pFanio[0]->pName; } 
@@ -253,8 +265,8 @@ static inline int         Ntl_ObjIsSeqRoot( Ntl_Obj_t * p )       { return Ntl_O
 #define Ntl_ModelForEachPo( pNwk, pObj, i )                                     \
     for ( i = 0; (i < Vec_PtrSize(pNwk->vPos)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vPos, i)), 1); i++ )
 #define Ntl_ModelForEachNet( pNwk, pNet, i )                                    \
-    for ( i = 0; i < pNwk->nTableSize; i++ )                                    \
-        for ( pNet = pNwk->pTable[i]; pNet; pNet = pNet->pNext ) 
+    Vec_PtrForEachEntry( pNwk->vNets, pNet, i )                                 \
+        if ( pNet == NULL ) {} else
 #define Ntl_ModelForEachObj( pNwk, pObj, i )                                    \
     for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = (Ntl_Obj_t*)Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( pObj == NULL ) {} else
@@ -359,6 +371,7 @@ extern ABC_DLL int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnl
 extern ABC_DLL int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 extern ABC_DLL int             Ntl_ModelClearNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 extern ABC_DLL void            Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet );
+extern ABC_DLL void            Ntl_ModelInsertNet( Ntl_Mod_t * p, Ntl_Net_t * pNet );
 extern ABC_DLL int             Ntl_ModelCountNets( Ntl_Mod_t * p );
 extern ABC_DLL int             Ntl_ManAddModel( Ntl_Man_t * p, Ntl_Mod_t * pModel );
 extern ABC_DLL Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, const char * pName );

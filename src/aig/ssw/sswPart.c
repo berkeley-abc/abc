@@ -30,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Performs partitioned sequential SAT sweepingG.]
+  Synopsis    [Performs partitioned sequential SAT sweeping.]
 
   Description []
                

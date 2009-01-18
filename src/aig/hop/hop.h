@@ -64,7 +64,10 @@ typedef enum {
 struct Hop_Obj_t_  // 6 words
 {
     void *           pData;          // misc
-    Hop_Obj_t *      pNext;          // strashing table
+    union {                         
+        Hop_Obj_t *  pNext;          // strashing table
+        int          PioNum;         // the number of PI/PO
+    };
     Hop_Obj_t *      pFanin0;        // fanin
     Hop_Obj_t *      pFanin1;        // fanin
     unsigned int     Type    :  3;   // object type

@@ -52,8 +52,9 @@ struct Cgt_Par_t_
     int          nConfMax;       // the max number of conflicts at a node
     int          nVarsMin;       // the min number of variables to recycle the SAT solver
     int          nFlopsMin;      // the min number of flops needed to recycle the SAT solver
+    int          fAreaOnly;      // derive clock gating to minimize area
     int          fVerbose;       // verbosity flag
-
+    int          fVeryVerbose;   // verbosity flag
 };
 
 ////////////////////////////////////////////////////////////////////////

@@ -51,10 +51,13 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nBTLimitGlobal = 5000000;  // conflict limit for all runs
     p->nMinDomSize    =     100;  // min clock domain considered for optimization
     p->nItersStop     =       0;  // stop after the given number of iterations
+    p->nResimDelta    =    1000;  // the internal of nodes to resimulate
     p->fPolarFlip     =       0;  // uses polarity adjustment
     p->fLatchCorr     =       0;  // performs register correspondence
     p->fSemiFormal    =       0;  // enable semiformal filtering
     p->fUniqueness    =       0;  // enable uniqueness constraints
+    p->fDynamic       =       0;  // dynamic partitioning
+    p->fLocalSim      =       0;  // local simulation
     p->fVerbose       =       0;  // verbose stats
     // latch correspondence
     p->fLatchCorrOpt  =       0;  // performs optimized register correspondence
@@ -260,6 +263,9 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     if ( pPars->fLatchCorrOpt )
     {
         pPars->fLatchCorr = 1;
+        pPars->nFramesAddSim = 0;
+        if ( (pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0) )
+           return Ssw_SignalCorrespondencePart( pAig, pPars );
     }
     else
     {
@@ -276,7 +282,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     if ( p->pPars->nConstrs == 0 )
     {
         // perform one round of seq simulation and generate candidate equivalence classes
-        p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
+        p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->nFramesK, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
 //        p->ppClasses = Ssw_ClassesPrepareTargets( pAig );
         if ( pPars->fLatchCorrOpt )
             p->pSml = Ssw_SmlStart( pAig, 0, 2, 1 );
@@ -292,6 +298,8 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
         Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_SmlObjIsConstBit, Ssw_SmlObjsAreEqualBit );
     }
+    if ( p->pPars->fLocalSim )
+        p->pVisited = CALLOC( int, Ssw_SmlNumFrames( p->pSml ) * Aig_ManObjNumMax(p->pAig) );
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );    
     if ( pPars->fUniqueness )

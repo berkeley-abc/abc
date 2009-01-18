@@ -61,6 +61,8 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     // other
     p->vNewLos       = Vec_PtrAlloc( 100 );
     p->vNewPos       = Vec_IntAlloc( 100 );
+    p->vResimConsts  = Vec_PtrAlloc( 100 );
+    p->vResimClasses = Vec_PtrAlloc( 100 );
 
 //    p->pPars->fVerbose = 1;
     return p;
@@ -171,6 +173,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManStop( Ssw_Man_t * p )
 {
+    FREE( p->pVisited );
     if ( p->pPars->fVerbose )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )
@@ -179,6 +182,8 @@ void Ssw_ManStop( Ssw_Man_t * p )
         Ssw_SmlStop( p->pSml );
     if ( p->vDiffPairs )
         Vec_IntFree( p->vDiffPairs );
+    Vec_PtrFree( p->vResimConsts );
+    Vec_PtrFree( p->vResimClasses );
     Vec_PtrFree( p->vNewLos );
     Vec_IntFree( p->vNewPos );
     Vec_PtrFree( p->vCommon );

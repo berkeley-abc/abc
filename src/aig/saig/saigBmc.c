@@ -207,7 +207,7 @@ Aig_Obj_t * Saig_BmcIntervalExplore_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )
+Aig_Obj_t * Saig_BmcIntervalConstruct_rec_OLD( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i )
 {
     Aig_Obj_t * pRes;
     pRes = Saig_BmcObjFrame( p, pObj, i );
@@ -217,20 +217,59 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
     if ( Saig_ObjIsPi( p->pAig, pObj ) )
         pRes = Aig_ObjCreatePi(p->pFrm);
     else if ( Saig_ObjIsLo( p->pAig, pObj ) )
-        pRes = Saig_BmcIntervalConstruct_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1 );
+        pRes = Saig_BmcIntervalConstruct_rec_OLD( p, Saig_ObjLoToLi(p->pAig, pObj), i-1 );
     else if ( Aig_ObjIsPo( pObj ) )
     {
-        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i );
+        Saig_BmcIntervalConstruct_rec_OLD( p, Aig_ObjFanin0(pObj), i );
         pRes = Saig_BmcObjChild0( p, pObj, i );
     }
     else 
     {
-        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i );
-        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin1(pObj), i );
+        Saig_BmcIntervalConstruct_rec_OLD( p, Aig_ObjFanin0(pObj), i );
+        Saig_BmcIntervalConstruct_rec_OLD( p, Aig_ObjFanin1(pObj), i );
         pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
     }
     assert( pRes != AIG_VISITED );
     Saig_BmcObjSetFrame( p, pObj, i, pRes );
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs the actual construction of the output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int i, Vec_Ptr_t * vVisited )
+{
+    Aig_Obj_t * pRes;
+    pRes = Saig_BmcObjFrame( p, pObj, i );
+    if ( pRes != NULL )
+        return pRes;
+    if ( Saig_ObjIsPi( p->pAig, pObj ) )
+        pRes = Aig_ObjCreatePi(p->pFrm);
+    else if ( Saig_ObjIsLo( p->pAig, pObj ) )
+        pRes = Saig_BmcIntervalConstruct_rec( p, Saig_ObjLoToLi(p->pAig, pObj), i-1, vVisited );
+    else if ( Aig_ObjIsPo( pObj ) )
+    {
+        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i, vVisited );
+        pRes = Saig_BmcObjChild0( p, pObj, i );
+    }
+    else 
+    {
+        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin0(pObj), i, vVisited );
+        Saig_BmcIntervalConstruct_rec( p, Aig_ObjFanin1(pObj), i, vVisited );
+        pRes = Aig_And( p->pFrm, Saig_BmcObjChild0(p, pObj, i), Saig_BmcObjChild1(p, pObj, i) );
+    }
+    assert( pRes != NULL );
+    Saig_BmcObjSetFrame( p, pObj, i, pRes );
+    Vec_PtrPush( vVisited, pObj );
+    Vec_PtrPush( vVisited, (void *)i );
     return pRes;
 }
 
@@ -248,8 +287,8 @@ Aig_Obj_t * Saig_BmcIntervalConstruct_rec( Saig_Bmc_t * p, Aig_Obj_t * pObj, int
 void Saig_BmcInterval( Saig_Bmc_t * p )
 {
     Aig_Obj_t * pTarget;
-//    Aig_Obj_t * pObj;
-//    int i;
+    Aig_Obj_t * pObj, * pRes;
+    int i, iFrame;
     int nNodes = Aig_ManObjNum( p->pFrm );
     Vec_PtrClear( p->vTargets );
     p->iFramePrev = p->iFrameLast;
@@ -258,21 +297,25 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
         if ( p->iOutputLast == 0 )
         {
             Saig_BmcObjSetFrame( p, Aig_ManConst1(p->pAig), p->iFrameLast, Aig_ManConst1(p->pFrm) );
-//            Saig_ManForEachPi( p->pAig, pObj, i )
-//                Saig_BmcObjSetFrame( p, pObj, p->iFrameLast, Aig_ObjCreatePi(p->pFrm) ); 
         }
         for ( ; p->iOutputLast < Saig_ManPoNum(p->pAig); p->iOutputLast++ )
         {
             if ( Aig_ManObjNum(p->pFrm) >= nNodes + p->nNodesMax )
                 return;
-            Saig_BmcIntervalExplore_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast );
-            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast );
-
-            /////////
-//            if ( Aig_ObjIsConst1(Aig_Regular(pTarget)) )
-//                continue;
-
+//            Saig_BmcIntervalExplore_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast );
+            Vec_PtrClear( p->vVisited );
+            pTarget = Saig_BmcIntervalConstruct_rec( p, Aig_ManPo(p->pAig, p->iOutputLast), p->iFrameLast, p->vVisited );
             Vec_PtrPush( p->vTargets, pTarget );
+            Aig_ObjCreatePo( p->pFrm, pTarget );
+            Aig_ManCleanup( p->pFrm );
+            // check if the node is gone
+            Vec_PtrForEachEntry( p->vVisited, pObj, i )
+            {
+                iFrame = (int)(PORT_PTRINT_T)Vec_PtrEntry( p->vVisited, 1+i++ );
+                pRes = Saig_BmcObjFrame( p, pObj, iFrame );
+                if ( Aig_ObjIsNone( Aig_Regular(pRes) ) )
+                    Saig_BmcObjSetFrame( p, pObj, iFrame, NULL );
+            }
         }
     }
 }
@@ -489,6 +532,11 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p )
         // generate counter-example
         Saig_BmcDeriveFailed( p, i );
         p->pAig->pSeqModel = Saig_BmcGenerateCounterExample( p );
+
+        {
+//            extern Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, void * pCex );
+//            Saig_ManExtendCounterExampleTest( p->pAig, 0, p->pAig->pSeqModel );
+        }
         return l_True;
     }
     return l_False;
@@ -564,7 +612,7 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConf
         RetValue = Saig_BmcSolveTargets( p );
         if ( fVerbose )
         {
-            printf( "%3d : F = %3d. O = %3d.  And = %7d. Var = %7d. Conf = %7d. ", 
+            printf( "%3d : F = %3d. O =%4d.  And = %7d. Var = %7d. Conf = %7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
             PRT( "Time", clock() - clk2 );
         }

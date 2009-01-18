@@ -432,8 +432,144 @@ void If_ManSortCuts( If_Man_t * p, int Mode )
 ***********************************************************************/
 static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1 )
 {
-    if ( p->SortMode == 1 ) // area
+    if ( p->pPars->fPower )
     {
+        if ( p->SortMode == 1 ) // area flow       
+        {
+            if ( pC0->Area < pC1->Area - p->fEpsilon )
+                return -1;
+            if ( pC0->Area > pC1->Area + p->fEpsilon )
+                return 1;
+            //printf("area(%.2f, %.2f), power(%.2f, %.2f), edge(%.2f, %.2f)\n",
+            //         pC0->Area, pC1->Area, pC0->Power, pC1->Power, pC0->Edge, pC1->Edge);
+            if ( pC0->Power < pC1->Power - p->fEpsilon )
+                return -1;
+            if ( pC0->Power > pC1->Power + p->fEpsilon )
+                return 1;
+            if ( pC0->Edge < pC1->Edge - p->fEpsilon )
+                return -1;
+            if ( pC0->Edge > pC1->Edge + p->fEpsilon )
+                return 1;
+            if ( pC0->AveRefs > pC1->AveRefs )
+                return -1;
+            if ( pC0->AveRefs < pC1->AveRefs )
+                return 1;
+            if ( pC0->nLeaves < pC1->nLeaves )
+                return -1;
+            if ( pC0->nLeaves > pC1->nLeaves )
+                return 1;
+            if ( pC0->Delay < pC1->Delay - p->fEpsilon )
+                return -1;
+            if ( pC0->Delay > pC1->Delay + p->fEpsilon )
+                return 1;
+            return 0;
+        }
+        if ( p->SortMode == 0 ) // delay
+        {
+            if ( pC0->Delay < pC1->Delay - p->fEpsilon )
+                return -1;
+            if ( pC0->Delay > pC1->Delay + p->fEpsilon )
+                return 1;
+            if ( pC0->nLeaves < pC1->nLeaves )
+                return -1;
+            if ( pC0->nLeaves > pC1->nLeaves )
+                return 1;
+            if ( pC0->Area < pC1->Area - p->fEpsilon )
+                return -1;
+            if ( pC0->Area > pC1->Area + p->fEpsilon )
+                return 1;
+            if ( pC0->Power < pC1->Power - p->fEpsilon  )
+                return -1;
+            if ( pC0->Power > pC1->Power + p->fEpsilon  )
+                return 1;
+            if ( pC0->Edge < pC1->Edge - p->fEpsilon )
+                return -1;
+            if ( pC0->Edge > pC1->Edge + p->fEpsilon )
+                return 1;
+            return 0;
+        }
+        assert( p->SortMode == 2 ); // delay old, exact area
+        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
+            return -1;
+        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
+            return 1;
+        if ( pC0->Power < pC1->Power - p->fEpsilon  )
+            return -1;
+        if ( pC0->Power > pC1->Power + p->fEpsilon  )
+            return 1;
+        if ( pC0->Edge < pC1->Edge - p->fEpsilon )
+            return -1;
+        if ( pC0->Edge > pC1->Edge + p->fEpsilon )
+            return 1;
+        if ( pC0->Area < pC1->Area - p->fEpsilon )
+            return -1;
+        if ( pC0->Area > pC1->Area + p->fEpsilon )
+            return 1;
+        if ( pC0->nLeaves < pC1->nLeaves )
+            return -1;
+        if ( pC0->nLeaves > pC1->nLeaves )
+            return 1;
+        return 0;
+    } 
+    else  // reglar
+    {
+        if ( p->SortMode == 1 ) // area
+        {
+            if ( pC0->Area < pC1->Area - p->fEpsilon )
+                return -1;
+            if ( pC0->Area > pC1->Area + p->fEpsilon )
+                return 1;
+            if ( pC0->Edge < pC1->Edge - p->fEpsilon )
+                return -1;
+            if ( pC0->Edge > pC1->Edge + p->fEpsilon )
+                return 1;
+            if ( pC0->Power < pC1->Power - p->fEpsilon )
+                return -1;
+            if ( pC0->Power > pC1->Power + p->fEpsilon )
+                return 1;
+            if ( pC0->AveRefs > pC1->AveRefs )
+                return -1;
+            if ( pC0->AveRefs < pC1->AveRefs )
+                return 1;
+            if ( pC0->nLeaves < pC1->nLeaves )
+                return -1;
+            if ( pC0->nLeaves > pC1->nLeaves )
+                return 1;
+            if ( pC0->Delay < pC1->Delay - p->fEpsilon )
+                return -1;
+            if ( pC0->Delay > pC1->Delay + p->fEpsilon )
+                return 1;
+            return 0;
+        }
+        if ( p->SortMode == 0 ) // delay
+        {
+            if ( pC0->Delay < pC1->Delay - p->fEpsilon )
+                return -1;
+            if ( pC0->Delay > pC1->Delay + p->fEpsilon )
+                return 1;
+            if ( pC0->nLeaves < pC1->nLeaves )
+                return -1;
+            if ( pC0->nLeaves > pC1->nLeaves )
+                return 1;
+            if ( pC0->Area < pC1->Area - p->fEpsilon )
+                return -1;
+            if ( pC0->Area > pC1->Area + p->fEpsilon )
+                return 1;
+            if ( pC0->Edge < pC1->Edge - p->fEpsilon )
+                return -1;
+            if ( pC0->Edge > pC1->Edge + p->fEpsilon )
+                return 1;
+            if ( pC0->Power < pC1->Power - p->fEpsilon )
+                return -1;
+            if ( pC0->Power > pC1->Power + p->fEpsilon )
+                return 1;
+            return 0;
+        }
+        assert( p->SortMode == 2 ); // delay old
+        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
+            return -1;
+        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
+            return 1;
         if ( pC0->Area < pC1->Area - p->fEpsilon )
             return -1;
         if ( pC0->Area > pC1->Area + p->fEpsilon )
@@ -442,58 +578,16 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
             return -1;
         if ( pC0->Edge > pC1->Edge + p->fEpsilon )
             return 1;
-        if ( pC0->AveRefs > pC1->AveRefs )
+        if ( pC0->Power < pC1->Power - p->fEpsilon )
             return -1;
-        if ( pC0->AveRefs < pC1->AveRefs )
+        if ( pC0->Power > pC1->Power + p->fEpsilon )
             return 1;
         if ( pC0->nLeaves < pC1->nLeaves )
             return -1;
         if ( pC0->nLeaves > pC1->nLeaves )
             return 1;
-        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
-            return -1;
-        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
-            return 1;
         return 0;
     }
-    if ( p->SortMode == 0 ) // delay
-    {
-        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
-            return -1;
-        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
-            return 1;
-        if ( pC0->nLeaves < pC1->nLeaves )
-            return -1;
-        if ( pC0->nLeaves > pC1->nLeaves )
-            return 1;
-        if ( pC0->Area < pC1->Area - p->fEpsilon )
-            return -1;
-        if ( pC0->Area > pC1->Area + p->fEpsilon )
-            return 1;
-        if ( pC0->Edge < pC1->Edge - p->fEpsilon )
-            return -1;
-        if ( pC0->Edge > pC1->Edge + p->fEpsilon )
-            return 1;
-        return 0;
-    }
-    assert( p->SortMode == 2 ); // delay old
-    if ( pC0->Delay < pC1->Delay - p->fEpsilon )
-        return -1;
-    if ( pC0->Delay > pC1->Delay + p->fEpsilon )
-        return 1;
-    if ( pC0->Area < pC1->Area - p->fEpsilon )
-        return -1;
-    if ( pC0->Area > pC1->Area + p->fEpsilon )
-        return 1;
-    if ( pC0->Edge < pC1->Edge - p->fEpsilon )
-        return -1;
-    if ( pC0->Edge > pC1->Edge + p->fEpsilon )
-        return 1;
-    if ( pC0->nLeaves < pC1->nLeaves )
-        return -1;
-    if ( pC0->nLeaves > pC1->nLeaves )
-        return 1;
-    return 0;
 }
 
 /**Function*************************************************************
@@ -820,6 +914,40 @@ float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes area flow.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutPowerFlow( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
+{
+    If_Obj_t * pLeaf;
+    float * pSwitching = (float *)p->vSwitching->pArray;
+    float Power = 0;
+    int i;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        Power += pSwitching[pLeaf->Id];
+        if ( pLeaf->nRefs == 0 )
+            Power += If_ObjCutBest(pLeaf)->Power;
+        else if ( p->pPars->fSeqMap ) // seq
+            Power += If_ObjCutBest(pLeaf)->Power / pLeaf->nRefs;
+        else 
+        {
+            assert( pLeaf->EstRefs > p->fEpsilon );
+            Power += If_ObjCutBest(pLeaf)->Power / pLeaf->EstRefs;
+        }
+    }
+    return Power;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Average number of references of the leaves.]
 
   Description []
@@ -1033,6 +1161,107 @@ float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     aResult2 = If_CutEdgeDeref( p, pCut );
     aResult  = If_CutEdgeRef( p, pCut );
+    assert( aResult > aResult2 - p->fEpsilon );
+    assert( aResult < aResult2 + p->fEpsilon );
+    return aResult;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+float If_CutPowerDeref( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
+{
+    If_Obj_t * pLeaf;
+    float * pSwitching = (float *)p->vSwitching->pArray;
+    float Power = 0;
+    int i;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        Power += pSwitching[pLeaf->Id];
+        assert( pLeaf->nRefs > 0 );
+        if ( --pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) )
+            continue;
+        Power += If_CutPowerDeref( p, If_ObjCutBest(pLeaf), pRoot );
+    }
+    return Power;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutPowerRef( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
+{
+    If_Obj_t * pLeaf;
+    float * pSwitching = (float *)p->vSwitching->pArray;
+    float Power = 0;
+    int i;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        Power += pSwitching[pLeaf->Id];
+        assert( pLeaf->nRefs >= 0 );
+        if ( pLeaf->nRefs++ > 0 || !If_ObjIsAnd(pLeaf) )
+            continue;
+        Power += If_CutPowerRef( p, If_ObjCutBest(pLeaf), pRoot );
+    }
+    return Power;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes Power of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
+{
+    float aResult, aResult2;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    aResult2 = If_CutPowerRef( p, pCut, pRoot );
+    aResult  = If_CutPowerDeref( p, pCut, pRoot );
+    assert( aResult > aResult2 - p->fEpsilon );
+    assert( aResult < aResult2 + p->fEpsilon );
+    return aResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
+{
+    float aResult, aResult2;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    aResult2 = If_CutPowerDeref( p, pCut, pRoot );
+    aResult  = If_CutPowerRef( p, pCut, pRoot );
     assert( aResult > aResult2 - p->fEpsilon );
     assert( aResult < aResult2 + p->fEpsilon );
     return aResult;

@@ -4,23 +4,21 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Combinational equivalence checking.]
+  PackageName [Combinatinoal equivalence checking.]
 
-  Synopsis    [Backend calling the SAT solver.]
+  Synopsis    [SAT solver calls.]
 
   Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 30, 2007.]
+  Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: cecSat.c,v 1.00 2007/06/30 00:00:00 alanmi Exp $]
+  Revision    [$Id: cecSat.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "aig.h"
-#include "cnf.h"
-#include "solver.h"
+#include "cecInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -32,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Writes CNF into a file.]
+  Synopsis    [Creates the manager.]
 
   Description []
                
@@ -41,33 +39,25 @@
   SeeAlso     []
 
 ***********************************************************************/
-solver * Cnf_WriteIntoSolverNew( Cnf_Dat_t * p )
+Cec_ManSat_t * Cec_ManCreate( Aig_Man_t * pAig, Cec_ParSat_t * pPars )
 {
-    solver * pSat;
-    int i, status;
-    pSat = solver_new();
-    for ( i = 0; i < p->nVars; i++ )
-        solver_newVar( pSat );
-    for ( i = 0; i < p->nClauses; i++ )
-    {
-        if ( !solver_addClause( pSat, p->pClauses[i+1]-p->pClauses[i], p->pClauses[i] ) )
-        {
-            solver_delete( pSat );
-            return NULL;
-        }
-    }
-    status = solver_simplify(pSat);
-    if ( status == 0 )
-    {
-        solver_delete( pSat );
-        return NULL;
-    }
-    return pSat;
+    Cec_ManSat_t * p;
+    // create interpolation manager
+    p = ALLOC( Cec_ManSat_t, 1 );
+    memset( p, 0, sizeof(Cec_ManSat_t) );
+    p->pPars        = pPars;
+    p->pAig         = pAig;
+    // SAT solving
+    p->nSatVars     = 1;
+    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(pAig) );
+    p->vUsedNodes   = Vec_PtrAlloc( 1000 );
+    p->vFanins      = Vec_PtrAlloc( 100 );
+    return p;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Adds the OR-clause.]
+  Synopsis    [Frees the manager.]
 
   Description []
                
@@ -76,25 +66,19 @@ solver * Cnf_WriteIntoSolverNew( Cnf_Dat_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_DataWriteAndClausesNew( void * p, Cnf_Dat_t * pCnf )
+void Cec_ManStop( Cec_ManSat_t * p )
 {
-/*
-    sat_solver * pSat = p;
-    Aig_Obj_t * pObj;
-    int i, Lit;
-    Aig_ManForEachPo( pCnf->pMan, pObj, i )
-    {
-        Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
-        if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
-            return 0;
-    }
-*/
-    return 1;
+    if ( p->pSat )
+        sat_solver_delete( p->pSat );
+    Vec_PtrFree( p->vUsedNodes );
+    Vec_PtrFree( p->vFanins );
+    FREE( p->pSatVars );
+    free( p );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Adds the OR-clause.]
+  Synopsis    [Recycles the SAT solver.]
 
   Description []
                
@@ -103,63 +87,106 @@ int Cnf_DataWriteAndClausesNew( void * p, Cnf_Dat_t * pCnf )
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_DataWriteOrClauseNew( solver * pSat, Cnf_Dat_t * pCnf )
+void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
 {
-    Aig_Obj_t * pObj;
-    int i, * pLits;
-    pLits = ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
-    Aig_ManForEachPo( pCnf->pMan, pObj, i )
-        pLits[i] = solver_mkLit_args( pCnf->pVarNums[pObj->Id], 0 );
-    if ( !solver_addClause( pSat, Aig_ManPoNum(pCnf->pMan), pLits ) )
+    int Lit;
+    if ( p->pSat )
     {
-        free( pLits );
+        Aig_Obj_t * pObj;
+        int i;
+        Vec_PtrForEachEntry( p->vUsedNodes, pObj, i )
+            Cec_ObjSetSatNum( p, pObj, 0 );
+        Vec_PtrClear( p->vUsedNodes );
+//        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAigTotal) );
+        sat_solver_delete( p->pSat );
+    }
+    p->pSat = sat_solver_new();
+    sat_solver_setnvars( p->pSat, 1000 );
+    // var 0 is not used
+    // var 1 is reserved for const1 node - add the clause
+    p->nSatVars = 1;
+//    p->nSatVars = 0;
+    Lit = toLit( p->nSatVars );
+    if ( p->pPars->fPolarFlip )
+        Lit = lit_neg( Lit );
+    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+    Cec_ObjSetSatNum( p, Aig_ManConst1(p->pAig), p->nSatVars++ );
+
+    p->nRecycles++;
+    p->nCallsSince = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Runs equivalence test for the two nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManSatCheckNode( Cec_ManSat_t * p, Aig_Obj_t * pNode )
+{
+    int nBTLimit = p->pPars->nBTLimit;
+    int Lit, RetValue, status, clk;
+
+    // sanity checks
+    assert( !Aig_IsComplement(pNode) );
+
+    p->nCallsSince++;  // experiment with this!!!
+    
+    // check if SAT solver needs recycling
+    if ( p->pSat == NULL || 
+        (p->pPars->nSatVarMax && 
+         p->nSatVars > p->pPars->nSatVarMax && 
+         p->nCallsSince > p->pPars->nCallsRecycle) )
+        Cec_ManSatSolverRecycle( p );
+
+    // if the nodes do not have SAT variables, allocate them
+    Cec_CnfNodeAddToSolver( p, pNode );
+
+    // propage unit clauses
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        status = sat_solver_simplify(p->pSat);
+        assert( status != 0 );
+        assert( p->pSat->qtail == p->pSat->qhead );
+    }
+
+    // solve under assumptions
+    // A = 1; B = 0     OR     A = 1; B = 1 
+    Lit = toLitCond( Cec_ObjSatNum(p,pNode), pNode->fPhase );
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( pNode->fPhase )  Lit = lit_neg( Lit );
+    }
+//Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
+clk = clock();
+    RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
+        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    if ( RetValue == l_False )
+    {
+p->timeSatUnsat += clock() - clk;
+        Lit = lit_neg( Lit );
+        RetValue = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+        assert( RetValue );
+        p->timeSatUnsat++;
+        return 1;
+    }
+    else if ( RetValue == l_True )
+    {
+p->timeSatSat += clock() - clk;
+        p->timeSatSat++;
         return 0;
     }
-    free( pLits );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Writes the given clause in a file in DIMACS format.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sat_SolverPrintStatsNew( FILE * pFile, solver * pSat )
-{
-//    printf( "starts        : %8d\n", solver_num_assigns(pSat) );
-    printf( "vars          : %8d\n", solver_num_vars(pSat) );
-    printf( "clauses       : %8d\n", solver_num_clauses(pSat) );
-    printf( "conflicts     : %8d\n", solver_num_learnts(pSat) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns a counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int * Sat_SolverGetModelNew( solver * pSat, int * pVars, int nVars )
-{
-    int * pModel;
-    int i;
-    pModel = ALLOC( int, nVars+1 );
-    for ( i = 0; i < nVars; i++ )
+    else // if ( RetValue == l_Undef )
     {
-        assert( pVars[i] >= 0 && pVars[i] < solver_num_vars(pSat) );
-        pModel[i] = (int)(solver_modelValue_Var( pSat, pVars[i] ) == solver_l_True);
+p->timeSatUndec += clock() - clk;
+        p->timeSatUndec++;
+        return -1;
     }
-    return pModel;    
 }
 
 /**Function*************************************************************
@@ -173,112 +200,51 @@ int * Sat_SolverGetModelNew( solver * pSat, int * pVars, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_RunSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose )
+Cec_MtrStatus_t Cec_SatSolveOutputs( Aig_Man_t * pAig, Cec_ParSat_t * pPars )
 {
-    solver * pSat;
-    Cnf_Dat_t * pCnf;
-    int status, RetValue, clk = clock();
-    Vec_Int_t * vCiIds;
-
-    assert( Aig_ManRegNum(pMan) == 0 );
-    pMan->pData = NULL;
-
-    // derive CNF
-    pCnf = Cnf_Derive( pMan, Aig_ManPoNum(pMan) );
-//    pCnf = Cnf_DeriveSimple( pMan, Aig_ManPoNum(pMan) );
-
-    // convert into SAT solver
-    pSat = Cnf_WriteIntoSolverNew( pCnf );
-    if ( pSat == NULL )
+    Bar_Progress_t * pProgress = NULL;
+    Cec_MtrStatus_t Status;
+    Cec_ManSat_t * p;
+    Aig_Obj_t * pObj;
+    int i, status;
+    Status = Cec_MiterStatus( pAig );
+    p = Cec_ManCreate( pAig, pPars );
+    pProgress = Bar_ProgressStart( stdout, Aig_ManPoNum(pAig) );
+    Aig_ManForEachPo( pAig, pObj, i )
     {
-        Cnf_DataFree( pCnf );
-        return 1;
-    }
-
-
-    if ( fAndOuts )
-    {
-        assert( 0 );
-        // assert each output independently
-        if ( !Cnf_DataWriteAndClausesNew( pSat, pCnf ) )
+        Bar_ProgressUpdate( pProgress, i, "SAT..." );
+        if ( Cec_OutputStatus(pAig, pObj) )
+            continue;
+        status = Cec_ManSatCheckNode( p, Aig_ObjFanin0(pObj) );
+        if ( status == 1 )
         {
-            solver_delete( pSat );
-            Cnf_DataFree( pCnf );
-            return 1;
+            Status.nUndec--, Status.nUnsat++;
+            Aig_ObjPatchFanin0( pAig, pObj, Aig_ManConst0(pAig) );
         }
-    }
-    else
-    {
-        // add the OR clause for the outputs
-        if ( !Cnf_DataWriteOrClauseNew( pSat, pCnf ) )
+        if ( status == 0 )
         {
-            solver_delete( pSat );
-            Cnf_DataFree( pCnf );
-            return 1;
+            Status.nUndec--, Status.nSat++;
+            Aig_ObjPatchFanin0( pAig, pObj, Aig_ManConst1(pAig) );
         }
+        if ( status == -1 )
+            continue;
+        // save the pattern (if it is first)
+        if ( Status.iOut == -1 )
+        {
+        }
+        // quit if at least one of them is solved
+        if ( status == 0 && pPars->fFirstStop )
+            break;
     }
-    vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
-    Cnf_DataFree( pCnf );
-
-
-//    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-//    PRT( "Time", clock() - clk );
-
-    // simplify the problem
-    clk = clock();
-    status = solver_simplify(pSat);
-//    printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-//    PRT( "Time", clock() - clk );
-    if ( status == 0 )
-    {
-        Vec_IntFree( vCiIds );
-        solver_delete( pSat );
-//        printf( "The problem is UNSATISFIABLE after simplification.\n" );
-        return 1;
-    }
-
-    // solve the miter
-    clk = clock();
-    if ( fVerbose )
-        solver_set_verbosity( pSat, 1 );
-    status = solver_solve( pSat, 0, NULL );
-    if ( status == solver_l_Undef )
-    {
-//        printf( "The problem timed out.\n" );
-        RetValue = -1;
-    }
-    else if ( status == solver_l_True )
-    {
-//        printf( "The problem is SATISFIABLE.\n" );
-        RetValue = 0;
-    }
-    else if ( status == solver_l_False )
-    {
-//        printf( "The problem is UNSATISFIABLE.\n" );
-        RetValue = 1;
-    }
-    else
-        assert( 0 );
-//    PRT( "SAT sat_solver time", clock() - clk );
-//    printf( "The number of conflicts = %d.\n", (int)pSat->sat_solver_stats.conflicts );
- 
-    // if the problem is SAT, get the counterexample
-    if ( status == solver_l_True )
-    {
-        pMan->pData = Sat_SolverGetModelNew( pSat, vCiIds->pArray, vCiIds->nSize );
-    }
-    // free the sat_solver
-    if ( fVerbose )
-        Sat_SolverPrintStatsNew( stdout, pSat );
-//sat_solver_store_write( pSat, "trace.cnf" );
-//sat_solver_store_free( pSat );
-    solver_delete( pSat );
-    Vec_IntFree( vCiIds );
-    return RetValue;
+    Aig_ManCleanup( pAig );
+    Bar_ProgressStop( pProgress );
+    printf( "    Confs = %8d.  Recycles = %6d.\n", p->pPars->nBTLimit, p->nRecycles );
+    Cec_ManStop( p );
+    return Status;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
 

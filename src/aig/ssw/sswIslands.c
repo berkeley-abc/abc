@@ -24,9 +24,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline Aig_Obj_t *  Aig_ObjChild0Copy2( Aig_Obj_t * pObj )  { return Aig_ObjFanin0(pObj)->pData? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj)) : NULL;  }
-static inline Aig_Obj_t *  Aig_ObjChild1Copy2( Aig_Obj_t * pObj )  { return Aig_ObjFanin1(pObj)->pData? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj)) : NULL;  }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -52,7 +49,7 @@ void Ssw_CreatePair( Vec_Int_t * vPairs, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Detects islands of common logic and returns them as pairs.]
+  Synopsis    [Establishes relationship between nodes using pairing.]
 
   Description []
                
@@ -61,153 +58,349 @@ void Ssw_CreatePair( Vec_Int_t * vPairs, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Ssw_DetectIslands( Aig_Man_t * p0, Aig_Man_t * p1, int nCommonFlops, int fVerbose )
+void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
 {
-    Vec_Int_t * vPairs;
-    Aig_Obj_t * pObj0, * pObj1, * pFanin0, * pFanin1;
-    int i;
-    assert( Aig_ManRegNum(p0) > 0 );
-    assert( Aig_ManRegNum(p1) > 0 );
-    assert( Aig_ManRegNum(p0) >= nCommonFlops );
-    assert( Aig_ManRegNum(p1) >= nCommonFlops );
-    assert( Saig_ManPiNum(p0) == Saig_ManPiNum(p1) );
-    assert( Saig_ManPoNum(p0) == Saig_ManPoNum(p1) );
-    Aig_ManCleanData( p0 );
-    Aig_ManCleanData( p1 );
-    // start structural equivalence
-    vPairs = Vec_IntAlloc( 1000 );
-    Ssw_CreatePair( vPairs, Aig_ManConst1(p0), Aig_ManConst1(p1) );
-    Saig_ManForEachPi( p0, pObj0, i )
-        Ssw_CreatePair( vPairs, pObj0, Aig_ManPi(p1, i) );
-    Saig_ManForEachLo( p0, pObj0, i )
-    {
-        if ( i == nCommonFlops )
-            break;
-        Ssw_CreatePair( vPairs, pObj0, Saig_ManLo(p1, i) );
-    }
-    // find structurally equivalent nodes
-    Aig_ManForEachNode( p0, pObj0, i )
-    {
-        pFanin0 = Aig_ObjChild0Copy2( pObj0 );
-        pFanin1 = Aig_ObjChild1Copy2( pObj0 );
-        if ( pFanin0 == NULL || pFanin1 == NULL )
-            continue;
-        pObj1 = Aig_TableLookupTwo( p1, pFanin0, pFanin1 );
-        if ( pObj1 == NULL )
-            continue;
-        Ssw_CreatePair( vPairs, pObj0, pObj1 );
-    }
-    return vPairs;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collects additional Lis and Los.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_CollectExtraLiLo( Aig_Man_t * p, int nCommonFlops, Vec_Ptr_t * vLis, Vec_Ptr_t * vLos )
-{
-    Aig_Obj_t * pObjLo, * pObjLi;
-    int i;
-    Saig_ManForEachLiLo( p, pObjLo, pObjLi, i )
-    {
-        if ( i < nCommonFlops )
-            continue;
-        Vec_PtrPush( vLis, pObjLi );
-        Vec_PtrPush( vLos, pObjLo );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Overlays and extends the pairs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ssw_OverlayIslands( Aig_Man_t * pTo, Aig_Man_t * pFrom, Vec_Ptr_t * vLisFrom, Vec_Ptr_t * vLosFrom, Vec_Int_t * vPairs, int nCommonFlops, int fToGoesFirst )
-{
-    Aig_Obj_t * pObjFrom, * pObjTo, * pFanin0To, * pFanin1To;
-    int i;
-    // create additional register outputs of From in To
-    Vec_PtrForEachEntry( vLosFrom, pObjFrom, i )
-    {
-        pObjTo = Aig_ObjCreatePi( pTo );
-        if( fToGoesFirst )
-            Ssw_CreatePair( vPairs, pObjTo, pObjFrom );
-        else
-            Ssw_CreatePair( vPairs, pObjFrom, pObjTo );
-    }
-    // create additional nodes of From in To
-    Aig_ManForEachNode( pFrom, pObjFrom, i )
-    {
-        if ( pObjFrom->pData != NULL )
-            continue;
-        pFanin0To = Aig_ObjChild0Copy2( pObjFrom );
-        pFanin1To = Aig_ObjChild1Copy2( pObjFrom );
-        assert( pFanin0To != NULL && pFanin1To != NULL );
-        pObjTo = Aig_And( pTo, pFanin0To, pFanin1To );
-        if( fToGoesFirst )
-            Ssw_CreatePair( vPairs, pObjTo, pObjFrom );
-        else
-            Ssw_CreatePair( vPairs, pObjFrom, pObjTo );
-    }
-    // finally recreate additional register inputs
-    Vec_PtrForEachEntry( vLisFrom, pObjFrom, i )
-    {
-        pFanin0To = Aig_ObjChild0Copy2( pObjFrom );
-        Aig_ObjCreatePo( pTo, pFanin0To );
-    }
-    // update the number of registers
-    Aig_ManSetRegNum( pTo, Aig_ManRegNum(pTo) + Vec_PtrSize(vLisFrom) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Overlays and extends the pairs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Saig_ManMiterWithIslands( Aig_Man_t * p0, Aig_Man_t * p1, Aig_Man_t ** ppMiter, Vec_Int_t * vPairs )
-{
-    Aig_Man_t * pMiter;
-    Vec_Int_t * vPairsNew;
     Aig_Obj_t * pObj0, * pObj1;
     int i;
-    vPairsNew = Vec_IntAlloc( 1000 );
-    pMiter = Saig_ManCreateMiter( p0, p1, 0 );
+    // create matching
+    Aig_ManCleanData( p0 );
+    Aig_ManCleanData( p1 );
     for ( i = 0; i < Vec_IntSize(vPairs); i += 2 )
     {
         pObj0 = Aig_ManObj( p0, Vec_IntEntry(vPairs, i) );
         pObj1 = Aig_ManObj( p1, Vec_IntEntry(vPairs, i+1) );
+        assert( pObj0->pData == NULL );
+        assert( pObj1->pData == NULL );
+        pObj0->pData = pObj1;
+        pObj1->pData = pObj0;
+    }
+    // make sure constants are matched
+    pObj0 = Aig_ManConst1( p0 );
+    pObj1 = Aig_ManConst1( p1 );
+    assert( pObj0->pData == pObj1 );
+    assert( pObj1->pData == pObj0 );
+    // make sure PIs are matched
+    Saig_ManForEachPi( p0, pObj0, i )
+    {
+        pObj1 = Aig_ManPi( p1, i );
+        assert( pObj0->pData == pObj1 );
+        assert( pObj1->pData == pObj0 );
+    }
+    // make sure the POs are not matched
+    Aig_ManForEachPo( p0, pObj0, i )
+    {
+        pObj1 = Aig_ManPo( p1, i );
+        assert( pObj0->pData == NULL );
+        assert( pObj1->pData == NULL );
+    }
+
+    // check that LIs/LOs are matched in sync
+    Saig_ManForEachLo( p0, pObj0, i )
+    {
+        if ( pObj0->pData == NULL )
+            continue;
+        pObj1 = pObj0->pData;
+        if ( !Saig_ObjIsLo(p1, pObj1) )
+            printf( "Mismatch between LO pairs.\n" );
+    }
+    Saig_ManForEachLo( p1, pObj1, i )
+    {
+        if ( pObj1->pData == NULL )
+            continue;
+        pObj0 = pObj1->pData;
+        if ( !Saig_ObjIsLo(p0, pObj0) )
+            printf( "Mismatch between LO pairs.\n" );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Establishes relationship between nodes using pairing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_MatchingExtendOne( Aig_Man_t * p, Vec_Ptr_t * vNodes )
+{
+    Aig_Obj_t * pNext, * pObj;
+    int i, k, iFan;
+    Vec_PtrClear( vNodes );
+    Aig_ManIncrementTravId( p );
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            continue;
+        if ( pObj->pData != NULL )
+            continue;
+        if ( Saig_ObjIsLo(p, pObj) )
+        {
+            pNext = Saig_ObjLoToLi(p, pObj);
+            pNext = Aig_ObjFanin0(pNext);
+            if ( pNext->pData && !Aig_ObjIsTravIdCurrent(p, pNext) && !Aig_ObjIsConst1(pNext) )
+            {
+                Aig_ObjSetTravIdCurrent(p, pNext);
+                Vec_PtrPush( vNodes, pNext );
+            }
+        }
+        if ( Aig_ObjIsNode(pObj) )
+        {
+            pNext = Aig_ObjFanin0(pObj);
+            if ( pNext->pData && !Aig_ObjIsTravIdCurrent(p, pNext) )
+            {
+                Aig_ObjSetTravIdCurrent(p, pNext);
+                Vec_PtrPush( vNodes, pNext );
+            }
+            pNext = Aig_ObjFanin1(pObj);
+            if ( pNext->pData && !Aig_ObjIsTravIdCurrent(p, pNext) )
+            {
+                Aig_ObjSetTravIdCurrent(p, pNext);
+                Vec_PtrPush( vNodes, pNext );
+            }
+        }
+        Aig_ObjForEachFanout( p, pObj, pNext, iFan, k )  
+        {
+            if ( Saig_ObjIsPo(p, pNext) )
+                continue;
+            if ( Saig_ObjIsLi(p, pNext) )
+                pNext = Saig_ObjLiToLo(p, pNext);
+            if ( pNext->pData && !Aig_ObjIsTravIdCurrent(p, pNext) )
+            {
+                Aig_ObjSetTravIdCurrent(p, pNext);
+                Vec_PtrPush( vNodes, pNext );
+            }
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Establishes relationship between nodes using pairing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_MatchingCountUnmached( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0;
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+            continue;
+        if ( pObj->pData != NULL )
+            continue;
+        Counter++;
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Establishes relationship between nodes using pairing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_MatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose )
+{
+    Vec_Ptr_t * vNodes0, * vNodes1;
+    Aig_Obj_t * pNext0, * pNext1;
+    int d, k;
+    Aig_ManFanoutStart(p0);
+    Aig_ManFanoutStart(p1);
+    vNodes0 = Vec_PtrAlloc( 1000 );
+    vNodes1 = Vec_PtrAlloc( 1000 );
+    if ( fVerbose )
+    {
+        int nUnmached = Ssw_MatchingCountUnmached(p0);
+        printf( "Extending islands by %d steps:\n", nDist );
+        printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
+            0, Aig_ManPiNum(p0) + Aig_ManNodeNum(p0), 
+            nUnmached, 100.0 * nUnmached/(Aig_ManPiNum(p0) + Aig_ManNodeNum(p0)) );
+    }
+    for ( d = 0; d < nDist; d++ )
+    {
+        Ssw_MatchingExtendOne( p0, vNodes0 );
+        Ssw_MatchingExtendOne( p1, vNodes1 );
+        Vec_PtrForEachEntry( vNodes0, pNext0, k )
+        {
+            pNext1 = pNext0->pData;
+            if ( pNext1 == NULL )
+                continue;
+            assert( pNext1->pData == pNext0 );
+            if ( Saig_ObjIsPi(p0, pNext1) )
+                continue;
+            pNext0->pData = NULL;
+            pNext1->pData = NULL;
+        }
+        Vec_PtrForEachEntry( vNodes1, pNext0, k )
+        {
+            pNext1 = pNext0->pData;
+            if ( pNext1 == NULL )
+                continue;
+            assert( pNext1->pData == pNext0 );
+            if ( Saig_ObjIsPi(p1, pNext1) )
+                continue;
+            pNext0->pData = NULL;
+            pNext1->pData = NULL;
+        }
+        if ( fVerbose )
+        {
+            int nUnmached = Ssw_MatchingCountUnmached(p0);
+            printf( "%2d : Total = %6d. Unmatched = %6d.  Ratio = %6.2f %%\n",
+                d+1, Aig_ManPiNum(p0) + Aig_ManNodeNum(p0), 
+                nUnmached, 100.0 * nUnmached/(Aig_ManPiNum(p0) + Aig_ManNodeNum(p0)) );
+        }
+    }
+    Vec_PtrFree( vNodes0 );
+    Vec_PtrFree( vNodes1 );
+    Aig_ManFanoutStop(p0);
+    Aig_ManFanoutStop(p1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Used differences in p0 to complete p1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_MatchingComplete( Aig_Man_t * p0, Aig_Man_t * p1 )
+{
+    Vec_Ptr_t * vNewLis;
+    Aig_Obj_t * pObj0, * pObj0Li, * pObj1;
+    int i;
+    // create register outputs in p0 that are absent in p1
+    vNewLis = Vec_PtrAlloc( 100 );
+    Saig_ManForEachLiLo( p0, pObj0Li, pObj0, i )
+    {
+        if ( pObj0->pData != NULL )
+            continue;
+        pObj1 = Aig_ObjCreatePi( p1 );
+        pObj0->pData = pObj1;
+        pObj1->pData = pObj0;
+        Vec_PtrPush( vNewLis, pObj0Li );
+    }
+    // add missing nodes in the topological order
+    Aig_ManForEachNode( p0, pObj0, i )
+    {
+        if ( pObj0->pData != NULL )
+            continue;
+        pObj1 = Aig_And( p1, Aig_ObjChild0Copy(pObj0), Aig_ObjChild1Copy(pObj0) );
+        pObj0->pData = pObj1;
+        pObj1->pData = pObj0;
+    }
+    // create register outputs in p0 that are absent in p1
+    Vec_PtrForEachEntry( vNewLis, pObj0Li, i )
+        Aig_ObjCreatePo( p1, Aig_ObjChild0Copy(pObj0Li) );
+    // increment the number of registers
+    Aig_ManSetRegNum( p1, Aig_ManRegNum(p1) + Vec_PtrSize(vNewLis) );
+    Vec_PtrFree( vNewLis );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derives matching for all pairs.]
+
+  Description [Modifies both AIGs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Ssw_MatchingPairs( Aig_Man_t * p0, Aig_Man_t * p1 )
+{
+    Vec_Int_t * vPairsNew;
+    Aig_Obj_t * pObj0, * pObj1;
+    int i;
+    // check correctness
+    assert( Aig_ManPiNum(p0) == Aig_ManPiNum(p1) );
+    assert( Aig_ManPoNum(p0) == Aig_ManPoNum(p1) );
+    assert( Aig_ManRegNum(p0) == Aig_ManRegNum(p1) );
+    assert( Aig_ManObjNum(p0) == Aig_ManObjNum(p1) );
+    // create complete pairs
+    vPairsNew = Vec_IntAlloc( 2*Aig_ManObjNum(p0) );
+    Aig_ManForEachObj( p0, pObj0, i )
+    {
+        if ( Aig_ObjIsPo(pObj0) )
+            continue;
+        pObj1 = pObj0->pData;
+        Vec_IntPush( vPairsNew, pObj0->Id );
+        Vec_IntPush( vPairsNew, pObj1->Id );
+    }
+    return vPairsNew;
+}
+
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transfers the result of matching to miter.]
+
+  Description [The array of pairs should be complete.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Ssw_MatchingMiter( Aig_Man_t * pMiter, Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairsAll )
+{
+    Vec_Int_t * vPairsMiter;
+    Aig_Obj_t * pObj0, * pObj1;
+    int i;
+    // create matching of nodes in the miter
+    vPairsMiter = Vec_IntAlloc( 2*Aig_ManObjNum(p0) );
+    for ( i = 0; i < Vec_IntSize(vPairsAll); i += 2 )
+    {
+        pObj0 = Aig_ManObj( p0, Vec_IntEntry(vPairsAll, i) );
+        pObj1 = Aig_ManObj( p1, Vec_IntEntry(vPairsAll, i+1) );
+        assert( pObj0->pData != NULL );
+        assert( pObj1->pData != NULL );
+        if ( pObj0->pData == pObj1->pData )
+            continue;
+        if ( Aig_ObjIsNone(pObj0->pData) || Aig_ObjIsNone(pObj1->pData) )
+            continue;
+        // get the miter nodes
         pObj0 = pObj0->pData;
         pObj1 = pObj1->pData;
         assert( !Aig_IsComplement(pObj0) );
         assert( !Aig_IsComplement(pObj1) );
-        if ( pObj0 == pObj1 )
+        assert( Aig_ObjType(pObj0) == Aig_ObjType(pObj1) );
+        if ( Aig_ObjIsPo(pObj0) )
             continue;
+        assert( Aig_ObjIsNode(pObj0) || Saig_ObjIsLo(pMiter, pObj0) );
+        assert( Aig_ObjIsNode(pObj1) || Saig_ObjIsLo(pMiter, pObj1) );
         assert( pObj0->Id < pObj1->Id );
-        Vec_IntPush( vPairsNew, pObj0->Id );
-        Vec_IntPush( vPairsNew, pObj1->Id );
+        Vec_IntPush( vPairsMiter, pObj0->Id );
+        Vec_IntPush( vPairsMiter, pObj1->Id );
     }
-    *ppMiter = pMiter;
-    return vPairsNew;
+    return vPairsMiter;
 }
+
+
+
+
 
 /**Function*************************************************************
 
@@ -220,72 +413,41 @@ Vec_Int_t * Saig_ManMiterWithIslands( Aig_Man_t * p0, Aig_Man_t * p1, Aig_Man_t 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ssw_SecWithIslandsInternal( Aig_Man_t * p0, Aig_Man_t * p1, int nCommonFlops, int fVerbose, Ssw_Pars_t * pPars )
+Aig_Man_t * Ssw_SecWithSimilaritySweep( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs, Ssw_Pars_t * pPars )
 {
     Ssw_Man_t * p; 
-    Ssw_Pars_t Pars;
-    Vec_Int_t * vPairs, * vPairsMiter;
+    Vec_Int_t * vPairsAll, * vPairsMiter;
     Aig_Man_t * pMiter, * pAigNew;
-    Vec_Ptr_t * vLis0, * vLos0, * vLis1, * vLos1; 
-    int nNodes, nRegs;
-    assert( Aig_ManRegNum(p0) > 0 );
-    assert( Aig_ManRegNum(p1) > 0 );
-    assert( Aig_ManRegNum(p0) >= nCommonFlops );
-    assert( Aig_ManRegNum(p1) >= nCommonFlops );
-    assert( Saig_ManPiNum(p0) == Saig_ManPiNum(p1) );
-    assert( Saig_ManPoNum(p0) == Saig_ManPoNum(p1) );
-    // derive pairs
-    vPairs = Ssw_DetectIslands( p0, p1, nCommonFlops, fVerbose );
-    if ( fVerbose )
-    {
-        printf( "Original managers:\n" );
-        Aig_ManPrintStats( p0 );
-        Aig_ManPrintStats( p1 );
-        printf( "Detected %d PI pairs, %d LO pairs, and %d node pairs.\n", 
-            Saig_ManPiNum(p0), nCommonFlops, Vec_IntSize(vPairs)/2 - Saig_ManPiNum(p0) - nCommonFlops - 1 );
-    }
-    // complete the manager with islands
-    vLis0 = Vec_PtrAlloc( 100 );
-    vLos0 = Vec_PtrAlloc( 100 );
-    vLis1 = Vec_PtrAlloc( 100 );
-    vLos1 = Vec_PtrAlloc( 100 );
-    Ssw_CollectExtraLiLo( p0, nCommonFlops, vLis0, vLos0 );
-    Ssw_CollectExtraLiLo( p1, nCommonFlops, vLis1, vLos1 );
-
-    nRegs  = Saig_ManRegNum(p0);
-    nNodes = Aig_ManNodeNum(p0);
-    Ssw_OverlayIslands( p0, p1, vLis1, vLos1, vPairs, nCommonFlops, 1 );
-    if ( fVerbose )
-        printf( "Completed p0 with %d registers and %d nodes.\n", 
-            Saig_ManRegNum(p0) - nRegs, Aig_ManNodeNum(p0) - nNodes );   
-    
-    nRegs  = Saig_ManRegNum(p1);
-    nNodes = Aig_ManNodeNum(p1);
-    Ssw_OverlayIslands( p1, p0, vLis0, vLos0, vPairs, nCommonFlops, 0 );
-    if ( fVerbose )
-        printf( "Completed p1 with %d registers and %d nodes.\n", 
-            Saig_ManRegNum(p1) - nRegs, Aig_ManNodeNum(p1) - nNodes );   
-    if ( fVerbose )
-    {
-        printf( "Modified managers:\n" );
-        Aig_ManPrintStats( p0 );
-        Aig_ManPrintStats( p1 );
-    }
-
-    Vec_PtrFree( vLis0 );
-    Vec_PtrFree( vLos0 );
-    Vec_PtrFree( vLis1 );
-    Vec_PtrFree( vLos1 );
-    // create sequential miter
-    vPairsMiter = Saig_ManMiterWithIslands( p0, p1, &pMiter, vPairs );
-    Vec_IntFree( vPairs );
-    // if parameters are not given, create them
-    if ( pPars == NULL )
-        Ssw_ManSetDefaultParams( pPars = &Pars );
+    // derive full matching
+    Ssw_MatchingStart( p0, p1, vPairs );
+    if ( pPars->nIsleDist )
+        Ssw_MatchingExtend( p0, p1, pPars->nIsleDist, pPars->fVerbose );
+    Ssw_MatchingComplete( p0, p1 );
+    Ssw_MatchingComplete( p1, p0 );
+    vPairsAll = Ssw_MatchingPairs( p0, p1 );
+    // create miter and transfer matching
+    pMiter = Saig_ManCreateMiter( p0, p1, 0 );
+    vPairsMiter = Ssw_MatchingMiter( pMiter, p0, p1, vPairsAll );
+    Vec_IntFree( vPairsAll );
     // start the induction manager
     p = Ssw_ManCreate( pMiter, pPars );
     // create equivalence classes using these IDs
-    p->ppClasses = Ssw_ClassesFromIslands( pMiter, vPairsMiter );
+    if ( p->pPars->fPartSigCorr )
+        p->ppClasses = Ssw_ClassesPreparePairsSimple( pMiter, vPairsMiter );
+    else
+        p->ppClasses = Ssw_ClassesPrepare( pMiter, pPars->nFramesK, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
+    if ( p->pPars->fDumpSRInit )
+    {
+        if ( p->pPars->fPartSigCorr )
+        {
+            Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
+            Aig_ManDumpBlif( pSRed, "srm_part.blif", NULL, NULL );
+            Aig_ManStop( pSRed );
+            printf( "Speculatively reduced miter is saved in file \"%s\".\n", "srm_part.blif" );
+        }
+        else
+            printf( "Dumping speculative miter is possible only for partial signal correspondence (switch \"-c\").\n" );
+    }
     p->pSml = Ssw_SmlStart( pMiter, 0, 1 + p->pPars->nFramesAddSim, 1 );
     Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
     // perform refinement of classes
@@ -299,28 +461,28 @@ Aig_Man_t * Ssw_SecWithIslandsInternal( Aig_Man_t * p0, Aig_Man_t * p1, int nCom
 
 /**Function*************************************************************
 
-  Synopsis    [Solves SEC using structural similarity.]
+  Synopsis    [Solves SEC with structural similarity.]
 
-  Description []
+  Description [The first two arguments are pointers to the AIG managers.
+  The third argument is the array of pairs of IDs of structurally equivalent
+  nodes from the first and second managers, respectively.]
                
-  SideEffects []
+  SideEffects [The managers will be updated by adding "islands of difference".]
 
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SecWithIslands( Aig_Man_t * p0, Aig_Man_t * p1, int nCommonFlops, int fVerbose, Ssw_Pars_t * pPars )
+int Ssw_SecWithSimilarityPairs( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs, Ssw_Pars_t * pPars )
 {
+    Ssw_Pars_t Pars;
     Aig_Man_t * pAigRes;
-    Aig_Man_t * p0New, * p1New;
     int RetValue, clk = clock();
-    // try the new AIGs
-//    printf( "Performing verification using structural similarity.\n" );
-    p0New = Aig_ManDupSimple( p0 );
-    p1New = Aig_ManDupSimple( p1 );
-    pAigRes = Ssw_SecWithIslandsInternal( p0New, p1New, nCommonFlops, fVerbose, pPars );
-    Aig_ManStop( p0New );
-    Aig_ManStop( p1New );
-    // report the results
+    // derive parameters if not given
+    if ( pPars == NULL )
+        Ssw_ManSetDefaultParams( pPars = &Pars );
+    // reduce the AIG with pairs
+    pAigRes = Ssw_SecWithSimilaritySweep( p0, p1, vPairs, pPars );
+    // report the result of verification
     RetValue = Ssw_MiterStatus( pAigRes, 1 );
     if ( RetValue == 1 )
         printf( "Verification successful.  " );
@@ -328,17 +490,15 @@ int Ssw_SecWithIslands( Aig_Man_t * p0, Aig_Man_t * p1, int nCommonFlops, int fV
         printf( "Verification failed with a counter-example.  " );
     else
         printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
-            Aig_ManRegNum(pAigRes), Aig_ManRegNum(p0New)+Aig_ManRegNum(p1New) );
+            Aig_ManRegNum(pAigRes), Aig_ManRegNum(p0)+Aig_ManRegNum(p1) );
     PRT( "Time", clock() - clk );
-    // cleanup
     Aig_ManStop( pAigRes );
     return RetValue;
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Solves SEC using structural similarity for the miter.]
+  Synopsis    [Dummy procedure to detect structural similarity.]
 
   Description []
                
@@ -347,33 +507,84 @@ int Ssw_SecWithIslands( Aig_Man_t * p0, Aig_Man_t * p1, int nCommonFlops, int fV
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SecWithIslandsMiter( Aig_Man_t * pMiter, int nCommonFlops, int fVerbose )
+Vec_Int_t * Saig_StrSimPerformMatching_hack( Aig_Man_t * p0, Aig_Man_t * p1 )
 {
+    Vec_Int_t * vPairs;
+    Aig_Obj_t * pObj;
+    int i;
+    // create array of pairs
+    vPairs = Vec_IntAlloc( 100 );
+    Aig_ManForEachObj( p0, pObj, i )
+    {
+        if ( !Aig_ObjIsConst1(pObj) && !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+            continue;
+        Vec_IntPush( vPairs, i );
+        Vec_IntPush( vPairs, i );
+    }
+    return vPairs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Solves SEC with structural similarity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SecWithSimilarity( Aig_Man_t * p0, Aig_Man_t * p1, Ssw_Pars_t * pPars )
+{
+    Vec_Int_t * vPairs;
     Aig_Man_t * pPart0, * pPart1;
     int RetValue;
-    if ( fVerbose )
-        Aig_ManPrintStats( pMiter );
-    // demiter the miter
-    if ( !Saig_ManDemiterSimpleDiff( pMiter, &pPart0, &pPart1 ) )
+    if ( pPars->fVerbose )
+        printf( "Performing sequential verification using structural similarity.\n" );
+    // consider the case when a miter is given
+    if ( p1 == NULL )
     {
-        printf( "Demitering has failed.\n" );
-        return -1;
+        if ( pPars->fVerbose )
+        {
+            Aig_ManPrintStats( p0 );
+        }
+        // demiter the miter
+        if ( !Saig_ManDemiterSimpleDiff( p0, &pPart0, &pPart1 ) )
+        {
+            printf( "Demitering has failed.\n" );
+            return -1;
+        }
     }
-    if ( fVerbose )
+    else
+    {
+        pPart0 = Aig_ManDupSimple( p0 );
+        pPart1 = Aig_ManDupSimple( p1 );
+    }
+    if ( pPars->fVerbose )
     {
 //        Aig_ManPrintStats( pPart0 );
 //        Aig_ManPrintStats( pPart1 );
+        if ( p1 == NULL )
+        {
 //        Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
 //        Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
 //        printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
+        }
     }
-    RetValue = Ssw_SecWithIslands( pPart0, pPart1, nCommonFlops, fVerbose, NULL );
+    assert( Aig_ManRegNum(pPart0) > 0 );
+    assert( Aig_ManRegNum(pPart1) > 0 );
+    assert( Saig_ManPiNum(pPart0) == Saig_ManPiNum(pPart1) );
+    assert( Saig_ManPoNum(pPart0) == Saig_ManPoNum(pPart1) );
+    // derive pairs
+//    vPairs = Saig_StrSimPerformMatching_hack( pPart0, pPart1 );
+    vPairs = Saig_StrSimPerformMatching( pPart0, pPart1, 0, pPars->fVerbose, NULL );
+    RetValue = Ssw_SecWithSimilarityPairs( pPart0, pPart1, vPairs, pPars );
     Aig_ManStop( pPart0 );
     Aig_ManStop( pPart1 );
+    Vec_IntFree( vPairs );
     return RetValue;
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

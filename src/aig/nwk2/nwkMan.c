@@ -195,7 +195,7 @@ char * Nwk_FileNameGeneric( char * FileName )
 
 ***********************************************************************/
 /*
-void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl )
+void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, void * pNtl )
 {
     extern int Ntl_ManLatchNum( void * p );
     extern void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );

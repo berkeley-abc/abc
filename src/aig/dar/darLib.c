@@ -44,6 +44,7 @@ struct Dar_LibDat_t_ // library object data
     Aig_Obj_t *      pFunc;         // the corresponding AIG node if it exists
     int              Level;         // level of this node after it is constructured
     int              TravId;        // traversal ID of the library object data
+    float            dProb;         // probability of the node being 1
     unsigned char    fMffc;         // set to one if node is part of MFFC
     unsigned char    nLats[3];      // the number of latches on the input/output stem
 };
@@ -698,6 +699,12 @@ int Dar_LibCutMatch( Dar_Man_t * p, Dar_Cut_t * pCut )
         pFanin = Aig_NotCond(pFanin, ((uPhase >> i) & 1) );
         s_DarLib->pDatas[i].pFunc = pFanin;
         s_DarLib->pDatas[i].Level = Aig_Regular(pFanin)->Level;
+        // copy the propability of node being one
+        if ( p->pPars->fPower )
+        {
+            float Prob = Aig_Int2Float( Vec_IntEntry( p->pAig->vProbs, Aig_ObjId(Aig_Regular(pFanin)) ) );
+            s_DarLib->pDatas[i].dProb = Aig_IsComplement(pFanin)? 1.0-Prob : Prob;
+        }
     }
     p->nCutsGood++;
     return 1;
@@ -716,14 +723,14 @@ int Dar_LibCutMatch( Dar_Man_t * p, Dar_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_LibCutMarkMffc( Aig_Man_t * p, Aig_Obj_t * pRoot, int nLeaves )
+int Dar_LibCutMarkMffc( Aig_Man_t * p, Aig_Obj_t * pRoot, int nLeaves, float * pPower )
 {
     int i, nNodes;
     // mark the cut leaves
     for ( i = 0; i < nLeaves; i++ )
         Aig_Regular(s_DarLib->pDatas[i].pFunc)->nRefs++;
     // label MFFC with current ID
-    nNodes = Aig_NodeMffsLabel( p, pRoot );
+    nNodes = Aig_NodeMffsLabel( p, pRoot, pPower );
     // unmark the cut leaves
     for ( i = 0; i < nLeaves; i++ )
         Aig_Regular(s_DarLib->pDatas[i].pFunc)->nRefs--;
@@ -821,10 +828,13 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class, Aig_Obj_t * pRoot )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_LibEval_rec( Dar_LibObj_t * pObj, int Out, int nNodesSaved, int Required )
+int Dar_LibEval_rec( Dar_LibObj_t * pObj, int Out, int nNodesSaved, int Required, float * pPower )
 {
+    float Power0, Power1;
     Dar_LibDat_t * pData;
     int Area;
+    if ( pPower )
+        *pPower = (float)0.0;
     if ( pObj->fTerm )
         return 0;
     assert( pObj->Num > 3 );
@@ -838,12 +848,21 @@ int Dar_LibEval_rec( Dar_LibObj_t * pObj, int Out, int nNodesSaved, int Required
     pData->TravId = Out;
     // this is a new node - get a bound on the area of its branches
     nNodesSaved--;
-    Area = Dar_LibEval_rec( Dar_LibObj(s_DarLib, pObj->Fan0), Out, nNodesSaved, Required+1 );
+    Area = Dar_LibEval_rec( Dar_LibObj(s_DarLib, pObj->Fan0), Out, nNodesSaved, Required+1, pPower? &Power0 : NULL );
     if ( Area > nNodesSaved )
         return 0xff;
-    Area += Dar_LibEval_rec( Dar_LibObj(s_DarLib, pObj->Fan1), Out, nNodesSaved, Required+1 );
+    Area += Dar_LibEval_rec( Dar_LibObj(s_DarLib, pObj->Fan1), Out, nNodesSaved, Required+1, pPower? &Power1 : NULL );
     if ( Area > nNodesSaved )
         return 0xff;
+    if ( pPower )
+    {
+        Dar_LibDat_t * pData0 = s_DarLib->pDatas + Dar_LibObj(s_DarLib, pObj->Fan0)->Num;
+        Dar_LibDat_t * pData1 = s_DarLib->pDatas + Dar_LibObj(s_DarLib, pObj->Fan1)->Num;
+        pData->dProb = (pObj->fCompl0? 1.0 - pData0->dProb : pData0->dProb)*
+                       (pObj->fCompl1? 1.0 - pData1->dProb : pData1->dProb);
+        *pPower = Power0 + 2.0 * pData0->dProb * (1.0 - pData0->dProb) +
+                  Power1 + 2.0 * pData1->dProb * (1.0 - pData1->dProb);
+    }
     return Area + 1;
 }
 
@@ -861,6 +880,7 @@ int Dar_LibEval_rec( Dar_LibObj_t * pObj, int Out, int nNodesSaved, int Required
 void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Required )
 {
     int fTraining = 0;
+    float PowerSaved, PowerAdded;
     Dar_LibObj_t * pObj;
     int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained, clk;
     clk = clock();
@@ -870,7 +890,7 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
     if ( !Dar_LibCutMatch(p, pCut) )
         return;
     // mark MFFC of the node
-    nNodesSaved = Dar_LibCutMarkMffc( p->pAig, pRoot, pCut->nLeaves );
+    nNodesSaved = Dar_LibCutMarkMffc( p->pAig, pRoot, pCut->nLeaves, p->pPars->fPower? &PowerSaved : NULL );
     // evaluate the cut
     Class = s_DarLib->pMap[pCut->uTruth];
     Dar_LibEvalAssignNums( p, Class, pRoot );
@@ -882,8 +902,10 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
         pObj = Dar_LibObj(s_DarLib, s_DarLib->pSubgr0[Class][Out]);
         if ( Aig_Regular(s_DarLib->pDatas[pObj->Num].pFunc) == pRoot )
             continue;
-        nNodesAdded = Dar_LibEval_rec( pObj, Out, nNodesSaved - !p->pPars->fUseZeros, Required );
+        nNodesAdded = Dar_LibEval_rec( pObj, Out, nNodesSaved - !p->pPars->fUseZeros, Required, p->pPars->fPower? &PowerAdded : NULL );
         nNodesGained = nNodesSaved - nNodesAdded;
+        if ( p->pPars->fPower && PowerSaved < PowerAdded )
+            continue;
         if ( fTraining && nNodesGained >= 0 )
             Dar_LibIncrementScore( Class, Out, nNodesGained + 1 );
         if ( nNodesGained < 0 || (nNodesGained == 0 && !p->pPars->fUseZeros) )

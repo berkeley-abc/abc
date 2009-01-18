@@ -215,9 +215,9 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
 void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
 {
     Aig_Obj_t * pObj, * pObjRepr;
-    Ntl_Net_t * pNet, * pNetRepr;
+    Ntl_Net_t * pNet, * pNetRepr, * pNetNew;
     Ntl_Mod_t * pRoot;
-    Ntl_Obj_t * pNode;
+    Ntl_Obj_t * pNode, * pNodeOld;
     int i, fCompl, Counter = 0;
     assert( pAig->pReprs );
     pRoot = Ntl_ManRootModel( p );
@@ -271,10 +271,23 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
         pNode->pSop = fCompl? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNetRepr, 0 );
         // make the new node drive the equivalent net (pNet)
+        pNodeOld = pNet->pDriver;
         if ( !Ntl_ModelClearNetDriver( pNet->pDriver, pNet ) )
             printf( "Ntl_ManReduce(): Internal error! Net already has no driver.\n" );
         if ( !Ntl_ModelSetNetDriver( pNode, pNet ) )
             printf( "Ntl_ManReduce(): Internal error! Net already has a driver.\n" );
+
+        // remove this net from the hash table (but do not remove from the array)
+        Ntl_ModelDeleteNet( pRoot, pNet );
+        // create new net with the same name
+        pNetNew = Ntl_ModelFindOrCreateNet( pRoot, pNet->pName );
+        // clean the name
+        pNet->pName[0] = 0;
+
+        // make the old node drive the new net without fanouts
+        if ( !Ntl_ModelSetNetDriver( pNodeOld, pNetNew ) )
+            printf( "Ntl_ManReduce(): Internal error! Net already has a driver.\n" );
+
         Counter++;
     }
 }
@@ -372,6 +385,11 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
     pAigCol = Ntl_ManCollapseComb( pNew );
+    if ( pAigCol == NULL )
+    {
+        Aig_ManStop( pAig );
+        return pNew;
+    }
 
     // perform fraiging for the given design
     nPartSize = nPartSize? nPartSize : Aig_ManPoNum(pAigCol);
@@ -406,13 +424,15 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
     pAigCol = Ntl_ManCollapseSeq( pNew, 0 );
-//Saig_ManDumpBlif( pAigCol, "1s.blif" );
+    if ( pAigCol == NULL )
+    {
+        Aig_ManStop( pAig );
+        return pNew;
+    }
 
     // perform SCL for the given design
     pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
     Aig_ManStop( pTemp );
-    if ( pNew->vRegClasses && Vec_IntSize(pNew->vRegClasses) && pAigCol->pReprs )
-        Ntl_ManFilterRegisterClasses( pAigCol, pNew->vRegClasses, fVerbose );
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
@@ -435,25 +455,26 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 ***********************************************************************/
 Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
 {
-    Ssw_Pars_t Pars, * pPars = &Pars;
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
+    Ssw_Pars_t Pars, * pPars = &Pars;
+    Ssw_ManSetDefaultParamsLcorr( pPars );
+    pPars->nBTLimit = nConfMax;
+    pPars->fVerbose = fVerbose;
 
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapseSeq( pNew, 0 );
+    pAigCol = Ntl_ManCollapseSeq( pNew, pPars->nMinDomSize );
+    if ( pAigCol == NULL )
+    {
+        Aig_ManStop( pAig );
+        return pNew;
+    }
 
-    // perform SCL for the given design
-//    pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL, 0 );
-    Ssw_ManSetDefaultParamsLcorr( pPars );
-    pPars->nBTLimit = nConfMax;
-    pPars->fVerbose = fVerbose;
+    // perform LCORR for the given design
     pTemp = Ssw_LatchCorrespondence( pAigCol, pPars );
-
     Aig_ManStop( pTemp );
-    if ( p->vRegClasses && Vec_IntSize(p->vRegClasses) && pAigCol->pReprs )
-        Ntl_ManFilterRegisterClasses( pAigCol, p->vRegClasses, fVerbose );
 
     // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );

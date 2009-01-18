@@ -47,6 +47,7 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
     pPars->fFanout      =  1;
     pPars->fUpdateLevel =  0;
     pPars->fUseZeros    =  0;
+    pPars->fPower       =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
 }
@@ -64,6 +65,7 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
 ***********************************************************************/
 int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 {
+    extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
     Dar_Man_t * p;
 //    Bar_Progress_t * pProgress;
     Dar_Cut_t * pCut;
@@ -74,6 +76,8 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     Dar_LibPrepare( pPars->nSubgMax ); 
     // create rewriting manager
     p = Dar_ManStart( pAig, pPars );
+    if ( pPars->fPower )
+        pAig->vProbs = Saig_ManComputeSwitchProbs( pAig, 48, 16, 1 );
     // remove dangling nodes
     Aig_ManCleanup( pAig );
     // if updating levels is requested, start fanout and timing
@@ -181,6 +185,11 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
     {
 //        Aig_ManVerifyReverseLevel( pAig );
         Aig_ManStopReverseLevels( pAig );
+    }
+    if ( pAig->vProbs )
+    {
+        Vec_IntFree( pAig->vProbs );
+        pAig->vProbs = NULL;
     }
     // stop the rewriting manager
     Dar_ManStop( p );

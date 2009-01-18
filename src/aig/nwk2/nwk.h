@@ -242,7 +242,7 @@ extern void            Nwk_ObjReplace( Nwk_Obj_t * pNodeOld, Nwk_Obj_t * pNodeNe
 /*=== nwkMan.c ============================================================*/
 extern Nwk_Man_t *     Nwk_ManAlloc();
 extern void            Nwk_ManFree( Nwk_Man_t * p );
-//extern void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl );
+//extern void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, void * pNtl );
 /*=== nwkObj.c ============================================================*/
 extern Nwk_Obj_t *     Nwk_ManCreateCi( Nwk_Man_t * pMan, int nFanouts );
 extern Nwk_Obj_t *     Nwk_ManCreateCo( Nwk_Man_t * pMan );

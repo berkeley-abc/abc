@@ -48,6 +48,7 @@ void Dch_ManSetDefaultParams( Dch_Pars_t * p )
     p->fSynthesis     =     1;  // derives three snapshots
     p->fPolarFlip     =     1;  // uses polarity adjustment
     p->fSimulateTfo   =     1;  // simulate TFO
+    p->fPower         =     0;  // power-aware rewriting
     p->fVerbose       =     0;  // verbose stats
     p->nNodesAhead    =  1000;  // the lookahead in terms of nodes
     p->nCallsRecycle  =   100;  // calls to perform before recycling SAT solver

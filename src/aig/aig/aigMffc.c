@@ -39,17 +39,22 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin )
+int Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin, float * pPower, float * pProbs )
 {
+    float Power0 = 0.0, Power1 = 0.0;
     Aig_Obj_t * pFanin;
     int Counter = 0;
+    if ( pProbs )
+        *pPower = 0.0;
     if ( Aig_ObjIsPi(pNode) )
         return 0;
     // consider the first fanin
     pFanin = Aig_ObjFanin0(pNode);
     assert( pFanin->nRefs > 0 );
     if ( --pFanin->nRefs == 0 && (!LevelMin || pFanin->Level > LevelMin) )
-        Counter += Aig_NodeDeref_rec( pFanin, LevelMin );
+        Counter += Aig_NodeDeref_rec( pFanin, LevelMin, &Power0, pProbs );
+    if ( pProbs )
+        *pPower += Power0 + 2.0 * pProbs[pFanin->Id] * (1.0 - pProbs[pFanin->Id]);
     // skip the buffer
     if ( Aig_ObjIsBuf(pNode) )
         return Counter;
@@ -58,7 +63,9 @@ int Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin )
     pFanin = Aig_ObjFanin1(pNode);
     assert( pFanin->nRefs > 0 );
     if ( --pFanin->nRefs == 0 && (!LevelMin || pFanin->Level > LevelMin) )
-        Counter += Aig_NodeDeref_rec( pFanin, LevelMin );
+        Counter += Aig_NodeDeref_rec( pFanin, LevelMin, &Power1, pProbs );
+    if ( pProbs )
+        *pPower += Power1 + 2.0 * pProbs[pFanin->Id] * (1.0 - pProbs[pFanin->Id]);
     return Counter + 1;
 }
 
@@ -173,7 +180,7 @@ int Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t 
     assert( Aig_ObjIsNode(pNode) );
     if ( vSupp ) Vec_PtrClear( vSupp );
     Aig_ManIncrementTravId( p );
-    ConeSize1 = Aig_NodeDeref_rec( pNode, LevelMin );
+    ConeSize1 = Aig_NodeDeref_rec( pNode, LevelMin, NULL, NULL );
     Aig_NodeMffsSupp_rec( p, pNode, LevelMin, vSupp, 1, NULL );
     ConeSize2 = Aig_NodeRef_rec( pNode, LevelMin );
     assert( ConeSize1 == ConeSize2 );
@@ -192,13 +199,14 @@ int Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t 
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode )
+int Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode, float * pPower )
 {
     int ConeSize1, ConeSize2;
+    assert( (pPower != NULL) == (p->vProbs != NULL) );
     assert( !Aig_IsComplement(pNode) );
     assert( Aig_ObjIsNode(pNode) );
     Aig_ManIncrementTravId( p );
-    ConeSize1 = Aig_NodeDeref_rec( pNode, 0 );
+    ConeSize1 = Aig_NodeDeref_rec( pNode, 0, pPower, p->vProbs? (float *)p->vProbs->pArray : NULL );
     ConeSize2 = Aig_NodeRefLabel_rec( p, pNode, 0 );
     assert( ConeSize1 == ConeSize2 );
     assert( ConeSize1 > 0 );
@@ -225,7 +233,7 @@ int Aig_NodeMffsLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves 
     Aig_ManIncrementTravId( p );
     Vec_PtrForEachEntry( vLeaves, pObj, i )
         pObj->nRefs++;
-    ConeSize1 = Aig_NodeDeref_rec( pNode, 0 );
+    ConeSize1 = Aig_NodeDeref_rec( pNode, 0, NULL, NULL );
     ConeSize2 = Aig_NodeRefLabel_rec( p, pNode, 0 );
     Vec_PtrForEachEntry( vLeaves, pObj, i )
         pObj->nRefs--;
@@ -256,7 +264,7 @@ int Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     if ( LevelMax == 0 )
         return 0;
     // dereference the cut
-    ConeSize1 = Aig_NodeDeref_rec( pNode, 0 );
+    ConeSize1 = Aig_NodeDeref_rec( pNode, 0, NULL, NULL );
     // try expanding each node in the boundary
     ConeBest = AIG_INFINITY;
     pLeafBest = NULL;
@@ -264,7 +272,7 @@ int Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     {
         if ( (int)pObj->Level != LevelMax )
             continue;
-        ConeCur1 = Aig_NodeDeref_rec( pObj, 0 );
+        ConeCur1 = Aig_NodeDeref_rec( pObj, 0, NULL, NULL );
         if ( ConeBest > ConeCur1 )
         {
             ConeBest = ConeCur1;
@@ -276,7 +284,7 @@ int Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     assert( pLeafBest != NULL );
     assert( Aig_ObjIsNode(pLeafBest) );
     // deref the best leaf
-    ConeCur1 = Aig_NodeDeref_rec( pLeafBest, 0 );
+    ConeCur1 = Aig_NodeDeref_rec( pLeafBest, 0, NULL, NULL );
     // collect the cut nodes
     Vec_PtrClear( vResult );
     Aig_ManIncrementTravId( p );

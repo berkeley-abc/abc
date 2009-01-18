@@ -30,7 +30,6 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig.h"
-#include "int.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -39,6 +38,18 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
+
+typedef struct Sec_MtrStatus_t_ Sec_MtrStatus_t;
+struct Sec_MtrStatus_t_
+{
+    int         nInputs;  // the total number of inputs
+    int         nNodes;   // the total number of nodes
+    int         nOutputs; // the total number of outputs
+    int         nUnsat;   // the number of UNSAT outputs
+    int         nSat;     // the number of SAT outputs
+    int         nUndec;   // the number of undecided outputs
+    int         iOut;     // the satisfied output
+};
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -79,7 +90,7 @@ static inline Aig_Obj_t *  Saig_ObjLiToLo( Aig_Man_t * p, Aig_Obj_t * pObj )  { 
 ////////////////////////////////////////////////////////////////////////
 
 /*=== sswAbs.c ==========================================================*/
-extern Aig_Man_t *       Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fVerbose );
+extern Aig_Man_t *       Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int fVerbose );
 /*=== saigBmc.c ==========================================================*/
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame );
 extern void              Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose );
@@ -95,11 +106,11 @@ extern int               Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int n
 /*=== saigIoa.c ==========================================================*/
 extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
-/*=== saigInter.c ==========================================================*/
-extern int               Saig_Interpolate( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * pDepth );
 /*=== saigMiter.c ==========================================================*/
+extern Sec_MtrStatus_t   Sec_MiterStatus( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
 extern Aig_Man_t *       Saig_ManCreateMiterComb( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
+extern Aig_Man_t *       Saig_ManDualRail( Aig_Man_t * p, int fMiter );
 extern Aig_Man_t *       Saig_ManCreateMiterTwo( Aig_Man_t * pOld, Aig_Man_t * pNew, int nFrames );
 extern int               Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 );
 extern int               Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 );
@@ -115,10 +126,23 @@ extern Aig_Man_t *       Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, in
 extern int               Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs );
 /*=== saigScl.c ==========================================================*/
 extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
+/*=== saigSimExt.c ==========================================================*/
+//extern Vec_Int_t *       Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstPi, Ssw_Cex_t * pCex, Vec_Ptr_t * vSimInfo );
+//extern Vec_Int_t *       Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, Ssw_Cex_t * pCex );
+/*=== saigSimMv.c ==========================================================*/
+extern int               Saig_MvManSimulate( Aig_Man_t * pAig, int fVerbose );
+/*=== saigStrSim.c ==========================================================*/
+extern Vec_Int_t *       Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose, Aig_Man_t ** ppMiter );
+/*=== saigSwitch.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
 /*=== saigSynch.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManDupInitZero( Aig_Man_t * p );
 /*=== saigTrans.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManTimeframeSimplify( Aig_Man_t * pAig, int nFrames, int nFramesMax, int fInit, int fVerbose );
+/*=== saigWnd.c ==========================================================*/
+extern Aig_Man_t *       Saig_ManWindowExtract( Aig_Man_t * p, Aig_Obj_t * pObj, int nDist );
+extern Aig_Man_t *       Saig_ManWindowInsert( Aig_Man_t * p, Aig_Obj_t * pObj, int nDist, Aig_Man_t * pWnd );
+extern Aig_Obj_t *       Saig_ManFindPivot( Aig_Man_t * p );
 
 #ifdef __cplusplus
 }

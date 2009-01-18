@@ -42,7 +42,7 @@ static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCo
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare )
+Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare, float dProb )
 {
     unsigned * pTruth;
     Bdc_Fun_t * pFunc;
@@ -52,8 +52,33 @@ Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pR
     pTruth = Hop_ManConvertAigToTruth( pHop, Hop_Regular(pRoot), nVars, vTruth, 0 );
     if ( Hop_IsComplement(pRoot) )
         Extra_TruthNot( pTruth, pTruth, nVars );
-    // decompose truth table
-    Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
+    // perform power-aware decomposition
+    if ( dProb >= 0.0 )
+    {
+        float Prob = (float)2.0 * dProb * (1.0 - dProb);
+        assert( Prob >= 0.0 && Prob <= 0.5 );
+        if ( Prob >= 0.4 )
+        {
+            Extra_TruthNot( puCare, puCare, nVars );
+            if ( dProb > 0.5 ) // more 1s than 0s
+                Extra_TruthOr( pTruth, pTruth, puCare, nVars );
+            else
+                Extra_TruthSharp( pTruth, pTruth, puCare, nVars );
+            Extra_TruthNot( puCare, puCare, nVars );
+            // decompose truth table
+            Bdc_ManDecompose( p, pTruth, NULL, nVars, NULL, 1000 );
+        }
+        else
+        {
+            // decompose truth table
+            Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
+        }
+    }
+    else
+    {
+        // decompose truth table
+        Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
+    }
     // convert back into HOP
     Bdc_FuncSetCopy( Bdc_ManFunc( p, 0 ), Hop_ManConst1( pHop ) );
     for ( i = 0; i < nVars; i++ )
@@ -104,7 +129,7 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
         if ( Abc_ObjFaninNum(pObj) > 15 )
             continue;
         nNodes1 = Hop_DagSize(pObj->pData);
-        pObj->pData = Abc_NodeIfNodeResyn( p, pNtk->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj), vTruth, NULL );
+        pObj->pData = Abc_NodeIfNodeResyn( p, pNtk->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj), vTruth, NULL, -1.0 );
         nNodes2 = Hop_DagSize(pObj->pData);
         nGainTotal += nNodes1 - nNodes2;
     }

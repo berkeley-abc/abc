@@ -108,6 +108,7 @@ void Mfs_ManPrint( Mfs_Man_t * p )
 {
     if ( p->pPars->fResub )
     {
+/*
         printf( "Reduction in nodes = %5d. (%.2f %%) ", 
             p->nTotalNodesBeg-p->nTotalNodesEnd, 
             100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/p->nTotalNodesBeg );
@@ -119,6 +120,28 @@ void Mfs_ManPrint( Mfs_Man_t * p )
             Abc_NtkNodeNum(p->pNtk), p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
         if ( p->pPars->fSwapEdge )
             printf( "Swappable edges = %d. Total edges = %d. Ratio = %5.2f.\n", 
+                p->nNodesResub, Abc_NtkGetTotalFanins(p->pNtk), 1.00 * p->nNodesResub / Abc_NtkGetTotalFanins(p->pNtk) );
+        else
+            Abc_NtkMfsPrintResubStats( p );
+//        printf( "Average ratio of DCs in the resubed nodes = %.2f.\n", 1.0*p->nDcMints/(64 * p->nNodesResub) );
+*/
+        printf( "@@@-------  Node( %4d, %4.2f%% ),  ",
+            p->nTotalNodesBeg-p->nTotalNodesEnd,
+            100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/p->nTotalNodesBeg );
+        printf( "Edge( %4d, %4.2f%% ),  ",
+            p->nTotalEdgesBeg-p->nTotalEdgesEnd,
+            100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/p->nTotalEdgesBeg );
+        if (p->pPars->fPower)
+            printf( "Power( %5.2f, %4.2f%%) ",
+                 p->TotalSwitchingBeg - p->TotalSwitchingEnd,
+                 100.0*(p->TotalSwitchingBeg-p->TotalSwitchingEnd)/p->TotalSwitchingBeg );
+        printf( "\n" );
+#if 0
+        printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d.\n",
+            Abc_NtkNodeNum(p->pNtk), p->nNodesTried, p->nNodesResub, p->nTotalDivs, p->nSatCalls, p->nTimeOuts );
+#endif
+        if ( p->pPars->fSwapEdge )
+            printf( "Swappable edges = %d. Total edges = %d. Ratio = %5.2f.\n",
                 p->nNodesResub, Abc_NtkGetTotalFanins(p->pNtk), 1.00 * p->nNodesResub / Abc_NtkGetTotalFanins(p->pNtk) );
         else
             Abc_NtkMfsPrintResubStats( p );
@@ -168,6 +191,8 @@ void Mfs_ManStop( Mfs_Man_t * p )
         Aig_ManStop( p->pCare );
     if ( p->vSuppsInv )
         Vec_VecFree( (Vec_Vec_t *)p->vSuppsInv );
+    if ( p->vProbs )
+        Vec_IntFree( p->vProbs );
     Mfs_ManClean( p );
     Int_ManFree( p->pMan );
     Vec_IntFree( p->vMem );

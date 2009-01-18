@@ -65,15 +65,16 @@ typedef struct Abc_Frame_t_      Abc_Frame_t;
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
 
 /*=== main.c ===========================================================*/
@@ -103,6 +104,7 @@ extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadStore();
 extern ABC_DLL int             Abc_FrameReadStoreSize();              
 extern ABC_DLL void *          Abc_FrameReadLibLut();                    
 extern ABC_DLL void *          Abc_FrameReadLibGen();                    
+extern ABC_DLL void *          Abc_FrameReadLibGen2();                    
 extern ABC_DLL void *          Abc_FrameReadLibSuper();                  
 extern ABC_DLL void *          Abc_FrameReadLibVer();                  
 extern ABC_DLL void *          Abc_FrameReadManDd();                     
@@ -114,6 +116,7 @@ extern ABC_DLL void            Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk );
 extern ABC_DLL void            Abc_FrameSetNtkStoreSize( int nStored );  
 extern ABC_DLL void            Abc_FrameSetLibLut( void * pLib );        
 extern ABC_DLL void            Abc_FrameSetLibGen( void * pLib );        
+extern ABC_DLL void            Abc_FrameSetLibGen2( void * pLib );        
 extern ABC_DLL void            Abc_FrameSetLibSuper( void * pLib );      
 extern ABC_DLL void            Abc_FrameSetLibVer( void * pLib );      
 extern ABC_DLL void            Abc_FrameSetFlag( char * pFlag, char * pValue );

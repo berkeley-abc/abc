@@ -585,6 +585,7 @@ float If_ManMarkMapping_rec( If_Man_t * p, If_Obj_t * pObj )
 {
     If_Obj_t * pLeaf;
     If_Cut_t * pCutBest;
+    float * pSwitching = p->vSwitching? (float*)p->vSwitching->pArray : NULL;
     float aArea;
     int i;
     if ( pObj->nRefs++ || If_ObjIsCi(pObj) || If_ObjIsConst1(pObj) )
@@ -596,7 +597,10 @@ float If_ManMarkMapping_rec( If_Man_t * p, If_Obj_t * pObj )
     p->nNets += pCutBest->nLeaves;
     aArea = If_CutLutArea( p, pCutBest );
     If_CutForEachLeaf( p, pCutBest, pLeaf, i )
+    {
+        p->dPower += pSwitching? pSwitching[pLeaf->Id] : 0.0;
         aArea += If_ManMarkMapping_rec( p, pLeaf );
+    }
     return aArea;
 }
 
@@ -622,6 +626,7 @@ void If_ManMarkMapping( If_Man_t * p )
         pObj->nRefs = 0;
     }
     p->nNets = 0;
+    p->dPower = 0.0;
     p->AreaGlo = 0.0;
     If_ManForEachCo( p, pObj, i )
         p->AreaGlo += If_ManMarkMapping_rec( p, If_ObjFanin0(pObj) );

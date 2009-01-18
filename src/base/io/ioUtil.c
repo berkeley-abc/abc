@@ -338,6 +338,8 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     }
     else if ( FileType == IO_FILE_BENCH )
         Io_WriteBench( pNtkTemp, pFileName );
+    else if ( FileType == IO_FILE_BOOK )
+        Io_WriteBook( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_PLA )
         Io_WritePla( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_EQN )

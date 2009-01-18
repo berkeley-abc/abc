@@ -67,7 +67,7 @@ void Cgt_ManDetectCandidates_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nLevel
 void Cgt_ManDetectCandidates( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nLevelMax, Vec_Ptr_t * vCands )
 {
     Vec_PtrClear( vCands );
-    if ( !Aig_ObjIsNode(Aig_ObjFanin0(pObj)) )
+    if ( !Aig_ObjIsNode(pObj) )
         return;
     Aig_ManIncrementTravId( pAig );
     Cgt_ManDetectCandidates_rec( pAig, pObj, nLevelMax, vCands );
@@ -136,6 +136,67 @@ void Cgt_ManDetectFanout( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nOdcMax, Vec_P
 
 /**Function*************************************************************
 
+  Synopsis    [Computes visited nodes in the topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cgt_ManCollectVisited_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t * vVisited )
+{
+    if ( Aig_ObjIsPi(pObj) )
+        return;
+    if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(pAig, pObj);
+    assert( Aig_ObjIsNode(pObj) );
+    Cgt_ManCollectVisited_rec( pAig, Aig_ObjFanin0(pObj), vVisited );
+    Cgt_ManCollectVisited_rec( pAig, Aig_ObjFanin1(pObj), vVisited );
+    Vec_PtrPush( vVisited, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes visited nodes in the topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cgt_ManCollectVisited( Aig_Man_t * pAig, Vec_Ptr_t * vFanout, Vec_Ptr_t * vVisited )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Vec_PtrClear( vVisited );
+    Aig_ManIncrementTravId( pAig );
+    Vec_PtrForEachEntry( vFanout, pObj, i )
+        Cgt_ManCollectVisited_rec( pAig, pObj, vVisited );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Aig_Obj_t *  Aig_ObjChild0CopyVec( Vec_Ptr_t * vCopy, Aig_Obj_t * pObj )  
+{ return Aig_NotCond((Aig_Obj_t *)Vec_PtrEntry(vCopy, Aig_ObjFaninId0(pObj)), Aig_ObjFaninC0(pObj));  }
+static inline Aig_Obj_t *  Aig_ObjChild1CopyVec( Vec_Ptr_t * vCopy, Aig_Obj_t * pObj )  
+{ return Aig_NotCond((Aig_Obj_t *)Vec_PtrEntry(vCopy, Aig_ObjFaninId1(pObj)), Aig_ObjFaninC1(pObj));  }
+
+/**Function*************************************************************
+
   Synopsis    [Derives miter for clock-gating.]
 
   Description []
@@ -145,15 +206,46 @@ void Cgt_ManDetectFanout( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nOdcMax, Vec_P
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Cgt_ManConstructMiter( Cgt_Man_t * p, Aig_Man_t * pNew, Aig_Obj_t * pObjLo )
+Aig_Obj_t * Cgt_ManConstructCareCondition( Cgt_Man_t * p, Aig_Man_t * pNew, Aig_Obj_t * pObjLo, Vec_Ptr_t * vCopy0, Vec_Ptr_t * vCopy1 )
 {
-    Aig_Obj_t * pMiter, * pRoot;
+    Aig_Obj_t * pMiter, * pObj, * pTemp;
     int i;
     assert( Aig_ObjIsPi(pObjLo) );
-    pMiter = Aig_ManConst0( pNew );
+    // detect nodes and their cone
     Cgt_ManDetectFanout( p->pAig, pObjLo, p->pPars->nOdcMax, p->vFanout );
-    Vec_PtrForEachEntry( p->vFanout, pRoot, i )
-        pMiter = Aig_Or( pNew, pMiter, Aig_Exor(pNew, pRoot->pData, pRoot->pNext) );
+    Cgt_ManCollectVisited( p->pAig, p->vFanout, p->vVisited );
+    // add new variables if the observability condition depends on PI variables
+    Vec_PtrForEachEntry( p->vVisited, pObj, i )
+    {
+        assert( Aig_ObjIsNode(pObj) );
+        if ( Saig_ObjIsPi(p->pAig, Aig_ObjFanin0(pObj)) && Vec_PtrEntry(vCopy0, Aig_ObjFaninId0(pObj)) == NULL )
+        {
+            pTemp = Aig_ObjCreatePi( pNew );
+            Vec_PtrWriteEntry( vCopy0, Aig_ObjFaninId0(pObj), pTemp );
+            Vec_PtrWriteEntry( vCopy1, Aig_ObjFaninId0(pObj), pTemp );
+        }
+        if ( Saig_ObjIsPi(p->pAig, Aig_ObjFanin1(pObj)) && Vec_PtrEntry(vCopy0, Aig_ObjFaninId1(pObj)) == NULL )
+        {
+            pTemp = Aig_ObjCreatePi( pNew );
+            Vec_PtrWriteEntry( vCopy0, Aig_ObjFaninId1(pObj), pTemp );
+            Vec_PtrWriteEntry( vCopy1, Aig_ObjFaninId1(pObj), pTemp );
+        }
+    }
+    // construct AIGs for the nodes
+    Vec_PtrForEachEntry( p->vVisited, pObj, i )
+    {
+        pTemp = Aig_And( pNew, Aig_ObjChild0CopyVec(vCopy0, pObj), Aig_ObjChild1CopyVec(vCopy0, pObj) );
+        Vec_PtrWriteEntry( vCopy0, Aig_ObjId(pObj), pTemp );
+        pTemp = Aig_And( pNew, Aig_ObjChild0CopyVec(vCopy1, pObj), Aig_ObjChild1CopyVec(vCopy1, pObj) );
+        Vec_PtrWriteEntry( vCopy1, Aig_ObjId(pObj), pTemp );
+    }
+    // construct the care miter
+    pMiter = Aig_ManConst0( pNew );
+    Vec_PtrForEachEntry( p->vFanout, pObj, i )
+    {
+        pTemp = Aig_Exor( pNew, Vec_PtrEntry(vCopy0, Aig_ObjId(pObj)), Vec_PtrEntry(vCopy1, Aig_ObjId(pObj)) );
+        pMiter = Aig_Or( pNew, pMiter, pTemp );
+    }
     return pMiter;
 }
 
@@ -171,11 +263,12 @@ Aig_Obj_t * Cgt_ManConstructMiter( Cgt_Man_t * p, Aig_Man_t * pNew, Aig_Obj_t * 
 Aig_Man_t * Cgt_ManDeriveAigForGating( Cgt_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pCare, * pMiter;
+    Vec_Ptr_t * vCopy0, * vCopy1;
     int i;
     assert( Aig_ManRegNum(p->pAig) );
-    Aig_ManCleanNext( p->pAig );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p->pAig) );
+    pNew->pName = Aig_UtilStrsav( "CG_miter" );
     // build the first frame
     Aig_ManConst1(p->pAig)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p->pAig, pObj, i )
@@ -184,22 +277,124 @@ Aig_Man_t * Cgt_ManDeriveAigForGating( Cgt_Man_t * p )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 //    Saig_ManForEachPo( p->pAig, pObj, i )
 //        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-    // build the second frame
-    Aig_ManConst1(p->pAig)->pNext = Aig_ManConst1(pNew);
-    Saig_ManForEachPi( p->pAig, pObj, i )
-        pObj->pNext = Aig_ObjCreatePi( pNew );
-    Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
-        pObjLo->pNext = Aig_ObjChild0Copy(pObjLi);
-    Aig_ManForEachNode( p->pAig, pObj, i )
-        if ( Aig_ObjLevel(pObj) <= p->pPars->nOdcMax )
-            pObj->pNext = Aig_And( pNew, Aig_ObjChild0Next(pObj), Aig_ObjChild1Next(pObj) );
-    // construct clock-gating miters for each register input
-    Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
-        pObjLi->pData = Aig_ObjCreatePo( pNew, Cgt_ManConstructMiter(p, pNew, pObjLo) );
-    Aig_ManCleanNext( p->pAig );
-    Aig_ManSetPioNumbers( p->pAig );
+    if ( p->pPars->nOdcMax > 0 )
+    {
+        // create storage for observability conditions
+        vCopy0 = Vec_PtrStart( Aig_ManObjNumMax(p->pAig) );
+        vCopy1 = Vec_PtrStart( Aig_ManObjNumMax(p->pAig) );
+        // initialize register outputs
+        Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+        {
+            Vec_PtrWriteEntry( vCopy0, Aig_ObjId(pObjLo), Aig_ObjChild0Copy(pObjLi) );
+            Vec_PtrWriteEntry( vCopy1, Aig_ObjId(pObjLo), Aig_ObjChild0Copy(pObjLi) );
+        }
+        // compute observability condition for each latch output
+        Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+        {
+            // set the constants
+            Vec_PtrWriteEntry( vCopy0, Aig_ObjId(pObjLo), Aig_ManConst0(pNew) );
+            Vec_PtrWriteEntry( vCopy1, Aig_ObjId(pObjLo), Aig_ManConst1(pNew) );
+            // compute condition
+            pCare = Cgt_ManConstructCareCondition( p, pNew, pObjLo, vCopy0, vCopy1 );
+            // restore the values
+            Vec_PtrWriteEntry( vCopy0, Aig_ObjId(pObjLo), Aig_ObjChild0Copy(pObjLi) );
+            Vec_PtrWriteEntry( vCopy1, Aig_ObjId(pObjLo), Aig_ObjChild0Copy(pObjLi) );
+            // compute the miter
+            pMiter = Aig_Exor( pNew, pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
+            pMiter = Aig_And( pNew, pMiter, pCare );
+            pObjLi->pData = Aig_ObjCreatePo( pNew, pMiter );
+        }
+        Vec_PtrFree( vCopy0 );
+        Vec_PtrFree( vCopy1 );
+    }
+    else
+    {
+        // construct clock-gating miters for each register input
+        Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+        {
+            pMiter = Aig_Exor( pNew, pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
+            pObjLi->pData = Aig_ObjCreatePo( pNew, pMiter );
+        }
+    }
     Aig_ManCleanup( pNew );
+    Aig_ManSetPioNumbers( pNew );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds relevant constraints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Cgt_ManConstructCare_rec( Aig_Man_t * pCare, Aig_Obj_t * pObj, Aig_Man_t * pNew )
+{
+    Aig_Obj_t * pObj0, * pObj1;
+    if ( Aig_ObjIsTravIdCurrent( pCare, pObj ) )
+        return pObj->pData;
+    Aig_ObjSetTravIdCurrent( pCare, pObj );
+    if ( Aig_ObjIsPi(pObj) )
+        return pObj->pData = NULL;
+    pObj0 = Cgt_ManConstructCare_rec( pCare, Aig_ObjFanin0(pObj), pNew );
+    if ( pObj0 == NULL )
+        return pObj->pData = NULL;
+    pObj1 = Cgt_ManConstructCare_rec( pCare, Aig_ObjFanin1(pObj), pNew );
+    if ( pObj1 == NULL )
+        return pObj->pData = NULL;
+    pObj0 = Aig_NotCond( pObj0, Aig_ObjFaninC0(pObj) );
+    pObj1 = Aig_NotCond( pObj1, Aig_ObjFaninC1(pObj) );
+    return pObj->pData = Aig_And( pNew, pObj0, pObj1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Builds constraints belonging to the given partition.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cgt_ManConstructCare( Aig_Man_t * pNew, Aig_Man_t * pCare, Vec_Vec_t * vSuppsInv, Vec_Ptr_t * vLeaves )
+{
+    Vec_Int_t * vOuts;
+    Aig_Obj_t * pLeaf, * pPi, * pPo, * pObjAig;
+    int i, k, iOut;
+    // go through the PIs of the partition
+    // label the corresponding PIs of the care set
+    Aig_ManIncrementTravId( pCare );
+    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    {
+        pPi = Aig_ManPi( pCare, Aig_ObjPioNum(pLeaf) );
+        Aig_ObjSetTravIdCurrent( pCare, pPi );
+        pPi->pData = pLeaf->pData;
+    }
+    // construct the constraints
+    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    {
+        vOuts = Vec_VecEntry( vSuppsInv, Aig_ObjPioNum(pLeaf) );
+        Vec_IntForEachEntry( vOuts, iOut, k )
+        {
+            pPo = Aig_ManPo( pCare, iOut );
+            if ( Aig_ObjIsTravIdCurrent( pCare, pPo ) )
+                continue;
+            Aig_ObjSetTravIdCurrent( pCare, pPo );
+            if ( Aig_ObjFanin0(pPo) == Aig_ManConst1(pCare) )
+                continue;
+            pObjAig = Cgt_ManConstructCare_rec( pCare, Aig_ObjFanin0(pPo), pNew );
+            if ( pObjAig == NULL )
+                continue;
+            pObjAig = Aig_NotCond( pObjAig, Aig_ObjFaninC0(pPo) );
+            Aig_ObjCreatePo( pNew, pObjAig );
+        }
+    }
 }
 
 /**Function*************************************************************
@@ -213,15 +408,19 @@ Aig_Man_t * Cgt_ManDeriveAigForGating( Cgt_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Cgt_ManDupPartition_rec( Aig_Man_t * pNew, Aig_Man_t * pAig, Aig_Obj_t * pObj )
+Aig_Obj_t * Cgt_ManDupPartition_rec( Aig_Man_t * pNew, Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t * vLeaves )
 {
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return pObj->pData;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
     if ( Aig_ObjIsPi(pObj) )
-        return pObj->pData = Aig_ObjCreatePi( pNew );
-    Cgt_ManDupPartition_rec( pNew, pAig, Aig_ObjFanin0(pObj) );
-    Cgt_ManDupPartition_rec( pNew, pAig, Aig_ObjFanin1(pObj) );
+    {
+        pObj->pData = Aig_ObjCreatePi( pNew );
+        Vec_PtrPush( vLeaves, pObj );
+        return pObj->pData;
+    }
+    Cgt_ManDupPartition_rec( pNew, pAig, Aig_ObjFanin0(pObj), vLeaves );
+    Cgt_ManDupPartition_rec( pNew, pAig, Aig_ObjFanin1(pObj), vLeaves );
     return pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 }
 
@@ -236,30 +435,76 @@ Aig_Obj_t * Cgt_ManDupPartition_rec( Aig_Man_t * pNew, Aig_Man_t * pAig, Aig_Obj
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Cgt_ManDupPartition( Aig_Man_t * pAig, int nVarsMin, int nFlopsMin, int iStart )
+Aig_Man_t * Cgt_ManDupPartition( Aig_Man_t * pFrame, int nVarsMin, int nFlopsMin, int iStart, Aig_Man_t * pCare, Vec_Vec_t * vSuppsInv, int * pnOutputs )
 {
+    Vec_Ptr_t * vRoots, * vLeaves, * vPos;
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManRegNum(pAig) == 0 );
+    assert( Aig_ManRegNum(pFrame) == 0 );
+    vRoots = Vec_PtrAlloc( 100 );
+    vLeaves = Vec_PtrAlloc( 100 ); 
+    vPos = Vec_PtrAlloc( 100 );
     pNew = Aig_ManStart( nVarsMin );
-    Aig_ManIncrementTravId( pAig );
-    Aig_ManConst1(pAig)->pData = Aig_ManConst1(pNew);
-    Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
-    for ( i = iStart; i < iStart + nFlopsMin && i < Aig_ManPoNum(pAig); i++ )
+    pNew->pName = Aig_UtilStrsav( "partition" );
+    Aig_ManIncrementTravId( pFrame );
+    Aig_ManConst1(pFrame)->pData = Aig_ManConst1(pNew);
+    Aig_ObjSetTravIdCurrent( pFrame, Aig_ManConst1(pFrame) );
+    for ( i = iStart; i < iStart + nFlopsMin && i < Aig_ManPoNum(pFrame); i++ )
     {
-        pObj = Aig_ManPo( pAig, i );
-        Cgt_ManDupPartition_rec( pNew, pAig, Aig_ObjFanin0(pObj) );
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj = Aig_ManPo( pFrame, i );
+        Cgt_ManDupPartition_rec( pNew, pFrame, Aig_ObjFanin0(pObj), vLeaves );
+        Vec_PtrPush( vRoots, Aig_ObjChild0Copy(pObj) );
+        Vec_PtrPush( vPos, pObj );
     }
-    for ( ; Aig_ManObjNum(pNew) < nVarsMin && i < Aig_ManPoNum(pAig); i++ )
+    for ( ; Aig_ManObjNum(pNew) < nVarsMin && i < Aig_ManPoNum(pFrame); i++ )
     {
-        pObj = Aig_ManPo( pAig, i );
-        Cgt_ManDupPartition_rec( pNew, pAig, Aig_ObjFanin0(pObj) );
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObj = Aig_ManPo( pFrame, i );
+        Cgt_ManDupPartition_rec( pNew, pFrame, Aig_ObjFanin0(pObj), vLeaves );
+        Vec_PtrPush( vRoots, Aig_ObjChild0Copy(pObj) );
+        Vec_PtrPush( vPos, pObj );
     }
-    assert( nFlopsMin >= Aig_ManPoNum(pAig) || Aig_ManPoNum(pNew) >= nFlopsMin );
+    assert( nFlopsMin >= Vec_PtrSize(vRoots) || Vec_PtrSize(vRoots) >= nFlopsMin );
+    // create constaints
+    if ( pCare )
+        Cgt_ManConstructCare( pNew, pCare, vSuppsInv, vLeaves );
+    // create POs
+    Vec_PtrForEachEntry( vPos, pObj, i )
+        pObj->pData = Aig_ObjCreatePo( pNew, Vec_PtrEntry(vRoots, i) );
+    if ( pnOutputs != NULL )
+        *pnOutputs = Vec_PtrSize( vPos );
+    Vec_PtrFree( vRoots );
+    Vec_PtrFree( vLeaves );
+    Vec_PtrFree( vPos );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Implements one clock-gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Cgt_ManBuildClockGate( Aig_Man_t * pNew, Vec_Ptr_t * vGates )
+{
+    Aig_Obj_t * pGate, * pTotal;
+    int i;
+    assert( Vec_PtrSize(vGates) > 0 );
+    pTotal = Aig_ManConst0(pNew);
+    Vec_PtrForEachEntry( vGates, pGate, i )
+    {
+        if ( Aig_Regular(pGate)->pNext )
+            pGate = Aig_NotCond( Aig_Regular(pGate)->pNext, Aig_IsComplement(pGate) );
+        else
+            pGate = Aig_NotCond( Aig_Regular(pGate)->pData, Aig_IsComplement(pGate) );
+        pTotal = Aig_Or( pNew, pTotal, pGate );
+    }
+    return pTotal;
 }
 
 /**Function*************************************************************
@@ -273,34 +518,74 @@ Aig_Man_t * Cgt_ManDupPartition( Aig_Man_t * pAig, int nVarsMin, int nFlopsMin, 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Cgt_ManDeriveGatedAig( Aig_Man_t * pAig, Vec_Ptr_t * vGates )
+Aig_Man_t * Cgt_ManDeriveGatedAig( Aig_Man_t * pAig, Vec_Vec_t * vGates, int fReduce, int * pnUsedNodes )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo, * pGate, * pGateNew;
-    int i;
+    Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo, * pGateNew;
+    Vec_Ptr_t * vOne;
+    int i, k;
+    Aig_ManCleanNext( pAig );
+    // label nodes
+    Vec_VecForEachEntry( vGates, pObj, i, k )
+    {
+        if ( Aig_IsComplement(pObj) )
+            Aig_Regular(pObj)->fMarkB = 1;
+        else
+            Aig_Regular(pObj)->fMarkA = 1;
+    }
+    // construct AIG
     assert( Aig_ManRegNum(pAig) );
     pNew = Aig_ManStart( Aig_ManObjNumMax(pAig) );
+    pNew->pName = Aig_UtilStrsav( pAig->pName );
+    pNew->pSpec = Aig_UtilStrsav( pAig->pSpec );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( pAig, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
-    Aig_ManForEachNode( pAig, pObj, i )
-        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    if ( fReduce )
+    {
+        Aig_ManForEachNode( pAig, pObj, i )
+        {
+            assert( !(pObj->fMarkA && pObj->fMarkB) );
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+            if ( pObj->fMarkA )
+            {
+                pObj->pNext = pObj->pData;
+                pObj->pData = Aig_ManConst0(pNew);
+            }
+            else if ( pObj->fMarkB )
+            {
+                pObj->pNext = pObj->pData;
+                pObj->pData = Aig_ManConst1(pNew);
+            }
+        }
+    }
+    else
+    {
+        Aig_ManForEachNode( pAig, pObj, i )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    }
+    if ( pnUsedNodes != NULL )
+        *pnUsedNodes = Aig_ManNodeNum(pNew);
     Saig_ManForEachPo( pAig, pObj, i )
         pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
-        pGate = Vec_PtrEntry( vGates, i );
-        if ( pGate == NULL )
+        vOne = Vec_VecEntry( vGates, i );
+        if ( Vec_PtrSize(vOne) == 0 )
             pObjNew = Aig_ObjChild0Copy(pObjLi);
         else
         {
-            pGateNew = Aig_NotCond( Aig_Regular(pGate)->pData, Aig_IsComplement(pGate) );
+//            pGateNew = Aig_NotCond( Aig_Regular(pGate)->pData, Aig_IsComplement(pGate) );
+            pGateNew = Cgt_ManBuildClockGate( pNew, vOne );
             pObjNew = Aig_Mux( pNew, pGateNew, pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
         }
         pObjLi->pData = Aig_ObjCreatePo( pNew, pObjNew );
     }
     Aig_ManCleanup( pNew );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(pAig) );
+    // unlabel nodes
+    Aig_ManCleanMarkAB( pAig );
+    Aig_ManCleanNext( pAig );
     return pNew;
 }
 

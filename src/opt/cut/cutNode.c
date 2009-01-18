@@ -393,6 +393,13 @@ p->timeMerge += clock() - clk;
             Vec_IntPush( p->vCutPairs, ((pCut->Num1 << 16) | pCut->Num0) );
         Vec_IntWriteEntry( p->vNodeCuts, Node, Vec_IntSize(p->vCutPairs) - Vec_IntEntry(p->vNodeStarts, Node) );
     }
+    if ( p->pParams->fRecordAig )
+    {
+        extern void Aig_RManRecord( unsigned * pTruth, int nVarsInit );
+        Cut_ListForEachCut( pList, pCut )
+            if ( Cut_CutReadLeaveNum(pCut) > 4 )
+                Aig_RManRecord( Cut_CutReadTruth(pCut), Cut_CutReadLeaveNum(pCut) );
+    }
     // check if the node is over the list
     if ( p->nNodeCuts == p->pParams->nKeepMax )
         p->nCutsLimit++;

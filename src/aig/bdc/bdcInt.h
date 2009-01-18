@@ -124,7 +124,7 @@ struct Bdc_Man_t_
 static inline Bdc_Fun_t * Bdc_FunNew( Bdc_Man_t * p )                   { Bdc_Fun_t * pRes; if ( p->nNodes >= p->nNodesAlloc || p->nNodesNew >= p->nNodesMax ) return NULL; pRes = p->pNodes + p->nNodes++; p->nNodesNew++; memset( pRes, 0, sizeof(Bdc_Fun_t) ); return pRes; }
 static inline Bdc_Fun_t * Bdc_FunWithId( Bdc_Man_t * p, int Id )        { assert( Id < p->nNodes ); return p->pNodes + Id; }
 static inline int         Bdc_FunId( Bdc_Man_t * p, Bdc_Fun_t * pFun )  { return pFun - p->pNodes; }
-static inline void        Bdc_IsfStart( Bdc_Man_t * p, Bdc_Isf_t * pF ) { pF->uSupp = 0; pF->uUniq = 0; pF->puOn = Vec_IntFetch( p->vMemory, p->nWords ); pF->puOff = Vec_IntFetch( p->vMemory, p->nWords ); }
+static inline void        Bdc_IsfStart( Bdc_Man_t * p, Bdc_Isf_t * pF ) { pF->uSupp = 0; pF->uUniq = 0; pF->puOn = Vec_IntFetch( p->vMemory, p->nWords ); pF->puOff = Vec_IntFetch( p->vMemory, p->nWords ); assert( pF->puOff && pF->puOn ); }
 static inline void        Bdc_IsfClean( Bdc_Isf_t * p )                 { p->uSupp = 0; p->uUniq = 0;                                      }
 static inline void        Bdc_IsfCopy( Bdc_Isf_t * p, Bdc_Isf_t * q )   { Bdc_Isf_t T = *p; *p = *q; *q = T;                               }
 static inline void        Bdc_IsfNot( Bdc_Isf_t * p )                   { unsigned * puT = p->puOn; p->puOn = p->puOff; p->puOff = puT;    }

@@ -235,7 +235,7 @@ int Dar_RefactTryGraph( Aig_Man_t * pAig, Aig_Obj_t * pRoot, Vec_Ptr_t * vCut, K
     {
         pNode->pFunc = Vec_PtrEntry(vCut, i);
         pNode->Level = Aig_Regular(pNode->pFunc)->Level;
-        assert( Aig_Regular(pNode->pFunc)->Level < (1<<14)-1 );
+        assert( Aig_Regular(pNode->pFunc)->Level < (1<<24)-1 );
     }
 //printf( "Trying:\n" );
     // compute the AIG size after adding the internal nodes

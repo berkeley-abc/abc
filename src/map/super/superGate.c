@@ -345,7 +345,12 @@ Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGat
                     continue;
             }
         }
-
+/*
+        if ( strcmp(Mio_GateReadName(ppGates[k]), "MUX2IX0") == 0 )
+        {
+            int s = 0;
+        }
+*/
         // select the subset of gates to be considered with this root gate
         // all the gates past this point will lead to delay larger than the limit
         tDelayMio = (float)Mio_GateReadDelayMax(ppGates[k]);

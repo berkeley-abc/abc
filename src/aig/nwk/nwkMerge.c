@@ -913,7 +913,7 @@ int Nwk_ManCountTotalFanins( Nwk_Obj_t * pLut, Nwk_Obj_t * pCand )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwl_ManCollectOverlapCands( Nwk_Obj_t * pLut, Vec_Ptr_t * vCands, Nwk_LMPars_t * pPars )
+void Nwk_ManCollectOverlapCands( Nwk_Obj_t * pLut, Vec_Ptr_t * vCands, Nwk_LMPars_t * pPars )
 {
     Nwk_Obj_t * pFanin, * pObj;
     int i, k;
@@ -985,7 +985,7 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
     {
         if ( Nwk_ObjFaninNum(pLut) > pPars->nMaxLutSize )
             continue;
-        Nwl_ManCollectOverlapCands( pLut, vCands1, pPars );
+        Nwk_ManCollectOverlapCands( pLut, vCands1, pPars );
         if ( pPars->fUseDiffSupp )
             Nwk_ManCollectNonOverlapCands( pLut, vStart, vNext, vCands2, pPars );
         if ( Vec_PtrSize(vCands1) == 0 && Vec_PtrSize(vCands2) == 0 )
@@ -1022,9 +1022,11 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
         Nwk_ManGraphReportMemoryUsage( p );
     }
     vResult = p->vPairs; p->vPairs = NULL;
+/*
     for ( i = 0; i < vResult->nSize; i += 2 )
         printf( "(%d,%d) ", vResult->pArray[i], vResult->pArray[i+1] );
     printf( "\n" );
+*/
     Nwk_ManGraphFree( p );
     return vResult;
 }

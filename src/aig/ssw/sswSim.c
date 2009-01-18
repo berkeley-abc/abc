@@ -200,19 +200,21 @@ int Ssw_SmlCheckXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * p
 {
     unsigned * pSimLi, * pSimLo, * pSimCand;
     int k;
+    assert( pObjLo->fPhase == 0 );
+    // pObjLi->fPhase may be 1, but the LI simulation data is not complemented!
     pSimCand = Ssw_ObjSim( p, Aig_Regular(pCand)->Id );
     pSimLi   = Ssw_ObjSim( p, pObjLi->Id );
     pSimLo   = Ssw_ObjSim( p, pObjLo->Id );
-    if ( !Aig_IsComplement(pCand) )
+    if ( Aig_Regular(pCand)->fPhase ^ Aig_IsComplement(pCand) )
     {
         for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
-            if ( pSimCand[k] & (pSimLi[k] ^ pSimLo[k]) )
+            if ( ~pSimCand[k] & (pSimLi[k] ^ pSimLo[k]) )
                 return 0;
     }
     else
     {
         for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
-            if ( ~pSimCand[k] & (pSimLi[k] ^ pSimLo[k]) )
+            if ( pSimCand[k] & (pSimLi[k] ^ pSimLo[k]) )
                 return 0;
     }
     return 1;
@@ -233,19 +235,45 @@ int Ssw_SmlCountXorImplication( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * p
 {
     unsigned * pSimLi, * pSimLo, * pSimCand;
     int k, Counter = 0;
+    assert( pObjLo->fPhase == 0 );
+    // pObjLi->fPhase may be 1, but the LI simulation data is not complemented!
     pSimCand = Ssw_ObjSim( p, Aig_Regular(pCand)->Id );
     pSimLi   = Ssw_ObjSim( p, pObjLi->Id );
     pSimLo   = Ssw_ObjSim( p, pObjLo->Id );
-    if ( !Aig_IsComplement(pCand) )
-    {
-        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
-            Counter += Aig_WordCountOnes(pSimCand[k] & ~(pSimLi[k] ^ pSimLo[k]));
-    }
-    else
+    if ( Aig_Regular(pCand)->fPhase ^ Aig_IsComplement(pCand) )
     {
         for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
             Counter += Aig_WordCountOnes(~pSimCand[k] & ~(pSimLi[k] ^ pSimLo[k]));
     }
+    else
+    {
+        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+            Counter += Aig_WordCountOnes(pSimCand[k] & ~(pSimLi[k] ^ pSimLo[k]));
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in the implication.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlCountEqual( Ssw_Sml_t * p, Aig_Obj_t * pObjLi, Aig_Obj_t * pObjLo )
+{
+    unsigned * pSimLi, * pSimLo;
+    int k, Counter = 0;
+    assert( pObjLo->fPhase == 0 );
+    // pObjLi->fPhase may be 1, but the LI simulation data is not complemented!
+    pSimLi   = Ssw_ObjSim( p, pObjLi->Id );
+    pSimLo   = Ssw_ObjSim( p, pObjLo->Id );
+    for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+        Counter += Aig_WordCountOnes( ~(pSimLi[k] ^ pSimLo[k]) );
     return Counter;
 }
 
@@ -273,7 +301,7 @@ int Ssw_SmlNodeIsZero( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of one's in the patten of the output.]
+  Synopsis    [Counts the number of one's in the patten the object.]
 
   Description []
                
@@ -282,13 +310,55 @@ int Ssw_SmlNodeIsZero( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SmlNodeCountOnes( Ssw_Sml_t * p, Aig_Obj_t * pObj )
+int Ssw_SmlNodeCountOnesReal( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
     int i, Counter = 0;
-    pSims = Ssw_ObjSim(p, pObj->Id);
+    pSims = Ssw_ObjSim(p, Aig_Regular(pObj)->Id);
+    if ( Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) )
+    {
+        for ( i = 0; i < p->nWordsTotal; i++ )
+            Counter += Aig_WordCountOnes( ~pSims[i] );
+    }
+    else
+    {
+        for ( i = 0; i < p->nWordsTotal; i++ )
+            Counter += Aig_WordCountOnes( pSims[i] );
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of one's in the patten the object.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlNodeCountOnesRealVec( Ssw_Sml_t * p, Vec_Ptr_t * vObjs )
+{
+    Aig_Obj_t * pObj;
+    unsigned * pSims, uWord;
+    int i, k, Counter = 0;
+    if ( Vec_PtrSize(vObjs) == 0 )
+        return 0;
     for ( i = 0; i < p->nWordsTotal; i++ )
-        Counter += Aig_WordCountOnes( pSims[i] );
+    {
+        uWord = 0;
+        Vec_PtrForEachEntry( vObjs, pObj, k )
+        {
+            pSims = Ssw_ObjSim(p, Aig_Regular(pObj)->Id);
+            if ( Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) )
+                uWord |= ~pSims[i];
+            else
+                uWord |= pSims[i];
+        }
+        Counter += Aig_WordCountOnes( uWord );
+    }
     return Counter;
 }
 
@@ -889,6 +959,79 @@ p->nSimRounds++;
 
 /**Function*************************************************************
 
+  Synopsis    [Converts simulation information to be not normallized.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlUnnormalize( Ssw_Sml_t * p )
+{
+    Aig_Obj_t * pObj;
+    unsigned * pSims;
+    int i, k;
+    // convert constant 1
+    pSims  = Ssw_ObjSim( p, 0 );
+    for ( i = 0; i < p->nWordsFrame; i++ )
+        pSims[i] = ~pSims[i];
+    // convert internal nodes
+    Aig_ManForEachNode( p->pAig, pObj, k )
+    {
+        if ( pObj->fPhase == 0 )
+            continue;
+        pSims  = Ssw_ObjSim( p, pObj->Id );
+        for ( i = 0; i < p->nWordsFrame; i++ )
+            pSims[i] = ~pSims[i];
+    }
+    // PIs/POs are always stored in their natural state
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates AIG manager.]
+
+  Description [Assumes that the PI simulation info is attached.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_SmlSimulateOneDyn_rec( Ssw_Sml_t * p, Aig_Obj_t * pObj, int f, int * pVisited, int nVisCounter )
+{
+//    if ( Aig_ObjIsTravIdCurrent(p->pAig, pObj) )
+//        return;
+//    Aig_ObjSetTravIdCurrent(p->pAig, pObj);
+    if ( pVisited[p->nFrames*pObj->Id+f] == nVisCounter )
+        return;
+    pVisited[p->nFrames*pObj->Id+f] = nVisCounter;
+    if ( Saig_ObjIsPi( p->pAig, pObj ) || Aig_ObjIsConst1(pObj) )
+        return;
+    if ( Saig_ObjIsLo( p->pAig, pObj ) )
+    {
+        if ( f == 0 )
+            return;
+        Ssw_SmlSimulateOneDyn_rec( p, Saig_ObjLoToLi(p->pAig, pObj), f-1, pVisited, nVisCounter );
+        Ssw_SmlNodeTransferNext( p, Saig_ObjLoToLi(p->pAig, pObj), pObj, f-1 );
+        return;
+    }
+    if ( Saig_ObjIsLi( p->pAig, pObj ) )
+    {
+        Ssw_SmlSimulateOneDyn_rec( p, Aig_ObjFanin0(pObj), f, pVisited, nVisCounter );
+        Ssw_SmlNodeCopyFanin( p, pObj, f );
+        return;
+    }
+    assert( Aig_ObjIsNode(pObj) );
+    Ssw_SmlSimulateOneDyn_rec( p, Aig_ObjFanin0(pObj), f, pVisited, nVisCounter );
+    Ssw_SmlSimulateOneDyn_rec( p, Aig_ObjFanin1(pObj), f, pVisited, nVisCounter );
+    Ssw_SmlNodeSimulate( p, pObj, f );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Simulates AIG manager.]
 
   Description [Assumes that the PI simulation info is attached.]
@@ -974,22 +1117,6 @@ void Ssw_SmlStop( Ssw_Sml_t * p )
     free( p );
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Deallocates simulation manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ssw_SmlNumFrames( Ssw_Sml_t * p )
-{
-    return p->nFrames;
-}
-
 
 /**Function*************************************************************
 
@@ -1050,6 +1177,56 @@ void Ssw_SmlResimulateSeq( Ssw_Sml_t * p )
     p->fNonConstOut = Ssw_SmlCheckNonConstOutputs( p );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of frames simulated in the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlNumFrames( Ssw_Sml_t * p )
+{
+    return p->nFrames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the total number of simulation words.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlNumWordsTotal( Ssw_Sml_t * p )
+{
+    return p->nWordsTotal;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the simulation info of the node.]
+
+  Description [The simulation info is normalized unless procedure
+  Ssw_SmlUnnormalize() is called in advance.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned * Ssw_SmlSimInfo( Ssw_Sml_t * p, Aig_Obj_t * pObj )
+{
+    assert( !Aig_IsComplement(pObj) );
+    return Ssw_ObjSim( p, pObj->Id );
+}
 
 
 /**Function*************************************************************

@@ -45,7 +45,6 @@ typedef struct Ssw_Man_t_ Ssw_Man_t; // signal correspondence manager
 typedef struct Ssw_Frm_t_ Ssw_Frm_t; // unrolled frames manager
 typedef struct Ssw_Sat_t_ Ssw_Sat_t; // SAT solver manager
 typedef struct Ssw_Cla_t_ Ssw_Cla_t; // equivalence classe manager
-typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager
 
 struct Ssw_Man_t_
 {
@@ -86,8 +85,14 @@ struct Ssw_Man_t_
     int              nSRMiterMaxId;  // max ID after which the last frame begins
     Vec_Ptr_t *      vNewLos;        // new time frame LOs of to constrain
     Vec_Int_t *      vNewPos;        // new time frame POs of to add constraints
-    // sequential simulator
-    Ssw_Sml_t *      pSml;
+    int *            pVisited;       // flags to label visited nodes in each frame
+    int              nVisCounter;    // the traversal ID
+    // sequential simulation
+    Ssw_Sml_t *      pSml;           // the simulator
+    int              iNodeStart;     // the first node considered
+    int              iNodeLast;      // the last node considered
+    Vec_Ptr_t *      vResimConsts;   // resimulation constants
+    Vec_Ptr_t *      vResimClasses;  // resimulation classes
     // counter example storage
     int              nPatWords;      // the number of words in the counter example
     unsigned *       pPatWords;      // the counter example
@@ -201,11 +206,11 @@ extern void          Ssw_ClassesCollectClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, 
 extern void          Ssw_ClassesCheck( Ssw_Cla_t * p );
 extern void          Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose );
 extern void          Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj );
-extern Ssw_Cla_t *   Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, int fVerbose );
+extern Ssw_Cla_t *   Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int nMaxLevs, int fVerbose );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareTargets( Aig_Man_t * pAig );
 extern Ssw_Cla_t *   Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses );
-extern Ssw_Cla_t *   Ssw_ClassesFromIslands( Aig_Man_t * pMiter, Vec_Int_t * vPairs );
+extern Ssw_Cla_t *   Ssw_ClassesPreparePairsSimple( Aig_Man_t * pMiter, Vec_Int_t * vPairs );
 extern int           Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive );
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
 extern int           Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive );
@@ -242,13 +247,12 @@ extern void          Ssw_SmlAssignRandomFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, 
 extern Ssw_Sml_t *   Ssw_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame );
 extern void          Ssw_SmlClean( Ssw_Sml_t * p );
 extern void          Ssw_SmlStop( Ssw_Sml_t * p );
-extern int           Ssw_SmlNumFrames( Ssw_Sml_t * p );
 extern void          Ssw_SmlObjAssignConst( Ssw_Sml_t * p, Aig_Obj_t * pObj, int fConst1, int iFrame );
 extern void          Ssw_SmlObjSetWord( Ssw_Sml_t * p, Aig_Obj_t * pObj, unsigned Word, int iWord, int iFrame );
 extern void          Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat );
 extern void          Ssw_SmlSimulateOne( Ssw_Sml_t * p );
 extern void          Ssw_SmlSimulateOneFrame( Ssw_Sml_t * p );
-extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
+extern void          Ssw_SmlSimulateOneDyn_rec( Ssw_Sml_t * p, Aig_Obj_t * pObj, int f, int * pVisited, int nVisCounter );
 extern void          Ssw_SmlResimulateSeq( Ssw_Sml_t * p );
 /*=== sswSimSat.c ===================================================*/
 extern void          Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr );

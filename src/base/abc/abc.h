@@ -154,7 +154,12 @@ struct Abc_Obj_t_ // 12 words
     // miscellaneous
     void *            pData;         // the network specific data (SOP, BDD, gate, equiv class, etc)
     Abc_Obj_t *       pNext;         // the next pointer in the hash table
-    Abc_Obj_t *       pCopy;         // the copy of this object
+    union {                          // temporary store for user's data
+        Abc_Obj_t *   pCopy;         // the copy of this object
+        void *        pTemp;
+        int           iTemp;
+        float         dTemp;
+    };
     Hop_Obj_t *       pEquiv;        // pointer to the HAIG node
 };
 
@@ -227,14 +232,14 @@ struct Abc_Lib_t_
 //#pragma warning( disable : 4273 )
 
 #ifdef WIN32
-#define DLLEXPORT __declspec(dllexport)
-#define DLLIMPORT __declspec(dllimport)
+#define ABC_DLLEXPORT __declspec(dllexport)
+#define ABC_DLLIMPORT __declspec(dllimport)
 #else  /* defined(WIN32) */
-#define DLLIMPORT
+#define ABC_DLLIMPORT
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL DLLIMPORT
+#define ABC_DLL ABC_DLLIMPORT
 #endif
 
 // maximum/minimum operators
@@ -748,7 +753,8 @@ extern ABC_DLL bool               Abc_NodeIsBuf( Abc_Obj_t * pNode );
 extern ABC_DLL bool               Abc_NodeIsInv( Abc_Obj_t * pNode );    
 extern ABC_DLL void               Abc_NodeComplement( Abc_Obj_t * pNode );
 /*=== abcPrint.c ==========================================================*/
-extern ABC_DLL void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes );
+extern ABC_DLL float              Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib, int fPrintMuxes, int fPower );
 extern ABC_DLL void               Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk );

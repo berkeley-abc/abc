@@ -662,6 +662,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
                 }
             }
 
+            fflush( pAbc->Out );
             status = Cmd_CommandExecute( pAbc, line );
         }
         while ( status == 0 );

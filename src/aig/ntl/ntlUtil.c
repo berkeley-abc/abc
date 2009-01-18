@@ -424,7 +424,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
     vParts = Vec_PtrAlloc( 100 );
     for ( i = 0; i <= ClassMax; i++ )
     {
-        if ( pClassNums[i] < nSizeMax )
+        if ( pClassNums[i] == 0 || pClassNums[i] < nSizeMax )
             continue;
         vPart = Vec_IntAlloc( pClassNums[i] );
         Vec_IntForEachEntry( pMan->vRegClasses, Class, k )

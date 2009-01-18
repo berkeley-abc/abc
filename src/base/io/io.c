@@ -48,6 +48,7 @@ static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlifMv ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteBook   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCellNet( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -102,6 +103,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif_mv", IoCommandWriteBlifMv,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_book",    IoCommandWriteBook,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cellnet", IoCommandWriteCellNet, 0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_counter", IoCommandWriteCounter, 0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cnf",     IoCommandWriteCnf,     0 );
@@ -1474,6 +1476,49 @@ usage:
     fprintf( pAbc->Err, "\t-l     : toggle using LUTs in the output [default = %s]\n", fUseLuts? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .bench)\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteBook( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pFileName;
+        int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+        // call the corresponding file writer
+    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BOOK );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_book [-h] <file> [-options]\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .aux, .nodes, .nets)\n" );
+    fprintf( pAbc->Err, "\t\n" );
+    fprintf( pAbc->Err, "\tThis command is developed by Myungchul Kim (University of Michigan).\n" );
     return 1;
 }
 

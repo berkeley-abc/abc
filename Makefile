@@ -12,12 +12,12 @@ MODULES := \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr \
 	src/bdd/parse src/bdd/reo src/bdd/cas \
 	src/map/fpga src/map/mapper src/map/mio src/map/super \
-	src/map/if \
+	src/map/if src/map/amap \
 	src/misc/extra src/misc/mvc src/misc/st src/misc/util \
 	src/misc/nm src/misc/vec src/misc/hash \
 	src/misc/bzlib src/misc/zlib \
 	src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/mfs \
-	src/opt/sim src/opt/ret src/opt/res src/opt/lpk src/opt/fret \
+	src/opt/sim src/opt/ret src/opt/res src/opt/lpk \
 	src/sat/bsat src/sat/csat src/sat/msat src/sat/fraig \
 	src/sat/psat \
 	src/aig/ivy src/aig/hop src/aig/rwt src/aig/deco \
@@ -25,7 +25,8 @@ MODULES := \
 	src/aig/csw src/aig/ioa src/aig/aig src/aig/kit \
 	src/aig/bdc src/aig/bar src/aig/ntl src/aig/nwk \
 	src/aig/mfx src/aig/tim src/aig/saig src/aig/bbr \
-	src/aig/int src/aig/dch src/aig/ssw src/aig/cgt
+	src/aig/int src/aig/dch src/aig/ssw src/aig/cgt \
+	src/aig/cec src/aig/fsim
 
 default: $(PROG)
 

@@ -74,7 +74,7 @@ struct Sto_Cls_t_
 {
     Sto_Cls_t *     pNext;        // the next clause
     Sto_Cls_t *     pNext0;       // the next 0-watch
-    Sto_Cls_t *     pNext1;       // the next 0-watch
+    Sto_Cls_t *     pNext1;       // the next 1-watch
     int             Id;           // the clause ID
     unsigned        fA     :  1;  // belongs to A
     unsigned        fRoot  :  1;  // original clause

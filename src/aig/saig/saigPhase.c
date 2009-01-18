@@ -468,7 +468,7 @@ void Saig_TsiStateOrAll( Saig_Tsim_t * pTsi, unsigned * pState )
   SeeAlso     []
 
 ***********************************************************************/
-Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits )
+Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits, int fVerbose )
 {
     Saig_Tsim_t * pTsi;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
@@ -507,7 +507,11 @@ Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits )
 //        Saig_TsiStatePrint( pTsi, pState );
         // check if this state exists
         if ( Saig_TsiStateLookup( pTsi, pState, pTsi->nWords ) )
+        {
+            if ( fVerbose )
+                printf( "Ternary simulation converged after %d iterations.\n", f );
             return pTsi;
+        }
         // insert this state
         Saig_TsiStateInsert( pTsi, pState, pTsi->nWords );
         // simulate internal nodes
@@ -781,7 +785,7 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     assert( Saig_ManPiNum(p) );
     assert( Saig_ManPoNum(p) );
     // perform terminary simulation
-    pTsi = Saig_ManReachableTernary( p, vInits );
+    pTsi = Saig_ManReachableTernary( p, vInits, fVerbose );
     if ( pTsi == NULL )
         return NULL;
     // derive information
@@ -837,7 +841,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     assert( Saig_ManPiNum(p) );
     assert( Saig_ManPoNum(p) );
     // perform terminary simulation
-    pTsi = Saig_ManReachableTernary( p, NULL );
+    pTsi = Saig_ManReachableTernary( p, NULL, fVerbose );
     if ( pTsi == NULL )
         return NULL;
     // derive information

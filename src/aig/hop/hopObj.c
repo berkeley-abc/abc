@@ -44,6 +44,7 @@ Hop_Obj_t * Hop_ObjCreatePi( Hop_Man_t * p )
     Hop_Obj_t * pObj;
     pObj = Hop_ManFetchMemory( p );
     pObj->Type = AIG_PI;
+    pObj->PioNum = Vec_PtrSize( p->vPis );
     Vec_PtrPush( p->vPis, pObj );
     p->nObjs[AIG_PI]++;
     return pObj;

@@ -16,6 +16,7 @@ SRC +=  src/base/io/io.c \
     src/base/io/ioWriteBench.c \
     src/base/io/ioWriteBlif.c \
     src/base/io/ioWriteBlifMv.c \
+    src/base/io/ioWriteBook.c \
     src/base/io/ioWriteCnf.c \
     src/base/io/ioWriteDot.c \
     src/base/io/ioWriteEqn.c \

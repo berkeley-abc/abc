@@ -139,9 +139,9 @@ Kit_DsdNtk_t * Kit_DsdNtkAlloc( int nVars )
     Kit_DsdNtk_t * pNtk;
     pNtk = ALLOC( Kit_DsdNtk_t, 1 );
     memset( pNtk, 0, sizeof(Kit_DsdNtk_t) );
-    pNtk->pNodes = ALLOC( Kit_DsdObj_t *, nVars );
+    pNtk->pNodes = ALLOC( Kit_DsdObj_t *, nVars+1 );
     pNtk->nVars = nVars;
-    pNtk->nNodesAlloc = nVars;
+    pNtk->nNodesAlloc = nVars+1;
     pNtk->pMem = ALLOC( unsigned, 6 * Kit_TruthWordNum(nVars) );
     return pNtk;
 }
@@ -303,10 +303,13 @@ void Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk )
 ***********************************************************************/
 void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars )
 {
-    Kit_DsdNtk_t * pTemp;
+    Kit_DsdNtk_t * pTemp, * pTemp2;
     pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 5 );
-    Kit_DsdVerify( pTemp, pTruth, nVars ); 
-    Kit_DsdPrintExpanded( pTemp );
+//    Kit_DsdPrintExpanded( pTemp );
+    pTemp2 = Kit_DsdExpand( pTemp );
+    Kit_DsdPrint( stdout, pTemp2 );
+    Kit_DsdVerify( pTemp2, pTruth, nVars ); 
+    Kit_DsdNtkFree( pTemp2 );
     Kit_DsdNtkFree( pTemp );
 }
 
@@ -392,7 +395,6 @@ unsigned * Kit_DsdTruthComputeNode_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, i
     pTruthPrime = Kit_DsdObjTruth( pObj );
     // get storage for the temporary minterm
     pTruthMint = Vec_PtrEntry(p->vTtNodes, pNtk->nVars + pNtk->nNodes);
-
     // go through the minterms
     nMints = (1 << pObj->nFans);
     Kit_TruthClear( pTruthRes, pNtk->nVars );
@@ -406,6 +408,9 @@ unsigned * Kit_DsdTruthComputeNode_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, i
         Kit_TruthOr( pTruthRes, pTruthRes, pTruthMint, pNtk->nVars );
     }
 */
+    Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+        if ( Kit_DsdLitIsCompl(iLit) )
+            Kit_TruthNot( pTruthFans[i], pTruthFans[i], pNtk->nVars );
     pTruthTemp = Kit_TruthCompose( p->dd, Kit_DsdObjTruth(pObj), pObj->nFans, pTruthFans, pNtk->nVars, p->vTtBdds, p->vNodes );
     Kit_TruthCopy( pTruthRes, pTruthTemp, pNtk->nVars );
     return pTruthRes;
@@ -550,7 +555,6 @@ unsigned * Kit_DsdTruthComputeNodeOne_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk
     pTruthPrime = Kit_DsdObjTruth( pObj );
     // get storage for the temporary minterm
     pTruthMint = Vec_PtrEntry(p->vTtNodes, pNtk->nVars + pNtk->nNodes);
-
     // go through the minterms
     nMints = (1 << pObj->nFans);
     Kit_TruthClear( pTruthRes, pNtk->nVars );
@@ -564,6 +568,9 @@ unsigned * Kit_DsdTruthComputeNodeOne_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk
         Kit_TruthOr( pTruthRes, pTruthRes, pTruthMint, pNtk->nVars );
     }
 */
+    Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+        if ( Kit_DsdLitIsCompl(iLit) )
+            Kit_TruthNot( pTruthFans[i], pTruthFans[i], pNtk->nVars );
     pTruthTemp = Kit_TruthCompose( p->dd, Kit_DsdObjTruth(pObj), pObj->nFans, pTruthFans, pNtk->nVars, p->vTtBdds, p->vNodes );
     Kit_TruthCopy( pTruthRes, pTruthTemp, pNtk->nVars );
     return pTruthRes;
@@ -747,7 +754,6 @@ unsigned * Kit_DsdTruthComputeNodeTwo_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk
     pTruthPrime = Kit_DsdObjTruth( pObj );
     // get storage for the temporary minterm
     pTruthMint = Vec_PtrEntry(p->vTtNodes, pNtk->nVars + pNtk->nNodes);
-
     // go through the minterms
     nMints = (1 << pObj->nFans);
     Kit_TruthClear( pTruthRes, pNtk->nVars );
@@ -761,8 +767,11 @@ unsigned * Kit_DsdTruthComputeNodeTwo_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk
         Kit_TruthOr( pTruthRes, pTruthRes, pTruthMint, pNtk->nVars );
     }
 */
+//    Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+//        assert( !Kit_DsdLitIsCompl(iLit) );
     Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
-        assert( !Kit_DsdLitIsCompl(iLit) );
+        if ( Kit_DsdLitIsCompl(iLit) )
+            Kit_TruthNot( pTruthFans[i], pTruthFans[i], pNtk->nVars );
     pTruthTemp = Kit_TruthCompose( p->dd, Kit_DsdObjTruth(pObj), pObj->nFans, pTruthFans, pNtk->nVars, p->vTtBdds, p->vNodes );
     Kit_TruthCopy( pTruthRes, pTruthTemp, pNtk->nVars );
     return pTruthRes;
@@ -957,7 +966,7 @@ int Kit_DsdCountLuts( Kit_DsdNtk_t * pNtk, int nLutSize )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of blocks of the given number of inputs.]
+  Synopsis    [Returns the size of the largest non-DSD block.]
 
   Description []
                
@@ -978,6 +987,34 @@ int Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk )
             nSizeMax = pObj->nFans;
     }
     return nSizeMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the largest non-DSD block.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Kit_DsdObj_t * Kit_DsdNonDsdPrimeMax( Kit_DsdNtk_t * pNtk )
+{
+    Kit_DsdObj_t * pObj, * pObjMax = NULL;
+    unsigned i, nSizeMax = 0;
+    Kit_DsdNtkForEachObj( pNtk, pObj, i )
+    {
+        if ( pObj->Type != KIT_DSD_PRIME )
+            continue;
+        if ( nSizeMax < pObj->nFans )
+        {
+            nSizeMax = pObj->nFans;
+            pObjMax = pObj;
+        }
+    }
+    return pObjMax;
 }
 
 /**Function*************************************************************
@@ -1125,10 +1162,46 @@ int Kit_DsdExpandNode_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit )
             Kit_TruthChangePhase( pTruthNew, pObjNew->nFans, i );
         }
     }
-    // if the incoming phase is complemented, absorb it into the prime node
-    if ( Kit_DsdLitIsCompl(iLit) )
-        Kit_TruthNot( pTruthNew, pTruthNew, pObj->nFans );
-    return Kit_DsdVar2Lit( pObjNew->Id, 0 );
+
+    if ( pObj->nFans == 3 && 
+        (pTruthNew[0] == 0xCACACACA || pTruthNew[0] == 0xC5C5C5C5 || 
+         pTruthNew[0] == 0x3A3A3A3A || pTruthNew[0] == 0x35353535) )
+    {
+        // translate into regular MUXes
+        if ( pTruthNew[0] == 0xC5C5C5C5 )
+            pObjNew->pFans[0] = Kit_DsdLitNot(pObjNew->pFans[0]);
+        else if ( pTruthNew[0] == 0x3A3A3A3A )
+            pObjNew->pFans[1] = Kit_DsdLitNot(pObjNew->pFans[1]);
+        else if ( pTruthNew[0] == 0x35353535 )
+        {
+            pObjNew->pFans[0] = Kit_DsdLitNot(pObjNew->pFans[0]);
+            pObjNew->pFans[1] = Kit_DsdLitNot(pObjNew->pFans[1]);
+        }
+        pTruthNew[0] = 0xCACACACA;
+        // resolve the complemented control input
+        if ( Kit_DsdLitIsCompl(pObjNew->pFans[2]) )
+        {
+            unsigned char Temp = pObjNew->pFans[0];
+            pObjNew->pFans[0] = pObjNew->pFans[1];
+            pObjNew->pFans[1] = Temp;
+            pObjNew->pFans[2] = Kit_DsdLitNot(pObjNew->pFans[2]);
+        }
+        // resolve the complemented true input
+        if ( Kit_DsdLitIsCompl(pObjNew->pFans[1]) )
+        {
+            iLit = Kit_DsdLitNot(iLit);
+            pObjNew->pFans[0] = Kit_DsdLitNot(pObjNew->pFans[0]);
+            pObjNew->pFans[1] = Kit_DsdLitNot(pObjNew->pFans[1]);
+        }
+        return Kit_DsdVar2Lit( pObjNew->Id, Kit_DsdLitIsCompl(iLit) );
+    }
+    else
+    {
+        // if the incoming phase is complemented, absorb it into the prime node
+        if ( Kit_DsdLitIsCompl(iLit) )
+            Kit_TruthNot( pTruthNew, pTruthNew, pObj->nFans );
+        return Kit_DsdVar2Lit( pObjNew->Id, 0 );
+    }
 }
 
 /**Function*************************************************************
@@ -1834,7 +1907,7 @@ void Kit_DsdDecompose_rec( Kit_DsdNtk_t * pNtk, Kit_DsdObj_t * pObj, unsigned uS
             return;
         }
     }
-/*
+
     // if all decomposition methods failed and we are still above the limit, perform MUX-decomposition
     if ( nDecMux > 0 && (int)pObj->nFans > nDecMux )
     {
@@ -1852,14 +1925,14 @@ void Kit_DsdDecompose_rec( Kit_DsdNtk_t * pNtk, Kit_DsdObj_t * pObj, unsigned uS
         assert( pObj->Type == KIT_DSD_PRIME );
         pTruth[0] = 0xCACACACA;
         pObj->nFans = 3;
+        pObj->pFans[2] = pObj->pFans[iBestVar];
         pObj->pFans[0] = 2*pRes0->Id; pRes0->nRefs++;
         pObj->pFans[1] = 2*pRes1->Id; pRes1->nRefs++;
-        pObj->pFans[2] = pObj->pFans[iBestVar];
         // call recursively
         Kit_DsdDecompose_rec( pNtk, pRes0, uSupp0, pObj->pFans + 0, nDecMux );
         Kit_DsdDecompose_rec( pNtk, pRes1, uSupp1, pObj->pFans + 1, nDecMux );
     }
-*/
+
 }
 
 /**Function*************************************************************
@@ -1959,6 +2032,27 @@ Kit_DsdNtk_t * Kit_DsdDecomposeExpand( unsigned * pTruth, int nVars )
 ***********************************************************************/
 Kit_DsdNtk_t *  Kit_DsdDecomposeMux( unsigned * pTruth, int nVars, int nDecMux )
 {
+/*
+    Kit_DsdNtk_t * pNew;
+    Kit_DsdObj_t * pObjNew;
+    assert( nVars <= 16 );
+    // create a new network
+    pNew = Kit_DsdNtkAlloc( nVars );
+    // consider simple special cases
+    if ( nVars == 0 )
+    {
+        pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_CONST1, 0 );
+        pNew->Root = Kit_DsdVar2Lit( pObjNew->Id, (int)(pTruth[0] == 0) );
+        return pNew;
+    }
+    if ( nVars == 1 )
+    {
+        pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_VAR, 1 );
+        pObjNew->pFans[0] = Kit_DsdVar2Lit( 0, 0 );
+        pNew->Root = Kit_DsdVar2Lit( pObjNew->Id, (int)(pTruth[0] != 0xAAAAAAAA) );
+        return pNew;
+    }
+*/
     return Kit_DsdDecomposeInt( pTruth, nVars, nDecMux );
 }
 

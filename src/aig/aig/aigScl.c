@@ -232,6 +232,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
     Vec_PtrFree( vNodes );
     p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p); 
     p->nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p); 
+    Aig_ManSetPioNumbers( p );
     // remove dangling nodes
     return Aig_ManCleanup( p );
 }
@@ -579,6 +580,58 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs partitioned register sweep.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManSclPart( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose ) 
+{
+    Vec_Ptr_t * vResult;
+    Vec_Int_t * vPart;
+    int i, nCountPis, nCountRegs;
+    int * pMapBack;
+    Aig_Man_t * pTemp, * pNew;
+    int nClasses;
+
+    if ( pAig->vClockDoms ) 
+    {
+        vResult = Vec_PtrAlloc( 100 );
+        Vec_PtrForEachEntry( (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
+            Vec_PtrPush( vResult, Vec_IntDup(vPart) );
+    } 
+    else
+        vResult = Aig_ManRegPartitionSimple( pAig, 0, 0 );
+
+    Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
+    Vec_PtrForEachEntry( vResult, vPart, i ) 
+    {
+        pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, &pMapBack );
+        Aig_ManSetRegNum( pTemp, pTemp->nRegs );
+        if (nCountPis>0) 
+        {
+            pNew = Aig_ManScl( pTemp, fLatchConst, fLatchEqual, fVerbose );
+            nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
+            if ( fVerbose )
+                printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d\n",
+                        i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), 0, nClasses );
+            Aig_ManStop( pNew );
+        }
+        Aig_ManStop( pTemp );
+        free( pMapBack );
+    }
+    pNew = Aig_ManDupRepr( pAig, 0 );
+    Aig_ManSeqCleanup( pNew );
+    Vec_VecFree( (Vec_Vec_t*)vResult );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Gives the current ABC network to AIG manager for processing.]
 
   Description []
@@ -596,6 +649,10 @@ Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int 
     Aig_Man_t * pAigInit, * pAigNew;
     Aig_Obj_t * pFlop1, * pFlop2;
     int i, Entry1, Entry2, nTruePis;//, nRegs;
+
+    if ( pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0 )
+        return Aig_ManSclPart( pAig, fLatchConst, fLatchEqual, fVerbose);
+
     // store the original AIG
     assert( pAig->vFlopNums == NULL );
     pAigInit = pAig;

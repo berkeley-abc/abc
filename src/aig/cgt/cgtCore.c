@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "cgtInt.h"
+#include "bar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -42,13 +43,14 @@
 void Cgt_SetDefaultParams( Cgt_Par_t * p )
 {
     memset( p, 0, sizeof(Cgt_Par_t) );
-    p->nLevelMax  =  1000;   // the max number of levels to look for clock-gates
+    p->nLevelMax  =    25;   // the max number of levels to look for clock-gates
     p->nCandMax   =  1000;   // the max number of candidates at each node
     p->nOdcMax    =     0;   // the max number of ODC levels to consider
-    p->nConfMax   =  1000;   // the max number of conflicts at a node
-    p->nVarsMin   =  5000;   // the min number of vars to recycle the SAT solver
-    p->nFlopsMin  =    25;   // the min number of flops to recycle the SAT solver
-    p->fVerbose   =     0;   // verbosity flag
+    p->nConfMax   =    10;   // the max number of conflicts at a node
+    p->nVarsMin   =  1000;   // the min number of vars to recycle the SAT solver
+    p->nFlopsMin  =     5;   // the min number of flops to recycle the SAT solver
+    p->fAreaOnly  =     0;   // derive clock-gating to minimize area
+    p->fVerbose   =     1;   // verbosity flag
 }
 
 /**Function*************************************************************
@@ -62,14 +64,14 @@ void Cgt_SetDefaultParams( Cgt_Par_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Cgt_SimulationFilter( Cgt_Man_t * p, Aig_Obj_t * pCandFrame, Aig_Obj_t * pMiterFrame )
+int Cgt_SimulationFilter( Cgt_Man_t * p, Aig_Obj_t * pCandPart, Aig_Obj_t * pMiterPart )
 {
     unsigned * pInfoCand, * pInfoMiter;
     int w, nWords = Aig_BitWordNum( p->nPatts );  
-    pInfoCand  = Vec_PtrEntry( p->vPatts, Aig_ObjId(Aig_Regular(pCandFrame)) );
-    pInfoMiter = Vec_PtrEntry( p->vPatts, Aig_ObjId(pMiterFrame) );
+    pInfoCand  = Vec_PtrEntry( p->vPatts, Aig_ObjId(Aig_Regular(pCandPart)) );
+    pInfoMiter = Vec_PtrEntry( p->vPatts, Aig_ObjId(pMiterPart) );
     // C => !M -- true   is the same as    C & M -- false
-    if ( !Aig_IsComplement(pCandFrame) )
+    if ( !Aig_IsComplement(pCandPart) )
     {
         for ( w = 0; w < nWords; w++ )
             if ( pInfoCand[w] & pInfoMiter[w] )
@@ -106,6 +108,7 @@ void Cgt_SimulationRecord( Cgt_Man_t * p )
     if ( p->nPatts == 32 * p->nPattWords )
     {
         Vec_PtrReallocSimInfo( p->vPatts );
+        Vec_PtrCleanSimInfo( p->vPatts, p->nPattWords, 2 * p->nPattWords );
         p->nPattWords *= 2;
     }
 }
@@ -121,15 +124,16 @@ void Cgt_SimulationRecord( Cgt_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart )
+void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart, int nOutputs )
 {
     Vec_Ptr_t * vNodes = p->vFanout;
     Aig_Obj_t * pMiter, * pCand, * pMiterFrame, * pCandFrame, * pMiterPart, * pCandPart;
-    int i, k, RetValue;
+    int i, k, RetValue, nCalls;
     assert( Vec_VecSize(p->vGatesAll) == Aig_ManPoNum(p->pFrame) );
     // go through all the registers inputs of this range
-    for ( i = iStart; i < iStart + Aig_ManPoNum(p->pPart); i++ )
+    for ( i = iStart; i < iStart + nOutputs; i++ )
     {
+        nCalls = p->nCalls;
         pMiter = Saig_ManLi( p->pAig, i );
         Cgt_ManDetectCandidates( p->pAig, Aig_ObjFanin0(pMiter), p->pPars->nLevelMax, vNodes );
         // go through the candidates of this PO
@@ -153,6 +157,8 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart )
                 if ( RetValue == 0 )
                     Cgt_SimulationRecord( p );
             }
+            else
+                p->nCallsFiltered++;
             // try reverse polarity
             if ( Cgt_SimulationFilter( p, Aig_Not(pCandPart), pMiterPart ) )
             {
@@ -165,9 +171,18 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart )
                 if ( RetValue == 0 )
                     Cgt_SimulationRecord( p );
             }
+            else
+                p->nCallsFiltered++;
         }
+
+        if ( p->pPars->fVerbose )
+        {
+//            printf( "Flop %3d : Cand = %4d. Gate = %4d. SAT calls = %3d.\n", 
+//                i, Vec_PtrSize(vNodes), Vec_PtrSize(Vec_VecEntry(p->vGatesAll, i)), p->nCalls-nCalls );
+        }
+
     }
-}
+} 
 
 /**Function*************************************************************
 
@@ -182,16 +197,33 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart )
 ***********************************************************************/
 int Cgt_ClockGatingRange( Cgt_Man_t * p, int iStart )
 {
-    int iStop;
-    p->pPart = Cgt_ManDupPartition( p->pFrame, p->pPars->nVarsMin, p->pPars->nFlopsMin, iStart );
-    p->pCnf  = Cnf_DeriveSimple( p->pPart, Aig_ManPoNum(p->pPart) );
+    int nOutputs, iStop, clk, clkTotal = clock();
+    int nCallsUnsat    = p->nCallsUnsat;
+    int nCallsSat      = p->nCallsSat;
+    int nCallsUndec    = p->nCallsUndec;
+    int nCallsFiltered = p->nCallsFiltered;
+clk = clock();
+    p->pPart = Cgt_ManDupPartition( p->pFrame, p->pPars->nVarsMin, p->pPars->nFlopsMin, iStart, p->pCare, p->vSuppsInv, &nOutputs );
+    p->pCnf  = Cnf_DeriveSimple( p->pPart, nOutputs );
     p->pSat  = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
     sat_solver_compress( p->pSat );
-    p->vPatts = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p->pPart), 16 );
+    p->vPatts = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p->pPart), p->nPattWords );
     Vec_PtrCleanSimInfo( p->vPatts, 0, p->nPattWords );
-    Cgt_ClockGatingRangeCheck( p, iStart );
-    iStop = iStart + Aig_ManPoNum(p->pPart);
+p->timePrepare += clock() - clk;
+    Cgt_ClockGatingRangeCheck( p, iStart, nOutputs );
+    iStop = iStart + nOutputs;
+    if ( p->pPars->fVeryVerbose )
+    {
+        printf( "%5d : D =%4d. C =%5d. Var =%6d. Pr =%5d. Cex =%5d. F =%4d. Saved =%6d. ",
+            iStart, iStop-iStart, Aig_ManPoNum(p->pPart)-nOutputs, p->pSat->size, 
+            p->nCallsUnsat-nCallsUnsat, 
+            p->nCallsSat  -nCallsSat, 
+            p->nCallsUndec-nCallsUndec,
+            p->nCallsFiltered-nCallsFiltered );
+        PRT( "Time", clock() - clkTotal );
+    }
     Cgt_ManClean( p );
+    p->nRecycles++;
     return iStop;
 }
 
@@ -208,18 +240,30 @@ int Cgt_ClockGatingRange( Cgt_Man_t * p, int iStart )
 ***********************************************************************/
 Vec_Vec_t * Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars )
 {
-    Cgt_Par_t Pars;
+    Bar_Progress_t * pProgress = NULL;
+    Cgt_Par_t Pars; 
     Cgt_Man_t * p;
     Vec_Vec_t * vGatesAll;
-    int iStart;
+    int iStart, clk = clock(), clkTotal = clock();
+    // reset random numbers
+    Aig_ManRandom( 1 );
     if ( pPars == NULL )
         Cgt_SetDefaultParams( pPars = &Pars );    
     p = Cgt_ManCreate( pAig, pCare, pPars );
     p->pFrame = Cgt_ManDeriveAigForGating( p );
+p->timeAig += clock() - clk;
     assert( Aig_ManPoNum(p->pFrame) == Saig_ManRegNum(p->pAig) );
+    pProgress = Bar_ProgressStart( stdout, Aig_ManPoNum(p->pFrame) );
     for ( iStart = 0; iStart < Aig_ManPoNum(p->pFrame); )
+    {
+        Bar_ProgressUpdate( pProgress, iStart, NULL );
         iStart = Cgt_ClockGatingRange( p, iStart );
+    }
+    Bar_ProgressStop( pProgress );
     vGatesAll = p->vGatesAll;
+    p->vGatesAll = NULL;
+p->timeTotal = clock() - clkTotal;
+    Cgt_ManStop( p );
     return vGatesAll;
 }
 
@@ -238,11 +282,29 @@ Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pP
 {
     Aig_Man_t * pGated;
     Vec_Vec_t * vGatesAll;
-    Vec_Ptr_t * vGates;
+    Vec_Vec_t * vGates;
+    int nNodesUsed, clk = clock();
     vGatesAll = Cgt_ClockGatingCandidates( pAig, pCare, pPars );
-    vGates = Cgt_ManDecideSimple( pAig, vGatesAll );
-    pGated = Cgt_ManDeriveGatedAig( pAig, vGates );
-    Vec_PtrFree( vGates );
+    if ( pPars->fAreaOnly )
+        vGates = Cgt_ManDecideArea( pAig, vGatesAll, pPars->nOdcMax, pPars->fVerbose );
+    else
+        vGates = Cgt_ManDecideSimple( pAig, vGatesAll, pPars->nOdcMax, pPars->fVerbose );
+    if ( pPars->fVerbose )
+    {
+//        printf( "Before CG: " );
+//        Aig_ManPrintStats( pAig );
+    }
+    pGated = Cgt_ManDeriveGatedAig( pAig, vGates, pPars->fAreaOnly, &nNodesUsed );
+    if ( pPars->fVerbose )
+    {
+//        printf( "After  CG: " );
+//        Aig_ManPrintStats( pGated );
+        printf( "Nodes: Before CG = %6d. After CG = %6d. (%6.2f %%).  Total after CG = %6d.\n", 
+            Aig_ManNodeNum(pAig), nNodesUsed, 
+            100.0*nNodesUsed/Aig_ManNodeNum(pAig), 
+            Aig_ManNodeNum(pGated) );
+    }
+    Vec_VecFree( vGates );
     Vec_VecFree( vGatesAll );
     return pGated;
 }

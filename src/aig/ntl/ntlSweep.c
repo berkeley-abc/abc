@@ -139,8 +139,11 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
         }
         // remove the fanout nets
         Ntl_ObjForEachFanout( pObj, pNet, k )
-            if ( pNet != NULL )
+            if ( pNet != NULL && pNet->pName[0] != 0 )
+            {
                 Ntl_ModelDeleteNet( pRoot, pNet );
+                Vec_PtrWriteEntry( pRoot->vNets, pNet->NetId, NULL );
+            }
         // remove the object
         if ( Ntl_ObjIsNode(pObj) && Ntl_ObjFaninNum(pObj) == 1 )
             pRoot->nObjs[NTL_OBJ_LUT1]--;
@@ -150,7 +153,7 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
         pObj->Type = NTL_OBJ_NONE;
         Counter++;
     }
-
+ 
 
 
     // print detailed statistics of sweeping
@@ -191,7 +194,7 @@ int Ntl_ManSweep( Ntl_Man_t * p, int fVerbose )
                     }
                 }
             }
-            printf("\nLUTboxType =%d\n", numLutBox);
+//            printf("\nLUTboxType =%d\n", numLutBox);
         }
     }
     if ( !Ntl_ManCheck( p ) )

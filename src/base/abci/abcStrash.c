@@ -316,7 +316,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
 ***********************************************************************/
 void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, int fAllNodes, int fRecord )
 {
-    ProgressBar * pProgress;
+//    ProgressBar * pProgress;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNodeOld;
     int i; //, clk = clock();
@@ -326,13 +326,13 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, int fAllNod
     vNodes = Abc_NtkDfsIter( pNtkOld, fAllNodes );
 //printf( "Nodes = %d. ", Vec_PtrSize(vNodes) );
 //PRT( "Time", clock() - clk );
-    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
+//    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNodeOld, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+//        Extra_ProgressBarUpdate( pProgress, i, NULL );
         pNodeOld->pCopy = Abc_NodeStrash( pNtkNew, pNodeOld, fRecord );
     }
-    Extra_ProgressBarStop( pProgress );
+//    Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
 }
 

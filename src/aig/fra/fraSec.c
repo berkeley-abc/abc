@@ -404,7 +404,7 @@ clk = clock();
         pNew = Aig_ManDupOrdered( pTemp = pNew );
         Aig_ManStop( pTemp );
 //        pNew = Dar_ManRewriteDefault( pTemp = pNew );
-        pNew = Dar_ManCompress2( pTemp = pNew, 1, 0, 1, 0 ); 
+        pNew = Dar_ManCompress2( pTemp = pNew, 1, 0, 1, 0, 0 ); 
         Aig_ManStop( pTemp );
         if ( pParSec->fVerbose )
         {

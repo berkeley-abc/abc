@@ -51,6 +51,59 @@ extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NtkIfComputeSwitching( Abc_Ntk_t * pNtk, If_Man_t * pIfMan )
+{
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+    Vec_Int_t * vSwitching;
+    float * pSwitching;
+    Abc_Obj_t * pObjAbc;
+    Aig_Obj_t * pObjAig;
+    Aig_Man_t * pAig;
+    If_Obj_t * pObjIf;
+    int i, clk = clock();
+    // map IF objects into old network
+    Abc_NtkForEachObj( pNtk, pObjAbc, i )
+        if ( (pObjIf = pObjAbc->pTemp) )
+            pObjIf->pCopy = pObjAbc;
+    // map network into an AIG
+    pAig = Abc_NtkToDar( pNtk, 0, 0 );
+    vSwitching = Saig_ManComputeSwitchProbs( pAig, 48, 16, 0 );
+    pSwitching = (float *)vSwitching->pArray;
+    Abc_NtkForEachObj( pNtk, pObjAbc, i )
+        if ( (pObjAig = pObjAbc->pTemp) )
+        {
+            pObjAbc->dTemp = pSwitching[pObjAig->Id];
+            // J. Anderson and F. N. Najm, “Power-Aware Technology Mapping for LUT-Based FPGAs,”
+            // IEEE Intl. Conf. on Field-Programmable Technology, 2002.
+//            pObjAbc->dTemp = (1.55 + 1.05 / (float) Abc_ObjFanoutNum(pObjAbc)) * pSwitching[pObjAig->Id];
+        }
+    Vec_IntFree( vSwitching );
+    Aig_ManStop( pAig );
+    // compute switching for the IF objects
+    assert( pIfMan->vSwitching == NULL );
+    pIfMan->vSwitching = Vec_IntStart( If_ManObjNum(pIfMan) );
+    pSwitching = (float *)pIfMan->vSwitching->pArray;
+    If_ManForEachObj( pIfMan, pObjIf, i )
+        if ( (pObjAbc = pObjIf->pCopy) )
+            pSwitching[i] = pObjAbc->dTemp;
+if ( pIfMan->pPars->fVerbose )
+{
+    PRT( "Computing switching activity", clock() - clk );
+}
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Interface with the FPGA mapping package.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 {
     Abc_Ntk_t * pNtkNew;
@@ -74,6 +127,8 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     pIfMan = Abc_NtkToIf( pNtk, pPars );    
     if ( pIfMan == NULL )
         return NULL;
+    if ( pPars->fPower )
+        Abc_NtkIfComputeSwitching( pNtk, pIfMan );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );
@@ -133,6 +188,7 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
             1.0 * Abc_NtkObjNum(pNtk) * pIfMan->nObjBytes / (1<<30), Abc_NtkObjNum(pNtk) );
 
     // create PIs and remember them in the old nodes
+    Abc_NtkCleanCopy( pNtk );
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)If_ManConst1( pIfMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
@@ -165,7 +221,7 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 
     // set the primary outputs without copying the phase
     Abc_NtkForEachCo( pNtk, pNode, i )
-        If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ) );
+        pNode->pCopy = (Abc_Obj_t *)If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ) );
     return pIfMan;
 }
 

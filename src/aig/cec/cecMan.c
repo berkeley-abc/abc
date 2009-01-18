@@ -1,22 +1,24 @@
 /**CFile****************************************************************
 
-  FileName    [mio___.c]
+  FileName    [cecMan.c]
 
-  PackageName [MVSIS 1.3: Multi-valued logic synthesis system.]
+  SystemName  [ABC: Logic synthesis and verification system.]
 
-  Synopsis    [File reading/writing for technology mapping.]
+  PackageName [Combinatinoal equivalence checking.]
 
-  Author      [MVSIS Group]
+  Synopsis    [Manager pcocures.]
+
+  Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - September 8, 2003.]
+  Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: mio___.h,v 1.0 2003/09/08 00:00:00 alanmi Exp $]
+  Revision    [$Id: cecMan.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "mioInt.h"
+#include "cecInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -38,6 +40,17 @@
 
 ***********************************************************************/
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

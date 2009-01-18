@@ -108,6 +108,7 @@ Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
     pNew->pName = Ntl_ManStoreFileName( pNew, pOld->pName );
     pNew->pSpec = Ntl_ManStoreName( pNew, pOld->pName );
     Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+    {
         if ( i == 0 )
         {
             Ntl_ManMarkCiCoNets( pOld );
@@ -116,15 +117,21 @@ Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
         }
         else
             pModel->pCopy = Ntl_ModelDup( pNew, pModel );
+    }
     Vec_PtrForEachEntry( pOld->vModels, pModel, i )
         Ntl_ModelForEachBox( pModel, pBox, k )
+        {
             ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
+            ((Ntl_Obj_t *)pBox->pCopy)->iTemp = pBox->iTemp;
+        }
     Ntl_ManForEachCiNet( pOld, pNet, i )
         Vec_PtrPush( pNew->vCis, pNet->pCopy );
     Ntl_ManForEachCoNet( pOld, pNet, i )
         Vec_PtrPush( pNew->vCos, pNet->pCopy );
     if ( pOld->pManTime )
         pNew->pManTime = Tim_ManDup( pOld->pManTime, 0 );
+    if ( pOld->pNal )
+        pOld->pNalD( pOld, pNew );
     return pNew;
 }
 
@@ -195,13 +202,14 @@ void Ntl_ManFree( Ntl_Man_t * p )
     if ( p->pMemSops )   Aig_MmFlexStop( p->pMemSops, 0 );
     if ( p->pAig )       Aig_ManStop( p->pAig );
     if ( p->pManTime )   Tim_ManStop( p->pManTime );
+    if ( p->pNal )       p->pNalF( p->pNal );
     FREE( p->pModTable );
     free( p );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Deallocates the netlist manager.]
+  Synopsis    []
 
   Description []
                
@@ -219,6 +227,7 @@ void Ntl_ManPrintStats( Ntl_Man_t * p )
     printf( "po = %5d  ",      Ntl_ModelPoNum(pRoot) );
     printf( "lat = %5d  ",     Ntl_ModelLatchNum(pRoot) );
     printf( "node = %5d  ",    Ntl_ModelNodeNum(pRoot) );
+    printf( "\n    " );
     printf( "inv/buf = %5d  ", Ntl_ModelLut1Num(pRoot) );
     printf( "box = %4d  ",     Ntl_ModelBoxNum(pRoot) );
     printf( "mod = %3d  ",     Vec_PtrSize(p->vModels) );
@@ -228,6 +237,50 @@ void Ntl_ManPrintStats( Ntl_Man_t * p )
     assert( Ntl_ModelLut1Num(pRoot) == Ntl_ModelCountLut1(pRoot) );
     Ntl_ManPrintTypes( p );
     fflush( stdout );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManPrintStatsShort( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    int i, Counter = 0;
+    pRoot = Ntl_ManRootModel( p );
+    Ntl_ModelForEachBox( pRoot, pObj, i )
+        if ( strcmp(pObj->pImplem->pName, "dff") == 0 )
+            Counter++;
+    printf( "%-15s : ",  p->pName );
+    printf( "pi =%5d  ", Ntl_ModelPiNum(pRoot) );
+    printf( "po =%5d  ", Ntl_ModelPoNum(pRoot) );
+    printf( "ff =%5d  ", Counter );
+    if ( pAig != NULL )
+    {
+        Counter = Aig_ManCountChoices( pAig );
+        if ( Counter )
+            printf( "cho =%7d  ", Counter );
+        else
+            printf( "aig =%7d  ", Aig_ManNodeNum(pAig) );
+    }
+    if ( pNtk == NULL )
+        printf( "Mapping is not available.\n" );
+    else
+    {
+        printf( "lut =%5d  ",  Nwk_ManNodeNum(pNtk) );
+        printf( "lev =%3d  ",  Nwk_ManLevel(pNtk) );
+//        printf( "del =%5.2f ", Nwk_ManDelayTraceLut(pNtk) );
+        printf( "\n" );
+    }
 }
 
 /**Function*************************************************************
@@ -283,6 +336,8 @@ void Ntl_ManSaveBoxType( Ntl_Obj_t * pObj )
 ***********************************************************************/
 void Ntl_ManPrintTypes( Ntl_Man_t * p )
 {
+    Vec_Ptr_t * vFlops;
+    Ntl_Net_t * pNet;
     Ntl_Mod_t * pModel;
     Ntl_Obj_t * pObj;
     int i;
@@ -296,7 +351,7 @@ void Ntl_ManPrintTypes( Ntl_Man_t * p )
     {
         if ( !p->BoxTypes[i] )
             continue;
-        printf( "%5d :", p->BoxTypes[i] );
+        printf( "Type %2d  Num = %7d :", i, p->BoxTypes[i] );
         printf( " %s", ((i &  1) > 0)? "white   ": "black   " );
         printf( " %s", ((i &  2) > 0)? "box     ": "logic   " );
         printf( " %s", ((i &  4) > 0)? "comb    ": "seq     " );
@@ -304,9 +359,22 @@ void Ntl_ManPrintTypes( Ntl_Man_t * p )
         printf( " %s", ((i & 16) > 0)? "no_merge": "merge   " );
         printf( "\n" );
     }
-    printf( "Total box instances = %6d.\n\n", Ntl_ModelBoxNum(pModel) );
+    printf( "MODEL STATISTICS:\n" );
+    Ntl_ManForEachModel( p, pModel, i )
+        if ( i ) printf( "Model %2d :  Name = %10s  Used = %6d.\n", i, pModel->pName, pModel->nUsed );
     for ( i = 0; i < 32; i++ )
         p->BoxTypes[i] = 0;
+    pModel = Ntl_ManRootModel( p );
+    if ( pModel->vClockFlops )
+    {
+        printf( "CLOCK STATISTICS:\n" );
+        Vec_VecForEachLevel( pModel->vClockFlops, vFlops, i )
+        {
+            pNet = Vec_PtrEntry( pModel->vClocks, i );
+            printf( "Clock %2d :  Name = %30s   Flops = %6d.\n", i+1, pNet->pName, Vec_PtrSize(vFlops) );
+        }
+    }
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -336,6 +404,7 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
     p->vObjs = Vec_PtrAlloc( 100 );
     p->vPis  = Vec_PtrAlloc( 10 );
     p->vPos  = Vec_PtrAlloc( 10 ); 
+    p->vNets = Vec_PtrAlloc( 100 ); 
     // start the table
     p->nTableSize = Aig_PrimeCudd( 100 );
     p->pTable = ALLOC( Ntl_Net_t *, p->nTableSize );
@@ -382,7 +451,9 @@ Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     }
     Ntl_ModelForEachNet( pModelOld, pNet, i )
     {
-        if ( pNet->fMark )
+        if ( pNet->pDriver == NULL )
+            pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+        else if ( pNet->fMark )
         {
             pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
             ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
@@ -485,6 +556,9 @@ void Ntl_ModelFree( Ntl_Mod_t * p )
     if ( p->vTimeOutputs )  Vec_IntFree( p->vTimeOutputs );
     if ( p->vTimeInputs )   Vec_IntFree( p->vTimeInputs );
     if ( p->vDelays )       Vec_IntFree( p->vDelays );
+    if ( p->vClocks )       Vec_PtrFree( p->vClocks );
+    if ( p->vClockFlops )   Vec_VecFree( p->vClockFlops );
+    Vec_PtrFree( p->vNets );
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vPis );
     Vec_PtrFree( p->vPos );

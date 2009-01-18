@@ -97,7 +97,7 @@ float Sim_ComputeSwitching( unsigned * pSimInfo, int nSimWords )
     int nOnes, nTotal;
     nTotal = 32 * nSimWords;
     nOnes = Sim_UtilCountOnes( pSimInfo, nSimWords );
-    return (float)2.0 * nOnes * (nTotal - nOnes) / nTotal / nTotal;
+    return (float)2.0 * nOnes / nTotal * (nTotal - nOnes) / nTotal;
 }
 
 ////////////////////////////////////////////////////////////////////////

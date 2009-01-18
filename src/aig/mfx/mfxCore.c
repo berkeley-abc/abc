@@ -53,6 +53,7 @@ void Mfx_ParsDefault( Mfx_Par_t * pPars )
     pPars->fArea        =    0;
     pPars->fMoreEffort  =    0;
     pPars->fSwapEdge    =    0;
+    pPars->fPower       =    0;
     pPars->fVerbose     =    0;
     pPars->fVeryVerbose =    0;
 }
@@ -105,7 +106,9 @@ clk = clock();
         return 1;
     }
     // solve the SAT problem
-    if ( p->pPars->fSwapEdge )
+    if ( p->pPars->fPower )
+        Mfx_EdgePower( p, pNode );
+    else if ( p->pPars->fSwapEdge )
         Mfx_EdgeSwapEval( p, pNode );
     else
     {
@@ -132,7 +135,7 @@ int Mfx_Node( Mfx_Man_t * p, Nwk_Obj_t * pNode )
 {
     Hop_Obj_t * pObj;
     int RetValue;
-
+    float dProb;
     int nGain, clk;
     p->nNodesTried++;
     // prepare data structure for this node
@@ -170,7 +173,8 @@ p->timeSat += clock() - clk;
     }
     // minimize the local function of the node using bi-decomposition
     assert( p->nFanins == Nwk_ObjFaninNum(pNode) );
-    pObj = Nwk_NodeIfNodeResyn( p->pManDec, pNode->pMan->pManHop, pNode->pFunc, p->nFanins, p->vTruth, p->uCare );
+    dProb = p->pPars->fPower? ((float *)p->vProbs->pArray)[pNode->Id] : -1.0;
+    pObj = Nwk_NodeIfNodeResyn( p->pManDec, pNode->pMan->pManHop, pNode->pFunc, p->nFanins, p->vTruth, p->uCare, dProb );
     nGain = Hop_DagSize(pNode->pFunc) - Hop_DagSize(pObj);
     if ( nGain >= 0 )
     {
@@ -180,6 +184,45 @@ p->timeSat += clock() - clk;
         pNode->pFunc = pObj;    
     }
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks nodes for power-optimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Nwk_ManPowerEstimate( Nwk_Man_t * pNtk, int fProbOne )
+{
+    extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+    Vec_Int_t * vProbs;
+    Vec_Int_t * vSwitching;
+    float * pProbability;
+    float * pSwitching;
+    Aig_Man_t * pAig;
+    Aig_Obj_t * pObjAig;
+    Nwk_Obj_t * pObjAbc;
+    int i;
+    // start the resulting array
+    vProbs = Vec_IntStart( Nwk_ManObjNumMax(pNtk) );
+    pProbability = (float *)vProbs->pArray;
+    // map network into an AIG
+    pAig = Nwk_ManStrash( pNtk );
+    vSwitching = Saig_ManComputeSwitchProbs( pAig, 48, 16, fProbOne );
+    pSwitching = (float *)vSwitching->pArray;
+    Nwk_ManForEachObj( pNtk, pObjAbc, i )
+    {
+        if ( (pObjAig = Aig_Regular(pObjAbc->pCopy)) )
+            pProbability[pObjAbc->Id] = pSwitching[pObjAig->Id];
+    }
+    Vec_IntFree( vSwitching );
+    Aig_ManStop( pAig );
+    return vProbs;
 }
 
 /**Function*************************************************************
@@ -253,6 +296,17 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
         p->pManDec = Bdc_ManAlloc( pDecPars );
     }
 
+    // precomputer power-aware metrics
+    if ( pPars->fPower )
+    {
+        extern Vec_Int_t * Nwk_ManPowerEstimate( Nwk_Man_t * pNtk, int fProbOne );
+        if ( pPars->fResub )
+            p->vProbs = Nwk_ManPowerEstimate( pNtk, 0 );
+        else
+            p->vProbs = Nwk_ManPowerEstimate( pNtk, 1 );
+        printf( "Total switching before = %7.2f.\n", Nwl_ManComputeTotalSwitching(pNtk) );
+    }
+
     // compute don't-cares for each node
     nNodes = 0;
     p->nTotalNodesBeg = nTotalNodesBeg;
@@ -276,6 +330,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
     {
         pProgress = Bar_ProgressStart( stdout, Nwk_ManNodeNum(pNtk) );
         vLevels = Nwk_ManLevelize( pNtk );
+
         Vec_VecForEachLevelStart( vLevels, vNodes, k, 1 )
         {
             if ( !p->pPars->fVeryVerbose )
@@ -303,6 +358,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
             PRT( "Time", clock() - clk2 );
             }
         }
+
         Bar_ProgressStop( pProgress );
         Vec_VecFree( vLevels );
     }
@@ -311,6 +367,9 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
 
     assert( Nwk_ManVerifyLevel( pNtk ) );
     assert( Nwk_ManVerifyTiming( pNtk ) );
+
+    if ( pPars->fPower )
+        printf( "Total switching after  = %7.2f.\n", Nwl_ManComputeTotalSwitching(pNtk) );
 
     // free the manager
     p->timeTotal = clock() - clk;

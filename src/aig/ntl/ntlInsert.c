@@ -42,7 +42,7 @@
 ***********************************************************************/
 Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
 {
-    char Buffer[100];
+    char Buffer[1000];
     Vec_Ptr_t * vCopies;
     Vec_Int_t * vCover;
     Ntl_Mod_t * pRoot;
@@ -141,7 +141,7 @@ Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t
 ***********************************************************************/
 Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
 {
-    char Buffer[100];
+    char Buffer[1000];
     Ntl_Mod_t * pRoot;
     Ntl_Obj_t * pNode;
     Ntl_Net_t * pNet, * pNetCo;
@@ -243,7 +243,6 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
     return p;
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Inserts the given mapping into the netlist.]
@@ -257,7 +256,7 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
 ***********************************************************************/
 Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
 {
-    char Buffer[100]; 
+    char Buffer[1000]; 
     Vec_Ptr_t * vObjs;
     Vec_Int_t * vTruth;
     Vec_Int_t * vCover;
@@ -276,8 +275,8 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
     Ntl_ManForEachCiNet( p, pNet, i )
         Nwk_ManCi( pNtk, i )->pCopy = pNet;
     // create a new node for each LUT
-    vTruth = Vec_IntAlloc( 1 << 16 );
-    vCover = Vec_IntAlloc( 1 << 16 );
+    vTruth  = Vec_IntAlloc( 1 << 16 );
+    vCover  = Vec_IntAlloc( 1 << 16 );
     nDigits = Aig_Base10Log( Nwk_ManNodeNum(pNtk) );
     // go through the nodes in the topological order
     vObjs = Nwk_ManDfs( pNtk );
@@ -289,7 +288,6 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
         if ( Hop_IsComplement(pObj->pFunc) )
             Kit_TruthNot( pTruth, pTruth, Nwk_ObjFaninNum(pObj) );
-        pNode->pSop = Kit_PlaFromTruth( p->pMemSops, pTruth, Nwk_ObjFaninNum(pObj), vCover );
         if ( !Kit_TruthIsConst0(pTruth, Nwk_ObjFaninNum(pObj)) && !Kit_TruthIsConst1(pTruth, Nwk_ObjFaninNum(pObj)) )
         {
             Nwk_ObjForEachFanin( pObj, pFanin, k )
@@ -303,8 +301,17 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
                 Ntl_ObjSetFanin( pNode, pNet, k );
             }
         }
-        else
+        else if ( Kit_TruthIsConst0(pTruth, Nwk_ObjFaninNum(pObj)) )
+        {
+            pObj->pFunc = Hop_ManConst0(pNtk->pManHop);
             pNode->nFanins = 0;
+        }
+        else if ( Kit_TruthIsConst1(pTruth, Nwk_ObjFaninNum(pObj)) )
+        {
+            pObj->pFunc = Hop_ManConst1(pNtk->pManHop);
+            pNode->nFanins = 0;
+        }
+        pNode->pSop = Kit_PlaFromTruth( p->pMemSops, pTruth, Nwk_ObjFaninNum(pObj), vCover );
         sprintf( Buffer, "lut%0*d", nDigits, i );
         if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
         {
@@ -334,11 +341,29 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         // get the corresponding PO and its driver
         pObj = Nwk_ManCo( pNtk, i );
         pFanin = Nwk_ObjFanin0( pObj );
-        // get the net driving the driver
-        pNet = pFanin->pCopy;
-        pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = pObj->fInvert? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
-        Ntl_ObjSetFanin( pNode, pNet, 0 );
+        // get the net driving this PO
+        pNet = pFanin->pCopy; 
+        if ( Nwk_ObjFanoutNum(pFanin) == 1 && Ntl_ObjIsNode(pNet->pDriver) )
+        {
+            pNode = pNet->pDriver;
+            if ( !Ntl_ModelClearNetDriver( pNode, pNet ) )
+            {
+                printf( "Ntl_ManInsertNtk(): Internal error! Net already has no driver.\n" );
+                return NULL;
+            }
+            // remove this net 
+            Ntl_ModelDeleteNet( pRoot, pNet );
+            Vec_PtrWriteEntry( pRoot->vNets, pNet->NetId, NULL );
+            // update node's function
+            if ( pObj->fInvert )
+                Kit_PlaComplement( pNode->pSop );
+        }
+        else
+        {
+            pNode = Ntl_ModelCreateNode( pRoot, 1 );
+            pNode->pSop = pObj->fInvert? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
+            Ntl_ObjSetFanin( pNode, pNet, 0 );
+        }
         // update the CO driver net
         assert( pNetCo->pDriver == NULL );
         if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )

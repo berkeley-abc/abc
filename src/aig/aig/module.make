@@ -1,4 +1,5 @@
 SRC +=    src/aig/aig/aigCheck.c \
+    src/aig/aig/aigCanon.c \
     src/aig/aig/aigCuts.c \
     src/aig/aig/aigDfs.c \
     src/aig/aig/aigDup.c \

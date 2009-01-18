@@ -58,6 +58,8 @@ Ntl_Net_t * Ntl_ModelCreateNet( Ntl_Mod_t * p, const char * pName )
     pNet = (Ntl_Net_t *)Aig_MmFlexEntryFetch( p->pMan->pMemObjs, sizeof(Ntl_Net_t) + strlen(pName) + 1 );
     memset( pNet, 0, sizeof(Ntl_Net_t) );
     strcpy( pNet->pName, pName );
+    pNet->NetId = Vec_PtrSize( p->vNets );
+    Vec_PtrPush( p->vNets, pNet );
     return pNet;
 }
 
@@ -104,7 +106,7 @@ clk = clock();
 
 /**Function*************************************************************
 
-  Synopsis    [Finds or creates the net.]
+  Synopsis    [Finds net.]
 
   Description []
                
@@ -125,7 +127,7 @@ Ntl_Net_t * Ntl_ModelFindNet( Ntl_Mod_t * p, const char * pName )
 
 /**Function*************************************************************
 
-  Synopsis    [Finds or creates the net.]
+  Synopsis    [Deletes net from the hash table.]
 
   Description []
                
@@ -150,6 +152,26 @@ void Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet )
         p->pTable[Key] = pEnt->pNext;
     else
         pPrev->pNext = pEnt->pNext;
+    p->nEntries--;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts net into the hash table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ModelInsertNet( Ntl_Mod_t * p, Ntl_Net_t * pNet )
+{
+    unsigned Key = Ntl_HashString( pNet->pName, p->nTableSize );
+    assert( Ntl_ModelFindNet( p, pNet->pName ) == NULL );
+    pNet->pNext = p->pTable[Key];
+    p->pTable[Key] = pNet;
 }
 
 /**Function*************************************************************
@@ -178,6 +200,17 @@ Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, const char * pName )
     return pEnt;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates new net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Ntl_Net_t * Ntl_ModelDontFindCreateNet( Ntl_Mod_t * p, const char * pName )
 {
     Ntl_Net_t * pEnt;

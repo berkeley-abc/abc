@@ -418,10 +418,91 @@ char * chomp( char *s )
   SeeAlso     []
 
 ***********************************************************************/
+int Mio_LibraryCompareGatesByArea( Mio_Gate_t ** pp1, Mio_Gate_t ** pp2 )
+{
+    double Diff = (*pp1)->dArea - (*pp2)->dArea;
+    if ( Diff < 0.0 )
+        return -1;
+    if ( Diff > 0.0 ) 
+        return 1;
+    return 0; 
+}
+        
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_LibraryCompareGatesByName( Mio_Gate_t ** pp1, Mio_Gate_t ** pp2 )
+{
+    int Diff = strcmp( (*pp1)->pName, (*pp2)->pName );
+    if ( Diff < 0.0 )
+        return -1;
+    if ( Diff > 0.0 ) 
+        return 1;
+    return 0; 
+}
+        
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibrarySortGates( Mio_Library_t * pLib )
+{
+    Mio_Gate_t ** ppGates, * pGate;
+    int i = 0;
+    ppGates = ALLOC( Mio_Gate_t *, pLib->nGates );
+    Mio_LibraryForEachGate( pLib, pGate )
+        ppGates[i++] = pGate;
+    assert( i == pLib->nGates );
+    // sort gates by area
+    pLib->ppGates0 = ALLOC( Mio_Gate_t *, pLib->nGates );
+    for ( i = 0; i < pLib->nGates; i++ )
+        pLib->ppGates0[i] = ppGates[i];
+    qsort( (void *)ppGates, pLib->nGates, sizeof(void *), 
+            (int (*)(const void *, const void *)) Mio_LibraryCompareGatesByArea );
+    for ( i = 0; i < pLib->nGates; i++ )
+        ppGates[i]->pNext = (i < pLib->nGates-1)? ppGates[i+1] : NULL;
+    pLib->pGates = ppGates[0];
+    free( ppGates );
+    // sort gates by name
+    pLib->ppGatesName = ALLOC( Mio_Gate_t *, pLib->nGates );
+    for ( i = 0; i < pLib->nGates; i++ )
+        pLib->ppGatesName[i] = pLib->ppGates0[i];
+    qsort( (void *)pLib->ppGatesName, pLib->nGates, sizeof(void *), 
+            (int (*)(const void *, const void *)) Mio_LibraryCompareGatesByName );
+}
+        
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
 {
     Mio_Gate_t * pGate;
     DdNode * bFuncBuf, * bFuncInv, * bFuncNand2, * bFuncAnd2;
+
+    Mio_LibrarySortGates( pLib );
 
     bFuncBuf   = pLib->dd->vars[0];                                              Cudd_Ref( bFuncBuf );
     bFuncInv   = Cudd_Not( pLib->dd->vars[0] );                                  Cudd_Ref( bFuncInv );

@@ -9,7 +9,7 @@
   Synopsis    [Core procedures of this package.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int fOnlyRemove, int fSkipUpdate );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -33,7 +35,7 @@
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -57,13 +59,176 @@ void Abc_NtkMfsParsDefault( Mfs_Par_t * pPars )
     pPars->fVerbose     =    0;
     pPars->fVeryVerbose =    0;
 }
+/*
+int Abc_NtkMfsEdgePower( Mfs_Man_t * p, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin;
+    float * pProbab = (float *)p->vProbs->pArray;
+    int i;
+    // try replacing area critical fanins
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        if ( pProbab[pFanin->Id] >= 0.4 )
+        {
+            if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+                return 1;
+        } else if ( pProbab[pFanin->Id] >= 0.3 )
+        {
+            if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
+                return 1;
+        }
+    }
+    return 0;
+}
+*/
+
+int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
+{
+//    int clk;
+//    Abc_Obj_t * pFanin;
+    float * pProbab = (float *)p->vProbs->pArray;
+//    int i;
+
+    p->nNodesTried++;
+    // prepare data structure for this node
+    Mfs_ManClean( p );
+    // compute window roots, window support, and window nodes
+    p->vRoots = Abc_MfsComputeRoots( pNode, p->pPars->nWinTfoLevs, p->pPars->nFanoutsMax );
+    p->vSupp  = Abc_NtkNodeSupport( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
+    p->vNodes = Abc_NtkDfsNodes( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
+    if ( p->pPars->nWinSizeMax && Vec_PtrSize(p->vNodes) > p->pPars->nWinSizeMax )
+        return 1;
+    // compute the divisors of the window
+    p->vDivs  = Abc_MfsComputeDivisors( p, pNode, Abc_ObjRequiredLevel(pNode) - 1 );
+    p->nTotalDivs += Vec_PtrSize(p->vDivs);
+    // construct AIG for the window
+    p->pAigWin = Abc_NtkConstructAig( p, pNode );
+    // translate it into CNF
+    p->pCnf = Cnf_DeriveSimple( p->pAigWin, 1 + Vec_PtrSize(p->vDivs) );
+    // create the SAT problem
+    p->pSat = Abc_MfsCreateSolverResub( p, NULL, 0, 0 );
+    if ( p->pSat == NULL )
+    {
+        p->nNodesBad++;
+        return 1;
+    }
+    return 0;
+}
+
+/*
+int Abc_NtkMfsPowerResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
+{
+    int clk;
+    Abc_Obj_t * pFanin;
+    float * pProbab = (float *)p->vProbs->pArray;
+    int i;
+
+    if (Abc_WinNode(p, pNode)  // something wrong
+        return 1;
+
+    // solve the SAT problem
+    // Abc_NtkMfsEdgePower( p, pNode );
+    // try replacing area critical fanins
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        if ( pProbab[pFanin->Id] >= 0.37 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+            return 1;
+
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        if ( pProbab[pFanin->Id] >= 0.1 && Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
+            return 1;
+
+    if ( Abc_ObjFaninNum(pNode) == p->nFaninMax )
+        return 0;
+
+    // try replacing area critical fanins while adding two new fanins
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+            if ( pProbab[pFanin->Id] >= 0.37 && Abc_NtkMfsSolveSatResub2( p, pNode, i, -1 ) )
+                return 1;
+        }
+    return 0;
+
+    return 1;
+}
+*/
+
+Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
+{
+    int i, k;
+    Abc_Obj_t *pFanin, *pNode;
+    Abc_Ntk_t *pNtk = p->pNtk;
+    int nFaninMax = Abc_NtkGetFaninMax(p->pNtk);
+    float * pProbab = (float *)p->vProbs->pArray;
+
+    Abc_NtkForEachNode( pNtk, pNode, k )
+    {
+        if ( p->pPars->nDepthMax && (int)pNode->Level > p->pPars->nDepthMax )
+            continue;
+        if ( Abc_ObjFaninNum(pNode) < 2 || Abc_ObjFaninNum(pNode) > nFaninMax )
+            continue;
+        if (Abc_WinNode(p, pNode) )  // something wrong
+            continue;
+
+        // solve the SAT problem
+        // Abc_NtkMfsEdgePower( p, pNode );
+        // try replacing area critical fanins
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+            if ( pProbab[pFanin->Id] >= 0.35 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+                continue;
+    }
+
+    Abc_NtkForEachNode( pNtk, pNode, k )
+    {
+        if ( p->pPars->nDepthMax && (int)pNode->Level > p->pPars->nDepthMax )
+            continue;
+        if ( Abc_ObjFaninNum(pNode) < 2 || Abc_ObjFaninNum(pNode) > nFaninMax )
+            continue;
+        if (Abc_WinNode(p, pNode) )  // something wrong
+            continue;
+
+        // solve the SAT problem
+        // Abc_NtkMfsEdgePower( p, pNode );
+        // try replacing area critical fanins
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+            if ( pProbab[pFanin->Id] >= 0.35 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+                continue;
+    }
+
+    Abc_NtkForEachNode( pNtk, pNode, k )
+    {
+        if ( p->pPars->nDepthMax && (int)pNode->Level > p->pPars->nDepthMax )
+            continue;
+        if ( Abc_ObjFaninNum(pNode) < 2 || Abc_ObjFaninNum(pNode) > nFaninMax )
+            continue;
+        if (Abc_WinNode(p, pNode) ) // something wrong
+            continue;
+
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+            if ( pProbab[pFanin->Id] >= 0.2 && Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
+                continue;
+    }
+/*
+    Abc_NtkForEachNode( pNtk, pNode, k )
+    {
+        if ( p->pPars->nDepthMax && (int)pNode->Level > p->pPars->nDepthMax )
+            continue;
+        if ( Abc_ObjFaninNum(pNode) < 2 || Abc_ObjFaninNum(pNode) > nFaninMax - 2)
+            continue;
+        if (Abc_WinNode(p, pNode) ) // something wrong
+            continue;
+
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+            if ( pProbab[pFanin->Id] >= 0.37 && Abc_NtkMfsSolveSatResub2( p, pNode, i, -1 ) )
+                continue;
+    }
+*/
+}
 
 /**Function*************************************************************
 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -74,7 +239,7 @@ int Abc_NtkMfsResub( Mfs_Man_t * p, Abc_Obj_t * pNode )
     int clk;
     p->nNodesTried++;
     // prepare data structure for this node
-    Mfs_ManClean( p ); 
+    Mfs_ManClean( p );
     // compute window roots, window support, and window nodes
 clk = clock();
     p->vRoots = Abc_MfsComputeRoots( pNode, p->pPars->nWinTfoLevs, p->pPars->nFanoutsMax );
@@ -105,7 +270,9 @@ clk = clock();
         return 1;
     }
     // solve the SAT problem
-    if ( p->pPars->fSwapEdge )
+    if ( p->pPars->fPower )
+        Abc_NtkMfsEdgePower( p, pNode );
+    else if ( p->pPars->fSwapEdge )
         Abc_NtkMfsEdgeSwapEval( p, pNode );
     else
     {
@@ -122,7 +289,7 @@ p->timeSat += clock() - clk;
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -132,7 +299,8 @@ int Abc_NtkMfsNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
     Hop_Obj_t * pObj;
     int RetValue;
-    extern Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
+    float dProb;
+    extern Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare, float dProb );
 
     int nGain, clk;
     p->nNodesTried++;
@@ -173,14 +341,15 @@ p->timeSat += clock() - clk;
     }
     // minimize the local function of the node using bi-decomposition
     assert( p->nFanins == Abc_ObjFaninNum(pNode) );
-    pObj = Abc_NodeIfNodeResyn( p->pManDec, pNode->pNtk->pManFunc, pNode->pData, p->nFanins, p->vTruth, p->uCare );
+    dProb = p->pPars->fPower? ((float *)p->vProbs->pArray)[pNode->Id] : -1.0;
+    pObj = Abc_NodeIfNodeResyn( p->pManDec, pNode->pNtk->pManFunc, pNode->pData, p->nFanins, p->vTruth, p->uCare, dProb );
     nGain = Hop_DagSize(pNode->pData) - Hop_DagSize(pObj);
     if ( nGain >= 0 )
     {
         p->nNodesDec++;
         p->nNodesGained += nGain;
         p->nNodesGainedLevel += nGain;
-        pNode->pData = pObj;    
+        pNode->pData = pObj;
     }
     return 1;
 }
@@ -190,7 +359,7 @@ p->timeSat += clock() - clk;
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -198,7 +367,7 @@ p->timeSat += clock() - clk;
 ***********************************************************************/
 int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 {
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters );
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
 
     Bdc_Par_t Pars = {0}, * pDecPars = &Pars;
     ProgressBar * pProgress;
@@ -242,16 +411,32 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     p = Mfs_ManAlloc( pPars );
     p->pNtk = pNtk;
     p->nFaninMax = nFaninMax;
+
+    // precomputer power-aware metrics
+    if ( pPars->fPower )
+    {
+        extern Vec_Int_t * Abc_NtkPowerEstimate( Abc_Ntk_t * pNtk, int fProbOne );
+        if ( pPars->fResub )
+            p->vProbs = Abc_NtkPowerEstimate( pNtk, 0 );
+        else
+            p->vProbs = Abc_NtkPowerEstimate( pNtk, 1 );
+#if 0
+        printf( "Total switching before = %7.2f.\n", Abc_NtkMfsTotalSwitching(pNtk) );
+#else
+        p->TotalSwitchingBeg = Abc_NtkMfsTotalSwitching(pNtk);
+#endif
+    }
+
     if ( pNtk->pExcare )
     {
         Abc_Ntk_t * pTemp;
         if ( Abc_NtkPiNum(pNtk->pExcare) != Abc_NtkCiNum(pNtk) )
-            printf( "The PI count of careset (%d) and logic network (%d) differ. Careset is not used.\n", 
+            printf( "The PI count of careset (%d) and logic network (%d) differ. Careset is not used.\n",
                 Abc_NtkPiNum(pNtk->pExcare), Abc_NtkCiNum(pNtk) );
         else
         {
             pTemp = Abc_NtkStrash( pNtk->pExcare, 0, 0, 0 );
-            p->pCare = Abc_NtkToDar( pTemp, 0 );
+            p->pCare = Abc_NtkToDar( pTemp, 0, 0 );
             Abc_NtkDelete( pTemp );
             p->vSuppsInv = Aig_ManSupportsInverse( p->pCare );
         }
@@ -273,7 +458,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
         Abc_NtkForEachCi( pNtk, pObj, i )
             pObj->pData = (void *)(PORT_PTRUINT_T)i;
     }
- 
+
     // compute levels
     Abc_NtkLevel( pNtk );
     Abc_NtkStartReverseLevels( pNtk, pPars->nGrowthLevel );
@@ -284,6 +469,14 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     p->nTotalEdgesBeg = nTotalEdgesBeg;
     if ( pPars->fResub )
     {
+#if 0
+        printf( "TotalSwitching (%7.2f --> ", Abc_NtkMfsTotalSwitching(pNtk) );
+#endif
+        if (pPars->fPower)
+        {
+            Abc_NtkMfsPowerResub( p, pPars);
+        } else
+        {
         pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
         Abc_NtkForEachNode( pNtk, pObj, i )
         {
@@ -299,9 +492,15 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
                 Abc_NtkMfsNode( p, pObj );
         }
         Extra_ProgressBarStop( pProgress );
+#if 0
+        printf( " %7.2f )\n", Abc_NtkMfsTotalSwitching(pNtk) );
+#endif
     }
-    else
+    } else
     {
+#if 0
+        printf( "Total switching before  = %7.2f,  ----> ", Abc_NtkMfsTotalSwitching(pNtk) );
+#endif
         pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
         vLevels = Abc_NtkLevelize( pNtk );
         Vec_VecForEachLevelStart( vLevels, vNodes, k, 1 )
@@ -320,22 +519,27 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
                     continue;
                 if ( pPars->fResub )
                     Abc_NtkMfsResub( p, pObj );
-                else 
+                else
                     Abc_NtkMfsNode( p, pObj );
             }
             nNodes += Vec_PtrSize(vNodes);
             if ( pPars->fVerbose )
             {
-            printf( "Lev = %2d. Node = %5d. Ave gain = %5.2f. Ave conf = %5.2f. T/o = %6.2f %%  ", 
+                /*
+            printf( "Lev = %2d. Node = %5d. Ave gain = %5.2f. Ave conf = %5.2f. T/o = %6.2f %%  ",
                 k, Vec_PtrSize(vNodes),
                 1.0*p->nNodesGainedLevel/Vec_PtrSize(vNodes),
                 1.0*p->nTotConfLevel/Vec_PtrSize(vNodes),
                 100.0*p->nTimeOutsLevel/Vec_PtrSize(vNodes) );
             PRT( "Time", clock() - clk2 );
+            */
             }
         }
         Extra_ProgressBarStop( pProgress );
         Vec_VecFree( vLevels );
+#if 0
+        printf( " %7.2f.\n", Abc_NtkMfsTotalSwitching(pNtk) );
+#endif
     }
     Abc_NtkStopReverseLevels( pNtk );
 
@@ -355,6 +559,16 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         Abc_NtkForEachCi( pNtk, pObj, i )
             pObj->pData = NULL;
+    }
+
+    if ( pPars->fPower )
+    {
+#if 1
+        p->TotalSwitchingEnd = Abc_NtkMfsTotalSwitching(pNtk);
+//        printf( "Total switching after  = %7.2f.\n", Abc_NtkMfsTotalSwitching(pNtk) );
+#else
+        printf( "Total switching after  = %7.2f.\n", Abc_NtkMfsTotalSwitching(pNtk) );
+#endif
     }
 
     // free the manager

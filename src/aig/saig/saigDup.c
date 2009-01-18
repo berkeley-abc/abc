@@ -46,6 +46,7 @@ Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
     int i;
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
+    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
@@ -80,11 +81,12 @@ Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
 ***********************************************************************/
 Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops )
 {
-    Aig_Man_t * pAigNew;
+    Aig_Man_t * pAigNew;//, * pTemp;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, Entry;
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
+    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // label included flops
@@ -123,6 +125,8 @@ Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops )
         }
     Aig_ManSetRegNum( pAigNew, Vec_IntSize(vFlops) );
     Aig_ManSeqCleanup( pAigNew );
+//    pAigNew = Aig_ManDupSimpleDfs( pTemp = pAigNew );
+//    Aig_ManStop( pTemp );
     return pAigNew;
 }
 

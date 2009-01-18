@@ -145,6 +145,8 @@ void If_ManStop( If_Man_t * p )
         FREE( p->pPars->pTimesReq );
     if ( p->pManTim )
         Tim_ManStop( p->pManTim );
+    if ( p->vSwitching )
+        Vec_IntFree( p->vSwitching );
     free( p );
 }
 

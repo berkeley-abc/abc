@@ -48,10 +48,10 @@ typedef long long          sint64;
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-// this include should be the first one in the list
-// it is used to catch memory leaks on Windows
-#if defined(_DEBUG) && defined(_MSC_VER) && (_MSC_VER <= 1200) // 1200 = MSVC 6.0
-#include "leaks.h"       
+// catch memory leaks in Visual Studio
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
 #endif
 
 ////////////////////////////////////////////////////////////////////////

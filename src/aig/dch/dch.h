@@ -47,6 +47,7 @@ struct Dch_Pars_t_
     int              fSynthesis;    // set to 1 to perform synthesis
     int              fPolarFlip;    // uses polarity adjustment
     int              fSimulateTfo;  // uses simulatin of TFO classes
+    int              fPower;        // uses power-aware rewriting
     int              fVerbose;      // verbose stats
     int              timeSynth;     // synthesis runtime
     int              nNodesAhead;   // the lookahead in terms of nodes

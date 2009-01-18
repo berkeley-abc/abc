@@ -601,6 +601,27 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
             Intp_ManPrintResolvent( p->pResLits, p->nResLits );
             Intp_ManPrintClause( p, pFinal );
         }
+
+        // if there are literals in the clause that are not in the resolvent
+        // it means that the derived resolvent is stronger than the clause
+        // we can replace the clause with the resolvent by removing these literals
+        if ( p->nResLits != (int)pFinal->nLits )
+        {
+            for ( v1 = 0; v1 < (int)pFinal->nLits; v1++ )
+            {
+                for ( v2 = 0; v2 < p->nResLits; v2++ )
+                    if ( pFinal->pLits[v1] == p->pResLits[v2] )
+                        break;
+                if ( v2 < p->nResLits )
+                    continue;
+                // remove literal v1 from the final clause
+                pFinal->nLits--;
+                for ( v2 = v1; v2 < (int)pFinal->nLits; v2++ )
+                    pFinal->pLits[v2] = pFinal->pLits[v2+1];
+                v1--;
+            }
+            assert( p->nResLits == (int)pFinal->nLits );
+        }
     }
 p->timeTrace += clock() - clk;
 
@@ -610,6 +631,10 @@ p->timeTrace += clock() - clk;
 //        Intp_ManPrintInterOne( p, pFinal );
 //    }
     Intp_ManProofSet( p, pFinal, p->Counter );
+    // make sure the same proof ID is not asssigned to two consecutive clauses
+    assert( p->pProofNums[pFinal->Id-1] != p->Counter );
+//    if ( p->pProofNums[pFinal->Id] == p->pProofNums[pFinal->Id-1] )
+//        p->pProofNums[pFinal->Id] = p->pProofNums[pConflict->Id];
     return p->Counter;
 }
 
@@ -634,9 +659,19 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
     if ( pClause->nLits == 0 )
         printf( "Error: Empty clause is attempted.\n" );
 
-    // add assumptions to the trail
     assert( !pClause->fRoot );
     assert( p->nTrailSize == p->nRootSize );
+
+    // if any of the clause literals are already assumed
+    // it means that the clause is redundant and can be skipped
+    for ( i = 0; i < (int)pClause->nLits; i++ )
+        if ( p->pAssigns[lit_var(pClause->pLits[i])] == pClause->pLits[i] )
+        {
+            Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+            return 1;
+        }
+
+    // add assumptions to the trail
     for ( i = 0; i < (int)pClause->nLits; i++ )
         if ( !Intp_ManEnqueue( p, lit_neg(pClause->pLits[i]), NULL ) )
         {
@@ -650,6 +685,28 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
     {
         assert( 0 ); // cannot prove
         return 0;
+    }
+
+    // skip the clause if it is weaker or the same as the conflict clause
+    if ( pClause->nLits >= pConflict->nLits )
+    {
+        // check if every literal of conflict clause can be found in the given clause
+        int j;
+        for ( i = 0; i < (int)pConflict->nLits; i++ )
+        {
+            for ( j = 0; j < (int)pClause->nLits; j++ )
+                if ( pConflict->pLits[i] == pClause->pLits[j] )
+                    break;
+            if ( j == (int)pClause->nLits ) // literal pConflict->pLits[i] is not found
+                break;
+        }
+        if ( i == (int)pConflict->nLits ) // all lits are found
+        {
+            // undo to the root level
+            Intp_ManCancelUntil( p, p->nRootSize );
+            Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+            return 1;
+        }
     }
 
     // construct the proof
@@ -737,8 +794,12 @@ int Intp_ManProcessRoots( Intp_Man_t * p )
         if ( !Intp_ManEnqueue( p, pClause->pLits[0], pClause ) )
         {
             // detected root level conflict
-            printf( "Error in Intp_ManProcessRoots(): Detected a root-level conflict too early!\n" );
-            assert( 0 );
+//            printf( "Error in Intp_ManProcessRoots(): Detected a root-level conflict too early!\n" );
+//            assert( 0 );
+            // detected root level conflict
+            Intp_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
+            if ( p->fVerbose )
+                printf( "Found root level conflict!\n" );
             return 0;
         }
     }
@@ -762,6 +823,68 @@ int Intp_ManProcessRoots( Intp_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Verifies the UNSAT core.]
+
+  Description [Takes the interpolation manager, the CNF derived by the SAT
+  solver, which includes the root clauses and the learned clauses. Returns
+  the array of integers representing the number of root clauses that are in
+  the UNSAT core.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Intp_ManUnsatCoreVerify( Sto_Man_t * pCnf, Vec_Int_t * vCore )
+{
+    int fVerbose = 0;
+    int nConfMax = 1000000;
+    sat_solver * pSat;
+    Sto_Cls_t * pClause;
+    Vec_Ptr_t * vClauses;
+    int i, iClause, RetValue, clk = clock();
+    // collect the clauses
+    vClauses = Vec_PtrAlloc( 1000 );
+    Sto_ManForEachClauseRoot( pCnf, pClause )
+    {
+        assert( Vec_PtrSize(vClauses) == pClause->Id );
+        Vec_PtrPush( vClauses, pClause );
+    }
+    // create new SAT solver
+    pSat = sat_solver_new();
+//    sat_solver_setnvars( pSat, nSatVars );
+    Vec_IntForEachEntry( vCore, iClause, i )
+    {
+        pClause = Vec_PtrEntry( vClauses, iClause );
+        if ( !sat_solver_addclause( pSat, pClause->pLits, pClause->pLits+pClause->nLits ) )
+        {
+            printf( "The core verification problem is trivially UNSAT.\n" );
+            break;
+        }
+    }
+    Vec_PtrFree( vClauses );
+    // solve the problem
+    RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfMax, (sint64)0, (sint64)0, (sint64)0 );
+    sat_solver_delete( pSat );
+    if ( fVerbose )
+    {
+        if ( RetValue == l_Undef )
+            printf( "Conflict limit is reached.  " );
+        else if ( RetValue == l_True )
+            printf( "UNSAT core verification FAILED.  " );
+        else
+            printf( "UNSAT core verification succeeded.  " );
+        PRT( "Time", clock() - clk );
+    }
+    else
+    {
+        if ( RetValue == l_True )
+            printf( "UNSAT core verification FAILED.  \n" );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Recursively computes the UNSAT core.]
 
   Description []
@@ -771,15 +894,13 @@ int Intp_ManProcessRoots( Intp_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManUnsatCore_rec( Vec_Int_t * vAnties, Vec_Int_t * vBreaks, int iThis, Vec_Int_t * vCore, int nRoots )
+void Intp_ManUnsatCore_rec( Vec_Int_t * vAnties, Vec_Int_t * vBreaks, int iThis, Vec_Int_t * vCore, int nRoots, Vec_Int_t * vVisited )
 {
     int i, iStop, iStart;
-    // skip of this clause was visited
-    iStart = Vec_IntEntry( vBreaks, iThis );
-    if ( iStart == -1 )
+    // skip visited clauses
+    if ( Vec_IntEntry( vVisited, iThis ) )
         return;
-    // mark this clause as visited
-    Vec_IntWriteEntry( vBreaks, iThis, -1 );
+    Vec_IntWriteEntry( vVisited, iThis, 1 );
     // add a root clause to the core
     if ( iThis < nRoots )
     {
@@ -787,9 +908,11 @@ void Intp_ManUnsatCore_rec( Vec_Int_t * vAnties, Vec_Int_t * vBreaks, int iThis,
         return;
     }
     // iterate through the clauses
+    iStart = Vec_IntEntry( vBreaks, iThis );
     iStop = Vec_IntEntry( vBreaks, iThis+1 );
+    assert( iStop != -1 );
     for ( i = iStart; i < iStop; i++ )
-        Intp_ManUnsatCore_rec( vAnties, vBreaks, Vec_IntEntry(vAnties, i), vCore, nRoots );
+        Intp_ManUnsatCore_rec( vAnties, vBreaks, Vec_IntEntry(vAnties, i), vCore, nRoots, vVisited );
 }
 
 /**Function*************************************************************
@@ -809,6 +932,7 @@ void Intp_ManUnsatCore_rec( Vec_Int_t * vAnties, Vec_Int_t * vBreaks, int iThis,
 void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
 {
     Vec_Int_t * vCore;
+    Vec_Int_t * vVisited;
     Sto_Cls_t * pClause;
     int RetValue = 1;
     int clkTotal = clock();
@@ -859,6 +983,7 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
     if ( p->fProofWrite )
     {
         fclose( p->pFile );
+//        Sat_ProofChecker( "proof.cnf_" );
         p->pFile = NULL;    
     }
 
@@ -874,10 +999,13 @@ p->timeTotal += clock() - clkTotal;
 
     // derive the UNSAT core
     vCore = Vec_IntAlloc( 1000 );
-    Intp_ManUnsatCore_rec( p->vAnties, p->vBreaks, p->pCnf->pEmpty->Id, vCore, p->pCnf->nRoots );
+    vVisited = Vec_IntStart( p->pCnf->pEmpty->Id+1 );
+    Intp_ManUnsatCore_rec( p->vAnties, p->vBreaks, p->pCnf->pEmpty->Id, vCore, p->pCnf->nRoots, vVisited );
+    Vec_IntFree( vVisited );
     if ( fVerbose )
         printf( "Root clauses = %d. Learned clauses = %d. UNSAT core size = %d.\n", 
             p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, Vec_IntSize(vCore) );
+    Intp_ManUnsatCoreVerify( p->pCnf, vCore );
     return vCore;   
 }
 

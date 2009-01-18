@@ -80,8 +80,8 @@ void Abc_NtkMfsPrintResubStats( Mfs_Man_t * p )
                 nAreaExpanse += (int)(Abc_ObjFaninNum(pNode) < nFaninMax);
             }
         }
-    printf( "Total area-critical fanins = %d. Belonging to expandable nodes = %d.\n", 
-        nAreaCrits, nAreaExpanse );
+//    printf( "Total area-critical fanins = %d. Belonging to expandable nodes = %d.\n", 
+//        nAreaCrits, nAreaExpanse );
 }
 
 /**Function*************************************************************
@@ -209,6 +209,8 @@ p->timeInt += clock() - clk;
     iVar = -1;
     while ( 1 )
     {
+        float * pProbab = (float *)(p->vProbs? p->vProbs->pArray : NULL);
+        assert( (pProbab != NULL) == p->pPars->fPower );
         if ( fVeryVerbose )
         {
             printf( "%3d: %2d ", p->nCexes, iVar );
@@ -225,6 +227,13 @@ p->timeInt += clock() - clk;
         assert( nWords <= p->nDivWords );
         for ( iVar = 0; iVar < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); iVar++ )
         {
+            if ( p->pPars->fPower )
+            {
+                Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
+                // only accept the divisor if it is "cool"
+                if ( pProbab[Abc_ObjId(pDiv)] >= 0.15 )
+                    continue;
+            }
             pData  = Vec_PtrEntry( p->vDivCexes, iVar );
             for ( w = 0; w < nWords; w++ )
                 if ( pData[w] != ~0 )
@@ -345,6 +354,10 @@ p->timeInt += clock() - clk;
     iVar = iVar2 = -1;
     while ( 1 )
     {
+#if 1 // sjang
+        float * pProbab = (float *)(p->vProbs? p->vProbs->pArray : NULL);
+        assert( (pProbab != NULL) == p->pPars->fPower );
+#endif
         if ( fVeryVerbose )
         {
             printf( "%3d: %2d %2d ", p->nCexes, iVar, iVar2 );
@@ -363,9 +376,27 @@ p->timeInt += clock() - clk;
         for ( iVar = 1; iVar < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); iVar++ )
         {
             pData  = Vec_PtrEntry( p->vDivCexes, iVar );
+#if 1  // sjang
+            if ( p->pPars->fPower )
+            {
+                Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
+                // only accept the divisor if it is "cool"
+                if ( pProbab[Abc_ObjId(pDiv)] >= 0.12 )
+                    continue;
+            }
+#endif
             for ( iVar2 = 0; iVar2 < iVar; iVar2++ )
             {
                 pData2 = Vec_PtrEntry( p->vDivCexes, iVar2 );
+#if 1 // sjang
+                if ( p->pPars->fPower )
+                {
+                    Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar2);
+                    // only accept the divisor if it is "cool"
+                    if ( pProbab[Abc_ObjId(pDiv)] >= 0.12 )
+                        continue;
+                }
+#endif
                 for ( w = 0; w < nWords; w++ )
                     if ( (pData[w] | pData2[w]) != ~0 )
                         break;
@@ -429,6 +460,38 @@ int Abc_NtkMfsEdgeSwapEval( Mfs_Man_t * p, Abc_Obj_t * pNode )
     int i;
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 1 );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluates the possibility of replacing given edge by another edge.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMfsEdgePower( Mfs_Man_t * p, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin;
+    float * pProbab = (float *)p->vProbs->pArray;
+    int i;
+    // try replacing area critical fanins
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        if ( pProbab[pFanin->Id] >= 0.35 )
+        {
+            if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+                return 1;
+        } else if ( pProbab[pFanin->Id] >= 0.25 ) // sjang
+        {
+            if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
+                return 1;
+        }
+        }
     return 0;
 }
 

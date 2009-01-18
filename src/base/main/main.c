@@ -216,14 +216,14 @@ int main( int argc, char * argv[] )
             if ( fStatus == -1 || fStatus == -2 )
                 break;
         }
-    }
+    } 
      
     // if the memory should be freed, quit packages
     if ( fStatus < 0 ) 
     {
         Abc_Stop(); 
-    }  
-    return 0; 
+    }    
+    return 0;  
 
 usage:
     Abc_UtilsPrintHello( pAbc );

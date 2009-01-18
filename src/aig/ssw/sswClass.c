@@ -585,7 +585,7 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, int fVerbose )
+Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int nMaxLevs, int fVerbose )
 {
 //    int nFrames =  4;
 //    int nWords  =  1;
@@ -595,7 +595,7 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs, 
 //    int nWords  =  4;
 //    int nIters  =  0;
 
-    int nFrames =  4;
+    int nFrames =  AIG_MAX( nFramesK, 4 );
     int nWords  =  2;
     int nIters  = 16;
     Ssw_Cla_t * p;
@@ -836,7 +836,7 @@ Ssw_Cla_t * Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cla_t * Ssw_ClassesFromIslands( Aig_Man_t * pMiter, Vec_Int_t * vPairs )
+Ssw_Cla_t * Ssw_ClassesPreparePairsSimple( Aig_Man_t * pMiter, Vec_Int_t * vPairs )
 {
     Ssw_Cla_t * p;
     Aig_Obj_t ** ppClassNew;

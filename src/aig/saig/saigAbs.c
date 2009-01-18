@@ -23,6 +23,7 @@
 #include "cnf.h"
 #include "satSolver.h"
 #include "satStore.h"
+#include "ssw.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -105,7 +106,11 @@ int Saig_AbsMarkVisited_rec( Aig_Man_t * p, Vec_Str_t * vObj2Visit, Aig_Obj_t * 
     if ( Saig_ObjIsPi( p, pObj ) )
         return 1;
     if ( Saig_ObjIsLo( p, pObj ) )
+    {
+        if ( i == 0 )
+            return 1;
         return Saig_AbsMarkVisited_rec( p, vObj2Visit, Saig_ObjLoToLi(p, pObj), i-1 );
+    }
     if ( Aig_ObjIsPo( pObj ) )
         return Saig_AbsMarkVisited_rec( p, vObj2Visit, Aig_ObjFanin0(pObj), i );
     Saig_AbsMarkVisited_rec( p, vObj2Visit, Aig_ObjFanin0(pObj), i );
@@ -130,8 +135,8 @@ Vec_Str_t * Saig_AbsMarkVisited( Aig_Man_t * p, int nFramesMax )
     Aig_Obj_t * pObj;
     int i, f;
     vObj2Visit = Vec_StrStart( Aig_ManObjNumMax(p) * nFramesMax );
-    Saig_ManForEachLo( p, pObj, i )
-        Saig_AbsSetVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, 0 ); 
+//    Saig_ManForEachLo( p, pObj, i )
+//        Saig_AbsSetVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, 0 ); 
     for ( f = 0; f < nFramesMax; f++ )
     {
         Saig_AbsSetVisited( vObj2Visit, Aig_ManObjNumMax(p), Aig_ManConst1(p), f );
@@ -193,18 +198,19 @@ Vec_Ptr_t * Saig_AbsCreateFrames( Aig_Man_t * p, int nFramesMax, int fVerbose )
         Vec_PtrClear( vLoObjs );
         Vec_PtrClear( vLiObjs );
         Aig_ManForEachPi( p, pObj, i )
-        {
+        { 
             if ( Saig_AbsVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, f ) )
             {
                 pObj->pData = Aig_ObjCreatePi(pFrame);
                 if ( i >= Saig_ManPiNum(p) )
                     Vec_PtrPush( vLoObjs, pObj );
-            }
+            } 
         }
         // remember the number of (implicit) registers in this frame
         pFrame->nAsserts = Vec_PtrSize(vLoObjs);
         // create POs
         Aig_ManForEachPo( p, pObj, i )
+        {
             if ( Saig_AbsVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, f ) )
             {
                 Saig_AbsCreateFrames_rec( pFrame, Aig_ObjFanin0(pObj) );
@@ -212,8 +218,10 @@ Vec_Ptr_t * Saig_AbsCreateFrames( Aig_Man_t * p, int nFramesMax, int fVerbose )
                 if ( i >= Saig_ManPoNum(p) )
                     Vec_PtrPush( vLiObjs, pObj );
             }
-        Vec_PtrPush( vFrames, Cnf_Derive(pFrame, Aig_ManPoNum(pFrame)) );
-        // set the new PIs to point to the recorresponding registers
+        }
+//        Vec_PtrPush( vFrames, Cnf_Derive(pFrame, Aig_ManPoNum(pFrame)) );
+        Vec_PtrPush( vFrames, Cnf_DeriveSimple(pFrame, Aig_ManPoNum(pFrame)) );
+        // set the new PIs to point to the corresponding registers
         Aig_ManCleanData( pFrame );
         Vec_PtrForEachEntry( vLoObjs, pObj, i )
             ((Aig_Obj_t *)pObj->pData)->pData = pObj;
@@ -290,7 +298,10 @@ sat_solver * Saig_AbsCreateSolverDyn( Aig_Man_t * p, Vec_Ptr_t * vFrames )
     // add auxiliary clauses (output, connectors, initial)
     // add output clause
     if ( !sat_solver_addclause( pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) ) )
+    {
+        printf( "SAT solver is not created correctly.\n" );
         assert( 0 );
+    }
     Vec_IntFree( vPoLits );
 
     // add connecting clauses
@@ -627,6 +638,52 @@ void Saig_AbsExtendOneStep( Aig_Man_t * p, Vec_Int_t * vFlops )
 
 /**Function*************************************************************
 
+  Synopsis    [Derive a new counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cex_t * Saig_ManCexShrink( Aig_Man_t * p, Aig_Man_t * pAbs, Ssw_Cex_t * pCexAbs )
+{
+    Ssw_Cex_t * pCex;
+    Aig_Obj_t * pObj;
+    int i, f;
+    // start the counter-example
+    pCex = Ssw_SmlAllocCounterExample( Aig_ManRegNum(p), Saig_ManPiNum(p), pCexAbs->iFrame+1 );
+    pCex->iFrame = pCexAbs->iFrame;
+    pCex->iPo    = pCexAbs->iPo;
+    // copy the bit data
+    for ( f = 0; f <= pCexAbs->iFrame; f++ )
+    {
+        Saig_ManForEachPi( pAbs, pObj, i )
+        {
+            if ( i == Saig_ManPiNum(p) )
+                break;
+            if ( Aig_InfoHasBit( pCexAbs->pData, pCexAbs->nRegs + pCexAbs->nPis * f + i ) )
+                Aig_InfoSetBit( pCex->pData, pCex->nRegs + pCex->nPis * f + i );
+        }
+    }
+    // verify the counter example
+    if ( !Ssw_SmlRunCounterExample( p, pCex ) )
+    {
+        printf( "Saig_ManCexShrink(): Counter-example is invalid.\n" );
+        Ssw_SmlFreeCounterExample( pCex );
+        pCex = NULL;
+    }
+    else
+    {
+        printf( "Counter-example verification is successful.\n" );
+        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
+    }
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
 
   Description []
@@ -636,63 +693,148 @@ void Saig_AbsExtendOneStep( Aig_Man_t * p, Vec_Int_t * vFlops )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fVerbose )
+Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int fVerbose )
 {
-    Aig_Man_t * pResult;
+    extern void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose );
+    extern Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, void * pCex, int fVerbose );
+
+    Vec_Int_t * vFlopsNew, * vPiToReg;
+    Aig_Obj_t * pObj;
+    int i, Entry, iFlop;
+    Saig_BmcPerform( pAbs, 2000, 2000, 5000, 1000000, fVerbose );
+    if ( pAbs->pSeqModel == NULL )
+        return NULL;
+//    Saig_ManExtendCounterExampleTest( p->pAig, 0, p->pAig->pSeqModel );
+    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManPiNum(p), pAbs->pSeqModel, fVerbose );
+    if ( Vec_IntSize(vFlopsNew) == 0 )
+    {
+        printf( "Discovered a true counter-example!\n" );
+        p->pSeqModel = Saig_ManCexShrink( p, pAbs, pAbs->pSeqModel );
+        Vec_IntFree( vFlopsNew );
+        return NULL;
+    }
+    if ( fVerbose )
+        printf( "Adding %d registers to the abstraction.\n", Vec_IntSize(vFlopsNew) );
+    // vFlopsNew contains PI number that should be kept in pAbs
+
+    // for each additional PI, collect the number of a register it stands for
+    Vec_IntForEachEntry( vFlops, Entry, i )
+    {
+        pObj = Saig_ManLo( p, Entry );
+        pObj->fMarkA = 1;
+    }
+    vPiToReg = Vec_IntAlloc( 1000 );
+    Aig_ManForEachPi( p, pObj, i )
+    {
+        if ( pObj->fMarkA )
+        {
+            pObj->fMarkA = 0;
+            continue;
+        }
+        if ( i < Saig_ManPiNum(p) )
+            Vec_IntPush( vPiToReg, -1 );
+        else
+            Vec_IntPush( vPiToReg, Aig_ObjPioNum(pObj)-Saig_ManPiNum(p) );
+    }
+    // collect registers
+    Vec_IntForEachEntry( vFlopsNew, Entry, i )
+    {
+        iFlop = Vec_IntEntry( vPiToReg, Entry );
+        assert( iFlop >= 0 );
+        assert( iFlop < Aig_ManRegNum(p) );
+        Vec_IntPush( vFlops, iFlop );
+    }
+    Vec_IntFree( vPiToReg );
+    Vec_IntFree( vFlopsNew );
+
+    Vec_IntSort( vFlops, 0 );
+    Vec_IntForEachEntryStart( vFlops, Entry, i, 1 )
+        assert( Vec_IntEntry(vFlops, i-1) != Entry );
+
+    return Saig_ManAbstraction( p, vFlops );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int fVerbose )
+{
+    Aig_Man_t * pResult, * pTemp;
     Cnf_Dat_t * pCnf;
     Vec_Ptr_t * vFrames;
     sat_solver * pSat;
     Vec_Int_t * vCore;
     Vec_Int_t * vFlops;
-    int clk = clock(), clk2 = clock();
+    int Iter, clk = clock(), clk2 = clock();
     assert( Aig_ManRegNum(p) > 0 );
     Aig_ManSetPioNumbers( p );
-    if ( fVerbose )
-        printf( "Performing proof-based abstraction with %d frames and %d max conflicts.\n", nFrames, nConfMax );
-    if ( fDynamic )
+
+    if ( fSkipProof )
     {
-        // create CNF for the frames
-        vFrames = Saig_AbsCreateFrames( p, nFrames, fVerbose );
-        // create dynamic solver
-        pSat = Saig_AbsCreateSolverDyn( p, vFrames );
+        assert( 0 );
+        if ( fVerbose )
+            printf( "Performing counter-example-based refinement.\n" );
+//        vFlops = Vec_IntStartNatural( 100 );
+//        Vec_IntPush( vFlops, 0 );
     }
     else
     {
-        // create CNF for the AIG
-        pCnf = Cnf_DeriveSimple( p, Aig_ManPoNum(p) );
-        // create SAT solver for the unrolled AIG
-        pSat = Saig_AbsCreateSolver( pCnf, nFrames );
+        if ( fVerbose )
+            printf( "Performing proof-based abstraction with %d frames and %d max conflicts.\n", nFrames, nConfMax );
+        if ( fDynamic )
+        {
+            // create CNF for the frames
+            vFrames = Saig_AbsCreateFrames( p, nFrames, fVerbose );
+            // create dynamic solver
+            pSat = Saig_AbsCreateSolverDyn( p, vFrames );
+        }
+        else
+        {
+            // create CNF for the AIG
+            pCnf = Cnf_DeriveSimple( p, Aig_ManPoNum(p) );
+            // create SAT solver for the unrolled AIG
+            pSat = Saig_AbsCreateSolver( pCnf, nFrames );
+        }
+        if ( fVerbose )
+        {
+            printf( "SAT solver: Vars = %7d. Clauses = %7d.  ", pSat->size, pSat->stats.clauses );
+            PRT( "Time", clock() - clk2 );
+        }
+        // compute UNSAT core
+        vCore = Saig_AbsSolverUnsatCore( pSat, nConfMax, fVerbose );
+        sat_solver_delete( pSat );
+        if ( vCore == NULL )
+        {
+            Saig_AbsFreeCnfs( vFrames );
+            return NULL;
+        }
+        // collect registers
+        if ( fDynamic )
+        {
+            vFlops = Saig_AbsCollectRegistersDyn( p, vFrames, vCore );
+            Saig_AbsFreeCnfs( vFrames );
+        }
+        else
+        {
+            vFlops = Saig_AbsCollectRegisters( pCnf, nFrames, vCore );
+            Cnf_DataFree( pCnf );
+        }
+        Vec_IntFree( vCore );
+        if ( fVerbose )
+        {
+            printf( "The number of relevant registers is %d (out of %d).  ", Vec_IntSize(vFlops), Aig_ManRegNum(p) );
+            PRT( "Time", clock() - clk );
+        }
     }
-    if ( fVerbose )
-    {
-        printf( "SAT solver: Vars = %7d. Clauses = %7d.  ", pSat->size, pSat->stats.clauses );
-        PRT( "Time", clock() - clk2 );
-    }
-    // compute UNSAT core
-    vCore = Saig_AbsSolverUnsatCore( pSat, nConfMax, fVerbose );
-    sat_solver_delete( pSat );
-    if ( vCore == NULL )
-    {
-        Saig_AbsFreeCnfs( vFrames );
-        return NULL;
-    }
-    // collect registers
-    if ( fDynamic )
-    {
-        vFlops = Saig_AbsCollectRegistersDyn( p, vFrames, vCore );
-        Saig_AbsFreeCnfs( vFrames );
-    }
-    else
-    {
-        vFlops = Saig_AbsCollectRegisters( pCnf, nFrames, vCore );
-        Cnf_DataFree( pCnf );
-    }
-    Vec_IntFree( vCore );
-    if ( fVerbose )
-    {
-        printf( "The number of relevant registers is %d (out of %d).  ", Vec_IntSize(vFlops), Aig_ManRegNum(p) );
-        PRT( "Time", clock() - clk );
-    }
+/*
     // extend the abstraction
     if ( fExtend )
     {
@@ -702,8 +844,33 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         if ( fVerbose )
             printf( " %d flops.\n", Vec_IntSize(vFlops) );
     }
+*/
     // create the resulting AIG
     pResult = Saig_ManAbstraction( p, vFlops );
+
+    if ( fExtend )
+    {
+        if ( !fVerbose )
+        {
+            printf( "Init : " );
+            Aig_ManPrintStats( pResult );
+        }
+        printf( "Refining abstraction...\n" );
+        for ( Iter = 0; ; Iter++ )
+        {
+            pTemp = Saig_ManProofRefine( p, pResult, vFlops, fVerbose );
+            if ( pTemp == NULL )
+                break;
+            Aig_ManStop( pResult );
+            pResult = pTemp;
+            printf( "%4d : ", Iter );
+            if ( !fVerbose )
+                Aig_ManPrintStats( pResult );
+            else
+                printf( " -----------------------------------------------------\n" );
+        }
+    }
+
     Vec_IntFree( vFlops );
     return pResult;
 }

@@ -116,6 +116,15 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
         assert( !Aig_IsComplement(pObj->pHaig) );
 //        printf( "Creating  HAIG node %d equivalent to node %d.\n", pObj->pHaig->Id, pObj->Id );
     }
+    // create the power counter
+    if ( p->vProbs )
+    {
+        float Prob0 = Aig_Int2Float( Vec_IntEntry( p->vProbs, Aig_ObjFaninId0(pObj) ) );
+        float Prob1 = Aig_Int2Float( Vec_IntEntry( p->vProbs, Aig_ObjFaninId1(pObj) ) );
+        Prob0 = Aig_ObjFaninC0(pObj)? 1.0 - Prob0 : Prob0;
+        Prob1 = Aig_ObjFaninC1(pObj)? 1.0 - Prob1 : Prob1;
+        Vec_IntSetEntry( p->vProbs, pObj->Id, Aig_Float2Int(Prob0 * Prob1) );
+    }
     return pObj;
 }
 

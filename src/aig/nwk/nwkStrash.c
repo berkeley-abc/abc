@@ -133,6 +133,7 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
     }
     Vec_PtrFree( vObjs );
     Aig_ManCleanup( pMan );
+    Aig_ManSetRegNum( pMan, 0 );
     return pMan;
 }
 

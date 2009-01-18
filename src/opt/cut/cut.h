@@ -64,8 +64,10 @@ struct Cut_ParamsStruct_t_
     int                fGlobal;           // compute only global cuts
     int                fLocal;            // compute only local cuts
     int                fRecord;           // record the cut computation flow
+    int                fRecordAig;        // record the cut functions
     int                fFancy;            // perform fancy computations
     int                fMap;              // computes delay of FPGA mapping with cuts
+    int                fAdjust;           // removed useless fanouts of XORs/MUXes
     int                fVerbose;          // the verbosiness flag
 };
 

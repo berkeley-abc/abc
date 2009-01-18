@@ -279,6 +279,83 @@ p->timeSimSat += clock() - clk;
 
 /**Function*************************************************************
 
+  Synopsis    [Performs one round of simulation with counter-examples.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ManSweepResimulateDynLocal( Ssw_Man_t * p, int f )
+{
+    Aig_Obj_t * pObj, * pRepr, ** ppClass;
+    int i, k, nSize, RetValue1, RetValue2, clk = clock();
+    p->nSimRounds++;
+    // transfer PI simulation information from storage
+//    Ssw_SmlAssignDist1Plus( p->pSml, p->pPatWords );
+    Ssw_ManSweepTransferDyn( p );
+    // determine const1 cands and classes to be simulated
+    Vec_PtrClear( p->vResimConsts );
+    Vec_PtrClear( p->vResimClasses );
+    Aig_ManIncrementTravId( p->pAig );
+    for ( i = p->iNodeStart; i < p->iNodeLast + p->pPars->nResimDelta; i++ )
+    {
+        if ( i >= Aig_ManObjNumMax( p->pAig ) )
+            break;
+        pObj = Aig_ManObj( p->pAig, i );
+        if ( pObj == NULL )
+            continue;
+        if ( Ssw_ObjIsConst1Cand(p->pAig, pObj) )
+        {
+            Vec_PtrPush( p->vResimConsts, pObj );
+            continue;
+        }
+        pRepr = Aig_ObjRepr(p->pAig, pObj);
+        if ( pRepr == NULL )
+            continue;
+        if ( Aig_ObjIsTravIdCurrent(p->pAig, pRepr) )
+            continue;
+        Aig_ObjSetTravIdCurrent(p->pAig, pRepr);
+        Vec_PtrPush( p->vResimClasses, pRepr );
+    }
+    // simulate internal nodes
+//    Ssw_SmlSimulateOneFrame( p->pSml );
+//    Ssw_SmlSimulateOne( p->pSml );
+    // resimulate dynamically
+//    Aig_ManIncrementTravId( p->pAig );
+//    Aig_ObjIsTravIdCurrent( p->pAig, Aig_ManConst1(p->pAig) );
+    p->nVisCounter++;
+    Vec_PtrForEachEntry( p->vResimConsts, pObj, i )
+        Ssw_SmlSimulateOneDyn_rec( p->pSml, pObj, p->nFrames-1, p->pVisited, p->nVisCounter );
+    // resimulate the cone of influence of the cand classes
+    Vec_PtrForEachEntry( p->vResimClasses, pRepr, i )
+    {
+        ppClass = Ssw_ClassesReadClass( p->ppClasses, pRepr, &nSize );
+        for ( k = 0; k < nSize; k++ )
+            Ssw_SmlSimulateOneDyn_rec( p->pSml, ppClass[k], p->nFrames-1, p->pVisited, p->nVisCounter );
+    }
+
+    // check equivalence classes
+//    RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 1 );
+//    RetValue2 = Ssw_ClassesRefine( p->ppClasses, 1 );
+    // refine these nodes
+    RetValue1 = Ssw_ClassesRefineConst1Group( p->ppClasses, p->vResimConsts, 1 );
+    RetValue2 = 0;
+    Vec_PtrForEachEntry( p->vResimClasses, pRepr, i )
+        RetValue2 += Ssw_ClassesRefineOneClass( p->ppClasses, pRepr, 1 );
+
+    // prepare simulation info for the next round
+    Vec_PtrCleanSimInfo( p->vSimInfo, 0, 1 );
+    p->nPatterns = 0;
+    p->nSimRounds++;
+p->timeSimSat += clock() - clk;
+    return RetValue1 > 0 || RetValue2 > 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs fraiging for the internal nodes.]
 
   Description []
@@ -321,8 +398,11 @@ p->timeReduce += clock() - clk;
     Ssw_ClassesClearRefined( p->ppClasses );
     if ( p->pPars->fVerbose )
         pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) );
+    p->iNodeStart = 0;
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
+        if ( p->iNodeStart == 0 )
+            p->iNodeStart = i;
         if ( p->pPars->fVerbose )
             Bar_ProgressUpdate( pProgress, i, NULL );
         if ( Saig_ObjIsLo(p->pAig, pObj) )
@@ -341,7 +421,14 @@ p->timeReduce += clock() - clk;
         {
             // resimulate
             if ( p->nPatterns > 0 )
-                Ssw_ManSweepResimulateDyn( p, f );
+            {
+                p->iNodeLast = i;
+                if ( p->pPars->fLocalSim )
+                    Ssw_ManSweepResimulateDynLocal( p, f );
+                else
+                    Ssw_ManSweepResimulateDyn( p, f );
+                p->iNodeStart = i+1;
+            }
 //                printf( "Recycling SAT solver with %d vars and %d calls.\n", 
 //                    p->pMSat->nSatVars, p->nRecycleCalls );
 //            Aig_ManCleanMarkAB( p->pAig );
@@ -363,11 +450,24 @@ p->timeReduce += clock() - clk;
         }
         // resimulate
         if ( p->nPatterns == 32 )
-            Ssw_ManSweepResimulateDyn( p, f );
+        {
+            p->iNodeLast = i;
+            if ( p->pPars->fLocalSim )
+                Ssw_ManSweepResimulateDynLocal( p, f );
+            else
+                Ssw_ManSweepResimulateDyn( p, f );
+            p->iNodeStart = i+1;
+        }
     }
     // resimulate
     if ( p->nPatterns > 0 )
-        Ssw_ManSweepResimulateDyn( p, f );
+    {
+        p->iNodeLast = i;
+        if ( p->pPars->fLocalSim )
+            Ssw_ManSweepResimulateDynLocal( p, f );
+        else
+            Ssw_ManSweepResimulateDyn( p, f );
+    }
     // collect stats
     if ( p->pPars->fVerbose )
         Bar_ProgressStop( pProgress );

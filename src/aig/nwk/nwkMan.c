@@ -183,6 +183,42 @@ char * Nwk_FileNameGeneric( char * FileName )
 
 /**Function*************************************************************
 
+  Synopsis    [Marks nodes for power-optimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Nwl_ManComputeTotalSwitching( Nwk_Man_t * pNtk )
+{
+    extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+    Vec_Int_t * vSwitching;
+    float * pSwitching;
+    Aig_Man_t * pAig;
+    Aig_Obj_t * pObjAig;
+    Nwk_Obj_t * pObjAbc;
+    float Result = (float)0;
+    int i;
+    // strash the network
+    // map network into an AIG
+    pAig = Nwk_ManStrash( pNtk );
+    vSwitching = Saig_ManComputeSwitchProbs( pAig, 48, 16, 0 );
+    pSwitching = (float *)vSwitching->pArray;
+    Nwk_ManForEachObj( pNtk, pObjAbc, i )
+    {
+        if ( (pObjAig = Aig_Regular(pObjAbc->pCopy)) )
+            Result += Nwk_ObjFanoutNum(pObjAbc) * pSwitching[pObjAig->Id];
+    }
+    Vec_IntFree( vSwitching );
+    Aig_ManStop( pAig );
+    return Result;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints stats of the manager.]
 
   Description []
@@ -192,7 +228,7 @@ char * Nwk_FileNameGeneric( char * FileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl )
+void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, void * pNtl )
 {
     extern int Ntl_ManLatchNum( void * p );
     extern void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
@@ -221,7 +257,9 @@ void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int
     printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(pNtk) );
     printf( "lev = %3d  ",   Nwk_ManLevel(pNtk) );
 //    printf( "lev2 = %3d  ",  Nwk_ManLevelBackup(pNtk) );
-    printf( "delay = %5.2f   ", Nwk_ManDelayTraceLut(pNtk) );
+    printf( "delay = %5.2f  ", Nwk_ManDelayTraceLut(pNtk) );
+    if ( fPower )
+        printf( "power = %7.2f   ", Nwl_ManComputeTotalSwitching(pNtk) );
     Nwk_ManPrintLutSizes( pNtk, pLutLib );
     printf( "\n" );
 //    Nwk_ManDelayTracePrint( pNtk, pLutLib );

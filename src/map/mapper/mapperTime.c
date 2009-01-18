@@ -206,7 +206,7 @@ void Map_TimeComputeRequiredGlobal( Map_Man_t * p )
         }
         else if ( p->fRequiredGlo < p->DelayTarget - p->fEpsilon )
         {
-            if ( p->fMappingMode == 1 )
+            if ( p->fMappingMode == 1 && p->fVerbose )
                 printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->fRequiredGlo, p->DelayTarget );
             p->fRequiredGlo = p->DelayTarget;
         }

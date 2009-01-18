@@ -140,6 +140,8 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel, int fMain )
                 fprintf( pFile, " %s", pNet->pName );
             fprintf( pFile, " %s\n", Ntl_ObjFanout0(pObj)->pName );
             fprintf( pFile, "%s", pObj->pSop );
+            if ( *pObj->pSop == '\"' )
+                fprintf( pFile, "\n" );
         }
         else if ( Ntl_ObjIsLatch(pObj) )
         {
@@ -390,6 +392,8 @@ void Ioa_WriteBlifModelGz( gzFile pFile, Ntl_Mod_t * pModel, int fMain )
                 gzprintf( pFile, " %s", pNet->pName );
             gzprintf( pFile, " %s\n", Ntl_ObjFanout0(pObj)->pName );
             gzprintf( pFile, "%s", pObj->pSop );
+            if ( *pObj->pSop == '\"' )
+                gzprintf( pFile, "\n" );
         }
         else if ( Ntl_ObjIsLatch(pObj) )
         {
@@ -567,6 +571,8 @@ void Ioa_WriteBlifModelBz2( bz2file * b, Ntl_Mod_t * pModel, int fMain )
                 fprintfBz2( b, " %s", pNet->pName );
             fprintfBz2( b, " %s\n", Ntl_ObjFanout0(pObj)->pName );
             fprintfBz2( b, "%s", pObj->pSop );
+            if ( *pObj->pSop == '\"' )
+                fprintfBz2( b, "\n" );
         }
         else if ( Ntl_ObjIsLatch(pObj) )
         {
@@ -625,7 +631,11 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
     Ntl_Mod_t * pModel;
     int i, bzError;
     bz2file b;
-
+    if ( p->pNal )
+    {
+        p->pNalW( p, pFileName );
+        return;
+    }
     // write the GZ file
     if (!strncmp(pFileName+strlen(pFileName)-3,".gz",3)) 
     {

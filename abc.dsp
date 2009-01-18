@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/sat/nsat" /I "src/sat/psat" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /I "src/aig/int" /I "src/aig/dch" /I "src/aig/ssw" /I "src/sat/lsat" /I "src/aig/cec" /I "src/aig/cgt" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_LIBRARIES" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/sat/nsat" /I "src/sat/psat" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /I "src/aig/int" /I "src/aig/dch" /I "src/aig/ssw" /I "src/sat/lsat" /I "src/aig/cec" /I "src/aig/cgt" /I "src/aig/sec" /I "src/map/amap" /I "src/aig/fsim" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -50,7 +50,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib m114pr.lib /nologo /subsystem:console /profile /machine:I386 /out:"_TEST/abc.exe" /libpath:"lib"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib m114pr.lib /nologo /subsystem:console /profile /machine:I386 /nodefaultlib:"libcp.lib libc.lib" /out:"_TEST/abc.exe" /libpath:"lib"
 
 !ELSEIF  "$(CFG)" == "abc - Win32 Debug"
 
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/sat/nsat" /I "src/sat/psat" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /I "src/aig/int" /I "src/aig/dch" /I "src/aig/ssw" /I "src/sat/lsat" /I "src/aig/cec" /I "src/aig/cgt" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_LIBRARIES" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/misc/bzlib" /I "src/misc/zlib" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/sat/nsat" /I "src/sat/psat" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /I "src/aig/mfx" /I "src/aig/saig" /I "src/aig/bbr" /I "src/aig/int" /I "src/aig/dch" /I "src/aig/ssw" /I "src/sat/lsat" /I "src/aig/cec" /I "src/aig/cgt" /I "src/aig/sec" /I "src/map/amap" /I "src/aig/fsim" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -75,7 +75,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib m114pd.lib /nologo /subsystem:console /debug /machine:I386 /out:"_TEST/abc.exe" /pdbtype:sept /libpath:"lib"
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib m114pd.lib /nologo /subsystem:console /debug /machine:I386 /nodefaultlib:"libcpd.lib libcd.lib" /out:"_TEST/abc.exe" /pdbtype:sept /libpath:"lib"
 
 !ENDIF 
 
@@ -287,6 +287,10 @@ SOURCE=.\src\base\abci\abcMap.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcMeasure.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcMerge.c
 # End Source File
 # Begin Source File
 
@@ -535,6 +539,10 @@ SOURCE=.\src\base\io\ioWriteBlif.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioWriteBlifMv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteBook.c
 # End Source File
 # Begin Source File
 
@@ -1640,26 +1648,6 @@ SOURCE=.\src\opt\lpk\lpkSets.c
 # Begin Group "fret"
 
 # PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretFlow.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretime.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretInit.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretMain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\fret\fretTime.c
-# End Source File
 # End Group
 # Begin Group "mfs"
 
@@ -1961,96 +1949,72 @@ SOURCE=.\src\map\if\ifTruth.c
 SOURCE=.\src\map\if\ifUtil.c
 # End Source File
 # End Group
-# Begin Group "pcm"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmCut.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmReduce.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmTime.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmTruth.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\pcm\pcmUtil.c
-# End Source File
-# End Group
 # Begin Group "ply"
 
 # PROP Default_Filter ""
+# End Group
+# Begin Group "pcm"
+
+# PROP Default_Filter ""
+# End Group
+# Begin Group "amap"
+
+# PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\map\ply\ply.h
+SOURCE=.\src\map\amap\amap.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyAbc.c
+SOURCE=.\src\map\amap\amapCore.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyAig.c
+SOURCE=.\src\map\amap\amapGraph.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyFake.c
+SOURCE=.\src\map\amap\amapInt.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyInt.h
+SOURCE=.\src\map\amap\amapLib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyIter.c
+SOURCE=.\src\map\amap\amapMan.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyLib.c
+SOURCE=.\src\map\amap\amapMatch.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyMan.c
+SOURCE=.\src\map\amap\amapMerge.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyMap.c
+SOURCE=.\src\map\amap\amapOutput.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyNtk.c
+SOURCE=.\src\map\amap\amapParse.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyPair.c
+SOURCE=.\src\map\amap\amapPerm.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\ply\plyPar.c
+SOURCE=.\src\map\amap\amapRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\amap\amapRule.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\amap\amapUniq.c
 # End Source File
 # End Group
 # End Group
@@ -2934,6 +2898,10 @@ SOURCE=.\src\aig\aig\aig.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigCanon.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigCheck.c
 # End Source File
 # Begin Source File
@@ -3310,10 +3278,6 @@ SOURCE=.\src\aig\saig\saigIoa.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\saig\saigLoc.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\saig\saigMiter.c
 # End Source File
 # Begin Source File
@@ -3338,11 +3302,39 @@ SOURCE=.\src\aig\saig\saigScl.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigSimExt.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigSimFast.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigSimMv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigSimSeq.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigStrSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigSwitch.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigSynch.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigTrans.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigWnd.c
 # End Source File
 # End Group
 # Begin Group "int"
@@ -3532,6 +3524,46 @@ SOURCE=.\src\aig\ssw\sswUnique.c
 # Begin Group "cec"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecAig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecClass.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecCnf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecStatus.c
+# End Source File
 # End Group
 # Begin Group "cgt"
 
@@ -3563,6 +3595,90 @@ SOURCE=.\src\aig\cgt\cgtMan.c
 # Begin Source File
 
 SOURCE=.\src\aig\cgt\cgtSat.c
+# End Source File
+# End Group
+# Begin Group "sec"
+
+# PROP Default_Filter ""
+# End Group
+# Begin Group "nal"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nal.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalFlop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalFunc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalModels.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nal\nalWrite.c
+# End Source File
+# End Group
+# Begin Group "fsim"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsim.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsimCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsimFront.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsimInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsimMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsimSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsimSwitch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fsim\fsimTsim.c
 # End Source File
 # End Group
 # End Group

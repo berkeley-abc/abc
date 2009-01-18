@@ -53,6 +53,7 @@ struct Mfx_Par_t_
     int           fMoreEffort;   // performs high-affort minimization
     int           fSwapEdge;     // performs edge swapping
     int           fDelay;        // performs optimization for delay
+    int           fPower;        // performs power-aware optimization 
     int           fVerbose;      // enable basic stats
     int           fVeryVerbose;  // enable detailed stats
 };

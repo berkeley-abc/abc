@@ -44,6 +44,12 @@ static inline void Hop_ManTruthFill( unsigned * pOut, int nVars )
     for ( w = Hop_ManTruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = ~(unsigned)0;
 }
+static inline void Hop_ManTruthNot( unsigned * pOut, unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = Hop_ManTruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = ~pIn[w];
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -155,7 +161,7 @@ unsigned * Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars
         vTtElems = NULL;
 
     // clear the data fields and set marks
-    nNodes = Hop_ManConvertAigToTruth_rec1( pRoot );
+    nNodes = Hop_ManConvertAigToTruth_rec1( Hop_Regular(pRoot) );
     // prepare memory
     nWords = Hop_TruthWordNum( nVars );
     Vec_IntClear( vTruth );
@@ -199,9 +205,11 @@ unsigned * Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars
         }
     }
     // clear the marks and compute the truth table
-    pTruth2 = Hop_ManConvertAigToTruth_rec2( pRoot, vTruth, nWords );
+    pTruth2 = Hop_ManConvertAigToTruth_rec2( Hop_Regular(pRoot), vTruth, nWords );
     // copy the result
     Hop_ManTruthCopy( pTruth, pTruth2, nVars );
+    if ( Hop_IsComplement(pRoot) )
+        Hop_ManTruthNot( pTruth, pTruth, nVars );
     if ( vTtElems )
         Vec_PtrFree( vTtElems );
     return pTruth;

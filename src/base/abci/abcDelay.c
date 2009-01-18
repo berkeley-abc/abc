@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "if.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -649,6 +650,302 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
         }
 
     // return the result
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks nodes for power-optimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkPowerEstimate( Abc_Ntk_t * pNtk, int fProbOne )
+{
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+    Vec_Int_t * vProbs;
+    Vec_Int_t * vSwitching;
+    float * pProbability;
+    float * pSwitching;
+    Abc_Ntk_t * pNtkStr;
+    Aig_Man_t * pAig;
+    Aig_Obj_t * pObjAig;
+    Abc_Obj_t * pObjAbc, * pObjAbc2;
+    int i;
+    // start the resulting array
+    vProbs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
+    pProbability = (float *)vProbs->pArray;
+    // strash the network
+    pNtkStr = Abc_NtkStrash( pNtk, 0, 1, 0 );
+    Abc_NtkForEachObj( pNtk, pObjAbc, i )
+        if ( Abc_ObjRegular(pObjAbc->pTemp)->Type == ABC_FUNC_NONE )
+            pObjAbc->pTemp = NULL;
+    // map network into an AIG
+    pAig = Abc_NtkToDar( pNtkStr, 0, (int)(Abc_NtkLatchNum(pNtk) > 0) );
+    vSwitching = Saig_ManComputeSwitchProbs( pAig, 48, 16, fProbOne );
+    pSwitching = (float *)vSwitching->pArray;
+    Abc_NtkForEachObj( pNtk, pObjAbc, i )
+    {
+        if ( (pObjAbc2 = Abc_ObjRegular(pObjAbc->pTemp)) && (pObjAig = pObjAbc2->pTemp) )
+            pProbability[pObjAbc->Id] = pSwitching[pObjAig->Id];
+    }
+    Vec_IntFree( vSwitching );
+    Aig_ManStop( pAig );
+    Abc_NtkDelete( pNtkStr );
+    return vProbs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks nodes for power-optimization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPowerPrint( Abc_Ntk_t * pNtk, Vec_Int_t * vProbs )
+{
+    Abc_Obj_t * pObj;
+    float * pProb, TotalProb = 0.0, ProbThis, Probs[5] = {0.0};
+    int i, nNodes = 0, nEdges = 0, Counter[5] = {0};
+    pProb = (float *)vProbs->pArray;
+    assert( Vec_IntSize(vProbs) >= Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        if ( !Abc_ObjIsNode(pObj) && !Abc_ObjIsPi(pObj) )
+            continue;
+        nNodes++;
+        nEdges += Abc_ObjFanoutNum(pObj);
+        ProbThis = pProb[i] * Abc_ObjFanoutNum(pObj);
+        TotalProb += ProbThis;
+        assert( pProb[i] >= 0.0 && pProb[i] <= 0.5 );
+        if ( pProb[i] >= 0.4 )
+        {
+            Counter[4]++;
+            Probs[4] += ProbThis;
+        }
+        else if ( pProb[i] >= 0.3 )
+        {
+            Counter[3]++;
+            Probs[3] += ProbThis;
+        }
+        else if ( pProb[i] >= 0.2 )
+        {
+            Counter[2]++;
+            Probs[2] += ProbThis;
+        }
+        else if ( pProb[i] >= 0.1 )
+        {
+            Counter[1]++;
+            Probs[1] += ProbThis;
+        }
+        else 
+        {
+            Counter[0]++;
+            Probs[0] += ProbThis;
+        }
+    }
+    printf( "Node  distribution: " );
+    for ( i = 0; i < 5; i++ )
+        printf( "n%d%d = %6.2f%%  ", i, i+1, 100.0 * Counter[i]/nNodes );
+    printf( "\n" );
+    printf( "Power distribution: " );
+    for ( i = 0; i < 5; i++ )
+        printf( "p%d%d = %6.2f%%  ", i, i+1, 100.0 * Probs[i]/TotalProb );
+    printf( "\n" );
+    printf( "Total probs = %7.2f. ", TotalProb );
+    printf( "Total edges = %d. ", nEdges );
+    printf( "Average = %7.2f. ", TotalProb / nEdges );
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Determines timing-critical edges of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Abc_NtkPowerCriticalEdges( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, float Limit, Vec_Int_t * vProbs )
+{
+    Abc_Obj_t * pFanin;
+    float * pProb = (float *)vProbs->pArray;
+    unsigned uResult = 0;
+    int k;
+    Abc_ObjForEachFanin( pNode, pFanin, k )
+        if ( pProb[pFanin->Id] >= Limit )
+            uResult |= (1 << k);
+    return uResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds choices to speed up the network by the given percentage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkPowerdown( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, int Degree, int fVerbose, int fVeryVerbose )
+{
+    Abc_Ntk_t * pNtkNew;
+    Vec_Int_t * vProbs;
+    Vec_Ptr_t * vTimeCries, * vTimeFanins;
+    Abc_Obj_t * pNode, * pFanin, * pFanin2;
+    float * pProb, Limit;
+    int i, k, k2, Counter, CounterRes, nTimeCris;
+    unsigned * puPCEdges;
+    // compute the limit
+    Limit = 0.5 - (1.0 * Percentage / 100);
+    // perform computation of switching probability
+    vProbs = Abc_NtkPowerEstimate( pNtk, 0 );
+    pProb = (float *)vProbs->pArray;
+    // compute percentage of wires of each type
+    if ( fVerbose )
+        Abc_NtkPowerPrint( pNtk, vProbs );
+    // mark the power critical nodes and edges
+    puPCEdges = ALLOC( unsigned, Abc_NtkObjNumMax(pNtk) );
+    memset( puPCEdges, 0, sizeof(unsigned) * Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        if ( pProb[pNode->Id] < Limit )
+            continue;
+        puPCEdges[pNode->Id] = Abc_NtkPowerCriticalEdges( pNtk, pNode, Limit, vProbs );
+    }
+/*
+    if ( fVerbose )
+    {
+        Counter = CounterRes = 0;
+        Abc_NtkForEachNode( pNtk, pNode, i )
+        {
+            Counter += Abc_ObjFaninNum(pNode);
+            CounterRes += Extra_WordCountOnes( puPCEdges[pNode->Id] );
+        }
+        printf( "Edges: Total = %7d. Critical = %7d. Ratio = %4.2f\n", 
+            Counter, CounterRes, 1.0*CounterRes/Counter );
+    }
+*/
+    // start the resulting network
+    pNtkNew = Abc_NtkStrash( pNtk, 0, 1, 0 );
+
+    // collect nodes to be used for resynthesis
+    Counter = CounterRes = 0;
+    vTimeCries = Vec_PtrAlloc( 16 );
+    vTimeFanins = Vec_PtrAlloc( 16 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+//        if ( pProb[pNode->Id] < Limit )
+//            continue;
+        // count the number of non-PI power-critical nodes
+        nTimeCris = 0;
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            if ( !Abc_ObjIsCi(pFanin) && (puPCEdges[pNode->Id] & (1<<k)) )
+                nTimeCris++;
+        if ( !fVeryVerbose && nTimeCris == 0 )
+            continue;
+        Counter++;
+        // count the total number of power-critical second-generation nodes
+        Vec_PtrClear( vTimeCries );
+        if ( nTimeCris )
+        {
+            Abc_ObjForEachFanin( pNode, pFanin, k )
+                if ( !Abc_ObjIsCi(pFanin) && (puPCEdges[pNode->Id] & (1<<k)) )
+                    Abc_ObjForEachFanin( pFanin, pFanin2, k2 )
+                        if ( puPCEdges[pFanin->Id] & (1<<k2) )
+                            Vec_PtrPushUnique( vTimeCries, pFanin2 );
+        }
+//        if ( !fVeryVerbose && (Vec_PtrSize(vTimeCries) == 0 || Vec_PtrSize(vTimeCries) > Degree) )
+        if ( (Vec_PtrSize(vTimeCries) == 0 || Vec_PtrSize(vTimeCries) > Degree) )
+            continue;
+        CounterRes++;
+        // collect second generation nodes
+        Vec_PtrClear( vTimeFanins );
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+        {
+            if ( Abc_ObjIsCi(pFanin) )
+                Vec_PtrPushUnique( vTimeFanins, pFanin );
+            else
+                Abc_ObjForEachFanin( pFanin, pFanin2, k2 )
+                    Vec_PtrPushUnique( vTimeFanins, pFanin2 );                    
+        }
+        // print the results
+        if ( fVeryVerbose )
+        {
+        printf( "%5d Node %5d : %d %2d %2d  ", Counter, pNode->Id, 
+            nTimeCris, Vec_PtrSize(vTimeCries), Vec_PtrSize(vTimeFanins) );
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            printf( "%d(%.2f)%s ", pFanin->Id, pProb[pFanin->Id], (puPCEdges[pNode->Id] & (1<<k))? "*":"" );
+        printf( "\n" );
+        }
+        // add the node to choices
+        if ( Vec_PtrSize(vTimeCries) == 0 || Vec_PtrSize(vTimeCries) > Degree )
+            continue;
+        // order the fanins in the increasing order of criticalily
+        if ( Vec_PtrSize(vTimeCries) > 1 )
+        {
+            pFanin = Vec_PtrEntry( vTimeCries, 0 );
+            pFanin2 = Vec_PtrEntry( vTimeCries, 1 );
+//            if ( Abc_ObjSlack(pFanin) < Abc_ObjSlack(pFanin2) )
+            if ( pProb[pFanin->Id] > pProb[pFanin2->Id] )
+            {
+                Vec_PtrWriteEntry( vTimeCries, 0, pFanin2 );
+                Vec_PtrWriteEntry( vTimeCries, 1, pFanin );
+            }
+        }
+        if ( Vec_PtrSize(vTimeCries) > 2 )
+        {
+            pFanin = Vec_PtrEntry( vTimeCries, 1 );
+            pFanin2 = Vec_PtrEntry( vTimeCries, 2 );
+//            if ( Abc_ObjSlack(pFanin) < Abc_ObjSlack(pFanin2) )
+            if ( pProb[pFanin->Id] > pProb[pFanin2->Id] )
+            {
+                Vec_PtrWriteEntry( vTimeCries, 1, pFanin2 );
+                Vec_PtrWriteEntry( vTimeCries, 2, pFanin );
+            }
+            pFanin = Vec_PtrEntry( vTimeCries, 0 );
+            pFanin2 = Vec_PtrEntry( vTimeCries, 1 );
+//            if ( Abc_ObjSlack(pFanin) < Abc_ObjSlack(pFanin2) )
+            if ( pProb[pFanin->Id] > pProb[pFanin2->Id] )
+            {
+                Vec_PtrWriteEntry( vTimeCries, 0, pFanin2 );
+                Vec_PtrWriteEntry( vTimeCries, 1, pFanin );
+            }
+        }
+        // add choice
+        Abc_NtkSpeedupNode( pNtk, pNtkNew, pNode, vTimeFanins, vTimeCries );
+    }
+    Vec_PtrFree( vTimeCries );
+    Vec_PtrFree( vTimeFanins );
+    free( puPCEdges );
+    if ( fVerbose )
+        printf( "Nodes: Total = %7d. Power-critical = %7d. Workable = %7d. Ratio = %4.2f\n", 
+            Abc_NtkNodeNum(pNtk), Counter, CounterRes, 1.0*CounterRes/Counter ); 
+
+    // remove invalid choice nodes
+    Abc_AigForEachAnd( pNtkNew, pNode, i )
+        if ( pNode->pData )
+        {
+            if ( Abc_ObjFanoutNum(pNode->pData) > 0 )
+                pNode->pData = NULL;
+        }
+
+    // return the result
+    Vec_IntFree( vProbs );
     return pNtkNew;
 }
 

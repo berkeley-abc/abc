@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "bbr.h"
-#include "mtr.h"
+#include "mtr.h" 
 
 /* 
     The ideas implemented in this file are inspired by the paper:
@@ -721,7 +721,7 @@ int Bbr_BuildTreeNode( DdManager * dd,
     Bbr_ImageNode_t * pNode1, * pNode2;
     Bbr_ImageVar_t * pVar;
     Bbr_ImageNode_t * pNode;
-    DdNode * bCube, * bTemp, * bSuppTemp, * bParts;
+    DdNode * bCube, * bTemp, * bSuppTemp;//, * bParts;
     int iNode1, iNode2;
     int iVarBest, nSupp, v;
 
@@ -773,7 +773,7 @@ int Bbr_BuildTreeNode( DdManager * dd,
         Bbr_FindBestPartitions( dd, pVar->bParts, nNodes, pNodes, &iNode1, &iNode2 );
         pNode1 = pNodes[iNode1];
         pNode2 = pNodes[iNode2];
-
+/*
         // it is not possible that a var appears only in these two
         // otherwise, it would have a different cost
         bParts = Cudd_bddAnd( dd, dd->vars[iNode1], dd->vars[iNode2] ); Cudd_Ref( bParts );
@@ -781,7 +781,7 @@ int Bbr_BuildTreeNode( DdManager * dd,
             if ( pVars[v] && pVars[v]->bParts == bParts )
                 assert( 0 );
         Cudd_RecursiveDeref( dd, bParts );
-
+*/
         // combines two nodes
         pNode = Bbr_CombineTwoNodes( dd, b1, pNode1, pNode2 );
     }

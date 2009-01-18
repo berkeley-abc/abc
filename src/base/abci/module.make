@@ -25,6 +25,7 @@ SRC +=    src/base/abci/abc.c \
         src/base/abci/abcIvy.c \
     src/base/abci/abcLut.c \
     src/base/abci/abcMap.c \
+    src/base/abci/abcMerge.c \
     src/base/abci/abcMini.c \
     src/base/abci/abcMiter.c \
     src/base/abci/abcMulti.c \

@@ -175,7 +175,7 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
         if ( !Ntl_ManExtract_rec( p, pNetFanin ) )
             return 0;
     // add box inputs/outputs to COs/CIs
-    if ( Ntl_ObjIsBox(pObj) )
+    if ( Ntl_ObjIsBox(pObj) ) 
     {
         int LevelCur, LevelMax = -TIM_ETERNITY;
         assert( Ntl_BoxIsComb(pObj) );
@@ -370,7 +370,7 @@ int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
             pNet->pCopy = Aig_Not(pNet->pCopy);
         pNet->nVisits = 2;
         // remember the class of this register
-        Vec_IntPush( p->vRegClasses, pObj->LatchId.regClass );
+        Vec_IntPush( p->vRegClasses, p->pNal ? pBox->iTemp : pObj->LatchId.regClass );
     }
     // compute AIG for the internal nodes
     Ntl_ModelForEachPo( pModel, pObj, i )
