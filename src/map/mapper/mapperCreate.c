@@ -27,7 +27,7 @@ static void            Map_TableResize( Map_Man_t * p );
 static Map_Node_t *    Map_TableLookup( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 );
 
 // hash key for the structural hash table
-static inline unsigned Map_HashKey2( Map_Node_t * p0, Map_Node_t * p1, int TableSize ) { return (unsigned)(((PORT_PTRUINT_T)(p0) + (PORT_PTRUINT_T)(p1) * 12582917) % TableSize); }
+static inline unsigned Map_HashKey2( Map_Node_t * p0, Map_Node_t * p1, int TableSize ) { return (unsigned)(((ABC_PTRUINT_T)(p0) + (ABC_PTRUINT_T)(p1) * 12582917) % TableSize); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -190,7 +190,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     }
 
     // start the manager
-    p = ALLOC( Map_Man_t, 1 );
+    p = ABC_ALLOC( Map_Man_t, 1 );
     memset( p, 0, sizeof(Map_Man_t) );
     p->pSuperLib = Abc_FrameReadLibSuper();
     p->nVarsMax  = p->pSuperLib->nVarsMax;
@@ -220,13 +220,13 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
 
     // create the PI nodes
     p->nInputs = nInputs;
-    p->pInputs = ALLOC( Map_Node_t *, nInputs );
+    p->pInputs = ABC_ALLOC( Map_Node_t *, nInputs );
     for ( i = 0; i < nInputs; i++ )
         p->pInputs[i] = Map_NodeCreate( p, NULL, NULL );
 
     // create the place for the output nodes
     p->nOutputs = nOutputs;
-    p->pOutputs = ALLOC( Map_Node_t *, nOutputs );
+    p->pOutputs = ABC_ALLOC( Map_Node_t *, nOutputs );
     memset( p->pOutputs, 0, sizeof(Map_Node_t *) * nOutputs );
     return p;
 }
@@ -258,17 +258,17 @@ void Map_ManFree( Map_Man_t * p )
         Map_NodeVecFree( p->vMapping );
     if ( p->vVisited )    
         Map_NodeVecFree( p->vVisited );
-    if ( p->uCanons )   free( p->uCanons );
-    if ( p->uPhases )   free( p->uPhases );
-    if ( p->pCounters ) free( p->pCounters );
+    if ( p->uCanons )   ABC_FREE( p->uCanons );
+    if ( p->uPhases )   ABC_FREE( p->uPhases );
+    if ( p->pCounters ) ABC_FREE( p->pCounters );
     Extra_MmFixedStop( p->mmNodes );
     Extra_MmFixedStop( p->mmCuts );
-    FREE( p->pInputArrivals );
-    FREE( p->pInputs );
-    FREE( p->pOutputs );
-    FREE( p->pBins );
-    FREE( p->ppOutputNames );
-    FREE( p );
+    ABC_FREE( p->pInputArrivals );
+    ABC_FREE( p->pInputs );
+    ABC_FREE( p->pOutputs );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p->ppOutputNames );
+    ABC_FREE( p );
 }
 
 
@@ -287,17 +287,17 @@ void Map_ManPrintTimeStats( Map_Man_t * p )
 {
     printf( "N-canonical = %d. Matchings = %d.  Phases = %d.  ", p->nCanons, p->nMatches, p->nPhases );
     printf( "Choice nodes = %d. Choices = %d.\n", p->nChoiceNodes, p->nChoices );
-    PRT( "ToMap", p->timeToMap );
-    PRT( "Cuts ", p->timeCuts  );
-    PRT( "Truth", p->timeTruth );
-    PRT( "Match", p->timeMatch );
-    PRT( "Area ", p->timeArea  );
-    PRT( "Sweep", p->timeSweep );
-    PRT( "ToNet", p->timeToNet );
-    PRT( "TOTAL", p->timeTotal );
-    if ( p->time1 ) { PRT( "time1", p->time1 ); }
-    if ( p->time2 ) { PRT( "time2", p->time2 ); }
-    if ( p->time3 ) { PRT( "time3", p->time3 ); }
+    ABC_PRT( "ToMap", p->timeToMap );
+    ABC_PRT( "Cuts ", p->timeCuts  );
+    ABC_PRT( "Truth", p->timeTruth );
+    ABC_PRT( "Match", p->timeMatch );
+    ABC_PRT( "Area ", p->timeArea  );
+    ABC_PRT( "Sweep", p->timeSweep );
+    ABC_PRT( "ToNet", p->timeToNet );
+    ABC_PRT( "TOTAL", p->timeTotal );
+    if ( p->time1 ) { ABC_PRT( "time1", p->time1 ); }
+    if ( p->time2 ) { ABC_PRT( "time2", p->time2 ); }
+    if ( p->time3 ) { ABC_PRT( "time3", p->time3 ); }
 }
 
 /**Function*************************************************************
@@ -388,7 +388,7 @@ void Map_TableCreate( Map_Man_t * pMan )
 {
     assert( pMan->pBins == NULL );
     pMan->nBins = Cudd_Prime(5000);
-    pMan->pBins = ALLOC( Map_Node_t *, pMan->nBins );
+    pMan->pBins = ABC_ALLOC( Map_Node_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Map_Node_t *) * pMan->nBins );
     pMan->nNodes = 0;
 }
@@ -473,7 +473,7 @@ clk = clock();
     // get the new table size
     nBinsNew = Cudd_Prime(2 * pMan->nBins); 
     // allocate a new array
-    pBinsNew = ALLOC( Map_Node_t *, nBinsNew );
+    pBinsNew = ABC_ALLOC( Map_Node_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Map_Node_t *) * nBinsNew );
     // rehash the entries from the old table
     Counter = 0;
@@ -490,10 +490,10 @@ clk = clock();
     if ( pMan->fVerbose )
     {
 //        printf( "Increasing the unique table size from %6d to %6d. ", pMan->nBins, nBinsNew );
-//        PRT( "Time", clock() - clk );
+//        ABC_PRT( "Time", clock() - clk );
     }
     // replace the table and the parameters
-    free( pMan->pBins );
+    ABC_FREE( pMan->pBins );
     pMan->pBins = pBinsNew;
     pMan->nBins = nBinsNew;
 }

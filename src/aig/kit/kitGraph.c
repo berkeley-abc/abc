@@ -42,12 +42,12 @@
 Kit_Graph_t * Kit_GraphCreate( int nLeaves )   
 {
     Kit_Graph_t * pGraph;
-    pGraph = ALLOC( Kit_Graph_t, 1 );
+    pGraph = ABC_ALLOC( Kit_Graph_t, 1 );
     memset( pGraph, 0, sizeof(Kit_Graph_t) );
     pGraph->nLeaves = nLeaves;
     pGraph->nSize = nLeaves;
     pGraph->nCap = 2 * nLeaves + 50;
-    pGraph->pNodes = ALLOC( Kit_Node_t, pGraph->nCap );
+    pGraph->pNodes = ABC_ALLOC( Kit_Node_t, pGraph->nCap );
     memset( pGraph->pNodes, 0, sizeof(Kit_Node_t) * pGraph->nSize );
     return pGraph;
 }
@@ -66,7 +66,7 @@ Kit_Graph_t * Kit_GraphCreate( int nLeaves )
 Kit_Graph_t * Kit_GraphCreateConst0()   
 {
     Kit_Graph_t * pGraph;
-    pGraph = ALLOC( Kit_Graph_t, 1 );
+    pGraph = ABC_ALLOC( Kit_Graph_t, 1 );
     memset( pGraph, 0, sizeof(Kit_Graph_t) );
     pGraph->fConst = 1;
     pGraph->eRoot.fCompl = 1;
@@ -87,7 +87,7 @@ Kit_Graph_t * Kit_GraphCreateConst0()
 Kit_Graph_t * Kit_GraphCreateConst1()   
 {
     Kit_Graph_t * pGraph;
-    pGraph = ALLOC( Kit_Graph_t, 1 );
+    pGraph = ABC_ALLOC( Kit_Graph_t, 1 );
     memset( pGraph, 0, sizeof(Kit_Graph_t) );
     pGraph->fConst = 1;
     return pGraph;
@@ -127,8 +127,8 @@ Kit_Graph_t * Kit_GraphCreateLeaf( int iLeaf, int nLeaves, int fCompl )
 ***********************************************************************/
 void Kit_GraphFree( Kit_Graph_t * pGraph )   
 {
-    FREE( pGraph->pNodes );
-    free( pGraph );
+    ABC_FREE( pGraph->pNodes );
+    ABC_FREE( pGraph );
 }
 
 /**Function*************************************************************
@@ -147,7 +147,7 @@ Kit_Node_t * Kit_GraphAppendNode( Kit_Graph_t * pGraph )
     Kit_Node_t * pNode;
     if ( pGraph->nSize == pGraph->nCap )
     {
-        pGraph->pNodes = REALLOC( Kit_Node_t, pGraph->pNodes, 2 * pGraph->nCap ); 
+        pGraph->pNodes = ABC_REALLOC( Kit_Node_t, pGraph->pNodes, 2 * pGraph->nCap ); 
         pGraph->nCap   = 2 * pGraph->nCap;
     }
     pNode = pGraph->pNodes + pGraph->nSize++;

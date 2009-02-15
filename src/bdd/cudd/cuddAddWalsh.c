@@ -146,14 +146,14 @@ Cudd_addResidue(
     tc = options & CUDD_RESIDUE_TC;
 
     /* Allocate and initialize working arrays. */
-    array[0] = ALLOC(DdNode *,m);
+    array[0] = ABC_ALLOC(DdNode *,m);
     if (array[0] == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
-    array[1] = ALLOC(DdNode *,m);
+    array[1] = ABC_ALLOC(DdNode *,m);
     if (array[1] == NULL) {
-    FREE(array[0]);
+    ABC_FREE(array[0]);
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
@@ -168,8 +168,8 @@ Cudd_addResidue(
         for (j = 0; j < i; j++) {
         Cudd_RecursiveDeref(dd,array[1][j]);
         }
-        FREE(array[0]);
-        FREE(array[1]);
+        ABC_FREE(array[0]);
+        ABC_FREE(array[1]);
         return(NULL);
     }
     cuddRef(tmp);
@@ -193,8 +193,8 @@ Cudd_addResidue(
         for (j = 0; j < m; j++) {
         Cudd_RecursiveDeref(dd,array[previous][j]);
         }
-        FREE(array[0]);
-        FREE(array[1]);
+        ABC_FREE(array[0]);
+        ABC_FREE(array[1]);
         return(NULL);
     }
     cuddRef(var);
@@ -208,8 +208,8 @@ Cudd_addResidue(
         for (j = 0; j < m; j++) {
             Cudd_RecursiveDeref(dd,array[previous][j]);
         }
-        FREE(array[0]);
-        FREE(array[1]);
+        ABC_FREE(array[0]);
+        ABC_FREE(array[1]);
         return(NULL);
         }
         cuddRef(tmp);
@@ -234,8 +234,8 @@ Cudd_addResidue(
     }
     res = array[(n - 1) & 1][0];
 
-    FREE(array[0]);
-    FREE(array[1]);
+    ABC_FREE(array[0]);
+    ABC_FREE(array[1]);
 
     cuddDeref(res);
     return(res);

@@ -117,7 +117,7 @@ clk = clock();
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
 if ( fVerbose )
 {
-PRT( "Total runtime", clock() - clkTotal );
+ABC_PRT( "Total runtime", clock() - clkTotal );
 }
 
     // make sure that everything is okay

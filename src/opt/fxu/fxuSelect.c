@@ -416,7 +416,7 @@ void Fxu_MatrixGetDoubleVars( Fxu_Matrix * p, Fxu_Double * pDouble,
         if ( pLit1 && pLit2 )
         {
             if ( pLit1->iVar == pLit2->iVar )
-            { // ensure cube-free
+            { // ensure cube-ABC_FREE
                 pLit1 = pLit1->pHNext;
                 pLit2 = pLit2->pHNext;
             }

@@ -43,7 +43,7 @@ Ntl_Man_t * Ntl_ManAlloc()
 {
     Ntl_Man_t * p;
     // start the manager
-    p = ALLOC( Ntl_Man_t, 1 );
+    p = ABC_ALLOC( Ntl_Man_t, 1 );
     memset( p, 0, sizeof(Ntl_Man_t) );
     p->vModels = Vec_PtrAlloc( 1000 );
     p->vCis = Vec_PtrAlloc( 1000 );
@@ -56,7 +56,7 @@ Ntl_Man_t * Ntl_ManAlloc()
     p->pMemSops = Aig_MmFlexStart();
     // allocate model table
     p->nModTableSize = Aig_PrimeCudd( 100 );
-    p->pModTable = ALLOC( Ntl_Mod_t *, p->nModTableSize );
+    p->pModTable = ABC_ALLOC( Ntl_Mod_t *, p->nModTableSize );
     memset( p->pModTable, 0, sizeof(Ntl_Mod_t *) * p->nModTableSize );
     return p;
 }
@@ -203,8 +203,8 @@ void Ntl_ManFree( Ntl_Man_t * p )
     if ( p->pAig )       Aig_ManStop( p->pAig );
     if ( p->pManTime )   Tim_ManStop( p->pManTime );
     if ( p->pNal )       p->pNalF( p->pNal );
-    FREE( p->pModTable );
-    free( p );
+    ABC_FREE( p->pModTable );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -266,7 +266,7 @@ void Nwk_ManPrintStatsShort( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk )
     printf( "ff =%5d  ", Counter );
     if ( pAig != NULL )
     {
-        Counter = Aig_ManCountChoices( pAig );
+        Counter = Aig_ManChoiceNum( pAig );
         if ( Counter )
             printf( "cho =%7d  ", Counter );
         else
@@ -392,7 +392,7 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
 {
     Ntl_Mod_t * p;
     // start the manager
-    p = ALLOC( Ntl_Mod_t, 1 );
+    p = ABC_ALLOC( Ntl_Mod_t, 1 );
     memset( p, 0, sizeof(Ntl_Mod_t) );
     p->attrBox     = 1;
     p->attrComb    = 1;
@@ -407,7 +407,7 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
     p->vNets = Vec_PtrAlloc( 100 ); 
     // start the table
     p->nTableSize = Aig_PrimeCudd( 100 );
-    p->pTable = ALLOC( Ntl_Net_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Ntl_Net_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Ntl_Net_t *) * p->nTableSize );
     // add model to the table
     if ( !Ntl_ManAddModel( pMan, p ) )
@@ -562,8 +562,8 @@ void Ntl_ModelFree( Ntl_Mod_t * p )
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vPis );
     Vec_PtrFree( p->vPos );
-    free( p->pTable );
-    free( p );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

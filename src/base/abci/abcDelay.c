@@ -117,8 +117,8 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
     }
 
     // initialize the arrival times
-    FREE( pNtk->pLutTimes );
-    pNtk->pLutTimes = ALLOC( float, 3 * Abc_NtkObjNumMax(pNtk) );
+    ABC_FREE( pNtk->pLutTimes );
+    pNtk->pLutTimes = ABC_ALLOC( float, 3 * Abc_NtkObjNumMax(pNtk) );
     for ( i = 0; i < Abc_NtkObjNumMax(pNtk); i++ )
     {
         pNtk->pLutTimes[3*i+0] = pNtk->pLutTimes[3*i+2] = 0;
@@ -255,7 +255,7 @@ void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
     }
     // decide how many steps
     nSteps = fUseLutLib ? 20 : Abc_NtkLevel(pNtk);
-    pCounters = ALLOC( int, nSteps + 1 );
+    pCounters = ABC_ALLOC( int, nSteps + 1 );
     memset( pCounters, 0, sizeof(int)*(nSteps + 1) );
     // perform delay trace
     tArrival = Abc_NtkDelayTraceLut( pNtk, fUseLutLib );
@@ -278,7 +278,7 @@ void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
         printf( "%3d %s : %5d  (%6.2f %%)\n", fUseLutLib? 5*(i+1) : i+1, 
             fUseLutLib? "%":"lev", Nodes, 100.0*Nodes/Abc_NtkNodeNum(pNtk) );
     }
-    free( pCounters );
+    ABC_FREE( pCounters );
 }
 
 /**Function*************************************************************
@@ -527,7 +527,7 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
         printf( "\n" );
     }
     // mark the timing critical nodes and edges
-    puTCEdges = ALLOC( unsigned, Abc_NtkObjNumMax(pNtk) );
+    puTCEdges = ABC_ALLOC( unsigned, Abc_NtkObjNumMax(pNtk) );
     memset( puTCEdges, 0, sizeof(unsigned) * Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -636,7 +636,7 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
     }
     Vec_PtrFree( vTimeCries );
     Vec_PtrFree( vTimeFanins );
-    free( puTCEdges );
+    ABC_FREE( puTCEdges );
     if ( fVerbose )
         printf( "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
             Abc_NtkNodeNum(pNtk), Counter, CounterRes, 1.0*CounterRes/Counter ); 
@@ -691,7 +691,7 @@ Vec_Int_t * Abc_NtkPowerEstimate( Abc_Ntk_t * pNtk, int fProbOne )
     pSwitching = (float *)vSwitching->pArray;
     Abc_NtkForEachObj( pNtk, pObjAbc, i )
     {
-        if ( (pObjAbc2 = Abc_ObjRegular(pObjAbc->pTemp)) && (pObjAig = pObjAbc2->pTemp) )
+        if ( (pObjAbc2 = Abc_ObjRegular(pObjAbc->pTemp)) && (pObjAig = Aig_Regular(pObjAbc2->pTemp)) )
             pProbability[pObjAbc->Id] = pSwitching[pObjAig->Id];
     }
     Vec_IntFree( vSwitching );
@@ -714,8 +714,8 @@ Vec_Int_t * Abc_NtkPowerEstimate( Abc_Ntk_t * pNtk, int fProbOne )
 void Abc_NtkPowerPrint( Abc_Ntk_t * pNtk, Vec_Int_t * vProbs )
 {
     Abc_Obj_t * pObj;
-    float * pProb, TotalProb = 0.0, ProbThis, Probs[5] = {0.0};
-    int i, nNodes = 0, nEdges = 0, Counter[5] = {0};
+    float * pProb, TotalProb = 0.0, ProbThis, Probs[6] = {0.0};
+    int i, nNodes = 0, nEdges = 0, Counter[6] = {0};
     pProb = (float *)vProbs->pArray;
     assert( Vec_IntSize(vProbs) >= Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachObj( pNtk, pObj, i )
@@ -726,8 +726,13 @@ void Abc_NtkPowerPrint( Abc_Ntk_t * pNtk, Vec_Int_t * vProbs )
         nEdges += Abc_ObjFanoutNum(pObj);
         ProbThis = pProb[i] * Abc_ObjFanoutNum(pObj);
         TotalProb += ProbThis;
-        assert( pProb[i] >= 0.0 && pProb[i] <= 0.5 );
-        if ( pProb[i] >= 0.4 )
+        assert( pProb[i] >= 0.0 && pProb[i] <= 1.0 );
+        if ( pProb[i] >= 0.5 )
+        {
+            Counter[5]++;
+            Probs[5] += ProbThis;
+        }
+        else if ( pProb[i] >= 0.4 )
         {
             Counter[4]++;
             Probs[4] += ProbThis;
@@ -754,11 +759,11 @@ void Abc_NtkPowerPrint( Abc_Ntk_t * pNtk, Vec_Int_t * vProbs )
         }
     }
     printf( "Node  distribution: " );
-    for ( i = 0; i < 5; i++ )
+    for ( i = 0; i < 6; i++ )
         printf( "n%d%d = %6.2f%%  ", i, i+1, 100.0 * Counter[i]/nNodes );
     printf( "\n" );
     printf( "Power distribution: " );
-    for ( i = 0; i < 5; i++ )
+    for ( i = 0; i < 6; i++ )
         printf( "p%d%d = %6.2f%%  ", i, i+1, 100.0 * Probs[i]/TotalProb );
     printf( "\n" );
     printf( "Total probs = %7.2f. ", TotalProb );
@@ -819,7 +824,7 @@ Abc_Ntk_t * Abc_NtkPowerdown( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, 
     if ( fVerbose )
         Abc_NtkPowerPrint( pNtk, vProbs );
     // mark the power critical nodes and edges
-    puPCEdges = ALLOC( unsigned, Abc_NtkObjNumMax(pNtk) );
+    puPCEdges = ABC_ALLOC( unsigned, Abc_NtkObjNumMax(pNtk) );
     memset( puPCEdges, 0, sizeof(unsigned) * Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -931,7 +936,7 @@ Abc_Ntk_t * Abc_NtkPowerdown( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, 
     }
     Vec_PtrFree( vTimeCries );
     Vec_PtrFree( vTimeFanins );
-    free( puPCEdges );
+    ABC_FREE( puPCEdges );
     if ( fVerbose )
         printf( "Nodes: Total = %7d. Power-critical = %7d. Workable = %7d. Ratio = %4.2f\n", 
             Abc_NtkNodeNum(pNtk), Counter, CounterRes, 1.0*CounterRes/Counter ); 

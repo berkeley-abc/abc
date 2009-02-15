@@ -157,7 +157,7 @@ Cudd_PrioritySelect(
     /* Create z variables if needed. */
     if (z == NULL) {
     if (Pi != NULL) return(NULL);
-    z = ALLOC(DdNode *,n);
+    z = ABC_ALLOC(DdNode *,n);
     if (z == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
@@ -212,7 +212,7 @@ Cudd_PrioritySelect(
 endgame:
     if (zcube != NULL) Cudd_RecursiveDeref(dd,zcube);
     if (createdZ) {
-    FREE(z);
+    ABC_FREE(z);
     }
     if (createdPi) {
     Cudd_RecursiveDeref(dd,Pi);

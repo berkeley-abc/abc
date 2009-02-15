@@ -184,7 +184,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
         }
         else if ( strcmp( vTokens->pArray[0], "design" ) == 0 )
         {
-            free( pNtk->pName ); 
+            ABC_FREE( pNtk->pName ); 
             pNtk->pName = Extra_UtilStrsav( vTokens->pArray[3] );
             break;
         }

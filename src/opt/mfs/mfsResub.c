@@ -100,7 +100,7 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
     unsigned * pData;
     int RetValue, iVar, i;
     p->nSatCalls++;
-    RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (sint64)p->pPars->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 //    assert( RetValue == l_False || RetValue == l_True );
     if ( RetValue == l_False )
         return 1;
@@ -209,8 +209,6 @@ p->timeInt += clock() - clk;
     iVar = -1;
     while ( 1 )
     {
-        float * pProbab = (float *)(p->vProbs? p->vProbs->pArray : NULL);
-        assert( (pProbab != NULL) == p->pPars->fPower );
         if ( fVeryVerbose )
         {
             printf( "%3d: %2d ", p->nCexes, iVar );
@@ -231,7 +229,7 @@ p->timeInt += clock() - clk;
             {
                 Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
                 // only accept the divisor if it is "cool"
-                if ( pProbab[Abc_ObjId(pDiv)] >= 0.15 )
+                if ( Abc_MfsObjProb(p, pDiv) >= 0.15 )
                     continue;
             }
             pData  = Vec_PtrEntry( p->vDivCexes, iVar );
@@ -355,8 +353,6 @@ p->timeInt += clock() - clk;
     while ( 1 )
     {
 #if 1 // sjang
-        float * pProbab = (float *)(p->vProbs? p->vProbs->pArray : NULL);
-        assert( (pProbab != NULL) == p->pPars->fPower );
 #endif
         if ( fVeryVerbose )
         {
@@ -381,7 +377,7 @@ p->timeInt += clock() - clk;
             {
                 Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
                 // only accept the divisor if it is "cool"
-                if ( pProbab[Abc_ObjId(pDiv)] >= 0.12 )
+                if ( Abc_MfsObjProb(p, pDiv) >= 0.12 )
                     continue;
             }
 #endif
@@ -393,7 +389,7 @@ p->timeInt += clock() - clk;
                 {
                     Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar2);
                     // only accept the divisor if it is "cool"
-                    if ( pProbab[Abc_ObjId(pDiv)] >= 0.12 )
+                    if ( Abc_MfsObjProb(p, pDiv) >= 0.12 )
                         continue;
                 }
 #endif
@@ -477,16 +473,15 @@ int Abc_NtkMfsEdgeSwapEval( Mfs_Man_t * p, Abc_Obj_t * pNode )
 int Abc_NtkMfsEdgePower( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanin;
-    float * pProbab = (float *)p->vProbs->pArray;
     int i;
     // try replacing area critical fanins
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
-        if ( pProbab[pFanin->Id] >= 0.35 )
+        if ( Abc_MfsObjProb(p, pFanin) >= 0.35 )
         {
             if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
                 return 1;
-        } else if ( pProbab[pFanin->Id] >= 0.25 ) // sjang
+        } else if ( Abc_MfsObjProb(p, pFanin) >= 0.25 ) // sjang
         {
             if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
                 return 1;

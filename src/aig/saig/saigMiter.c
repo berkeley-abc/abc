@@ -526,13 +526,13 @@ int Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAi
     if ( ppAig0 )
     {
         *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 );
-        FREE( (*ppAig0)->pName );
+        ABC_FREE( (*ppAig0)->pName );
         (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
         *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 );
-        FREE( (*ppAig1)->pName );
+        ABC_FREE( (*ppAig1)->pName );
         (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
     }
     Vec_PtrFree( vSet0 );
@@ -596,13 +596,13 @@ int Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** 
     if ( ppAig0 )
     {
         *ppAig0 = Aig_ManDupNodesAll( p, vSet0 );
-        FREE( (*ppAig0)->pName );
+        ABC_FREE( (*ppAig0)->pName );
         (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
         *ppAig1 = Aig_ManDupNodesAll( p, vSet1 );
-        FREE( (*ppAig1)->pName );
+        ABC_FREE( (*ppAig1)->pName );
         (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
     }
     Vec_PtrFree( vSet0 );
@@ -768,14 +768,14 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
     {
         assert( 0 );
         *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 ); // not ready
-        FREE( (*ppAig0)->pName );
+        ABC_FREE( (*ppAig0)->pName );
         (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
         assert( 0 );
         *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 ); // not ready
-        FREE( (*ppAig1)->pName );
+        ABC_FREE( (*ppAig1)->pName );
         (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
     }
     Vec_PtrFree( vSet0 );
@@ -891,12 +891,12 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
     if ( RetValue == 1 )
     {
         printf( "Networks are equivalent.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
         printf( "Networks are NOT EQUIVALENT.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
         if ( pMiterCec->pData == NULL )
             printf( "Counter-example is not available.\n" );
         else
@@ -919,7 +919,7 @@ PRT( "Time", clock() - clkTotal );
     else
     {
         printf( "Networks are UNDECIDED.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
     }
     fflush( stdout );
     Aig_ManStop( pMiterCec );

@@ -208,7 +208,7 @@ void Abc_NtkInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues )
     Abc_Obj_t * pLatch;
     int i;
     Abc_NtkForEachLatch( pNtk, pLatch, i )
-        pLatch->pData = (void *)(PORT_PTRINT_T)(vValues? (Vec_IntEntry(vValues,i)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
+        pLatch->pData = (void *)(ABC_PTRINT_T)(vValues? (Vec_IntEntry(vValues,i)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
 }
 
 /**Function*************************************************************
@@ -340,7 +340,7 @@ Vec_Ptr_t * Abc_NtkConverLatchNamesIntoNumbers( Abc_Ntk_t * pNtk )
         return NULL;
     // set register numbers
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        pObj->pNext = (Abc_Obj_t *)(PORT_PTRINT_T)i;
+        pObj->pNext = (Abc_Obj_t *)(ABC_PTRINT_T)i;
     // add the numbers
     vResult = Vec_PtrAlloc( Vec_PtrSize(pNtk->vOnehots) );
     Vec_PtrForEachEntry( pNtk->vOnehots, vNames, i )
@@ -354,7 +354,7 @@ Vec_Ptr_t * Abc_NtkConverLatchNamesIntoNumbers( Abc_Ntk_t * pNtk )
             pObj = Abc_NtkObj( pNtk, Num );
             if ( Abc_ObjFaninNum(pObj) != 1 || !Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) )
                 continue;
-            Vec_IntPush( vNumbers, (int)(PORT_PTRINT_T)pObj->pNext );
+            Vec_IntPush( vNumbers, (int)(ABC_PTRINT_T)pObj->pNext );
         }
         if ( Vec_IntSize( vNumbers ) > 1 )
         {

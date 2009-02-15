@@ -21,92 +21,30 @@
 #ifndef __VEC_H__
 #define __VEC_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef _WIN32
-#define inline __inline // compatible with MS VS 6.0
-#pragma warning(disable : 4152) // warning C4152: nonstandard extension, function/data pointer conversion in expression
-#pragma warning(disable : 4244) // warning C4244: '+=' : conversion from 'int ' to 'unsigned short ', possible loss of data
-#pragma warning(disable : 4514) // warning C4514: 'Vec_StrPop' : unreferenced inline function has been removed
-#pragma warning(disable : 4710) // warning C4710: function 'Vec_PtrGrow' not inlined
-#endif
-
-#ifndef SINT64
-#define SINT64
-
-#ifdef _WIN32
-typedef signed __int64     sint64;   // compatible with MS VS 6.0
-#else
-typedef long long          sint64;
-#endif
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-// catch memory leaks in Visual Studio
-#ifdef _DEBUG
-#define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
-#endif
-
-////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFINITIONS                           ///
-////////////////////////////////////////////////////////////////////////
-
-#ifndef ABS
-#define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
-#ifndef MAX
-#define MAX(a,b)        ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef MIN
-#define MIN(a,b)        ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef ALLOC
-#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef CALLOC
-#define CALLOC(type, num)     ((type *) calloc((num), sizeof(type)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef REALLOC
-#define REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
-#endif
-
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
-#ifndef PRTP
-#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%7.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0)
-#endif
-
+#include "abc_global.h"
 #include "vecInt.h"
 #include "vecFlt.h"
 #include "vecStr.h"
 #include "vecPtr.h"
 #include "vecVec.h"
 #include "vecAtt.h"
-#include "port_type.h"
+
+////////////////////////////////////////////////////////////////////////
+///                      MACRO DEFINITIONS                           ///
+////////////////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

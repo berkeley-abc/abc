@@ -501,7 +501,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
     if ( fVerbose )
     {
     printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     }
     return vNodes;
 }
@@ -588,7 +588,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
     if ( fVerbose )
     {
     printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     }
     return vNodes;
 }

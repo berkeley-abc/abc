@@ -21,10 +21,6 @@
 #ifndef __KIT_H__
 #define __KIT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,6 +37,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -140,17 +140,6 @@ struct Kit_DsdMan_t_
     Vec_Int_t *    vNodes;          // temporary array for BDD nodes
 };
 
-#ifdef WIN32
-#define ABC_DLLEXPORT __declspec(dllexport)
-#define ABC_DLLIMPORT __declspec(dllimport)
-#else  /* defined(WIN32) */
-#define ABC_DLLIMPORT
-#endif /* defined(WIN32) */
-
-#ifndef ABC_DLL
-#define ABC_DLL ABC_DLLIMPORT
-#endif
-
 static inline int             Kit_DsdVar2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
 static inline int             Kit_DsdLit2Var( int Lit )              { return Lit >> 1;           }
 static inline int             Kit_DsdLitIsCompl( int Lit )           { return Lit & 1;            }
@@ -185,20 +174,6 @@ static inline unsigned        Kit_DsdLitSupport( Kit_DsdNtk_t * pNtk, int Lit ) 
 #define KIT_MIN(a,b)       (((a) < (b))? (a) : (b))
 #define KIT_MAX(a,b)       (((a) > (b))? (a) : (b))
 #define KIT_INFINITY       (100000000)
-
-#ifndef ALLOC
-#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef REALLOC
-#define REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
-#endif
 
 static inline int          Kit_CubeHasLit( unsigned uCube, int i )                        { return(uCube &  (unsigned)(1<<i)) > 0;  }
 static inline unsigned     Kit_CubeSetLit( unsigned uCube, int i )                        { return uCube |  (unsigned)(1<<i);       }

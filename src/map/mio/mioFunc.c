@@ -144,7 +144,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
     {
         // get the topmost (generic) pin
         pPin = pGate->pPins;
-        FREE( pPin->pName );
+        ABC_FREE( pPin->pName );
 
         // create individual pins from the generic pin
         ppPin = &pPin->pNext;
@@ -173,10 +173,10 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
             {
                 if ( pPinNames[i] && strcmp( pPinNames[i], pPin->pName ) == 0 )
                 {
-                    // free pPinNames[i] because it is already available as pPin->pName
+                    // ABC_FREE pPinNames[i] because it is already available as pPin->pName
                     // setting pPinNames[i] to NULL is useful to make sure that
                     // this name is not assigned to two pins in the list
-                    FREE( pPinNames[i] );
+                    ABC_FREE( pPinNames[i] );
                     pPinNamesCopy[iPin++] = pPin->pName;
                     break;
                 }
@@ -212,6 +212,8 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
 
     // derive the formula as the BDD
     pGate->bFunc = Parse_FormulaParser( stdout, pGate->pForm, nPins, 0, pPinNames, dd, dd->vars );
+    if ( pGate->bFunc == NULL )
+        return 1;
     Cudd_Ref( pGate->bFunc );
 
     // derive the cover (SOP)

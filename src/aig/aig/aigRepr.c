@@ -44,7 +44,7 @@ void Aig_ManReprStart( Aig_Man_t * p, int nIdMax )
     assert( Aig_ManBufNum(p) == 0 );
     assert( p->pReprs == NULL );
     p->nReprsAlloc = nIdMax;
-    p->pReprs = ALLOC( Aig_Obj_t *, p->nReprsAlloc );
+    p->pReprs = ABC_ALLOC( Aig_Obj_t *, p->nReprsAlloc );
     memset( p->pReprs, 0, sizeof(Aig_Obj_t *) * p->nReprsAlloc );
 }
 
@@ -62,7 +62,7 @@ void Aig_ManReprStart( Aig_Man_t * p, int nIdMax )
 void Aig_ManReprStop( Aig_Man_t * p )
 {
     assert( p->pReprs != NULL );
-    FREE( p->pReprs );
+    ABC_FREE( p->pReprs );
     p->nReprsAlloc = 0;    
 }
 
@@ -214,7 +214,7 @@ void Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * pOld )
     if ( pNew->nReprsAlloc < Aig_ManObjNumMax(pNew) )
     {
         int nReprsAllocNew = 2 * Aig_ManObjNumMax(pNew);
-        pNew->pReprs = REALLOC( Aig_Obj_t *, pNew->pReprs, nReprsAllocNew );
+        pNew->pReprs = ABC_REALLOC( Aig_Obj_t *, pNew->pReprs, nReprsAllocNew );
         memset( pNew->pReprs + pNew->nReprsAlloc, 0, sizeof(Aig_Obj_t *) * (nReprsAllocNew-pNew->nReprsAlloc) );
         pNew->nReprsAlloc = nReprsAllocNew;
     }
@@ -476,7 +476,7 @@ void Aig_ManMarkValidChoices( Aig_Man_t * p )
     assert( p->pReprs != NULL );
     // create equivalent nodes in the manager
     assert( p->pEquivs == NULL );
-    p->pEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
+    p->pEquivs = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
     memset( p->pEquivs, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p) );
     // make the choice nodes
     Aig_ManForEachNode( p, pObj, i )

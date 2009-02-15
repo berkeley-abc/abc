@@ -153,10 +153,10 @@ Extra_UnateInfo_t *  Extra_UnateInfoAllocate( int nVars )
 {
     Extra_UnateInfo_t * p;
     // allocate and clean the storage for unateness info
-    p = ALLOC( Extra_UnateInfo_t, 1 );
+    p = ABC_ALLOC( Extra_UnateInfo_t, 1 );
     memset( p, 0, sizeof(Extra_UnateInfo_t) );
     p->nVars     = nVars;
-    p->pVars     = ALLOC( Extra_UnateVar_t, nVars );  
+    p->pVars     = ABC_ALLOC( Extra_UnateVar_t, nVars );  
     memset( p->pVars, 0, nVars * sizeof(Extra_UnateVar_t) );
     return p;
 } /* end of Extra_UnateInfoAllocate */
@@ -174,8 +174,8 @@ Extra_UnateInfo_t *  Extra_UnateInfoAllocate( int nVars )
 ******************************************************************************/
 void Extra_UnateInfoDissolve( Extra_UnateInfo_t * p )
 {
-    free( p->pVars );
-    free( p );
+    ABC_FREE( p->pVars );
+    ABC_FREE( p );
 } /* end of Extra_UnateInfoDissolve */
 
 /**Function********************************************************************
@@ -193,7 +193,7 @@ void Extra_UnateInfoPrint( Extra_UnateInfo_t * p )
 {
     char * pBuffer;
     int i;
-    pBuffer = ALLOC( char, p->nVarsMax+1 );
+    pBuffer = ABC_ALLOC( char, p->nVarsMax+1 );
     memset( pBuffer, ' ', p->nVarsMax );
     pBuffer[p->nVarsMax] = 0;
     for ( i = 0; i < p->nVars; i++ )
@@ -204,7 +204,7 @@ void Extra_UnateInfoPrint( Extra_UnateInfo_t * p )
         else
             pBuffer[ p->pVars[i].iVar ] = '.';
     printf( "%s\n", pBuffer );
-    free( pBuffer );
+    ABC_FREE( pBuffer );
 } /* end of Extra_UnateInfoPrint */
 
 
@@ -234,7 +234,7 @@ Extra_UnateInfo_t * Extra_UnateInfoCreateFromZdd( DdManager * dd, DdNode * zPair
     p = Extra_UnateInfoAllocate( nSuppSize );
 
     // allocate the storage for the temporary map
-    pMapVars2Nums = ALLOC( int, dd->size );
+    pMapVars2Nums = ABC_ALLOC( int, dd->size );
     memset( pMapVars2Nums, 0, dd->size * sizeof(int) );
 
     // assign the variables
@@ -269,7 +269,7 @@ Extra_UnateInfo_t * Extra_UnateInfoCreateFromZdd( DdManager * dd, DdNode * zPair
 
     } // for each cube 
     Cudd_RecursiveDerefZdd( dd, zSet );
-    FREE( pMapVars2Nums );
+    ABC_FREE( pMapVars2Nums );
     return p;
 
 } /* end of Extra_UnateInfoCreateFromZdd */

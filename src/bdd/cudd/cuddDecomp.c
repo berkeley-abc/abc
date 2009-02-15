@@ -130,7 +130,7 @@ static int cuddConjunctsAux ARGS((DdManager * dd, DdNode * f, DdNode ** c1, DdNo
 
   SideEffects [The factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the conjuncts are already
+  to ABC_FREE it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -182,7 +182,7 @@ Cudd_bddApproxConjDecomp(
 
     if (glocal != DD_ONE(dd)) {
     if (hlocal != DD_ONE(dd)) {
-        *conjuncts = ALLOC(DdNode *,2);
+        *conjuncts = ABC_ALLOC(DdNode *,2);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,glocal);
         Cudd_RecursiveDeref(dd,hlocal);
@@ -194,7 +194,7 @@ Cudd_bddApproxConjDecomp(
         return(2);
     } else {
         Cudd_RecursiveDeref(dd,hlocal);
-        *conjuncts = ALLOC(DdNode *,1);
+        *conjuncts = ABC_ALLOC(DdNode *,1);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,glocal);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -205,7 +205,7 @@ Cudd_bddApproxConjDecomp(
     }
     } else {
     Cudd_RecursiveDeref(dd,glocal);
-    *conjuncts = ALLOC(DdNode *,1);
+    *conjuncts = ABC_ALLOC(DdNode *,1);
     if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,hlocal);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -229,7 +229,7 @@ Cudd_bddApproxConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the disjuncts are already
+  to ABC_FREE it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -268,7 +268,7 @@ Cudd_bddApproxDisjDecomp(
 
   SideEffects [The factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the conjuncts are already
+  to ABC_FREE it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -365,7 +365,7 @@ Cudd_bddIterConjDecomp(
 
     if (old[0] != DD_ONE(dd)) {
     if (old[1] != DD_ONE(dd)) {
-        *conjuncts = ALLOC(DdNode *,2);
+        *conjuncts = ABC_ALLOC(DdNode *,2);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,old[0]);
         Cudd_RecursiveDeref(dd,old[1]);
@@ -377,7 +377,7 @@ Cudd_bddIterConjDecomp(
         return(2);
     } else {
         Cudd_RecursiveDeref(dd,old[1]);
-        *conjuncts = ALLOC(DdNode *,1);
+        *conjuncts = ABC_ALLOC(DdNode *,1);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,old[0]);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -388,7 +388,7 @@ Cudd_bddIterConjDecomp(
     }
     } else {
     Cudd_RecursiveDeref(dd,old[0]);
-    *conjuncts = ALLOC(DdNode *,1);
+    *conjuncts = ABC_ALLOC(DdNode *,1);
     if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,old[1]);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -412,7 +412,7 @@ Cudd_bddIterConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the disjuncts are already
+  to ABC_FREE it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -452,7 +452,7 @@ Cudd_bddIterDisjDecomp(
 
   SideEffects [The two factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the conjuncts are already
+  to ABC_FREE it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -484,7 +484,7 @@ Cudd_bddGenConjDecomp(
 
     if (glocal != one) {
     if (hlocal != one) {
-        *conjuncts = ALLOC(DdNode *,2);
+        *conjuncts = ABC_ALLOC(DdNode *,2);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,glocal);
         Cudd_RecursiveDeref(dd,hlocal);
@@ -496,7 +496,7 @@ Cudd_bddGenConjDecomp(
         return(2);
     } else {
         Cudd_RecursiveDeref(dd,hlocal);
-        *conjuncts = ALLOC(DdNode *,1);
+        *conjuncts = ABC_ALLOC(DdNode *,1);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,glocal);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -507,7 +507,7 @@ Cudd_bddGenConjDecomp(
     }
     } else {
     Cudd_RecursiveDeref(dd,glocal);
-    *conjuncts = ALLOC(DdNode *,1);
+    *conjuncts = ABC_ALLOC(DdNode *,1);
     if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,hlocal);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -531,7 +531,7 @@ Cudd_bddGenConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the disjuncts are already
+  to ABC_FREE it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -571,7 +571,7 @@ Cudd_bddGenDisjDecomp(
 
   SideEffects [The two factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the conjuncts are already
+  to ABC_FREE it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -594,7 +594,7 @@ Cudd_bddVarConjDecomp(
     support = Cudd_Support(dd,f);
     if (support == NULL) return(0);
     if (Cudd_IsConstant(support)) {
-    *conjuncts = ALLOC(DdNode *,1);
+    *conjuncts = ABC_ALLOC(DdNode *,1);
     if (*conjuncts == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -639,7 +639,7 @@ Cudd_bddVarConjDecomp(
 
     if (glocal != DD_ONE(dd)) {
     if (hlocal != DD_ONE(dd)) {
-        *conjuncts = ALLOC(DdNode *,2);
+        *conjuncts = ABC_ALLOC(DdNode *,2);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,glocal);
         Cudd_RecursiveDeref(dd,hlocal);
@@ -651,7 +651,7 @@ Cudd_bddVarConjDecomp(
         return(2);
     } else {
         Cudd_RecursiveDeref(dd,hlocal);
-        *conjuncts = ALLOC(DdNode *,1);
+        *conjuncts = ABC_ALLOC(DdNode *,1);
         if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,glocal);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -662,7 +662,7 @@ Cudd_bddVarConjDecomp(
     }
     } else {
     Cudd_RecursiveDeref(dd,glocal);
-    *conjuncts = ALLOC(DdNode *,1);
+    *conjuncts = ABC_ALLOC(DdNode *,1);
     if (*conjuncts == NULL) {
         Cudd_RecursiveDeref(dd,hlocal);
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -689,7 +689,7 @@ Cudd_bddVarConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to free it. On successful completion, the disjuncts are already
+  to ABC_FREE it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -777,7 +777,7 @@ CreateBotDist(
     */
     distance = (distanceNv > distanceNnv) ? (distanceNv+1) : (distanceNnv + 1);
 
-    nodeStat = ALLOC(NodeStat, 1);
+    nodeStat = ABC_ALLOC(NodeStat, 1);
     if (nodeStat == NULL) {
     return(0);
     }
@@ -847,7 +847,7 @@ CountMinterms(
     /* store 
      */
 
-    dummy = ALLOC(double, 1);
+    dummy = ABC_ALLOC(double, 1);
     if (dummy == NULL) return(-1.0);
     *dummy = min;
     if (st_insert(mintermTable, (char *)node, (char *)dummy) == ST_OUT_OF_MEM) {
@@ -876,7 +876,7 @@ ConjunctsFree(
 {
     Cudd_RecursiveDeref(dd, factors->g);
     Cudd_RecursiveDeref(dd, factors->h);
-    FREE(factors);
+    ABC_FREE(factors);
     return;
 
 } /* end of ConjunctsFree */
@@ -978,7 +978,7 @@ CheckTablesCacheAndReturn(
     /* if both dont exist in table, we know one exists(either g or h).
      * Therefore store the other and proceed
      */
-    factors = ALLOC(Conjuncts, 1);
+    factors = ABC_ALLOC(Conjuncts, 1);
     if (factors == NULL) return(NULL);
     if ((pairValue == BOTH_H) || (pairValue == H_ST)) {
     if (g != one) {
@@ -1041,7 +1041,7 @@ CheckTablesCacheAndReturn(
         
     /* cache the result for this node */
     if (st_insert(cacheTable, (char *)node, (char *)factors) == ST_OUT_OF_MEM) {
-    FREE(factors);
+    ABC_FREE(factors);
     return(NULL);
     }
 
@@ -1078,7 +1078,7 @@ PickOnePair(
     Conjuncts *factors;
     int oneRef, twoRef;
     
-    factors = ALLOC(Conjuncts, 1);
+    factors = ABC_ALLOC(Conjuncts, 1);
     if (factors == NULL) return(NULL);
 
     /* count the number of pointers to pair 2 */
@@ -1120,7 +1120,7 @@ PickOnePair(
         value |= 1;
         if (st_insert(ghTable, (char *)Cudd_Regular(factors->g),
                   (char *)(long)value) == ST_OUT_OF_MEM) {
-            FREE(factors);
+            ABC_FREE(factors);
             return(NULL);
         }
         }
@@ -1128,7 +1128,7 @@ PickOnePair(
         value = 1;
         if (st_insert(ghTable, (char *)Cudd_Regular(factors->g),
               (char *)(long)value) == ST_OUT_OF_MEM) {
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1142,7 +1142,7 @@ PickOnePair(
         value |= 2;
         if (st_insert(ghTable, (char *)Cudd_Regular(factors->h),
                   (char *)(long)value) == ST_OUT_OF_MEM) {
-            FREE(factors);
+            ABC_FREE(factors);
             return(NULL);
         }
         }        
@@ -1150,7 +1150,7 @@ PickOnePair(
         value = 2;
         if (st_insert(ghTable, (char *)Cudd_Regular(factors->h),
               (char *)(long)value) == ST_OUT_OF_MEM) {
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1159,7 +1159,7 @@ PickOnePair(
     /* Store factors in cache table for later use. */
     if (st_insert(cacheTable, (char *)node, (char *)factors) ==
         ST_OUT_OF_MEM) {
-    FREE(factors);
+    ABC_FREE(factors);
     return(NULL);
     }
 
@@ -1208,7 +1208,7 @@ CheckInTables(
     return NULL;
     }
     
-    factors = ALLOC(Conjuncts, 1);
+    factors = ABC_ALLOC(Conjuncts, 1);
     if (factors == NULL) {
     *outOfMem = 1;
     return NULL;
@@ -1236,7 +1236,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(h1),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1249,7 +1249,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(h1),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1262,7 +1262,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(g1),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1275,7 +1275,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(g1),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1288,7 +1288,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(h2),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1301,7 +1301,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(h2),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1314,7 +1314,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(g2),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1327,7 +1327,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(g2),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1340,7 +1340,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(h1),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1353,7 +1353,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(g1),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1366,7 +1366,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(h2),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1379,7 +1379,7 @@ CheckInTables(
         if (st_insert(ghTable, (char *)Cudd_Regular(g2),
               (char *)(long)value) == ST_OUT_OF_MEM) {
         *outOfMem = 1;
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
         }
     }
@@ -1389,7 +1389,7 @@ CheckInTables(
     if (st_insert(cacheTable, (char *)node, (char *)factors) ==
         ST_OUT_OF_MEM) {
     *outOfMem = 1;
-    FREE(factors);
+    ABC_FREE(factors);
     return(NULL);
     }
     return factors;
@@ -1438,7 +1438,7 @@ ZeroCase(
     /* Seprate variable and child */
     if (factorsNv->g == one) {
     Cudd_RecursiveDeref(dd, factorsNv->g);
-    factors = ALLOC(Conjuncts, 1);
+    factors = ABC_ALLOC(Conjuncts, 1);
     if (factors == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         Cudd_RecursiveDeref(dd, factorsNv->h);
@@ -1452,7 +1452,7 @@ ZeroCase(
         dd->errorCode = CUDD_MEMORY_OUT;
         Cudd_RecursiveDeref(dd, factorsNv->h); 
         Cudd_RecursiveDeref(dd, x);
-        FREE(factors);
+        ABC_FREE(factors);
         return NULL;
     }
     
@@ -1472,7 +1472,7 @@ ZeroCase(
     /* Seprate variable and child */
     if (factorsNv->h == one) {
     Cudd_RecursiveDeref(dd, factorsNv->h);
-    factors = ALLOC(Conjuncts, 1);
+    factors = ABC_ALLOC(Conjuncts, 1);
     if (factors == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         Cudd_RecursiveDeref(dd, factorsNv->g);
@@ -1486,7 +1486,7 @@ ZeroCase(
         dd->errorCode = CUDD_MEMORY_OUT;
         Cudd_RecursiveDeref(dd, factorsNv->g);
         Cudd_RecursiveDeref(dd, x);
-        FREE(factors);
+        ABC_FREE(factors);
         return(NULL);
     }
     /* store x in h table,  the other node is already in the table */
@@ -1617,7 +1617,7 @@ ZeroCase(
     Cudd_RecursiveDeref(dd, g2);
     Cudd_RecursiveDeref(dd, h2);
     } else {
-    /* now free what was created and not used */
+    /* now ABC_FREE what was created and not used */
     if ((factors->g == g1) || (factors->g == h1)) {
         Cudd_RecursiveDeref(dd, g2);
         Cudd_RecursiveDeref(dd, h2);
@@ -1676,7 +1676,7 @@ BuildConjuncts(
 
     /* if f is constant, return (f,f) */
     if (Cudd_IsConstant(node)) {
-    factors = ALLOC(Conjuncts, 1);
+    factors = ABC_ALLOC(Conjuncts, 1);
     if (factors == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
@@ -1705,7 +1705,7 @@ BuildConjuncts(
     if (((nodeStat->localRef > maxLocalRef*2/3) &&
      (distance < approxDistance*2/3)) ||
         (distance <= approxDistance/4)) {
-    factors = ALLOC(Conjuncts, 1);
+    factors = ABC_ALLOC(Conjuncts, 1);
     if (factors == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
@@ -1737,7 +1737,7 @@ BuildConjuncts(
         value = 1;
         if (st_insert(ghTable, (char *)Cudd_Regular(node), (char *)(long)value) == ST_OUT_OF_MEM) {
         dd->errorCode = CUDD_MEMORY_OUT;
-        FREE(factors);
+        ABC_FREE(factors);
         return NULL;
         }
     } else {
@@ -1747,7 +1747,7 @@ BuildConjuncts(
         value = 2;
         if (st_insert(ghTable, (char *)Cudd_Regular(node), (char *)(long)value) == ST_OUT_OF_MEM) {
         dd->errorCode = CUDD_MEMORY_OUT;
-        FREE(factors);
+        ABC_FREE(factors);
         return NULL;
         }
     }
@@ -1804,7 +1804,7 @@ BuildConjuncts(
         /* is responsible for freeing factorsNv */
         factors = ZeroCase(dd, node, factorsNv, ghTable,
                    cacheTable, switched);
-        if (freeNv) FREE(factorsNv);
+        if (freeNv) ABC_FREE(factorsNv);
         return(factors);
     }
     }
@@ -1817,7 +1817,7 @@ BuildConjuncts(
     if (factorsNnv == NULL) {
         Cudd_RecursiveDeref(dd, factorsNv->g);
         Cudd_RecursiveDeref(dd, factorsNv->h);
-        if (freeNv) FREE(factorsNv);
+        if (freeNv) ABC_FREE(factorsNv);
         return(NULL);
     }
     freeNnv = FactorsNotStored(factorsNnv);
@@ -1830,7 +1830,7 @@ BuildConjuncts(
         /* is responsible for freeing factorsNv */
         factors = ZeroCase(dd, node, factorsNnv, ghTable,
                    cacheTable, switched);
-        if (freeNnv) FREE(factorsNnv);
+        if (freeNnv) ABC_FREE(factorsNnv);
         return(factors);
     }
     }
@@ -1857,8 +1857,8 @@ BuildConjuncts(
     Cudd_RecursiveDeref(dd, factorsNv->h);
     Cudd_RecursiveDeref(dd, factorsNnv->g);
     Cudd_RecursiveDeref(dd, factorsNnv->h);
-    if (freeNv) FREE(factorsNv);
-    if (freeNnv) FREE(factorsNnv);
+    if (freeNv) ABC_FREE(factorsNv);
+    if (freeNnv) ABC_FREE(factorsNnv);
     return(NULL);
     }
 
@@ -1871,8 +1871,8 @@ BuildConjuncts(
     Cudd_RecursiveDeref(dd, factorsNnv->g);
     Cudd_RecursiveDeref(dd, factorsNnv->h);
     Cudd_RecursiveDeref(dd, g1);
-    if (freeNv) FREE(factorsNv);
-    if (freeNnv) FREE(factorsNnv);
+    if (freeNv) ABC_FREE(factorsNv);
+    if (freeNnv) ABC_FREE(factorsNnv);
     return(NULL);
     }
 
@@ -1886,8 +1886,8 @@ BuildConjuncts(
     Cudd_RecursiveDeref(dd, factorsNnv->h);
     Cudd_RecursiveDeref(dd, g1);
     Cudd_RecursiveDeref(dd, h1);
-    if (freeNv) FREE(factorsNv);
-    if (freeNnv) FREE(factorsNnv);
+    if (freeNv) ABC_FREE(factorsNv);
+    if (freeNnv) ABC_FREE(factorsNnv);
     return(NULL);
     }
     cuddRef(g2);
@@ -1903,15 +1903,15 @@ BuildConjuncts(
     Cudd_RecursiveDeref(dd, g1);
     Cudd_RecursiveDeref(dd, h1);
     Cudd_RecursiveDeref(dd, g2);
-    if (freeNv) FREE(factorsNv);
-    if (freeNnv) FREE(factorsNnv);
+    if (freeNv) ABC_FREE(factorsNv);
+    if (freeNnv) ABC_FREE(factorsNnv);
     return(NULL);
     }
     cuddRef(h2);
     Cudd_RecursiveDeref(dd, factorsNv->h);
     Cudd_RecursiveDeref(dd, factorsNnv->g);
-    if (freeNv) FREE(factorsNv);
-    if (freeNnv) FREE(factorsNnv);
+    if (freeNv) ABC_FREE(factorsNv);
+    if (freeNnv) ABC_FREE(factorsNnv);
 
     /* check for each pair in tables and choose one */
     factors = CheckInTables(node, g1, h1, g2, h2, ghTable, cacheTable, &outOfMem);
@@ -1943,7 +1943,7 @@ BuildConjuncts(
     Cudd_RecursiveDeref(dd, g2);
     Cudd_RecursiveDeref(dd, h2);
     } else {
-    /* now free what was created and not used */
+    /* now ABC_FREE what was created and not used */
     if ((factors->g == g1) || (factors->g == h1)) {
         Cudd_RecursiveDeref(dd, g2);
         Cudd_RecursiveDeref(dd, h2);
@@ -2000,7 +2000,7 @@ cuddConjunctsAux(
     if (distanceTable == NULL) goto outOfMem;
     
     /* make the entry for the constant */
-    nodeStat = ALLOC(NodeStat, 1);
+    nodeStat = ABC_ALLOC(NodeStat, 1);
     if (nodeStat == NULL) goto outOfMem;
     nodeStat->distance = 0;
     nodeStat->localRef = 1;
@@ -2024,7 +2024,7 @@ cuddConjunctsAux(
     stGen = st_init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
     while(st_gen(stGen, (char **)&key, (char **)&value)) {
-        FREE(value);
+        ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
     st_free_table(distanceTable);
@@ -2061,11 +2061,11 @@ cuddConjunctsAux(
                  approxDistance, maxLocalRef, ghTable, mintermTable);
     if (factors == NULL) goto outOfMem;
 
-    /* free up tables */
+    /* ABC_FREE up tables */
     stGen = st_init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
     while(st_gen(stGen, (char **)&key, (char **)&value)) {
-    FREE(value);
+    ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
     st_free_table(distanceTable); distanceTable = NULL;
@@ -2074,7 +2074,7 @@ cuddConjunctsAux(
     stGen = st_init_gen(mintermTable);
     if (stGen == NULL) goto outOfMem;
     while(st_gen(stGen, (char **)&key, (char **)&value)) {
-    FREE(value);
+    ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
     st_free_table(mintermTable); mintermTable = NULL;
@@ -2086,7 +2086,7 @@ cuddConjunctsAux(
     *c2 = factors->h;
     cuddRef(*c1);
     cuddRef(*c2);
-    if (freeFactors) FREE(factors);
+    if (freeFactors) ABC_FREE(factors);
     
 #if 0    
     if ((*c1 == f) && (!Cudd_IsConstant(f))) {
@@ -2121,7 +2121,7 @@ outOfMem:
     stGen = st_init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
     while(st_gen(stGen, (char **)&key, (char **)&value)) {
-        FREE(value);
+        ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
     st_free_table(distanceTable); distanceTable = NULL;
@@ -2130,7 +2130,7 @@ outOfMem:
     stGen = st_init_gen(mintermTable);
     if (stGen == NULL) goto outOfMem;
     while(st_gen(stGen, (char **)&key, (char **)&value)) {
-        FREE(value);
+        ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
     st_free_table(mintermTable); mintermTable = NULL;

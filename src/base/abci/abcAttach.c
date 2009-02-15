@@ -80,8 +80,8 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     ppGates = Mio_CollectRoots( pGenlib, 6, (float)1.0e+20, 1, &nGates );
 
     // derive the gate truth tables
-    puTruthGates    = ALLOC( unsigned *, nGates );
-    puTruthGates[0] = ALLOC( unsigned, 2 * nGates );
+    puTruthGates    = ABC_ALLOC( unsigned *, nGates );
+    puTruthGates[0] = ABC_ALLOC( unsigned, 2 * nGates );
     for ( i = 1; i < nGates; i++ )
         puTruthGates[i] = puTruthGates[i-1] + 2;
     for ( i = 0; i < nGates; i++ )
@@ -109,24 +109,24 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
         else if ( nFanins > 6 )
         {
             printf( "Cannot attach gate with more than 6 inputs to node %s.\n", Abc_ObjName(pNode) );
-            free( puTruthGates[0] );
-            free( puTruthGates );
-            free( ppGates );
+            ABC_FREE( puTruthGates[0] );
+            ABC_FREE( puTruthGates );
+            ABC_FREE( ppGates );
             return 0;
         }
         else if ( !Abc_NodeAttach( pNode, ppGates, puTruthGates, nGates, uTruths ) )
         {
             printf( "Could not attach the library gate to node %s.\n", Abc_ObjName(pNode) );
-            free( puTruthGates[0] );
-            free( puTruthGates );
-            free( ppGates );
+            ABC_FREE( puTruthGates[0] );
+            ABC_FREE( puTruthGates );
+            ABC_FREE( ppGates );
             return 0;
         }
     }
-    free( puTruthGates[0] );
-    free( puTruthGates );
-    free( ppGates );
-    FREE( s_pPerms );
+    ABC_FREE( puTruthGates[0] );
+    ABC_FREE( puTruthGates );
+    ABC_FREE( ppGates );
+    ABC_FREE( s_pPerms );
 
     // perform the final transformation
     Abc_NtkForEachNode( pNtk, pNode, i )

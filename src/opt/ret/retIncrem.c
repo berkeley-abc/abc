@@ -113,7 +113,7 @@ st_table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk )
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         // map latch into its true number
-        st_insert( tLatches, (void *)(PORT_PTRUINT_T)pLatch, (void *)(PORT_PTRUINT_T)(i-nOffSet) );
+        st_insert( tLatches, (void *)(ABC_PTRUINT_T)pLatch, (void *)(ABC_PTRUINT_T)(i-nOffSet) );
         // disconnect LI     
         pLatchIn = Abc_ObjFanin0(pLatch);
         pFanin = Abc_ObjFanin0(pLatchIn);
@@ -194,7 +194,7 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
         Vec_PtrPush( vCosNew, pLatchIn );
         Vec_PtrPush( vBoxesNew, pLatch );
     }
-    // free useless Cis/Cos
+    // ABC_FREE useless Cis/Cos
     Vec_PtrForEachEntry( vCisOld, pObj, i )
         if ( !Abc_ObjIsPi(pObj) && Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
             Abc_NtkDeleteObj(pObj);
@@ -320,7 +320,7 @@ void Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial )
     {
         // compute the initial value
         if ( fInitial )
-            pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_ObjSopSimulate( pObj );
+            pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
         // collect fanins
         Abc_NodeCollectFanins( pObj, vNodes );
         // make the node point to the fanins fanins
@@ -400,10 +400,10 @@ int Abc_NtkRetimeCheckCompatibleLatchFanouts( Abc_Obj_t * pObj )
             continue;
         if ( Init == -1 )
         {
-            Init = (int)(PORT_PTRUINT_T)pObj->pData;
+            Init = (int)(ABC_PTRUINT_T)pObj->pData;
             nLatches++;
         }
-        else if ( Init == (int)(PORT_PTRUINT_T)pObj->pData )
+        else if ( Init == (int)(ABC_PTRUINT_T)pObj->pData )
             nLatches++;
     }
     return nLatches;

@@ -60,7 +60,7 @@ void Aig_ManFanoutStart( Aig_Man_t * p )
     p->nFansAlloc = 2 * Aig_ManObjNumMax(p);
     if ( p->nFansAlloc < (1<<12) )
         p->nFansAlloc = (1<<12);
-    p->pFanData = ALLOC( int, 5 * p->nFansAlloc );
+    p->pFanData = ABC_ALLOC( int, 5 * p->nFansAlloc );
     memset( p->pFanData, 0, sizeof(int) * 5 * p->nFansAlloc );
     // add fanouts for all objects
     Aig_ManForEachObj( p, pObj, i )
@@ -86,7 +86,7 @@ void Aig_ManFanoutStart( Aig_Man_t * p )
 void Aig_ManFanoutStop( Aig_Man_t * p )
 {
     assert( p->pFanData != NULL );
-    FREE( p->pFanData );
+    ABC_FREE( p->pFanData );
     p->nFansAlloc = 0;
 }
 
@@ -110,7 +110,7 @@ void Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout )
     if ( pObj->Id >= p->nFansAlloc || pFanout->Id >= p->nFansAlloc )
     {
         int nFansAlloc = 2 * AIG_MAX( pObj->Id, pFanout->Id ); 
-        p->pFanData = REALLOC( int, p->pFanData, 5 * nFansAlloc );
+        p->pFanData = ABC_REALLOC( int, p->pFanData, 5 * nFansAlloc );
         memset( p->pFanData + 5 * p->nFansAlloc, 0, sizeof(int) * 5 * (nFansAlloc - p->nFansAlloc) );
         p->nFansAlloc = nFansAlloc;
     }

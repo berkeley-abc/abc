@@ -396,9 +396,9 @@ int Saig_StrSimDetectUnique( Aig_Man_t * p0, Aig_Man_t * p1 )
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Aig_PrimeCudd( Aig_ManObjNum(p0)/2 );
-    ppTable = CALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 
-    ppCands = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 
+    ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize ); 
+    ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 
+    ppCands = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 
 
     // hash nodes of the first AIG 
     Aig_ManForEachObj( p0, pObj, i )
@@ -453,9 +453,9 @@ int Saig_StrSimDetectUnique( Aig_Man_t * p0, Aig_Man_t * p1 )
 
     // cleanup
     Aig_ManCleanMarkA( p0 );
-    free( ppTable );
-    free( ppNexts );
-    free( ppCands );
+    ABC_FREE( ppTable );
+    ABC_FREE( ppNexts );
+    ABC_FREE( ppCands );
     return Counter;
 }
 
@@ -926,7 +926,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
                 i, nMatches,
                 nFlops, 100.0*nFlops/Aig_ManRegNum(pPart0),
                 nNodes, 100.0*nNodes/Aig_ManNodeNum(pPart0) );
-            PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", clock() - clk );
         }
         if ( i == 20 )
             break;
@@ -959,7 +959,7 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
     Aig_ManFanoutStop( pPart1 );
     Aig_ManStop( pPart0 );
     Aig_ManStop( pPart1 );
-    PRT( "Total runtime", clock() - clkTotal );
+    ABC_PRT( "Total runtime", clock() - clkTotal );
     return vPairs;
 }
 

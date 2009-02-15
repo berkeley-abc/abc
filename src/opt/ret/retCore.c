@@ -94,7 +94,7 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOn
     {
         printf( "Reduction in area = %3d. Reduction in delay = %3d. ", 
             nLatches - Abc_NtkLatchNum(pNtk), nLevels - Abc_NtkLevel(pNtk) );
-        PRT( "Total runtime", clock() - clkTotal );
+        ABC_PRT( "Total runtime", clock() - clkTotal );
     }
     timeRetime = clock() - clkTotal;
     return RetValue;

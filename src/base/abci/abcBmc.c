@@ -64,7 +64,7 @@ printf( "Fraig has %6d nodes.\n", Ivy_ManNodeNum(pFraig) );
     // report the classes
 //    if ( fVerbose )
 //        Abc_NtkBmcReport( pMan, pFrames, pFraig, vMapping, nFrames );
-    // free stuff
+    // ABC_FREE stuff
     Vec_PtrFree( vMapping );
     Ivy_ManStop( pFraig );
     Ivy_ManStop( pFrames );

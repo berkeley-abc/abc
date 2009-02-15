@@ -205,17 +205,17 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
 //printf( "\n" );
 
     // allocate CNF
-    pCnf = ALLOC( Cnf_Dat_t, 1 );
+    pCnf = ABC_ALLOC( Cnf_Dat_t, 1 );
     memset( pCnf, 0, sizeof(Cnf_Dat_t) );
     pCnf->pMan = p->pManAig;
     pCnf->nLiterals = nLiterals;
     pCnf->nClauses = nClauses;
-    pCnf->pClauses = ALLOC( int *, nClauses + 1 );
-    pCnf->pClauses[0] = ALLOC( int, nLiterals );
+    pCnf->pClauses = ABC_ALLOC( int *, nClauses + 1 );
+    pCnf->pClauses[0] = ABC_ALLOC( int, nLiterals );
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
 
     // create room for variable numbers
-    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
+    pCnf->pVarNums = ABC_ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
 //    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p->pManAig) );
     for ( i = 0; i < Aig_ManObjNumMax(p->pManAig); i++ )
         pCnf->pVarNums[i] = -1;
@@ -356,17 +356,17 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     nClauses = 1 + 3 * Aig_ManNodeNum(p) + Aig_ManPoNum( p ) + nOutputs;
 
     // allocate CNF
-    pCnf = ALLOC( Cnf_Dat_t, 1 );
+    pCnf = ABC_ALLOC( Cnf_Dat_t, 1 );
     memset( pCnf, 0, sizeof(Cnf_Dat_t) );
     pCnf->pMan = p;
     pCnf->nLiterals = nLiterals;
     pCnf->nClauses = nClauses;
-    pCnf->pClauses = ALLOC( int *, nClauses + 1 );
-    pCnf->pClauses[0] = ALLOC( int, nLiterals );
+    pCnf->pClauses = ABC_ALLOC( int *, nClauses + 1 );
+    pCnf->pClauses[0] = ABC_ALLOC( int, nLiterals );
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
 
     // create room for variable numbers
-    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p) );
+    pCnf->pVarNums = ABC_ALLOC( int, Aig_ManObjNumMax(p) );
 //    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
     for ( i = 0; i < Aig_ManObjNumMax(p); i++ )
         pCnf->pVarNums[i] = -1;
@@ -478,17 +478,17 @@ Cnf_Dat_t * Cnf_DeriveSimpleForRetiming( Aig_Man_t * p )
     nClauses = 1 + 3 * Aig_ManNodeNum(p) + 3 * Aig_ManPoNum(p);
 
     // allocate CNF
-    pCnf = ALLOC( Cnf_Dat_t, 1 );
+    pCnf = ABC_ALLOC( Cnf_Dat_t, 1 );
     memset( pCnf, 0, sizeof(Cnf_Dat_t) );
     pCnf->pMan = p;
     pCnf->nLiterals = nLiterals;
     pCnf->nClauses = nClauses;
-    pCnf->pClauses = ALLOC( int *, nClauses + 1 );
-    pCnf->pClauses[0] = ALLOC( int, nLiterals );
+    pCnf->pClauses = ABC_ALLOC( int *, nClauses + 1 );
+    pCnf->pClauses[0] = ABC_ALLOC( int, nLiterals );
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
 
     // create room for variable numbers
-    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p) );
+    pCnf->pVarNums = ABC_ALLOC( int, Aig_ManObjNumMax(p) );
 //    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
     for ( i = 0; i < Aig_ManObjNumMax(p); i++ )
         pCnf->pVarNums[i] = -1;

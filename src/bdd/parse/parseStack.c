@@ -54,9 +54,9 @@ struct ParseStackOpStruct
 Parse_StackFn_t * Parse_StackFnStart( int nDepth )
 {
     Parse_StackFn_t * p;
-    p = ALLOC( Parse_StackFn_t, 1 );
+    p = ABC_ALLOC( Parse_StackFn_t, 1 );
     memset( p, 0, sizeof(Parse_StackFn_t) );
-    p->pData = ALLOC( void *, nDepth );
+    p->pData = ABC_ALLOC( void *, nDepth );
     p->Size = nDepth;
     return p;
 }
@@ -132,8 +132,8 @@ void * Parse_StackFnPop( Parse_StackFn_t * p )
 ***********************************************************************/
 void Parse_StackFnFree( Parse_StackFn_t * p )
 {
-    FREE( p->pData );
-    FREE( p );
+    ABC_FREE( p->pData );
+    ABC_FREE( p );
 }
 
 
@@ -153,9 +153,9 @@ void Parse_StackFnFree( Parse_StackFn_t * p )
 Parse_StackOp_t * Parse_StackOpStart( int nDepth )
 {
     Parse_StackOp_t * p;
-    p = ALLOC( Parse_StackOp_t, 1 );
+    p = ABC_ALLOC( Parse_StackOp_t, 1 );
     memset( p, 0, sizeof(Parse_StackOp_t) );
-    p->pData = ALLOC( int, nDepth );
+    p->pData = ABC_ALLOC( int, nDepth );
     p->Size = nDepth;
     return p;
 }
@@ -231,8 +231,8 @@ int Parse_StackOpPop( Parse_StackOp_t * p )
 ***********************************************************************/
 void Parse_StackOpFree( Parse_StackOp_t * p )
 {
-    FREE( p->pData );
-    FREE( p );
+    ABC_FREE( p->pData );
+    ABC_FREE( p );
 }
 
 

@@ -561,8 +561,8 @@ struct MvcManagerStruct
 // macros which work with memory
 // MEM_ALLOC: allocate the given number (Size) of items of type (Type)
 // MEM_FREE:  deallocate the pointer (Pointer) to the given number (Size) of items of type (Type)
-#define MEM_ALLOC( Manager, Type, Size )          ((Type *)malloc( (Size) * sizeof(Type) ))
-#define MEM_FREE( Manager, Type, Size, Pointer )  if ( Pointer ) { free(Pointer); Pointer = NULL; }
+#define MEM_ALLOC( Manager, Type, Size )          ((Type *)ABC_ALLOC( char, (Size) * sizeof(Type) ))
+#define MEM_FREE( Manager, Type, Size, Pointer )  if ( Pointer ) { ABC_FREE(Pointer); Pointer = NULL; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

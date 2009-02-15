@@ -293,7 +293,7 @@ Abc_ManRes_t * Abc_ManResubStart( int nLeavesMax, int nDivsMax )
     unsigned * pData;
     int i, k;
     assert( sizeof(unsigned) == 4 );
-    p = ALLOC( Abc_ManRes_t, 1 );
+    p = ABC_ALLOC( Abc_ManRes_t, 1 );
     memset( p, 0, sizeof(Abc_ManRes_t) );
     p->nLeavesMax = nLeavesMax;
     p->nDivsMax   = nDivsMax;
@@ -301,7 +301,7 @@ Abc_ManRes_t * Abc_ManResubStart( int nLeavesMax, int nDivsMax )
     // allocate simulation info
     p->nBits      = (1 << p->nLeavesMax);
     p->nWords     = (p->nBits <= 32)? 1 : (p->nBits / 32);
-    p->pInfo      = ALLOC( unsigned, p->nWords * (p->nDivsMax + 1) );
+    p->pInfo      = ABC_ALLOC( unsigned, p->nWords * (p->nDivsMax + 1) );
     memset( p->pInfo, 0, sizeof(unsigned) * p->nWords * p->nLeavesMax );
     p->vSims      = Vec_PtrAlloc( p->nDivsMax );
     for ( i = 0; i < p->nDivsMax; i++ )
@@ -352,8 +352,8 @@ void Abc_ManResubStop( Abc_ManRes_t * p )
     Vec_PtrFree( p->vDivs2UN0 );
     Vec_PtrFree( p->vDivs2UN1 );
     Vec_PtrFree( p->vTemp );
-    free( p->pInfo );
-    free( p );
+    ABC_FREE( p->pInfo );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -369,16 +369,16 @@ void Abc_ManResubStop( Abc_ManRes_t * p )
 ***********************************************************************/
 void Abc_ManResubPrint( Abc_ManRes_t * p )
 {
-    printf( "Used constants    = %6d.             ", p->nUsedNodeC );          PRT( "Cuts  ", p->timeCut );
-    printf( "Used replacements = %6d.             ", p->nUsedNode0 );          PRT( "Resub ", p->timeRes );
-    printf( "Used single ORs   = %6d.             ", p->nUsedNode1Or );        PRT( " Div  ", p->timeDiv );
-    printf( "Used single ANDs  = %6d.             ", p->nUsedNode1And );       PRT( " Mffc ", p->timeMffc );
-    printf( "Used double ORs   = %6d.             ", p->nUsedNode2Or );        PRT( " Sim  ", p->timeSim );
-    printf( "Used double ANDs  = %6d.             ", p->nUsedNode2And );       PRT( " 1    ", p->timeRes1 );
-    printf( "Used OR-AND       = %6d.             ", p->nUsedNode2OrAnd );     PRT( " D    ", p->timeResD );
-    printf( "Used AND-OR       = %6d.             ", p->nUsedNode2AndOr );     PRT( " 2    ", p->timeRes2 );
-    printf( "Used OR-2ANDs     = %6d.             ", p->nUsedNode3OrAnd );     PRT( "Truth ", p->timeTruth ); //PRT( " 3    ", p->timeRes3 );
-    printf( "Used AND-2ORs     = %6d.             ", p->nUsedNode3AndOr );     PRT( "AIG   ", p->timeNtk );
+    printf( "Used constants    = %6d.             ", p->nUsedNodeC );          ABC_PRT( "Cuts  ", p->timeCut );
+    printf( "Used replacements = %6d.             ", p->nUsedNode0 );          ABC_PRT( "Resub ", p->timeRes );
+    printf( "Used single ORs   = %6d.             ", p->nUsedNode1Or );        ABC_PRT( " Div  ", p->timeDiv );
+    printf( "Used single ANDs  = %6d.             ", p->nUsedNode1And );       ABC_PRT( " Mffc ", p->timeMffc );
+    printf( "Used double ORs   = %6d.             ", p->nUsedNode2Or );        ABC_PRT( " Sim  ", p->timeSim );
+    printf( "Used double ANDs  = %6d.             ", p->nUsedNode2And );       ABC_PRT( " 1    ", p->timeRes1 );
+    printf( "Used OR-AND       = %6d.             ", p->nUsedNode2OrAnd );     ABC_PRT( " D    ", p->timeResD );
+    printf( "Used AND-OR       = %6d.             ", p->nUsedNode2AndOr );     ABC_PRT( " 2    ", p->timeRes2 );
+    printf( "Used OR-2ANDs     = %6d.             ", p->nUsedNode3OrAnd );     ABC_PRT( "Truth ", p->timeTruth ); //ABC_PRT( " 3    ", p->timeRes3 );
+    printf( "Used AND-2ORs     = %6d.             ", p->nUsedNode3AndOr );     ABC_PRT( "AIG   ", p->timeNtk );
     printf( "TOTAL             = %6d.             ", p->nUsedNodeC +
                                                      p->nUsedNode0 +
                                                      p->nUsedNode1Or +
@@ -389,7 +389,7 @@ void Abc_ManResubPrint( Abc_ManRes_t * p )
                                                      p->nUsedNode2AndOr +
                                                      p->nUsedNode3OrAnd +
                                                      p->nUsedNode3AndOr
-                                                   );                          PRT( "TOTAL ", p->timeTotal );
+                                                   );                          ABC_PRT( "TOTAL ", p->timeTotal );
     printf( "Total leaves   = %8d.\n", p->nTotalLeaves );
     printf( "Total divisors = %8d.\n", p->nTotalDivs );
 //    printf( "Total gain     = %8d.\n", p->nTotalGain );

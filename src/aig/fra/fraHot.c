@@ -378,7 +378,7 @@ void Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots )
     // print the result
     printf( "Care states ratio = %f. ", 1.0 * (nSimWords * 32 - nCovered) / (nSimWords * 32) );
     printf( "(%d out of %d patterns)  ", nSimWords * 32 - nCovered, nSimWords * 32 );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
 }
 
 /**Function*************************************************************

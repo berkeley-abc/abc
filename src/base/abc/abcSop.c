@@ -804,7 +804,7 @@ bool Abc_SopCheck( char * pSop, int nFanins )
         if ( pCubes - pCubesOld != nFanins )
         {
             fprintf( stdout, "Abc_SopCheck: SOP has a mismatch between its cover size (%d) and its fanin number (%d).\n",
-                (int)(PORT_PTRDIFF_T)(pCubes - pCubesOld), nFanins );
+                (int)(ABC_PTRDIFF_T)(pCubes - pCubesOld), nFanins );
             return 0;
         }
         // check the output values for this cube
@@ -884,7 +884,7 @@ char * Abc_SopFromTruthBin( char * pTruth )
 
     // create the SOP representation of the minterms
     Length = Vec_IntSize(vMints) * (nVars + 3);
-    pSopCover = ALLOC( char, Length + 1 );
+    pSopCover = ABC_ALLOC( char, Length + 1 );
     pSopCover[Length] = 0;
     Vec_IntForEachEntry( vMints, Mint, i )
     {
@@ -951,7 +951,7 @@ char * Abc_SopFromTruthHex( char * pTruth )
 
     // create the SOP representation of the minterms
     Length = Vec_IntSize(vMints) * (nVars + 3);
-    pSopCover = ALLOC( char, Length + 1 );
+    pSopCover = ABC_ALLOC( char, Length + 1 );
     pSopCover[Length] = 0;
     Vec_IntForEachEntry( vMints, Mint, i )
     {

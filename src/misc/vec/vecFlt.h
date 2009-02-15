@@ -74,12 +74,12 @@ struct Vec_Flt_t_
 static inline Vec_Flt_t * Vec_FltAlloc( int nCap )
 {
     Vec_Flt_t * p;
-    p = ALLOC( Vec_Flt_t, 1 );
+    p = ABC_ALLOC( Vec_Flt_t, 1 );
     if ( nCap > 0 && nCap < 16 )
         nCap = 16;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( float, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( float, p->nCap ) : NULL;
     return p;
 }
 
@@ -117,7 +117,7 @@ static inline Vec_Flt_t * Vec_FltStart( int nSize )
 static inline Vec_Flt_t * Vec_FltAllocArray( float * pArray, int nSize )
 {
     Vec_Flt_t * p;
-    p = ALLOC( Vec_Flt_t, 1 );
+    p = ABC_ALLOC( Vec_Flt_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = pArray;
@@ -138,10 +138,10 @@ static inline Vec_Flt_t * Vec_FltAllocArray( float * pArray, int nSize )
 static inline Vec_Flt_t * Vec_FltAllocArrayCopy( float * pArray, int nSize )
 {
     Vec_Flt_t * p;
-    p = ALLOC( Vec_Flt_t, 1 );
+    p = ABC_ALLOC( Vec_Flt_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
-    p->pArray = ALLOC( float, nSize );
+    p->pArray = ABC_ALLOC( float, nSize );
     memcpy( p->pArray, pArray, sizeof(float) * nSize );
     return p;
 }
@@ -160,10 +160,10 @@ static inline Vec_Flt_t * Vec_FltAllocArrayCopy( float * pArray, int nSize )
 static inline Vec_Flt_t * Vec_FltDup( Vec_Flt_t * pVec )
 {
     Vec_Flt_t * p;
-    p = ALLOC( Vec_Flt_t, 1 );
+    p = ABC_ALLOC( Vec_Flt_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
-    p->pArray = p->nCap? ALLOC( float, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( float, p->nCap ) : NULL;
     memcpy( p->pArray, pVec->pArray, sizeof(float) * pVec->nSize );
     return p;
 }
@@ -182,7 +182,7 @@ static inline Vec_Flt_t * Vec_FltDup( Vec_Flt_t * pVec )
 static inline Vec_Flt_t * Vec_FltDupArray( Vec_Flt_t * pVec )
 {
     Vec_Flt_t * p;
-    p = ALLOC( Vec_Flt_t, 1 );
+    p = ABC_ALLOC( Vec_Flt_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
     p->pArray = pVec->pArray;
@@ -205,8 +205,8 @@ static inline Vec_Flt_t * Vec_FltDupArray( Vec_Flt_t * pVec )
 ***********************************************************************/
 static inline void Vec_FltFree( Vec_Flt_t * p )
 {
-    FREE( p->pArray );
-    FREE( p );
+    ABC_FREE( p->pArray );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -343,7 +343,7 @@ static inline void Vec_FltGrow( Vec_Flt_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( float, p->pArray, nCapMin ); 
+    p->pArray = ABC_REALLOC( float, p->pArray, nCapMin ); 
     p->nCap   = nCapMin;
 }
 

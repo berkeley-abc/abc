@@ -96,14 +96,14 @@ Aig_RMan_t * Aig_RManStart()
 {
     static Bdc_Par_t Pars = {0}, * pPars = &Pars;
     Aig_RMan_t * p;
-    p = ALLOC( Aig_RMan_t, 1 );
+    p = ABC_ALLOC( Aig_RMan_t, 1 );
     memset( p, 0, sizeof(Aig_RMan_t) );
     p->nVars = RMAN_MAXVARS;
     p->pAig  = Aig_ManStart( 1000000 );
     Aig_IthVar( p->pAig, p->nVars-1 );
     // create hash table
     p->nBins = Aig_PrimeCudd(5000);
-    p->pBins = CALLOC( Aig_Tru_t *, p->nBins );
+    p->pBins = ABC_CALLOC( Aig_Tru_t *, p->nBins );
     p->pMemTrus = Aig_MmFlexStart();
     // bi-decomposition manager
     pPars->nVarsMax = p->nVars;
@@ -179,7 +179,7 @@ clk = clock();
     nBinsOld = p->nBins;
     // get the new Bins
     p->nBins = Aig_PrimeCudd( 3 * nBinsOld ); 
-    p->pBins = CALLOC( Aig_Tru_t *, p->nBins );
+    p->pBins = ABC_CALLOC( Aig_Tru_t *, p->nBins );
     // rehash the entries from the old table
     Counter = 0;
     for ( i = 0; i < nBinsOld; i++ )
@@ -195,8 +195,8 @@ clk = clock();
         Counter++;
     }
     assert( Counter == p->nEntries );
-//    PRT( "Time", clock() - clk );
-    free( pBinsOld );
+//    ABC_PRT( "Time", clock() - clk );
+    ABC_FREE( pBinsOld );
 }
 
 /**Function*************************************************************
@@ -259,8 +259,8 @@ void Aig_RManStop( Aig_RMan_t * p )
     Aig_MmFlexStop( p->pMemTrus, 0 );
     Aig_ManStop( p->pAig );
     Bdc_ManFree( p->pBidec );
-    free( p->pBins );
-    free( p );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p );
 }
 
 

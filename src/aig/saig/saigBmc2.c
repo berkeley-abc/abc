@@ -199,7 +199,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
             nFrames, Aig_ManPiNum(pFrames), Aig_ManPoNum(pFrames), 
             Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
         fflush( stdout );
     }
     // rewrite the timeframes
@@ -213,7 +213,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         {
             printf( "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
                 Aig_ManNodeNum(pFrames), Aig_ManLevelNum(pFrames) );
-            PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", clock() - clk );
             fflush( stdout );
         }
     }
@@ -230,7 +230,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     if ( fVerbose )
     {
         printf( "CNF: Variables = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
         fflush( stdout );
     }
     status = sat_solver_simplify(pSat);
@@ -254,13 +254,13 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                     i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
             }
             clk = clock();
-            status = sat_solver_solve( pSat, &Lit, &Lit + 1, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+            status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( fVerbose && (i % Saig_ManPoNum(pAig) == Saig_ManPoNum(pAig) - 1) )
             {
                 printf( "Solved %2d outputs of frame %3d.  ", 
                     Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
                 printf( "Conf =%8.0f. Imp =%11.0f. ", (double)pSat->stats.conflicts, (double)pSat->stats.propagations );
-                PRT( "T", clock() - clkPart );
+                ABC_PRT( "T", clock() - clkPart );
                 clkPart = clock();
                 fflush( stdout );
             }
@@ -284,7 +284,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                 int * pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
                 pModel[Aig_ManPiNum(pFrames)] = pObj->Id;
                 pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pFrames, pModel );
-                free( pModel );
+                ABC_FREE( pModel );
                 Vec_IntFree( vCiIds );
 
 //                if ( piFrame )

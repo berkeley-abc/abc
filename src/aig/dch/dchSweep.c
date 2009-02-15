@@ -127,7 +127,7 @@ void Dch_ManSweep( Dch_Man_t * p )
     }
     Bar_ProgressStop( pProgress );
     // update the representatives of the nodes (makes classes invalid)
-    FREE( p->pAigTotal->pReprs );
+    ABC_FREE( p->pAigTotal->pReprs );
     p->pAigTotal->pReprs = p->pReprsProved;
     p->pReprsProved = NULL;
     // clean the mark

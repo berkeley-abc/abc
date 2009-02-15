@@ -78,7 +78,7 @@ static inline float Csw_CutFindCost2( Csw_Man_t * p, Csw_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the next free cut to use.]
+  Synopsis    [Returns the next ABC_FREE cut to use.]
 
   Description []
                

@@ -98,7 +98,7 @@ char * Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1, char * pS2, 
             }
         }
     }
-    FREE( pFileGen );
+    ABC_FREE( pFileGen );
     if ( pFile )
     {
         fclose( pFile );
@@ -238,7 +238,7 @@ char * Extra_FileRead( FILE * pFile )
     // move the file current reading position to the beginning
     rewind( pFile ); 
     // load the contents of the file into memory
-    pBuffer = ALLOC( char, nFileSize + 3 );
+    pBuffer = ABC_ALLOC( char, nFileSize + 3 );
     fread( pBuffer, nFileSize, 1, pFile );
     // terminate the string with '\0'
     pBuffer[ nFileSize + 0] = '\n';
@@ -482,9 +482,9 @@ char * Extra_StringAppend( char * pStrGiven, char * pStrAdd )
     char * pTemp;
     if ( pStrGiven )
     {
-        pTemp = ALLOC( char, strlen(pStrGiven) + strlen(pStrAdd) + 2 );
+        pTemp = ABC_ALLOC( char, strlen(pStrGiven) + strlen(pStrAdd) + 2 );
         sprintf( pTemp, "%s%s", pStrGiven, pStrAdd );
-        free( pStrGiven );
+        ABC_FREE( pStrGiven );
     }
     else
         pTemp = Extra_UtilStrsav( pStrAdd );

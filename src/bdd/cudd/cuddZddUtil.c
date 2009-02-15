@@ -105,14 +105,14 @@ Cudd_zddPrintMinterm(
     int        *list;
 
     size = (int)zdd->sizeZ;
-    list = ALLOC(int, size);
+    list = ABC_ALLOC(int, size);
     if (list == NULL) {
     zdd->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
     for (i = 0; i < size; i++) list[i] = 3; /* bogus value should disappear */
     zdd_print_minterm_aux(zdd, node, 0, list);
-    FREE(list);
+    ABC_FREE(list);
     return(1);
 
 } /* end of Cudd_zddPrintMinterm */
@@ -140,14 +140,14 @@ Cudd_zddPrintCover(
 
     size = (int)zdd->sizeZ;
     if (size % 2 != 0) return(0); /* number of variables should be even */
-    list = ALLOC(int, size);
+    list = ABC_ALLOC(int, size);
     if (list == NULL) {
     zdd->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
     for (i = 0; i < size; i++) list[i] = 3; /* bogus value should disappear */
     zddPrintCoverAux(zdd, node, 0, list);
-    FREE(list);
+    ABC_FREE(list);
     return(1);
 
 } /* end of Cudd_zddPrintCover */
@@ -251,7 +251,7 @@ Cudd_zddFirstPath(
     if (zdd == NULL || f == NULL) return(NULL);
 
     /* Allocate generator an initialize it. */
-    gen = ALLOC(DdGen,1);
+    gen = ABC_ALLOC(DdGen,1);
     if (gen == NULL) {
     zdd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -267,10 +267,10 @@ Cudd_zddFirstPath(
     gen->node = NULL;
 
     nvars = zdd->sizeZ;
-    gen->gen.cubes.cube = ALLOC(int,nvars);
+    gen->gen.cubes.cube = ABC_ALLOC(int,nvars);
     if (gen->gen.cubes.cube == NULL) {
     zdd->errorCode = CUDD_MEMORY_OUT;
-    FREE(gen);
+    ABC_FREE(gen);
     return(NULL);
     }
     for (i = 0; i < nvars; i++) gen->gen.cubes.cube[i] = 2;
@@ -279,11 +279,11 @@ Cudd_zddFirstPath(
     ** because a path may have nodes at all levels, including the
     ** constant level.
     */
-    gen->stack.stack = ALLOC(DdNode *, nvars+1);
+    gen->stack.stack = ABC_ALLOC(DdNode *, nvars+1);
     if (gen->stack.stack == NULL) {
     zdd->errorCode = CUDD_MEMORY_OUT;
-    FREE(gen->gen.cubes.cube);
-    FREE(gen);
+    ABC_FREE(gen->gen.cubes.cube);
+    ABC_FREE(gen);
     return(NULL);
     }
     for (i = 0; i <= nvars; i++) gen->stack.stack[i] = NULL;
@@ -450,7 +450,7 @@ Cudd_zddCoverPathToString(
     if (nvars & 1) return(NULL);
     nvars >>= 1;
     if (str == NULL) {
-    res = ALLOC(char, nvars+1);
+    res = ABC_ALLOC(char, nvars+1);
     if (res == NULL) return(NULL);
     } else {
     res = str;
@@ -532,7 +532,7 @@ Cudd_zddDumpDot(
     long    refAddr, diff, mask;
 
     /* Build a bit array with the support of f. */
-    sorted = ALLOC(int,nvars);
+    sorted = ABC_ALLOC(int,nvars);
     if (sorted == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     goto failure;
@@ -551,7 +551,7 @@ Cudd_zddDumpDot(
     }
     Cudd_RecursiveDeref(dd,support);
     }
-    support = NULL; /* so that we do not try to free it in case of failure */
+    support = NULL; /* so that we do not try to ABC_FREE it in case of failure */
 
     /* Initialize symbol table for visited nodes. */
     visited = st_init_table(st_ptrcmp, st_ptrhash);
@@ -744,11 +744,11 @@ Cudd_zddDumpDot(
     if (retval == EOF) goto failure;
 
     st_free_table(visited);
-    FREE(sorted);
+    ABC_FREE(sorted);
     return(1);
 
 failure:
-    if (sorted != NULL) FREE(sorted);
+    if (sorted != NULL) ABC_FREE(sorted);
     if (support != NULL) Cudd_RecursiveDeref(dd,support);
     if (visited != NULL) st_free_table(visited);
     return(0);

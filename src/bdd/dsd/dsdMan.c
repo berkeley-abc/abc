@@ -49,15 +49,15 @@ Dsd_Manager_t * Dsd_ManagerStart( DdManager * dd, int nSuppMax, int fVerbose )
 
     assert( nSuppMax <= dd->size );
 
-    dMan = ALLOC( Dsd_Manager_t, 1 );
+    dMan = ABC_ALLOC( Dsd_Manager_t, 1 );
     memset( dMan, 0, sizeof(Dsd_Manager_t) );
     dMan->dd          = dd;
     dMan->nInputs     = nSuppMax;
     dMan->fVerbose    = fVerbose;
     dMan->nRoots      = 0;
     dMan->nRootsAlloc = 50;
-    dMan->pRoots      = (Dsd_Node_t **) malloc( dMan->nRootsAlloc * sizeof(Dsd_Node_t *) );
-    dMan->pInputs     = (Dsd_Node_t **) malloc( dMan->nInputs     * sizeof(Dsd_Node_t *) );
+    dMan->pRoots      = (Dsd_Node_t **) ABC_ALLOC( char, dMan->nRootsAlloc * sizeof(Dsd_Node_t *) );
+    dMan->pInputs     = (Dsd_Node_t **) ABC_ALLOC( char, dMan->nInputs     * sizeof(Dsd_Node_t *) );
 
     // create the primary inputs and insert them into the table
     dMan->Table       = st_init_table(st_ptrcmp, st_ptrhash);
@@ -103,9 +103,9 @@ void Dsd_ManagerStop( Dsd_Manager_t * dMan )
     st_foreach_item( dMan->Table, gen, (char**)&bFunc, (char**)&pNode )
         Dsd_TreeNodeDelete( dMan->dd, Dsd_Regular(pNode) );
     st_free_table(dMan->Table);
-    free( dMan->pInputs );
-    free( dMan->pRoots );
-    free( dMan );
+    ABC_FREE( dMan->pInputs );
+    ABC_FREE( dMan->pRoots );
+    ABC_FREE( dMan );
     Dsd_CheckCacheDeallocate();
 }
 

@@ -31,7 +31,7 @@ struct Msat_MmFixed_t_
     int           nEntriesAlloc; // the total number of entries allocated
     int           nEntriesUsed;  // the number of entries in use
     int           nEntriesMax;   // the max number of entries in use
-    char *        pEntriesFree;  // the linked list of free entries
+    char *        pEntriesFree;  // the linked list of ABC_FREE entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -48,8 +48,8 @@ struct Msat_MmFlex_t_
 {
     // information about individual entries
     int           nEntriesUsed;  // the number of entries allocated
-    char *        pCurrent;      // the current pointer to free memory
-    char *        pEnd;          // the first entry outside the free memory
+    char *        pCurrent;      // the current pointer to ABC_FREE memory
+    char *        pEnd;          // the first entry outside the ABC_FREE memory
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -91,7 +91,7 @@ Msat_MmFixed_t * Msat_MmFixedStart( int nEntrySize )
 {
     Msat_MmFixed_t * p;
 
-    p = ALLOC( Msat_MmFixed_t, 1 );
+    p = ABC_ALLOC( Msat_MmFixed_t, 1 );
     memset( p, 0, sizeof(Msat_MmFixed_t) );
 
     p->nEntrySize    = nEntrySize;
@@ -108,7 +108,7 @@ Msat_MmFixed_t * Msat_MmFixedStart( int nEntrySize )
 
     p->nChunksAlloc  = 64;
     p->nChunks       = 0;
-    p->pChunks       = ALLOC( char *, p->nChunksAlloc );
+    p->pChunks       = ABC_ALLOC( char *, p->nChunksAlloc );
 
     p->nMemoryUsed   = 0;
     p->nMemoryAlloc  = 0;
@@ -139,9 +139,9 @@ void Msat_MmFixedStop( Msat_MmFixed_t * p, int fVerbose )
             p->nEntriesUsed, p->nEntriesMax, p->nEntrySize * p->nEntriesUsed, p->nMemoryAlloc );
     }
     for ( i = 0; i < p->nChunks; i++ )
-        free( p->pChunks[i] );
-    free( p->pChunks );
-    free( p );
+        ABC_FREE( p->pChunks[i] );
+    ABC_FREE( p->pChunks );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -160,16 +160,16 @@ char * Msat_MmFixedEntryFetch( Msat_MmFixed_t * p )
     char * pTemp;
     int i;
 
-    // check if there are still free entries
+    // check if there are still ABC_FREE entries
     if ( p->nEntriesUsed == p->nEntriesAlloc )
     { // need to allocate more entries
         assert( p->pEntriesFree == NULL );
         if ( p->nChunks == p->nChunksAlloc )
         {
             p->nChunksAlloc *= 2;
-            p->pChunks = REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
+            p->pChunks = ABC_REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
         }
-        p->pEntriesFree = ALLOC( char, p->nEntrySize * p->nChunkSize );
+        p->pEntriesFree = ABC_ALLOC( char, p->nEntrySize * p->nChunkSize );
         p->nMemoryAlloc += p->nEntrySize * p->nChunkSize;
         // transform these entries into a linked list
         pTemp = p->pEntriesFree;
@@ -189,7 +189,7 @@ char * Msat_MmFixedEntryFetch( Msat_MmFixed_t * p )
     p->nEntriesUsed++;
     if ( p->nEntriesMax < p->nEntriesUsed )
         p->nEntriesMax = p->nEntriesUsed;
-    // return the first entry in the free entry list
+    // return the first entry in the ABC_FREE entry list
     pTemp = p->pEntriesFree;
     p->pEntriesFree = *((char **)pTemp);
     return pTemp;
@@ -210,7 +210,7 @@ void Msat_MmFixedEntryRecycle( Msat_MmFixed_t * p, char * pEntry )
 {
     // decrement the counter of used entries
     p->nEntriesUsed--;
-    // add the entry to the linked list of free entries
+    // add the entry to the linked list of ABC_FREE entries
     *((char **)pEntry) = p->pEntriesFree;
     p->pEntriesFree = pEntry;
 }
@@ -233,7 +233,7 @@ void Msat_MmFixedRestart( Msat_MmFixed_t * p )
 
     // deallocate all chunks except the first one
     for ( i = 1; i < p->nChunks; i++ )
-        free( p->pChunks[i] );
+        ABC_FREE( p->pChunks[i] );
     p->nChunks = 1;
     // transform these entries into a linked list
     pTemp = p->pChunks[0];
@@ -244,7 +244,7 @@ void Msat_MmFixedRestart( Msat_MmFixed_t * p )
     }
     // set the last link
     *((char **)pTemp) = NULL;
-    // set the free entry list
+    // set the ABC_FREE entry list
     p->pEntriesFree  = p->pChunks[0];
     // set the correct statistics
     p->nMemoryAlloc  = p->nEntrySize * p->nChunkSize;
@@ -286,7 +286,7 @@ Msat_MmFlex_t * Msat_MmFlexStart()
 {
     Msat_MmFlex_t * p;
 
-    p = ALLOC( Msat_MmFlex_t, 1 );
+    p = ABC_ALLOC( Msat_MmFlex_t, 1 );
     memset( p, 0, sizeof(Msat_MmFlex_t) );
 
     p->nEntriesUsed  = 0;
@@ -296,7 +296,7 @@ Msat_MmFlex_t * Msat_MmFlexStart()
     p->nChunkSize    = (1 << 12);
     p->nChunksAlloc  = 64;
     p->nChunks       = 0;
-    p->pChunks       = ALLOC( char *, p->nChunksAlloc );
+    p->pChunks       = ABC_ALLOC( char *, p->nChunksAlloc );
 
     p->nMemoryUsed   = 0;
     p->nMemoryAlloc  = 0;
@@ -327,9 +327,9 @@ void Msat_MmFlexStop( Msat_MmFlex_t * p, int fVerbose )
             p->nEntriesUsed, p->nMemoryUsed, p->nMemoryAlloc );
     }
     for ( i = 0; i < p->nChunks; i++ )
-        free( p->pChunks[i] );
-    free( p->pChunks );
-    free( p );
+        ABC_FREE( p->pChunks[i] );
+    ABC_FREE( p->pChunks );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -346,13 +346,13 @@ void Msat_MmFlexStop( Msat_MmFlex_t * p, int fVerbose )
 char * Msat_MmFlexEntryFetch( Msat_MmFlex_t * p, int nBytes )
 {
     char * pTemp;
-    // check if there are still free entries
+    // check if there are still ABC_FREE entries
     if ( p->pCurrent == NULL || p->pCurrent + nBytes > p->pEnd )
     { // need to allocate more entries
         if ( p->nChunks == p->nChunksAlloc )
         {
             p->nChunksAlloc *= 2;
-            p->pChunks = REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
+            p->pChunks = ABC_REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
         }
         if ( nBytes > p->nChunkSize )
         {
@@ -360,7 +360,7 @@ char * Msat_MmFlexEntryFetch( Msat_MmFlex_t * p, int nBytes )
             // (ideally, this should never happen)
             p->nChunkSize = 2 * nBytes;
         }
-        p->pCurrent = ALLOC( char, p->nChunkSize );
+        p->pCurrent = ABC_ALLOC( char, p->nChunkSize );
         p->pEnd     = p->pCurrent + p->nChunkSize;
         p->nMemoryAlloc += p->nChunkSize;
         // add the chunk to the chunk storage
@@ -410,7 +410,7 @@ int Msat_MmFlexReadMemUsage( Msat_MmFlex_t * p )
   are employed internally. Calling this procedure with nSteps equal
   to 10 results in 10 hierarchically arranged internal memory managers, 
   which can allocate up to 4096 (1Kb) entries. Requests for larger 
-  entries are handed over to malloc() and then free()ed.]
+  entries are handed over to malloc() and then ABC_FREE()ed.]
                
   SideEffects []
 
@@ -421,15 +421,15 @@ Msat_MmStep_t * Msat_MmStepStart( int nSteps )
 {
     Msat_MmStep_t * p;
     int i, k;
-    p = ALLOC( Msat_MmStep_t, 1 );
+    p = ABC_ALLOC( Msat_MmStep_t, 1 );
     p->nMems = nSteps;
     // start the fixed memory managers
-    p->pMems = ALLOC( Msat_MmFixed_t *, p->nMems );
+    p->pMems = ABC_ALLOC( Msat_MmFixed_t *, p->nMems );
     for ( i = 0; i < p->nMems; i++ )
         p->pMems[i] = Msat_MmFixedStart( (8<<i) );
     // set up the mapping of the required memory size into the corresponding manager
     p->nMapSize = (4<<p->nMems);
-    p->pMap = ALLOC( Msat_MmFixed_t *, p->nMapSize+1 );
+    p->pMap = ABC_ALLOC( Msat_MmFixed_t *, p->nMapSize+1 );
     p->pMap[0] = NULL;
     for ( k = 1; k <= 4; k++ )
         p->pMap[k] = p->pMems[0];
@@ -457,9 +457,9 @@ void Msat_MmStepStop( Msat_MmStep_t * p, int fVerbose )
     int i;
     for ( i = 0; i < p->nMems; i++ )
         Msat_MmFixedStop( p->pMems[i], fVerbose );
-    free( p->pMems );
-    free( p->pMap );
-    free( p );
+    ABC_FREE( p->pMems );
+    ABC_FREE( p->pMap );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -480,7 +480,7 @@ char * Msat_MmStepEntryFetch( Msat_MmStep_t * p, int nBytes )
     if ( nBytes > p->nMapSize )
     {
 //        printf( "Allocating %d bytes.\n", nBytes );
-        return ALLOC( char, nBytes );
+        return ABC_ALLOC( char, nBytes );
     }
     return Msat_MmFixedEntryFetch( p->pMap[nBytes] );
 }
@@ -503,7 +503,7 @@ void Msat_MmStepEntryRecycle( Msat_MmStep_t * p, char * pEntry, int nBytes )
         return;
     if ( nBytes > p->nMapSize )
     {
-        free( pEntry );
+        ABC_FREE( pEntry );
         return;
     }
     Msat_MmFixedEntryRecycle( p->pMap[nBytes], pEntry );

@@ -86,11 +86,11 @@ static inline Hash_Int_t * Hash_IntAlloc( int nBins )
   Hash_Int_t * p;
   int i;
   assert(nBins > 0);
-  p = ALLOC( Hash_Int_t, 1);
+  p = ABC_ALLOC( Hash_Int_t, 1);
   p->nBins = nBins;
   p->fHash = Hash_DefaultHashFunc;
   p->nSize  = 0;
-  p->pArray = ALLOC( Hash_Int_Entry_t *, nBins+1 );
+  p->pArray = ABC_ALLOC( Hash_Int_Entry_t *, nBins+1 );
   for(i=0; i<nBins; i++)
     p->pArray[i] = NULL;
 
@@ -164,7 +164,7 @@ static inline void Hash_IntWriteEntry( Hash_Int_t *p, int key, int data )
   // this key does not currently exist
   // create a new entry and add to bin
   p->nSize++;
-  (*pLast) = pEntry = ALLOC( Hash_Int_Entry_t, 1 );
+  (*pLast) = pEntry = ABC_ALLOC( Hash_Int_Entry_t, 1 );
   pEntry->pNext = NULL;
   pEntry->key = key;
   pEntry->data = data;
@@ -206,7 +206,7 @@ static inline int Hash_IntEntry( Hash_Int_t *p, int key, int fCreate )
   if (fCreate) {
     // create a new entry and add to bin
     p->nSize++;
-    (*pLast) = pEntry = ALLOC( Hash_Int_Entry_t, 1 );
+    (*pLast) = pEntry = ABC_ALLOC( Hash_Int_Entry_t, 1 );
     pEntry->pNext = NULL;
     pEntry->key = key;
     pEntry->data = 0;
@@ -249,7 +249,7 @@ static inline int* Hash_IntEntryPtr( Hash_Int_t *p, int key )
   // this key does not currently exist
   // create a new entry and add to bin
   p->nSize++;
-  (*pLast) = pEntry = ALLOC( Hash_Int_Entry_t, 1 );
+  (*pLast) = pEntry = ABC_ALLOC( Hash_Int_Entry_t, 1 );
   pEntry->pNext = NULL;
   pEntry->key = key;
   pEntry->data = 0;
@@ -272,19 +272,19 @@ static inline void Hash_IntFree( Hash_Int_t *p ) {
   int bin;
   Hash_Int_Entry_t *pEntry, *pTemp;
 
-  // free bins
+  // ABC_FREE bins
   for(bin = 0; bin < p->nBins; bin++) {
     pEntry = p->pArray[bin];
     while(pEntry) {
       pTemp = pEntry;
       pEntry = pEntry->pNext;
-      FREE( pTemp );
+      ABC_FREE( pTemp );
     }
   }
 
-  // free hash
-  FREE( p->pArray );
-  FREE( p );
+  // ABC_FREE hash
+  ABC_FREE( p->pArray );
+  ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

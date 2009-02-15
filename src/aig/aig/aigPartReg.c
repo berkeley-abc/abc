@@ -39,7 +39,7 @@ struct Aig_ManPre_t_
     // info about the current partition
     Vec_Int_t *     vRegs;           // registers of this partition
     Vec_Int_t *     vUniques;        // unique registers of this partition
-    Vec_Int_t *     vFreeVars;       // free variables of this partition
+    Vec_Int_t *     vFreeVars;       // ABC_FREE variables of this partition
     Vec_Flt_t *     vPartCost;       // costs of adding each variable
     char *          pfPartVars;      // input/output registers of the partition
 };
@@ -63,7 +63,7 @@ struct Aig_ManPre_t_
 Aig_ManPre_t * Aig_ManRegManStart( Aig_Man_t * pAig, int nPartSize )
 {
     Aig_ManPre_t * p;
-    p = ALLOC( Aig_ManPre_t, 1 );
+    p = ABC_ALLOC( Aig_ManPre_t, 1 );
     memset( p, 0, sizeof(Aig_ManPre_t) );
     p->pAig      = pAig;
     p->vMatrix   = Aig_ManSupportsRegisters( pAig );
@@ -73,9 +73,9 @@ Aig_ManPre_t * Aig_ManRegManStart( Aig_Man_t * pAig, int nPartSize )
     p->vUniques  = Vec_IntAlloc(256);
     p->vFreeVars = Vec_IntAlloc(256);
     p->vPartCost = Vec_FltAlloc(256);
-    p->pfUsedRegs = ALLOC( char, Aig_ManRegNum(p->pAig) );
+    p->pfUsedRegs = ABC_ALLOC( char, Aig_ManRegNum(p->pAig) );
     memset( p->pfUsedRegs, 0, sizeof(char) * Aig_ManRegNum(p->pAig) );
-    p->pfPartVars  = ALLOC( char, Aig_ManRegNum(p->pAig) );
+    p->pfPartVars  = ABC_ALLOC( char, Aig_ManRegNum(p->pAig) );
     return p;
 }
 
@@ -99,9 +99,9 @@ void Aig_ManRegManStop( Aig_ManPre_t * p )
     Vec_IntFree( p->vUniques );
     Vec_IntFree( p->vFreeVars );
     Vec_FltFree( p->vPartCost );
-    free( p->pfUsedRegs );
-    free( p->pfPartVars );
-    free( p );
+    ABC_FREE( p->pfUsedRegs );
+    ABC_FREE( p->pfPartVars );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -155,7 +155,7 @@ int Aig_ManRegFindBestVar( Aig_ManPre_t * p )
     Vec_Int_t * vSupp;
     int nNewVars, nNewVarsBest = AIG_INFINITY;
     int iVarFree, iVarSupp, iVarBest = -1, i, k;
-    // go through the free variables
+    // go through the ABC_FREE variables
     Vec_IntForEachEntry( p->vFreeVars, iVarFree, i )
     {
 //        if ( p->pfUsedRegs[iVarFree] )
@@ -205,7 +205,7 @@ void Aig_ManRegPartitionAdd( Aig_ManPre_t * p, int iReg )
         p->pfUsedRegs[iReg] = 1;
         Vec_IntPush( p->vUniques, iReg );
     }
-    // remove it from the free variables
+    // remove it from the ABC_FREE variables
     if ( Vec_IntSize(p->vFreeVars) > 0 )
     {
         assert( p->pfPartVars[iReg] );
@@ -372,7 +372,7 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
     // create map
     if ( ppMapBack )
     {
-        pMapBack = ALLOC( int, Aig_ManObjNumMax(pNew) );
+        pMapBack = ABC_ALLOC( int, Aig_ManObjNumMax(pNew) );
         memset( pMapBack, 0xff, sizeof(int) * Aig_ManObjNumMax(pNew) );
         // map constant nodes
         pMapBack[0] = 0;
@@ -441,7 +441,7 @@ Vec_Ptr_t * Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize )
 //printf( "Part %3d  Reg %3d : Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4d.\n", i, k, 
 //                Vec_IntSize(p->vFreeVars), Vec_IntSize(p->vRegs), 
 //                1.0*Vec_IntSize(p->vFreeVars)/Vec_IntSize(p->vRegs), Vec_IntSize(p->vUniques) );
-            // quit if there are not free variables
+            // quit if there are not ABC_FREE variables
             if ( Vec_IntSize(p->vFreeVars) == 0 )
                 break;
         }

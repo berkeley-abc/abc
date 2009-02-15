@@ -26,7 +26,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "main.h"
-#include "port_type.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -80,6 +79,7 @@ struct Abc_Frame_t_
     void *          pAbc8Nwk;    // the current mapped network
     void *          pAbc8Aig;    // the current AIG
     void *          pAbc8Lib;    // the current LUT library
+    void *          pAig;
 
     // the addition to keep the best Ntl that can be used to restore
     void *            pAbc8NtlBestDelay;    // the best delay, Ntl
@@ -98,17 +98,6 @@ struct Abc_Frame_t_
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-#ifdef WIN32
-#define ABC_DLLEXPORT __declspec(dllexport)
-#define ABC_DLLIMPORT __declspec(dllimport)
-#else  /* defined(WIN32) */
-#define ABC_DLLIMPORT
-#endif /* defined(WIN32) */
-
-#ifndef ABC_DLL
-#define ABC_DLL ABC_DLLIMPORT
-#endif
 
 /*=== mvMain.c ===========================================================*/
 extern ABC_DLL int             main( int argc, char * argv[] );

@@ -77,12 +77,12 @@ struct Fra_Lcr_t_
 Fra_Lcr_t * Lcr_ManAlloc( Aig_Man_t * pAig )
 {
     Fra_Lcr_t * p;
-    p = ALLOC( Fra_Lcr_t, 1 );
+    p = ABC_ALLOC( Fra_Lcr_t, 1 );
     memset( p, 0, sizeof(Fra_Lcr_t) );
     p->pAig = pAig;
-    p->pInToOutPart = ALLOC( int, Aig_ManPiNum(pAig) );
+    p->pInToOutPart = ABC_ALLOC( int, Aig_ManPiNum(pAig) );
     memset( p->pInToOutPart, 0, sizeof(int) * Aig_ManPiNum(pAig) );
-    p->pInToOutNum = ALLOC( int, Aig_ManPiNum(pAig) );
+    p->pInToOutNum = ABC_ALLOC( int, Aig_ManPiNum(pAig) );
     memset( p->pInToOutNum, 0, sizeof(int) * Aig_ManPiNum(pAig) );
     p->vFraigs = Vec_PtrAlloc( 1000 );
     return p;
@@ -106,12 +106,12 @@ void Lcr_ManPrint( Fra_Lcr_t * p )
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg, 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/p->nRegsBeg );
-    PRT( "AIG simulation  ", p->timeSim  );
-    PRT( "AIG partitioning", p->timePart );
-    PRT( "AIG rebuiding   ", p->timeTrav );
-    PRT( "FRAIGing        ", p->timeFraig );
-    PRT( "AIG updating    ", p->timeUpdate );
-    PRT( "TOTAL RUNTIME   ", p->timeTotal );
+    ABC_PRT( "AIG simulation  ", p->timeSim  );
+    ABC_PRT( "AIG partitioning", p->timePart );
+    ABC_PRT( "AIG rebuiding   ", p->timeTrav );
+    ABC_PRT( "FRAIGing        ", p->timeFraig );
+    ABC_PRT( "AIG updating    ", p->timeUpdate );
+    ABC_PRT( "TOTAL RUNTIME   ", p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -136,9 +136,9 @@ void Lcr_ManFree( Fra_Lcr_t * p )
     Vec_PtrFree( p->vFraigs );
     if ( p->pCla  )     Fra_ClassesStop( p->pCla );
     if ( p->vParts  )   Vec_VecFree( (Vec_Vec_t *)p->vParts );
-    free( p->pInToOutPart );
-    free( p->pInToOutNum );
-    free( p );
+    ABC_FREE( p->pInToOutPart );
+    ABC_FREE( p->pInToOutNum );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -157,7 +157,7 @@ Fra_Man_t * Fra_LcrAigPrepare( Aig_Man_t * pAig )
     Fra_Man_t * p;
     Aig_Obj_t * pObj;
     int i;
-    p = ALLOC( Fra_Man_t, 1 );
+    p = ABC_ALLOC( Fra_Man_t, 1 );
     memset( p, 0, sizeof(Fra_Man_t) );
 //    Aig_ManForEachPi( pAig, pObj, i )
     Aig_ManForEachObj( pAig, pObj, i )
@@ -550,10 +550,10 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
 clk2 = clock();
 if ( fVerbose )
 printf( "Simulating AIG with %d nodes for %d cycles ...  ", Aig_ManNodeNum(pAig), nFramesP + 32 );
-    pSml = Fra_SmlSimulateSeq( pAig, nFramesP, 32, 1 ); 
+    pSml = Fra_SmlSimulateSeq( pAig, nFramesP, 32, 1, 1  ); 
 if ( fVerbose ) 
 {
-PRT( "Time", clock() - clk2 );
+ABC_PRT( "Time", clock() - clk2 );
 }
 timeSim = clock() - clk2;
 
@@ -592,7 +592,7 @@ printf( "Partitioning AIG ...  " );
     Aig_ManStop( pAigPart );
 if ( fVerbose ) 
 {
-PRT( "Time", clock() - clk2 );
+ABC_PRT( "Time", clock() - clk2 );
 p->timePart += clock() - clk2;
 }
 
@@ -636,7 +636,7 @@ p->timeFraig += clock() - clk2;
                 Aig_ManDumpBlif( pAigPart, Name, NULL, NULL );
             }
 printf( "Finished part %4d (out of %4d).  ", i, Vec_PtrSize(p->vParts) );
-PRT( "Time", clock() - clk3 );
+ABC_PRT( "Time", clock() - clk3 );
 */
 
             Aig_ManStop( pAigPart );
@@ -648,7 +648,7 @@ PRT( "Time", clock() - clk3 );
             printf( "%3d : Const = %6d. Class = %6d.  L = %6d. Part = %3d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
                 Fra_ClassesCountLits(p->pCla), Vec_PtrSize(p->vParts) );
-            PRT( "T", clock() - clk3 );
+            ABC_PRT( "T", clock() - clk3 );
         }
         // refine the classes
         Fra_LcrAigPrepareTwo( p->pAig, pTemp );
@@ -690,7 +690,7 @@ p->timeTotal = clock() - clk;
     p->nNodesEnd = Aig_ManNodeNum(pAigNew);
     p->nRegsEnd  = Aig_ManRegNum(pAigNew);
 finish:
-    free( pTemp );
+    ABC_FREE( pTemp );
     Lcr_ManFree( p );
     if ( pnIter ) *pnIter = nIter;
     return pAigNew;

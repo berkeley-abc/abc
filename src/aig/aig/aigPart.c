@@ -30,10 +30,10 @@ struct Part_Man_t_
 {
     int              nChunkSize;    // the size of one chunk of memory (~1 Mb)
     int              nStepSize;     // the step size in saving memory (~64 bytes)
-    char *           pFreeBuf;      // the pointer to free memory
-    int              nFreeSize;     // the size of remaining free memory
+    char *           pFreeBuf;      // the pointer to ABC_FREE memory
+    int              nFreeSize;     // the size of remaining ABC_FREE memory
     Vec_Ptr_t *      vMemory;       // the memory allocated
-    Vec_Ptr_t *      vFree;         // the vector of free pieces of memory
+    Vec_Ptr_t *      vFree;         // the vector of ABC_FREE pieces of memory
 };
 
 typedef struct Part_One_t_     Part_One_t;
@@ -67,7 +67,7 @@ static inline void   Part_OneSetNext( char * pPart, char * pNext ) { *((char **)
 Part_Man_t * Part_ManStart( int nChunkSize, int nStepSize )
 {
     Part_Man_t * p;
-    p = ALLOC( Part_Man_t, 1 );
+    p = ABC_ALLOC( Part_Man_t, 1 );
     memset( p, 0, sizeof(Part_Man_t) );
     p->nChunkSize = nChunkSize;
     p->nStepSize  = nStepSize;
@@ -92,10 +92,10 @@ void Part_ManStop( Part_Man_t * p )
     void * pMemory;
     int i;
     Vec_PtrForEachEntry( p->vMemory, pMemory, i )
-        free( pMemory );
+        ABC_FREE( pMemory );
     Vec_PtrFree( p->vMemory );
     Vec_PtrFree( p->vFree );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -124,7 +124,7 @@ char * Part_ManFetch( Part_Man_t * p, int nSize )
     nSizeReal = p->nStepSize * Type;
     if ( p->nFreeSize < nSizeReal )
     {
-        p->pFreeBuf = ALLOC( char, p->nChunkSize );
+        p->pFreeBuf = ABC_ALLOC( char, p->nChunkSize );
         p->nFreeSize = p->nChunkSize;
         Vec_PtrPush( p->vMemory, p->pFreeBuf );
     }
@@ -447,7 +447,7 @@ unsigned * Aig_ManSuppCharStart( Vec_Int_t * vOne, int nPis )
     unsigned * pBuffer;
     int i, Entry;
     int nWords = Aig_BitWordNum(nPis);
-    pBuffer = ALLOC( unsigned, nWords );
+    pBuffer = ABC_ALLOC( unsigned, nWords );
     memset( pBuffer, 0, sizeof(unsigned) * nWords );
     Vec_IntForEachEntry( vOne, Entry, i )
     {
@@ -670,7 +670,7 @@ clk = clock();
     vSupports = Aig_ManSupports( p );
 if ( fVerbose )
 {
-PRT( "Supps", clock() - clk );
+ABC_PRT( "Supps", clock() - clk );
 }
     // start char-based support representation
     vPartSuppsBit = Vec_PtrAlloc( 1000 );
@@ -716,13 +716,13 @@ clk = clock();
 
     // stop char-based support representation
     Vec_PtrForEachEntry( vPartSuppsBit, vTemp, i )
-        free( vTemp );
+        ABC_FREE( vTemp );
     Vec_PtrFree( vPartSuppsBit );
 
 //printf( "\n" );
 if ( fVerbose )
 {
-PRT( "Parts", clock() - clk );
+ABC_PRT( "Parts", clock() - clk );
 }
 
 clk = clock();
@@ -748,7 +748,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-//PRT( "Comps", clock() - clk );
+//ABC_PRT( "Comps", clock() - clk );
 }
 
     // cleanup
@@ -797,7 +797,7 @@ clk = clock();
         Vec_IntPush( vOne, i );
 if ( fVerbose )
 {
-PRT( "Supps", clock() - clk );
+ABC_PRT( "Supps", clock() - clk );
 }
 
     // start char-based support representation
@@ -844,13 +844,13 @@ clk = clock();
 
     // stop char-based support representation
     Vec_PtrForEachEntry( vPartSuppsBit, vTemp, i )
-        free( vTemp );
+        ABC_FREE( vTemp );
     Vec_PtrFree( vPartSuppsBit );
 
 //printf( "\n" );
 if ( fVerbose )
 {
-PRT( "Parts", clock() - clk );
+ABC_PRT( "Parts", clock() - clk );
 }
 
 clk = clock();
@@ -876,7 +876,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-//PRT( "Comps", clock() - clk );
+//ABC_PRT( "Comps", clock() - clk );
 }
 
     // cleanup
@@ -1281,7 +1281,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
         }
         Vec_PtrFree( vOuts );
         // store contents of pData pointers
-        ppData = ALLOC( void *, Aig_ManObjNumMax(pAigPart) );
+        ppData = ABC_ALLOC( void *, Aig_ManObjNumMax(pAigPart) );
         Aig_ManForEachObj( pAigPart, pObj, k )
             ppData[k] = pObj->pData;
         // report the process
@@ -1295,7 +1295,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
         // reset the pData pointers
         Aig_ManForEachObj( pAigPart, pObj, k )
             pObj->pData = ppData[k];
-        free( ppData );
+        ABC_FREE( ppData );
         // transfer representatives to the total AIG
         if ( pAigPart->pReprs )
             Aig_ManTransferRepr( pAigTotal, pAigPart );
@@ -1372,7 +1372,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
         // derive the partition AIG
         pAigPart = Aig_ManDupPartAll( pAig, vPart );
         // store contents of pData pointers
-        ppData = ALLOC( void *, Aig_ManObjNumMax(pAigPart) );
+        ppData = ABC_ALLOC( void *, Aig_ManObjNumMax(pAigPart) );
         Aig_ManForEachObj( pAigPart, pObj, k )
             ppData[k] = pObj->pData;
         // report the process
@@ -1386,7 +1386,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
         // reset the pData pointers
         Aig_ManForEachObj( pAigPart, pObj, k )
             pObj->pData = ppData[k];
-        free( ppData );
+        ABC_FREE( ppData );
         // transfer representatives to the total AIG
         if ( pAigPart->pReprs )
             Aig_ManTransferRepr( pAig, pAigPart );
@@ -1549,7 +1549,7 @@ Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
     // create room for equivalent nodes and representatives
     assert( pNew->pReprs == NULL );
     pNew->nReprsAlloc = Vec_PtrSize(vAigs) * Aig_ManObjNumMax(pNew);
-    pNew->pReprs = ALLOC( Aig_Obj_t *, pNew->nReprsAlloc );
+    pNew->pReprs = ABC_ALLOC( Aig_Obj_t *, pNew->nReprsAlloc );
     memset( pNew->pReprs, 0, sizeof(Aig_Obj_t *) * pNew->nReprsAlloc );
     // add other AIGs one by one
     Vec_PtrForEachEntryStart( vAigs, pThis, i, 1 )

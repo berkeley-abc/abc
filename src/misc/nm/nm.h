@@ -21,10 +21,6 @@
 #ifndef __NM_H__
 #define __NM_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
     This manager is designed to store ID-to-name and name-to-ID mapping
     for Boolean networks and And-Inverter Graphs.
@@ -53,6 +49,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

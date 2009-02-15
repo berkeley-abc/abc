@@ -118,15 +118,15 @@ Tim_Man_t * Tim_ManStart( int nCis, int nCos )
 {
     Tim_Man_t * p;
     int i;
-    p = ALLOC( Tim_Man_t, 1 );
+    p = ABC_ALLOC( Tim_Man_t, 1 );
     memset( p, 0, sizeof(Tim_Man_t) );
     p->pMemObj = Mem_FlexStart();
     p->vBoxes  = Vec_PtrAlloc( 100 );
     p->nCis = nCis;
     p->nCos = nCos;
-    p->pCis = ALLOC( Tim_Obj_t, nCis );
+    p->pCis = ABC_ALLOC( Tim_Obj_t, nCis );
     memset( p->pCis, 0, sizeof(Tim_Obj_t) * nCis );
-    p->pCos = ALLOC( Tim_Obj_t, nCos );
+    p->pCos = ABC_ALLOC( Tim_Obj_t, nCos );
     memset( p->pCos, 0, sizeof(Tim_Obj_t) * nCos );
     for ( i = 0; i < nCis; i++ )
     {
@@ -182,7 +182,7 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fDiscrete )
     pNew->vDelayTables = Vec_PtrAlloc( 100 );
     Tim_ManForEachBox( p, pBox, i )
     {
-        pDelayTableNew = ALLOC( float, pBox->nInputs * pBox->nOutputs );
+        pDelayTableNew = ABC_ALLOC( float, pBox->nInputs * pBox->nOutputs );
         Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
         if ( fDiscrete )
         {
@@ -228,7 +228,7 @@ Tim_Man_t * Tim_ManDupUnit( Tim_Man_t * p )
     pNew->vDelayTables = Vec_PtrAlloc( 100 );
     Tim_ManForEachBox( p, pBox, i )
     {
-        pDelayTableNew = ALLOC( float, pBox->nInputs * pBox->nOutputs );
+        pDelayTableNew = ABC_ALLOC( float, pBox->nInputs * pBox->nOutputs );
         Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
         for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
             pDelayTableNew[k] = 1.0;
@@ -283,14 +283,14 @@ void Tim_ManStop( Tim_Man_t * p )
     if ( p->vDelayTables )
     {
         Vec_PtrForEachEntry( p->vDelayTables, pTable, i )
-            FREE( pTable );
+            ABC_FREE( pTable );
         Vec_PtrFree( p->vDelayTables );
     }
     Vec_PtrFree( p->vBoxes );
     Mem_FlexStop( p->pMemObj, 0 );
-    free( p->pCis );
-    free( p->pCos );
-    free( p );
+    ABC_FREE( p->pCis );
+    ABC_FREE( p->pCos );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

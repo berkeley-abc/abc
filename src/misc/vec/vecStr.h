@@ -68,12 +68,12 @@ struct Vec_Str_t_
 static inline Vec_Str_t * Vec_StrAlloc( int nCap )
 {
     Vec_Str_t * p;
-    p = ALLOC( Vec_Str_t, 1 );
+    p = ABC_ALLOC( Vec_Str_t, 1 );
     if ( nCap > 0 && nCap < 16 )
         nCap = 16;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( char, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( char, p->nCap ) : NULL;
     return p;
 }
 
@@ -111,7 +111,7 @@ static inline Vec_Str_t * Vec_StrStart( int nSize )
 static inline Vec_Str_t * Vec_StrAllocArray( char * pArray, int nSize )
 {
     Vec_Str_t * p;
-    p = ALLOC( Vec_Str_t, 1 );
+    p = ABC_ALLOC( Vec_Str_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = pArray;
@@ -132,10 +132,10 @@ static inline Vec_Str_t * Vec_StrAllocArray( char * pArray, int nSize )
 static inline Vec_Str_t * Vec_StrAllocArrayCopy( char * pArray, int nSize )
 {
     Vec_Str_t * p;
-    p = ALLOC( Vec_Str_t, 1 );
+    p = ABC_ALLOC( Vec_Str_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
-    p->pArray = ALLOC( char, nSize );
+    p->pArray = ABC_ALLOC( char, nSize );
     memcpy( p->pArray, pArray, sizeof(char) * nSize );
     return p;
 }
@@ -154,10 +154,10 @@ static inline Vec_Str_t * Vec_StrAllocArrayCopy( char * pArray, int nSize )
 static inline Vec_Str_t * Vec_StrDup( Vec_Str_t * pVec )
 {
     Vec_Str_t * p;
-    p = ALLOC( Vec_Str_t, 1 );
+    p = ABC_ALLOC( Vec_Str_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
-    p->pArray = p->nCap? ALLOC( char, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( char, p->nCap ) : NULL;
     memcpy( p->pArray, pVec->pArray, sizeof(char) * pVec->nSize );
     return p;
 }
@@ -176,7 +176,7 @@ static inline Vec_Str_t * Vec_StrDup( Vec_Str_t * pVec )
 static inline Vec_Str_t * Vec_StrDupArray( Vec_Str_t * pVec )
 {
     Vec_Str_t * p;
-    p = ALLOC( Vec_Str_t, 1 );
+    p = ABC_ALLOC( Vec_Str_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
     p->pArray = pVec->pArray;
@@ -199,8 +199,8 @@ static inline Vec_Str_t * Vec_StrDupArray( Vec_Str_t * pVec )
 ***********************************************************************/
 static inline void Vec_StrFree( Vec_Str_t * p )
 {
-    FREE( p->pArray );
-    FREE( p );
+    ABC_FREE( p->pArray );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -321,7 +321,7 @@ static inline void Vec_StrGrow( Vec_Str_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( char, p->pArray, 2 * nCapMin ); 
+    p->pArray = ABC_REALLOC( char, p->pArray, 2 * nCapMin ); 
     p->nCap   = 2 * nCapMin;
 }
 

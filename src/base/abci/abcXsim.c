@@ -28,8 +28,8 @@
 #define XVS1   ABC_INIT_ONE
 #define XVSX   ABC_INIT_DC
 
-static inline void Abc_ObjSetXsim( Abc_Obj_t * pObj, int Value )  { pObj->pCopy = (void *)(PORT_PTRINT_T)Value;  }
-static inline int  Abc_ObjGetXsim( Abc_Obj_t * pObj )             { return (int)(PORT_PTRINT_T)pObj->pCopy;      }
+static inline void Abc_ObjSetXsim( Abc_Obj_t * pObj, int Value )  { pObj->pCopy = (void *)(ABC_PTRINT_T)Value;  }
+static inline int  Abc_ObjGetXsim( Abc_Obj_t * pObj )             { return (int)(ABC_PTRINT_T)pObj->pCopy;      }
 static inline int  Abc_XsimInv( int Value )   
 { 
     if ( Value == XVS0 )
@@ -214,7 +214,7 @@ void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     }
     // set the final values
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        pObj->pData = (void *)(PORT_PTRINT_T)Abc_ObjGetXsim(Abc_ObjFanout0(pObj));
+        pObj->pData = (void *)(ABC_PTRINT_T)Abc_ObjGetXsim(Abc_ObjFanout0(pObj));
 }
 
 ///////////////////////////////////////////////////////////////////////

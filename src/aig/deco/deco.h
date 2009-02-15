@@ -21,10 +21,6 @@
 #ifndef __DEC_H__
 #define __DEC_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,6 +28,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -201,12 +201,12 @@ static inline Dec_Edge_t Dec_IntToEdge_( unsigned Edge )
 static inline Dec_Graph_t * Dec_GraphCreate( int nLeaves )   
 {
     Dec_Graph_t * pGraph;
-    pGraph = ALLOC( Dec_Graph_t, 1 );
+    pGraph = ABC_ALLOC( Dec_Graph_t, 1 );
     memset( pGraph, 0, sizeof(Dec_Graph_t) );
     pGraph->nLeaves = nLeaves;
     pGraph->nSize = nLeaves;
     pGraph->nCap = 2 * nLeaves + 50;
-    pGraph->pNodes = ALLOC( Dec_Node_t, pGraph->nCap );
+    pGraph->pNodes = ABC_ALLOC( Dec_Node_t, pGraph->nCap );
     memset( pGraph->pNodes, 0, sizeof(Dec_Node_t) * pGraph->nSize );
     return pGraph;
 }
@@ -225,7 +225,7 @@ static inline Dec_Graph_t * Dec_GraphCreate( int nLeaves )
 static inline Dec_Graph_t * Dec_GraphCreateConst0()   
 {
     Dec_Graph_t * pGraph;
-    pGraph = ALLOC( Dec_Graph_t, 1 );
+    pGraph = ABC_ALLOC( Dec_Graph_t, 1 );
     memset( pGraph, 0, sizeof(Dec_Graph_t) );
     pGraph->fConst = 1;
     pGraph->eRoot.fCompl = 1;
@@ -246,7 +246,7 @@ static inline Dec_Graph_t * Dec_GraphCreateConst0()
 static inline Dec_Graph_t * Dec_GraphCreateConst1()   
 {
     Dec_Graph_t * pGraph;
-    pGraph = ALLOC( Dec_Graph_t, 1 );
+    pGraph = ABC_ALLOC( Dec_Graph_t, 1 );
     memset( pGraph, 0, sizeof(Dec_Graph_t) );
     pGraph->fConst = 1;
     return pGraph;
@@ -286,8 +286,8 @@ static inline Dec_Graph_t * Dec_GraphCreateLeaf( int iLeaf, int nLeaves, int fCo
 ***********************************************************************/
 static inline void Dec_GraphFree( Dec_Graph_t * pGraph )   
 {
-    FREE( pGraph->pNodes );
-    free( pGraph );
+    ABC_FREE( pGraph->pNodes );
+    ABC_FREE( pGraph );
 }
 
 /**Function*************************************************************
@@ -549,7 +549,7 @@ static inline Dec_Node_t * Dec_GraphAppendNode( Dec_Graph_t * pGraph )
     Dec_Node_t * pNode;
     if ( pGraph->nSize == pGraph->nCap )
     {
-        pGraph->pNodes = REALLOC( Dec_Node_t, pGraph->pNodes, 2 * pGraph->nCap ); 
+        pGraph->pNodes = ABC_REALLOC( Dec_Node_t, pGraph->pNodes, 2 * pGraph->nCap ); 
         pGraph->nCap   = 2 * pGraph->nCap;
     }
     pNode = pGraph->pNodes + pGraph->nSize++;

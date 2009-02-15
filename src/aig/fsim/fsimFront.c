@@ -202,11 +202,11 @@ void Fsim_ManVerifyFront( Fsim_Man_t * p )
     int * pFans0, * pFans1;  // representation of fanins
     int * pFrontToId;        // mapping of nodes into frontier variables
     int i, iVar0, iVar1;
-    pFans0 = ALLOC( int, p->nObjs );
-    pFans1 = ALLOC( int, p->nObjs );
+    pFans0 = ABC_ALLOC( int, p->nObjs );
+    pFans1 = ABC_ALLOC( int, p->nObjs );
     pFans0[0] = pFans1[0] = 0;
     pFans0[1] = pFans1[1] = 0;
-    pFrontToId = CALLOC( int, p->nFront );
+    pFrontToId = ABC_CALLOC( int, p->nFront );
     if ( Aig_ObjRefs(Aig_ManConst1(p->pAig)) )
         pFrontToId[1] = 1;
     Fsim_ManForEachObj( p, pObj, i )
@@ -223,9 +223,9 @@ void Fsim_ManVerifyFront( Fsim_Man_t * p )
         assert( pFans0[i] == p->pFans0[i] );
         assert( pFans1[i] == p->pFans1[i] );
     }
-    free( pFrontToId );
-    free( pFans0 );
-    free( pFans1 );
+    ABC_FREE( pFrontToId );
+    ABC_FREE( pFans0 );
+    ABC_FREE( pFans1 );
 }
 
 /**Function*************************************************************
@@ -246,8 +246,8 @@ void Fsim_ManFront( Fsim_Man_t * p, int fCompressAig )
     int * pIdToFront; // mapping of nodes into frontier places
     int i, iVar0, iVar1, nCrossCut = 0, nCrossCutMax = 0;
     // start the frontier
-    pFront = CALLOC( char, p->nFront );
-    pIdToFront = ALLOC( int, p->nObjs );
+    pFront = ABC_CALLOC( char, p->nFront );
+    pIdToFront = ABC_ALLOC( int, p->nObjs );
     pIdToFront[0] = -1;
     pIdToFront[1] = -1;
     // add constant node
@@ -261,13 +261,13 @@ void Fsim_ManFront( Fsim_Man_t * p, int fCompressAig )
     if ( fCompressAig )
     {
         p->nDataAig = p->nObjs * 6;
-        p->pDataAig = ALLOC( unsigned char, p->nDataAig );
+        p->pDataAig = ABC_ALLOC( unsigned char, p->nDataAig );
         p->pDataCur = p->pDataAig;
         p->iNodePrev = 0;
     }
     else
     {
-        p->pDataAig2 = ALLOC( int, 3 * p->nObjs );
+        p->pDataAig2 = ABC_ALLOC( int, 3 * p->nObjs );
         p->pDataCur2 = p->pDataAig2 + 6;
     }
     // iterate through the objects
@@ -349,12 +349,12 @@ void Fsim_ManFront( Fsim_Man_t * p, int fCompressAig )
     assert( nCrossCutMax == p->nCrossCutMax );
     for ( i = 0; i < p->nFront; i++ )
         assert( pFront[i] == 0 );
-    free( pFront );
-    free( pIdToFront );
+    ABC_FREE( pFront );
+    ABC_FREE( pIdToFront );
 //    Fsim_ManVerifyFront( p );
-    FREE( p->pFans0 );
-    FREE( p->pFans1 );
-    FREE( p->pRefs );
+    ABC_FREE( p->pFans0 );
+    ABC_FREE( p->pFans1 );
+    ABC_FREE( p->pRefs );
 }
 
 ////////////////////////////////////////////////////////////////////////

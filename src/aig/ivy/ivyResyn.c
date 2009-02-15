@@ -50,21 +50,21 @@ if ( fVerbose ) Ivy_ManPrintStats( pMan );
 clk = clock();
     pMan = Ivy_ManBalance( pMan, fUpdateLevel );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 0 );
 clk = clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 0, 0 );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
     return pMan;
 }
@@ -91,49 +91,49 @@ if ( fVerbose ) Ivy_ManPrintStats( pMan );
 clk = clock();
     pMan = Ivy_ManBalance( pMan, fUpdateLevel );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 0 );
 clk = clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 0, 0 );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 1 );
 clk = clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 1, 0 );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 1 );
 clk = clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 1, 0 );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
     return pMan;
 }
@@ -160,7 +160,7 @@ if ( fVerbose ) Ivy_ManPrintStats( pMan );
 clk = clock();
     Ivy_ManRewritePre( pMan, 0, 0, 0 );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
@@ -168,21 +168,21 @@ clk = clock();
 //    pMan = Ivy_ManDup( pTemp = pMan );
     Ivy_ManStop( pTemp );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 /*
 clk = clock();
     Ivy_ManRewritePre( pMan, 0, 0, 0 );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
     pMan = Ivy_ManBalance( pTemp = pMan, 0 );
     Ivy_ManStop( pTemp );
 if ( fVerbose ) { printf( "\n" ); }
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) { ABC_PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 */
     return pMan;

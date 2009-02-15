@@ -28,6 +28,8 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Start history AIG.]
@@ -148,6 +150,7 @@ void Abc_NtkHaigTranfer( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
 }
 
 
+#endif
 
 /**Function*************************************************************
 
@@ -636,6 +639,8 @@ int Abc_NtkHaigResetReprs( Hop_Man_t * p )
     return nFanouts;
 }
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Stops history AIG.]
@@ -686,9 +691,11 @@ Abc_Ntk_t * Abc_NtkHaigUse( Abc_Ntk_t * pNtk )
     pNtkAig = Abc_NtkHaigRecreateAig( pNtk, pMan );
     Hop_ManStop( pMan );
 
-    // free HAIG
+    // ABC_FREE HAIG
     return pNtkAig;
 }
+
+#endif
 
 /**Function*************************************************************
 

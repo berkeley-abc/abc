@@ -52,7 +52,7 @@ struct Raig_Man_t_
     int             nWordsAlloc;  // the number of allocated entries
     int             nMems;        // the number of used entries  
     int             nMemsMax;     // the max number of used entries 
-    int             MemFree;      // next free entry
+    int             MemFree;      // next ABC_FREE entry
 };
 
 static inline int  Raig_Var2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
@@ -146,7 +146,7 @@ Raig_Man_t * Raig_ManCreate( Aig_Man_t * pAig )
     Aig_Obj_t * pObj;
     int i, nObjs;
     Aig_ManCleanData( pAig );
-    p = (Raig_Man_t *)ALLOC( Raig_Man_t, 1 );
+    p = (Raig_Man_t *)ABC_ALLOC( Raig_Man_t, 1 );
     memset( p, 0, sizeof(Raig_Man_t) );
     p->pAig = pAig;
     p->nPis = Saig_ManPiNum(pAig);
@@ -155,10 +155,10 @@ Raig_Man_t * Raig_ManCreate( Aig_Man_t * pAig )
     p->nCos = Aig_ManPoNum(pAig);
     p->nNodes = Aig_ManNodeNum(pAig);
     nObjs = p->nCis + p->nCos + p->nNodes + 2;
-    p->pFans0 = ALLOC( int, nObjs );
-    p->pFans1 = ALLOC( int, nObjs );
-    p->pRefs = ALLOC( int, nObjs );
-    p->pSims = CALLOC( unsigned, nObjs );
+    p->pFans0 = ABC_ALLOC( int, nObjs );
+    p->pFans1 = ABC_ALLOC( int, nObjs );
+    p->pRefs = ABC_ALLOC( int, nObjs );
+    p->pSims = ABC_CALLOC( unsigned, nObjs );
     p->vCis2Ids = Vec_IntAlloc( Aig_ManPiNum(pAig) );
     // add objects (0=unused; 1=const1)
     p->nObjs = 2;
@@ -202,12 +202,12 @@ void Raig_ManDelete( Raig_Man_t * p )
     Vec_IntFree( p->vCis2Ids );
     Vec_IntFree( p->vLos );
     Vec_IntFree( p->vLis );
-    FREE( p->pFans0 );
-    FREE( p->pFans1 );
-    FREE( p->pRefs );
-    FREE( p->pSims );
-    FREE( p->pMems );
-    FREE( p );
+    ABC_FREE( p->pFans0 );
+    ABC_FREE( p->pFans1 );
+    ABC_FREE( p->pRefs );
+    ABC_FREE( p->pSims );
+    ABC_FREE( p->pMems );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -236,7 +236,7 @@ unsigned * Raig_ManSimRef( Raig_Man_t * p, int i )
             p->nMems = 1;
         }
         p->nWordsAlloc *= 2;
-        p->pMems = REALLOC( unsigned, p->pMems, p->nWordsAlloc );
+        p->pMems = ABC_REALLOC( unsigned, p->pMems, p->nWordsAlloc );
         memset( p->pMems, 0xff, sizeof(unsigned) * (p->nWords + 1) );
         pPlace = &p->MemFree;
         for ( Ent = p->nMems * (p->nWords + 1); 
@@ -421,7 +421,7 @@ Ssw_Cex_t * Raig_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int
     // fill in the binary data
     Aig_ManRandom( 1 );
     Counter = p->nRegs;
-    pData = ALLOC( unsigned, nWords );
+    pData = ABC_ALLOC( unsigned, nWords );
     for ( f = 0; f <= iFrame; f++, Counter += p->nPis )
     for ( i = 0; i < Aig_ManPiNum(pAig); i++ )
     {
@@ -433,7 +433,7 @@ Ssw_Cex_t * Raig_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int
         if ( Aig_InfoHasBit( pData, iPat ) )
             Aig_InfoSetBit( p->pData, Counter + iPioId );
     }
-    free( pData );
+    ABC_FREE( pData );
     return p;
 }
 
@@ -500,7 +500,7 @@ int Raig_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, i
             p->nMemsMax, 
             1.0*(p->nObjs * 16)/(1<<20), 
             1.0*(p->nMemsMax * 4 * (nWords+1))/(1<<20) );
-        PRT( "Total time", clock() - clkTotal );
+        ABC_PRT( "Total time", clock() - clkTotal );
     }
     Raig_ManDelete( p );
     return RetValue > 0;

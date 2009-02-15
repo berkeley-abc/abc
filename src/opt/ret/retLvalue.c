@@ -37,8 +37,8 @@ static Vec_Ptr_t * Abc_ManCollectLatches( Abc_Ntk_t * pNtk );
 static int         Abc_NtkRetimeUsingLags( Abc_Ntk_t * pNtk, Vec_Int_t * vLags, int fVerbose );
 
 static inline int  Abc_NodeComputeLag( int LValue, int Fi )          { return (LValue + (1<<16)*Fi)/Fi - (1<<16) - (int)(LValue % Fi == 0);     }
-static inline int  Abc_NodeGetLValue( Abc_Obj_t * pNode )            { return (int)(PORT_PTRUINT_T)pNode->pCopy;        }
-static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value ) { pNode->pCopy = (void *)(PORT_PTRUINT_T)Value;    }
+static inline int  Abc_NodeGetLValue( Abc_Obj_t * pNode )            { return (int)(ABC_PTRUINT_T)pNode->pCopy;        }
+static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value ) { pNode->pCopy = (void *)(ABC_PTRUINT_T)Value;    }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

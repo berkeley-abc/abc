@@ -273,7 +273,7 @@ clk = clock();
             return 0;
         }
     }
-PRT( "Preparation", clock() - clk );
+ABC_PRT( "Preparation", clock() - clk );
 
 
     // check in the second timeframe
@@ -291,7 +291,7 @@ clk = clock();
         Lits[0] = toLitCond( pCnf->pVarNums[pObj1->Id], 0 );
         Lits[1] = toLitCond( pCnf->pVarNums[pObj2->Id], 1 );
 
-        RetValue1 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        RetValue1 = sat_solver_solve( pSat, Lits, Lits + 2, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( RetValue1 == l_False )
         {
             Lits[0] = lit_neg( Lits[0] );
@@ -303,7 +303,7 @@ clk = clock();
         Lits[0]++;
         Lits[1]--;
 
-        RetValue2 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        RetValue2 = sat_solver_solve( pSat, Lits, Lits + 2, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( RetValue2 == l_False )
         {
             Lits[0] = lit_neg( Lits[0] );
@@ -323,7 +323,7 @@ clk = clock();
 //            break;
     }
     printf( "                                                          \r" );
-PRT( "Solving    ", clock() - clk );
+ABC_PRT( "Solving    ", clock() - clk );
 clkVerif = clock() - clk;
     if ( Counter )
         printf( "Verification failed for %d out of %d assertions.\n", Counter, pFrames->nAsserts/2 );
@@ -479,7 +479,7 @@ clk = clock();
             return 0;
         }
     }
-PRT( "Preparation", clock() - clk );
+ABC_PRT( "Preparation", clock() - clk );
 
 
     // check in the second timeframe
@@ -496,12 +496,12 @@ clk = clock();
             Lits[0] = toLitCond( pCnf->pVarNums[pObj1->Id]+Delta, 0 );
             Lits[1] = toLitCond( pCnf->pVarNums[pObj2->Id]+Delta, 0 );
 
-            RetValue1 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+            RetValue1 = sat_solver_solve( pSat, Lits, Lits + 2, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 
             Lits[0]++;
             Lits[1]++;
 
-            RetValue2 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+            RetValue2 = sat_solver_solve( pSat, Lits, Lits + 2, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 
             if ( RetValue1 != l_False || RetValue2 != l_False )
                 Counter++;
@@ -511,12 +511,12 @@ clk = clock();
             Lits[0] = toLitCond( pCnf->pVarNums[pObj1->Id]+Delta, 0 );
             Lits[1] = toLitCond( pCnf->pVarNums[pObj2->Id]+Delta, 1 );
 
-            RetValue1 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+            RetValue1 = sat_solver_solve( pSat, Lits, Lits + 2, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 
             Lits[0]++;
             Lits[1]--;
 
-            RetValue2 = sat_solver_solve( pSat, Lits, Lits + 2, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+            RetValue2 = sat_solver_solve( pSat, Lits, Lits + 2, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 
             if ( RetValue1 != l_False || RetValue2 != l_False )
                 Counter++;
@@ -527,7 +527,7 @@ clk = clock();
 //        if ( i / 2 > 1000 )
 //            break;
     }
-PRT( "Solving    ", clock() - clk );
+ABC_PRT( "Solving    ", clock() - clk );
     if ( Counter )
         printf( "Verification failed for %d out of %d classes.\n", Counter, Vec_IntSize(pHaig->vEquPairs)/2 );
     else
@@ -634,7 +634,7 @@ clk = clock();
     // remove structural hashing table
     Aig_TableClear( pNew->pManHaig );
     pNew->pManHaig->vEquPairs = Vec_IntAlloc( 10000 );
-PRT( "HAIG setup time", clock() - clk );
+ABC_PRT( "HAIG setup time", clock() - clk );
 
 clk = clock();
     if ( fSeqHaig )
@@ -682,7 +682,7 @@ clk = clock();
             Aig_ManStop( pTemp );
         }
     } 
-PRT( "Synthesis time ", clock() - clk );
+ABC_PRT( "Synthesis time ", clock() - clk );
 clkSynth = clock() - clk;
 
     // use the haig for verification

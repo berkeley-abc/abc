@@ -47,7 +47,7 @@ Cgt_Man_t * Cgt_ManCreate( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPar
     Aig_ManFanoutStart( pAig );
     Aig_ManSetPioNumbers( pAig );
     // create interpolation manager
-    p = ALLOC( Cgt_Man_t, 1 ); 
+    p = ABC_ALLOC( Cgt_Man_t, 1 ); 
     memset( p, 0, sizeof(Cgt_Man_t) );
     p->pPars      = pPars;
     p->pAig       = pAig;
@@ -123,17 +123,17 @@ void Cgt_ManPrintStats( Cgt_Man_t * p )
         p->pPars->nConfMax, p->pPars->nVarsMin, p->pPars->nFlopsMin );
     printf( "SAT   : Calls = %d. Unsat = %d. Sat = %d. Fails = %d.  Recycles = %d.  ", 
         p->nCalls, p->nCallsUnsat, p->nCallsSat, p->nCallsUndec, p->nRecycles );
-    PRT( "Time", p->timeTotal );
+    ABC_PRT( "Time", p->timeTotal );
 /*
     p->timeOther = p->timeTotal-p->timeAig-p->timePrepare-p->timeSat-p->timeDecision;
-    PRTP( "AIG        ", p->timeAig,       p->timeTotal );
-    PRTP( "Prepare    ", p->timePrepare,   p->timeTotal );
-    PRTP( "SAT solving", p->timeSat,       p->timeTotal );
-    PRTP( "  unsat    ", p->timeSatUnsat,  p->timeTotal );
-    PRTP( "  sat      ", p->timeSatSat,    p->timeTotal );
-    PRTP( "  undecided", p->timeSatUndec,  p->timeTotal );
-    PRTP( "Other      ", p->timeOther,     p->timeTotal );
-    PRTP( "TOTAL      ", p->timeTotal,     p->timeTotal );
+    ABC_PRTP( "AIG        ", p->timeAig,       p->timeTotal );
+    ABC_PRTP( "Prepare    ", p->timePrepare,   p->timeTotal );
+    ABC_PRTP( "SAT solving", p->timeSat,       p->timeTotal );
+    ABC_PRTP( "  unsat    ", p->timeSatUnsat,  p->timeTotal );
+    ABC_PRTP( "  sat      ", p->timeSatSat,    p->timeTotal );
+    ABC_PRTP( "  undecided", p->timeSatUndec,  p->timeTotal );
+    ABC_PRTP( "Other      ", p->timeOther,     p->timeTotal );
+    ABC_PRTP( "TOTAL      ", p->timeTotal,     p->timeTotal );
 */
 }
 
@@ -163,7 +163,7 @@ void Cgt_ManStop( Cgt_Man_t * p )
         Vec_VecFree( p->vGatesAll );
     if ( p->vSuppsInv )
         Vec_VecFree( p->vSuppsInv );
-    free( p );
+    ABC_FREE( p );
 }
 
 

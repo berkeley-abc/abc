@@ -61,7 +61,7 @@ void Dsd_CheckCacheAllocate( int nEntries )
 {
     int nRequested;
 
-    pCache = ALLOC( Dds_Cache_t, 1 );
+    pCache = ABC_ALLOC( Dds_Cache_t, 1 );
     memset( pCache, 0, sizeof(Dds_Cache_t) );
 
     // check what is the size of the current cache
@@ -73,7 +73,7 @@ void Dsd_CheckCacheAllocate( int nEntries )
             Dsd_CheckCacheDeallocate();
         // allocate memory for the hash table
         pCache->nTableSize = nRequested;
-        pCache->pTable = ALLOC( Dsd_Entry_t, nRequested );
+        pCache->pTable = ABC_ALLOC( Dsd_Entry_t, nRequested );
     }
     // otherwise, there is no need to allocate, just clean
     Dsd_CheckCacheClear();
@@ -93,8 +93,8 @@ void Dsd_CheckCacheAllocate( int nEntries )
 ******************************************************************************/
 void Dsd_CheckCacheDeallocate()
 {
-    free( pCache->pTable );
-    free( pCache );
+    ABC_FREE( pCache->pTable );
+    ABC_FREE( pCache );
 }
 
 /**Function********************************************************************
@@ -183,7 +183,7 @@ int Dsd_CheckRootFunctionIdentity_rec( DdManager * dd, DdNode * bF1, DdNode * bF
          pCache->pTable[HKey].bX[3] == bC2 )
     {
         pCache->nSuccess++;
-        return (int)(PORT_PTRUINT_T)pCache->pTable[HKey].bX[4]; // the last bit records the result (yes/no)
+        return (int)(ABC_PTRUINT_T)pCache->pTable[HKey].bX[4]; // the last bit records the result (yes/no)
     }
     else
     {
@@ -302,7 +302,7 @@ int Dsd_CheckRootFunctionIdentity_rec( DdManager * dd, DdNode * bF1, DdNode * bF
         // set cache
         for ( i = 0; i < 4; i++ )
             pCache->pTable[HKey].bX[i] = bA[i];
-        pCache->pTable[HKey].bX[4] = (DdNode*)(PORT_PTRUINT_T)RetValue;
+        pCache->pTable[HKey].bX[4] = (DdNode*)(ABC_PTRUINT_T)RetValue;
 
         return RetValue;
     }

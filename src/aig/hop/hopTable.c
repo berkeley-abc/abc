@@ -172,7 +172,7 @@ clk = clock();
     nTableSizeOld = p->nTableSize;
     // get the new table
     p->nTableSize = Cudd_PrimeAig( 2 * Hop_ManNodeNum(p) ); 
-    p->pTable = ALLOC( Hop_Obj_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Hop_Obj_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Hop_Obj_t *) * p->nTableSize );
     // rehash the entries from the old table
     Counter = 0;
@@ -190,9 +190,9 @@ clk = clock();
     nEntries = Hop_ManNodeNum(p);
     assert( Counter == nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( pTableOld );
+    ABC_FREE( pTableOld );
 }
 
 /**Function********************************************************************

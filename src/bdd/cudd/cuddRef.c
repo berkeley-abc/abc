@@ -312,7 +312,7 @@ Cudd_DelayedDerefBdd(
         void (*saveHandler)(long) = MMoutOfMemory;
         DdNodePtr *newRow;
         MMoutOfMemory = Cudd_OutOfMem;
-        newRow = REALLOC(DdNodePtr,table->deathRow,2*table->deathRowDepth);
+        newRow = ABC_REALLOC(DdNodePtr,table->deathRow,2*table->deathRowDepth);
         MMoutOfMemory = saveHandler;
         if (newRow == NULL) {
         table->nextDead = 0;
@@ -671,7 +671,7 @@ cuddShrinkDeathRow(
     if ((unsigned) table->nextDead > table->deadMask) {
         table->nextDead = 0;
     }
-    table->deathRow = REALLOC(DdNodePtr, table->deathRow,
+    table->deathRow = ABC_REALLOC(DdNodePtr, table->deathRow,
                    table->deathRowDepth);
     }
 #endif

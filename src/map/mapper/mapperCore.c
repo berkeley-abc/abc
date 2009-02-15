@@ -70,7 +70,7 @@ int Map_Mapping( Map_Man_t * p )
     Map_MappingTruths( p );
     p->timeTruth = clock() - clk;
     //////////////////////////////////////////////////////////////////////
-//PRT( "Truths", clock() - clk );
+//ABC_PRT( "Truths", clock() - clk );
 
     //////////////////////////////////////////////////////////////////////
     // compute the minimum-delay mapping
@@ -88,7 +88,7 @@ printf( "Delay    : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ",
                     fShowSwitching? "Switch" : "Delay", 
                     fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
                     Map_MappingGetAreaFlow(p), p->AreaBase, 0.0 );
-PRT( "Time", p->timeMatch );
+ABC_PRT( "Time", p->timeMatch );
 }
     //////////////////////////////////////////////////////////////////////
 
@@ -119,7 +119,7 @@ printf( "AreaFlow : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ",
                     fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
                     Map_MappingGetAreaFlow(p), p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
     }
     p->timeArea += clock() - clk;
@@ -145,7 +145,7 @@ printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ",
                     fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
     }
     p->timeArea += clock() - clk;
@@ -171,7 +171,7 @@ printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ",
                     fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
     }
     p->timeArea += clock() - clk;
@@ -197,7 +197,7 @@ printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ",
                     fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
 
         // compute the required times
@@ -215,7 +215,7 @@ printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ",
                     fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
                     0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
     }
     p->timeArea += clock() - clk;

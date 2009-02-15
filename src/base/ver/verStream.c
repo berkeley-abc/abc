@@ -81,7 +81,7 @@ Ver_Stream_t * Ver_StreamAlloc( char * pFileName )
         return NULL;
     }
     // start the file reader    
-    p = ALLOC( Ver_Stream_t, 1 );
+    p = ABC_ALLOC( Ver_Stream_t, 1 );
     memset( p, 0, sizeof(Ver_Stream_t) );
     p->pFileName   = pFileName;
     p->pFile       = pFile;
@@ -90,7 +90,7 @@ Ver_Stream_t * Ver_StreamAlloc( char * pFileName )
     p->nFileSize = ftell( pFile );  
     rewind( pFile ); 
     // allocate the buffer
-    p->pBuffer = ALLOC( char, VER_BUFFER_SIZE+1 );
+    p->pBuffer = ABC_ALLOC( char, VER_BUFFER_SIZE+1 );
     p->nBufferSize = VER_BUFFER_SIZE;
     p->pBufferCur  = p->pBuffer;
     // determine how many chars to read
@@ -153,8 +153,8 @@ void Ver_StreamFree( Ver_Stream_t * p )
 {
     if ( p->pFile )
         fclose( p->pFile );
-    FREE( p->pBuffer );
-    free( p );
+    ABC_FREE( p->pBuffer );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

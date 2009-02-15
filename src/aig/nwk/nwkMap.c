@@ -113,7 +113,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         vSwitching  = Saig_ManComputeSwitchProbs( p, 48, 16, 0 );
         if ( pPars->fVerbose )
         {
-            PRT( "Computing switching activity", clock() - clk );
+            ABC_PRT( "Computing switching activity", clock() - clk );
         }
         pSwitching  = (float *)vSwitching->pArray;
         vSwitching2 = Vec_IntStart( Aig_ManObjNumMax(p) );
@@ -355,7 +355,7 @@ Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
     If_Man_t * pIfMan;
     Vec_Ptr_t * vAigToIf;
     // set the arrival times
-    pPars->pTimesArr = ALLOC( float, Aig_ManPiNum(p) );
+    pPars->pTimesArr = ABC_ALLOC( float, Aig_ManPiNum(p) );
     memset( pPars->pTimesArr, 0, sizeof(float) * Aig_ManPiNum(p) );
     // translate into the mapper
     vAigToIf = Vec_PtrStart( Aig_ManObjNumMax(p) );

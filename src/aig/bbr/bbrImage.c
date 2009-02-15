@@ -94,8 +94,8 @@ struct Bbr_ImageVar_t_
 #define     b0     Cudd_Not((dd)->one)
 #define     b1              (dd)->one
 
-#ifndef PRB
-#define PRB(dd,f)       printf("%s = ", #f); Bbr_bddPrint(dd,f); printf("\n")
+#ifndef ABC_PRB
+#define ABC_PRB(dd,f)       printf("%s = ", #f); Bbr_bddPrint(dd,f); printf("\n")
 #endif
 
 /**AutomaticStart*************************************************************/
@@ -191,26 +191,26 @@ Bbr_ImageTree_t * Bbr_bddImageStart(
     {
         for ( v = 0; v < dd->size; v++ )
             if ( pVars[v] )
-                free( pVars[v] );
-        free( pVars );
+                ABC_FREE( pVars[v] );
+        ABC_FREE( pVars );
         for ( v = 0; v <= nParts; v++ )
             if ( pNodes[v] )
             {
                 Bbr_DeleteParts_rec( pNodes[v] );
                 Bbr_bddImageTreeDelete_rec( pNodes[v] );
             }
-        free( pNodes );
-        free( pParts );
+        ABC_FREE( pNodes );
+        ABC_FREE( pParts );
         return NULL;
     }
 
     // make sure the variables are gone
     for ( v = 0; v < dd->size; v++ )
         assert( pVars[v] == NULL );
-    FREE( pVars );
+    ABC_FREE( pVars );
     
     // create the tree
-    pTree = ALLOC( Bbr_ImageTree_t, 1 );
+    pTree = ABC_ALLOC( Bbr_ImageTree_t, 1 );
     memset( pTree, 0, sizeof(Bbr_ImageTree_t) );
     pTree->pCare = pCare;
     pTree->fVerbose = fVerbose;
@@ -221,7 +221,7 @@ Bbr_ImageTree_t * Bbr_bddImageStart(
     // make sure the nodes are gone
     for ( v = 0; v < nParts + 1; v++ )
         assert( pNodes[v] == NULL );
-    FREE( pNodes );
+    ABC_FREE( pNodes );
 
 //    if ( fVerbose )
 //        Bbr_bddImagePrintTree( pTree );
@@ -231,7 +231,7 @@ Bbr_ImageTree_t * Bbr_bddImageStart(
 
     // clean the partitions
     Bbr_DeleteParts_rec( pTree->pRoot );
-    FREE( pParts );
+    ABC_FREE( pParts );
     return pTree;
 }
 
@@ -261,9 +261,9 @@ DdNode * Bbr_bddImageCompute( Bbr_ImageTree_t * pTree, DdNode * bCare )
         if ( bRem != b1 )
         {
 printf( "Original care set support: " );
-PRB( dd, pTree->bCareSupp );
+ABC_PRB( dd, pTree->bCareSupp );
 printf( "Current care set support: " );
-PRB( dd, bSupp );
+ABC_PRB( dd, bSupp );
             Cudd_RecursiveDeref( dd, bSupp );
             Cudd_RecursiveDeref( dd, bRem );
             printf( "The care set depends on some vars that were not in the care set during scheduling.\n" );
@@ -305,7 +305,7 @@ void Bbr_bddImageTreeDelete( Bbr_ImageTree_t * pTree )
     if ( pTree->bCareSupp )
         Cudd_RecursiveDeref( pTree->pRoot->dd, pTree->bCareSupp );
     Bbr_bddImageTreeDelete_rec( pTree->pRoot );
-    FREE( pTree );
+    ABC_FREE( pTree );
 }
 
 /**Function*************************************************************
@@ -406,11 +406,11 @@ Bbr_ImagePart_t ** Bbr_CreateParts( DdManager * dd,
     int i;
 
     // start the partitions
-    pParts = ALLOC( Bbr_ImagePart_t *, nParts + 1 );
+    pParts = ABC_ALLOC( Bbr_ImagePart_t *, nParts + 1 );
     // create structures for each variable
     for ( i = 0; i < nParts; i++ )
     {
-        pParts[i] = ALLOC( Bbr_ImagePart_t, 1 );
+        pParts[i] = ABC_ALLOC( Bbr_ImagePart_t, 1 );
         pParts[i]->bFunc  = pbParts[i];                           Cudd_Ref( pParts[i]->bFunc );
         pParts[i]->bSupp  = Cudd_Support( dd, pParts[i]->bFunc ); Cudd_Ref( pParts[i]->bSupp );
         pParts[i]->nSupp  = Cudd_SupportSize( dd, pParts[i]->bSupp );
@@ -418,7 +418,7 @@ Bbr_ImagePart_t ** Bbr_CreateParts( DdManager * dd,
         pParts[i]->iPart  = i;
     }
     // add the care set as the last partition
-    pParts[nParts] = ALLOC( Bbr_ImagePart_t, 1 );
+    pParts[nParts] = ABC_ALLOC( Bbr_ImagePart_t, 1 );
     pParts[nParts]->bFunc = bCare;                                     Cudd_Ref( pParts[nParts]->bFunc );
     pParts[nParts]->bSupp = Cudd_Support( dd, pParts[nParts]->bFunc ); Cudd_Ref( pParts[nParts]->bSupp );
     pParts[nParts]->nSupp = Cudd_SupportSize( dd, pParts[nParts]->bSupp );
@@ -448,11 +448,11 @@ Bbr_ImageVar_t ** Bbr_CreateVars( DdManager * dd,
     int nVarsTotal, iVar, p, Counter;
 
     // put all the functions into one array
-    pbFuncs = ALLOC( DdNode *, nParts );
+    pbFuncs = ABC_ALLOC( DdNode *, nParts );
     for ( p = 0; p < nParts; p++ )
         pbFuncs[p] = pParts[p]->bSupp;
     bSupp = Cudd_VectorSupport( dd, pbFuncs, nParts );  Cudd_Ref( bSupp );
-    FREE( pbFuncs );
+    ABC_FREE( pbFuncs );
 
     // remove the NS vars
     bCubeNs = Cudd_bddComputeCube( dd, pbVars, NULL, nVars );        Cudd_Ref( bCubeNs );
@@ -464,13 +464,13 @@ Bbr_ImageVar_t ** Bbr_CreateVars( DdManager * dd,
     nVarsTotal = Cudd_SupportSize( dd, bSupp );
 
     // start the variables
-    pVars = ALLOC( Bbr_ImageVar_t *, dd->size );
+    pVars = ABC_ALLOC( Bbr_ImageVar_t *, dd->size );
     memset( pVars, 0, sizeof(Bbr_ImageVar_t *) * dd->size );
     // create structures for each variable
     for ( bSuppTemp = bSupp; bSuppTemp != b1; bSuppTemp = cuddT(bSuppTemp) )
     {
         iVar = bSuppTemp->index;
-        pVars[iVar] = ALLOC( Bbr_ImageVar_t, 1 );
+        pVars[iVar] = ABC_ALLOC( Bbr_ImageVar_t, 1 );
         pVars[iVar]->iNum = iVar;
         // collect all the parts this var belongs to
         Counter = 0;
@@ -517,11 +517,11 @@ Bbr_ImageNode_t ** Bbr_CreateNodes( DdManager * dd,
     Bbr_ImagePart_t * pPart;    // the partition (temporary)
 */
     // start the partitions
-    pNodes = ALLOC( Bbr_ImageNode_t *, nParts );
+    pNodes = ABC_ALLOC( Bbr_ImageNode_t *, nParts );
     // create structures for each leaf nodes
     for ( i = 0; i < nParts; i++ )
     {
-        pNodes[i] = ALLOC( Bbr_ImageNode_t, 1 );
+        pNodes[i] = ABC_ALLOC( Bbr_ImageNode_t, 1 );
         memset( pNodes[i], 0, sizeof(Bbr_ImageNode_t) );
         pNodes[i]->dd    = dd;
         pNodes[i]->pPart = pParts[i];
@@ -548,7 +548,7 @@ Bbr_ImageNode_t ** Bbr_CreateNodes( DdManager * dd,
         }
         // remove these  variables
         Cudd_RecursiveDeref( dd, pVars[v]->bParts );
-        FREE( pVars[v] );
+        ABC_FREE( pVars[v] );
     }
 
     // assign the leaf node images
@@ -583,9 +583,9 @@ Bbr_ImageNode_t ** Bbr_CreateNodes( DdManager * dd,
     for ( i = 0; i < nParts; i++ )
     {
         pNode = pNodes[i];
-PRB( dd, pNode->bCube );
-PRB( dd, pNode->pPart->bFunc );
-PRB( dd, pNode->pPart->bSupp );
+ABC_PRB( dd, pNode->bCube );
+ABC_PRB( dd, pNode->pPart->bFunc );
+ABC_PRB( dd, pNode->pPart->bSupp );
 printf( "\n" );
     }
 */
@@ -614,7 +614,7 @@ void Bbr_DeleteParts_rec( Bbr_ImageNode_t * pNode )
     pPart = pNode->pPart;
     Cudd_RecursiveDeref( pNode->dd, pPart->bFunc );
     Cudd_RecursiveDeref( pNode->dd, pPart->bSupp );
-    FREE( pNode->pPart );
+    ABC_FREE( pNode->pPart );
 }
 
 /**Function*************************************************************
@@ -639,7 +639,7 @@ void Bbr_bddImageTreeDelete_rec( Bbr_ImageNode_t * pNode )
     if ( pNode->bImage )
         Cudd_RecursiveDeref( pNode->dd, pNode->bImage );
     assert( pNode->pPart == NULL );
-    FREE( pNode );
+    ABC_FREE( pNode );
 }
 
 /**Function*************************************************************
@@ -757,11 +757,11 @@ int Bbr_BuildTreeNode( DdManager * dd,
                 Cudd_RecursiveDeref( dd, bTemp );
                 // clean this var
                 Cudd_RecursiveDeref( dd, pVars[v]->bParts );
-                FREE( pVars[v] );
+                ABC_FREE( pVars[v] );
             }
         // clean the best var
         Cudd_RecursiveDeref( dd, pVars[iVarBest]->bParts );
-        FREE( pVars[iVarBest] );
+        ABC_FREE( pVars[iVarBest] );
 
         // combines two nodes
         pNode = Bbr_CombineTwoNodes( dd, bCube, pNode1, pNode2 );
@@ -884,7 +884,7 @@ Bbr_ImageNode_t * Bbr_CombineTwoNodes( DdManager * dd, DdNode * bCube,
     Bbr_ImagePart_t * pPart;
 
     // create a new partition
-    pPart = ALLOC( Bbr_ImagePart_t, 1 );
+    pPart = ABC_ALLOC( Bbr_ImagePart_t, 1 );
     memset( pPart, 0, sizeof(Bbr_ImagePart_t) );
     // create the function
     pPart->bFunc = Cudd_bddAndAbstract( dd, pNode1->pPart->bFunc, pNode2->pPart->bFunc, bCube );
@@ -897,12 +897,12 @@ Bbr_ImageNode_t * Bbr_CombineTwoNodes( DdManager * dd, DdNode * bCube,
     pPart->nNodes = Cudd_DagSize( pPart->bFunc );
     pPart->iPart = -1;
 /*
-PRB( dd, pNode1->pPart->bSupp );
-PRB( dd, pNode2->pPart->bSupp );
-PRB( dd, pPart->bSupp );
+ABC_PRB( dd, pNode1->pPart->bSupp );
+ABC_PRB( dd, pNode2->pPart->bSupp );
+ABC_PRB( dd, pPart->bSupp );
 */
     // create a new node
-    pNode = ALLOC( Bbr_ImageNode_t, 1 );
+    pNode = ABC_ALLOC( Bbr_ImageNode_t, 1 );
     memset( pNode, 0, sizeof(Bbr_ImageNode_t) );
     pNode->dd     = dd;
     pNode->pPart  = pPart;
@@ -1114,7 +1114,7 @@ void Bbr_bddImagePrintTree_rec( Bbr_ImageNode_t * pNode, int Offset )
         printf( "<%d> ", pNode->pPart->iPart );
         if ( Cube != NULL )
         {
-            PRB( pNode->dd, Cube );
+            ABC_PRB( pNode->dd, Cube );
         }
         else
             printf( "\n" );
@@ -1124,7 +1124,7 @@ void Bbr_bddImagePrintTree_rec( Bbr_ImageNode_t * pNode, int Offset )
     printf( "<*> " );
     if ( Cube != NULL )
     {
-        PRB( pNode->dd, Cube );
+        ABC_PRB( pNode->dd, Cube );
     }
     else
         printf( "\n" );
@@ -1198,7 +1198,7 @@ Bbr_ImageTree2_t * Bbr_bddImageStart2(
     DdNode * bCubeAll, * bCubeNot, * bTemp;
     int i;
 
-    pTree = ALLOC( Bbr_ImageTree2_t, 1 );
+    pTree = ABC_ALLOC( Bbr_ImageTree2_t, 1 );
     pTree->dd = dd;
     pTree->bImage = NULL;
 
@@ -1259,7 +1259,7 @@ void Bbr_bddImageTreeDelete2( Bbr_ImageTree2_t * pTree )
         Cudd_RecursiveDeref( pTree->dd, pTree->bCube );
     if ( pTree->bImage )
         Cudd_RecursiveDeref( pTree->dd, pTree->bImage );
-    FREE( pTree );
+    ABC_FREE( pTree );
 }
 
 /**Function*************************************************************

@@ -96,7 +96,7 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
         return NULL;
     }
     // start the file reader    
-    p = ALLOC( Extra_FileReader_t, 1 );
+    p = ABC_ALLOC( Extra_FileReader_t, 1 );
     memset( p, 0, sizeof(Extra_FileReader_t) );
     p->pFileName   = pFileName;
     p->pFile       = pFile;
@@ -113,7 +113,7 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
     p->nFileSize = ftell( pFile );  
     rewind( pFile ); 
     // allocate the buffer
-    p->pBuffer = ALLOC( char, EXTRA_BUFFER_SIZE+1 );
+    p->pBuffer = ABC_ALLOC( char, EXTRA_BUFFER_SIZE+1 );
     p->nBufferSize = EXTRA_BUFFER_SIZE;
     p->pBufferCur  = p->pBuffer;
     // determine how many chars to read
@@ -146,10 +146,10 @@ void Extra_FileReaderFree( Extra_FileReader_t * p )
 {
     if ( p->pFile )
         fclose( p->pFile );
-    FREE( p->pBuffer );
+    ABC_FREE( p->pBuffer );
     Vec_PtrFree( p->vTokens );
     Vec_IntFree( p->vLines );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

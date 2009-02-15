@@ -207,12 +207,12 @@ Extra_SymmInfo_t * Extra_SymmPairsAllocate( int nVars )
     Extra_SymmInfo_t * p;
 
     // allocate and clean the storage for symmetry info
-    p = ALLOC( Extra_SymmInfo_t, 1 );
+    p = ABC_ALLOC( Extra_SymmInfo_t, 1 );
     memset( p, 0, sizeof(Extra_SymmInfo_t) );
     p->nVars     = nVars;
-    p->pVars     = ALLOC( int, nVars );  
-    p->pSymms    = ALLOC( char *, nVars );  
-    p->pSymms[0] = ALLOC( char  , nVars * nVars );
+    p->pVars     = ABC_ALLOC( int, nVars );  
+    p->pSymms    = ABC_ALLOC( char *, nVars );  
+    p->pSymms[0] = ABC_ALLOC( char  , nVars * nVars );
     memset( p->pSymms[0], 0, nVars * nVars * sizeof(char) );
 
     for ( i = 1; i < nVars; i++ )
@@ -234,10 +234,10 @@ Extra_SymmInfo_t * Extra_SymmPairsAllocate( int nVars )
 ******************************************************************************/
 void Extra_SymmPairsDissolve( Extra_SymmInfo_t * p )
 {
-    free( p->pVars );
-    free( p->pSymms[0] );
-    free( p->pSymms    );
-    free( p );
+    ABC_FREE( p->pVars );
+    ABC_FREE( p->pSymms[0] );
+    ABC_FREE( p->pSymms    );
+    ABC_FREE( p );
 } /* end of Extra_SymmPairsDissolve */
 
 /**Function********************************************************************
@@ -298,7 +298,7 @@ Extra_SymmInfo_t * Extra_SymmPairsCreateFromZdd( DdManager * dd, DdNode * zPairs
     p = Extra_SymmPairsAllocate( nSuppSize );
 
     // allocate the storage for the temporary map
-    pMapVars2Nums = ALLOC( int, dd->size );
+    pMapVars2Nums = ABC_ALLOC( int, dd->size );
     memset( pMapVars2Nums, 0, dd->size * sizeof(int) );
 
     // assign the variables
@@ -337,7 +337,7 @@ Extra_SymmInfo_t * Extra_SymmPairsCreateFromZdd( DdManager * dd, DdNode * zPairs
     } // for each cube 
     Cudd_RecursiveDerefZdd( dd, zSet );
 
-    FREE( pMapVars2Nums );
+    ABC_FREE( pMapVars2Nums );
     return p;
 
 } /* end of Extra_SymmPairsCreateFromZdd */

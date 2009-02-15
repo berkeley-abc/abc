@@ -265,7 +265,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
 
     // release the names
     for ( i = 0; i < nNames; i++ )
-        free( pNames[i] );
+        ABC_FREE( pNames[i] );
 
 
 //fprintf( pTable, "\n" );
@@ -437,7 +437,7 @@ void Experiment2( BFunc * pFunc )
 
     // release the names
     for ( i = 0; i < nNames; i++ )
-        free( pNames[i] );
+        ABC_FREE( pNames[i] );
 
 
     

@@ -97,7 +97,7 @@ void Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName )
 
     FILE * pFileNodes, * pFileNets, * pFileAux;
     FILE * pFileScl, * pFilePl, * pFileWts;
-    char * FileExt = (char *)calloc(strlen(FileName)+7, sizeof(char));
+    char * FileExt = ABC_CALLOC( char, strlen(FileName)+7 );
     unsigned coreCellArea=0;
     Abc_Ntk_t * pExdc, * pNtkTemp;
     int i;
@@ -156,7 +156,7 @@ void Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName )
     pFilePl  = fopen( strcat(FileExt,".pl"), "w" );
     strcpy(FileExt, FileName);
     pFileWts   = fopen( strcat(FileExt,".wts"), "w" );
-    free(FileExt);
+    ABC_FREE(FileExt);
 
     Io_NtkBuildLayout( pFileScl, pFilePl, pNtk, 1.0, 10, coreCellArea );
     fclose( pFileScl );
@@ -555,7 +555,7 @@ void Io_NtkWriteScl( FILE * pFile, unsigned numCoreRows, double layoutWidth )
     double sitewidth=1.0;
     double spacing=1.0;
         
-    int rowId;
+    unsigned rowId;
     // write the forehead
     fprintf( pFile, "UCLA    scl    1.0\n\n" );
     fprintf( pFile, "Numrows : %d\n\n", numCoreRows );
@@ -596,7 +596,8 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     double nextLoc_x, nextLoc_y;
     double delta;
     unsigned termsOnTop, termsOnBottom, termsOnLeft, termsOnRight;
-    int i, t;
+    unsigned t;
+    int i;
 
     termsOnTop = termsOnBottom = (unsigned)(Abc_Rint(numTerms*(layoutWidth/layoutPerim)));
     termsOnLeft = numTerms - (termsOnTop+termsOnBottom);
@@ -609,7 +610,7 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     Vec_PtrPush( vTerms, pTerm );
     // Ordering Pads
     vOrderedTerms=Io_NtkOrderingPads( pNtk, vTerms );
-    assert( termsOnTop+termsOnBottom+termsOnLeft+termsOnRight == Vec_PtrSize(vOrderedTerms) );
+    assert( termsOnTop+termsOnBottom+termsOnLeft+termsOnRight == (unsigned)Vec_PtrSize(vOrderedTerms) );
 
     printf( "Done constructing layout region\n" );
     printf( "Terminals: %d\n", numTerms );
@@ -714,11 +715,11 @@ Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms )
     ProgressBar * pProgress;
     unsigned numTerms=Vec_PtrSize(vTerms); 
     unsigned termIdx=0, termCount=0;
-    bool * pOrdered = (bool *)malloc(sizeof(bool)*numTerms); 
+    bool * pOrdered = ABC_ALLOC(bool, numTerms); 
     bool newNeighbor=1;
     Vec_Ptr_t * vOrderedTerms = Vec_PtrAlloc ( numTerms );
     Abc_Obj_t * pNeighbor, * pNextTerm;     
-    int i; 
+    unsigned i; 
 
     for( i=0 ; i<numTerms ; i++ )
     pOrdered[i]=0; 

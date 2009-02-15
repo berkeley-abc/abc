@@ -47,10 +47,10 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     Mio_Gate_t * pGate, * pGate2;
     if ( pLib == NULL )
         return;
-    // free the bindings of nodes to gates from this library for all networks
+    // ABC_FREE the bindings of nodes to gates from this library for all networks
     Abc_FrameUnmapAllNetworks( Abc_FrameGetGlobalFrame() );
-    // free the library
-    FREE( pLib->pName );
+    // ABC_FREE the library
+    ABC_FREE( pLib->pName );
     Mio_LibraryForEachGateSafe( pLib, pGate, pGate2 )
         Mio_GateDelete( pGate );
     Extra_MmFlexStop( pLib->pMmFlex );
@@ -59,9 +59,9 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
         st_free_table( pLib->tName2Gate );
     if ( pLib->dd )
         Cudd_Quit( pLib->dd );
-    FREE( pLib->ppGates0 );
-    FREE( pLib->ppGatesName );
-    free( pLib );
+    ABC_FREE( pLib->ppGates0 );
+    ABC_FREE( pLib->ppGatesName );
+    ABC_FREE( pLib );
 }
 
 /**Function*************************************************************
@@ -78,14 +78,14 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
 void Mio_GateDelete( Mio_Gate_t * pGate )
 {
     Mio_Pin_t * pPin, * pPin2;
-    FREE( pGate->pOutName );
-    FREE( pGate->pName );
-    FREE( pGate->pForm );
+    ABC_FREE( pGate->pOutName );
+    ABC_FREE( pGate->pName );
+    ABC_FREE( pGate->pForm );
     if ( pGate->bFunc )
         Cudd_RecursiveDeref( pGate->pLib->dd, pGate->bFunc );
     Mio_GateForEachPinSafe( pGate, pPin, pPin2 )
         Mio_PinDelete( pPin );   
-    free( pGate );
+    ABC_FREE( pGate );
 }
 
 /**Function*************************************************************
@@ -101,8 +101,8 @@ void Mio_GateDelete( Mio_Gate_t * pGate )
 ***********************************************************************/
 void Mio_PinDelete( Mio_Pin_t * pPin )
 {
-    FREE( pPin->pName );
-    free( pPin );
+    ABC_FREE( pPin->pName );
+    ABC_FREE( pPin );
 }
 
 /**Function*************************************************************
@@ -120,7 +120,7 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 {
     Mio_Pin_t * pPinNew;
 
-    pPinNew = ALLOC( Mio_Pin_t, 1 );
+    pPinNew = ABC_ALLOC( Mio_Pin_t, 1 );
     *pPinNew = *pPin;
     pPinNew->pName = (pPinNew->pName ? Extra_UtilStrsav(pPinNew->pName) : NULL);
     pPinNew->pNext = NULL;
@@ -256,7 +256,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     }
 
     // collect the gates into the array
-    ppGates = ALLOC( Mio_Gate_t *, nGates );
+    ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
     iGate = 0;
     st_foreach_item( tFuncs, gen, (char **)&bFunc, (char **)&pGate )
         ppGates[ iGate++ ] = pGate;
@@ -265,7 +265,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
 
     */
 
-    ppGates = ALLOC( Mio_Gate_t *, nGates );
+    ppGates = ABC_ALLOC( Mio_Gate_t *, nGates );
     iGate = 0;
     Mio_LibraryForEachGate( pLib, pGate )
     {
@@ -515,13 +515,13 @@ Mio_Gate_t * Mio_GateCreatePseudo( int nInputs )
     Mio_Pin_t * pPin;
     int i;
     // allocate the gate structure
-    pGate = ALLOC( Mio_Gate_t, 1 );
+    pGate = ABC_ALLOC( Mio_Gate_t, 1 );
     memset( pGate, 0, sizeof(Mio_Gate_t) );
     pGate->nInputs = nInputs;
     // create pins
     for ( i = 0; i < nInputs; i++ )
     {
-        pPin = ALLOC( Mio_Pin_t, 1 );
+        pPin = ABC_ALLOC( Mio_Pin_t, 1 );
         memset( pPin, 0, sizeof(Mio_Pin_t) );
         pPin->pNext = pGate->pPins;
         pGate->pPins = pPin;

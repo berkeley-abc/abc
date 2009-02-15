@@ -241,7 +241,7 @@ void Abc_NodeFreeNames( Vec_Ptr_t * vNames )
     if ( vNames == NULL )
         return;
     for ( i = 0; i < vNames->nSize; i++ )
-        free( vNames->pArray[i] );
+        ABC_FREE( vNames->pArray[i] );
     Vec_PtrFree( vNames );
 }
 
@@ -263,13 +263,13 @@ char ** Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos )
     int i;
     if ( fCollectCos )
     {
-        ppNames = ALLOC( char *, Abc_NtkCoNum(pNtk) );
+        ppNames = ABC_ALLOC( char *, Abc_NtkCoNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pObj, i )
             ppNames[i] = Abc_ObjName(pObj);
     }
     else
     {
-        ppNames = ALLOC( char *, Abc_NtkCiNum(pNtk) );
+        ppNames = ABC_ALLOC( char *, Abc_NtkCiNum(pNtk) );
         Abc_NtkForEachCi( pNtk, pObj, i )
             ppNames[i] = Abc_ObjName(pObj);
     }

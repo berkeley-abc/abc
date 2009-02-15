@@ -166,7 +166,7 @@ void Dch_AddClausesSuper( Dch_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     assert( Aig_ObjIsNode( pNode ) );
     // create storage for literals
     nLits = Vec_PtrSize(vSuper) + 1;
-    pLits = ALLOC( int, nLits );
+    pLits = ABC_ALLOC( int, nLits );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
     Vec_PtrForEachEntry( vSuper, pFanin, i )
@@ -197,7 +197,7 @@ void Dch_AddClausesSuper( Dch_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + nLits );
     assert( RetValue );
-    free( pLits );
+    ABC_FREE( pLits );
 }
 
 /**Function*************************************************************

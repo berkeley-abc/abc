@@ -21,10 +21,6 @@
 #ifndef __MFS_INT_H__
 #define __MFS_INT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -40,6 +36,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MFS_FANIN_MAX   12
 
@@ -115,6 +115,8 @@ struct Mfs_Man_t_
     int                 timeInt;
     int                 timeTotal;
 };
+
+static inline float Abc_MfsObjProb( Mfs_Man_t * p, Abc_Obj_t * pObj ) { return (p->vProbs && pObj->Id < Vec_IntSize(p->vProbs))? Abc_Int2Float(Vec_IntEntry(p->vProbs,pObj->Id)) : 0.0; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

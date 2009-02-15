@@ -247,8 +247,8 @@ Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig )
     int i;
     // start recording equivalences
     pChoices = Aig_ManStart( Aig_ManObjNumMax(pAig) );
-    pChoices->pEquivs = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
-    pChoices->pReprs  = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    pChoices->pEquivs = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    pChoices->pReprs  = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
     // map constants and PIs
     Aig_ManCleanData( pAig );
     Aig_ManConst1(pAig)->pData = Aig_ManConst1(pChoices);
@@ -262,7 +262,7 @@ Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig )
         Aig_ObjCreatePo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
     Dch_DeriveChoiceCountEquivs( pChoices );
     // there is no need for cleanup
-    FREE( pChoices->pReprs );
+    ABC_FREE( pChoices->pReprs );
     pChoices = Aig_ManDupDfs( pTemp = pChoices );
     Aig_ManStop( pTemp );
     return pChoices;

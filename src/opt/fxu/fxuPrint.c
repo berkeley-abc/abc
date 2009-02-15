@@ -161,7 +161,7 @@ void Fxu_MatrixPrintDivisorProfile( FILE * pFile, Fxu_Matrix * p )
     int i;
 
     WeightMax = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
-    pProfile = ALLOC( int, (WeightMax + 1) );
+    pProfile = ABC_ALLOC( int, (WeightMax + 1) );
     memset( pProfile, 0, sizeof(int) * (WeightMax + 1) );
 
     Counter1 = 0;
@@ -184,7 +184,7 @@ void Fxu_MatrixPrintDivisorProfile( FILE * pFile, Fxu_Matrix * p )
         if ( pProfile[i] )
             fprintf( pFile, "Weight   %3d divisors = %6d\n", i, pProfile[i] );
     fprintf( pFile, "End of divisor profile printout\n" );
-    FREE( pProfile );
+    ABC_FREE( pProfile );
 }
 
 

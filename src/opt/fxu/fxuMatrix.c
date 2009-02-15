@@ -42,10 +42,10 @@ extern unsigned int Cudd_Prime( unsigned int p );
 Fxu_Matrix * Fxu_MatrixAllocate()
 {
     Fxu_Matrix * p;
-    p = ALLOC( Fxu_Matrix, 1 );
+    p = ABC_ALLOC( Fxu_Matrix, 1 );
     memset( p, 0, sizeof(Fxu_Matrix) );
     p->nTableSize = Cudd_Prime(10000);
-    p->pTable = ALLOC( Fxu_ListDouble, p->nTableSize );
+    p->pTable = ABC_ALLOC( Fxu_ListDouble, p->nTableSize );
     memset( p->pTable, 0, sizeof(Fxu_ListDouble) * p->nTableSize );
 #ifndef USE_SYSTEM_MEMORY_MANAGEMENT
     {
@@ -134,12 +134,12 @@ void Fxu_MatrixDelete( Fxu_Matrix * p )
 #endif
 
     Vec_PtrFree( p->vPairs );
-    FREE( p->pppPairs );
-    FREE( p->ppPairs );
-//    FREE( p->pPairsTemp );
-    FREE( p->pTable );
-    FREE( p->ppVars );
-    FREE( p );
+    ABC_FREE( p->pppPairs );
+    ABC_FREE( p->ppPairs );
+//    ABC_FREE( p->pPairsTemp );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p->ppVars );
+    ABC_FREE( p );
 }
 
 

@@ -129,7 +129,7 @@ Cudd_SplitSet(
     /* varSeen is used to mark the variables that are encountered
     ** while traversing the BDD S.
     */
-    varSeen = ALLOC(int, size);
+    varSeen = ABC_ALLOC(int, size);
     if (varSeen == NULL) {
         manager->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
@@ -148,13 +148,13 @@ Cudd_SplitSet(
         result = selectMintermsFromUniverse(manager,varSeen,m);
         if (result)
         cuddRef(result);
-        FREE(varSeen);
+        ABC_FREE(varSeen);
     } else {
         mtable = st_init_table(st_ptrcmp,st_ptrhash);
         if (mtable == NULL) {
         (void) fprintf(manager->out,
                    "Cudd_SplitSet: out-of-memory.\n");
-        FREE(varSeen);
+        ABC_FREE(varSeen);
         manager->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
         }
@@ -166,7 +166,7 @@ Cudd_SplitSet(
         if (m == num) {
         st_foreach(mtable,cuddStCountfree,NIL(char));
         st_free_table(mtable);
-        FREE(varSeen);
+        ABC_FREE(varSeen);
         return(S);
         }
         
@@ -175,7 +175,7 @@ Cudd_SplitSet(
         cuddRef(result);
         st_foreach(mtable,cuddStCountfree,NULL);
         st_free_table(mtable);
-        FREE(varSeen);
+        ABC_FREE(varSeen);
     }
     } while (manager->reordered == 1);
 
@@ -485,7 +485,7 @@ selectMintermsFromUniverse(
     if(varSeen[i] == 0)
         numVars++;
     }
-    vars = ALLOC(DdNode *, numVars);
+    vars = ABC_ALLOC(DdNode *, numVars);
     if (!vars) {
     manager->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -509,7 +509,7 @@ selectMintermsFromUniverse(
 
     for (i = 0; i < numVars; i++)
     Cudd_RecursiveDeref(manager,vars[i]);
-    FREE(vars);
+    ABC_FREE(vars);
 
     return(result);
 
@@ -640,7 +640,7 @@ bddAnnotateMintermCount(
     return ((double)CUDD_OUT_OF_MEM);
     min_N  = min_v + min_nv;
 
-    pmin = ALLOC(double,1);
+    pmin = ABC_ALLOC(double,1);
     if (pmin == NULL) {
     manager->errorCode = CUDD_MEMORY_OUT;
     return((double)CUDD_OUT_OF_MEM);
@@ -648,7 +648,7 @@ bddAnnotateMintermCount(
     *pmin = min_N;
 
     if (st_insert(table,(char *)node, (char *)pmin) == ST_OUT_OF_MEM) {
-    FREE(pmin);
+    ABC_FREE(pmin);
     return((double)CUDD_OUT_OF_MEM);
     }
     

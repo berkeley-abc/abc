@@ -28,18 +28,6 @@
 #ifndef __DSD_H__
 #define __DSD_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-////////////////////////////////////////////////////////////////////////
-///                      TYPEDEF DEFINITIONS                         ///
-////////////////////////////////////////////////////////////////////////
-
-typedef struct Dsd_Manager_t_   Dsd_Manager_t;
-typedef struct Dsd_Node_t_      Dsd_Node_t;
-typedef enum   Dsd_Type_t_      Dsd_Type_t;
-
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,6 +35,10 @@ typedef enum   Dsd_Type_t_      Dsd_Type_t;
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // types of DSD nodes
 enum Dsd_Type_t_ { 
@@ -59,14 +51,22 @@ enum Dsd_Type_t_ {
 };
 
 ////////////////////////////////////////////////////////////////////////
+///                      TYPEDEF DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+typedef struct Dsd_Manager_t_   Dsd_Manager_t;
+typedef struct Dsd_Node_t_      Dsd_Node_t;
+typedef enum   Dsd_Type_t_      Dsd_Type_t;
+
+////////////////////////////////////////////////////////////////////////
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
 // complementation and testing for pointers for decomposition entries
-#define Dsd_IsComplement(p)  (((int)((PORT_PTRUINT_T) (p) & 01)))
-#define Dsd_Regular(p)       ((Dsd_Node_t *)((PORT_PTRUINT_T)(p) & ~01)) 
-#define Dsd_Not(p)           ((Dsd_Node_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
-#define Dsd_NotCond(p,c)     ((Dsd_Node_t *)((PORT_PTRUINT_T)(p) ^ (c)))
+#define Dsd_IsComplement(p)  (((int)((ABC_PTRUINT_T) (p) & 01)))
+#define Dsd_Regular(p)       ((Dsd_Node_t *)((ABC_PTRUINT_T)(p) & ~01)) 
+#define Dsd_Not(p)           ((Dsd_Node_t *)((ABC_PTRUINT_T)(p) ^ 01)) 
+#define Dsd_NotCond(p,c)     ((Dsd_Node_t *)((ABC_PTRUINT_T)(p) ^ (c)))
 
 ////////////////////////////////////////////////////////////////////////
 ///                         ITERATORS                                ///

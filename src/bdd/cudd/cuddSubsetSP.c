@@ -311,7 +311,7 @@ cuddSubsetShortPaths(
     if (Cudd_IsConstant(f))
     return (f);
 
-    pathLengthArray = ALLOC(unsigned int, numVars+1);
+    pathLengthArray = ABC_ALLOC(unsigned int, numVars+1);
     for (i = 0; i < numVars+1; i++) pathLengthArray[i] = 0;
 
 
@@ -324,18 +324,18 @@ cuddSubsetShortPaths(
     if ((pathTable == NULL) || (memOut)) {
     if (pathTable != NULL)
         st_free_table(pathTable);
-    FREE(pathLengthArray);
+    ABC_FREE(pathLengthArray);
     return (NIL(DdNode));
     }
 
-    excess = ALLOC(unsigned int, 1);
+    excess = ABC_ALLOC(unsigned int, 1);
     *excess = 0;
     maxpath = AssessPathLength(pathLengthArray, threshold, numVars, excess,
                    dd->err);
 
     if (maxpath != (unsigned) (numVars + 1)) {
 
-    info = ALLOC(struct AssortedInfo, 1);
+    info = ABC_ALLOC(struct AssortedInfo, 1);
     info->maxpath = maxpath;
     info->findShortestPath = 0;
     info->thresholdReached = *excess;
@@ -412,17 +412,17 @@ cuddSubsetShortPaths(
     st_free_table(info->maxpathTable);
     st_foreach(pathTable, stPathTableDdFree, (char *)dd);
 
-    FREE(info);
+    ABC_FREE(info);
 
     } else {/* if threshold larger than size of dd */
     subset = f;
     cuddRef(subset);
     }
-    FREE(excess);
+    ABC_FREE(excess);
     st_free_table(pathTable);
-    FREE(pathLengthArray);
-    for (i = 0; i <= nodeDistPage; i++) FREE(nodeDistPages[i]);
-    FREE(nodeDistPages);
+    ABC_FREE(pathLengthArray);
+    for (i = 0; i <= nodeDistPage; i++) ABC_FREE(nodeDistPages[i]);
+    ABC_FREE(nodeDistPages);
 
 #ifdef DD_DEBUG
     /* check containment of subset in f */
@@ -483,10 +483,10 @@ ResizeNodeDistPages(
      * INITIAL_PAGES
      */
     if (nodeDistPage == maxNodeDistPages) {
-    newNodeDistPages = ALLOC(NodeDist_t *,maxNodeDistPages + INITIAL_PAGES);
+    newNodeDistPages = ABC_ALLOC(NodeDist_t *,maxNodeDistPages + INITIAL_PAGES);
     if (newNodeDistPages == NULL) {
-        for (i = 0; i < nodeDistPage; i++) FREE(nodeDistPages[i]);
-        FREE(nodeDistPages);
+        for (i = 0; i < nodeDistPage; i++) ABC_FREE(nodeDistPages[i]);
+        ABC_FREE(nodeDistPages);
         memOut = 1;
         return;
     } else {
@@ -495,16 +495,16 @@ ResizeNodeDistPages(
         }
         /* Increase total page count */
         maxNodeDistPages += INITIAL_PAGES;
-        FREE(nodeDistPages);
+        ABC_FREE(nodeDistPages);
         nodeDistPages = newNodeDistPages;
     }
     }
     /* Allocate a new page */
-    currentNodeDistPage = nodeDistPages[nodeDistPage] = ALLOC(NodeDist_t,
+    currentNodeDistPage = nodeDistPages[nodeDistPage] = ABC_ALLOC(NodeDist_t,
                                   nodeDistPageSize);
     if (currentNodeDistPage == NULL) {
-    for (i = 0; i < nodeDistPage; i++) FREE(nodeDistPages[i]);
-    FREE(nodeDistPages);
+    for (i = 0; i < nodeDistPage; i++) ABC_FREE(nodeDistPages[i]);
+    ABC_FREE(nodeDistPages);
     memOut = 1;
     return;
     }
@@ -544,10 +544,10 @@ ResizeQueuePages(
      * INITIAL_PAGES
      */
     if (queuePage == maxQueuePages) {
-    newQueuePages = ALLOC(DdNode **,maxQueuePages + INITIAL_PAGES);
+    newQueuePages = ABC_ALLOC(DdNode **,maxQueuePages + INITIAL_PAGES);
     if (newQueuePages == NULL) {
-        for (i = 0; i < queuePage; i++) FREE(queuePages[i]);
-        FREE(queuePages);
+        for (i = 0; i < queuePage; i++) ABC_FREE(queuePages[i]);
+        ABC_FREE(queuePages);
         memOut = 1;
         return;
     } else {
@@ -556,15 +556,15 @@ ResizeQueuePages(
         }
         /* Increase total page count */
         maxQueuePages += INITIAL_PAGES;
-        FREE(queuePages);
+        ABC_FREE(queuePages);
         queuePages = newQueuePages;
     }
     }
     /* Allocate a new page */
-    currentQueuePage = queuePages[queuePage] = ALLOC(DdNode *,queuePageSize);
+    currentQueuePage = queuePages[queuePage] = ABC_ALLOC(DdNode *,queuePageSize);
     if (currentQueuePage == NULL) {
-    for (i = 0; i < queuePage; i++) FREE(queuePages[i]);
-    FREE(queuePages);
+    for (i = 0; i < queuePage; i++) ABC_FREE(queuePages[i]);
+    ABC_FREE(queuePages);
     memOut = 1;
     return;
     }
@@ -667,8 +667,8 @@ CreateTopDist(
             if (nodeDistPageIndex == nodeDistPageSize)
             ResizeNodeDistPages();
             if (memOut) {
-            for (i = 0; i <= queuePage; i++) FREE(queuePages[i]);
-            FREE(queuePages);
+            for (i = 0; i <= queuePage; i++) ABC_FREE(queuePages[i]);
+            ABC_FREE(queuePages);
             st_free_table(pathTable);
             return;
             }
@@ -697,10 +697,10 @@ CreateTopDist(
                   (char *)nodeStat) == ST_OUT_OF_MEM) {
             memOut = 1;
             for (i = 0; i <= nodeDistPage; i++)
-                FREE(nodeDistPages[i]);
-            FREE(nodeDistPages);
-            for (i = 0; i <= queuePage; i++) FREE(queuePages[i]);
-            FREE(queuePages);
+                ABC_FREE(nodeDistPages[i]);
+            ABC_FREE(nodeDistPages);
+            for (i = 0; i <= queuePage; i++) ABC_FREE(queuePages[i]);
+            ABC_FREE(queuePages);
             st_free_table(pathTable);
             return;
             }
@@ -714,8 +714,8 @@ CreateTopDist(
             if (queuePageIndex == queuePageSize) ResizeQueuePages();
             if (memOut) {
             for (i = 0; i <= nodeDistPage; i++)
-                FREE(nodeDistPages[i]);
-            FREE(nodeDistPages);
+                ABC_FREE(nodeDistPages[i]);
+            ABC_FREE(nodeDistPages);
             st_free_table(pathTable);
             return;
             }
@@ -733,8 +733,8 @@ CreateTopDist(
             if (queuePageIndex == queuePageSize) ResizeQueuePages();
             if (memOut) {
                 for (i = 0; i <= nodeDistPage; i++)
-                FREE(nodeDistPages[i]);
-                FREE(nodeDistPages);
+                ABC_FREE(nodeDistPages[i]);
+                ABC_FREE(nodeDistPages);
                 st_free_table(pathTable);
                 return;
 
@@ -1000,31 +1000,31 @@ CreatePathTable(
 
     /* initializing pages for info about each node */
     maxNodeDistPages = INITIAL_PAGES;
-    nodeDistPages = ALLOC(NodeDist_t *, maxNodeDistPages);
+    nodeDistPages = ABC_ALLOC(NodeDist_t *, maxNodeDistPages);
     if (nodeDistPages == NULL) {
     goto OUT_OF_MEM;
     }
     nodeDistPage = 0;
     currentNodeDistPage = nodeDistPages[nodeDistPage] =
-    ALLOC(NodeDist_t, nodeDistPageSize);
+    ABC_ALLOC(NodeDist_t, nodeDistPageSize);
     if (currentNodeDistPage == NULL) {
-    for (i = 0; i <= nodeDistPage; i++) FREE(nodeDistPages[i]);
-    FREE(nodeDistPages);
+    for (i = 0; i <= nodeDistPage; i++) ABC_FREE(nodeDistPages[i]);
+    ABC_FREE(nodeDistPages);
     goto OUT_OF_MEM;
     }
     nodeDistPageIndex = 0;
 
     /* Initializing pages for the BFS search queue, implemented as an array. */
     maxQueuePages = INITIAL_PAGES;
-    queuePages = ALLOC(DdNode **, maxQueuePages);
+    queuePages = ABC_ALLOC(DdNode **, maxQueuePages);
     if (queuePages == NULL) {
     goto OUT_OF_MEM;
     }
     queuePage = 0;
-    currentQueuePage  = queuePages[queuePage] = ALLOC(DdNode *, queuePageSize);
+    currentQueuePage  = queuePages[queuePage] = ABC_ALLOC(DdNode *, queuePageSize);
     if (currentQueuePage == NULL) {
-    for (i = 0; i <= queuePage; i++) FREE(queuePages[i]);
-    FREE(queuePages);
+    for (i = 0; i <= queuePage; i++) ABC_FREE(queuePages[i]);
+    ABC_FREE(queuePages);
     goto OUT_OF_MEM;
     }
     queuePageIndex = 0;
@@ -1042,10 +1042,10 @@ CreatePathTable(
 
     if (nodeDistPageIndex == nodeDistPageSize) ResizeNodeDistPages();
     if (memOut) {
-    for (i = 0; i <= nodeDistPage; i++) FREE(nodeDistPages[i]);
-    FREE(nodeDistPages);
-    for (i = 0; i <= queuePage; i++) FREE(queuePages[i]);
-    FREE(queuePages);
+    for (i = 0; i <= nodeDistPage; i++) ABC_FREE(nodeDistPages[i]);
+    ABC_FREE(nodeDistPages);
+    for (i = 0; i <= queuePage; i++) ABC_FREE(queuePages[i]);
+    ABC_FREE(queuePages);
     st_free_table(pathTable);
     goto OUT_OF_MEM;
     }
@@ -1063,10 +1063,10 @@ CreatePathTable(
     insertValue = st_insert(pathTable, (char *)N, (char *)nodeStat);
     if (insertValue == ST_OUT_OF_MEM) {
     memOut = 1;
-    for (i = 0; i <= nodeDistPage; i++) FREE(nodeDistPages[i]);
-    FREE(nodeDistPages);
-    for (i = 0; i <= queuePage; i++) FREE(queuePages[i]);
-    FREE(queuePages);
+    for (i = 0; i <= nodeDistPage; i++) ABC_FREE(nodeDistPages[i]);
+    ABC_FREE(nodeDistPages);
+    for (i = 0; i <= queuePage; i++) ABC_FREE(queuePages[i]);
+    ABC_FREE(queuePages);
     st_free_table(pathTable);
     goto OUT_OF_MEM;
     } else if (insertValue == 1) {
@@ -1101,9 +1101,9 @@ CreatePathTable(
      */
     if (!CreateBotDist(node, pathTable, pathLengthArray, fp)) return(NULL);
 
-    /* free BFS queue pages as no longer required */
-    for (i = 0; i <= queuePage; i++) FREE(queuePages[i]);
-    FREE(queuePages);
+    /* ABC_FREE BFS queue pages as no longer required */
+    for (i = 0; i <= queuePage; i++) ABC_FREE(queuePages[i]);
+    ABC_FREE(queuePages);
     return(pathTable);
 
 OUT_OF_MEM:
@@ -1595,7 +1595,7 @@ BuildSubsetBdd(
 
 /**Function********************************************************************
 
-  Synopsis     [Procedure to free te result dds stored in the NodeDist pages.]
+  Synopsis     [Procedure to ABC_FREE te result dds stored in the NodeDist pages.]
 
   Description [None]
 

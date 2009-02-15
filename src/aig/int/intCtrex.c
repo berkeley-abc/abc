@@ -123,7 +123,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
         return NULL;
     }
     // solve the miter
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     // if the problem is SAT, get the counterexample
     if ( status == l_True )
     {
@@ -134,9 +134,9 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
         for ( i = 0; i < Vec_IntSize(vCiIds); i++ )
             if ( pModel[i] )
                 Aig_InfoSetBit( pCtrex->pData, Saig_ManRegNum(pAig) + i );
-        free( pModel );
+        ABC_FREE( pModel );
     }
-    // free the sat_solver
+    // ABC_FREE the sat_solver
     sat_solver_delete( pSat );
     Vec_IntFree( vCiIds );
     // verify counter-example
@@ -146,7 +146,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     // report the results
     if ( fVerbose )
     {
-        PRT( "Total ctrex generation time", clock() - clk );
+        ABC_PRT( "Total ctrex generation time", clock() - clk );
     }
     return pCtrex;
 

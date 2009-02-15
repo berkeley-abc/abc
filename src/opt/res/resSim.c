@@ -43,7 +43,7 @@
 Res_Sim_t * Res_SimAlloc( int nWords )
 {
     Res_Sim_t * p;
-    p = ALLOC( Res_Sim_t, 1 );
+    p = ABC_ALLOC( Res_Sim_t, 1 );
     memset( p, 0, sizeof(Res_Sim_t) );
     // simulation parameters
     p->nWords    = nWords;
@@ -128,7 +128,7 @@ void Res_SimFree( Res_Sim_t * p )
     Vec_PtrFree( p->vPats1 );
     Vec_PtrFree( p->vOuts );
     Vec_VecFree( p->vCands );
-    free( p );
+    ABC_FREE( p );
 }
 
 

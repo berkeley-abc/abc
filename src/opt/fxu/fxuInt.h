@@ -365,7 +365,7 @@ struct FxuSingle // 7 words
 #define Fxu_CubeForEachPair( pCube, pPair, i )\
   for ( i = 0;\
         i < pCube->pVar->nCubes &&\
-        (((unsigned)(PORT_PTRUINT_T)(pPair = pCube->pVar->ppPairs[pCube->iCube][i])) >= 0);\
+        (((unsigned)(ABC_PTRUINT_T)(pPair = pCube->pVar->ppPairs[pCube->iCube][i])) >= 0);\
         i++ )\
         if ( pPair )
 
@@ -421,8 +421,8 @@ extern void Fxu_MatrixRingVarsUnmark( Fxu_Matrix * p );
 // MEM_ALLOC: allocate the given number (Size) of items of type (Type)
 // MEM_FREE:  deallocate the pointer (Pointer) to the given number (Size) of items of type (Type)
 #ifdef USE_SYSTEM_MEMORY_MANAGEMENT
-#define MEM_ALLOC_FXU( Manager, Type, Size )          ((Type *)malloc( (Size) * sizeof(Type) ))
-#define MEM_FREE_FXU( Manager, Type, Size, Pointer )  if ( Pointer ) { free(Pointer); Pointer = NULL; }
+#define MEM_ALLOC_FXU( Manager, Type, Size )          ((Type *)ABC_ALLOC( char, (Size) * sizeof(Type) ))
+#define MEM_FREE_FXU( Manager, Type, Size, Pointer )  if ( Pointer ) { ABC_FREE(Pointer); Pointer = NULL; }
 #else
 #define MEM_ALLOC_FXU( Manager, Type, Size )\
         ((Type *)Fxu_MemFetch( Manager, (Size) * sizeof(Type) ))

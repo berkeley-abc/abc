@@ -41,6 +41,8 @@
 ***********************************************************************/
 void Abc_NtkSynthesize( Abc_Ntk_t ** ppNtk, int fMoreEffort )
 {
+    extern Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fVerbose );
+
     Abc_Ntk_t * pNtk, * pNtkTemp;
 
     pNtk = *ppNtk;
@@ -55,6 +57,9 @@ void Abc_NtkSynthesize( Abc_Ntk_t ** ppNtk, int fMoreEffort )
         Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
         Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
         pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
+        Abc_NtkDelete( pNtkTemp );
+
+        pNtk = Abc_NtkIvyFraig( pNtkTemp = pNtk, 100, 1, 0, 0, 0 );
         Abc_NtkDelete( pNtkTemp );
     }
 
@@ -384,7 +389,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
         {
             printf( "I = %3d : Reach = %6d  Fr = %6d  FrM = %6d  %7.2f %%   ", 
                 i + 1, Abc_NtkNodeNum(pNtkReached), nNodesOld, nNodesNew, 100.0*(nNodesNew-nNodesPrev)/nNodesPrev );
-            PRT( "T", clock() - clk );
+            ABC_PRT( "T", clock() - clk );
         }
         nNodesPrev = Abc_NtkNodeNum(pNtkFront);
     }

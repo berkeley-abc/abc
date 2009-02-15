@@ -122,7 +122,7 @@ void Amap_ManCleanData( Amap_Man_t * p )
     Amap_Obj_t * pObj;
     int i;
 //    Amap_ManForEachNode( p, pObj, i )
-//        FREE( pObj->pData );
+//        ABC_FREE( pObj->pData );
     Amap_ManForEachObj( p, pObj, i )
         pObj->pData = NULL;
 }
@@ -496,7 +496,7 @@ if ( p->pPars->fVerbose )
         Area + nInvs * p->fAreaInv, 
         Area, nInvs * p->fAreaInv, nInvs,
         Amap_ManMaxDelay(p) );
-PRT( "Time ", clock() - clk );
+ABC_PRT( "Time ", clock() - clk );
 }
     // test procedures
 //    Amap_ManForEachNode( p, pObj, i )

@@ -47,7 +47,7 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
     if ( nNodesMax <= 0 )
         nNodesMax = 10007;
     // start the manager
-    p = ALLOC( Aig_Man_t, 1 );
+    p = ABC_ALLOC( Aig_Man_t, 1 );
     memset( p, 0, sizeof(Aig_Man_t) );
     // perform initializations
     p->nTravIds = 1;
@@ -66,7 +66,7 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
     p->nObjs[AIG_OBJ_CONST1]++;
     // start the table
     p->nTableSize = Aig_PrimeCudd( nNodesMax );
-    p->pTable = ALLOC( Aig_Obj_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Aig_Obj_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
     return p;
 }
@@ -186,8 +186,8 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vMapped )
         Vec_PtrFree( p->vMapped );
     // print time
-    if ( p->time1 ) { PRT( "time1", p->time1 ); }
-    if ( p->time2 ) { PRT( "time2", p->time2 ); }
+    if ( p->time1 ) { ABC_PRT( "time1", p->time1 ); }
+    if ( p->time2 ) { ABC_PRT( "time2", p->time2 ); }
     // delete timing
     if ( p->pManTime )
         Tim_ManStop( p->pManTime );
@@ -211,16 +211,16 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vOnehots )  Vec_VecFree( (Vec_Vec_t *)p->vOnehots );
     if ( p->vClockDoms) Vec_VecFree( p->vClockDoms );
     if ( p->vProbs )    Vec_IntFree( p->vProbs );
-    FREE( p->pFastSim );
-    FREE( p->pData );
-    FREE( p->pSeqModel );
-    FREE( p->pName );
-    FREE( p->pSpec );
-    FREE( p->pObjCopies );
-    FREE( p->pReprs );
-    FREE( p->pEquivs );
-    free( p->pTable );
-    free( p );
+    ABC_FREE( p->pFastSim );
+    ABC_FREE( p->pData );
+    ABC_FREE( p->pSeqModel );
+    ABC_FREE( p->pName );
+    ABC_FREE( p->pSpec );
+    ABC_FREE( p->pObjCopies );
+    ABC_FREE( p->pReprs );
+    ABC_FREE( p->pEquivs );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -371,7 +371,7 @@ int Aig_ManHaigCounter( Aig_Man_t * pAig )
 ***********************************************************************/
 void Aig_ManPrintStats( Aig_Man_t * p )
 {
-    int nChoices = Aig_ManCountChoices(p);
+    int nChoices = Aig_ManChoiceNum(p);
     printf( "%-15s : ",      p->pName );
     printf( "pi = %5d  ",    Aig_ManPiNum(p) );
     printf( "po = %5d  ",    Aig_ManPoNum(p) );

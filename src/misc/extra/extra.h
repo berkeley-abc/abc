@@ -29,10 +29,6 @@
 #ifndef __EXTRA_H__
 #define __EXTRA_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -46,14 +42,12 @@ extern "C" {
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include "abc_global.h"
 #include "st.h"
 #include "cuddInt.h"
-#include "port_type.h"
 
-// catch memory leaks in Visual Studio
-#ifdef _DEBUG
-#define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -76,25 +70,9 @@ extern "C" {
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#ifdef WIN32
-#define ABC_DLLEXPORT __declspec(dllexport)
-#define ABC_DLLIMPORT __declspec(dllimport)
-#else  /* defined(WIN32) */
-#define ABC_DLLIMPORT
-#endif /* defined(WIN32) */
-
-#ifndef ABC_DLL
-#define ABC_DLL ABC_DLLIMPORT
-#endif
-
 typedef unsigned char      uint8;
 typedef unsigned short     uint16;
 typedef unsigned int       uint32;
-#ifdef WIN32
-typedef unsigned __int64   uint64;
-#else
-typedef unsigned long long uint64;
-#endif
 
 /* constants of the manager */
 #define     b0     Cudd_Not((dd)->one)
@@ -106,34 +84,21 @@ typedef unsigned long long uint64;
 
 // hash key macros
 #define hashKey1(a,TSIZE) \
-((PORT_PTRUINT_T)(a) % TSIZE)
+((ABC_PTRUINT_T)(a) % TSIZE)
 
 #define hashKey2(a,b,TSIZE) \
-(((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b) * DD_P1) % TSIZE)
+(((ABC_PTRUINT_T)(a) + (ABC_PTRUINT_T)(b) * DD_P1) % TSIZE)
 
 #define hashKey3(a,b,c,TSIZE) \
-(((((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b)) * DD_P1 + (PORT_PTRUINT_T)(c)) * DD_P2 ) % TSIZE)
+(((((ABC_PTRUINT_T)(a) + (ABC_PTRUINT_T)(b)) * DD_P1 + (ABC_PTRUINT_T)(c)) * DD_P2 ) % TSIZE)
 
 #define hashKey4(a,b,c,d,TSIZE) \
-((((((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b)) * DD_P1 + (PORT_PTRUINT_T)(c)) * DD_P2 + \
-   (PORT_PTRUINT_T)(d)) * DD_P3) % TSIZE)
+((((((ABC_PTRUINT_T)(a) + (ABC_PTRUINT_T)(b)) * DD_P1 + (ABC_PTRUINT_T)(c)) * DD_P2 + \
+   (ABC_PTRUINT_T)(d)) * DD_P3) % TSIZE)
 
 #define hashKey5(a,b,c,d,e,TSIZE) \
-(((((((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b)) * DD_P1 + (PORT_PTRUINT_T)(c)) * DD_P2 + \
-   (PORT_PTRUINT_T)(d)) * DD_P3 + (PORT_PTRUINT_T)(e)) * DD_P1) % TSIZE)
-
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#define PRTn(a,t)  printf("%s = ", (a)); printf("%6.2f sec  ", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
-#ifndef PRTP
-#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%6.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0)
-#endif
-
-#ifndef PRB
-#define PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")
-#endif
+(((((((ABC_PTRUINT_T)(a) + (ABC_PTRUINT_T)(b)) * DD_P1 + (ABC_PTRUINT_T)(c)) * DD_P2 + \
+   (ABC_PTRUINT_T)(d)) * DD_P3 + (ABC_PTRUINT_T)(e)) * DD_P1) % TSIZE)
 
 /*===========================================================================*/
 /*     Various Utilities                                                     */
@@ -228,6 +193,10 @@ extern DdNode *     Extra_bddCreateExor( DdManager * dd, int nVars );
 extern DdNode *     Extra_zddPrimes( DdManager * dd, DdNode * F );
 extern void         Extra_bddPermuteArray( DdManager * dd, DdNode ** bNodesIn, DdNode ** bNodesOut, int nNodes, int *permut );
 extern DdNode *     Extra_bddComputeCube( DdManager * dd, DdNode ** bXVars, int nVars );
+
+#ifndef ABC_PRB
+#define ABC_PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")
+#endif
 
 /*=== extraBddKmap.c ================================================================*/
 
@@ -616,33 +585,6 @@ extern unsigned    Extra_TruthHash( unsigned * pIn, int nWords );
 extern unsigned    Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
 
 /*=== extraUtilUtil.c ================================================================*/
-
-#ifndef ABS
-#define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
-#ifndef MAX
-#define MAX(a,b)        ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef MIN
-#define MIN(a,b)        ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef ALLOC
-#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef REALLOC
-#define REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
-#endif
-
 
 extern long          Extra_CpuTime();
 extern double        Extra_CpuTimeDouble();

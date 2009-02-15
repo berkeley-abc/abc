@@ -153,7 +153,7 @@ cuddAnnealing(
 
     /* Keep track of the best order. */
     BestCost = size;
-    BestOrder = ALLOC(int,nvars);
+    BestOrder = ABC_ALLOC(int,nvars);
     if (BestOrder == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -218,7 +218,7 @@ cuddAnnealing(
         }
 
         if (!result) {
-        FREE(BestOrder);
+        ABC_FREE(BestOrder);
         return(0);
         }
 
@@ -245,7 +245,7 @@ cuddAnnealing(
     }
 
     result = restoreOrder(table,BestOrder,lower,upper);
-    FREE(BestOrder);
+    ABC_FREE(BestOrder);
     if (!result) return(0);
 #ifdef DD_STATS
     fprintf(table->out,"#:N_EXCHANGE %8d : total exchanges\n",ecount);

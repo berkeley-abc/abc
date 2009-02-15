@@ -329,7 +329,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
     // write the nodes into the buffer
     Pos = 0;
     nBufferSize = 6 * Aig_ManNodeNum(pMan) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ALLOC( unsigned char, nBufferSize );
+    pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
 //    pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(pMan) );
     Aig_ManForEachNode( pMan, pObj, i )
     {
@@ -337,7 +337,13 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
         uLit  = Ioa_ObjMakeLit( Ioa_ObjAigerNum(pObj), 0 );
         uLit0 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) );
         uLit1 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) );
-        assert( uLit0 < uLit1 );
+        assert( uLit0 != uLit1 );
+        if ( uLit0 > uLit1 )
+        {
+            int Temp = uLit0;
+            uLit0 = uLit1;
+            uLit1 = Temp;
+        }
         Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
         Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
         if ( Pos > nBufferSize - 10 )
@@ -352,7 +358,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
 
     // write the buffer
     fwrite( pBuffer, 1, Pos, pFile );
-    free( pBuffer );
+    ABC_FREE( pBuffer );
 /*
     // write the symbol table
     if ( fWriteSymbols )

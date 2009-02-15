@@ -152,7 +152,7 @@ bool Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearned,
 //    nBytes = sizeof(unsigned)*(nLits + 1 + (int)fLearned);
     nBytes = sizeof(unsigned)*(nLits + 2 + (int)fLearned);
 #ifdef USE_SYSTEM_MEMORY_MANAGEMENT
-    pC = (Msat_Clause_t *)ALLOC( char, nBytes );
+    pC = (Msat_Clause_t *)ABC_ALLOC( char, nBytes );
 #else
     pC = (Msat_Clause_t *)Msat_MmStepEntryFetch( Msat_SolverReadMem(p), nBytes );
 #endif
@@ -231,7 +231,7 @@ void Msat_ClauseFree( Msat_Solver_t * p, Msat_Clause_t * pC, bool fRemoveWatched
     }
 
 #ifdef USE_SYSTEM_MEMORY_MANAGEMENT
-    free( pC );
+    ABC_FREE( pC );
 #else
     Msat_MmStepEntryRecycle( Msat_SolverReadMem(p), (char *)pC, pC->nSizeAlloc );
 #endif

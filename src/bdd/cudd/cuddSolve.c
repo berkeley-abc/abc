@@ -103,7 +103,7 @@ Cudd_SolveEqn(
     DdNode *res;
     int *temp;
 
-    *yIndex = temp = ALLOC(int, n);
+    *yIndex = temp = ABC_ALLOC(int, n);
     if (temp == NULL) {
     bdd->errorCode = CUDD_MEMORY_OUT;
     (void) fprintf(bdd->out,
@@ -149,7 +149,7 @@ Cudd_VerifySol(
     res = cuddVerifySol(bdd, F, G, yIndex, n);
     } while (bdd->reordered == 1);
 
-    FREE(yIndex);
+    ABC_FREE(yIndex);
 
     return(res);
 

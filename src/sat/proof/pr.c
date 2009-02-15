@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <time.h>
 //#include "vec.h"
+#include "abc_global.h"
 #include "pr.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -91,10 +92,6 @@ struct Pr_Man_t_
     int             timeTotal;
 };
 
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
 // variable assignments 
 static const lit  LIT_UNDEF = 0xffffffff;
 
@@ -143,7 +140,7 @@ Pr_Man_t * Pr_ManAlloc( int nVarsAlloc )
 {
     Pr_Man_t * p;
     // allocate the manager
-    p = (Pr_Man_t *)malloc( sizeof(Pr_Man_t) );
+    p = (Pr_Man_t *)ABC_ALLOC( char, sizeof(Pr_Man_t) );
     memset( p, 0, sizeof(Pr_Man_t) );
     // allocate internal arrays
     Pr_ManResize( p, nVarsAlloc? nVarsAlloc : 256 );
@@ -153,7 +150,7 @@ Pr_Man_t * Pr_ManAlloc( int nVarsAlloc )
     p->nChunkSize = (1<<16); // use 64K chunks
     // verification
     p->nResLitsAlloc = (1<<16);
-    p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
+    p->pResLits = ABC_ALLOC( lit, p->nResLitsAlloc );
     // parameters
     p->fProofWrite = 0;
     p->fProofVerif = 0;
@@ -183,13 +180,13 @@ void Pr_ManResize( Pr_Man_t * p, int nVarsNew )
         while ( p->nVarsAlloc < nVarsNew ) 
             p->nVarsAlloc *= 2;
         // resize the arrays
-        p->pTrail    = (lit *)      realloc( p->pTrail,    sizeof(lit) * p->nVarsAlloc );
-        p->pAssigns  = (lit *)      realloc( p->pAssigns,  sizeof(lit) * p->nVarsAlloc );
-        p->pSeens    = (char *)     realloc( p->pSeens,    sizeof(char) * p->nVarsAlloc );
-        p->pVarTypes = (char *)     realloc( p->pVarTypes, sizeof(char) * p->nVarsAlloc );
-        p->pReasons  = (Pr_Cls_t **)realloc( p->pReasons,  sizeof(Pr_Cls_t *) * p->nVarsAlloc );
-        p->pWatches  = (Pr_Cls_t **)realloc( p->pWatches,  sizeof(Pr_Cls_t *) * p->nVarsAlloc*2 );
-        // clean the free space
+        p->pTrail    = ABC_REALLOC(lit,        p->pTrail,    p->nVarsAlloc );
+        p->pAssigns  = ABC_REALLOC(lit,        p->pAssigns,  p->nVarsAlloc );
+        p->pSeens    = ABC_REALLOC(char,       p->pSeens,    p->nVarsAlloc );
+        p->pVarTypes = ABC_REALLOC(char,       p->pVarTypes, p->nVarsAlloc );
+        p->pReasons  = ABC_REALLOC(Pr_Cls_t *, p->pReasons,  p->nVarsAlloc );
+        p->pWatches  = ABC_REALLOC(Pr_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
+        // clean the ABC_FREE space
         memset( p->pAssigns  + nVarsAllocOld, 0xff, sizeof(lit) * (p->nVarsAlloc - nVarsAllocOld) );
         memset( p->pSeens    + nVarsAllocOld, 0, sizeof(char) * (p->nVarsAlloc - nVarsAllocOld) );
         memset( p->pVarTypes + nVarsAllocOld, 0, sizeof(char) * (p->nVarsAlloc - nVarsAllocOld) );
@@ -215,20 +212,20 @@ void Pr_ManResize( Pr_Man_t * p, int nVarsNew )
 void Pr_ManFree( Pr_Man_t * p )
 {
     printf( "Runtime stats:\n" );
-PRT( "Reading ", p->timeRead  );
-PRT( "BCP     ", p->timeBcp   );
-PRT( "Trace   ", p->timeTrace );
-PRT( "TOTAL   ", p->timeTotal );
+ABC_PRT( "Reading ", p->timeRead  );
+ABC_PRT( "BCP     ", p->timeBcp   );
+ABC_PRT( "Trace   ", p->timeTrace );
+ABC_PRT( "TOTAL   ", p->timeTotal );
 
     Pr_ManMemoryStop( p );
-    free( p->pTrail );
-    free( p->pAssigns );
-    free( p->pSeens );
-    free( p->pVarTypes );
-    free( p->pReasons );
-    free( p->pWatches );
-    free( p->pResLits );
-    free( p );
+    ABC_FREE( p->pTrail );
+    ABC_FREE( p->pAssigns );
+    ABC_FREE( p->pSeens );
+    ABC_FREE( p->pVarTypes );
+    ABC_FREE( p->pReasons );
+    ABC_FREE( p->pWatches );
+    ABC_FREE( p->pResLits );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -348,7 +345,7 @@ char * Pr_ManMemoryFetch( Pr_Man_t * p, int nBytes )
     char * pMem;
     if ( p->pChunkLast == NULL || nBytes > p->nChunkSize - p->nChunkUsed )
     {
-        pMem = (char *)malloc( p->nChunkSize );
+        pMem = (char *)ABC_ALLOC( char, p->nChunkSize );
         *(char **)pMem = p->pChunkLast;
         p->pChunkLast = pMem;
         p->nChunkUsed = sizeof(char *);
@@ -375,8 +372,8 @@ void Pr_ManMemoryStop( Pr_Man_t * p )
     if ( p->pChunkLast == NULL )
         return;
     for ( pMem = p->pChunkLast; pNext = *(char **)pMem; pMem = pNext )
-        free( pMem );
-    free( pMem );
+        ABC_FREE( pMem );
+    ABC_FREE( pMem );
 }
 
 /**Function*************************************************************
@@ -1124,7 +1121,7 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
     }
 
     // read the file
-    pBuffer = (char *)malloc( (1<<16) );
+    pBuffer = (char *)ABC_ALLOC( char, (1<<16) );
     for ( Counter = 0; fgets( pBuffer, (1<<16), pFile ); )
     {
         if ( pBuffer[0] == 'c' )
@@ -1139,7 +1136,7 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
                 printf( "Wrong input file format.\n" );
             }
             p = Pr_ManAlloc( nVars );
-            pArray = (int *)malloc( sizeof(int) * (nVars + 10) );
+            pArray = (int *)ABC_ALLOC( char, sizeof(int) * (nVars + 10) );
             continue;
         }
         // skip empty lines
@@ -1178,8 +1175,8 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
         printf( "Expected %d clauses but read %d.\n", nClauses, Counter );
 
     // finish
-    if ( pArray ) free( pArray );
-    if ( pBuffer ) free( pBuffer );
+    if ( pArray ) ABC_FREE( pArray );
+    if ( pBuffer ) ABC_FREE( pBuffer );
     fclose( pFile );
     return p;
 }

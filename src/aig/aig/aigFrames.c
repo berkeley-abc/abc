@@ -53,7 +53,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
     int i, f;
 
     // create mapping for the frames nodes
-    pObjMap  = ALLOC( Aig_Obj_t *, nFs * Aig_ManObjNumMax(pAig) );
+    pObjMap  = ABC_ALLOC( Aig_Obj_t *, nFs * Aig_ManObjNumMax(pAig) );
     memset( pObjMap, 0, sizeof(Aig_Obj_t *) * nFs * Aig_ManObjNumMax(pAig) );
 
     // start the fraig package
@@ -124,7 +124,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
     if ( ppObjMap )
         *ppObjMap = pObjMap;
     else
-        free( pObjMap );
+        ABC_FREE( pObjMap );
     return pFrames;
 }
 

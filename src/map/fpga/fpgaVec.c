@@ -42,12 +42,12 @@ static int Fpga_NodeVecCompareLevels( Fpga_Node_t ** pp1, Fpga_Node_t ** pp2 );
 Fpga_NodeVec_t * Fpga_NodeVecAlloc( int nCap )
 {
     Fpga_NodeVec_t * p;
-    p = ALLOC( Fpga_NodeVec_t, 1 );
+    p = ABC_ALLOC( Fpga_NodeVec_t, 1 );
     if ( nCap > 0 && nCap < 16 )
         nCap = 16;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( Fpga_Node_t *, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( Fpga_Node_t *, p->nCap ) : NULL;
     return p;
 }
 
@@ -64,8 +64,8 @@ Fpga_NodeVec_t * Fpga_NodeVecAlloc( int nCap )
 ***********************************************************************/
 void Fpga_NodeVecFree( Fpga_NodeVec_t * p )
 {
-    FREE( p->pArray );
-    FREE( p );
+    ABC_FREE( p->pArray );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -115,7 +115,7 @@ void Fpga_NodeVecGrow( Fpga_NodeVec_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( Fpga_Node_t *, p->pArray, nCapMin ); 
+    p->pArray = ABC_REALLOC( Fpga_Node_t *, p->pArray, nCapMin ); 
     p->nCap   = nCapMin;
 }
 

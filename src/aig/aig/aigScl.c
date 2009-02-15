@@ -396,7 +396,7 @@ Vec_Ptr_t * Aig_ManReduceLachesOnce( Aig_Man_t * p )
     Aig_ManForEachPiSeq( p, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // create mapping of fanin nodes into the corresponding latch outputs
-    pMapping = ALLOC( int, 2 * Aig_ManObjNumMax(p) );
+    pMapping = ABC_ALLOC( int, 2 * Aig_ManObjNumMax(p) );
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
     {
         pFanin = Aig_ObjFanin0(pObjLi);
@@ -427,7 +427,7 @@ Vec_Ptr_t * Aig_ManReduceLachesOnce( Aig_Man_t * p )
             }
         }
     }
-    free( pMapping );
+    ABC_FREE( pMapping );
     Aig_ManForEachLiSeq( p, pObj, i )
     {
         pFanin = Aig_ObjFanin0(pObj);
@@ -456,6 +456,7 @@ Aig_Man_t * Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose )
         printf( "Performing combinational register sweep:\n" );
     for ( nSaved = 0; (nCur = Aig_ManReduceLachesCount(p)); nSaved += nCur )
     {
+//        printf( "Reducible = %d\n", nCur );
         vMap = Aig_ManReduceLachesOnce( p );
         p = Aig_ManRemap( pTemp = p, vMap );
         Vec_PtrFree( vMap );
@@ -532,7 +533,7 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
 
     // detect strongly connected components
     vComp = Vec_IntAlloc( Aig_ManRegNum(p) );
-    pVarsTot = ALLOC( char, Aig_ManRegNum(p) );
+    pVarsTot = ABC_ALLOC( char, Aig_ManRegNum(p) );
     memset( pVarsTot, 0, Aig_ManRegNum(p) * sizeof(char) );
     for ( nComps = 0; ; nComps++ )
     {
@@ -571,7 +572,7 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
         }
         printf( "SCC #%d contains %5d registers.\n", nComps+1, Vec_IntSize(vComp) );
     }
-    free( pVarsTot );
+    ABC_FREE( pVarsTot );
     Vec_IntFree( vComp );
     Vec_PtrFree( vMatrix );
     Vec_VecFree( (Vec_Vec_t *)vMatrix2 );
@@ -622,7 +623,7 @@ Aig_Man_t * Aig_ManSclPart( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, 
             Aig_ManStop( pNew );
         }
         Aig_ManStop( pTemp );
-        free( pMapBack );
+        ABC_FREE( pMapBack );
     }
     pNew = Aig_ManDupRepr( pAig, 0 );
     Aig_ManSeqCleanup( pNew );

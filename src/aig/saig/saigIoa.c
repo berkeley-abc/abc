@@ -348,7 +348,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
         {
             extern double pow( double x, double y );
             int Size = (int)pow(10.0, (double)(strlen(pToken) - 1));
-            pNum2Id = CALLOC( int, Size );
+            pNum2Id = ABC_CALLOC( int, Size );
         }
 
         // other tokens
@@ -383,7 +383,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
     // add non-node objects to the mapping
     Aig_ManForEachPi( p, pNode, i )
         pNum2Id[pNode->Id] = pNode->Id;
-//    FREE( pNum2Id );
+//    ABC_FREE( pNum2Id );
     p->pData = pNum2Id;
     // check the new manager
     Aig_ManSetRegNum( p, nRegs );

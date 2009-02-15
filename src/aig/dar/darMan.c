@@ -42,14 +42,13 @@
 Dar_Man_t * Dar_ManStart( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 {
     Dar_Man_t * p;
-    // start the manager
-    p = ALLOC( Dar_Man_t, 1 );
+    Aig_ManCleanData( pAig );
+    p = ABC_ALLOC( Dar_Man_t, 1 );
     memset( p, 0, sizeof(Dar_Man_t) );
     p->pPars = pPars;
     p->pAig  = pAig;
-    // prepare the internal memory manager
+    p->vCutNodes = Vec_PtrAlloc( 1000 );
     p->pMemCuts = Aig_MmFixedStart( p->pPars->nCutsMax * sizeof(Dar_Cut_t), 1024 );
-    // other data
     p->vLeavesBest = Vec_PtrAlloc( 4 );
     return p;
 }
@@ -69,11 +68,13 @@ void Dar_ManStop( Dar_Man_t * p )
 {
     if ( p->pPars->fVerbose )
         Dar_ManPrintStats( p );
+    if ( p->vCutNodes )
+        Vec_PtrFree( p->vCutNodes );
     if ( p->pMemCuts )
         Aig_MmFixedStop( p->pMemCuts, 0 );
     if ( p->vLeavesBest ) 
         Vec_PtrFree( p->vLeavesBest );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -102,10 +103,10 @@ void Dar_ManPrintStats( Dar_Man_t * p )
 
     printf( "Bufs = %5d. BufMax = %5d. BufReplace = %6d. BufFix = %6d.  Levels = %4d.\n", 
         Aig_ManBufNum(p->pAig), p->pAig->nBufMax, p->pAig->nBufReplaces, p->pAig->nBufFixes, Aig_ManLevels(p->pAig) );
-    PRT( "Cuts  ", p->timeCuts );
-    PRT( "Eval  ", p->timeEval );
-    PRT( "Other ", p->timeOther );
-    PRT( "TOTAL ", p->timeTotal );
+    ABC_PRT( "Cuts  ", p->timeCuts );
+    ABC_PRT( "Eval  ", p->timeEval );
+    ABC_PRT( "Other ", p->timeOther );
+    ABC_PRT( "TOTAL ", p->timeTotal );
 
     if ( !p->pPars->fVeryVerbose )
         return;
@@ -119,7 +120,7 @@ void Dar_ManPrintStats( Dar_Man_t * p )
         printf( "S = %8d (%5.2f %%)  ", p->ClassSubgs[i], p->nTotalSubgs? 100.0*p->ClassSubgs[i]/p->nTotalSubgs : 0.0 );
         printf( "R = %7d   ", p->ClassGains[i]? p->ClassSubgs[i]/p->ClassGains[i] : 9999999 );
 //        Kit_DsdPrintFromTruth( pCanons + i, 4 );
-//        PRTP( "T", p->ClassTimes[i], p->timeEval );
+//        ABC_PRTP( "T", p->ClassTimes[i], p->timeEval );
         printf( "\n" );
     }
     fflush( stdout );

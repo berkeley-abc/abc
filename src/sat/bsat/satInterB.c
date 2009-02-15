@@ -108,11 +108,11 @@ Intb_Man_t * Intb_ManAlloc()
 {
     Intb_Man_t * p;
     // allocate the manager
-    p = (Intb_Man_t *)malloc( sizeof(Intb_Man_t) );
+    p = (Intb_Man_t *)ABC_ALLOC( char, sizeof(Intb_Man_t) );
     memset( p, 0, sizeof(Intb_Man_t) );
     // verification
     p->nResLitsAlloc = (1<<16);
-    p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
+    p->pResLits = ABC_ALLOC( lit, p->nResLitsAlloc );
     // parameters
     p->fProofWrite = 0;
     p->fProofVerif = 1;
@@ -197,15 +197,15 @@ void Intb_ManResize( Intb_Man_t * p )
         while ( p->nVarsAlloc < p->pCnf->nVars ) 
             p->nVarsAlloc *= 2;
         // resize the arrays
-        p->pTrail    = (lit *)       realloc( p->pTrail,    sizeof(lit) * p->nVarsAlloc );
-        p->pAssigns  = (lit *)       realloc( p->pAssigns,  sizeof(lit) * p->nVarsAlloc );
-        p->pSeens    = (char *)      realloc( p->pSeens,    sizeof(char) * p->nVarsAlloc );
-        p->pVarTypes = (int *)       realloc( p->pVarTypes, sizeof(int) * p->nVarsAlloc );
-        p->pReasons  = (Sto_Cls_t **)realloc( p->pReasons,  sizeof(Sto_Cls_t *) * p->nVarsAlloc );
-        p->pWatches  = (Sto_Cls_t **)realloc( p->pWatches,  sizeof(Sto_Cls_t *) * p->nVarsAlloc*2 );
+        p->pTrail    = ABC_REALLOC(lit,         p->pTrail,    p->nVarsAlloc );
+        p->pAssigns  = ABC_REALLOC(lit,         p->pAssigns,  p->nVarsAlloc );
+        p->pSeens    = ABC_REALLOC(char,        p->pSeens,    p->nVarsAlloc );
+        p->pVarTypes = ABC_REALLOC(int,         p->pVarTypes, p->nVarsAlloc );
+        p->pReasons  = ABC_REALLOC(Sto_Cls_t *, p->pReasons,  p->nVarsAlloc );
+        p->pWatches  = ABC_REALLOC(Sto_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
     }
 
-    // clean the free space
+    // clean the ABC_FREE space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
     memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
@@ -224,7 +224,7 @@ void Intb_ManResize( Intb_Man_t * p )
         while ( p->nClosAlloc < p->pCnf->nClauses ) 
             p->nClosAlloc *= 2;
         // resize the arrays
-        p->pProofNums = (int *) realloc( p->pProofNums,  sizeof(int) * p->nClosAlloc );
+        p->pProofNums = ABC_REALLOC( int, p->pProofNums,  p->nClosAlloc );
     }
     memset( p->pProofNums, 0, sizeof(int) * p->pCnf->nClauses );
 
@@ -232,7 +232,7 @@ void Intb_ManResize( Intb_Man_t * p )
     if ( p->nIntersAlloc < p->pCnf->nClauses )
     {
         p->nIntersAlloc = p->pCnf->nClauses;
-        p->pInters = (Aig_Obj_t **) realloc( p->pInters, sizeof(Aig_Obj_t *) * p->nIntersAlloc );
+        p->pInters = ABC_REALLOC(Aig_Obj_t *, p->pInters, p->nIntersAlloc );
     }
     memset( p->pInters, 0, sizeof(Aig_Obj_t *) * p->pCnf->nClauses );
 }
@@ -252,20 +252,20 @@ void Intb_ManFree( Intb_Man_t * p )
 {
 /*
     printf( "Runtime stats:\n" );
-PRT( "BCP     ", p->timeBcp   );
-PRT( "Trace   ", p->timeTrace );
-PRT( "TOTAL   ", p->timeTotal );
+ABC_PRT( "BCP     ", p->timeBcp   );
+ABC_PRT( "Trace   ", p->timeTrace );
+ABC_PRT( "TOTAL   ", p->timeTotal );
 */
-    free( p->pInters );
-    free( p->pProofNums );
-    free( p->pTrail );
-    free( p->pAssigns );
-    free( p->pSeens );
-    free( p->pVarTypes );
-    free( p->pReasons );
-    free( p->pWatches );
-    free( p->pResLits );
-    free( p );
+    ABC_FREE( p->pInters );
+    ABC_FREE( p->pProofNums );
+    ABC_FREE( p->pTrail );
+    ABC_FREE( p->pAssigns );
+    ABC_FREE( p->pSeens );
+    ABC_FREE( p->pVarTypes );
+    ABC_FREE( p->pReasons );
+    ABC_FREE( p->pWatches );
+    ABC_FREE( p->pResLits );
+    ABC_FREE( p );
 }
 
 
@@ -987,7 +987,7 @@ void * Intb_ManInterpolate( Intb_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
 
     if ( fVerbose )
     {
-//        PRT( "Interpo", clock() - clkTotal );
+//        ABC_PRT( "Interpo", clock() - clkTotal );
     printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f Mb\n", 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 

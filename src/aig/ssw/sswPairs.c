@@ -149,8 +149,8 @@ Vec_Int_t ** Ssw_TransformPairsIntoTempClasses( Vec_Int_t * vPairs, int nObjNumM
     int * pReprs;             // mapping nodes into their representatives
     int Entry, idObj, idRepr, idReprObj, idReprRepr, i;
     // allocate data-structures
-    pvClasses = CALLOC( Vec_Int_t *, nObjNumMax );
-    pReprs    = ALLOC( int, nObjNumMax );
+    pvClasses = ABC_CALLOC( Vec_Int_t *, nObjNumMax );
+    pReprs    = ABC_ALLOC( int, nObjNumMax );
     for ( i = 0; i < nObjNumMax; i++ )
         pReprs[i] = -1;
     // consider pairs
@@ -231,7 +231,7 @@ Vec_Int_t ** Ssw_TransformPairsIntoTempClasses( Vec_Int_t * vPairs, int nObjNumM
             }
         }
     }
-    free( pReprs );
+    ABC_FREE( pReprs );
     return pvClasses;
 }
 
@@ -252,7 +252,7 @@ void Ssw_FreeTempClasses( Vec_Int_t ** pvClasses, int nObjNumMax )
     for ( i = 0; i < nObjNumMax; i++ )
         if ( pvClasses[i] ) 
             Vec_IntFree( pvClasses[i] );
-    free( pvClasses );
+    ABC_FREE( pvClasses );
 }
 
 /**Function*************************************************************
@@ -356,7 +356,7 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
     else
         printf( "Verification UNDECIDED. Remaining registers %d (total %d).  ", 
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig) + Aig_ManRegNum(pAigNew) );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     // cleanup
     Aig_ManStop( pAigNew );
     return pAigRes;
@@ -390,7 +390,7 @@ int Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, V
     else
         printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig1) + Aig_ManRegNum(pAig2) );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     // cleanup
     Aig_ManStop( pAigRes );
     return RetValue;
@@ -426,7 +426,7 @@ int Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars )
     else
         printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pAig1) + Aig_ManRegNum(pAig2) );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     // cleanup
     Aig_ManStop( pAigRes );
     return RetValue;
@@ -459,7 +459,7 @@ int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
     else
         printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(pMiter) );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     // cleanup
     Aig_ManStop( pAigRes );
     return RetValue;

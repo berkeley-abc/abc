@@ -222,7 +222,7 @@ unsigned * Mfx_InterplateTruth( Mfx_Man_t * p, int * pCands, int nCands, int fIn
     pSat = Mfx_CreateSolverResub( p, pCands, nCands, fInvert );
 
     // solve the problem
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->pPars->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( status != l_False )
     {
         p->nTimeOuts++;
@@ -322,7 +322,7 @@ Hop_Obj_t * Mfx_Interplate( Mfx_Man_t * p, int * pCands, int nCands )
     pSat = Mfx_CreateSolverResub( p, pCands, nCands, 0 );
 
     // solve the problem
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->pPars->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( status != l_False )
     {
         p->nTimeOuts++;

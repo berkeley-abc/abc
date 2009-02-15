@@ -161,7 +161,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
                 printf( "Solving output %2d of frame %3d ... \r", 
                     i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
             }
-            status = sat_solver_solve( pSat->pSat, &Lit, &Lit + 1, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+            status = sat_solver_solve( pSat->pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( status == l_False )
             {
 /*
@@ -199,7 +199,7 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
             printf( "Conf =%8.0f. Var =%8d. AIG=%9d. ", 
                 (double)pSat->pSat->stats.conflicts, 
                 pSat->nSatVars, Aig_ManNodeNum(pFrm->pFrames) );
-            PRT( "T", clock() - clkPart );
+            ABC_PRT( "T", clock() - clkPart );
             clkPart = clock();
             fflush( stdout );
         }

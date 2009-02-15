@@ -217,19 +217,19 @@ int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward )
     }
 
     // collect global variables
-    pGlobalVars = CALLOC( int, sat_solver_nvars(pSat) );
+    pGlobalVars = ABC_CALLOC( int, sat_solver_nvars(pSat) );
     Vec_IntForEachEntry( p->vVarsAB, Var, i )
         pGlobalVars[Var] = 1;
     pSat->pGlobalVars = fUseBias? pGlobalVars : NULL;
 
     // solve the problem
 clk = clock();
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)p->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     p->nConfCur = pSat->stats.conflicts;
 p->timeSat += clock() - clk;
 
     pSat->pGlobalVars = NULL;
-    FREE( pGlobalVars );
+    ABC_FREE( pGlobalVars );
     if ( status == l_False )
     {
         pSatCnf = sat_solver_store_release( pSat );

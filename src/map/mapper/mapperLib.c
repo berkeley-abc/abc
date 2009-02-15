@@ -56,7 +56,7 @@ Map_SuperLib_t * Map_SuperLibCreate( char * pFileName, char * pExcludeFile, bool
     int clk;
 
     // start the supergate library
-    p = ALLOC( Map_SuperLib_t, 1 );
+    p = ABC_ALLOC( Map_SuperLib_t, 1 );
     memset( p, 0, sizeof(Map_SuperLib_t) );
     p->pName     = pFileName;
     p->fVerbose  = fVerbose;
@@ -98,7 +98,7 @@ clk = clock();
 if ( fVerbose ) {
     printf( "Loaded %d unique %d-input supergates from \"%s\".  ", 
         p->nSupersReal, p->nVarsMax, pFileName );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
 }
 
     // assign the interver parameters
@@ -155,8 +155,8 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
     Extra_MmFixedStop( p->mmSupers );
     Extra_MmFixedStop( p->mmEntries );
     Extra_MmFlexStop( p->mmForms );
-    FREE( p->ppSupers );
-    FREE( p );
+    ABC_FREE( p->ppSupers );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -192,7 +192,7 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
     // get the file name with the library
     pNameGeneric = Extra_FileNameGeneric( Mio_LibraryReadName(pLib) );
     sprintf( FileNameSuper, "%s.super", pNameGeneric );
-    free( pNameGeneric );
+    ABC_FREE( pNameGeneric );
 
     sprintf( CommandSuper,  "super -l 1 -i 5 -d 10000000 -a 10000000 -t 100 %s", FileNameGenlib ); 
     if ( Cmd_CommandExecute( pAbc, CommandSuper ) )

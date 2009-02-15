@@ -66,7 +66,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         return NULL;
     }
 
-    p = ALLOC( Fpga_LutLib_t, 1 );
+    p = ABC_ALLOC( Fpga_LutLib_t, 1 );
     memset( p, 0, sizeof(Fpga_LutLib_t) );
     p->pName = Extra_UtilStrsav( FileName );
 
@@ -81,7 +81,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         if ( i != atoi(pToken) )
         {
             printf( "Error in the LUT library file \"%s\".\n", FileName );
-            free( p );
+            ABC_FREE( p );
             return NULL;
         }
 
@@ -162,7 +162,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
 Fpga_LutLib_t * Fpga_LutLibDup( Fpga_LutLib_t * p )
 {
     Fpga_LutLib_t * pNew;
-    pNew = ALLOC( Fpga_LutLib_t, 1 );
+    pNew = ABC_ALLOC( Fpga_LutLib_t, 1 );
     *pNew = *p;
     pNew->pName = Extra_UtilStrsav( pNew->pName );
     return pNew;
@@ -183,8 +183,8 @@ void Fpga_LutLibFree( Fpga_LutLib_t * pLutLib )
 {
     if ( pLutLib == NULL )
         return;
-    FREE( pLutLib->pName );
-    FREE( pLutLib );
+    ABC_FREE( pLutLib->pName );
+    ABC_FREE( pLutLib );
 }
 
 

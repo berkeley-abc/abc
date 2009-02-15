@@ -109,7 +109,7 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
     }
     if ( p->fVerboseP ) 
     {
-//        PRT( "Final miter proof time", clock() - clk );
+//        ABC_PRT( "Final miter proof time", clock() - clk );
     }
 }
 
@@ -128,7 +128,7 @@ int Fraig_ManCheckMiter( Fraig_Man_t * p )
 {
     Fraig_Node_t * pNode;
     int i;
-    FREE( p->pModel );
+    ABC_FREE( p->pModel );
     for ( i = 0; i < p->vOutputs->nSize; i++ )
     {
         // get the output node (it can be complemented!)
@@ -352,7 +352,7 @@ clk = clock();
 p->timeTrav += clock() - clk;
 
 //    printf( "The number of MUXes detected = %d (%5.2f %% of logic).  ", nMuxes, 300.0*nMuxes/(p->vNodes->nSize - p->vInputs->nSize) );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
 
 if ( fVerbose )
     printf( "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
@@ -391,8 +391,8 @@ p->timeSat += clock() - clk;
 
 if ( fVerbose )
 {
-    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
 
         // add the clause
@@ -409,8 +409,8 @@ PRT( "time", clock() - clk );
 
 if ( fVerbose )
 {
-    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
 
         // record the counter example
@@ -468,8 +468,8 @@ p->timeSat += clock() - clk;
 
 if ( fVerbose )
 {
-    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
 
         // add the clause
@@ -486,8 +486,8 @@ PRT( "time", clock() - clk );
 
 if ( fVerbose )
 {
-    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
 
         // record the counter example
@@ -599,8 +599,8 @@ p->timeSat += clock() - clk;
 
 if ( fVerbose )
 {
-    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
 
         // add the clause
@@ -618,8 +618,8 @@ PRT( "time", clock() - clk );
 
 if ( fVerbose )
 {
-    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
         // record the counter example
         Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pOld, pNew );
@@ -690,8 +690,8 @@ p->timeSat += clock() - clk;
 
 if ( fVerbose )
 {
-    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
 
         // add the clause
@@ -709,8 +709,8 @@ PRT( "time", clock() - clk );
 
 if ( fVerbose )
 {
-    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
-PRT( "time", clock() - clk );
+//    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+//ABC_PRT( "time", clock() - clk );
 }
         // record the counter example
 //        Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pNode1R, pNode2R );
@@ -907,7 +907,7 @@ void Fraig_OrderVariables( Fraig_Man_t * pMan, Fraig_Node_t * pOld, Fraig_Node_t
         {
             // create the fanins of the supergate
             assert( pNode->fClauses == 0 );
-            // detecting a fanout-free cone (experiment only)
+            // detecting a fanout-ABC_FREE cone (experiment only)
 //            Fraig_DetectFanoutFreeCone( pMan, pNode );
 
             if ( fUseMuxes && Fraig_NodeIsMuxType(pNode) )

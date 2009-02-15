@@ -319,7 +319,7 @@ void Sim_ComputeSuppSetTargets( Sim_Man_t * p )
         // find vars in the structural support that are not in the functional support
         Sim_UtilInfoDetectNews( pSuppFun, pSuppStr, p->nSuppWords, p->vDiffs );
         Vec_IntForEachEntry( p->vDiffs, Num, k )
-            Vec_VecPush( p->vSuppTargs, Num, (void *)(PORT_PTRUINT_T)i );
+            Vec_VecPush( p->vSuppTargs, Num, (void *)(ABC_PTRUINT_T)i );
     }
 }
 
@@ -460,7 +460,7 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
     Vec_VecForEachEntryReverse( p->vSuppTargs, pEntry, Input, k )
     {
         p->nSatRuns++;
-        Output = (int)(PORT_PTRUINT_T)pEntry;
+        Output = (int)(ABC_PTRUINT_T)pEntry;
 
         // set up the miter for the two cofactors of this output w.r.t. this input
         pMiter = Abc_NtkMiterForCofactors( p->pNtk, Output, Input, -1 );
@@ -545,7 +545,7 @@ int Sim_NtkSimTwoPats_rec( Abc_Obj_t * pNode )
 {
     int Value0, Value1;
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
-        return (int)(PORT_PTRUINT_T)pNode->pCopy;
+        return (int)(ABC_PTRUINT_T)pNode->pCopy;
     Abc_NodeSetTravIdCurrent( pNode );
     Value0 = Sim_NtkSimTwoPats_rec( Abc_ObjFanin0(pNode) );
     Value1 = Sim_NtkSimTwoPats_rec( Abc_ObjFanin1(pNode) );
@@ -553,7 +553,7 @@ int Sim_NtkSimTwoPats_rec( Abc_Obj_t * pNode )
         Value0 = ~Value0;
     if ( Abc_ObjFaninC1(pNode) )
         Value1 = ~Value1;
-    pNode->pCopy = (Abc_Obj_t *)(PORT_PTRUINT_T)(Value0 & Value1);
+    pNode->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)(Value0 & Value1);
     return Value0 & Value1;
 }
 

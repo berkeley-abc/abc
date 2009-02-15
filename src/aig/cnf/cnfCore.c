@@ -77,9 +77,9 @@ p->timeSave = clock() - clk;
 
    // reset reference counters
     Aig_ManResetRefs( pAig );
-//PRT( "Cuts   ", p->timeCuts );
-//PRT( "Map    ", p->timeMap  );
-//PRT( "Saving ", p->timeSave );
+//ABC_PRT( "Cuts   ", p->timeCuts );
+//ABC_PRT( "Map    ", p->timeMap  );
+//ABC_PRT( "Saving ", p->timeSave );
     return pCnf;
 }
 
@@ -141,7 +141,7 @@ Cnf_Dat_t * Cnf_Derive_old( Aig_Man_t * pAig )
 clk = clock();
         Cnf_ManScanMapping( p, 0 );
         Cnf_ManMapForCnf( p );
-PRT( "iter ", clock() - clk );
+ABC_PRT( "iter ", clock() - clk );
     }
 */
     // write the file
@@ -159,7 +159,7 @@ clk = clock();
     Cnf_ManPostprocess( p );
     Cnf_ManScanMapping( p, 0 );
 */
-PRT( "Ext ", clock() - clk );
+ABC_PRT( "Ext ", clock() - clk );
 
 /*
     vMapped = Cnf_ManScanMapping( p, 1 );

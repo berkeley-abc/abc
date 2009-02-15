@@ -115,9 +115,9 @@ DdNode * Extra_ReorderCudd( DdManager * dd, DdNode * aFunc, int pPermuteReo[] )
     // start the reordering manager
     if ( ddReorder == NULL )
     {
-        Permute       = ALLOC( int, dd->size );
-        PermuteReo1   = ALLOC( int, dd->size );
-        PermuteReo2   = ALLOC( int, dd->size );
+        Permute       = ABC_ALLOC( int, dd->size );
+        PermuteReo1   = ABC_ALLOC( int, dd->size );
+        PermuteReo2   = ABC_ALLOC( int, dd->size );
         ddReorder = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
         Cudd_AutodynDisable(ddReorder);
     }

@@ -309,7 +309,7 @@ clk = clock();
     if ( fVerbose )
     {
         printf( "Total new PIs = %3d. Non-removable PIs = %3d.  ", Saig_ManPiNum(p)-iFirstPi, Vec_IntSize(vRes) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
     }
     Vec_PtrFree( vSimInfo );
     Aig_ManFanoutStop( p );

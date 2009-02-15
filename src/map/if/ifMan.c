@@ -48,7 +48,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
 {
     If_Man_t * p;
     // start the manager
-    p = ALLOC( If_Man_t, 1 );
+    p = ABC_ALLOC( If_Man_t, 1 );
     memset( p, 0, sizeof(If_Man_t) );
     p->pPars = pPars;
     p->fEpsilon = pPars->Epsilon;
@@ -71,7 +71,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         printf( "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d.\n", 
             p->pPars->nLutSize, 4 * p->nTruthWords, p->nCutBytes, p->nObjBytes, p->nSetBytes );
     // room for temporary truth tables
-    p->puTemp[0] = p->pPars->fTruth? ALLOC( unsigned, 4 * p->nTruthWords ) : NULL;
+    p->puTemp[0] = p->pPars->fTruth? ABC_ALLOC( unsigned, 4 * p->nTruthWords ) : NULL;
     p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
     p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
     p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
@@ -96,7 +96,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
 ***********************************************************************/
 void If_ManRestart( If_Man_t * p )
 {
-    FREE( p->pMemCi );
+    ABC_FREE( p->pMemCi );
     Vec_PtrClear( p->vCis );
     Vec_PtrClear( p->vCos );
     Vec_PtrClear( p->vObjs );
@@ -124,7 +124,7 @@ void If_ManRestart( If_Man_t * p )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
-//    PRT( "Truth", p->timeTruth );
+//    ABC_PRT( "Truth", p->timeTruth );
 //    printf( "Small support = %d.\n", p->nSmallSupp );
     Vec_PtrFree( p->vCis );
     Vec_PtrFree( p->vCos );
@@ -135,19 +135,19 @@ void If_ManStop( If_Man_t * p )
     if ( p->vLatchOrder ) Vec_PtrFree( p->vLatchOrder );
     if ( p->vLags )       Vec_IntFree( p->vLags );
     Mem_FixedStop( p->pMemObj, 0 );
-    FREE( p->pMemCi );
-    FREE( p->pMemAnd );
-    FREE( p->puTemp[0] );
-    // free pars memory
+    ABC_FREE( p->pMemCi );
+    ABC_FREE( p->pMemAnd );
+    ABC_FREE( p->puTemp[0] );
+    // ABC_FREE pars memory
     if ( p->pPars->pTimesArr )
-        FREE( p->pPars->pTimesArr );
+        ABC_FREE( p->pPars->pTimesArr );
     if ( p->pPars->pTimesReq )
-        FREE( p->pPars->pTimesReq );
+        ABC_FREE( p->pPars->pTimesReq );
     if ( p->pManTim )
         Tim_ManStop( p->pManTim );
     if ( p->vSwitching )
         Vec_IntFree( p->vSwitching );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -427,7 +427,7 @@ void If_ManSetupCiCutSets( If_Man_t * p )
     If_ManForEachCi( p, pObj, i )
         If_ManSetupCutTriv( p, &pObj->CutBest, pObj->Id );
     // create elementary cutsets for the CIs
-    p->pMemCi = (If_Set_t *)malloc( If_ManCiNum(p) * (sizeof(If_Set_t) + sizeof(void *)) );
+    p->pMemCi = (If_Set_t *)ABC_ALLOC( char, If_ManCiNum(p) * (sizeof(If_Set_t) + sizeof(void *)) );
     If_ManForEachCi( p, pObj, i )
     {
         pObj->pCutSet = (If_Set_t *)((char *)p->pMemCi + i * (sizeof(If_Set_t) + sizeof(void *)));
@@ -552,7 +552,7 @@ void If_ManSetupSetAll( If_Man_t * p, int nCrossCut )
     If_Set_t * pCutSet;
     int i, nCutSets;
     nCutSets = 128 + nCrossCut;
-    p->pFreeList = p->pMemAnd = pCutSet = (If_Set_t *)malloc( nCutSets * p->nSetBytes );
+    p->pFreeList = p->pMemAnd = pCutSet = (If_Set_t *)ABC_ALLOC( char, nCutSets * p->nSetBytes );
     for ( i = 0; i < nCutSets; i++ )
     {
         If_ManSetupSet( p, pCutSet );

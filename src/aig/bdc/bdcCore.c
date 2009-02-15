@@ -62,7 +62,7 @@ void         Bdc_FuncSetCopy( Bdc_Fun_t * p, void * pCopy )    { p->pCopy = pCop
 Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
 {
     Bdc_Man_t * p;
-    p = ALLOC( Bdc_Man_t, 1 );
+    p = ABC_ALLOC( Bdc_Man_t, 1 );
     memset( p, 0, sizeof(Bdc_Man_t) );
     assert( pPars->nVarsMax > 1 && pPars->nVarsMax < 16 );
     p->pPars = pPars;
@@ -70,18 +70,18 @@ Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
     p->nDivsLimit = 200;
     // internal nodes
     p->nNodesAlloc = 512;
-    p->pNodes = ALLOC( Bdc_Fun_t, p->nNodesAlloc );
+    p->pNodes = ABC_ALLOC( Bdc_Fun_t, p->nNodesAlloc );
     // memory
     p->vMemory = Vec_IntStart( 8 * p->nWords * p->nNodesAlloc );
     Vec_IntClear(p->vMemory);
     // set up hash table
     p->nTableSize = (1 << p->pPars->nVarsMax);
-    p->pTable = ALLOC( Bdc_Fun_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Bdc_Fun_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Bdc_Fun_t *) * p->nTableSize );
     p->vSpots = Vec_IntAlloc( 256 );
     // truth tables
     p->vTruths = Vec_PtrAllocTruthTables( p->pPars->nVarsMax );
-    p->puTemp1 = ALLOC( unsigned, 4 * p->nWords );
+    p->puTemp1 = ABC_ALLOC( unsigned, 4 * p->nWords );
     p->puTemp2 = p->puTemp1 + p->nWords;
     p->puTemp3 = p->puTemp2 + p->nWords;
     p->puTemp4 = p->puTemp3 + p->nWords;
@@ -112,19 +112,19 @@ void Bdc_ManFree( Bdc_Man_t * p )
             p->numCalls, p->numNodes, p->numReuse );
         printf( "ANDs = %d.  ORs = %d.  Weak = %d.  Muxes = %d.  Memory = %.2f K\n", 
             p->numAnds, p->numOrs, p->numWeaks, p->numMuxes, 4.0 * Vec_IntSize(p->vMemory) / (1<<10) );
-        PRT( "Cache", p->timeCache );
-        PRT( "Check", p->timeCheck );
-        PRT( "Muxes", p->timeMuxes );
-        PRT( "Supps", p->timeSupps );
-        PRT( "TOTAL", p->timeTotal );
+        ABC_PRT( "Cache", p->timeCache );
+        ABC_PRT( "Check", p->timeCheck );
+        ABC_PRT( "Muxes", p->timeMuxes );
+        ABC_PRT( "Supps", p->timeSupps );
+        ABC_PRT( "TOTAL", p->timeTotal );
     }
     Vec_IntFree( p->vMemory );
     Vec_IntFree( p->vSpots );
     Vec_PtrFree( p->vTruths );
-    free( p->puTemp1 );
-    free( p->pNodes );
-    free( p->pTable );
-    free( p );
+    ABC_FREE( p->puTemp1 );
+    ABC_FREE( p->pNodes );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

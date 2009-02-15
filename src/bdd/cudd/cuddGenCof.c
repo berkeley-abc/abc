@@ -302,7 +302,7 @@ Cudd_bddConstrainDecomp(
     int i;
 
     /* Create an initialize decomposition array. */
-    decomp = ALLOC(DdNode *,dd->size);
+    decomp = ABC_ALLOC(DdNode *,dd->size);
     if (decomp == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -322,7 +322,7 @@ Cudd_bddConstrainDecomp(
     res = cuddBddConstrainDecomp(dd,f,decomp);
     } while (dd->reordered == 1);
     if (res == 0) {
-    FREE(decomp);
+    ABC_FREE(decomp);
     return(NULL);
     }
     /* Missing components are constant ones. */
@@ -442,7 +442,7 @@ Cudd_bddCharToVect(
 
     if (f == Cudd_Not(DD_ONE(dd))) return(NULL);
 
-    vect = ALLOC(DdNode *, dd->size);
+    vect = ABC_ALLOC(DdNode *, dd->size);
     if (vect == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -464,7 +464,7 @@ Cudd_bddCharToVect(
     }
     } while (dd->reordered == 1);
     if (res == NULL) {
-    FREE(vect);
+    ABC_FREE(vect);
     return(NULL);
     }
     return(vect);
@@ -1460,14 +1460,14 @@ cuddBddLICMarkEdges(
     */
 
     /* Check the cache. */
-    key = ALLOC(MarkCacheKey, 1);
+    key = ABC_ALLOC(MarkCacheKey, 1);
     if (key == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(CUDD_OUT_OF_MEM);
     }
     key->f = f; key->c = c;
     if (st_lookup(cache, (char *)key, (char **)&res)) {
-    FREE(key);
+    ABC_FREE(key);
     if (comple) {
         if (res == DD_LIC_0) res = DD_LIC_1;
         else if (res == DD_LIC_1) res = DD_LIC_0;
@@ -1498,12 +1498,12 @@ cuddBddLICMarkEdges(
 
     resT = cuddBddLICMarkEdges(dd, Fv, Cv, table, cache);
     if (resT == CUDD_OUT_OF_MEM) {
-    FREE(key);
+    ABC_FREE(key);
     return(CUDD_OUT_OF_MEM);
     }
     resE = cuddBddLICMarkEdges(dd, Fnv, Cnv, table, cache);
     if (resE == CUDD_OUT_OF_MEM) {
-    FREE(key);
+    ABC_FREE(key);
     return(CUDD_OUT_OF_MEM);
     }
 
@@ -1515,7 +1515,7 @@ cuddBddLICMarkEdges(
     } else if (retval == 1) {
         *slot = (char *) (ptrint)((int)((ptrint) *slot) | (resT << 2) | resE);
     } else {
-        FREE(key);
+        ABC_FREE(key);
         return(CUDD_OUT_OF_MEM);
     }
     }
@@ -1523,7 +1523,7 @@ cuddBddLICMarkEdges(
     /* Cache result. */
     res = resT | resE;
     if (st_insert(cache, (char *)key, (char *)(ptrint)res) == ST_OUT_OF_MEM) {
-    FREE(key);
+    ABC_FREE(key);
     return(CUDD_OUT_OF_MEM);
     }
 
@@ -1730,7 +1730,7 @@ MarkCacheCleanUp(
     MarkCacheKey *entry;
 
     entry = (MarkCacheKey *) key;
-    FREE(entry);
+    ABC_FREE(entry);
     return ST_CONTINUE;
 
 } /* end of MarkCacheCleanUp */

@@ -253,7 +253,7 @@ ddWindowConv2(
     if (high-low < 1) return(ddWindowConv2(table,low,high));
 
     nwin = high-low;
-    events = ALLOC(int,nwin);
+    events = ABC_ALLOC(int,nwin);
     if (events == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -270,13 +270,13 @@ ddWindowConv2(
         size = res;
         res = cuddSwapInPlace(table,x+low,x+low+1);
         if (res == 0) {
-            FREE(events);
+            ABC_FREE(events);
             return(0);
         }
         if (res >= size) { /* no improvement: undo permutation */
             res = cuddSwapInPlace(table,x+low,x+low+1);
             if (res == 0) {
-            FREE(events);
+            ABC_FREE(events);
             return(0);
             }
         }
@@ -304,7 +304,7 @@ ddWindowConv2(
 #endif
     } while (newevent);
 
-    FREE(events);
+    ABC_FREE(events);
 
     return(1);
 
@@ -487,7 +487,7 @@ ddWindowConv3(
     if (high-low < 2) return(ddWindowConv2(table,low,high));
 
     nwin = high-low-1;
-    events = ALLOC(int,nwin);
+    events = ABC_ALLOC(int,nwin);
     if (events == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -524,7 +524,7 @@ ddWindowConv3(
             newevent = 1;
             break;
         default:
-            FREE(events);
+            ABC_FREE(events);
             return(0);
         }
         events[x] = 0;
@@ -546,7 +546,7 @@ ddWindowConv3(
 #endif
     } while (newevent);
 
-    FREE(events);
+    ABC_FREE(events);
 
     return(1);
 
@@ -888,7 +888,7 @@ ddWindowConv4(
     if (high-low < 3) return(ddWindowConv3(table,low,high));
 
     nwin = high-low-2;
-    events = ALLOC(int,nwin);
+    events = ABC_ALLOC(int,nwin);
     if (events == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -967,7 +967,7 @@ ddWindowConv4(
             newevent = 1;
             break;
         default:
-            FREE(events);
+            ABC_FREE(events);
             return(0);
         }
         events[x] = 0;
@@ -989,7 +989,7 @@ ddWindowConv4(
 #endif
     } while (newevent);
 
-    FREE(events);
+    ABC_FREE(events);
 
     return(1);
 

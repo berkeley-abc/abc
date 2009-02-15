@@ -168,7 +168,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
             { // first time here
                 // create the PO drivers and add them
                 // start the SOP covers
-                ppSops = ALLOC( Vec_Str_t *, nOutputs );
+                ppSops = ABC_ALLOC( Vec_Str_t *, nOutputs );
                 Abc_NtkForEachPo( pNtk, pTermPo, i )
                 {
                     ppSops[i] = Vec_StrAlloc( 100 );
@@ -250,7 +250,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, ppSops[i]->pArray );
         Vec_StrFree( ppSops[i] );
     }
-    free( ppSops );
+    ABC_FREE( ppSops );
     Abc_NtkFinalizeRead( pNtk );
     return pNtk;
 }

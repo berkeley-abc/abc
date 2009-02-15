@@ -64,7 +64,7 @@ static inline int * Fra_SmlCountOnes( Fra_Sml_t * p )
 {
     Aig_Obj_t * pObj;
     int i, * pnBits; 
-    pnBits = ALLOC( int, Aig_ManObjNumMax(p->pAig) );  
+    pnBits = ABC_ALLOC( int, Aig_ManObjNumMax(p->pAig) );  
     memset( pnBits, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) );
     Aig_ManForEachObj( p->pAig, pObj, i )
         pnBits[i] = Fra_SmlCountOnesOne( p, i );
@@ -159,7 +159,7 @@ Vec_Ptr_t * Fra_SmlSortUsingOnes( Fra_Sml_t * p, int fLatchCorr )
     // count number of nodes having that many 1s
     nNodes = 0;
     nBits = p->nWordsTotal * 32;
-    pnNodes = ALLOC( int, nBits + 1 );
+    pnNodes = ABC_ALLOC( int, nBits + 1 );
     memset( pnNodes, 0, sizeof(int) * (nBits + 1) );
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
@@ -183,7 +183,7 @@ Vec_Ptr_t * Fra_SmlSortUsingOnes( Fra_Sml_t * p, int fLatchCorr )
         nNodes++;
     }
     // allocate memory for all the nodes
-    pMemory = ALLOC( int, nNodes + nBits + 1 );  
+    pMemory = ABC_ALLOC( int, nNodes + nBits + 1 );  
     // markup the memory for each node
     vNodes = Vec_PtrAlloc( nBits + 1 );
     Vec_PtrPush( vNodes, pMemory );
@@ -222,8 +222,8 @@ Vec_Ptr_t * Fra_SmlSortUsingOnes( Fra_Sml_t * p, int fLatchCorr )
         nTotal += pnNodes[i];
     }
     assert( nTotal == nNodes + nBits + 1 );
-    free( pnNodes );
-    free( pnBits );
+    ABC_FREE( pnNodes );
+    ABC_FREE( pnBits );
     return vNodes;
 }
 
@@ -244,7 +244,7 @@ Vec_Int_t * Fra_SmlSelectMaxCost( Vec_Int_t * vImps, int * pCosts, int nCostMax,
     int * pCostCount, nImpCount, Imp, i, c;
     assert( Vec_IntSize(vImps) >= nImpLimit );
     // count how many implications have each cost
-    pCostCount = ALLOC( int, nCostMax + 1 );
+    pCostCount = ABC_ALLOC( int, nCostMax + 1 );
     memset( pCostCount, 0, sizeof(int) * (nCostMax + 1) );
     for ( i = 0; i < Vec_IntSize(vImps); i++ )
     {
@@ -271,7 +271,7 @@ Vec_Int_t * Fra_SmlSelectMaxCost( Vec_Int_t * vImps, int * pCosts, int nCostMax,
         if ( Vec_IntSize( vImpsNew ) == nImpLimit )
             break;
     }
-    free( pCostCount );
+    ABC_FREE( pCostCount );
     if ( pCostRange )
         *pCostRange = c;
     return vImpsNew;
@@ -329,7 +329,7 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
     pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
-    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 1 );
+    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 1, 1  );
     // get the nodes sorted by the number of 1s
     vNodes = Fra_SmlSortUsingOnes( pSeq, fLatchCorr );
     // count the total number of implications
@@ -340,7 +340,7 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
         nImpsTotal++;
 
     // compute implications and their costs
-    pImpCosts = ALLOC( int, nImpMaxLimit );
+    pImpCosts = ABC_ALLOC( int, nImpMaxLimit );
     vImps = Vec_IntAlloc( nImpMaxLimit );
     for ( k = pSeq->nWordsTotal * 32; k > 0; k-- )
         for ( i = k - 1; i > 0; i-- )
@@ -384,8 +384,11 @@ finish:
     }
 
     // dealloc
-    free( pImpCosts ); 
-    free( Vec_PtrEntry(vNodes, 0) );
+    ABC_FREE( pImpCosts ); 
+    {
+    void * pTemp = Vec_PtrEntry(vNodes, 0);
+    ABC_FREE( pTemp );
+    }
     Vec_PtrFree( vNodes );
     // reorder implications topologically
     qsort( (void *)Vec_IntArray(vImps), Vec_IntSize(vImps), sizeof(int), 
@@ -396,7 +399,7 @@ printf( "Implications: All = %d. Try = %d. NonSeq = %d. Comb = %d. Res = %d.\n",
     nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected );
 printf( "Implication weight: Min = %d. Pivot = %d. Max = %d.   ", 
        CostMin, CostRange, CostMax );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
     return vImps;
 }
@@ -665,9 +668,9 @@ int Fra_ImpVerifyUsingSimulation( Fra_Man_t * p )
     if ( p->pCla->vImps == NULL || Vec_IntSize(p->pCla->vImps) == 0 )
         return 0;
     // simulate the AIG manager with combinational patterns
-    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nFrames, nSimWords );
+    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nFrames, nSimWords, 1  );
     // go through the implications and check how many of them do not hold
-    pfFails = ALLOC( char, Vec_IntSize(p->pCla->vImps) );
+    pfFails = ABC_ALLOC( char, Vec_IntSize(p->pCla->vImps) );
     memset( pfFails, 0, sizeof(char) * Vec_IntSize(p->pCla->vImps) );
     Vec_IntForEachEntry( p->pCla->vImps, Imp, i )
     {
@@ -679,7 +682,7 @@ int Fra_ImpVerifyUsingSimulation( Fra_Man_t * p )
     Counter = 0;
     for ( i = 0; i < Vec_IntSize(p->pCla->vImps); i++ )
         Counter += pfFails[i];
-    free( pfFails );
+    ABC_FREE( pfFails );
     Fra_SmlStop( pSeq );
     return Counter;
 }

@@ -30,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Creates AIG.]
 
   Description []
                
@@ -39,10 +39,26 @@
   SeeAlso     []
 
 ***********************************************************************/
+Cec_ManCsw_t * Cec_ManCswStart( Gia_Man_t * pAig, Cec_ParCsw_t *  pPars )  
+{ 
+    Cec_ManCsw_t * p;
+    p = ABC_ALLOC( Cec_ManCsw_t, 1 );
+    memset( p, 0, sizeof(Cec_ManCsw_t) );
+    p->pAig  = pAig;
+    p->pPars = pPars;
+    p->pObjs = ABC_CALLOC( Cec_ObjCsw_t, Gia_ManObjNum(pAig) );
+    // temporaries
+    p->vClassOld  = Vec_IntAlloc( 1000 );
+    p->vClassNew  = Vec_IntAlloc( 1000 );
+    p->vClassTemp = Vec_IntAlloc( 1000 );
+    p->vRefinedC  = Vec_IntAlloc( 10000 );
+    p->vXorNodes  = Vec_IntAlloc( 1000 );
+    return p;
+}
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Deletes AIG.]
 
   Description []
                
@@ -51,6 +67,161 @@
   SeeAlso     []
 
 ***********************************************************************/
+void Cec_ManCswStop( Cec_ManCsw_t * p )  
+{
+    Vec_IntFree( p->vXorNodes );
+    Vec_IntFree( p->vClassOld );
+    Vec_IntFree( p->vClassNew );
+    Vec_IntFree( p->vClassTemp );
+    Vec_IntFree( p->vRefinedC );
+    ABC_FREE( p->pMems );
+    ABC_FREE( p->pObjs );
+    ABC_FREE( p );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cec_ManPat_t * Cec_ManPatStart()  
+{ 
+    Cec_ManPat_t * p;
+    p = ABC_CALLOC( Cec_ManPat_t, 1 );
+    p->vStorage  = Vec_StrAlloc( 1<<20 );
+    p->vPattern1 = Vec_IntAlloc( 1000 );
+    p->vPattern2 = Vec_IntAlloc( 1000 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManPatPrintStats( Cec_ManPat_t * p )  
+{ 
+    printf( "Latest: P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
+        p->nPats, p->nPatLits, p->nPatLitsMin, 1.0 * p->nPatLitsMin/p->nPats, 
+        1.0*(Vec_StrSize(p->vStorage)-p->iStart)/(1<<20) );
+    printf( "Total:  P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
+        p->nPatsAll, p->nPatLitsAll, p->nPatLitsMinAll, 1.0 * p->nPatLitsMinAll/p->nPatsAll, 
+        1.0*Vec_StrSize(p->vStorage)/(1<<20) );
+    ABC_PRTP( "Finding  ", p->timeFind,   p->timeTotal );
+    ABC_PRTP( "Shrinking", p->timeShrink, p->timeTotal );
+    ABC_PRTP( "Verifying", p->timeVerify, p->timeTotal );
+    ABC_PRTP( "Sorting  ", p->timeSort,   p->timeTotal );
+    ABC_PRTP( "Packing  ", p->timePack,   p->timeTotal );
+    ABC_PRT( "TOTAL    ",  p->timeTotal );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deletes AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManPatStop( Cec_ManPat_t * p )  
+{
+    Vec_StrFree( p->vStorage );
+    Vec_IntFree( p->vPattern1 );
+    Vec_IntFree( p->vPattern2 );
+    ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cec_ManSat_t * Cec_ManSatCreate( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
+{
+    Cec_ManSat_t * p;
+    // create interpolation manager
+    p = ABC_ALLOC( Cec_ManSat_t, 1 );
+    memset( p, 0, sizeof(Cec_ManSat_t) );
+    p->pPars        = pPars;
+    p->pAig         = pAig;
+    // SAT solving
+    p->nSatVars     = 1;
+    p->pSatVars     = ABC_CALLOC( int, Gia_ManObjNum(pAig) );
+    p->vUsedNodes   = Vec_PtrAlloc( 1000 );
+    p->vFanins      = Vec_PtrAlloc( 100 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints statistics of the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSatPrintStats( Cec_ManSat_t * p )
+{
+    printf( "CO = %6d  ", Gia_ManCoNum(p->pAig) );
+    printf( "Conf = %5d  ", p->pPars->nBTLimit );
+    printf( "MinVar = %5d  ", p->pPars->nSatVarMax );
+    printf( "MinCalls = %5d\n", p->pPars->nCallsRecycle );
+    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+        p->nSatUnsat, 100.0*p->nSatUnsat/p->nSatTotal, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
+    ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
+    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+        p->nSatSat,   100.0*p->nSatSat/p->nSatTotal, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
+    ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
+    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+        p->nSatUndec, 100.0*p->nSatUndec/p->nSatTotal, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
+    ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSatStop( Cec_ManSat_t * p )
+{
+    if ( p->pSat )
+        sat_solver_delete( p->pSat );
+    Vec_PtrFree( p->vUsedNodes );
+    Vec_PtrFree( p->vFanins );
+    ABC_FREE( p->pSatVars );
+    ABC_FREE( p );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

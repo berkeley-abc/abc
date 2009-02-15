@@ -121,9 +121,9 @@ clkUnate = clock() - clk - clkBdd;
     // print stats
     printf( "Ins/Outs = %4d/%4d.  Total supp = %5d.  Total unate = %5d.\n",
         Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), TotalSupps, TotalUnate );
-    PRT( "Glob BDDs", clkBdd );
-    PRT( "Unateness", clkUnate );
-    PRT( "Total    ", clock() - clk );
+    ABC_PRT( "Glob BDDs", clkBdd );
+    ABC_PRT( "Unateness", clkUnate );
+    ABC_PRT( "Total    ", clock() - clk );
 
     // deref the PO functions
 //    Abc_NtkFreeGlobalBdds( pNtk );

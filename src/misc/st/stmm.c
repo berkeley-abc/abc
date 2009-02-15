@@ -10,16 +10,11 @@
 #include <stdio.h>
 #include "extra.h"
 #include "stmm.h"
-#include "port_type.h"
-
-#ifndef ABS
-#  define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
 
 #define STMM_NUMCMP(x,y) ((x) != (y))
-#define STMM_NUMHASH(x,size) (ABS((long)x)%(size))
-//#define STMM_PTRHASH(x,size) ((int)((PORT_PTRUINT_T)(x)>>2)%size) //  64-bit bug fix 9/17/2007
-#define STMM_PTRHASH(x,size) ((int)(((PORT_PTRUINT_T)(x)>>2)%size))
+#define STMM_NUMHASH(x,size) (ABC_ABS((long)x)%(size))
+//#define STMM_PTRHASH(x,size) ((int)((ABC_PTRUINT_T)(x)>>2)%size) //  64-bit bug fix 9/17/2007
+#define STMM_PTRHASH(x,size) ((int)(((ABC_PTRUINT_T)(x)>>2)%size))
 #define EQUAL(func, x, y) \
     ((((func) == stmm_numcmp) || ((func) == stmm_ptrcmp)) ?\
       (STMM_NUMCMP((x),(y)) == 0) : ((*func)((x), (y)) == 0))
@@ -46,7 +41,7 @@ stmm_init_table_with_params (compare, hash, size, density, grow_factor,
     int i;
     stmm_table *new;
 
-    new = ALLOC (stmm_table, 1);
+    new = ABC_ALLOC(stmm_table, 1);
     if (new == NULL) {
     return NULL;
     }
@@ -60,9 +55,9 @@ stmm_init_table_with_params (compare, hash, size, density, grow_factor,
     size = 1;
     }
     new->num_bins = size;
-    new->bins = ALLOC (stmm_table_entry *, size);
+    new->bins = ABC_ALLOC(stmm_table_entry *, size);
     if (new->bins == NULL) {
-    FREE (new);
+    ABC_FREE (new);
     return NULL;
     }
     for (i = 0; i < size; i++) {
@@ -99,7 +94,7 @@ stmm_free_table (table)
         while ( ptr != NULL )
         {
             next = ptr->next;
-            FREE( ptr );
+            ABC_FREE( ptr );
             ptr = next;
         }
     }
@@ -108,8 +103,8 @@ stmm_free_table (table)
     // added by alanmi
     if ( table->pMemMan )
         Extra_MmFixedStop (table->pMemMan);
-    FREE (table->bins);
-    FREE (table);
+    ABC_FREE (table->bins);
+    ABC_FREE (table);
 }
 
 // this function recycles all the bins
@@ -194,7 +189,7 @@ stmm_lookup_int (table, key, value)
 }
 
 // This macro contained a line
-//    new = ALLOC(stmm_table_entry, 1);
+//    new = ABC_ALLOC(stmm_table_entry, 1);
 // which was modified by alanmi
 
 
@@ -237,7 +232,7 @@ stmm_insert (table, key, value)
         hash_val = do_hash (key, table);
     }
 
-//              new = ALLOC( stmm_table_entry, 1 );
+//              new = ABC_ALLOC( stmm_table_entry, 1 );
     new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
     if (new == NULL) {
         return STMM_OUT_OF_MEM;
@@ -273,7 +268,7 @@ stmm_add_direct (table, key, value)
     }
     hash_val = do_hash (key, table);
 
-//      new = ALLOC( stmm_table_entry, 1 );
+//      new = ABC_ALLOC( stmm_table_entry, 1 );
     new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
     if (new == NULL) {
     return STMM_OUT_OF_MEM;
@@ -308,7 +303,7 @@ stmm_find_or_add (table, key, slot)
         hash_val = do_hash (key, table);
     }
 
-    // new = ALLOC( stmm_table_entry, 1 );
+    // new = ABC_ALLOC( stmm_table_entry, 1 );
     new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
     if (new == NULL) {
         return STMM_OUT_OF_MEM;
@@ -373,7 +368,7 @@ rehash (table)
     table->num_bins += 1;
     }
     table->num_entries = 0;
-    table->bins = ALLOC (stmm_table_entry *, table->num_bins);
+    table->bins = ABC_ALLOC(stmm_table_entry *, table->num_bins);
     if (table->bins == NULL) {
     table->bins = old_bins;
     table->num_bins = old_num_bins;
@@ -397,7 +392,7 @@ rehash (table)
         ptr = next;
     }
     }
-    FREE (old_bins);
+    ABC_FREE (old_bins);
 
     return 1;
 }
@@ -410,15 +405,15 @@ stmm_copy (old_table)
     stmm_table_entry *ptr, /* *newptr, *next, */ *new;
     int i, /*j, */ num_bins = old_table->num_bins;
 
-    new_table = ALLOC (stmm_table, 1);
+    new_table = ABC_ALLOC(stmm_table, 1);
     if (new_table == NULL) {
     return NULL;
     }
 
     *new_table = *old_table;
-    new_table->bins = ALLOC (stmm_table_entry *, num_bins);
+    new_table->bins = ABC_ALLOC(stmm_table_entry *, num_bins);
     if (new_table->bins == NULL) {
-    FREE (new_table);
+    ABC_FREE (new_table);
     return NULL;
     }
 
@@ -430,7 +425,7 @@ stmm_copy (old_table)
     new_table->bins[i] = NULL;
     ptr = old_table->bins[i];
     while (ptr != NULL) {
-//                      new = ALLOC( stmm_table_entry, 1 );
+//                      new = ABC_ALLOC( stmm_table_entry, 1 );
         new =
         (stmm_table_entry *) Extra_MmFixedEntryFetch (new_table->
                                 pMemMan);
@@ -443,15 +438,15 @@ stmm_copy (old_table)
                     while ( newptr != NULL )
                     {
                         next = newptr->next;
-                        FREE( newptr );
+                        ABC_FREE( newptr );
                         newptr = next;
                     }
                 }
 */
         Extra_MmFixedStop (new_table->pMemMan);
 
-        FREE (new_table->bins);
-        FREE (new_table);
+        ABC_FREE (new_table->bins);
+        ABC_FREE (new_table);
         return NULL;
         }
         *new = *ptr;
@@ -485,7 +480,7 @@ stmm_delete (table, keyp, value)
     if (value != NULL)
      *value = ptr->record;
     *keyp = ptr->key;
-//      FREE( ptr );
+//      ABC_FREE( ptr );
     Extra_MmFixedEntryRecycle (table->pMemMan, (char *) ptr);
 
     table->num_entries--;
@@ -514,7 +509,7 @@ stmm_delete_int (table, keyp, value)
     if (value != NULL)
      *value = ptr->record;
     *keyp = (long) ptr->key;
-//      FREE( ptr );
+//      ABC_FREE( ptr );
     Extra_MmFixedEntryRecycle (table->pMemMan, (char *) ptr);
 
     table->num_entries--;
@@ -546,7 +541,7 @@ stmm_foreach (table, func, arg)
         case STMM_DELETE:
         *last = ptr->next;
         table->num_entries--;    /* cstevens@ic */
-//                              FREE( ptr );
+//                              ABC_FREE( ptr );
         Extra_MmFixedEntryRecycle (table->pMemMan, (char *) ptr);
 
         ptr = *last;
@@ -609,7 +604,7 @@ stmm_init_gen (table)
 {
     stmm_generator *gen;
 
-    gen = ALLOC (stmm_generator, 1);
+    gen = ABC_ALLOC(stmm_generator, 1);
     if (gen == NULL) {
     return NULL;
     }
@@ -685,5 +680,5 @@ void
 stmm_free_gen (gen)
     stmm_generator *gen;
 {
-    FREE (gen);
+    ABC_FREE (gen);
 }

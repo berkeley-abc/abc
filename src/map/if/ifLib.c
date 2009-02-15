@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline char * If_UtilStrsav( char *s ) {  return !s ? s : strcpy(ALLOC(char, strlen(s)+1), s);  }
+static inline char * If_UtilStrsav( char *s ) {  return !s ? s : strcpy(ABC_ALLOC(char, strlen(s)+1), s);  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -55,7 +55,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
         return NULL;
     }
 
-    p = ALLOC( If_Lib_t, 1 );
+    p = ABC_ALLOC( If_Lib_t, 1 );
     memset( p, 0, sizeof(If_Lib_t) );
     p->pName = If_UtilStrsav( FileName );
 
@@ -70,7 +70,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
         if ( i != atoi(pToken) )
         {
             printf( "Error in the LUT library file \"%s\".\n", FileName );
-            free( p );
+            ABC_FREE( p );
             return NULL;
         }
 
@@ -145,7 +145,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
 If_Lib_t * If_LutLibDup( If_Lib_t * p )
 {
     If_Lib_t * pNew;
-    pNew = ALLOC( If_Lib_t, 1 );
+    pNew = ABC_ALLOC( If_Lib_t, 1 );
     *pNew = *p;
     pNew->pName = If_UtilStrsav( pNew->pName );
     return pNew;
@@ -166,8 +166,8 @@ void If_LutLibFree( If_Lib_t * pLutLib )
 {
     if ( pLutLib == NULL )
         return;
-    FREE( pLutLib->pName );
-    FREE( pLutLib );
+    ABC_FREE( pLutLib->pName );
+    ABC_FREE( pLutLib );
 }
 
 

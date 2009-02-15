@@ -21,13 +21,14 @@
 #ifndef __HASH_H__
 #define __HASH_H__
 
+#ifdef _WIN32
+#define inline __inline // compatible with MS VS 6.0
+#endif
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-#define inline __inline // compatible with MS VS 6.0
-#endif
+#include "abc_global.h"
 
 #include "hashInt.h"
 #include "hashFlt.h"
@@ -45,16 +46,12 @@
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef ABS
-#define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 int Hash_DefaultHashFunc(int key, int nBins) {
-  return ABS( ( (key+11)*(key)*7+3 ) % nBins );
+  return ABC_ABS( ( (key+11)*(key)*7+3 ) % nBins );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -1127,7 +1127,7 @@ void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs )
     }
     printf( "All = %6d. Minus = %6d. Triv = %6d.   Node = %6d. Satur = %6d.  ", 
         nCutsTotal, nCutsTotalM, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

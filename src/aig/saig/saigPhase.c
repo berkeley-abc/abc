@@ -139,14 +139,14 @@ static inline void       Saig_TsiSetNext( unsigned * pState, int nWords, unsigne
 Saig_Tsim_t * Saig_TsiStart( Aig_Man_t * pAig )
 {
     Saig_Tsim_t * p;
-    p = (Saig_Tsim_t *)malloc( sizeof(Saig_Tsim_t) );
+    p = (Saig_Tsim_t *)ABC_ALLOC( char, sizeof(Saig_Tsim_t) );
     memset( p, 0, sizeof(Saig_Tsim_t) );
     p->pAig    = pAig;
     p->nWords  = Aig_BitWordNum( 2*Aig_ManRegNum(pAig) );
     p->vStates = Vec_PtrAlloc( 1000 );
     p->pMem    = Aig_MmFixedStart( sizeof(unsigned) * p->nWords + sizeof(unsigned *), 10000 );
     p->nBins   = Aig_PrimeCudd(TSIM_MAX_ROUNDS/2);
-    p->pBins   = ALLOC( unsigned *, p->nBins );
+    p->pBins   = ABC_ALLOC( unsigned *, p->nBins );
     memset( p->pBins, 0, sizeof(unsigned *) * p->nBins );
     return p;
 }
@@ -168,8 +168,8 @@ void Saig_TsiStop( Saig_Tsim_t * p )
         Vec_IntFree( p->vNonXRegs );
     Aig_MmFixedStop( p->pMem, 0 );
     Vec_PtrFree( p->vStates );
-    free( p->pBins );
-    free( p );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -696,7 +696,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
     assert( Vec_IntSize(pTsi->vNonXRegs) > 0 );
 
     // create mapping for the frames nodes
-    pObjMap = ALLOC( Aig_Obj_t *, nFrames * Aig_ManObjNumMax(pAig) );
+    pObjMap = ABC_ALLOC( Aig_Obj_t *, nFrames * Aig_ManObjNumMax(pAig) );
     memset( pObjMap, 0, sizeof(Aig_Obj_t *) * nFrames * Aig_ManObjNumMax(pAig) );
 
     // start the fraig package
@@ -762,7 +762,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
 //Aig_ManPrintStats( pFrames );
 //    Aig_ManPiCleanup( pFrames );
 //Aig_ManPrintStats( pFrames );
-    free( pObjMap );
+    ABC_FREE( pObjMap );
     return pFrames;
 }
 

@@ -21,34 +21,60 @@
 #ifndef __CEC_INT_H__
 #define __CEC_INT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "aig.h"
 #include "satSolver.h"
 #include "bar.h"
+#include "gia.h"
 #include "cec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// simulation pattern manager
+typedef struct Cec_ManPat_t_ Cec_ManPat_t;
+struct Cec_ManPat_t_
+{
+    Vec_Int_t *      vPattern1;      // pattern in terms of primary inputs
+    Vec_Int_t *      vPattern2;      // pattern in terms of primary inputs
+    Vec_Str_t *      vStorage;       // storage for compressed patterns
+    int              iStart;         // position in the array where recent patterns begin
+    int              nPats;          // total number of recent patterns
+    int              nPatsAll;       // total number of all patterns
+    int              nPatLits;       // total number of literals in recent patterns
+    int              nPatLitsAll;    // total number of literals in all patterns
+    int              nPatLitsMin;    // total number of literals in minimized recent patterns
+    int              nPatLitsMinAll; // total number of literals in minimized all patterns
+    int              nSeries;        // simulation series
+    int              fVerbose;       // verbose stats
+    // runtime statistics
+    int              timeFind;       // detecting the pattern  
+    int              timeShrink;     // minimizing the pattern
+    int              timeVerify;     // verifying the result of minimisation
+    int              timeSort;       // sorting literals 
+    int              timePack;       // packing into sim info structures 
+    int              timeTotal;      // total runtime  
+};
+
+// SAT solving manager
 typedef struct Cec_ManSat_t_ Cec_ManSat_t;
 struct Cec_ManSat_t_
 {
     // parameters
     Cec_ParSat_t *   pPars;          
     // AIGs used in the package
-    Aig_Man_t *      pAig;           // the AIG whose outputs are considered
+    Gia_Man_t *      pAig;           // the AIG whose outputs are considered
     Vec_Int_t *      vStatus;        // status for each output
     // SAT solving
     sat_solver *     pSat;           // recyclable SAT solver
@@ -62,6 +88,11 @@ struct Cec_ManSat_t_
     int              nSatUnsat;      // the number of proofs
     int              nSatSat;        // the number of failure
     int              nSatUndec;      // the number of timeouts
+    int              nSatTotal;      // the number of calls
+    // conflicts
+    int              nConfUnsat;
+    int              nConfSat;
+    int              nConfUndec;
     // runtime stats
     int              timeSatUnsat;   // unsat
     int              timeSatSat;     // sat
@@ -69,144 +100,82 @@ struct Cec_ManSat_t_
     int              timeTotal;      // total runtime
 };
 
-typedef struct Cec_ManCla_t_ Cec_ManCla_t;
+// combinational sweeping object
+typedef struct Cec_ObjCsw_t_ Cec_ObjCsw_t;
+struct Cec_ObjCsw_t_
+{
+    int              iRepr;          // representative node
+    unsigned         iNext   : 30;   // next node in the class
+    unsigned         iProved :  1;   // this node is proved
+    unsigned         iFailed :  1;   // this node is failed
+    unsigned         SimNum;         // simulation info number
+};
 
+// combinational simulation manager
 typedef struct Cec_ManCsw_t_ Cec_ManCsw_t;
 struct Cec_ManCsw_t_
 {
     // parameters
-    Cec_ParCsw_t *   pPars;          
-    // AIGs used in the package
-    Aig_Man_t *      pAig;           // the AIG for SAT sweeping
-    Aig_Man_t *      pFraig;         // the AIG after SAT sweeping
+    Gia_Man_t *      pAig;           // the AIG to be used for simulation
+    Cec_ParCsw_t *   pPars;          // SAT sweeping parameters 
+    int              nWords;         // the number of simulation words
     // equivalence classes
-    Cec_ManCla_t *   ppClasses;      // equivalence classes of nodes
-    // choice node statistics
-    int              nLits;          // the number of lits in the cand equiv classes
-    int              nReprs;         // the number of proved equivalent pairs
-    int              nEquivs;        // the number of final equivalences
-    int              nChoices;       // the number of final choice nodes
-};
-
-typedef struct Cec_ManCec_t_ Cec_ManCec_t;
-struct Cec_ManCec_t_
-{
-    // parameters
-    Cec_ParCec_t *   pPars;          
-    // AIGs used in the package
-    Aig_Man_t *      pAig;           // the miter for equivalence checking
-    // mapping of PI/PO nodes
-
-    // counter-example
-    int *            pCex;           // counter-example
-    int              iOutput;        // the output for this counter-example
-
-    // statistics
-
-};
-
-typedef struct Cec_MtrStatus_t_ Cec_MtrStatus_t;
-struct Cec_MtrStatus_t_
-{
-    int         nInputs;  // the total number of inputs
-    int         nNodes;   // the total number of nodes
-    int         nOutputs; // the total number of outputs
-    int         nUnsat;   // the number of UNSAT outputs
-    int         nSat;     // the number of SAT outputs
-    int         nUndec;   // the number of undecided outputs
-    int         iOut;     // the satisfied output
-};
-
-// combinational simulation manager
-typedef struct Caig_Man_t_ Caig_Man_t;
-struct Caig_Man_t_
-{
-    // parameters
-    Aig_Man_t *     pAig;         // the AIG to be used for simulation
-    int             nWords;       // the number of words to simulate
-    // AIG representation
-    int             nPis;         // the number of primary inputs
-    int             nPos;         // the number of primary outputs
-    int             nNodes;       // the number of internal nodes
-    int             nObjs;        // nPis + nNodes + nPos + 1
-    int *           pFans0;       // fanin0 for all objects
-    int *           pFans1;       // fanin1 for all objects
-    // simulation info
-    unsigned short* pRefs;        // reference counter for each node
-    unsigned *      pSims;        // simlulation information for each node
+    Cec_ObjCsw_t *   pObjs;          // objects used for SAT sweeping
     // recycable memory
-    unsigned *      pMems;        // allocated simulaton memory
-    int             nWordsAlloc;  // the number of allocated entries
-    int             nMems;        // the number of used entries  
-    int             nMemsMax;     // the max number of used entries 
-    int             MemFree;      // next free entry
-    // equivalence class representation
-    int *           pReprs;       // representatives of each node
-    int *           pNexts;       // nexts for each node
+    unsigned *       pMems;          // allocated simulaton memory
+    int              nWordsAlloc;    // the number of allocated entries
+    int              nMems;          // the number of used entries  
+    int              nMemsMax;       // the max number of used entries 
+    int              MemFree;        // next free entry
     // temporaries
-    Vec_Ptr_t *     vSims;        // pointers to sim info
-    Vec_Int_t *     vClassOld;    // old class numbers
-    Vec_Int_t *     vClassNew;    // new class numbers
+    Vec_Int_t *      vClassOld;      // old class numbers
+    Vec_Int_t *      vClassNew;      // new class numbers
+    Vec_Int_t *      vClassTemp;     // temporary storage
+    Vec_Int_t *      vRefinedC;      // refined const reprs
+    // simulation patterns
+    Vec_Int_t *      vXorNodes;      // nodes used in speculative reduction
+    int              nAllProved;     // total number of proved nodes
+    int              nAllDisproved;  // total number of disproved nodes
+    int              nAllFailed;     // total number of failed nodes
+    // runtime stats
+    int              timeSim;        // unsat
+    int              timeSat;        // sat
+    int              timeTotal;      // total runtime
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int  Cec_Var2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
-static inline int  Cec_Lit2Var( int Lit )              { return Lit >> 1;           }
-static inline int  Cec_LitIsCompl( int Lit )           { return Lit & 1;            }
-static inline int  Cec_LitNot( int Lit )               { return Lit ^ 1;            }
-static inline int  Cec_LitNotCond( int Lit, int c )    { return Lit ^ (int)(c > 0); }
-static inline int  Cec_LitRegular( int Lit )           { return Lit & ~01;          }
-
-static inline int  Cec_ObjSatNum( Cec_ManSat_t * p, Aig_Obj_t * pObj )             { return p->pSatVars[pObj->Id]; }
-static inline void Cec_ObjSetSatNum( Cec_ManSat_t * p, Aig_Obj_t * pObj, int Num ) { p->pSatVars[pObj->Id] = Num;  }
-
-static inline Aig_Obj_t * Cec_ObjFraig( Aig_Obj_t * pObj )                       { return pObj->pData;  }
-static inline void        Cec_ObjSetFraig( Aig_Obj_t * pObj, Aig_Obj_t * pNode ) { pObj->pData = pNode; }
-
-static inline int  Cec_ObjIsConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj ) 
-{
-    return Aig_ObjRepr(pAig, pObj) == Aig_ManConst1(pAig);
-}
-static inline void Cec_ObjSetConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj ) 
-{
-    assert( !Cec_ObjIsConst1Cand( pAig, pObj ) );
-    Aig_ObjSetRepr( pAig, pObj, Aig_ManConst1(pAig) );
-}
-
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== cecAig.c ==========================================================*/
-extern Aig_Man_t *     Cec_Duplicate( Aig_Man_t * p );
-extern Aig_Man_t *     Cec_DeriveMiter( Aig_Man_t * p0, Aig_Man_t * p1 );
-/*=== cecClass.c ==========================================================*/
-extern Aig_Man_t *     Caig_ManSpecReduce( Caig_Man_t * p );
-extern int             Caig_ManCompareEqual( unsigned * p0, unsigned * p1, int nWords );
-extern int             Caig_ManCompareConst( unsigned * p, int nWords );
-extern void            Caig_ManProcessClass( Caig_Man_t * p, int i );
-extern void            Caig_ManProcessRefined( Caig_Man_t * p, Vec_Int_t * vRefined );
-extern Caig_Man_t *    Caig_ManClassesPrepare( Aig_Man_t * pAig, int nWords, int nIters );
-/*=== cecCnf.c ==========================================================*/
-extern void            Cec_CnfNodeAddToSolver( Cec_ManSat_t * p, Aig_Obj_t * pObj );
-/*=== cecSat.c ==========================================================*/
-extern Cec_MtrStatus_t Cec_SatSolveOutputs( Aig_Man_t * pAig, Cec_ParSat_t * pPars );
-/*=== cecSim.c ==========================================================*/
-extern Caig_Man_t *    Caig_ManCreate( Aig_Man_t * pAig );
-extern void            Caig_ManDelete( Caig_Man_t * p );
-extern unsigned *      Caig_ManSimRead( Caig_Man_t * p, int i );
-extern unsigned *      Caig_ManSimRef( Caig_Man_t * p, int i );
-extern unsigned *      Caig_ManSimDeref( Caig_Man_t * p, int i );
-extern int             Caig_ManSimulateRound( Caig_Man_t * p, int fMiter );
-extern int             Cec_ManSimulate( Aig_Man_t * pAig, int nWords, int nIters, int TimeLimit, int fMiter, int fVerbose );
-/*=== cecStatus.c ==========================================================*/
-extern int             Cec_OutputStatus( Aig_Man_t * p, Aig_Obj_t * pObj );
-extern Cec_MtrStatus_t Cec_MiterStatus( Aig_Man_t * p );
-extern Cec_MtrStatus_t Cec_MiterStatusTrivial( Aig_Man_t * p );
-extern void            Cec_MiterStatusPrint( Cec_MtrStatus_t S, char * pString, int Time );
+/*=== cecCore.c ============================================================*/
+/*=== cecClass.c ============================================================*/
+extern int                  Cec_ManCswCountLitsAll( Cec_ManCsw_t * p );
+extern int *                Cec_ManCswDeriveReprs( Cec_ManCsw_t * p );
+extern Gia_Man_t *          Cec_ManCswSpecReduction( Cec_ManCsw_t * p );
+extern Gia_Man_t *          Cec_ManCswSpecReductionProved( Cec_ManCsw_t * p );
+extern Gia_Man_t *          Cec_ManCswDupWithClasses( Cec_ManCsw_t * p );
+extern int                  Cec_ManCswClassesPrepare( Cec_ManCsw_t * p );
+extern int                  Cec_ManCswClassesUpdate( Cec_ManCsw_t * p, Cec_ManPat_t * pPat, Gia_Man_t * pNew );
+/*=== cecMan.c ============================================================*/
+extern Cec_ManCsw_t *       Cec_ManCswStart( Gia_Man_t * pAig, Cec_ParCsw_t *  pPars );  
+extern void                 Cec_ManCswStop( Cec_ManCsw_t * p );
+extern Cec_ManPat_t *       Cec_ManPatStart();
+extern void                 Cec_ManPatPrintStats( Cec_ManPat_t * p );
+extern void                 Cec_ManPatStop( Cec_ManPat_t * p );
+extern Cec_ManSat_t *       Cec_ManSatCreate( Gia_Man_t * pAig, Cec_ParSat_t * pPars );
+extern void                 Cec_ManSatPrintStats( Cec_ManSat_t * p );
+extern void                 Cec_ManSatStop( Cec_ManSat_t * p );
+/*=== cecPat.c ============================================================*/
+extern void                 Cec_ManPatSavePattern( Cec_ManPat_t *  pPat, Cec_ManSat_t *  p, Gia_Obj_t * pObj );
+extern Vec_Ptr_t *          Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nWords );
+/*=== cecSolve.c ============================================================*/
+extern int                  Cec_ObjSatVarValue( Cec_ManSat_t * p, Gia_Obj_t * pObj );
+extern void                 Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars );
+/*=== cecUtil.c ============================================================*/
 
 #ifdef __cplusplus
 }

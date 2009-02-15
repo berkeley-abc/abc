@@ -112,7 +112,7 @@ DdNode * Extra_TransferLevelByLevel( DdManager * ddSource, DdManager * ddDestina
 
     nMin = ddMin(ddSource->size, ddDestination->size);
     nMax = ddMax(ddSource->size, ddDestination->size);
-    pPermute = ALLOC( int, nMax );
+    pPermute = ABC_ALLOC( int, nMax );
     // set up the variable permutation
     for ( i = 0; i < nMin; i++ )
         pPermute[ ddSource->invperm[i] ] = ddDestination->invperm[i];
@@ -122,7 +122,7 @@ DdNode * Extra_TransferLevelByLevel( DdManager * ddSource, DdManager * ddDestina
             pPermute[ ddSource->invperm[i] ] = -1;
     }
     bRes = Extra_TransferPermute( ddSource, ddDestination, f, pPermute );
-    FREE( pPermute );
+    ABC_FREE( pPermute );
     return bRes;
 }
 
@@ -145,7 +145,7 @@ DdNode * Extra_bddRemapUp(
     DdNode * bSupp, * bTemp, * bRes;
     int Counter;
 
-    pPermute = ALLOC( int, dd->size );
+    pPermute = ABC_ALLOC( int, dd->size );
 
     // get support
     bSupp = Cudd_Support( dd, bF );    Cudd_Ref( bSupp );
@@ -164,7 +164,7 @@ DdNode * Extra_bddRemapUp(
 
     // return
     Cudd_Deref( bRes );
-    free( pPermute );
+    ABC_FREE( pPermute );
     return bRes;
 }
 
@@ -584,7 +584,7 @@ DdNode *  Extra_bddFindOneCube( DdManager * dd, DdNode * bF )
     int v;
 
     // get the vector of variables in the cube
-    s_Temp = ALLOC( char, dd->size );
+    s_Temp = ABC_ALLOC( char, dd->size );
     Cudd_bddPickOneCube( dd, bF, s_Temp );
 
     // start the cube
@@ -603,7 +603,7 @@ DdNode *  Extra_bddFindOneCube( DdManager * dd, DdNode * bF )
             Cudd_RecursiveDeref( dd, bTemp );
         }
     Cudd_Deref(bCube);
-    free( s_Temp );
+    ABC_FREE( s_Temp );
     return bCube;
 }
 
@@ -745,7 +745,7 @@ DdNode * Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f )
 
     /* Allocate and initialize support array for ddSupportStep. */
     size = ddMax( dd->size, dd->sizeZ );
-    support = ALLOC( int, size );
+    support = ABC_ALLOC( int, size );
     if ( support == NULL )
     {
         dd->errorCode = CUDD_MEMORY_OUT;
@@ -793,7 +793,7 @@ DdNode * Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f )
     }
     while ( dd->reordered == 1 );
 
-    FREE( support );
+    ABC_FREE( support );
     if ( res != NULL )
         cuddDeref( res );
     return ( res );

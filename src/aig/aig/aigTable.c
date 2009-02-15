@@ -75,7 +75,7 @@ clk = clock();
     nTableSizeOld = p->nTableSize;
     // get the new table
     p->nTableSize = Aig_PrimeCudd( 2 * Aig_ManNodeNum(p) ); 
-    p->pTable = ALLOC( Aig_Obj_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Aig_Obj_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
     // rehash the entries from the old table
     Counter = 0;
@@ -93,9 +93,9 @@ clk = clock();
     }
     assert( Counter == Aig_ManNodeNum(p) );
 //    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( pTableOld );
+    ABC_FREE( pTableOld );
 }
 
 /**Function*************************************************************
@@ -259,7 +259,7 @@ void Aig_TableProfile( Aig_Man_t * p )
 ******************************************************************************/
 void Aig_TableClear( Aig_Man_t * p )
 {
-    FREE( p->pTable );
+    ABC_FREE( p->pTable );
     p->nTableSize = 0;
 }
 

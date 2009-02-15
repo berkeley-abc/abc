@@ -47,7 +47,7 @@ Rwr_Man_t * Rwr_ManStart( bool fPrecompute )
     Rwr_Man_t * p;
     int clk = clock();
 clk = clock();
-    p = ALLOC( Rwr_Man_t, 1 );
+    p = ABC_ALLOC( Rwr_Man_t, 1 );
     memset( p, 0, sizeof(Rwr_Man_t) );
     p->nFuncs = (1<<16);
     pManDec   = Abc_FrameReadManDec();
@@ -58,7 +58,7 @@ clk = clock();
     // initialize practical NPN classes
     p->pPractical  = Rwr_ManGetPractical( p );
     // create the table
-    p->pTable = ALLOC( Rwr_Node_t *, p->nFuncs );
+    p->pTable = ABC_ALLOC( Rwr_Node_t *, p->nFuncs );
     memset( p->pTable, 0, sizeof(Rwr_Node_t *) * p->nFuncs );
     // create the elementary nodes
     p->pMmNode  = Extra_MmFixedStart( sizeof(Rwr_Node_t) );
@@ -119,11 +119,11 @@ void Rwr_ManStop( Rwr_Man_t * p )
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vFaninsCur );
     Extra_MmFixedStop( p->pMmNode );
-    FREE( p->pMapInv );
-    free( p->pTable );
-    free( p->pPractical );
-    free( p->pPerms4 );
-    free( p );
+    ABC_FREE( p->pMapInv );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p->pPractical );
+    ABC_FREE( p->pPerms4 );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -151,13 +151,13 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
     printf( "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
     printf( "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
-    PRT( "Start       ", p->timeStart );
-    PRT( "Cuts        ", p->timeCut );
-    PRT( "Resynthesis ", p->timeRes );
-    PRT( "    Mffc    ", p->timeMffc );
-    PRT( "    Eval    ", p->timeEval );
-    PRT( "Update      ", p->timeUpdate );
-    PRT( "TOTAL       ", p->timeTotal );
+    ABC_PRT( "Start       ", p->timeStart );
+    ABC_PRT( "Cuts        ", p->timeCut );
+    ABC_PRT( "Resynthesis ", p->timeRes );
+    ABC_PRT( "    Mffc    ", p->timeMffc );
+    ABC_PRT( "    Eval    ", p->timeEval );
+    ABC_PRT( "Update      ", p->timeUpdate );
+    ABC_PRT( "TOTAL       ", p->timeTotal );
 
 /*
     printf( "The scores are:\n" );

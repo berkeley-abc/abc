@@ -161,12 +161,12 @@ Abc_Ntk_t * Abc_NtkNtkTest2( Abc_Ntk_t * pNtk )
 
 clk = clock();
     Abc_NtkSupportSum( pNtk );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 
     pMan = Abc_NtkToNtkNew( pNtk );
 clk = clock();
     Nwk_ManSupportSum( pMan );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 
     pNtkNew = Abc_NtkFromNtkNew( pNtk, pMan );
     Nwk_ManFree( pMan );
@@ -195,13 +195,13 @@ Abc_Ntk_t * Abc_NtkNtkTest3( Abc_Ntk_t * pNtk )
 
 clk = clock();
     printf( "%6.2f\n", Abc_NtkDelayTraceLut( pNtk, 1 ) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 
     pMan = Abc_NtkToNtkNew( pNtk );
     pMan->pLutLib = Abc_FrameReadLibLut();
 clk = clock();
     printf( "%6.2f\n", Nwk_ManDelayTraceLut( pMan ) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 
     pNtkNew = Abc_NtkFromNtkNew( pNtk, pMan );
     Nwk_ManFree( pMan );

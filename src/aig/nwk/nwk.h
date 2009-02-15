@@ -20,10 +20,6 @@
  
 #ifndef __NWK_H__
 #define __NWK_H__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
  
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -38,6 +34,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -119,19 +119,6 @@ struct Nwk_Obj_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      INLINED FUNCTIONS                           ///
 ////////////////////////////////////////////////////////////////////////
-
-//#pragma warning( disable : 4273 )
-
-#ifdef WIN32
-#define ABC_DLLEXPORT __declspec(dllexport)
-#define ABC_DLLIMPORT __declspec(dllimport)
-#else  /* defined(WIN32) */
-#define ABC_DLLIMPORT
-#endif /* defined(WIN32) */
-
-#ifndef ABC_DLL
-#define ABC_DLL ABC_DLLIMPORT
-#endif
 
 static inline int         Nwk_ManCiNum( Nwk_Man_t * p )           { return p->nObjs[NWK_OBJ_CI];                } 
 static inline int         Nwk_ManCoNum( Nwk_Man_t * p )           { return p->nObjs[NWK_OBJ_CO];                } 

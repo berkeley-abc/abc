@@ -401,7 +401,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-PRT( "Synthesis time", clock() - clk );
+ABC_PRT( "Synthesis time", clock() - clk );
 }
 clk = clock();
     if ( fConstruct )
@@ -413,7 +413,7 @@ clk = clock();
     Vec_PtrFree( vAigs );
 if ( fVerbose )
 {
-PRT( "Choicing time ", clock() - clk );
+ABC_PRT( "Choicing time ", clock() - clk );
 }
     return pMan;
 //    return NULL;
@@ -458,7 +458,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-PRT( "Synthesis time", clock() - clk );
+ABC_PRT( "Synthesis time", clock() - clk );
 }
 //    pPars->timeSynth = clock() - clk;
 
@@ -493,7 +493,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-//PRT( "Choicing time ", clock() - clk );
+//ABC_PRT( "Choicing time ", clock() - clk );
 }
     return pMan;
 //    return NULL;

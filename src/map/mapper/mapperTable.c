@@ -46,12 +46,12 @@ Map_HashTable_t * Map_SuperTableCreate( Map_SuperLib_t * pLib )
 {
     Map_HashTable_t * p;
     // allocate the table
-    p = ALLOC( Map_HashTable_t, 1 );
+    p = ABC_ALLOC( Map_HashTable_t, 1 );
     memset( p, 0, sizeof(Map_HashTable_t) );
     p->mmMan = pLib->mmEntries;
     // allocate and clean the bins
     p->nBins = Cudd_Prime(20000);
-    p->pBins = ALLOC( Map_HashEntry_t *, p->nBins );
+    p->pBins = ABC_ALLOC( Map_HashEntry_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Map_HashEntry_t *) * p->nBins );
     return p;
 }
@@ -70,8 +70,8 @@ Map_HashTable_t * Map_SuperTableCreate( Map_SuperLib_t * pLib )
 ***********************************************************************/
 void Map_SuperTableFree( Map_HashTable_t * p )
 {
-    FREE( p->pBins );
-    FREE( p );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -236,7 +236,7 @@ void Map_SuperTableResize( Map_HashTable_t * p )
     // get the new table size
     nBinsNew = Cudd_Prime(2 * p->nBins); 
     // allocate a new array
-    pBinsNew = ALLOC( Map_HashEntry_t *, nBinsNew );
+    pBinsNew = ABC_ALLOC( Map_HashEntry_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Map_HashEntry_t *) * nBinsNew );
     // rehash the entries from the old table
     Counter = 0;
@@ -251,7 +251,7 @@ void Map_SuperTableResize( Map_HashTable_t * p )
         }
     assert( Counter == p->nEntries );
     // replace the table and the parameters
-    free( p->pBins );
+    ABC_FREE( p->pBins );
     p->pBins = pBinsNew;
     p->nBins = nBinsNew;
 }
@@ -317,7 +317,7 @@ void Map_SuperTableSortSupergates( Map_HashTable_t * p, int nSupersMax )
     int nSupers, i;
 
     // copy all the supergates into one array
-    ppSupers = ALLOC( Map_Super_t *, nSupersMax );
+    ppSupers = ABC_ALLOC( Map_Super_t *, nSupersMax );
     nSupers = 0;
     for ( i = 0; i < p->nBins; i++ )
         for ( pEnt = p->pBins[i]; pEnt; pEnt = pEnt->pNext )
@@ -342,7 +342,7 @@ void Map_SuperTableSortSupergates( Map_HashTable_t * p, int nSupersMax )
         printf( "%s",            ppSupers[i]->pFormula );
         printf( "\n" );
     }
-    free( ppSupers );
+    ABC_FREE( ppSupers );
 }
 
 /**Function*************************************************************
@@ -363,7 +363,7 @@ void Map_SuperTableSortSupergatesByDelay( Map_HashTable_t * p, int nSupersMax )
     Map_Super_t * pSuper;
     int nSupers, i, k;
 
-    ppSupers = ALLOC( Map_Super_t *, nSupersMax );
+    ppSupers = ABC_ALLOC( Map_Super_t *, nSupersMax );
     for ( i = 0; i < p->nBins; i++ )
         for ( pEnt = p->pBins[i]; pEnt; pEnt = pEnt->pNext )
         {
@@ -392,7 +392,7 @@ void Map_SuperTableSortSupergatesByDelay( Map_HashTable_t * p, int nSupersMax )
             // save the number of supergates in the list
             pEnt->pGates->nSupers = nSupers;
         }
-    FREE( ppSupers );
+    ABC_FREE( ppSupers );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -145,7 +145,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
     assert( Abc_ObjIsNode(pObj) );
     pNet = Abc_ObjFanout0(pObj);
     nValues = Abc_ObjMvVarNum(pNet);
-    pValues = ALLOC( Abc_Obj_t *, nValues );
+    pValues = ABC_ALLOC( Abc_Obj_t *, nValues );
     for ( k = 0; k < nValues; k++ )
         pValues[k] = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
 
@@ -170,7 +170,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
             Index = Abc_StringGetNumber( &pSop );
         assert( Index < nValues );
         ////////////////////////////////////////////
-        // adding free variables for binary ND-constants
+        // adding ABC_FREE variables for binary ND-constants
         if ( fAddFreeVars && nValues == 2 && *pSop == '-' )
         {
             pValues[1] = Abc_NtkCreatePi(pNtkNew);
@@ -396,7 +396,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
             nValuesMax = nValues;
     }
     nBits = Extra_Base2Log( nValuesMax );
-    pBits = ALLOC( Abc_Obj_t *, nBits );
+    pBits = ABC_ALLOC( Abc_Obj_t *, nBits );
 
     // clean the node copy fields
     Abc_NtkCleanCopy( pNtk );
@@ -420,7 +420,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 continue;
             pNet = Abc_ObjFanout0(pObj);
             nValues = Abc_ObjMvVarNum(pNet);
-            pValues = ALLOC( Abc_Obj_t *, nValues );
+            pValues = ABC_ALLOC( Abc_Obj_t *, nValues );
             // create PIs for the values
             for ( v = 0; v < nValues; v++ )
             {
@@ -441,7 +441,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 continue;
             pNet = Abc_ObjFanout0(pObj);
             nValues = Abc_ObjMvVarNum(pNet);
-            pValues = ALLOC( Abc_Obj_t *, nValues );
+            pValues = ABC_ALLOC( Abc_Obj_t *, nValues );
             // create PIs for the values
             for ( v = 0; v < nValues; v++ )
             {
@@ -466,7 +466,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 continue;
             pNet = Abc_ObjFanout0(pObj);
             nValues = Abc_ObjMvVarNum(pNet);
-            pValues = ALLOC( Abc_Obj_t *, nValues );
+            pValues = ABC_ALLOC( Abc_Obj_t *, nValues );
             // create PIs for the encoding bits
             nBits = Extra_Base2Log( nValues );
             for ( k = 0; k < nBits; k++ )
@@ -498,7 +498,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 continue;
             pNet = Abc_ObjFanout0(pObj);
             nValues = Abc_ObjMvVarNum(pNet);
-            pValues = ALLOC( Abc_Obj_t *, nValues );
+            pValues = ABC_ALLOC( Abc_Obj_t *, nValues );
             // create PIs for the encoding bits
             nBits = Extra_Base2Log( nValues );
             for ( k = 0; k < nBits; k++ )
@@ -645,7 +645,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
         Vec_Ptr_t * vTemp;
         Abc_Obj_t * pLatch, * pObjLi, * pObjLo;
         int i;
-        // move free vars to the front among the PIs
+        // move ABC_FREE vars to the front among the PIs
         vTemp = Vec_PtrAlloc( Vec_PtrSize(pNtkNew->vPis) );
         Abc_NtkForEachPi( pNtkNew, pObj, i )
             if ( strncmp( Abc_ObjName(pObj), "free_var_", 9 ) == 0 )
@@ -656,7 +656,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
         assert( Vec_PtrSize(vTemp) == Vec_PtrSize(pNtkNew->vPis) );
         Vec_PtrFree( pNtkNew->vPis );
         pNtkNew->vPis = vTemp;
-        // move free vars to the front among the CIs
+        // move ABC_FREE vars to the front among the CIs
         vTemp = Vec_PtrAlloc( Vec_PtrSize(pNtkNew->vCis) );
         Abc_NtkForEachCi( pNtkNew, pObj, i )
             if ( strncmp( Abc_ObjName(pObj), "free_var_", 9 ) == 0 )
@@ -684,10 +684,10 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
     }
 
     // cleanup
-    free( pBits );
+    ABC_FREE( pBits );
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( pObj->pCopy )
-            free( pObj->pCopy );
+            ABC_FREE( pObj->pCopy );
 
     // remove dangling nodes
     i = Abc_AigCleanup(pNtkNew->pManFunc);
@@ -1028,7 +1028,7 @@ char * Abc_NodeConvertSopToMvSop( int nVars, Vec_Int_t * vSop0, Vec_Int_t * vSop
     if ( Vec_IntSize(vSop0) == 0 || Vec_IntSize(vSop1) == 0 )
     {
         // (temporary) create a tautology cube
-        pMvSop = ALLOC( char, nVars + 3 );
+        pMvSop = ABC_ALLOC( char, nVars + 3 );
         for ( k = 0; k < nVars; k++ )
             pMvSop[k] = '-';
         pMvSop[nVars] = '0' + (int)(Vec_IntSize(vSop1) > 0);
@@ -1043,7 +1043,7 @@ char * Abc_NodeConvertSopToMvSop( int nVars, Vec_Int_t * vSop0, Vec_Int_t * vSop
     // and the string is zero-terminated)
     nSize = nCubes * (nVars + 2) + 1; 
     // allocate memory
-    pMvSop = pCur = ALLOC( char, nSize );
+    pMvSop = pCur = ABC_ALLOC( char, nSize );
     // fill in the negative polarity cubes
     Vec_IntForEachEntry( vSop0, uCube, i )
     {
@@ -1132,7 +1132,7 @@ int Abc_NodeEvalMvCost( int nVars, Vec_Int_t * vSop0, Vec_Int_t * vSop1 )
     int * pVarValues;
     int i, RetValue;
     // collect the input and output values (currently, they are binary)
-    pVarValues = ALLOC( int, nVars + 1 );
+    pVarValues = ABC_ALLOC( int, nVars + 1 );
     for ( i = 0; i <= nVars; i++ )
         pVarValues[i] = 2;
     // prepare MV-SOP for evaluation
@@ -1142,8 +1142,8 @@ int Abc_NodeEvalMvCost( int nVars, Vec_Int_t * vSop0, Vec_Int_t * vSop1 )
     // get the result of internal cost evaluation
     RetValue = Abc_NodeEvalMvCostInternal( nVars, pVarValues, pMvSop );
     // cleanup
-    free( pVarValues );
-    free( pMvSop );
+    ABC_FREE( pVarValues );
+    ABC_FREE( pMvSop );
     return RetValue;
 }
 

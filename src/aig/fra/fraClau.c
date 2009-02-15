@@ -152,7 +152,7 @@ int * Fra_ClauCreateMapping( Vec_Int_t * vSatVarsFrom, Vec_Int_t * vSatVarsTo, i
 {
     int * pMapping, Var, i;
     assert( Vec_IntSize(vSatVarsFrom) == Vec_IntSize(vSatVarsTo) );
-    pMapping = ALLOC( int, nVarsMax );
+    pMapping = ABC_ALLOC( int, nVarsMax );
     for ( i = 0; i < nVarsMax; i++ )
         pMapping[i] = -1;
     Vec_IntForEachEntry( vSatVarsFrom, Var, i )
@@ -174,10 +174,10 @@ int * Fra_ClauCreateMapping( Vec_Int_t * vSatVarsFrom, Vec_Int_t * vSatVarsTo, i
 ***********************************************************************/
 void Fra_ClauStop( Cla_Man_t * p )
 {
-    free( p->pMapCsMainToCsTest );
-    free( p->pMapCsTestToCsMain );
-    free( p->pMapCsTestToNsTest );
-    free( p->pMapCsTestToNsBmc  );
+    ABC_FREE( p->pMapCsMainToCsTest );
+    ABC_FREE( p->pMapCsTestToCsMain );
+    ABC_FREE( p->pMapCsTestToNsTest );
+    ABC_FREE( p->pMapCsTestToNsBmc  );
     Vec_IntFree( p->vSatVarsMainCs );
     Vec_IntFree( p->vSatVarsTestCs );
     Vec_IntFree( p->vSatVarsTestNs );
@@ -191,7 +191,7 @@ void Fra_ClauStop( Cla_Man_t * p )
     if ( p->pSatMain ) sat_solver_delete( p->pSatMain );
     if ( p->pSatTest ) sat_solver_delete( p->pSatTest );
     if ( p->pSatBmc )  sat_solver_delete( p->pSatBmc );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -217,7 +217,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     assert( Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) == 1 );
 
     // start the manager
-    p = ALLOC( Cla_Man_t, 1 );
+    p = ABC_ALLOC( Cla_Man_t, 1 );
     memset( p, 0, sizeof(Cla_Man_t) );
     p->vCexMain0 = Vec_IntAlloc( Aig_ManRegNum(pMan) );
     p->vCexMain  = Vec_IntAlloc( Aig_ManRegNum(pMan) );
@@ -362,7 +362,7 @@ int Fra_ClauCheckProperty( Cla_Man_t * p, Vec_Int_t * vCex )
     int nBTLimit = 0;
     int RetValue, iVar, i;
     sat_solver_act_var_clear( p->pSatMain );
-    RetValue = sat_solver_solve( p->pSatMain, NULL, NULL, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( p->pSatMain, NULL, NULL, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     Vec_IntClear( vCex );
     if ( RetValue == l_False )
         return 1;
@@ -396,7 +396,7 @@ int Fra_ClauCheckBmc( Cla_Man_t * p, Vec_Int_t * vClause )
     int nBTLimit = 0;
     int RetValue;
     RetValue = sat_solver_solve( p->pSatBmc, Vec_IntArray(vClause), Vec_IntArray(vClause) + Vec_IntSize(vClause), 
-        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_False )
         return 1;
     assert( RetValue == l_True );
@@ -458,7 +458,7 @@ int Fra_ClauCheckClause( Cla_Man_t * p, Vec_Int_t * vClause, Vec_Int_t * vCex )
     Vec_IntPush( p->vCexAssm, toLitCond(i,0) ); // positive helper
     // try to solve
     RetValue = sat_solver_solve( p->pSatTest, Vec_IntArray(p->vCexAssm), Vec_IntArray(p->vCexAssm) + Vec_IntSize(p->vCexAssm), 
-        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( vCex )
         Vec_IntClear( vCex );
     if ( RetValue == l_False )

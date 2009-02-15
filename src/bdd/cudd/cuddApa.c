@@ -121,7 +121,7 @@ DdApaNumber
 Cudd_NewApaNumber(
   int  digits)
 {
-    return(ALLOC(DdApaDigit, digits));
+    return(ABC_ALLOC(DdApaDigit, digits));
 
 } /* end of Cudd_NewApaNumber */
 
@@ -519,9 +519,9 @@ Cudd_ApaPrintDecimal(
     work = Cudd_NewApaNumber(digits);
     if (work == NULL)
     return(0);
-    decimal = ALLOC(unsigned char, decimalDigits);
+    decimal = ABC_ALLOC(unsigned char, decimalDigits);
     if (decimal == NULL) {
-    FREE(work);
+    ABC_FREE(work);
     return(0);
     }
     Cudd_ApaCopy(digits,number,work);
@@ -529,7 +529,7 @@ Cudd_ApaPrintDecimal(
     remainder = Cudd_ApaShortDivision(digits,work,(DdApaDigit) 10,work);
     decimal[i] = remainder;
     }
-    FREE(work);
+    ABC_FREE(work);
 
     leadingzero = 1;
     for (i = 0; i < decimalDigits; i++) {
@@ -537,12 +537,12 @@ Cudd_ApaPrintDecimal(
     if ((!leadingzero) || (i == (decimalDigits - 1))) {
         result = fprintf(fp,"%1d",decimal[i]);
         if (result == EOF) {
-        FREE(decimal);
+        ABC_FREE(decimal);
         return(0);
         }
     }
     }
-    FREE(decimal);
+    ABC_FREE(decimal);
     return(1);
 
 } /* end of Cudd_ApaPrintDecimal */
@@ -576,9 +576,9 @@ Cudd_ApaPrintExponential(
     work = Cudd_NewApaNumber(digits);
     if (work == NULL)
     return(0);
-    decimal = ALLOC(unsigned char, decimalDigits);
+    decimal = ABC_ALLOC(unsigned char, decimalDigits);
     if (decimal == NULL) {
-    FREE(work);
+    ABC_FREE(work);
     return(0);
     }
     Cudd_ApaCopy(digits,number,work);
@@ -588,17 +588,17 @@ Cudd_ApaPrintExponential(
     decimal[i] = remainder;
     if (remainder != 0) first = i; /* keep track of MS non-zero */
     }
-    FREE(work);
+    ABC_FREE(work);
     last = ddMin(first + precision, decimalDigits);
 
     for (i = first; i < last; i++) {
     result = fprintf(fp,"%s%1d",i == first+1 ? "." : "", decimal[i]);
     if (result == EOF) {
-        FREE(decimal);
+        ABC_FREE(decimal);
         return(0);
     }
     }
-    FREE(decimal);
+    ABC_FREE(decimal);
     result = fprintf(fp,"e+%d",decimalDigits - first - 1);
     if (result == EOF) {
     return(0);
@@ -647,31 +647,31 @@ Cudd_ApaCountMinterm(
     Cudd_ApaPowerOfTwo(*digits,max,nvars);
     min = Cudd_NewApaNumber(*digits);
     if (min == NULL) {
-    FREE(max);
+    ABC_FREE(max);
     return(NULL);
     }
     Cudd_ApaSetToLiteral(*digits,min,0);
     table = st_init_table(st_ptrcmp,st_ptrhash);
     if (table == NULL) {
-    FREE(max);
-    FREE(min);
+    ABC_FREE(max);
+    ABC_FREE(min);
     return(NULL);
     }
     i = cuddApaCountMintermAux(Cudd_Regular(node),*digits,max,min,table);
     if (i == NULL) {
-    FREE(max);
-    FREE(min);
+    ABC_FREE(max);
+    ABC_FREE(min);
     st_foreach(table, cuddApaStCountfree, NULL);
     st_free_table(table);
     return(NULL);
     }
     count = Cudd_NewApaNumber(*digits);
     if (count == NULL) {
-    FREE(max);
-    FREE(min);
+    ABC_FREE(max);
+    ABC_FREE(min);
     st_foreach(table, cuddApaStCountfree, NULL);
     st_free_table(table);
-    if (Cudd_Regular(node)->ref == 1) FREE(i);
+    if (Cudd_Regular(node)->ref == 1) ABC_FREE(i);
     return(NULL);
     }
     if (Cudd_IsComplement(node)) {
@@ -679,11 +679,11 @@ Cudd_ApaCountMinterm(
     } else {
     Cudd_ApaCopy(*digits,i,count);
     }
-    FREE(max);
-    FREE(min);
+    ABC_FREE(max);
+    ABC_FREE(min);
     st_foreach(table, cuddApaStCountfree, NULL);
     st_free_table(table);
-    if (Cudd_Regular(node)->ref == 1) FREE(i);
+    if (Cudd_Regular(node)->ref == 1) ABC_FREE(i);
     return(count);
 
 } /* end of Cudd_ApaCountMinterm */
@@ -717,7 +717,7 @@ Cudd_ApaPrintMinterm(
     if (count == NULL)
     return(0);
     result = Cudd_ApaPrintDecimal(fp,digits,count);
-    FREE(count);
+    ABC_FREE(count);
     if (fprintf(fp,"\n") == EOF) {
     return(0);
     }
@@ -757,7 +757,7 @@ Cudd_ApaPrintMintermExp(
     if (count == NULL)
     return(0);
     result = Cudd_ApaPrintExponential(fp,digits,count,precision);
-    FREE(count);
+    ABC_FREE(count);
     if (fprintf(fp,"\n") == EOF) {
     return(0);
     }
@@ -798,8 +798,8 @@ Cudd_ApaPrintDensity(
     density = Cudd_NewApaNumber(digits);
     remainder = Cudd_ApaIntDivision(digits,count,size,density);
     result = Cudd_ApaPrintDecimal(fp,digits,density);
-    FREE(count);
-    FREE(density);
+    ABC_FREE(count);
+    ABC_FREE(density);
     fractional = (unsigned int)((double)remainder / size * 1000000);
     if (fprintf(fp,".%u\n", fractional) == EOF) {
     return(0);
@@ -869,13 +869,13 @@ cuddApaCountMintermAux(
     if (mint1 == NULL) return(NULL);
     mint2 = cuddApaCountMintermAux(Cudd_Regular(Ne), digits, max, min, table);
     if (mint2 == NULL) {
-    if (Nt->ref == 1) FREE(mint1);
+    if (Nt->ref == 1) ABC_FREE(mint1);
     return(NULL);
     }
     mint = Cudd_NewApaNumber(digits);
     if (mint == NULL) {
-    if (Nt->ref == 1) FREE(mint1);
-    if (Cudd_Regular(Ne)->ref == 1) FREE(mint2);
+    if (Nt->ref == 1) ABC_FREE(mint1);
+    if (Cudd_Regular(Ne)->ref == 1) ABC_FREE(mint2);
     return(NULL);
     }
     if (Cudd_IsComplement(Ne)) {
@@ -888,12 +888,12 @@ cuddApaCountMintermAux(
     /* If the refernce count of a child is 1, its minterm count
     ** hasn't been stored in table.  Therefore, it must be explicitly
     ** freed here. */
-    if (Nt->ref == 1) FREE(mint1);
-    if (Cudd_Regular(Ne)->ref == 1) FREE(mint2);
+    if (Nt->ref == 1) ABC_FREE(mint1);
+    if (Cudd_Regular(Ne)->ref == 1) ABC_FREE(mint2);
     
     if (node->ref > 1) {
     if (st_insert(table, (char *)node, (char *)mint) == ST_OUT_OF_MEM) {
-        FREE(mint);
+        ABC_FREE(mint);
         return(NULL);
     }
     }
@@ -922,7 +922,7 @@ cuddApaStCountfree(
     DdApaNumber    d;
 
     d = (DdApaNumber) value;
-    FREE(d);
+    ABC_FREE(d);
     return(ST_CONTINUE);
 
 } /* end of cuddApaStCountfree */

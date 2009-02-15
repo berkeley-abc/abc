@@ -158,7 +158,7 @@ Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p )
             // derive the function
             pNode->pData = Parse_FormulaParserEqn( stdout, pFormula, vVars, pNtk->pManFunc );
             // remove the cubes
-            FREE( pFormulaCopy );
+            ABC_FREE( pFormulaCopy );
         }
     }
     Extra_ProgressBarStop( pProgress );

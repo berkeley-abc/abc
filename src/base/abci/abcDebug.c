@@ -88,14 +88,14 @@ void Abc_NtkAutoDebug( Abc_Ntk_t * pNtk, int (*pFuncError) (Abc_Ntk_t *) )
         }
         printf( "Iter %6d : Latches = %6d. Nodes = %6d. Steps = %6d. Error step = %3d.  ", 
             nIter, Abc_NtkLatchNum(pNtk), Abc_NtkNodeNum(pNtk), nSteps, i );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
         if ( i == nSteps ) // could not modify it while preserving the bug
             break;
     }
     // write out the final network
     Io_WriteBlifLogic( pNtk, pFileName, 1 );
     printf( "Final network written into file \"%s\". ", pFileName );
-    PRT( "Total time", clock() - clkTotal );
+    ABC_PRT( "Total time", clock() - clkTotal );
     Abc_NtkDelete( pNtk );
 }
 

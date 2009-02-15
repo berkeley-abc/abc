@@ -158,7 +158,7 @@ cuddLocalCacheInit(
     DdLocalCache *cache;
     int logSize;
 
-    cache = ALLOC(DdLocalCache,1);
+    cache = ABC_ALLOC(DdLocalCache,1);
     if (cache == NULL) {
     manager->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -172,10 +172,10 @@ cuddLocalCacheInit(
     logSize = cuddComputeFloorLog2(ddMax(cacheSize,manager->slots/2));
     cacheSize = 1 << logSize;
     cache->item = (DdLocalCacheItem *)
-    ALLOC(char, cacheSize * cache->itemsize);
+    ABC_ALLOC(char, cacheSize * cache->itemsize);
     if (cache->item == NULL) {
     manager->errorCode = CUDD_MEMORY_OUT;
-    FREE(cache);
+    ABC_FREE(cache);
     return(NULL);
     }
     cache->slots = cacheSize;
@@ -218,8 +218,8 @@ cuddLocalCacheQuit(
     cache->manager->memused -=
     cache->slots * cache->itemsize + sizeof(DdLocalCache);
     cuddLocalCacheRemoveFromList(cache);
-    FREE(cache->item);
-    FREE(cache);
+    ABC_FREE(cache->item);
+    ABC_FREE(cache);
 
     return;
 
@@ -422,7 +422,7 @@ cuddLocalCacheProfile(
     imax = imin = nzeroes = 0;
     totalcount = 0.0;
 
-    hystogram = ALLOC(long, nbins);
+    hystogram = ABC_ALLOC(long, nbins);
     if (hystogram == NULL) {
     return(0);
     }
@@ -482,7 +482,7 @@ cuddLocalCacheProfile(
     if (retval == EOF) return(0);
     }
 
-    FREE(hystogram);
+    ABC_FREE(hystogram);
     return(1);
 
 } /* end of cuddLocalCacheProfile */
@@ -514,7 +514,7 @@ cuddHashTableInit(
 #pragma pointer_size save
 #pragma pointer_size short
 #endif
-    hash = ALLOC(DdHashTable, 1);
+    hash = ABC_ALLOC(DdHashTable, 1);
     if (hash == NULL) {
     manager->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -530,10 +530,10 @@ cuddHashTableInit(
     logSize = cuddComputeFloorLog2(initSize);
     hash->numBuckets = 1 << logSize;
     hash->shift = sizeof(int) * 8 - logSize;
-    hash->bucket = ALLOC(DdHashItem *, hash->numBuckets);
+    hash->bucket = ABC_ALLOC(DdHashItem *, hash->numBuckets);
     if (hash->bucket == NULL) {
     manager->errorCode = CUDD_MEMORY_OUT;
-    FREE(hash);
+    ABC_FREE(hash);
     return(NULL);
     }
     memset(hash->bucket, 0, hash->numBuckets * sizeof(DdHashItem *));
@@ -583,12 +583,12 @@ cuddHashTableQuit(
     memlist = hash->memoryList;
     while (memlist != NULL) {
     nextmem = (DdHashItem **) memlist[0];
-    FREE(memlist);
+    ABC_FREE(memlist);
     memlist = nextmem;
     }
 
-    FREE(hash->bucket);
-    FREE(hash);
+    ABC_FREE(hash->bucket);
+    ABC_FREE(hash);
 #ifdef __osf__
 #pragma pointer_size restore
 #endif
@@ -658,7 +658,7 @@ cuddHashTableInsert(
   is an entry for the given key in the table; NULL otherwise. If the
   entry is present, its reference counter is decremented if not
   saturated. If the counter reaches 0, the value of the entry is
-  dereferenced, and the entry is returned to the free list.]
+  dereferenced, and the entry is returned to the ABC_FREE list.]
 
   SideEffects [None]
 
@@ -773,7 +773,7 @@ cuddHashTableInsert1(
   Returns the value associated to the key if there is an entry for the given
   key in the table; NULL otherwise. If the entry is present, its reference
   counter is decremented if not saturated. If the counter reaches 0, the
-  value of the entry is dereferenced, and the entry is returned to the free
+  value of the entry is dereferenced, and the entry is returned to the ABC_FREE
   list.]
 
   SideEffects [None]
@@ -882,7 +882,7 @@ cuddHashTableInsert2(
   Returns the value associated to the key if there is an entry for the given
   key in the table; NULL otherwise. If the entry is present, its reference
   counter is decremented if not saturated. If the counter reaches 0, the
-  value of the entry is dereferenced, and the entry is returned to the free
+  value of the entry is dereferenced, and the entry is returned to the ABC_FREE
   list.]
 
   SideEffects [None]
@@ -994,7 +994,7 @@ cuddHashTableInsert3(
   Returns the value associated to the key if there is an entry for the given
   key in the table; NULL otherwise. If the entry is present, its reference
   counter is decremented if not saturated. If the counter reaches 0, the
-  value of the entry is dereferenced, and the entry is returned to the free
+  value of the entry is dereferenced, and the entry is returned to the ABC_FREE
   list.]
 
   SideEffects [None]
@@ -1090,7 +1090,7 @@ cuddLocalCacheResize(
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
     cache->item = item =
-    (DdLocalCacheItem *) ALLOC(char, slots * cache->itemsize);
+    (DdLocalCacheItem *) ABC_ALLOC(char, slots * cache->itemsize);
     MMoutOfMemory = saveHandler;
     /* If we fail to allocate the new table we just give up. */
     if (item == NULL) {
@@ -1121,7 +1121,7 @@ cuddLocalCacheResize(
     }
     }
 
-    FREE(olditem);
+    ABC_FREE(olditem);
 
     /* Reinitialize measurements so as to avoid division by 0 and
     ** immediate resizing.
@@ -1272,7 +1272,7 @@ cuddHashTableResize(
 #pragma pointer_size save
 #pragma pointer_size short
 #endif
-    buckets = ALLOC(DdHashItem *, numBuckets);
+    buckets = ABC_ALLOC(DdHashItem *, numBuckets);
     MMoutOfMemory = saveHandler;
     if (buckets == NULL) {
     hash->maxsize <<= 1;
@@ -1335,7 +1335,7 @@ cuddHashTableResize(
         }
     }
     }
-    FREE(oldBuckets);
+    ABC_FREE(oldBuckets);
     return(1);
 
 } /* end of cuddHashTableResize */
@@ -1373,14 +1373,14 @@ cuddHashTableAlloc(
     if (hash->nextFree == NULL) {
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    mem = (DdHashItem **) ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
+    mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
     MMoutOfMemory = saveHandler;
 #ifdef __osf__
 #pragma pointer_size restore
 #endif
     if (mem == NULL) {
         if (hash->manager->stash != NULL) {
-        FREE(hash->manager->stash);
+        ABC_FREE(hash->manager->stash);
         hash->manager->stash = NULL;
         /* Inhibit resizing of tables. */
         hash->manager->maxCacheHard = hash->manager->cacheSlots - 1;
@@ -1395,7 +1395,7 @@ cuddHashTableAlloc(
 #pragma pointer_size save
 #pragma pointer_size short
 #endif
-        mem = (DdHashItem **) ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
+        mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
 #ifdef __osf__
 #pragma pointer_size restore
 #endif

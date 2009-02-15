@@ -697,17 +697,17 @@ ddGroupSifting(
     /* Order variables to sift. */
     entry = NULL;
     sifted = NULL;
-    var = ALLOC(int,nvars);
+    var = ABC_ALLOC(int,nvars);
     if (var == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto ddGroupSiftingOutOfMem;
     }
-    entry = ALLOC(int,nvars);
+    entry = ABC_ALLOC(int,nvars);
     if (entry == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto ddGroupSiftingOutOfMem;
     }
-    sifted = ALLOC(int,nvars);
+    sifted = ABC_ALLOC(int,nvars);
     if (sifted == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto ddGroupSiftingOutOfMem;
@@ -838,16 +838,16 @@ ddGroupSifting(
       if (lazyFlag) ddSetVarHandled(table, xindex);
     } /* for */
 
-    FREE(sifted);
-    FREE(var);
-    FREE(entry);
+    ABC_FREE(sifted);
+    ABC_FREE(var);
+    ABC_FREE(entry);
 
     return(1);
 
 ddGroupSiftingOutOfMem:
-    if (entry != NULL)    FREE(entry);
-    if (var != NULL)    FREE(var);
-    if (sifted != NULL)    FREE(sifted);
+    if (entry != NULL)    ABC_FREE(entry);
+    if (var != NULL)    ABC_FREE(var);
+    if (sifted != NULL)    ABC_FREE(sifted);
 
     return(0);
 

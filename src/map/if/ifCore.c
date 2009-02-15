@@ -134,7 +134,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
 //        printf( "Total memory = %7.2f Mb. Peak cut memory = %7.2f Mb.  ", 
 //            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
 //            1.0 * p->nSetBytes * Mem_FixedReadMaxEntriesUsed(p->pMemSet) / (1<<20) );
-        PRT( "Total time", clock() - clkTotal );
+        ABC_PRT( "Total time", clock() - clkTotal );
     }
 //    printf( "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
     s_MappingTime = clock() - clkTotal;

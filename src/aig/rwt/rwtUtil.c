@@ -247,7 +247,7 @@ void Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose )
     if ( fVerbose )
     {
         printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-        printf( "The number of nodes loaded = %d.  ", nEntries );  PRT( "Loading", clock() - clk );
+        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", clock() - clk );
     }
 }
 
@@ -266,7 +266,7 @@ char * Rwt_ManGetPractical( Rwt_Man_t * p )
 {
     char * pPractical;
     int i;
-    pPractical = ALLOC( char, p->nFuncs );
+    pPractical = ABC_ALLOC( char, p->nFuncs );
     memset( pPractical, 0, sizeof(char) * p->nFuncs );
     pPractical[0] = 1;
     for ( i = 1; ; i++ )

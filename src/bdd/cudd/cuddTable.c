@@ -205,7 +205,7 @@ cuddAllocNode(
     extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
-    if (unique->nextFree == NULL) {    /* free list is empty */
+    if (unique->nextFree == NULL) {    /* ABC_FREE list is empty */
     /* Check for exceeded limits. */
     if ((unique->keys - unique->dead) + (unique->keysZ - unique->deadZ) >
         unique->maxLive) {
@@ -224,7 +224,7 @@ cuddAllocNode(
         /* Try to allocate a new block. */
         saveHandler = MMoutOfMemory;
         MMoutOfMemory = Cudd_OutOfMem;
-        mem = (DdNodePtr *) ALLOC(DdNode,DD_MEM_CHUNK + 1);
+        mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
         MMoutOfMemory = saveHandler;
         if (mem == NULL) {
         /* No more memory: Try collecting garbage. If this succeeds,
@@ -235,12 +235,12 @@ cuddAllocNode(
             ** any. If this succeeeds, mem != NULL and
             ** unique->nextFree still NULL. */
             if (unique->stash != NULL) {
-            FREE(unique->stash);
+            ABC_FREE(unique->stash);
             unique->stash = NULL;
             /* Inhibit resizing of tables. */
             cuddSlowTableGrowth(unique);
             /* Now try again. */
-            mem = (DdNodePtr *) ALLOC(DdNode,DD_MEM_CHUNK + 1);
+            mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
             }
             if (mem == NULL) {
             /* Out of luck. Call the default handler to do
@@ -310,7 +310,7 @@ cuddInitTable(
   unsigned int numSlots /* Initial size of the BDD subtables */,
   unsigned int looseUpTo /* Limit for fast table growth */)
 {
-    DdManager    *unique = ALLOC(DdManager,1);
+    DdManager    *unique = ABC_ALLOC(DdManager,1);
     int        i, j;
     DdNodePtr    *nodelist;
     DdNode    *sentinel;
@@ -355,38 +355,38 @@ cuddInitTable(
     unique->gcEnabled = 1;
     unique->allocated = 0;
     unique->reclaimed = 0;
-    unique->subtables = ALLOC(DdSubtable,unique->maxSize);
+    unique->subtables = ABC_ALLOC(DdSubtable,unique->maxSize);
     if (unique->subtables == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
-    unique->subtableZ = ALLOC(DdSubtable,unique->maxSizeZ);
+    unique->subtableZ = ABC_ALLOC(DdSubtable,unique->maxSizeZ);
     if (unique->subtableZ == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
-    unique->perm = ALLOC(int,unique->maxSize);
+    unique->perm = ABC_ALLOC(int,unique->maxSize);
     if (unique->perm == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
-    unique->invperm = ALLOC(int,unique->maxSize);
+    unique->invperm = ABC_ALLOC(int,unique->maxSize);
     if (unique->invperm == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
-    unique->permZ = ALLOC(int,unique->maxSizeZ);
+    unique->permZ = ABC_ALLOC(int,unique->maxSizeZ);
     if (unique->permZ == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
-    unique->invpermZ = ALLOC(int,unique->maxSizeZ);
+    unique->invpermZ = ABC_ALLOC(int,unique->maxSizeZ);
     if (unique->invpermZ == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
     unique->map = NULL;
-    unique->stack = ALLOC(DdNodePtr,ddMax(unique->maxSize,unique->maxSizeZ)+1);
+    unique->stack = ABC_ALLOC(DdNodePtr,ddMax(unique->maxSize,unique->maxSizeZ)+1);
     if (unique->stack == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -395,7 +395,7 @@ cuddInitTable(
 
 #ifndef DD_NO_DEATH_ROW
     unique->deathRowDepth = 1 << cuddComputeFloorLog2(unique->looseUpTo >> 2);
-    unique->deathRow = ALLOC(DdNodePtr,unique->deathRowDepth);
+    unique->deathRow = ABC_ALLOC(DdNodePtr,unique->deathRowDepth);
     if (unique->deathRow == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -419,7 +419,7 @@ cuddInitTable(
     unique->subtables[i].varHandled = 0;
     unique->subtables[i].varToBeGrouped = CUDD_LAZY_NONE;
 
-    nodelist = unique->subtables[i].nodelist = ALLOC(DdNodePtr,slots);
+    nodelist = unique->subtables[i].nodelist = ABC_ALLOC(DdNodePtr,slots);
     if (nodelist == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
@@ -436,7 +436,7 @@ cuddInitTable(
     unique->subtableZ[i].keys = 0;
     unique->subtableZ[i].dead = 0;
     unique->subtableZ[i].maxKeys = slots * DD_MAX_SUBTABLE_DENSITY;
-    nodelist = unique->subtableZ[i].nodelist = ALLOC(DdNodePtr,slots);
+    nodelist = unique->subtableZ[i].nodelist = ABC_ALLOC(DdNodePtr,slots);
     if (nodelist == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
@@ -452,7 +452,7 @@ cuddInitTable(
     unique->constants.keys = 0;
     unique->constants.dead = 0;
     unique->constants.maxKeys = slots * DD_MAX_SUBTABLE_DENSITY;
-    nodelist = unique->constants.nodelist = ALLOC(DdNodePtr,slots);
+    nodelist = unique->constants.nodelist = ABC_ALLOC(DdNodePtr,slots);
     if (nodelist == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -558,35 +558,35 @@ cuddFreeTable(
     if (unique->univ != NULL) cuddZddFreeUniv(unique);
     while (memlist != NULL) {
         next = (DdNodePtr *) memlist[0];    /* link to next block */
-    FREE(memlist);
+    ABC_FREE(memlist);
     memlist = next;
     }
     unique->nextFree = NULL;
     unique->memoryList = NULL;
 
     for (i = 0; i < unique->size; i++) {
-    FREE(unique->subtables[i].nodelist);
+    ABC_FREE(unique->subtables[i].nodelist);
     }
     for (i = 0; i < unique->sizeZ; i++) {
-    FREE(unique->subtableZ[i].nodelist);
+    ABC_FREE(unique->subtableZ[i].nodelist);
     }
-    FREE(unique->constants.nodelist);
-    FREE(unique->subtables);
-    FREE(unique->subtableZ);
-    FREE(unique->acache);
-    FREE(unique->perm);
-    FREE(unique->permZ);
-    FREE(unique->invperm);
-    FREE(unique->invpermZ);
-    FREE(unique->vars);
-    if (unique->map != NULL) FREE(unique->map);
-    FREE(unique->stack);
+    ABC_FREE(unique->constants.nodelist);
+    ABC_FREE(unique->subtables);
+    ABC_FREE(unique->subtableZ);
+    ABC_FREE(unique->acache);
+    ABC_FREE(unique->perm);
+    ABC_FREE(unique->permZ);
+    ABC_FREE(unique->invperm);
+    ABC_FREE(unique->invpermZ);
+    ABC_FREE(unique->vars);
+    if (unique->map != NULL) ABC_FREE(unique->map);
+    ABC_FREE(unique->stack);
 #ifndef DD_NO_DEATH_ROW
-    FREE(unique->deathRow);
+    ABC_FREE(unique->deathRow);
 #endif
     if (unique->tree != NULL) Mtr_FreeTree(unique->tree);
     if (unique->treeZ != NULL) Mtr_FreeTree(unique->treeZ);
-    if (unique->linear != NULL) FREE(unique->linear);
+    if (unique->linear != NULL) ABC_FREE(unique->linear);
     while (unique->preGCHook != NULL)
     Cudd_RemoveHook(unique,unique->preGCHook->f,CUDD_PRE_GC_HOOK);
     while (unique->postGCHook != NULL)
@@ -597,7 +597,7 @@ cuddFreeTable(
     while (unique->postReorderingHook != NULL)
     Cudd_RemoveHook(unique,unique->postReorderingHook->f,
             CUDD_POST_REORDERING_HOOK);
-    FREE(unique);
+    ABC_FREE(unique);
 
 } /* end of cuddFreeTable */
 
@@ -699,7 +699,7 @@ cuddGarbageCollect(
     cuddLocalCacheClearDead(unique);
     }
 
-    /* Now return dead nodes to free list. Count them for sanity check. */
+    /* Now return dead nodes to ABC_FREE list. Count them for sanity check. */
     totalDeleted = 0;
 #ifndef DD_UNSORTED_FREE_LIST
     tree = NULL;
@@ -905,7 +905,7 @@ cuddGarbageCollectZdd(
     }
     }
 
-    /* Now return dead nodes to free list. Count them for sanity check. */
+    /* Now return dead nodes to ABC_FREE list. Count them for sanity check. */
     totalDeleted = 0;
 #ifndef DD_UNSORTED_FREE_LIST
     tree = NULL;
@@ -1535,7 +1535,7 @@ cuddRehash(
 
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    nodelist = ALLOC(DdNodePtr, slots);
+    nodelist = ABC_ALLOC(DdNodePtr, slots);
     MMoutOfMemory = saveHandler;
     if (nodelist == NULL) {
         (void) fprintf(unique->err,
@@ -1544,7 +1544,7 @@ cuddRehash(
         /* Prevent frequent resizing attempts. */
         (void) cuddGarbageCollect(unique,1);
         if (unique->stash != NULL) {
-        FREE(unique->stash);
+        ABC_FREE(unique->stash);
         unique->stash = NULL;
         /* Inhibit resizing of tables. */
         cuddSlowTableGrowth(unique);
@@ -1580,7 +1580,7 @@ cuddRehash(
         }
         *evenP = *oddP = sentinel;
     }
-    FREE(oldnodelist);
+    ABC_FREE(oldnodelist);
 
 #ifdef DD_VERBOSE
     (void) fprintf(unique->err,
@@ -1602,7 +1602,7 @@ cuddRehash(
     shift = oldshift - 1;
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    nodelist = ALLOC(DdNodePtr, slots);
+    nodelist = ABC_ALLOC(DdNodePtr, slots);
     MMoutOfMemory = saveHandler;
     if (nodelist == NULL) {
         int j;
@@ -1633,7 +1633,7 @@ cuddRehash(
         node = next;
         }
     }
-    FREE(oldnodelist);
+    ABC_FREE(oldnodelist);
 
 #ifdef DD_VERBOSE
     (void) fprintf(unique->err,
@@ -1681,7 +1681,7 @@ cuddShrinkSubtable(
     slots = oldslots >> 1;
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    nodelist = ALLOC(DdNodePtr, slots);
+    nodelist = ABC_ALLOC(DdNodePtr, slots);
     MMoutOfMemory = saveHandler;
     if (nodelist == NULL) {
     return;
@@ -1730,7 +1730,7 @@ cuddShrinkSubtable(
         node = next;
     }
     }
-    FREE(oldnodelist);
+    ABC_FREE(oldnodelist);
 
     unique->memused += ((long) slots - (long) oldslots) * sizeof(DdNode *);
     unique->slots += slots - oldslots;
@@ -1815,7 +1815,7 @@ cuddInsertSubtables(
         unique->perm[oldsize+i] = level + i;
         unique->invperm[level+i] = oldsize + i;
         newnodelist = unique->subtables[level+i].nodelist =
-        ALLOC(DdNodePtr, numSlots);
+        ABC_ALLOC(DdNodePtr, numSlots);
         if (newnodelist == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -1841,40 +1841,40 @@ cuddInsertSubtables(
         unique->maxSize, newsize);
 #endif
     /* Allocate memory for new arrays (except nodelists). */
-    newsubtables = ALLOC(DdSubtable,newsize);
+    newsubtables = ABC_ALLOC(DdSubtable,newsize);
     if (newsubtables == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    newvars = ALLOC(DdNodePtr,newsize);
+    newvars = ABC_ALLOC(DdNodePtr,newsize);
     if (newvars == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
-        FREE(newsubtables);
+        ABC_FREE(newsubtables);
         return(0);
     }
-    newperm = ALLOC(int,newsize);
+    newperm = ABC_ALLOC(int,newsize);
     if (newperm == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
-        FREE(newsubtables);
-        FREE(newvars);
+        ABC_FREE(newsubtables);
+        ABC_FREE(newvars);
         return(0);
     }
-    newinvperm = ALLOC(int,newsize);
+    newinvperm = ABC_ALLOC(int,newsize);
     if (newinvperm == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
-        FREE(newsubtables);
-        FREE(newvars);
-        FREE(newperm);
+        ABC_FREE(newsubtables);
+        ABC_FREE(newvars);
+        ABC_FREE(newperm);
         return(0);
     }
     if (unique->map != NULL) {
-        newmap = ALLOC(int,newsize);
+        newmap = ABC_ALLOC(int,newsize);
         if (newmap == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
-        FREE(newsubtables);
-        FREE(newvars);
-        FREE(newperm);
-        FREE(newinvperm);
+        ABC_FREE(newsubtables);
+        ABC_FREE(newvars);
+        ABC_FREE(newperm);
+        ABC_FREE(newinvperm);
         return(0);
         }
         unique->memused += (newsize - unique->maxSize) * sizeof(int);
@@ -1919,7 +1919,7 @@ cuddInsertSubtables(
 
         newperm[oldsize + i - level] = i;
         newinvperm[i] = oldsize + i - level;
-        newnodelist = newsubtables[i].nodelist = ALLOC(DdNodePtr, numSlots);
+        newnodelist = newsubtables[i].nodelist = ABC_ALLOC(DdNodePtr, numSlots);
         if (newnodelist == NULL) {
         /* We are going to leak some memory.  We should clean up. */
         unique->errorCode = CUDD_MEMORY_OUT;
@@ -1957,23 +1957,23 @@ cuddInsertSubtables(
         for (i = oldsize; i < oldsize + n; i++) {
         newmap[i] = i;
         }
-        FREE(unique->map);
+        ABC_FREE(unique->map);
         unique->map = newmap;
     }
-    /* Install the new tables and free the old ones. */
-    FREE(unique->subtables);
+    /* Install the new tables and ABC_FREE the old ones. */
+    ABC_FREE(unique->subtables);
     unique->subtables = newsubtables;
     unique->maxSize = newsize;
-    FREE(unique->vars);
+    ABC_FREE(unique->vars);
     unique->vars = newvars;
-    FREE(unique->perm);
+    ABC_FREE(unique->perm);
     unique->perm = newperm;
-    FREE(unique->invperm);
+    ABC_FREE(unique->invperm);
     unique->invperm = newinvperm;
     /* Update the stack for iterative procedures. */
     if (newsize > unique->maxSizeZ) {
-        FREE(unique->stack);
-        unique->stack = ALLOC(DdNodePtr,newsize + 1);
+        ABC_FREE(unique->stack);
+        unique->stack = ABC_ALLOC(DdNodePtr,newsize + 1);
         if (unique->stack == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2016,7 +2016,7 @@ cuddInsertSubtables(
         unique->subtables[j].maxKeys  =
             unique->subtables[j+n].maxKeys;
         unique->subtables[j].dead     = unique->subtables[j+n].dead;
-        FREE(unique->subtables[j].nodelist);
+        ABC_FREE(unique->subtables[j].nodelist);
         unique->subtables[j].nodelist =
             unique->subtables[j+n].nodelist;
         unique->subtables[j+n].nodelist = NULL;
@@ -2134,7 +2134,7 @@ cuddDestroySubtables(
 #ifdef DD_DEBUG
     assert(subtables[level].keys == 0);
 #endif
-    FREE(nodelist);
+    ABC_FREE(nodelist);
     unique->memused -= sizeof(DdNodePtr) * subtables[level].slots;
     unique->slots -= subtables[level].slots;
     unique->dead -= subtables[level].dead;
@@ -2174,7 +2174,7 @@ cuddDestroySubtables(
     ** an out-of-bounds access to unique->vars would result. */
     if (unique->map != NULL) {
     cuddCacheFlush(unique);
-    FREE(unique->map);
+    ABC_FREE(unique->map);
     unique->map = NULL;
     }
 
@@ -2228,7 +2228,7 @@ cuddResizeTableZdd(
         unique->permZ[i] = i;
         unique->invpermZ[i] = i;
         newnodelist = unique->subtableZ[i].nodelist =
-        ALLOC(DdNodePtr, numSlots);
+        ABC_ALLOC(DdNodePtr, numSlots);
         if (newnodelist == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2248,17 +2248,17 @@ cuddResizeTableZdd(
                "Increasing the ZDD table size from %d to %d\n",
         unique->maxSizeZ, newsize);
 #endif
-    newsubtables = ALLOC(DdSubtable,newsize);
+    newsubtables = ABC_ALLOC(DdSubtable,newsize);
     if (newsubtables == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    newperm = ALLOC(int,newsize);
+    newperm = ABC_ALLOC(int,newsize);
     if (newperm == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    newinvperm = ALLOC(int,newsize);
+    newinvperm = ABC_ALLOC(int,newsize);
     if (newinvperm == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2266,8 +2266,8 @@ cuddResizeTableZdd(
     unique->memused += (newsize - unique->maxSizeZ) * ((numSlots+1) *
         sizeof(DdNode *) + 2 * sizeof(int) + sizeof(DdSubtable));
     if (newsize > unique->maxSize) {
-        FREE(unique->stack);
-        unique->stack = ALLOC(DdNodePtr,newsize + 1);
+        ABC_FREE(unique->stack);
+        unique->stack = ABC_ALLOC(DdNodePtr,newsize + 1);
         if (unique->stack == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2296,7 +2296,7 @@ cuddResizeTableZdd(
         newsubtables[i].dead = 0;
         newperm[i] = i;
         newinvperm[i] = i;
-        newnodelist = newsubtables[i].nodelist = ALLOC(DdNodePtr, numSlots);
+        newnodelist = newsubtables[i].nodelist = ABC_ALLOC(DdNodePtr, numSlots);
         if (newnodelist == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2305,12 +2305,12 @@ cuddResizeTableZdd(
         newnodelist[j] = NULL;
         }
     }
-    FREE(unique->subtableZ);
+    ABC_FREE(unique->subtableZ);
     unique->subtableZ = newsubtables;
     unique->maxSizeZ = newsize;
-    FREE(unique->permZ);
+    ABC_FREE(unique->permZ);
     unique->permZ = newperm;
-    FREE(unique->invpermZ);
+    ABC_FREE(unique->invpermZ);
     unique->invpermZ = newinvperm;
     }
     unique->slots += (index + 1 - unique->sizeZ) * numSlots;
@@ -2428,7 +2428,7 @@ ddRehashZdd(
 
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    nodelist = ALLOC(DdNodePtr, slots);
+    nodelist = ABC_ALLOC(DdNodePtr, slots);
     MMoutOfMemory = saveHandler;
     if (nodelist == NULL) {
     int j;
@@ -2458,7 +2458,7 @@ ddRehashZdd(
         node = next;
     }
     }
-    FREE(oldnodelist);
+    ABC_FREE(oldnodelist);
 
 #ifdef DD_VERBOSE
     (void) fprintf(unique->err,
@@ -2523,10 +2523,10 @@ ddResizeTable(
         unique->perm[i] = i;
         unique->invperm[i] = i;
         newnodelist = unique->subtables[i].nodelist =
-        ALLOC(DdNodePtr, numSlots);
+        ABC_ALLOC(DdNodePtr, numSlots);
         if (newnodelist == NULL) {
         for (j = oldsize; j < i; j++) {
-            FREE(unique->subtables[j].nodelist);
+            ABC_FREE(unique->subtables[j].nodelist);
         }
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2551,39 +2551,39 @@ ddResizeTable(
                "Increasing the table size from %d to %d\n",
                unique->maxSize, newsize);
 #endif
-    newsubtables = ALLOC(DdSubtable,newsize);
+    newsubtables = ABC_ALLOC(DdSubtable,newsize);
     if (newsubtables == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    newvars = ALLOC(DdNodePtr,newsize);
+    newvars = ABC_ALLOC(DdNodePtr,newsize);
     if (newvars == NULL) {
-        FREE(newsubtables);
+        ABC_FREE(newsubtables);
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    newperm = ALLOC(int,newsize);
+    newperm = ABC_ALLOC(int,newsize);
     if (newperm == NULL) {
-        FREE(newsubtables);
-        FREE(newvars);
+        ABC_FREE(newsubtables);
+        ABC_FREE(newvars);
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    newinvperm = ALLOC(int,newsize);
+    newinvperm = ABC_ALLOC(int,newsize);
     if (newinvperm == NULL) {
-        FREE(newsubtables);
-        FREE(newvars);
-        FREE(newperm);
+        ABC_FREE(newsubtables);
+        ABC_FREE(newvars);
+        ABC_FREE(newperm);
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
     if (unique->map != NULL) {
-        newmap = ALLOC(int,newsize);
+        newmap = ABC_ALLOC(int,newsize);
         if (newmap == NULL) {
-        FREE(newsubtables);
-        FREE(newvars);
-        FREE(newperm);
-        FREE(newinvperm);
+        ABC_FREE(newsubtables);
+        ABC_FREE(newvars);
+        ABC_FREE(newperm);
+        ABC_FREE(newinvperm);
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
         }
@@ -2592,15 +2592,15 @@ ddResizeTable(
     unique->memused += (newsize - unique->maxSize) * ((numSlots+1) *
         sizeof(DdNode *) + 2 * sizeof(int) + sizeof(DdSubtable));
     if (newsize > unique->maxSizeZ) {
-        FREE(unique->stack);
-        unique->stack = ALLOC(DdNodePtr,newsize + 1);
+        ABC_FREE(unique->stack);
+        unique->stack = ABC_ALLOC(DdNodePtr,newsize + 1);
         if (unique->stack == NULL) {
-        FREE(newsubtables);
-        FREE(newvars);
-        FREE(newperm);
-        FREE(newinvperm);
+        ABC_FREE(newsubtables);
+        ABC_FREE(newvars);
+        ABC_FREE(newperm);
+        ABC_FREE(newinvperm);
         if (unique->map != NULL) {
-            FREE(newmap);
+            ABC_FREE(newmap);
         }
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2642,7 +2642,7 @@ ddResizeTable(
 
         newperm[i] = i;
         newinvperm[i] = i;
-        newnodelist = newsubtables[i].nodelist = ALLOC(DdNodePtr, numSlots);
+        newnodelist = newsubtables[i].nodelist = ABC_ALLOC(DdNodePtr, numSlots);
         if (newnodelist == NULL) {
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -2658,17 +2658,17 @@ ddResizeTable(
         for (i = oldsize; i <= index; i++) {
         newmap[i] = i;
         }
-        FREE(unique->map);
+        ABC_FREE(unique->map);
         unique->map = newmap;
     }
-    FREE(unique->subtables);
+    ABC_FREE(unique->subtables);
     unique->subtables = newsubtables;
     unique->maxSize = newsize;
-    FREE(unique->vars);
+    ABC_FREE(unique->vars);
     unique->vars = newvars;
-    FREE(unique->perm);
+    ABC_FREE(unique->perm);
     unique->perm = newperm;
-    FREE(unique->invperm);
+    ABC_FREE(unique->invperm);
     unique->invperm = newinvperm;
     }
 
@@ -2695,7 +2695,7 @@ ddResizeTable(
         unique->vars[j] = NULL;
         }
         for (j = oldsize; j <= index; j++) {
-        FREE(unique->subtables[j].nodelist);
+        ABC_FREE(unique->subtables[j].nodelist);
         unique->subtables[j].nodelist = NULL;
         }
         unique->size = oldsize;

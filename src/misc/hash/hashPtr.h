@@ -86,11 +86,11 @@ static inline Hash_Ptr_t * Hash_PtrAlloc( int nBins )
   Hash_Ptr_t * p;
   int i;
   assert(nBins > 0);
-  p = ALLOC( Hash_Ptr_t, 1);
+  p = ABC_ALLOC( Hash_Ptr_t, 1);
   p->nBins = nBins;
   p->fHash = Hash_DefaultHashFunc;
   p->nSize  = 0;
-  p->pArray = ALLOC( Hash_Ptr_Entry_t *, nBins );
+  p->pArray = ABC_ALLOC( Hash_Ptr_Entry_t *, nBins );
   for(i=0; i<nBins; i++)
     p->pArray[i] = NULL;
 
@@ -164,7 +164,7 @@ static inline void Hash_PtrWriteEntry( Hash_Ptr_t *p, int key, void * data )
   // this key does not currently exist
   // create a new entry and add to bin
   p->nSize++;
-  (*pLast) = pEntry = ALLOC( Hash_Ptr_Entry_t, 1 );
+  (*pLast) = pEntry = ABC_ALLOC( Hash_Ptr_Entry_t, 1 );
   pEntry->pNext = NULL;
   pEntry->key = key;
   pEntry->data = data;
@@ -206,7 +206,7 @@ static inline void * Hash_PtrEntry( Hash_Ptr_t *p, int key, int fCreate )
   if (fCreate) {
     // create a new entry and add to bin
     p->nSize++;
-    (*pLast) = pEntry = ALLOC( Hash_Ptr_Entry_t, 1 );
+    (*pLast) = pEntry = ABC_ALLOC( Hash_Ptr_Entry_t, 1 );
     pEntry->pNext = NULL;
     pEntry->key = key;
     pEntry->data = NULL;
@@ -249,7 +249,7 @@ static inline void** Hash_PtrEntryPtr( Hash_Ptr_t *p, int key )
   // this key does not currently exist
   // create a new entry and add to bin
   p->nSize++;
-  (*pLast) = pEntry = ALLOC( Hash_Ptr_Entry_t, 1 );
+  (*pLast) = pEntry = ABC_ALLOC( Hash_Ptr_Entry_t, 1 );
   pEntry->pNext = NULL;
   pEntry->key = key;
   pEntry->data = NULL;
@@ -310,18 +310,18 @@ static inline void Hash_PtrFree( Hash_Ptr_t *p ) {
   int bin;
   Hash_Ptr_Entry_t *pEntry;
 
-  // free bins
+  // ABC_FREE bins
   for(bin = 0; bin < p->nBins; bin++) {
     pEntry = p->pArray[bin];
     while(pEntry) {
       pEntry = pEntry->pNext;
-      FREE( pEntry );
+      ABC_FREE( pEntry );
     }
   }
  
-  // free hash
-  FREE( p->pArray );
-  FREE( p );
+  // ABC_FREE hash
+  ABC_FREE( p->pArray );
+  ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

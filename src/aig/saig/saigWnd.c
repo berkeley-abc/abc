@@ -99,7 +99,7 @@ Vec_Ptr_t * Saig_ManWindowOutline( Aig_Man_t * p, Aig_Obj_t * pObj, int nDist )
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObjLi, * pObjLo;
     int * pDists, i;
-    pDists = CALLOC( int, Aig_ManObjNumMax(p) );
+    pDists = ABC_CALLOC( int, Aig_ManObjNumMax(p) );
     vNodes = Vec_PtrAlloc( 1000 );
     Aig_ManIncrementTravId( p );
     Saig_ManWindowOutline_rec( p, pObj, nDist, vNodes, pDists );
@@ -108,7 +108,7 @@ Vec_Ptr_t * Saig_ManWindowOutline( Aig_Man_t * p, Aig_Obj_t * pObj, int nDist )
     Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
         assert( Aig_ObjIsTravIdCurrent(p, pObjLi) == 
                 Aig_ObjIsTravIdCurrent(p, pObjLo) );
-    free( pDists );
+    ABC_FREE( pDists );
     return vNodes;
 }
 

@@ -226,7 +226,7 @@ Extra_bddEncodingNonStrict(
 //    s_EncSearchTime += clock() - clk;
 
     // allocate the temporary storage for the columns
-    s_pbTemp = (DdNode **) malloc( nColumns * sizeof(DdNode *) );
+    s_pbTemp = (DdNode **)ABC_ALLOC( char, nColumns * sizeof(DdNode *) );
 
 //    clk = clock();
     bResult = CreateTheCodes_rec( dd, bEncoded, 0, pCVars );   Cudd_Ref( bResult );
@@ -236,7 +236,7 @@ Extra_bddEncodingNonStrict(
     Cudd_RecursiveDeref( dd, bEncoded );
 //    Cudd_RecursiveDeref( dd, aEncoded );
 
-    free( s_pbTemp );
+    ABC_FREE( s_pbTemp );
 
     *pSimple = s_nVarsBest;
     Cudd_Deref( bResult );
@@ -306,7 +306,7 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
         st_foreach_item( Visited, gen, (char**)&aNode, (char**)&p ) 
         {
             Cudd_RecursiveDeref( dd, p->bSum );
-            free( p );
+            ABC_FREE( p );
         }
         st_free_table( Visited );
     }
@@ -394,7 +394,7 @@ int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode *
         st_foreach_item( Visited, gen, (char**)&aNode, (char**)&p ) 
         {
             Cudd_RecursiveDeref( dd, p->bSum );
-            free( p );
+            ABC_FREE( p );
         }
         st_free_table( Visited );
     }
@@ -1123,7 +1123,7 @@ void CountNodeVisits_rec( DdManager * dd, DdNode * aFunc, st_table * Visited )
     assert( !Cudd_IsComplement(aFunc) );
 
     // create the new traversal entry
-    p = (traventry *) malloc( sizeof(traventry) );
+    p = (traventry *) ABC_ALLOC( char, sizeof(traventry) );
     // set the initial sum of edges to zero BDD
     p->bSum = b0;   Cudd_Ref( b0 );
     // set the starting number of incoming edges

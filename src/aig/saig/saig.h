@@ -21,10 +21,6 @@
 #ifndef __SAIG_H__
 #define __SAIG_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -34,6 +30,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -134,7 +134,7 @@ extern int               Saig_MvManSimulate( Aig_Man_t * pAig, int fVerbose );
 /*=== saigStrSim.c ==========================================================*/
 extern Vec_Int_t *       Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose, Aig_Man_t ** ppMiter );
 /*=== saigSwitch.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
+extern Vec_Int_t *       Saig_ManComputeSwitchProb2s( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
 /*=== saigSynch.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManDupInitZero( Aig_Man_t * p );
 /*=== saigTrans.c ==========================================================*/

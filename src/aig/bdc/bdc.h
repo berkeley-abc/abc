@@ -20,10 +20,6 @@
  
 #ifndef __BDC_H__
 #define __BDC_H__
- 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -32,6 +28,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+ 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -49,10 +49,10 @@ struct Bdc_Par_t_
 };
 
 // working with complemented attributes of objects
-static inline int         Bdc_IsComplement( Bdc_Fun_t * p )      { return (int)((PORT_PTRUINT_T)p & (PORT_PTRUINT_T)01);              }
-static inline Bdc_Fun_t * Bdc_Regular( Bdc_Fun_t * p )           { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p & ~(PORT_PTRUINT_T)01);     }
-static inline Bdc_Fun_t * Bdc_Not( Bdc_Fun_t * p )               { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)01);     }
-static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )    { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)(c!=0)); }
+static inline int         Bdc_IsComplement( Bdc_Fun_t * p )      { return (int)((ABC_PTRUINT_T)p & (ABC_PTRUINT_T)01);              }
+static inline Bdc_Fun_t * Bdc_Regular( Bdc_Fun_t * p )           { return (Bdc_Fun_t *)((ABC_PTRUINT_T)p & ~(ABC_PTRUINT_T)01);     }
+static inline Bdc_Fun_t * Bdc_Not( Bdc_Fun_t * p )               { return (Bdc_Fun_t *)((ABC_PTRUINT_T)p ^  (ABC_PTRUINT_T)01);     }
+static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )    { return (Bdc_Fun_t *)((ABC_PTRUINT_T)p ^  (ABC_PTRUINT_T)(c!=0)); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///

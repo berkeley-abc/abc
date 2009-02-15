@@ -105,9 +105,9 @@ clkSym = clock() - clk;
 printf( "Statistics of BDD-based symmetry detection:\n" );
 printf( "Algorithm = %s. Reordering = %s. Garbage collection = %s.\n", 
        fNaive? "naive" : "fast", fReorder? "yes" : "no", fGarbCollect? "yes" : "no" );
-PRT( "Constructing BDDs", clkBdd );
-PRT( "Computing symms  ", clkSym );
-PRT( "TOTAL            ", clkBdd + clkSym );
+ABC_PRT( "Constructing BDDs", clkBdd );
+ABC_PRT( "Computing symms  ", clkSym );
+ABC_PRT( "TOTAL            ", clkBdd + clkSym );
 }
 
 /**Function*************************************************************
@@ -177,7 +177,7 @@ void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms )
     pInputNames = Abc_NtkCollectCioNames( pNtk, 0 );
 
     // alloc the array of marks
-    pVarTaken = ALLOC( int, nVars );
+    pVarTaken = ABC_ALLOC( int, nVars );
     memset( pVarTaken, 0, sizeof(int) * nVars );
 
     // print the groups
@@ -217,8 +217,8 @@ void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms )
     }   
     printf( "\n" );
 
-    free( pInputNames );
-    free( pVarTaken );
+    ABC_FREE( pInputNames );
+    ABC_FREE( pVarTaken );
 }
 
 

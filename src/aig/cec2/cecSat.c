@@ -43,13 +43,13 @@ Cec_ManSat_t * Cec_ManCreate( Aig_Man_t * pAig, Cec_ParSat_t * pPars )
 {
     Cec_ManSat_t * p;
     // create interpolation manager
-    p = ALLOC( Cec_ManSat_t, 1 );
+    p = ABC_ALLOC( Cec_ManSat_t, 1 );
     memset( p, 0, sizeof(Cec_ManSat_t) );
     p->pPars        = pPars;
     p->pAig         = pAig;
     // SAT solving
     p->nSatVars     = 1;
-    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(pAig) );
+    p->pSatVars     = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
     p->vUsedNodes   = Vec_PtrAlloc( 1000 );
     p->vFanins      = Vec_PtrAlloc( 100 );
     return p;
@@ -72,8 +72,8 @@ void Cec_ManStop( Cec_ManSat_t * p )
         sat_solver_delete( p->pSat );
     Vec_PtrFree( p->vUsedNodes );
     Vec_PtrFree( p->vFanins );
-    FREE( p->pSatVars );
-    free( p );
+    ABC_FREE( p->pSatVars );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -165,7 +165,7 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Aig_Obj_t * pNode )
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
 clk = clock();
     RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
-        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_False )
     {
 p->timeSatUnsat += clock() - clk;

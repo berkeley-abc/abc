@@ -514,7 +514,7 @@ Cudd_zddVarsFromBddVars(
         dd->univ[i]->index = dd->invpermZ[i];
     }
     } else {
-    permutation = ALLOC(int,dd->sizeZ);
+    permutation = ABC_ALLOC(int,dd->sizeZ);
     if (permutation == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -529,7 +529,7 @@ Cudd_zddVarsFromBddVars(
         permutation[i] = i;
     }
     res = Cudd_zddShuffleHeap(dd, permutation);
-    FREE(permutation);
+    ABC_FREE(permutation);
     if (res == 0) return(0);
     }
     /* Copy and expand the variable group tree if it exists. */
@@ -549,12 +549,12 @@ Cudd_zddVarsFromBddVars(
     if (multiplicity > 1) {
     char *vmask, *lmask;
 
-    vmask = ALLOC(char, dd->size);
+    vmask = ABC_ALLOC(char, dd->size);
     if (vmask == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    lmask =  ALLOC(char, dd->size);
+    lmask =  ABC_ALLOC(char, dd->size);
     if (lmask == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -563,8 +563,8 @@ Cudd_zddVarsFromBddVars(
         vmask[i] = lmask[i] = 0;
     }
     res = addMultiplicityGroups(dd,dd->treeZ,multiplicity,vmask,lmask);
-    FREE(vmask);
-    FREE(lmask);
+    ABC_FREE(vmask);
+    ABC_FREE(lmask);
     if (res == 0) return(0);
     }
     return(1);
@@ -653,7 +653,7 @@ Cudd_AutodynEnable(
     if ((unsigned) unique->nextDead > unique->deadMask) {
     unique->nextDead = 0;
     }
-    unique->deathRow = REALLOC(DdNodePtr, unique->deathRow,
+    unique->deathRow = ABC_REALLOC(DdNodePtr, unique->deathRow,
     unique->deathRowDepth);
 #endif
     return;
@@ -1740,7 +1740,7 @@ Cudd_ReadGarbageCollectionTime(
 
   Synopsis    [Returns the number of nodes freed.]
 
-  Description [Returns the number of nodes returned to the free list if the
+  Description [Returns the number of nodes returned to the ABC_FREE list if the
   keeping of this statistic is enabled; -1 otherwise. This statistic is
   enabled only if the package is compiled with DD_STATS defined.]
 
@@ -3078,7 +3078,7 @@ Cudd_PrintInfo(
   Synopsis    [Reports the peak number of nodes.]
 
   Description [Reports the peak number of nodes. This number includes
-  node on the free list. At the peak, the number of nodes on the free
+  node on the ABC_FREE list. At the peak, the number of nodes on the ABC_FREE
   list is guaranteed to be less than DD_MEM_CHUNK.]
 
   SideEffects [None]
@@ -3244,7 +3244,7 @@ Cudd_AddHook(
     }
     /* The function was not in the list. Create a new item and append it
     ** to the end of the list. */
-    newHook = ALLOC(DdHook,1);
+    newHook = ABC_ALLOC(DdHook,1);
     if (newHook == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -3298,7 +3298,7 @@ Cudd_RemoveHook(
     while (nextHook != NULL) {
     if (nextHook->f == f) {
         *hook = nextHook->next;
-        FREE(nextHook);
+        ABC_FREE(nextHook);
         return(1);
     }
     hook = &(nextHook->next);

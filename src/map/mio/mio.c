@@ -27,6 +27,7 @@
 #include "mainInt.h"
 #include "mioInt.h"
 #include "mapper.h"
+#include "amap.h"
 
 extern void Amap_LibFree( void * p );
 extern void Amap_LibPrintSelectedGates( void * p, int fAllGates );
@@ -35,6 +36,8 @@ extern void * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryV
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+static int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -106,6 +109,8 @@ void Mio_Init( Abc_Frame_t * pAbc )
         unlink( pFileTemp );
 #endif
 
+    Cmd_CommandAdd( pAbc, "SC mapping", "read_liberty",   Mio_CommandReadLiberty,  0 ); 
+
     Cmd_CommandAdd( pAbc, "SC mapping", "read_library",   Mio_CommandReadLibrary,  0 ); 
     Cmd_CommandAdd( pAbc, "SC mapping", "print_library",  Mio_CommandPrintLibrary, 0 ); 
 
@@ -131,6 +136,82 @@ void Mio_End()
     Amap_LibFree( Abc_FrameReadLibGen2() );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_CommandReadLiberty( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pFile;
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNet;
+    char * FileName;
+    int fVerbose;
+    int c;
+
+    pNet = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
+    {
+        fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+            fprintf( pErr, "Did you mean \"%s\"?", FileName );
+        fprintf( pErr, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    if ( !Amap_LibertyParse( FileName, "temp.genlib", fVerbose ) )
+        return 0;
+    Cmd_CommandExecute( pAbc, "read_library temp.genlib" );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: read_liberty [-vh]\n");
+    fprintf( pErr, "\t         read standard cell library in Liberty format\n" );  
+    fprintf( pErr, "\t         (if the library contains more than one gate\n" );  
+    fprintf( pErr, "\t         with the same Boolean function, only the gate\n" );  
+    fprintf( pErr, "\t         with the smallest area will be used)\n" );  
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : enable verbose output\n");
+    return 1;       /* error exit */
+}
 
 /**Function*************************************************************
 

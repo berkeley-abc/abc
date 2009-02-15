@@ -221,7 +221,7 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
         printf( "\n" );
     }
     // mark the timing critical nodes and edges
-    puTCEdges = ALLOC( unsigned, Nwk_ManObjNumMax(pNtk) );
+    puTCEdges = ABC_ALLOC( unsigned, Nwk_ManObjNumMax(pNtk) );
     memset( puTCEdges, 0, sizeof(unsigned) * Nwk_ManObjNumMax(pNtk) );
     Nwk_ManForEachNode( pNtk, pNode, i )
     {
@@ -244,7 +244,7 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
     }
     // start the resulting network
     pAig = Nwk_ManStrash( pNtk );
-    pAig->pEquivs = ALLOC( Aig_Obj_t *, 3 * Aig_ManObjNumMax(pAig) );
+    pAig->pEquivs = ABC_ALLOC( Aig_Obj_t *, 3 * Aig_ManObjNumMax(pAig) );
     memset( pAig->pEquivs, 0, sizeof(Aig_Obj_t *) * 3 * Aig_ManObjNumMax(pAig) );
 
     // collect nodes to be used for resynthesis
@@ -332,7 +332,7 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
     }
     Vec_PtrFree( vTimeCries );
     Vec_PtrFree( vTimeFanins );
-    free( puTCEdges );
+    ABC_FREE( puTCEdges );
     if ( fVerbose )
         printf( "Nodes: Total = %7d. 0-slack = %7d. Workable = %7d. Ratio = %4.2f\n", 
         Nwk_ManNodeNum(pNtk), Counter, CounterRes, Counter? 1.0*CounterRes/Counter : 0.0 ); 

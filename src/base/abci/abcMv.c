@@ -60,7 +60,7 @@ void Abc_MvExperiment()
 {
     Mv_Man_t * p;
     // get the functions
-    p = ALLOC( Mv_Man_t, 1 );
+    p = ABC_ALLOC( Mv_Man_t, 1 );
     memset( p, 0, sizeof(Mv_Man_t) );
     p->dd = Cudd_Init( 32, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     p->nFuncs  = 15;
@@ -76,7 +76,7 @@ void Abc_MvExperiment()
     // remove the manager
     Abc_MvDeref( p );
     Extra_StopManager( p->dd );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -349,7 +349,7 @@ void Abc_MvDecompose( Mv_Man_t * p )
             printf( "%d ", Vec_PtrSize(vCofs) );
             Vec_PtrFree( vCofs );
 
-            // free the cofactors
+            // ABC_FREE the cofactors
             for ( v1 = 0; v1 < 4; v1++ )
             for ( v2 = 0; v2 < 4; v2++ )
                 Cudd_RecursiveDeref( p->dd, bCofs[v1 * 4 + v2] );

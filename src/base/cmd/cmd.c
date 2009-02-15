@@ -118,7 +118,7 @@ void Cmd_End( Abc_Frame_t * pAbc )
 
 //    st_free_table( pAbc->tCommands, (void (*)()) 0, CmdCommandFree );
 //    st_free_table( pAbc->tAliases,  (void (*)()) 0, CmdCommandAliasFree );
-//    st_free_table( pAbc->tFlags,    free, free );
+//    st_free_table( pAbc->tFlags,    ABC_FREE, ABC_FREE );
 
     st_foreach_item( pAbc->tCommands, gen, (char **)&pKey, (char **)&pValue )
         CmdCommandFree( (Abc_Command *)pValue );
@@ -129,11 +129,11 @@ void Cmd_End( Abc_Frame_t * pAbc )
     st_free_table( pAbc->tAliases );
 
     st_foreach_item( pAbc->tFlags, gen, (char **)&pKey, (char **)&pValue )
-        free( pKey ), free( pValue );
+        ABC_FREE( pKey ), ABC_FREE( pValue );
     st_free_table( pAbc->tFlags );
 
     for ( i = 0; i < pAbc->aHistory->nSize; i++ )
-        free( pAbc->aHistory->pArray[i] );
+        ABC_FREE( pAbc->aHistory->pArray[i] );
     Vec_PtrFree( pAbc->aHistory );
 }
 
@@ -586,7 +586,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
         fp = CmdFileOpen( pAbc, argv[lp_file_index], "r", &real_filename, silent );
         if ( fp == NULL )
         {
-            FREE( real_filename );
+            ABC_FREE( real_filename );
             return !silent;     /* error return if not silent */
         }
 
@@ -677,7 +677,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             ( void ) fclose( fp );
         }
-        FREE( real_filename );
+        ABC_FREE( real_filename );
 
     }
     while ( ( status == 0 ) && ( lp_count <= 0 ) );
@@ -734,8 +734,8 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
         key = argv[1];
         if ( st_delete( pAbc->tFlags, &key, &value ) )
         {
-            FREE( key );
-            FREE( value );
+            ABC_FREE( key );
+            ABC_FREE( value );
         }
 
         flag_value = argc == 2 ? Extra_UtilStrsav( "" ) : Extra_UtilStrsav( argv[2] );
@@ -832,8 +832,8 @@ int CmdCommandUnsetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
         key = argv[i];
         if ( st_delete( pAbc->tFlags, &key, &value ) )
         {
-            FREE( key );
-            FREE( value );
+            ABC_FREE( key );
+            ABC_FREE( value );
         }
     }
     return 0;
@@ -1108,7 +1108,7 @@ extern long _findfirst( char *filespec, struct _finddata_t *fileinfo );
 extern int  _findnext( long handle, struct _finddata_t *fileinfo );
 extern int  _findclose( long handle );
 
-extern char * _getcwd( char * buffer, int maxlen );
+//extern char * _getcwd( char * buffer, int maxlen );
 extern int    _chdir( const char *dirname );
 
 /**Function*************************************************************
@@ -1561,7 +1561,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     // set the original spec of the new network
     if ( pNtk->pSpec )
     {
-        FREE( pNtkNew->pSpec );
+        ABC_FREE( pNtkNew->pSpec );
         pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     }
     // replace the current network
@@ -1704,7 +1704,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     // set the original spec of the new network
     if ( pNtk->pSpec )
     {
-        FREE( pNtkNew->pSpec );
+        ABC_FREE( pNtkNew->pSpec );
         pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     }
     // replace the current network

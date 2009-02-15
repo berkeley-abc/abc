@@ -21,10 +21,6 @@
 #ifndef __AMAP_H__
 #define __AMAP_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,6 +28,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -45,7 +45,7 @@ struct Amap_Par_t_
     int    nIterArea;   // iteratoins of exact area
     int    fUseMuxes;   // enables the use of MUXes
     int    fUseXors;    // enables the use of XORs
-    int    fFreeInvs;   // assume inverters are free (area = 0)
+    int    fFreeInvs;   // assume inverters are ABC_FREE (area = 0)
     float  fEpsilon;    // used to compare floating point numbers
     int    fVerbose;    // verbosity flag
 };
@@ -69,7 +69,10 @@ struct Amap_Out_t_
 
 /*=== amapCore.c ==========================================================*/
 extern void        Amap_ManSetDefaultParams( Amap_Par_t * pPars );
-extern Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars );
+//extern Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars );
+/*=== amapLiberty.c ==========================================================*/
+extern int         Amap_LibertyParse( char * pFileName, char * pFileGenlib, int fVerbose );
+
 
 #ifdef __cplusplus
 }

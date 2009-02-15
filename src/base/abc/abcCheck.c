@@ -191,7 +191,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
         fprintf( stdout, "NetworkCheck: Network contains a combinational loop.\n" );
         return 0;
     }
-//  PRT( "Acyclic  ", clock() - clk );
+//  ABC_PRT( "Acyclic  ", clock() - clk );
 
     // check the EXDC network if present
     if ( pNtk->pExdc )
@@ -573,10 +573,10 @@ bool Abc_NtkCheckLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pLatch )
         Value = 0;
     }
     // make sure the latch has a reasonable return value
-    if ( (int)(PORT_PTRINT_T)pLatch->pData < ABC_INIT_ZERO || (int)(PORT_PTRINT_T)pLatch->pData > ABC_INIT_DC )
+    if ( (int)(ABC_PTRINT_T)pLatch->pData < ABC_INIT_ZERO || (int)(ABC_PTRINT_T)pLatch->pData > ABC_INIT_DC )
     {
         fprintf( stdout, "NodeCheck: Latch \"%s\" has incorrect reset value (%d).\n", 
-            Abc_ObjName(pLatch), (int)(PORT_PTRINT_T)pLatch->pData );
+            Abc_ObjName(pLatch), (int)(ABC_PTRINT_T)pLatch->pData );
         Value = 0;
     }
     // make sure the latch has only one fanin

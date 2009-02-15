@@ -57,10 +57,10 @@ static inline void         Fra_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pOb
 Fra_Cla_t * Fra_ClassesStart( Aig_Man_t * pAig )
 {
     Fra_Cla_t * p;
-    p = ALLOC( Fra_Cla_t, 1 );
+    p = ABC_ALLOC( Fra_Cla_t, 1 );
     memset( p, 0, sizeof(Fra_Cla_t) );
     p->pAig = pAig;
-    p->pMemRepr  = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    p->pMemRepr  = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
     memset( p->pMemRepr, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pAig) );
     p->vClasses     = Vec_PtrAlloc( 100 );
     p->vClasses1    = Vec_PtrAlloc( 100 );
@@ -86,15 +86,15 @@ Fra_Cla_t * Fra_ClassesStart( Aig_Man_t * pAig )
 ***********************************************************************/
 void Fra_ClassesStop( Fra_Cla_t * p )
 {
-    FREE( p->pMemClasses );
-    FREE( p->pMemRepr );
+    ABC_FREE( p->pMemClasses );
+    ABC_FREE( p->pMemRepr );
     if ( p->vClassesTemp ) Vec_PtrFree( p->vClassesTemp );
     if ( p->vClassNew )    Vec_PtrFree( p->vClassNew );
     if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
     if ( p->vClasses1 )    Vec_PtrFree( p->vClasses1 );
     if ( p->vClasses )     Vec_PtrFree( p->vClasses );
     if ( p->vImps )        Vec_IntFree( p->vImps );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -278,8 +278,8 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Aig_PrimeCudd( Aig_ManObjNumMax(p->pAig) );
-    ppTable = ALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = ALLOC( Aig_Obj_t *, nTableSize ); 
+    ppTable = ABC_ALLOC( Aig_Obj_t *, nTableSize ); 
+    ppNexts = ABC_ALLOC( Aig_Obj_t *, nTableSize ); 
     memset( ppTable, 0, sizeof(Aig_Obj_t *) * nTableSize );
 
     // add all the nodes to the hash table
@@ -338,7 +338,7 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
         }
 
     // allocate room for classes
-    p->pMemClasses = ALLOC( Aig_Obj_t *, 2*(nEntries + Vec_PtrSize(p->vClasses1)) );
+    p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, 2*(nEntries + Vec_PtrSize(p->vClasses1)) );
     p->pMemClassesFree = p->pMemClasses + 2*nEntries;
  
     // copy the entries into storage in the topological order
@@ -374,8 +374,8 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
         // increment the number of entries
         nEntries += k;
     }
-    free( ppTable );
-    free( ppNexts );
+    ABC_FREE( ppTable );
+    ABC_FREE( ppNexts );
     // now it is time to refine the classes
     Fra_ClassesRefine( p );
 //    Fra_ClassesPrint( p, 0 );
@@ -587,7 +587,7 @@ int Fra_ClassesRefine1( Fra_Cla_t * p, int fRefineNewClass, int * pSkipped )
 void Fra_ClassesTest( Fra_Cla_t * p, int Id1, int Id2 )
 {
     Aig_Obj_t ** pClass;
-    p->pMemClasses = ALLOC( Aig_Obj_t *, 4 );
+    p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, 4 );
     pClass = p->pMemClasses;
     assert( Id1 < Id2 );
     pClass[0] = Aig_ManObj( p->pAig, Id1 );
@@ -620,7 +620,7 @@ void Fra_ClassesLatchCorr( Fra_Man_t * p )
         Fra_ClassObjSetRepr( pObj, Aig_ManConst1(p->pManAig) );
     }
     // allocate room for classes
-    p->pCla->pMemClasses = ALLOC( Aig_Obj_t *, 2*(nEntries + Vec_PtrSize(p->pCla->vClasses1)) );
+    p->pCla->pMemClasses = ABC_ALLOC( Aig_Obj_t *, 2*(nEntries + Vec_PtrSize(p->pCla->vClasses1)) );
     p->pCla->pMemClassesFree = p->pCla->pMemClasses + 2*nEntries;
 }
 
@@ -644,7 +644,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
     // perform combinational simulation
     pComb = Fra_SmlSimulateComb( p->pAig, 32 );
     // compute the weight of each node in the classes
-    pWeights = ALLOC( int, Aig_ManObjNumMax(p->pAig) );
+    pWeights = ABC_ALLOC( int, Aig_ManObjNumMax(p->pAig) );
     memset( pWeights, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) );
     Aig_ManForEachObj( p->pAig, pObj, i )
     { 
@@ -686,7 +686,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
             Vec_PtrWriteEntry( p->vClasses, k++, ppClass );
     Vec_PtrShrink( p->vClasses, k );
     printf( "After: Const = %6d. Class = %6d. \n", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
-    free( pWeights );
+    ABC_FREE( pWeights );
 }
 
 /**Function*************************************************************
@@ -804,13 +804,13 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
     pManFraig->pName = Aig_UtilStrsav( p->pAig->pName );
     pManFraig->pSpec = Aig_UtilStrsav( p->pAig->pSpec );
     // allocate place for the node mapping
-    ppEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
+    ppEquivs = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
     Fra_ObjSetEqu( ppEquivs, Aig_ManConst1(p->pAig), Aig_ManConst1(pManFraig) );
     // create latches for the first frame
     Aig_ManForEachLoSeq( p->pAig, pObj, i )
         Fra_ObjSetEqu( ppEquivs, pObj, Aig_ObjCreatePi(pManFraig) );
     // add timeframes
-    pLatches = ALLOC( Aig_Obj_t *, Aig_ManRegNum(p->pAig) );
+    pLatches = ABC_ALLOC( Aig_Obj_t *, Aig_ManRegNum(p->pAig) );
     for ( f = 0; f < nFramesAll; f++ )
     {
         // create PIs for this frame
@@ -839,8 +839,8 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
         Aig_ManForEachLoSeq( p->pAig, pObj, i )
             Fra_ObjSetEqu( ppEquivs, pObj, pLatches[k++] );
     }
-    free( pLatches );
-    free( ppEquivs );
+    ABC_FREE( pLatches );
+    ABC_FREE( ppEquivs );
     // mark the asserts
     assert( Aig_ManPoNum(pManFraig) % nFramesAll == 0 );
 printf( "Assert miters = %6d. Output miters = %6d.\n", 

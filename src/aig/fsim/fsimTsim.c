@@ -36,7 +36,7 @@ static inline int Aig_XsimNotCond( int Value, int fCompl )
         return FSIM_ZER;
     return FSIM_ONE;
 }
-static inline int Aig_XsimAndCond( int Value0, int Value1, int fCompl0, int fCompl1 )   
+static inline int Aig_XsimAndCond( int Value0, int fCompl0, int Value1, int fCompl1 )   
 { 
     if ( Value0 == FSIM_UND || Value1 == FSIM_UND )
         return FSIM_UND;
@@ -111,7 +111,7 @@ static inline void Fsim_ManTerSimulateNode( Fsim_Man_t * p, int iNode, int iFan0
 {
     int Value0 = Fsim_ManTerSimInfoGet( p->pDataSim, Fsim_Lit2Var(iFan0) );
     int Value1 = Fsim_ManTerSimInfoGet( p->pDataSim, Fsim_Lit2Var(iFan1) );
-    Fsim_ManTerSimInfoSet( p->pDataSim, iNode, Aig_XsimAndCond( Value0, Value1, Fsim_LitIsCompl(iFan0), Fsim_LitIsCompl(iFan1) ) );
+    Fsim_ManTerSimInfoSet( p->pDataSim, iNode, Aig_XsimAndCond( Value0, Fsim_LitIsCompl(iFan0), Value1, Fsim_LitIsCompl(iFan1) ) );
 }
 
 /**Function*************************************************************
@@ -253,7 +253,7 @@ unsigned * Fsim_ManTerStateCreate( unsigned * pInfo, int nPis, int nCis, int nWo
 {
     unsigned * pRes;
     int i;
-    pRes = (unsigned *)CALLOC( char, sizeof(unsigned) * nWords + sizeof(unsigned *) );
+    pRes = (unsigned *)ABC_CALLOC( char, sizeof(unsigned) * nWords + sizeof(unsigned *) );
     for ( i = nPis; i < nCis; i++ )
         Fsim_ManTerSimInfoSet( pRes, i-nPis, Fsim_ManTerSimInfoGet(pInfo, i) );
     return pRes;    
@@ -348,7 +348,7 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
         printf( "Obj = %8d (%8d). Cut = %6d. Front = %6d.  FrtMem = %7.2f Mb. ", 
             p->nObjs, p->nCis + p->nNodes, p->nCrossCutMax, p->nFront, 
             4.0*Aig_BitWordNum(2 * p->nFront)/(1<<20) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     // create simulation frontier
     clk = clock();
@@ -359,19 +359,19 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
             p->iNumber, Aig_Base2Log(p->iNumber), 
             1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             1.0*(p->pDataCur-p->pDataAig)/p->nObjs ); 
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     // allocate storage for terminary states
     nWords  = Aig_BitWordNum( 2*Aig_ManRegNum(pAig) );
     vStates = Vec_PtrAlloc( 1000 );
     nBins   = Aig_PrimeCudd( 500 );
-    pBins   = ALLOC( unsigned *, nBins );
+    pBins   = ABC_ALLOC( unsigned *, nBins );
     memset( pBins, 0, sizeof(unsigned *) * nBins );
     // perform simulation
     assert( p->pDataSim == NULL );
-    p->pDataSim = ALLOC( unsigned, Aig_BitWordNum(2 * p->nFront) * sizeof(unsigned) );
-    p->pDataSimCis = ALLOC( unsigned, Aig_BitWordNum(2 * p->nCis) * sizeof(unsigned) );
-    p->pDataSimCos = ALLOC( unsigned, Aig_BitWordNum(2 * p->nCos) * sizeof(unsigned) );
+    p->pDataSim = ABC_ALLOC( unsigned, Aig_BitWordNum(2 * p->nFront) * sizeof(unsigned) );
+    p->pDataSimCis = ABC_ALLOC( unsigned, Aig_BitWordNum(2 * p->nCis) * sizeof(unsigned) );
+    p->pDataSimCos = ABC_ALLOC( unsigned, Aig_BitWordNum(2 * p->nCos) * sizeof(unsigned) );
     Fsim_ManTerSimInfoInit( p );
     // hash the first state
     pState = Fsim_ManTerStateCreate( p->pDataSimCis, p->nPis, p->nCis, nWords );
@@ -395,9 +395,9 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
             p->nCrossCutMax, 
             p->pDataAig2? 12.0*p->nObjs/(1<<20) : 1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             4.0*(Aig_BitWordNum(2 * p->nFront)+Aig_BitWordNum(2 * p->nCis)+Aig_BitWordNum(2 * p->nCos))/(1<<20) );
-        PRT( "Sim time", clock() - clkTotal );
+        ABC_PRT( "Sim time", clock() - clkTotal );
     }
-    free( pBins );
+    ABC_FREE( pBins );
     Fsim_ManDelete( p );
     return vStates;
 

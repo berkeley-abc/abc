@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <time.h>
 #include <math.h>
+#include "abc_global.h"
 #include "msat.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -40,25 +41,6 @@
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-#ifdef _MSC_VER
-typedef __int64     int64;
-#else
-typedef long long   int64;
-#endif
-
-// outputs the runtime in seconds
-#define PRT(a,t) \
-    printf( "%s = ", (a) ); printf( "%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC) )
-
-// memory management macros
-#define ALLOC(type, num)    \
-    ((type *) malloc(sizeof(type) * (num)))
-#define REALLOC(type, obj, num)    \
-    ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-        ((type *) malloc(sizeof(type) * (num))))
-#define FREE(obj)        \
-    ((obj) ? (free((char *)(obj)), (obj) = 0) : 0)
 
 // By default, custom memory management is used
 // which guarantees constant time allocation/deallocation 
@@ -92,12 +74,12 @@ typedef int                       Msat_Var_t;
 typedef struct Msat_SolverStats_t_ Msat_SolverStats_t;
 struct Msat_SolverStats_t_
 {
-    int64   nStarts;        // the number of restarts
-    int64   nDecisions;     // the number of decisions
-    int64   nPropagations;  // the number of implications
-    int64   nInspects;      // the number of times clauses are vising while watching them
-    int64   nConflicts;     // the number of conflicts
-    int64   nSuccesses;     // the number of sat assignments found
+    ABC_INT64_T   nStarts;        // the number of restarts
+    ABC_INT64_T   nDecisions;     // the number of decisions
+    ABC_INT64_T   nPropagations;  // the number of implications
+    ABC_INT64_T   nInspects;      // the number of times clauses are vising while watching them
+    ABC_INT64_T   nConflicts;     // the number of conflicts
+    ABC_INT64_T   nSuccesses;     // the number of sat assignments found
 };
 
 typedef struct Msat_SearchParams_t_ Msat_SearchParams_t;

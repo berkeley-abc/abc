@@ -244,8 +244,8 @@ void Abc_Ntk4VarTable( Abc_Ntk_t * pNtk )
 //        Counters[ puMap[uTruth & 0xFFFF] ]++;
         Vec_PtrFree( vNodes );
     }
-    free( puCanons );
-    free( puMap );
+    ABC_FREE( puCanons );
+    ABC_FREE( puMap );
 
     Count = 0;
     for ( k = 0; k < 222; k++ )

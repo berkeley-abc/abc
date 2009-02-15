@@ -184,7 +184,7 @@ Vec_Int_t * Abc_NtkSensitivity( Abc_Ntk_t * pNtk, int nConfLim, int fVerbose )
                 printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
 //            else
 //                printf( "Networks are NOT EQUIVALENT.\n" );
-            free( pSimInfo );
+            ABC_FREE( pSimInfo );
             Vec_IntPush( vResult, i );
         }
         Abc_NtkDelete( pMiter );

@@ -280,7 +280,7 @@ int Saig_SynchCountX( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords, int * 
     int * pCounters, i, w, b;
     int iPatBest, iTernMin;
     // count the number of ternary values in each pattern
-    pCounters = CALLOC( int, nWords * 16 );
+    pCounters = ABC_CALLOC( int, nWords * 16 );
     Saig_ManForEachLi( pAig, pObj, i )
     {
         pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
@@ -300,7 +300,7 @@ int Saig_SynchCountX( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords, int * 
             if ( iTernMin == 0 )
                 break;
         }
-    free( pCounters );
+    ABC_FREE( pCounters );
     *piPat = iPatBest;
     return iTernMin;
 }
@@ -512,7 +512,7 @@ clk = clock();
         printf( "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSequence) / Saig_ManPiNum(pAig) );
     if ( fVerbose )
     {
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     else
         printf( "\n" );
@@ -588,7 +588,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
         printf( "Design 1: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq1) / Saig_ManPiNum(pAig1) );
     if ( fVerbose )
     {
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     else
         printf( "\n" );
@@ -602,7 +602,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
         printf( "Design 2: Synchronizing sequence of length %4d is found. ", Vec_StrSize(vSeq2) / Saig_ManPiNum(pAig2) );
     if ( fVerbose )
     {
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     else
         printf( "\n" );
@@ -646,7 +646,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
     if ( fVerbose )
     {
         printf( "Miter of the synchronized designs is constructed.         " );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     return pMiter;
 }

@@ -1349,7 +1349,7 @@ int If_CutGetCones( If_Man_t * p )
         }
     }
     printf( "Cound not find boundary for %d nodes.\n", Counter );
-    PRT( "Cones", clock() - clk );
+    ABC_PRT( "Cones", clock() - clk );
     return 1;
 }
 
@@ -1406,7 +1406,7 @@ int If_CutCountTotalFanins( If_Man_t * p )
         }
     }
     printf( "Total cut inputs = %d. Total fanins incremental = %d.\n", nFaninsTotal, Counter );
-    PRT( "Fanins", clock() - clk );
+    ABC_PRT( "Fanins", clock() - clk );
     Vec_IntFree( vLeaves );
     return 1;
 }

@@ -198,7 +198,7 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
         pObj->pData = pObj;
     // iterate and add objects
     nNodesOld = Aig_ManObjNumMax(p);
-    pLatches = ALLOC( Aig_Obj_t *, Aig_ManRegNum(p) );
+    pLatches = ABC_ALLOC( Aig_Obj_t *, Aig_ManRegNum(p) );
     for ( f = 0; f < nFrames; f++ )
     {
         // clean latch inputs and outputs
@@ -230,7 +230,7 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
                 pObj->pData = NULL;
         }
     }
-    free( pLatches );
+    ABC_FREE( pLatches );
 }
 
 
@@ -308,7 +308,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
                 i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), pPars->nIters, nClasses );
         Aig_ManStop( pNew );
         Aig_ManStop( pTemp );
-        free( pMapBack );
+        ABC_FREE( pMapBack );
     }
     // remap the AIG
     pNew = Aig_ManDupRepr( pAig, 0 );
@@ -320,7 +320,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     pPars->fVerbose = fVerbose;
     if ( fVerbose )
     {
-        PRT( "Total time", clock() - clk );
+        ABC_PRT( "Total time", clock() - clk );
     }
     return pNew;
 }
@@ -420,10 +420,10 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
         // refine the classes with more simulation rounds
 if ( pPars->fVerbose )
 printf( "Simulating %d AIG nodes for %d cycles ... ", Aig_ManNodeNum(pManAig), pPars->nFramesP + 32 );
-        p->pSml = Fra_SmlSimulateSeq( pManAig, pPars->nFramesP, 32, 1 ); //pPars->nFramesK + 1, 1 );  
+        p->pSml = Fra_SmlSimulateSeq( pManAig, pPars->nFramesP, 32, 1, 1  ); //pPars->nFramesK + 1, 1 );  
 if ( pPars->fVerbose ) 
 {
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
         Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr, p->pPars->nMaxLevs );
 //        Fra_ClassesPostprocess( p->pCla );
@@ -556,7 +556,7 @@ clk2 = clock();
         Fra_FraigSweep( p );
         if ( pPars->fVerbose )
         {
-            PRT( "T", clock() - clk3 );
+            ABC_PRT( "T", clock() - clk3 );
         } 
 
 //        Sat_SolverPrintStats( stdout, p->pSat );
@@ -589,7 +589,7 @@ clk2 = clock();
             printf( "Implications failing the simulation test = %d (out of %d).  ", Temp, Vec_IntSize(p->pCla->vImps) );
         else
             printf( "All %d implications have passed the simulation test.  ", Vec_IntSize(p->pCla->vImps) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
 */
 
@@ -629,7 +629,7 @@ p->timeTotal = clock() - clk;
     p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
     p->nNodesEnd = Aig_ManNodeNum(pManAigNew);
     p->nRegsEnd  = Aig_ManRegNum(pManAigNew);
-    // free the manager
+    // ABC_FREE the manager
 finish:
     Fra_ManStop( p );
     // check the output

@@ -19,28 +19,17 @@
 #ifndef __FRAIG_H__
 #define __FRAIG_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef SINT64
-#define SINT64
-
-#ifdef _WIN32
-typedef signed __int64     sint64;   // compatible with MS VS 6.0
-#else
-typedef long long          sint64;
-#endif
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -70,7 +59,7 @@ struct Fraig_ParamsStruct_t_
     int  fVerboseP;     // the verbosiness flag (for proof reporting)
     int  fInternal;     // is set to 1 for internal fraig calls
     int  nConfLimit;    // the limit on the number of conflicts
-    sint64 nInspLimit;  // the limit on the number of inspections
+    ABC_INT64_T nInspLimit;  // the limit on the number of inspections
 };
 
 struct Prove_ParamsStruct_t_
@@ -97,11 +86,11 @@ struct Prove_ParamsStruct_t_
     // last-gasp mitering
     int     nMiteringLimitLast;    // final mitering limit
     // global SAT solver limits
-    sint64  nTotalBacktrackLimit;  // global limit on the number of backtracks
-    sint64  nTotalInspectLimit;    // global limit on the number of clause inspects
+    ABC_INT64_T  nTotalBacktrackLimit;  // global limit on the number of backtracks
+    ABC_INT64_T  nTotalInspectLimit;    // global limit on the number of clause inspects
     // global resources applied
-    sint64  nTotalBacktracksMade;  // the total number of backtracks made
-    sint64  nTotalInspectsMade;    // the total number of inspects made
+    ABC_INT64_T  nTotalBacktracksMade;  // the total number of backtracks made
+    ABC_INT64_T  nTotalInspectsMade;    // the total number of inspects made
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -113,10 +102,10 @@ struct Prove_ParamsStruct_t_
 ////////////////////////////////////////////////////////////////////////
  
 // macros working with complemented attributes of the nodes
-#define Fraig_IsComplement(p)    (((int)((PORT_PTRUINT_T) (p) & 01)))
-#define Fraig_Regular(p)         ((Fraig_Node_t *)((PORT_PTRUINT_T)(p) & ~01)) 
-#define Fraig_Not(p)             ((Fraig_Node_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
-#define Fraig_NotCond(p,c)       ((Fraig_Node_t *)((PORT_PTRUINT_T)(p) ^ (c)))
+#define Fraig_IsComplement(p)    (((int)((ABC_PTRUINT_T) (p) & 01)))
+#define Fraig_Regular(p)         ((Fraig_Node_t *)((ABC_PTRUINT_T)(p) & ~01)) 
+#define Fraig_Not(p)             ((Fraig_Node_t *)((ABC_PTRUINT_T)(p) ^ 01)) 
+#define Fraig_NotCond(p,c)       ((Fraig_Node_t *)((ABC_PTRUINT_T)(p) ^ (c)))
 
 // these are currently not used
 #define Fraig_Ref(p)              

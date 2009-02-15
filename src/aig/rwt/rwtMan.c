@@ -64,10 +64,10 @@ void Rwt_ManGlobalStart()
 ***********************************************************************/
 void Rwt_ManGlobalStop()
 { 
-    FREE( s_puCanons );
-    FREE( s_pPhases );
-    FREE( s_pPerms );
-    FREE( s_pMap );
+    ABC_FREE( s_puCanons );
+    ABC_FREE( s_pPhases );
+    ABC_FREE( s_pPerms );
+    ABC_FREE( s_pMap );
 } 
 
 /**Function*************************************************************
@@ -86,7 +86,7 @@ Rwt_Man_t * Rwt_ManStart( int fPrecompute )
     Rwt_Man_t * p;
     int clk = clock();
 clk = clock();
-    p = ALLOC( Rwt_Man_t, 1 );
+    p = ABC_ALLOC( Rwt_Man_t, 1 );
     memset( p, 0, sizeof(Rwt_Man_t) );
     p->nFuncs = (1<<16);
     // copy the global tables
@@ -98,7 +98,7 @@ clk = clock();
     // initialize practical NPN classes
     p->pPractical  = Rwt_ManGetPractical( p );
     // create the table
-    p->pTable = ALLOC( Rwt_Node_t *, p->nFuncs );
+    p->pTable = ABC_ALLOC( Rwt_Node_t *, p->nFuncs );
     memset( p->pTable, 0, sizeof(Rwt_Node_t *) * p->nFuncs );
     // create the elementary nodes
     p->pMmNode  = Mem_FixedStart( sizeof(Rwt_Node_t) );
@@ -159,11 +159,11 @@ void Rwt_ManStop( Rwt_Man_t * p )
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vFaninsCur );
     Mem_FixedStop( p->pMmNode, 0 );
-    FREE( p->pMapInv );
-    free( p->pTable );
-    free( p->pPractical );
-    free( p->pPerms4 );
-    free( p );
+    ABC_FREE( p->pMapInv );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p->pPractical );
+    ABC_FREE( p->pPerms4 );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -191,14 +191,14 @@ void Rwt_ManPrintStats( Rwt_Man_t * p )
     printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
     printf( "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
     printf( "Calculated gain   = %8d.\n", p->nNodesGained     );
-    PRT( "Start       ", p->timeStart );
-    PRT( "Cuts        ", p->timeCut );
-    PRT( "Truth       ", p->timeTruth );
-    PRT( "Resynthesis ", p->timeRes );
-    PRT( "    Mffc    ", p->timeMffc );
-    PRT( "    Eval    ", p->timeEval );
-    PRT( "Update      ", p->timeUpdate );
-    PRT( "TOTAL       ", p->timeTotal );
+    ABC_PRT( "Start       ", p->timeStart );
+    ABC_PRT( "Cuts        ", p->timeCut );
+    ABC_PRT( "Truth       ", p->timeTruth );
+    ABC_PRT( "Resynthesis ", p->timeRes );
+    ABC_PRT( "    Mffc    ", p->timeMffc );
+    ABC_PRT( "    Eval    ", p->timeEval );
+    ABC_PRT( "Update      ", p->timeUpdate );
+    ABC_PRT( "TOTAL       ", p->timeTotal );
 
 /*
     printf( "The scores are:\n" );

@@ -11174,7 +11174,7 @@ void Aig_NtkGenerateArrays( Abc_Ntk_t * pNtk )
             pObj->pCopy = (void *)Count++;
 
         Pos = 0;
-        pBuffer = ALLOC( char, 200000 );
+        pBuffer = ABC_ALLOC( char, 200000 );
         Abc_AigForEachAnd( pNtk, pObj, i )
         {
             pObj->pCopy = (void *)Count++;
@@ -11250,7 +11250,7 @@ void Aig_NtkGenerateArrays( Abc_Ntk_t * pNtk )
         Vec_IntSort( vOuts, 0 );
 
         Pos = 0;
-        pBuffer = ALLOC( char, 50000 );
+        pBuffer = ABC_ALLOC( char, 50000 );
         Prev = 0;
         Vec_IntForEachEntry( vOuts, Out, i )
         {

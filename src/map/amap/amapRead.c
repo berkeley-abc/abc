@@ -89,7 +89,7 @@ char * Amap_LoadFile( char * pFileName )
     // move the file current reading position to the beginning
     rewind( pFile ); 
     // load the contents of the file into memory
-    pBuffer = ALLOC( char, nFileSize + 10 );
+    pBuffer = ABC_ALLOC( char, nFileSize + 10 );
     fread( pBuffer, nFileSize, 1, pFile );
     // terminate the string with '\0'
     pBuffer[ nFileSize ] = '\0';
@@ -173,11 +173,11 @@ Vec_Ptr_t * Amap_DeriveTokens( char * pBuffer )
     Vec_Ptr_t * vTokens;
     char * pToken;
     vTokens = Vec_PtrAlloc( 1000 );
-    pToken = strtok( pBuffer, " ;=\t\r\n" );
+    pToken = strtok( pBuffer, " =\t\r\n" );
     while ( pToken )
     {
         Vec_PtrPush( vTokens, pToken );
-        pToken = strtok( NULL, " ;=\t\r\n" );
+        pToken = strtok( NULL, " =\t\r\n" );
     }
     return vTokens;
 }
@@ -288,6 +288,32 @@ Amap_Gat_t * Amap_ParseGateWithSamePins( Amap_Gat_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Amap_CollectFormulaTokens( Vec_Ptr_t * vTokens, char * pToken, int iPos )
+{
+    char * pNext, * pPrev;
+    pPrev = pToken + strlen(pToken);
+    while ( *(pPrev-1) != ';' )
+    {
+        *pPrev++ = ' ';
+        pNext = Vec_PtrEntry(vTokens, iPos++);
+        while ( *pNext )
+            *pPrev++ = *pNext++;
+    }
+    *(pPrev-1) = 0;
+    return iPos;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
 {
     Amap_Lib_t * p;
@@ -320,6 +346,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
         pToken = Vec_PtrEntry(vTokens, iPos++);
         pGate->pOutName = Amap_ParseStrsav( p->pMemGates, pToken ); 
         pToken = Vec_PtrEntry(vTokens, iPos++);
+        iPos = Amap_CollectFormulaTokens( vTokens, pToken, iPos );
         pGate->pForm = Amap_ParseStrsav( p->pMemGates, pToken ); 
         // read pins
         Amap_GateForEachPin( pGate, pPin )
@@ -401,7 +428,7 @@ Amap_Lib_t * Amap_LibReadFile( char * pFileName, int fVerbose )
         return NULL;
     pLib->pName = Amap_ParseStrsav( pLib->pMemGates, pFileName );
     Vec_PtrFree( vTokens );
-    free( pBuffer );
+    ABC_FREE( pBuffer );
     return pLib;
 }
 

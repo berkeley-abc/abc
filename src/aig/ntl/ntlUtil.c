@@ -390,7 +390,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
         return NULL;
     }
     // count the number of classes
-    pClassNums = CALLOC( int, ClassMax + 1 );
+    pClassNums = ABC_CALLOC( int, ClassMax + 1 );
     Vec_IntForEachEntry( pMan->vRegClasses, Class, k )
         pClassNums[Class]++;
     // count the number of classes
@@ -417,7 +417,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
             Vec_PtrPush( vParts, vPart );
         }
         printf( "There is only one class with %d registers.\n", Vec_IntSize(pMan->vRegClasses) );
-        free( pClassNums );
+        ABC_FREE( pClassNums );
         return (Vec_Vec_t *)vParts;
     }
     // create classes
@@ -433,7 +433,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
         assert( Vec_IntSize(vPart) == pClassNums[i] );
         Vec_PtrPush( vParts, vPart );
     }
-    free( pClassNums );
+    ABC_FREE( pClassNums );
     Vec_VecSort( (Vec_Vec_t *)vParts, 1 );
     // report the selected classes
     if ( fVerbose )

@@ -43,15 +43,15 @@ Nm_Man_t * Nm_ManCreate( int nSize )
 {
     Nm_Man_t * p;
     // allocate the table
-    p = ALLOC( Nm_Man_t, 1 );
+    p = ABC_ALLOC( Nm_Man_t, 1 );
     memset( p, 0, sizeof(Nm_Man_t) );
     // set the parameters
     p->nSizeFactor   = 2; // determined the limit on the grow of data before the table resizes
     p->nGrowthFactor = 3; // determined how much the table grows after resizing
     // allocate and clean the bins
     p->nBins = Cudd_PrimeNm(nSize);
-    p->pBinsI2N = ALLOC( Nm_Entry_t *, p->nBins );
-    p->pBinsN2I = ALLOC( Nm_Entry_t *, p->nBins );
+    p->pBinsI2N = ABC_ALLOC( Nm_Entry_t *, p->nBins );
+    p->pBinsN2I = ABC_ALLOC( Nm_Entry_t *, p->nBins );
     memset( p->pBinsI2N, 0, sizeof(Nm_Entry_t *) * p->nBins );
     memset( p->pBinsN2I, 0, sizeof(Nm_Entry_t *) * p->nBins );
     // start the memory manager
@@ -73,9 +73,9 @@ Nm_Man_t * Nm_ManCreate( int nSize )
 void Nm_ManFree( Nm_Man_t * p )
 {
     Extra_MmFlexStop( p->pMem );
-    FREE( p->pBinsI2N );
-    FREE( p->pBinsN2I );
-    FREE( p );
+    ABC_FREE( p->pBinsI2N );
+    ABC_FREE( p->pBinsN2I );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

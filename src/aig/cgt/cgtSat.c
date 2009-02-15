@@ -57,7 +57,7 @@ int Cgt_CheckImplication( Cgt_Man_t * p, Aig_Obj_t * pGate, Aig_Obj_t * pMiter )
     pLits[1] = toLitCond( p->pCnf->pVarNums[pMiter->Id], 0 );
 
 clk = clock();
-    RetValue = sat_solver_solve( p->pSat, pLits, pLits + 2, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( p->pSat, pLits, pLits + 2, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 p->timeSat += clock() - clk;
     if ( RetValue == l_False )
     {

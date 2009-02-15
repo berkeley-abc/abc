@@ -46,13 +46,13 @@ Aig_Man_t * Inter_ManStartInitState( int nRegs )
     Aig_Obj_t ** ppInputs;
     int i;
     assert( nRegs > 0 );
-    ppInputs = ALLOC( Aig_Obj_t *, nRegs );
+    ppInputs = ABC_ALLOC( Aig_Obj_t *, nRegs );
     p = Aig_ManStart( nRegs );
     for ( i = 0; i < nRegs; i++ )
         ppInputs[i] = Aig_Not( Aig_ObjCreatePi(p) );
     pRes = Aig_Multi( p, ppInputs, nRegs, AIG_OBJ_AND );
     Aig_ObjCreatePo( p, pRes );
-    free( ppInputs );
+    ABC_FREE( ppInputs );
     return p;
 }
 

@@ -47,8 +47,8 @@ DdNode * Abc_NtkInitStateVarMap( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbose 
     int i;
 
     // set the variable mapping for Cudd_bddVarMap()
-    pbVarsX = ALLOC( DdNode *, dd->size );
-    pbVarsY = ALLOC( DdNode *, dd->size );
+    pbVarsX = ABC_ALLOC( DdNode *, dd->size );
+    pbVarsY = ABC_ALLOC( DdNode *, dd->size );
     bProd = b1;         Cudd_Ref( bProd );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
@@ -60,8 +60,8 @@ DdNode * Abc_NtkInitStateVarMap( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbose 
         Cudd_RecursiveDeref( dd, bTemp ); 
     }
     Cudd_SetVarMap( dd, pbVarsX, pbVarsY, Abc_NtkLatchNum(pNtk) );
-    FREE( pbVarsX );
-    FREE( pbVarsY );
+    ABC_FREE( pbVarsX );
+    ABC_FREE( pbVarsY );
 
     Cudd_Deref( bProd );
     return bProd;
@@ -96,13 +96,13 @@ DdNode ** Abc_NtkCreatePartitions( DdManager * dd, Abc_Ntk_t * pNtk, int fReorde
         Cudd_AutodynDisable( dd );
 
     // compute the transition relation
-    pbParts = ALLOC( DdNode *, Abc_NtkLatchNum(pNtk) );
+    pbParts = ABC_ALLOC( DdNode *, Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pNode, i )
     {
         bVar  = Cudd_bddIthVar( dd, Abc_NtkCiNum(pNtk) + i );
         pbParts[i] = Cudd_bddXnor( dd, bVar, Abc_ObjGlobalBdd(Abc_ObjFanin0(pNode)) );  Cudd_Ref( pbParts[i] );
     }
-    // free the global BDDs
+    // ABC_FREE the global BDDs
     Abc_NtkFreeGlobalBdds( pNtk, 0 );
 
     // reorder and disable reordering
@@ -143,7 +143,7 @@ DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pb
 
     // collect the NS variables
     // set the variable mapping for Cudd_bddVarMap()
-    pbVarsY = ALLOC( DdNode *, dd->size );
+    pbVarsY = ABC_ALLOC( DdNode *, dd->size );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
         pbVarsY[i] = dd->vars[ Abc_NtkCiNum(pNtk) + i ];
 
@@ -153,7 +153,7 @@ DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pb
         pTree = Extra_bddImageStart( dd, bCubeCs, Abc_NtkLatchNum(pNtk), pbParts, Abc_NtkLatchNum(pNtk), pbVarsY, fVerbose );
     else
         pTree2 = Extra_bddImageStart2( dd, bCubeCs, Abc_NtkLatchNum(pNtk), pbParts, Abc_NtkLatchNum(pNtk), pbVarsY, fVerbose );
-    free( pbVarsY );
+    ABC_FREE( pbVarsY );
     Cudd_RecursiveDeref( dd, bCubeCs );
 
     // perform reachability analisys
@@ -230,7 +230,7 @@ DdNode * Abc_NtkComputeReachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode ** pb
         fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Abc_NtkLatchNum(pNtk)) );
         fflush( stdout );
     }
-//PRB( dd, bReached );
+//ABC_PRB( dd, bReached );
     Cudd_Deref( bReached );
     if ( nIters > nIterMax || Cudd_DagSize(bReached) > nBddMax )
          printf( "Verified ONLY FOR STATES REACHED in %d iterations. \n", nIters );
@@ -298,11 +298,11 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
     Cudd_RecursiveDeref( dd, bInitial );
     for ( i = 0; i < Abc_NtkLatchNum(pNtk); i++ )
         Cudd_RecursiveDeref( dd, pbParts[i] );
-    free( pbParts );
+    ABC_FREE( pbParts );
     Extra_StopManager( dd );
 
     // report the runtime
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     fflush( stdout );
 }
 

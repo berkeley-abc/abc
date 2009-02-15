@@ -1,6 +1,7 @@
 SRC +=  src/map/amap/amapCore.c \
     src/map/amap/amapGraph.c \
     src/map/amap/amapLib.c \
+    src/map/amap/amapLiberty.c \
     src/map/amap/amapMan.c \
     src/map/amap/amapMatch.c \
     src/map/amap/amapMerge.c \

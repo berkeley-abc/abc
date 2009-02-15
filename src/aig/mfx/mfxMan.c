@@ -43,7 +43,7 @@ Mfx_Man_t * Mfx_ManAlloc( Mfx_Par_t * pPars )
 {
     Mfx_Man_t * p;
     // start the manager
-    p = ALLOC( Mfx_Man_t, 1 );
+    p = ABC_ALLOC( Mfx_Man_t, 1 );
     memset( p, 0, sizeof(Mfx_Man_t) );
     p->pPars     = pPars;
     p->vProjVars = Vec_IntAlloc( 100 );
@@ -135,13 +135,13 @@ void Mfx_ManPrint( Mfx_Man_t * p )
             p->nNodesDec, 1.0 * p->nNodesDec / p->nNodesTried, p->nNodesGained, p->nTimeOuts );
     }
 /*
-    PRTP( "Win", p->timeWin            ,  p->timeTotal );
-    PRTP( "Div", p->timeDiv            ,  p->timeTotal );
-    PRTP( "Aig", p->timeAig            ,  p->timeTotal );
-    PRTP( "Cnf", p->timeCnf            ,  p->timeTotal );
-    PRTP( "Sat", p->timeSat-p->timeInt ,  p->timeTotal );
-    PRTP( "Int", p->timeInt            ,  p->timeTotal );
-    PRTP( "ALL", p->timeTotal          ,  p->timeTotal );
+    ABC_PRTP( "Win", p->timeWin            ,  p->timeTotal );
+    ABC_PRTP( "Div", p->timeDiv            ,  p->timeTotal );
+    ABC_PRTP( "Aig", p->timeAig            ,  p->timeTotal );
+    ABC_PRTP( "Cnf", p->timeCnf            ,  p->timeTotal );
+    ABC_PRTP( "Sat", p->timeSat-p->timeInt ,  p->timeTotal );
+    ABC_PRTP( "Int", p->timeInt            ,  p->timeTotal );
+    ABC_PRTP( "ALL", p->timeTotal          ,  p->timeTotal );
 */
 }
 
@@ -178,7 +178,7 @@ void Mfx_ManStop( Mfx_Man_t * p )
     Vec_IntFree( p->vProjVars );
     Vec_IntFree( p->vDivLits );
     Vec_PtrFree( p->vDivCexes );
-    free( p );
+    ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

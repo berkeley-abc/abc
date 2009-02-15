@@ -82,7 +82,7 @@ clk = clock();
     // get the new table size
     nTableSizeNew = Aig_PrimeCudd( 3 * p->nTableSize ); 
     // allocate a new array
-    pTableNew = ALLOC( Ntl_Net_t *, nTableSizeNew );
+    pTableNew = ABC_ALLOC( Ntl_Net_t *, nTableSizeNew );
     memset( pTableNew, 0, sizeof(Ntl_Net_t *) * nTableSizeNew );
     // rehash entries 
     Counter = 0;
@@ -97,9 +97,9 @@ clk = clock();
             }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nTableSize, nTableSizeNew );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( p->pTable );
+    ABC_FREE( p->pTable );
     p->pTable = pTableNew;
     p->nTableSize = nTableSizeNew;
 }
@@ -447,7 +447,7 @@ clk = clock();
     // get the new table size
     nModTableSizeNew = Aig_PrimeCudd( 3 * p->nModTableSize ); 
     // allocate a new array
-    pModTableNew = ALLOC( Ntl_Mod_t *, nModTableSizeNew );
+    pModTableNew = ABC_ALLOC( Ntl_Mod_t *, nModTableSizeNew );
     memset( pModTableNew, 0, sizeof(Ntl_Mod_t *) * nModTableSizeNew );
     // rehash entries 
     Counter = 0;
@@ -462,9 +462,9 @@ clk = clock();
             }
     assert( Counter == p->nModEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nTableSize, nTableSizeNew );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( p->pModTable );
+    ABC_FREE( p->pModTable );
     p->pModTable = pModTableNew;
     p->nModTableSize = nModTableSizeNew;
 }

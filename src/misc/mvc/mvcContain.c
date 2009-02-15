@@ -4,7 +4,7 @@
 
   PackageName [MVSIS 2.0: Multi-valued logic synthesis system.]
 
-  Synopsis    [Making the cover single-cube containment free.]
+  Synopsis    [Making the cover single-cube containment ABC_FREE.]
 
   Author      [MVSIS Group]
   

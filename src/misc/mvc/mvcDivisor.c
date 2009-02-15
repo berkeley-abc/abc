@@ -76,7 +76,7 @@ void Mvc_CoverDivisorZeroKernel( Mvc_Cover_t * pCover )
 //    iLit = Mvc_CoverBestLiteral( pCover, NULL );
     if ( iLit == -1 )
         return;
-    // derive the cube-free quotient
+    // derive the cube-ABC_FREE quotient
     Mvc_CoverDivideByLiteralQuo( pCover, iLit ); // the same cover
     Mvc_CoverMakeCubeFree( pCover );             // the same cover
     // call recursively

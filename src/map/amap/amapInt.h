@@ -21,10 +21,6 @@
 #ifndef __AMAP_INT_H__
 #define __AMAP_INT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -35,6 +31,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // the largest gate size in the library
 // (gates above this size will be ignored)
@@ -222,10 +222,10 @@ static inline int          Amap_LitNot( int Lit )               { return Lit ^ 1
 static inline int          Amap_LitNotCond( int Lit, int c )    { return Lit ^ (int)(c > 0); }
 static inline int          Amap_LitRegular( int Lit )           { return Lit & ~01;          }
 
-static inline Amap_Obj_t * Amap_Regular( Amap_Obj_t * p )                          { return (Amap_Obj_t *)((PORT_PTRUINT_T)(p) & ~01);  }
-static inline Amap_Obj_t * Amap_Not( Amap_Obj_t * p )                              { return (Amap_Obj_t *)((PORT_PTRUINT_T)(p) ^  01);  }
-static inline Amap_Obj_t * Amap_NotCond( Amap_Obj_t * p, int c )                   { return (Amap_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c));  }
-static inline int          Amap_IsComplement( Amap_Obj_t * p )                     { return (int )(((PORT_PTRUINT_T)p) & 01);           }
+static inline Amap_Obj_t * Amap_Regular( Amap_Obj_t * p )                          { return (Amap_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);  }
+static inline Amap_Obj_t * Amap_Not( Amap_Obj_t * p )                              { return (Amap_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);  }
+static inline Amap_Obj_t * Amap_NotCond( Amap_Obj_t * p, int c )                   { return (Amap_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));  }
+static inline int          Amap_IsComplement( Amap_Obj_t * p )                     { return (int )(((ABC_PTRUINT_T)p) & 01);           }
 
 static inline int          Amap_ManPiNum( Amap_Man_t * p )                         { return p->nObjs[AMAP_OBJ_PI];                      }
 static inline int          Amap_ManPoNum( Amap_Man_t * p )                         { return p->nObjs[AMAP_OBJ_PO];                      }

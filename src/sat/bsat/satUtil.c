@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include "satSolver.h"
-#include "vec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -170,7 +169,7 @@ int * Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars )
 {
     int * pModel;
     int i;
-    pModel = ALLOC( int, nVars+1 );
+    pModel = ABC_ALLOC( int, nVars+1 );
     for ( i = 0; i < nVars; i++ )
     {
         assert( pVars[i] >= 0 && pVars[i] < p->size );

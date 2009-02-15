@@ -355,7 +355,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
                 1.0*p->nNodesGainedLevel/Vec_PtrSize(vNodes),
                 1.0*p->nTotConfLevel/Vec_PtrSize(vNodes),
                 100.0*p->nTimeOutsLevel/Vec_PtrSize(vNodes) );
-            PRT( "Time", clock() - clk2 );
+            ABC_PRT( "Time", clock() - clk2 );
             }
         }
 
@@ -371,7 +371,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
     if ( pPars->fPower )
         printf( "Total switching after  = %7.2f.\n", Nwl_ManComputeTotalSwitching(pNtk) );
 
-    // free the manager
+    // ABC_FREE the manager
     p->timeTotal = clock() - clk;
     Mfx_ManStop( p );
 

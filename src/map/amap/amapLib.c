@@ -42,7 +42,7 @@
 Amap_Lib_t * Amap_LibAlloc()
 {
     Amap_Lib_t * p;
-    p = (Amap_Lib_t *)ALLOC( Amap_Lib_t, 1 );
+    p = (Amap_Lib_t *)ABC_ALLOC( Amap_Lib_t, 1 );
     memset( p, 0, sizeof(Amap_Lib_t) );
     p->vGates = Vec_PtrAlloc( 100 );
     p->pMemGates = Aig_MmFlexStart();
@@ -79,10 +79,10 @@ void Amap_LibFree( Amap_Lib_t * p )
         Vec_IntFree( p->vRules3 );
     Aig_MmFlexStop( p->pMemGates, 0 );
     Aig_MmFlexStop( p->pMemSet, 0 );
-    FREE( p->pRules );
-    FREE( p->pRulesX );
-    FREE( p->pNodes );
-    free( p );
+    ABC_FREE( p->pRules );
+    ABC_FREE( p->pRulesX );
+    ABC_FREE( p->pNodes );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -341,7 +341,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVe
     {
         printf( "Selected %d functionally unique gates. ",
             Vec_PtrSize(p->vSelect), Vec_PtrSize(p->vSorted) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     clk = clock();
     Amap_LibCreateRules( p, fVeryVerbose );
@@ -349,7 +349,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVe
     {
         printf( "Created %d rules and %d matches. ", 
             p->nNodes, p->nSets );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     return p;
 }

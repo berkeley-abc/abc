@@ -143,7 +143,7 @@ DdNode * Abc_NtkTransitionRelation( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
         Cudd_RecursiveDeref( dd, bTemp ); 
         Cudd_RecursiveDeref( dd, bProd ); 
     }
-    // free the global BDDs
+    // ABC_FREE the global BDDs
 //    Abc_NtkFreeGlobalBdds( pNtk );
     Abc_NtkFreeGlobalBdds( pNtk, 0 );
 
@@ -186,8 +186,8 @@ DdNode * Abc_NtkInitStateAndVarMap( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
     int i;
 
     // set the variable mapping for Cudd_bddVarMap()
-    pbVarsX = ALLOC( DdNode *, dd->size );
-    pbVarsY = ALLOC( DdNode *, dd->size );
+    pbVarsX = ABC_ALLOC( DdNode *, dd->size );
+    pbVarsY = ABC_ALLOC( DdNode *, dd->size );
     bProd = b1;         Cudd_Ref( bProd );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
@@ -199,8 +199,8 @@ DdNode * Abc_NtkInitStateAndVarMap( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
         Cudd_RecursiveDeref( dd, bTemp ); 
     }
     Cudd_SetVarMap( dd, pbVarsX, pbVarsY, Abc_NtkLatchNum(pNtk) );
-    FREE( pbVarsX );
-    FREE( pbVarsY );
+    ABC_FREE( pbVarsX );
+    ABC_FREE( pbVarsY );
 
     Cudd_Deref( bProd );
     return bProd;
@@ -262,7 +262,7 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
         fprintf( stdout, "Reachability analysis completed in %d iterations.\n", nIters );
         fprintf( stdout, "The number of minterms in the reachable state set = %d. (%6.2f %%)\n", nMints, 100.0*nMints/(1<<Abc_NtkLatchNum(pNtk)) );
     }
-//PRB( dd, bReached );
+//ABC_PRB( dd, bReached );
     Cudd_Deref( bReached );
     return Cudd_Not( bReached );
 }
@@ -302,14 +302,14 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
         Abc_ObjAddFanin( pNodeNew, pNode->pCopy );
 
     // create the logic function
-    pPermute = ALLOC( int, dd->size );
+    pPermute = ABC_ALLOC( int, dd->size );
     for ( i = 0; i < dd->size; i++ )
         pPermute[i] = -1;
     Abc_NtkForEachLatch( pNtk, pNode, i )
         pPermute[Abc_NtkPiNum(pNtk) + i] = i;
     // remap the functions
     pNodeNew->pData = Extra_TransferPermute( dd, pNtkNew->pManFunc, bUnreach, pPermute );   Cudd_Ref( pNodeNew->pData );
-    free( pPermute );
+    ABC_FREE( pPermute );
     Abc_NodeMinimumBase( pNodeNew );
 
     // for each CO, create PO (skip POs equal to CIs because of name conflict)

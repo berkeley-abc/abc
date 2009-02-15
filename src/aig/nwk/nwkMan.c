@@ -42,7 +42,7 @@
 Nwk_Man_t * Nwk_ManAlloc()
 {
     Nwk_Man_t * p;
-    p = ALLOC( Nwk_Man_t, 1 );
+    p = ABC_ALLOC( Nwk_Man_t, 1 );
     memset( p, 0, sizeof(Nwk_Man_t) );
     p->vCis = Vec_PtrAlloc( 1000 );
     p->vCos = Vec_PtrAlloc( 1000 );
@@ -68,8 +68,8 @@ Nwk_Man_t * Nwk_ManAlloc()
 void Nwk_ManFree( Nwk_Man_t * p )
 {
 //    printf( "The number of realloced nodes = %d.\n", p->nRealloced );
-    if ( p->pName )    free( p->pName );
-    if ( p->pSpec )    free( p->pSpec );
+    if ( p->pName )    ABC_FREE( p->pName );
+    if ( p->pSpec )    ABC_FREE( p->pSpec );
     if ( p->vCis )     Vec_PtrFree( p->vCis );
     if ( p->vCos )     Vec_PtrFree( p->vCos );
     if ( p->vObjs )    Vec_PtrFree( p->vObjs );
@@ -77,7 +77,7 @@ void Nwk_ManFree( Nwk_Man_t * p )
     if ( p->pManTime ) Tim_ManStop( p->pManTime );
     if ( p->pMemObjs ) Aig_MmFlexStop( p->pMemObjs, 0 );
     if ( p->pManHop )  Hop_ManStop( p->pManHop );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -127,10 +127,10 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
         int    nPis;   // the number of primary inputs
         int    nPos;   // the number of primary outputs
     } ParsNew, ParsBest = { 0 };
-    // free storage for the name
+    // ABC_FREE storage for the name
     if ( pNtk == NULL )
     {
-        FREE( ParsBest.pName );
+        ABC_FREE( ParsBest.pName );
         return 0;
     }
     // get the parameters
@@ -146,7 +146,7 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
          (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops) ||
          (ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes) )
     {
-        FREE( ParsBest.pName );
+        ABC_FREE( ParsBest.pName );
         ParsBest.pName = Aig_UtilStrsav( pNtk->pName );
         ParsBest.Depth = ParsNew.Depth; 
         ParsBest.Flops = ParsNew.Flops; 
@@ -242,7 +242,7 @@ void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int
         Ioa_WriteBlifLogic( pNtk, pNtl, Buffer );
 //        sprintf( Buffer, "%s_dump_map.blif", pNameGen );
 //        Nwk_ManDumpBlif( pNtk, Buffer, NULL, NULL );
-        if ( pNtk->pSpec ) free( pNameGen );
+        if ( pNtk->pSpec ) ABC_FREE( pNameGen );
     }
 
     pNtk->pLutLib = pLutLib;

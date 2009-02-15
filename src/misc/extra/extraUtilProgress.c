@@ -62,7 +62,7 @@ ProgressBar * Extra_ProgressBarStart( FILE * pFile, int nItemsTotal )
     extern void * Abc_FrameGetGlobalFrame();
 
     if ( !Abc_FrameShowProgress(Abc_FrameGetGlobalFrame()) ) return NULL;
-    p = ALLOC( ProgressBar, 1 );
+    p = ABC_ALLOC( ProgressBar, 1 );
     memset( p, 0, sizeof(ProgressBar) );
     p->pFile       = pFile;
     p->nItemsTotal = nItemsTotal;
@@ -118,7 +118,7 @@ void Extra_ProgressBarStop( ProgressBar * p )
 {
     if ( p == NULL ) return;
     Extra_ProgressBarClean( p );
-    FREE( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

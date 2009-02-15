@@ -56,7 +56,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
     {
         DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
         printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
-        PRT( "BDD construction time", clock() - clk );
+        ABC_PRT( "BDD construction time", clock() - clk );
     }
 
     // create the new network
@@ -142,8 +142,8 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
     Extra_ProgressBarStop( pProgress );
 
 //    Extra_ReorderQuit( pReo );
-//PRT( "Reo ", runtime1 );
-//PRT( "Cudd", runtime2 );
+//ABC_PRT( "Reo ", runtime1 );
+//ABC_PRT( "Cudd", runtime2 );
 
     return pNtkNew;
 }

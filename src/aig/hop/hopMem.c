@@ -65,7 +65,7 @@ void Hop_ManStopMemory( Hop_Man_t * p )
     void * pMemory;
     int i;
     Vec_PtrForEachEntry( p->vChunks, pMemory, i )
-        free( pMemory );
+        ABC_FREE( pMemory );
     Vec_PtrFree( p->vChunks );
     Vec_PtrFree( p->vPages );
     p->pListFree = NULL;
@@ -92,10 +92,10 @@ void Hop_ManAddMemory( Hop_Man_t * p )
 //    assert( (Hop_ManObjNum(p) & IVY_PAGE_MASK) == 0 );
     // allocate new memory page
     nBytes = sizeof(Hop_Obj_t) * (1<<IVY_PAGE_SIZE) + 64;
-    pMemory = ALLOC( char, nBytes );
+    pMemory = ABC_ALLOC( char, nBytes );
     Vec_PtrPush( p->vChunks, pMemory );
     // align memory at the 32-byte boundary
-    pMemory = pMemory + 64 - (((int)(PORT_PTRUINT_T)pMemory) & 63);
+    pMemory = pMemory + 64 - (((int)(ABC_PTRUINT_T)pMemory) & 63);
     // remember the manager in the first entry
     Vec_PtrPush( p->vPages, pMemory );
     // break the memory down into nodes

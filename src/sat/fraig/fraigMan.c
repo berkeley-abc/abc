@@ -204,7 +204,7 @@ Fraig_Man_t * Fraig_ManCreate( Fraig_Params_t * pParams )
         pParams->nPatsRand = pParams->nPatsDyna = 128;
 
     // start the manager
-    p = ALLOC( Fraig_Man_t, 1 );
+    p = ABC_ALLOC( Fraig_Man_t, 1 );
     memset( p, 0, sizeof(Fraig_Man_t) );
 
     // set the default parameters
@@ -286,25 +286,25 @@ void Fraig_ManFree( Fraig_Man_t * p )
     if ( p->vProj )      Msat_IntVecFree( p->vProj );
     if ( p->vCones )     Fraig_NodeVecFree( p->vCones );
     if ( p->vPatsReal )  Msat_IntVecFree( p->vPatsReal );
-    if ( p->pModel )     free( p->pModel );
+    if ( p->pModel )     ABC_FREE( p->pModel );
 
     Fraig_MemFixedStop( p->mmNodes, 0 );
     Fraig_MemFixedStop( p->mmSims, 0 );
 
     if ( p->pSuppS )
     {
-        FREE( p->pSuppS[0] );
-        FREE( p->pSuppS );
+        ABC_FREE( p->pSuppS[0] );
+        ABC_FREE( p->pSuppS );
     }
     if ( p->pSuppF )
     {
-        FREE( p->pSuppF[0] );
-        FREE( p->pSuppF );
+        ABC_FREE( p->pSuppF[0] );
+        ABC_FREE( p->pSuppF );
     }
 
-    FREE( p->ppOutputNames );
-    FREE( p->ppInputNames );
-    FREE( p );
+    ABC_FREE( p->ppOutputNames );
+    ABC_FREE( p->ppInputNames );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -366,8 +366,8 @@ void Fraig_ManPrintStats( Fraig_Man_t * p )
     if ( p->time2 > 0 ) { Fraig_PrintTime( "time2", p->time2 ); }
     if ( p->time3 > 0 ) { Fraig_PrintTime( "time3", p->time3 ); }
     if ( p->time4 > 0 ) { Fraig_PrintTime( "time4", p->time4 ); }
-//    PRT( "Selection ", timeSelect );
-//    PRT( "Assignment", timeAssign );
+//    ABC_PRT( "Selection ", timeSelect );
+//    ABC_PRT( "Assignment", timeAssign );
     fflush( stdout );
 }
 
@@ -389,7 +389,7 @@ Fraig_NodeVec_t * Fraig_UtilInfoAlloc( int nSize, int nWords, bool fClean )
     int i;
     assert( nSize > 0 && nWords > 0 );
     vInfo = Fraig_NodeVecAlloc( nSize );
-    pUnsigned = ALLOC( unsigned, nSize * nWords );
+    pUnsigned = ABC_ALLOC( unsigned, nSize * nWords );
     vInfo->pArray[0] = (Fraig_Node_t *)pUnsigned;
     if ( fClean )
         memset( pUnsigned, 0, sizeof(unsigned) * nSize * nWords );

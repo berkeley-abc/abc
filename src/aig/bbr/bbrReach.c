@@ -101,8 +101,8 @@ DdNode * Aig_ManInitStateVarMap( DdManager * dd, Aig_Man_t * p, int fVerbose )
     int i;
 
     // set the variable mapping for Cudd_bddVarMap()
-    pbVarsX = ALLOC( DdNode *, dd->size );
-    pbVarsY = ALLOC( DdNode *, dd->size );
+    pbVarsX = ABC_ALLOC( DdNode *, dd->size );
+    pbVarsY = ABC_ALLOC( DdNode *, dd->size );
     bProd = (dd)->one;         Cudd_Ref( bProd );
     Saig_ManForEachLo( p, pLatch, i )
     {
@@ -113,8 +113,8 @@ DdNode * Aig_ManInitStateVarMap( DdManager * dd, Aig_Man_t * p, int fVerbose )
         Cudd_RecursiveDeref( dd, bTemp ); 
     }
     Cudd_SetVarMap( dd, pbVarsX, pbVarsY, Saig_ManRegNum(p) );
-    FREE( pbVarsX );
-    FREE( pbVarsY );
+    ABC_FREE( pbVarsX );
+    ABC_FREE( pbVarsY );
 
     Cudd_Deref( bProd );
     return bProd;
@@ -137,7 +137,7 @@ DdNode ** Aig_ManCreateOutputs( DdManager * dd, Aig_Man_t * p )
     Aig_Obj_t * pNode;
     int i;
     // compute the transition relation
-    pbOutputs = ALLOC( DdNode *, Saig_ManPoNum(p) );
+    pbOutputs = ABC_ALLOC( DdNode *, Saig_ManPoNum(p) );
     Saig_ManForEachPo( p, pNode, i )
     {
         pbOutputs[i] = Aig_ObjGlobalBdd(pNode);  Cudd_Ref( pbOutputs[i] );
@@ -174,13 +174,13 @@ DdNode ** Aig_ManCreatePartitions( DdManager * dd, Aig_Man_t * p, int fReorder, 
         Cudd_AutodynDisable( dd );
 
     // compute the transition relation
-    pbParts = ALLOC( DdNode *, Saig_ManRegNum(p) );
+    pbParts = ABC_ALLOC( DdNode *, Saig_ManRegNum(p) );
     Saig_ManForEachLi( p, pNode, i )
     {
         bVar  = Cudd_bddIthVar( dd, Saig_ManCiNum(p) + i );
         pbParts[i] = Cudd_bddXnor( dd, bVar, Aig_ObjGlobalBdd(pNode) );  Cudd_Ref( pbParts[i] );
     }
-    // free global BDDs
+    // ABC_FREE global BDDs
     Aig_ManFreeGlobalBdds( p, dd );
 
     // reorder and disable reordering
@@ -316,7 +316,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
             fprintf( stdout, "\r" );
     }
     Cudd_RecursiveDeref( dd, bNext );
-    // free the onion rings
+    // ABC_FREE the onion rings
     Vec_PtrForEachEntry( vOnionRings, bTemp, i )
         Cudd_RecursiveDeref( dd, bTemp );
     Vec_PtrFree( vOnionRings );
@@ -338,7 +338,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p)) );
         fflush( stdout );
     }
-//PRB( dd, bReached );
+//ABC_PRB( dd, bReached );
     Cudd_RecursiveDeref( dd, bReached );
     if ( nIters > nIterMax || Cudd_DagSize(bReached) > nBddMax )
     {
@@ -413,7 +413,7 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
             break;
         }
     }
-    // free the onion rings
+    // ABC_FREE the onion rings
     Vec_PtrForEachEntry( vOnionRings, bTemp, i )
         Cudd_RecursiveDeref( dd, bTemp );
     Vec_PtrFree( vOnionRings );
@@ -425,10 +425,10 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     Cudd_RecursiveDeref( dd, bInitial );
     for ( i = 0; i < Saig_ManRegNum(p); i++ )
         Cudd_RecursiveDeref( dd, pbParts[i] );
-    free( pbParts );
+    ABC_FREE( pbParts );
     for ( i = 0; i < Saig_ManPoNum(p); i++ )
         Cudd_RecursiveDeref( dd, pbOutputs[i] );
-    free( pbOutputs );
+    ABC_FREE( pbOutputs );
     if ( RetValue == -1 )
         Cudd_Quit( dd );
     else
@@ -437,7 +437,7 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     // report the runtime
     if ( !fSilent )
     {
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     fflush( stdout );
     }
     return RetValue;

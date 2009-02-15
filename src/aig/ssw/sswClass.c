@@ -136,11 +136,11 @@ static inline Aig_Obj_t ** Ssw_ObjRemoveClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr 
 Ssw_Cla_t * Ssw_ClassesStart( Aig_Man_t * pAig )
 {
     Ssw_Cla_t * p;
-    p = ALLOC( Ssw_Cla_t, 1 );
+    p = ABC_ALLOC( Ssw_Cla_t, 1 );
     memset( p, 0, sizeof(Ssw_Cla_t) );
     p->pAig         = pAig;
-    p->pId2Class    = CALLOC( Aig_Obj_t **, Aig_ManObjNumMax(pAig) );
-    p->pClassSizes  = CALLOC( int, Aig_ManObjNumMax(pAig) );
+    p->pId2Class    = ABC_CALLOC( Aig_Obj_t **, Aig_ManObjNumMax(pAig) );
+    p->pClassSizes  = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
     p->vClassOld    = Vec_PtrAlloc( 100 );
     p->vClassNew    = Vec_PtrAlloc( 100 );
     p->vRefined     = Vec_PtrAlloc( 1000 );
@@ -187,10 +187,10 @@ void Ssw_ClassesStop( Ssw_Cla_t * p )
     if ( p->vClassNew )    Vec_PtrFree( p->vClassNew );
     if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
     Vec_PtrFree( p->vRefined );
-    FREE( p->pId2Class );
-    FREE( p->pClassSizes );
-    FREE( p->pMemClasses );
-    free( p );
+    ABC_FREE( p->pId2Class );
+    ABC_FREE( p->pClassSizes );
+    ABC_FREE( p->pMemClasses );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -500,8 +500,8 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Aig_PrimeCudd( Vec_PtrSize(vCands)/2 );
-    ppTable = CALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) ); 
+    ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize ); 
+    ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) ); 
 
     // sort through the candidates
     nEntries = 0;
@@ -568,8 +568,8 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
     }
     p->pMemClassesFree += nEntries2;
     assert( nEntries == nEntries2 );
-    free( ppTable );
-    free( ppNexts );
+    ABC_FREE( ppTable );
+    ABC_FREE( ppNexts );
     // now it is time to refine the classes
     return Ssw_ClassesRefine( p, 1 );
 }
@@ -615,7 +615,7 @@ if ( fVerbose )
     printf( "Allocated %.2f Mb to store simulation information.\n", 
         1.0*(sizeof(unsigned) * Aig_ManObjNumMax(pAig) * nFrames * nWords)/(1<<20) );
     printf( "Initial simulation of %d frames with %d words.     ", nFrames, nWords );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
 }
 
     // set comparison procedures
@@ -643,7 +643,7 @@ clk = clock();
     }
 
     // allocate room for classes
-    p->pMemClasses = ALLOC( Aig_Obj_t *, Vec_PtrSize(vCands) );
+    p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, Vec_PtrSize(vCands) );
     p->pMemClassesFree = p->pMemClasses;
 
     // now it is time to refine the classes
@@ -651,7 +651,7 @@ clk = clock();
 if ( fVerbose )
 {
     printf( "Collecting candidate equivalence classes.        " );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
 
 clk = clock();
@@ -677,7 +677,7 @@ if ( fVerbose )
 {
     printf( "Simulation of %d frames with %d words (%2d rounds). ", 
         nFrames, nWords, i-1 );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
 }
     Ssw_ClassesCheck( p );
 //    Ssw_ClassesPrint( p, 0 );
@@ -723,7 +723,7 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
         p->nCands1++;
     }
     // allocate room for classes
-    p->pMemClassesFree = p->pMemClasses = ALLOC( Aig_Obj_t *, p->nCands1 );
+    p->pMemClassesFree = p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, p->nCands1 );
 //    Ssw_ClassesPrint( p, 0 );
     return p;
 }
@@ -754,7 +754,7 @@ Ssw_Cla_t * Ssw_ClassesPrepareTargets( Aig_Man_t * pAig )
         p->nCands1++;
     }
     // allocate room for classes
-    p->pMemClassesFree = p->pMemClasses = ALLOC( Aig_Obj_t *, p->nCands1 );
+    p->pMemClassesFree = p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, p->nCands1 );
 //    Ssw_ClassesPrint( p, 0 );
     return p;
 }
@@ -783,7 +783,7 @@ Ssw_Cla_t * Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses )
     for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
         nTotalObjs += pvClasses[i] ? Vec_IntSize(pvClasses[i]) : 0; 
     // allocate memory for classes
-    p->pMemClasses = ALLOC( Aig_Obj_t *, nTotalObjs );
+    p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, nTotalObjs );
     // create constant-1 class
     if ( pvClasses[0] )
     Vec_IntForEachEntry( pvClasses[0], Entry, i )
@@ -845,7 +845,7 @@ Ssw_Cla_t * Ssw_ClassesPreparePairsSimple( Aig_Man_t * pMiter, Vec_Int_t * vPair
     // start the classes
     p = Ssw_ClassesStart( pMiter );
     // allocate memory for classes
-    p->pMemClasses = ALLOC( Aig_Obj_t *, Vec_IntSize(vPairs) );
+    p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, Vec_IntSize(vPairs) );
     // create classes
     for ( i = 0; i < Vec_IntSize(vPairs); i += 2 )
     {

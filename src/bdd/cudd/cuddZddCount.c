@@ -205,13 +205,13 @@ cuddZddCountStep(
     res = cuddZddCountStep(cuddE(P), table, base, empty) +
     cuddZddCountStep(cuddT(P), table, base, empty);
 
-    dummy = ALLOC(int, 1);
+    dummy = ABC_ALLOC(int, 1);
     if (dummy == NULL) {
     return(CUDD_OUT_OF_MEM);
     }
     *dummy = res;
     if (st_insert(table, (char *)P, (char *)dummy) == ST_OUT_OF_MEM) {
-    FREE(dummy);
+    ABC_FREE(dummy);
     return(CUDD_OUT_OF_MEM);
     }
 
@@ -255,13 +255,13 @@ cuddZddCountDoubleStep(
     res = cuddZddCountDoubleStep(cuddE(P), table, base, empty) +
     cuddZddCountDoubleStep(cuddT(P), table, base, empty);
 
-    dummy = ALLOC(double, 1);
+    dummy = ABC_ALLOC(double, 1);
     if (dummy == NULL) {
     return((double)CUDD_OUT_OF_MEM);
     }
     *dummy = res;
     if (st_insert(table, (char *)P, (char *)dummy) == ST_OUT_OF_MEM) {
-    FREE(dummy);
+    ABC_FREE(dummy);
     return((double)CUDD_OUT_OF_MEM);
     }
 
@@ -291,7 +291,7 @@ st_zdd_countfree(
     int    *d;
 
     d = (int *)value;
-    FREE(d);
+    ABC_FREE(d);
     return(ST_CONTINUE);
 
 } /* end of st_zdd_countfree */
@@ -318,7 +318,7 @@ st_zdd_count_dbl_free(
     double    *d;
 
     d = (double *)value;
-    FREE(d);
+    ABC_FREE(d);
     return(ST_CONTINUE);
 
 } /* end of st_zdd_count_dbl_free */

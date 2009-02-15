@@ -210,7 +210,7 @@ clk = clock();
     nTableSizeOld = p->nTableSize;
     // get the new table
     p->nTableSize = Cudd_PrimeAig( 5 * Ivy_ManHashObjNum(p) ); 
-    p->pTable = ALLOC( int, p->nTableSize );
+    p->pTable = ABC_ALLOC( int, p->nTableSize );
     memset( p->pTable, 0, sizeof(int) * p->nTableSize );
     // rehash the entries from the old table
     Counter = 0;
@@ -227,9 +227,9 @@ clk = clock();
     nEntries = Ivy_ManHashObjNum(p);
 //    assert( Counter == nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( pTableOld );
+    ABC_FREE( pTableOld );
 }
 
 /**Function********************************************************************

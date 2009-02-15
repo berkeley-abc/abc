@@ -19,19 +19,17 @@
 #ifndef __REO_H__
 #define __REO_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "extra.h"
 
-//#pragma warning( disable : 4514 )
-
 ////////////////////////////////////////////////////////////////////////
 ///                     MACRO DEFINITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // reordering parameters
 #define REO_REORDER_LIMIT      1.15  // determines the quality/runtime trade-off
@@ -171,9 +169,9 @@ struct _reo_man
 };
 
 // used to manipulate units
-#define Unit_Regular(u)     ((reo_unit *)((PORT_PTRUINT_T)(u) & ~01))
-#define Unit_Not(u)         ((reo_unit *)((PORT_PTRUINT_T)(u) ^ 01))
-#define Unit_NotCond(u,c)   ((reo_unit *)((PORT_PTRUINT_T)(u) ^ (c)))
+#define Unit_Regular(u)     ((reo_unit *)((ABC_PTRUINT_T)(u) & ~01))
+#define Unit_Not(u)         ((reo_unit *)((ABC_PTRUINT_T)(u) ^ 01))
+#define Unit_NotCond(u,c)   ((reo_unit *)((ABC_PTRUINT_T)(u) ^ (c)))
 #define Unit_IsConstant(u)  ((int)((u)->lev == REO_CONST_LEVEL))
 
 ////////////////////////////////////////////////////////////////////////

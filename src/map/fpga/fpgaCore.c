@@ -72,7 +72,7 @@ int Fpga_Mapping( Fpga_Man_t * p )
     if ( !Fpga_MappingPostProcess( p ) )
         return 0;
     p->timeRecover = clock() - clk;
-//PRT( "Total mapping time", clock() - clkTotal );
+//ABC_PRT( "Total mapping time", clock() - clkTotal );
 
     s_MappingTime = clock() - clkTotal;
     s_MappingMem = Fpga_CutCountAll(p) * (sizeof(Fpga_Cut_t) - sizeof(int) * (FPGA_MAX_LEAVES - p->nVarsMax));
@@ -83,7 +83,7 @@ int Fpga_Mapping( Fpga_Man_t * p )
 //        Fpga_MappingPrintOutputArrivals( p );
     if ( p->fVerbose )
     {
-        PRT( "Total time", clock() - clkTotal );
+        ABC_PRT( "Total time", clock() - clkTotal );
     }
     return 1;
 }
@@ -125,7 +125,7 @@ printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 else
 printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
 
-PRT( "Time", p->timeMatch );
+ABC_PRT( "Time", p->timeMatch );
 }
 
     if ( !p->fAreaRecovery )
@@ -150,7 +150,7 @@ if ( fShowSwitching )
 printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 else
 printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
     }
 
@@ -177,7 +177,7 @@ if ( fShowSwitching )
 printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 else
 printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
 }
     }
 

@@ -157,7 +157,7 @@ clk = clock();
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
                     p->nSatProof-nSatProof, p->nSatCallsSat-nSatCallsSat, 
                     p->nRecycles-nRecycles, p->nSatFailsReal-nSatFailsReal );
-                PRT( "T", clock() - clk );
+                ABC_PRT( "T", clock() - clk );
             } 
         }
         else
@@ -180,7 +180,7 @@ clk = clock();
                     printf( "R =%4d. ",   p->nRecycles-nRecycles );
                 }
                 printf( "F =%5d. ", p->nSatFailsReal-nSatFailsReal );
-                PRT( "T", clock() - clk );
+                ABC_PRT( "T", clock() - clk );
             } 
 //            if ( p->pPars->fDynamic && p->nSatCallsSat-nSatCallsSat < 100 )
 //                p->pPars->nBTLimit = 10000;
@@ -299,7 +299,7 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_SmlObjIsConstBit, Ssw_SmlObjsAreEqualBit );
     }
     if ( p->pPars->fLocalSim )
-        p->pVisited = CALLOC( int, Ssw_SmlNumFrames( p->pSml ) * Aig_ManObjNumMax(p->pAig) );
+        p->pVisited = ABC_CALLOC( int, Ssw_SmlNumFrames( p->pSml ) * Aig_ManObjNumMax(p->pAig) );
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );    
     if ( pPars->fUniqueness )

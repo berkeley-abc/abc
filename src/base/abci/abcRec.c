@@ -184,7 +184,7 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts )
     Abc_NtkCleanEquiv( pNtk );
 
     // start the manager
-    p = ALLOC( Abc_ManRec_t, 1 );
+    p = ABC_ALLOC( Abc_ManRec_t, 1 );
     memset( p, 0, sizeof(Abc_ManRec_t) );
     p->pNtk = pNtk;
     p->nVars = Abc_NtkPiNum(pNtk);
@@ -206,7 +206,7 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts )
 
     // create hash table
     p->nBins = 50011;
-    p->pBins = ALLOC( Abc_Obj_t *, p->nBins );
+    p->pBins = ABC_ALLOC( Abc_Obj_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Abc_Obj_t *) * p->nBins );
 
     // set elementary tables
@@ -251,10 +251,10 @@ p->timeTruth += clock() - clk;
     }
 
     // temporaries
-    p->pBytes = ALLOC( int, 4*p->nWords );
-    p->pMints = ALLOC( int, 2*p->nVars );
-    p->pTemp1 = ALLOC( unsigned, p->nWords );
-    p->pTemp2 = ALLOC( unsigned, p->nWords );
+    p->pBytes = ABC_ALLOC( int, 4*p->nWords );
+    p->pMints = ABC_ALLOC( int, 2*p->nVars );
+    p->pTemp1 = ABC_ALLOC( unsigned, p->nWords );
+    p->pTemp2 = ABC_ALLOC( unsigned, p->nWords );
     p->vNodes = Vec_PtrAlloc( 100 );
     p->vTtTemps = Vec_PtrAllocSimInfo( 64, p->nWords );
     p->vMemory = Vec_IntAlloc( Abc_TruthWordNum(p->nVars) * 1000 );
@@ -282,13 +282,13 @@ void Abc_NtkRecStop()
         Abc_NtkDelete( s_pMan->pNtk );
     Vec_PtrFree( s_pMan->vTtNodes );
     Vec_PtrFree( s_pMan->vTtElems );
-    free( s_pMan->pBins );
+    ABC_FREE( s_pMan->pBins );
 
     // temporaries
-    free( s_pMan->pBytes );
-    free( s_pMan->pMints );
-    free( s_pMan->pTemp1 );
-    free( s_pMan->pTemp2 );
+    ABC_FREE( s_pMan->pBytes );
+    ABC_FREE( s_pMan->pMints );
+    ABC_FREE( s_pMan->pTemp1 );
+    ABC_FREE( s_pMan->pTemp2 );
     Vec_PtrFree( s_pMan->vNodes );
     Vec_PtrFree( s_pMan->vTtTemps );
     if ( s_pMan->vLabels )
@@ -297,7 +297,7 @@ void Abc_NtkRecStop()
         Vec_StrFree( s_pMan->vCosts );
     Vec_IntFree( s_pMan->vMemory );
 
-    free( s_pMan );
+    ABC_FREE( s_pMan );
     s_pMan = NULL;
 }
 
@@ -396,11 +396,11 @@ void Abc_NtkRecPs()
     printf( "Functions added                             = %8d. (%6.2f %%)\n", p->nAddedFuncs,   !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
 
     p->timeOther = p->timeTotal - p->timeCollect - p->timeTruth - p->timeCanon;
-    PRTP( "Collecting nodes ", p->timeCollect, p->timeTotal );
-    PRTP( "Computing truth  ", p->timeTruth, p->timeTotal );
-    PRTP( "Canonicizing     ", p->timeCanon, p->timeTotal );
-    PRTP( "Other            ", p->timeOther, p->timeTotal );
-    PRTP( "TOTAL            ", p->timeTotal, p->timeTotal );
+    ABC_PRTP( "Collecting nodes ", p->timeCollect, p->timeTotal );
+    ABC_PRTP( "Computing truth  ", p->timeTruth, p->timeTotal );
+    ABC_PRTP( "Canonicizing     ", p->timeCanon, p->timeTotal );
+    ABC_PRTP( "Other            ", p->timeOther, p->timeTotal );
+    ABC_PRTP( "TOTAL            ", p->timeTotal, p->timeTotal );
     if ( p->nFunsFound )
     printf( "During rewriting found = %d and not found = %d functions.\n", p->nFunsFound, p->nFunsNotFound );
 }

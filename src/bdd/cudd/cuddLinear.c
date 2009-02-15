@@ -251,12 +251,12 @@ cuddLinearAndSifting(
     }
 
     /* Find order in which to sift variables. */
-    entry = ALLOC(int,size);
+    entry = ABC_ALLOC(int,size);
     if (entry == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddLinearAndSiftingOutOfMem;
     }
-    var = ALLOC(int,size);
+    var = ABC_ALLOC(int,size);
     if (var == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddLinearAndSiftingOutOfMem;
@@ -295,8 +295,8 @@ cuddLinearAndSifting(
 #endif
     }
 
-    FREE(var);
-    FREE(entry);
+    ABC_FREE(var);
+    ABC_FREE(entry);
 
 #ifdef DD_STATS
     (void) fprintf(table->out,"\n#:L_LINSIFT %8d: linear trans.",
@@ -307,8 +307,8 @@ cuddLinearAndSifting(
 
 cuddLinearAndSiftingOutOfMem:
 
-    if (entry != NULL) FREE(entry);
-    if (var != NULL) FREE(var);
+    if (entry != NULL) ABC_FREE(entry);
+    if (var != NULL) ABC_FREE(var);
 
     return(0); 
 
@@ -1220,7 +1220,7 @@ cuddInitLinear(
     nvars = table->size;
     wordsPerRow = ((nvars - 1) >> LOGBPL) + 1;
     words = wordsPerRow * nvars;
-    table->linear = linear = ALLOC(long,words);
+    table->linear = linear = ABC_ALLOC(long,words);
     if (linear == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -1269,7 +1269,7 @@ cuddResizeLinear(
     nvars = table->size;
     wordsPerRow = ((nvars - 1) >> LOGBPL) + 1;
     words = wordsPerRow * nvars;
-    table->linear = linear = ALLOC(long,words);
+    table->linear = linear = ABC_ALLOC(long,words);
     if (linear == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -1285,7 +1285,7 @@ cuddResizeLinear(
         linear[word] = oldLinear[oldWord];
     }
     }
-    FREE(oldLinear);
+    ABC_FREE(oldLinear);
 
     /* Add elements to the diagonal. */
     for (i = oldNvars; i < nvars; i++) {

@@ -30,7 +30,7 @@ static void reoUnitsAddToFreeUnitList( reo_man * p );
 
 /**Function*************************************************************
 
-  Synopsis    [Extract the next unit from the free unit list.]
+  Synopsis    [Extract the next unit from the ABC_FREE unit list.]
 
   Description []
 
@@ -54,7 +54,7 @@ reo_unit * reoUnitsGetNextUnit(reo_man * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the unit to the free unit list.]
+  Synopsis    [Returns the unit to the ABC_FREE unit list.]
 
   Description []
 
@@ -72,7 +72,7 @@ void reoUnitsRecycleUnit( reo_man * p, reo_unit * pUnit )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the list of units to the free unit list.]
+  Synopsis    [Returns the list of units to the ABC_FREE unit list.]
 
   Description []
 
@@ -112,7 +112,7 @@ void reoUnitsStopDispenser( reo_man * p )
 {
     int i;
     for ( i = 0; i < p->nMemChunks; i++ )
-        free( p->pMemChunks[i] );
+        ABC_FREE( p->pMemChunks[i] );
 //    printf("\nThe number of chunks used is %d, each of them %d units\n", p->nMemChunks, REO_CHUNK_SIZE );
     p->nMemChunks = 0;
 }
@@ -167,7 +167,7 @@ void reoUnitsAddToFreeUnitList( reo_man * p )
     }
     // allocate the next chunk
     assert( p->pUnitFreeList == NULL );
-    p->pUnitFreeList = ALLOC( reo_unit, REO_CHUNK_SIZE );
+    p->pUnitFreeList = ABC_ALLOC( reo_unit, REO_CHUNK_SIZE );
     // split chunks into list-connected units
     for ( c = 0; c < REO_CHUNK_SIZE-1; c++ )
         (p->pUnitFreeList + c)->Next = p->pUnitFreeList + c + 1;

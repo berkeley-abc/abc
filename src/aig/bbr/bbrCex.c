@@ -73,7 +73,7 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     }
 
     // allocate room for the cube
-    pValues = ALLOC( char, dd->size );
+    pValues = ABC_ALLOC( char, dd->size );
 
     // get the last cube
     RetValue = Cudd_bddPickOneCube( dd, bCubeFirst, pValues );
@@ -105,7 +105,7 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
             if ( !fSilent )
                 printf( "BDDs blew up during image computation.  " );
             Bbr_bddImageTreeDelete( pTree );
-            free( pValues );
+            ABC_FREE( pValues );
             return NULL;
         }
         Cudd_Ref( bImage );
@@ -145,7 +145,7 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     }
     // cleanup
     Bbr_bddImageTreeDelete( pTree );
-    free( pValues );
+    ABC_FREE( pValues );
     // verify the counter example
     if ( Vec_PtrSize(vOnionRings) < 1000 )
     {
@@ -155,7 +155,7 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     }
     if ( fVerbose && !fSilent )
     {
-    PRT( "Counter-example generation time", clock() - clk );
+    ABC_PRT( "Counter-example generation time", clock() - clk );
     }
     return pCex;
 }

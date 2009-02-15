@@ -847,7 +847,7 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     pNtk = Abc_NtkCreateWithNode( pSopCover );
-    free( pSopCover );
+    ABC_FREE( pSopCover );
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Err, "Deriving the network has failed.\n" );
@@ -1082,7 +1082,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     printf( "The library contains %d gates.\n", st_count(pLibrary->tModules) );
-    // free old library
+    // ABC_FREE old library
     if ( Abc_FrameReadLibVer() )
         Abc_LibFree( Abc_FrameReadLibVer(), NULL );
     // read new library

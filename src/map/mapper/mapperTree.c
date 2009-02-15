@@ -198,7 +198,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     }
 
     // allocate room for supergate pointers
-    pLib->ppSupers = ALLOC( Map_Super_t *, pLib->nLines + 10000 );
+    pLib->ppSupers = ABC_ALLOC( Map_Super_t *, pLib->nLines + 10000 );
 
     // create the elementary supergates
     for ( i = 0; i < pLib->nVarsMax; i++ )

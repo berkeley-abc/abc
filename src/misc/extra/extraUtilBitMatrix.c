@@ -79,14 +79,14 @@ Extra_BitMat_t * Extra_BitMatrixStart( int nSize )
 {
     Extra_BitMat_t * p;
     int i;
-    p = ALLOC( Extra_BitMat_t, 1 );
+    p = ABC_ALLOC( Extra_BitMat_t, 1 );
     memset( p, 0, sizeof(Extra_BitMat_t) );
     p->nSize     = nSize;
     p->nBitShift = (sizeof(unsigned) == 4) ?  5:  6;
     p->uMask     = (sizeof(unsigned) == 4) ? 31: 63;
     p->nWords    = nSize / (8 * sizeof(unsigned)) + ((nSize % (8 * sizeof(unsigned))) > 0);
-    p->ppData    = ALLOC( unsigned *, nSize );
-    p->ppData[0] = ALLOC( unsigned, nSize * p->nWords );
+    p->ppData    = ABC_ALLOC( unsigned *, nSize );
+    p->ppData[0] = ABC_ALLOC( unsigned, nSize * p->nWords );
     memset( p->ppData[0], 0, sizeof(unsigned) * nSize * p->nWords );
     for ( i = 1; i < nSize; i++ )
         p->ppData[i] = p->ppData[i-1] + p->nWords;
@@ -122,9 +122,9 @@ void Extra_BitMatrixClean( Extra_BitMat_t * p )
 ***********************************************************************/
 void Extra_BitMatrixStop( Extra_BitMat_t * p )
 {
-    FREE( p->ppData[0] );
-    FREE( p->ppData );
-    FREE( p );
+    ABC_FREE( p->ppData[0] );
+    ABC_FREE( p->ppData );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

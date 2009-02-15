@@ -21,7 +21,7 @@
   pointers.  The level queue functions make sure that each node
   appears at most once in the queue. They do so by keeping a hash
   table where the node is used as key.  Queue items are recycled via a
-  free list for efficiency.
+  ABC_FREE list for efficiency.
   
   Internal procedures provided by this module:
                 <ul>
@@ -125,7 +125,7 @@ static int hashResize ARGS((DdLevelQueue *queue));
   Description [Initializes a level queue. A level queue is a queue
   where inserts are based on the levels of the nodes. Within each
   level the policy is FIFO. Level queues are useful in traversing a
-  BDD top-down. Queue items are kept in a free list when dequeued for
+  BDD top-down. Queue items are kept in a ABC_FREE list when dequeued for
   efficiency. Returns a pointer to the new queue if successful; NULL
   otherwise.]
 
@@ -143,7 +143,7 @@ cuddLevelQueueInit(
     DdLevelQueue *queue;
     int logSize;
 
-    queue = ALLOC(DdLevelQueue,1);
+    queue = ABC_ALLOC(DdLevelQueue,1);
     if (queue == NULL)
     return(NULL);
 #ifdef __osf__
@@ -151,12 +151,12 @@ cuddLevelQueueInit(
 #pragma pointer_size short
 #endif
     /* Keep pointers to the insertion points for all levels. */
-    queue->last = ALLOC(DdQueueItem *, levels);
+    queue->last = ABC_ALLOC(DdQueueItem *, levels);
 #ifdef __osf__
 #pragma pointer_size restore
 #endif
     if (queue->last == NULL) {
-    FREE(queue);
+    ABC_FREE(queue);
     return(NULL);
     }
     /* Use a hash table to test for uniqueness. */
@@ -168,13 +168,13 @@ cuddLevelQueueInit(
 #pragma pointer_size save
 #pragma pointer_size short
 #endif
-    queue->buckets = ALLOC(DdQueueItem *, queue->numBuckets);
+    queue->buckets = ABC_ALLOC(DdQueueItem *, queue->numBuckets);
 #ifdef __osf__
 #pragma pointer_size restore
 #endif
     if (queue->buckets == NULL) {
-    FREE(queue->last);
-    FREE(queue);
+    ABC_FREE(queue->last);
+    ABC_FREE(queue);
     return(NULL);
     }
 #ifdef __osf__
@@ -218,16 +218,16 @@ cuddLevelQueueQuit(
     while (queue->freelist != NULL) {
     item = queue->freelist;
     queue->freelist = item->next;
-    FREE(item);
+    ABC_FREE(item);
     }
     while (queue->first != NULL) {
     item = (DdQueueItem *) queue->first;
     queue->first = item->next;
-    FREE(item);
+    ABC_FREE(item);
     }
-    FREE(queue->buckets);
-    FREE(queue->last);
-    FREE(queue);
+    ABC_FREE(queue->buckets);
+    ABC_FREE(queue->last);
+    ABC_FREE(queue);
     return;
 
 } /* end of cuddLevelQueueQuit */
@@ -263,9 +263,9 @@ cuddLevelQueueEnqueue(
     item = hashLookup(queue,key);
     if (item != NULL) return(item);
 
-    /* Get a free item from either the free list or the memory manager. */
+    /* Get a ABC_FREE item from either the ABC_FREE list or the memory manager. */
     if (queue->freelist == NULL) {
-    item = (DdQueueItem *) ALLOC(char, queue->itemsize);
+    item = (DdQueueItem *) ABC_ALLOC(char, queue->itemsize);
     if (item == NULL)
         return(NULL);
     } else {
@@ -335,7 +335,7 @@ cuddLevelQueueDequeue(
     queue->last[level] = NULL;
 
     queue->first = item->next;
-    /* Put item on the free list. */
+    /* Put item on the ABC_FREE list. */
     item->next = queue->freelist;
     queue->freelist = item;
     /* Update stats. */
@@ -504,7 +504,7 @@ hashResize(
 #pragma pointer_size save
 #pragma pointer_size short
 #endif
-    buckets = queue->buckets = ALLOC(DdQueueItem *, numBuckets);
+    buckets = queue->buckets = ABC_ALLOC(DdQueueItem *, numBuckets);
     if (buckets == NULL) {
     queue->maxsize <<= 1;
     return(1);
@@ -527,7 +527,7 @@ hashResize(
         item = next;
     }
     }
-    FREE(oldBuckets);
+    ABC_FREE(oldBuckets);
     return(1);
 
 } /* end of hashResize */

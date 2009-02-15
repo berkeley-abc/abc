@@ -19,18 +19,17 @@
 #ifndef __MAPPER_H__
 #define __MAPPER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -63,10 +62,10 @@ struct Map_TimeStruct_t_
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
  
-#define Map_IsComplement(p)    (((int)((PORT_PTRUINT_T) (p) & 01)))
-#define Map_Regular(p)         ((Map_Node_t *)((PORT_PTRUINT_T)(p) & ~01)) 
-#define Map_Not(p)             ((Map_Node_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
-#define Map_NotCond(p,c)       ((Map_Node_t *)((PORT_PTRUINT_T)(p) ^ (c)))
+#define Map_IsComplement(p)    (((int)((ABC_PTRUINT_T) (p) & 01)))
+#define Map_Regular(p)         ((Map_Node_t *)((ABC_PTRUINT_T)(p) & ~01)) 
+#define Map_Not(p)             ((Map_Node_t *)((ABC_PTRUINT_T)(p) ^ 01)) 
+#define Map_NotCond(p,c)       ((Map_Node_t *)((ABC_PTRUINT_T)(p) ^ (c)))
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

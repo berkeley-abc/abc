@@ -127,7 +127,7 @@ static inline int Dar_CutFindValue( Dar_Man_t * p, Dar_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the next free cut to use.]
+  Synopsis    [Returns the next ABC_FREE cut to use.]
 
   Description [Uses the cut with the smallest value.]
                
@@ -585,9 +585,11 @@ Dar_Cut_t * Dar_ObjPrepareCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
     pObj->nCuts = p->pPars->nCutsMax;
     // create the cutset of the node
     pCutSet = (Dar_Cut_t *)Aig_MmFixedEntryFetch( p->pMemCuts );
+    memset( pCutSet, 0, p->pPars->nCutsMax * sizeof(Dar_Cut_t) );
     Dar_ObjSetCuts( pObj, pCutSet );
     Dar_ObjForEachCutAll( pObj, pCut, i )
         pCut->fUsed = 0;
+    Vec_PtrPush( p->vCutNodes, pObj );
     // add unit cut if needed
     pCut = pCutSet;
     pCut->fUsed = 1;
@@ -605,6 +607,8 @@ Dar_Cut_t * Dar_ObjPrepareCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
         pCut->uTruth = 0xAAAA;
     }
     pCut->Value = Dar_CutFindValue( p, pCut );
+    if ( p->nCutMemUsed < Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) )
+        p->nCutMemUsed = Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20);
     return pCutSet;
 }
 
@@ -619,15 +623,16 @@ Dar_Cut_t * Dar_ObjPrepareCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManCutsStart( Dar_Man_t * p )
+void Dar_ManCutsRestart( Dar_Man_t * p, Aig_Obj_t * pRoot )
 {
     Aig_Obj_t * pObj;
     int i;
-    Aig_ManCleanData( p->pAig );
+    Vec_PtrForEachEntry( p->vCutNodes, pObj, i )
+        if ( !Aig_ObjIsNone(pObj) )
+            Dar_ObjSetCuts( pObj, NULL );
+    Vec_PtrClear( p->vCutNodes );
     Aig_MmFixedRestart( p->pMemCuts );
     Dar_ObjPrepareCuts( p, Aig_ManConst1(p->pAig) );
-    Aig_ManForEachPi( p->pAig, pObj, i )
-        Dar_ObjPrepareCuts( p, pObj );
 }
 
 /**Function*************************************************************
@@ -725,6 +730,8 @@ Dar_Cut_t * Dar_ObjComputeCuts_rec( Dar_Man_t * p, Aig_Obj_t * pObj )
 {
     if ( Dar_ObjCuts(pObj) )
         return Dar_ObjCuts(pObj);
+    if ( Aig_ObjIsPi(pObj) )
+        return Dar_ObjPrepareCuts( p, pObj );
     if ( Aig_ObjIsBuf(pObj) )
         return Dar_ObjComputeCuts_rec( p, Aig_ObjFanin0(pObj) );
     Dar_ObjComputeCuts_rec( p, Aig_ObjFanin0(pObj) );

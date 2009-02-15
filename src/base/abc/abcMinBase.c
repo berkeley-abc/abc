@@ -100,7 +100,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
-  Synopsis    [Makes nodes of the network fanin-dup-free.]
+  Synopsis    [Makes nodes of the network fanin-dup-ABC_FREE.]
 
   Description [Returns the number of pairs of duplicated fanins.]
                
@@ -467,8 +467,8 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
     // get the nodes in the given order
     vNodes = fReverse? Abc_NtkDfsReverse( pNtk ) : Abc_NtkDfs( pNtk, 0 );
     // go through the nodes and decide is they can be eliminated
-    pPermFanin = ALLOC( int, nMaxSize + 100 );
-    pPermFanout = ALLOC( int, nMaxSize + 100 );
+    pPermFanin = ABC_ALLOC( int, nMaxSize + 100 );
+    pPermFanout = ABC_ALLOC( int, nMaxSize + 100 );
     vFanins = Vec_PtrAlloc( 100 );
     vFanouts = Vec_PtrAlloc( 100 );
     Vec_PtrForEachEntry( vNodes, pNode, i )
@@ -494,8 +494,8 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
     Vec_PtrFree( vFanins );
     Vec_PtrFree( vFanouts );
     Vec_PtrFree( vNodes );
-    free( pPermFanin );
-    free( pPermFanout );
+    ABC_FREE( pPermFanin );
+    ABC_FREE( pPermFanout );
     return 1;
 }
 

@@ -180,14 +180,14 @@ Cudd_PrintMinterm(
 
     background = manager->background;
     zero = Cudd_Not(manager->one);
-    list = ALLOC(int,manager->size);
+    list = ABC_ALLOC(int,manager->size);
     if (list == NULL) {
     manager->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
     for (i = 0; i < manager->size; i++) list[i] = 2;
     ddPrintMintermAux(manager,node,list);
-    FREE(list);
+    ABC_FREE(list);
     return(1);
 
 } /* end of Cudd_PrintMinterm */
@@ -221,7 +221,7 @@ Cudd_bddPrintCover(
     DdNode *cover;
 #endif
 
-    array = ALLOC(int, Cudd_ReadSize(dd));
+    array = ABC_ALLOC(int, Cudd_ReadSize(dd));
     if (array == NULL) return(0);
     lb = l;
     cuddRef(lb);
@@ -235,7 +235,7 @@ Cudd_bddPrintCover(
     implicant = Cudd_LargestCube(dd,lb,&length);
     if (implicant == NULL) {
         Cudd_RecursiveDeref(dd,lb);
-        FREE(array);
+        ABC_FREE(array);
         return(0);
     }
     cuddRef(implicant);
@@ -243,7 +243,7 @@ Cudd_bddPrintCover(
     if (prime == NULL) {
         Cudd_RecursiveDeref(dd,lb);
         Cudd_RecursiveDeref(dd,implicant);
-        FREE(array);
+        ABC_FREE(array);
         return(0);
     }
     cuddRef(prime);
@@ -252,7 +252,7 @@ Cudd_bddPrintCover(
     if (tmp == NULL) {
         Cudd_RecursiveDeref(dd,lb);
         Cudd_RecursiveDeref(dd,prime);
-        FREE(array);
+        ABC_FREE(array);
         return(0);
     }
     cuddRef(tmp);
@@ -262,7 +262,7 @@ Cudd_bddPrintCover(
     if (result == 0) {
         Cudd_RecursiveDeref(dd,lb);
         Cudd_RecursiveDeref(dd,prime);
-        FREE(array);
+        ABC_FREE(array);
         return(0);
     }
     for (q = 0; q < dd->size; q++) {
@@ -287,7 +287,7 @@ Cudd_bddPrintCover(
         Cudd_RecursiveDeref(dd,cover);
         Cudd_RecursiveDeref(dd,lb);
         Cudd_RecursiveDeref(dd,prime);
-        FREE(array);
+        ABC_FREE(array);
         return(0);
     }
     cuddRef(tmp);
@@ -298,7 +298,7 @@ Cudd_bddPrintCover(
     }
     (void) fprintf(dd->out, "\n");
     Cudd_RecursiveDeref(dd,lb);
-    FREE(array);
+    ABC_FREE(array);
 #ifdef DD_DEBUG
     if (!Cudd_bddLeq(dd,cover,u) || !Cudd_bddLeq(dd,l,cover)) {
         Cudd_RecursiveDeref(dd,cover);
@@ -707,7 +707,7 @@ Cudd_Support(
 
     /* Allocate and initialize support array for ddSupportStep. */
     size = ddMax(dd->size, dd->sizeZ);
-    support = ALLOC(int,size);
+    support = ABC_ALLOC(int,size);
     if (support == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -745,7 +745,7 @@ Cudd_Support(
     }
     } while (dd->reordered == 1);
 
-    FREE(support);
+    ABC_FREE(support);
     if (res != NULL) cuddDeref(res);
     return(res);
 
@@ -775,7 +775,7 @@ Cudd_SupportIndex(
 
     /* Allocate and initialize support array for ddSupportStep. */
     size = ddMax(dd->size, dd->sizeZ);
-    support = ALLOC(int,size);
+    support = ABC_ALLOC(int,size);
     if (support == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -818,7 +818,7 @@ Cudd_SupportSize(
 
     /* Allocate and initialize support array for ddSupportStep. */
     size = ddMax(dd->size, dd->sizeZ);
-    support = ALLOC(int,size);
+    support = ABC_ALLOC(int,size);
     if (support == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(CUDD_OUT_OF_MEM);
@@ -837,7 +837,7 @@ Cudd_SupportSize(
     if (support[i] == 1) count++;
     }
 
-    FREE(support);
+    ABC_FREE(support);
     return(count);
 
 } /* end of Cudd_SupportSize */
@@ -870,7 +870,7 @@ Cudd_VectorSupport(
 
     /* Allocate and initialize support array for ddSupportStep. */
     size = ddMax(dd->size, dd->sizeZ);
-    support = ALLOC(int,size);
+    support = ABC_ALLOC(int,size);
     if (support == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -899,7 +899,7 @@ Cudd_VectorSupport(
         if (tmp == NULL) {
         Cudd_RecursiveDeref(dd,res);
         Cudd_RecursiveDeref(dd,var);
-        FREE(support);
+        ABC_FREE(support);
         return(NULL);
         }
         cuddRef(tmp);
@@ -909,7 +909,7 @@ Cudd_VectorSupport(
     }
     }
 
-    FREE(support);
+    ABC_FREE(support);
     cuddDeref(res);
     return(res);
 
@@ -941,7 +941,7 @@ Cudd_VectorSupportIndex(
 
     /* Allocate and initialize support array for ddSupportStep. */
     size = ddMax(dd->size, dd->sizeZ);
-    support = ALLOC(int,size);
+    support = ABC_ALLOC(int,size);
     if (support == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -990,7 +990,7 @@ Cudd_VectorSupportSize(
 
     /* Allocate and initialize support array for ddSupportStep. */
     size = ddMax(dd->size, dd->sizeZ);
-    support = ALLOC(int,size);
+    support = ABC_ALLOC(int,size);
     if (support == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(CUDD_OUT_OF_MEM);
@@ -1013,7 +1013,7 @@ Cudd_VectorSupportSize(
     if (support[i] == 1) count++;
     }
 
-    FREE(support);
+    ABC_FREE(support);
     return(count);
 
 } /* end of Cudd_VectorSupportSize */
@@ -1050,15 +1050,15 @@ Cudd_ClassifySupport(
 
     /* Allocate and initialize support arrays for ddSupportStep. */
     size = ddMax(dd->size, dd->sizeZ);
-    supportF = ALLOC(int,size);
+    supportF = ABC_ALLOC(int,size);
     if (supportF == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
-    supportG = ALLOC(int,size);
+    supportG = ABC_ALLOC(int,size);
     if (supportG == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
-    FREE(supportF);
+    ABC_FREE(supportF);
     return(0);
     }
     for (i = 0; i < size; i++) {
@@ -1087,7 +1087,7 @@ Cudd_ClassifySupport(
         Cudd_RecursiveDeref(dd,*onlyF);
         Cudd_RecursiveDeref(dd,*onlyG);
         Cudd_RecursiveDeref(dd,var);
-        FREE(supportF); FREE(supportG);
+        ABC_FREE(supportF); ABC_FREE(supportG);
         return(0);
         }
         cuddRef(tmp);
@@ -1100,7 +1100,7 @@ Cudd_ClassifySupport(
         Cudd_RecursiveDeref(dd,*onlyF);
         Cudd_RecursiveDeref(dd,*onlyG);
         Cudd_RecursiveDeref(dd,var);
-        FREE(supportF); FREE(supportG);
+        ABC_FREE(supportF); ABC_FREE(supportG);
         return(0);
         }
         cuddRef(tmp);
@@ -1113,7 +1113,7 @@ Cudd_ClassifySupport(
         Cudd_RecursiveDeref(dd,*onlyF);
         Cudd_RecursiveDeref(dd,*onlyG);
         Cudd_RecursiveDeref(dd,var);
-        FREE(supportF); FREE(supportG);
+        ABC_FREE(supportF); ABC_FREE(supportG);
         return(0);
         }
         cuddRef(tmp);
@@ -1123,7 +1123,7 @@ Cudd_ClassifySupport(
     Cudd_RecursiveDeref(dd,var);
     }
 
-    FREE(supportF); FREE(supportG);
+    ABC_FREE(supportF); ABC_FREE(supportG);
     cuddDeref(*common); cuddDeref(*onlyF); cuddDeref(*onlyG);
     return(1);
 
@@ -1254,15 +1254,15 @@ Cudd_bddPickOneMinterm(
     DdNode *old, *neW;
 
     size = dd->size;
-    string = ALLOC(char, size);
+    string = ABC_ALLOC(char, size);
     if (string == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
-    indices = ALLOC(int,n);
+    indices = ABC_ALLOC(int,n);
     if (indices == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
-    FREE(string);
+    ABC_FREE(string);
     return(NULL);
     }
 
@@ -1272,8 +1272,8 @@ Cudd_bddPickOneMinterm(
 
     result = Cudd_bddPickOneCube(dd,f,string);
     if (result == 0) {
-    FREE(string);
-    FREE(indices);
+    ABC_FREE(string);
+    ABC_FREE(indices);
     return(NULL);
     }
 
@@ -1290,8 +1290,8 @@ Cudd_bddPickOneMinterm(
     for (i = n-1; i >= 0; i--) {
     neW = Cudd_bddAnd(dd,old,Cudd_NotCond(vars[i],string[indices[i]]==0));
     if (neW == NULL) {
-        FREE(string);
-        FREE(indices);
+        ABC_FREE(string);
+        ABC_FREE(indices);
         Cudd_RecursiveDeref(dd,old);
         return(NULL);
     }
@@ -1312,8 +1312,8 @@ Cudd_bddPickOneMinterm(
     cuddDeref(old);
 #endif
 
-    FREE(string);
-    FREE(indices);
+    ABC_FREE(string);
+    ABC_FREE(indices);
     return(old);
 
 }  /* end of Cudd_bddPickOneMinterm */
@@ -1366,29 +1366,29 @@ Cudd_bddPickArbitraryMinterms(
     }
 
     size = dd->size;
-    string = ALLOC(char *, k);
+    string = ABC_ALLOC(char *, k);
     if (string == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
     for (i = 0; i < k; i++) {
-    string[i] = ALLOC(char, size + 1);
+    string[i] = ABC_ALLOC(char, size + 1);
     if (string[i] == NULL) {
         for (j = 0; j < i; j++)
-        FREE(string[i]);
-        FREE(string);
+        ABC_FREE(string[i]);
+        ABC_FREE(string);
         dd->errorCode = CUDD_MEMORY_OUT;
         return(NULL);
     }
     for (j = 0; j < size; j++) string[i][j] = '2';
     string[i][size] = '\0';
     }
-    indices = ALLOC(int,n);
+    indices = ABC_ALLOC(int,n);
     if (indices == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     for (i = 0; i < k; i++)
-        FREE(string[i]);
-    FREE(string);
+        ABC_FREE(string[i]);
+    ABC_FREE(string);
     return(NULL);
     }
 
@@ -1399,29 +1399,29 @@ Cudd_bddPickArbitraryMinterms(
     result = ddPickArbitraryMinterms(dd,f,n,k,string);
     if (result == 0) {
     for (i = 0; i < k; i++)
-        FREE(string[i]);
-    FREE(string);
-    FREE(indices);
+        ABC_FREE(string[i]);
+    ABC_FREE(string);
+    ABC_FREE(indices);
     return(NULL);
     }
 
-    old = ALLOC(DdNode *, k);
+    old = ABC_ALLOC(DdNode *, k);
     if (old == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     for (i = 0; i < k; i++)
-        FREE(string[i]);
-    FREE(string);
-    FREE(indices);
+        ABC_FREE(string[i]);
+    ABC_FREE(string);
+    ABC_FREE(indices);
     return(NULL);
     }
-    saveString = ALLOC(char, size + 1);
+    saveString = ABC_ALLOC(char, size + 1);
     if (saveString == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     for (i = 0; i < k; i++)
-        FREE(string[i]);
-    FREE(string);
-    FREE(indices);
-    FREE(old);
+        ABC_FREE(string[i]);
+    ABC_FREE(string);
+    ABC_FREE(indices);
+    ABC_FREE(old);
     return(NULL);
     }
     saveFlag = 0;
@@ -1488,14 +1488,14 @@ Cudd_bddPickArbitraryMinterms(
         neW = Cudd_bddAnd(dd,old[i],vars[j]);
         }
         if (neW == NULL) {
-        FREE(saveString);
+        ABC_FREE(saveString);
         for (l = 0; l < k; l++)
-            FREE(string[l]);
-        FREE(string);
-        FREE(indices);
+            ABC_FREE(string[l]);
+        ABC_FREE(string);
+        ABC_FREE(indices);
         for (l = 0; l <= i; l++)
             Cudd_RecursiveDeref(dd,old[l]);
-        FREE(old);
+        ABC_FREE(old);
         return(NULL);
         }
         cuddRef(neW);
@@ -1505,25 +1505,25 @@ Cudd_bddPickArbitraryMinterms(
 
     /* Test. */
     if (!Cudd_bddLeq(dd,old[i],f)) {
-        FREE(saveString);
+        ABC_FREE(saveString);
         for (l = 0; l < k; l++)
-        FREE(string[l]);
-        FREE(string);
-        FREE(indices);
+        ABC_FREE(string[l]);
+        ABC_FREE(string);
+        ABC_FREE(indices);
         for (l = 0; l <= i; l++)
         Cudd_RecursiveDeref(dd,old[l]);
-        FREE(old);
+        ABC_FREE(old);
         return(NULL);
     }
     }
 
-    FREE(saveString);
+    ABC_FREE(saveString);
     for (i = 0; i < k; i++) {
     cuddDeref(old[i]);
-    FREE(string[i]);
+    ABC_FREE(string[i]);
     }
-    FREE(string);
-    FREE(indices);
+    ABC_FREE(string);
+    ABC_FREE(indices);
     return(old);
 
 }  /* end of Cudd_bddPickArbitraryMinterms */
@@ -1576,7 +1576,7 @@ Cudd_SubsetWithMaskVars(
     zero = Cudd_Not(dd->one);
     size = dd->size;
     
-    weight = ALLOC(double,size);
+    weight = ABC_ALLOC(double,size);
     if (weight == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -1596,15 +1596,15 @@ Cudd_SubsetWithMaskVars(
     Cudd_RecursiveDeref(dd,cof);
     }
 
-    string = ALLOC(char, size + 1);
+    string = ABC_ALLOC(char, size + 1);
     if (string == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
-    mask = ALLOC(int, size);
+    mask = ABC_ALLOC(int, size);
     if (mask == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
-    FREE(string);
+    ABC_FREE(string);
     return(NULL);
     }
     for (i = 0; i < size; i++) {
@@ -1612,11 +1612,11 @@ Cudd_SubsetWithMaskVars(
     mask[i] = 0;
     }
     string[size] = '\0';
-    indices = ALLOC(int,nvars);
+    indices = ABC_ALLOC(int,nvars);
     if (indices == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
-    FREE(string);
-    FREE(mask);
+    ABC_FREE(string);
+    ABC_FREE(mask);
     return(NULL);
     }
     for (i = 0; i < nvars; i++) {
@@ -1625,9 +1625,9 @@ Cudd_SubsetWithMaskVars(
 
     result = ddPickRepresentativeCube(dd,f,nvars,weight,string);
     if (result == 0) {
-    FREE(string);
-    FREE(mask);
-    FREE(indices);
+    ABC_FREE(string);
+    ABC_FREE(mask);
+    ABC_FREE(indices);
     return(NULL);
     }
 
@@ -1642,9 +1642,9 @@ Cudd_SubsetWithMaskVars(
     } else
         continue;
     if (newCube == NULL) {
-        FREE(string);
-        FREE(mask);
-        FREE(indices);
+        ABC_FREE(string);
+        ABC_FREE(mask);
+        ABC_FREE(indices);
         Cudd_RecursiveDeref(dd,cube);
         return(NULL);
     }
@@ -1683,9 +1683,9 @@ Cudd_SubsetWithMaskVars(
     } else
         continue;
     if (newCube == NULL) {
-        FREE(string);
-        FREE(mask);
-        FREE(indices);
+        ABC_FREE(string);
+        ABC_FREE(mask);
+        ABC_FREE(indices);
         Cudd_RecursiveDeref(dd,cube);
         return(NULL);
     }
@@ -1706,10 +1706,10 @@ Cudd_SubsetWithMaskVars(
     subset = NULL;
     }
 
-    FREE(string);
-    FREE(mask);
-    FREE(indices);
-    FREE(weight);
+    ABC_FREE(string);
+    ABC_FREE(mask);
+    ABC_FREE(indices);
+    ABC_FREE(weight);
     return(subset);
 
 } /* end of Cudd_SubsetWithMaskVars */
@@ -1757,7 +1757,7 @@ Cudd_FirstCube(
     if (dd == NULL || f == NULL) return(NULL);
 
     /* Allocate generator an initialize it. */
-    gen = ALLOC(DdGen,1);
+    gen = ABC_ALLOC(DdGen,1);
     if (gen == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -1773,10 +1773,10 @@ Cudd_FirstCube(
     gen->node = NULL;
 
     nvars = dd->size;
-    gen->gen.cubes.cube = ALLOC(int,nvars);
+    gen->gen.cubes.cube = ABC_ALLOC(int,nvars);
     if (gen->gen.cubes.cube == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
-    FREE(gen);
+    ABC_FREE(gen);
     return(NULL);
     }
     for (i = 0; i < nvars; i++) gen->gen.cubes.cube[i] = 2;
@@ -1785,11 +1785,11 @@ Cudd_FirstCube(
     ** because a path may have nodes at all levels, including the
     ** constant level.
     */
-    gen->stack.stack = ALLOC(DdNode *, nvars+1);
+    gen->stack.stack = ABC_ALLOC(DdNode *, nvars+1);
     if (gen->stack.stack == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
-    FREE(gen->gen.cubes.cube);
-    FREE(gen);
+    ABC_FREE(gen->gen.cubes.cube);
+    ABC_FREE(gen);
     return(NULL);
     }
     for (i = 0; i <= nvars; i++) gen->stack.stack[i] = NULL;
@@ -2172,7 +2172,7 @@ Cudd_FirstNode(
     if (dd == NULL || f == NULL) return(NULL);
 
     /* Allocate generator an initialize it. */
-    gen = ALLOC(DdGen,1);
+    gen = ABC_ALLOC(DdGen,1);
     if (gen == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -2189,7 +2189,7 @@ Cudd_FirstNode(
 
     gen->gen.nodes.visited = st_init_table(st_ptrcmp,st_ptrhash);
     if (gen->gen.nodes.visited == NULL) {
-    FREE(gen);
+    ABC_FREE(gen);
     return(NULL);
     }
 
@@ -2197,7 +2197,7 @@ Cudd_FirstNode(
     retval = cuddCollectNodes(Cudd_Regular(f),gen->gen.nodes.visited);
     if (retval == 0) {
     st_free_table(gen->gen.nodes.visited);
-    FREE(gen);
+    ABC_FREE(gen);
     return(NULL);
     }
 
@@ -2205,7 +2205,7 @@ Cudd_FirstNode(
     gen->gen.nodes.stGen = st_init_gen(gen->gen.nodes.visited);
     if (gen->gen.nodes.stGen == NULL) {
     st_free_table(gen->gen.nodes.visited);
-    FREE(gen);
+    ABC_FREE(gen);
     return(NULL);
     }
 
@@ -2276,8 +2276,8 @@ Cudd_GenFree(
     switch (gen->type) {
     case CUDD_GEN_CUBES:
     case CUDD_GEN_ZDD_PATHS:
-    FREE(gen->gen.cubes.cube);
-    FREE(gen->stack.stack);
+    ABC_FREE(gen->gen.cubes.cube);
+    ABC_FREE(gen->stack.stack);
     break;
     case CUDD_GEN_NODES:
     st_free_gen(gen->gen.nodes.stGen);
@@ -2286,7 +2286,7 @@ Cudd_GenFree(
     default:
     return(0);
     }
-    FREE(gen);
+    ABC_FREE(gen);
     return(0);
 
 } /* end of Cudd_GenFree */
@@ -2679,7 +2679,7 @@ cuddStCountfree(
     double    *d;
 
     d = (double *)value;
-    FREE(d);
+    ABC_FREE(d);
     return(ST_CONTINUE);
 
 } /* end of cuddStCountfree */
@@ -3233,7 +3233,7 @@ ddCountPathAux(
     if (paths2 == (double)CUDD_OUT_OF_MEM) return((double)CUDD_OUT_OF_MEM);
     paths = paths1 + paths2;
     
-    ppaths = ALLOC(double,1);
+    ppaths = ABC_ALLOC(double,1);
     if (ppaths == NULL) {
     return((double)CUDD_OUT_OF_MEM);
     }
@@ -3241,7 +3241,7 @@ ddCountPathAux(
     *ppaths = paths;
 
     if (st_add_direct(table,(char *)node, (char *)ppaths) == ST_OUT_OF_MEM) {
-    FREE(ppaths);
+    ABC_FREE(ppaths);
     return((double)CUDD_OUT_OF_MEM);
     }
     return(paths);
@@ -3371,7 +3371,7 @@ ddCountPathsToNonZero(
     if (paths2 == (double)CUDD_OUT_OF_MEM) return((double)CUDD_OUT_OF_MEM);
     paths = paths1 + paths2;
 
-    ppaths = ALLOC(double,1);
+    ppaths = ABC_ALLOC(double,1);
     if (ppaths == NULL) {
     return((double)CUDD_OUT_OF_MEM);
     }
@@ -3379,7 +3379,7 @@ ddCountPathsToNonZero(
     *ppaths = paths;
 
     if (st_add_direct(table,(char *)N, (char *)ppaths) == ST_OUT_OF_MEM) {
-    FREE(ppaths);
+    ABC_FREE(ppaths);
     return((double)CUDD_OUT_OF_MEM);
     }
     return(paths);

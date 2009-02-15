@@ -362,7 +362,7 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
         Lpk_PrintSets( vSets0 );
         if ( fVerbose )
         Lpk_PrintSets( vSets1 );
-        // free the networks
+        // ABC_FREE the networks
         Kit_DsdNtkFree( ppNtks[0] );
         Kit_DsdNtkFree( ppNtks[1] );
         // evaluate the pair

@@ -102,7 +102,7 @@ Fsim_Man_t * Fsim_ManCreate( Aig_Man_t * pAig )
     Aig_Obj_t * pObj;
     int i, nObjs;
     Aig_ManCleanData( pAig );
-    p = (Fsim_Man_t *)ALLOC( Fsim_Man_t, 1 );
+    p = (Fsim_Man_t *)ABC_ALLOC( Fsim_Man_t, 1 );
     memset( p, 0, sizeof(Fsim_Man_t) );
     p->pAig = pAig;
     p->nPis = Saig_ManPiNum(pAig);
@@ -111,9 +111,9 @@ Fsim_Man_t * Fsim_ManCreate( Aig_Man_t * pAig )
     p->nCos = Aig_ManPoNum(pAig);
     p->nNodes = Aig_ManNodeNum(pAig);
     nObjs = p->nCis + p->nCos + p->nNodes + 2;
-    p->pFans0 = ALLOC( int, nObjs );
-    p->pFans1 = ALLOC( int, nObjs );
-    p->pRefs  = ALLOC( int, nObjs );
+    p->pFans0 = ABC_ALLOC( int, nObjs );
+    p->pFans1 = ABC_ALLOC( int, nObjs );
+    p->pRefs  = ABC_ALLOC( int, nObjs );
     p->vCis2Ids = Vec_IntAlloc( Aig_ManPiNum(pAig) );
     // add objects (0=unused; 1=const1)
     p->pFans0[0] = p->pFans1[0] = 0;
@@ -168,17 +168,17 @@ void Fsim_ManDelete( Fsim_Man_t * p )
     Vec_IntFree( p->vCis2Ids );
     Vec_IntFree( p->vLos );
     Vec_IntFree( p->vLis );
-    FREE( p->pDataAig2 );
-    FREE( p->pDataAig );
-    FREE( p->pFans0 );
-    FREE( p->pFans1 );
-    FREE( p->pRefs );
-    FREE( p->pDataSim );
-    FREE( p->pDataSimCis );
-    FREE( p->pDataSimCos );
-    FREE( p->pData1 );
-    FREE( p->pData2 );
-    FREE( p );
+    ABC_FREE( p->pDataAig2 );
+    ABC_FREE( p->pDataAig );
+    ABC_FREE( p->pFans0 );
+    ABC_FREE( p->pFans1 );
+    ABC_FREE( p->pRefs );
+    ABC_FREE( p->pDataSim );
+    ABC_FREE( p->pDataSimCis );
+    ABC_FREE( p->pDataSimCos );
+    ABC_FREE( p->pData1 );
+    ABC_FREE( p->pData2 );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

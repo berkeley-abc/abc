@@ -44,10 +44,10 @@ void CmdCommandAliasAdd( Abc_Frame_t * pAbc, char * sName, int argc, char ** arg
     Abc_Alias * pAlias;
     int fStatus, i;
 
-    pAlias = ALLOC(Abc_Alias, 1);
+    pAlias = ABC_ALLOC(Abc_Alias, 1);
     pAlias->sName = Extra_UtilStrsav(sName);
     pAlias->argc = argc;
-    pAlias->argv = ALLOC(char *, pAlias->argc);
+    pAlias->argv = ABC_ALLOC(char *, pAlias->argc);
     for(i = 0; i < argc; i++) 
         pAlias->argv[i] = Extra_UtilStrsav(argv[i]);
     fStatus = st_insert( pAbc->tAliases, pAlias->sName, (char *) pAlias );
@@ -109,8 +109,8 @@ char * CmdCommandAliasLookup( Abc_Frame_t * pAbc, char * sCommand )
 void CmdCommandAliasFree( Abc_Alias * pAlias )
 {
     CmdFreeArgv( pAlias->argc, pAlias->argv );
-    FREE(pAlias->sName);    
-    FREE(pAlias);
+    ABC_FREE(pAlias->sName);    
+    ABC_FREE(pAlias);
 }
 
 ////////////////////////////////////////////////////////////////////////

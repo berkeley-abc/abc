@@ -168,7 +168,7 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     {
 //        int clk = clock();
     Abc_NtkReassignIds( pNtk );
-//        PRT( "time", clock() - clk );
+//        ABC_PRT( "time", clock() - clk );
     }
 //    Abc_AigCheckFaninOrder( pNtk->pManFunc );
     // fix the levels

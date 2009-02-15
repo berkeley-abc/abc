@@ -136,8 +136,8 @@ Binary Format Definition
 */
 
 static unsigned Io_ObjMakeLit( int Var, int fCompl )                 { return (Var << 1) | fCompl;                   }
-static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)(PORT_PTRINT_T)pObj->pCopy;  }
-static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (void *)(PORT_PTRINT_T)Num;     }
+static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)(ABC_PTRINT_T)pObj->pCopy;  }
+static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (void *)(ABC_PTRINT_T)Num;     }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -331,7 +331,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
     // write the nodes into the buffer
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ALLOC( unsigned char, nBufferSize );
+    pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
@@ -354,7 +354,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
 
     // write the buffer
     fwrite( pBuffer, 1, Pos, pFile );
-    free( pBuffer );
+    ABC_FREE( pBuffer );
 
     // write the symbol table
     if ( fWriteSymbols )
@@ -451,7 +451,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     // write the nodes into the buffer
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ALLOC( char, nBufferSize );
+    pBuffer = ABC_ALLOC( char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
@@ -474,7 +474,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
 
     // write the buffer
     gzwrite(pFile, pBuffer, Pos);
-    free( pBuffer );
+    ABC_FREE( pBuffer );
 
     // write the symbol table
     if ( fWriteSymbols )
@@ -534,7 +534,7 @@ int fprintfBz2Aig( bz2file * b, char * fmt, ... ) {
                 b->nBytesMax = b->nBytes + 1;
             else
                 b->nBytesMax *= 2;
-            if ((newBuf = REALLOC( char,b->buf,b->nBytesMax )) == NULL)
+            if ((newBuf = ABC_REALLOC( char,b->buf,b->nBytesMax )) == NULL)
                 return -1;
             else
                 b->buf = newBuf;
@@ -594,14 +594,14 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 
     memset(&b,0,sizeof(b));
     b.nBytesMax = (1<<12);
-    b.buf = ALLOC( char,b.nBytesMax );
+    b.buf = ABC_ALLOC( char,b.nBytesMax );
 
     // start the output stream
     b.f = fopen( pFileName, "wb" ); 
     if ( b.f == NULL )
     {
         fprintf( stdout, "Ioa_WriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
-        FREE(b.buf);
+        ABC_FREE(b.buf);
         return;
     }
     if (!strncmp(pFileName+strlen(pFileName)-4,".bz2",4)) {
@@ -610,7 +610,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
             BZ2_bzWriteClose( &bzError, b.b, 0, NULL, NULL );
             fprintf( stdout, "Ioa_WriteBlif(): Cannot start compressed stream.\n" );
             fclose( b.f );
-            FREE(b.buf);
+            ABC_FREE(b.buf);
             return;
         }
     }
@@ -663,7 +663,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
             if (bzError == BZ_IO_ERROR) {
                 fprintf( stdout, "Io_WriteAiger(): I/O error writing to compressed stream.\n" );
                 fclose( b.f );
-                FREE(b.buf);
+                ABC_FREE(b.buf);
                 return;
             }
         }
@@ -674,7 +674,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     // write the nodes into the buffer
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ALLOC( unsigned char, nBufferSize );
+    pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
@@ -689,7 +689,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         {
             printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( b.f );
-            FREE(b.buf);
+            ABC_FREE(b.buf);
             return;
         }
     }
@@ -705,11 +705,11 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         if (bzError == BZ_IO_ERROR) {
             fprintf( stdout, "Io_WriteAiger(): I/O error writing to compressed stream.\n" );
             fclose( b.f );
-            FREE(b.buf);
+            ABC_FREE(b.buf);
             return;
         }
     }
-    free( pBuffer );
+    ABC_FREE( pBuffer );
 
     // write the symbol table
     if ( fWriteSymbols )
@@ -738,12 +738,12 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         if (bzError == BZ_IO_ERROR) {
             fprintf( stdout, "Io_WriteAiger(): I/O error closing compressed stream.\n" );
             fclose( b.f );
-            FREE(b.buf);
+            ABC_FREE(b.buf);
             return;
         }
     }
     fclose( b.f );
-    FREE(b.buf);
+    ABC_FREE(b.buf);
 }
 
 ////////////////////////////////////////////////////////////////////////

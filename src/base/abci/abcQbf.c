@@ -140,8 +140,8 @@ clkV = clock() - clkV;
             printf( "AIG = %6d  ", Abc_NtkNodeNum(pNtkSyn) );
             Abc_NtkVectorPrintVars( pNtk, vPiValues, nPars );
             printf( "  " );
-//            PRTn( "Syn", clkS );
-            PRT( "Ver", clkV );
+//            ABC_PRTn( "Syn", clkS );
+            ABC_PRT( "Ver", clkV );
         }
     }
     Abc_NtkDelete( pNtkSyn );
@@ -157,7 +157,7 @@ clkV = clock() - clkV;
         printf( "Unsolved after %d interations.  ", nIters );
     else 
         printf( "Implementation does not exist.  " );
-    PRT( "Total runtime", clock() - clkTotal );
+    ABC_PRT( "Total runtime", clock() - clkTotal );
     Vec_IntFree( vPiValues );
 }
 

@@ -293,7 +293,7 @@ void Fra_SmlCheckOutputSavePattern( Fra_Man_t * p, Aig_Obj_t * pObjPo )
     // determine the best pattern
     BestPat = i * 32 + k;
     // fill in the counter-example data
-    pModel = ALLOC( int, Aig_ManPiNum(p->pManFraig)+1 );
+    pModel = ABC_ALLOC( int, Aig_ManPiNum(p->pManFraig)+1 );
     Aig_ManForEachPi( p->pManAig, pObjPi, i )
     {
         pModel[i] = Aig_InfoHasBit(Fra_ObjSim(p->pSml, pObjPi->Id), BestPat);
@@ -804,7 +804,7 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
 Fra_Sml_t * Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame )
 {
     Fra_Sml_t * p;
-    p = (Fra_Sml_t *)malloc( sizeof(Fra_Sml_t) + sizeof(unsigned) * Aig_ManObjNumMax(pAig) * (nPref + nFrames) * nWordsFrame );
+    p = (Fra_Sml_t *)ABC_ALLOC( char, sizeof(Fra_Sml_t) + sizeof(unsigned) * Aig_ManObjNumMax(pAig) * (nPref + nFrames) * nWordsFrame );
     memset( p, 0, sizeof(Fra_Sml_t) + sizeof(unsigned) * (nPref + nFrames) * nWordsFrame );
     p->pAig        = pAig;
     p->nPref       = nPref;
@@ -828,7 +828,7 @@ Fra_Sml_t * Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFr
 ***********************************************************************/
 void Fra_SmlStop( Fra_Sml_t * p )
 {
-    free( p );
+    ABC_FREE( p );
 }
 
 
@@ -863,12 +863,13 @@ Fra_Sml_t * Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords )
+Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords, int fCheckMiter )
 {
     Fra_Sml_t * p;
     p = Fra_SmlStart( pAig, nPref, nFrames, nWords );
     Fra_SmlInitialize( p, 1 );
     Fra_SmlSimulateOne( p );
+    if ( fCheckMiter )
     p->fNonConstOut = Fra_SmlCheckNonConstOutputs( p );
     return p;
 }
@@ -888,7 +889,7 @@ Fra_Cex_t * Fra_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 {
     Fra_Cex_t * pCex;
     int nWords = Aig_BitWordNum( nRegs + nRealPis * nFrames );
-    pCex = (Fra_Cex_t *)malloc( sizeof(Fra_Cex_t) + sizeof(unsigned) * nWords );
+    pCex = (Fra_Cex_t *)ABC_ALLOC( char, sizeof(Fra_Cex_t) + sizeof(unsigned) * nWords );
     memset( pCex, 0, sizeof(Fra_Cex_t) + sizeof(unsigned) * nWords );
     pCex->nRegs  = nRegs;
     pCex->nPis   = nRealPis;
@@ -909,7 +910,7 @@ Fra_Cex_t * Fra_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 ***********************************************************************/
 void Fra_SmlFreeCounterExample( Fra_Cex_t * pCex )
 {
-    free( pCex );
+    ABC_FREE( pCex );
 }
 
 /**Function*************************************************************

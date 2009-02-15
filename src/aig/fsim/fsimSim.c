@@ -385,7 +385,7 @@ void Fsim_ManSimulateRoundTest( Fsim_Man_t * p )
     Fsim_ManForEachObj( p, pObj, i )
     {
     }
-//    PRT( "Unpacking time", p->pPars->nIters * (clock() - clk) );
+//    ABC_PRT( "Unpacking time", p->pPars->nIters * (clock() - clk) );
 }
 
 /**Function*************************************************************
@@ -437,7 +437,7 @@ Ssw_Cex_t * Fsim_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int
     // fill in the binary data
     Aig_ManRandom( 1 );
     Counter = p->nRegs;
-    pData = ALLOC( unsigned, nWords );
+    pData = ABC_ALLOC( unsigned, nWords );
     for ( f = 0; f <= iFrame; f++, Counter += p->nPis )
     for ( i = 0; i < Aig_ManPiNum(pAig); i++ )
     {
@@ -449,7 +449,7 @@ Ssw_Cex_t * Fsim_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int
         if ( Aig_InfoHasBit( pData, iPat ) )
             Aig_InfoSetBit( p->pData, Counter + iPioId );
     }
-    free( pData );
+    ABC_FREE( pData );
     return p;
 }
 
@@ -470,16 +470,19 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
     Sec_MtrStatus_t Status;
     int i, iOut, iPat, clk, clkTotal = clock(), clk2, clk2Total = 0;
     assert( Aig_ManRegNum(pAig) > 0 );
-    Status = Sec_MiterStatus( pAig );
-    if ( Status.nSat > 0 )
+    if ( pPars->fCheckMiter )
     {
-        printf( "Miter is trivially satisfiable (output %d).\n", Status.iOut );
-        return 1;
-    }
-    if ( Status.nUndec == 0 )
-    {
-        printf( "Miter is trivially unsatisfiable.\n" );
-        return 0;
+        Status = Sec_MiterStatus( pAig );
+        if ( Status.nSat > 0 )
+        {
+            printf( "Miter is trivially satisfiable (output %d).\n", Status.iOut );
+            return 1;
+        }
+        if ( Status.nUndec == 0 )
+        {
+            printf( "Miter is trivially unsatisfiable.\n" );
+            return 0;
+        }
     }
     // create manager
     clk = clock();
@@ -490,7 +493,7 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
         printf( "Obj = %8d (%8d). Cut = %6d. Front = %6d.  FrtMem = %7.2f Mb. ", 
             p->nObjs, p->nCis + p->nNodes, p->nCrossCutMax, p->nFront, 
             4.0*p->nWords*(p->nFront)/(1<<20) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     // create simulation frontier
     clk = clock();
@@ -501,14 +504,14 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
             p->iNumber, Aig_Base2Log(p->iNumber), 
             1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             1.0*(p->pDataCur-p->pDataAig)/p->nObjs ); 
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     // perform simulation
     Aig_ManRandom( 1 );
     assert( p->pDataSim == NULL );
-    p->pDataSim = ALLOC( unsigned, p->nWords * p->nFront * sizeof(unsigned) );
-    p->pDataSimCis = ALLOC( unsigned, p->nWords * p->nCis * sizeof(unsigned) );
-    p->pDataSimCos = ALLOC( unsigned, p->nWords * p->nCos * sizeof(unsigned) );
+    p->pDataSim = ABC_ALLOC( unsigned, p->nWords * p->nFront );
+    p->pDataSimCis = ABC_ALLOC( unsigned, p->nWords * p->nCis );
+    p->pDataSimCos = ABC_ALLOC( unsigned, p->nWords * p->nCos );
     Fsim_ManSimInfoInit( p );
     for ( i = 0; i < pPars->nIters; i++ )
     {
@@ -542,9 +545,9 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
             p->nCrossCutMax, 
             p->pDataAig2? 12.0*p->nObjs/(1<<20) : 1.0*(p->pDataCur-p->pDataAig)/(1<<20), 
             4.0*p->nWords*(p->nFront+p->nCis+p->nCos)/(1<<20) );
-        PRT( "Sim time", clock() - clkTotal );
+        ABC_PRT( "Sim time", clock() - clkTotal );
 
-//        PRT( "Additional time", clk2Total );
+//        ABC_PRT( "Additional time", clk2Total );
 //        Fsim_ManSimulateRoundTest( p );
 //        Fsim_ManSimulateRoundTest2( p );
     }

@@ -333,7 +333,7 @@ float If_ManScanMapping( If_Man_t * p )
         pObj->nRefs    = 0;
     }
     // allocate place to store the nodes
-    ppStore = ALLOC( If_Obj_t *, p->nLevelMax + 1 );
+    ppStore = ABC_ALLOC( If_Obj_t *, p->nLevelMax + 1 );
     memset( ppStore, 0, sizeof(If_Obj_t *) * (p->nLevelMax + 1) );
     // collect nodes reachable from POs in the DFS order through the best cuts
     aArea = 0;
@@ -344,7 +344,7 @@ float If_ManScanMapping( If_Man_t * p )
     for ( i = p->nLevelMax; i >= 0; i-- )
         for ( pObj = ppStore[i]; pObj; pObj = pObj->pCopy )
             Vec_PtrPush( p->vMapped, pObj );
-    free( ppStore );
+    ABC_FREE( ppStore );
     return aArea;
 }
 
@@ -374,7 +374,7 @@ float If_ManScanMappingDirect( If_Man_t * p )
         pObj->nRefs    = 0;
     }
     // allocate place to store the nodes
-    ppStore = ALLOC( If_Obj_t *, p->nLevelMax + 1 );
+    ppStore = ABC_ALLOC( If_Obj_t *, p->nLevelMax + 1 );
     memset( ppStore, 0, sizeof(If_Obj_t *) * (p->nLevelMax + 1) );
     // collect nodes reachable from POs in the DFS order through the best cuts
     aArea = 0;
@@ -386,7 +386,7 @@ float If_ManScanMappingDirect( If_Man_t * p )
     for ( i = 0; i <= p->nLevelMax; i++ )
         for ( pObj = ppStore[i]; pObj; pObj = pObj->pCopy )
             Vec_PtrPush( p->vMapped, pObj );
-    free( ppStore );
+    ABC_FREE( ppStore );
     return aArea;
 }
 
@@ -550,7 +550,7 @@ Vec_Ptr_t * If_ManReverseOrder( If_Man_t * p )
     If_Obj_t * pObj, ** ppStore;
     int i;
     // allocate place to store the nodes
-    ppStore = ALLOC( If_Obj_t *, p->nLevelMax + 1 );
+    ppStore = ABC_ALLOC( If_Obj_t *, p->nLevelMax + 1 );
     memset( ppStore, 0, sizeof(If_Obj_t *) * (p->nLevelMax + 1) );
     // add the nodes
     If_ManForEachObj( p, pObj, i )
@@ -563,7 +563,7 @@ Vec_Ptr_t * If_ManReverseOrder( If_Man_t * p )
     for ( i = p->nLevelMax; i >= 0; i-- )
         for ( pObj = ppStore[i]; pObj; pObj = pObj->pCopy )
             Vec_PtrPush( vOrder, pObj );
-    free( ppStore );
+    ABC_FREE( ppStore );
     // print the order
 //    Vec_PtrForEachEntry( vOrder, pObj, i )
 //        printf( "Obj %2d   Type %d  Level = %d\n", pObj->Id, pObj->Type, pObj->Level );

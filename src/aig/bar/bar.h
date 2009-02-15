@@ -21,10 +21,6 @@
 #ifndef __BAR_H__
 #define __BAR_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -36,6 +32,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define BAR_PROGRESS_USE   1
 

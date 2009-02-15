@@ -112,7 +112,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     // read the file into the buffer
     nFileSize = Ioa_FileSize( pFileName );
     pFile = fopen( pFileName, "rb" );
-    pContents = ALLOC( char, nFileSize );
+    pContents = ABC_ALLOC( char, nFileSize );
     fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
@@ -120,6 +120,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
     {
         fprintf( stdout, "Wrong input file format.\n" );
+        free( pContents );
         return NULL;
     }
 
@@ -147,7 +148,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     pName = Ioa_FileNameGeneric( pFileName );
     pNew->pName = Aig_UtilStrsav( pName );
 //    pNew->pSpec = Ioa_UtilStrsav( pFileName );
-    free( pName );
+    ABC_FREE( pName );
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );
@@ -342,7 +343,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
 */
 
     // skipping the comments
-    free( pContents );
+    ABC_FREE( pContents );
     Vec_PtrFree( vNodes );
 
     // remove the extra nodes

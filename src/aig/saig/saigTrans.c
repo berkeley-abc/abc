@@ -386,7 +386,7 @@ clk = clock();
     {
         Aig_ManPrintStats( pFrames );
         Aig_ManPrintStats( pFraig );
-PRT( "Fraiging", clock() - clk );
+ABC_PRT( "Fraiging", clock() - clk );
     }
     Aig_ManStop( pFraig );
     assert( pFrames->pReprs != NULL );
@@ -397,12 +397,12 @@ PRT( "Fraiging", clock() - clk );
     // create reduced initialized timeframes
 clk = clock();
     pRes2 = Saig_ManFramesInitialMapped( pAig, nFrames, nFramesMax, fInit );
-PRT( "Mapped", clock() - clk );
-    // free mapping
+ABC_PRT( "Mapped", clock() - clk );
+    // ABC_FREE mapping
     Saig_ManStopMap2( pAig );
 clk = clock();
     pRes1 = Saig_ManFramesInitialMapped( pAig, nFrames, nFramesMax, fInit );
-PRT( "Normal", clock() - clk );
+ABC_PRT( "Normal", clock() - clk );
     // report the results
     if ( fVerbose )
     {

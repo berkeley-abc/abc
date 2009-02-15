@@ -63,16 +63,15 @@ void Abc_NtkMfsParsDefault( Mfs_Par_t * pPars )
 int Abc_NtkMfsEdgePower( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanin;
-    float * pProbab = (float *)p->vProbs->pArray;
     int i;
     // try replacing area critical fanins
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
-        if ( pProbab[pFanin->Id] >= 0.4 )
+        if ( Abc_MfsObjProb(p, pFanin) >= 0.4 )
         {
             if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
                 return 1;
-        } else if ( pProbab[pFanin->Id] >= 0.3 )
+        } else if ( Abc_MfsObjProb(p, pFanin) >= 0.3 )
         {
             if ( Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
                 return 1;
@@ -86,7 +85,6 @@ int Abc_WinNode(Mfs_Man_t * p, Abc_Obj_t *pNode)
 {
 //    int clk;
 //    Abc_Obj_t * pFanin;
-    float * pProbab = (float *)p->vProbs->pArray;
 //    int i;
 
     p->nNodesTried++;
@@ -120,7 +118,6 @@ int Abc_NtkMfsPowerResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
     int clk;
     Abc_Obj_t * pFanin;
-    float * pProbab = (float *)p->vProbs->pArray;
     int i;
 
     if (Abc_WinNode(p, pNode)  // something wrong
@@ -130,11 +127,11 @@ int Abc_NtkMfsPowerResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
     // Abc_NtkMfsEdgePower( p, pNode );
     // try replacing area critical fanins
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        if ( pProbab[pFanin->Id] >= 0.37 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+        if ( Abc_MfsObjProb(p, pFanin) >= 0.37 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
             return 1;
 
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        if ( pProbab[pFanin->Id] >= 0.1 && Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
+        if ( Abc_MfsObjProb(p, pFanin) >= 0.1 && Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
             return 1;
 
     if ( Abc_ObjFaninNum(pNode) == p->nFaninMax )
@@ -142,7 +139,7 @@ int Abc_NtkMfsPowerResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
     // try replacing area critical fanins while adding two new fanins
     Abc_ObjForEachFanin( pNode, pFanin, i )
-            if ( pProbab[pFanin->Id] >= 0.37 && Abc_NtkMfsSolveSatResub2( p, pNode, i, -1 ) )
+            if ( Abc_MfsObjProb(p, pFanin) >= 0.37 && Abc_NtkMfsSolveSatResub2( p, pNode, i, -1 ) )
                 return 1;
         }
     return 0;
@@ -157,7 +154,6 @@ Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
     Abc_Obj_t *pFanin, *pNode;
     Abc_Ntk_t *pNtk = p->pNtk;
     int nFaninMax = Abc_NtkGetFaninMax(p->pNtk);
-    float * pProbab = (float *)p->vProbs->pArray;
 
     Abc_NtkForEachNode( pNtk, pNode, k )
     {
@@ -172,7 +168,7 @@ Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
         // Abc_NtkMfsEdgePower( p, pNode );
         // try replacing area critical fanins
         Abc_ObjForEachFanin( pNode, pFanin, i )
-            if ( pProbab[pFanin->Id] >= 0.35 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+            if ( Abc_MfsObjProb(p, pFanin) >= 0.35 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
                 continue;
     }
 
@@ -189,7 +185,7 @@ Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
         // Abc_NtkMfsEdgePower( p, pNode );
         // try replacing area critical fanins
         Abc_ObjForEachFanin( pNode, pFanin, i )
-            if ( pProbab[pFanin->Id] >= 0.35 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
+            if ( Abc_MfsObjProb(p, pFanin) >= 0.35 && Abc_NtkMfsSolveSatResub( p, pNode, i, 0, 0 ) )
                 continue;
     }
 
@@ -203,7 +199,7 @@ Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
             continue;
 
         Abc_ObjForEachFanin( pNode, pFanin, i )
-            if ( pProbab[pFanin->Id] >= 0.2 && Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
+            if ( Abc_MfsObjProb(p, pFanin) >= 0.2 && Abc_NtkMfsSolveSatResub( p, pNode, i, 1, 0 ) )
                 continue;
     }
 /*
@@ -217,7 +213,7 @@ Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
             continue;
 
         Abc_ObjForEachFanin( pNode, pFanin, i )
-            if ( pProbab[pFanin->Id] >= 0.37 && Abc_NtkMfsSolveSatResub2( p, pNode, i, -1 ) )
+            if ( Abc_MfsObjProb(p, pFanin) >= 0.37 && Abc_NtkMfsSolveSatResub2( p, pNode, i, -1 ) )
                 continue;
     }
 */
@@ -456,7 +452,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     if ( p->pCare )
     {
         Abc_NtkForEachCi( pNtk, pObj, i )
-            pObj->pData = (void *)(PORT_PTRUINT_T)i;
+            pObj->pData = (void *)(ABC_PTRUINT_T)i;
     }
 
     // compute levels
@@ -531,7 +527,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
                 1.0*p->nNodesGainedLevel/Vec_PtrSize(vNodes),
                 1.0*p->nTotConfLevel/Vec_PtrSize(vNodes),
                 100.0*p->nTimeOutsLevel/Vec_PtrSize(vNodes) );
-            PRT( "Time", clock() - clk2 );
+            ABC_PRT( "Time", clock() - clk2 );
             */
             }
         }
@@ -571,7 +567,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 #endif
     }
 
-    // free the manager
+    // ABC_FREE the manager
     p->timeTotal = clock() - clk;
     Mfs_ManStop( p );
     return 1;

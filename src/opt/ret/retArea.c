@@ -264,22 +264,22 @@ int Abc_NtkRetimeMinAreaInitValues_rec( Abc_Obj_t * pObj )
     int i;
     // skip visited nodes
     if ( Abc_NodeIsTravIdCurrent(pObj) )
-        return (int)(PORT_PTRUINT_T)pObj->pCopy;
+        return (int)(ABC_PTRUINT_T)pObj->pCopy;
     Abc_NodeSetTravIdCurrent(pObj);
     // consider the case of a latch output
     if ( Abc_ObjIsBo(pObj) )
     {
         assert( Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) );
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_NtkRetimeMinAreaInitValues_rec( Abc_ObjFanin0(pObj) );
-        return (int)(PORT_PTRUINT_T)pObj->pCopy;
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_NtkRetimeMinAreaInitValues_rec( Abc_ObjFanin0(pObj) );
+        return (int)(ABC_PTRUINT_T)pObj->pCopy;
     }
     assert( Abc_ObjIsNode(pObj) );
     // visit the fanins
     Abc_ObjForEachFanin( pObj, pFanin, i )
         Abc_NtkRetimeMinAreaInitValues_rec( pFanin );
     // compute the value of the node
-    pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_ObjSopSimulate(pObj);
-    return (int)(PORT_PTRUINT_T)pObj->pCopy;
+    pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate(pObj);
+    return (int)(ABC_PTRUINT_T)pObj->pCopy;
 }
 
 /**Function*************************************************************
@@ -301,7 +301,7 @@ void Abc_NtkRetimeMinAreaInitValues( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut )
     Abc_NtkIncrementTravId(pNtk);
     Abc_NtkForEachLatch( pNtk, pObj, i )
     {
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_LatchIsInit1(pObj);
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
         Abc_NodeSetTravIdCurrent( pObj );
     }
     // propagate initial values
@@ -478,7 +478,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             Abc_ObjAddFanin( pLatch, pLatchIn );
             if ( fForward )
             {
-                pLatch->pData = (void *)(PORT_PTRUINT_T)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
+                pLatch->pData = (void *)(ABC_PTRUINT_T)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
                 // redirect edges to the unvisited fanouts of the node
                 Abc_NodeCollectFanouts( pObj, vNodes );
                 Vec_PtrForEachEntry( vNodes, pNext, k )

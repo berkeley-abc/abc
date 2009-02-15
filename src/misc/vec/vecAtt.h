@@ -65,9 +65,9 @@ struct Vec_Att_t_
     void **          pArrayPtr;            // the pointer attribute array
     // attribute specific info
     void *           pMan;                 // the manager for this attribute
-    void (*pFuncFreeMan) (void *);         // the procedure to free the manager
+    void (*pFuncFreeMan) (void *);         // the procedure to ABC_FREE the manager
     void*(*pFuncStartObj)(void *);         // the procedure to start one attribute
-    void (*pFuncFreeObj) (void *, void *); // the procedure to free one attribute
+    void (*pFuncFreeObj) (void *, void *); // the procedure to ABC_FREE one attribute
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -96,14 +96,14 @@ static inline Vec_Att_t * Vec_AttAlloc(
     void (*pFuncFreeObj) (void *, void *)  )
 {
     Vec_Att_t * p;
-    p = ALLOC( Vec_Att_t, 1 );
+    p = ABC_ALLOC( Vec_Att_t, 1 );
     memset( p, 0, sizeof(Vec_Att_t) );
     p->pMan          = pMan;
     p->pFuncFreeMan  = pFuncFreeMan;
     p->pFuncStartObj = pFuncStartObj;
     p->pFuncFreeObj  = pFuncFreeObj;
     p->nCap = nSize? nSize : 16;
-    p->pArrayPtr = ALLOC( void *, p->nCap );
+    p->pArrayPtr = ABC_ALLOC( void *, p->nCap );
     memset( p->pArrayPtr, 0, sizeof(void *) * p->nCap );
     return p;
 }
@@ -124,7 +124,7 @@ static inline void * Vec_AttFree( Vec_Att_t * p, int fFreeMan )
     void * pMan;
     if ( p == NULL )
         return NULL;
-    // free the attributes of objects
+    // ABC_FREE the attributes of objects
     if ( p->pFuncFreeObj )
     {
         int i;
@@ -132,12 +132,12 @@ static inline void * Vec_AttFree( Vec_Att_t * p, int fFreeMan )
             if ( p->pArrayPtr[i] )
                 p->pFuncFreeObj( p->pMan, p->pArrayPtr[i] );
     }
-    // free the memory manager
+    // ABC_FREE the memory manager
     pMan = fFreeMan? NULL : p->pMan;
     if ( p->pMan && fFreeMan )  
         p->pFuncFreeMan( p->pMan );
-    FREE( p->pArrayPtr );
-    FREE( p );
+    ABC_FREE( p->pArrayPtr );
+    ABC_FREE( p );
     return pMan;
 }
 
@@ -154,7 +154,7 @@ static inline void * Vec_AttFree( Vec_Att_t * p, int fFreeMan )
 ***********************************************************************/
 static inline void Vec_AttClear( Vec_Att_t * p )
 {
-    // free the attributes of objects
+    // ABC_FREE the attributes of objects
     if ( p->pFuncFreeObj )
     {
         int i;
@@ -204,7 +204,7 @@ static inline void Vec_AttGrow( Vec_Att_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArrayPtr = REALLOC( void *, p->pArrayPtr, nCapMin );
+    p->pArrayPtr = ABC_REALLOC( void *, p->pArrayPtr, nCapMin );
     memset( p->pArrayPtr + p->nCap, 0, sizeof(void *) * (nCapMin - p->nCap) );
     p->nCap = nCapMin;
 }

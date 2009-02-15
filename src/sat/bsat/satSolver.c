@@ -2,7 +2,7 @@
 MiniSat -- Copyright (c) 2005, Niklas Sorensson
 http://www.cs.chalmers.se/Cs/Research/FormalMethods/MiniSat/
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+Permission is hereby granted, ABC_FREE of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
@@ -25,7 +25,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <math.h>
 
 #include "satSolver.h"
-#include "port_type.h"
 
 //#define SAT_USE_SYSTEM_MEMORY_MANAGEMENT
 
@@ -91,9 +90,9 @@ static inline void  clause_setactivity(clause* c, float a) { *((float*)&c->lits[
 //=================================================================================================
 // Encode literals in clause pointers:
 
-static inline clause* clause_from_lit (lit l)     { return (clause*)((PORT_PTRUINT_T)l + (PORT_PTRUINT_T)l + 1); }
-static inline bool    clause_is_lit   (clause* c) { return ((PORT_PTRUINT_T)c & 1);                              }
-static inline lit     clause_read_lit (clause* c) { return (lit)((PORT_PTRUINT_T)c >> 1);                        }
+static inline clause* clause_from_lit (lit l)     { return (clause*)((ABC_PTRUINT_T)l + (ABC_PTRUINT_T)l + 1); }
+static inline bool    clause_is_lit   (clause* c) { return ((ABC_PTRUINT_T)c & 1);                              }
+static inline lit     clause_read_lit (clause* c) { return (lit)((ABC_PTRUINT_T)c >> 1);                        }
 
 //=================================================================================================
 // Simple helpers:
@@ -288,15 +287,15 @@ static clause* clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
     assert(end - begin > 1);
     assert(learnt >= 0 && learnt < 2);
     size           = end - begin;
-//    c              = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+//    c              = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
 #ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
-    c = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+    c = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
 #else
     c = (clause*)Sat_MmStepEntryFetch( s->pMem, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float) );
 #endif
 
     c->size_learnt = (size << 1) | learnt;
-    assert(((PORT_PTRUINT_T)c & 1) == 0);
+    assert(((ABC_PTRUINT_T)c & 1) == 0);
 
     for (i = 0; i < size; i++)
         c->lits[i] = begin[i];
@@ -344,7 +343,7 @@ static void clause_remove(sat_solver* s, clause* c)
     }
 
 #ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
-    free(c);
+    ABC_FREE(c);
 #else
     Sat_MmStepEntryRecycle( s->pMem, (char *)c, sizeof(clause) + sizeof(lit) * clause_size(c) + clause_learnt(c) * sizeof(float) );
 #endif
@@ -378,15 +377,15 @@ void sat_solver_setnvars(sat_solver* s,int n)
 
         while (s->cap < n) s->cap = s->cap*2+1;
 
-        s->wlists    = (vecp*)   realloc(s->wlists,   sizeof(vecp)*s->cap*2);
-        s->activity  = (double*) realloc(s->activity, sizeof(double)*s->cap);
-        s->factors   = (double*) realloc(s->factors,  sizeof(double)*s->cap);
-        s->assigns   = (lbool*)  realloc(s->assigns,  sizeof(lbool)*s->cap);
-        s->orderpos  = (int*)    realloc(s->orderpos, sizeof(int)*s->cap);
-        s->reasons   = (clause**)realloc(s->reasons,  sizeof(clause*)*s->cap);
-        s->levels    = (int*)    realloc(s->levels,   sizeof(int)*s->cap);
-        s->tags      = (lbool*)  realloc(s->tags,     sizeof(lbool)*s->cap);
-        s->trail     = (lit*)    realloc(s->trail,    sizeof(lit)*s->cap);
+        s->wlists    = ABC_REALLOC(vecp,   s->wlists,   s->cap*2);
+        s->activity  = ABC_REALLOC(double, s->activity, s->cap);
+        s->factors   = ABC_REALLOC(double, s->factors,  s->cap);
+        s->assigns   = ABC_REALLOC(lbool,  s->assigns,  s->cap);
+        s->orderpos  = ABC_REALLOC(int,    s->orderpos, s->cap);
+        s->reasons   = ABC_REALLOC(clause*,s->reasons,  s->cap);
+        s->levels    = ABC_REALLOC(int,    s->levels,   s->cap);
+        s->tags      = ABC_REALLOC(lbool,  s->tags,     s->cap);
+        s->trail     = ABC_REALLOC(lit,    s->trail,    s->cap);
     }
 
     for (var = s->size; var < n; var++){
@@ -830,14 +829,14 @@ void sat_solver_reducedb(sat_solver* s)
     vecp_resize(&s->learnts,j);
 }
 
-static lbool sat_solver_search(sat_solver* s, sint64 nof_conflicts, sint64 nof_learnts)
+static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT64_T nof_learnts)
 {
     int*    levels          = s->levels;
     double  var_decay       = 0.95;
     double  clause_decay    = 0.999;
     double  random_var_freq = 0.02;
 
-    sint64  conflictC       = 0;
+    ABC_INT64_T  conflictC       = 0;
     veci    learnt_clause;
     int     i;
 
@@ -950,7 +949,7 @@ static lbool sat_solver_search(sat_solver* s, sint64 nof_conflicts, sint64 nof_l
 
 sat_solver* sat_solver_new(void)
 {
-    sat_solver* s = (sat_solver*)malloc(sizeof(sat_solver));
+    sat_solver* s = (sat_solver*)ABC_ALLOC( char, sizeof(sat_solver));
     memset( s, 0, sizeof(sat_solver) );
 
     // initialize vectors
@@ -990,7 +989,7 @@ sat_solver* sat_solver_new(void)
     s->simpdb_props           = 0;
     s->random_seed            = 91648253;
     s->progress_estimate      = 0;
-    s->binary                 = (clause*)malloc(sizeof(clause) + sizeof(lit)*2);
+    s->binary                 = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit)*2);
     s->binary->size_learnt    = (2 << 1);
     s->verbosity              = 0;
 
@@ -1021,9 +1020,9 @@ void sat_solver_delete(sat_solver* s)
 #ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
     int i;
     for (i = 0; i < vecp_size(&s->clauses); i++)
-        free(vecp_begin(&s->clauses)[i]);
+        ABC_FREE(vecp_begin(&s->clauses)[i]);
     for (i = 0; i < vecp_size(&s->learnts); i++)
-        free(vecp_begin(&s->learnts)[i]);
+        ABC_FREE(vecp_begin(&s->learnts)[i]);
 #else
     Sat_MmStepStop( s->pMem, 0 );
 #endif
@@ -1038,7 +1037,7 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->model);
     veci_delete(&s->act_vars);
     veci_delete(&s->temp_clause);
-    free(s->binary);
+    ABC_FREE(s->binary);
 
     // delete arrays
     if (s->wlists != 0){
@@ -1047,19 +1046,19 @@ void sat_solver_delete(sat_solver* s)
             vecp_delete(&s->wlists[i]);
 
         // if one is different from null, all are
-        free(s->wlists   );
-        free(s->activity );
-        free(s->factors  );
-        free(s->assigns  );
-        free(s->orderpos );
-        free(s->reasons  );
-        free(s->levels   );
-        free(s->trail    );
-        free(s->tags     );
+        ABC_FREE(s->wlists   );
+        ABC_FREE(s->activity );
+        ABC_FREE(s->factors  );
+        ABC_FREE(s->assigns  );
+        ABC_FREE(s->orderpos );
+        ABC_FREE(s->reasons  );
+        ABC_FREE(s->levels   );
+        ABC_FREE(s->trail    );
+        ABC_FREE(s->tags     );
     }
 
     sat_solver_store_free(s);
-    free(s);
+    ABC_FREE(s);
 }
 
 
@@ -1172,10 +1171,10 @@ bool sat_solver_simplify(sat_solver* s)
 }
 
 
-int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit, sint64 nConfLimitGlobal, sint64 nInsLimitGlobal)
+int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
 {
-    sint64  nof_conflicts = 100;
-    sint64  nof_learnts   = sat_solver_nclauses(s) / 3;
+    ABC_INT64_T  nof_conflicts = 100;
+    ABC_INT64_T  nof_learnts   = sat_solver_nclauses(s) / 3;
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
     lit*    i;
@@ -1398,6 +1397,9 @@ static void sortrnd(void** array, int size, int(*comp)(const void *, const void 
 
 void sat_solver_sort(void** array, int size, int(*comp)(const void *, const void *))
 {
+//    int i;
     double seed = 91648253;
     sortrnd(array,size,comp,&seed);
+//    for ( i = 1; i < size; i++ )
+//        assert(comp(array[i-1], array[i])<0);
 }

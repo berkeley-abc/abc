@@ -102,7 +102,7 @@ Abc_Frame_t * Abc_FrameAllocate()
     extern void define_cube_size( int n );
     extern void set_espresso_flags();
     // allocate and clean
-    p = ALLOC( Abc_Frame_t, 1 );
+    p = ABC_ALLOC( Abc_Frame_t, 1 );
     memset( p, 0, sizeof(Abc_Frame_t) );
     // get version
     p->sVersion = Abc_UtilsGetVersion( p );
@@ -149,7 +149,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->dd )      Extra_StopManager( p->dd );
     if ( p->vStore )  Vec_PtrFree( p->vStore );
     Abc_FrameDeleteAllNetworks( p );
-    free( p );
+    ABC_FREE( p );
     s_GlobalFrame = NULL;
 }
 

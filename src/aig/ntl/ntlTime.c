@@ -44,7 +44,7 @@ float * Ntl_ManCreateDelayTable( Vec_Int_t * vDelays, int nIns, int nOuts )
     float * pDelayTable, Delay;
     int iIn, iOut, i, k;
     assert( Vec_IntSize(vDelays) % 3 == 0 );
-    pDelayTable = ALLOC( float, nIns * nOuts );
+    pDelayTable = ABC_ALLOC( float, nIns * nOuts );
     memset( pDelayTable, 0, sizeof(float) * nIns * nOuts );
     Vec_IntForEachEntry( vDelays, iIn, i )
     {

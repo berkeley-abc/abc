@@ -110,17 +110,17 @@ unsigned Dec_GraphDeriveTruth( Dec_Graph_t * pGraph )
 
     // assign the elementary variables
     Dec_GraphForEachLeaf( pGraph, pNode, i )
-        pNode->pFunc = (void *)(PORT_PTRUINT_T)uTruths[i];
+        pNode->pFunc = (void *)(ABC_PTRUINT_T)uTruths[i];
 
     // compute the function for each internal node
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        uTruth0 = (unsigned)(PORT_PTRUINT_T)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc;
-        uTruth1 = (unsigned)(PORT_PTRUINT_T)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc;
+        uTruth0 = (unsigned)(ABC_PTRUINT_T)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc;
+        uTruth1 = (unsigned)(ABC_PTRUINT_T)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc;
         uTruth0 = pNode->eEdge0.fCompl? ~uTruth0 : uTruth0;
         uTruth1 = pNode->eEdge1.fCompl? ~uTruth1 : uTruth1;
         uTruth = uTruth0 & uTruth1;
-        pNode->pFunc = (void *)(PORT_PTRUINT_T)uTruth;
+        pNode->pFunc = (void *)(ABC_PTRUINT_T)uTruth;
     }
 
     // complement the result if necessary

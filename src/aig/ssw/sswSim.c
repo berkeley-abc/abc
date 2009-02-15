@@ -437,7 +437,7 @@ int * Ssw_SmlCheckOutputSavePattern( Ssw_Sml_t * p, Aig_Obj_t * pObjPo )
     // determine the best pattern
     BestPat = i * 32 + k;
     // fill in the counter-example data
-    pModel = ALLOC( int, Aig_ManPiNum(p->pAig)+1 );
+    pModel = ABC_ALLOC( int, Aig_ManPiNum(p->pAig)+1 );
     Aig_ManForEachPi( p->pAig, pObjPi, i )
     {
         pModel[i] = Aig_InfoHasBit(Ssw_ObjSim(p, pObjPi->Id), BestPat);
@@ -1074,7 +1074,7 @@ p->nSimRounds++;
 Ssw_Sml_t * Ssw_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame )
 {
     Ssw_Sml_t * p;
-    p = (Ssw_Sml_t *)malloc( sizeof(Ssw_Sml_t) + sizeof(unsigned) * Aig_ManObjNumMax(pAig) * (nPref + nFrames) * nWordsFrame );
+    p = (Ssw_Sml_t *)ABC_ALLOC( char, sizeof(Ssw_Sml_t) + sizeof(unsigned) * Aig_ManObjNumMax(pAig) * (nPref + nFrames) * nWordsFrame );
     memset( p, 0, sizeof(Ssw_Sml_t) + sizeof(unsigned) * (nPref + nFrames) * nWordsFrame );
     p->pAig        = pAig;
     p->nPref       = nPref;
@@ -1114,7 +1114,7 @@ void Ssw_SmlClean( Ssw_Sml_t * p )
 ***********************************************************************/
 void Ssw_SmlStop( Ssw_Sml_t * p )
 {
-    free( p );
+    ABC_FREE( p );
 }
 
 
@@ -1244,7 +1244,7 @@ Ssw_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 {
     Ssw_Cex_t * pCex;
     int nWords = Aig_BitWordNum( nRegs + nRealPis * nFrames );
-    pCex = (Ssw_Cex_t *)malloc( sizeof(Ssw_Cex_t) + sizeof(unsigned) * nWords );
+    pCex = (Ssw_Cex_t *)ABC_ALLOC( char, sizeof(Ssw_Cex_t) + sizeof(unsigned) * nWords );
     memset( pCex, 0, sizeof(Ssw_Cex_t) + sizeof(unsigned) * nWords );
     pCex->nRegs  = nRegs;
     pCex->nPis   = nRealPis;
@@ -1265,7 +1265,7 @@ Ssw_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 ***********************************************************************/
 void Ssw_SmlFreeCounterExample( Ssw_Cex_t * pCex )
 {
-    free( pCex );
+    ABC_FREE( pCex );
 }
 
 /**Function*************************************************************

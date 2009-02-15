@@ -193,7 +193,7 @@ void Hop_ObjDelete( Hop_Man_t * p, Hop_Obj_t * pObj )
     // remove PIs/POs from the arrays
     if ( Hop_ObjIsPi(pObj) )
         Vec_PtrRemove( p->vPis, pObj );
-    // free the node
+    // ABC_FREE the node
     Hop_ManRecycleMemory( p, pObj );
 }
 

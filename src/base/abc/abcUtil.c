@@ -228,6 +228,28 @@ int Abc_NtkGetLitFactNum( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of nodes with more than 1 reference.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkGetMultiRefNum( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int nNodes, i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    nNodes = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        nNodes += (int)(Abc_ObjFanoutNum(pNode) > 1);
+    return nNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reads the number of BDD nodes.]
 
   Description []
@@ -510,7 +532,9 @@ void Abc_NtkCleanEquiv( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
-        pObj->pEquiv = NULL;
+    {
+//        pObj->pEquiv = NULL;
+    }
 }
 
 /**Function*************************************************************
@@ -1557,9 +1581,9 @@ void Abc_NtkTransferCopy( Abc_Ntk_t * pNtk )
 static inline int Abc_ObjCrossCutInc( Abc_Obj_t * pObj )
 {
 //    pObj->pCopy = (void *)(((int)pObj->pCopy)++);
-    int Value = (int)(PORT_PTRINT_T)pObj->pCopy;
-    pObj->pCopy = (void *)(PORT_PTRINT_T)(Value + 1);
-    return (int)(PORT_PTRINT_T)pObj->pCopy == Abc_ObjFanoutNum(pObj);
+    int Value = (int)(ABC_PTRINT_T)pObj->pCopy;
+    pObj->pCopy = (void *)(ABC_PTRINT_T)(Value + 1);
+    return (int)(ABC_PTRINT_T)pObj->pCopy == Abc_ObjFanoutNum(pObj);
 }
 
 /**Function*************************************************************
@@ -1705,8 +1729,8 @@ void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
     int * pPerms;
 
     // sort COs by support size
-    pPerms = ALLOC( int, Abc_NtkCoNum(pNtk) );
-    pSupps = ALLOC( int, Abc_NtkCoNum(pNtk) );
+    pPerms = ABC_ALLOC( int, Abc_NtkCoNum(pNtk) );
+    pSupps = ABC_ALLOC( int, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pPerms[i] = i;
@@ -1746,7 +1770,7 @@ void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
         printf( "%4d CO %5d :  Supp = %5d.  Lev = %3d.  Cone = %5d.  Rev = %5d.  COs = %3d (%3d).\n",
             Iter, pPerms[i], Vec_PtrSize(vSupp), Abc_ObjLevel(Abc_ObjFanin0(pObj)), Vec_PtrSize(vNodes), Counter, CounterCos, CounterCosNew );
 
-        // free arrays
+        // ABC_FREE arrays
         Vec_PtrFree( vSupp );
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vReverse );
@@ -1757,8 +1781,8 @@ void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->fMarkA = 0;
 
-    free( pPerms );
-    free( pSupps );
+    ABC_FREE( pPerms );
+    ABC_FREE( pSupps );
 }
 
 /**Function*************************************************************

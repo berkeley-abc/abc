@@ -733,11 +733,11 @@ FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mo
                 {
                     if ( fVerbose )
                     fprintf ( stdout, "Using file %s\n", ActualFileName );
-                    free( t );
+                    ABC_FREE( t );
                     return fp;
                 }
             }
-            free( t );
+            ABC_FREE( t );
             return 0;
         }
         else

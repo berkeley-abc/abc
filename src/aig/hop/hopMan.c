@@ -43,7 +43,7 @@ Hop_Man_t * Hop_ManStart()
 {
     Hop_Man_t * p;
     // start the manager
-    p = ALLOC( Hop_Man_t, 1 );
+    p = ABC_ALLOC( Hop_Man_t, 1 );
     memset( p, 0, sizeof(Hop_Man_t) );
     // perform initializations
     p->nTravIds = 1;
@@ -62,7 +62,7 @@ Hop_Man_t * Hop_ManStart()
     // start the table
 //    p->nTableSize = 107;
     p->nTableSize = 10007;
-    p->pTable = ALLOC( Hop_Obj_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Hop_Obj_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Hop_Obj_t *) * p->nTableSize );
     return p;
 }
@@ -92,15 +92,15 @@ void Hop_ManStop( Hop_Man_t * p )
     Hop_ManForEachNode( p, pObj, i )
         assert( !pObj->fMarkA && !pObj->fMarkB );
     // print time
-    if ( p->time1 ) { PRT( "time1", p->time1 ); }
-    if ( p->time2 ) { PRT( "time2", p->time2 ); }
+    if ( p->time1 ) { ABC_PRT( "time1", p->time1 ); }
+    if ( p->time2 ) { ABC_PRT( "time2", p->time2 ); }
 //    Hop_TableProfile( p );
     if ( p->vChunks )  Hop_ManStopMemory( p );
     if ( p->vPis )     Vec_PtrFree( p->vPis );
     if ( p->vPos )     Vec_PtrFree( p->vPos );
     if ( p->vObjs )    Vec_PtrFree( p->vObjs );
-    free( p->pTable );
-    free( p );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

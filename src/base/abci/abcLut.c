@@ -286,7 +286,7 @@ Abc_ManScl_t * Abc_ManSclStart( int nLutSize, int nCutSizeMax, int nNodesMax )
     Abc_ManScl_t * p;
     int i, k;
     assert( sizeof(unsigned) == 4 );
-    p = ALLOC( Abc_ManScl_t, 1 );
+    p = ABC_ALLOC( Abc_ManScl_t, 1 );
     memset( p, 0, sizeof(Abc_ManScl_t) );
     p->nLutSize    = nLutSize;
     p->nCutSizeMax = nCutSizeMax;
@@ -321,10 +321,10 @@ Abc_ManScl_t * Abc_ManSclStart( int nLutSize, int nCutSizeMax, int nNodesMax )
 void Abc_ManSclStop( Abc_ManScl_t * p )
 {
 //    Vec_IntFree( p->vBound );
-    free( p->uVars );
-    free( p->uSims );
-    free( p->uCofs );
-    free( p );
+    ABC_FREE( p->uVars );
+    ABC_FREE( p->uSims );
+    ABC_FREE( p->uCofs );
+    ABC_FREE( p );
 }
 
 

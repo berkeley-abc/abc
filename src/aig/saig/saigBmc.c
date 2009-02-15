@@ -27,7 +27,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define AIG_VISITED       ((Aig_Obj_t *)(PORT_PTRUINT_T)1)
+#define AIG_VISITED       ((Aig_Obj_t *)(ABC_PTRUINT_T)1)
 
 typedef struct Saig_Bmc_t_ Saig_Bmc_t;
 struct Saig_Bmc_t_
@@ -88,7 +88,7 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
     Aig_Obj_t * pObj;
     int i, Lit;
     assert( Aig_ManRegNum(pAig) > 0 );
-    p = (Saig_Bmc_t *)malloc( sizeof(Saig_Bmc_t) );
+    p = (Saig_Bmc_t *)ABC_ALLOC( char, sizeof(Saig_Bmc_t) );
     memset( p, 0, sizeof(Saig_Bmc_t) );
     // set parameters
     p->nFramesMax   = nFramesMax;
@@ -141,7 +141,7 @@ void Saig_BmcManStop( Saig_Bmc_t * p )
     sat_solver_delete( p->pSat );
     Vec_PtrFree( p->vTargets );
     Vec_PtrFree( p->vVisited );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -311,7 +311,7 @@ void Saig_BmcInterval( Saig_Bmc_t * p )
             // check if the node is gone
             Vec_PtrForEachEntry( p->vVisited, pObj, i )
             {
-                iFrame = (int)(PORT_PTRINT_T)Vec_PtrEntry( p->vVisited, 1+i++ );
+                iFrame = (int)(ABC_PTRINT_T)Vec_PtrEntry( p->vVisited, 1+i++ );
                 pRes = Saig_BmcObjFrame( p, pObj, iFrame );
                 if ( Aig_ObjIsNone( Aig_Regular(pRes) ) )
                     Saig_BmcObjSetFrame( p, pObj, iFrame, NULL );
@@ -524,7 +524,7 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p )
             return l_Undef;
         VarNum = Saig_BmcSatNum( p, Aig_Regular(pObj) );
         Lit = toLitCond( VarNum, Aig_IsComplement(pObj) );
-        RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (sint64)p->nConfMaxOne, (sint64)0, (sint64)0, (sint64)0 );
+        RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->nConfMaxOne, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( RetValue == l_False ) // unsat
             continue;
         if ( RetValue == l_Undef ) // undecided
@@ -614,7 +614,7 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConf
         {
             printf( "%3d : F = %3d. O =%4d.  And = %7d. Var = %7d. Conf = %7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
-            PRT( "Time", clock() - clk2 );
+            ABC_PRT( "Time", clock() - clk2 );
         }
         if ( RetValue != l_False )
             break;
@@ -624,7 +624,7 @@ void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConf
             p->iOutputFail, p->iFrameFail );
     else // if ( RetValue == l_False || RetValue == l_Undef )
         printf( "No output was asserted in %d frames.  ", p->iFramePrev-1 );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     if ( RetValue != l_True )
     {
         if ( p->iFrameLast >= p->nFramesMax )

@@ -123,7 +123,7 @@ Cudd_CofMinterm(
     size = dd->size;
     values = ddCofMintermAux(dd, node, table);
     if (values != NULL) {
-    result = ALLOC(double,size + 1);
+    result = ABC_ALLOC(double,size + 1);
     if (result != NULL) {
 #ifdef DD_STATS
         table_mem += (size + 1) * sizeof(double);
@@ -148,7 +148,7 @@ Cudd_CofMinterm(
 #ifdef DD_STATS
     table_mem += table->num_bins * sizeof(st_table_entry *);
 #endif
-    if (Cudd_Regular(node)->ref == 1) FREE(values);
+    if (Cudd_Regular(node)->ref == 1) ABC_FREE(values);
     st_foreach(table, cuddStCountfree, NULL);
     st_free_table(table);
 #ifdef DD_STATS
@@ -226,7 +226,7 @@ ddCofMintermAux(
     } else {
     localSize = size - cuddI(dd,N->index) + 1;
     }
-    values = ALLOC(double, localSize);
+    values = ABC_ALLOC(double, localSize);
     if (values == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -273,13 +273,13 @@ ddCofMintermAux(
         }
         values[i] = (vT + vE) / 2.0;
     }
-    if (Cudd_Regular(Nv)->ref == 1) FREE(valuesT);
-    if (Cudd_Regular(Nnv)->ref == 1) FREE(valuesE);
+    if (Cudd_Regular(Nv)->ref == 1) ABC_FREE(valuesT);
+    if (Cudd_Regular(Nnv)->ref == 1) ABC_FREE(valuesE);
     }
 
     if (N->ref > 1) {
     if (st_add_direct(table, (char *) node, (char *) values) == ST_OUT_OF_MEM) {
-        FREE(values);
+        ABC_FREE(values);
         return(NULL);
     }
 #ifdef DD_STATS

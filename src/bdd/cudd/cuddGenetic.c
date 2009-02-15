@@ -176,7 +176,7 @@ cuddGa(
     if (popsize < 4) popsize = 4;    /* enforce minimum population size */
 
     /* Allocate population table. */
-    storedd = ALLOC(int,(popsize+2)*(numvars+1));
+    storedd = ABC_ALLOC(int,(popsize+2)*(numvars+1));
     if (storedd == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -190,10 +190,10 @@ cuddGa(
     ** one has a repeat count greater than 1. This copy is the one pointed
     ** by the computed table.
     */
-    repeat = ALLOC(int,popsize);
+    repeat = ABC_ALLOC(int,popsize);
     if (repeat == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
-    FREE(storedd);
+    ABC_FREE(storedd);
     return(0);
     }
     for (i = 0; i < popsize; i++) {
@@ -202,8 +202,8 @@ cuddGa(
     computed = st_init_table(array_compare,array_hash);
     if (computed == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
-    FREE(storedd);
-    FREE(repeat);
+    ABC_FREE(storedd);
+    ABC_FREE(repeat);
     return(0);
     }
 
@@ -215,8 +215,8 @@ cuddGa(
 
     /* Store the initial order in the computed table. */
     if (st_insert(computed,(char *)storedd,(char *) 0) == ST_OUT_OF_MEM) {
-    FREE(storedd);
-    FREE(repeat);
+    ABC_FREE(storedd);
+    ABC_FREE(repeat);
     st_free_table(computed);
     return(0);
     }
@@ -234,16 +234,16 @@ cuddGa(
     */
     if (!make_random(table,lower)) {
     table->errorCode = CUDD_MEMORY_OUT;
-    FREE(storedd);
-    FREE(repeat);
+    ABC_FREE(storedd);
+    ABC_FREE(repeat);
     st_free_table(computed);
     return(0);
     }
     for (i = 1; i < popsize; i++) {
     result = build_dd(table,i,lower,upper);    /* build and sift order */
     if (!result) {
-        FREE(storedd);
-        FREE(repeat);
+        ABC_FREE(storedd);
+        ABC_FREE(repeat);
         st_free_table(computed);
         return(0);
     }
@@ -252,8 +252,8 @@ cuddGa(
     } else {
         if (st_insert(computed,(char *)&STOREDD(i,0),(char *)(long)i) ==
         ST_OUT_OF_MEM) {
-        FREE(storedd);
-        FREE(repeat);
+        ABC_FREE(storedd);
+        ABC_FREE(repeat);
         st_free_table(computed);
         return(0);
         }
@@ -295,8 +295,8 @@ cuddGa(
     for (m = 0; m < cross; m++) {
     if (!PMX(table->size)) {    /* perform one crossover */
         table->errorCode = CUDD_MEMORY_OUT;
-        FREE(storedd);
-        FREE(repeat);
+        ABC_FREE(storedd);
+        ABC_FREE(repeat);
         st_free_table(computed);
         return(0);
     }
@@ -306,8 +306,8 @@ cuddGa(
     for (i = popsize; i <= popsize+1; i++) {
         result = build_dd(table,i,lower,upper); /* build and sift child */
         if (!result) {
-        FREE(storedd);
-        FREE(repeat);
+        ABC_FREE(storedd);
+        ABC_FREE(repeat);
         st_free_table(computed);
         return(0);
         }
@@ -325,8 +325,8 @@ cuddGa(
         result = st_lookup(computed,(char *)&STOREDD(large,0),(char
         **)&index);
         if (!result) {
-            FREE(storedd);
-            FREE(repeat);
+            ABC_FREE(storedd);
+            ABC_FREE(repeat);
             st_free_table(computed);
             return(0);
         }
@@ -335,8 +335,8 @@ cuddGa(
             int *pointer = &STOREDD(index,0);
             result = st_delete(computed, (char **)&pointer,NULL);
             if (!result) {
-            FREE(storedd);
-            FREE(repeat);
+            ABC_FREE(storedd);
+            ABC_FREE(repeat);
             st_free_table(computed);
             return(0);
             }
@@ -354,8 +354,8 @@ cuddGa(
         } else {
             if (st_insert(computed,(char *)&STOREDD(large,0),
             (char *)(long)large) == ST_OUT_OF_MEM) {
-            FREE(storedd);
-            FREE(repeat);
+            ABC_FREE(storedd);
+            ABC_FREE(repeat);
             st_free_table(computed);
             return(0);
             }
@@ -380,8 +380,8 @@ cuddGa(
     st_free_table(computed);
     computed = NULL;
     result = build_dd(table,small,lower,upper);
-    FREE(storedd);
-    FREE(repeat);
+    ABC_FREE(storedd);
+    ABC_FREE(repeat);
     return(result);
 
 } /* end of cuddGa */
@@ -413,7 +413,7 @@ make_random(
     int    *used;        /* is a number already in a permutation */
     int    next;        /* next random number without repetitions */
 
-    used = ALLOC(int,numvars);
+    used = ABC_ALLOC(int,numvars);
     if (used == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -453,7 +453,7 @@ make_random(
 #endif
 #endif
     }
-    FREE(used);
+    ABC_FREE(used);
     return(1);
 
 } /* end of make_random */
@@ -761,20 +761,20 @@ PMX(
     int     i;        /* loop vars */
     int        u,v;        /* aux vars */
 
-    inv1 = ALLOC(int,maxvar);
+    inv1 = ABC_ALLOC(int,maxvar);
     if (inv1 == NULL) {
     return(0);
     }
-    inv2 = ALLOC(int,maxvar);
+    inv2 = ABC_ALLOC(int,maxvar);
     if (inv2 == NULL) {
-    FREE(inv1);
+    ABC_FREE(inv1);
     return(0);
     }
 
     /* Choose two orders from the population using roulette wheel. */
     if (!roulette(&mom,&dad)) {
-    FREE(inv1);
-    FREE(inv2);
+    ABC_FREE(inv1);
+    ABC_FREE(inv2);
     return(0);
     }
 
@@ -851,8 +851,8 @@ PMX(
     (void) fprintf(table->out,"\n");
 #endif
 
-    FREE(inv1);
-    FREE(inv2);
+    ABC_FREE(inv1);
+    ABC_FREE(inv2);
     return(1);
 
 } /* end of PMX */
@@ -879,7 +879,7 @@ roulette(
     double spin;
     int i;
 
-    wheel = ALLOC(double,popsize);
+    wheel = ABC_ALLOC(double,popsize);
     if (wheel == NULL) {
     return(0);
     }
@@ -914,7 +914,7 @@ roulette(
     } while (i == *p1);
     *p2 = i;
 
-    FREE(wheel);
+    ABC_FREE(wheel);
     return(1);
 
 } /* end of roulette */

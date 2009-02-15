@@ -43,7 +43,7 @@ Dch_Man_t * Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
 {
     Dch_Man_t * p;
     // create interpolation manager
-    p = ALLOC( Dch_Man_t, 1 );
+    p = ABC_ALLOC( Dch_Man_t, 1 );
     memset( p, 0, sizeof(Dch_Man_t) );
     p->pPars        = pPars;
     p->vAigs        = vAigs;
@@ -51,13 +51,13 @@ Dch_Man_t * Dch_ManCreate( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars )
     Aig_ManFanoutStart( p->pAigTotal );
     // SAT solving
     p->nSatVars     = 1;
-    p->pSatVars     = CALLOC( int, Aig_ManObjNumMax(p->pAigTotal) );
+    p->pSatVars     = ABC_CALLOC( int, Aig_ManObjNumMax(p->pAigTotal) );
     p->vUsedNodes   = Vec_PtrAlloc( 1000 );
     p->vFanins      = Vec_PtrAlloc( 100 );
     p->vSimRoots    = Vec_PtrAlloc( 1000 );
     p->vSimClasses  = Vec_PtrAlloc( 1000 );
     // equivalences proved
-    p->pReprsProved = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAigTotal) );
+    p->pReprsProved = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAigTotal) );
     return p;
 }
 
@@ -95,18 +95,18 @@ void Dch_ManPrintStats( Dch_Man_t * p )
         p->nLits, p->nReprs, p->nEquivs, p->nChoices );
     printf( "Choicing runtime statistics:\n" );
     p->timeOther = p->timeTotal-p->timeSimInit-p->timeSimSat-p->timeSat-p->timeChoice;
-    PRTP( "Sim init   ", p->timeSimInit,  p->timeTotal );
-    PRTP( "Sim SAT    ", p->timeSimSat,   p->timeTotal );
-    PRTP( "SAT solving", p->timeSat,      p->timeTotal );
-    PRTP( "  sat      ", p->timeSatSat,   p->timeTotal );
-    PRTP( "  unsat    ", p->timeSatUnsat, p->timeTotal );
-    PRTP( "  undecided", p->timeSatUndec, p->timeTotal );
-    PRTP( "Choice     ", p->timeChoice,   p->timeTotal );
-    PRTP( "Other      ", p->timeOther,    p->timeTotal );
-    PRTP( "TOTAL      ", p->timeTotal,    p->timeTotal );
+    ABC_PRTP( "Sim init   ", p->timeSimInit,  p->timeTotal );
+    ABC_PRTP( "Sim SAT    ", p->timeSimSat,   p->timeTotal );
+    ABC_PRTP( "SAT solving", p->timeSat,      p->timeTotal );
+    ABC_PRTP( "  sat      ", p->timeSatSat,   p->timeTotal );
+    ABC_PRTP( "  unsat    ", p->timeSatUnsat, p->timeTotal );
+    ABC_PRTP( "  undecided", p->timeSatUndec, p->timeTotal );
+    ABC_PRTP( "Choice     ", p->timeChoice,   p->timeTotal );
+    ABC_PRTP( "Other      ", p->timeOther,    p->timeTotal );
+    ABC_PRTP( "TOTAL      ", p->timeTotal,    p->timeTotal );
     if ( p->pPars->timeSynth )
     {
-    PRT( "Synthesis  ", p->pPars->timeSynth );
+    ABC_PRT( "Synthesis  ", p->pPars->timeSynth );
     }
 }
 
@@ -137,9 +137,9 @@ void Dch_ManStop( Dch_Man_t * p )
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vSimRoots );
     Vec_PtrFree( p->vSimClasses );
-    FREE( p->pReprsProved );
-    FREE( p->pSatVars );
-    free( p );
+    ABC_FREE( p->pReprsProved );
+    ABC_FREE( p->pSatVars );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

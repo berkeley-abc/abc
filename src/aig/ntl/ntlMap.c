@@ -47,7 +47,7 @@ Vec_Ptr_t * Ntl_MappingAlloc( int nLuts, int nVars )
     Ntl_Lut_t ** pArray;
     int nEntrySize, i;
     nEntrySize = sizeof(Ntl_Lut_t) + sizeof(int) * nVars + sizeof(unsigned) * Aig_TruthWordNum(nVars);
-    pArray = (Ntl_Lut_t **)malloc( (sizeof(Ntl_Lut_t *) + nEntrySize) * nLuts );
+    pArray = (Ntl_Lut_t **)ABC_ALLOC( char, (sizeof(Ntl_Lut_t *) + nEntrySize) * nLuts );
     pMemory = (char *)(pArray + nLuts);
     memset( pMemory, 0, nEntrySize * nLuts );
     for ( i = 0; i < nLuts; i++ )
@@ -312,7 +312,7 @@ Vec_Ptr_t * Ntl_MappingIf( Ntl_Man_t * pMan, Aig_Man_t * p )
     // perform FPGA mapping
     Ntl_ManSetIfParsDefault( pPars );
     // set the arrival times
-    pPars->pTimesArr = ALLOC( float, Aig_ManPiNum(p) );
+    pPars->pTimesArr = ABC_ALLOC( float, Aig_ManPiNum(p) );
     memset( pPars->pTimesArr, 0, sizeof(float) * Aig_ManPiNum(p) );
     // translate into the mapper
     pIfMan = Ntl_ManToIf( p, pPars );    

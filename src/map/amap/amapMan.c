@@ -43,7 +43,7 @@ Amap_Man_t * Amap_ManStart( int nNodes )
 {
     Amap_Man_t * p;
     // start the manager
-    p = ALLOC( Amap_Man_t, 1 );
+    p = ABC_ALLOC( Amap_Man_t, 1 );
     memset( p, 0, sizeof(Amap_Man_t) );
     p->fEpsilonInternal = (float)0.01;
     // allocate arrays for nodes
@@ -86,10 +86,10 @@ void Amap_ManStop( Amap_Man_t * p )
     Aig_MmFlexStop( p->pMemCuts, 0 );
     Aig_MmFlexStop( p->pMemCutBest, 0 );
     Aig_MmFlexStop( p->pMemTemp, 0 );
-    FREE( p->pMatsTemp );
-    FREE( p->ppCutsTemp );
-    FREE( p->pCutsPi );
-    free( p );
+    ABC_FREE( p->pMatsTemp );
+    ABC_FREE( p->ppCutsTemp );
+    ABC_FREE( p->pCutsPi );
+    ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

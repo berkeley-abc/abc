@@ -329,18 +329,18 @@ Cudd_ShuffleHeap(
     table->peakLiveNodes = table->keys;
     }
 
-    perm = ALLOC(int, table->size);
+    perm = ABC_ALLOC(int, table->size);
     for (i = 0; i < table->size; i++)
     perm[permutation[i]] = i;
     if (!ddCheckPermuation(table,table->tree,perm,permutation)) {
-    FREE(perm);
+    ABC_FREE(perm);
     return(0);
     }
     if (!ddUpdateMtrTree(table,table->tree,perm,permutation)) {
-    FREE(perm);
+    ABC_FREE(perm);
     return(0);
     }
-    FREE(perm);
+    ABC_FREE(perm);
 
     result = ddShuffle(table,permutation);
 
@@ -381,14 +381,14 @@ cuddDynamicAllocNode(
     extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
-    if (table->nextFree == NULL) {        /* free list is empty */
+    if (table->nextFree == NULL) {        /* ABC_FREE list is empty */
     /* Try to allocate a new block. */
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    mem = (DdNodePtr *) ALLOC(DdNode, DD_MEM_CHUNK + 1);
+    mem = (DdNodePtr *) ABC_ALLOC(DdNode, DD_MEM_CHUNK + 1);
     MMoutOfMemory = saveHandler;
     if (mem == NULL && table->stash != NULL) {
-        FREE(table->stash);
+        ABC_FREE(table->stash);
         table->stash = NULL;
         /* Inhibit resizing of tables. */
         table->maxCacheHard = table->cacheSlots - 1;
@@ -396,7 +396,7 @@ cuddDynamicAllocNode(
         for (i = 0; i < table->size; i++) {
         table->subtables[i].maxKeys <<= 2;
         }
-        mem = (DdNodePtr *) ALLOC(DdNode,DD_MEM_CHUNK + 1);
+        mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
     }
     if (mem == NULL) {
         /* Out of luck. Call the default handler to do
@@ -438,7 +438,7 @@ cuddDynamicAllocNode(
 
         table->nextFree = &list[0];
     }
-    } /* if free list empty */
+    } /* if ABC_FREE list empty */
 
     node = table->nextFree;
     table->nextFree = node->next;
@@ -485,12 +485,12 @@ cuddSifting(
 
     /* Find order in which to sift variables. */
     var = NULL;
-    entry = ALLOC(int,size);
+    entry = ABC_ALLOC(int,size);
     if (entry == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddSiftingOutOfMem;
     }
-    var = ALLOC(int,size);
+    var = ABC_ALLOC(int,size);
     if (var == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddSiftingOutOfMem;
@@ -530,15 +530,15 @@ cuddSifting(
 #endif
     }
 
-    FREE(var);
-    FREE(entry);
+    ABC_FREE(var);
+    ABC_FREE(entry);
 
     return(1);
 
 cuddSiftingOutOfMem:
 
-    if (entry != NULL) FREE(entry);
-    if (var != NULL) FREE(var);
+    if (entry != NULL) ABC_FREE(entry);
+    if (var != NULL) ABC_FREE(var);
 
     return(0); 
 
@@ -858,7 +858,7 @@ cuddSwapInPlace(
         /* Try to allocate new table. Be ready to back off. */
         saveHandler = MMoutOfMemory;
         MMoutOfMemory = Cudd_OutOfMem;
-        newxlist = ALLOC(DdNodePtr, newxslots);
+        newxlist = ABC_ALLOC(DdNodePtr, newxslots);
         MMoutOfMemory = saveHandler;
         if (newxlist == NULL) {
         (void) fprintf(table->err, "Unable to resize subtable %d for lack of memory\n", i);
@@ -873,7 +873,7 @@ cuddSwapInPlace(
             ddMin(table->maxCacheHard, DD_MAX_CACHE_TO_SLOTS_RATIO
               * table->slots) - 2 * (int) table->cacheSlots;
         table->memused += (newxslots - xslots) * sizeof(DdNodePtr);
-        FREE(xlist);
+        ABC_FREE(xlist);
         xslots =  newxslots;
         xshift = newxshift;
         xlist = newxlist;
@@ -1224,7 +1224,7 @@ cuddBddAlignToZdd(
     if (M * table->size != table->sizeZ)
     return(0);
     /* Create and initialize the inverse permutation array. */
-    invperm = ALLOC(int,table->size);
+    invperm = ABC_ALLOC(int,table->size);
     if (invperm == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -1250,9 +1250,9 @@ cuddBddAlignToZdd(
     if (result == 0) return(0);
 
     result = ddShuffle(table, invperm);
-    FREE(invperm);
+    ABC_FREE(invperm);
     /* Free interaction matrix. */
-    FREE(table->interact);
+    ABC_FREE(table->interact);
     /* Fix the BDD variable group tree. */
     bddFixTree(table,table->tree);
     return(result);
@@ -1827,7 +1827,7 @@ ddReorderPostprocess(
 #endif
 
     /* Free interaction matrix. */
-    FREE(table->interact);
+    ABC_FREE(table->interact);
 
     return(1);
 

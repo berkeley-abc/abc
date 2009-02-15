@@ -9,31 +9,13 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include "abc_global.h"
 #include "st.h"
-#include "port_type.h"
-
-#ifndef ABS
-#  define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
-#ifndef ALLOC
-#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef REALLOC
-#define REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
-#endif
 
 #define ST_NUMCMP(x,y) ((x) != (y))
-#define ST_NUMHASH(x,size) (ABS((long)x)%(size))
-//#define ST_PTRHASH(x,size) ((int)((PORT_PTRUINT_T)(x)>>2)%size)  // 64-bit bug fix 9/17/2007
-#define ST_PTRHASH(x,size) ((int)(((PORT_PTRUINT_T)(x)>>2)%size))
+#define ST_NUMHASH(x,size) (ABC_ABS((long)x)%(size))
+//#define ST_PTRHASH(x,size) ((int)((ABC_PTRUINT_T)(x)>>2)%size)  // 64-bit bug fix 9/17/2007
+#define ST_PTRHASH(x,size) ((int)(((ABC_PTRUINT_T)(x)>>2)%size))
 #define EQUAL(func, x, y) \
     ((((func) == st_numcmp) || ((func) == st_ptrcmp)) ?\
       (ST_NUMCMP((x),(y)) == 0) : ((*func)((x), (y)) == 0))
@@ -60,7 +42,7 @@ int reorder_flag;
     int i;
     st_table *new;
 
-    new = ALLOC(st_table, 1);
+    new = ABC_ALLOC(st_table, 1);
     if (new == NULL) {
     return NULL;
     }
@@ -74,9 +56,9 @@ int reorder_flag;
     size = 1;
     }
     new->num_bins = size;
-    new->bins = ALLOC(st_table_entry *, size);
+    new->bins = ABC_ALLOC(st_table_entry *, size);
     if (new->bins == NULL) {
-    FREE(new);
+    ABC_FREE(new);
     return NULL;
     }
     for(i = 0; i < size; i++) {
@@ -107,12 +89,12 @@ st_table *table;
     ptr = table->bins[i];
     while (ptr != NULL) {
         next = ptr->next;
-        FREE(ptr);
+        ABC_FREE(ptr);
         ptr = next;
     }
     }
-    FREE(table->bins);
-    FREE(table);
+    ABC_FREE(table->bins);
+    ABC_FREE(table);
 }
 
 #define PTR_NOT_EQUAL(table, ptr, user_key)\
@@ -184,7 +166,7 @@ int *value;
     hash_val = do_hash(key,table);\
     }\
     \
-    new = ALLOC(st_table_entry, 1);\
+    new = ABC_ALLOC(st_table_entry, 1);\
     \
     new->key = key;\
     new->record = value;\
@@ -214,7 +196,7 @@ char *value;
         }
         hash_val = do_hash(key, table);
     }
-    new = ALLOC(st_table_entry, 1);
+    new = ABC_ALLOC(st_table_entry, 1);
     if (new == NULL) {
         return ST_OUT_OF_MEM;
     }
@@ -246,7 +228,7 @@ char *value;
     }
     }
     hash_val = do_hash(key, table);
-    new = ALLOC(st_table_entry, 1);
+    new = ABC_ALLOC(st_table_entry, 1);
     if (new == NULL) {
     return ST_OUT_OF_MEM;
     }
@@ -278,7 +260,7 @@ char ***slot;
         }
         hash_val = do_hash(key, table);
     }
-    new = ALLOC(st_table_entry, 1);
+    new = ABC_ALLOC(st_table_entry, 1);
     if (new == NULL) {
         return ST_OUT_OF_MEM;
     }
@@ -336,7 +318,7 @@ register st_table *table;
     table->num_bins += 1;
     }
     table->num_entries = 0;
-    table->bins = ALLOC(st_table_entry *, table->num_bins);
+    table->bins = ABC_ALLOC(st_table_entry *, table->num_bins);
     if (table->bins == NULL) {
     table->bins = old_bins;
     table->num_bins = old_num_bins;
@@ -360,7 +342,7 @@ register st_table *table;
         ptr = next;
     }
     }
-    FREE(old_bins);
+    ABC_FREE(old_bins);
 
     return 1;
 }
@@ -373,33 +355,33 @@ st_table *old_table;
     st_table_entry *ptr, *newptr, *next, *new;
     int i, j, num_bins = old_table->num_bins;
 
-    new_table = ALLOC(st_table, 1);
+    new_table = ABC_ALLOC(st_table, 1);
     if (new_table == NULL) {
     return NULL;
     }
     
     *new_table = *old_table;
-    new_table->bins = ALLOC(st_table_entry *, num_bins);
+    new_table->bins = ABC_ALLOC(st_table_entry *, num_bins);
     if (new_table->bins == NULL) {
-    FREE(new_table);
+    ABC_FREE(new_table);
     return NULL;
     }
     for(i = 0; i < num_bins ; i++) {
     new_table->bins[i] = NULL;
     ptr = old_table->bins[i];
     while (ptr != NULL) {
-        new = ALLOC(st_table_entry, 1);
+        new = ABC_ALLOC(st_table_entry, 1);
         if (new == NULL) {
         for (j = 0; j <= i; j++) {
             newptr = new_table->bins[j];
             while (newptr != NULL) {
             next = newptr->next;
-            FREE(newptr);
+            ABC_FREE(newptr);
             newptr = next;
             }
         }
-        FREE(new_table->bins);
-        FREE(new_table);
+        ABC_FREE(new_table->bins);
+        ABC_FREE(new_table);
         return NULL;
         }
         *new = *ptr;
@@ -432,7 +414,7 @@ char **value;
     *last = ptr->next;
     if (value != NULL) *value = ptr->record;
     *keyp = ptr->key;
-    FREE(ptr);
+    ABC_FREE(ptr);
     table->num_entries--;
     return 1;
 }
@@ -458,7 +440,7 @@ char **value;
     *last = ptr->next;
     if (value != NULL) *value = ptr->record;
     *keyp = (long) ptr->key;
-    FREE(ptr);
+    ABC_FREE(ptr);
     table->num_entries--;
     return 1;
 }
@@ -486,7 +468,7 @@ char *arg;
         case ST_DELETE:
         *last = ptr->next;
         table->num_entries--;    /* cstevens@ic */
-        FREE(ptr);
+        ABC_FREE(ptr);
         ptr = *last;
         }
     }
@@ -547,7 +529,7 @@ st_table *table;
 {
     st_generator *gen;
 
-    gen = ALLOC(st_generator, 1);
+    gen = ABC_ALLOC(st_generator, 1);
     if (gen == NULL) {
     return NULL;
     }
@@ -622,5 +604,5 @@ void
 st_free_gen(gen)
 st_generator *gen;
 {
-    FREE(gen);
+    ABC_FREE(gen);
 }

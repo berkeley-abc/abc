@@ -122,7 +122,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
     }
 
     // copy the formula
-    pFormula = ALLOC( char, strlen(pFormInit) + 3 );
+    pFormula = ABC_ALLOC( char, strlen(pFormInit) + 3 );
     sprintf( pFormula, "(%s)", pFormInit );
 
     // start the stacks
@@ -198,10 +198,10 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
         case AMAP_EQN_SYM_OPEN:
             if ( Flag == AMAP_EQN_FLAG_VAR )
             {
-//                Vec_IntPush( pStackOp, AMAP_EQN_OPER_AND );
-                fprintf( pOutput, "Amap_ParseFormula(): An opening paranthesis follows a var without operation sign.\n" ); 
-                Flag = AMAP_EQN_FLAG_ERROR; 
-                break; 
+                Vec_IntPush( pStackOp, AMAP_EQN_OPER_AND );
+//                fprintf( pOutput, "Amap_ParseFormula(): An opening paranthesis follows a var without operation sign.\n" ); 
+//                Flag = AMAP_EQN_FLAG_ERROR; 
+//              break; 
             }
             Vec_IntPush( pStackOp, AMAP_EQN_OPER_MARK );
             // after an opening bracket, it feels like starting over again
@@ -226,7 +226,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                     if ( Amap_ParseFormulaOper( pMan, pStackFn, Oper ) == NULL )
                     {
                         fprintf( pOutput, "Amap_ParseFormula(): Unknown operation\n" );
-                        free( pFormula );
+                        ABC_FREE( pFormula );
                         return NULL;
                     }
                 }
@@ -247,7 +247,8 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             for ( i = 0; pTemp[i] && 
                          pTemp[i] != ' ' && pTemp[i] != '\t' && pTemp[i] != '\r' && pTemp[i] != '\n' &&
                          pTemp[i] != AMAP_EQN_SYM_AND && pTemp[i] != AMAP_EQN_SYM_OR && 
-                         pTemp[i] != AMAP_EQN_SYM_XOR && pTemp[i] != AMAP_EQN_SYM_CLOSE; i++ )
+                         pTemp[i] != AMAP_EQN_SYM_XOR && pTemp[i] != AMAP_EQN_SYM_NEGAFT && 
+                         pTemp[i] != AMAP_EQN_SYM_CLOSE; i++ )
               {
                     if ( pTemp[i] == AMAP_EQN_SYM_NEG || pTemp[i] == AMAP_EQN_SYM_OPEN )
                     {
@@ -271,12 +272,17 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                 Flag = AMAP_EQN_FLAG_ERROR; 
                 break; 
             }
+/*
             if ( Flag == AMAP_EQN_FLAG_VAR )
             {
                 fprintf( pOutput, "Amap_ParseFormula(): The variable name \"%s\" follows another var without operation sign.\n", pTemp ); 
                 Flag = AMAP_EQN_FLAG_ERROR; 
                 break; 
             }
+*/
+            if ( Flag == AMAP_EQN_FLAG_VAR )
+                Vec_IntPush( pStackOp, AMAP_EQN_OPER_AND );
+
             Vec_PtrPush( pStackFn, Hop_IthVar( pMan, v ) ); // Cudd_Ref( pbVars[v] );
             Flag = AMAP_EQN_FLAG_VAR; 
             break;
@@ -318,7 +324,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                     if ( Amap_ParseFormulaOper( pMan, pStackFn, Oper2 ) == NULL )
                     {
                         fprintf( pOutput, "Amap_ParseFormula(): Unknown operation\n" );
-                        free( pFormula );
+                        ABC_FREE( pFormula );
                         return NULL;
                     }
                     Vec_IntPush( pStackOp,  Oper1 );     // push the last operation back
@@ -343,7 +349,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                     Vec_PtrFree(pStackFn);
                     Vec_IntFree(pStackOp);
 //                    Cudd_Deref( gFunc );
-                    free( pFormula );
+                    ABC_FREE( pFormula );
                     return gFunc;
                 }
                 else
@@ -354,7 +360,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
         else
             fprintf( pOutput, "Amap_ParseFormula(): The input string is empty\n" );
     }
-    free( pFormula );
+    ABC_FREE( pFormula );
     return NULL;
 }
 
@@ -414,7 +420,7 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
         pTruth = Hop_ManConvertAigToTruth( pMan, pObj, pGate->nPins, vTruth, 0 );
         if ( Kit_TruthSupportSize(pTruth, pGate->nPins) < (int)pGate->nPins )
         {
-            printf( "Skipping gate \"%s\" because its formula \"%s\" does not depend on some pin variables.\n", pGate->pName, pGate->pForm );
+            printf( "Skipping gate \"%s\" because its output \"%s\" does not depend on all input variables.\n", pGate->pName, pGate->pForm );
             continue;
         }
         pGate->pFunc = (unsigned *)Aig_MmFlexEntryFetch( p->pMemGates, sizeof(unsigned)*Aig_TruthWordNum(pGate->nPins) );
@@ -447,7 +453,7 @@ void Amap_LibParseTest( char * pFileName )
         return;
     Amap_LibParseEquations( p, fVerbose );
     Amap_LibFree( p );
-    PRT( "Total time", clock() - clk );
+    ABC_PRT( "Total time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

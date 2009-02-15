@@ -101,7 +101,7 @@ struct Ver_Bundle_t_
 Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
 {
     Ver_Man_t * p;
-    p = ALLOC( Ver_Man_t, 1 );
+    p = ABC_ALLOC( Ver_Man_t, 1 );
     memset( p, 0, sizeof(Ver_Man_t) );
     p->pFileName = pFileName;
     p->pReader   = Ver_StreamAlloc( pFileName );
@@ -139,7 +139,7 @@ void Ver_ParseStop( Ver_Man_t * p )
     Vec_PtrFree( p->vStackFn );
     Vec_IntFree( p->vStackOp );
     Vec_IntFree( p->vPerm );
-    free( p );
+    ABC_FREE( p );
 }
  
 /**Function*************************************************************
@@ -274,7 +274,7 @@ void Ver_ParsePrintErrorMessage( Ver_Man_t * p )
     else // print the error message with the line number
         fprintf( p->Output, "%s (line %d): %s\n", 
             p->pFileName, Ver_StreamGetLineNumber(p->pReader), p->sError );
-    // free the data
+    // ABC_FREE the data
     Ver_ParseFreeData( p );
 }
 
@@ -583,7 +583,7 @@ int Ver_ParseInsertsSuffix( Ver_Man_t * pMan, char * pWord, int nMsb, int nLsb )
     assert( nMsb >= 0 && nMsb < 128 );
     assert( nLsb >= 0 && nLsb < 128 );
     Value = (nMsb << 8) | nLsb;
-    st_insert( pMan->tName2Suffix, Extra_UtilStrsav(pWord), (char *)(PORT_PTRUINT_T)Value );
+    st_insert( pMan->tName2Suffix, Extra_UtilStrsav(pWord), (char *)(ABC_PTRUINT_T)Value );
     return 1;
 }
 
@@ -605,7 +605,7 @@ void Ver_ParseRemoveSuffixTable( Ver_Man_t * pMan )
     if ( pMan->tName2Suffix == NULL )
         return;
     st_foreach_item( pMan->tName2Suffix, gen, (char **)&pKey, (char **)&pValue )
-        free( pKey );
+        ABC_FREE( pKey );
     st_free_table( pMan->tName2Suffix );
     pMan->tName2Suffix = NULL;
 }
@@ -764,7 +764,7 @@ int Ver_ParseConstant( Ver_Man_t * pMan, char * pWord )
       if ( pWord[i] == 'x' ) 
           Vec_PtrPush( pMan->vNames, (void *)0 );
       else 
-          Vec_PtrPush( pMan->vNames, (void *)(PORT_PTRUINT_T)(pWord[i]-'0') );
+          Vec_PtrPush( pMan->vNames, (void *)(ABC_PTRUINT_T)(pWord[i]-'0') );
     }
     return 1;
 }
@@ -1211,7 +1211,7 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
                         Ver_ParsePrintErrorMessage( pMan );
                         return 0;
                     }
-                    Vec_PtrPush( pMan->vNames, (void *)(PORT_PTRUINT_T)strlen(pEquation) );
+                    Vec_PtrPush( pMan->vNames, (void *)(ABC_PTRUINT_T)strlen(pEquation) );
                     Vec_PtrPush( pMan->vNames, pEquation );
                     // get the buffer
                     pFunc = (Hop_Obj_t *)Mio_LibraryReadBuf(Abc_FrameReadLibGen());
@@ -1248,7 +1248,7 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
             for ( i = 0; i < Vec_PtrSize(pMan->vNames)/2; i++ )
             {
                 // get the name of this signal
-                Length = (int)(PORT_PTRUINT_T)Vec_PtrEntry( pMan->vNames, 2*i );
+                Length = (int)(ABC_PTRUINT_T)Vec_PtrEntry( pMan->vNames, 2*i );
                 pName  = Vec_PtrEntry( pMan->vNames, 2*i + 1 );
                 pName[Length] = 0;
                 // find the corresponding net
@@ -1716,7 +1716,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
         }
 */
         // allocate the bundle (formal name + array of actual nets)
-        pBundle = ALLOC( Ver_Bundle_t, 1 );
+        pBundle = ABC_ALLOC( Ver_Bundle_t, 1 );
         pBundle->pNameFormal = NULL;
         pBundle->vNetsActual = Vec_PtrAlloc( 4 );
         Vec_PtrPush( vBundles, pBundle );
@@ -2002,9 +2002,9 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
 ***********************************************************************/
 void Ver_ParseFreeBundle( Ver_Bundle_t * pBundle )
 {
-    FREE( pBundle->pNameFormal );
+    ABC_FREE( pBundle->pNameFormal );
     Vec_PtrFree( pBundle->vNetsActual );
-    free( pBundle );
+    ABC_FREE( pBundle );
 }
 
 /**Function*************************************************************
@@ -2088,7 +2088,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             i--;
         }
 
-        // free the bundling
+        // ABC_FREE the bundling
         Vec_PtrForEachEntry( vBundles, pBundle, k )
             Ver_ParseFreeBundle( pBundle );
         Vec_PtrFree( vBundles );
@@ -2205,7 +2205,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         i--;
     }
 
-    // free the bundling
+    // ABC_FREE the bundling
     Vec_PtrForEachEntry( vBundles, pBundle, k )
         Ver_ParseFreeBundle( pBundle );
     Vec_PtrFree( vBundles );
@@ -2515,7 +2515,7 @@ int Ver_ParseDriveFormal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_Bundle_t * pBu
         Ver_ParseFreeBundle( pBundle );
         Vec_PtrWriteEntry( (Vec_Ptr_t *)pBox->pCopy, j, NULL );
     }
-    free( pName );
+    ABC_FREE( pName );
     return 1;
 }
 
@@ -2604,7 +2604,7 @@ int Ver_ParseDriveInputs( Ver_Man_t * pMan, Vec_Ptr_t * vUndefs )
                 Vec_PtrWriteEntry( (Vec_Ptr_t *)pBox->pCopy, j, NULL );
             }
 
-            // free the bundles
+            // ABC_FREE the bundles
             Vec_PtrFree( (Vec_Ptr_t *)pBox->pCopy );
             pBox->pCopy = NULL;
         }
@@ -2662,7 +2662,7 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
     // open the log file
     pNameGeneric = Extra_FileNameGeneric( pMan->pFileName );
     sprintf( Buffer, "%s.log", pNameGeneric );
-    free( pNameGeneric );
+    ABC_FREE( pNameGeneric );
     pFile = fopen( Buffer, "w" );
 
     // count the total number of instances and how many times they occur

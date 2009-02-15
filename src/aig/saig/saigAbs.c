@@ -54,7 +54,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     Intp_Man_t * pManProof;
     int RetValue, clk = clock();
     // solve the problem
-    RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfMax, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_Undef )
     {
         printf( "Conflict limit is reached.\n" );
@@ -68,7 +68,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     if ( fVerbose )
     {
         printf( "SAT solver returned UNSAT after %d conflicts.  ", pSat->stats.conflicts );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     assert( RetValue == l_False );
     pSatCnf = sat_solver_store_release( pSat ); 
@@ -81,7 +81,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     if ( fVerbose )
     {
         printf( "SAT core contains %d clauses (out of %d).  ", Vec_IntSize(vCore), pSat->stats.clauses );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     return vCore;
 }
@@ -458,7 +458,7 @@ Vec_Int_t * Saig_AbsCollectRegistersDyn( Aig_Man_t * p, Vec_Ptr_t * vFrames, Vec
     Vec_PtrForEachEntry( vFrames, pCnf, f )
         nSatVars += pCnf->nVars;
     // mark register variables
-    pVars = ALLOC( int, nSatVars );
+    pVars = ABC_ALLOC( int, nSatVars );
     for ( i = 0; i < nSatVars; i++ )
         pVars[i] = -1;
     Vec_PtrForEachEntry( vFrames, pCnf, f )
@@ -485,7 +485,7 @@ Vec_Int_t * Saig_AbsCollectRegistersDyn( Aig_Man_t * p, Vec_Ptr_t * vFrames, Vec
         }
     }
     // mark used registers
-    pFlops = CALLOC( int, Aig_ManRegNum(p) );
+    pFlops = ABC_CALLOC( int, Aig_ManRegNum(p) );
     Vec_IntForEachEntry( vCore, iClause, i )
     {
         nSatClauses = 0;
@@ -513,8 +513,8 @@ Vec_Int_t * Saig_AbsCollectRegistersDyn( Aig_Man_t * p, Vec_Ptr_t * vFrames, Vec
     for ( i = 0; i < Aig_ManRegNum(p); i++ )
         if ( pFlops[i] )
             Vec_IntPush( vFlops, i );
-    free( pFlops );
-    free( pVars );
+    ABC_FREE( pFlops );
+    ABC_FREE( pVars );
     return vFlops;
 }
 
@@ -536,7 +536,7 @@ Vec_Int_t * Saig_AbsCollectRegisters( Cnf_Dat_t * pCnf, int nFrames, Vec_Int_t *
     int * pVars, * pFlops;
     int i, iClause, iReg, * piLit;
     // mark register variables
-    pVars = ALLOC( int, pCnf->nVars );
+    pVars = ABC_ALLOC( int, pCnf->nVars );
     for ( i = 0; i < pCnf->nVars; i++ )
         pVars[i] = -1;
     Saig_ManForEachLi( pCnf->pMan, pObj, i )
@@ -544,7 +544,7 @@ Vec_Int_t * Saig_AbsCollectRegisters( Cnf_Dat_t * pCnf, int nFrames, Vec_Int_t *
     Saig_ManForEachLo( pCnf->pMan, pObj, i )
         pVars[ pCnf->pVarNums[pObj->Id] ] = i;
     // mark used registers
-    pFlops = CALLOC( int, Aig_ManRegNum(pCnf->pMan) );
+    pFlops = ABC_CALLOC( int, Aig_ManRegNum(pCnf->pMan) );
     Vec_IntForEachEntry( vCore, iClause, i )
     {
         // skip auxiliary clauses
@@ -564,8 +564,8 @@ Vec_Int_t * Saig_AbsCollectRegisters( Cnf_Dat_t * pCnf, int nFrames, Vec_Int_t *
     for ( i = 0; i < Aig_ManRegNum(pCnf->pMan); i++ )
         if ( pFlops[i] )
             Vec_IntPush( vFlops, i );
-    free( pFlops );
-    free( pVars );
+    ABC_FREE( pFlops );
+    ABC_FREE( pVars );
     return vFlops;
 }
 
@@ -806,7 +806,7 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         if ( fVerbose )
         {
             printf( "SAT solver: Vars = %7d. Clauses = %7d.  ", pSat->size, pSat->stats.clauses );
-            PRT( "Time", clock() - clk2 );
+            ABC_PRT( "Time", clock() - clk2 );
         }
         // compute UNSAT core
         vCore = Saig_AbsSolverUnsatCore( pSat, nConfMax, fVerbose );
@@ -831,7 +831,7 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         if ( fVerbose )
         {
             printf( "The number of relevant registers is %d (out of %d).  ", Vec_IntSize(vFlops), Aig_ManRegNum(p) );
-            PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", clock() - clk );
         }
     }
 /*

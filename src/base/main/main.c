@@ -21,7 +21,7 @@
 #include "mainInt.h"
 
 // this line should be included in the library project
-//#define _LIB
+//#define ABC_LIB
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -33,7 +33,7 @@ static int TypeCheck( Abc_Frame_t * pAbc, char * s);
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef _LIB
+#ifndef ABC_LIB
 
 /**Function*************************************************************
 
@@ -55,7 +55,7 @@ int main( int argc, char * argv[] )
     bool fBatch, fInitSource, fInitRead, fFinalWrite;
 
     // added to detect memory leaks:
-#if defined(_DEBUG) && defined(_MSC_VER) && (_MSC_VER <= 1200) // 1200 = MSVC 6.0
+#if defined(_DEBUG) && defined(_MSC_VER) 
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
     
@@ -190,7 +190,7 @@ int main( int argc, char * argv[] )
         }
         
     }
-    else
+    else 
     {
         // start interactive mode
         // print the hello line
@@ -254,7 +254,7 @@ void Abc_Start()
 {
     Abc_Frame_t * pAbc;
     // added to detect memory leaks:
-#if defined(_DEBUG) && defined(_MSC_VER) && (_MSC_VER <= 1200) // 1200 = MSVC 6.0
+#if defined(_DEBUG) && defined(_MSC_VER) 
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
     // start the glocal frame

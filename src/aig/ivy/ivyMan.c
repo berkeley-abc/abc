@@ -43,7 +43,7 @@ Ivy_Man_t * Ivy_ManStart()
 {
     Ivy_Man_t * p;
     // start the manager
-    p = ALLOC( Ivy_Man_t, 1 );
+    p = ABC_ALLOC( Ivy_Man_t, 1 );
     memset( p, 0, sizeof(Ivy_Man_t) );
     // perform initializations
     p->Ghost.Id   = -1;
@@ -63,7 +63,7 @@ Ivy_Man_t * Ivy_ManStart()
     p->nCreated = 1;
     // start the table
     p->nTableSize = 10007;
-    p->pTable = ALLOC( int, p->nTableSize );
+    p->pTable = ABC_ALLOC( int, p->nTableSize );
     memset( p->pTable, 0, sizeof(int) * p->nTableSize );
     return p;
 }
@@ -143,7 +143,7 @@ Ivy_Man_t * Ivy_ManDup( Ivy_Man_t * p )
     // update the counters of different objects
     pNew->nObjs[IVY_PI] -= Ivy_ManLatchNum(p);
     pNew->nObjs[IVY_LATCH] += Ivy_ManLatchNum(p);
-    // free arrays
+    // ABC_FREE arrays
     Vec_IntFree( vNodes );
     Vec_IntFree( vLatches );
     // make sure structural hashing did not change anything
@@ -234,8 +234,8 @@ Ivy_Man_t * Ivy_ManFrames( Ivy_Man_t * pMan, int nLatches, int nFrames, int fIni
 ***********************************************************************/
 void Ivy_ManStop( Ivy_Man_t * p )
 {
-    if ( p->time1 ) { PRT( "Update lev  ", p->time1 ); }
-    if ( p->time2 ) { PRT( "Update levR ", p->time2 ); }
+    if ( p->time1 ) { ABC_PRT( "Update lev  ", p->time1 ); }
+    if ( p->time2 ) { ABC_PRT( "Update levR ", p->time2 ); }
 //    Ivy_TableProfile( p );
 //    if ( p->vFanouts )  Ivy_ManStopFanout( p );
     if ( p->vChunks )   Ivy_ManStopMemory( p );
@@ -244,8 +244,8 @@ void Ivy_ManStop( Ivy_Man_t * p )
     if ( p->vPos )      Vec_PtrFree( p->vPos );
     if ( p->vBufs )     Vec_PtrFree( p->vBufs );
     if ( p->vObjs )     Vec_PtrFree( p->vObjs );
-    free( p->pTable );
-    free( p );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -346,7 +346,7 @@ int Ivy_ManCleanupSeq( Ivy_Man_t * p )
         // delete buffer from the array of buffers
         if ( p->fFanout && Ivy_ObjIsBuf(pObj) )
             Vec_PtrRemove( p->vBufs, pObj );
-        // free the node
+        // ABC_FREE the node
         Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
         Ivy_ManRecycleMemory( p, pObj );
     }

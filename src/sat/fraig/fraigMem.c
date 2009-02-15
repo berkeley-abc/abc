@@ -29,7 +29,7 @@ struct Fraig_MemFixed_t_
     int           nEntriesAlloc; // the total number of entries allocated
     int           nEntriesUsed;  // the number of entries in use
     int           nEntriesMax;   // the max number of entries in use
-    char *        pEntriesFree;  // the linked list of free entries
+    char *        pEntriesFree;  // the linked list of ABC_FREE entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -61,7 +61,7 @@ Fraig_MemFixed_t * Fraig_MemFixedStart( int nEntrySize )
 {
     Fraig_MemFixed_t * p;
 
-    p = ALLOC( Fraig_MemFixed_t, 1 );
+    p = ABC_ALLOC( Fraig_MemFixed_t, 1 );
     memset( p, 0, sizeof(Fraig_MemFixed_t) );
 
     p->nEntrySize    = nEntrySize;
@@ -78,7 +78,7 @@ Fraig_MemFixed_t * Fraig_MemFixedStart( int nEntrySize )
 
     p->nChunksAlloc  = 64;
     p->nChunks       = 0;
-    p->pChunks       = ALLOC( char *, p->nChunksAlloc );
+    p->pChunks       = ABC_ALLOC( char *, p->nChunksAlloc );
 
     p->nMemoryUsed   = 0;
     p->nMemoryAlloc  = 0;
@@ -109,9 +109,9 @@ void Fraig_MemFixedStop( Fraig_MemFixed_t * p, int fVerbose )
             p->nEntriesUsed, p->nEntriesMax, p->nEntrySize * p->nEntriesUsed, p->nMemoryAlloc );
     }
     for ( i = 0; i < p->nChunks; i++ )
-        free( p->pChunks[i] );
-    free( p->pChunks );
-    free( p );
+        ABC_FREE( p->pChunks[i] );
+    ABC_FREE( p->pChunks );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -130,16 +130,16 @@ char * Fraig_MemFixedEntryFetch( Fraig_MemFixed_t * p )
     char * pTemp;
     int i;
 
-    // check if there are still free entries
+    // check if there are still ABC_FREE entries
     if ( p->nEntriesUsed == p->nEntriesAlloc )
     { // need to allocate more entries
         assert( p->pEntriesFree == NULL );
         if ( p->nChunks == p->nChunksAlloc )
         {
             p->nChunksAlloc *= 2;
-            p->pChunks = REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
+            p->pChunks = ABC_REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
         }
-        p->pEntriesFree = ALLOC( char, p->nEntrySize * p->nChunkSize );
+        p->pEntriesFree = ABC_ALLOC( char, p->nEntrySize * p->nChunkSize );
         p->nMemoryAlloc += p->nEntrySize * p->nChunkSize;
         // transform these entries into a linked list
         pTemp = p->pEntriesFree;
@@ -159,7 +159,7 @@ char * Fraig_MemFixedEntryFetch( Fraig_MemFixed_t * p )
     p->nEntriesUsed++;
     if ( p->nEntriesMax < p->nEntriesUsed )
         p->nEntriesMax = p->nEntriesUsed;
-    // return the first entry in the free entry list
+    // return the first entry in the ABC_FREE entry list
     pTemp = p->pEntriesFree;
     p->pEntriesFree = *((char **)pTemp);
     return pTemp;
@@ -180,7 +180,7 @@ void Fraig_MemFixedEntryRecycle( Fraig_MemFixed_t * p, char * pEntry )
 {
     // decrement the counter of used entries
     p->nEntriesUsed--;
-    // add the entry to the linked list of free entries
+    // add the entry to the linked list of ABC_FREE entries
     *((char **)pEntry) = p->pEntriesFree;
     p->pEntriesFree = pEntry;
 }
@@ -203,7 +203,7 @@ void Fraig_MemFixedRestart( Fraig_MemFixed_t * p )
 
     // deallocate all chunks except the first one
     for ( i = 1; i < p->nChunks; i++ )
-        free( p->pChunks[i] );
+        ABC_FREE( p->pChunks[i] );
     p->nChunks = 1;
     // transform these entries into a linked list
     pTemp = p->pChunks[0];
@@ -214,7 +214,7 @@ void Fraig_MemFixedRestart( Fraig_MemFixed_t * p )
     }
     // set the last link
     *((char **)pTemp) = NULL;
-    // set the free entry list
+    // set the ABC_FREE entry list
     p->pEntriesFree  = p->pChunks[0];
     // set the correct statistics
     p->nMemoryAlloc  = p->nEntrySize * p->nChunkSize;

@@ -21,10 +21,6 @@
 #ifndef __DAR_H__
 #define __DAR_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,6 +28,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -48,6 +48,7 @@ struct Dar_RwrPar_t_
     int              fUpdateLevel;   // update level 
     int              fUseZeros;      // performs zero-cost replacement
     int              fPower;         // enables power-aware rewriting
+    int              fRecycle;       // enables cut recycling
     int              fVerbose;       // enables verbose output
     int              fVeryVerbose;   // enables very verbose output
 };

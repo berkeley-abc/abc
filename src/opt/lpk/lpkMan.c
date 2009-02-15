@@ -45,7 +45,7 @@ Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
     int i, nWords;
     assert( pPars->nLutsMax <= 16 );
     assert( pPars->nVarsMax > 0 && pPars->nVarsMax <= 16 );
-    p = ALLOC( Lpk_Man_t, 1 );
+    p = ABC_ALLOC( Lpk_Man_t, 1 );
     memset( p, 0, sizeof(Lpk_Man_t) );
     p->pPars = pPars;
     p->nCutsMax = LPK_CUTS_MAX;
@@ -61,7 +61,7 @@ Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
     p->vBddInv = Vec_IntAlloc( 256 );
     // allocate temporary storage for truth tables
     nWords = Kit_TruthWordNum(pPars->nVarsMax);
-    p->ppTruths[0][0] = ALLOC( unsigned, 32 * nWords );
+    p->ppTruths[0][0] = ABC_ALLOC( unsigned, 32 * nWords );
     p->ppTruths[1][0] = p->ppTruths[0][0] + 1 * nWords;
     for ( i = 1; i < 2; i++ )
         p->ppTruths[1][i] = p->ppTruths[1][0] + i * nWords;
@@ -91,7 +91,7 @@ Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
 void Lpk_ManStop( Lpk_Man_t * p )
 {
     int i;
-    free( p->ppTruths[0][0] );
+    ABC_FREE( p->ppTruths[0][0] );
     Vec_IntFree( p->vBddDir );
     Vec_IntFree( p->vBddInv );
     Vec_IntFree( p->vMemory );
@@ -102,7 +102,7 @@ void Lpk_ManStop( Lpk_Man_t * p )
     {
         void * pPars = p->pIfMan->pPars;
         If_ManStop( p->pIfMan );
-        free( pPars );
+        ABC_FREE( pPars );
     }
     if ( p->vLevels )
         Vec_VecFree( p->vLevels );
@@ -112,7 +112,7 @@ void Lpk_ManStop( Lpk_Man_t * p )
     Vec_IntFree( p->vCover );
     Vec_PtrFree( p->vTtElems );
     Vec_PtrFree( p->vTtNodes );
-    free( p );
+    ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

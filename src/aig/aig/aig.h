@@ -21,10 +21,6 @@
 #ifndef __AIG_H__
 #define __AIG_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -40,6 +36,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -196,17 +196,6 @@ struct Aig_ManCut_t_
     unsigned *      puTemp[4];       // used for the truth table computation
 };
 
-#ifdef WIN32
-#define ABC_DLLEXPORT __declspec(dllexport)
-#define ABC_DLLIMPORT __declspec(dllimport)
-#else  /* defined(WIN32) */
-#define ABC_DLLIMPORT
-#endif /* defined(WIN32) */
-
-#ifndef ABC_DLL
-#define ABC_DLL ABC_DLLIMPORT
-#endif
-
 static inline Aig_Cut_t *  Aig_ObjCuts( Aig_ManCut_t * p, Aig_Obj_t * pObj )                         { return p->pCuts[pObj->Id];  }
 static inline void         Aig_ObjSetCuts( Aig_ManCut_t * p, Aig_Obj_t * pObj, Aig_Cut_t * pCuts )   { p->pCuts[pObj->Id] = pCuts; }
 
@@ -231,16 +220,12 @@ static inline Aig_Cut_t *  Aig_CutNext( Aig_Cut_t * pCut )              { return
 #define AIG_ABS(a)         (((a) >= 0)?  (a) :-(a))
 #define AIG_INFINITY       (100000000)
 
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
 static inline int          Aig_IntAbs( int n )                    { return (n < 0)? -n : n;                                }
 static inline int          Aig_Float2Int( float Val )             { return *((int *)&Val);                                 }
 static inline float        Aig_Int2Float( int Num )               { return *((float *)&Num);                               }
 static inline int          Aig_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
 static inline int          Aig_Base10Log( unsigned n )            { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
-static inline char *       Aig_UtilStrsav( char * s )             { return s ? strcpy(ALLOC(char, strlen(s)+1), s) : NULL; }
+static inline char *       Aig_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL; }
 static inline int          Aig_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);                  }
 static inline int          Aig_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));            }
 static inline int          Aig_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;              }
@@ -265,10 +250,10 @@ static inline int          Aig_WordFindFirstBit( unsigned uWord )
     return -1;
 }
 
-static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((PORT_PTRUINT_T)(p) & ~01); }
-static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_Obj_t *)((PORT_PTRUINT_T)(p) ^  01); }
-static inline Aig_Obj_t *  Aig_NotCond( Aig_Obj_t * p, int c )    { return (Aig_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c)); }
-static inline int          Aig_IsComplement( Aig_Obj_t * p )      { return (int)((PORT_PTRUINT_T)(p) & 01);          }
+static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) & ~01); }
+static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) ^  01); }
+static inline Aig_Obj_t *  Aig_NotCond( Aig_Obj_t * p, int c )    { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c)); }
+static inline int          Aig_IsComplement( Aig_Obj_t * p )      { return (int)((ABC_PTRUINT_T)(p) & 01);          }
 
 static inline int          Aig_ManPiNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PI];                     }
 static inline int          Aig_ManPoNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PO];                     }
@@ -344,7 +329,7 @@ static inline void         Aig_ObjSetEquiv( Aig_Man_t * p, Aig_Obj_t * pObj, Aig
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
 static inline void         Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )     { assert(p->pReprs); p->pReprs[pObj->Id] = pRepr;                                } 
 static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) );      } 
-static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(PORT_PTRINT_T)pObj->pNext;                                          }
+static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(ABC_PTRINT_T)pObj->pNext;                                          }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -635,6 +620,7 @@ extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fVerbose );
 /*=== aigUtil.c =========================================================*/
 extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );
+extern int             Aig_ManHasNoGaps( Aig_Man_t * p );
 extern int             Aig_ManLevels( Aig_Man_t * p );
 extern void            Aig_ManResetRefs( Aig_Man_t * p );
 extern void            Aig_ManCleanMarkA( Aig_Man_t * p );
@@ -658,9 +644,10 @@ extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr
 extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
 extern void            Aig_ManSetPioNumbers( Aig_Man_t * p );
 extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
-extern int             Aig_ManCountChoices( Aig_Man_t * p );
+extern int             Aig_ManChoiceNum( Aig_Man_t * p );
 extern char *          Aig_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern unsigned        Aig_ManRandom( int fReset );
+extern void            Aig_ManRandomInfo( Vec_Ptr_t * vInfo, int iWordStart, int iWordStop );
 extern void            Aig_NodeUnionLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );
 extern void            Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );
 

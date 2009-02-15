@@ -45,12 +45,12 @@ static int Msat_IntVecSortCompare2( int * pp1, int * pp2 );
 Msat_IntVec_t * Msat_IntVecAlloc( int nCap )
 {
     Msat_IntVec_t * p;
-    p = ALLOC( Msat_IntVec_t, 1 );
+    p = ABC_ALLOC( Msat_IntVec_t, 1 );
     if ( nCap > 0 && nCap < 16 )
         nCap = 16;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( int, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( int, p->nCap ) : NULL;
     return p;
 }
 
@@ -68,7 +68,7 @@ Msat_IntVec_t * Msat_IntVecAlloc( int nCap )
 Msat_IntVec_t * Msat_IntVecAllocArray( int * pArray, int nSize )
 {
     Msat_IntVec_t * p;
-    p = ALLOC( Msat_IntVec_t, 1 );
+    p = ABC_ALLOC( Msat_IntVec_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = pArray;
@@ -89,10 +89,10 @@ Msat_IntVec_t * Msat_IntVecAllocArray( int * pArray, int nSize )
 Msat_IntVec_t * Msat_IntVecAllocArrayCopy( int * pArray, int nSize )
 {
     Msat_IntVec_t * p;
-    p = ALLOC( Msat_IntVec_t, 1 );
+    p = ABC_ALLOC( Msat_IntVec_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
-    p->pArray = ALLOC( int, nSize );
+    p->pArray = ABC_ALLOC( int, nSize );
     memcpy( p->pArray, pArray, sizeof(int) * nSize );
     return p;
 }
@@ -111,10 +111,10 @@ Msat_IntVec_t * Msat_IntVecAllocArrayCopy( int * pArray, int nSize )
 Msat_IntVec_t * Msat_IntVecDup( Msat_IntVec_t * pVec )
 {
     Msat_IntVec_t * p;
-    p = ALLOC( Msat_IntVec_t, 1 );
+    p = ABC_ALLOC( Msat_IntVec_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
-    p->pArray = p->nCap? ALLOC( int, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( int, p->nCap ) : NULL;
     memcpy( p->pArray, pVec->pArray, sizeof(int) * pVec->nSize );
     return p;
 }
@@ -133,7 +133,7 @@ Msat_IntVec_t * Msat_IntVecDup( Msat_IntVec_t * pVec )
 Msat_IntVec_t * Msat_IntVecDupArray( Msat_IntVec_t * pVec )
 {
     Msat_IntVec_t * p;
-    p = ALLOC( Msat_IntVec_t, 1 );
+    p = ABC_ALLOC( Msat_IntVec_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
     p->pArray = pVec->pArray;
@@ -156,8 +156,8 @@ Msat_IntVec_t * Msat_IntVecDupArray( Msat_IntVec_t * pVec )
 ***********************************************************************/
 void Msat_IntVecFree( Msat_IntVec_t * p )
 {
-    FREE( p->pArray );
-    FREE( p );
+    ABC_FREE( p->pArray );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -297,7 +297,7 @@ void Msat_IntVecGrow( Msat_IntVec_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( int, p->pArray, nCapMin ); 
+    p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
     p->nCap   = nCapMin;
 }
 

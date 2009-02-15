@@ -21,10 +21,6 @@
 #ifndef __IF_H__
 #define __IF_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -37,6 +33,10 @@ extern "C" {
 #include "vec.h"
 #include "mem.h"
 #include "tim.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -166,7 +166,7 @@ struct If_Man_t_
     Mem_Fixed_t *      pMemSet;       // memory manager for sets of cuts (entrysize = nCutSize*(nCutsMax+1))
     If_Set_t *         pMemCi;        // memory for CI cutsets
     If_Set_t *         pMemAnd;       // memory for AND cutsets
-    If_Set_t *         pFreeList;     // the list of free cutsets
+    If_Set_t *         pFreeList;     // the list of ABC_FREE cutsets
     int                nSmallSupp;    // the small support
     // timing manager
     Tim_Man_t *        pManTim;
@@ -198,7 +198,7 @@ struct If_Set_t_
 {
     short              nCutsMax;      // the max number of cuts
     short              nCuts;         // the current number of cuts
-    If_Set_t *         pNext;         // next cutset in the free list
+    If_Set_t *         pNext;         // next cutset in the ABC_FREE list
     If_Cut_t **        ppCuts;        // the array of pointers to the cuts
 };
 
@@ -229,10 +229,10 @@ struct If_Obj_t_
     If_Cut_t           CutBest;       // the best cut selected 
 };
 
-static inline If_Obj_t * If_Regular( If_Obj_t * p )                          { return (If_Obj_t *)((PORT_PTRUINT_T)(p) & ~01);  }
-static inline If_Obj_t * If_Not( If_Obj_t * p )                              { return (If_Obj_t *)((PORT_PTRUINT_T)(p) ^  01);  }
-static inline If_Obj_t * If_NotCond( If_Obj_t * p, int c )                   { return (If_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c));  }
-static inline int        If_IsComplement( If_Obj_t * p )                     { return (int )(((PORT_PTRUINT_T)p) & 01);         }
+static inline If_Obj_t * If_Regular( If_Obj_t * p )                          { return (If_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);  }
+static inline If_Obj_t * If_Not( If_Obj_t * p )                              { return (If_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);  }
+static inline If_Obj_t * If_NotCond( If_Obj_t * p, int c )                   { return (If_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));  }
+static inline int        If_IsComplement( If_Obj_t * p )                     { return (int )(((ABC_PTRUINT_T)p) & 01);         }
 
 static inline int        If_ManCiNum( If_Man_t * p )                         { return p->nObjs[IF_CI];               }
 static inline int        If_ManCoNum( If_Man_t * p )                         { return p->nObjs[IF_CO];               }

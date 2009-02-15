@@ -134,7 +134,7 @@ Amap_Nod_t * Amap_LibCreateObj( Amap_Lib_t * p )
     Amap_Nod_t * pNode;
     if ( p->nNodes == p->nNodesAlloc )
     {
-        p->pNodes = REALLOC( Amap_Nod_t, p->pNodes, 2*p->nNodesAlloc );
+        p->pNodes = ABC_REALLOC( Amap_Nod_t, p->pNodes, 2*p->nNodesAlloc );
         p->nNodesAlloc *= 2;
     }
     pNode = Amap_LibNod( p, p->nNodes );
@@ -164,7 +164,7 @@ int Amap_LibCreateVar( Amap_Lib_t * p )
     // start the manager
     assert( p->pNodes == NULL );
     p->nNodesAlloc = 256;
-    p->pNodes = ALLOC( Amap_Nod_t, p->nNodesAlloc );
+    p->pNodes = ABC_ALLOC( Amap_Nod_t, p->nNodesAlloc );
     // create the first node
     pNode = Amap_LibCreateObj( p );
     p->pNodes->Type = AMAP_OBJ_PI;
@@ -281,7 +281,7 @@ int ** Amap_LibLookupTableAlloc( Vec_Ptr_t * vVec, int fVerbose )
     nEntries = nSize = Vec_PtrSize( vVec );
     Vec_PtrForEachEntry( vVec, vOne, i )
         nEntries += Vec_IntSize(vOne);
-    pBuffer = ALLOC( int, nSize * sizeof(void *) + nEntries );
+    pBuffer = ABC_ALLOC( int, nSize * sizeof(void *) + nEntries );
     pRes = (int **)pBuffer;
     pRes[0] = pBuffer + nSize * sizeof(void *);
     nTotal = 0;

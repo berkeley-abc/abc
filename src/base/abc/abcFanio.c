@@ -51,7 +51,7 @@ static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int 
         if ( pMemMan )
             pArray = (int *)Extra_MmStepEntryFetch( pMemMan, p->nCap * 8 );
         else
-            pArray = ALLOC( int, p->nCap * 2 );
+            pArray = ABC_ALLOC( int, p->nCap * 2 );
         if ( p->pArray )
         {
             for ( i = 0; i < p->nSize; i++ )
@@ -59,7 +59,7 @@ static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int 
             if ( pMemMan )
                 Extra_MmStepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
             else
-                free( p->pArray );
+                ABC_FREE( p->pArray );
         }
         p->nCap *= 2;
         p->pArray = pArray;
@@ -90,7 +90,7 @@ void Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
         Abc_ObjSetFaninC( pObj, Abc_ObjFaninNum(pObj)-1 );
     if ( Abc_ObjIsNet(pObj) && Abc_ObjFaninNum(pObj) > 1 )
     {
-        printf( "Abc_ObjAddFanin(): Error! Creating net with two fanins.\n" );
+        printf( "Abc_ObjAddFanin(): Error! Creating net \"%s\" with two fanins.\n", Abc_ObjName(pObj) );
     }
 }
 

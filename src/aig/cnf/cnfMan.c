@@ -49,7 +49,7 @@ Cnf_Man_t * Cnf_ManStart()
     Cnf_Man_t * p;
     int i;
     // allocate the manager
-    p = ALLOC( Cnf_Man_t, 1 );
+    p = ABC_ALLOC( Cnf_Man_t, 1 );
     memset( p, 0, sizeof(Cnf_Man_t) );
     // derive internal data structures
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
@@ -57,7 +57,7 @@ Cnf_Man_t * Cnf_ManStart()
     p->pMemCuts = Aig_MmFlexStart();
     p->nMergeLimit = 10;
     // allocate temporary truth tables
-    p->pTruths[0] = ALLOC( unsigned, 4 * Aig_TruthWordNum(p->nMergeLimit) );
+    p->pTruths[0] = ABC_ALLOC( unsigned, 4 * Aig_TruthWordNum(p->nMergeLimit) );
     for ( i = 1; i < 4; i++ )
         p->pTruths[i] = p->pTruths[i-1] + Aig_TruthWordNum(p->nMergeLimit);
     p->vMemory = Vec_IntAlloc( 1 << 18 );
@@ -78,12 +78,12 @@ Cnf_Man_t * Cnf_ManStart()
 void Cnf_ManStop( Cnf_Man_t * p )
 {
     Vec_IntFree( p->vMemory );
-    free( p->pTruths[0] );
+    ABC_FREE( p->pTruths[0] );
     Aig_MmFlexStop( p->pMemCuts, 0 );
-    free( p->pSopSizes );
-    free( p->pSops[1] );
-    free( p->pSops );
-    free( p );
+    ABC_FREE( p->pSopSizes );
+    ABC_FREE( p->pSops[1] );
+    ABC_FREE( p->pSops );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -123,16 +123,16 @@ Cnf_Dat_t * Cnf_DataAlloc( Aig_Man_t * pAig, int nVars, int nClauses, int nLiter
 {
     Cnf_Dat_t * pCnf;
     int i;
-    pCnf = ALLOC( Cnf_Dat_t, 1 );
+    pCnf = ABC_ALLOC( Cnf_Dat_t, 1 );
     memset( pCnf, 0, sizeof(Cnf_Dat_t) );
     pCnf->pMan = pAig;
     pCnf->nVars = nVars;
     pCnf->nClauses = nClauses;
     pCnf->nLiterals = nLiterals;
-    pCnf->pClauses = ALLOC( int *, nClauses + 1 );
-    pCnf->pClauses[0] = ALLOC( int, nLiterals );
+    pCnf->pClauses = ABC_ALLOC( int *, nClauses + 1 );
+    pCnf->pClauses[0] = ABC_ALLOC( int, nLiterals );
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
-    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(pAig) );
+    pCnf->pVarNums = ABC_ALLOC( int, Aig_ManObjNumMax(pAig) );
 //    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(pAig) );
     for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
         pCnf->pVarNums[i] = -1;
@@ -177,10 +177,10 @@ void Cnf_DataFree( Cnf_Dat_t * p )
 {
     if ( p == NULL )
         return;
-    free( p->pClauses[0] );
-    free( p->pClauses );
-    free( p->pVarNums );
-    free( p );
+    ABC_FREE( p->pClauses[0] );
+    ABC_FREE( p->pClauses );
+    ABC_FREE( p->pVarNums );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -425,15 +425,15 @@ int Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
     sat_solver * pSat = p;
     Aig_Obj_t * pObj;
     int i, * pLits;
-    pLits = ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
+    pLits = ABC_ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
     Aig_ManForEachPo( pCnf->pMan, pObj, i )
         pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
     if ( !sat_solver_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
     {
-        free( pLits );
+        ABC_FREE( pLits );
         return 0;
     }
-    free( pLits );
+    ABC_FREE( pLits );
     return 1;
 }
 
@@ -479,7 +479,7 @@ void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos )
     int * pVarToPol;
     int i, iVar;
     // create map from the variable number to its polarity
-    pVarToPol = CALLOC( int, pCnf->nVars );
+    pVarToPol = ABC_CALLOC( int, pCnf->nVars );
     Aig_ManForEachObj( pCnf->pMan, pObj, i )
     {
         if ( !fTransformPos && Aig_ObjIsPo(pObj) )
@@ -495,7 +495,7 @@ void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos )
         if ( pVarToPol[iVar] )
             pCnf->pClauses[0][i] = lit_neg( pCnf->pClauses[0][i] );
     }
-    free( pVarToPol );
+    ABC_FREE( pVarToPol );
 }
 
 ////////////////////////////////////////////////////////////////////////

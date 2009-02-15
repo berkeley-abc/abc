@@ -48,7 +48,7 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
     if ( pNtk->pMmObj )
         pObj = (Abc_Obj_t *)Extra_MmFixedEntryFetch( pNtk->pMmObj );
     else
-        pObj = (Abc_Obj_t *)ALLOC( Abc_Obj_t, 1 );
+        pObj = (Abc_Obj_t *)ABC_ALLOC( Abc_Obj_t, 1 );
     memset( pObj, 0, sizeof(Abc_Obj_t) );
     pObj->pNtk = pNtk;
     pObj->Type = Type;
@@ -71,13 +71,13 @@ void Abc_ObjRecycle( Abc_Obj_t * pObj )
 {
     Abc_Ntk_t * pNtk = pObj->pNtk;
 //    int LargePiece = (4 << ABC_NUM_STEPS);
-    // free large fanout arrays
+    // ABC_FREE large fanout arrays
 //    if ( pNtk->pMmStep && pObj->vFanouts.nCap * 4 > LargePiece )
-//        FREE( pObj->vFanouts.pArray );
+//        ABC_FREE( pObj->vFanouts.pArray );
     if ( pNtk->pMmStep == NULL )
     {
-        FREE( pObj->vFanouts.pArray );
-        FREE( pObj->vFanins.pArray );
+        ABC_FREE( pObj->vFanouts.pArray );
+        ABC_FREE( pObj->vFanins.pArray );
     }
     // clean the memory to make deleted object distinct from the live one
     memset( pObj, 0, sizeof(Abc_Obj_t) );
@@ -85,7 +85,7 @@ void Abc_ObjRecycle( Abc_Obj_t * pObj )
     if ( pNtk->pMmObj )
         Extra_MmFixedEntryRecycle( pNtk->pMmObj, (char *)pObj );
     else
-        free( pObj );
+        ABC_FREE( pObj );
 }
 
 /**Function*************************************************************

@@ -47,17 +47,17 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     Aig_ManFanoutStart( pAig );
     Aig_ManSetPioNumbers( pAig );
     // create interpolation manager
-    p = ALLOC( Ssw_Man_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Man_t, 1 ); 
     memset( p, 0, sizeof(Ssw_Man_t) );
     p->pPars         = pPars;
     p->pAig          = pAig;
     p->nFrames       = pPars->nFramesK + 1;
-    p->pNodeToFrames = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
+    p->pNodeToFrames = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) * p->nFrames );
     p->vCommon       = Vec_PtrAlloc( 100 );
     p->iOutputLit    = -1;
     // allocate storage for sim pattern
     p->nPatWords     = Aig_BitWordNum( Saig_ManPiNum(pAig) * p->nFrames + Saig_ManRegNum(pAig) );
-    p->pPatWords     = ALLOC( unsigned, p->nPatWords ); 
+    p->pPatWords     = ABC_ALLOC( unsigned, p->nPatWords ); 
     // other
     p->vNewLos       = Vec_PtrAlloc( 100 );
     p->vNewPos       = Vec_IntAlloc( 100 );
@@ -117,16 +117,16 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
 
     p->timeOther = p->timeTotal-p->timeBmc-p->timeReduce-p->timeMarkCones-p->timeSimSat-p->timeSat;
-    PRTP( "BMC        ", p->timeBmc,       p->timeTotal );
-    PRTP( "Spec reduce", p->timeReduce,    p->timeTotal );
-    PRTP( "Mark cones ", p->timeMarkCones, p->timeTotal );
-    PRTP( "Sim SAT    ", p->timeSimSat,    p->timeTotal );
-    PRTP( "SAT solving", p->timeSat,       p->timeTotal );
-    PRTP( "  unsat    ", p->timeSatUnsat,  p->timeTotal );
-    PRTP( "  sat      ", p->timeSatSat,    p->timeTotal );
-    PRTP( "  undecided", p->timeSatUndec,  p->timeTotal );
-    PRTP( "Other      ", p->timeOther,     p->timeTotal );
-    PRTP( "TOTAL      ", p->timeTotal,     p->timeTotal );
+    ABC_PRTP( "BMC        ", p->timeBmc,       p->timeTotal );
+    ABC_PRTP( "Spec reduce", p->timeReduce,    p->timeTotal );
+    ABC_PRTP( "Mark cones ", p->timeMarkCones, p->timeTotal );
+    ABC_PRTP( "Sim SAT    ", p->timeSimSat,    p->timeTotal );
+    ABC_PRTP( "SAT solving", p->timeSat,       p->timeTotal );
+    ABC_PRTP( "  unsat    ", p->timeSatUnsat,  p->timeTotal );
+    ABC_PRTP( "  sat      ", p->timeSatSat,    p->timeTotal );
+    ABC_PRTP( "  undecided", p->timeSatUndec,  p->timeTotal );
+    ABC_PRTP( "Other      ", p->timeOther,     p->timeTotal );
+    ABC_PRTP( "TOTAL      ", p->timeTotal,     p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -173,7 +173,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
 ***********************************************************************/
 void Ssw_ManStop( Ssw_Man_t * p )
 {
-    FREE( p->pVisited );
+    ABC_FREE( p->pVisited );
     if ( p->pPars->fVerbose )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )
@@ -187,9 +187,9 @@ void Ssw_ManStop( Ssw_Man_t * p )
     Vec_PtrFree( p->vNewLos );
     Vec_IntFree( p->vNewPos );
     Vec_PtrFree( p->vCommon );
-    FREE( p->pNodeToFrames );
-    FREE( p->pPatWords );
-    free( p );
+    ABC_FREE( p->pNodeToFrames );
+    ABC_FREE( p->pPatWords );
+    ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -1,0 +1,240 @@
+/**CFile****************************************************************
+
+  FileName    [giaScl.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Scalable AIG package.]
+
+  Synopsis    [Sequential cleanup.]
+
+  Author      [Alan Mishchenko]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: giaScl.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
+#include "gia.h"
+
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of unmarked nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCombMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( !pObj->fMark0 )
+        return 0;
+    pObj->fMark0 = 0;
+    assert( Gia_ObjIsAnd(pObj) );
+    return Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) ) + 
+        Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin1(pObj) ) + 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of unused nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCombMarkUsed( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, nNodes = 0;
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->fMark0 = Gia_ObjIsAnd(pObj);
+    Gia_ManForEachCo( p, pObj, i )
+        nNodes += Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) );
+    return nNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs combinational cleanup.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCleanup( Gia_Man_t * p )
+{
+    Gia_ManCombMarkUsed( p );
+    return Gia_ManDupMarked( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks CIs/COs reachable from POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSeqMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vRoots )
+{
+    if ( !pObj->fMark0 )
+        return;
+    pObj->fMark0 = 0;
+    if ( Gia_ObjIsCo(pObj) )
+    {
+        Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin0(pObj), vRoots );
+        return;
+    }
+    if ( Gia_ObjIsRo(p, pObj) )
+    {
+        Vec_IntPush( vRoots, Gia_ObjId(p, Gia_ObjRoToRi(p, pObj)) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin0(pObj), vRoots );
+    Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin1(pObj), vRoots );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs sequential cleanup.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManSeqCleanup( Gia_Man_t * p )
+{
+    Vec_Int_t * vRoots;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManSetMark0( p );
+    Gia_ManConst0(p)->fMark0 = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->fMark0 = 0;
+    vRoots = Gia_ManCollectPoIds( p );
+    Gia_ManForEachObjVec( vRoots, p, pObj, i )
+        Gia_ManSeqMarkUsed_rec( p, pObj, vRoots );
+    Vec_IntFree( vRoots );
+    return Gia_ManDupMarked( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find representatives due to identical fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManReduceEquiv( Gia_Man_t * p, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObjRi, * pObjRo;
+    unsigned * pCi2Lit, * pMaps;
+    int i, iLit, nFanins = 1, Counter0 = 0, Counter = 0;
+    Gia_ManForEachRi( p, pObjRi, i )
+        Gia_ObjFanin0(pObjRi)->Value = 0;
+    Gia_ManForEachRi( p, pObjRi, i )
+        if ( Gia_ObjFanin0(pObjRi)->Value == 0 )
+            Gia_ObjFanin0(pObjRi)->Value = 2*nFanins++;
+    pCi2Lit = ABC_FALLOC( unsigned, Gia_ManCiNum(p) );
+    pMaps  = ABC_FALLOC( unsigned, 2 * nFanins );
+    Gia_ManForEachRiRo( p, pObjRi, pObjRo, i )
+    {
+        iLit = Gia_ObjFanin0Copy( pObjRi );
+        if ( Gia_ObjFaninId0p(p, pObjRi) == 0 )
+            pCi2Lit[Gia_ManPiNum(p)+i] = 0, Counter0++;
+        else if ( ~pMaps[iLit] ) // in this case, ID(pObj) > ID(pRepr) 
+            pCi2Lit[Gia_ManPiNum(p)+i] = pMaps[iLit], Counter++; 
+        else
+            pMaps[iLit] = Gia_Var2Lit( Gia_ObjId(p, pObjRo), 0 );
+    }
+/*
+    Gia_ManForEachCi( p, pObjRo, i )
+    {
+        if ( ~pCi2Lit[i] )
+        {
+            Gia_Obj_t * pObj0 = Gia_ObjRoToRi(p, pObjRo);
+            Gia_Obj_t * pObj1 = Gia_ObjRoToRi(p, Gia_ManObj(p, pCi2Lit[i]));
+            Gia_Obj_t * pFan0 = Gia_ObjChild0( p, Gia_ObjRoToRi(p, pObjRo) );
+            Gia_Obj_t * pFan1 = Gia_ObjChild0( p, Gia_ObjRoToRi(p, Gia_ManObj(p, pCi2Lit[i])) );
+            assert( pFan0 == pFan1 );
+        }
+    }
+*/
+    if ( fVerbose )
+        printf( "ReduceEquiv detected %d constant regs and %d equivalent regs.\n", Counter0, Counter );
+    ABC_FREE( pMaps );
+    pNew = Gia_ManDupDfsCiMap( p, pCi2Lit, NULL );
+    ABC_FREE( pCi2Lit );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs sequential cleanup.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose )
+{
+    Gia_Man_t * pTemp;
+    if ( Gia_ManRegNum(p) == 0 )
+        return Gia_ManDup( p );
+    p = Gia_ManSeqCleanup( p );
+    if ( fConst && Gia_ManRegNum(p) )
+    {
+        p = Gia_ManReduceConst( pTemp = p, fVerbose );
+        Gia_ManStop( pTemp );
+    }
+    if ( fEquiv && Gia_ManRegNum(p) )
+    {
+        p = Gia_ManReduceEquiv( pTemp = p, fVerbose );
+        Gia_ManStop( pTemp );
+    }
+    p = Gia_ManSeqCleanup( pTemp = p );
+    Gia_ManStop( pTemp );
+    return p;
+}
+
+////////////////////////////////////////////////////////////////////////
+///                       END OF FILE                                ///
+////////////////////////////////////////////////////////////////////////
+
+

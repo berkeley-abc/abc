@@ -104,7 +104,7 @@ Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     Aig_Obj_t * pObj;
     int i;
     // allocate the fraiging manager
-    p = ALLOC( Fra_Man_t, 1 );
+    p = ABC_ALLOC( Fra_Man_t, 1 );
     memset( p, 0, sizeof(Fra_Man_t) );
     p->pPars      = pPars;
     p->pManAig    = pManAig;
@@ -112,12 +112,12 @@ Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     p->nFramesAll = pPars->nFramesK + 1;
     // allocate storage for sim pattern
     p->nPatWords  = Aig_BitWordNum( (Aig_ManPiNum(pManAig) - Aig_ManRegNum(pManAig)) * p->nFramesAll + Aig_ManRegNum(pManAig) );
-    p->pPatWords  = ALLOC( unsigned, p->nPatWords ); 
+    p->pPatWords  = ABC_ALLOC( unsigned, p->nPatWords ); 
     p->vPiVars    = Vec_PtrAlloc( 100 );
     // equivalence classes
     p->pCla       = Fra_ClassesStart( pManAig );
     // allocate other members
-    p->pMemFraig  = ALLOC( Aig_Obj_t *, p->nSizeAlloc * p->nFramesAll );
+    p->pMemFraig  = ABC_ALLOC( Aig_Obj_t *, p->nSizeAlloc * p->nFramesAll );
     memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
     // set random number generator
 //    srand( 0xABCABC );
@@ -150,8 +150,8 @@ void Fra_ManClean( Fra_Man_t * p, int nNodesMax )
     if ( p->nMemAlloc < nNodesMax )
     {
         int nMemAllocNew = nNodesMax + 5000;
-        p->pMemFanins = REALLOC( Vec_Ptr_t *, p->pMemFanins, nMemAllocNew );
-        p->pMemSatNums = REALLOC( int, p->pMemSatNums, nMemAllocNew );
+        p->pMemFanins = ABC_REALLOC( Vec_Ptr_t *, p->pMemFanins, nMemAllocNew );
+        p->pMemSatNums = ABC_REALLOC( int, p->pMemSatNums, nMemAllocNew );
         p->nMemAlloc = nMemAllocNew;
     }
     // prepare for the new run
@@ -191,9 +191,9 @@ Aig_Man_t * Fra_ManPrepareComb( Fra_Man_t * p )
         pObj->pData = p;
     // allocate memory for mapping FRAIG nodes into SAT numbers and fanins
     p->nMemAlloc = p->nSizeAlloc;
-    p->pMemFanins = ALLOC( Vec_Ptr_t *, p->nMemAlloc );
+    p->pMemFanins = ABC_ALLOC( Vec_Ptr_t *, p->nMemAlloc );
     memset( p->pMemFanins, 0, sizeof(Vec_Ptr_t *) * p->nMemAlloc );
-    p->pMemSatNums = ALLOC( int, p->nMemAlloc );
+    p->pMemSatNums = ABC_ALLOC( int, p->nMemAlloc );
     memset( p->pMemSatNums, 0, sizeof(int) * p->nMemAlloc );
     // make sure the satisfying assignment is node assigned
     assert( pManFraig->pData == NULL );
@@ -242,7 +242,7 @@ void Fra_ManStop( Fra_Man_t * p )
     if ( p->pManAig )
     {
         if ( p->pManAig->pObjCopies )
-            free( p->pManAig->pObjCopies );
+            ABC_FREE( p->pManAig->pObjCopies );
         p->pManAig->pObjCopies = p->pMemFraig;
         p->pMemFraig = NULL;
     }
@@ -254,11 +254,11 @@ void Fra_ManStop( Fra_Man_t * p )
     if ( p->pSml )      Fra_SmlStop( p->pSml );
     if ( p->vCex )      Vec_IntFree( p->vCex );
     if ( p->vOneHots )  Vec_IntFree( p->vOneHots );
-    FREE( p->pMemFraig );
-    FREE( p->pMemFanins );
-    FREE( p->pMemSatNums );
-    FREE( p->pPatWords );
-    free( p );
+    ABC_FREE( p->pMemFraig );
+    ABC_FREE( p->pMemFanins );
+    ABC_FREE( p->pMemSatNums );
+    ABC_FREE( p->pPatWords );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -284,19 +284,19 @@ void Fra_ManPrint( Fra_Man_t * p )
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
     if ( p->pSat )             Sat_SolverPrintStats( stdout, p->pSat );
     if ( p->pPars->fUse1Hot )  Fra_OneHotEstimateCoverage( p, p->vOneHots );
-    PRT( "AIG simulation  ", p->pSml->timeSim  );
-    PRT( "AIG traversal   ", p->timeTrav );
+    ABC_PRT( "AIG simulation  ", p->pSml->timeSim  );
+    ABC_PRT( "AIG traversal   ", p->timeTrav );
     if ( p->timeRwr )
     {
-    PRT( "AIG rewriting   ", p->timeRwr  );
+    ABC_PRT( "AIG rewriting   ", p->timeRwr  );
     }
-    PRT( "SAT solving     ", p->timeSat  );
-    PRT( "    Unsat       ", p->timeSatUnsat );
-    PRT( "    Sat         ", p->timeSatSat   );
-    PRT( "    Fail        ", p->timeSatFail  );
-    PRT( "Class refining  ", p->timeRef   );
-    PRT( "TOTAL RUNTIME   ", p->timeTotal );
-    if ( p->time1 ) { PRT( "time1           ", p->time1 ); }
+    ABC_PRT( "SAT solving     ", p->timeSat  );
+    ABC_PRT( "    Unsat       ", p->timeSatUnsat );
+    ABC_PRT( "    Sat         ", p->timeSatSat   );
+    ABC_PRT( "    Fail        ", p->timeSatFail  );
+    ABC_PRT( "Class refining  ", p->timeRef   );
+    ABC_PRT( "TOTAL RUNTIME   ", p->timeTotal );
+    if ( p->time1 ) { ABC_PRT( "time1           ", p->time1 ); }
     if ( p->nSpeculs )
     printf( "Speculations = %d.\n", p->nSpeculs );
     fflush( stdout );

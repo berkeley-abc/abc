@@ -121,13 +121,13 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
         }
         // run the SAT solver
         nConfPrev = pSat->stats.conflicts;
-        status = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfMax, 0, 0, 0 );
+        status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, 0, 0, 0 );
         if ( fVerbose )
         {
             printf( "%3d : PI = %5d. PO = %5d. AIG = %5d. Var = %6d. Conf = %6d. ",
                 f+1, Aig_ManPiNum(pAigPart), Aig_ManPoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
                 nSatVarNum, pSat->stats.conflicts-nConfPrev );
-            PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", clock() - clk );
         }
         if ( status == l_Undef )
             break;

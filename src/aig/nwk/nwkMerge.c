@@ -43,11 +43,11 @@
 Nwk_Grf_t * Nwk_ManGraphAlloc( int nVertsMax )
 {
     Nwk_Grf_t * p;
-    p = ALLOC( Nwk_Grf_t, 1 );
+    p = ABC_ALLOC( Nwk_Grf_t, 1 );
     memset( p, 0, sizeof(Nwk_Grf_t) );
     p->nVertsMax = nVertsMax;
     p->nEdgeHash = Aig_PrimeCudd( 3 * nVertsMax );
-    p->pEdgeHash = CALLOC( Nwk_Edg_t *, p->nEdgeHash );
+    p->pEdgeHash = ABC_CALLOC( Nwk_Edg_t *, p->nEdgeHash );
     p->pMemEdges = Aig_MmFixedStart( sizeof(Nwk_Edg_t), p->nEdgeHash );
     p->vPairs    = Vec_IntAlloc( 1000 );
     return p;
@@ -69,11 +69,11 @@ void Nwk_ManGraphFree( Nwk_Grf_t * p )
     if ( p->vPairs )    Vec_IntFree( p->vPairs );
     if ( p->pMemEdges ) Aig_MmFixedStop( p->pMemEdges, 0 );
     if ( p->pMemVerts ) Aig_MmFlexStop( p->pMemVerts, 0 );
-    FREE( p->pVerts );
-    FREE( p->pEdgeHash );
-    FREE( p->pMapLut2Id );
-    FREE( p->pMapId2Lut );
-    free( p );
+    ABC_FREE( p->pVerts );
+    ABC_FREE( p->pEdgeHash );
+    ABC_FREE( p->pMapLut2Id );
+    ABC_FREE( p->pMapId2Lut );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -276,8 +276,8 @@ void Nwk_ManGraphPrepare( Nwk_Grf_t * p )
     Nwk_Vrt_t * pVertex;
     int * pnEdges, nBytes, i;
     // allocate memory for the present objects
-    p->pMapLut2Id = ALLOC( int, p->nObjs+1 );
-    p->pMapId2Lut = ALLOC( int, p->nVertsMax+1 );
+    p->pMapLut2Id = ABC_ALLOC( int, p->nObjs+1 );
+    p->pMapId2Lut = ABC_ALLOC( int, p->nVertsMax+1 );
     memset( p->pMapLut2Id, 0xff, sizeof(int) * (p->nObjs+1) );
     memset( p->pMapId2Lut, 0xff, sizeof(int) * (p->nVertsMax+1) );
     // mark present objects
@@ -299,7 +299,7 @@ void Nwk_ManGraphPrepare( Nwk_Grf_t * p )
         }
     }
     // count the edges and mark present objects
-    pnEdges = CALLOC( int, p->nVerts+1 );
+    pnEdges = ABC_CALLOC( int, p->nVerts+1 );
     Nwk_GraphForEachEdge( p, pEntry, i )
     {
         // translate into vertices
@@ -315,7 +315,7 @@ void Nwk_ManGraphPrepare( Nwk_Grf_t * p )
     }
     // allocate the real graph
     p->pMemVerts  = Aig_MmFlexStart();
-    p->pVerts = ALLOC( Nwk_Vrt_t *, p->nVerts + 1 );
+    p->pVerts = ABC_ALLOC( Nwk_Vrt_t *, p->nVerts + 1 );
     p->pVerts[0] = NULL;
     for ( i = 1; i <= p->nVerts; i++ )
     {
@@ -341,9 +341,9 @@ void Nwk_ManGraphPrepare( Nwk_Grf_t * p )
     }
     // clean up
     Aig_MmFixedStop( p->pMemEdges, 0 ); p->pMemEdges = NULL;
-    FREE( p->pEdgeHash );
+    ABC_FREE( p->pEdgeHash );
 //    p->nEdgeHash = 0;
-    free( pnEdges );
+    ABC_FREE( pnEdges );
 }
 
 /**Function*************************************************************
@@ -362,7 +362,7 @@ void Nwk_ManGraphSortPairs( Nwk_Grf_t * p )
     int nSize = Vec_IntSize(p->vPairs);
     int * pIdToPair, i;
     // allocate storage
-    pIdToPair = ALLOC( int, p->nObjs+1 );
+    pIdToPair = ABC_ALLOC( int, p->nObjs+1 );
     for ( i = 0; i <= p->nObjs; i++ )
         pIdToPair[i] = -1;
     // create mapping
@@ -381,7 +381,7 @@ void Nwk_ManGraphSortPairs( Nwk_Grf_t * p )
             Vec_IntPush( p->vPairs, pIdToPair[i] );
         }
     assert( nSize == Vec_IntSize(p->vPairs) );
-    free( pIdToPair );
+    ABC_FREE( pIdToPair );
 }
 
 
@@ -702,12 +702,12 @@ int Nwk_ManLutMergeGraphTest( char * pFileName )
     Nwk_Grf_t * p;
     int clk = clock();
     p = Nwk_ManLutMergeReadGraph( pFileName );
-    PRT( "Reading", clock() - clk );
+    ABC_PRT( "Reading", clock() - clk );
     clk = clock();
     Nwk_ManGraphSolve( p );
     printf( "GRAPH: Nodes = %6d. Edges = %6d.  Pairs = %6d.  ", 
         p->nVerts, p->nEdges, Vec_IntSize(p->vPairs)/2 );
-    PRT( "Solving", clock() - clk );
+    ABC_PRT( "Solving", clock() - clk );
     nPairs = Vec_IntSize(p->vPairs)/2;
     Nwk_ManGraphReportMemoryUsage( p );
     Nwk_ManGraphFree( p );
@@ -1009,7 +1009,7 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
     if ( pPars->fVerbose )
     {
         printf( "Mergable LUTs = %6d. Total cands = %6d. ", p->nVertsMax, nCands );
-        PRT( "Deriving graph", clock() - clk );
+        ABC_PRT( "Deriving graph", clock() - clk );
     }
     // solve the graph problem
     clk = clock();
@@ -1018,7 +1018,7 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
     {
         printf( "GRAPH: Nodes = %6d. Edges = %6d.  Pairs = %6d.  ", 
             p->nVerts, p->nEdges, Vec_IntSize(p->vPairs)/2 );
-        PRT( "Solving", clock() - clk );
+        ABC_PRT( "Solving", clock() - clk );
         Nwk_ManGraphReportMemoryUsage( p );
     }
     vResult = p->vPairs; p->vPairs = NULL;

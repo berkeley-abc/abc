@@ -78,7 +78,7 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
     s_pNtk = pNtk;
     Sat_SolverWriteDimacs( pSat, pFileName, 0, 0, 1 );
     s_pNtk = NULL;
-    // free the solver
+    // ABC_FREE the solver
     sat_solver_delete( pSat );
     return 1;
 }

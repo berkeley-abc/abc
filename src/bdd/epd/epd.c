@@ -45,7 +45,7 @@ EpdAlloc()
 {
   EpDouble    *epd;
 
-  epd = ALLOC(EpDouble, 1);
+  epd = ABC_ALLOC(EpDouble, 1);
   return(epd);
 }
 
@@ -88,7 +88,7 @@ EpdCmp(const char *key1, const char *key2)
 void
 EpdFree(EpDouble *epd)
 {
-  FREE(epd);
+  ABC_FREE(epd);
 }
 
 

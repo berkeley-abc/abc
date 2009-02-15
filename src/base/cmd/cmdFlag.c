@@ -69,7 +69,7 @@ void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * value )
         newValue = Extra_UtilStrsav("");
 //        newValue = NULL;
     if ( st_delete(pAbc->tFlags, &key, &oldValue) )
-        FREE(oldValue);
+        ABC_FREE(oldValue);
     st_insert( pAbc->tFlags, key, newValue );
 }
 
@@ -90,8 +90,8 @@ void Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, char * key )
         return;
     if ( st_delete( pAbc->tFlags, &key, &value ) ) 
     {
-        FREE(key);
-        FREE(value);
+        ABC_FREE(key);
+        ABC_FREE(value);
     }
 }
 

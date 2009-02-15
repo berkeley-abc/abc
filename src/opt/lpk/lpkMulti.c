@@ -375,7 +375,7 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
 
     // allocate storage for cofactors
     nMemSize = Kit_TruthWordNum(nVars);
-    ppCofs[0][0] = ALLOC( unsigned, 32 * nMemSize );
+    ppCofs[0][0] = ABC_ALLOC( unsigned, 32 * nMemSize );
     nSize = 0;
     for ( i = 0; i < 4; i++ )
     for ( k = 0; k < 8; k++ )
@@ -492,11 +492,11 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
         printf( "Verification failed.\n" );
 
 
-    // free the networks
+    // ABC_FREE the networks
     for ( i = 0; i < 8; i++ )
         if ( ppNtks[i] )
             Kit_DsdNtkFree( ppNtks[i] );
-    free( ppCofs[0][0] );
+    ABC_FREE( ppCofs[0][0] );
 
     return pResult;
 }

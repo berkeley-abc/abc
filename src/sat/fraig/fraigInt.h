@@ -29,9 +29,9 @@
 #include <assert.h>
 #include <time.h>
 
+#include "abc_global.h"
 #include "fraig.h"
 #include "msat.h"
-#include "port_type.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -57,9 +57,9 @@
 #define FRAIG_MAX_PRIMES        1024   // the maximum number of primes used for hashing
 
 // this parameter determines when simulation info is extended
-// it will be extended when the free storage in the dynamic simulation
+// it will be extended when the ABC_FREE storage in the dynamic simulation
 // info is less or equal to this number of words (FRAIG_WORDS_STORE)
-// this is done because if the free storage for dynamic simulation info 
+// this is done because if the ABC_FREE storage for dynamic simulation info 
 // is not sufficient, computation becomes inefficient 
 #define FRAIG_WORDS_STORE           5   
 
@@ -86,34 +86,13 @@
 #define Fraig_NodeSetVarStr(p,i)     Fraig_BitStringSetBit(Fraig_Regular(p)->pSuppStr,i)
 #define Fraig_NodeHasVarStr(p,i)     Fraig_BitStringHasBit(Fraig_Regular(p)->pSuppStr,i)
 
-// copied from "util.h" for standaloneness
-#ifndef ALLOC
-#  define ALLOC(type, num)    \
-    ((type *) malloc(sizeof(type) * (num)))
-#endif 
-
-#ifndef REALLOC
-#  define REALLOC(type, obj, num)    \
-    (obj) ? ((type *) realloc((char *) obj, sizeof(type) * (num))) : \
-        ((type *) malloc(sizeof(type) * (num)))
-#endif 
-
-#ifndef FREE
-#  define FREE(obj)        \
-    ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif 
-
 // copied from "extra.h" for stand-aloneness
 #define Fraig_PrintTime(a,t)      printf( "%s = ", (a) ); printf( "%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC) )
 
-#define Fraig_HashKey2(a,b,TSIZE) (((PORT_PTRUINT_T)(a) + (PORT_PTRUINT_T)(b) * 12582917) % TSIZE)
+#define Fraig_HashKey2(a,b,TSIZE) (((ABC_PTRUINT_T)(a) + (ABC_PTRUINT_T)(b) * 12582917) % TSIZE)
 //#define Fraig_HashKey2(a,b,TSIZE) (( ((unsigned)(a)->Num * 19) ^ ((unsigned)(b)->Num * 1999) ) % TSIZE)
 //#define Fraig_HashKey2(a,b,TSIZE) ( ((unsigned)((a)->Num + (b)->Num) * ((a)->Num + (b)->Num + 1) / 2) % TSIZE)
 // the other two hash functions give bad distribution of hash chain lengths (not clear why)
-
-#ifndef PRT
-#define PRT(a,t)        printf( "%s = ", (a) ); printf( "%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC) )
-#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -152,7 +131,7 @@ struct Fraig_ManStruct_t_
     int                   fTryProve;     // tries to solve the final miter
     int                   fVerbose;      // the verbosiness flag
     int                   fVerboseP;     // the verbosiness flag
-    sint64                nInspLimit;    // the inspection limit
+    ABC_INT64_T                nInspLimit;    // the inspection limit
 
     int                   nTravIds;      // the traversal counter
     int                   nTravIds2;     // the traversal counter

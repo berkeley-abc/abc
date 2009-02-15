@@ -92,7 +92,7 @@ Mtr_AllocNode(
 {
     MtrNode *node;
 
-    node = ALLOC(MtrNode,1);
+    node = ABC_ALLOC(MtrNode,1);
     return node;
 
 } /* Mtr_AllocNode */
@@ -113,7 +113,7 @@ void
 Mtr_DeallocNode(
   MtrNode * node /* node to be deallocated */)
 {
-    FREE(node);
+    ABC_FREE(node);
     return;
 
 } /* end of Mtr_DeallocNode */

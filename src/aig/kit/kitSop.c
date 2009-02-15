@@ -296,7 +296,7 @@ static inline unsigned Kit_SopCommonCube( Kit_Sop_t * cSop )
 
 /**Function*************************************************************
 
-  Synopsis    [Makes the cover cube-free.]
+  Synopsis    [Makes the cover cube-ABC_FREE.]
 
   Description []
                
@@ -319,7 +319,7 @@ void Kit_SopMakeCubeFree( Kit_Sop_t * cSop )
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the cover is cube-free.]
+  Synopsis    [Checks if the cover is cube-ABC_FREE.]
 
   Description []
                
@@ -510,7 +510,7 @@ void Kit_SopDivisorZeroKernel_rec( Kit_Sop_t * cSop, int nLits )
     iLit = Kit_SopWorstLiteral( cSop, nLits );
     if ( iLit == -1 )
         return;
-    // derive the cube-free quotient
+    // derive the cube-ABC_FREE quotient
     Kit_SopDivideByLiteralQuo( cSop, iLit ); // the same cover
     Kit_SopMakeCubeFree( cSop );             // the same cover
     // call recursively

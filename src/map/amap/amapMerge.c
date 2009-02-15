@@ -44,7 +44,7 @@ Amap_Cut_t * Amap_ManSetupPis( Amap_Man_t * p )
     Amap_Obj_t * pObj;
     Amap_Cut_t * pCut;
     int i, nBytes = sizeof(Amap_Cut_t) + sizeof(int);
-    char * pBuffer = ALLOC( char, Amap_ManPiNum(p) * nBytes );
+    char * pBuffer = ABC_ALLOC( char, Amap_ManPiNum(p) * nBytes );
     Amap_ManForEachPi( p, pObj, i )
     {
         pCut = (Amap_Cut_t *)( pBuffer + i*nBytes );
@@ -509,7 +509,7 @@ void Amap_ManMerge( Amap_Man_t * p )
         printf( "Node =%6d. Try =%9d. Try3 =%10d. Used =%7d. R =%6.2f.  ", 
             Amap_ManNodeNum(p), p->nCutsTried, p->nCutsTried3, p->nCutsUsed, 
             1.0*p->nCutsUsed/Amap_ManNodeNum(p) );
-PRT( "Time ", clock() - clk );
+ABC_PRT( "Time ", clock() - clk );
     }
 }
 

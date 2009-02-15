@@ -57,9 +57,9 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
         printf( "The miter for initial state computation has %d AIG nodes. ", Abc_NtkNodeNum(pNtkMiter) );
     // solve the miter
     clk = clock();
-    RetValue = Abc_NtkMiterSat( pNtkMiter, (sint64)500000, (sint64)50000000, 0, NULL, NULL );
+    RetValue = Abc_NtkMiterSat( pNtkMiter, (ABC_INT64_T)500000, (ABC_INT64_T)50000000, 0, NULL, NULL );
     if ( fVerbose ) 
-        { PRT( "SAT solving time", clock() - clk ); }
+        { ABC_PRT( "SAT solving time", clock() - clk ); }
     // analyze the result
     if ( RetValue == 1 )
         printf( "Abc_NtkRetimeInitialValues(): The problem is unsatisfiable. DC latch values are used.\n" );
@@ -100,9 +100,9 @@ int Abc_ObjSopSimulate( Abc_Obj_t * pObj )
         Abc_CubeForEachVar( pCube, Value, v )
         {
             if ( Value == '0' )
-                ResVar = 1 ^ ((int)(PORT_PTRUINT_T)Abc_ObjFanin(pObj, v)->pCopy);
+                ResVar = 1 ^ ((int)(ABC_PTRUINT_T)Abc_ObjFanin(pObj, v)->pCopy);
             else if ( Value == '1' )
-                ResVar = (int)(PORT_PTRUINT_T)Abc_ObjFanin(pObj, v)->pCopy;
+                ResVar = (int)(ABC_PTRUINT_T)Abc_ObjFanin(pObj, v)->pCopy;
             else
                 continue;
             ResAnd &= ResVar;
@@ -134,17 +134,17 @@ int Abc_NtkRetimeVerifyModel( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValues, int * p
     assert( Abc_NtkIsSopLogic(pNtkCone) );
     // set the PIs
     Abc_NtkForEachPi( pNtkCone, pObj, i )
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)pModel[i];
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)pModel[i];
     // simulate the internal nodes
     vNodes = Abc_NtkDfs( pNtkCone, 0 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_ObjSopSimulate( pObj );
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
     Vec_PtrFree( vNodes );
     // compare the outputs
     Abc_NtkForEachPo( pNtkCone, pObj, i )
         pObj->pCopy = Abc_ObjFanin0(pObj)->pCopy;
     Abc_NtkForEachPo( pNtkCone, pObj, i )
-        Counter += (Vec_IntEntry(vValues, i) != (int)(PORT_PTRUINT_T)pObj->pCopy);
+        Counter += (Vec_IntEntry(vValues, i) != (int)(ABC_PTRUINT_T)pObj->pCopy);
     if ( Counter > 0 )
         printf( "%d outputs (out of %d) have a value mismatch.\n", Counter, Abc_NtkPoNum(pNtkCone) );
     return 1;
@@ -167,7 +167,7 @@ void Abc_NtkRetimeTranferToCopy( Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
-            pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_LatchIsInit1(pObj);
+            pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
 }
 
 /**Function*************************************************************
@@ -187,7 +187,7 @@ void Abc_NtkRetimeTranferFromCopy( Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
-            pObj->pData = (void *)(PORT_PTRUINT_T)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
+            pObj->pData = (void *)(ABC_PTRUINT_T)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
 }
 
 /**Function*************************************************************
@@ -230,10 +230,10 @@ void Abc_NtkRetimeInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues )
     int i, Counter = 0;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
-            pObj->pCopy = (void *)(PORT_PTRUINT_T)Counter++;
+            pObj->pCopy = (void *)(ABC_PTRUINT_T)Counter++;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
-            pObj->pData = (void *)(PORT_PTRUINT_T)(vValues? (Vec_IntEntry(vValues,(int)(PORT_PTRUINT_T)pObj->pCopy)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
+            pObj->pData = (void *)(ABC_PTRUINT_T)(vValues? (Vec_IntEntry(vValues,(int)(ABC_PTRUINT_T)pObj->pCopy)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
 }
 
 /**Function*************************************************************
@@ -316,22 +316,22 @@ void Abc_NtkCycleInitStateSop( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     srand( 0x12341234 );
     // initialize the values
     Abc_NtkForEachPi( pNtk, pObj, i )
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)(rand() & 1);
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)(rand() & 1);
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_LatchIsInit1(pObj);
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
     // simulate for the given number of timeframes
     vNodes = Abc_NtkDfs( pNtk, 0 );
     for ( f = 0; f < nFrames; f++ )
     {
         // simulate internal nodes
         Vec_PtrForEachEntry( vNodes, pObj, i )
-            pObj->pCopy = (void *)(PORT_PTRUINT_T)Abc_ObjSopSimulate( pObj );
+            pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
         // bring the results to the COs
         Abc_NtkForEachCo( pNtk, pObj, i )
             pObj->pCopy = Abc_ObjFanin0(pObj)->pCopy;
         // assign PI values
         Abc_NtkForEachPi( pNtk, pObj, i )
-            pObj->pCopy = (void *)(PORT_PTRUINT_T)(rand() & 1);
+            pObj->pCopy = (void *)(ABC_PTRUINT_T)(rand() & 1);
         // transfer the latch values
         Abc_NtkForEachLatch( pNtk, pObj, i )
             Abc_ObjFanout0(pObj)->pCopy = Abc_ObjFanin0(pObj)->pCopy;
@@ -339,7 +339,7 @@ void Abc_NtkCycleInitStateSop( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     Vec_PtrFree( vNodes );
     // set the final values
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        pObj->pData = (void *)(PORT_PTRUINT_T)(Abc_ObjFanout0(pObj)->pCopy ? ABC_INIT_ONE : ABC_INIT_ZERO);
+        pObj->pData = (void *)(ABC_PTRUINT_T)(Abc_ObjFanout0(pObj)->pCopy ? ABC_INIT_ONE : ABC_INIT_ZERO);
 }
 
 ////////////////////////////////////////////////////////////////////////

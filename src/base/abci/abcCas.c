@@ -68,12 +68,12 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
     {
         DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
         printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
-        PRT( "BDD construction time", clock() - clk );
+        ABC_PRT( "BDD construction time", clock() - clk );
     }
 
     // collect global BDDs
     dd = Abc_NtkGlobalBddMan( pNtk );
-    ppOutputs = ALLOC( DdNode *, Abc_NtkCoNum(pNtk) );
+    ppOutputs = ABC_ALLOC( DdNode *, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
         ppOutputs[i] = Abc_ObjGlobalBdd(pNode);
 
@@ -89,8 +89,8 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
 
     // cleanup
     Abc_NtkFreeGlobalBdds( pNtk, 1 );
-    free( ppOutputs );
-    free( pFileGeneric );
+    ABC_FREE( ppOutputs );
+    ABC_FREE( pFileGeneric );
 
 //    if ( pNtk->pExdc )
 //        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );

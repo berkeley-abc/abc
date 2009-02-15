@@ -40,7 +40,7 @@ static int Fxu_CountPairDiffs( char * pCover, unsigned char pDiffs[] );
   number of pairs in existence. This procedure adds to the storage of
   divisors exactly the given number of pairs (nPairsMax) while taking
   first those pairs that have the smallest number of literals in their
-  cube-free form.]
+  cube-ABC_FREE form.]
                
   SideEffects []
 
@@ -64,7 +64,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     assert( nPairsMax < nPairsTotal );
 
     // allocate storage for counter of diffs
-    pnLitsDiff = ALLOC( unsigned char, nPairsTotal );
+    pnLitsDiff = ABC_ALLOC( unsigned char, nPairsTotal );
     // go through the covers and precompute the distances between the pairs
     iPair    =  0;
     nBitsMax = -1;
@@ -83,7 +83,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     assert( iPair == nPairsTotal );
 
     // allocate storage for counters of cube pairs by difference
-    pnPairCounters = ALLOC( int, 2 * nBitsMax );
+    pnPairCounters = ABC_ALLOC( int, 2 * nBitsMax );
     memset( pnPairCounters, 0, sizeof(int) * 2 * nBitsMax );
     // count the number of different pairs
     for ( k = 0; k < nPairsTotal; k++ )
@@ -92,16 +92,16 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     // so that there would be exactly pPairsMax pairs
     if ( pnPairCounters[0] != 0 )
     {
-        printf( "The SOPs of the nodes are not cube-free. Run \"bdd; sop\" before \"fx\".\n" );
+        printf( "The SOPs of the nodes are not cube-ABC_FREE. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
     if ( pnPairCounters[1] != 0 )
     {
-        printf( "The SOPs of the nodes are not SCC-free. Run \"bdd; sop\" before \"fx\".\n" );
+        printf( "The SOPs of the nodes are not SCC-ABC_FREE. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
-    assert( pnPairCounters[0] == 0 ); // otherwise, covers are not dup-free
-    assert( pnPairCounters[1] == 0 ); // otherwise, covers are not SCC-free
+    assert( pnPairCounters[0] == 0 ); // otherwise, covers are not dup-ABC_FREE
+    assert( pnPairCounters[1] == 0 ); // otherwise, covers are not SCC-ABC_FREE
     nSum = 0;
     for ( k = 0; k < 2 * nBitsMax; k++ )
     {
@@ -113,7 +113,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
             break;
         }
     }
-    FREE( pnPairCounters );
+    ABC_FREE( pnPairCounters );
 
     // set to 0 all the pairs above the cut-off number and quantity
     iQuant = 0;
@@ -156,8 +156,8 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
                     }
         }
     assert( iPair == nPairsTotal );
-    FREE( pnLitsDiff );
-//PRT( "Preprocess", clock() - clk );
+    ABC_FREE( pnLitsDiff );
+//ABC_PRT( "Preprocess", clock() - clk );
     return 1;
 }
 
@@ -171,7 +171,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
   entries as there are different pairs of cubes in the cover: n(n-1)/2.
   Fills out the array pDiffs with the following info: For each cube
   pair, included in the array is the number of literals in both cubes
-  after they are made cube free.]
+  after they are made cube ABC_FREE.]
                
   SideEffects []
 

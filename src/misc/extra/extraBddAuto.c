@@ -159,7 +159,7 @@ DdNode * Extra_bddSpaceFromFunctionFast( DdManager * dd, DdNode * bFunc )
     int i, lev;
 
     // get the support
-    pSupport = ALLOC( int, ddMax(dd->size,dd->sizeZ) );
+    pSupport = ABC_ALLOC( int, ddMax(dd->size,dd->sizeZ) );
     Extra_SupportArray( dd, bFunc, pSupport );
     nSupp = 0;
     for ( i = 0; i < dd->size; i++ )
@@ -171,14 +171,14 @@ DdNode * Extra_bddSpaceFromFunctionFast( DdManager * dd, DdNode * bFunc )
     {
         printf( "Cannot derive linear space, because DD manager does not have enough variables.\n" );
         fflush( stdout );
-        free( pSupport );
+        ABC_FREE( pSupport );
         return NULL;
     }
 
     // create the permutation arrays
-    pPermute     = ALLOC( int, dd->size );
-    pPermuteBack = ALLOC( int, dd->size );
-    pCompose     = ALLOC( DdNode *, dd->size );
+    pPermute     = ABC_ALLOC( int, dd->size );
+    pPermuteBack = ABC_ALLOC( int, dd->size );
+    pCompose     = ABC_ALLOC( DdNode *, dd->size );
     for ( i = 0; i < dd->size; i++ )
     {
         pPermute[i]     = i;
@@ -225,10 +225,10 @@ DdNode * Extra_bddSpaceFromFunctionFast( DdManager * dd, DdNode * bFunc )
 
     for ( i = 0; i < dd->size; i++ )
         Cudd_RecursiveDeref( dd, pCompose[i] );
-    free( pPermute );
-    free( pPermuteBack );
-    free( pCompose );
-    free( pSupport );
+    ABC_FREE( pPermute );
+    ABC_FREE( pPermuteBack );
+    ABC_FREE( pCompose );
+    ABC_FREE( pSupport );
 
     Cudd_Deref( bSpace );
     return bSpace;
@@ -500,11 +500,11 @@ DdNode ** Extra_bddSpaceExorGates( DdManager * dd, DdNode * bFuncRed, DdNode * z
     DdNode * zExor, * zTemp;
 
     // get the set of non-canonical variables
-    pVarsNonCan = ALLOC( int, ddMax(dd->size,dd->sizeZ) );
+    pVarsNonCan = ABC_ALLOC( int, ddMax(dd->size,dd->sizeZ) );
     Extra_SupportArray( dd, bFuncRed, pVarsNonCan );
 
     // allocate storage for the EXOR sets
-    pzRes = ALLOC( DdNode *, dd->size );
+    pzRes = ABC_ALLOC( DdNode *, dd->size );
     memset( pzRes, 0, sizeof(DdNode *) * dd->size );
 
     // go through all the equations
@@ -536,7 +536,7 @@ DdNode ** Extra_bddSpaceExorGates( DdManager * dd, DdNode * bFuncRed, DdNode * z
     }
     Cudd_RecursiveDerefZdd( dd, zEquRem );
 
-    free( pVarsNonCan );
+    ABC_FREE( pVarsNonCan );
     return pzRes;
 }
 
@@ -575,7 +575,7 @@ DdNode * extraBddSpaceFromFunction( DdManager * dd, DdNode * bF, DdNode * bG )
     // both bFunc and bCore are not constants
 
     // the operation is commutative - normalize the problem
-    if ( (unsigned)(PORT_PTRUINT_T)bF > (unsigned)(PORT_PTRUINT_T)bG )
+    if ( (unsigned)(ABC_PTRUINT_T)bF > (unsigned)(ABC_PTRUINT_T)bG )
         return extraBddSpaceFromFunction(dd, bG, bF);
 
 

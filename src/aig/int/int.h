@@ -21,10 +21,6 @@
 #ifndef __INT_H__
 #define __INT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* 
     The interpolation algorithm implemented here was introduced in the paper:
     K. L. McMillan. Interpolation and SAT-based model checking. CAV’03, pp. 1-13.
@@ -37,6 +33,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

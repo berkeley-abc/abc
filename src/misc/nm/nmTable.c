@@ -259,8 +259,8 @@ clk = clock();
     // get the new table size
     nBinsNew = Cudd_PrimeCopy( p->nGrowthFactor * p->nBins ); 
     // allocate a new array
-    pBinsNewI2N = ALLOC( Nm_Entry_t *, nBinsNew );
-    pBinsNewN2I = ALLOC( Nm_Entry_t *, nBinsNew );
+    pBinsNewI2N = ABC_ALLOC( Nm_Entry_t *, nBinsNew );
+    pBinsNewN2I = ABC_ALLOC( Nm_Entry_t *, nBinsNew );
     memset( pBinsNewI2N, 0, sizeof(Nm_Entry_t *) * nBinsNew );
     memset( pBinsNewN2I, 0, sizeof(Nm_Entry_t *) * nBinsNew );
     // rehash entries in Id->Name table
@@ -285,10 +285,10 @@ clk = clock();
             }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nBins, nBinsNew );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( p->pBinsI2N );
-    free( p->pBinsN2I );
+    ABC_FREE( p->pBinsI2N );
+    ABC_FREE( p->pBinsN2I );
     p->pBinsI2N = pBinsNewI2N;
     p->pBinsN2I = pBinsNewN2I;
     p->nBins = nBinsNew;

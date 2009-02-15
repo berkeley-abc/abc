@@ -227,7 +227,7 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
 //        printf( "Gated transitions = %5.2f %%. (%5.2f %%.) ", 
 //            100.0*nTransSaved/nTransTotal, Cgt_ManComputeCoverage(pAig, vGates) );
         printf( "Gated transitions = %5.2f %%. ", Cgt_ManComputeCoverage(pAig, vGates) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
 /*
     {
@@ -283,7 +283,7 @@ Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdc
             Vec_VecSizeSize(vGatesAll), Counter, Saig_ManRegNum(pAig) );
         printf( "Complete gates = %6d. Gated transitions = %5.2f %%. ", 
             Vec_PtrSize(vCompletes), Cgt_ManComputeCoverage(pAig, vGates) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     Vec_PtrFree( vCompletes );
     return vGates;

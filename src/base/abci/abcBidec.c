@@ -138,7 +138,7 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     if ( fVerbose )
     {
     printf( "Total gain in AIG nodes = %d.  ", nGainTotal );
-    PRT( "Total runtime", clock() - clk );
+    ABC_PRT( "Total runtime", clock() - clk );
     }
 }
 

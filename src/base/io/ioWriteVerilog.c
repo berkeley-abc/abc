@@ -549,7 +549,7 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
             fprintf( pFile, ";\n" );
             // clear the input names
             Abc_ObjForEachFanin( pObj, pFanin, k )
-                free( Hop_IthVar(pNtk->pManFunc, k)->pData );
+                ABC_FREE( Hop_IthVar(pNtk->pManFunc, k)->pData );
         }
         Vec_VecFree( vLevels );
     }

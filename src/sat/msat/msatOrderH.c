@@ -75,7 +75,7 @@ extern int timeSelect;
 Msat_Order_t * Msat_OrderAlloc( Msat_Solver_t * pSat )
 {
     Msat_Order_t * p;
-    p = ALLOC( Msat_Order_t, 1 );
+    p = ABC_ALLOC( Msat_Order_t, 1 );
     memset( p, 0, sizeof(Msat_Order_t) );
     p->pSat   = pSat;
     p->vIndex = Msat_IntVecAlloc( 0 );
@@ -161,7 +161,7 @@ void Msat_OrderFree( Msat_Order_t * p )
 {
     Msat_IntVecFree( p->vHeap );
     Msat_IntVecFree( p->vIndex );
-    free( p );
+    ABC_FREE( p );
 }
 
 

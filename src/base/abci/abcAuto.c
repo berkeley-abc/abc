@@ -96,8 +96,8 @@ void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose )
 //    Extra_StopManager( pNtk->pManGlob );
 //    pNtk->pManGlob = NULL;
     Abc_NtkFreeGlobalBdds( pNtk, 1 );
-    free( pInputNames );
-    free( pOutputNames );
+    ABC_FREE( pInputNames );
+    ABC_FREE( pOutputNames );
     Vec_PtrFree( vFuncsGlob );
 }
 
@@ -161,8 +161,8 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
             nSuppSizeMax = nSupp;
 
 
-//PRB( dd, bCanVars );
-//PRB( dd, bReduced );
+//ABC_PRB( dd, bCanVars );
+//ABC_PRB( dd, bReduced );
 //Cudd_PrintMinterm( dd, bReduced );
 //printf( "The equations are:\n" );
 //Cudd_zddPrintCover( dd, zEquations );
@@ -170,8 +170,8 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
 //fflush( stdout );
 
         bSpace2 = Extra_bddSpaceFromMatrixPos( dd, zEquations );   Cudd_Ref( bSpace2 );
-//PRB( dd, bSpace1 );
-//PRB( dd, bSpace2 );
+//ABC_PRB( dd, bSpace1 );
+//ABC_PRB( dd, bSpace2 );
         if ( bSpace1 != bSpace2 )
             printf( "Spaces are NOT EQUAL!\n" );
 //        else

@@ -126,29 +126,29 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
     Abc_NtkCleanCopy( pNtk );
     nNodes = 1;
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = (void *)(PORT_PTRINT_T)nNodes++;
+        pObj->pCopy = (void *)(ABC_PTRINT_T)nNodes++;
     Abc_AigForEachAnd( pNtk, pObj, i )
-        pObj->pCopy = (void *)(PORT_PTRINT_T)nNodes++;
+        pObj->pCopy = (void *)(ABC_PTRINT_T)nNodes++;
 
     // write the nodes into the buffer
     nAnds = 0;
     nBufferSize = Abc_NtkNodeNum(pNtk) * 2 + Abc_NtkCoNum(pNtk);
-    pBufferNode = ALLOC( unsigned, nBufferSize );
+    pBufferNode = ABC_ALLOC( unsigned, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, nBufferSize );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, nAnds, NULL );
-        pBufferNode[nAnds++] = (((int)(PORT_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | Abc_ObjFaninC0(pObj);
-        pBufferNode[nAnds++] = (((int)(PORT_PTRINT_T)Abc_ObjFanin1(pObj)->pCopy) << 1) | Abc_ObjFaninC1(pObj);
+        pBufferNode[nAnds++] = (((int)(ABC_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | Abc_ObjFaninC0(pObj);
+        pBufferNode[nAnds++] = (((int)(ABC_PTRINT_T)Abc_ObjFanin1(pObj)->pCopy) << 1) | Abc_ObjFaninC1(pObj);
     }
 
     // write the COs into the buffer
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, nAnds, NULL );
-        pBufferNode[nAnds] = (((int)(PORT_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | Abc_ObjFaninC0(pObj);
+        pBufferNode[nAnds] = (((int)(ABC_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | Abc_ObjFaninC0(pObj);
         if ( Abc_ObjFanoutNum(pObj) > 0 && Abc_ObjIsLatch(Abc_ObjFanout0(pObj)) )
-            pBufferNode[nAnds] = (pBufferNode[nAnds] << 2) | ((int)(PORT_PTRINT_T)Abc_ObjData(Abc_ObjFanout0(pObj)) & 3);
+            pBufferNode[nAnds] = (pBufferNode[nAnds] << 2) | ((int)(ABC_PTRINT_T)Abc_ObjData(Abc_ObjFanout0(pObj)) & 3);
         nAnds++;
     }
     Extra_ProgressBarStop( pProgress );
@@ -157,7 +157,7 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
     // write the buffer
     fwrite( pBufferNode, 1, sizeof(int) * nBufferSize, pFile );
     fclose( pFile );
-    free( pBufferNode );
+    ABC_FREE( pBufferNode );
 }
 
 

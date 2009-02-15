@@ -106,7 +106,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
             Aig_ManStop( pNew );
         }
         Aig_ManStop( pTemp );
-        free( pMapBack );
+        ABC_FREE( pMapBack );
     }
     // remap the AIG
     pNew = Aig_ManDupRepr( pAig, 0 );
@@ -118,7 +118,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     pPars->fVerbose = fVerbose;
     if ( fVerbose )
     {
-        PRT( "Total time", clock() - clk );
+        ABC_PRT( "Total time", clock() - clk );
     }
     return pNew;
 }

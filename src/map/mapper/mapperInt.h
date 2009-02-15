@@ -60,10 +60,10 @@
 #define MAP_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
 
 // internal macros to work with cuts
-#define Map_CutIsComplement(p)  (((int)((PORT_PTRUINT_T) (p) & 01)))
-#define Map_CutRegular(p)       ((Map_Cut_t *)((PORT_PTRUINT_T)(p) & ~01)) 
-#define Map_CutNot(p)           ((Map_Cut_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
-#define Map_CutNotCond(p,c)     ((Map_Cut_t *)((PORT_PTRUINT_T)(p) ^ (c)))
+#define Map_CutIsComplement(p)  (((int)((ABC_PTRUINT_T) (p) & 01)))
+#define Map_CutRegular(p)       ((Map_Cut_t *)((ABC_PTRUINT_T)(p) & ~01)) 
+#define Map_CutNot(p)           ((Map_Cut_t *)((ABC_PTRUINT_T)(p) ^ 01)) 
+#define Map_CutNotCond(p,c)     ((Map_Cut_t *)((ABC_PTRUINT_T)(p) ^ (c)))
 
 // internal macros for referencing of nodes
 #define Map_NodeReadRef(p)      ((Map_Regular(p))->nRefs)

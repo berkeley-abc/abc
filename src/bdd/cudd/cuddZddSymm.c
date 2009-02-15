@@ -292,12 +292,12 @@ cuddZddSymmSifting(
 
     /* Find order in which to sift variables. */
     var = NULL;
-    zdd_entry = ALLOC(int, nvars);
+    zdd_entry = ABC_ALLOC(int, nvars);
     if (zdd_entry == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSymmSiftingOutOfMem;
     }
-    var = ALLOC(int, nvars);
+    var = ABC_ALLOC(int, nvars);
     if (var == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSymmSiftingOutOfMem;
@@ -344,8 +344,8 @@ cuddZddSymmSifting(
     }
     }
 
-    FREE(var);
-    FREE(zdd_entry);
+    ABC_FREE(var);
+    ABC_FREE(zdd_entry);
 
     cuddZddSymmSummary(table, lower, upper, &symvars, &symgroups);
 
@@ -359,9 +359,9 @@ cuddZddSymmSifting(
 cuddZddSymmSiftingOutOfMem:
 
     if (zdd_entry != NULL)
-    FREE(zdd_entry);
+    ABC_FREE(zdd_entry);
     if (var != NULL)
-    FREE(var);
+    ABC_FREE(var);
 
     return(0);
 
@@ -417,12 +417,12 @@ cuddZddSymmSiftingConv(
 
     /* Find order in which to sift variables. */
     var = NULL;
-    zdd_entry = ALLOC(int, nvars);
+    zdd_entry = ABC_ALLOC(int, nvars);
     if (zdd_entry == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSymmSiftingConvOutOfMem;
     }
-    var = ALLOC(int, nvars);
+    var = ABC_ALLOC(int, nvars);
     if (var == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSymmSiftingConvOutOfMem;
@@ -532,17 +532,17 @@ cuddZddSymmSiftingConv(
            symgroups);
 #endif
 
-    FREE(var);
-    FREE(zdd_entry);
+    ABC_FREE(var);
+    ABC_FREE(zdd_entry);
 
     return(1+symvars);
 
 cuddZddSymmSiftingConvOutOfMem:
 
     if (zdd_entry != NULL)
-    FREE(zdd_entry);
+    ABC_FREE(zdd_entry);
     if (var != NULL)
-    FREE(var);
+    ABC_FREE(var);
 
     return(0);
 

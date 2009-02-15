@@ -51,9 +51,9 @@ int Inter_ManCheckInitialState( Aig_Man_t * p )
     Cnf_DataFree( pCnf );
     if ( pSat == NULL )
         return 0;
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     sat_solver_delete( pSat );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     return status == l_True;
 }
 
@@ -79,9 +79,9 @@ int Inter_ManCheckAllStates( Aig_Man_t * p )
     Cnf_DataFree( pCnf );
     if ( pSat == NULL )
         return 1;
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     sat_solver_delete( pSat );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     return status == l_False;
 }
 

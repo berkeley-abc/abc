@@ -106,7 +106,7 @@ Ref_Man_t * Dar_ManRefStart( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 {
     Ref_Man_t * p;
     // start the manager
-    p = ALLOC( Ref_Man_t, 1 );
+    p = ABC_ALLOC( Ref_Man_t, 1 );
     memset( p, 0, sizeof(Ref_Man_t) );
     p->pAig         = pAig;
     p->pPars        = pPars;
@@ -143,10 +143,10 @@ void Dar_ManRefPrintStats( Ref_Man_t * p )
         p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit );
     printf( "Tried = %6d. Below = %5d. Extended = %5d.  Used = %5d.  Levels = %4d.\n", 
         p->nNodesTried, p->nNodesBelow, p->nNodesExten, p->nCutsUsed, Aig_ManLevels(p->pAig) );
-    PRT( "Cuts  ", p->timeCuts );
-    PRT( "Eval  ", p->timeEval );
-    PRT( "Other ", p->timeOther );
-    PRT( "TOTAL ", p->timeTotal );
+    ABC_PRT( "Cuts  ", p->timeCuts );
+    ABC_PRT( "Eval  ", p->timeEval );
+    ABC_PRT( "Other ", p->timeOther );
+    ABC_PRT( "TOTAL ", p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -172,7 +172,7 @@ void Dar_ManRefStop( Ref_Man_t * p )
     Vec_PtrFree( p->vLeavesBest );
     Vec_IntFree( p->vMemory );
     Vec_PtrFree( p->vCutNodes );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

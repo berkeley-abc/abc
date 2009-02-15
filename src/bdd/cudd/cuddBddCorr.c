@@ -230,7 +230,7 @@ bddCorrelationAux(
     }
     /* From now on, f is regular. */
     
-    entry = ALLOC(HashEntry,1);
+    entry = ABC_ALLOC(HashEntry,1);
     if (entry == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(CUDD_OUT_OF_MEM);
@@ -243,7 +243,7 @@ bddCorrelationAux(
     */
     if (st_lookup(table, (char *)entry, (char **)&dummy)) {
     min = *dummy;
-    FREE(entry);
+    ABC_FREE(entry);
     return(min);
     }
 
@@ -259,17 +259,17 @@ bddCorrelationAux(
 
     min1 = bddCorrelationAux(dd, Fv, Gv, table) / 2.0;
     if (min1 == (double)CUDD_OUT_OF_MEM) {
-    FREE(entry);
+    ABC_FREE(entry);
     return(CUDD_OUT_OF_MEM);
     }
     min2 = bddCorrelationAux(dd, Fnv, Gnv, table) / 2.0; 
     if (min2 == (double)CUDD_OUT_OF_MEM) {
-    FREE(entry);
+    ABC_FREE(entry);
     return(CUDD_OUT_OF_MEM);
     }
     min = (min1+min2);
     
-    pmin = ALLOC(double,1);
+    pmin = ABC_ALLOC(double,1);
     if (pmin == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return((double)CUDD_OUT_OF_MEM);
@@ -277,8 +277,8 @@ bddCorrelationAux(
     *pmin = min;
 
     if (st_insert(table,(char *)entry, (char *)pmin) == ST_OUT_OF_MEM) {
-    FREE(entry);
-    FREE(pmin);
+    ABC_FREE(entry);
+    ABC_FREE(pmin);
     return((double)CUDD_OUT_OF_MEM);
     }
     return(min);
@@ -333,7 +333,7 @@ bddCorrelationWeightsAux(
     }
     /* From now on, f is regular. */
     
-    entry = ALLOC(HashEntry,1);
+    entry = ABC_ALLOC(HashEntry,1);
     if (entry == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return((double)CUDD_OUT_OF_MEM);
@@ -346,7 +346,7 @@ bddCorrelationWeightsAux(
     */
     if (st_lookup(table, (char *)entry, (char **)&dummy)) {
     min = *dummy;
-    FREE(entry);
+    ABC_FREE(entry);
     return(min);
     }
 
@@ -368,17 +368,17 @@ bddCorrelationWeightsAux(
 
     min1 = bddCorrelationWeightsAux(dd, Fv, Gv, prob, table) * prob[index];
     if (min1 == (double)CUDD_OUT_OF_MEM) {
-    FREE(entry);
+    ABC_FREE(entry);
     return((double)CUDD_OUT_OF_MEM);
     }
     min2 = bddCorrelationWeightsAux(dd, Fnv, Gnv, prob, table) * (1.0 - prob[index]); 
     if (min2 == (double)CUDD_OUT_OF_MEM) {
-    FREE(entry);
+    ABC_FREE(entry);
     return((double)CUDD_OUT_OF_MEM);
     }
     min = (min1+min2);
     
-    pmin = ALLOC(double,1);
+    pmin = ABC_ALLOC(double,1);
     if (pmin == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return((double)CUDD_OUT_OF_MEM);
@@ -386,8 +386,8 @@ bddCorrelationWeightsAux(
     *pmin = min;
 
     if (st_insert(table,(char *)entry, (char *)pmin) == ST_OUT_OF_MEM) {
-    FREE(entry);
-    FREE(pmin);
+    ABC_FREE(entry);
+    ABC_FREE(pmin);
     return((double)CUDD_OUT_OF_MEM);
     }
     return(min);
@@ -472,9 +472,9 @@ CorrelCleanUp(
     HashEntry *entry;
 
     entry = (HashEntry *) key;
-    FREE(entry);
+    ABC_FREE(entry);
     d = (double *)value;
-    FREE(d);
+    ABC_FREE(d);
     return ST_CONTINUE;
 
 } /* end of CorrelCleanUp */

@@ -43,7 +43,7 @@ Ssw_Sat_t * Ssw_SatStart( int fPolarFlip )
 {
     Ssw_Sat_t * p;
     int Lit;
-    p = ALLOC( Ssw_Sat_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Sat_t, 1 ); 
     memset( p, 0, sizeof(Ssw_Sat_t) );
     p->pAig          = NULL;
     p->fPolarFlip    = fPolarFlip;
@@ -84,7 +84,7 @@ void Ssw_SatStop( Ssw_Sat_t * p )
     Vec_IntFree( p->vSatVars );
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vUsedPis );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -225,7 +225,7 @@ void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     assert( Aig_ObjIsNode( pNode ) );
     // create storage for literals
     nLits = Vec_PtrSize(vSuper) + 1;
-    pLits = ALLOC( int, nLits );
+    pLits = ABC_ALLOC( int, nLits );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
     Vec_PtrForEachEntry( vSuper, pFanin, i )
@@ -256,7 +256,7 @@ void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     }
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + nLits );
     assert( RetValue );
-    free( pLits );
+    ABC_FREE( pLits );
 }
 
 /**Function*************************************************************

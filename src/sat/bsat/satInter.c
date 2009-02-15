@@ -55,7 +55,7 @@ struct Int_Man_t_
     Sto_Cls_t **    pWatches;     // watched clauses for each literal (size 2*nVars)          
     // interpolation data
     int             nVarsAB;      // the number of global variables
-    char *          pVarTypes;    // variable type (size nVars) [1=A, 0=B, <0=AB]
+    int *           pVarTypes;    // variable type (size nVars) [1=A, 0=B, <0=AB]
     unsigned *      pInters;      // storage for interpolants as truth tables (size nClauses)
     int             nIntersAlloc; // the allocated size of truth table array
     int             nWords;       // the number of words in the truth table
@@ -105,11 +105,11 @@ Int_Man_t * Int_ManAlloc()
 {
     Int_Man_t * p;
     // allocate the manager
-    p = (Int_Man_t *)malloc( sizeof(Int_Man_t) );
+    p = (Int_Man_t *)ABC_ALLOC( char, sizeof(Int_Man_t) );
     memset( p, 0, sizeof(Int_Man_t) );
     // verification
     p->nResLitsAlloc = (1<<16);
-    p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
+    p->pResLits = ABC_ALLOC( lit, p->nResLitsAlloc );
     // parameters
     p->fProofWrite = 0;
     p->fProofVerif = 1;
@@ -214,18 +214,18 @@ void Int_ManResize( Int_Man_t * p )
         while ( p->nVarsAlloc < p->pCnf->nVars ) 
             p->nVarsAlloc *= 2;
         // resize the arrays
-        p->pTrail    = (lit *)       realloc( p->pTrail,    sizeof(lit) * p->nVarsAlloc );
-        p->pAssigns  = (lit *)       realloc( p->pAssigns,  sizeof(lit) * p->nVarsAlloc );
-        p->pSeens    = (char *)      realloc( p->pSeens,    sizeof(char) * p->nVarsAlloc );
-        p->pVarTypes = (char *)      realloc( p->pVarTypes, sizeof(char) * p->nVarsAlloc );
-        p->pReasons  = (Sto_Cls_t **)realloc( p->pReasons,  sizeof(Sto_Cls_t *) * p->nVarsAlloc );
-        p->pWatches  = (Sto_Cls_t **)realloc( p->pWatches,  sizeof(Sto_Cls_t *) * p->nVarsAlloc*2 );
+        p->pTrail    = ABC_REALLOC(lit,         p->pTrail,    p->nVarsAlloc );
+        p->pAssigns  = ABC_REALLOC(lit,         p->pAssigns,  p->nVarsAlloc );
+        p->pSeens    = ABC_REALLOC(char,        p->pSeens,    p->nVarsAlloc );
+        p->pVarTypes = ABC_REALLOC(int,         p->pVarTypes, p->nVarsAlloc );
+        p->pReasons  = ABC_REALLOC(Sto_Cls_t *, p->pReasons,  p->nVarsAlloc );
+        p->pWatches  = ABC_REALLOC(Sto_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
     }
 
-    // clean the free space
+    // clean the ABC_FREE space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
-    memset( p->pVarTypes, 0,    sizeof(char) * p->pCnf->nVars );
+    memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
     memset( p->pReasons , 0,    sizeof(Sto_Cls_t *) * p->pCnf->nVars );
     memset( p->pWatches , 0,    sizeof(Sto_Cls_t *) * p->pCnf->nVars*2 );
 
@@ -243,7 +243,7 @@ void Int_ManResize( Int_Man_t * p )
         while ( p->nClosAlloc < p->pCnf->nClauses ) 
             p->nClosAlloc *= 2;
         // resize the arrays
-        p->pProofNums = (int *) realloc( p->pProofNums,  sizeof(int) * p->nClosAlloc );
+        p->pProofNums = ABC_REALLOC(int, p->pProofNums,  p->nClosAlloc );
     }
     memset( p->pProofNums, 0, sizeof(int) * p->pCnf->nClauses );
 
@@ -251,7 +251,7 @@ void Int_ManResize( Int_Man_t * p )
     if ( p->nIntersAlloc < p->nWords * p->pCnf->nClauses )
     {
         p->nIntersAlloc = p->nWords * p->pCnf->nClauses;
-        p->pInters = (unsigned *) realloc( p->pInters, sizeof(unsigned) * p->nIntersAlloc );
+        p->pInters = ABC_REALLOC(unsigned, p->pInters, p->nIntersAlloc );
     }
 //    memset( p->pInters, 0, sizeof(unsigned) * p->nWords * p->pCnf->nClauses );
 }
@@ -271,20 +271,20 @@ void Int_ManFree( Int_Man_t * p )
 {
 /*
     printf( "Runtime stats:\n" );
-PRT( "BCP     ", p->timeBcp   );
-PRT( "Trace   ", p->timeTrace );
-PRT( "TOTAL   ", p->timeTotal );
+ABC_PRT( "BCP     ", p->timeBcp   );
+ABC_PRT( "Trace   ", p->timeTrace );
+ABC_PRT( "TOTAL   ", p->timeTotal );
 */
-    free( p->pInters );
-    free( p->pProofNums );
-    free( p->pTrail );
-    free( p->pAssigns );
-    free( p->pSeens );
-    free( p->pVarTypes );
-    free( p->pReasons );
-    free( p->pWatches );
-    free( p->pResLits );
-    free( p );
+    ABC_FREE( p->pInters );
+    ABC_FREE( p->pProofNums );
+    ABC_FREE( p->pTrail );
+    ABC_FREE( p->pAssigns );
+    ABC_FREE( p->pSeens );
+    ABC_FREE( p->pVarTypes );
+    ABC_FREE( p->pReasons );
+    ABC_FREE( p->pWatches );
+    ABC_FREE( p->pResLits );
+    ABC_FREE( p );
 }
 
 

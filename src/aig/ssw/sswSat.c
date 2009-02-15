@@ -81,7 +81,7 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 
 clk = clock();
     RetValue1 = sat_solver_solve( p->pMSat->pSat, pLits, pLits + nLits, 
-        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
@@ -143,7 +143,7 @@ p->timeSatUndec += clock() - clk;
 
 clk = clock();
     RetValue1 = sat_solver_solve( p->pMSat->pSat, pLits, pLits + nLits, 
-        (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {

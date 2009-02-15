@@ -21,10 +21,6 @@
 #ifndef __HOP_H__
 #define __HOP_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -40,6 +36,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -102,7 +102,7 @@ struct Hop_Man_t_
     // memory management
     Vec_Ptr_t *      vChunks;        // allocated memory pieces
     Vec_Ptr_t *      vPages;         // memory pages used by nodes
-    Hop_Obj_t *      pListFree;      // the list of free nodes 
+    Hop_Obj_t *      pListFree;      // the list of ABC_FREE nodes 
     // timing statistics
     int              time1;
     int              time2;
@@ -115,10 +115,6 @@ struct Hop_Man_t_
 #define AIG_MIN(a,b)       (((a) < (b))? (a) : (b))
 #define AIG_MAX(a,b)       (((a) > (b))? (a) : (b))
 
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
 static inline int          Hop_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);           }
 static inline int          Hop_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));     }
 static inline int          Hop_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;       }
@@ -127,10 +123,10 @@ static inline void         Hop_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^=
 static inline int          Hop_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
 static inline int          Hop_Base10Log( unsigned n )            { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
 
-static inline Hop_Obj_t *  Hop_Regular( Hop_Obj_t * p )           { return (Hop_Obj_t *)((PORT_PTRUINT_T)(p) & ~01); }
-static inline Hop_Obj_t *  Hop_Not( Hop_Obj_t * p )               { return (Hop_Obj_t *)((PORT_PTRUINT_T)(p) ^  01); }
-static inline Hop_Obj_t *  Hop_NotCond( Hop_Obj_t * p, int c )    { return (Hop_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c)); }
-static inline int          Hop_IsComplement( Hop_Obj_t * p )      { return (int)((PORT_PTRUINT_T)(p) & 01);          }
+static inline Hop_Obj_t *  Hop_Regular( Hop_Obj_t * p )           { return (Hop_Obj_t *)((ABC_PTRUINT_T)(p) & ~01); }
+static inline Hop_Obj_t *  Hop_Not( Hop_Obj_t * p )               { return (Hop_Obj_t *)((ABC_PTRUINT_T)(p) ^  01); }
+static inline Hop_Obj_t *  Hop_NotCond( Hop_Obj_t * p, int c )    { return (Hop_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c)); }
+static inline int          Hop_IsComplement( Hop_Obj_t * p )      { return (int)((ABC_PTRUINT_T)(p) & 01);          }
 
 static inline Hop_Obj_t *  Hop_ManConst0( Hop_Man_t * p )         { return Hop_Not(p->pConst1);                     }
 static inline Hop_Obj_t *  Hop_ManConst1( Hop_Man_t * p )         { return p->pConst1;                              }
@@ -169,13 +165,13 @@ static inline int          Hop_ObjIsMarkA( Hop_Obj_t * pObj )     { return pObj-
 static inline void         Hop_ObjSetMarkA( Hop_Obj_t * pObj )    { pObj->fMarkA = 1;     }
 static inline void         Hop_ObjClearMarkA( Hop_Obj_t * pObj )  { pObj->fMarkA = 0;     }
  
-static inline void         Hop_ObjSetTravId( Hop_Obj_t * pObj, int TravId )                { pObj->pData = (void *)(PORT_PTRINT_T)TravId;                      }
-static inline void         Hop_ObjSetTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )      { pObj->pData = (void *)(PORT_PTRINT_T)p->nTravIds;                 }
-static inline void         Hop_ObjSetTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )     { pObj->pData = (void *)(PORT_PTRINT_T)(p->nTravIds - 1);           }
-static inline int          Hop_ObjIsTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )       { return (int)((int)(PORT_PTRINT_T)pObj->pData == p->nTravIds);     }
-static inline int          Hop_ObjIsTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )      { return (int)((int)(PORT_PTRINT_T)pObj->pData == p->nTravIds - 1); }
+static inline void         Hop_ObjSetTravId( Hop_Obj_t * pObj, int TravId )                { pObj->pData = (void *)(ABC_PTRINT_T)TravId;                      }
+static inline void         Hop_ObjSetTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )      { pObj->pData = (void *)(ABC_PTRINT_T)p->nTravIds;                 }
+static inline void         Hop_ObjSetTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )     { pObj->pData = (void *)(ABC_PTRINT_T)(p->nTravIds - 1);           }
+static inline int          Hop_ObjIsTravIdCurrent( Hop_Man_t * p, Hop_Obj_t * pObj )       { return (int)((int)(ABC_PTRINT_T)pObj->pData == p->nTravIds);     }
+static inline int          Hop_ObjIsTravIdPrevious( Hop_Man_t * p, Hop_Obj_t * pObj )      { return (int)((int)(ABC_PTRINT_T)pObj->pData == p->nTravIds - 1); }
 
-static inline int          Hop_ObjTravId( Hop_Obj_t * pObj )      { return (int)(PORT_PTRINT_T)pObj->pData;        }
+static inline int          Hop_ObjTravId( Hop_Obj_t * pObj )      { return (int)(ABC_PTRINT_T)pObj->pData;        }
 static inline int          Hop_ObjPhase( Hop_Obj_t * pObj )       { return pObj->fPhase;                           }
 static inline int          Hop_ObjRefs( Hop_Obj_t * pObj )        { return pObj->nRefs;                            }
 static inline void         Hop_ObjRef( Hop_Obj_t * pObj )         { pObj->nRefs++;                                 }

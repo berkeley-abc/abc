@@ -21,14 +21,22 @@
 #ifndef __SAT_STORE_H__
 #define __SAT_STORE_H__
 
-#include "satSolver.h"
-
 /*
     The trace of SAT solving contains the original clauses of the problem
     along with the learned clauses derived during SAT solving.
     The first line of the resulting file contains 3 numbers instead of 2:
     c <num_vars> <num_all_clauses> <num_root_clauses>
 */
+
+////////////////////////////////////////////////////////////////////////
+///                          INCLUDES                                ///
+////////////////////////////////////////////////////////////////////////
+
+#include "satSolver.h"
+
+////////////////////////////////////////////////////////////////////////
+///                         PARAMETERS                               ///
+////////////////////////////////////////////////////////////////////////
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,19 +46,7 @@ extern "C" {
 #define inline __inline // compatible with MS VS 6.0
 #endif
 
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
 #define STO_MAX(a,b)  ((a) > (b) ? (a) : (b))
-
-////////////////////////////////////////////////////////////////////////
-///                          INCLUDES                                ///
-////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////
-///                         PARAMETERS                               ///
-////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

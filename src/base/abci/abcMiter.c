@@ -805,7 +805,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial, int fVer
                 pLatchOut->pCopy = Abc_ObjNotCond( Abc_AigConst1(pNtkFrames), Abc_LatchIsInit0(pLatch) );
         }
         if ( Counter )
-            printf( "Warning: %d uninitialized latches are replaced by free PI variables.\n", Counter );
+            printf( "Warning: %d uninitialized latches are replaced by ABC_FREE PI variables.\n", Counter );
     }
     
     // create the timeframes
@@ -939,7 +939,7 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
             if (addFrameMapping) addFrameMapping(pLatch->pCopy, pLatch, 0, arg);
         }
         if ( Counter )
-            printf( "Warning: %d uninitialized latches are replaced by free PI variables.\n", Counter );
+            printf( "Warning: %d uninitialized latches are replaced by ABC_FREE PI variables.\n", Counter );
     }
     
     // create the timeframes

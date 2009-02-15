@@ -57,7 +57,7 @@ Dec_Graph_t * Dec_Factor( char * pSop )
     // derive the cover from the SOP representation
     pCover = Dec_ConvertSopToMvc( pSop );
 
-    // make sure the cover is CCS free (should be done before CST)
+    // make sure the cover is CCS ABC_FREE (should be done before CST)
     Mvc_CoverContain( pCover );
     // check for trivial functions
     if ( Mvc_CoverIsEmpty(pCover) )
@@ -130,7 +130,7 @@ Dec_Edge_t Dec_Factor_rec( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
         return eNode;
     }
 
-    // make the quotient cube free
+    // make the quotient cube ABC_FREE
     Mvc_CoverMakeCubeFree( pQuo );
 
     // divide the cover by the quotient

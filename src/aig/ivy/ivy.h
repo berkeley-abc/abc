@@ -21,10 +21,6 @@
 #ifndef __IVY_H__
 #define __IVY_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -36,6 +32,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -121,7 +121,7 @@ struct Ivy_Man_t_
     // memory management
     Vec_Ptr_t *      vChunks;        // allocated memory pieces
     Vec_Ptr_t *      vPages;         // memory pages used by nodes
-    Ivy_Obj_t *      pListFree;      // the list of free nodes 
+    Ivy_Obj_t *      pListFree;      // the list of ABC_FREE nodes 
     // timing statistics
     int              time1;
     int              time2;
@@ -186,10 +186,10 @@ static inline int          Ivy_InfoHasBit( unsigned * p, int i )  { return (p[(i
 static inline void         Ivy_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
 static inline void         Ivy_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
 
-static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((PORT_PTRUINT_T)(p) & ~01); }
-static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((PORT_PTRUINT_T)(p) ^  01); }
-static inline Ivy_Obj_t *  Ivy_NotCond( Ivy_Obj_t * p, int c )    { return (Ivy_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c)); }
-static inline int          Ivy_IsComplement( Ivy_Obj_t * p )      { return (int)((PORT_PTRUINT_T)(p) & 01);          }
+static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((ABC_PTRUINT_T)(p) & ~01); }
+static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((ABC_PTRUINT_T)(p) ^  01); }
+static inline Ivy_Obj_t *  Ivy_NotCond( Ivy_Obj_t * p, int c )    { return (Ivy_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c)); }
+static inline int          Ivy_IsComplement( Ivy_Obj_t * p )      { return (int)((ABC_PTRUINT_T)(p) & 01);          }
 
 static inline Ivy_Obj_t *  Ivy_ManConst0( Ivy_Man_t * p )         { return Ivy_Not(p->pConst1);                     }
 static inline Ivy_Obj_t *  Ivy_ManConst1( Ivy_Man_t * p )         { return p->pConst1;                              }

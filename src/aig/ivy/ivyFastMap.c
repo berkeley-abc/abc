@@ -105,12 +105,12 @@ void Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit, int fRecovery, int fVerbo
     Ivy_Obj_t * pObj;
     int i, Delay, Area, clk, clkTotal = clock();
     // start the memory for supports
-    pMan = ALLOC( Ivy_SuppMan_t, 1 );
+    pMan = ABC_ALLOC( Ivy_SuppMan_t, 1 );
     memset( pMan, 0, sizeof(Ivy_SuppMan_t) );
     pMan->nLimit = nLimit;
     pMan->nObjs  = Ivy_ManObjIdMax(pAig) + 1;
     pMan->nSize  = sizeof(Ivy_Supp_t) + nLimit * sizeof(int);
-    pMan->pMem   = (char *)malloc( pMan->nObjs * pMan->nSize );
+    pMan->pMem   = (char *)ABC_ALLOC( char, pMan->nObjs * pMan->nSize );
     memset( pMan->pMem, 0, pMan->nObjs * pMan->nSize );
     pMan->vLuts  = Vec_VecAlloc( 100 );
     pAig->pData  = pMan;
@@ -191,8 +191,8 @@ void Ivy_FastMapStop( Ivy_Man_t * pAig )
 {
     Ivy_SuppMan_t * p = pAig->pData;
     Vec_VecFree( p->vLuts );
-    free( p->pMem );
-    free( p );
+    ABC_FREE( p->pMem );
+    ABC_FREE( p );
     pAig->pData = NULL;
 }
 
@@ -210,7 +210,7 @@ void Ivy_FastMapStop( Ivy_Man_t * pAig )
 void Ivy_FastMapPrint( Ivy_Man_t * pAig, int Delay, int Area, int Time, char * pStr )
 {
     printf( "%s : Delay = %3d. Area = %6d. ", pStr, Delay, Area );
-    PRT( "Time", Time );
+    ABC_PRT( "Time", Time );
 }
 
 /**Function*************************************************************

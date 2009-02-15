@@ -130,9 +130,9 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
     }
     do {
         if (!bufHead)
-            buf = bufHead = ALLOC( buflist, 1 );
+            buf = bufHead = ABC_ALLOC( buflist, 1 );
         else
-            buf = buf->next = ALLOC( buflist, 1 );
+            buf = buf->next = ABC_ALLOC( buflist, 1 );
         nFileSize += buf->nBuf = BZ2_bzRead(&bzError,b,buf->buf,1<<20);
         buf->next = NULL;
     } while (bzError == BZ_OK);
@@ -141,14 +141,14 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
         char * p;
         int nBytes = 0;
         BZ2_bzReadClose(&bzError,b);
-        p = pContents = ALLOC( char, nFileSize + 10 );
+        p = pContents = ABC_ALLOC( char, nFileSize + 10 );
         buf = bufHead;
         do {
             memcpy(p+nBytes,buf->buf,buf->nBuf);
             nBytes += buf->nBuf;
 //        } while((buf = buf->next));
             pNext = buf->next;
-            free( buf );
+            ABC_FREE( buf );
         } while((buf = pNext));
     } else if (bzError == BZ_DATA_ERROR_MAGIC) {
         // not a BZIP2 file
@@ -160,7 +160,7 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
             printf( "Ioa_ReadLoadFileBz2(): The file is empty.\n" );
             return NULL;
         }
-        pContents = ALLOC( char, nFileSize + 10 );
+        pContents = ABC_ALLOC( char, nFileSize + 10 );
         rewind( pFile );
         fread( pContents, nFileSize, 1, pFile );
     } else { 
@@ -194,12 +194,12 @@ static char * Ioa_ReadLoadFileGzAig( char * pFileName, int * pFileSize )
     char * pContents;
     int amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
     pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
-    pContents = ALLOC( char, nFileSize );        
+    pContents = ABC_ALLOC( char, nFileSize );        
     readBlock = 0;
     while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
         //printf("%d: read %d bytes\n", readBlock, amtRead);
         nFileSize += READ_BLOCK_SIZE;
-        pContents = REALLOC(char, pContents, nFileSize);
+        pContents = ABC_REALLOC(char, pContents, nFileSize);
         ++readBlock;
     }
     //printf("%d: read %d bytes\n", readBlock, amtRead);
@@ -244,7 +244,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
 //        pContents = Ioa_ReadLoadFile( pFileName );
         nFileSize = Extra_FileSize( pFileName );
         pFile = fopen( pFileName, "rb" );
-        pContents = ALLOC( char, nFileSize );
+        pContents = ABC_ALLOC( char, nFileSize );
         fread( pContents, nFileSize, 1, pFile );
         fclose( pFile );
     }
@@ -254,6 +254,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
     {
         fprintf( stdout, "Wrong input file format.\n" );
+        free( pContents );
         return NULL;
     }
 
@@ -262,7 +263,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     pName = Extra_FileNameGeneric( pFileName );
     pNtkNew->pName = Extra_UtilStrsav( pName );
     pNtkNew->pSpec = Extra_UtilStrsav( pFileName );
-    free( pName );
+    ABC_FREE( pName );
 
 
     // read the file type
@@ -469,14 +470,14 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             char * pTemp;
             for ( pTemp = pCur + 9; *pTemp && *pTemp != '\n'; pTemp++ );
             *pTemp = 0;
-            free( pNtkNew->pName );
+            ABC_FREE( pNtkNew->pName );
             pNtkNew->pName = Extra_UtilStrsav( pCur + 9 );
         }
     }
 
 
     // skipping the comments
-    free( pContents );
+    ABC_FREE( pContents );
     Vec_PtrFree( vNodes );
 
     // remove the extra nodes

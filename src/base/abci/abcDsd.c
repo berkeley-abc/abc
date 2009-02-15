@@ -133,8 +133,8 @@ Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bo
         ppNamesCi = Abc_NtkCollectCioNames( pNtk, 0 );
         ppNamesCo = Abc_NtkCollectCioNames( pNtk, 1 );
         Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, fShort, -1 );
-        free( ppNamesCi );
-        free( ppNamesCo );
+        ABC_FREE( ppNamesCi );
+        ABC_FREE( ppNamesCo );
     }
 
     // stop the DSD manager
@@ -161,18 +161,18 @@ void Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t *
     int i, nNodesDsd;
 
     // save the CI nodes in the DSD nodes
-    Dsd_NodeSetMark( Dsd_ManagerReadConst1(pManDsd), (int)(PORT_PTRINT_T)Abc_NtkCreateNodeConst1(pNtkNew) );
+    Dsd_NodeSetMark( Dsd_ManagerReadConst1(pManDsd), (int)(ABC_PTRINT_T)Abc_NtkCreateNodeConst1(pNtkNew) );
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pNodeDsd = Dsd_ManagerReadInput( pManDsd, i );
-        Dsd_NodeSetMark( pNodeDsd, (int)(PORT_PTRINT_T)pNode->pCopy );
+        Dsd_NodeSetMark( pNodeDsd, (int)(ABC_PTRINT_T)pNode->pCopy );
     }
 
     // collect DSD nodes in DFS order (leaves and const1 are not collected)
     ppNodesDsd = Dsd_TreeCollectNodesDfs( pManDsd, &nNodesDsd );
     for ( i = 0; i < nNodesDsd; i++ )
         Abc_NtkDsdConstructNode( pManDsd, ppNodesDsd[i], pNtkNew, NULL );
-    free( ppNodesDsd );
+    ABC_FREE( ppNodesDsd );
 
     // set the pointers to the CO drivers
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -183,7 +183,7 @@ void Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t *
         if ( !Abc_AigNodeIsAnd(pDriver) )
             continue;
         pNodeDsd = Dsd_ManagerReadRoot( pManDsd, i );
-        pNodeNew = (Abc_Obj_t *)(PORT_PTRINT_T)Dsd_NodeReadMark( Dsd_Regular(pNodeDsd) );
+        pNodeNew = (Abc_Obj_t *)(ABC_PTRINT_T)Dsd_NodeReadMark( Dsd_Regular(pNodeDsd) );
         assert( !Abc_ObjIsComplement(pNodeNew) );
         pDriver->pCopy = Abc_ObjNotCond( pNodeNew, Dsd_IsComplement(pNodeDsd) );
     }
@@ -219,7 +219,7 @@ Abc_Obj_t * Abc_NtkDsdConstructNode( Dsd_Manager_t * pManDsd, Dsd_Node_t * pNode
     for ( i = 0; i < nDecs; i++ )
     {
         pFaninDsd  = Dsd_NodeReadDec( pNodeDsd, i );
-        pFanin     = (Abc_Obj_t *)(PORT_PTRINT_T)Dsd_NodeReadMark(Dsd_Regular(pFaninDsd));
+        pFanin     = (Abc_Obj_t *)(ABC_PTRINT_T)Dsd_NodeReadMark(Dsd_Regular(pFaninDsd));
         Abc_ObjAddFanin( pNodeNew, pFanin );
         assert( Type == DSD_NODE_OR || !Dsd_IsComplement(pFaninDsd) );
     }
@@ -284,7 +284,7 @@ printf( "\n" );
         }
     }
     pNodeNew->pData = bLocal;
-    Dsd_NodeSetMark( pNodeDsd, (int)(PORT_PTRINT_T)pNodeNew );
+    Dsd_NodeSetMark( pNodeDsd, (int)(ABC_PTRINT_T)pNodeNew );
     return pNodeNew;
 }
 
@@ -400,7 +400,7 @@ void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager
         Abc_ObjForEachFanin( pNode, pFanin, i )
         {
             pFaninDsd = Dsd_ManagerReadInput( pManDsd, i );
-            Dsd_NodeSetMark( pFaninDsd, (int)(PORT_PTRINT_T)pFanin );
+            Dsd_NodeSetMark( pFaninDsd, (int)(ABC_PTRINT_T)pFanin );
         }
 
         // construct the intermediate nodes
@@ -411,7 +411,7 @@ void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager
             if ( Abc_NodeIsForDsd(pRoot) && fRecursive )
                 Vec_PtrPush( vNodes, pRoot );
         }
-        free( ppNodesDsd );
+        ABC_FREE( ppNodesDsd );
         assert(pRoot);
 
         // remove the current fanins

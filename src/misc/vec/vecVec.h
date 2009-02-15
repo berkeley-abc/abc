@@ -99,12 +99,12 @@ struct Vec_Vec_t_
 static inline Vec_Vec_t * Vec_VecAlloc( int nCap )
 {
     Vec_Vec_t * p;
-    p = ALLOC( Vec_Vec_t, 1 );
+    p = ABC_ALLOC( Vec_Vec_t, 1 );
     if ( nCap > 0 && nCap < 8 )
         nCap = 8;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( void *, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( void *, p->nCap ) : NULL;
     return p;
 }
 

@@ -46,7 +46,7 @@ Aig_ManCut_t * Aig_ManCutStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, in
     assert( nCutsMax >= 2  );
     assert( nLeafMax <= 16 );
     // allocate the fraiging manager
-    p = ALLOC( Aig_ManCut_t, 1 );
+    p = ABC_ALLOC( Aig_ManCut_t, 1 );
     memset( p, 0, sizeof(Aig_ManCut_t) );
     p->nCutsMax = nCutsMax;
     p->nLeafMax = nLeafMax;
@@ -54,7 +54,7 @@ Aig_ManCut_t * Aig_ManCutStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, in
     p->fVerbose = fVerbose;
     p->pAig     = pMan;
     // allocate room for cuts and equivalent nodes
-    p->pCuts    = ALLOC( Aig_Cut_t *, Aig_ManObjNumMax(pMan) );
+    p->pCuts    = ABC_ALLOC( Aig_Cut_t *, Aig_ManObjNumMax(pMan) );
     memset( p->pCuts, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pMan) );
     // allocate memory manager
     p->nTruthWords = Aig_TruthWordNum(nLeafMax);
@@ -63,7 +63,7 @@ Aig_ManCut_t * Aig_ManCutStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, in
     // room for temporary truth tables
     if ( fTruth )
     {
-        p->puTemp[0] = ALLOC( unsigned, 4 * p->nTruthWords );
+        p->puTemp[0] = ABC_ALLOC( unsigned, 4 * p->nTruthWords );
         p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
         p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
         p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
@@ -85,9 +85,9 @@ Aig_ManCut_t * Aig_ManCutStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, in
 void Aig_ManCutStop( Aig_ManCut_t * p )
 {
     Aig_MmFixedStop( p->pMemCuts, 0 );
-    FREE( p->puTemp[0] );
-    free( p->pCuts );
-    free( p );
+    ABC_FREE( p->puTemp[0] );
+    ABC_FREE( p->pCuts );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -207,7 +207,7 @@ static inline float Aig_CutFindCost2( Aig_ManCut_t * p, Aig_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the next free cut to use.]
+  Synopsis    [Returns the next ABC_FREE cut to use.]
 
   Description []
                
@@ -650,7 +650,7 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
             Aig_ManObjNum(pAig), nCuts, nLeafMax, nCutsK );
         printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f Mb  ",
             p->nCutSize, 4*p->nTruthWords, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
-        PRT( "Runtime", clock() - clk );
+        ABC_PRT( "Runtime", clock() - clk );
 /*
         Aig_ManForEachNode( pAig, pObj, i )
             if ( i % 300 == 0 )

@@ -46,7 +46,7 @@ int Mfx_SolveSat_iter( Mfx_Man_t * p )
     if ( p->nTotConfLim && p->nTotConfLim <= p->pSat->stats.conflicts )
         return -1;
     nBTLimit = p->nTotConfLim? p->nTotConfLim - p->pSat->stats.conflicts : 0;
-    RetValue = sat_solver_solve( p->pSat, NULL, NULL, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( p->pSat, NULL, NULL, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     assert( RetValue == l_Undef || RetValue == l_True || RetValue == l_False );
     if ( RetValue == l_Undef )
         return -1;

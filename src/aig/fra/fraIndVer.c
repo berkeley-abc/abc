@@ -150,7 +150,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     if ( CounterBase || CounterInd )
         return 0;
     printf( "Invariant verification: %d clauses verified correctly.  ", Vec_IntSize(vClauses) );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     return 1;
 }
 

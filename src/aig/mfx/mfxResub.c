@@ -97,7 +97,7 @@ int Mfx_TryResubOnce( Mfx_Man_t * p, int * pCands, int nCands )
     unsigned * pData;
     int RetValue, iVar, i;
     p->nSatCalls++;
-    RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (sint64)p->pPars->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 //    assert( RetValue == l_False || RetValue == l_True );
     if ( RetValue == l_False )
         return 1;

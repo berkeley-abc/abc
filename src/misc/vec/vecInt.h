@@ -51,6 +51,8 @@ struct Vec_Int_t_
     for ( i = 0; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryStart( vVec, Entry, i, Start )                                   \
     for ( i = Start; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
+#define Vec_IntForEachEntryStop( vVec, Entry, i, Stop )                                   \
+    for ( i = 0; (i < Stop) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryStartStop( vVec, Entry, i, Start, Stop )                         \
     for ( i = Start; (i < Stop) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryReverse( vVec, pEntry, i )                                       \
@@ -74,12 +76,12 @@ struct Vec_Int_t_
 static inline Vec_Int_t * Vec_IntAlloc( int nCap )
 {
     Vec_Int_t * p;
-    p = ALLOC( Vec_Int_t, 1 );
+    p = ABC_ALLOC( Vec_Int_t, 1 );
     if ( nCap > 0 && nCap < 16 )
         nCap = 16;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( int, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( int, p->nCap ) : NULL;
     return p;
 }
 
@@ -139,7 +141,7 @@ static inline Vec_Int_t * Vec_IntStartNatural( int nSize )
 static inline Vec_Int_t * Vec_IntAllocArray( int * pArray, int nSize )
 {
     Vec_Int_t * p;
-    p = ALLOC( Vec_Int_t, 1 );
+    p = ABC_ALLOC( Vec_Int_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = pArray;
@@ -160,10 +162,10 @@ static inline Vec_Int_t * Vec_IntAllocArray( int * pArray, int nSize )
 static inline Vec_Int_t * Vec_IntAllocArrayCopy( int * pArray, int nSize )
 {
     Vec_Int_t * p;
-    p = ALLOC( Vec_Int_t, 1 );
+    p = ABC_ALLOC( Vec_Int_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
-    p->pArray = ALLOC( int, nSize );
+    p->pArray = ABC_ALLOC( int, nSize );
     memcpy( p->pArray, pArray, sizeof(int) * nSize );
     return p;
 }
@@ -182,10 +184,10 @@ static inline Vec_Int_t * Vec_IntAllocArrayCopy( int * pArray, int nSize )
 static inline Vec_Int_t * Vec_IntDup( Vec_Int_t * pVec )
 {
     Vec_Int_t * p;
-    p = ALLOC( Vec_Int_t, 1 );
+    p = ABC_ALLOC( Vec_Int_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nSize;
-    p->pArray = p->nCap? ALLOC( int, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( int, p->nCap ) : NULL;
     memcpy( p->pArray, pVec->pArray, sizeof(int) * pVec->nSize );
     return p;
 }
@@ -204,7 +206,7 @@ static inline Vec_Int_t * Vec_IntDup( Vec_Int_t * pVec )
 static inline Vec_Int_t * Vec_IntDupArray( Vec_Int_t * pVec )
 {
     Vec_Int_t * p;
-    p = ALLOC( Vec_Int_t, 1 );
+    p = ABC_ALLOC( Vec_Int_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
     p->pArray = pVec->pArray;
@@ -227,8 +229,8 @@ static inline Vec_Int_t * Vec_IntDupArray( Vec_Int_t * pVec )
 ***********************************************************************/
 static inline void Vec_IntFree( Vec_Int_t * p )
 {
-    FREE( p->pArray );
-    FREE( p );
+    ABC_FREE( p->pArray );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -366,7 +368,7 @@ static inline void Vec_IntGrow( Vec_Int_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( int, p->pArray, nCapMin ); 
+    p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
     assert( p->pArray );
     p->nCap   = nCapMin;
 }

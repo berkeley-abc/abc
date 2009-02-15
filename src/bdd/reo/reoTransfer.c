@@ -69,7 +69,7 @@ reo_unit * reoTransferNodesToUnits_rec( reo_man * p, DdNode * F )
     if ( cuddIsConstant(F) )
     {
         pUnit->lev    = REO_CONST_LEVEL;
-        pUnit->pE     = (reo_unit*)((int)(PORT_PTRUINT_T)(cuddV(F)));
+        pUnit->pE     = (reo_unit*)((int)(ABC_PTRUINT_T)(cuddV(F)));
         pUnit->pT     = NULL;
         // check if the diagram that is being reordering has complement edges
         if ( F != dd->one )
@@ -89,7 +89,7 @@ reo_unit * reoTransferNodesToUnits_rec( reo_man * p, DdNode * F )
     // add to the hash table
     if ( F->ref != 1 )
     {
-        // the next free entry is already found - it is pointed to by HKey
+        // the next ABC_FREE entry is already found - it is pointed to by HKey
         // while we traversed the diagram, the hash entry to which HKey points,
         // might have been used. Make sure that its signature is different.
         for ( ; p->HTable[HKey].Sign == p->Signature; HKey = (HKey+1) % p->nTableSize );
@@ -139,7 +139,7 @@ DdNode * reoTransferUnitsToNodes_rec( reo_man * p, reo_unit * pUnit )
     // treat the case of constants
     if ( Unit_IsConstant(pUnit) )
     {
-        bRes = cuddUniqueConst( dd, ((double)((int)(PORT_PTRUINT_T)(pUnit->pE))) );
+        bRes = cuddUniqueConst( dd, ((double)((int)(ABC_PTRUINT_T)(pUnit->pE))) );
         cuddRef( bRes );
     }
     else

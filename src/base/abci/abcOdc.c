@@ -168,7 +168,7 @@ Odc_Man_t * Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int f
     Odc_Man_t * p;
     unsigned * pData;
     int i, k;
-    p = ALLOC( Odc_Man_t, 1 );
+    p = ABC_ALLOC( Odc_Man_t, 1 );
     memset( p, 0, sizeof(Odc_Man_t) );
     assert( nVarsMax > 4 && nVarsMax < 16 );
     assert( nLevels > 0 && nLevels < 10 );
@@ -189,7 +189,7 @@ Odc_Man_t * Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int f
     // internal AIG package
     // allocate room for objects
     p->nObjsAlloc = ABC_DC_MAX_NODES; 
-    p->pObjs = ALLOC( Odc_Obj_t, p->nObjsAlloc * sizeof(Odc_Obj_t) );
+    p->pObjs = ABC_ALLOC( Odc_Obj_t, p->nObjsAlloc * sizeof(Odc_Obj_t) );
     p->nPis  = nVarsMax + 32;
     p->nObjs = 1 + p->nPis;
     memset( p->pObjs, 0, p->nObjs * sizeof(Odc_Obj_t) );
@@ -198,7 +198,7 @@ Odc_Man_t * Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int f
         p->pObjs[1 + p->nVarsMax + i].uMask = (1 << i);
     // allocate hash table
     p->nTableSize = p->nObjsAlloc/3 + 1;
-    p->pTable = ALLOC( Odc_Lit_t, p->nTableSize * sizeof(Odc_Lit_t) );
+    p->pTable = ABC_ALLOC( Odc_Lit_t, p->nTableSize * sizeof(Odc_Lit_t) );
     memset( p->pTable, 0, p->nTableSize * sizeof(Odc_Lit_t) );
     p->vUsedSpots = Vec_IntAlloc( 1000 );
 
@@ -284,23 +284,23 @@ void Abc_NtkDontCareFree( Odc_Man_t * p )
         printf( "Ave DCs per window = %6.2f %%. Ave DCs per finished window = %6.2f %%.\n", 
             1.0*p->nTotalDcs/p->nWins, 1.0*p->nTotalDcs/p->nWinsFinish );
         printf( "Runtime stats of the ODC manager:\n" );
-        PRT( "Cleaning    ", p->timeClean );
-        PRT( "Windowing   ", p->timeWin   );
-        PRT( "Miter       ", p->timeMiter );
-        PRT( "Simulation  ", p->timeSim   );
-        PRT( "Quantifying ", p->timeQuant );
-        PRT( "Truth table ", p->timeTruth );
-        PRT( "TOTAL       ", p->timeTotal );
-        PRT( "Aborted     ", p->timeAbort );
+        ABC_PRT( "Cleaning    ", p->timeClean );
+        ABC_PRT( "Windowing   ", p->timeWin   );
+        ABC_PRT( "Miter       ", p->timeMiter );
+        ABC_PRT( "Simulation  ", p->timeSim   );
+        ABC_PRT( "Quantifying ", p->timeQuant );
+        ABC_PRT( "Truth table ", p->timeTruth );
+        ABC_PRT( "TOTAL       ", p->timeTotal );
+        ABC_PRT( "Aborted     ", p->timeAbort );
     }
     Vec_PtrFree( p->vRoots );
     Vec_PtrFree( p->vBranches );
     Vec_PtrFree( p->vTruths );
     Vec_PtrFree( p->vTruthsElem );
     Vec_IntFree( p->vUsedSpots );
-    free( p->pObjs );
-    free( p->pTable );
-    free( p );
+    ABC_FREE( p->pObjs );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p );
 }
 
 
@@ -662,10 +662,10 @@ void * Abc_NtkDontCareTransfer_rec( Odc_Man_t * p, Abc_Obj_t * pNode, Abc_Obj_t 
     assert( Abc_ObjIsNode(pNode) );
     // consider the case when the node is the pivot
     if ( pNode == pPivot )
-        return pNode->pCopy = (void *)(PORT_PTRUINT_T)((Odc_Const1() << 16) | Odc_Const0());
+        return pNode->pCopy = (void *)(ABC_PTRUINT_T)((Odc_Const1() << 16) | Odc_Const0());
     // compute the cofactors
-    uData0 = (unsigned)(PORT_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin0(pNode), pPivot );
-    uData1 = (unsigned)(PORT_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin1(pNode), pPivot );
+    uData0 = (unsigned)(ABC_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin0(pNode), pPivot );
+    uData1 = (unsigned)(ABC_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, Abc_ObjFanin1(pNode), pPivot );
     // find the 0-cofactor
     uLit0 = Odc_NotCond( (Odc_Lit_t)(uData0 & 0xffff), Abc_ObjFaninC0(pNode) );
     uLit1 = Odc_NotCond( (Odc_Lit_t)(uData1 & 0xffff), Abc_ObjFaninC1(pNode) );
@@ -675,7 +675,7 @@ void * Abc_NtkDontCareTransfer_rec( Odc_Man_t * p, Abc_Obj_t * pNode, Abc_Obj_t 
     uLit1 = Odc_NotCond( (Odc_Lit_t)(uData1 >> 16), Abc_ObjFaninC1(pNode) );
     uRes1 = Odc_And( p, uLit0, uLit1 );
     // find the result
-    return pNode->pCopy = (void *)(PORT_PTRUINT_T)((uRes1 << 16) | uRes0);
+    return pNode->pCopy = (void *)(ABC_PTRUINT_T)((uRes1 << 16) | uRes0);
 }
 
 /**Function*************************************************************
@@ -701,21 +701,21 @@ int Abc_NtkDontCareTransfer( Odc_Man_t * p )
     Vec_PtrForEachEntry( p->vLeaves, pObj, i )
     {
         uLit = Odc_Var( p, i );
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)((uLit << 16) | uLit);
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)((uLit << 16) | uLit);
         Abc_NodeSetTravIdCurrent(pObj);
     }
     // set elementary variables at the branched 
     Vec_PtrForEachEntry( p->vBranches, pObj, i )
     {
         uLit = Odc_Var( p, i+p->nVarsMax );
-        pObj->pCopy = (void *)(PORT_PTRUINT_T)((uLit << 16) | uLit);
+        pObj->pCopy = (void *)(ABC_PTRUINT_T)((uLit << 16) | uLit);
         Abc_NodeSetTravIdCurrent(pObj);
     }
     // compute the AIG for the window
     p->iRoot = Odc_Const0();
     Vec_PtrForEachEntry( p->vRoots, pObj, i )
     {
-        uData = (unsigned)(PORT_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, pObj, p->pNode );
+        uData = (unsigned)(ABC_PTRUINT_T)Abc_NtkDontCareTransfer_rec( p, pObj, p->pNode );
         // get the cofactors
         uRes0 = uData & 0xffff;
         uRes1 = uData >> 16;

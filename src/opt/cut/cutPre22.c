@@ -398,7 +398,7 @@ void Cut_CellPrecompute()
     }
 
     printf( "BASIC: Total = %d. Good = %d. Entry = %d. ", (int)p->nTotal, (int)p->nGood, (int)sizeof(Cut_Cell_t) );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     printf( "Cells:  " );
     for ( i = 0; i <= 9; i++ )
         printf( "%d=%d ", i, p->nVarCounts[i] );
@@ -482,7 +482,7 @@ void Cut_CellPrecompute()
         }
 
         printf( "VAR %d: Total = %d. Good = %d. Entry = %d. ", k, p->nTotal, p->nGood, (int)sizeof(Cut_Cell_t) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
         printf( "Cells:  " );
         for ( i = 0; i <= 9; i++ )
             printf( "%d=%d ", i, p->nVarCounts[i] );
@@ -495,9 +495,9 @@ void Cut_CellPrecompute()
         printf( "\n" );
     }
 //    printf( "\n" );
-    PRT( "Supp ", p->timeSupp );
-    PRT( "Canon", p->timeCanon );
-    PRT( "Table", p->timeTable );
+    ABC_PRT( "Supp ", p->timeSupp );
+    ABC_PRT( "Canon", p->timeCanon );
+    ABC_PRT( "Table", p->timeTable );
 //    Cut_CManStop( p );
 }
 
@@ -517,7 +517,7 @@ int Cut_CellTableLookup( Cut_CMan_t * p, Cut_Cell_t * pCell )
     Cut_Cell_t ** pSlot, * pTemp;
     unsigned Hash;
     Hash = Extra_TruthHash( pCell->uTruth, Extra_TruthWordNum( pCell->nVars ) );
-    if ( !st_find_or_add( p->tTable, (char *)(PORT_PTRUINT_T)Hash, (char ***)&pSlot ) )
+    if ( !st_find_or_add( p->tTable, (char *)(ABC_PTRUINT_T)Hash, (char ***)&pSlot ) )
         *pSlot = NULL;
     for ( pTemp = *pSlot; pTemp; pTemp = pTemp->pNext )
     {
@@ -770,7 +770,7 @@ Cut_CMan_t * Cut_CManStart()
     int i, k;
     // start the manager
     assert( sizeof(unsigned) == 4 );
-    p = ALLOC( Cut_CMan_t, 1 );
+    p = ABC_ALLOC( Cut_CMan_t, 1 );
     memset( p, 0, sizeof(Cut_CMan_t) );
     // start the table and the memory manager
     p->tTable = st_init_table(st_ptrcmp,st_ptrhash);
@@ -799,7 +799,7 @@ void Cut_CManStop( Cut_CMan_t * p )
 {
     st_free_table( p->tTable );
     Extra_MmFixedStop( p->pMem );
-    free( p );
+    ABC_FREE( p );
 }
 /**Function*************************************************************
 
@@ -916,7 +916,7 @@ void Cut_CellDumpToFile()
 
     printf( "Library composed of %d functions is written into file \"%s\".  ", Counter, pFileName );
 
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
 }
 
 
@@ -962,7 +962,7 @@ int Cut_CellTruthLookup( unsigned * pTruth, int nVars )
 
     // check if the cell exists
     Hash = Extra_TruthHash( pCell->uTruth, Extra_TruthWordNum(pCell->nVars) );
-    if ( st_lookup( p->tTable, (char *)(PORT_PTRUINT_T)Hash, (char **)&pTemp ) )
+    if ( st_lookup( p->tTable, (char *)(ABC_PTRUINT_T)Hash, (char **)&pTemp ) )
     {
         for ( ; pTemp; pTemp = pTemp->pNext )
         {

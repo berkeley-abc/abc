@@ -430,7 +430,7 @@ void Map_MappingSetRefs( Map_Man_t * pMan )
             LevelMax = Map_Regular(pMan->pOutputs[i])->Level;
 
     // allocate place to store the nodes
-    ppStore = ALLOC( Map_Node_t *, LevelMax + 1 );
+    ppStore = ABC_ALLOC( Map_Node_t *, LevelMax + 1 );
     memset( ppStore, 0, sizeof(Map_Node_t *) * (LevelMax + 1) );
 
     // visit nodes reachable from POs in the DFS order through the best cuts
@@ -447,7 +447,7 @@ void Map_MappingSetRefs( Map_Man_t * pMan )
     for ( i = LevelMax; i >= 0; i-- )
         for ( pNode = ppStore[i]; pNode; pNode = (Map_Node_t *)pNode->pData0 )
             Map_NodeVecPush( pMan->vMapping, pNode );
-    free( ppStore );
+    ABC_FREE( ppStore );
 }
 
 /**Function*************************************************************

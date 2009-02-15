@@ -14,11 +14,11 @@
 #ifndef STMM_INCLUDED
 #define STMM_INCLUDED
 
+#include "extra.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "extra.h"
 
 typedef struct stmm_table_entry stmm_table_entry;
 typedef struct stmm_table stmm_table;

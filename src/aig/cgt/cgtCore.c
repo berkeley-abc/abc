@@ -220,7 +220,7 @@ p->timePrepare += clock() - clk;
             p->nCallsSat  -nCallsSat, 
             p->nCallsUndec-nCallsUndec,
             p->nCallsFiltered-nCallsFiltered );
-        PRT( "Time", clock() - clkTotal );
+        ABC_PRT( "Time", clock() - clkTotal );
     }
     Cgt_ManClean( p );
     p->nRecycles++;

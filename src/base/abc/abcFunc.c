@@ -290,7 +290,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
         if ( pMan )
             pSop = Extra_MmFlexEntryFetch( pMan, nFanins + 4 );
         else
-            pSop = ALLOC( char, nFanins + 4 );
+            pSop = ABC_ALLOC( char, nFanins + 4 );
         if ( bFuncOn == Cudd_ReadOne(dd) )
             sprintf( pSop, "%s %d\n", vCube->pArray, fMode );
         else
@@ -385,7 +385,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     if ( pMan )
         pSop = Extra_MmFlexEntryFetch( pMan, (nFanins + 3) * nCubes + 1 );
     else 
-        pSop = ALLOC( char, (nFanins + 3) * nCubes + 1 );
+        pSop = ABC_ALLOC( char, (nFanins + 3) * nCubes + 1 );
     pSop[(nFanins + 3) * nCubes] = 0;
     // create the SOP
     Vec_StrFill( vCube, nFanins, '-' );

@@ -338,7 +338,7 @@ cuddZddAlignToBdd(
     if (M * table->size != table->sizeZ)
     return(0);
     /* Create and initialize the inverse permutation array. */
-    invpermZ = ALLOC(int,table->sizeZ);
+    invpermZ = ABC_ALLOC(int,table->sizeZ);
     if (invpermZ == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -358,7 +358,7 @@ cuddZddAlignToBdd(
     cuddGarbageCollectZdd(table,0);
 
     result = zddShuffle(table, invpermZ);
-    FREE(invpermZ);
+    ABC_FREE(invpermZ);
     /* Fix the ZDD variable group tree. */
     zddFixTree(table,table->treeZ);
     return(result);
@@ -852,12 +852,12 @@ cuddZddSifting(
 
     /* Find order in which to sift variables. */
     var = NULL;
-    zdd_entry = ALLOC(int, size);
+    zdd_entry = ABC_ALLOC(int, size);
     if (zdd_entry == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSiftingOutOfMem;
     }
-    var = ALLOC(int, size);
+    var = ABC_ALLOC(int, size);
     if (var == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSiftingOutOfMem;
@@ -896,15 +896,15 @@ cuddZddSifting(
 #endif
     }
 
-    FREE(var);
-    FREE(zdd_entry);
+    ABC_FREE(var);
+    ABC_FREE(zdd_entry);
 
     return(1);
 
 cuddZddSiftingOutOfMem:
 
-    if (zdd_entry != NULL) FREE(zdd_entry);
-    if (var != NULL) FREE(var);
+    if (zdd_entry != NULL) ABC_FREE(zdd_entry);
+    if (var != NULL) ABC_FREE(var);
 
     return(0);
 
@@ -1438,7 +1438,7 @@ zddReorderPostprocess(
     slots = oldslots >> 1;
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    nodelist = ALLOC(DdNodePtr, slots);
+    nodelist = ABC_ALLOC(DdNodePtr, slots);
     MMoutOfMemory = saveHandler;
     if (nodelist == NULL) {
         return(1);
@@ -1467,7 +1467,7 @@ zddReorderPostprocess(
         node = next;
         }
     }
-    FREE(oldnodelist);
+    ABC_FREE(oldnodelist);
 
     table->memused += (slots - oldslots) * sizeof(DdNode *);
     table->slots += slots - oldslots;

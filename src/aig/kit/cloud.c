@@ -77,7 +77,7 @@ CloudManager * Cloud_Init( int nVars, int nBits )
         nBits = CLOUD_NODE_BITS;
 
     // start the manager
-    dd = CALLOC( CloudManager, 1 );
+    dd = ABC_CALLOC( CloudManager, 1 );
     dd->nMemUsed          += sizeof(CloudManager);
 
     // variables
@@ -96,10 +96,10 @@ CloudManager * Cloud_Init( int nVars, int nBits )
 
     // unique table
 clk1 = clock();
-    dd->tUnique           = CALLOC( CloudNode, dd->nNodesAlloc );
+    dd->tUnique           = ABC_CALLOC( CloudNode, dd->nNodesAlloc );
     dd->nMemUsed         += sizeof(CloudNode) * dd->nNodesAlloc;
 clk2 = clock();
-//PRT( "calloc() time", clk2 - clk1 ); 
+//ABC_PRT( "calloc() time", clk2 - clk1 ); 
 
     // set up the constant node (the only node that is not in the hash table)
     dd->nSignCur          = 1;
@@ -116,7 +116,7 @@ clk2 = clock();
     dd->pNodeEnd          = dd->tUnique + dd->nNodesAlloc;
 
     // set up the elementary variables
-    dd->vars              = ALLOC( CloudNode *, dd->nVars );
+    dd->vars              = ABC_ALLOC( CloudNode *, dd->nVars );
     dd->nMemUsed         += sizeof(CloudNode *) * dd->nVars;
     for ( i = 0; i < dd->nVars; i++ )
         dd->vars[i]   = cloudMakeNode( dd, i, dd->one, dd->zero );
@@ -140,12 +140,12 @@ clk2 = clock();
 void Cloud_Quit( CloudManager * dd )
 {
     int i;
-    FREE( dd->ppNodes );
-    free( dd->tUnique ); 
-    free( dd->vars ); 
+    ABC_FREE( dd->ppNodes );
+    ABC_FREE( dd->tUnique ); 
+    ABC_FREE( dd->vars ); 
     for ( i = 0; i < 4; i++ )
-        FREE( dd->tCaches[i] );
-    free( dd ); 
+        ABC_FREE( dd->tCaches[i] );
+    ABC_FREE( dd ); 
 }
 
 /**Function********************************************************************
@@ -218,17 +218,17 @@ void cloudCacheAllocate( CloudManager * dd, CloudOper oper )
 
     if ( CacheSize[oper] == 1 )
     {
-        dd->tCaches[oper] = (CloudCacheEntry2 *)CALLOC( CloudCacheEntry1, nCacheEntries );
+        dd->tCaches[oper] = (CloudCacheEntry2 *)ABC_CALLOC( CloudCacheEntry1, nCacheEntries );
         dd->nMemUsed     += sizeof(CloudCacheEntry1) * nCacheEntries;
     }
     else if ( CacheSize[oper] == 2 )
     {
-        dd->tCaches[oper] = (CloudCacheEntry2 *)CALLOC( CloudCacheEntry2, nCacheEntries );
+        dd->tCaches[oper] = (CloudCacheEntry2 *)ABC_CALLOC( CloudCacheEntry2, nCacheEntries );
         dd->nMemUsed     += sizeof(CloudCacheEntry2) * nCacheEntries;
     }
     else if ( CacheSize[oper] == 3 )
     {
-        dd->tCaches[oper] = (CloudCacheEntry2 *)CALLOC( CloudCacheEntry3, nCacheEntries );
+        dd->tCaches[oper] = (CloudCacheEntry2 *)ABC_CALLOC( CloudCacheEntry3, nCacheEntries );
         dd->nMemUsed     += sizeof(CloudCacheEntry3) * nCacheEntries;
     }
 }
@@ -619,7 +619,7 @@ CloudNode * Cloud_Support( CloudManager * dd, CloudNode * n )
     CLOUD_ASSERT(n);
 
     // allocate and initialize support array for cloudSupport
-    support = CALLOC( int, dd->nVars );
+    support = ABC_CALLOC( int, dd->nVars );
 
     // compute support and clean up markers
     cloudSupport( dd, Cloud_Regular(n), support );
@@ -634,7 +634,7 @@ CloudNode * Cloud_Support( CloudManager * dd, CloudNode * n )
             if ( res == NULL )
                 break;
         }
-    FREE( support );
+    ABC_FREE( support );
     return res;
 }
 
@@ -658,7 +658,7 @@ int Cloud_SupportSize( CloudManager * dd, CloudNode * n )
     CLOUD_ASSERT(n);
 
     // allocate and initialize support array for cloudSupport
-    support = CALLOC( int, dd->nVars );
+    support = ABC_CALLOC( int, dd->nVars );
 
     // compute support and clean up markers
     cloudSupport( dd, Cloud_Regular(n), support );
@@ -672,7 +672,7 @@ int Cloud_SupportSize( CloudManager * dd, CloudNode * n )
             count++;
     }
 
-    FREE( support );
+    ABC_FREE( support );
     return count;
 }
 
@@ -769,7 +769,7 @@ int Cloud_DagCollect( CloudManager * dd, CloudNode * n )
 {
     int res, Counter = 0;
     if ( dd->ppNodes == NULL )
-        dd->ppNodes = ALLOC( CloudNode *, dd->nNodesLimit );
+        dd->ppNodes = ABC_ALLOC( CloudNode *, dd->nNodesLimit );
     res = Cloud_DagCollect_rec( dd, Cloud_Regular( n ), &Counter );
     cloudClearMark( dd, Cloud_Regular( n ) );
     assert( res == Counter );

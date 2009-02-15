@@ -491,7 +491,7 @@ int Ssw_SecWithSimilarityPairs( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPai
     else
         printf( "Verification UNDECIDED. The number of remaining regs = %d (total = %d).  ", 
             Aig_ManRegNum(pAigRes), Aig_ManRegNum(p0)+Aig_ManRegNum(p1) );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     Aig_ManStop( pAigRes );
     return RetValue;
 }

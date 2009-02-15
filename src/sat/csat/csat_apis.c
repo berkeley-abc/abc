@@ -77,7 +77,7 @@ ABC_Manager ABC_InitManager()
 {
     ABC_Manager_t * mng;
     Abc_Start();
-    mng = ALLOC( ABC_Manager_t, 1 );
+    mng = ABC_ALLOC( ABC_Manager_t, 1 );
     memset( mng, 0, sizeof(ABC_Manager_t) );
     mng->pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     mng->pNtk->pName = Extra_UtilStrsav("csat_network");
@@ -116,8 +116,8 @@ void ABC_ReleaseManager( ABC_Manager mng )
     if ( mng->pTarget )    Abc_NtkDelete( mng->pTarget );
     if ( mng->vNodes )     Vec_PtrFree( mng->vNodes );
     if ( mng->vValues )    Vec_IntFree( mng->vValues );
-    FREE( mng->pDumpFileName );
-    free( mng );
+    ABC_FREE( mng->pDumpFileName );
+    ABC_FREE( mng );
     Abc_Stop();
 }
 
@@ -442,7 +442,7 @@ void ABC_SetSolveImplicationLimit( ABC_Manager mng, int num )
   SeeAlso     []
 
 ***********************************************************************/
-void ABC_SetTotalBacktrackLimit( ABC_Manager mng, uint64 num )
+void ABC_SetTotalBacktrackLimit( ABC_Manager mng, ABC_UINT64_T num )
 {
     mng->Params.nTotalBacktrackLimit = num;
 }
@@ -458,7 +458,7 @@ void ABC_SetTotalBacktrackLimit( ABC_Manager mng, uint64 num )
   SeeAlso     []
 
 ***********************************************************************/
-void ABC_SetTotalInspectLimit( ABC_Manager mng, uint64 num )
+void ABC_SetTotalInspectLimit( ABC_Manager mng, ABC_UINT64_T num )
 {
     mng->Params.nTotalInspectLimit = num;
 }
@@ -473,7 +473,7 @@ void ABC_SetTotalInspectLimit( ABC_Manager mng, uint64 num )
   SeeAlso     []
 
 ***********************************************************************/
-uint64 ABC_GetTotalBacktracksMade( ABC_Manager mng )
+ABC_UINT64_T ABC_GetTotalBacktracksMade( ABC_Manager mng )
 {
     return mng->Params.nTotalBacktracksMade;
 }
@@ -489,7 +489,7 @@ uint64 ABC_GetTotalBacktracksMade( ABC_Manager mng )
   SeeAlso     []
 
 ***********************************************************************/
-uint64 ABC_GetTotalInspectsMade( ABC_Manager mng )
+ABC_UINT64_T ABC_GetTotalInspectsMade( ABC_Manager mng )
 {
     return mng->Params.nTotalInspectsMade;
 }
@@ -507,7 +507,7 @@ uint64 ABC_GetTotalInspectsMade( ABC_Manager mng )
 ***********************************************************************/
 void ABC_EnableDump( ABC_Manager mng, char * dump_file )
 {
-    FREE( mng->pDumpFileName );
+    ABC_FREE( mng->pDumpFileName );
     mng->pDumpFileName = Extra_UtilStrsav( dump_file );
 }
 
@@ -569,7 +569,7 @@ void ABC_SolveInit( ABC_Manager mng )
     if ( mng->nog == 0 )
         { printf( "ABC_SolveInit: Target is not specified by ABC_AddTarget().\n" ); return; }
 
-    // free the previous target network if present
+    // ABC_FREE the previous target network if present
     if ( mng->pTarget ) Abc_NtkDelete( mng->pTarget );
 
     // set the new target network
@@ -614,7 +614,7 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 
     // try to prove the miter using a number of techniques
     if ( mng->mode )
-        RetValue = Abc_NtkMiterSat( mng->pTarget, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, NULL, NULL );
+        RetValue = Abc_NtkMiterSat( mng->pTarget, (ABC_INT64_T)pParams->nMiteringLimitLast, (ABC_INT64_T)0, 0, NULL, NULL );
     else
 //        RetValue = Abc_NtkMiterProve( &mng->pTarget, pParams ); // old CEC engine
         RetValue = Abc_NtkIvyProve( &mng->pTarget, pParams ); // new CEC engine
@@ -634,7 +634,7 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
             mng->pResult->names[i]  = Extra_UtilStrsav( ABC_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)) ); 
             mng->pResult->values[i] = mng->pTarget->pModel[i];
         }
-        FREE( mng->pTarget->pModel );
+        ABC_FREE( mng->pTarget->pModel );
     }
     else assert( 0 );
 
@@ -704,11 +704,11 @@ void ABC_Dump_Bench_File( ABC_Manager mng )
 CSAT_Target_ResultT * ABC_TargetResAlloc( int nVars )
 {
     CSAT_Target_ResultT * p;
-    p = ALLOC( CSAT_Target_ResultT, 1 );
+    p = ABC_ALLOC( CSAT_Target_ResultT, 1 );
     memset( p, 0, sizeof(CSAT_Target_ResultT) );
     p->no_sig = nVars;
-    p->names = ALLOC( char *, nVars );
-    p->values = ALLOC( int, nVars );
+    p->names = ABC_ALLOC( char *, nVars );
+    p->values = ABC_ALLOC( int, nVars );
     memset( p->names, 0, sizeof(char *) * nVars );
     memset( p->values, 0, sizeof(int) * nVars );
     return p;
@@ -734,12 +734,12 @@ void ABC_TargetResFree( CSAT_Target_ResultT * p )
         int i = 0;
         for ( i = 0; i < p->no_sig; i++ )
         {
-            FREE(p->names[i]);
+            ABC_FREE(p->names[i]);
         }
     }
-    FREE( p->names );
-    FREE( p->values );
-    free( p );
+    ABC_FREE( p->names );
+    ABC_FREE( p->values );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

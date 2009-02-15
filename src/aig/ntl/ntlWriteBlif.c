@@ -270,7 +270,7 @@ int fprintfBz2(bz2file * b, char * fmt, ...) {
                 b->nBytesMax = b->nBytes + 1;
             else
                 b->nBytesMax *= 2;
-            if ((newBuf = REALLOC( char,b->buf,b->nBytesMax )) == NULL)
+            if ((newBuf = ABC_REALLOC( char,b->buf,b->nBytesMax )) == NULL)
                 return -1;
             else
                 b->buf = newBuf;
@@ -645,14 +645,14 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
 
     memset(&b,0,sizeof(b));
     b.nBytesMax = (1<<12);
-    b.buf = ALLOC( char,b.nBytesMax );
+    b.buf = ABC_ALLOC( char,b.nBytesMax );
 
     // start the output stream
     b.f = fopen( pFileName, "wb" ); 
     if ( b.f == NULL )
     {
         fprintf( stdout, "Ioa_WriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
-        FREE(b.buf);
+        ABC_FREE(b.buf);
         return;
     }
     if (!strncmp(pFileName+strlen(pFileName)-4,".bz2",4)) {
@@ -661,7 +661,7 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
             BZ2_bzWriteClose( &bzError, b.b, 0, NULL, NULL );
             fprintf( stdout, "Ioa_WriteBlif(): Cannot start compressed stream.\n" );
             fclose( b.f );
-            FREE(b.buf);
+            ABC_FREE(b.buf);
             return;
         }
     }
@@ -676,12 +676,12 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
         if (bzError == BZ_IO_ERROR) {
             fprintf( stdout, "Ioa_WriteBlif(): I/O error closing compressed stream.\n" );
             fclose( b.f );
-            FREE(b.buf);
+            ABC_FREE(b.buf);
             return;
         }
     }
     fclose( b.f );
-    FREE(b.buf);
+    ABC_FREE(b.buf);
 }
 
 

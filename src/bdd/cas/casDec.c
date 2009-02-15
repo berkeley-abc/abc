@@ -151,7 +151,7 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
     nLuts     = 0;
     do
     {
-        p = (LUT*) malloc( sizeof(LUT) );
+        p = (LUT*) ABC_ALLOC( char, sizeof(LUT) );
         memset( p, 0, sizeof(LUT) );
 
         if ( nVarsRem + PrevMulti <= s_LutSize ) // this is the last LUT
@@ -194,9 +194,9 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
 
 
         // there should be as many columns, codes, and nodes, as there are columns on this level
-        p->pbCols  = (DdNode **) malloc( p->nCols * sizeof(DdNode *) );
-        p->pbCodes = (DdNode **) malloc( p->nCols * sizeof(DdNode *) );
-        p->paNodes = (DdNode **) malloc( p->nCols * sizeof(DdNode *) );
+        p->pbCols  = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
+        p->pbCodes = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
+        p->paNodes = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
 
         pLuts[nLuts] = p;
         nLuts++;
@@ -316,7 +316,7 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
             DdNode ** pbTemp;
             int k, v;
 
-            pbTemp = (DdNode **) malloc( p->nCols * sizeof(DdNode *) );
+            pbTemp = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
 
             // create the identical permutation
             for ( v = 0; v < dd->size; v++ )
@@ -336,7 +336,7 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
                 Cudd_RecursiveDeref( dd, p->pbCodes[k] );
                 p->pbCodes[k] = pbTemp[k];
             }
-            free( pbTemp );
+            ABC_FREE( pbTemp );
         }
     } 
     if ( fVerbose )
@@ -402,10 +402,10 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
         }
         Cudd_RecursiveDeref( dd, p->bRelation );
 
-        free( p->pbCols );
-        free( p->pbCodes );
-        free( p->paNodes );
-        free( p );
+        ABC_FREE( p->pbCols );
+        ABC_FREE( p->pbCodes );
+        ABC_FREE( p->paNodes );
+        ABC_FREE( p );
     }
 
     return 1;
@@ -490,11 +490,11 @@ void WriteLUTSintoBLIFfile( FILE * pFile, DdManager * dd, LUT ** pLuts, int nLut
         for ( v = 0; v < dd->size; v++ )
         {
             if ( pNamesLocalIn[v] )
-                free( pNamesLocalIn[v] );
+                ABC_FREE( pNamesLocalIn[v] );
             pNamesLocalIn[v] = NULL;
         }
         for ( v = 0; v < p->nMulti; v++ )
-            free( pNamesLocalOut[v] );
+            ABC_FREE( pNamesLocalOut[v] );
     }
 }
 

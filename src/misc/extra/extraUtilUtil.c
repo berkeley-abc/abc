@@ -169,7 +169,7 @@ char * Extra_UtilStrsav( char *s )
        return s;
     }
     else {
-       return strcpy(ALLOC(char, strlen(s)+1), s);
+       return strcpy(ABC_ALLOC(char, strlen(s)+1), s);
     }
 }
 
@@ -199,7 +199,7 @@ char * Extra_UtilTildeExpand( char *fname )
 
     home     = getenv("HOME");
     length   = n_tildes * strlen(home) + strlen(fname);
-    expanded = ALLOC(char, length + 1);
+    expanded = ABC_ALLOC(char, length + 1);
 
     j = 0;
     for (i = 0; i < (int)strlen(fname); i++){
@@ -279,22 +279,22 @@ char * Extra_UtilFileSearch(char *file, char *path, char *mode)
     if (strcmp(path, ".") == 0) {
         buffer = Extra_UtilStrsav(file);
     } else {
-        buffer = ALLOC(char, strlen(path) + strlen(file) + 4);
+        buffer = ABC_ALLOC(char, strlen(path) + strlen(file) + 4);
         (void) sprintf(buffer, "%s/%s", path, file);
     }
     filename = Extra_UtilTildeExpand(buffer);
-    FREE(buffer);
+    ABC_FREE(buffer);
 
     /* see if we can access it */
     if (Extra_UtilCheckFile(filename, mode)) {
-        FREE(save_path);
+        ABC_FREE(save_path);
         return filename;
     }
-    FREE(filename);
+    ABC_FREE(filename);
     path = ++cp;
     } while (! quit); 
 
-    FREE(save_path);
+    ABC_FREE(save_path);
     return 0;
 }
 
@@ -390,7 +390,7 @@ double Extra_CpuTimeDouble()
 ***********************************************************************/
 void Extra_MemTest()
 {
-    malloc( 1002 );
+    ABC_ALLOC( char, 1002 );
 }
 
 ////////////////////////////////////////////////////////////////////////

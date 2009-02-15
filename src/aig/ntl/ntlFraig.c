@@ -52,7 +52,7 @@ void Ntl_ManUpdateNoMergeReprs( Aig_Man_t * pAig, Aig_Obj_t ** pReprs )
     int i;
 
     // allocate room for the new representative
-    pReprsNew = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    pReprsNew = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
     memset( pReprsNew, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pAig) );
     Aig_ManForEachObj( pAig, pObj, i )
     {
@@ -105,7 +105,7 @@ void Ntl_ManUpdateNoMergeReprs( Aig_Man_t * pAig, Aig_Obj_t ** pReprs )
         else
             pReprs[ pObj->Id ] = NULL;
     }
-    free( pReprsNew );
+    ABC_FREE( pReprsNew );
 }
 
 /**Function*************************************************************
@@ -148,7 +148,7 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
     // (each node in the collapsed manager may have more than one equivalent node 
     // in the original manager; this procedure finds the first node in the original 
     // manager that is equivalent to the given node in the collapsed manager) 
-    pMapBack = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAigCol) );
+    pMapBack = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAigCol) );
     memset( pMapBack, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pAigCol) );
     Aig_ManForEachObj( pAig, pObj, i )
     {
@@ -162,7 +162,7 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
     }
 
     // create the equivalence classes for the original manager
-    pReprs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    pReprs = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
     memset( pReprs, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pAig) );
     Aig_ManForEachObj( pAig, pObj, i )
     {
@@ -186,7 +186,7 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
         else
             pReprs[pCorresp->Id] = pObj;
     }
-    free( pMapBack );
+    ABC_FREE( pMapBack );
 
     // recall pointers to the nets of pNew
     Aig_ManForEachObj( pAig, pObj, i )

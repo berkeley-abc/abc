@@ -94,7 +94,7 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
     char * pBuffer = 0;
 
     // allocate the genlib structure
-    pLib = ALLOC( Mio_Library_t, 1 );
+    pLib = ABC_ALLOC( Mio_Library_t, 1 );
     memset( pLib, 0, sizeof(Mio_Library_t) );
     pLib->pName = Extra_UtilStrsav( FileName );
     pLib->tName2Gate = st_init_table(strcmp, st_strhash);
@@ -122,7 +122,7 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
         // move the file current reading position to the beginning
         rewind( pFile ); 
         // load the contents of the file into memory
-        pBuffer   = ALLOC( char, nFileSize + 10 );
+        pBuffer   = ABC_ALLOC( char, nFileSize + 10 );
         fread( pBuffer, nFileSize, 1, pFile );
         // terminate the string with '\0'
         pBuffer[ nFileSize ] = '\0';
@@ -137,10 +137,10 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
     if ( Mio_LibraryReadInternal( pLib, pBuffer, fExtendedFormat, tExcludeGate, fVerbose ) )
     {
         Mio_LibraryDelete( pLib );
-        free( pBuffer );
+        ABC_FREE( pBuffer );
         return NULL;
     }
-    free( pBuffer );
+    ABC_FREE( pBuffer );
 
     // derive the functinality of gates
     if ( Mio_LibraryParseFormulas( pLib ) )
@@ -243,7 +243,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
     char * pToken = *ppToken;
 
     // allocate the gate structure
-    pGate = ALLOC( Mio_Gate_t, 1 );
+    pGate = ABC_ALLOC( Mio_Gate_t, 1 );
     memset( pGate, 0, sizeof(Mio_Gate_t) );
 
     // read the name
@@ -311,7 +311,7 @@ Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, bool fExtendedFormat )
     char * pToken = *ppToken;
 
     // allocate the gate structure
-    pPin = ALLOC( Mio_Pin_t, 1 );
+    pPin = ABC_ALLOC( Mio_Pin_t, 1 );
     memset( pPin, 0, sizeof(Mio_Pin_t) );
 
     // read the name
@@ -397,7 +397,7 @@ char * chomp( char *s )
         if ( !isspace(*b) )
             break;
     // strsav the string
-    a = strcpy( ALLOC(char, strlen(b)+1), b );
+    a = strcpy( ABC_ALLOC(char, strlen(b)+1), b );
     // remove trailing spaces
     for ( c = a+strlen(a); c > a; c-- )
         if ( *c == 0 || isspace(*c) )
@@ -464,12 +464,12 @@ void Mio_LibrarySortGates( Mio_Library_t * pLib )
 {
     Mio_Gate_t ** ppGates, * pGate;
     int i = 0;
-    ppGates = ALLOC( Mio_Gate_t *, pLib->nGates );
+    ppGates = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );
     Mio_LibraryForEachGate( pLib, pGate )
         ppGates[i++] = pGate;
     assert( i == pLib->nGates );
     // sort gates by area
-    pLib->ppGates0 = ALLOC( Mio_Gate_t *, pLib->nGates );
+    pLib->ppGates0 = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );
     for ( i = 0; i < pLib->nGates; i++ )
         pLib->ppGates0[i] = ppGates[i];
     qsort( (void *)ppGates, pLib->nGates, sizeof(void *), 
@@ -477,9 +477,9 @@ void Mio_LibrarySortGates( Mio_Library_t * pLib )
     for ( i = 0; i < pLib->nGates; i++ )
         ppGates[i]->pNext = (i < pLib->nGates-1)? ppGates[i+1] : NULL;
     pLib->pGates = ppGates[0];
-    free( ppGates );
+    ABC_FREE( ppGates );
     // sort gates by name
-    pLib->ppGatesName = ALLOC( Mio_Gate_t *, pLib->nGates );
+    pLib->ppGatesName = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );
     for ( i = 0; i < pLib->nGates; i++ )
         pLib->ppGatesName[i] = pLib->ppGates0[i];
     qsort( (void *)pLib->ppGatesName, pLib->nGates, sizeof(void *), 

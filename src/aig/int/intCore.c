@@ -146,7 +146,7 @@ p->timeCnf += clock() - clk;
         {
             printf( "Step = %2d. Frames = 1 + %d. And = %5d. Lev = %5d.  ", 
                 s+1, p->nFrames, Aig_ManNodeNum(p->pFrames), Aig_ManLevelNum(p->pFrames) );
-            PRT( "Time", clock() - clk2 );
+            ABC_PRT( "Time", clock() - clk2 );
         }
         // iterate the interpolation procedure
         for ( i = 0; ; i++ )
@@ -176,7 +176,7 @@ p->timeCnf += clock() - clk;
             {
                 printf( "   I = %2d. Bmc =%3d. IntAnd =%6d. IntLev =%5d. Conf =%6d.  ", 
                     i+1, i + 1 + p->nFrames, Aig_ManNodeNum(p->pInter), Aig_ManLevelNum(p->pInter), p->nConfCur );
-                PRT( "Time", clock() - clk );
+                ABC_PRT( "Time", clock() - clk );
             }
             if ( RetValue == 0 ) // found a (spurious?) counter-example
             {

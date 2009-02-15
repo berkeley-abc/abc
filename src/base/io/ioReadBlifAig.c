@@ -60,7 +60,7 @@ struct Io_BlifMan_t_
     // temporary objects
     Io_BlifObj_t *       pObjects;     // the storage for objects
     int                  nObjects;     // the number of objects allocated
-    int                  iObjNext;     // the next free object
+    int                  iObjNext;     // the next ABC_FREE object
     // file lines
     char *               pModel;       // .model line
     Vec_Ptr_t *          vInputs;      // .inputs lines
@@ -171,7 +171,7 @@ Abc_Ntk_t * Io_ReadBlifAsAig( char * pFileName, int fCheck )
 static Io_BlifMan_t * Io_BlifAlloc()
 {
     Io_BlifMan_t * p;
-    p = ALLOC( Io_BlifMan_t, 1 );
+    p = ABC_ALLOC( Io_BlifMan_t, 1 );
     memset( p, 0, sizeof(Io_BlifMan_t) );
     p->vLines   = Vec_PtrAlloc( 512 );
     p->vInputs  = Vec_PtrAlloc( 512 );
@@ -201,9 +201,9 @@ static void Io_BlifFree( Io_BlifMan_t * p )
 {
     if ( p->pAig )
         Abc_NtkDelete( p->pAig );
-    if ( p->pBuffer )  free( p->pBuffer );
-    if ( p->pObjects ) free( p->pObjects );
-    if ( p->pTable )   free( p->pTable );
+    if ( p->pBuffer )  ABC_FREE( p->pBuffer );
+    if ( p->pObjects ) ABC_FREE( p->pObjects );
+    if ( p->pTable )   ABC_FREE( p->pTable );
     Vec_PtrFree( p->vLines );
     Vec_PtrFree( p->vInputs );
     Vec_PtrFree( p->vOutputs );
@@ -214,7 +214,7 @@ static void Io_BlifFree( Io_BlifMan_t * p )
     Vec_PtrFree( p->vPos );
     Vec_PtrFree( p->vLis );
     Vec_PtrFree( p->vLos );
-    free( p );
+    ABC_FREE( p );
 }
 
 
@@ -444,7 +444,7 @@ static char * Io_BlifLoadFile( char * pFileName )
         printf( "Io_BlifLoadFile(): The file is empty.\n" );
         return NULL;
     }
-    pContents = ALLOC( char, nFileSize + 10 );
+    pContents = ABC_ALLOC( char, nFileSize + 10 );
     rewind( pFile );
     fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
@@ -539,12 +539,12 @@ static void Io_BlifReadPreparse( Io_BlifMan_t * p )
     p->nObjects = Io_BlifEstimatePiNum(p) + Vec_PtrSize(p->vLatches) + Vec_PtrSize(p->vNames) + 512;
 
     // allocate memory for objects
-    p->pObjects = ALLOC( Io_BlifObj_t, p->nObjects );
+    p->pObjects = ABC_ALLOC( Io_BlifObj_t, p->nObjects );
     memset( p->pObjects, 0, p->nObjects * sizeof(Io_BlifObj_t) );
 
     // allocate memory for the hash table
     p->nTableSize = p->nObjects/2 + 1;
-    p->pTable = ALLOC( Io_BlifObj_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Io_BlifObj_t *, p->nTableSize );
     memset( p->pTable, 0, p->nTableSize * sizeof(Io_BlifObj_t *) );
 }
 
@@ -970,7 +970,7 @@ static int Io_BlifParseConstruct( Io_BlifMan_t * p )
         
         // add the latch box
         pLatch = Abc_NtkCreateLatch( pAig );
-        pLatch->pData = (void *)(PORT_PTRUINT_T)pObjIo->Init;
+        pLatch->pData = (void *)(ABC_PTRUINT_T)pObjIo->Init;
         Abc_ObjAssignName( pLatch, pObjIo->pName, "L" );
         Abc_ObjAddFanin( pLatch, pObj  );
 

@@ -42,12 +42,12 @@ static int Map_NodeVecCompareLevels( Map_Node_t ** pp1, Map_Node_t ** pp2 );
 Map_NodeVec_t * Map_NodeVecAlloc( int nCap )
 {
     Map_NodeVec_t * p;
-    p = ALLOC( Map_NodeVec_t, 1 );
+    p = ABC_ALLOC( Map_NodeVec_t, 1 );
     if ( nCap > 0 && nCap < 16 )
         nCap = 16;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( Map_Node_t *, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( Map_Node_t *, p->nCap ) : NULL;
     return p;
 }
 
@@ -64,8 +64,8 @@ Map_NodeVec_t * Map_NodeVecAlloc( int nCap )
 ***********************************************************************/
 void Map_NodeVecFree( Map_NodeVec_t * p )
 {
-    FREE( p->pArray );
-    FREE( p );
+    ABC_FREE( p->pArray );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -115,7 +115,7 @@ void Map_NodeVecGrow( Map_NodeVec_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( Map_Node_t *, p->pArray, nCapMin ); 
+    p->pArray = ABC_REALLOC( Map_Node_t *, p->pArray, nCapMin ); 
     p->nCap   = nCapMin;
 }
 

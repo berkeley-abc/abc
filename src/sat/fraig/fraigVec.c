@@ -40,12 +40,12 @@
 Fraig_NodeVec_t * Fraig_NodeVecAlloc( int nCap )
 {
     Fraig_NodeVec_t * p;
-    p = ALLOC( Fraig_NodeVec_t, 1 );
+    p = ABC_ALLOC( Fraig_NodeVec_t, 1 );
     if ( nCap > 0 && nCap < 8 )
         nCap = 8;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( Fraig_Node_t *, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( Fraig_Node_t *, p->nCap ) : NULL;
     return p;
 }
 
@@ -62,8 +62,8 @@ Fraig_NodeVec_t * Fraig_NodeVecAlloc( int nCap )
 ***********************************************************************/
 void Fraig_NodeVecFree( Fraig_NodeVec_t * p )
 {
-    FREE( p->pArray );
-    FREE( p );
+    ABC_FREE( p->pArray );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -80,10 +80,10 @@ void Fraig_NodeVecFree( Fraig_NodeVec_t * p )
 Fraig_NodeVec_t * Fraig_NodeVecDup( Fraig_NodeVec_t * pVec )
 {
     Fraig_NodeVec_t * p;
-    p = ALLOC( Fraig_NodeVec_t, 1 );
+    p = ABC_ALLOC( Fraig_NodeVec_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
-    p->pArray = p->nCap? ALLOC( Fraig_Node_t *, p->nCap ) : NULL;
+    p->pArray = p->nCap? ABC_ALLOC( Fraig_Node_t *, p->nCap ) : NULL;
     memcpy( p->pArray, pVec->pArray, sizeof(Fraig_Node_t *) * pVec->nSize );
     return p;
 }
@@ -135,7 +135,7 @@ void Fraig_NodeVecGrow( Fraig_NodeVec_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( Fraig_Node_t *, p->pArray, nCapMin ); 
+    p->pArray = ABC_REALLOC( Fraig_Node_t *, p->pArray, nCapMin ); 
     p->nCap   = nCapMin;
 }
 

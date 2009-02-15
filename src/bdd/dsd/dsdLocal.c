@@ -57,12 +57,12 @@ DdNode * Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode )
     DdNode * bFunc, * bRes, * bTemp;
     st_table * pCache;
     
-    pPermute  = ALLOC( int, dd->size );
-    pVar2Form = ALLOC( int, dd->size );
-    pForm2Var = ALLOC( int, dd->size );
+    pPermute  = ABC_ALLOC( int, dd->size );
+    pVar2Form = ABC_ALLOC( int, dd->size );
+    pForm2Var = ABC_ALLOC( int, dd->size );
 
-    pbCube0 = ALLOC( DdNode *, dd->size );
-    pbCube1 = ALLOC( DdNode *, dd->size );
+    pbCube0 = ABC_ALLOC( DdNode *, dd->size );
+    pbCube1 = ABC_ALLOC( DdNode *, dd->size );
 
     // remap the global function in such a way that
     // the support variables of each formal input are adjacent
@@ -119,11 +119,11 @@ DdNode * Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode )
     Cudd_RecursiveDeref( dd, bTemp );
 ////////////
 */
-    FREE(pPermute);
-    FREE(pVar2Form);
-    FREE(pForm2Var);
-    FREE(pbCube0);
-    FREE(pbCube1);
+    ABC_FREE(pPermute);
+    ABC_FREE(pVar2Form);
+    ABC_FREE(pForm2Var);
+    ABC_FREE(pbCube0);
+    ABC_FREE(pbCube1);
 
     Cudd_Deref( bRes );
     return bRes;

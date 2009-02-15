@@ -241,7 +241,7 @@ void Abc_ShowFile( char * FileNameDot )
     // create the PostScript file name
     FileGeneric = Extra_FileNameGeneric( FileNameDot );
     sprintf( FileNamePs,  "%s.ps",  FileGeneric ); 
-    free( FileGeneric );
+    ABC_FREE( FileGeneric );
 
     // generate the PostScript file using DOT
     sprintf( CommandDot,  "%s -Tps -o %s %s", pDotName, FileNamePs, FileNameDot ); 

@@ -123,11 +123,11 @@ Dar_Lib_t * Dar_LibAlloc( int nObjs )
     unsigned uTruths[4] = { 0xAAAA, 0xCCCC, 0xF0F0, 0xFF00 };
     Dar_Lib_t * p;
     int i;//, clk = clock();
-    p = ALLOC( Dar_Lib_t, 1 );
+    p = ABC_ALLOC( Dar_Lib_t, 1 );
     memset( p, 0, sizeof(Dar_Lib_t) );
     // allocate objects
     p->nObjs = nObjs;
-    p->pObjs = ALLOC( Dar_LibObj_t, nObjs );
+    p->pObjs = ABC_ALLOC( Dar_LibObj_t, nObjs );
     memset( p->pObjs, 0, sizeof(Dar_LibObj_t) * nObjs );
     // allocate canonical data
     p->pPerms4 = Dar_Permutations( 4 );
@@ -139,7 +139,7 @@ Dar_Lib_t * Dar_LibAlloc( int nObjs )
         p->pObjs[i].fTerm = 1;
         p->pObjs[i].Num = uTruths[i];
     }
-//    PRT( "Library start", clock() - clk );
+//    ABC_PRT( "Library start", clock() - clk );
     return p;
 }
 
@@ -156,21 +156,21 @@ Dar_Lib_t * Dar_LibAlloc( int nObjs )
 ***********************************************************************/
 void Dar_LibFree( Dar_Lib_t * p )
 {
-    free( p->pObjs );
-    free( p->pDatas );
-    free( p->pNodesMem );
-    free( p->pNodes0Mem );
-    free( p->pSubgrMem );
-    free( p->pSubgr0Mem );
-    free( p->pPriosMem );
-    FREE( p->pPlaceMem );
-    FREE( p->pScoreMem );
-    free( p->pPerms4 );
-    free( p->puCanons );
-    free( p->pPhases );
-    free( p->pPerms );
-    free( p->pMap );
-    free( p );
+    ABC_FREE( p->pObjs );
+    ABC_FREE( p->pDatas );
+    ABC_FREE( p->pNodesMem );
+    ABC_FREE( p->pNodes0Mem );
+    ABC_FREE( p->pSubgrMem );
+    ABC_FREE( p->pSubgr0Mem );
+    ABC_FREE( p->pPriosMem );
+    ABC_FREE( p->pPlaceMem );
+    ABC_FREE( p->pScoreMem );
+    ABC_FREE( p->pPerms4 );
+    ABC_FREE( p->puCanons );
+    ABC_FREE( p->pPhases );
+    ABC_FREE( p->pPerms );
+    ABC_FREE( p->pMap );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -275,8 +275,8 @@ void Dar_LibSetup( Dar_Lib_t * p, Vec_Int_t * vOuts, Vec_Int_t * vPrios )
         p->nSubgr[Class]++;
     }
     // allocate memory for the roots of each class
-    p->pSubgrMem = ALLOC( int, Vec_IntSize(vOuts) );
-    p->pSubgr0Mem = ALLOC( int, Vec_IntSize(vOuts) );
+    p->pSubgrMem = ABC_ALLOC( int, Vec_IntSize(vOuts) );
+    p->pSubgr0Mem = ABC_ALLOC( int, Vec_IntSize(vOuts) );
     p->nSubgrTotal = 0;
     for ( i = 0; i < 222; i++ )
     {
@@ -298,7 +298,7 @@ void Dar_LibSetup( Dar_Lib_t * p, Vec_Int_t * vOuts, Vec_Int_t * vPrios )
     if ( fTraining )
     {
         // allocate memory for the priority of roots of each class
-        p->pPriosMem = ALLOC( int, Vec_IntSize(vOuts) );
+        p->pPriosMem = ABC_ALLOC( int, Vec_IntSize(vOuts) );
         p->nSubgrTotal = 0;
         for ( i = 0; i < 222; i++ )
         {
@@ -311,7 +311,7 @@ void Dar_LibSetup( Dar_Lib_t * p, Vec_Int_t * vOuts, Vec_Int_t * vPrios )
         assert( p->nSubgrTotal == Vec_IntSize(vOuts) );
 
         // allocate memory for the priority of roots of each class
-        p->pPlaceMem = ALLOC( int, Vec_IntSize(vOuts) );
+        p->pPlaceMem = ABC_ALLOC( int, Vec_IntSize(vOuts) );
         p->nSubgrTotal = 0;
         for ( i = 0; i < 222; i++ )
         {
@@ -324,7 +324,7 @@ void Dar_LibSetup( Dar_Lib_t * p, Vec_Int_t * vOuts, Vec_Int_t * vPrios )
         assert( p->nSubgrTotal == Vec_IntSize(vOuts) );
 
         // allocate memory for the priority of roots of each class
-        p->pScoreMem = ALLOC( int, Vec_IntSize(vOuts) );
+        p->pScoreMem = ABC_ALLOC( int, Vec_IntSize(vOuts) );
         p->nSubgrTotal = 0;
         for ( i = 0; i < 222; i++ )
         {
@@ -340,7 +340,7 @@ void Dar_LibSetup( Dar_Lib_t * p, Vec_Int_t * vOuts, Vec_Int_t * vPrios )
     {
         int Counter = 0;
         // allocate memory for the priority of roots of each class
-        p->pPriosMem = ALLOC( int, Vec_IntSize(vOuts) );
+        p->pPriosMem = ABC_ALLOC( int, Vec_IntSize(vOuts) );
         p->nSubgrTotal = 0;
         for ( i = 0; i < 222; i++ )
         {
@@ -366,8 +366,8 @@ void Dar_LibSetup( Dar_Lib_t * p, Vec_Int_t * vOuts, Vec_Int_t * vPrios )
     for ( i = 0; i < 222; i++ )
         p->nNodesTotal += p->nNodes[i];
     // allocate memory for the nodes of each class
-    p->pNodesMem = ALLOC( int, p->nNodesTotal );
-    p->pNodes0Mem = ALLOC( int, p->nNodesTotal );
+    p->pNodesMem = ABC_ALLOC( int, p->nNodesTotal );
+    p->pNodes0Mem = ABC_ALLOC( int, p->nNodesTotal );
     p->nNodesTotal = 0;
     for ( i = 0; i < 222; i++ )
     {
@@ -409,10 +409,10 @@ void Dar_LibCreateData( Dar_Lib_t * p, int nDatas )
 {
     if ( p->nDatas == nDatas )
         return;
-    FREE( p->pDatas );
+    ABC_FREE( p->pDatas );
     // allocate datas
     p->nDatas = nDatas;
-    p->pDatas = ALLOC( Dar_LibDat_t, nDatas );
+    p->pDatas = ABC_ALLOC( Dar_LibDat_t, nDatas );
     memset( p->pDatas, 0, sizeof(Dar_LibDat_t) * nDatas );
 }
 
@@ -572,7 +572,7 @@ void Dar_LibStart()
     assert( s_DarLib == NULL );
     s_DarLib = Dar_LibRead();
 //    printf( "The 4-input library started with %d nodes and %d subgraphs. ", s_DarLib->nObjs - 4, s_DarLib->nSubgrTotal );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
 }
 
 /**Function*************************************************************

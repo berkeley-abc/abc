@@ -325,7 +325,7 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, int fAllNod
 //    vNodes = Abc_NtkDfs( pNtkOld, fAllNodes );
     vNodes = Abc_NtkDfsIter( pNtkOld, fAllNodes );
 //printf( "Nodes = %d. ", Vec_PtrSize(vNodes) );
-//PRT( "Time", clock() - clk );
+//ABC_PRT( "Time", clock() - clk );
 //    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNodeOld, i )
     {
@@ -385,6 +385,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, int fReco
     if ( Abc_NodeIsConst(pNodeOld) || Hop_Regular(pRoot) == Hop_ManConst1(pMan) )
         return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Hop_IsComplement(pRoot) );
     // perform special case-strashing using the record of AIG subgraphs
+/*
     if ( fRecord && Abc_NtkRecIsRunning() && Abc_ObjFaninNum(pNodeOld) > 2 && Abc_ObjFaninNum(pNodeOld) <= Abc_NtkRecVarNum() )
     {
         extern Vec_Int_t * Abc_NtkRecMemory();
@@ -398,6 +399,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, int fReco
         if ( Abc_NtkRecStrashNode( pNtkNew, pNodeOld, pTruth, nVars ) )
             return pNodeOld->pCopy;
     }
+*/
     // set elementary variables
     Abc_ObjForEachFanin( pNodeOld, pFanin, i )
         Hop_IthVar(pMan, i)->pData = pFanin->pCopy;

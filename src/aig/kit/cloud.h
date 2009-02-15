@@ -19,15 +19,15 @@
 #ifndef __CLOUD_H__
 #define __CLOUD_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
-#include "port_type.h"
+#include "abc_global.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
@@ -176,14 +176,14 @@ struct cloudCacheEntry3  // the three-argument cache
 #define DD_P2                         4256249
 #define DD_P3                         741457
 #define DD_P4                         1618033999
-#define cloudHashCudd2(f,g,s)        ((((unsigned)(PORT_PTRUINT_T)(f) * DD_P1 + (unsigned)(PORT_PTRUINT_T)(g)) * DD_P2) >> (s))
-#define cloudHashCudd3(f,g,h,s)      (((((unsigned)(PORT_PTRUINT_T)(f) * DD_P1 + (unsigned)(PORT_PTRUINT_T)(g)) * DD_P2 + (unsigned)(PORT_PTRUINT_T)(h)) * DD_P3) >> (s))
+#define cloudHashCudd2(f,g,s)        ((((unsigned)(ABC_PTRUINT_T)(f) * DD_P1 + (unsigned)(ABC_PTRUINT_T)(g)) * DD_P2) >> (s))
+#define cloudHashCudd3(f,g,h,s)      (((((unsigned)(ABC_PTRUINT_T)(f) * DD_P1 + (unsigned)(ABC_PTRUINT_T)(g)) * DD_P2 + (unsigned)(ABC_PTRUINT_T)(h)) * DD_P3) >> (s))
 
 // node complementation (using node)
-#define Cloud_Regular(p)             ((CloudNode*)(((PORT_PTRUINT_T)(p)) & ~01))   // get the regular node (w/o bubble)
-#define Cloud_Not(p)                 ((CloudNode*)(((PORT_PTRUINT_T)(p)) ^  01))   // complement the node
-#define Cloud_NotCond(p,c)           ((CloudNode*)(((PORT_PTRUINT_T)(p)) ^ (c)))   // complement the node conditionally
-#define Cloud_IsComplement(p)        ((int)(((PORT_PTRUINT_T)(p)) & 01))           // check if complemented
+#define Cloud_Regular(p)             ((CloudNode*)(((ABC_PTRUINT_T)(p)) & ~01))   // get the regular node (w/o bubble)
+#define Cloud_Not(p)                 ((CloudNode*)(((ABC_PTRUINT_T)(p)) ^  01))   // complement the node
+#define Cloud_NotCond(p,c)           ((CloudNode*)(((ABC_PTRUINT_T)(p)) ^ (c)))   // complement the node conditionally
+#define Cloud_IsComplement(p)        ((int)(((ABC_PTRUINT_T)(p)) & 01))           // check if complemented
 // checking constants (using node)
 #define Cloud_IsConstant(p)          (((Cloud_Regular(p))->v & CLOUD_MARK_OFF) == CLOUD_CONST_INDEX)
 #define cloudIsConstant(p)           (((p)->v & CLOUD_MARK_OFF) == CLOUD_CONST_INDEX)
@@ -212,23 +212,6 @@ struct cloudCacheEntry3  // the three-argument cache
 
 //#define CLOUD_ASSERT(p)              (assert((p) >= (dd->pNodeStart-1) && (p) < dd->pNodeEnd))
 #define CLOUD_ASSERT(p)            assert((p) >= dd->tUnique && (p) < dd->tUnique+dd->nNodesAlloc)
-
-// utility macros
-#ifndef ALLOC
-#define ALLOC(type, num)           ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef CALLOC
-#define CALLOC(type, num)           ((type *) calloc((num), sizeof(type)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)                   ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef PRT
-#define PRT(a,t)                   fprintf( stdout, "%s = ", (a)); printf( "%.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC) )
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       FUNCTION DECLARATIONS                      ///

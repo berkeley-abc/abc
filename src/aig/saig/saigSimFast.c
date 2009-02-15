@@ -108,7 +108,7 @@ Faig_Man_t * Faig_ManAlloc( Aig_Man_t * pAig )
     int nWords;
 //    assert( Faig_ManIsCorrect(pAig) );
     nWords = 2 * Aig_ManNodeNum(pAig) + Aig_ManPoNum(pAig);
-    p = (Faig_Man_t *)ALLOC( char, sizeof(Faig_Man_t) + sizeof(int) * nWords );
+    p = (Faig_Man_t *)ABC_ALLOC( char, sizeof(Faig_Man_t) + sizeof(int) * nWords );
 //printf( "Allocating %7.2f Mb.\n", 1.0 * (sizeof(Faig_Man_t) + sizeof(int) * nWords)/(1<<20) );
     memset( p, 0, sizeof(Faig_Man_t) );
     p->nPis   = Aig_ManPiNum(pAig) - Aig_ManRegNum(pAig);
@@ -247,8 +247,8 @@ static inline unsigned Faig_SimulateTransferShift( unsigned uOld, unsigned uNew 
 ***********************************************************************/
 int * Faig_ManSimulateFrames( Faig_Man_t * p, int nFrames, int nPref, int fTrans )
 {
-    int * pNumOnes = CALLOC( unsigned, p->nObjs );
-    unsigned * pSimInfo = ALLOC( unsigned, p->nObjs );
+    int * pNumOnes = ABC_CALLOC( unsigned, p->nObjs );
+    unsigned * pSimInfo = ABC_ALLOC( unsigned, p->nObjs );
     int f, i;
 //printf( "Allocating %7.2f Mb.\n", 1.0 * 4 * p->nObjs/(1<<20) );
 //printf( "Allocating %7.2f Mb.\n", 1.0 * 4 * p->nObjs/(1<<20) );
@@ -287,7 +287,7 @@ int * Faig_ManSimulateFrames( Faig_Man_t * p, int nFrames, int nPref, int fTrans
                 pNumOnes[i] += Aig_WordCountOnes( pSimInfo[i] );
         }
     }
-    free( pSimInfo );
+    ABC_FREE( pSimInfo );
     return pNumOnes;
 }
 
@@ -336,7 +336,7 @@ float Faig_ManComputeProbOne( int nOnes, int nSimWords )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Faig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
+Vec_Int_t * Faig_ManComputeSwitchProbs4( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
 {
     extern char * Abc_FrameReadFlag( char * pFlag ); 
     int fTrans = 1;
@@ -351,7 +351,7 @@ Vec_Int_t * Faig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, i
     pSwitching = (float *)vSwitching->pArray;
 clk = clock();
     pAig = Faig_ManCreate( p );
-//PRT( "\nCreation  ", clock() - clk );
+//ABC_PRT( "\nCreation  ", clock() - clk );
     Aig_ManRandom( 1 );
     // get the number of  frames to simulate
     // if the parameter "seqsimframes" is defined, use it
@@ -368,7 +368,7 @@ clk = clock();
 //printf( "Simulating %d frames.\n", nFramesReal );
 clk = clock();
     pProbs = Faig_ManSimulateFrames( pAig, nFramesReal, nPref, fTrans );
-//PRT( "Simulation", clock() - clk );
+//ABC_PRT( "Simulation", clock() - clk );
 clk = clock();
     if ( fTrans )
     {
@@ -412,10 +412,10 @@ clk = clock();
             pSwitching[pObj->Id] = Faig_ManComputeSwitching( pProbs[Counter++], nFramesReal - nPref );
         assert( Counter == pAig->nObjs );
     }
-    free( pProbs );
-    free( pAig );
-//PRT( "Switch    ", clock() - clk );
-//PRT( "TOTAL     ", clock() - clkTotal );
+    ABC_FREE( pProbs );
+    ABC_FREE( pAig );
+//ABC_PRT( "Switch    ", clock() - clk );
+//ABC_PRT( "TOTAL     ", clock() - clkTotal );
     return vSwitching;
 }
 
@@ -430,9 +430,10 @@ clk = clock();
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
+Vec_Int_t * Saig_ManComputeSwitchProb3s( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
 {
-    return Faig_ManComputeSwitchProbs( p, nFrames, nPref, fProbOne );
+//    return Faig_ManComputeSwitchProbs( p, nFrames, nPref, fProbOne );
+    return NULL;
 }
 
 

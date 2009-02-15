@@ -22,8 +22,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define CALLOC(type, num)  ((type *) calloc((long)(num), (long)sizeof(type)))
-
 static int  reoRecursiveDeref( reo_unit * pUnit );
 static int  reoCheckZeroRefs( reo_plane * pPlane );
 static int  reoCheckLevels( reo_man * p );
@@ -217,7 +215,7 @@ s_AplAfter  = p->nAplEnd;
 
         if ( p->pOrder == NULL )
         {
-            pOrder = ALLOC( int, p->nSupp );
+            pOrder = ABC_ALLOC( int, p->nSupp );
             for ( i = 0; i < p->nSupp; i++ )
                 pOrder[ p->pMapToDdVarsFinal[i] ] = p->pMapToDdVarsOrig[ p->pOrderInt[i] ]; 
         }
@@ -246,7 +244,7 @@ s_AplAfter  = p->nAplEnd;
             printf( "REO: Internal verification is okay!\n" );
 
         if ( p->pOrder == NULL )
-            free( pOrder );
+            ABC_FREE( pOrder );
     }
 
     // recycle the data structure
@@ -270,35 +268,35 @@ void reoResizeStructures( reo_man * p, int nDdVarsMax, int nNodesMax, int nFuncs
     // resize data structures depending on the number of variables in the DD manager
     if ( p->nSuppAlloc == 0 )
     {
-        p->pSupp             = ALLOC( int,        nDdVarsMax + 1 );
-        p->pOrderInt         = ALLOC( int,        nDdVarsMax + 1 );
-        p->pMapToPlanes      = ALLOC( int,        nDdVarsMax + 1 );
-        p->pMapToDdVarsOrig  = ALLOC( int,        nDdVarsMax + 1 );
-        p->pMapToDdVarsFinal = ALLOC( int,        nDdVarsMax + 1 );
-        p->pPlanes           = CALLOC( reo_plane, nDdVarsMax + 1 );
-        p->pVarCosts         = ALLOC( double,     nDdVarsMax + 1 );
-        p->pLevelOrder       = ALLOC( int,        nDdVarsMax + 1 );
+        p->pSupp             = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pOrderInt         = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pMapToPlanes      = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pMapToDdVarsOrig  = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pMapToDdVarsFinal = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pPlanes           = ABC_CALLOC( reo_plane, nDdVarsMax + 1 );
+        p->pVarCosts         = ABC_ALLOC( double,     nDdVarsMax + 1 );
+        p->pLevelOrder       = ABC_ALLOC( int,        nDdVarsMax + 1 );
         p->nSuppAlloc        = nDdVarsMax + 1;
     }
     else if ( p->nSuppAlloc < nDdVarsMax )
     {
-        free( p->pSupp );
-        free( p->pOrderInt );
-        free( p->pMapToPlanes );
-        free( p->pMapToDdVarsOrig );
-        free( p->pMapToDdVarsFinal );
-        free( p->pPlanes );
-        free( p->pVarCosts );
-        free( p->pLevelOrder );
+        ABC_FREE( p->pSupp );
+        ABC_FREE( p->pOrderInt );
+        ABC_FREE( p->pMapToPlanes );
+        ABC_FREE( p->pMapToDdVarsOrig );
+        ABC_FREE( p->pMapToDdVarsFinal );
+        ABC_FREE( p->pPlanes );
+        ABC_FREE( p->pVarCosts );
+        ABC_FREE( p->pLevelOrder );
 
-        p->pSupp             = ALLOC( int,        nDdVarsMax + 1 );
-        p->pOrderInt         = ALLOC( int,        nDdVarsMax + 1 );
-        p->pMapToPlanes      = ALLOC( int,        nDdVarsMax + 1 );
-        p->pMapToDdVarsOrig  = ALLOC( int,        nDdVarsMax + 1 );
-        p->pMapToDdVarsFinal = ALLOC( int,        nDdVarsMax + 1 );
-        p->pPlanes           = CALLOC( reo_plane, nDdVarsMax + 1 );
-        p->pVarCosts         = ALLOC( double,     nDdVarsMax + 1 );
-        p->pLevelOrder       = ALLOC( int,        nDdVarsMax + 1 );
+        p->pSupp             = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pOrderInt         = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pMapToPlanes      = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pMapToDdVarsOrig  = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pMapToDdVarsFinal = ABC_ALLOC( int,        nDdVarsMax + 1 );
+        p->pPlanes           = ABC_CALLOC( reo_plane, nDdVarsMax + 1 );
+        p->pVarCosts         = ABC_ALLOC( double,     nDdVarsMax + 1 );
+        p->pLevelOrder       = ABC_ALLOC( int,        nDdVarsMax + 1 );
         p->nSuppAlloc        = nDdVarsMax + 1;
     }
 
@@ -310,10 +308,10 @@ void reoResizeStructures( reo_man * p, int nDdVarsMax, int nNodesMax, int nFuncs
         p->nRefNodesAlloc  = 3*nNodesMax + 1;
         p->nMemChunksAlloc = (10*nNodesMax + 1)/REO_CHUNK_SIZE + 1;
 
-        p->HTable          = CALLOC( reo_hash,  p->nTableSize );
-        p->pRefNodes       = ALLOC( DdNode *,   p->nRefNodesAlloc );
-        p->pWidthCofs      = ALLOC( reo_unit *, p->nRefNodesAlloc );
-        p->pMemChunks      = ALLOC( reo_unit *, p->nMemChunksAlloc );
+        p->HTable          = ABC_CALLOC( reo_hash,  p->nTableSize );
+        p->pRefNodes       = ABC_ALLOC( DdNode *,   p->nRefNodesAlloc );
+        p->pWidthCofs      = ABC_ALLOC( reo_unit *, p->nRefNodesAlloc );
+        p->pMemChunks      = ABC_ALLOC( reo_unit *, p->nMemChunksAlloc );
     }
     else if ( p->nNodesMaxAlloc < nNodesMax )
     {
@@ -325,29 +323,29 @@ void reoResizeStructures( reo_man * p, int nDdVarsMax, int nNodesMax, int nFuncs
         p->nRefNodesAlloc  = 3*nNodesMax + 1;
         p->nMemChunksAlloc = (10*nNodesMax + 1)/REO_CHUNK_SIZE + 1;
 
-        free( p->HTable );
-        free( p->pRefNodes );
-        free( p->pWidthCofs );
-        p->HTable          = CALLOC( reo_hash,    p->nTableSize );
-        p->pRefNodes       = ALLOC(  DdNode *,    p->nRefNodesAlloc );
-        p->pWidthCofs      = ALLOC(  reo_unit *,  p->nRefNodesAlloc );
+        ABC_FREE( p->HTable );
+        ABC_FREE( p->pRefNodes );
+        ABC_FREE( p->pWidthCofs );
+        p->HTable          = ABC_CALLOC( reo_hash,    p->nTableSize );
+        p->pRefNodes       = ABC_ALLOC(  DdNode *,    p->nRefNodesAlloc );
+        p->pWidthCofs      = ABC_ALLOC(  reo_unit *,  p->nRefNodesAlloc );
         // p->pMemChunks should be reallocated because it contains pointers currently in use
-        pTemp              = ALLOC(  reo_unit *,  p->nMemChunksAlloc );
+        pTemp              = ABC_ALLOC(  reo_unit *,  p->nMemChunksAlloc );
         memmove( pTemp, p->pMemChunks, sizeof(reo_unit *) * nMemChunksAllocPrev );
-        free( p->pMemChunks );
+        ABC_FREE( p->pMemChunks );
         p->pMemChunks      = pTemp;
     }
 
     // resize the data structures depending on the number of functions
     if ( p->nTopsAlloc == 0 )
     {
-        p->pTops      = ALLOC( reo_unit *, nFuncs );
+        p->pTops      = ABC_ALLOC( reo_unit *, nFuncs );
         p->nTopsAlloc = nFuncs;
     }
     else if ( p->nTopsAlloc < nFuncs )
     {
-        free( p->pTops );
-        p->pTops      = ALLOC( reo_unit *, nFuncs );
+        ABC_FREE( p->pTops );
+        p->pTops      = ABC_ALLOC( reo_unit *, nFuncs );
         p->nTopsAlloc = nFuncs;
     }
 }

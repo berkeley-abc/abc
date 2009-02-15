@@ -126,14 +126,14 @@ static inline void       Aig_TsiSetNext( unsigned * pState, int nWords, unsigned
 Aig_Tsi_t * Aig_TsiStart( Aig_Man_t * pAig )
 {
     Aig_Tsi_t * p;
-    p = (Aig_Tsi_t *)malloc( sizeof(Aig_Tsi_t) );
+    p = ABC_ALLOC( Aig_Tsi_t, 1 );
     memset( p, 0, sizeof(Aig_Tsi_t) );
     p->pAig    = pAig;
     p->nWords  = Aig_BitWordNum( 2*Aig_ManRegNum(pAig) );
     p->vStates = Vec_PtrAlloc( 1000 );
     p->pMem    = Aig_MmFixedStart( sizeof(unsigned) * p->nWords + sizeof(unsigned *), 10000 );
     p->nBins   = Aig_PrimeCudd(TSI_MAX_ROUNDS/2);
-    p->pBins   = ALLOC( unsigned *, p->nBins );
+    p->pBins   = ABC_ALLOC( unsigned *, p->nBins );
     memset( p->pBins, 0, sizeof(unsigned *) * p->nBins );
     return p;
 }
@@ -153,8 +153,8 @@ void Aig_TsiStop( Aig_Tsi_t * p )
 {
     Aig_MmFixedStop( p->pMem, 0 );
     Vec_PtrFree( p->vStates );
-    free( p->pBins );
-    free( p );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

@@ -468,7 +468,7 @@ void Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk )
     }
     // decide how many steps
     nSteps = pLutLib ? 20 : Nwk_ManLevelMax(pNtk);
-    pCounters = ALLOC( int, nSteps + 1 );
+    pCounters = ABC_ALLOC( int, nSteps + 1 );
     memset( pCounters, 0, sizeof(int)*(nSteps + 1) );
     // perform delay trace
     tArrival = Nwk_ManDelayTraceLut( pNtk );
@@ -493,7 +493,7 @@ void Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk )
         printf( "%3d %s : %5d  (%6.2f %%)\n", pLutLib? 5*(i+1) : i+1, 
             pLutLib? "%":"lev", Nodes, 100.0*Nodes/Nwk_ManNodeNum(pNtk) );
     }
-    free( pCounters );
+    ABC_FREE( pCounters );
 }
 
 

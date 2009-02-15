@@ -21,10 +21,6 @@
 #ifndef __FRA_H__
 #define __FRA_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,6 +40,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -215,8 +215,8 @@ struct Fra_Man_t_
     sat_solver *     pSat;              // SAT solver
     int              nSatVars;          // the number of variables currently used
     Vec_Ptr_t *      vPiVars;           // the PIs of the cone used 
-    sint64           nBTLimitGlobal;    // resource limit
-    sint64           nInsLimitGlobal;   // resource limit
+    ABC_INT64_T           nBTLimitGlobal;    // resource limit
+    ABC_INT64_T           nInsLimitGlobal;   // resource limit
     Vec_Ptr_t **     pMemFanins;        // the arrays of fanins for some FRAIG nodes
     int *            pMemSatNums;       // the array of SAT numbers for some FRAIG nodes
     int              nMemAlloc;         // allocated size of the arrays for FRAIG varnums and fanins
@@ -290,7 +290,7 @@ static inline int          Fra_ImpCreate( int Left, int Right )                 
 ////////////////////////////////////////////////////////////////////////
 
 /*=== fraCec.c ========================================================*/
-extern int                 Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
+extern int                 Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
 extern int                 Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
 extern int                 Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int nPartSize, int fSmart, int fVerbose );
 /*=== fraClass.c ========================================================*/
@@ -376,7 +376,7 @@ extern void                Fra_SmlSimulate( Fra_Man_t * p, int fInit );
 extern void                Fra_SmlResimulate( Fra_Man_t * p );
 extern Fra_Sml_t *         Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame );
 extern void                Fra_SmlStop( Fra_Sml_t * p );
-extern Fra_Sml_t *         Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
+extern Fra_Sml_t *         Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords, int fCheckMiter );
 extern Fra_Sml_t *         Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
 extern Fra_Cex_t *         Fra_SmlGetCounterExample( Fra_Sml_t * p );
 extern Fra_Cex_t *         Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel );

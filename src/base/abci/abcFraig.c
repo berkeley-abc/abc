@@ -185,7 +185,7 @@ Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtkMain, Abc
             }
         assert( pObj->pCopy != NULL );
     }
-    free( ppNames );
+    ABC_FREE( ppNames );
     // build FRAIG for each node
     Abc_AigForEachAnd( pNtkStrash, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Fraig_NodeAnd( pMan, 
@@ -742,7 +742,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
     // perform partitioned computation of structural choices
     pFraig = Abc_NtkFraigPartitioned( vStore, &Params );
     Abc_NtkFraigStoreClean();
-//PRT( "Total choicing time", clock() - clk );
+//ABC_PRT( "Total choicing time", clock() - clk );
     return pFraig;
 }
 

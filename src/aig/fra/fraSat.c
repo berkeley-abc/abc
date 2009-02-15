@@ -101,7 +101,7 @@ clk = clock();
     pLits[1] = toLitCond( Fra_ObjSatNum(pNew), pOld->fPhase == pNew->fPhase );
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
-        (sint64)nBTLimit, (sint64)0, 
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
@@ -145,7 +145,7 @@ clk = clock();
     pLits[0] = toLitCond( Fra_ObjSatNum(pOld), 1 );
     pLits[1] = toLitCond( Fra_ObjSatNum(pNew), pOld->fPhase ^ pNew->fPhase );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
-        (sint64)nBTLimit, (sint64)0, 
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
@@ -177,12 +177,12 @@ p->timeSatFail += clock() - clk;
     // check BDD proof
     {
         int RetVal;
-        PRT( "Sat", clock() - clk2 );
+        ABC_PRT( "Sat", clock() - clk2 );
         clk2 = clock();
         RetVal = Fra_NodesAreEquivBdd( pOld, pNew );
 //        printf( "%d ", RetVal );
         assert( RetVal );
-        PRT( "Bdd", clock() - clk2 );
+        ABC_PRT( "Bdd", clock() - clk2 );
         printf( "\n" );
     }
 */
@@ -263,7 +263,7 @@ clk = clock();
     pLits[1] = toLitCond( Fra_ObjSatNum(pNew), !fComplR );
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
-        (sint64)nBTLimit, (sint64)0, 
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
@@ -370,7 +370,7 @@ clk = clock();
     pLits[1] = toLitCond( Fra_ObjSatNum(pNew), !fComplR );
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
-        (sint64)nBTLimit, (sint64)0, 
+        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
@@ -447,7 +447,7 @@ int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
 clk = clock();
     pLits[0] = toLitCond( Fra_ObjSatNum(pNew), pNew->fPhase );
     RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 1, 
-        (sint64)p->pPars->nBTLimitMiter, (sint64)0, 
+        (ABC_INT64_T)p->pPars->nBTLimitMiter, (ABC_INT64_T)0, 
         p->nBTLimitGlobal, p->nInsLimitGlobal );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )

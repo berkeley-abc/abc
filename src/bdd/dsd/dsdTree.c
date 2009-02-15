@@ -56,13 +56,13 @@ static int s_GateSizeMax;
 Dsd_Node_t * Dsd_TreeNodeCreate( int Type, int nDecs, int BlockNum )
 {
     // allocate memory for this node 
-    Dsd_Node_t * p = (Dsd_Node_t *) malloc( sizeof(Dsd_Node_t) );
+    Dsd_Node_t * p = (Dsd_Node_t *) ABC_ALLOC( char, sizeof(Dsd_Node_t) );
     memset( p, 0, sizeof(Dsd_Node_t) );
     p->Type       = Type;       // the type of this block
     p->nDecs      = nDecs;      // the number of decompositions
     if ( p->nDecs )
     {
-        p->pDecs      = (Dsd_Node_t **) malloc( p->nDecs * sizeof(Dsd_Node_t *) );
+        p->pDecs      = (Dsd_Node_t **) ABC_ALLOC( char, p->nDecs * sizeof(Dsd_Node_t *) );
         p->pDecs[0]   = NULL;
     }
     return p;
@@ -83,8 +83,8 @@ void Dsd_TreeNodeDelete( DdManager * dd, Dsd_Node_t * pNode )
 {
     if ( pNode->G )  Cudd_RecursiveDeref( dd, pNode->G );
     if ( pNode->S )  Cudd_RecursiveDeref( dd, pNode->S );
-    FREE( pNode->pDecs );
-    FREE( pNode );
+    ABC_FREE( pNode->pDecs );
+    ABC_FREE( pNode );
 }
 
 /**Function*************************************************************
@@ -555,7 +555,7 @@ Dsd_Node_t ** Dsd_TreeCollectNodesDfs( Dsd_Manager_t * pDsdMan, int * pnNodes )
 
     nNodesAlloc = Dsd_TreeCountNonTerminalNodes(pDsdMan);
     nNodes  = 0;
-    ppNodes = ALLOC( Dsd_Node_t *, nNodesAlloc );
+    ppNodes = ABC_ALLOC( Dsd_Node_t *, nNodesAlloc );
     for ( i = 0; i < pDsdMan->nRoots; i++ )
         Dsd_TreeCollectNodesDfs_rec( Dsd_Regular(pDsdMan->pRoots[i]), ppNodes, &nNodes );
     Dsd_TreeUnmark( pDsdMan );
@@ -583,7 +583,7 @@ Dsd_Node_t ** Dsd_TreeCollectNodesDfsOne( Dsd_Manager_t * pDsdMan, Dsd_Node_t * 
     int nNodes, nNodesAlloc;
     nNodesAlloc = Dsd_TreeCountNonTerminalNodesOne(pNode);
     nNodes  = 0;
-    ppNodes = ALLOC( Dsd_Node_t *, nNodesAlloc );
+    ppNodes = ABC_ALLOC( Dsd_Node_t *, nNodesAlloc );
     Dsd_TreeCollectNodesDfs_rec( Dsd_Regular(pNode), ppNodes, &nNodes );
     Dsd_TreeUnmark_rec(Dsd_Regular(pNode));
     assert( nNodesAlloc == nNodes );
@@ -682,7 +682,7 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
         fprintf( pFile, "%s = ", pOutputName );
     else
         fprintf( pFile, "NOT(%s) = ", pOutputName );
-    pInputNums = ALLOC( int, pNode->nDecs );
+    pInputNums = ABC_ALLOC( int, pNode->nDecs );
     if ( pNode->Type == DSD_NODE_CONST1 )
     {
          fprintf( pFile, " Constant 1.\n" );
@@ -815,7 +815,7 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
                 Dsd_TreePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, pInputNames, Buffer, nOffset + 6, pSigCounter, fShortNames );
             }
     }
-    free( pInputNums );
+    ABC_FREE( pInputNums );
 }
 
 /**Function*************************************************************
@@ -863,7 +863,7 @@ void Dsd_NodePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pOut
         fprintf( pFile, "%s = ", pOutputName );
     else
         fprintf( pFile, "NOT(%s) = ", pOutputName );
-    pInputNums = ALLOC( int, pNode->nDecs );
+    pInputNums = ABC_ALLOC( int, pNode->nDecs );
     if ( pNode->Type == DSD_NODE_CONST1 )
     {
         fprintf( pFile, " Constant 1.\n" );
@@ -984,7 +984,7 @@ void Dsd_NodePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pOut
                 Dsd_NodePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, Buffer, nOffset + 6, pSigCounter );
             }
     }
-    free( pInputNums );
+    ABC_FREE( pInputNums );
 }
 
 

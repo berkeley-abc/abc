@@ -123,7 +123,7 @@ Cudd_Init(
 
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    unique->stash = ALLOC(char,(maxMemory / DD_STASH_FRACTION) + 4);
+    unique->stash = ABC_ALLOC(char,(maxMemory / DD_STASH_FRACTION) + 4);
     MMoutOfMemory = saveHandler;
     if (unique->stash == NULL) {
     (void) fprintf(unique->err,"Unable to set aside memory\n");
@@ -155,7 +155,7 @@ Cudd_Init(
     one = unique->one;
     zero = Cudd_Not(one);
     /* Create the projection functions. */
-    unique->vars = ALLOC(DdNodePtr,unique->maxSize);
+    unique->vars = ABC_ALLOC(DdNodePtr,unique->maxSize);
     if (unique->vars == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -193,7 +193,7 @@ void
 Cudd_Quit(
   DdManager * unique)
 {
-    if (unique->stash != NULL) FREE(unique->stash);
+    if (unique->stash != NULL) ABC_FREE(unique->stash);
     cuddFreeTable(unique);
 
 } /* end of Cudd_Quit */
@@ -223,7 +223,7 @@ cuddZddInitUniv(
     DdNode    *p, *res;
     int        i;
 
-    zdd->univ = ALLOC(DdNodePtr, zdd->sizeZ);
+    zdd->univ = ABC_ALLOC(DdNodePtr, zdd->sizeZ);
     if (zdd->univ == NULL) {
     zdd->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -237,7 +237,7 @@ cuddZddInitUniv(
     res = cuddUniqueInterZdd(zdd, index, p, p);
     if (res == NULL) {
         Cudd_RecursiveDerefZdd(zdd,p);
-        FREE(zdd->univ);
+        ABC_FREE(zdd->univ);
         return(0);
     }
     cuddRef(res);
@@ -271,7 +271,7 @@ cuddZddFreeUniv(
 {
     if (zdd->univ) {
     Cudd_RecursiveDerefZdd(zdd, zdd->univ[0]);
-    FREE(zdd->univ);
+    ABC_FREE(zdd->univ);
     }
 
 } /* end of cuddZddFreeUniv */

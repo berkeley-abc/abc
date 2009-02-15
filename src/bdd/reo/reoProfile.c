@@ -132,8 +132,8 @@ void reoProfileWidthStart( reo_man * p )
     int v;
 
     // allocate and clean the storage for starting and stopping levels
-    pWidthStart = ALLOC( int, p->nSupp + 1 );
-    pWidthStop  = ALLOC( int, p->nSupp + 1 );
+    pWidthStart = ABC_ALLOC( int, p->nSupp + 1 );
+    pWidthStop  = ABC_ALLOC( int, p->nSupp + 1 );
     memset( pWidthStart, 0, sizeof(int) * (p->nSupp + 1) );
     memset( pWidthStop, 0, sizeof(int) * (p->nSupp + 1) );
 
@@ -200,8 +200,8 @@ void reoProfileWidthStart( reo_man * p )
 //        printf( "Level %2d: Width = %5d. Correct = %d.\n", v, Temp, p->pPlanes[v].statsWidth );
     }
     p->nWidthBeg = p->nWidthCur;
-    free( pWidthStart );
-    free( pWidthStop );
+    ABC_FREE( pWidthStart );
+    ABC_FREE( pWidthStop );
 }
 
 /**Function********************************************************************

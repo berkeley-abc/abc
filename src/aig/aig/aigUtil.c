@@ -84,6 +84,22 @@ void Aig_ManIncrementTravId( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Make sure AIG has not gaps in the numeric order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManHasNoGaps( Aig_Man_t * p )
+{
+    return (int)(Aig_ManObjNum(p) == Aig_ManPiNum(p) + Aig_ManPoNum(p) + Aig_ManNodeNum(p) + 1);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collect the latches.]
 
   Description []
@@ -997,7 +1013,7 @@ void Aig_ManCleanPioNumbers( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManCountChoices( Aig_Man_t * p )
+int Aig_ManChoiceNum( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i, Counter = 0;
@@ -1159,6 +1175,26 @@ unsigned Aig_ManRandom( int fReset )
     return (m_z << 16) + m_w;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Creates random info for the primary inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManRandomInfo( Vec_Ptr_t * vInfo, int iWordStart, int iWordStop )
+{
+    unsigned * pInfo;
+    int i, w;
+    Vec_PtrForEachEntry( vInfo, pInfo, i )
+        for ( w = iWordStart; w < iWordStop; w++ )
+            pInfo[w] = Aig_ManRandom(0);
+}
 
 /**Function*************************************************************
 

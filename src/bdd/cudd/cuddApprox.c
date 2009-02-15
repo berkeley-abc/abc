@@ -510,9 +510,9 @@ cuddUnderApprox(
     result = UAmarkNodes(dd, f, info, threshold, safe, quality);
     if (result == 0) {
     (void) fprintf(dd->err, "Out-of-memory; Cannot subset\n");
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
@@ -524,9 +524,9 @@ cuddUnderApprox(
     (void) fprintf(dd->err, "Wrong prediction: %d versus actual %d\n",
                info->size, Cudd_DagSize(subset));
 #endif
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
 
 #ifdef DD_DEBUG
     if (subset != NULL) {
@@ -600,9 +600,9 @@ cuddRemapUnderApprox(
     result = RAmarkNodes(dd, f, info, threshold, quality);
     if (result == 0) {
     (void) fprintf(dd->err, "Out-of-memory; Cannot subset\n");
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
@@ -614,9 +614,9 @@ cuddRemapUnderApprox(
     (void) fprintf(dd->err, "Wrong prediction: %d versus actual %d\n",
                info->size, Cudd_DagSize(subset));
 #endif
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
 
 #ifdef DD_DEBUG
     if (subset != NULL) {
@@ -694,9 +694,9 @@ cuddBiasedUnderApprox(
     if (result == CARE_ERROR) {
     (void) fprintf(dd->err, "Out-of-memory; Cannot subset\n");
     cuddHashTableQuit(cache);
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
@@ -706,9 +706,9 @@ cuddBiasedUnderApprox(
     result = BAmarkNodes(dd, f, info, threshold, quality1, quality0);
     if (result == 0) {
     (void) fprintf(dd->err, "Out-of-memory; Cannot subset\n");
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
     }
@@ -720,9 +720,9 @@ cuddBiasedUnderApprox(
     (void) fprintf(dd->err, "Wrong prediction: %d versus actual %d\n",
                info->size, Cudd_DagSize(subset));
 #endif
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
 
 #ifdef DD_DEBUG
     if (subset != NULL) {
@@ -891,7 +891,7 @@ gatherInfo(
     numVars = DBL_MAX_EXP - 1;
     }
 
-    info = ALLOC(ApproxInfo,1);
+    info = ABC_ALLOC(ApproxInfo,1);
     if (info == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -905,17 +905,17 @@ gatherInfo(
     ** efficiently because we have counted the number of nodes of the
     ** BDD. info->index points to the next available entry in the array
     ** that stores the per-node information. */
-    info->page = ALLOC(NodeData,info->size);
+    info->page = ABC_ALLOC(NodeData,info->size);
     if (info->page == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
-    FREE(info);
+    ABC_FREE(info);
     return(NULL);
     }
     memset(info->page, 0, info->size * sizeof(NodeData)); /* clear all page */
     info->table = st_init_table(st_ptrcmp,st_ptrhash);
     if (info->table == NULL) {
-    FREE(info->page);
-    FREE(info);
+    ABC_FREE(info->page);
+    ABC_FREE(info);
     return(NULL);
     }
     /* We visit the DAG in post-order DFS. Hence, the constant node is
@@ -923,8 +923,8 @@ gatherInfo(
 
     /* Info for the constant node: Initialize only fields different from 0. */
     if (st_insert(info->table, (char *)info->one, (char *)info->page) == ST_OUT_OF_MEM) {
-    FREE(info->page);
-    FREE(info);
+    ABC_FREE(info->page);
+    ABC_FREE(info);
     st_free_table(info->table);
     return(NULL);
     }
@@ -933,9 +933,9 @@ gatherInfo(
 
     infoTop = gatherInfoAux(node,info,parity);
     if (infoTop == NULL) {
-    FREE(info->page);
+    ABC_FREE(info->page);
     st_free_table(info->table);
-    FREE(info);
+    ABC_FREE(info);
     return(NULL);
     }
     if (Cudd_IsComplement(node)) {

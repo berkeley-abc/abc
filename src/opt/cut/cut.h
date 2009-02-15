@@ -21,10 +21,6 @@
 #ifndef __CUT_H__
 #define __CUT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,6 +28,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define CUT_SIZE_MIN    3      // the min K of the K-feasible cut computation
 #define CUT_SIZE_MAX   12      // the max K of the K-feasible cut computation

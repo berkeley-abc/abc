@@ -46,7 +46,7 @@ void Amap_ManSetDefaultParams( Amap_Par_t * p )
     p->nIterArea = 4;            // iteratoins of exact area
     p->fUseMuxes = 0;            // enables the use of MUXes
     p->fUseXors  = 1;            // enables the use of XORs
-    p->fFreeInvs = 0;            // assume inverters are free (area = 0)
+    p->fFreeInvs = 0;            // assume inverters are ABC_FREE (area = 0)
     p->fEpsilon  = (float)0.001; // used to compare floating point numbers
     p->fVerbose  = 0;            // verbosity flag
 }
@@ -81,8 +81,8 @@ Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars )
     p->fAreaInv = pPars->fFreeInvs? 0.0 : pLib->pGateInv->dArea;
     p->fUseMux = pPars->fUseMuxes && pLib->fHasMux;
     p->fUseXor = pPars->fUseXors && pLib->fHasXor;
-    p->ppCutsTemp = CALLOC( Amap_Cut_t *, 2 * pLib->nNodes );
-    p->pMatsTemp = CALLOC( int, 2 * pLib->nNodes );
+    p->ppCutsTemp = ABC_CALLOC( Amap_Cut_t *, 2 * pLib->nNodes );
+    p->pMatsTemp = ABC_CALLOC( int, 2 * pLib->nNodes );
     Amap_ManCreate( p, pAig );
     Amap_ManMap( p );
     vRes = NULL;
@@ -90,7 +90,7 @@ Vec_Ptr_t * Amap_ManTest( Aig_Man_t * pAig, Amap_Par_t * pPars )
     Amap_ManStop( p );
 if ( pPars->fVerbose )
 {
-PRT( "Total runtime", clock() - clkTotal );
+ABC_PRT( "Total runtime", clock() - clkTotal );
 }
     return vRes;
 }

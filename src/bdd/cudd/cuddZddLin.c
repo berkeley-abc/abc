@@ -140,12 +140,12 @@ cuddZddLinearSifting(
 
     /* Find order in which to sift variables. */
     var = NULL;
-    zdd_entry = ALLOC(int, size);
+    zdd_entry = ABC_ALLOC(int, size);
     if (zdd_entry == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSiftingOutOfMem;
     }
-    var = ALLOC(int, size);
+    var = ABC_ALLOC(int, size);
     if (var == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     goto cuddZddSiftingOutOfMem;
@@ -184,15 +184,15 @@ cuddZddLinearSifting(
 #endif
     }
 
-    FREE(var);
-    FREE(zdd_entry);
+    ABC_FREE(var);
+    ABC_FREE(zdd_entry);
 
     return(1);
 
 cuddZddSiftingOutOfMem:
 
-    if (zdd_entry != NULL) FREE(zdd_entry);
-    if (var != NULL) FREE(var);
+    if (zdd_entry != NULL) ABC_FREE(zdd_entry);
+    if (var != NULL) ABC_FREE(var);
 
     return(0);
 

@@ -45,7 +45,7 @@ void Lpk_IfManStart( Lpk_Man_t * p )
     If_Par_t * pPars;
     assert( p->pIfMan == NULL );
     // set defaults
-    pPars = ALLOC( If_Par_t, 1 );
+    pPars = ABC_ALLOC( If_Par_t, 1 );
     memset( pPars, 0, sizeof(If_Par_t) );
     // user-controlable paramters
     pPars->nLutSize    =  p->pPars->nLutSize;
@@ -75,7 +75,7 @@ void Lpk_IfManStart( Lpk_Man_t * p )
     // start the mapping manager and set its parameters
     p->pIfMan = If_ManStart( pPars );
     If_ManSetupSetAll( p->pIfMan, 1000 );
-    p->pIfMan->pPars->pTimesArr = ALLOC( float, 32 );
+    p->pIfMan->pPars->pTimesArr = ABC_ALLOC( float, 32 );
 }
 
 /**Function*************************************************************
@@ -100,7 +100,7 @@ int Lpk_NodeHasChanged( Lpk_Man_t * p, int iNode )
     Vec_PtrForEachEntry( vNodes, pTemp, i )
     {
         // check if the node has changed
-        pTemp = Abc_NtkObj( p->pNtk, (int)(PORT_PTRUINT_T)pTemp );
+        pTemp = Abc_NtkObj( p->pNtk, (int)(ABC_PTRUINT_T)pTemp );
         if ( pTemp == NULL )
             return 1;
         // check if the number of fanouts has changed
@@ -563,7 +563,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
 /*
     // save the number of fanouts of all objects
     nObjMax = Abc_NtkObjNumMax( pNtk );
-    pnFanouts = ALLOC( int, nObjMax );
+    pnFanouts = ABC_ALLOC( int, nObjMax );
     memset( pnFanouts, 0, sizeof(int) * nObjMax );
     Abc_NtkForEachObj( pNtk, pObj, i )
         pnFanouts[pObj->Id] = Abc_ObjFanoutNum(pObj);
@@ -654,18 +654,18 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
         p->timeTotal = clock() - clk;
         p->timeEval  = p->timeEval  - p->timeMap;
         p->timeOther = p->timeTotal - p->timeCuts - p->timeTruth - p->timeEval - p->timeMap;
-        PRTP( "Cuts  ", p->timeCuts,  p->timeTotal );
-        PRTP( "Truth ", p->timeTruth, p->timeTotal );
-        PRTP( "CSupps", p->timeSupps, p->timeTotal );
-        PRTP( "Eval  ", p->timeEval,  p->timeTotal );
-        PRTP( " MuxAn", p->timeEvalMuxAn, p->timeEval );
-        PRTP( " MuxSp", p->timeEvalMuxSp, p->timeEval );
-        PRTP( " DsdAn", p->timeEvalDsdAn, p->timeEval );
-        PRTP( " DsdSp", p->timeEvalDsdSp, p->timeEval );
-        PRTP( " Other", p->timeEval-p->timeEvalMuxAn-p->timeEvalMuxSp-p->timeEvalDsdAn-p->timeEvalDsdSp, p->timeEval );
-        PRTP( "Map   ", p->timeMap,   p->timeTotal );
-        PRTP( "Other ", p->timeOther, p->timeTotal );
-        PRTP( "TOTAL ", p->timeTotal, p->timeTotal );
+        ABC_PRTP( "Cuts  ", p->timeCuts,  p->timeTotal );
+        ABC_PRTP( "Truth ", p->timeTruth, p->timeTotal );
+        ABC_PRTP( "CSupps", p->timeSupps, p->timeTotal );
+        ABC_PRTP( "Eval  ", p->timeEval,  p->timeTotal );
+        ABC_PRTP( " MuxAn", p->timeEvalMuxAn, p->timeEval );
+        ABC_PRTP( " MuxSp", p->timeEvalMuxSp, p->timeEval );
+        ABC_PRTP( " DsdAn", p->timeEvalDsdAn, p->timeEval );
+        ABC_PRTP( " DsdSp", p->timeEvalDsdSp, p->timeEval );
+        ABC_PRTP( " Other", p->timeEval-p->timeEvalMuxAn-p->timeEvalMuxSp-p->timeEvalDsdAn-p->timeEvalDsdSp, p->timeEval );
+        ABC_PRTP( "Map   ", p->timeMap,   p->timeTotal );
+        ABC_PRTP( "Other ", p->timeOther, p->timeTotal );
+        ABC_PRTP( "TOTAL ", p->timeTotal, p->timeTotal );
     }
 
     Lpk_ManStop( p );

@@ -231,7 +231,7 @@ int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, 
     }
 
      // solve the problem
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 
 //    Inter_ManCheckUniqueness( pTrans, pSat, pCnf, nSteps );
 
@@ -317,7 +317,7 @@ int Inter_ManCheckUniqueness( Aig_Man_t * p, sat_solver * pSat, Cnf_Dat_t * pCnf
     printf( "Uniquness does not hold in %d frames.\n", Counter );
 
     Fra_SmlStop( pSml );
-    free( pCounterEx );
+    ABC_FREE( pCounterEx );
     return 1;
 }
 

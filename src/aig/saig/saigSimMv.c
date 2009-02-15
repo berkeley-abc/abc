@@ -129,7 +129,7 @@ Saig_MvObj_t * Saig_ManCreateReducedAig( Aig_Man_t * p, Vec_Ptr_t ** pvFlops )
     Aig_Obj_t * pObj;
     int i;
     *pvFlops = Vec_PtrAlloc( Aig_ManRegNum(p) );
-    pAig = CALLOC( Saig_MvObj_t, Aig_ManObjNumMax(p)+1 );
+    pAig = ABC_CALLOC( Saig_MvObj_t, Aig_ManObjNumMax(p)+1 );
     Aig_ManForEachObj( p, pObj, i )
     {
         pEntry = pAig + i;
@@ -171,8 +171,8 @@ static inline int Saig_MvCreateObj( Saig_MvMan_t * p, int iFan0, int iFan1 )
     Saig_MvAnd_t * pNode;
     if ( p->nObjs == p->nObjsAlloc )
     {
-        p->pAigNew = REALLOC( Saig_MvAnd_t, p->pAigNew, 2*p->nObjsAlloc );
-        p->pLevels = REALLOC( unsigned char, p->pLevels, 2*p->nObjsAlloc );
+        p->pAigNew = ABC_REALLOC( Saig_MvAnd_t, p->pAigNew, 2*p->nObjsAlloc );
+        p->pLevels = ABC_REALLOC( unsigned char, p->pLevels, 2*p->nObjsAlloc );
         p->nObjsAlloc *= 2;
     }
     pNode = p->pAigNew + p->nObjs;
@@ -202,7 +202,7 @@ Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig )
     Saig_MvMan_t * p;
     int i;
     assert( Aig_ManRegNum(pAig) > 0 );
-    p = (Saig_MvMan_t *)ALLOC( Saig_MvMan_t, 1 );
+    p = (Saig_MvMan_t *)ABC_ALLOC( Saig_MvMan_t, 1 );
     memset( p, 0, sizeof(Saig_MvMan_t) );
     // set parameters
     p->pAig         = pAig;
@@ -213,23 +213,23 @@ Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig )
     // compacted AIG
     p->pAigOld      = Saig_ManCreateReducedAig( pAig, &p->vFlops );
     p->nTStatesSize = Aig_PrimeCudd( p->nStatesMax );
-    p->pTStates     = CALLOC( int, p->nTStatesSize );
+    p->pTStates     = ABC_CALLOC( int, p->nTStatesSize );
     p->pMemStates   = Aig_MmFixedStart( sizeof(int) * (p->nFlops+1), p->nStatesMax );
     p->vStates      = Vec_PtrAlloc( p->nStatesMax );
     Vec_PtrPush( p->vStates, NULL );
-    p->pRegsUndef   = CALLOC( int, p->nFlops );
-    p->pRegsValues  = ALLOC( int *, p->nFlops );
-    p->pRegsValues[0] = ALLOC( int, p->nValuesMax * p->nFlops );
+    p->pRegsUndef   = ABC_CALLOC( int, p->nFlops );
+    p->pRegsValues  = ABC_ALLOC( int *, p->nFlops );
+    p->pRegsValues[0] = ABC_ALLOC( int, p->nValuesMax * p->nFlops );
     for ( i = 1; i < p->nFlops; i++ )
         p->pRegsValues[i] = p->pRegsValues[i-1] + p->nValuesMax;
-    p->nRegsValues  = CALLOC( int, p->nFlops );
+    p->nRegsValues  = ABC_CALLOC( int, p->nFlops );
     p->vTired       = Vec_PtrAlloc( 100 );
     // internal AIG
     p->nObjsAlloc   = 1000000;
-    p->pAigNew      = ALLOC( Saig_MvAnd_t, p->nObjsAlloc );
+    p->pAigNew      = ABC_ALLOC( Saig_MvAnd_t, p->nObjsAlloc );
     p->nTNodesSize  = Aig_PrimeCudd( p->nObjsAlloc / 3 );
-    p->pTNodes      = CALLOC( int, p->nTNodesSize );
-    p->pLevels      = ALLOC( unsigned char, p->nObjsAlloc );
+    p->pTNodes      = ABC_CALLOC( int, p->nTNodesSize );
+    p->pLevels      = ABC_ALLOC( unsigned char, p->nObjsAlloc );
     Saig_MvCreateObj( p, 0, 0 );
     return p;
 }
@@ -251,16 +251,16 @@ void Saig_MvManStop( Saig_MvMan_t * p )
     Vec_PtrFree( p->vStates );
     Vec_PtrFree( p->vFlops );
     Vec_PtrFree( p->vTired );
-    free( p->pRegsValues[0] );
-    free( p->pRegsValues );
-    free( p->nRegsValues );
-    free( p->pRegsUndef );
-    free( p->pAigOld );
-    free( p->pTStates );
-    free( p->pAigNew );
-    free( p->pTNodes );
-    free( p->pLevels );
-    free( p );
+    ABC_FREE( p->pRegsValues[0] );
+    ABC_FREE( p->pRegsValues );
+    ABC_FREE( p->nRegsValues );
+    ABC_FREE( p->pRegsUndef );
+    ABC_FREE( p->pAigOld );
+    ABC_FREE( p->pTStates );
+    ABC_FREE( p->pAigNew );
+    ABC_FREE( p->pTNodes );
+    ABC_FREE( p->pLevels );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -661,7 +661,7 @@ int Saig_MvManSimulate( Aig_Man_t * pAig, int fVerbose )
     int f, i, k, iRegMax, iState, clk = clock();
     // start the manager
     p = Saig_MvManStart( pAig );
-PRT( "Constructing the problem", clock() - clk );
+ABC_PRT( "Constructing the problem", clock() - clk );
     clk = clock();
     // initiliaze registers
     Vec_PtrForEachEntry( p->vFlops, pEntry, i )
@@ -710,7 +710,7 @@ PRT( "Constructing the problem", clock() - clk );
                 pEntry->Value = Saig_MvUndef();
         }
     }
-PRT( "Multi-value simulation", clock() - clk );
+ABC_PRT( "Multi-value simulation", clock() - clk );
     // implement equivalences
     Saig_MvManPostProcess( p, iState-1 );
     Saig_MvManStop( p );

@@ -21,16 +21,17 @@
 #ifndef __UTIL_HACK_H__
 #define __UTIL_HACK_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <time.h>
 #include <math.h>
+#include "abc_global.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef EXTERN
 #define EXTERN extern
@@ -59,24 +60,6 @@ extern "C" {
 #     define ARGS(args) ()
 # endif
 #endif
-
-#ifndef ABS
-#  define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
-#ifndef MAX
-#  define MAX(a,b)        ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef MIN
-#  define MIN(a,b)        ((a) < (b) ? (a) : (b))
-#endif
-
-#define ALLOC(type, num)       ((type *) malloc(sizeof(type) * (num)))
-#define FREE(obj)              ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#define REALLOC(type, obj, num) \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-        ((type *) malloc(sizeof(type) * (num))))
 
 extern long        Extra_CpuTime();
 extern int         Extra_GetSoftDataLimit();

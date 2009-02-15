@@ -93,7 +93,7 @@ p->timeChoice = clock() - clk;
 //    pResult = Aig_ManDupSimpleDfs( p->pAigTotal );
     // count the number of equivalences and choices
     p->nEquivs = Dch_DeriveChoiceCountEquivs( pResult );
-    p->nChoices = Aig_ManCountChoices( pResult );
+    p->nChoices = Aig_ManChoiceNum( pResult );
 p->timeTotal = clock() - clkTotal;
     Dch_ManStop( p );
     return pResult;

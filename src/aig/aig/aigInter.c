@@ -122,14 +122,14 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
 
         Lits[0] = toLitCond( pCnfOn->pVarNums[pObj->Id], 0 );
         Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 0 );
-        status = sat_solver_solve( pSat, Lits, Lits+2, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+        status = sat_solver_solve( pSat, Lits, Lits+2, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( status != l_False )
             printf( "The incremental SAT problem is not UNSAT.\n" );
     }
     Cnf_DataFree( pCnfOn );
     Cnf_DataFree( pCnfOff );
     sat_solver_delete( pSat );
-//    PRT( "Fast interpolation time", clock() - clk );
+//    ABC_PRT( "Fast interpolation time", clock() - clk );
 }
 
 /**Function*************************************************************
@@ -242,7 +242,7 @@ clk = clock();
 */
 
     // solve the problem
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 timeSat += clock() - clk;
     if ( status == l_False )
     {

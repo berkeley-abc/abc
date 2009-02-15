@@ -47,7 +47,7 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     assert( nCutsMax >= 2  );
     assert( nLeafMax <= 16 );
     // allocate the fraiging manager
-    p = ALLOC( Csw_Man_t, 1 );
+    p = ABC_ALLOC( Csw_Man_t, 1 );
     memset( p, 0, sizeof(Csw_Man_t) );
     p->nCutsMax = nCutsMax;
     p->nLeafMax = nLeafMax;
@@ -57,9 +57,9 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     p->pManRes  = Aig_ManStartFrom( pMan );
     assert( Aig_ManPiNum(p->pManAig) == Aig_ManPiNum(p->pManRes) );
     // allocate room for cuts and equivalent nodes
-    p->pnRefs   = ALLOC( int, Aig_ManObjNumMax(pMan) );
-    p->pEquiv   = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pMan) );
-    p->pCuts    = ALLOC( Csw_Cut_t *, Aig_ManObjNumMax(pMan) );
+    p->pnRefs   = ABC_ALLOC( int, Aig_ManObjNumMax(pMan) );
+    p->pEquiv   = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pMan) );
+    p->pCuts    = ABC_ALLOC( Csw_Cut_t *, Aig_ManObjNumMax(pMan) );
     memset( p->pCuts, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pMan) );
     memset( p->pnRefs, 0, sizeof(int) * Aig_ManObjNumMax(pMan) );
     // allocate memory manager
@@ -68,14 +68,14 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     p->pMemCuts = Aig_MmFixedStart( p->nCutSize * p->nCutsMax, 512 );
     // allocate hash table for cuts
     p->nTableSize = Aig_PrimeCudd( Aig_ManNodeNum(pMan) * p->nCutsMax / 2 );
-    p->pTable = ALLOC( Csw_Cut_t *, p->nTableSize );
+    p->pTable = ABC_ALLOC( Csw_Cut_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
     // set the pointers to the available fraig nodes
     Csw_ObjSetEquiv( p, Aig_ManConst1(p->pManAig), Aig_ManConst1(p->pManRes) );
     Aig_ManForEachPi( p->pManAig, pObj, i )
         Csw_ObjSetEquiv( p, pObj, Aig_ManPi(p->pManRes, i) );
     // room for temporary truth tables
-    p->puTemp[0] = ALLOC( unsigned, 4 * p->nTruthWords );
+    p->puTemp[0] = ABC_ALLOC( unsigned, 4 * p->nTruthWords );
     p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
     p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
     p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
@@ -104,18 +104,18 @@ void Csw_ManStop( Csw_Man_t * p )
             p->nNodesTried, Csw_TableCountCuts( p ) );
         printf( "Triv0 = %6d.  Triv1 = %6d.  Triv2 = %6d.  Cut-replace = %6d.\n", 
             p->nNodesTriv0, p->nNodesTriv1, p->nNodesTriv2, p->nNodesCuts );
-        PRTP( "Cuts    ", p->timeCuts,     p->timeTotal );
-        PRTP( "Hashing ", p->timeHash,     p->timeTotal );
-        PRTP( "Other   ", p->timeOther,    p->timeTotal );
-        PRTP( "TOTAL   ", p->timeTotal,    p->timeTotal );
+        ABC_PRTP( "Cuts    ", p->timeCuts,     p->timeTotal );
+        ABC_PRTP( "Hashing ", p->timeHash,     p->timeTotal );
+        ABC_PRTP( "Other   ", p->timeOther,    p->timeTotal );
+        ABC_PRTP( "TOTAL   ", p->timeTotal,    p->timeTotal );
     }
-    free( p->puTemp[0] );
+    ABC_FREE( p->puTemp[0] );
     Aig_MmFixedStop( p->pMemCuts, 0 );
-    free( p->pnRefs );
-    free( p->pEquiv );
-    free( p->pCuts );
-    free( p->pTable );
-    free( p );
+    ABC_FREE( p->pnRefs );
+    ABC_FREE( p->pEquiv );
+    ABC_FREE( p->pCuts );
+    ABC_FREE( p->pTable );
+    ABC_FREE( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

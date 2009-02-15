@@ -21,10 +21,6 @@
 #ifndef __CUDD2_H__
 #define __CUDD2_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
-
 // HA: Added for printing messages
 #ifndef MSG 
 #define MSG(msg) (printf("%s = \n",(msg)));
@@ -37,6 +33,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

@@ -123,7 +123,7 @@ Kit_Edge_t Kit_SopFactor_rec( Kit_Graph_t * pFForm, Kit_Sop_t * cSop, int nLits,
     if ( Kit_SopCubeNum(cQuo) == 1 )
         return Kit_SopFactorLF_rec( pFForm, cSop, cQuo, nLits, vMemory );
 
-    // make the quotient cube free
+    // make the quotient cube ABC_FREE
     Kit_SopMakeCubeFree( cQuo );
 
     // divide the cover by the quotient

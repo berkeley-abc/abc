@@ -320,7 +320,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
 Abc_ManTime_t * Abc_ManTimeStart()
 {
     Abc_ManTime_t * p;
-    p = ALLOC( Abc_ManTime_t, 1 );
+    p = ABC_ALLOC( Abc_ManTime_t, 1 );
     memset( p, 0, sizeof(Abc_ManTime_t) );
     p->vArrs = Vec_PtrAlloc( 0 );
     p->vReqs = Vec_PtrAlloc( 0 );
@@ -342,15 +342,15 @@ void Abc_ManTimeStop( Abc_ManTime_t * p )
 {
     if ( p->vArrs->nSize > 0 )
     {
-        free( p->vArrs->pArray[0] );
+        ABC_FREE( p->vArrs->pArray[0] );
         Vec_PtrFree( p->vArrs );
     }
     if ( p->vReqs->nSize > 0 )
     {
-        free( p->vReqs->pArray[0] );
+        ABC_FREE( p->vReqs->pArray[0] );
         Vec_PtrFree( p->vReqs );
     }
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -420,7 +420,7 @@ void Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive )
     Vec_PtrGrow( vTimes, nSizeNew );
     vTimes->nSize = nSizeNew;
     ppTimesOld = ( nSizeOld == 0 )? NULL : vTimes->pArray[0];
-    ppTimes = REALLOC( Abc_Time_t, ppTimesOld, nSizeNew );
+    ppTimes = ABC_REALLOC( Abc_Time_t, ppTimesOld, nSizeNew );
     for ( i = 0; i < nSizeNew; i++ )
         vTimes->pArray[i] = ppTimes + i;
     for ( i = nSizeOld; i < nSizeNew; i++ )
@@ -435,7 +435,7 @@ void Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive )
     Vec_PtrGrow( vTimes, nSizeNew );
     vTimes->nSize = nSizeNew;
     ppTimesOld = ( nSizeOld == 0 )? NULL : vTimes->pArray[0];
-    ppTimes = REALLOC( Abc_Time_t, ppTimesOld, nSizeNew );
+    ppTimes = ABC_REALLOC( Abc_Time_t, ppTimesOld, nSizeNew );
     for ( i = 0; i < nSizeNew; i++ )
         vTimes->pArray[i] = ppTimes + i;
     for ( i = nSizeOld; i < nSizeNew; i++ )
@@ -496,7 +496,7 @@ Abc_Time_t * Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk )
     Abc_Time_t * p;
     Abc_Obj_t * pNode;
     int i;
-    p = ALLOC( Abc_Time_t, Abc_NtkCiNum(pNtk) );
+    p = ABC_ALLOC( Abc_Time_t, Abc_NtkCiNum(pNtk) );
     memset( p, 0, sizeof(Abc_Time_t) * Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
         return p;
@@ -523,7 +523,7 @@ float * Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk )
     float * p;
     Abc_Obj_t * pNode;
     int i;
-    p = ALLOC( float, Abc_NtkCiNum(pNtk) );
+    p = ABC_ALLOC( float, Abc_NtkCiNum(pNtk) );
     memset( p, 0, sizeof(float) * Abc_NtkCiNum(pNtk) );
     if ( pNtk->pManTime == NULL )
         return p;

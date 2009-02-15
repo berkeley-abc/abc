@@ -134,11 +134,11 @@ static inline Aig_Obj_t ** Dch_ObjRemoveClass( Dch_Cla_t * p, Aig_Obj_t * pRepr 
 Dch_Cla_t * Dch_ClassesStart( Aig_Man_t * pAig )
 {
     Dch_Cla_t * p;
-    p = ALLOC( Dch_Cla_t, 1 );
+    p = ABC_ALLOC( Dch_Cla_t, 1 );
     memset( p, 0, sizeof(Dch_Cla_t) );
     p->pAig         = pAig;
-    p->pId2Class    = CALLOC( Aig_Obj_t **, Aig_ManObjNumMax(pAig) );
-    p->pClassSizes  = CALLOC( int, Aig_ManObjNumMax(pAig) );
+    p->pId2Class    = ABC_CALLOC( Aig_Obj_t **, Aig_ManObjNumMax(pAig) );
+    p->pClassSizes  = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
     p->vClassOld    = Vec_PtrAlloc( 100 );
     p->vClassNew    = Vec_PtrAlloc( 100 );
     assert( pAig->pReprs == NULL );
@@ -183,10 +183,10 @@ void Dch_ClassesStop( Dch_Cla_t * p )
 {
     if ( p->vClassNew )    Vec_PtrFree( p->vClassNew );
     if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
-    FREE( p->pId2Class );
-    FREE( p->pClassSizes );
-    FREE( p->pMemClasses );
-    free( p );
+    ABC_FREE( p->pId2Class );
+    ABC_FREE( p->pClassSizes );
+    ABC_FREE( p->pMemClasses );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -338,8 +338,8 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Aig_PrimeCudd( Aig_ManObjNumMax(p->pAig)/4 );
-    ppTable = CALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) ); 
+    ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize ); 
+    ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) ); 
 
     // add all the nodes to the hash table
     nEntries = 0;
@@ -390,7 +390,7 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
     }
 
     // allocate room for classes
-    p->pMemClasses = ALLOC( Aig_Obj_t *, nEntries + p->nCands1 );
+    p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, nEntries + p->nCands1 );
     p->pMemClassesFree = p->pMemClasses + nEntries;
  
     // copy the entries into storage in the topological order
@@ -419,8 +419,8 @@ void Dch_ClassesPrepare( Dch_Cla_t * p, int fLatchCorr, int nMaxLevs )
         nEntries2 += nNodes;
     }
     assert( nEntries == nEntries2 );
-    free( ppTable );
-    free( ppNexts );
+    ABC_FREE( ppTable );
+    ABC_FREE( ppNexts );
     // now it is time to refine the classes
     Dch_ClassesRefine( p );
     Dch_ClassesCheck( p );

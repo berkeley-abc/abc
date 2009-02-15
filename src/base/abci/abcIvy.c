@@ -216,13 +216,13 @@ clk = clock();
     Ivy_ManRewriteSeq( pMan, 1, 0 );
 //printf( "%d ", Ivy_ManNodeNum(pMan) );
 //printf( "%d ", Ivy_ManNodeNum(pMan->pHaig) );
-//PRT( " ", clock() - clk );
+//ABC_PRT( " ", clock() - clk );
 //printf( "\n" );
 /*
     printf( "Moves = %d.  ", nMoves );
     printf( "MovesS = %d.  ", nMovesS );
     printf( "Clauses = %d.  ", nClauses );
-    PRT( "Time", timeInv );
+    ABC_PRT( "Time", timeInv );
 */
 //    Ivy_ManRewriteSeq( pMan, 1, 0 );
 //printf( "Haig size = %d.\n", Ivy_ManNodeNum(pMan->pHaig) );
@@ -510,13 +510,13 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     pFanin = Abc_ObjFanin0(pObj);
     if ( Abc_ObjFanin0(pObj)->fPhase != (unsigned)Abc_ObjFaninC0(pObj) )
     {
-        pNtk->pModel = ALLOC( int, Abc_NtkPiNum(pNtk) );
+        pNtk->pModel = ABC_ALLOC( int, Abc_NtkPiNum(pNtk) );
         memset( pNtk->pModel, 0, sizeof(int) * Abc_NtkPiNum(pNtk) );
         return 0;
     }
 
     // if SAT only, solve without iteration
-    RetValue = Abc_NtkMiterSat( pNtk, 2*(sint64)pParams->nMiteringLimitStart, (sint64)0, 0, NULL, NULL );
+    RetValue = Abc_NtkMiterSat( pNtk, 2*(ABC_INT64_T)pParams->nMiteringLimitStart, (ABC_INT64_T)0, 0, NULL, NULL );
     if ( RetValue >= 0 )
         return RetValue;
 
@@ -534,7 +534,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
         Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
 //printf( "After rwsat = %d. ", Abc_NtkNodeNum(pNtk) );
-//PRT( "Time", clock() - clk );
+//ABC_PRT( "Time", clock() - clk );
     }
 
     // convert ABC network into IVY network
@@ -672,13 +672,13 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
-        FREE( pInit );
+        ABC_FREE( pInit );
         printf( "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
 
-    FREE( pInit );
+    ABC_FREE( pInit );
     return pNtkAig;
 */
 }

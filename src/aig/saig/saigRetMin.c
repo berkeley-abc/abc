@@ -61,7 +61,7 @@ Vec_Int_t * Saig_ManRetimeInitState( Aig_Man_t * p )
         Cnf_DataFree( pCnf );
         return NULL;
     }
-    RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     assert( RetValue != l_Undef );
     // create counter-example
     if ( RetValue == l_True )
@@ -119,7 +119,7 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
     }
     sat_solver_store_mark_roots( pSat ); 
     // solve the problem
-    RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     assert( RetValue != l_Undef );
     assert( RetValue == l_False );
     pSatCnf = sat_solver_store_release( pSat ); 
@@ -132,7 +132,7 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
     // derive the set of variables on which the core depends
     // collect the variable numbers
     nVars = 0;
-    pVars = ALLOC( int, pCnf->nVars );
+    pVars = ABC_ALLOC( int, pCnf->nVars );
     memset( pVars, 0, sizeof(int) * pCnf->nVars );
     Vec_IntForEachEntry( vCore, iClause, i )
     {
@@ -170,7 +170,7 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
         }
     if ( fVerbose )
         printf( "UNSAT core: %d clauses, %d variables, %d POs.  ", Vec_IntSize(vCore), nVars, nPos );
-    free( pVars );
+    ABC_FREE( pVars );
     Vec_IntFree( vCore );
     Cnf_DataFree( pCnf );
     return iBadPo;

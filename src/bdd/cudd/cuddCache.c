@@ -118,7 +118,7 @@ cuddInitCache(
     ** initial cache size. */
     logSize = cuddComputeFloorLog2(ddMax(cacheSize,unique->slots/2));
     cacheSize = 1 << logSize;
-    unique->acache = ALLOC(DdCache,cacheSize+1);
+    unique->acache = ABC_ALLOC(DdCache,cacheSize+1);
     if (unique->acache == NULL) {
     unique->errorCode = CUDD_MEMORY_OUT;
     return(0);
@@ -741,14 +741,14 @@ cuddCacheProfile(
     imax = imin = 0;
     totalcount = 0.0;
 
-    hystogramQ = ALLOC(double, nbins);
+    hystogramQ = ABC_ALLOC(double, nbins);
     if (hystogramQ == NULL) {
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
-    hystogramR = ALLOC(double, nbins);
+    hystogramR = ABC_ALLOC(double, nbins);
     if (hystogramR == NULL) {
-    FREE(hystogramQ);
+    ABC_FREE(hystogramQ);
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
     }
@@ -825,8 +825,8 @@ cuddCacheProfile(
     if (retval == EOF) return(0);
     }
 
-    FREE(hystogramQ);
-    FREE(hystogramR);
+    ABC_FREE(hystogramQ);
+    ABC_FREE(hystogramR);
 #else
     for (i = 0; i < slots; i++) {
     nzeroes += cache[i].h == 0;
@@ -888,7 +888,7 @@ cuddCacheResize(
 
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
-    table->acache = cache = ALLOC(DdCache,slots+1);
+    table->acache = cache = ABC_ALLOC(DdCache,slots+1);
     MMoutOfMemory = saveHandler;
     /* If we fail to allocate the new table we just give up. */
     if (cache == NULL) {
@@ -944,7 +944,7 @@ cuddCacheResize(
     }
     }
 
-    FREE(oldacache);
+    ABC_FREE(oldacache);
 
     /* Reinitialize measurements so as to avoid division by 0 and
     ** immediate resizing.

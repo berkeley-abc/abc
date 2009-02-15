@@ -21,10 +21,6 @@
 #ifndef __CMD_H__
 #define __CMD_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -33,23 +29,16 @@ extern "C" {
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct MvCommand    Abc_Command;  // one command
 typedef struct MvAlias      Abc_Alias;    // one alias
-
-#ifdef WIN32
-#define ABC_DLLEXPORT __declspec(dllexport)
-#define ABC_DLLIMPORT __declspec(dllimport)
-#else  /* defined(WIN32) */
-#define ABC_DLLIMPORT
-#endif /* defined(WIN32) */
-
-#ifndef ABC_DLL
-#define ABC_DLL ABC_DLLIMPORT
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       MACRO DEFINITIONS                          ///

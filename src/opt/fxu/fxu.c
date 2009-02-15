@@ -44,7 +44,7 @@ static int s_MemoryPeak;
   The entries corresponding to the PI and objects with trivial covers are NULL.
   The number of extracted covers (not exceeding p->nNodesExt) is returned. 
   Two other things are important for the correct operation of this procedure:
-  (1) The input covers do not have duplicated fanins and are SCC-free. 
+  (1) The input covers do not have duplicated fanins and are SCC-ABC_FREE. 
   (2) The fanins array contains the numbers of the fanin objects.]
                
   SideEffects []
@@ -225,7 +225,7 @@ char * Fxu_MemFetch( Fxu_Matrix * p, int nBytes )
     s_MemoryTotal += nBytes;
     if ( s_MemoryPeak < s_MemoryTotal )
         s_MemoryPeak = s_MemoryTotal;
-//    return malloc( nBytes );
+//    return ABC_ALLOC( char, nBytes );
     return Extra_MmFixedEntryFetch( p->pMemMan );
 }
 
@@ -243,7 +243,7 @@ char * Fxu_MemFetch( Fxu_Matrix * p, int nBytes )
 void Fxu_MemRecycle( Fxu_Matrix * p, char * pItem, int nBytes )
 {
     s_MemoryTotal -= nBytes;
-//    free( pItem );
+//    ABC_FREE( pItem );
     Extra_MmFixedEntryRecycle( p->pMemMan, pItem );
 }
 

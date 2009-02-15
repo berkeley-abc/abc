@@ -49,7 +49,7 @@ void Aig_ManOrderStart( Aig_Man_t * p )
     p->nOrderAlloc = 2 * Aig_ManObjNumMax(p);
     if ( p->nOrderAlloc < (1<<12) )
         p->nOrderAlloc = (1<<12);
-    p->pOrderData = ALLOC( unsigned, 2 * p->nOrderAlloc );
+    p->pOrderData = ABC_ALLOC( unsigned, 2 * p->nOrderAlloc );
     memset( p->pOrderData, 0xFF, sizeof(unsigned) * 2 * p->nOrderAlloc );
     // add the constant node
     p->pOrderData[0] = p->pOrderData[1] = 0;
@@ -73,7 +73,7 @@ void Aig_ManOrderStart( Aig_Man_t * p )
 void Aig_ManOrderStop( Aig_Man_t * p )
 {
     assert( p->pOrderData );
-    FREE( p->pOrderData );
+    ABC_FREE( p->pOrderData );
     p->nOrderAlloc = 0;
     p->iPrev = p->iNext = 0;
 }
@@ -97,7 +97,7 @@ void Aig_ObjOrderInsert( Aig_Man_t * p, int ObjId )
     if ( ObjId >= p->nOrderAlloc )
     {
         int nOrderAlloc = 2 * ObjId; 
-        p->pOrderData = REALLOC( unsigned, p->pOrderData, 2 * nOrderAlloc );
+        p->pOrderData = ABC_REALLOC( unsigned, p->pOrderData, 2 * nOrderAlloc );
         memset( p->pOrderData + 2 * p->nOrderAlloc, 0xFF, sizeof(unsigned) * 2 * (nOrderAlloc - p->nOrderAlloc) );
         p->nOrderAlloc = nOrderAlloc;
     }

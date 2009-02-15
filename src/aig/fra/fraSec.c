@@ -121,7 +121,7 @@ clk = clock();
     {
         printf( "Sequential cleanup:   Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
     }
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue >= 0 )
@@ -140,7 +140,7 @@ clk = clock();
         {
             printf( "Phase abstraction:    Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
         }
     }
 
@@ -155,7 +155,7 @@ clk = clock();
     {
         printf( "Forward retiming:     Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
     }
     }
      
@@ -199,9 +199,9 @@ clk = clock();
             printf( "The counter-example is invalid because of phase abstraction.\n" );
         else
         {
-        FREE( p->pSeqModel );
+        ABC_FREE( p->pSeqModel );
         p->pSeqModel = Ssw_SmlDupCounterExample( pTemp->pSeqModel, Aig_ManRegNum(p) );
-        FREE( pTemp->pSeqModel );
+        ABC_FREE( pTemp->pSeqModel );
         }
     }
     if ( pNew == NULL )
@@ -212,12 +212,12 @@ clk = clock();
             if ( !pParSec->fSilent )
             {
                 printf( "Networks are NOT EQUIVALENT after simulation.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
             }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
             printf( "SOLUTION: FAIL       " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
             }
             Aig_ManStop( pTemp );
             return RetValue;
@@ -233,7 +233,7 @@ PRT( "Time", clock() - clkTotal );
     {
         printf( "Latch-corr (I=%3d):   Latches = %5d. Nodes = %6d. ", 
             nIter, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
     }
     }
 /*
@@ -261,7 +261,7 @@ clk = clock();
     {
         printf( "Fraiging:             Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
     }
     }
 
@@ -302,7 +302,7 @@ clk = clock();
     {
     printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
         Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
     }
     }
 
@@ -370,7 +370,7 @@ clk = clock();
         { 
             printf( "K-step (K=%2d,I=%3d):  Latches = %5d. Nodes = %6d. ", 
                 nFrames, pPars2->nIters, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
         }
         if ( RetValue != -1 )
             break;
@@ -392,9 +392,9 @@ clk = clock();
         {
             printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
         }
-        }
+        }  
 
         if ( pNew->nRegs )
             pNew = Aig_ManConstReduce( pNew, 0 );
@@ -410,19 +410,19 @@ clk = clock();
         {
             printf( "Rewriting:            Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
         } 
 
         // perform sequential simulation
         if ( pNew->nRegs )
         {
 clk = clock();
-        pSml = Fra_SmlSimulateSeq( pNew, 0, 128 * nFrames, 1 + 16/(1+Aig_ManNodeNum(pNew)/1000) ); 
+        pSml = Fra_SmlSimulateSeq( pNew, 0, 128 * nFrames, 1 + 16/(1+Aig_ManNodeNum(pNew)/1000), 1  ); 
         if ( pParSec->fVerbose )
         {
             printf( "Seq simulation  :     Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
         }
         if ( pSml->fNonConstOut )
         {
@@ -432,9 +432,9 @@ PRT( "Time", clock() - clk );
                 printf( "The counter-example is invalid because of phase abstraction.\n" );
             else
             {
-            FREE( p->pSeqModel );
+            ABC_FREE( p->pSeqModel );
             p->pSeqModel = Ssw_SmlDupCounterExample( pNew->pSeqModel, Aig_ManRegNum(p) );
-            FREE( pNew->pSeqModel );
+            ABC_FREE( pNew->pSeqModel );
             }
 
             Fra_SmlStop( pSml );
@@ -443,12 +443,12 @@ PRT( "Time", clock() - clk );
             if ( !pParSec->fSilent )
             {
                 printf( "Networks are NOT EQUIVALENT after simulation.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
             }
             if ( pParSec->fReportSolution && !pParSec->fRecursive )
             {
             printf( "SOLUTION: FAIL       " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
             }
             return RetValue;
         }
@@ -481,7 +481,7 @@ clk = clock();
             if ( pNewOrpos->pSeqModel )
             {
                 Ssw_Cex_t * pCex;
-                FREE( pNew->pSeqModel );
+                ABC_FREE( pNew->pSeqModel );
                 pCex = pNew->pSeqModel = pNewOrpos->pSeqModel; pNewOrpos->pSeqModel = NULL;
                 pCex->iPo = Ssw_SmlFindOutputCounterExample( pNew, pNew->pSeqModel );
             }
@@ -498,7 +498,7 @@ clk = clock();
             printf( "Property UNDECIDED after interpolation.  " );
         else
             assert( 0 ); 
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
         }
     }
 
@@ -518,12 +518,12 @@ finish:
         if ( !pParSec->fSilent )
         {
             printf( "Networks are equivalent.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: PASS       " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
         }
     }
     else if ( RetValue == 0 )
@@ -531,12 +531,12 @@ PRT( "Time", clock() - clkTotal );
         if ( !pParSec->fSilent )
         {
             printf( "Networks are NOT EQUIVALENT.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: FAIL       " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
         }
     }
     else 
@@ -544,12 +544,12 @@ PRT( "Time", clock() - clkTotal );
         if ( !pParSec->fSilent )
         {
             printf( "Networks are UNDECIDED.   " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
         }
         if ( pParSec->fReportSolution && !pParSec->fRecursive )
         {
         printf( "SOLUTION: UNDECIDED  " );
-PRT( "Time", clock() - clkTotal );
+ABC_PRT( "Time", clock() - clkTotal );
         }
         if ( !TimeOut && !pParSec->fSilent )
         {
@@ -566,9 +566,9 @@ PRT( "Time", clock() - clkTotal );
             printf( "The counter-example is invalid because of phase abstraction.\n" );
         else
         {
-        FREE( p->pSeqModel );
+        ABC_FREE( p->pSeqModel );
         p->pSeqModel = Ssw_SmlDupCounterExample( pNew->pSeqModel, Aig_ManRegNum(p) );
-        FREE( pNew->pSeqModel );
+        ABC_FREE( pNew->pSeqModel );
         }
     }
     if ( ppResult != NULL )

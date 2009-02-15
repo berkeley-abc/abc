@@ -211,7 +211,7 @@ Abc_Obj_t * Io_ReadDsd_rec( Abc_Ntk_t * pNtk, char * pCur, char * pSop )
     pSop = Abc_SopFromTruthHex( pCur );
     *pEnd = '(';
     pObj = Io_ReadDsd_rec( pNtk, pEnd, pSop );
-    free( pSop );
+    ABC_FREE( pSop );
     return pObj;
 }
 
@@ -253,7 +253,7 @@ Abc_Ntk_t * Io_ReadDsd( char * pForm )
 
     // transform the formula by inserting parantheses
     // this transforms strings like PRIME(a,b,cd) into (PRIME((a),(b),(cd)))
-    pCur = pFormCopy = ALLOC( char, 3 * strlen(pForm) + 10 );
+    pCur = pFormCopy = ABC_ALLOC( char, 3 * strlen(pForm) + 10 );
     *pCur++ = '(';
     for ( ; *pForm; pForm++ )
         if ( *pForm == '(' )
@@ -279,7 +279,7 @@ Abc_Ntk_t * Io_ReadDsd( char * pForm )
 
     // parse the formula
     pObj = Io_ReadDsd_rec( pNtk, pFormCopy, NULL );
-    free( pFormCopy );
+    ABC_FREE( pFormCopy );
     if ( pObj == NULL )
         return NULL;
 

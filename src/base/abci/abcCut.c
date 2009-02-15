@@ -189,7 +189,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
     Cut_ManPrintStats( p );
-PRT( "TOTAL", clock() - clk );
+ABC_PRT( "TOTAL", clock() - clk );
     printf( "Area = %d.\n", Abc_NtkComputeArea( pNtk, p ) );
 //Abc_NtkPrintCuts( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
@@ -256,7 +256,7 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
         }
     }
     Vec_PtrFree( vNodes );
-//PRT( "Total", clock() - clk );
+//ABC_PRT( "Total", clock() - clk );
 //Abc_NtkPrintCuts_( p, pNtk, 0 );
 }
 
@@ -356,7 +356,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 if ( pParams->fVerbose )
 {
     Cut_ManPrintStats( p );
-PRT( "TOTAL ", clock() - clk );
+ABC_PRT( "TOTAL ", clock() - clk );
 printf( "Converged after %d iterations.\n", nIters );
 }
 //Abc_NtkPrintCuts( p, pNtk, 1 );

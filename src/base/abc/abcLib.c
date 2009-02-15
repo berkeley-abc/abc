@@ -42,7 +42,7 @@
 Abc_Lib_t * Abc_LibCreate( char * pName )
 {
     Abc_Lib_t * p;
-    p = ALLOC( Abc_Lib_t, 1 );
+    p = ABC_ALLOC( Abc_Lib_t, 1 );
     memset( p, 0, sizeof(Abc_Lib_t) );
     p->pName    = Extra_UtilStrsav( pName );
     p->tModules = st_init_table( strcmp, st_strhash );
@@ -69,7 +69,7 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
     Abc_Ntk_t * pNtk;
     int i;
     if ( pLib->pName )
-        free( pLib->pName );
+        ABC_FREE( pLib->pName );
     if ( pLib->pManFunc )
         Hop_ManStop( pLib->pManFunc );
     if ( pLib->tModules )
@@ -88,7 +88,7 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
     }
     if ( pLib->vTops )
         Vec_PtrFree( pLib->vTops );
-    free( pLib );
+    ABC_FREE( pLib );
 }
 
 /**Function*************************************************************

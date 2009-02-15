@@ -493,7 +493,7 @@ void Abc_NtkDfs_iter( Vec_Ptr_t * vStack, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes 
     while ( Vec_PtrSize(vStack) > 0 )
     {
         // get the node and its fanin
-        iFanin = (int)(PORT_PTRINT_T)Vec_PtrPop(vStack);
+        iFanin = (int)(ABC_PTRINT_T)Vec_PtrPop(vStack);
         pNode  = Vec_PtrPop(vStack);
         assert( !Abc_ObjIsNet(pNode) );
         // add it to the array of nodes if we finished
@@ -504,7 +504,7 @@ void Abc_NtkDfs_iter( Vec_Ptr_t * vStack, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes 
         }
         // explore the next fanin
         Vec_PtrPush( vStack, pNode );
-        Vec_PtrPush( vStack, (void *)(PORT_PTRINT_T)(iFanin+1) );
+        Vec_PtrPush( vStack, (void *)(ABC_PTRINT_T)(iFanin+1) );
         // get the fanin
         pFanin = Abc_ObjFanin0Ntk( Abc_ObjFanin(pNode,iFanin) );
         // if this node is already visited, skip
@@ -1239,7 +1239,7 @@ int Abc_NodeSetChoiceLevel_rec( Abc_Obj_t * pNode, int fMaximum )
     int Level1, Level2, Level, LevelE;
     // skip the visited node
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
-        return (int)(PORT_PTRINT_T)pNode->pCopy;
+        return (int)(ABC_PTRINT_T)pNode->pCopy;
     Abc_NodeSetTravIdCurrent( pNode );
     // compute levels of the children nodes
     Level1 = Abc_NodeSetChoiceLevel_rec( Abc_ObjFanin0(pNode), fMaximum );
@@ -1254,9 +1254,9 @@ int Abc_NodeSetChoiceLevel_rec( Abc_Obj_t * pNode, int fMaximum )
             Level = ABC_MIN( Level, LevelE );
         // set the level of all equivalent nodes to be the same minimum
         for ( pTemp = pNode->pData; pTemp; pTemp = pTemp->pData )
-            pTemp->pCopy = (void *)(PORT_PTRINT_T)Level;
+            pTemp->pCopy = (void *)(ABC_PTRINT_T)Level;
     }
-    pNode->pCopy = (void *)(PORT_PTRINT_T)Level;
+    pNode->pCopy = (void *)(ABC_PTRINT_T)Level;
     return Level;
 }
 
@@ -1325,7 +1325,7 @@ Vec_Ptr_t * Abc_AigGetLevelizedOrder( Abc_Ntk_t * pNtk, int fCollectCis )
     vLevels = Vec_PtrStart( LevelMax + 1 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        ppHead = ((Abc_Obj_t **)vLevels->pArray) + (int)(PORT_PTRINT_T)pNode->pCopy;
+        ppHead = ((Abc_Obj_t **)vLevels->pArray) + (int)(ABC_PTRINT_T)pNode->pCopy;
         pNode->pCopy = *ppHead;
         *ppHead = pNode;
     }
@@ -1336,6 +1336,51 @@ Vec_Ptr_t * Abc_AigGetLevelizedOrder( Abc_Ntk_t * pNtk, int fCollectCis )
             Vec_PtrPush( vNodes, pNode );
     Vec_PtrFree( vLevels );
     return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of nodes in the subgraph.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjSugraphSize( Abc_Obj_t * pObj )
+{
+    if ( Abc_ObjIsCi(pObj) )
+        return 0;
+    if ( Abc_ObjFanoutNum(pObj) > 1 )
+        return 0;
+    return 1 + Abc_ObjSugraphSize(Abc_ObjFanin0(pObj)) + 
+        Abc_ObjSugraphSize(Abc_ObjFanin1(pObj));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints subgraphs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkPrintSubraphSizes( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        if ( Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsExorType(pObj) )
+            printf( "%d(%d) ", 1 + Abc_ObjSugraphSize(Abc_ObjFanin0(pObj)) + 
+                Abc_ObjSugraphSize(Abc_ObjFanin1(pObj)), Abc_ObjFanoutNum(pObj) );
+    printf( "\n" );
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

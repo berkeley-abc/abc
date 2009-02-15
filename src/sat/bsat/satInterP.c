@@ -23,6 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+
 #include "satStore.h"
 #include "vec.h"
 
@@ -92,11 +93,11 @@ Intp_Man_t * Intp_ManAlloc()
 {
     Intp_Man_t * p;
     // allocate the manager
-    p = (Intp_Man_t *)malloc( sizeof(Intp_Man_t) );
+    p = (Intp_Man_t *)ABC_ALLOC( char, sizeof(Intp_Man_t) );
     memset( p, 0, sizeof(Intp_Man_t) );
     // verification
     p->nResLitsAlloc = (1<<16);
-    p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
+    p->pResLits = ABC_ALLOC( lit, p->nResLitsAlloc );
     // proof recording
     p->vAnties = Vec_IntAlloc( 1000 );
     p->vBreaks = Vec_IntAlloc( 1000 );
@@ -128,15 +129,15 @@ void Intp_ManResize( Intp_Man_t * p )
         while ( p->nVarsAlloc < p->pCnf->nVars ) 
             p->nVarsAlloc *= 2;
         // resize the arrays
-        p->pTrail    = (lit *)       realloc( p->pTrail,    sizeof(lit) * p->nVarsAlloc );
-        p->pAssigns  = (lit *)       realloc( p->pAssigns,  sizeof(lit) * p->nVarsAlloc );
-        p->pSeens    = (char *)      realloc( p->pSeens,    sizeof(char) * p->nVarsAlloc );
-//        p->pVarTypes = (int *)       realloc( p->pVarTypes, sizeof(int) * p->nVarsAlloc );
-        p->pReasons  = (Sto_Cls_t **)realloc( p->pReasons,  sizeof(Sto_Cls_t *) * p->nVarsAlloc );
-        p->pWatches  = (Sto_Cls_t **)realloc( p->pWatches,  sizeof(Sto_Cls_t *) * p->nVarsAlloc*2 );
+        p->pTrail    = ABC_REALLOC(lit,         p->pTrail,    p->nVarsAlloc );
+        p->pAssigns  = ABC_REALLOC(lit,         p->pAssigns,  p->nVarsAlloc );
+        p->pSeens    = ABC_REALLOC(char,        p->pSeens,    p->nVarsAlloc );
+//        p->pVarTypes = ABC_REALLOC(int,         p->pVarTypes, p->nVarsAlloc );
+        p->pReasons  = ABC_REALLOC(Sto_Cls_t *, p->pReasons,  p->nVarsAlloc );
+        p->pWatches  = ABC_REALLOC(Sto_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
     }
 
-    // clean the free space
+    // clean the ABC_FREE space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
 //    memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
@@ -152,7 +153,7 @@ void Intp_ManResize( Intp_Man_t * p )
         while ( p->nClosAlloc < p->pCnf->nClauses ) 
             p->nClosAlloc *= 2;
         // resize the arrays
-        p->pProofNums = (int *) realloc( p->pProofNums,  sizeof(int) * p->nClosAlloc );
+        p->pProofNums = ABC_REALLOC( int, p->pProofNums,  p->nClosAlloc );
     }
     memset( p->pProofNums, 0, sizeof(int) * p->pCnf->nClauses );
 }
@@ -172,22 +173,22 @@ void Intp_ManFree( Intp_Man_t * p )
 {
 /*
     printf( "Runtime stats:\n" );
-PRT( "BCP     ", p->timeBcp   );
-PRT( "Trace   ", p->timeTrace );
-PRT( "TOTAL   ", p->timeTotal );
+ABC_PRT( "BCP     ", p->timeBcp   );
+ABC_PRT( "Trace   ", p->timeTrace );
+ABC_PRT( "TOTAL   ", p->timeTotal );
 */
     Vec_IntFree( p->vAnties );
     Vec_IntFree( p->vBreaks );
-//    free( p->pInters );
-    free( p->pProofNums );
-    free( p->pTrail );
-    free( p->pAssigns );
-    free( p->pSeens );
-//    free( p->pVarTypes );
-    free( p->pReasons );
-    free( p->pWatches );
-    free( p->pResLits );
-    free( p );
+//    ABC_FREE( p->pInters );
+    ABC_FREE( p->pProofNums );
+    ABC_FREE( p->pTrail );
+    ABC_FREE( p->pAssigns );
+    ABC_FREE( p->pSeens );
+//    ABC_FREE( p->pVarTypes );
+    ABC_FREE( p->pReasons );
+    ABC_FREE( p->pWatches );
+    ABC_FREE( p->pResLits );
+    ABC_FREE( p );
 }
 
 
@@ -864,7 +865,7 @@ void Intp_ManUnsatCoreVerify( Sto_Man_t * pCnf, Vec_Int_t * vCore )
     }
     Vec_PtrFree( vClauses );
     // solve the problem
-    RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfMax, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     sat_solver_delete( pSat );
     if ( fVerbose )
     {
@@ -874,7 +875,7 @@ void Intp_ManUnsatCoreVerify( Sto_Man_t * pCnf, Vec_Int_t * vCore )
             printf( "UNSAT core verification FAILED.  " );
         else
             printf( "UNSAT core verification succeeded.  " );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     else
     {
@@ -989,7 +990,7 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
 
     if ( fVerbose )
     {
-        PRT( "Core", clock() - clkTotal );
+        ABC_PRT( "Core", clock() - clkTotal );
     printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f Mb\n", 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 

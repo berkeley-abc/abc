@@ -59,11 +59,11 @@ void Fxu_MatrixComputeSingles( Fxu_Matrix * p, int fUse0, int nSingleMax )
         int * pWeigtCounts, nDivCount, Weight, i, c;;
         assert( Vec_PtrSize(vSingles) % 3 == 0 );
         // count how many divisors have the given weight
-        pWeigtCounts = ALLOC( int, 1000 );
+        pWeigtCounts = ABC_ALLOC( int, 1000 );
         memset( pWeigtCounts, 0, sizeof(int) * 1000 );
         for ( i = 2; i < Vec_PtrSize(vSingles); i += 3 )
         {
-            Weight = (int)(PORT_PTRUINT_T)Vec_PtrEntry(vSingles, i);
+            Weight = (int)(ABC_PTRUINT_T)Vec_PtrEntry(vSingles, i);
             if ( Weight >= 999 )
                 pWeigtCounts[999]++;
             else
@@ -77,12 +77,12 @@ void Fxu_MatrixComputeSingles( Fxu_Matrix * p, int fUse0, int nSingleMax )
             if ( nDivCount >= nSingleMax )
                 break;
         }
-        free( pWeigtCounts );
+        ABC_FREE( pWeigtCounts );
         // collect singles with the given costs
         k = 0;
         for ( i = 2; i < Vec_PtrSize(vSingles); i += 3 )
         {
-            Weight = (int)(PORT_PTRUINT_T)Vec_PtrEntry(vSingles, i);
+            Weight = (int)(ABC_PTRUINT_T)Vec_PtrEntry(vSingles, i);
             if ( Weight < c )
                 continue;
             Vec_PtrWriteEntry( vSingles, k++, Vec_PtrEntry(vSingles, i-2) );
@@ -102,7 +102,7 @@ void Fxu_MatrixComputeSingles( Fxu_Matrix * p, int fUse0, int nSingleMax )
         Fxu_MatrixAddSingle( p, 
             Vec_PtrEntry(vSingles,i), 
             Vec_PtrEntry(vSingles,i+1), 
-            (int)(PORT_PTRUINT_T)Vec_PtrEntry(vSingles,i+2) );
+            (int)(ABC_PTRUINT_T)Vec_PtrEntry(vSingles,i+2) );
     }
     Vec_PtrFree( vSingles );
 }
@@ -159,7 +159,7 @@ void Fxu_MatrixComputeSinglesOneCollect( Fxu_Matrix * p, Fxu_Var * pVar, Vec_Ptr
         {
             Vec_PtrPush( vSingles, pVar2 );
             Vec_PtrPush( vSingles, pVar );
-            Vec_PtrPush( vSingles, (void *)(PORT_PTRUINT_T)WeightCur );
+            Vec_PtrPush( vSingles, (void *)(ABC_PTRUINT_T)WeightCur );
         }
     }
 

@@ -42,7 +42,7 @@
 Ssw_Frm_t * Ssw_FrmStart( Aig_Man_t * pAig )
 {
     Ssw_Frm_t * p;
-    p = ALLOC( Ssw_Frm_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Frm_t, 1 ); 
     memset( p, 0, sizeof(Ssw_Frm_t) );
     p->pAig          = pAig;
     p->nObjs         = Aig_ManObjNumMax( pAig );
@@ -69,7 +69,7 @@ void Ssw_FrmStop( Ssw_Frm_t * p )
     if ( p->pFrames )
         Aig_ManStop( p->pFrames );
     Vec_PtrFree( p->vAig2Frm );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

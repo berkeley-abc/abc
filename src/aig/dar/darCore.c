@@ -48,6 +48,7 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
     pPars->fUpdateLevel =  0;
     pPars->fUseZeros    =  0;
     pPars->fPower       =  0;
+    pPars->fRecycle     =  1;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
 }
@@ -71,7 +72,7 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     Dar_Cut_t * pCut;
     Aig_Obj_t * pObj, * pObjNew;
     int i, k, nNodesOld, nNodeBefore, nNodeAfter, Required;
-    int clk = 0, clkStart;
+    int clk = 0, clkStart, Counter = 0;
     // prepare the library
     Dar_LibPrepare( pPars->nSubgMax ); 
     // create rewriting manager
@@ -86,7 +87,7 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     if ( p->pPars->fUpdateLevel )
         Aig_ManStartReverseLevels( pAig, 0 );
     // set elementary cuts for the PIs
-    Dar_ManCutsStart( p );
+//    Dar_ManCutsStart( p );
     // resynthesize each node once
     clkStart = clock();
     p->nNodesInit = Aig_ManNodeNum(pAig);
@@ -105,6 +106,13 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
         if ( i > nNodesOld )
 //        if ( p->pPars->fUseZeros && i > nNodesOld )
             break;
+        if ( pPars->fRecycle && ++Counter % 50000 == 0 && Aig_DagSize(pObj) < Vec_PtrSize(p->vCutNodes)/100 )
+        {
+//            printf( "Counter = %7d.  Node = %7d.  Dag = %5d. Vec = %5d.\n", 
+//                Counter, i, Aig_DagSize(pObj), Vec_PtrSize(p->vCutNodes) );
+//            fflush( stdout );
+            Dar_ManCutsRestart( p, pObj );
+        }
 
         // consider freeing the cuts
 //        if ( (i & 0xFFF) == 0 && Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) > 100 )
@@ -173,7 +181,6 @@ p->timeTotal = clock() - clkStart;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
 //    Bar_ProgressStop( pProgress );
-    p->nCutMemUsed = Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20);
     Dar_ManCutsFree( p );
     // put the nodes into the DFS order and reassign their IDs
 //    Aig_NtkReassignIds( p );
@@ -260,7 +267,11 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose
     // create rewriting manager
     p = Dar_ManStart( pAig, pPars );
     // set elementary cuts for the PIs
-    Dar_ManCutsStart( p );
+//    Dar_ManCutsStart( p );
+    Aig_MmFixedRestart( p->pMemCuts );
+    Dar_ObjPrepareCuts( p, Aig_ManConst1(p->pAig) );
+    Aig_ManForEachPi( pAig, pObj, i )
+        Dar_ObjPrepareCuts( p, pObj );
     // compute cuts for each nodes in the topological order
     Aig_ManForEachNode( pAig, pObj, i )
         Dar_ObjComputeCuts( p, pObj );
@@ -274,14 +285,14 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose
             Aig_ManObjNum(pAig), nCuts, nCutsK );
         printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f Mb  ",
             (int)sizeof(Dar_Cut_t), (int)4, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
-        PRT( "Runtime", clock() - clk );
+        ABC_PRT( "Runtime", clock() - clk );
 /*
         Aig_ManForEachNode( pAig, pObj, i )
             if ( i % 300 == 0 )
                 Dar_ObjCutPrint( pAig, pObj );
 */
     }
-    // free the cuts
+    // ABC_FREE the cuts
     pMemCuts = p->pMemCuts;
     p->pMemCuts = NULL;
 //    Dar_ManCutsFree( p );

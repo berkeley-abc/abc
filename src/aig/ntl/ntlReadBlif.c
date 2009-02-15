@@ -213,7 +213,7 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
 static Ioa_ReadMan_t * Ioa_ReadAlloc()
 {
     Ioa_ReadMan_t * p;
-    p = ALLOC( Ioa_ReadMan_t, 1 );
+    p = ABC_ALLOC( Ioa_ReadMan_t, 1 );
     memset( p, 0, sizeof(Ioa_ReadMan_t) );
     p->vLines   = Vec_PtrAlloc( 512 );
     p->vModels  = Vec_PtrAlloc( 512 );
@@ -241,7 +241,7 @@ static void Ioa_ReadFree( Ioa_ReadMan_t * p )
     if ( p->pDesign )
         Ntl_ManFree( p->pDesign );
     if ( p->pBuffer )  
-        free( p->pBuffer );
+        ABC_FREE( p->pBuffer );
     if ( p->vLines )
         Vec_PtrFree( p->vLines );
     if ( p->vModels )
@@ -253,7 +253,7 @@ static void Ioa_ReadFree( Ioa_ReadMan_t * p )
     Vec_PtrFree( p->vTokens );
     Vec_PtrFree( p->vTokens2 );
     Vec_StrFree( p->vFunc );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -270,7 +270,7 @@ static void Ioa_ReadFree( Ioa_ReadMan_t * p )
 static Ioa_ReadMod_t * Ioa_ReadModAlloc()
 {
     Ioa_ReadMod_t * p;
-    p = ALLOC( Ioa_ReadMod_t, 1 );
+    p = ABC_ALLOC( Ioa_ReadMod_t, 1 );
     memset( p, 0, sizeof(Ioa_ReadMod_t) );
     p->vInputs  = Vec_PtrAlloc( 8 );
     p->vOutputs = Vec_PtrAlloc( 8 );
@@ -304,7 +304,7 @@ static void Ioa_ReadModFree( Ioa_ReadMod_t * p )
     Vec_PtrFree( p->vDelays );
     Vec_PtrFree( p->vTimeInputs );
     Vec_PtrFree( p->vTimeOutputs );
-    free( p );
+    ABC_FREE( p );
 }
 
 
@@ -448,7 +448,7 @@ static char * Ioa_ReadLoadFile( char * pFileName )
         printf( "Ioa_ReadLoadFile(): The file is empty.\n" );
         return NULL;
     }
-    pContents = ALLOC( char, nFileSize + 10 );
+    pContents = ABC_ALLOC( char, nFileSize + 10 );
     rewind( pFile );
     fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
@@ -498,9 +498,9 @@ static char * Ioa_ReadLoadFileBz2( char * pFileName )
     }
     do {
         if (!bufHead)
-            buf = bufHead = ALLOC( buflist, 1 );
+            buf = bufHead = ABC_ALLOC( buflist, 1 );
         else
-            buf = buf->next = ALLOC( buflist, 1 );
+            buf = buf->next = ABC_ALLOC( buflist, 1 );
         nFileSize += buf->nBuf = BZ2_bzRead(&bzError,b,buf->buf,1<<20);
         buf->next = NULL;
     } while (bzError == BZ_OK);
@@ -509,14 +509,14 @@ static char * Ioa_ReadLoadFileBz2( char * pFileName )
         char * p;
         int nBytes = 0;
         BZ2_bzReadClose(&bzError,b);
-        p = pContents = ALLOC( char, nFileSize + 10 );
+        p = pContents = ABC_ALLOC( char, nFileSize + 10 );
         buf = bufHead;
         do {
             memcpy(p+nBytes,buf->buf,buf->nBuf);
             nBytes += buf->nBuf;
 //        } while((buf = buf->next));
             pNext = buf->next;
-            free( buf );
+            ABC_FREE( buf );
         } while((buf = pNext));
     } else if (bzError == BZ_DATA_ERROR_MAGIC) {
         // not a BZIP2 file
@@ -528,7 +528,7 @@ static char * Ioa_ReadLoadFileBz2( char * pFileName )
             printf( "Ioa_ReadLoadFileBz2(): The file is empty.\n" );
             return NULL;
         }
-        pContents = ALLOC( char, nFileSize + 10 );
+        pContents = ABC_ALLOC( char, nFileSize + 10 );
         rewind( pFile );
         fread( pContents, nFileSize, 1, pFile );
     } else { 
@@ -561,12 +561,12 @@ static char * Ioa_ReadLoadFileGz( char * pFileName )
     char * pContents;
     int amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
     pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
-    pContents = ALLOC( char, nFileSize );        
+    pContents = ABC_ALLOC( char, nFileSize );        
     readBlock = 0;
     while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
         //printf("%d: read %d bytes\n", readBlock, amtRead);
         nFileSize += READ_BLOCK_SIZE;
-        pContents = REALLOC(char, pContents, nFileSize);
+        pContents = ABC_REALLOC(char, pContents, nFileSize);
         ++readBlock;
     }
     //printf("%d: read %d bytes\n", readBlock, amtRead);

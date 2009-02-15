@@ -29,10 +29,10 @@ struct Supp_Man_t_
 {
     int              nChunkSize;    // the size of one chunk of memory (~1 Mb)
     int              nStepSize;     // the step size in saving memory (~64 bytes)
-    char *           pFreeBuf;      // the pointer to free memory
-    int              nFreeSize;     // the size of remaining free memory
+    char *           pFreeBuf;      // the pointer to ABC_FREE memory
+    int              nFreeSize;     // the size of remaining ABC_FREE memory
     Vec_Ptr_t *      vMemory;       // the memory allocated
-    Vec_Ptr_t *      vFree;         // the vector of free pieces of memory
+    Vec_Ptr_t *      vFree;         // the vector of ABC_FREE pieces of memory
 };
 
 typedef struct Supp_One_t_     Supp_One_t;
@@ -66,7 +66,7 @@ static inline void   Supp_OneSetNext( char * pPart, char * pNext ) { *((char **)
 Supp_Man_t * Supp_ManStart( int nChunkSize, int nStepSize )
 {
     Supp_Man_t * p;
-    p = ALLOC( Supp_Man_t, 1 );
+    p = ABC_ALLOC( Supp_Man_t, 1 );
     memset( p, 0, sizeof(Supp_Man_t) );
     p->nChunkSize = nChunkSize;
     p->nStepSize  = nStepSize;
@@ -91,10 +91,10 @@ void Supp_ManStop( Supp_Man_t * p )
     void * pMemory;
     int i;
     Vec_PtrForEachEntry( p->vMemory, pMemory, i )
-        free( pMemory );
+        ABC_FREE( pMemory );
     Vec_PtrFree( p->vMemory );
     Vec_PtrFree( p->vFree );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -123,7 +123,7 @@ char * Supp_ManFetch( Supp_Man_t * p, int nSize )
     nSizeReal = p->nStepSize * Type;
     if ( p->nFreeSize < nSizeReal )
     {
-        p->pFreeBuf = ALLOC( char, p->nChunkSize );
+        p->pFreeBuf = ABC_ALLOC( char, p->nChunkSize );
         p->nFreeSize = p->nChunkSize;
         Vec_PtrPush( p->vMemory, p->pFreeBuf );
     }
@@ -321,9 +321,9 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
     int i;
     // set the number of PIs/POs
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pNext = (Abc_Obj_t *)(PORT_PTRINT_T)i;
+        pObj->pNext = (Abc_Obj_t *)(ABC_PTRINT_T)i;
     Abc_NtkForEachCo( pNtk, pObj, i )
-        pObj->pNext = (Abc_Obj_t *)(PORT_PTRINT_T)i;
+        pObj->pNext = (Abc_Obj_t *)(ABC_PTRINT_T)i;
     // start the support computation manager
     p = Supp_ManStart( 1 << 20, 1 << 6 );
     // consider objects in the topological order
@@ -353,7 +353,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
             if ( Abc_ObjIsNode(Abc_ObjFanin0(pObj)) )
             {
                 vSupp = Supp_ManTransferEntry(pPart0);
-                Vec_IntPush( vSupp, (int)(PORT_PTRINT_T)pObj->pNext );
+                Vec_IntPush( vSupp, (int)(ABC_PTRINT_T)pObj->pNext );
                 Vec_PtrPush( vSupports, vSupp );
             }
             assert( pPart0->nRefs > 0 );
@@ -366,7 +366,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
             if ( Abc_ObjFanoutNum(pObj) )
             {
                 pPart0 = (Supp_One_t *)Supp_ManFetchEntry( p, 1, Abc_ObjFanoutNum(pObj) );
-                pPart0->pOuts[ pPart0->nOuts++ ] = (int)(PORT_PTRINT_T)pObj->pNext;
+                pPart0->pOuts[ pPart0->nOuts++ ] = (int)(ABC_PTRINT_T)pObj->pNext;
                 pObj->pCopy = (Abc_Obj_t *)pPart0;
             }
             continue;
@@ -417,7 +417,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsNaive( Abc_Ntk_t * pNtk )
     int i, k;
     // set the PI numbers
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pNext = (void *)(PORT_PTRINT_T)i;
+        pObj->pNext = (void *)(ABC_PTRINT_T)i;
     // save the CI numbers
     vSupports = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
@@ -427,7 +427,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsNaive( Abc_Ntk_t * pNtk )
         vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vSuppI = (Vec_Int_t *)vSupp;
         Vec_PtrForEachEntry( vSupp, pTemp, k )
-            Vec_IntWriteEntry( vSuppI, k, (int)(PORT_PTRINT_T)pTemp->pNext );
+            Vec_IntWriteEntry( vSuppI, k, (int)(ABC_PTRINT_T)pTemp->pNext );
         Vec_IntSort( vSuppI, 0 );
         // append the number of this output
         Vec_IntPush( vSuppI, i );
@@ -463,7 +463,7 @@ unsigned * Abc_NtkSuppCharStart( Vec_Int_t * vOne, int nPis )
     unsigned * pBuffer;
     int i, Entry;
     int nWords = Abc_BitWordNum(nPis);
-    pBuffer = ALLOC( unsigned, nWords );
+    pBuffer = ABC_ALLOC( unsigned, nWords );
     memset( pBuffer, 0, sizeof(unsigned) * nWords );
     Vec_IntForEachEntry( vOne, Entry, i )
     {
@@ -728,7 +728,7 @@ clk = clock();
     vSupps = Abc_NtkComputeSupportsSmart( pNtk );
 if ( fVerbose )
 {
-PRT( "Supps", clock() - clk );
+ABC_PRT( "Supps", clock() - clk );
 }
     // start char-based support representation
     vPartSuppsChar = Vec_PtrAlloc( 1000 );
@@ -782,14 +782,14 @@ timeFind += clock() - clk2;
 
     // stop char-based support representation
     Vec_PtrForEachEntry( vPartSuppsChar, vTemp, i )
-        free( vTemp );
+        ABC_FREE( vTemp );
     Vec_PtrFree( vPartSuppsChar );
 
 //printf( "\n" );
 if ( fVerbose )
 {
-PRT( "Parts", clock() - clk );
-//PRT( "Find ", timeFind );
+ABC_PRT( "Parts", clock() - clk );
+//ABC_PRT( "Find ", timeFind );
 }
 
 clk = clock();
@@ -811,7 +811,7 @@ clk = clock();
 
 if ( fVerbose )
 {
-PRT( "Comps", clock() - clk );
+ABC_PRT( "Comps", clock() - clk );
 }
     if ( fVerbose )
     printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
@@ -1195,7 +1195,7 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
         Abc_NtkDelete( pNtkAig );
     Vec_PtrFree( vFraigs );
     Vec_PtrFree( vOnePtr );
-    PRT( "Partitioned fraiging time", clock() - clk );
+    ABC_PRT( "Partitioned fraiging time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

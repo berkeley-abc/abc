@@ -178,18 +178,18 @@ int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference )
     Counter = 1;
     if ( fReference )
     {
-        if ( pNode0->vFanouts.nSize++ == 0 && !Abc_ObjFaninC0(pNode) )
+        if ( !Abc_ObjFaninC0(pNode) && pNode0->vFanouts.nSize++ == 0 )
             Counter += Abc_NodeRefDerefStop( pNode0, fReference );
-        if ( pNode1->vFanouts.nSize++ == 0 && !Abc_ObjFaninC1(pNode) )
+        if ( !Abc_ObjFaninC1(pNode) && pNode1->vFanouts.nSize++ == 0 )
             Counter += Abc_NodeRefDerefStop( pNode1, fReference );
     }
     else
     {
         assert( pNode0->vFanouts.nSize > 0 );
         assert( pNode1->vFanouts.nSize > 0 );
-        if ( --pNode0->vFanouts.nSize == 0 && !Abc_ObjFaninC0(pNode) )
+        if ( !Abc_ObjFaninC0(pNode) && --pNode0->vFanouts.nSize == 0 )
             Counter += Abc_NodeRefDerefStop( pNode0, fReference );
-        if ( --pNode1->vFanouts.nSize == 0 && !Abc_ObjFaninC1(pNode) )
+        if ( !Abc_ObjFaninC1(pNode) && --pNode1->vFanouts.nSize == 0 )
             Counter += Abc_NodeRefDerefStop( pNode1, fReference );
     }
     return Counter;

@@ -42,7 +42,7 @@
 Kit_DsdMan_t * Kit_DsdManAlloc( int nVars, int nNodes )
 {
     Kit_DsdMan_t * p;
-    p = ALLOC( Kit_DsdMan_t, 1 );
+    p = ABC_ALLOC( Kit_DsdMan_t, 1 );
     memset( p, 0, sizeof(Kit_DsdMan_t) );
     p->nVars    = nVars;
     p->nWords   = Kit_TruthWordNum( p->nVars );
@@ -72,7 +72,7 @@ void Kit_DsdManFree( Kit_DsdMan_t * p )
     Vec_PtrFree( p->vTtBdds );
     Vec_PtrFree( p->vTtElems );
     Vec_PtrFree( p->vTtNodes );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -90,7 +90,7 @@ Kit_DsdObj_t * Kit_DsdObjAlloc( Kit_DsdNtk_t * pNtk, Kit_Dsd_t Type, int nFans )
 {
     Kit_DsdObj_t * pObj;
     int nSize = sizeof(Kit_DsdObj_t) + sizeof(unsigned) * (Kit_DsdObjOffset(nFans) + (Type == KIT_DSD_PRIME) * Kit_TruthWordNum(nFans));
-    pObj = (Kit_DsdObj_t *)ALLOC( char, nSize );
+    pObj = (Kit_DsdObj_t *)ABC_ALLOC( char, nSize );
     memset( pObj, 0, nSize );
     pObj->Id = pNtk->nVars + pNtk->nNodes;
     pObj->Type = Type;
@@ -100,7 +100,7 @@ Kit_DsdObj_t * Kit_DsdObjAlloc( Kit_DsdNtk_t * pNtk, Kit_Dsd_t Type, int nFans )
     if ( pNtk->nNodes == pNtk->nNodesAlloc )
     {
         pNtk->nNodesAlloc *= 2;
-        pNtk->pNodes = REALLOC( Kit_DsdObj_t *, pNtk->pNodes, pNtk->nNodesAlloc ); 
+        pNtk->pNodes = ABC_REALLOC( Kit_DsdObj_t *, pNtk->pNodes, pNtk->nNodesAlloc ); 
     }
     assert( pNtk->nNodes < pNtk->nNodesAlloc );
     pNtk->pNodes[pNtk->nNodes++] = pObj;
@@ -120,7 +120,7 @@ Kit_DsdObj_t * Kit_DsdObjAlloc( Kit_DsdNtk_t * pNtk, Kit_Dsd_t Type, int nFans )
 ***********************************************************************/
 void Kit_DsdObjFree( Kit_DsdNtk_t * p, Kit_DsdObj_t * pObj )
 {
-    free( pObj );
+    ABC_FREE( pObj );
 }
 
 /**Function*************************************************************
@@ -137,12 +137,12 @@ void Kit_DsdObjFree( Kit_DsdNtk_t * p, Kit_DsdObj_t * pObj )
 Kit_DsdNtk_t * Kit_DsdNtkAlloc( int nVars )
 {
     Kit_DsdNtk_t * pNtk;
-    pNtk = ALLOC( Kit_DsdNtk_t, 1 );
+    pNtk = ABC_ALLOC( Kit_DsdNtk_t, 1 );
     memset( pNtk, 0, sizeof(Kit_DsdNtk_t) );
-    pNtk->pNodes = ALLOC( Kit_DsdObj_t *, nVars+1 );
+    pNtk->pNodes = ABC_ALLOC( Kit_DsdObj_t *, nVars+1 );
     pNtk->nVars = nVars;
     pNtk->nNodesAlloc = nVars+1;
-    pNtk->pMem = ALLOC( unsigned, 6 * Kit_TruthWordNum(nVars) );
+    pNtk->pMem = ABC_ALLOC( unsigned, 6 * Kit_TruthWordNum(nVars) );
     return pNtk;
 }
 
@@ -162,11 +162,11 @@ void Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk )
     Kit_DsdObj_t * pObj;
     unsigned i;
     Kit_DsdNtkForEachObj( pNtk, pObj, i )
-        free( pObj );
-    FREE( pNtk->pSupps );
-    free( pNtk->pNodes );
-    free( pNtk->pMem );
-    free( pNtk );
+        ABC_FREE( pObj );
+    ABC_FREE( pNtk->pSupps );
+    ABC_FREE( pNtk->pNodes );
+    ABC_FREE( pNtk->pMem );
+    ABC_FREE( pNtk );
 }
 
 /**Function*************************************************************
@@ -1032,7 +1032,7 @@ unsigned Kit_DsdNonDsdSupports( Kit_DsdNtk_t * pNtk )
 {
     Kit_DsdObj_t * pObj;
     unsigned i, uSupport = 0;
-//    FREE( pNtk->pSupps );
+//    ABC_FREE( pNtk->pSupps );
     Kit_DsdGetSupports( pNtk );
     Kit_DsdNtkForEachObj( pNtk, pObj, i )
     {
@@ -1531,7 +1531,7 @@ unsigned Kit_DsdGetSupports( Kit_DsdNtk_t * p )
     Kit_DsdObj_t * pRoot;
     unsigned uSupport;
     assert( p->pSupps == NULL );
-    p->pSupps = ALLOC( unsigned, p->nNodes );
+    p->pSupps = ABC_ALLOC( unsigned, p->nNodes );
     // consider simple special cases
     pRoot = Kit_DsdNtkRoot(p);
     if ( pRoot->Type == KIT_DSD_CONST1 )
@@ -2377,7 +2377,7 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
 
     // allocate storage for cofactors
     nMemSize = Kit_TruthWordNum(nVars);
-    ppCofs[0][0] = ALLOC( unsigned, 80 * nMemSize );
+    ppCofs[0][0] = ABC_ALLOC( unsigned, 80 * nMemSize );
     nSize = 0;
     for ( i = 0; i <  5; i++ )
     for ( k = 0; k < 16; k++ )
@@ -2422,7 +2422,7 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
                 // compute the sum total of supports
                 nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nStep+1][2*i+0], nVars );
                 nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nStep+1][2*i+1], nVars );
-                // free the networks
+                // ABC_FREE the networks
                 Kit_DsdNtkFree( ppNtks[nStep+1][2*i+0] );
                 Kit_DsdNtkFree( ppNtks[nStep+1][2*i+1] );
             }
@@ -2460,12 +2460,12 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
         }
     }
 
-    // free the networks
+    // ABC_FREE the networks
     for ( i = 0; i <  5; i++ )
     for ( k = 0; k < 16; k++ )
         if ( ppNtks[i][k] )
             Kit_DsdNtkFree( ppNtks[i][k] );
-    free( ppCofs[0][0] );
+    ABC_FREE( ppCofs[0][0] );
 
     assert( nStep <= nLimit );
     return nStep;
@@ -2502,7 +2502,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
 
     // allocate storage for cofactors
     nMemSize = Kit_TruthWordNum(nVars);
-    ppCofs[0][0] = ALLOC( unsigned, 80 * nMemSize );
+    ppCofs[0][0] = ABC_ALLOC( unsigned, 80 * nMemSize );
     nSize = 0;
     for ( i = 0; i <  5; i++ )
     for ( k = 0; k < 16; k++ )
@@ -2713,7 +2713,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
     }
 
 
-    free( ppCofs[0][0] );
+    ABC_FREE( ppCofs[0][0] );
 }
 
 ////////////////////////////////////////////////////////////////////////

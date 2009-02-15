@@ -19,10 +19,6 @@
 #ifndef __FPGA_H__
 #define __FPGA_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -30,6 +26,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // the maximum size of LUTs used for mapping
 #define FPGA_MAX_LUTSIZE   32
@@ -52,10 +52,10 @@ typedef struct Fpga_LutLibStruct_t_      Fpga_LutLib_t;
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
  
-#define Fpga_IsComplement(p)    (((int)((PORT_PTRUINT_T) (p) & 01)))
-#define Fpga_Regular(p)         ((Fpga_Node_t *)((PORT_PTRUINT_T)(p) & ~01)) 
-#define Fpga_Not(p)             ((Fpga_Node_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
-#define Fpga_NotCond(p,c)       ((Fpga_Node_t *)((PORT_PTRUINT_T)(p) ^ (c)))
+#define Fpga_IsComplement(p)    (((int)((ABC_PTRUINT_T) (p) & 01)))
+#define Fpga_Regular(p)         ((Fpga_Node_t *)((ABC_PTRUINT_T)(p) & ~01)) 
+#define Fpga_Not(p)             ((Fpga_Node_t *)((ABC_PTRUINT_T)(p) ^ 01)) 
+#define Fpga_NotCond(p,c)       ((Fpga_Node_t *)((ABC_PTRUINT_T)(p) ^ (c)))
 
 #define Fpga_Ref(p)   
 #define Fpga_Deref(p)

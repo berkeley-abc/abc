@@ -188,13 +188,13 @@ void Fra_BmcFilterImplications( Fra_Man_t * p, Fra_Bmc_t * pBmc )
 Fra_Bmc_t * Fra_BmcStart( Aig_Man_t * pAig, int nPref, int nDepth )
 {
     Fra_Bmc_t * p;
-    p = ALLOC( Fra_Bmc_t, 1 );
+    p = ABC_ALLOC( Fra_Bmc_t, 1 );
     memset( p, 0, sizeof(Fra_Bmc_t) );
     p->pAig = pAig;
     p->nPref = nPref;
     p->nDepth = nDepth;
     p->nFramesAll = nPref + nDepth;
-    p->pObjToFrames  = ALLOC( Aig_Obj_t *, p->nFramesAll * Aig_ManObjNumMax(pAig) );
+    p->pObjToFrames  = ABC_ALLOC( Aig_Obj_t *, p->nFramesAll * Aig_ManObjNumMax(pAig) );
     memset( p->pObjToFrames, 0, sizeof(Aig_Obj_t *) * p->nFramesAll * Aig_ManObjNumMax(pAig) );
     return p;
 }
@@ -215,9 +215,9 @@ void Fra_BmcStop( Fra_Bmc_t * p )
     Aig_ManStop( p->pAigFrames );
     if ( p->pAigFraig )
         Aig_ManStop( p->pAigFraig );
-    free( p->pObjToFrames );
-    free( p->pObjToFraig );
-    free( p );
+    ABC_FREE( p->pObjToFrames );
+    ABC_FREE( p->pObjToFraig );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -253,7 +253,7 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
         Bmc_ObjSetFrames( pObj, 0, Aig_ManConst0(pAigFrames) );
 
     // add timeframes
-    pLatches = ALLOC( Aig_Obj_t *, Aig_ManRegNum(p->pAig) );
+    pLatches = ABC_ALLOC( Aig_Obj_t *, Aig_ManRegNum(p->pAig) );
     for ( f = 0; f < p->nFramesAll; f++ )
     {
         // add internal nodes of this frame
@@ -275,7 +275,7 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
             Bmc_ObjSetFrames( pObj, f+1, pLatches[k++] );
         assert( k == Aig_ManRegNum(p->pAig) );
     }
-    free( pLatches );
+    ABC_FREE( pLatches );
     if ( fKeepPos )
     {
         for ( f = 0; f < p->nFramesAll; f++ )
@@ -333,7 +333,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
         printf( "Original AIG = %d. Init %d frames = %d. Fraig = %d.  ", 
             Aig_ManNodeNum(p->pBmc->pAig), p->pBmc->nFramesAll, 
             Aig_ManNodeNum(p->pBmc->pAigFrames), Aig_ManNodeNum(p->pBmc->pAigFraig) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
         printf( "Before BMC: " );  
 //        Fra_ClassesPrint( p->pCla, 0 );
         printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
@@ -360,7 +360,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
             printf( "Imp = %5d. ", Vec_IntSize(p->pCla->vImps) );
         printf( "\n" );
     }
-    // free the BMC manager
+    // ABC_FREE the BMC manager
     Fra_BmcStop( p->pBmc );  
     p->pBmc = NULL;
 }
@@ -397,7 +397,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 
             nFrames, Aig_ManPiNum(pBmc->pAigFrames), Aig_ManPoNum(pBmc->pAigFrames), 
             Aig_ManNodeNum(pBmc->pAigFrames), Aig_ManLevelNum(pBmc->pAigFrames) );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     if ( fRewrite )
     {
@@ -408,7 +408,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         {
             printf( "Time-frames after rewriting:  Node = %6d. Lev = %5d.  ", 
                 Aig_ManNodeNum(pBmc->pAigFrames), Aig_ManLevelNum(pBmc->pAigFrames) );
-            PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", clock() - clk );
         }
     }
     clk = clock();
@@ -422,7 +422,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         if ( pBmc->pAigFraig->pData )
         {
             pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pBmc->pAigFrames, pBmc->pAigFraig->pData );
-            FREE( pBmc->pAigFraig->pData );
+            ABC_FREE( pBmc->pAigFraig->pData );
         }
         else if ( iOutput >= 0 )
             pAig->pSeqModel = Fra_SmlTrivCounterExample( pAig, iOutput );
@@ -432,10 +432,10 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         printf( "Fraiged init frames: Node = %6d. Lev = %5d.  ", 
             pBmc->pAigFraig? Aig_ManNodeNum(pBmc->pAigFraig) : -1,
             pBmc->pAigFraig? Aig_ManLevelNum(pBmc->pAigFraig) : -1 );
-        PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", clock() - clk );
     }
     Fra_BmcStop( pBmc );  
-    free( pTemp );
+    ABC_FREE( pTemp );
 }
 
 

@@ -610,7 +610,7 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
 
   Description []
                
-  SideEffects []
+  SideEffects [] 
 
   SeeAlso     []
 
@@ -642,7 +642,7 @@ int Io_ReadBlifNetworkSubcircuit( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     // set the pointer to the node names
     Abc_ObjSetData( pBox, vNames );
     // remember the line of the file
-    pBox->pCopy = (void *)(PORT_PTRINT_T)Extra_FileReaderGetLineNumber(p->pReader, 0);
+    pBox->pCopy = (void *)(ABC_PTRINT_T)Extra_FileReaderGetLineNumber(p->pReader, 0);
     return 0;
 }
 
@@ -795,7 +795,7 @@ Vec_Ptr_t * Io_ReadBlifGetTokens( Io_ReadBlif_t * p )
     if ( p->vNewTokens->nSize > 0 )
     {
         for ( i = 0; i < p->vNewTokens->nSize; i++ )
-            free( p->vNewTokens->pArray[i] );
+            ABC_FREE( p->vNewTokens->pArray[i] );
         p->vNewTokens->nSize = 0;
     }
 
@@ -868,7 +868,7 @@ Io_ReadBlif_t * Io_ReadBlifFile( char * pFileName )
         return NULL;
 
     // start the reading data structure
-    p = ALLOC( Io_ReadBlif_t, 1 );
+    p = ABC_ALLOC( Io_ReadBlif_t, 1 );
     memset( p, 0, sizeof(Io_ReadBlif_t) );
     p->pFileName  = pFileName;
     p->pReader    = pReader;
@@ -894,7 +894,7 @@ void Io_ReadBlifFree( Io_ReadBlif_t * p )
     Extra_FileReaderFree( p->pReader );
     Vec_PtrFree( p->vNewTokens );
     Vec_StrFree( p->vCubes );
-    free( p );
+    ABC_FREE( p );
 }
 
 
@@ -921,7 +921,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
     pNames = pBox->pData;
     if ( !stmm_lookup( tName2Model, Vec_PtrEntry(pNames, 0), (char **)&pNtkModel ) )
     {
-        p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+        p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
         sprintf( p->sError, "Cannot find the model for subcircuit %s.", (char*)Vec_PtrEntry(pNames, 0) );
         Io_ReadBlifPrintErrorMessage( p );
         return 1;
@@ -939,7 +939,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
             pActual = Io_ReadBlifCleanName(pName);
             if ( pActual == NULL )
             {
-                p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+                p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
                 sprintf( p->sError, "Cannot parse formal/actual name pair \"%s\".", pName );
                 Io_ReadBlifPrintErrorMessage( p );
                 return 1;
@@ -950,7 +950,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
             pObj = Abc_NtkFindNet( pNtkModel, pName );
             if ( pObj == NULL )
             {
-                p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+                p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
                 sprintf( p->sError, "Cannot find formal input \"%s\" as an PI of model \"%s\".", pName, (char*)Vec_PtrEntry(pNames, 0) );
                 Io_ReadBlifPrintErrorMessage( p );
                 return 1;
@@ -967,7 +967,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
             // remember the actual name in the net
             if ( pObj->pCopy != NULL )
             {
-                p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+                p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
                 sprintf( p->sError, "Formal input \"%s\" is used more than once.", pName );
                 Io_ReadBlifPrintErrorMessage( p );
                 return 1;
@@ -987,7 +987,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pActual = (void *)pObj->pCopy;
         if ( pActual == NULL )
         {
-            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
             sprintf( p->sError, "Formal input \"%s\" of model %s is not driven.", pName, (char*)Vec_PtrEntry(pNames, 0) );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
@@ -1006,7 +1006,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pActual = Io_ReadBlifCleanName(pName);
         if ( pActual == NULL )
         {
-            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
             sprintf( p->sError, "Cannot parse formal/actual name pair \"%s\".", pName );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
@@ -1017,7 +1017,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pObj = Abc_NtkFindNet( pNtkModel, pName );
         if ( pObj == NULL )
         {
-            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
             sprintf( p->sError, "Cannot find formal output \"%s\" as an PO of model \"%s\".", pName, (char*)Vec_PtrEntry(pNames, 0) );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
@@ -1026,7 +1026,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pObj = Abc_ObjFanout0(pObj);
         if ( pObj->pCopy != NULL )
         {
-            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
             sprintf( p->sError, "Formal output \"%s\" is used more than once.", pName );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
@@ -1039,7 +1039,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pActual = (void *)pObj->pCopy;
         if ( pActual == NULL )
         {
-            p->LineCur = (int)(PORT_PTRINT_T)pBox->pCopy;
+            p->LineCur = (int)(ABC_PTRINT_T)pBox->pCopy;
             sprintf( p->sError, "Formal output \"%s\" of model %s is not driven.", pName, (char*)Vec_PtrEntry(pNames, 0) );
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
@@ -1052,7 +1052,7 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
 
     // remove the array of names, assign the pointer to the model
     Vec_PtrForEachEntry( pBox->pData, pName, i )
-        free( pName );
+        ABC_FREE( pName );
     Vec_PtrFree( pBox->pData );
     pBox->pData = pNtkModel;
     return 0;

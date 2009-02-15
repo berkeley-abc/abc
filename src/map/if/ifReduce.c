@@ -57,7 +57,7 @@ void If_ManImproveMapping( If_Man_t * p )
     {
         printf( "E: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
             p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
-        PRT( "T", clock() - clk );
+        ABC_PRT( "T", clock() - clk );
     }
  
 /*
@@ -68,7 +68,7 @@ void If_ManImproveMapping( If_Man_t * p )
     {
         printf( "R:  Del = %6.2f. Area = %8.2f. Nets = %6d. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
-        PRT( "T", clock() - clk );
+        ABC_PRT( "T", clock() - clk );
     }
 */
 /*
@@ -79,7 +79,7 @@ void If_ManImproveMapping( If_Man_t * p )
     {
         printf( "E:  Del = %6.2f. Area = %8.2f. Nets = %6d. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
-        PRT( "T", clock() - clk );
+        ABC_PRT( "T", clock() - clk );
     }
 */
 }

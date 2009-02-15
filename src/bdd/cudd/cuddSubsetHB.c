@@ -336,7 +336,7 @@ cuddSubsetHeavyBranch(
     dd->errorCode = CUDD_INTERNAL_ERROR;
     }
 
-    size = ALLOC(int, 1);
+    size = ABC_ALLOC(int, 1);
     if (size == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -385,23 +385,23 @@ cuddSubsetHeavyBranch(
     st_free_table(storeTable);
 
     for (i = 0; i <= page; i++) {
-    FREE(mintermPages[i]);
+    ABC_FREE(mintermPages[i]);
     }
-    FREE(mintermPages);
+    ABC_FREE(mintermPages);
     for (i = 0; i <= page; i++) {
-    FREE(nodePages[i]);
+    ABC_FREE(nodePages[i]);
     }
-    FREE(nodePages);
+    ABC_FREE(nodePages);
     for (i = 0; i <= page; i++) {
-    FREE(lightNodePages[i]);
+    ABC_FREE(lightNodePages[i]);
     }
-    FREE(lightNodePages);
+    ABC_FREE(lightNodePages);
     for (i = 0; i <= nodeDataPage; i++) {
-    FREE(nodeDataPages[i]);
+    ABC_FREE(nodeDataPages[i]);
     }
-    FREE(nodeDataPages);
+    ABC_FREE(nodeDataPages);
     st_free_table(visitedTable);
-    FREE(size);
+    ABC_FREE(size);
 #if 0
     (void) Cudd_DebugCheck(dd);
     (void) Cudd_CheckKeys(dd);
@@ -455,10 +455,10 @@ ResizeNodeDataPages(
      * INITIAL_PAGES
      */
     if (nodeDataPage == maxNodeDataPages) {
-    newNodeDataPages = ALLOC(NodeData_t *,maxNodeDataPages + INITIAL_PAGES);
+    newNodeDataPages = ABC_ALLOC(NodeData_t *,maxNodeDataPages + INITIAL_PAGES);
     if (newNodeDataPages == NULL) {
-        for (i = 0; i < nodeDataPage; i++) FREE(nodeDataPages[i]);
-        FREE(nodeDataPages);
+        for (i = 0; i < nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+        ABC_FREE(nodeDataPages);
         memOut = 1;
         return;
     } else {
@@ -467,16 +467,16 @@ ResizeNodeDataPages(
         }
         /* Increase total page count */
         maxNodeDataPages += INITIAL_PAGES;
-        FREE(nodeDataPages);
+        ABC_FREE(nodeDataPages);
         nodeDataPages = newNodeDataPages;
     }
     }
     /* Allocate a new page */
     currentNodeDataPage = nodeDataPages[nodeDataPage] =
-    ALLOC(NodeData_t ,nodeDataPageSize);
+    ABC_ALLOC(NodeData_t ,nodeDataPageSize);
     if (currentNodeDataPage == NULL) {
-    for (i = 0; i < nodeDataPage; i++) FREE(nodeDataPages[i]);
-    FREE(nodeDataPages);
+    for (i = 0; i < nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+    ABC_FREE(nodeDataPages);
     memOut = 1;
     return;
     }
@@ -515,10 +515,10 @@ ResizeCountMintermPages(
      * INITIAL_PAGES
      */
     if (page == maxPages) {
-    newMintermPages = ALLOC(double *,maxPages + INITIAL_PAGES);
+    newMintermPages = ABC_ALLOC(double *,maxPages + INITIAL_PAGES);
     if (newMintermPages == NULL) {
-        for (i = 0; i < page; i++) FREE(mintermPages[i]);
-        FREE(mintermPages);
+        for (i = 0; i < page; i++) ABC_FREE(mintermPages[i]);
+        ABC_FREE(mintermPages);
         memOut = 1;
         return;
     } else {
@@ -527,15 +527,15 @@ ResizeCountMintermPages(
         }
         /* Increase total page count */
         maxPages += INITIAL_PAGES;
-        FREE(mintermPages);
+        ABC_FREE(mintermPages);
         mintermPages = newMintermPages;
     }
     }
     /* Allocate a new page */
-    currentMintermPage = mintermPages[page] = ALLOC(double,pageSize);
+    currentMintermPage = mintermPages[page] = ABC_ALLOC(double,pageSize);
     if (currentMintermPage == NULL) {
-    for (i = 0; i < page; i++) FREE(mintermPages[i]);
-    FREE(mintermPages);
+    for (i = 0; i < page; i++) ABC_FREE(mintermPages[i]);
+    ABC_FREE(mintermPages);
     memOut = 1;
     return;
     }
@@ -574,57 +574,57 @@ ResizeCountNodePages(
      * by INITIAL_PAGES.
      */
     if (page == maxPages) {
-    newNodePages = ALLOC(int *,maxPages + INITIAL_PAGES);
+    newNodePages = ABC_ALLOC(int *,maxPages + INITIAL_PAGES);
     if (newNodePages == NULL) {
-        for (i = 0; i < page; i++) FREE(nodePages[i]);
-        FREE(nodePages);
-        for (i = 0; i < page; i++) FREE(lightNodePages[i]);
-        FREE(lightNodePages);
+        for (i = 0; i < page; i++) ABC_FREE(nodePages[i]);
+        ABC_FREE(nodePages);
+        for (i = 0; i < page; i++) ABC_FREE(lightNodePages[i]);
+        ABC_FREE(lightNodePages);
         memOut = 1;
         return;
     } else {
         for (i = 0; i < maxPages; i++) {
         newNodePages[i] = nodePages[i];
         }
-        FREE(nodePages);
+        ABC_FREE(nodePages);
         nodePages = newNodePages;
     }
 
-    newNodePages = ALLOC(int *,maxPages + INITIAL_PAGES);
+    newNodePages = ABC_ALLOC(int *,maxPages + INITIAL_PAGES);
     if (newNodePages == NULL) {
-        for (i = 0; i < page; i++) FREE(nodePages[i]);
-        FREE(nodePages);
-        for (i = 0; i < page; i++) FREE(lightNodePages[i]);
-        FREE(lightNodePages);
+        for (i = 0; i < page; i++) ABC_FREE(nodePages[i]);
+        ABC_FREE(nodePages);
+        for (i = 0; i < page; i++) ABC_FREE(lightNodePages[i]);
+        ABC_FREE(lightNodePages);
         memOut = 1;
         return;
     } else {
         for (i = 0; i < maxPages; i++) {
         newNodePages[i] = lightNodePages[i];
         }
-        FREE(lightNodePages);
+        ABC_FREE(lightNodePages);
         lightNodePages = newNodePages;
     }
     /* Increase total page count */
     maxPages += INITIAL_PAGES;
     }
     /* Allocate a new page */
-    currentNodePage = nodePages[page] = ALLOC(int,pageSize);
+    currentNodePage = nodePages[page] = ABC_ALLOC(int,pageSize);
     if (currentNodePage == NULL) {
-    for (i = 0; i < page; i++) FREE(nodePages[i]);
-    FREE(nodePages);
-    for (i = 0; i < page; i++) FREE(lightNodePages[i]);
-    FREE(lightNodePages);
+    for (i = 0; i < page; i++) ABC_FREE(nodePages[i]);
+    ABC_FREE(nodePages);
+    for (i = 0; i < page; i++) ABC_FREE(lightNodePages[i]);
+    ABC_FREE(lightNodePages);
     memOut = 1;
     return;
     }
     /* Allocate a new page */
-    currentLightNodePage = lightNodePages[page] = ALLOC(int,pageSize);
+    currentLightNodePage = lightNodePages[page] = ABC_ALLOC(int,pageSize);
     if (currentLightNodePage == NULL) {
-    for (i = 0; i <= page; i++) FREE(nodePages[i]);
-    FREE(nodePages);
-    for (i = 0; i < page; i++) FREE(lightNodePages[i]);
-    FREE(lightNodePages);
+    for (i = 0; i <= page; i++) ABC_FREE(nodePages[i]);
+    ABC_FREE(nodePages);
+    for (i = 0; i < page; i++) ABC_FREE(lightNodePages[i]);
+    ABC_FREE(lightNodePages);
     memOut = 1;
     return;
     }
@@ -703,8 +703,8 @@ SubsetCountMintermAux(
     /* if page index is at the bottom, then create a new page */
     if (pageIndex == pageSize) ResizeCountMintermPages();
     if (memOut) {
-        for (i = 0; i <= nodeDataPage; i++) FREE(nodeDataPages[i]);
-        FREE(nodeDataPages);
+        for (i = 0; i <= nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+        ABC_FREE(nodeDataPages);
         st_free_table(table);
         return(0.0);
     }
@@ -719,8 +719,8 @@ SubsetCountMintermAux(
     /* Note I allocate the struct here. Freeing taken care of later */
     if (nodeDataPageIndex == nodeDataPageSize) ResizeNodeDataPages();
     if (memOut) {
-        for (i = 0; i <= page; i++) FREE(mintermPages[i]);
-        FREE(mintermPages);
+        for (i = 0; i <= page; i++) ABC_FREE(mintermPages[i]);
+        ABC_FREE(mintermPages);
         st_free_table(table);
         return(0.0);
     }
@@ -736,10 +736,10 @@ SubsetCountMintermAux(
     /* insert entry for the node in the table */
     if (st_insert(table,(char *)node, (char *)newEntry) == ST_OUT_OF_MEM) {
         memOut = 1;
-        for (i = 0; i <= page; i++) FREE(mintermPages[i]);
-        FREE(mintermPages);
-        for (i = 0; i <= nodeDataPage; i++) FREE(nodeDataPages[i]);
-        FREE(nodeDataPages);
+        for (i = 0; i <= page; i++) ABC_FREE(mintermPages[i]);
+        ABC_FREE(mintermPages);
+        for (i = 0; i <= nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+        ABC_FREE(nodeDataPages);
         st_free_table(table);
         return(0.0);
     }
@@ -780,35 +780,35 @@ SubsetCountMinterm(
     table = st_init_table(st_ptrcmp,st_ptrhash);
     if (table == NULL) goto OUT_OF_MEM;
     maxPages = INITIAL_PAGES;
-    mintermPages = ALLOC(double *,maxPages);
+    mintermPages = ABC_ALLOC(double *,maxPages);
     if (mintermPages == NULL) {
     st_free_table(table);
     goto OUT_OF_MEM;
     }
     page = 0;
-    currentMintermPage = ALLOC(double,pageSize);
+    currentMintermPage = ABC_ALLOC(double,pageSize);
     mintermPages[page] = currentMintermPage;
     if (currentMintermPage == NULL) {
-    FREE(mintermPages);
+    ABC_FREE(mintermPages);
     st_free_table(table);
     goto OUT_OF_MEM;
     }
     pageIndex = 0;
     maxNodeDataPages = INITIAL_PAGES;
-    nodeDataPages = ALLOC(NodeData_t *, maxNodeDataPages);
+    nodeDataPages = ABC_ALLOC(NodeData_t *, maxNodeDataPages);
     if (nodeDataPages == NULL) {
-    for (i = 0; i <= page ; i++) FREE(mintermPages[i]);
-    FREE(mintermPages);
+    for (i = 0; i <= page ; i++) ABC_FREE(mintermPages[i]);
+    ABC_FREE(mintermPages);
     st_free_table(table);
     goto OUT_OF_MEM;
     }
     nodeDataPage = 0;
-    currentNodeDataPage = ALLOC(NodeData_t ,nodeDataPageSize);
+    currentNodeDataPage = ABC_ALLOC(NodeData_t ,nodeDataPageSize);
     nodeDataPages[nodeDataPage] = currentNodeDataPage;
     if (currentNodeDataPage == NULL) {
-    for (i = 0; i <= page ; i++) FREE(mintermPages[i]);
-    FREE(mintermPages);
-    FREE(nodeDataPages);
+    for (i = 0; i <= page ; i++) ABC_FREE(mintermPages[i]);
+    ABC_FREE(mintermPages);
+    ABC_FREE(nodeDataPages);
     st_free_table(table);
     goto OUT_OF_MEM;
     }
@@ -915,10 +915,10 @@ SubsetCountNodesAux(
     /* store the node count of the lighter child. */
     if (pageIndex == pageSize) ResizeCountNodePages();
     if (memOut) {
-        for (i = 0; i <= page; i++) FREE(mintermPages[i]);
-        FREE(mintermPages);
-        for (i = 0; i <= nodeDataPage; i++) FREE(nodeDataPages[i]);
-        FREE(nodeDataPages);
+        for (i = 0; i <= page; i++) ABC_FREE(mintermPages[i]);
+        ABC_FREE(mintermPages);
+        for (i = 0; i <= nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+        ABC_FREE(nodeDataPages);
         st_free_table(table);
         return(0);
     }
@@ -935,10 +935,10 @@ SubsetCountNodesAux(
     /* store the node count of the lighter child. */
     if (pageIndex == pageSize) ResizeCountNodePages();
     if (memOut) {
-        for (i = 0; i <= page; i++) FREE(mintermPages[i]);
-        FREE(mintermPages);
-        for (i = 0; i <= nodeDataPage; i++) FREE(nodeDataPages[i]);
-        FREE(nodeDataPages);
+        for (i = 0; i <= page; i++) ABC_FREE(mintermPages[i]);
+        ABC_FREE(mintermPages);
+        for (i = 0; i <= nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+        ABC_FREE(nodeDataPages);
         st_free_table(table);
         return(0);
     }
@@ -962,10 +962,10 @@ SubsetCountNodesAux(
     if (st_lookup(table, (char *)Cudd_Not(node), (char **)&dummyNBar) == 1)  {
     if (pageIndex == pageSize) ResizeCountNodePages();
     if (memOut) {
-        for (i = 0; i < page; i++) FREE(mintermPages[i]);
-        FREE(mintermPages);
-        for (i = 0; i < nodeDataPage; i++) FREE(nodeDataPages[i]);
-        FREE(nodeDataPages);
+        for (i = 0; i < page; i++) ABC_FREE(mintermPages[i]);
+        ABC_FREE(mintermPages);
+        for (i = 0; i < nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+        ABC_FREE(nodeDataPages);
         st_free_table(table);
         return(0);
     }
@@ -977,10 +977,10 @@ SubsetCountNodesAux(
      */
     if (pageIndex == pageSize) ResizeCountNodePages();
     if (memOut) {
-        for (i = 0; i < page; i++) FREE(mintermPages[i]);
-        FREE(mintermPages);
-        for (i = 0; i < nodeDataPage; i++) FREE(nodeDataPages[i]);
-        FREE(nodeDataPages);
+        for (i = 0; i < page; i++) ABC_FREE(mintermPages[i]);
+        ABC_FREE(mintermPages);
+        for (i = 0; i < nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+        ABC_FREE(nodeDataPages);
         st_free_table(table);
         return(0);
     }
@@ -1023,42 +1023,42 @@ SubsetCountNodes(
 
     max = pow(2.0,(double) nvars);
     maxPages = INITIAL_PAGES;
-    nodePages = ALLOC(int *,maxPages);
+    nodePages = ABC_ALLOC(int *,maxPages);
     if (nodePages == NULL)  {
     goto OUT_OF_MEM;
     }
 
-    lightNodePages = ALLOC(int *,maxPages);
+    lightNodePages = ABC_ALLOC(int *,maxPages);
     if (lightNodePages == NULL) {
-    for (i = 0; i <= page; i++) FREE(mintermPages[i]);
-    FREE(mintermPages);
-    for (i = 0; i <= nodeDataPage; i++) FREE(nodeDataPages[i]);
-    FREE(nodeDataPages);
-    FREE(nodePages);
+    for (i = 0; i <= page; i++) ABC_FREE(mintermPages[i]);
+    ABC_FREE(mintermPages);
+    for (i = 0; i <= nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+    ABC_FREE(nodeDataPages);
+    ABC_FREE(nodePages);
     goto OUT_OF_MEM;
     }
 
     page = 0;
-    currentNodePage = nodePages[page] = ALLOC(int,pageSize);
+    currentNodePage = nodePages[page] = ABC_ALLOC(int,pageSize);
     if (currentNodePage == NULL) {
-    for (i = 0; i <= page; i++) FREE(mintermPages[i]);
-    FREE(mintermPages);
-    for (i = 0; i <= nodeDataPage; i++) FREE(nodeDataPages[i]);
-    FREE(nodeDataPages);
-    FREE(lightNodePages);
-    FREE(nodePages);
+    for (i = 0; i <= page; i++) ABC_FREE(mintermPages[i]);
+    ABC_FREE(mintermPages);
+    for (i = 0; i <= nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+    ABC_FREE(nodeDataPages);
+    ABC_FREE(lightNodePages);
+    ABC_FREE(nodePages);
     goto OUT_OF_MEM;
     }
 
-    currentLightNodePage = lightNodePages[page] = ALLOC(int,pageSize);
+    currentLightNodePage = lightNodePages[page] = ABC_ALLOC(int,pageSize);
     if (currentLightNodePage == NULL) {
-    for (i = 0; i <= page; i++) FREE(mintermPages[i]);
-    FREE(mintermPages);
-    for (i = 0; i <= nodeDataPage; i++) FREE(nodeDataPages[i]);
-    FREE(nodeDataPages);
-    FREE(currentNodePage);
-    FREE(lightNodePages);
-    FREE(nodePages);
+    for (i = 0; i <= page; i++) ABC_FREE(mintermPages[i]);
+    ABC_FREE(mintermPages);
+    for (i = 0; i <= nodeDataPage; i++) ABC_FREE(nodeDataPages[i]);
+    ABC_FREE(nodeDataPages);
+    ABC_FREE(currentNodePage);
+    ABC_FREE(lightNodePages);
+    ABC_FREE(nodePages);
     goto OUT_OF_MEM;
     }
 

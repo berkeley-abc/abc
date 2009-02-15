@@ -160,7 +160,7 @@ void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
     if ( fVerbose )
     {
     printf( "Total gain in AIG nodes = %d.  ", nGainTotal );
-    PRT( "Total runtime", clock() - clk );
+    ABC_PRT( "Total runtime", clock() - clk );
     }
 }
 

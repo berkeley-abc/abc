@@ -582,7 +582,7 @@ clk = clock();
     printf( "The BDD before = %d.\n", Cudd_DagSize(bSum) );
     Cudd_ReduceHeap( dd, CUDD_REORDER_SIFT, 1 );
     printf( "The BDD after  = %d.\n", Cudd_DagSize(bSum) );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
     Cudd_RecursiveDeref( dd, bSum );
     Cudd_Quit( dd );
 }

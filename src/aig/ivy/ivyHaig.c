@@ -518,7 +518,7 @@ printf( "Using latch %d with fanin %d\n", pObj->Id, Ivy_ObjFanin0(pObj)->Id );
         Ivy_ManForEachNodeVec( p, vLatches, pObj, i )
             pObj->Init = pObj->Level, pObj->Level = 0;
     }
-    // free arrays
+    // ABC_FREE arrays
     Vec_IntFree( vNodes );
     Vec_IntFree( vLatches );
 }

@@ -933,7 +933,7 @@ freePathPair(
     cuddPathPair *pair;
 
     pair = (cuddPathPair *) value;
-    FREE(pair);
+    ABC_FREE(pair);
     return(ST_CONTINUE);
 
 } /* end of freePathPair */
@@ -1010,7 +1010,7 @@ getShortest(
     }
     }
 
-    my_pair = ALLOC(cuddPathPair, 1);
+    my_pair = ABC_ALLOC(cuddPathPair, 1);
     if (my_pair == NULL) {
     if (Cudd_IsComplement(root)) {
         int tmp = res_pair.pos;
@@ -1190,7 +1190,7 @@ getLargest(
     res_pair.neg = ddMin(pair_T.neg, pair_E.neg) + 1;
     }
 
-    my_pair = ALLOC(cuddPathPair, 1);
+    my_pair = ABC_ALLOC(cuddPathPair, 1);
     if (my_pair == NULL) {    /* simlpy do not cache this result */
     if (Cudd_IsComplement(root)) {
         int tmp = res_pair.pos;

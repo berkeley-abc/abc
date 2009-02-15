@@ -260,7 +260,7 @@ Cudd_addSwapVariables(
     int     i, j, k;
     int     *permut;
 
-    permut = ALLOC(int,dd->size);
+    permut = ABC_ALLOC(int,dd->size);
     if (permut == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -274,7 +274,7 @@ Cudd_addSwapVariables(
     }
 
     swapped = Cudd_addPermute(dd,f,permut);
-    FREE(permut);
+    ABC_FREE(permut);
 
     return(swapped);
 
@@ -393,7 +393,7 @@ Cudd_SetVarMap (
     if (manager->map != NULL) {
     cuddCacheFlush(manager);
     } else {
-    manager->map = ALLOC(int,manager->maxSize);
+    manager->map = ABC_ALLOC(int,manager->maxSize);
     if (manager->map == NULL) {
         manager->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -441,7 +441,7 @@ Cudd_bddSwapVariables(
     int     i, j, k;
     int     *permut;
 
-    permut = ALLOC(int,dd->size);
+    permut = ABC_ALLOC(int,dd->size);
     if (permut == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -455,7 +455,7 @@ Cudd_bddSwapVariables(
     }
 
     swapped = Cudd_bddPermute(dd,f,permut);
-    FREE(permut);
+    ABC_FREE(permut);
 
     return(swapped);
 
@@ -488,7 +488,7 @@ Cudd_bddAdjPermuteX(
     int     i, j, k;
     int     *permut;
 
-    permut = ALLOC(int,dd->size);
+    permut = ABC_ALLOC(int,dd->size);
     if (permut == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -502,7 +502,7 @@ Cudd_bddAdjPermuteX(
     }
 
     swapped = Cudd_bddPermute(dd,B,permut);
-    FREE(permut);
+    ABC_FREE(permut);
 
     return(swapped);
 
@@ -1520,17 +1520,17 @@ cuddAddNonSimComposeRecur(
     }
 
     /* Allocate two new vectors for the cofactors of vector. */
-    vect1 = ALLOC(DdNode *,lastsub);
+    vect1 = ABC_ALLOC(DdNode *,lastsub);
     if (vect1 == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     Cudd_RecursiveDeref(dd,key1);
     return(NULL);
     }
-    vect0 = ALLOC(DdNode *,lastsub);
+    vect0 = ABC_ALLOC(DdNode *,lastsub);
     if (vect0 == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     Cudd_RecursiveDeref(dd,key1);
-    FREE(vect1);
+    ABC_FREE(vect1);
     return(NULL);
     }
 
@@ -1552,15 +1552,15 @@ cuddAddNonSimComposeRecur(
 
     /* Recur on children. */
     T = cuddAddNonSimComposeRecur(dd,f1,vect1,key1,cube1,lastsub);
-    FREE(vect1);
+    ABC_FREE(vect1);
     if (T == NULL) {
     Cudd_RecursiveDeref(dd,key1);
-    FREE(vect0);
+    ABC_FREE(vect0);
     return(NULL);
     }
     cuddRef(T);
     E = cuddAddNonSimComposeRecur(dd,f0,vect0,key0,cube1,lastsub);
-    FREE(vect0);
+    ABC_FREE(vect0);
     if (E == NULL) {
     Cudd_RecursiveDeref(dd,key1);
     Cudd_RecursiveDeref(dd,T);

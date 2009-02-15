@@ -51,7 +51,7 @@ Aig_Obj_t ** Aig_ManStaticFanoutStart( Aig_Man_t * p )
     int i, nFanouts, nFanoutsAlloc;
     // allocate fanouts
     nFanoutsAlloc = 2 * Aig_ManObjNumMax(p) - Aig_ManPiNum(p) - Aig_ManPoNum(p);
-    ppFanouts = ALLOC( Aig_Obj_t *, nFanoutsAlloc );
+    ppFanouts = ABC_ALLOC( Aig_Obj_t *, nFanoutsAlloc );
     // mark up storage
     nFanouts = 0;
     Aig_ManForEachObj( p, pObj, i )
@@ -122,7 +122,7 @@ void Saig_ManMarkAutonomous( Aig_Man_t * p )
     Aig_ManMarkAutonomous_rec( p, Aig_ManConst1(p) );
     Saig_ManForEachPi( p, pObj, i )
         Aig_ManMarkAutonomous_rec( p, pObj );
-    free( ppFanouts );
+    ABC_FREE( ppFanouts );
     // disconnect LIs/LOs and label unreachable registers
     Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
     {
@@ -220,7 +220,7 @@ Aig_Man_t * Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose )
         {
             printf( "%2d : And = %6d. Reg = %5d. Unret = %5d. Move = %6d. ", 
                 i + 1, Aig_ManNodeNum(pTemp), Aig_ManRegNum(pTemp), nRegFixed, nRegMoves );
-            PRT( "Time", clock() - clk );
+            ABC_PRT( "Time", clock() - clk );
         }
         if ( pTemp != p )
             Aig_ManStop( pTemp );
@@ -229,7 +229,7 @@ Aig_Man_t * Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose )
     pNew = Aig_ManReduceLaches( pNew, fVerbose );
     if ( fVerbose )
     {
-        PRT( "Register sharing time", clock() - clk );
+        ABC_PRT( "Register sharing time", clock() - clk );
     }
     return pNew;
 }

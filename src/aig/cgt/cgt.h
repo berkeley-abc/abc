@@ -21,10 +21,6 @@
 #ifndef __CGT_H__
 #define __CGT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* 
     The algorithm implemented in this package is based on the paper:
     A. Hurst. "Automatic synthesis of clock gating logic with controlled 
@@ -38,6 +34,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

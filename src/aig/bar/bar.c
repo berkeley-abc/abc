@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "abc_global.h"
 #include "bar.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -67,7 +68,7 @@ Bar_Progress_t * Bar_ProgressStart( FILE * pFile, int nItemsTotal )
     if ( pFrame == NULL )
         return NULL;
     if ( !Abc_FrameShowProgress(pFrame) ) return NULL;
-    p = (Bar_Progress_t *) malloc(sizeof(Bar_Progress_t));
+    p = ABC_ALLOC( Bar_Progress_t, 1 );
     memset( p, 0, sizeof(Bar_Progress_t) );
     p->pFile       = pFile;
     p->nItemsTotal = nItemsTotal;
@@ -123,7 +124,7 @@ void Bar_ProgressStop( Bar_Progress_t * p )
 {
     if ( p == NULL ) return;
     Bar_ProgressClean( p );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

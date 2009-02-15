@@ -210,7 +210,7 @@ char * CmdSplitLine( Abc_Frame_t * pAbc, char *sCommand, int *argc, char ***argv
         if ( start == p )
             break;
 
-        new_arg = ALLOC( char, p - start + 1 );
+        new_arg = ABC_ALLOC( char, p - start + 1 );
         j = 0;
         for ( i = 0; i < p - start; i++ )
         {
@@ -270,13 +270,13 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
         {
             stopit = 1;
         }
-        FREE( argv[0] );
+        ABC_FREE( argv[0] );
         added = alias->argc - 1;
 
         /* shift all the arguments to the right */
         if ( added != 0 )
         {
-            argv = REALLOC( char *, argv, argc + added );
+            argv = ABC_REALLOC( char *, argv, argc + added );
             for ( i = argc - 1; i >= 1; i-- )
             {
                 argv[i + added] = argv[i];
@@ -330,7 +330,7 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
             added = newc - 1;
             if ( added != 0 )
             {
-                argv = REALLOC( char *, argv, argc + added );
+                argv = ABC_REALLOC( char *, argv, argc + added );
                 for ( j = argc - 1; j > offset; j-- )
                 {
                     argv[j + added] = argv[j];
@@ -341,14 +341,14 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
             {
                 argv[j + offset] = newv[j];
             }
-            FREE( newv );
+            ABC_FREE( newv );
             offset += added;
         }
         if ( subst == 1 )
         {
             for ( i = offset; i < argc; i++ )
             {
-                FREE( argv[i] );
+                ABC_FREE( argv[i] );
             }
             argc = offset;
         }
@@ -422,12 +422,12 @@ FILE * CmdFileOpen( Abc_Frame_t * pAbc, char *sFileName, char *sMode, char **pFi
                 sPathAll = Extra_UtilStrsav( sPathUsr );
             }
             else {
-                sPathAll = ALLOC( char, strlen(sPathLib)+strlen(sPathUsr)+5 );
+                sPathAll = ABC_ALLOC( char, strlen(sPathLib)+strlen(sPathUsr)+5 );
                 sprintf( sPathAll, "%s:%s",sPathUsr, sPathLib );
             }
             if ( sPathAll != NULL ) {
                 sRealName = Extra_UtilFileSearch(sFileName, sPathAll, "r");
-                FREE( sPathAll );
+                ABC_FREE( sPathAll );
             }
         }
         if (sRealName == NULL) {
@@ -442,7 +442,7 @@ FILE * CmdFileOpen( Abc_Frame_t * pAbc, char *sFileName, char *sMode, char **pFi
     if ( pFileNameReal )
         *pFileNameReal = sRealName;
     else
-        FREE(sRealName);
+        ABC_FREE(sRealName);
     
     return pFile;
 }
@@ -462,8 +462,8 @@ void CmdFreeArgv( int argc, char **argv )
 {
     int i;
     for ( i = 0; i < argc; i++ )
-        FREE( argv[i] );
-    FREE( argv );
+        ABC_FREE( argv[i] );
+    ABC_FREE( argv );
 }
 
 /**Function*************************************************************
@@ -481,8 +481,9 @@ char ** CmdAddToArgv( int argc, char ** argv )
 {
     char ** argv2;
     int i;
-    argv2 = ALLOC( char *, argc + 1 ); 
+    argv2 = ABC_ALLOC( char *, argc + 1 ); 
     argv2[0] = Extra_UtilStrsav( "read" ); 
+//    argv2[0] = Extra_UtilStrsav( "&r" ); 
     for ( i = 0; i < argc; i++ )
         argv2[i+1] = Extra_UtilStrsav( argv[i] ); 
     return argv2;
@@ -501,9 +502,9 @@ char ** CmdAddToArgv( int argc, char ** argv )
 ***********************************************************************/
 void CmdCommandFree( Abc_Command * pCommand )
 {
-    free( pCommand->sGroup );
-    free( pCommand->sName );
-    free( pCommand );
+    ABC_FREE( pCommand->sGroup );
+    ABC_FREE( pCommand->sName );
+    ABC_FREE( pCommand );
 }
 
 
@@ -530,7 +531,7 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, bool fPrintAll )
 
     // put all commands into one array
     nCommands = st_count( pAbc->tCommands );
-    ppCommands = ALLOC( Abc_Command *, nCommands );
+    ppCommands = ABC_ALLOC( Abc_Command *, nCommands );
     i = 0;
     st_foreach_item( pAbc->tCommands, gen, &key, &value )
     {
@@ -580,7 +581,7 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, bool fPrintAll )
             iCom = 1;
         }
     fprintf( pAbc->Out, "\n" );
-    FREE( ppCommands );
+    ABC_FREE( ppCommands );
 }
  
 /**Function*************************************************************
@@ -658,7 +659,7 @@ void CmdPrintTable( st_table * tTable, int fAliases )
     int nNames, i;
 
     // collect keys in the array
-    ppNames = ALLOC( char *, st_count(tTable) );
+    ppNames = ABC_ALLOC( char *, st_count(tTable) );
     nNames = 0;
     st_foreach_item( tTable, gen, &key, &value )
         ppNames[nNames++] = key;
@@ -676,7 +677,7 @@ void CmdPrintTable( st_table * tTable, int fAliases )
         else
             fprintf( stdout, "%-15s %-15s\n", ppNames[i], value );
     }
-    free( ppNames );
+    ABC_FREE( ppNames );
 }
 
 ////////////////////////////////////////////////////////////////////////

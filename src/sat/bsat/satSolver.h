@@ -2,7 +2,7 @@
 MiniSat -- Copyright (c) 2005, Niklas Sorensson
 http://www.cs.chalmers.se/Cs/Research/FormalMethods/MiniSat/
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+Permission is hereby granted, ABC_FREE of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
@@ -22,10 +22,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef satSolver_h
 #define satSolver_h
 
-#ifdef _WIN32
-#define inline __inline // compatible with MS VS 6.0
-#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
+#include "abc_global.h"
 #include "satVec.h"
 #include "satMem.h"
 
@@ -45,17 +47,6 @@ static const bool  false     = 0;
 
 typedef int                lit;
 typedef char               lbool;
-
-#ifndef SINT64
-#define SINT64
-
-#ifdef _WIN32
-typedef signed __int64     sint64;   // compatible with MS VS 6.0
-#else
-typedef long long          sint64;
-#endif
-
-#endif
 
 static const int   var_Undef = -1;
 static const lit   lit_Undef = -2;
@@ -85,7 +76,7 @@ extern void        sat_solver_delete(sat_solver* s);
 
 extern bool        sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
 extern bool        sat_solver_simplify(sat_solver* s);
-extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit, sint64 nConfLimitGlobal, sint64 nInsLimitGlobal);
+extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 
 extern int         sat_solver_nvars(sat_solver* s);
 extern int         sat_solver_nclauses(sat_solver* s);
@@ -95,8 +86,8 @@ extern void        sat_solver_setnvars(sat_solver* s,int n);
 
 struct stats_t
 {
-    sint64   starts, decisions, propagations, inspects, conflicts;
-    sint64   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
+    ABC_INT64_T   starts, decisions, propagations, inspects, conflicts;
+    ABC_INT64_T   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
 };
 typedef struct stats_t stats;
 
@@ -167,8 +158,8 @@ struct sat_solver_t
 
     stats    stats;
 
-    sint64   nConfLimit;    // external limit on the number of conflicts
-    sint64   nInsLimit;     // external limit on the number of implications
+    ABC_INT64_T   nConfLimit;    // external limit on the number of conflicts
+    ABC_INT64_T   nInsLimit;     // external limit on the number of implications
 
     veci     act_vars;      // variables whose activity has changed
     double*  factors;       // the activity factors

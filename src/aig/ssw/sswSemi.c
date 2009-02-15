@@ -64,7 +64,7 @@ Ssw_Sem_t * Ssw_SemManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
     Aig_Obj_t * pObj;
     int i;
     // create interpolation manager
-    p = ALLOC( Ssw_Sem_t, 1 ); 
+    p = ABC_ALLOC( Ssw_Sem_t, 1 ); 
     memset( p, 0, sizeof(Ssw_Sem_t) );
     p->nConfMaxStart  = nConfMax;
     p->nConfMax       = nConfMax;
@@ -85,9 +85,9 @@ Ssw_Sem_t * Ssw_SemManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
     // update arrays of the manager
     assert( 0 );
 /*
-    free( p->pMan->pNodeToFrames );
+    ABC_FREE( p->pMan->pNodeToFrames );
     Vec_IntFree( p->pMan->vSatVars );
-    p->pMan->pNodeToFrames = CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pMan->pAig) * p->nFramesSweep );
+    p->pMan->pNodeToFrames = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pMan->pAig) * p->nFramesSweep );
     p->pMan->vSatVars      = Vec_IntStart( Aig_ManObjNumMax(p->pMan->pAig) * (p->nFramesSweep+1) );
 */
     return p;
@@ -109,7 +109,7 @@ void Ssw_SemManStop( Ssw_Sem_t * p )
     Vec_PtrFree( p->vTargets );
     Vec_PtrFree( p->vPatterns );
     Vec_IntFree( p->vHistory );
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -283,7 +283,7 @@ clk = clock();
                 Iter, Ssw_ClassesCand1Num(p->pMan->ppClasses), Ssw_ClassesClassNum(p->pMan->ppClasses), 
                 Aig_ManNodeNum(p->pMan->pFrames), Frames, (int)p->pMan->pMSat->pSat->stats.conflicts, p->nPatterns, 
                 p->pMan->nSatFailsReal? "f" : " " );
-            PRT( "T", clock() - clk );
+            ABC_PRT( "T", clock() - clk );
         } 
         Ssw_ManCleanup( p->pMan );
         if ( fCheckTargets && Ssw_SemCheckTargets( p ) )

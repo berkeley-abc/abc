@@ -111,7 +111,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, 
     Abc_NtkFraigTransform( pNtk, tEquiv, fUseInv, fVerbose );
     stmm_free_table( tEquiv );
 
-    // free the manager
+    // ABC_FREE the manager
     Fraig_ManFree( pMan );
     Abc_NtkDelete( pNtkAig );
 
@@ -835,7 +835,7 @@ int Abc_NtkLatchSweep( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Replaces autonumnous logic by free inputs.]
+  Synopsis    [Replaces autonumnous logic by ABC_FREE inputs.]
 
   Description [Assumes that non-autonomous logic is marked with
   the current ID.]

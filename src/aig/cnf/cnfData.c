@@ -4554,7 +4554,7 @@ void Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops )
     assert( Size < 100000 );
 
     // allocate memory
-    pMemory = ALLOC( char, Size * 75 );
+    pMemory = ABC_ALLOC( char, Size * 75 );
     // copy the array into memory
     for ( i = 0; i < Size; i++ )
         for ( k = 0; k < 75; k++ )
@@ -4564,8 +4564,8 @@ void Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops )
                 pMemory[i*75+k] = Map[(int)s_Data4[i][k]];
 
     // set pointers and compute SOP sizes
-    pSopSizes = ALLOC( char, 65536 );
-    pSops = ALLOC( char *, 65536 );
+    pSopSizes = ABC_ALLOC( char, 65536 );
+    pSops = ABC_ALLOC( char *, 65536 );
     pSopSizes[0] = 0;
     pSops[0] = NULL;
     pPrev = pMemory;

@@ -44,11 +44,11 @@ Fraig_HashTable_t * Fraig_HashTableCreate( int nSize )
 {
     Fraig_HashTable_t * p;
     // allocate the table
-    p = ALLOC( Fraig_HashTable_t, 1 );
+    p = ABC_ALLOC( Fraig_HashTable_t, 1 );
     memset( p, 0, sizeof(Fraig_HashTable_t) );
     // allocate and clean the bins
     p->nBins = Cudd_PrimeFraig(nSize);
-    p->pBins = ALLOC( Fraig_Node_t *, p->nBins );
+    p->pBins = ABC_ALLOC( Fraig_Node_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Fraig_Node_t *) * p->nBins );
     return p;
 }
@@ -66,8 +66,8 @@ Fraig_HashTable_t * Fraig_HashTableCreate( int nSize )
 ***********************************************************************/
 void Fraig_HashTableFree( Fraig_HashTable_t * p )
 {
-    FREE( p->pBins );
-    FREE( p );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -264,7 +264,7 @@ clk = clock();
     // get the new table size
     nBinsNew = Cudd_PrimeFraig(2 * p->nBins); 
     // allocate a new array
-    pBinsNew = ALLOC( Fraig_Node_t *, nBinsNew );
+    pBinsNew = ABC_ALLOC( Fraig_Node_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Fraig_Node_t *) * nBinsNew );
     // rehash the entries from the old table
     Counter = 0;
@@ -278,9 +278,9 @@ clk = clock();
         }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nBins, nBinsNew );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( p->pBins );
+    ABC_FREE( p->pBins );
     p->pBins = pBinsNew;
     p->nBins = nBinsNew;
 }
@@ -307,7 +307,7 @@ clk = clock();
     // get the new table size
     nBinsNew = Cudd_PrimeFraig(2 * p->nBins); 
     // allocate a new array
-    pBinsNew = ALLOC( Fraig_Node_t *, nBinsNew );
+    pBinsNew = ABC_ALLOC( Fraig_Node_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Fraig_Node_t *) * nBinsNew );
     // rehash the entries from the old table
     Counter = 0;
@@ -324,9 +324,9 @@ clk = clock();
         }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the functional table size from %6d to %6d. ", p->nBins, nBinsNew );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( p->pBins );
+    ABC_FREE( p->pBins );
     p->pBins = pBinsNew;
     p->nBins = nBinsNew;
 }
@@ -605,7 +605,7 @@ int Fraig_TableRehashF0( Fraig_Man_t * pMan, int fLinkEquiv )
     unsigned Key;
 
     // allocate a new array of bins
-    pBinsNew = ALLOC( Fraig_Node_t *, pT->nBins );
+    pBinsNew = ABC_ALLOC( Fraig_Node_t *, pT->nBins );
     memset( pBinsNew, 0, sizeof(Fraig_Node_t *) * pT->nBins );
 
     // rehash the entries in the table
@@ -645,7 +645,7 @@ int Fraig_TableRehashF0( Fraig_Man_t * pMan, int fLinkEquiv )
         }
     assert( Counter == pT->nEntries );
     // replace the table and the parameters
-    free( pT->pBins );
+    ABC_FREE( pT->pBins );
     pT->pBins = pBinsNew;
     return ReturnValue;
 }

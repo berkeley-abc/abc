@@ -188,19 +188,19 @@ cuddExact(
     newOrder = getMatrix(maxBinomial, size);
     if (newOrder == NULL) goto cuddExactOutOfMem;
 
-    newCost = ALLOC(int, maxBinomial);
+    newCost = ABC_ALLOC(int, maxBinomial);
     if (newCost == NULL) goto cuddExactOutOfMem;
 
     oldOrder = getMatrix(maxBinomial, size);
     if (oldOrder == NULL) goto cuddExactOutOfMem;
 
-    oldCost = ALLOC(int, maxBinomial);
+    oldCost = ABC_ALLOC(int, maxBinomial);
     if (oldCost == NULL) goto cuddExactOutOfMem;
 
-    bestOrder = ALLOC(DdHalfWord, size);
+    bestOrder = ABC_ALLOC(DdHalfWord, size);
     if (bestOrder == NULL) goto cuddExactOutOfMem;
 
-    mask = ALLOC(char, nvars);
+    mask = ABC_ALLOC(char, nvars);
     if (mask == NULL) goto cuddExactOutOfMem;
 
     symmInfo = initSymmInfo(table, lower, upper);
@@ -289,22 +289,22 @@ cuddExact(
 
     freeMatrix(newOrder);
     freeMatrix(oldOrder);
-    FREE(bestOrder);
-    FREE(oldCost);
-    FREE(newCost);
-    FREE(symmInfo);
-    FREE(mask);
+    ABC_FREE(bestOrder);
+    ABC_FREE(oldCost);
+    ABC_FREE(newCost);
+    ABC_FREE(symmInfo);
+    ABC_FREE(mask);
     return(1);
 
 cuddExactOutOfMem:
 
     if (newOrder != NULL) freeMatrix(newOrder);
     if (oldOrder != NULL) freeMatrix(oldOrder);
-    if (bestOrder != NULL) FREE(bestOrder);
-    if (oldCost != NULL) FREE(oldCost);
-    if (newCost != NULL) FREE(newCost);
-    if (symmInfo != NULL) FREE(symmInfo);
-    if (mask != NULL) FREE(mask);
+    if (bestOrder != NULL) ABC_FREE(bestOrder);
+    if (oldCost != NULL) ABC_FREE(oldCost);
+    if (newCost != NULL) ABC_FREE(newCost);
+    if (symmInfo != NULL) ABC_FREE(symmInfo);
+    if (mask != NULL) ABC_FREE(mask);
     table->errorCode = CUDD_MEMORY_OUT;
     return(0);
 
@@ -335,7 +335,7 @@ getMaxBinomial(
 
     k = (n & ~1) >> 1;
 
-    numerator = ALLOC(int,k);
+    numerator = ABC_ALLOC(int,k);
     if (numerator == NULL) return(-1);
     
     for (i = 0; i < k; i++)
@@ -358,7 +358,7 @@ getMaxBinomial(
     for (i = 0; i < k; i++)
     result *= numerator[i];
 
-    FREE(numerator);
+    ABC_FREE(numerator);
     return(result);
 
 }  /* end of getMaxBinomial */
@@ -440,9 +440,9 @@ getMatrix(
     int i;
 
     if (cols*rows == 0) return(NULL);
-    matrix = ALLOC(DdHalfWord *, rows);
+    matrix = ABC_ALLOC(DdHalfWord *, rows);
     if (matrix == NULL) return(NULL);
-    matrix[0] = ALLOC(DdHalfWord, cols*rows);
+    matrix[0] = ABC_ALLOC(DdHalfWord, cols*rows);
     if (matrix[0] == NULL) return(NULL);
     for (i = 1; i < rows; i++) {
     matrix[i] = matrix[i-1] + cols;
@@ -467,8 +467,8 @@ static void
 freeMatrix(
   DdHalfWord ** matrix)
 {
-    FREE(matrix[0]);
-    FREE(matrix);
+    ABC_FREE(matrix[0]);
+    ABC_FREE(matrix);
     return;
 
 } /* end of freeMatrix */
@@ -956,7 +956,7 @@ initSymmInfo(
     int level, index, next, nextindex;
     DdHalfWord *symmInfo;
 
-    symmInfo =  ALLOC(DdHalfWord, table->size);
+    symmInfo =  ABC_ALLOC(DdHalfWord, table->size);
     if (symmInfo == NULL) return(NULL);
 
     for (level = lower; level <= upper; level++) {

@@ -91,7 +91,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
     }
 
     // copy the formula
-    pFormula = ALLOC( char, strlen(pFormInit) + 3 );
+    pFormula = ABC_ALLOC( char, strlen(pFormInit) + 3 );
     sprintf( pFormula, "(%s)", pFormInit );
 
     // start the stacks
@@ -182,7 +182,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
                     if ( Parse_ParserPerformTopOp( pMan, pStackFn, Oper ) == NULL )
                     {
                         fprintf( pOutput, "Parse_FormulaParserEqn(): Unknown operation\n" );
-                        free( pFormula );
+                        ABC_FREE( pFormula );
                         return NULL;
                     }
                 }
@@ -273,7 +273,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
                     if ( Parse_ParserPerformTopOp( pMan, pStackFn, Oper2 ) == NULL )
                     {
                         fprintf( pOutput, "Parse_FormulaParserEqn(): Unknown operation\n" );
-                        free( pFormula );
+                        ABC_FREE( pFormula );
                         return NULL;
                     }
                     Parse_StackOpPush( pStackOp,  Oper1 );     // push the last operation back
@@ -298,7 +298,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
                     Parse_StackFnFree(pStackFn);
                     Parse_StackOpFree(pStackOp);
 //                    Cudd_Deref( gFunc );
-                    free( pFormula );
+                    ABC_FREE( pFormula );
                     return gFunc;
                 }
                 else
@@ -309,7 +309,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
         else
             fprintf( pOutput, "Parse_FormulaParserEqn(): The input string is empty\n" );
     }
-    free( pFormula );
+    ABC_FREE( pFormula );
     return NULL;
 }
 

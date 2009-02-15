@@ -63,7 +63,7 @@ Saig_SimObj_t * Saig_ManCreateMan( Aig_Man_t * p )
     Saig_SimObj_t * pAig, * pEntry;
     Aig_Obj_t * pObj;
     int i;
-    pAig = CALLOC( Saig_SimObj_t, Aig_ManObjNumMax(p)+1 );
+    pAig = ABC_CALLOC( Saig_SimObj_t, Aig_ManObjNumMax(p)+1 );
 //    printf( "Allocating %7.2f Mb.\n", 1.0 * sizeof(Saig_SimObj_t) * (Aig_ManObjNumMax(p)+1)/(1<<20) );
     Aig_ManForEachObj( p, pObj, i )
     {
@@ -258,7 +258,7 @@ float Saig_ManComputeProbOnePlus( int nOnes, int nSimWords, int fCompl )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManComputeSwitchProbs_old( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
+Vec_Int_t * Saig_ManComputeSwitchProb4s( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
 {
     extern char * Abc_FrameReadFlag( char * pFlag ); 
     Saig_SimObj_t * pAig, * pEntry;
@@ -269,7 +269,7 @@ Vec_Int_t * Saig_ManComputeSwitchProbs_old( Aig_Man_t * p, int nFrames, int nPre
     pSwitching = (float *)vSwitching->pArray;
 clk = clock();
     pAig = Saig_ManCreateMan( p );
-//PRT( "\nCreation  ", clock() - clk );
+//ABC_PRT( "\nCreation  ", clock() - clk );
 
     Aig_ManRandom( 1 );
     // get the number of  frames to simulate
@@ -287,7 +287,7 @@ clk = clock();
 //printf( "Simulating %d frames.\n", nFramesReal );
 clk = clock();
     Saig_ManSimulateFrames( pAig, nFramesReal, nPref );
-//PRT( "Simulation", clock() - clk );
+//ABC_PRT( "Simulation", clock() - clk );
 clk = clock();
     for ( pEntry = pAig; pEntry->Type != AIG_OBJ_VOID; pEntry++ )
     {
@@ -312,9 +312,9 @@ clk = clock();
             pSwitching[pEntry-pAig] = Saig_ManComputeSwitching( pEntry->Number, nFramesReal - nPref );
 //printf( "%3d : %7.2f\n", pEntry-pAig, pSwitching[pEntry-pAig] );
     }
-    free( pAig );
-//PRT( "Switch    ", clock() - clk );
-//PRT( "TOTAL     ", clock() - clkTotal );
+    ABC_FREE( pAig );
+//ABC_PRT( "Switch    ", clock() - clk );
+//ABC_PRT( "TOTAL     ", clock() - clkTotal );
 
 //    Aig_CManCreate( p );
     return vSwitching;
@@ -356,7 +356,7 @@ struct Aig_CMan_t_
 Aig_CMan_t * Aig_CManStart( int nIns, int nNodes, int nOuts )
 {
     Aig_CMan_t * p;
-    p = (Aig_CMan_t *)ALLOC( char, sizeof(Aig_CMan_t) + 2*(2*nNodes + nOuts) );
+    p = (Aig_CMan_t *)ABC_ALLOC( char, sizeof(Aig_CMan_t) + 2*(2*nNodes + nOuts) );
     memset( p, 0, sizeof(Aig_CMan_t) );
     // set parameters
     p->nIns = nIns;
@@ -383,7 +383,7 @@ Aig_CMan_t * Aig_CManStart( int nIns, int nNodes, int nOuts )
 ***********************************************************************/
 void Aig_CManStop( Aig_CMan_t * p )
 {
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -557,22 +557,6 @@ Aig_CMan_t * Aig_CManCreate( Aig_Man_t * p )
         1.0 * (pCMan->pCur - pCMan->Data) / (pCMan->nNodes + pCMan->nOuts ) );
 //    Aig_CManStop( pCMan );
     return pCMan;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Compute switching probabilities of all nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Saig_ManComputeSwitchProbs2( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
-{
-    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

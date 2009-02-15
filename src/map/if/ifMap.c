@@ -106,7 +106,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_ObjForEachCut( pObj->pFanin0, pCut0, i )
     If_ObjForEachCut( pObj->pFanin1, pCut1, k )
     {
-        // get the next free cut
+        // get the next ABC_FREE cut
         assert( pCutSet->nCuts <= pCutSet->nCutsMax );
         pCut = pCutSet->ppCuts[pCutSet->nCuts];
         // make sure K-feasible cut exists
@@ -169,7 +169,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         If_ObjForEachCut( pObj, pCut, i )
             p->pPars->pFuncUser( p, pObj, pCut );
 
-    // free the cuts
+    // ABC_FREE the cuts
     If_ManDerefNodeCutSet( p, pObj );
 }
 
@@ -212,7 +212,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
         If_ObjForEachCut( pTemp, pCutTemp, i )
         {
             assert( p->pPars->fSeqMap || pCutTemp->nLeaves > 1 );
-            // get the next free cut
+            // get the next ABC_FREE cut
             assert( pCutSet->nCuts <= pCutSet->nCutsMax );
             pCut = pCutSet->ppCuts[pCutSet->nCuts];
             // copy the cut into storage
@@ -253,7 +253,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaRef( p, If_ObjCutBest(pObj) );
 
-    // free the cuts
+    // ABC_FREE the cuts
     If_ManDerefChoiceCutSet( p, pObj );
 }
 
@@ -342,7 +342,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
         char Symb = fPreprocess? 'P' : ((Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A'));
         printf( "%c: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
             Symb, p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
-        PRT( "T", clock() - clk );
+        ABC_PRT( "T", clock() - clk );
 //    printf( "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
 //        p->nCutsMax, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
     }

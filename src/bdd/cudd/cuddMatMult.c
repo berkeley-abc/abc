@@ -110,7 +110,7 @@ Cudd_addMatrixMultiply(
 
     /* Array vars says what variables are "summation" variables. */
     nvars = dd->size;
-    vars = ALLOC(int,nvars);
+    vars = ABC_ALLOC(int,nvars);
     if (vars == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -126,7 +126,7 @@ Cudd_addMatrixMultiply(
     dd->reordered = 0;
     res = addMMRecur(dd,A,B,-1,vars);
     } while (dd->reordered == 1);
-    FREE(vars);
+    ABC_FREE(vars);
     return(res);
 
 } /* end of Cudd_addMatrixMultiply */
@@ -220,7 +220,7 @@ Cudd_addTriangle(
     DdNode *res, *cube;
 
     nvars = dd->size;
-    vars = ALLOC(int, nvars);
+    vars = ABC_ALLOC(int, nvars);
     if (vars == NULL) {
     dd->errorCode = CUDD_MEMORY_OUT;
     return(NULL);
@@ -229,7 +229,7 @@ Cudd_addTriangle(
     for (i = 0; i < nz; i++) vars[z[i]->index] = i;
     cube = Cudd_addComputeCube(dd, z, NULL, nz);
     if (cube == NULL) {
-    FREE(vars);
+    ABC_FREE(vars);
     return(NULL);
     }
     cuddRef(cube);
@@ -241,7 +241,7 @@ Cudd_addTriangle(
     if (res != NULL) cuddRef(res);
     Cudd_RecursiveDeref(dd,cube);
     if (res != NULL) cuddDeref(res);
-    FREE(vars);
+    ABC_FREE(vars);
     return(res);
 
 } /* end of Cudd_addTriangle */

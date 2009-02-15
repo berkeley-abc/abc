@@ -74,7 +74,7 @@ Cut_Oracle_t * Cut_OracleStart( Cut_Man_t * pMan )
     assert( pMan->pParams->nVarsMax >= 3 && pMan->pParams->nVarsMax <= CUT_SIZE_MAX );
     assert( pMan->pParams->fRecord );
 
-    p = ALLOC( Cut_Oracle_t, 1 );
+    p = ABC_ALLOC( Cut_Oracle_t, 1 );
     memset( p, 0, sizeof(Cut_Oracle_t) );
 
     // set and correct parameters
@@ -130,7 +130,7 @@ void Cut_OracleStop( Cut_Oracle_t * p )
     {
         printf( "Cut computation statistics with oracle:\n" );
         printf( "Current cuts      = %8d. (Trivial = %d.)\n", p->nCuts-p->nCutsTriv, p->nCutsTriv );
-        PRT( "Total time ", p->timeTotal );
+        ABC_PRT( "Total time ", p->timeTotal );
     }
 
     Vec_PtrForEachEntry( p->vCutsNew, pCut, i )
@@ -145,7 +145,7 @@ void Cut_OracleStop( Cut_Oracle_t * p )
     if ( p->vCutPairs )   Vec_IntFree( p->vCutPairs );
 
     Extra_MmFixedStop( p->pMmCuts );
-    free( p ); 
+    ABC_FREE( p ); 
 }
 
 /**Function*************************************************************

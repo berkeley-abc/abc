@@ -154,16 +154,16 @@ Cudd_addRead(
     for (lnx=0; u > 0; lnx++) {
     u >>= 1;
     }
-    /* Here we rely on the fact that REALLOC of a null pointer is
-    ** translates to an ALLOC.
+    /* Here we rely on the fact that ABC_REALLOC of a null pointer is
+    ** translates to an ABC_ALLOC.
     */
     if (lnx > *nx) {
-    *x = lx = REALLOC(DdNode *, *x, lnx);
+    *x = lx = ABC_REALLOC(DdNode *, *x, lnx);
     if (lx == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    *xn = lxn =  REALLOC(DdNode *, *xn, lnx);
+    *xn = lxn =  ABC_REALLOC(DdNode *, *xn, lnx);
     if (lxn == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -177,16 +177,16 @@ Cudd_addRead(
     for (lny=0; v > 0; lny++) {
     v >>= 1;
     }
-    /* Here we rely on the fact that REALLOC of a null pointer is
-    ** translates to an ALLOC.
+    /* Here we rely on the fact that ABC_REALLOC of a null pointer is
+    ** translates to an ABC_ALLOC.
     */
     if (lny > *ny) {
-    *y = ly = REALLOC(DdNode *, *y, lny);
+    *y = ly = ABC_REALLOC(DdNode *, *y, lny);
     if (ly == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
     }
-    *yn_ = lyn =  REALLOC(DdNode *, *yn_, lny);
+    *yn_ = lyn =  ABC_REALLOC(DdNode *, *yn_, lny);
     if (lyn == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -375,7 +375,7 @@ Cudd_bddRead(
     u >>= 1;
     }
     if (lnx > *nx) {
-    *x = lx = REALLOC(DdNode *, *x, lnx);
+    *x = lx = ABC_REALLOC(DdNode *, *x, lnx);
     if (lx == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);
@@ -390,7 +390,7 @@ Cudd_bddRead(
     v >>= 1;
     }
     if (lny > *ny) {
-    *y = ly = REALLOC(DdNode *, *y, lny);
+    *y = ly = ABC_REALLOC(DdNode *, *y, lny);
     if (ly == NULL) {
         dd->errorCode = CUDD_MEMORY_OUT;
         return(0);

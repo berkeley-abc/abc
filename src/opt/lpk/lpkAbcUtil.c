@@ -42,7 +42,7 @@
 Lpk_Fun_t * Lpk_FunAlloc( int nVars )
 {
     Lpk_Fun_t * p;
-    p = (Lpk_Fun_t *)malloc( sizeof(Lpk_Fun_t) + sizeof(unsigned) * Kit_TruthWordNum(nVars) * 3 );
+    p = (Lpk_Fun_t *)ABC_ALLOC( char, sizeof(Lpk_Fun_t) + sizeof(unsigned) * Kit_TruthWordNum(nVars) * 3 );
     memset( p, 0, sizeof(Lpk_Fun_t) );
     return p;
 }
@@ -60,7 +60,7 @@ Lpk_Fun_t * Lpk_FunAlloc( int nVars )
 ***********************************************************************/
 void Lpk_FunFree( Lpk_Fun_t * p )
 {
-    free( p );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************

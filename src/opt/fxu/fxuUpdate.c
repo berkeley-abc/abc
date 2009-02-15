@@ -344,7 +344,7 @@ void Fxu_UpdateMatrixDoubleCreateCubes( Fxu_Matrix * p, Fxu_Cube * pCube1, Fxu_C
         if ( pLit1 && pLit2 )
         {
             if ( pLit1->iVar == pLit2->iVar )
-            { // skip the cube free part
+            { // skip the cube ABC_FREE part
                 pLit1 = pLit1->pHNext;
                 pLit2 = pLit2->pHNext;
                 nBase++;

@@ -96,7 +96,7 @@ void Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs, Vec_Ptr_t * v
 //        if ( !Abc_NodeIsConst(pTemp) )
             Vec_IntFree( SIM_READ_SYMMS(pTemp) );
     Vec_PtrFree( vNodes );
-    free( pMap );
+    ABC_FREE( pMap );
 }
 
 /**Function*************************************************************
@@ -471,7 +471,7 @@ int * Sim_SymmsCreateMap( Abc_Ntk_t * pNtk )
     int * pMap;
     Abc_Obj_t * pNode;
     int i;
-    pMap = ALLOC( int, Abc_NtkObjNumMax(pNtk) );
+    pMap = ABC_ALLOC( int, Abc_NtkObjNumMax(pNtk) );
     for ( i = 0; i < Abc_NtkObjNumMax(pNtk); i++ )
         pMap[i] = -1;
     Abc_NtkForEachCi( pNtk, pNode, i )

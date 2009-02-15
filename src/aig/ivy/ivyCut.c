@@ -980,7 +980,7 @@ void Ivy_ManTestCutsAll( Ivy_Man_t * p )
     }
     printf( "Total cuts = %6d. Trivial = %6d.   Nodes = %6d. Satur = %6d.  ", 
         nCutsTotal, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

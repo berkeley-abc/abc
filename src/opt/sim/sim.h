@@ -21,10 +21,6 @@
 #ifndef __SIM_H__
 #define __SIM_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
     The ideas realized in this package are described in the paper:
     "Detecting Symmetries in Boolean Functions using Circuit Representation, 
@@ -38,6 +34,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

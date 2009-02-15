@@ -520,7 +520,7 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
     if ( fVerbose )
     {
     printf( "Partitioning derived %d partitions. ", Vec_IntFindMax(vNode2Part) + 1 );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     }
 
     // split the original AIG into partition AIGs (vAigs)
@@ -532,7 +532,7 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
     if ( fVerbose )
     {
     printf( "Partions were transformed into AIGs. " );
-    PRT( "Time", clock() - clk );
+    ABC_PRT( "Time", clock() - clk );
     }
 
     // synthesize partitions
@@ -567,13 +567,13 @@ clk = clock();
             break;
         }
         // call the SAT solver
-        status = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfRemaining, (sint64)0, (sint64)0, (sint64)0 );
+        status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfRemaining, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( fVerbose )
         {
             printf( "%4d : Aig = %6d. Vs = %7d. RootCs = %7d. LearnCs = %6d. ",
                 i, nNodes += Aig_ManNodeNum(pAig), sat_solver_nvars(pSat), 
                 (int)pSat->stats.clauses, (int)pSat->stats.learnts );
-PRT( "Time", clock() - clk );
+ABC_PRT( "Time", clock() - clk );
         }
         // analize the result
         if ( status == l_False )

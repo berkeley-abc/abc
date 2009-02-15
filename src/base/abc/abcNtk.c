@@ -45,7 +45,7 @@
 Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan )
 {
     Abc_Ntk_t * pNtk;
-    pNtk = ALLOC( Abc_Ntk_t, 1 );
+    pNtk = ABC_ALLOC( Abc_Ntk_t, 1 );
     memset( pNtk, 0, sizeof(Abc_Ntk_t) );
     pNtk->ntkType     = Type;
     pNtk->ntkFunc     = Func;
@@ -230,7 +230,7 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
     pNtkNew->pSpec = Extra_UtilStrsav(pName);
     if ( pNtkNew->pName == NULL || strlen(pNtkNew->pName) == 0 )
     {
-        FREE( pNtkNew->pName );
+        ABC_FREE( pNtkNew->pName );
         pNtkNew->pName = Extra_UtilStrsav("unknown");
     }
     return pNtkNew;
@@ -935,10 +935,10 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 //    int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
-    // free the HAIG
-    if ( pNtk->pHaig )
-        Abc_NtkHaigStop( pNtk );
-    // free EXDC Ntk
+    // ABC_FREE the HAIG
+//    if ( pNtk->pHaig )
+//        Abc_NtkHaigStop( pNtk );
+    // ABC_FREE EXDC Ntk
     if ( pNtk->pExdc )
         Abc_NtkDelete( pNtk->pExdc );
     if ( pNtk->pExcare )
@@ -952,31 +952,31 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // make sure all the marks are clean
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
-        // free large fanout arrays
+        // ABC_FREE large fanout arrays
 //        if ( pNtk->pMmObj && pObj->vFanouts.nCap * 4 > LargePiece )
-//            FREE( pObj->vFanouts.pArray );
+//            ABC_FREE( pObj->vFanouts.pArray );
         // these flags should be always zero
         // if this is not true, something is wrong somewhere
         assert( pObj->fMarkA == 0 );
         assert( pObj->fMarkB == 0 );
         assert( pObj->fMarkC == 0 );
     }
-    // free the nodes
+    // ABC_FREE the nodes
     if ( pNtk->pMmStep == NULL )
     {
         Abc_NtkForEachObj( pNtk, pObj, i )
         {
-            FREE( pObj->vFanouts.pArray );
-            FREE( pObj->vFanins.pArray );
+            ABC_FREE( pObj->vFanouts.pArray );
+            ABC_FREE( pObj->vFanins.pArray );
         }
     }
     if ( pNtk->pMmObj == NULL )
     {
         Abc_NtkForEachObj( pNtk, pObj, i )
-            free( pObj );
+            ABC_FREE( pObj );
     }
         
-    // free the arrays
+    // ABC_FREE the arrays
     Vec_PtrFree( pNtk->vPios );
     Vec_PtrFree( pNtk->vPis );
     Vec_PtrFree( pNtk->vPos );
@@ -986,20 +986,20 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vObjs );
     Vec_PtrFree( pNtk->vBoxes );
     if ( pNtk->vLevelsR ) Vec_IntFree( pNtk->vLevelsR );
-    FREE( pNtk->pModel );
-    FREE( pNtk->pSeqModel );
+    ABC_FREE( pNtk->pModel );
+    ABC_FREE( pNtk->pSeqModel );
     TotalMemory  = 0;
     TotalMemory += pNtk->pMmObj? Extra_MmFixedReadMemUsage(pNtk->pMmObj)  : 0;
     TotalMemory += pNtk->pMmStep? Extra_MmStepReadMemUsage(pNtk->pMmStep) : 0;
 //    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
-    // free the storage 
+    // ABC_FREE the storage 
     if ( pNtk->pMmObj )
         Extra_MmFixedStop( pNtk->pMmObj );
     if ( pNtk->pMmStep )
         Extra_MmStepStop ( pNtk->pMmStep );
     // name manager
     Nm_ManFree( pNtk->pManName );
-    // free the timing manager
+    // ABC_FREE the timing manager
     if ( pNtk->pManTime )
         Abc_ManTimeStop( pNtk->pManTime );
     // start the functionality manager
@@ -1015,7 +1015,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         pNtk->pManFunc = NULL;
     else if ( !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
-    // free the hierarchy
+    // ABC_FREE the hierarchy
     if ( pNtk->pDesign )
     {
         Abc_LibFree( pNtk->pDesign, pNtk );
@@ -1023,7 +1023,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     }
 //    if ( pNtk->pBlackBoxes ) 
 //        Vec_IntFree( pNtk->pBlackBoxes );
-    // free node attributes
+    // ABC_FREE node attributes
     Vec_PtrForEachEntry( pNtk->vAttrs, pAttrMan, i )
         if ( pAttrMan )
         {
@@ -1031,12 +1031,12 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
             Vec_AttFree( pAttrMan, 1 );
         }
     Vec_PtrFree( pNtk->vAttrs );
-    FREE( pNtk->pName );
-    FREE( pNtk->pSpec );
-    FREE( pNtk->pLutTimes );
+    ABC_FREE( pNtk->pName );
+    ABC_FREE( pNtk->pSpec );
+    ABC_FREE( pNtk->pLutTimes );
     if ( pNtk->vOnehots )
         Vec_VecFree( (Vec_Vec_t *)pNtk->vOnehots );
-    free( pNtk );
+    ABC_FREE( pNtk );
 }
 
 /**Function*************************************************************

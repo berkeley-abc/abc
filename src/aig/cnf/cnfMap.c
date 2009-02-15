@@ -101,7 +101,7 @@ void Cnf_DeriveMapping( Cnf_Man_t * p )
     Dar_Cut_t * pCut, * pCutBest;
     int i, k, AreaFlow, * pAreaFlows;
     // allocate area flows
-    pAreaFlows = ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
+    pAreaFlows = ABC_ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
     memset( pAreaFlows, 0, sizeof(int) * Aig_ManObjNumMax(p->pManAig) );
     // visit the nodes in the topological order and update their best cuts
     vSuper = Vec_PtrAlloc( 100 );
@@ -136,7 +136,7 @@ void Cnf_DeriveMapping( Cnf_Man_t * p )
         }
     }
     Vec_PtrFree( vSuper );
-    free( pAreaFlows );
+    ABC_FREE( pAreaFlows );
 
 /*
     // compute the area of mapping

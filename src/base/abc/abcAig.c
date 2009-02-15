@@ -126,11 +126,11 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
 {
     Abc_Aig_t * pMan;
     // start the manager
-    pMan = ALLOC( Abc_Aig_t, 1 );
+    pMan = ABC_ALLOC( Abc_Aig_t, 1 );
     memset( pMan, 0, sizeof(Abc_Aig_t) );
     // allocate the table
     pMan->nBins    = Cudd_PrimeCopy( 10000 );
-    pMan->pBins    = ALLOC( Abc_Obj_t *, pMan->nBins );
+    pMan->pBins    = ABC_ALLOC( Abc_Obj_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Abc_Obj_t *) * pMan->nBins );
     pMan->vNodes   = Vec_PtrAlloc( 100 );
     pMan->vLevels  = Vec_VecAlloc( 100 );
@@ -163,7 +163,7 @@ void Abc_AigFree( Abc_Aig_t * pMan )
 {
     assert( Vec_PtrSize( pMan->vStackReplaceOld ) == 0 );
     assert( Vec_PtrSize( pMan->vStackReplaceNew ) == 0 );
-    // free the table
+    // ABC_FREE the table
     if ( pMan->vAddedCells )
         Vec_PtrFree( pMan->vAddedCells );
     if ( pMan->vUpdatedNets )
@@ -173,8 +173,8 @@ void Abc_AigFree( Abc_Aig_t * pMan )
     Vec_PtrFree( pMan->vStackReplaceOld );
     Vec_PtrFree( pMan->vStackReplaceNew );
     Vec_PtrFree( pMan->vNodes );
-    free( pMan->pBins );
-    free( pMan );
+    ABC_FREE( pMan->pBins );
+    ABC_FREE( pMan );
 }
 
 /**Function*************************************************************
@@ -342,8 +342,8 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     if ( pMan->vAddedCells )
         Vec_PtrPush( pMan->vAddedCells, pAnd );
     // create HAIG
-    if ( pAnd->pNtk->pHaig )
-        pAnd->pEquiv = Hop_And( pAnd->pNtk->pHaig, Abc_ObjChild0Equiv(pAnd), Abc_ObjChild1Equiv(pAnd) );
+//    if ( pAnd->pNtk->pHaig )
+//        pAnd->pEquiv = Hop_And( pAnd->pNtk->pHaig, Abc_ObjChild0Equiv(pAnd), Abc_ObjChild1Equiv(pAnd) );
     return pAnd;
 }
 
@@ -385,8 +385,8 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
 //    if ( pMan->vAddedCells )
 //        Vec_PtrPush( pMan->vAddedCells, pAnd );
     // create HAIG
-    if ( pAnd->pNtk->pHaig )
-        pAnd->pEquiv = Hop_And( pAnd->pNtk->pHaig, Abc_ObjChild0Equiv(pAnd), Abc_ObjChild1Equiv(pAnd) );
+//    if ( pAnd->pNtk->pHaig )
+//        pAnd->pEquiv = Hop_And( pAnd->pNtk->pHaig, Abc_ObjChild0Equiv(pAnd), Abc_ObjChild1Equiv(pAnd) );
     return pAnd;
 }
 
@@ -593,7 +593,7 @@ clk = clock();
     // get the new table size
     nBinsNew = Cudd_PrimeCopy( 3 * pMan->nBins ); 
     // allocate a new array
-    pBinsNew = ALLOC( Abc_Obj_t *, nBinsNew );
+    pBinsNew = ABC_ALLOC( Abc_Obj_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Abc_Obj_t *) * nBinsNew );
     // rehash the entries from the old table
     Counter = 0;
@@ -607,9 +607,9 @@ clk = clock();
         }
     assert( Counter == pMan->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", pMan->nBins, nBinsNew );
-//    PRT( "Time", clock() - clk );
+//    ABC_PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( pMan->pBins );
+    ABC_FREE( pMan->pBins );
     pMan->pBins = pBinsNew;
     pMan->nBins = nBinsNew;
 }
@@ -634,7 +634,7 @@ void Abc_AigRehash( Abc_Aig_t * pMan )
     int Counter, Temp, i;
 
     // allocate a new array
-    pBinsNew = ALLOC( Abc_Obj_t *, pMan->nBins );
+    pBinsNew = ABC_ALLOC( Abc_Obj_t *, pMan->nBins );
     memset( pBinsNew, 0, sizeof(Abc_Obj_t *) * pMan->nBins );
     // rehash the entries from the old table
     Counter = 0;
@@ -660,7 +660,7 @@ void Abc_AigRehash( Abc_Aig_t * pMan )
         }
     assert( Counter == pMan->nEntries );
     // replace the table and the parameters
-    free( pMan->pBins );
+    ABC_FREE( pMan->pBins );
     pMan->pBins = pBinsNew;
 }
 
@@ -855,8 +855,8 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool 
     Vec_PtrPush( pMan->vStackReplaceNew, pNew );
     assert( !Abc_ObjIsComplement(pOld) );
     // create HAIG
-    if ( pOld->pNtk->pHaig )
-        Hop_ObjCreateChoice( pOld->pEquiv, Abc_ObjRegular(pNew)->pEquiv );
+//    if ( pOld->pNtk->pHaig )
+//        Hop_ObjCreateChoice( pOld->pEquiv, Abc_ObjRegular(pNew)->pEquiv );
     // process the replacements
     while ( Vec_PtrSize(pMan->vStackReplaceOld) )
     {

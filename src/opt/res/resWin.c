@@ -44,7 +44,7 @@ Res_Win_t * Res_WinAlloc()
 {
     Res_Win_t * p;
     // start the manager
-    p = ALLOC( Res_Win_t, 1 );
+    p = ABC_ALLOC( Res_Win_t, 1 );
     memset( p, 0, sizeof(Res_Win_t) );
     // set internal parameters
     p->nFanoutLimit = 10;
@@ -78,7 +78,7 @@ void Res_WinFree( Res_Win_t * p )
     Vec_PtrFree( p->vNodes  );
     Vec_PtrFree( p->vDivs   );
     Vec_VecFree( p->vMatrix );
-    free( p );
+    ABC_FREE( p );
 }
 
 
