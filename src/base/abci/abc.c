@@ -292,6 +292,8 @@ static int Abc_CommandAbc9Frames     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc9Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Force      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Embed      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Test       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbcTestNew     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -593,6 +595,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&scl",          Abc_CommandAbc9Scl,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&fraig",        Abc_CommandAbc9Fraig,        0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&force",        Abc_CommandAbc9Force,        0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&embed",        Abc_CommandAbc9Embed,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&test",         Abc_CommandAbc9Test,         0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "testnew",         Abc_CommandAbcTestNew,     0 );
@@ -22970,6 +22974,89 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Force( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Test(): There is no AIG.\n" );
+        return 1;
+    } 
+    For_ManExperiment( pAbc->pAig );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &force [-h]\n" );
+    fprintf( stdout, "\t        one-dimensional placement algorithm FORCE introduced by\n" );
+    fprintf( stdout, "\t        F. A. Aloul, I. L. Markov, and K. A. Sakallah (GLSVLSI’03).\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Test(): There is no AIG.\n" );
+        return 1;
+    } 
+    Gia_ManSolveProblem( pAbc->pAig, 30, 2 );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &embed [-h]\n" );
+    fprintf( stdout, "\t        fast placement based on the technique introduced by\n" );
+    fprintf( stdout, "\t        D. Harel and Y. Koren, \"Graph drawing by high-dimensional\n" );
+    fprintf( stdout, "\t        embedding\", J. Graph Algs & Apps, Vol 8(2), pp. 195-217 (2004)\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
@@ -22992,7 +23079,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManFrontTest( pAbc->pAig );
 //    Gia_ManReduceConst( pAbc->pAig, 1 );
 //    Sat_ManTest( pAbc->pAig, Gia_ManCo(pAbc->pAig, 0), 0 );
-    Gia_ManTestDistance( pAbc->pAig );
+//    Gia_ManTestDistance( pAbc->pAig );
+//    For_ManExperiment( pAbc->pAig );
+    Gia_ManSolveProblem( pAbc->pAig, 30, 2 );
     return 0;
 
 usage:

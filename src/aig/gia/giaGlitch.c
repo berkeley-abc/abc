@@ -615,7 +615,7 @@ static inline unsigned Gli_ManUpdateRandomInput( unsigned uInfo, float PiTransPr
         return Aig_ManRandom(0);
     for ( i = 0; i < 32; i++ )
         if ( Multi * (Aig_ManRandom(0) & 0xffff) < PiTransProb )
-            uInfo ^= 1;
+            uInfo ^= (1 << i);
     return uInfo;
 }
 

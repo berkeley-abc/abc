@@ -359,6 +359,8 @@ extern void                Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gi
 extern void                Gia_ObjRemoveFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
 extern void                Gia_ManFanoutStart( Gia_Man_t * p );
 extern void                Gia_ManFanoutStop( Gia_Man_t * p );
+/*=== giaForce.c =========================================================*/
+extern void                For_ManExperiment( Gia_Man_t * pGia );
 /*=== giaFrames.c =========================================================*/
 extern void                Gia_ManFraSetDefaultParams( Gia_ParFra_t * p );
 extern Gia_Man_t *         Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars );  
@@ -375,6 +377,7 @@ extern int                 Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit
 extern Gia_Man_t *         Gia_ManRehash( Gia_Man_t * p );
 /*=== giaLogic.c ===========================================================*/
 extern void                Gia_ManTestDistance( Gia_Man_t * p );
+extern void                Gia_ManSolveProblem( Gia_Man_t * pGia, int nDims, int nSols );
  /*=== giaMan.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManStart( int nObjsMax ); 
 extern void                Gia_ManStop( Gia_Man_t * p );  
@@ -396,8 +399,10 @@ extern Gia_Man_t *         Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose );
 /*=== giaUtil.c ===========================================================*/
 extern void                Gia_ManSetMark0( Gia_Man_t * p );
 extern void                Gia_ManCleanMark0( Gia_Man_t * p );
+extern void                Gia_ManCheckMark0( Gia_Man_t * p );
 extern void                Gia_ManSetMark1( Gia_Man_t * p );
 extern void                Gia_ManCleanMark1( Gia_Man_t * p );
+extern void                Gia_ManCheckMark1( Gia_Man_t * p );
 extern void                Gia_ManCleanValue( Gia_Man_t * p );
 extern void                Gia_ManFillValue( Gia_Man_t * p );
 extern void                Gia_ManSetPhase( Gia_Man_t * p );

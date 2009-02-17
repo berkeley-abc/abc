@@ -3623,6 +3623,10 @@ SOURCE=.\src\aig\gia\giaDup.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaEmbed.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaFanout.c
 # End Source File
 # Begin Source File
@@ -3647,10 +3651,6 @@ SOURCE=.\src\aig\gia\giaHash.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaLogic.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\gia\giaMan.c
 # End Source File
 # Begin Source File
@@ -3664,6 +3664,10 @@ SOURCE=.\src\aig\gia\giaSim.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaSolver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaSort.c
 # End Source File
 # Begin Source File
 

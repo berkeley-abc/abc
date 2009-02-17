@@ -77,6 +77,25 @@ void Gia_ManCleanMark0( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManCheckMark0( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+        assert( pObj->fMark0 == 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets phases of the internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManSetMark1( Gia_Man_t * p )  
 {
     Gia_Obj_t * pObj;
@@ -102,6 +121,25 @@ void Gia_ManCleanMark1( Gia_Man_t * p )
     int i;
     Gia_ManForEachObj( p, pObj, i )
         pObj->fMark1 = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets phases of the internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCheckMark1( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+        assert( pObj->fMark1 == 0 );
 }
 
 /**Function*************************************************************

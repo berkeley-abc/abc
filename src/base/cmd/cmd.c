@@ -576,14 +576,22 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
      * is. In particular, lp_file_index is never modified in the loop, so it
      * looks it would just read the same file over again.  Also, SIS had
      * lp_count initialized to -1, and hence, any file sourced by SIS (if -l or
-     * -t options on "source" were used in SIS) would actually be executed
-     * twice.
+     * -t options on "source" were used in SIS) would actually be executed twice.
      */
     do
     {
+        char * pFileName, * pTemp;
+
+        // get the input file name
+        pFileName = argv[lp_file_index];
+        // fix the wrong symbol
+        for ( pTemp = pFileName; *pTemp; pTemp++ )
+            if ( *pTemp == '>' )
+                *pTemp = '\\';
+
         lp_count++;             /* increment the loop counter */
 
-        fp = CmdFileOpen( pAbc, argv[lp_file_index], "r", &real_filename, silent );
+        fp = CmdFileOpen( pAbc, pFileName, "r", &real_filename, silent );
         if ( fp == NULL )
         {
             ABC_FREE( real_filename );
