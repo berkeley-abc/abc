@@ -509,6 +509,24 @@ int Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )  
+{ 
+    int iTemp0 = Gia_ManHashAnd( p, Gia_LitNot(iCtrl), iData0 );
+    int iTemp1 = Gia_ManHashAnd( p, iCtrl, iData1 );
+    return Gia_LitNotCond( Gia_ManHashAnd( p, Gia_LitNot(iTemp0), Gia_LitNot(iTemp1) ), 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Rehashes AIG with mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManRehash( Gia_Man_t * p )  
 {
     Gia_Man_t * pNew;

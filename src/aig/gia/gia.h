@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 #include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -303,6 +303,8 @@ static inline int Gia_XsimAndCond( int Value0, int fCompl0, int Value1, int fCom
     for ( i = 1; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )
 #define Gia_ManForEachObjVec( vVec, p, pObj, i )                        \
     for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Gia_ManObj(p, Vec_IntEntry(vVec,i))); i++ )
+#define Gia_ManForEachObjVecLit( vVec, p, pObj, fCompl, i )             \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Gia_ManObj(p, Gia_Lit2Var(Vec_IntEntry(vVec,i)))) && (((fCompl) = Gia_LitIsCompl(Vec_IntEntry(vVec,i))),1); i++ )
 #define Gia_ManForEachAnd( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )  if ( !Gia_ObjIsAnd(pObj) ) {} else
 #define Gia_ManForEachCi( p, pObj, i )                                  \
@@ -373,11 +375,12 @@ extern void                Gia_ManHashStart( Gia_Man_t * p );
 extern void                Gia_ManHashStop( Gia_Man_t * p );  
 extern int                 Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 ); 
 extern int                 Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 ); 
+extern int                 Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 );
 extern int                 Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 );
 extern Gia_Man_t *         Gia_ManRehash( Gia_Man_t * p );
 /*=== giaLogic.c ===========================================================*/
 extern void                Gia_ManTestDistance( Gia_Man_t * p );
-extern void                Gia_ManSolveProblem( Gia_Man_t * pGia, int nDims, int nSols );
+extern void                Gia_ManSolveProblem( Gia_Man_t * pGia, int nDims, int nSols, int fCluster, int fDump, int fVerbose );
  /*=== giaMan.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManStart( int nObjsMax ); 
 extern void                Gia_ManStop( Gia_Man_t * p );  

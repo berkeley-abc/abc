@@ -630,35 +630,29 @@ static inline unsigned Gli_ManUpdateRandomInput( unsigned uInfo, float PiTransPr
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gli_ManSimulateSeqOne( Gli_Man_t * p, float PiTransProb )
+void Gli_ManSimulateSeqPref( Gli_Man_t * p, int nPref )
 {
     Gli_Obj_t * pObj, * pObjRi, * pObjRo;
-    int i;
+    int i, f;
+    // initialize simulation data
     Gli_ManForEachPi( p, pObj, i )
-        pObj->uSimInfo = Gli_ManUpdateRandomInput( pObj->uSimInfo, PiTransProb );
-    Gli_ManForEachNode( p, pObj, i )
-        pObj->uSimInfo = Gli_ManSimulateSeqNode( p, pObj );
-    Gli_ManForEachRi( p, pObj, i )
-        pObj->uSimInfo = Gli_ObjFanin(pObj, 0)->uSimInfo;
-    Gli_ManForEachRiRo( p, pObjRi, pObjRo, i )
-        pObjRo->uSimInfo = pObjRi->uSimInfo;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Simulates sequential network randomly for the given number of frames.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Gli_ManSaveCiInfo( Gli_Man_t * p )
-{
-    Gli_Obj_t * pObj;
-    int i;
+        pObj->uSimInfo = Gli_ManUpdateRandomInput( pObj->uSimInfo, 0.5 );
+    Gli_ManForEachRo( p, pObj, i )
+        pObj->uSimInfo = 0;
+    for ( f = 0; f < nPref; f++ )
+    {
+        // simulate one frame
+        Gli_ManForEachNode( p, pObj, i )
+            pObj->uSimInfo = Gli_ManSimulateSeqNode( p, pObj );
+        Gli_ManForEachRi( p, pObj, i )
+            pObj->uSimInfo = Gli_ObjFanin(pObj, 0)->uSimInfo;
+        // initialize the next frame
+        Gli_ManForEachPi( p, pObj, i )
+            pObj->uSimInfo = Gli_ManUpdateRandomInput( pObj->uSimInfo, 0.5 );
+        Gli_ManForEachRiRo( p, pObjRi, pObjRo, i )
+            pObjRo->uSimInfo = pObjRi->uSimInfo;
+    }
+    // save simulation data after nPref timeframes
     if ( p->pSimInfoPrev == NULL )
         p->pSimInfoPrev = ABC_ALLOC( unsigned, Gli_ManCiNum(p) );
     Gli_ManForEachCi( p, pObj, i )
@@ -667,7 +661,7 @@ static inline void Gli_ManSaveCiInfo( Gli_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Simulates sequential network randomly for the given number of frames.]
+  Synopsis    [Initialized object values to be one pattern in the saved data.]
 
   Description []
                
@@ -676,14 +670,58 @@ static inline void Gli_ManSaveCiInfo( Gli_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gli_ManSimulateSeqPref( Gli_Man_t * p, int nPref )
+void Gli_ManSetDataSaved( Gli_Man_t * p, int iBit )
 {
     Gli_Obj_t * pObj;
-    int i, f;
-    Gli_ManForEachRo( p, pObj, i )
-        pObj->uSimInfo = 0;
-    for ( f = 0; f < nPref; f++ )
-        Gli_ManSimulateSeqOne( p, 0.5 );
+    int i;
+    Gli_ManForEachCi( p, pObj, i )
+        pObj->fPhase = pObj->fPhase2 = ((p->pSimInfoPrev[i] >> iBit) & 1);
+    Gli_ManForEachNode( p, pObj, i )
+        pObj->fPhase = pObj->fPhase2 = Gli_NodeComputeValue( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets random info at the PIs and collects changed PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gli_ManSetPiRandomSeq( Gli_Man_t * p, float PiTransProb )
+{
+    Gli_Obj_t * pObj, * pObjRi;
+    float Multi = 1.0 / (1 << 16);
+    int i;
+    assert( 0.0 < PiTransProb && PiTransProb < 1.0 );
+    // transfer data to the COs
+    Gli_ManForEachCo( p, pObj, i )
+        pObj->fPhase = pObj->fPhase2 = Gli_ObjFanin(pObj, 0)->fPhase;
+    // set changed PIs
+    Vec_IntClear( p->vCisChanged );
+    Gli_ManForEachPi( p, pObj, i )
+        if ( Multi * (Aig_ManRandom(0) & 0xffff) < PiTransProb )
+        {
+            Vec_IntPush( p->vCisChanged, pObj->Handle );
+            pObj->fPhase  ^= 1;
+            pObj->fPhase2 ^= 1;
+            pObj->nSwitches++;
+            pObj->nGlitches++;
+        }
+    // set changed ROs
+    Gli_ManForEachRiRo( p, pObjRi, pObj, i )
+        if ( pObjRi->fPhase != pObj->fPhase )
+        {
+            Vec_IntPush( p->vCisChanged, pObj->Handle );
+            pObj->fPhase  ^= 1;
+            pObj->fPhase2 ^= 1;
+            pObj->nSwitches++;
+            pObj->nGlitches++;
+        }
+
 }
 
 /**Function*************************************************************
@@ -714,14 +752,14 @@ void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb
     }
     else 
     {
+        int nIters = Aig_BitWordNum(nPatterns);
         Gli_ManSimulateSeqPref( p, 16 );
-        for ( k = Aig_BitWordNum(nPatterns) - 1; k >= 0; k-- )
+        for ( i = 0; i < 32; i++ )
         {
-            Gli_ManSaveCiInfo( p );
-            Gli_ManSimulateSeqOne( p, PiTransProb );
-            for ( i = 0; i < 32; i++ )
+            Gli_ManSetDataSaved( p, i );
+            for ( k = 0; k < nIters; k++ )
             {
-                Gli_ManSetPiFromSaved( p, i );
+                Gli_ManSetPiRandomSeq( p, PiTransProb );
                 Gli_ManSwitching( p );
                 Gli_ManGlitching( p );
 //                Gli_ManVerify( p );

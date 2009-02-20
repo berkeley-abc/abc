@@ -14501,7 +14501,7 @@ usage:
     fprintf( pErr, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
     fprintf( pErr, "\t-N num : number of last POs treated as constraints (0=none) [default = %d]\n", pPars->nConstrs );
     fprintf( pErr, "\t-S num : additional simulation frames for c-examples (0=none) [default = %d]\n", pPars->nFramesAddSim );
-    fprintf( pErr, "\t-I num : iteration number to stop and output SR-model (0=none) [default = %d]\n", pPars->nItersStop );
+    fprintf( pErr, "\t-I num : iteration number to stop and output SR-model (-1=none) [default = %d]\n", pPars->nItersStop );
     fprintf( pErr, "\t-V num : min var num needed to recycle the SAT solver [default = %d]\n", pPars->nSatVarMax2 );
     fprintf( pErr, "\t-M num : min call num needed to recycle the SAT solver [default = %d]\n", pPars->nRecycleCalls2 );
     fprintf( pErr, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
@@ -22365,6 +22365,12 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     } 
     pAbc->pAig = Gia_ManDupCofactored( pTemp = pAbc->pAig, iVar );
+    if ( pAbc->pAig == NULL )
+    {
+        pAbc->pAig = pTemp;
+        printf( "Abc_CommandAbc9Cof(): Transformation has failed.\n" );
+        return 1;
+    }
     Gia_ManStop( pTemp );
     return 0;
 
@@ -23017,12 +23023,36 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    int nDims    = 30;
+    int fCluster =  0;
+    int fDump    =  0; 
+    int fVerbose =  0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ddcvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nDims = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDims < 0 ) 
+                goto usage;
+            break;
+        case 'c':
+            fCluster ^= 1;
+            break;
+        case 'd':
+            fDump ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -23034,15 +23064,19 @@ int Abc_CommandAbc9Embed( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Test(): There is no AIG.\n" );
         return 1;
     } 
-    Gia_ManSolveProblem( pAbc->pAig, 30, 2 );
+    Gia_ManSolveProblem( pAbc->pAig, nDims, 2, fCluster, fDump, fVerbose );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &embed [-h]\n" );
-    fprintf( stdout, "\t        fast placement based on the technique introduced by\n" );
-    fprintf( stdout, "\t        D. Harel and Y. Koren, \"Graph drawing by high-dimensional\n" );
-    fprintf( stdout, "\t        embedding\", J. Graph Algs & Apps, Vol 8(2), pp. 195-217 (2004)\n" );
-    fprintf( stdout, "\t-h    : print the command usage\n");
+    fprintf( stdout, "usage: &embed [-D num] [-dcvh]\n" );
+    fprintf( stdout, "\t         fast placement based on high-dimensional embedding from\n" );
+    fprintf( stdout, "\t         D. Harel and Y. Koren, \"Graph drawing by high-dimensional\n" );
+    fprintf( stdout, "\t         embedding\", J. Graph Algs & Apps, 2004, Vol 8(2), pp. 195-217\n" );
+    fprintf( stdout, "\t-D num : the number of dimensions for embedding [default = %d]\n", nDims );
+    fprintf( stdout, "\t-d     : toggle dumping placement into a Gnuplot file [default = %s]\n", fDump? "yes":"no");
+    fprintf( stdout, "\t-c     : toggle clustered representation [default = %s]\n", fCluster? "yes":"no");
+    fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes":"no");
+    fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -23060,6 +23094,8 @@ usage:
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
+    extern void Gia_SatSolveTest( Gia_Man_t * p );
+
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
@@ -23081,7 +23117,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Sat_ManTest( pAbc->pAig, Gia_ManCo(pAbc->pAig, 0), 0 );
 //    Gia_ManTestDistance( pAbc->pAig );
 //    For_ManExperiment( pAbc->pAig );
-    Gia_ManSolveProblem( pAbc->pAig, 30, 2 );
+    Gia_ManSolveProblem( pAbc->pAig, 30, 2, 1, 0, 1 );
+//    Gia_SatSolveTest( pAbc->pAig );
     return 0;
 
 usage:

@@ -3663,10 +3663,6 @@ SOURCE=.\src\aig\gia\giaSim.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaSolver.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\gia\giaSort.c
 # End Source File
 # Begin Source File

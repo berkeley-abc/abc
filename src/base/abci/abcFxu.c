@@ -192,7 +192,7 @@ void Abc_NtkFxuFreeInfo( Fxu_Data_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Recostructs the network after FX.]
+  Synopsis    [Reconstructs the network after FX.]
 
   Description []
                

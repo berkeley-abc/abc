@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [giaLogic.c]
+  FileName    [giaEmbed.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaLogic.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: giaEmbed.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -24,12 +24,14 @@
 /* 
     The code is based on the paper by D. Harel and Y. Koren, 
     "Graph drawing by high-dimensional embedding", 
-    J. Graph Algs & Apps, Vol 8(2), pp. 195-217 (2004)
+    J. Graph Algs & Apps, Vol 8(2), pp. 195-217 (2004).
 */
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+typedef float  Emb_Dat_t;
 
 typedef struct Emb_Obj_t_ Emb_Obj_t;
 struct Emb_Obj_t_
@@ -63,12 +65,14 @@ struct Emb_Man_t_
     int            nTravIds;         // traversal ID of the network
     int *          pObjData;         // the array containing data for objects
     int            nObjData;         // the size of array to store the logic network
-    unsigned char* pVecs;            // array of vectors of size nObjs * nDims
+    int            fVerbose;         // verbose output flag
+    Emb_Dat_t *    pVecs;            // array of vectors of size nObjs * nDims
     int            nReached;         // the number of nodes reachable from the pivot
     int            nDistMax;         // the maximum distance from the node
     float **       pMatr;            // covariance matrix nDims * nDims
     float **       pEigen;           // the first several eigen values of the matrix
     float *        pSols;            // solutions to the problem nObjs * nSols;
+    unsigned short*pPlacement;       // (x,y) coordinates for each cell
 };
 
 static inline int         Emb_ManRegNum( Emb_Man_t * p )                              { return p->nRegs;                                    }
@@ -105,8 +109,8 @@ static inline void        Emb_ObjSetTravIdPrevious( Emb_Man_t * p, Emb_Obj_t * p
 static inline int         Emb_ObjIsTravIdCurrent( Emb_Man_t * p, Emb_Obj_t * pObj )   { return ((int)pObj->TravId == p->nTravIds);          }
 static inline int         Emb_ObjIsTravIdPrevious( Emb_Man_t * p, Emb_Obj_t * pObj )  { return ((int)pObj->TravId == p->nTravIds - 1);      }
 
-static inline unsigned char * Emb_ManVec( Emb_Man_t * p, int v )                      { return p->pVecs + v * p->nObjs;                     }
-static inline float *         Emb_ManSol( Emb_Man_t * p, int v )                      { return p->pSols + v * p->nObjs;                     }
+static inline Emb_Dat_t * Emb_ManVec( Emb_Man_t * p, int v )                      { return p->pVecs + v * p->nObjs;                     }
+static inline float *     Emb_ManSol( Emb_Man_t * p, int v )                      { return p->pSols + v * p->nObjs;                     }
 
 #define Emb_ManForEachObj( p, pObj, i )               \
     for ( i = 0; (i < p->nObjData) && (pObj = Emb_ManObj(p,i)); i += Emb_ObjSize(pObj) )
@@ -122,6 +126,136 @@ static inline float *         Emb_ManSol( Emb_Man_t * p, int v )                
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Creates fanin/fanout pair.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Emb_ObjAddFanin( Emb_Obj_t * pObj, Emb_Obj_t * pFanin )
+{ 
+    assert( pObj->iFanin < pObj->nFanins );
+    assert( pFanin->iFanout < pFanin->nFanouts );
+    pFanin->Fanios[pFanin->nFanins + pFanin->iFanout++] = 
+    pObj->Fanios[pObj->iFanin++] = pObj->hHandle - pFanin->hHandle;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates logic network isomorphic to the given AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Emb_Man_t * Emb_ManStartSimple( Gia_Man_t * pGia )
+{
+    Emb_Man_t * p;
+    Emb_Obj_t * pObjLog, * pFanLog;
+    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
+    int i, nNodes, hHandle = 0;
+    // prepare the AIG
+    Gia_ManCreateRefs( pGia );
+    // create logic network
+    p = ABC_CALLOC( Emb_Man_t, 1 );
+    p->pGia  = pGia;
+    p->nRegs = Gia_ManRegNum(pGia);
+    p->vCis  = Vec_IntAlloc( Gia_ManCiNum(pGia) );
+    p->vCos  = Vec_IntAlloc( Gia_ManCoNum(pGia) );
+    p->nObjData = (sizeof(Emb_Obj_t) / 4) * Gia_ManObjNum(pGia) + 2 * (2 * Gia_ManAndNum(pGia) + Gia_ManCoNum(pGia) + Gia_ManRegNum(pGia));
+    p->pObjData = ABC_CALLOC( int, p->nObjData );
+    // create constant node
+    Gia_ManConst0(pGia)->Value = hHandle;
+    pObjLog = Emb_ManObj( p, hHandle );
+    pObjLog->hHandle  = hHandle;
+    pObjLog->nFanins  = 0;
+    pObjLog->nFanouts = Gia_ObjRefs( pGia, Gia_ManConst0(pGia) );
+    // count objects
+    hHandle += Emb_ObjSize( pObjLog );
+    nNodes = 1;
+    p->nObjs++;
+    // create the PIs
+    Gia_ManForEachCi( pGia, pObj, i )
+    {
+        // create PI object
+        pObj->Value = hHandle;
+        Vec_IntPush( p->vCis, hHandle );
+        pObjLog = Emb_ManObj( p, hHandle );
+        pObjLog->hHandle  = hHandle;
+        pObjLog->nFanins  = Gia_ObjIsRo( pGia, pObj );
+        pObjLog->nFanouts = Gia_ObjRefs( pGia, pObj );
+        pObjLog->fCi = 1;
+        // count objects
+        hHandle += Emb_ObjSize( pObjLog );
+        p->nObjs++;
+    }
+    // create internal nodes
+    Gia_ManForEachAnd( pGia, pObj, i )
+    {
+        assert( Gia_ObjRefs( pGia, pObj ) > 0 );
+        // create node object
+        pObj->Value = hHandle;
+        pObjLog = Emb_ManObj( p, hHandle );
+        pObjLog->hHandle  = hHandle;
+        pObjLog->nFanins  = 2;
+        pObjLog->nFanouts = Gia_ObjRefs( pGia, pObj );
+        // add fanins
+        pFanLog = Emb_ManObj( p, Gia_ObjValue(Gia_ObjFanin0(pObj)) ); 
+        Emb_ObjAddFanin( pObjLog, pFanLog );
+        pFanLog = Emb_ManObj( p, Gia_ObjValue(Gia_ObjFanin1(pObj)) ); 
+        Emb_ObjAddFanin( pObjLog, pFanLog );
+        // count objects
+        hHandle += Emb_ObjSize( pObjLog );
+        nNodes++;
+        p->nObjs++;
+    }
+    // create the POs
+    Gia_ManForEachCo( pGia, pObj, i )
+    {
+        // create PO object
+        pObj->Value = hHandle;
+        Vec_IntPush( p->vCos, hHandle );
+        pObjLog = Emb_ManObj( p, hHandle );
+        pObjLog->hHandle  = hHandle;
+        pObjLog->nFanins  = 1;
+        pObjLog->nFanouts = Gia_ObjIsRi( pGia, pObj );
+        pObjLog->fCo = 1;
+        // add fanins
+        pFanLog = Emb_ManObj( p, Gia_ObjValue(Gia_ObjFanin0(pObj)) );
+        Emb_ObjAddFanin( pObjLog, pFanLog );
+        // count objects
+        hHandle += Emb_ObjSize( pObjLog );
+        p->nObjs++;
+    }
+    // connect registers
+    Gia_ManForEachRiRo( pGia, pObjRi, pObjRo, i )
+        Emb_ObjAddFanin( Emb_ManObj(p,Gia_ObjValue(pObjRo)), Emb_ManObj(p,Gia_ObjValue(pObjRi)) );
+    assert( nNodes  == Emb_ManNodeNum(p) );
+    assert( hHandle == p->nObjData );
+    if ( hHandle != p->nObjData )
+        printf( "Emb_ManStartSimple(): Fatal error in internal representation.\n" );
+    // make sure the fanin/fanout counters are correct
+    Gia_ManForEachObj( pGia, pObj, i )
+    {
+        if ( !~Gia_ObjValue(pObj) )
+            continue;
+        pObjLog = Emb_ManObj( p, Gia_ObjValue(pObj) );
+        assert( pObjLog->nFanins  == pObjLog->iFanin );
+        assert( pObjLog->nFanouts == pObjLog->iFanout );
+        pObjLog->iFanin = pObjLog->iFanout = 0;
+    }
+    ABC_FREE( pGia->pRefs );
+    return p;
+}
 
 /**Function*************************************************************
 
@@ -334,25 +468,6 @@ void Emb_ManSetValue( Emb_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates fanin/fanout pair.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Emb_ObjAddFanin( Emb_Obj_t * pObj, Emb_Obj_t * pFanin )
-{ 
-    assert( pObj->iFanin < pObj->nFanins );
-    assert( pFanin->iFanout < pFanin->nFanouts );
-    pFanin->Fanios[pFanin->nFanins + pFanin->iFanout++] = 
-    pObj->Fanios[pObj->iFanin++] = pObj->hHandle - pFanin->hHandle;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Creates logic network isomorphic to the given AIG.]
 
   Description []
@@ -524,6 +639,7 @@ void Emb_ManStop( Emb_Man_t * p )
 {
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
+    ABC_FREE( p->pPlacement );
     ABC_FREE( p->pVecs );
     ABC_FREE( p->pSols );
     ABC_FREE( p->pMatr );
@@ -797,7 +913,7 @@ ABC_PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-Emb_Obj_t * Emb_ManFindDistances( Emb_Man_t * p, Vec_Int_t * vStart, unsigned char * pDist )
+Emb_Obj_t * Emb_ManFindDistances( Emb_Man_t * p, Vec_Int_t * vStart, Emb_Dat_t * pDist )
 {
     Vec_Int_t * vThis, * vNext, * vTemp;
     Emb_Obj_t * pThis, * pNext, * pResult;
@@ -818,9 +934,6 @@ Emb_Obj_t * Emb_ManFindDistances( Emb_Man_t * p, Vec_Int_t * vStart, unsigned ch
         Vec_IntClear( vNext );
         Emb_ManForEachObjVec( vThis, p, pThis, i )
         {
-            assert( p->nDistMax < 255 ); // current data-structure used unsigned char
-            if ( p->nDistMax > 254 )
-                p->nDistMax = 254;
             if ( pDist ) pDist[pThis->Value] = p->nDistMax;
             Emb_ObjForEachFanin( pThis, pNext, k )
             {
@@ -862,7 +975,7 @@ Emb_Obj_t * Emb_ManRandomVertex( Emb_Man_t * p )
 {
     Emb_Obj_t * pPivot;
     do {
-        int iNode = Aig_ManRandom( 0 ) % Gia_ManObjNum(p->pGia);
+        int iNode = (911 * Aig_ManRandom(0)) % Gia_ManObjNum(p->pGia);
         if ( ~Gia_ManObj(p->pGia, iNode)->Value )
             pPivot = Emb_ManObj( p, Gia_ManObj(p->pGia, iNode)->Value );
         else
@@ -870,6 +983,36 @@ Emb_Obj_t * Emb_ManRandomVertex( Emb_Man_t * p )
     }
     while ( pPivot == NULL || !Emb_ObjIsNode(pPivot) );
     return pPivot;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the distances from the given set of objects.]
+
+  Description [Returns one of the most distant objects.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Emb_DumpGraphIntoFile( Emb_Man_t * p )
+{
+    FILE * pFile;
+    Emb_Obj_t * pThis, * pNext;
+    int i, k;
+    pFile = fopen( "1.g", "w" );
+    Emb_ManForEachObj( p, pThis, i )
+    {
+        if ( !Emb_ObjIsTravIdCurrent(p, pThis) )
+            continue;
+        Emb_ObjForEachFanout( pThis, pNext, k )
+        {
+            assert( Emb_ObjIsTravIdCurrent(p, pNext) );
+            fprintf( pFile, "%d %d\n", pThis->Value, pNext->Value );
+        }
+    }
+    fclose( pFile );
 }
 
 /**Function*************************************************************
@@ -890,16 +1033,21 @@ void Emb_ManComputeDimensions( Emb_Man_t * p, int nDims )
     int d, nReached;
     int i, Counter;
     assert( p->pVecs == NULL );
-    p->pVecs = ABC_FALLOC( unsigned char, p->nObjs * nDims );
+    p->pVecs = ABC_ALLOC( Emb_Dat_t, p->nObjs * nDims );
+    for ( i = 0; i < p->nObjs * nDims; i++ )
+        p->pVecs[i] = ABC_INFINITY;
     vStart = Vec_IntAlloc( nDims );
     // get the pivot vertex
     pRandom = Emb_ManRandomVertex( p );
     Vec_IntPush( vStart, pRandom->hHandle );
     // get the most distant vertex from the pivot
     pPivot = Emb_ManFindDistances( p, vStart, NULL );
+//    Emb_DumpGraphIntoFile( p );
     nReached = p->nReached;
     if ( nReached < Emb_ManObjNum(p) )
-        printf( "Visited less objects (%d) than present (%d).\n", p->nReached, Emb_ManObjNum(p) );
+    {
+        printf( "Considering a connected component with %d objects (out of %d).\n", p->nReached, Emb_ManObjNum(p) );
+    }
     // start dimensions with this vertex
     Vec_IntClear( vStart );
     for ( d = 0; d < nDims; d++ )
@@ -915,7 +1063,7 @@ void Emb_ManComputeDimensions( Emb_Man_t * p, int nDims )
     // make sure the number of reached objects is correct
     Counter = 0;
     for ( i = 0; i < p->nObjs; i++ )
-        if ( p->pVecs[i] < 255 )
+        if ( p->pVecs[i] < ABC_INFINITY )
             Counter++;
     assert( Counter == nReached );
 }
@@ -954,19 +1102,26 @@ float ** Emb_ManMatrAlloc( int nDims )
 ***********************************************************************/
 void Emb_ManComputeCovariance( Emb_Man_t * p, int nDims )
 {
-    unsigned char * pOne, * pTwo;
-    float * pAves, * pCol;
+    Emb_Dat_t * pOne, * pTwo;
+    double Ave;
+    float * pRow;
     int d, i, k, v;
-    // compute averages of vectors
-    pAves = ABC_ALLOC( float, nDims );
+    // average vectors
     for ( d = 0; d < nDims; d++ )
     {
-        pAves[d] = 0.0;
+        // compute average
+        Ave = 0.0;
         pOne = Emb_ManVec( p, d );
         for ( v = 0; v < p->nObjs; v++ )
-            if ( pOne[v] < 255 )
-                pAves[d] += pOne[v];
-        pAves[d] /= p->nReached;
+            if ( pOne[v] < ABC_INFINITY )
+                Ave += pOne[v];
+        Ave /= p->nReached;
+        // update the vector
+        for ( v = 0; v < p->nObjs; v++ )
+            if ( pOne[v] < ABC_INFINITY )
+                pOne[v] -= Ave;
+            else
+                pOne[v] = 0.0;        
     }
     // compute the matrix
     assert( p->pMatr == NULL );
@@ -976,17 +1131,15 @@ void Emb_ManComputeCovariance( Emb_Man_t * p, int nDims )
     for ( i = 0; i < nDims; i++ )
     {
         pOne = Emb_ManVec( p, i );
-        pCol = p->pMatr[i];
+        pRow = p->pMatr[i];
         for ( k = 0; k < nDims; k++ )
         {
             pTwo = Emb_ManVec( p, k );
-            pCol[k] = 0.0;
+            pRow[k] = 0.0;
             for ( v = 0; v < p->nObjs; v++ )
-                if ( pOne[i] < 255 && pOne[k] < 255 )
-                    pCol[k] += (pOne[i] - pAves[i])*(pOne[k] - pAves[k]);
+                pRow[k] += pOne[v]*pTwo[v];
         }
     }
-    ABC_FREE( pAves );
 }
 
 /**Function*************************************************************
@@ -1080,9 +1233,9 @@ void Emb_ManVecCopyOne( float * pVecDest, float * pVecSour, int nDims )
 ***********************************************************************/
 void Emb_ManVecMultiply( float ** pMatr, float * pVec, int nDims, float * pRes )
 {
-    int i;
-    for ( i = 0; i < nDims; i++ )
-        pRes[i] = Emb_ManVecMultiplyOne( pMatr[i], pVec, nDims );
+    int k;
+    for ( k = 0; k < nDims; k++ )
+        pRes[k] = Emb_ManVecMultiplyOne( pMatr[k], pVec, nDims );
 }
 
 /**Function*************************************************************
@@ -1096,17 +1249,55 @@ void Emb_ManVecMultiply( float ** pMatr, float * pVec, int nDims, float * pRes )
   SeeAlso     []
 
 ***********************************************************************/
-void Emb_ManVecOrthogonolize( float ** pEigen, int nVecs, float * pVec, int nDims )
+void Emb_ManVecOrthogonolizeOne( float * pEigen, float * pVecI, int nDims, float * pVecRes )
 {
-    int i, k;
-    for ( k = 0; k < nVecs; k++ )
-        for ( i = 0; i < nDims; i++ )
-            pVec[i] -= pEigen[k][i] * Emb_ManVecMultiplyOne( pEigen[k], pVec, nDims );
+    int k;
+    for ( k = 0; k < nDims; k++ )
+        pVecRes[k] = pVecI[k] - pEigen[k] * Emb_ManVecMultiplyOne( pVecI, pEigen, nDims );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the first eigen-vectors.]
+  Synopsis    [Computes the first nSols eigen-vectors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Emb_ManComputeEigenvectors( Emb_Man_t * p, int nDims, int nSols )
+{
+    float * pVecUiHat, * pVecUi;
+    int i, j, k;
+    assert( nSols < nDims );
+    pVecUiHat = p->pEigen[nSols];
+    for ( i = 0; i < nSols; i++ )
+    {
+        pVecUi = p->pEigen[i];
+        Emb_ManVecRandom( pVecUiHat, nDims );
+        Emb_ManVecNormal( pVecUiHat, nDims );
+        k = 0;
+        do {
+            k++;
+            Emb_ManVecCopyOne( pVecUi, pVecUiHat, nDims );
+            for ( j = 0; j < i; j++ )
+            {
+                Emb_ManVecOrthogonolizeOne( p->pEigen[j], pVecUi, nDims, pVecUiHat );
+                Emb_ManVecCopyOne( pVecUi, pVecUiHat, nDims );
+            }
+            Emb_ManVecMultiply( p->pMatr, pVecUi, nDims, pVecUiHat );
+            Emb_ManVecNormal( pVecUiHat, nDims );
+        } while ( Emb_ManVecMultiplyOne( pVecUiHat, pVecUi, nDims ) < 0.999 && k < 100 );
+        Emb_ManVecCopyOne( pVecUi, pVecUiHat, nDims );
+//        printf( "Converged after %d iterations.\n", k );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives solutions from original vectors and eigenvectors.]
 
   Description []
                
@@ -1117,30 +1308,185 @@ void Emb_ManVecOrthogonolize( float ** pEigen, int nVecs, float * pVec, int nDim
 ***********************************************************************/
 void Emb_ManComputeSolutions( Emb_Man_t * p, int nDims, int nSols )
 {
-    float * pVecTemp, * pVecCur;
-    int i, k, j;
-    assert( nSols < nDims );
-    pVecTemp = p->pEigen[nSols];
-    for ( i = 0; i < nSols; i++ )
-    {
-        pVecCur = p->pEigen[i];
-        Emb_ManVecRandom( pVecTemp, nDims );
-        Emb_ManVecNormal( pVecTemp, nDims );
-        do {
-            Emb_ManVecCopyOne( pVecCur, pVecTemp, nDims );
-            for ( j = 0; j < i; j++ )
-                Emb_ManVecOrthogonolize( p->pEigen, i, pVecCur, nDims );
-            Emb_ManVecMultiply( p->pMatr, pVecCur, nDims, pVecTemp );
-            Emb_ManVecNormal( pVecTemp, nDims );
-        } while ( Emb_ManVecMultiplyOne(pVecTemp, pVecCur, nDims) < 0.999 );
-        Emb_ManVecCopyOne( pVecCur, pVecTemp, nDims );
-    }
+    Emb_Dat_t * pX;
+    float * pY;
+    int i, j, k;
     assert( p->pSols == NULL );
     p->pSols = ABC_CALLOC( float, p->nObjs * nSols );
+    for ( i = 0; i < nDims; i++ )
+    {
+        pX = Emb_ManVec( p, i );
+        for ( j = 0; j < nSols; j++ )
+        {
+            pY = Emb_ManSol( p, j );
+            for ( k = 0; k < p->nObjs; k++ )
+                pY[k] += pX[k] * p->pEigen[j][i];
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Projects into square of size [0;0xffff] x [0;0xffff].]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Emb_ManDerivePlacement( Emb_Man_t * p, int nSols )
+{
+    extern int * Gia_SortFloats( float * pArray, int nSize );
+    float * pY0, * pY1, Max0, Max1, Min0, Min1, Str0, Str1;
+    int * pPerm0, * pPerm1;
+    int k;
+    if ( nSols != 2 )
+        return;
+    // compute intervals
+    Min0 =  ABC_INFINITY;
+    Max0 = -ABC_INFINITY;
+    pY0 = Emb_ManSol( p, 0 );
+    for ( k = 0; k < p->nObjs; k++ )
+    {
+        Min0 = ABC_MIN( Min0, pY0[k] );
+        Max0 = ABC_MAX( Max0, pY0[k] );
+    }
+    Str0 = 1.0*0xffff/(Max0 - Min0);
+    // update the coordinates
+    for ( k = 0; k < p->nObjs; k++ )
+        pY0[k] = (pY0[k] != 0.0) ? ((pY0[k] - Min0) * Str0) : 0.0;
+
+    // compute intervals
+    Min1 =  ABC_INFINITY;
+    Max1 = -ABC_INFINITY;
+    pY1 = Emb_ManSol( p, 1 );
+    for ( k = 0; k < p->nObjs; k++ )
+    {
+        Min1 = ABC_MIN( Min1, pY1[k] );
+        Max1 = ABC_MAX( Max1, pY1[k] );
+    }
+    Str1 = 1.0*0xffff/(Max1 - Min1);
+    // update the coordinates
+    for ( k = 0; k < p->nObjs; k++ )
+        pY1[k] = (pY1[k] != 0.0) ? ((pY1[k] - Min1) * Str1) : 0.0;
+
+    // derive the order of these numbers
+    pPerm0 = Gia_SortFloats( pY0, p->nObjs );
+    pPerm1 = Gia_SortFloats( pY1, p->nObjs );
+
+    // average solutions and project them into 32K by 32K square
+    p->pPlacement = ABC_ALLOC( unsigned short, 2 * p->nObjs );
+    for ( k = 0; k < p->nObjs; k++ )
+    {
+        p->pPlacement[2*pPerm0[k]+0] = (unsigned short)(int)(1.0 * k * 0xffff / p->nObjs);
+        p->pPlacement[2*pPerm1[k]+1] = (unsigned short)(int)(1.0 * k * 0xffff / p->nObjs);
+    }
+    ABC_FREE( pPerm0 );
+    ABC_FREE( pPerm1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives solutions from original vectors and eigenvectors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Emb_ManPrintSolutions( Emb_Man_t * p, int nSols )
+{
+    float * pSol;
+    int i, k;
     for ( i = 0; i < nSols; i++ )
-        for ( k = 0; k < nDims; k++ )
-            for ( j = 0; j < p->nObjs; j++ )
-                Emb_ManSol(p, i)[j] += Emb_ManVec(p, k)[j] * p->pEigen[i][k];
+    {
+        pSol = Emb_ManSol( p, i );
+        for ( k = 0; k < p->nObjs; k++ )
+            printf( "%4d ", (int)(100 * pSol[k]) );
+        printf( "\n" );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives solutions from original vectors and eigenvectors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Emb_ManDumpGnuplot( Emb_Man_t * p, int nSols, char * pName )
+{
+    int fDumpImage = 1;
+//    char * pDirectory = "place\\";
+    char * pDirectory = "";
+    extern char * Ioa_TimeStamp();
+    FILE * pFile;
+    char Buffer[1000];
+    Emb_Obj_t * pThis, * pNext;
+    float * pSol0, * pSol1;
+    int i, k;
+    if ( nSols < 2 )
+        return;
+    if ( p->pPlacement == NULL )
+    {
+        printf( "Emb_ManDumpGnuplot(): Placement is not available.\n" );
+        return;
+    }
+    pSol0 = Emb_ManSol( p, 0 );
+    pSol1 = Emb_ManSol( p, 1 );
+    sprintf( Buffer, "%s%s", pDirectory, Aig_FileNameGenericAppend(pName, ".plt") ); 
+    pFile = fopen( Buffer, "w" );
+    fprintf( pFile, "# This Gnuplot file was produced by ABC on %s\n", Ioa_TimeStamp() );
+    fprintf( pFile, "\n" );
+    if ( fDumpImage )
+    {
+    fprintf( pFile, "set nokey\n" );
+//    fprintf( pFile, "set terminal postscript\n" );
+//    fprintf( pFile, "set output \'%s\'\n", Aig_FileNameGenericAppend(pName, ".ps") );
+    fprintf( pFile, "set terminal gif font \'arial\' 10 size 800,600 xffffff x000000 x000000 x000000\n" );
+    fprintf( pFile, "set output \'%s\'\n", Aig_FileNameGenericAppend(pName, ".gif") );
+    fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, "set title \"%s :  PI = %d   PO = %d   FF = %d   Node = %d   Obj = %d\\n", 
+        pName, Emb_ManPiNum(p), Emb_ManPoNum(p), Emb_ManRegNum(p), Emb_ManNodeNum(p), Emb_ManObjNum(p) );
+    fprintf( pFile, "(image generated by ABC and Gnuplot on %s)\"", Ioa_TimeStamp() );
+    fprintf( pFile, "font \"Times, 12\"\n" );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "plot [:] '-' w l\n" );
+    fprintf( pFile, "\n" );
+    Emb_ManForEachObj( p, pThis, i )
+    {
+        if ( !Emb_ObjIsTravIdCurrent(p, pThis) )
+            continue;
+        Emb_ObjForEachFanout( pThis, pNext, k )
+        {
+            assert( Emb_ObjIsTravIdCurrent(p, pNext) );
+//            fprintf( pFile, "%d %d\n", (int)pSol0[pThis->Value], (int)pSol1[pThis->Value] );
+//            fprintf( pFile, "%d %d\n", (int)pSol0[pNext->Value], (int)pSol1[pNext->Value] );
+//            fprintf( pFile, "%5.2f %5.2f\n", pSol0[pThis->Value], pSol1[pThis->Value] );
+//            fprintf( pFile, "%5.2f %5.2f\n", pSol0[pNext->Value], pSol1[pNext->Value] );
+            fprintf( pFile, "%5d %5d\n", p->pPlacement[2*pThis->Value+0], p->pPlacement[2*pThis->Value+1] );
+            fprintf( pFile, "%5d %5d\n", p->pPlacement[2*pNext->Value+0], p->pPlacement[2*pNext->Value+1] );
+            fprintf( pFile, "\n" );
+        }
+    }
+    fprintf( pFile, "EOF\n" );
+    fprintf( pFile, "\n" );
+    if ( !fDumpImage )
+    {
+    fprintf( pFile, "pause -1 \"Hit return to continue\"\n" );
+    fprintf( pFile, "reset\n" );
+    fprintf( pFile, "\n" );
+    }
+    fclose( pFile );
 }
 
 /**Function*************************************************************
@@ -1154,34 +1500,55 @@ void Emb_ManComputeSolutions( Emb_Man_t * p, int nDims, int nSols )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSolveProblem( Gia_Man_t * pGia, int nDims, int nSols )
+void Gia_ManSolveProblem( Gia_Man_t * pGia, int nDims, int nSols, int fCluster, int fDump, int fVerbose )
 {
     Emb_Man_t * p;
-    int clk;
+    int clk, clkSetup;
 //   Gia_ManTestDistance( pGia );
 
+    // transform AIG into internal data-structure
 clk = clock();
-    p = Emb_ManStart( pGia );
+    if ( fCluster )
+    {
+        p = Emb_ManStart( pGia );
+        if ( fVerbose )
+        {
+            printf( "After clustering: " );
+            Emb_ManPrintStats( p );
+        }
+    }
+    else
+        p = Emb_ManStartSimple( pGia );
+    p->fVerbose = fVerbose;
 //    Emb_ManPrintFanio( p );
-    Emb_ManPrintStats( p );
-    Aig_ManRandom( 1 );
+
+    // prepare data-structure
+    Aig_ManRandom( 1 );  // reset random numbers for deterministic behavior
     Emb_ManResetTravId( p );
-    // set all nodes to have their IDs
     Emb_ManSetValue( p );
-ABC_PRT( "Setup     ", clock() - clk );
+clkSetup = clock() - clk;
 
 clk = clock();
     Emb_ManComputeDimensions( p, nDims );
+if ( fVerbose )
+ABC_PRT( "Setup     ", clkSetup );
+if ( fVerbose )
 ABC_PRT( "Dimensions", clock() - clk );
 
 clk = clock();
     Emb_ManComputeCovariance( p, nDims );
+if ( fVerbose )
 ABC_PRT( "Matrix    ", clock() - clk );
 
 clk = clock();
-//    Emb_ManComputeSolutions( p, nDims, nSols );
+    Emb_ManComputeEigenvectors( p, nDims, nSols );
+    Emb_ManComputeSolutions( p, nDims, nSols );
+    Emb_ManDerivePlacement( p, nSols );
+if ( fVerbose )
 ABC_PRT( "Eigenvecs ", clock() - clk );
 
+    if ( fDump )
+        Emb_ManDumpGnuplot( p, nSols, pGia->pName );
     Emb_ManStop( p );
 }
 

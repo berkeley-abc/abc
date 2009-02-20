@@ -444,7 +444,8 @@ p->timeSatUnsat += clock() - clk;
         RetValue = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
         assert( RetValue );
         p->nSatUnsat++;
-        p->nConfUnsat += p->pSat->stats.conflicts - nConflicts;
+        p->nConfUnsat += p->pSat->stats.conflicts - nConflicts;       
+//printf( "UNSAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return 1;
     }
     else if ( RetValue == l_True )
@@ -452,6 +453,7 @@ p->timeSatUnsat += clock() - clk;
 p->timeSatSat += clock() - clk;
         p->nSatSat++;
         p->nConfSat += p->pSat->stats.conflicts - nConflicts;
+//printf( "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return 0;
     }
     else // if ( RetValue == l_Undef )
@@ -459,6 +461,7 @@ p->timeSatSat += clock() - clk;
 p->timeSatUndec += clock() - clk;
         p->nSatUndec++;
         p->nConfUndec += p->pSat->stats.conflicts - nConflicts;
+//printf( "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return -1;
     }
 }
@@ -477,10 +480,18 @@ p->timeSatUndec += clock() - clk;
 ***********************************************************************/
 void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 {
+    static int Counter;
+//    char Buffer[1000];
+
     Bar_Progress_t * pProgress = NULL;
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
     int i, status, clk = clock();
+
+//    sprintf( Buffer, "gia%03d.aig", Counter++ );
+//Gia_WriteAiger( pAig, Buffer, 0, 0 );
+//printf( "Dumpted slice into file \"%s\".\n", Buffer );
+
     // reset the manager
     if ( pPat )
     {
@@ -501,6 +512,8 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
             pObj->fMark1 = 1;
             continue;
         }
+//printf( "Output %6d : ", i );
+
         Bar_ProgressUpdate( pProgress, i, "SAT..." );
         status = Cec_ManSatCheckNode( p, pObj );
         pObj->fMark0 = (status == 0);

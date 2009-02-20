@@ -14,6 +14,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaMan.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaSim.c \
+    src/aig/gia/giaSort.c \
     src/aig/gia/giaSwitch.c \
     src/aig/gia/giaTsim.c \
     src/aig/gia/giaUtil.c

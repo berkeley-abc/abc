@@ -50,7 +50,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nBTLimit       =    1000;  // conflict limit at a node
     p->nBTLimitGlobal = 5000000;  // conflict limit for all runs
     p->nMinDomSize    =     100;  // min clock domain considered for optimization
-    p->nItersStop     =       0;  // stop after the given number of iterations
+    p->nItersStop     =      -1;  // stop after the given number of iterations
     p->nResimDelta    =    1000;  // the internal of nodes to resimulate
     p->fPolarFlip     =       0;  // uses polarity adjustment
     p->fLatchCorr     =       0;  // performs register correspondence
@@ -199,7 +199,7 @@ clk = clock();
         if ( !RetValue ) 
             break;
 
-        if ( p->pPars->nItersStop && p->pPars->nItersStop == nIter )
+        if ( p->pPars->nItersStop >= 0 && p->pPars->nItersStop == nIter )
         {
             Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
             Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );

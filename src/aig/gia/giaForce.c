@@ -42,7 +42,7 @@ struct For_Man_t_
     Gia_Man_t *    pGia;             // the original AIG manager
     int            nObjs;            // the number of objects
     int            iObj;             // the last added object
-    int *          pPlace;           // Placeing of objects
+    int *          pPlace;           // coordinates of objects
     int *          piNext;           // array of next pointers
     int *          piRoot;           // array of root pointers
     float *        plEdge;           // edge coordinates
@@ -413,7 +413,7 @@ void For_ManSortObjects( For_Man_t * p )
         p->piNext[i] = p->piRoot[iPlace];
         p->piRoot[iPlace] = i;        
     }
-    // recostruct the order
+    // reconstruct the order
     p->iObj = 0;
     pPrev = NULL;
     vArray = Vec_PtrAlloc( 100 );

@@ -417,39 +417,67 @@ Gia_Man_t * Gia_ManDupCofactored( Gia_Man_t * p, int iVar )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pPivot;
-    int i;
-    assert( Gia_ManRegNum(p) == 0 );
-    assert( iVar < Gia_ManObjNum(p) );
+    int i, iCofVar = -1;
+    if ( !(iVar > 0 && iVar < Gia_ManObjNum(p)) )
+    {
+        printf( "Gia_ManDupCofactored(): Variable %d is out of range (%d; %d).\n", iVar, 0, Gia_ManObjNum(p) );
+        return NULL;
+    }
+    // find the cofactoring variable
+    pPivot = Gia_ManObj( p, iVar );
+    if ( !(Gia_ObjIsCi(pPivot) || Gia_ObjIsAnd(pPivot)) )
+    {
+        printf( "Gia_ManDupCofactored(): Variable %d should be a CI or an AND node.\n", iVar );
+        return NULL;
+    }
+//    assert( Gia_ManRegNum(p) == 0 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
+    // compute negative cofactor
     Gia_ManForEachCi( p, pObj, i )
+    {
         pObj->Value = Gia_ManAppendCi(pNew);
-    // find the cofactoring variable
-    pPivot = Gia_ManObj(p, iVar);
-    // compute the negative cofactor
-    if ( Gia_ObjIsCi(pPivot) )
-        pPivot->Value = Gia_Var2Lit( 0, 0 );
+        if ( pObj == pPivot )
+        {
+            iCofVar = pObj->Value;
+            pObj->Value = Gia_Var2Lit( 0, 0 );
+        }
+    }
     Gia_ManForEachAnd( p, pObj, i )
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( pObj == pPivot )
-            pPivot->Value = Gia_Var2Lit( 0, 0 );
+        {
+            iCofVar = pObj->Value;
+            pObj->Value = Gia_Var2Lit( 0, 0 );
+        }
     }
     Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        pObj->Value = Gia_ObjFanin0Copy(pObj);
     // compute the positive cofactor
-    if ( Gia_ObjIsCi(pPivot) )
-        pPivot->Value = Gia_Var2Lit( 0, 1 );
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        pObj->Value = Gia_Var2Lit( Gia_ObjId(pNew, Gia_ManCi(pNew, i)), 0 );
+        if ( pObj == pPivot )
+            pObj->Value = Gia_Var2Lit( 0, 1 );
+    }
     Gia_ManForEachAnd( p, pObj, i )
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( pObj == pPivot )
-            pPivot->Value = Gia_Var2Lit( 0, 1 );
+            pObj->Value = Gia_Var2Lit( 0, 1 );
     }
+    // create MUXes
+    assert( iCofVar > 0 );
     Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    {
+        if ( pObj->Value == (unsigned)Gia_ObjFanin0Copy(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ManHashMux(pNew, iCofVar, Gia_ObjFanin0Copy(pObj), pObj->Value) );
+    }
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // rehash the result

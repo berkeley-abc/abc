@@ -1084,6 +1084,8 @@ char * Aig_FileNameGenericAppend( char * pBase, char * pSuffix )
     if ( (pDot = strrchr( Buffer, '.' )) )
         *pDot = 0;
     strcat( Buffer, pSuffix );
+    if ( (pDot = strrchr( Buffer, '\\' )) || (pDot = strrchr( Buffer, '/' )) )
+        return pDot+1;
     return Buffer;
 }
 
