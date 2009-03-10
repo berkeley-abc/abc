@@ -341,6 +341,18 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
         Aig_ManShortNames( pNew );
     }
 */
+    pCur = pSymbols;
+    if ( pCur + 1 < pContents + nFileSize && *pCur == 'c' )
+    {
+        pCur++;
+        if ( *pCur == 'n' )
+        {
+            pCur++;
+            // read model name
+            ABC_FREE( pNew->pName );
+            pNew->pName = Aig_UtilStrsav( pCur );
+        }
+    }
 
     // skipping the comments
     ABC_FREE( pContents );

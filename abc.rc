@@ -1,9 +1,9 @@
 # global parameters
-#set check         # checks intermediate networks
+set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
 set checkread     # checks new networks after reading from file
-#set backup        # saves backup networks retrived by "undo" and "recall"
-#set savesteps 1   # sets the maximum number of backup networks to save 
+set backup        # saves backup networks retrived by "undo" and "recall"
+set savesteps 1   # sets the maximum number of backup networks to save 
 set progressbar   # display the progress bar
 
 # program names for internal calls
@@ -110,7 +110,7 @@ alias compress2   "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l
 alias choice      "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
 alias choice2     "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
 alias rwsat       "st; rw -l; b -l; rw -l; rf -l"
-alias rwsat2      "st; rw -l; b -l; rw -l; rf -l; fraig; rw -l; b -l; rw -l; rf -l"
+alias drwsat2     "st; drw; b -l; drw; drf; ifraig -C 20; drw; b -l; drw; drf"
 alias share       "st; multi -m; fx; resyn2"
 
 # resubstitution scripts for the IWLS paper

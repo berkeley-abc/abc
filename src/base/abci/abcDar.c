@@ -702,35 +702,6 @@ Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarSatSweep( Abc_Ntk_t * pNtk, Cec_ParCsw_t * pPars )
-{
-/*
-    extern Aig_Man_t * Cec_ManSatSweep( Aig_Man_t * pAig, Cec_ParCsw_t * pPars );
-    Abc_Ntk_t * pNtkAig;
-    Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk, 0, 0 );
-    if ( pMan == NULL )
-        return NULL;
-    pMan = Cec_ManSatSweep( pTemp = pMan, pPars );
-    Aig_ManStop( pTemp );
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
-    Aig_ManStop( pMan );
-    return pNtkAig;
-    */
-    return NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarFraigPart( Abc_Ntk_t * pNtk, int nPartSize, int nConfLimit, int nLevelMax, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
@@ -1184,7 +1155,17 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPa
     Aig_Man_t * pMan, * pMan1, * pMan2;
     Abc_Ntk_t * pMiter;
     int RetValue, clkTotal = clock();
-
+/*
+    {
+    extern void Cec_ManVerifyTwoAigs( Aig_Man_t * pAig0, Aig_Man_t * pAig1, int fVerbose );
+    Aig_Man_t * pAig0 = Abc_NtkToDar( pNtk1, 0, 0 );
+    Aig_Man_t * pAig1 = Abc_NtkToDar( pNtk2, 0, 0 );
+    Cec_ManVerifyTwoAigs( pAig0, pAig1, 1 );
+    Aig_ManStop( pAig0 );
+    Aig_ManStop( pAig1 );
+    return 1;
+    }
+*/
     // cannot partition if it is already a miter
     if ( pNtk2 == NULL && fPartition == 1 )
     {
@@ -1254,82 +1235,6 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int fPa
     Aig_ManStop( pMan );
 
 finish:
-    // report the miter
-    if ( RetValue == 1 )
-    {
-        printf( "Networks are equivalent.   " );
-ABC_PRT( "Time", clock() - clkTotal );
-    }
-    else if ( RetValue == 0 )
-    {
-        printf( "Networks are NOT EQUIVALENT.   " );
-ABC_PRT( "Time", clock() - clkTotal );
-    }
-    else
-    {
-        printf( "Networks are UNDECIDED.   " );
-ABC_PRT( "Time", clock() - clkTotal );
-    }
-    fflush( stdout );
-    return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkDarCec2( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Cec_ParCec_t * pPars )
-{
-    Aig_Man_t * pMan1, * pMan2 = NULL;
-    int RetValue, clkTotal = clock();
-    if ( pNtk2 )
-    {
-        if ( Abc_NtkPiNum(pNtk1) != Abc_NtkPiNum(pNtk2) )
-        {
-            printf( "Networks have different number of PIs.\n" );
-            return -1;
-        }
-        if ( Abc_NtkPoNum(pNtk1) != Abc_NtkPoNum(pNtk2) )
-        {
-            printf( "Networks have different number of POs.\n" );
-            return -1;
-        }
-    }
-    if ( pNtk1 )
-    {
-        pMan1 = Abc_NtkToDar( pNtk1, 0, 0 );
-        if ( pMan1 == NULL )
-        {
-            printf( "Converting into AIG has failed.\n" );
-            return -1;
-        }
-    }
-    if ( pNtk2 )
-    {
-        pMan2 = Abc_NtkToDar( pNtk2, 0, 0 );
-        if ( pMan2 == NULL )
-        {
-            Aig_ManStop( pMan1 );
-            printf( "Converting into AIG has failed.\n" );
-            return -1;
-        }
-    }
-    // perform verification
-//    RetValue = Cec_Solve( pMan1, pMan2, pPars );
-    RetValue = -1;
-    // transfer model if given
-    pNtk1->pModel = pMan1->pData, pMan1->pData = NULL;
-    Aig_ManStop( pMan1 );
-    if ( pMan2 )
-        Aig_ManStop( pMan2 );
-
     // report the miter
     if ( RetValue == 1 )
     {
@@ -1797,8 +1702,8 @@ int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
     Aig_ManStop( pPart1 );
     Aig_ManStop( pMan );
     return 1;
-}
-
+} 
+ 
 /**Function*************************************************************
 
   Synopsis    [Gives the current ABC network to AIG manager for processing.]
@@ -1826,6 +1731,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
         Abc_NtkMakeComb( pNtkComb, 1 );
         // solve it using combinational equivalence checking
         Prove_ParamsSetDefault( pParams );
+        pParams->fVerbose = 1;
         RetValue = Abc_NtkIvyProve( &pNtkComb, pParams );
         // transfer model if given
 //        pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;

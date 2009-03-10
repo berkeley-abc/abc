@@ -245,12 +245,15 @@ void minisat_sort3(float* array, int* perm, int size)
   SeeAlso     []
 
 ***********************************************************************/
-int * Gia_SortFloats( float * pArray, int nSize )
+int * Gia_SortFloats( float * pArray, int * pPerm, int nSize )
 {
-    int i, * pPerm;
-    pPerm = ABC_ALLOC( int, nSize );
-    for ( i = 0; i < nSize; i++ )
-        pPerm[i] = i;
+    int i;
+    if ( pPerm == NULL )
+    {
+        pPerm = ABC_ALLOC( int, nSize );
+        for ( i = 0; i < nSize; i++ )
+            pPerm[i] = i;
+    }
     minisat_sort3( pArray, pPerm, nSize );
 //    for ( i = 1; i < nSize; i++ )
 //        assert( pArray[i-1] <= pArray[i] );

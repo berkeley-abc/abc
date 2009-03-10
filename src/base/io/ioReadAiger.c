@@ -463,18 +463,18 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     }
 
     // read the name of the model if given
-    if ( *pCur == 'c' && pCur < pContents + nFileSize )
+    pCur = pSymbols;
+    if ( pCur + 1 < pContents + nFileSize && *pCur == 'c' )
     {
-        if ( !strncmp( pCur + 2, ".model", 6 ) )
+        pCur++;
+        if ( *pCur == 'n' )
         {
-            char * pTemp;
-            for ( pTemp = pCur + 9; *pTemp && *pTemp != '\n'; pTemp++ );
-            *pTemp = 0;
+            pCur++;
+            // read model name
             ABC_FREE( pNtkNew->pName );
-            pNtkNew->pName = Extra_UtilStrsav( pCur + 9 );
+            pNtkNew->pName = Extra_UtilStrsav( pCur );
         }
     }
-
 
     // skipping the comments
     ABC_FREE( pContents );

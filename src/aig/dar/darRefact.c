@@ -113,7 +113,7 @@ Ref_Man_t * Dar_ManRefStart( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
     // other data
     p->vCuts        = Vec_VecStart( pPars->nCutsMax );
     p->vTruthElem   = Vec_PtrAllocTruthTables( pPars->nLeafMax );
-    p->vTruthStore  = Vec_PtrAllocSimInfo( 256, Kit_TruthWordNum(pPars->nLeafMax) );
+    p->vTruthStore  = Vec_PtrAllocSimInfo( 1024, Kit_TruthWordNum(pPars->nLeafMax) );
     p->vMemory      = Vec_IntAlloc( 1 << 16 );
     p->vCutNodes    = Vec_PtrAlloc( 256 );
     p->vLeavesBest  = Vec_PtrAlloc( pPars->nLeafMax );

@@ -851,6 +851,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
 
     // use activity factors in every even restart
     if ( (s->nRestarts & 1) && veci_size(&s->act_vars) > 0 )
+//    if ( veci_size(&s->act_vars) > 0 )
         for ( i = 0; i < s->act_vars.size; i++ )
             act_var_bump_factor(s, s->act_vars.ptr[i]);
 

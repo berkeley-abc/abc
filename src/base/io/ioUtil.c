@@ -51,6 +51,8 @@ Io_FileType_t Io_ReadFileType( char * pFileName )
         return IO_FILE_AIGER;
     if ( !strcmp( pExt, "baf" ) )
         return IO_FILE_BAF;
+    if ( !strcmp( pExt, "bblif" ) )
+        return IO_FILE_BBLIF;
     if ( !strcmp( pExt, "blif" ) )
         return IO_FILE_BLIF;
     if ( !strcmp( pExt, "bench" ) )
@@ -108,12 +110,14 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     }
     fclose( pFile );
     // read the AIG
-    if ( FileType == IO_FILE_AIGER || FileType == IO_FILE_BAF )
+    if ( FileType == IO_FILE_AIGER || FileType == IO_FILE_BAF || FileType == IO_FILE_BBLIF )
     {
         if ( FileType == IO_FILE_AIGER )
             pNtk = Io_ReadAiger( pFileName, fCheck );
-        else // if ( FileType == IO_FILE_BAF )
+        else if ( FileType == IO_FILE_BAF )
             pNtk = Io_ReadBaf( pFileName, fCheck );
+        else // if ( FileType == IO_FILE_BBLIF )
+            pNtk = Io_ReadBblif( pFileName, fCheck );
         if ( pNtk == NULL )
         {
             fprintf( stdout, "Reading AIG from file has failed.\n" );
@@ -258,7 +262,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         }
         if ( FileType == IO_FILE_AIGER )
             Io_WriteAiger( pNtk, pFileName, 1, 0 );
-        else // if ( FileType == IO_FILE_BAF )
+        else //if ( FileType == IO_FILE_BAF )
             Io_WriteBaf( pNtk, pFileName );
         return;
     }
@@ -276,6 +280,18 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     if ( FileType == IO_FILE_GML )
     {
         Io_WriteGml( pNtk, pFileName );
+        return;
+    }
+    if ( FileType == IO_FILE_BBLIF )
+    {
+        if ( !Abc_NtkIsLogic(pNtk) )
+        {
+            fprintf( stdout, "Writing Binary BLIF is only possible for logic networks.\n" );
+            return;
+        }
+        if ( !Abc_NtkHasSop(pNtk) )
+            Abc_NtkToSop( pNtk, 0 );
+        Io_WriteBblif( pNtk, pFileName );
         return;
     }
 /*

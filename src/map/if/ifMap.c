@@ -169,7 +169,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         If_ObjForEachCut( pObj, pCut, i )
             p->pPars->pFuncUser( p, pObj, pCut );
 
-    // ABC_FREE the cuts
+    // free the cuts
     If_ManDerefNodeCutSet( p, pObj );
 }
 
@@ -253,7 +253,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaRef( p, If_ObjCutBest(pObj) );
 
-    // ABC_FREE the cuts
+    // free the cuts
     If_ManDerefChoiceCutSet( p, pObj );
 }
 

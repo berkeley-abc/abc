@@ -1737,6 +1737,73 @@ usage:
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Computes dimentions of the graph.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManGnuplotShow( char * pPlotFileName )
+{
+    FILE * pFile;
+    void * pAbc;
+    char * pProgNameGnuplotWin  = "wgnuplot.exe";
+    char * pProgNameGnuplotUnix = "gnuplot";
+    char * pProgNameGnuplot;
+
+    // read in the Capo plotting output
+    if ( (pFile = fopen( pPlotFileName, "r" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the plot file \"%s\".\n\n", pPlotFileName );
+        return;
+    }
+    fclose( pFile );
+
+    pAbc = Abc_FrameGetGlobalFrame();
+
+    // get the names from the plotting software
+    if ( Cmd_FlagReadByName(pAbc, "gnuplotwin") )
+        pProgNameGnuplotWin = Cmd_FlagReadByName(pAbc, "gnuplotwin");
+    if ( Cmd_FlagReadByName(pAbc, "gnuplotunix") )
+        pProgNameGnuplotUnix = Cmd_FlagReadByName(pAbc, "gnuplotunix");
+
+    // check if Gnuplot is available
+    if ( (pFile = fopen( pProgNameGnuplotWin, "r" )) )
+        pProgNameGnuplot = pProgNameGnuplotWin;
+    else if ( (pFile = fopen( pProgNameGnuplotUnix, "r" )) )
+        pProgNameGnuplot = pProgNameGnuplotUnix;
+    else if ( pFile == NULL )
+    {
+        fprintf( stdout, "Cannot find \"%s\" or \"%s\" in the current directory.\n", pProgNameGnuplotWin, pProgNameGnuplotUnix );
+        return;
+    }
+    fclose( pFile );
+
+    // spawn the viewer
+#ifdef WIN32
+    if ( _spawnl( _P_NOWAIT, pProgNameGnuplot, pProgNameGnuplot, pPlotFileName, NULL ) == -1 )
+    {
+        fprintf( stdout, "Cannot find \"%s\".\n", pProgNameGnuplot );
+        return;
+    }
+#else
+    {
+        char Command[1000];
+        sprintf( Command, "%s %s ", pProgNameGnuplot, pPlotFileName );
+        if ( system( Command ) == -1 )
+        {
+            fprintf( stdout, "Cannot execute \"%s\".\n", Command );
+            return;
+        }
+    }
+#endif
+}
+
 /**Function********************************************************************
 
   Synopsis    [Calls Capo internally.]

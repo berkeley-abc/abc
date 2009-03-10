@@ -35,6 +35,7 @@
 #define AMAP_EQN_SYM_AND     '*'   // logic AND
 #define AMAP_EQN_SYM_XOR     '^'   // logic XOR
 #define AMAP_EQN_SYM_OR      '+'   // logic OR
+#define AMAP_EQN_SYM_OR2     '|'   // logic OR
 
 // the list of opcodes (also specifying operation precedence)
 #define AMAP_EQN_OPER_NEG    10    // negation
@@ -180,6 +181,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             break;
         case AMAP_EQN_SYM_AND:
         case AMAP_EQN_SYM_OR:
+        case AMAP_EQN_SYM_OR2:
         case AMAP_EQN_SYM_XOR:
             if ( Flag != AMAP_EQN_FLAG_VAR )
             {
@@ -189,7 +191,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             }
             if ( *pTemp == AMAP_EQN_SYM_AND )
                 Vec_IntPush( pStackOp, AMAP_EQN_OPER_AND );
-            else if ( *pTemp == AMAP_EQN_SYM_OR )
+            else if ( *pTemp == AMAP_EQN_SYM_OR || *pTemp == AMAP_EQN_SYM_OR2 )
                 Vec_IntPush( pStackOp, AMAP_EQN_OPER_OR );
             else //if ( *pTemp == AMAP_EQN_SYM_XOR )
                 Vec_IntPush( pStackOp, AMAP_EQN_OPER_XOR );
@@ -246,9 +248,9 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             // scan the next name
             for ( i = 0; pTemp[i] && 
                          pTemp[i] != ' ' && pTemp[i] != '\t' && pTemp[i] != '\r' && pTemp[i] != '\n' &&
-                         pTemp[i] != AMAP_EQN_SYM_AND && pTemp[i] != AMAP_EQN_SYM_OR && 
-                         pTemp[i] != AMAP_EQN_SYM_XOR && pTemp[i] != AMAP_EQN_SYM_NEGAFT && 
-                         pTemp[i] != AMAP_EQN_SYM_CLOSE; i++ )
+                         pTemp[i] != AMAP_EQN_SYM_AND && pTemp[i] != AMAP_EQN_SYM_OR && pTemp[i] != AMAP_EQN_SYM_OR2 && 
+                         pTemp[i] != AMAP_EQN_SYM_XOR && pTemp[i] != AMAP_EQN_SYM_NEGAFT && pTemp[i] != AMAP_EQN_SYM_CLOSE; 
+                  i++ )
               {
                     if ( pTemp[i] == AMAP_EQN_SYM_NEG || pTemp[i] == AMAP_EQN_SYM_OPEN )
                     {

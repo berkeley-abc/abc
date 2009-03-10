@@ -175,6 +175,120 @@ char * Gia_TimeStamp()
 
 /**Function*************************************************************
 
+  Synopsis    [Read integer from the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ReadInt( unsigned char * pPos )
+{
+    int i, Value = 0;
+    for ( i = 0; i < 4; i++ )
+        Value = (Value << 8) | *pPos++;
+    return Value;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read equivalence classes from the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Rpr_t * Gia_ReadEquivClasses( unsigned char ** ppPos, int nSize )
+{
+    Gia_Rpr_t * pReprs;
+    unsigned char * pStop;
+    int i, Item, fProved, iRepr, iNode;
+    pStop = *ppPos;
+    pStop += Gia_ReadInt( *ppPos ); *ppPos += 4;
+    pReprs = ABC_CALLOC( Gia_Rpr_t, nSize );
+    for ( i = 0; i < nSize; i++ )
+        pReprs[i].iRepr = GIA_VOID;
+    iRepr = iNode = 0;
+    while ( *ppPos < pStop )
+    {
+        Item = Gia_ReadAigerDecode( ppPos );
+        if ( Item & 1 )
+        {
+            iRepr += (Item >> 1);
+            iNode = iRepr;
+//printf( "\nRepr = %d ", iRepr );
+            continue;
+        }
+        Item >>= 1;
+        fProved = (Item & 1);
+        Item >>= 1;
+        iNode += Item;
+        pReprs[iNode].fProved = fProved;
+        pReprs[iNode].iRepr = iRepr;
+//printf( "Node = %d ", iNode );
+    }
+    return pReprs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads decoded value.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Gia_ReadDiffValue( char ** ppPos, int iPrev )
+{
+    int Item = Gia_ReadAigerDecode( ppPos );
+    if ( Item & 1 )
+        return iPrev + (Item >> 1);
+    return iPrev - (Item >> 1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read equivalence classes from the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Gia_ReadMapping( unsigned char ** ppPos, int nSize )
+{
+    int * pMapping;
+    unsigned char * pStop;
+    int k, j, nFanins, nAlloc, iNode = 0, iOffset = nSize;
+    pStop = *ppPos;
+    pStop += Gia_ReadInt( *ppPos ); *ppPos += 4;
+    nAlloc = nSize + pStop - *ppPos;
+    pMapping = ABC_CALLOC( int, nAlloc );
+    while ( *ppPos < pStop )
+    {
+        k = iOffset;
+        pMapping[k++] = nFanins = Gia_ReadAigerDecode( ppPos );
+        for ( j = 0; j <= nFanins; j++ )
+            pMapping[k++] = iNode = Gia_ReadDiffValue( ppPos, iNode );
+        pMapping[iNode] = iOffset;
+        iOffset = k;
+    }
+    assert( iOffset <= nAlloc );
+    return pMapping;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reads the AIG in the binary AIGER format.]
 
   Description []
@@ -328,6 +442,38 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     // create the latches
     Gia_ManSetRegNum( pNew, nLatches );
 
+    // check if there are other types of information to read
+    pCur = pSymbols;
+    if ( pCur + 1 < pContents + nFileSize && *pCur == 'c' )
+    {
+        pCur++;
+        if ( *pCur == 'e' )
+        {
+            pCur++;
+            // read equivalence classes
+            pNew->pReprs = Gia_ReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
+            pNew->pNexts = Gia_ManDeriveNexts( pNew );
+        }
+        if ( *pCur == 'm' )
+        {
+            pCur++;
+            // read mapping
+            pNew->pMapping = Gia_ReadMapping( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 'p' )
+        {
+            pCur++;
+            // read placement
+        }
+        if ( *pCur == 'n' )
+        {
+            pCur++;
+            // read model name
+            ABC_FREE( pNew->pName );
+            pNew->pName = Aig_UtilStrsav( pCur );
+        }
+    }
+
     // skipping the comments
     ABC_FREE( pContents );
     Vec_IntFree( vNodes );
@@ -443,6 +589,144 @@ Vec_Str_t * Gia_WriteEncodeLiterals( Vec_Int_t * vLits )
 
 /**Function*************************************************************
 
+  Synopsis    [Write integer into the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_WriteInt( unsigned char * pPos, int Value )
+{
+    int i;
+    for ( i = 3; i >= 0; i-- )
+        *pPos++ = (Value >> (8*i)) & 255;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read equivalence classes from the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned char * Gia_WriteEquivClasses( Gia_Man_t * p, int * pEquivSize )
+{
+    unsigned char * pBuffer;
+    int iRepr, iNode, iPrevRepr, iPrevNode, iLit, nItems, iPos;
+    assert( p->pReprs && p->pNexts );
+    // count the number of entries to be written
+    nItems = 0;
+    for ( iRepr = 1; iRepr < Gia_ManObjNum(p); iRepr++ )
+    {
+        nItems += Gia_ObjIsConst( p, iRepr );
+        if ( !Gia_ObjIsHead(p, iRepr) )
+            continue;
+        Gia_ClassForEachObj( p, iRepr, iNode )
+            nItems++;
+    }
+    pBuffer = ABC_ALLOC( char, sizeof(int) * (nItems + 1) );
+    // write constant class
+    iPos = Gia_WriteAigerEncode( pBuffer, 4, Gia_Var2Lit(0, 1) );
+//printf( "\nRepr = %d ", 0 );
+    iPrevNode = 0;
+    for ( iNode = 1; iNode < Gia_ManObjNum(p); iNode++ )
+        if ( Gia_ObjIsConst(p, iNode) )
+        {
+//printf( "Node = %d ", iNode );
+            iLit = Gia_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
+            iPrevNode = iNode;
+            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_Var2Lit(iLit, 0) );
+        }
+    // write non-constant classes
+    iPrevRepr = 0;
+    Gia_ManForEachClass( p, iRepr )
+    {
+//printf( "\nRepr = %d ", iRepr );
+        iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_Var2Lit(iRepr - iPrevRepr, 1) );
+        iPrevRepr = iPrevNode = iRepr;
+        Gia_ClassForEachObj1( p, iRepr, iNode )
+        {
+//printf( "Node = %d ", iNode );
+            iLit = Gia_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
+            iPrevNode = iNode;
+            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_Var2Lit(iLit, 0) );
+        }
+    }
+    Gia_WriteInt( pBuffer, iPos );
+    *pEquivSize = iPos;
+    return pBuffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads decoded value.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_WriteDiffValue( char * pPos, int iPos, int iPrev, int iThis )
+{
+    if ( iPrev < iThis )
+        return Gia_WriteAigerEncode( pPos, iPos, Gia_Var2Lit(iThis - iPrev, 1) );
+    return Gia_WriteAigerEncode( pPos, iPos, Gia_Var2Lit(iPrev - iThis, 0) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read equivalence classes from the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned char * Gia_WriteMapping( Gia_Man_t * p, int * pMapSize )
+{
+    unsigned char * pBuffer;
+    int i, k, iPrev, iFan, nItems, iPos = 4;
+    assert( p->pMapping );
+    // count the number of entries to be written
+    nItems = 0;
+    Gia_ManForEachGate( p, i )
+        nItems += 2 + Gia_ObjGateSize( p, i );
+    pBuffer = ABC_ALLOC( char, sizeof(int) * (nItems + 1) );
+    // write non-constant classes
+    iPrev = 0;
+    Gia_ManForEachGate( p, i )
+    {
+//printf( "\nSize = %d ", Gia_ObjGateSize(p, i) );
+        iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_ObjGateSize(p, i) );
+        Gia_GateForEachFanin( p, i, iFan, k )
+        {
+//printf( "Fan = %d ", iFan );
+            iPos = Gia_WriteDiffValue( pBuffer, iPos, iPrev, iFan );
+            iPrev = iFan;
+        }
+        iPos = Gia_WriteDiffValue( pBuffer, iPos, iPrev, i );
+        iPrev = i;
+//printf( "Node = %d ", i );
+    }
+//printf( "\n" );
+    Gia_WriteInt( pBuffer, iPos );
+    *pMapSize = iPos;
+    return pBuffer;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Writes the AIG in the binary AIGER format.]
 
   Description []
@@ -536,10 +820,29 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     ABC_FREE( pBuffer );
 
     // write the comment
-    fprintf( pFile, "c\n" );
+    fprintf( pFile, "c" );
+    // write equivalences
+    if ( p->pReprs && p->pNexts )
+    {
+        int nEquivSize;
+        unsigned char * pEquivs = Gia_WriteEquivClasses( p, &nEquivSize );
+        fprintf( pFile, "e" );
+        fwrite( pEquivs, 1, nEquivSize, pFile );
+        ABC_FREE( pEquivs );
+    }
+    // write mapping
+    if ( p->pMapping )
+    {
+        int nMapSize;
+        unsigned char * pMaps = Gia_WriteMapping( p, &nMapSize );
+        fprintf( pFile, "m" );
+        fwrite( pMaps, 1, nMapSize, pFile );
+        ABC_FREE( pMaps );
+    }
+    // write placement
     if ( p->pName )
-        fprintf( pFile, ".model %s\n", p->pName );
-    fprintf( pFile, "This file was produced by the AIG package on %s\n", Gia_TimeStamp() );
+        fprintf( pFile, "n%s%c", p->pName, '\0' );
+    fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );
     if ( p != pInit )

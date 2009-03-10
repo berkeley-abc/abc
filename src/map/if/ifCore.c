@@ -55,13 +55,10 @@ int If_ManPerformMapping( If_Man_t * p )
     // try sequential mapping
     if ( p->pPars->fSeqMap )
     {
-        int RetValue = 1;
-        printf( "Currently sequential mapping is not performed.\n" );
-//        RetValue = If_ManPerformMappingSeq( p );
-        return RetValue;
-//        return 1;
+//        if ( p->pPars->fVerbose )
+            printf( "Performing sequential mapping without retiming.\n" );
+        return If_ManPerformMappingSeq( p );
     }
-
     return If_ManPerformMappingComb( p );
 }
 

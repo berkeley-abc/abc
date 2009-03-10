@@ -92,10 +92,9 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
     }
     // add logic for the POs
     Aig_ManForEachPo( p, pObj, i )
-    {
         Gia_ManFromAig_rec( pNew, Aig_ObjFanin0(pObj) );        
+    Aig_ManForEachPo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
-    }
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     return pNew;
 }
@@ -133,10 +132,9 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
         }
     // add logic for the POs
     Aig_ManForEachPo( p, pObj, i )
-    {
         Gia_ManFromAig_rec( pNew, Aig_ObjFanin0(pObj) );        
+    Aig_ManForEachPo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
-    }
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     return pNew;
 }

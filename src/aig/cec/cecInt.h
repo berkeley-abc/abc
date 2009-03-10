@@ -65,6 +65,7 @@ struct Cec_ManPat_t_
     int              timeSort;       // sorting literals 
     int              timePack;       // packing into sim info structures 
     int              timeTotal;      // total runtime  
+    int              timeTotalSave;  // total runtime for saving  
 };
 
 // SAT solving manager
@@ -100,38 +101,43 @@ struct Cec_ManSat_t_
     int              timeTotal;      // total runtime
 };
 
-// combinational sweeping object
-typedef struct Cec_ObjCsw_t_ Cec_ObjCsw_t;
-struct Cec_ObjCsw_t_
-{
-    int              iRepr;          // representative node
-    unsigned         iNext   : 30;   // next node in the class
-    unsigned         iProved :  1;   // this node is proved
-    unsigned         iFailed :  1;   // this node is failed
-    unsigned         SimNum;         // simulation info number
-};
-
 // combinational simulation manager
-typedef struct Cec_ManCsw_t_ Cec_ManCsw_t;
-struct Cec_ManCsw_t_
+typedef struct Cec_ManSim_t_ Cec_ManSim_t;
+struct Cec_ManSim_t_
 {
     // parameters
     Gia_Man_t *      pAig;           // the AIG to be used for simulation
-    Cec_ParCsw_t *   pPars;          // SAT sweeping parameters 
+    Cec_ParSim_t *   pPars;          // simulation parameters 
     int              nWords;         // the number of simulation words
-    // equivalence classes
-    Cec_ObjCsw_t *   pObjs;          // objects used for SAT sweeping
     // recycable memory
+    int *            pSimInfo;       // simulation information offsets
     unsigned *       pMems;          // allocated simulaton memory
     int              nWordsAlloc;    // the number of allocated entries
     int              nMems;          // the number of used entries  
     int              nMemsMax;       // the max number of used entries 
     int              MemFree;        // next free entry
+    int              nWordsOld;      // the number of simulation words after previous relink
+    // bug catcher
+    Vec_Ptr_t *      vCiSimInfo;     // CI simulation info  
+    Vec_Ptr_t *      vCoSimInfo;     // CO simulation info  
+    void **          pCexes;         // counter-examples for each output
+    int              iOut;           // first failed output
+    int              nOuts;          // the number of failed outputs
+    Gia_Cex_t *      pCexComb;       // counter-example for the first failed output
     // temporaries
     Vec_Int_t *      vClassOld;      // old class numbers
     Vec_Int_t *      vClassNew;      // new class numbers
     Vec_Int_t *      vClassTemp;     // temporary storage
     Vec_Int_t *      vRefinedC;      // refined const reprs
+};
+
+// combinational simulation manager
+typedef struct Cec_ManFra_t_ Cec_ManFra_t;
+struct Cec_ManFra_t_
+{
+    // parameters
+    Gia_Man_t *      pAig;           // the AIG to be used for simulation
+    Cec_ParFra_t *   pPars;          // SAT sweeping parameters 
     // simulation patterns
     Vec_Int_t *      vXorNodes;      // nodes used in speculative reduction
     int              nAllProved;     // total number of proved nodes
@@ -139,6 +145,7 @@ struct Cec_ManCsw_t_
     int              nAllFailed;     // total number of failed nodes
     // runtime stats
     int              timeSim;        // unsat
+    int              timePat;        // unsat
     int              timeSat;        // sat
     int              timeTotal;      // total runtime
 };
@@ -153,29 +160,31 @@ struct Cec_ManCsw_t_
 
 /*=== cecCore.c ============================================================*/
 /*=== cecClass.c ============================================================*/
-extern int                  Cec_ManCswCountLitsAll( Cec_ManCsw_t * p );
-extern int *                Cec_ManCswDeriveReprs( Cec_ManCsw_t * p );
-extern Gia_Man_t *          Cec_ManCswSpecReduction( Cec_ManCsw_t * p );
-extern Gia_Man_t *          Cec_ManCswSpecReductionProved( Cec_ManCsw_t * p );
-extern Gia_Man_t *          Cec_ManCswDupWithClasses( Cec_ManCsw_t * p );
-extern int                  Cec_ManCswClassesPrepare( Cec_ManCsw_t * p );
-extern int                  Cec_ManCswClassesUpdate( Cec_ManCsw_t * p, Cec_ManPat_t * pPat, Gia_Man_t * pNew );
+extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p );
+extern int                  Cec_ManSimClassesRefine( Cec_ManSim_t * p );
+extern int                  Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * vInfoCos );
+/*=== cecIso.c ============================================================*/
+extern int *                Cec_ManDetectIsomorphism( Gia_Man_t * p );
 /*=== cecMan.c ============================================================*/
-extern Cec_ManCsw_t *       Cec_ManCswStart( Gia_Man_t * pAig, Cec_ParCsw_t *  pPars );  
-extern void                 Cec_ManCswStop( Cec_ManCsw_t * p );
-extern Cec_ManPat_t *       Cec_ManPatStart();
-extern void                 Cec_ManPatPrintStats( Cec_ManPat_t * p );
-extern void                 Cec_ManPatStop( Cec_ManPat_t * p );
 extern Cec_ManSat_t *       Cec_ManSatCreate( Gia_Man_t * pAig, Cec_ParSat_t * pPars );
 extern void                 Cec_ManSatPrintStats( Cec_ManSat_t * p );
 extern void                 Cec_ManSatStop( Cec_ManSat_t * p );
+extern Cec_ManPat_t *       Cec_ManPatStart();
+extern void                 Cec_ManPatPrintStats( Cec_ManPat_t * p );
+extern void                 Cec_ManPatStop( Cec_ManPat_t * p );
+extern Cec_ManSim_t *       Cec_ManSimStart( Gia_Man_t * pAig, Cec_ParSim_t *  pPars ); 
+extern void                 Cec_ManSimStop( Cec_ManSim_t * p );  
+extern Cec_ManFra_t *       Cec_ManFraStart( Gia_Man_t * pAig, Cec_ParFra_t *  pPars );  
+extern void                 Cec_ManFraStop( Cec_ManFra_t * p );
 /*=== cecPat.c ============================================================*/
 extern void                 Cec_ManPatSavePattern( Cec_ManPat_t *  pPat, Cec_ManSat_t *  p, Gia_Obj_t * pObj );
 extern Vec_Ptr_t *          Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nWords );
 /*=== cecSolve.c ============================================================*/
 extern int                  Cec_ObjSatVarValue( Cec_ManSat_t * p, Gia_Obj_t * pObj );
 extern void                 Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars );
-/*=== cecUtil.c ============================================================*/
+/*=== ceFraeep.c ============================================================*/
+extern Gia_Man_t *          Cec_ManFraSpecReduction( Cec_ManFra_t * p );
+extern int                  Cec_ManFraClassesUpdate( Cec_ManFra_t * p, Cec_ManSim_t * pSim, Cec_ManPat_t * pPat, Gia_Man_t * pNew );
 
 #ifdef __cplusplus
 }

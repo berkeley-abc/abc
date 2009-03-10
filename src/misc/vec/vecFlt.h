@@ -383,6 +383,8 @@ static inline void Vec_FltFillExtra( Vec_Flt_t * p, int nSize, float Entry )
     int i;
     if ( p->nSize >= nSize )
         return;
+    if ( nSize < 2 * p->nSize )
+        nSize = 2 * p->nSize;
     Vec_FltGrow( p, nSize );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Entry;

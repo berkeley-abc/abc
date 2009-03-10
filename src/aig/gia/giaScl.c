@@ -30,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the number of unmarked nodes.]
+  Synopsis    [Marks unreachable internal nodes and returned their number.]
 
   Description []
                
@@ -45,13 +45,13 @@ int Gia_ManCombMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         return 0;
     pObj->fMark0 = 0;
     assert( Gia_ObjIsAnd(pObj) );
-    return Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) ) + 
-        Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin1(pObj) ) + 1;
+    return 1 + Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin0(pObj) )
+             + Gia_ManCombMarkUsed_rec( p, Gia_ObjFanin1(pObj) );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the number of unused nodes.]
+  Synopsis    [Marks unreachable internal nodes and returned their number.]
 
   Description []
                
@@ -90,7 +90,7 @@ Gia_Man_t * Gia_ManCleanup( Gia_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Marks CIs/COs reachable from POs.]
+  Synopsis    [Marks CIs/COs/ANDs unreachable from POs.]
 
   Description []
                
@@ -99,24 +99,50 @@ Gia_Man_t * Gia_ManCleanup( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSeqMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vRoots )
+int Gia_ManSeqMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vRoots )
 {
     if ( !pObj->fMark0 )
-        return;
+        return 0;
     pObj->fMark0 = 0;
     if ( Gia_ObjIsCo(pObj) )
-    {
-        Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin0(pObj), vRoots );
-        return;
-    }
+        return Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin0(pObj), vRoots );
     if ( Gia_ObjIsRo(p, pObj) )
     {
         Vec_IntPush( vRoots, Gia_ObjId(p, Gia_ObjRoToRi(p, pObj)) );
-        return;
+        return 0;
     }
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin0(pObj), vRoots );
-    Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin1(pObj), vRoots );
+    return 1 + Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin0(pObj), vRoots )
+             + Gia_ManSeqMarkUsed_rec( p, Gia_ObjFanin1(pObj), vRoots );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks CIs/COs/ANDs unreachable from POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSeqMarkUsed( Gia_Man_t * p )
+{
+    Vec_Int_t * vRoots;
+    Gia_Obj_t * pObj;
+    int i, nNodes = 0;
+    Gia_ManSetMark0( p );
+    Gia_ManConst0(p)->fMark0 = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->fMark0 = 0;
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->fMark0 = 0;
+    vRoots = Gia_ManCollectPoIds( p );
+    Gia_ManForEachObjVec( vRoots, p, pObj, i )
+        nNodes += Gia_ManSeqMarkUsed_rec( p, pObj, vRoots );
+    Vec_IntFree( vRoots );
+    return nNodes;
 }
 
 /**Function*************************************************************
@@ -132,17 +158,7 @@ void Gia_ManSeqMarkUsed_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vRoots
 ***********************************************************************/
 Gia_Man_t * Gia_ManSeqCleanup( Gia_Man_t * p )
 {
-    Vec_Int_t * vRoots;
-    Gia_Obj_t * pObj;
-    int i;
-    Gia_ManSetMark0( p );
-    Gia_ManConst0(p)->fMark0 = 0;
-    Gia_ManForEachPi( p, pObj, i )
-        pObj->fMark0 = 0;
-    vRoots = Gia_ManCollectPoIds( p );
-    Gia_ManForEachObjVec( vRoots, p, pObj, i )
-        Gia_ManSeqMarkUsed_rec( p, pObj, vRoots );
-    Vec_IntFree( vRoots );
+    Gia_ManSeqMarkUsed( p );
     return Gia_ManDupMarked( p );
 }
 

@@ -361,10 +361,9 @@ static inline void Vec_StrFillExtra( Vec_Str_t * p, int nSize, char Fill )
     int i;
     if ( p->nSize >= nSize )
         return;
-    if ( 2 * p->nSize > nSize )
-        Vec_StrGrow( p, 2 * nSize );
-    else
-        Vec_StrGrow( p, nSize );
+    if ( nSize < 2 * p->nSize )
+        nSize = 2 * p->nSize;
+    Vec_StrGrow( p, nSize );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;

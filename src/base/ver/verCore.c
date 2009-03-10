@@ -623,7 +623,7 @@ void Ver_ParseRemoveSuffixTable( Ver_Man_t * pMan )
 ***********************************************************************/
 int Ver_ParseSignalPrefix( Ver_Man_t * pMan, char ** ppWord, int * pnMsb, int * pnLsb )
 {
-    char * pWord = *ppWord;
+    char * pWord = *ppWord, * pTemp;
     int nMsb, nLsb;
     assert( pWord[0] == '[' );
     // get the beginning
@@ -654,6 +654,17 @@ int Ver_ParseSignalPrefix( Ver_Man_t * pMan, char ** ppWord, int * pnMsb, int * 
         }
         assert( *pWord == ']' );
         pWord++;
+
+        // fix the case when \<name> follows after [] without space
+        if ( *pWord == '\\' )
+        {
+            pWord++;
+            pTemp = pWord;
+            while ( *pTemp && *pTemp != ' ' )
+                pTemp++;
+            if ( *pTemp == ' ' )
+                *pTemp = 0;
+        }
     }
     assert( nMsb >= 0 && nLsb >= 0 );
     // return

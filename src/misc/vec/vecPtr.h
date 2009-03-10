@@ -388,10 +388,9 @@ static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Entry )
     if ( p->nSize >= nSize )
         return;
     assert( p->nSize < nSize );
-    if ( 2 * p->nSize > nSize )
-        Vec_PtrGrow( p, 2 * nSize );
-    else
-        Vec_PtrGrow( p, nSize );
+    if ( nSize < 2 * p->nSize )
+        nSize = 2 * p->nSize;
+    Vec_PtrGrow( p, nSize );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Entry;
     p->nSize = nSize;
@@ -612,6 +611,29 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
     Vec_PtrGrow( p, nItems + p->nSize );
     memmove( (char **)p->pArray + p->nSize, p->pArray, nItems * sizeof(void*) );
     memmove( p->pArray, (char **)p->pArray + nItems, p->nSize * sizeof(void*) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reverses the order of entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrReverseOrder( Vec_Ptr_t * p )
+{
+    void * Temp;
+    int i;
+    for ( i = 0; i < p->nSize/2; i++ )
+    {
+        Temp = p->pArray[i];
+        p->pArray[i] = p->pArray[p->nSize-1-i];
+        p->pArray[p->nSize-1-i] = Temp;
+    }
 }
 
 /**Function*************************************************************

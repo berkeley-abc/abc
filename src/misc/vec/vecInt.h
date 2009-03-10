@@ -409,10 +409,9 @@ static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Fill )
     int i;
     if ( p->nSize >= nSize )
         return;
-    if ( 2 * p->nSize > nSize )
-        Vec_IntGrow( p, 2 * nSize );
-    else
-        Vec_IntGrow( p, nSize );
+    if ( nSize < 2 * p->nSize )
+        nSize = 2 * p->nSize;
+    Vec_IntGrow( p, nSize );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -739,6 +738,28 @@ static inline int Vec_IntFindMin( Vec_Int_t * p )
         if ( Best > p->pArray[i] )
             Best = p->pArray[i];
     return Best;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reverses the order of entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntReverseOrder( Vec_Int_t * p )
+{
+    int i, Temp;
+    for ( i = 0; i < p->nSize/2; i++ )
+    {
+        Temp = p->pArray[i];
+        p->pArray[i] = p->pArray[p->nSize-1-i];
+        p->pArray[p->nSize-1-i] = Temp;
+    }
 }
 
 /**Function*************************************************************

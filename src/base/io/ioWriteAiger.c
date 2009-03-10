@@ -726,10 +726,10 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     }
 
     // write the comment
-    fprintfBz2Aig( &b, "c\n" );
+    fprintfBz2Aig( &b, "c" );
     if ( pNtk->pName && strlen(pNtk->pName) > 0 )
-        fprintfBz2Aig( &b, ".model %s\n", pNtk->pName );
-    fprintfBz2Aig( &b, "This file was produced by ABC on %s\n", Extra_TimeStamp() );
+        fprintfBz2Aig( &b, "n%s%c", pNtk->pName, '\0' );
+    fprintfBz2Aig( &b, "\nThis file was written by ABC on %s\n", Extra_TimeStamp() );
     fprintfBz2Aig( &b, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
 
     // close the file

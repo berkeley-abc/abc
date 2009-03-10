@@ -44,6 +44,7 @@ typedef enum {
     IO_FILE_NONE = 0, 
     IO_FILE_AIGER,      
     IO_FILE_BAF,      
+    IO_FILE_BBLIF,      
     IO_FILE_BLIF,      
     IO_FILE_BLIFMV,      
     IO_FILE_BENCH,      
@@ -73,6 +74,8 @@ typedef enum {
 extern Abc_Ntk_t *        Io_ReadAiger( char * pFileName, int fCheck );
 /*=== abcReadBaf.c ============================================================*/
 extern Abc_Ntk_t *        Io_ReadBaf( char * pFileName, int fCheck );
+/*=== abcReadBblif.c ============================================================*/
+extern Abc_Ntk_t *        Io_ReadBblif( char * pFileName, int fCheck );
 /*=== abcReadBlif.c ===========================================================*/
 extern Abc_Ntk_t *        Io_ReadBlif( char * pFileName, int fCheck );
 /*=== abcReadBlifMv.c =========================================================*/
@@ -91,6 +94,8 @@ extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
 extern void               Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fCompact );
 /*=== abcWriteBaf.c ===========================================================*/
 extern void               Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName );
+/*=== abcWriteBblif.c ===========================================================*/
+extern void               Io_WriteBblif( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBlif.c ==========================================================*/
 extern void               Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
 extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );

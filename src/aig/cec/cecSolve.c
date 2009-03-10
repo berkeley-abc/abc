@@ -390,6 +390,70 @@ void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Sets variable activities in the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_SetActivityFactors_rec( Cec_ManSat_t * p, Gia_Obj_t * pObj, int LevelMin, int LevelMax )
+{
+    float dActConeBumpMax = 20.0;
+    int iVar;
+    // skip visited variables
+    if ( Gia_ObjIsTravIdCurrent(p->pAig, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p->pAig, pObj);
+    // add the PI to the list
+    if ( Gia_ObjLevel(p->pAig, pObj) <= LevelMin || Gia_ObjIsCi(pObj) )
+        return;
+    // set the factor of this variable
+    // (LevelMax-LevelMin) / (pObj->Level-LevelMin) = p->pPars->dActConeBumpMax / ThisBump
+    if ( (iVar = Cec_ObjSatNum(p,pObj)) )
+    {
+        p->pSat->factors[iVar] = dActConeBumpMax * (Gia_ObjLevel(p->pAig, pObj) - LevelMin)/(LevelMax - LevelMin);
+        veci_push(&p->pSat->act_vars, iVar);
+    }
+    // explore the fanins
+    Cec_SetActivityFactors_rec( p, Gia_ObjFanin0(pObj), LevelMin, LevelMax );
+    Cec_SetActivityFactors_rec( p, Gia_ObjFanin1(pObj), LevelMin, LevelMax );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets variable activities in the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_SetActivityFactors( Cec_ManSat_t * p, Gia_Obj_t * pObj )
+{
+    float dActConeRatio = 0.5;
+    int LevelMin, LevelMax;
+    // reset the active variables
+    veci_resize(&p->pSat->act_vars, 0);
+    // prepare for traversal
+    Gia_ManIncrementTravId( p->pAig );
+    // determine the min and max level to visit
+    assert( dActConeRatio > 0 && dActConeRatio < 1 );
+    LevelMax = Gia_ObjLevel(p->pAig,pObj);
+    LevelMin = (int)(LevelMax * (1.0 - dActConeRatio));
+    // traverse
+    Cec_SetActivityFactors_rec( p, pObj, LevelMin, LevelMax );
+//Cec_PrintActivity( p );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Runs equivalence test for the two nodes.]
 
   Description []
@@ -402,7 +466,7 @@ void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
 int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
 {
     int nBTLimit = p->pPars->nBTLimit;
-    int Lit, RetValue, status, clk, nConflicts;
+    int Lit, RetValue, status, clk, clk2, nConflicts;
 
     p->nCallsSince++;  // experiment with this!!!
     p->nSatTotal++;
@@ -415,7 +479,14 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
         Cec_ManSatSolverRecycle( p );
 
     // if the nodes do not have SAT variables, allocate them
+clk2 = clock();
     Cec_CnfNodeAddToSolver( p, Gia_ObjFanin0(pObj) );
+//ABC_PRT( "cnf", clock() - clk2 );
+//printf( "%d \n", p->pSat->size );
+
+clk2 = clock();
+//    Cec_SetActivityFactors( p, Gia_ObjFanin0(pObj) ); 
+//ABC_PRT( "act", clock() - clk2 );
 
     // propage unit clauses
     if ( p->pSat->qtail != p->pSat->qhead )
@@ -435,8 +506,12 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
 clk = clock();
     nConflicts = p->pSat->stats.conflicts;
+
+clk2 = clock();
     RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
         (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+//ABC_PRT( "sat", clock() - clk2 );
+
     if ( RetValue == l_False )
     {
 p->timeSatUnsat += clock() - clk;
@@ -466,6 +541,7 @@ p->timeSatUndec += clock() - clk;
     }
 }
 
+
 /**Function*************************************************************
 
   Synopsis    [Performs one round of solving for the POs of the AIG.]
@@ -486,7 +562,7 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
     Bar_Progress_t * pProgress = NULL;
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
-    int i, status, clk = clock();
+    int i, status, clk = clock(), clk2;
 
 //    sprintf( Buffer, "gia%03d.aig", Counter++ );
 //Gia_WriteAiger( pAig, Buffer, 0, 0 );
@@ -499,8 +575,9 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
         pPat->nPats = 0;
         pPat->nPatLits = 0;
         pPat->nPatLitsMin = 0;
-    }
+    } 
     Gia_ManSetPhase( pAig );
+    Gia_ManLevelNum( pAig );
     Gia_ManResetTravId( pAig );
     p = Cec_ManSatCreate( pAig, pPars );
     pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
@@ -512,12 +589,18 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
             pObj->fMark1 = 1;
             continue;
         }
-//printf( "Output %6d : ", i );
-
         Bar_ProgressUpdate( pProgress, i, "SAT..." );
+clk2 = clock();
         status = Cec_ManSatCheckNode( p, pObj );
         pObj->fMark0 = (status == 0);
         pObj->fMark1 = (status == 1);
+/*
+printf( "Output %6d : ", i );
+printf( "conf = %6d ", p->pSat->stats.conflicts );
+printf( "prop = %6d ", p->pSat->stats.propagations );
+ABC_PRT( "time", clock() - clk2 );
+*/
+
 /*
         if ( status == -1 )
         {
@@ -531,7 +614,11 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
             continue;
         // save the pattern
         if ( pPat )
+        {
+            int clk3 = clock();
             Cec_ManPatSavePattern( pPat, p, pObj );
+            pPat->timeTotalSave += clock() - clk3;
+        }
         // quit if one of them is solved
         if ( pPars->fFirstStop )
             break;

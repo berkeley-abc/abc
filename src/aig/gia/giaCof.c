@@ -41,6 +41,7 @@ struct Cof_Obj_t_
     unsigned       fMark1   :  1;    // second user-controlled mark
     unsigned       nFanins  :  4;    // the number of fanins
     unsigned       nFanouts : 24;    // total number of fanouts
+    unsigned       nFanoutsM;        // total number of MUX ctrl fanouts
     unsigned       Value;            // application specific data
     int            Id;               // ID of the node
     int            iNext;            // next one in the linked list
@@ -124,6 +125,7 @@ Cof_Man_t * Cof_ManCreateLogicSimple( Gia_Man_t * pGia )
     Cof_Man_t * p;
     Cof_Obj_t * pObjLog, * pFanLog;
     Gia_Obj_t * pObj;
+    int * pMuxRefs;
     int i, iHandle = 0;
     p = ABC_CALLOC( Cof_Man_t, 1 );
     p->pGia = pGia;
@@ -173,11 +175,14 @@ Cof_Man_t * Cof_ManCreateLogicSimple( Gia_Man_t * pGia )
         p->nObjs++;
     }
     assert( iHandle == p->nObjData );
+    pMuxRefs = Gia_ManCreateMuxRefs( pGia );
     Gia_ManForEachObj( pGia, pObj, i )
     {
         pObjLog = Cof_ManObj( p, Gia_ObjHandle(pObj) );
         assert( pObjLog->nFanouts == pObjLog->Value );
+        pObjLog->nFanoutsM = pMuxRefs[i];
     }
+    ABC_FREE( pMuxRefs );
     return p;
 }
 
@@ -509,8 +514,7 @@ int Cof_ManCountRemoved( Cof_Man_t * p, Cof_Obj_t * pRoot, int fConst1 )
 void Cof_ManPrintHighFanoutOne( Cof_Man_t * p, Cof_Obj_t * pObj )
 {
     printf( "%7d : ",     pObj->Id );
-    printf( "fi =%2d  ",  Cof_ObjFaninNum(pObj) );
-    printf( "fo =%5d  ",  Cof_ObjFanoutNum(pObj) );
+    printf( "i/o/c =%2d %5d %5d  ",  Cof_ObjFaninNum(pObj), Cof_ObjFanoutNum(pObj), 2*pObj->nFanoutsM );
     printf( "l =%4d  ",   Cof_ObjLevel(p, pObj) );
     printf( "s =%5d  ",   Cof_ManSuppSize(p, &pObj, 1) );
     printf( "TFI =%7d  ", Cof_ManTfiSize(p, &pObj, 1) );

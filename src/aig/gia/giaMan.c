@@ -68,8 +68,13 @@ void Gia_ManStop( Gia_Man_t * p )
 {
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
+    ABC_FREE( p->pCexComb );
+    ABC_FREE( p->pIso );
+    ABC_FREE( p->pMapping );
     ABC_FREE( p->pFanData );
+    ABC_FREE( p->pReprsOld );
     ABC_FREE( p->pReprs );
+    ABC_FREE( p->pNexts );
     ABC_FREE( p->pName );
     ABC_FREE( p->pRefs );
     ABC_FREE( p->pLevels );
@@ -98,12 +103,16 @@ void Gia_ManPrintStats( Gia_Man_t * p )
         printf( "ff =%7d  ", Gia_ManRegNum(p) );
     printf( "and =%8d  ", Gia_ManAndNum(p) );
     printf( "lev =%5d  ", Gia_ManLevelNum(p) );
-//    printf( "cut =%5d  ", Gia_ManCrossCut(p) );
+    printf( "cut =%5d  ", Gia_ManCrossCut(p) );
     printf( "mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
 //    printf( "obj =%5d  ", Gia_ManObjNum(p) );
     printf( "\n" );
 
 //    Gia_ManSatExperiment( p );
+    if ( p->pReprs && p->pNexts )
+        Gia_ManEquivPrintClasses( p, 0, 0.0 );
+    if ( p->pMapping )
+        Gia_ManPrintMappingStats( p );
 }
 
 /**Function*************************************************************

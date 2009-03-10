@@ -66,6 +66,53 @@ Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
 
   Synopsis    [Transforms the decomposition graph into the AIG.]
 
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Dec_SopToAig( Abc_Ntk_t * pNtk, char * pSop, Vec_Ptr_t * vFaninAigs )
+{
+    Abc_Obj_t * pFunc;
+    Dec_Graph_t * pFForm;
+    Dec_Node_t * pNode;
+    int i;
+    pFForm = Dec_Factor( pSop );
+    Dec_GraphForEachLeaf( pFForm, pNode, i )
+        pNode->pFunc = Vec_PtrEntry( vFaninAigs, i );
+    pFunc = Dec_GraphToNetwork( pNtk, pFForm );
+    Dec_GraphFree( pFForm );
+    return pFunc;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the decomposition graph into the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Dec_GraphToAig( Abc_Ntk_t * pNtk, Dec_Graph_t * pFForm, Vec_Ptr_t * vFaninAigs )
+{
+    Abc_Obj_t * pFunc;
+    Dec_Node_t * pNode;
+    int i;
+    Dec_GraphForEachLeaf( pFForm, pNode, i )
+        pNode->pFunc = Vec_PtrEntry( vFaninAigs, i );
+    pFunc = Dec_GraphToNetwork( pNtk, pFForm );
+    return pFunc;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the decomposition graph into the AIG.]
+
   Description [AIG nodes for the fanins should be assigned to pNode->pFunc
   of the leaves of the graph before calling this procedure.]
                

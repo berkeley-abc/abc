@@ -300,6 +300,34 @@ void Gia_ManCreateRefs( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Assigns references.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Gia_ManCreateMuxRefs( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj, * pCtrl, * pFan0, * pFan1;
+    int i, * pMuxRefs;
+    pMuxRefs = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjRecognizeExor( pObj, &pFan0, &pFan1 ) )
+            continue;
+        if ( !Gia_ObjIsMuxType(pObj) )
+            continue;
+        pCtrl = Gia_ObjRecognizeMux( pObj, &pFan0, &pFan1 );
+        pMuxRefs[ Gia_ObjId(p, Gia_Regular(pCtrl)) ]++;
+    }
+    return pMuxRefs;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the maximum frontier size.]
 
   Description []
@@ -547,6 +575,45 @@ Gia_Obj_t * Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Ob
     }
     assert( 0 ); // this is not MUX
     return NULL;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDoubleOuts )
+{
+    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    Gia_ManForEachRo( pAig, pObj, i )
+        pObj->fMark0 = Aig_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Gia_ManForEachPi( pAig, pObj, k )
+            pObj->fMark0 = Aig_InfoHasBit(p->pData, iBit++);
+        Gia_ManForEachAnd( pAig, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( pAig, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+    }
+    assert( iBit == p->nBits );
+    if ( fDoubleOuts )
+        RetValue = Gia_ManPo(pAig, 2*p->iPo)->fMark0 ^ Gia_ManPo(pAig, 2*p->iPo+1)->fMark0;
+    else
+        RetValue = Gia_ManPo(pAig, p->iPo)->fMark0;
+    Gia_ManCleanMark0(pAig);
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

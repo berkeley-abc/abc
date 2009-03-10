@@ -346,6 +346,7 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName )
 {
     FILE * pFile;
     Amap_Item_t * pCell, * pArea, * pFunc, * pPin, * pOutput;
+    char * pForm;
     int Counter;
     if ( pFileName == NULL )
         pFile = stdout;
@@ -408,6 +409,12 @@ int Amap_LibertyPrintGenlib( Amap_Tree_t * p, char * pFileName )
         }
         pOutput = Amap_LibertyCellOutput( p, pCell );
         pFunc   = Amap_LibertyPinFunction( p, pOutput );
+        pForm   = Amap_LibertyGetStringFormula( p, pFunc->Head );
+        if ( !strcmp(pForm, "0") || !strcmp(pForm, "1") )
+        {
+            printf( "Amap_LibertyPrintGenlib() skipped cell \"%s\" with constant formula \"%s\".\n", Amap_LibertyGetString(p, pCell->Head), pForm );
+            continue;
+        }
 
         fprintf( pFile, "GATE  " );
         fprintf( pFile, "%16s  ", Amap_LibertyGetString(p, pCell->Head) );
@@ -542,13 +549,17 @@ static inline int Amap_LibertyCharIsSpace( char c )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Amap_LibertySkipSpaces( Amap_Tree_t * p, char ** ppPos, char * pEnd )
+static inline int Amap_LibertySkipSpaces( Amap_Tree_t * p, char ** ppPos, char * pEnd, int fStopAtNewLine )
 {
     char * pPos = *ppPos;
     for ( ; pPos < pEnd; pPos++ )
     {
         if ( *pPos == '\n' )
+        {
             p->nLines++;
+            if ( fStopAtNewLine )
+                break;
+        }        
         if ( !Amap_LibertyCharIsSpace(*pPos) )
             break;
     }
@@ -582,9 +593,9 @@ static inline int Amap_LibertySkipEntry( char ** ppPos, char * pEnd )
     else
     {
         for ( ; pPos < pEnd; pPos++ )
-            if ( *pPos == ' ' ||
-                 *pPos == ':' || *pPos == ';' || 
-                 *pPos == '(' || *pPos == ')' || 
+            if ( *pPos == ' ' || *pPos == '\r' || *pPos == '\n' ||
+                 *pPos == ':' || *pPos == ';'  || 
+                 *pPos == '(' || *pPos == ')'  || 
                  *pPos == '{' || *pPos == '}' )
                 break;
     }
@@ -708,28 +719,28 @@ int Amap_LibertyBuildItem( Amap_Tree_t * p, char ** ppPos, char * pEnd )
     Amap_Item_t * pItem;
     Amap_Pair_t Key, Head, Body;
     char * pNext, * pStop;
-    if ( Amap_LibertySkipSpaces( p, ppPos, pEnd ) )
+    if ( Amap_LibertySkipSpaces( p, ppPos, pEnd, 0 ) )
         return -2;
     Key.Beg = *ppPos - p->pContents;
     if ( Amap_LibertySkipEntry( ppPos, pEnd ) )
         goto exit;
     Key.End = *ppPos - p->pContents;
-    if ( Amap_LibertySkipSpaces( p, ppPos, pEnd ) )
+    if ( Amap_LibertySkipSpaces( p, ppPos, pEnd, 0 ) )
         goto exit;
     pNext = *ppPos;
     if ( *pNext == ':' )
     {
         *ppPos = pNext + 1;
-        if ( Amap_LibertySkipSpaces( p, ppPos, pEnd ) )
+        if ( Amap_LibertySkipSpaces( p, ppPos, pEnd, 0 ) )
             goto exit;
         Head.Beg = *ppPos - p->pContents;
         if ( Amap_LibertySkipEntry( ppPos, pEnd ) )
             goto exit;
         Head.End = *ppPos - p->pContents;
-        if ( Amap_LibertySkipSpaces( p, ppPos, pEnd ) )
+        if ( Amap_LibertySkipSpaces( p, ppPos, pEnd, 1 ) )
             goto exit;
         pNext = *ppPos;
-        if ( *pNext != ';' )
+        if ( *pNext != ';' && *pNext != '\n' )
             goto exit;
         *ppPos = pNext + 1;
         // end of equation
@@ -747,7 +758,7 @@ int Amap_LibertyBuildItem( Amap_Tree_t * p, char ** ppPos, char * pEnd )
         Head.Beg = pNext - p->pContents + 1;
         Head.End = pStop - p->pContents;
         *ppPos = pStop + 1;
-        if ( Amap_LibertySkipSpaces( p, ppPos, pEnd ) )
+        if ( Amap_LibertySkipSpaces( p, ppPos, pEnd, 0 ) )
         {
             // end of list
             pItem = Amap_LibertyNewItem( p, AMAP_LIBERTY_LIST );
@@ -883,7 +894,7 @@ int Amap_LibertyParse( char * pFileName, char * pFileGenlib, int fVerbose )
     {
         if ( fVerbose )
         printf( "Parsing finished successfully.\n" );
-//        Amap_LibertyPrintLiberty( p, "temp.lib" );
+//        Amap_LibertyPrintLiberty( p, "temp_.lib" );
         Amap_LibertyPrintGenlib( p, "temp.genlib" );
         RetValue = 1;
     }

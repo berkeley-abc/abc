@@ -179,7 +179,8 @@ clk = clock();
                     printf( "Cex =%5d. ", p->nSatCallsSat-nSatCallsSat );
                     printf( "R =%4d. ",   p->nRecycles-nRecycles );
                 }
-                printf( "F =%5d. ", p->nSatFailsReal-nSatFailsReal );
+                printf( "F =%5d. %s ", p->nSatFailsReal-nSatFailsReal, 
+                    (Saig_ManPoNum(p->pAig)==1 && Ssw_ObjIsConst1Cand(p->pAig,Aig_ObjFanin0(Aig_ManPo(p->pAig,0))))? "+" : "-" );
                 ABC_PRT( "T", clock() - clk );
             } 
 //            if ( p->pPars->fDynamic && p->nSatCallsSat-nSatCallsSat < 100 )

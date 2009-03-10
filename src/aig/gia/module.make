@@ -5,6 +5,8 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaDfs.c \
     src/aig/gia/giaDup.c \
     src/aig/gia/giaEmbed.c \
+    src/aig/gia/giaEnable.c \
+    src/aig/gia/giaEquiv.c \
     src/aig/gia/giaFanout.c \
     src/aig/gia/giaForce.c \
     src/aig/gia/giaFrames.c \
@@ -12,6 +14,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaGlitch.c \
     src/aig/gia/giaHash.c \
     src/aig/gia/giaMan.c \
+    src/aig/gia/giaMap.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaSim.c \
     src/aig/gia/giaSort.c \

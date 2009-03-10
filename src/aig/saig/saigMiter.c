@@ -568,13 +568,17 @@ int Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** 
                 printf( "The output number %d of the miter is constant 1.\n", i );
             Counter++;
             continue;
-        }
+        } 
         if ( !Aig_ObjIsNode(pFanin) || !Aig_ObjRecognizeExor( pFanin, &pObj0, &pObj1 ) )
         {
+/*
             printf( "The miter cannot be demitered.\n" );
             Vec_PtrFree( vSet0 );
             Vec_PtrFree( vSet1 );
             return 0;
+*/
+            printf( "The output number %d cannot be demitered.\n", i );
+            continue;
         }
         if ( Aig_ObjFaninC0(pObj) )
             pObj0 = Aig_Not(pObj0);

@@ -28,6 +28,7 @@
 static int IoCommandRead        ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadAiger   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBaf     ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadBblif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlifMv  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -45,6 +46,7 @@ static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteAiger  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteBblif  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlifMv ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -83,6 +85,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read",          IoCommandRead,         1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_aiger",    IoCommandReadAiger,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_baf",      IoCommandReadBaf,      1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_bblif",    IoCommandReadBblif,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif_mv",  IoCommandReadBlifMv,   1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
@@ -100,6 +103,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_hie",     IoCommandWriteHie,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_aiger",   IoCommandWriteAiger,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_baf",     IoCommandWriteBaf,     0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_bblif",   IoCommandWriteBblif,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif_mv", IoCommandWriteBlifMv,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
@@ -299,6 +303,60 @@ int IoCommandReadBaf( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pAbc->Err, "usage: read_baf [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         read the network in Binary Aig Format (BAF)\n" );
+    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadBblif( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * pFileName;
+    int fCheck;
+    int c;
+
+    fCheck = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'c':
+                fCheck ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    // read the file using the corresponding file reader
+    pNtk = Io_Read( pFileName, IO_FILE_BBLIF, fCheck );
+    if ( pNtk == NULL )
+        return 1;
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_bblif [-ch] <file>\n" );
+    fprintf( pAbc->Err, "\t         read the network in a binary BLIF format\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -1315,6 +1373,54 @@ usage:
     fprintf( pAbc->Err, "\t         write the network into a BLIF file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .baf)\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteBblif( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pFileName;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    // call the corresponding file writer
+    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BBLIF );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_bblif [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         write the network into a binary BLIF file\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .bblif)\n" );
     return 1;
 }
 
