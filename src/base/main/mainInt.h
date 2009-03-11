@@ -80,6 +80,7 @@ struct Abc_Frame_t_
     void *          pAbc8Aig;    // the current AIG
     void *          pAbc8Lib;    // the current LUT library
     void *          pAig;
+    void *          pCex; 
 
     // the addition to keep the best Ntl that can be used to restore
     void *            pAbc8NtlBestDelay;    // the best delay, Ntl

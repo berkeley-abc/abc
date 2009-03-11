@@ -756,25 +756,12 @@ int Gia_ManMiter_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fXorOuts, int fComb, int fVerbose )
+Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fDualOut, int fSeq, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, iLit;
-    if ( fComb )
-    {
-        if ( Gia_ManCiNum(p0) != Gia_ManCiNum(p1) )
-        {
-            printf( "Gia_ManMiter(): Designs have different number of CIs.\n" );
-            return NULL;
-        }
-        if ( Gia_ManCoNum(p0) != Gia_ManCoNum(p1) )
-        {
-            printf( "Gia_ManMiter(): Designs have different number of COs.\n" );
-            return NULL;
-        }
-    }
-    else
+    if ( fSeq )
     {
         if ( Gia_ManPiNum(p0) != Gia_ManPiNum(p1) )
         {
@@ -792,6 +779,19 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fXorOuts, int fCom
             return NULL;
         }
     }
+    else
+    {
+        if ( Gia_ManCiNum(p0) != Gia_ManCiNum(p1) )
+        {
+            printf( "Gia_ManMiter(): Designs have different number of CIs.\n" );
+            return NULL;
+        }
+        if ( Gia_ManCoNum(p0) != Gia_ManCoNum(p1) )
+        {
+            printf( "Gia_ManMiter(): Designs have different number of COs.\n" );
+            return NULL;
+        }
+    }
     // start the manager
     pNew = Gia_ManStart( Gia_ManObjNum(p0) + Gia_ManObjNum(p1) );
     pNew->pName = Aig_UtilStrsav( "miter" );
@@ -802,31 +802,7 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fXorOuts, int fCom
     Gia_ManConst0(p1)->Value = 0;
     // map internal nodes and outputs
     Gia_ManHashAlloc( pNew );
-    if ( fComb )
-    {
-        // create combinational inputs
-        Gia_ManForEachCi( p0, pObj, i )
-            pObj->Value = Gia_ManAppendCi( pNew );
-        Gia_ManForEachCi( p1, pObj, i )
-            pObj->Value = Gia_ObjToLit( pNew, Gia_ManCi(pNew, i) );
-        // create combinational outputs
-        Gia_ManForEachCo( p0, pObj, i )
-        {
-            Gia_ManMiter_rec( pNew, p0, Gia_ObjFanin0(pObj) );
-            Gia_ManMiter_rec( pNew, p1, Gia_ObjFanin0(Gia_ManCo(p1,i)) );
-            if ( fXorOuts )
-            {
-                iLit = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin0Copy(Gia_ManCo(p1,i)) );
-                Gia_ManAppendCo( pNew, iLit );
-            }
-            else
-            {
-                Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-                Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p1,i)) );
-            }
-        }
-    }
-    else
+    if ( fSeq )
     {
         // create primary inputs
         Gia_ManForEachPi( p0, pObj, i )
@@ -843,15 +819,15 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fXorOuts, int fCom
         {
             Gia_ManMiter_rec( pNew, p0, Gia_ObjFanin0(pObj) );
             Gia_ManMiter_rec( pNew, p1, Gia_ObjFanin0(Gia_ManPo(p1,i)) );
-            if ( fXorOuts )
-            {
-                iLit = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin0Copy(Gia_ManPo(p1,i)) );
-                Gia_ManAppendCo( pNew, iLit );
-            }
-            else
+            if ( fDualOut )
             {
                 Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
                 Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p1,i)) );
+            }
+            else
+            {
+                iLit = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin0Copy(Gia_ManPo(p1,i)) );
+                Gia_ManAppendCo( pNew, iLit );
             }
         }
         // create register inputs
@@ -866,6 +842,30 @@ Gia_Man_t * Gia_ManMiter( Gia_Man_t * p0, Gia_Man_t * p1, int fXorOuts, int fCom
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         }
         Gia_ManSetRegNum( pNew, Gia_ManRegNum(p0) + Gia_ManRegNum(p1) );
+    }
+    else
+    {
+        // create combinational inputs
+        Gia_ManForEachCi( p0, pObj, i )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        Gia_ManForEachCi( p1, pObj, i )
+            pObj->Value = Gia_ObjToLit( pNew, Gia_ManCi(pNew, i) );
+        // create combinational outputs
+        Gia_ManForEachCo( p0, pObj, i )
+        {
+            Gia_ManMiter_rec( pNew, p0, Gia_ObjFanin0(pObj) );
+            Gia_ManMiter_rec( pNew, p1, Gia_ObjFanin0(Gia_ManCo(p1,i)) );
+            if ( fDualOut )
+            {
+                Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+                Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p1,i)) );
+            }
+            else
+            {
+                iLit = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin0Copy(Gia_ManCo(p1,i)) );
+                Gia_ManAppendCo( pNew, iLit );
+            }
+        }
     }
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );

@@ -80,6 +80,7 @@ struct Gia_Cex_t_
     unsigned       pData[0];      // the cex bit data (the number of bits: nRegs + (iFrame+1) * nPis)
 };
 
+// new AIG manager
 typedef struct Gia_Man_t_ Gia_Man_t;
 struct Gia_Man_t_
 {
@@ -109,6 +110,7 @@ struct Gia_Man_t_
     int            nFansAlloc;    // the size of fanout representation
     int *          pMapping;      // mapping for each node
     Gia_Cex_t *    pCexComb;      // combinational counter-example
+    int *          pCopies;       // intermediate copies
 };
 
 
@@ -446,7 +448,7 @@ extern Gia_Man_t *         Gia_ManDupCofactored( Gia_Man_t * p, int iVar, int nL
 extern Gia_Man_t *         Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits );
 extern Gia_Man_t *         Gia_ManDupDfsClasses( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose );
-extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, int fXorOuts, int fComb, int fVerbose );
+extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, int fDualOut, int fSeq, int fVerbose );
 extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset );
@@ -454,9 +456,11 @@ extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );
 extern void                Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter );
 extern void                Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem );
+extern Gia_Man_t *         Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll );
 extern Gia_Man_t *         Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs );
 extern int                 Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose );
-extern Gia_Man_t *         Gia_ManSpecReduce( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut );
+extern Gia_Man_t *         Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames, int fDualOut );
 extern void                Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose );
 /*=== giaFanout.c =========================================================*/
 extern void                Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
@@ -526,7 +530,10 @@ extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );
 extern int                 Gia_ObjIsMuxType( Gia_Obj_t * pNode );
 extern int                 Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** ppFan0, Gia_Obj_t ** ppFan1 );
 extern Gia_Obj_t *         Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Obj_t ** ppNodeE );
-extern int                 Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDoubleOuts );
+extern Gia_Cex_t *         Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames );
+extern int                 Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDualOut );
+extern void                Gia_ManPrintCounterExample( Gia_Cex_t * p );
+
  
 #ifdef __cplusplus
 }

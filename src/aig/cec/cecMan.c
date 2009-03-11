@@ -193,6 +193,7 @@ Cec_ManSim_t * Cec_ManSimStart( Gia_Man_t * pAig, Cec_ParSim_t *  pPars )
     memset( p, 0, sizeof(Cec_ManSim_t) );
     p->pAig  = pAig;
     p->pPars = pPars;
+    p->nWords = pPars->nWords;
     p->pSimInfo = ABC_CALLOC( int, Gia_ManObjNum(pAig) );
     p->vClassOld  = Vec_IntAlloc( 1000 );
     p->vClassNew  = Vec_IntAlloc( 1000 );
@@ -229,6 +230,7 @@ void Cec_ManSimStop( Cec_ManSim_t * p )
         Vec_PtrFree( p->vCiSimInfo );
     if ( p->vCoSimInfo ) 
         Vec_PtrFree( p->vCoSimInfo );
+    ABC_FREE( p->pScores );
     ABC_FREE( p->pCexComb );
     ABC_FREE( p->pCexes );
     ABC_FREE( p->pMems );

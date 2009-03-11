@@ -134,7 +134,7 @@ int Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars )
     pParsFra->fVerbose     = pPars->fVerbose;
     pParsFra->fCheckMiter  = 1;
     pParsFra->fFirstStop   = 1;
-    pParsFra->fDoubleOuts  = 1;
+    pParsFra->fDualOut     = 1;
     pNew = Cec_ManSatSweeping( p, pParsFra );
     if ( pNew == NULL )
     {
@@ -192,7 +192,7 @@ int Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose )
     int RetValue;
     Cec_ManCecSetDefaultParams( pPars );
     pPars->fVerbose = fVerbose;
-    pMiter = Gia_ManMiter( p0, p1, 0, 1, pPars->fVerbose );
+    pMiter = Gia_ManMiter( p0, p1, 1, 0, pPars->fVerbose );
     if ( pMiter == NULL )
         return -1;
     RetValue = Cec_ManVerify( pMiter, pPars );

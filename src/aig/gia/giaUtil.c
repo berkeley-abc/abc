@@ -580,6 +580,29 @@ Gia_Obj_t * Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Ob
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates a counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Cex_t * Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames )
+{
+    Gia_Cex_t * pCex;
+    int nWords = Aig_BitWordNum( nRegs + nRealPis * nFrames );
+    pCex = (Gia_Cex_t *)ABC_ALLOC( char, sizeof(Gia_Cex_t) + sizeof(unsigned) * nWords );
+    memset( pCex, 0, sizeof(Gia_Cex_t) + sizeof(unsigned) * nWords );
+    pCex->nRegs  = nRegs;
+    pCex->nPis   = nRealPis;
+    pCex->nBits  = nRegs + nRealPis * nFrames;
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Resimulates the counter-example.]
 
   Description []
@@ -589,7 +612,7 @@ Gia_Obj_t * Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Ob
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDoubleOuts )
+int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDualOut )
 {
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int RetValue, i, k, iBit = 0;
@@ -608,12 +631,42 @@ int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDoubleOut
             pObjRo->fMark0 = pObjRi->fMark0;
     }
     assert( iBit == p->nBits );
-    if ( fDoubleOuts )
+    if ( fDualOut )
         RetValue = Gia_ManPo(pAig, 2*p->iPo)->fMark0 ^ Gia_ManPo(pAig, 2*p->iPo+1)->fMark0;
     else
         RetValue = Gia_ManPo(pAig, p->iPo)->fMark0;
     Gia_ManCleanMark0(pAig);
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints out the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintCounterExample( Gia_Cex_t * p )
+{
+    int i, f, k;
+    printf( "Counter-example: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits = %d\n", 
+        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits );
+    printf( "State    : " );
+    for ( k = 0; k < p->nRegs; k++ )
+        printf( "%d", Aig_InfoHasBit(p->pData, k) );
+    printf( "\n" );
+    for ( f = 0; f <= p->iFrame; f++ )
+    {
+        printf( "Frame %2d : ", f );
+        for ( i = 0; i < p->nPis; i++ )
+            printf( "%d", Aig_InfoHasBit(p->pData, k++) );
+        printf( "\n" );
+    }
+    assert( k == p->nBits );
 }
 
 ////////////////////////////////////////////////////////////////////////

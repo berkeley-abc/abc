@@ -70,12 +70,37 @@ void Cec_ManSimSetDefaultParams( Cec_ParSim_t * p )
     p->TimeLimit      =       0;  // the runtime limit in seconds
     p->fCheckMiter    =       0;  // the circuit is the miter
     p->fFirstStop     =       0;  // stop on the first sat output
-    p->fDoubleOuts    =       0;  // miter with separate outputs
+    p->fDualOut       =       0;  // miter with separate outputs
     p->fSeqSimulate   =       0;  // performs sequential simulation
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
 } 
-  
+
+/**Function************  *************************************************
+
+  Synopsis    [This procedure sets default parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSmfSetDefaultParams( Cec_ParSmf_t * p )
+{
+    memset( p, 0, sizeof(Cec_ParSmf_t) );
+    p->nWords         =      15;  // the number of simulation words
+    p->nRounds        =      15;  // the number of simulation rounds
+    p->nFrames        =       2;  // the number of time frames
+    p->nBTLimit       =    1000;  // conflict limit at a node
+    p->TimeLimit      =       0;  // the runtime limit in seconds
+    p->fDualOut       =       0;  // miter with separate outputs
+    p->fCheckMiter    =       0;  // the circuit is the miter
+    p->fFirstStop     =       0;  // stop on the first sat output
+    p->fVerbose       =       0;  // verbose stats
+} 
+
 /**Function************  *************************************************
 
   Synopsis    [This procedure sets default parameters.]
@@ -100,7 +125,7 @@ void Cec_ManFraSetDefaultParams( Cec_ParFra_t * p )
     p->fRewriting     =       0;  // enables AIG rewriting
     p->fCheckMiter    =       0;  // the circuit is the miter
     p->fFirstStop     =       0;  // stop on the first sat output
-    p->fDoubleOuts    =       0;  // miter with separate outputs
+    p->fDualOut       =       0;  // miter with separate outputs
     p->fColorDiff     =       0;  // miter with separate outputs
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
@@ -177,7 +202,8 @@ void Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
     if ( pPars->fCheckMiter )
         printf( "The number of failed outputs of the miter = %6d. (Words = %4d. Rounds = %4d.)\n", 
             pSim->iOut, pSim->nOuts, pPars->nWords, pPars->nRounds );
-    ABC_PRT( "Time", clock() - clkTotal );
+    if ( pPars->fVerbose )
+        ABC_PRT( "Time", clock() - clkTotal );
     Cec_ManSimStop( pSim );
 }
 
@@ -213,7 +239,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     // prepare the managers
     // SAT sweeping
     p = Cec_ManFraStart( pIni, pPars );
-    if ( pPars->fDoubleOuts )
+    if ( pPars->fDualOut )
         pPars->fColorDiff = 1;
     // simulation
     Cec_ManSimSetDefaultParams( pParsSim );
@@ -221,10 +247,9 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     pParsSim->nRounds     = pPars->nRounds;
     pParsSim->fCheckMiter = pPars->fCheckMiter;
     pParsSim->fFirstStop  = pPars->fFirstStop;
-    pParsSim->fDoubleOuts = pPars->fDoubleOuts;
+    pParsSim->fDualOut = pPars->fDualOut;
     pParsSim->fVerbose    = pPars->fVerbose;
     pSim = Cec_ManSimStart( p->pAig, pParsSim );
-    pSim->nWords = p->pPars->nWords;
     // SAT solving
     Cec_ManSatSetDefaultParams( pParsSat );
     pParsSat->nBTLimit = pPars->nBTLimit;
@@ -250,7 +275,7 @@ p->timeSim += clock() - clk;
     {
         clk2 = clock();
         nMatches = 0;
-        if ( pPars->fDoubleOuts )
+        if ( pPars->fDualOut )
         {
             nMatches = Gia_ManEquivSetColors( p->pAig, pPars->fVeryVerbose );
 //            p->pAig->pIso = Cec_ManDetectIsomorphism( p->pAig );
@@ -264,7 +289,7 @@ p->timeSim += clock() - clk;
             Gia_ManStop( pSrm );
             if ( p->pPars->fVerbose )
                 printf( "Considered all available candidate equivalences.\n" );
-            if ( pPars->fDoubleOuts && Gia_ManAndNum(p->pAig) > 0 )
+            if ( pPars->fDualOut && Gia_ManAndNum(p->pAig) > 0 )
             {
                 if ( pPars->fColorDiff )
                 {
@@ -276,7 +301,7 @@ p->timeSim += clock() - clk;
                 {
                     if ( p->pPars->fVerbose )
                         printf( "Switching into normal mode.\n" );
-                    pPars->fDoubleOuts = 0;
+                    pPars->fDualOut = 0;
                 }
                 continue;
             }
@@ -295,7 +320,7 @@ p->timeSat += clock() - clk;
         Gia_ManStop( pSrm );
 
         // update the manager
-        pSim->pAig = p->pAig = Gia_ManEquivReduceAndRemap( pTemp = p->pAig, 0, pParsSim->fDoubleOuts );
+        pSim->pAig = p->pAig = Gia_ManEquivReduceAndRemap( pTemp = p->pAig, 0, pParsSim->fDualOut );
         Gia_ManStop( pTemp );
         if ( p->pPars->fVerbose )
         {
@@ -332,18 +357,18 @@ p->timeSat += clock() - clk;
                 }
             }
         }
-        if ( pPars->fDoubleOuts && pPars->fColorDiff && Gia_ManAndNum(p->pAig) < 100000 )
+        if ( pPars->fDualOut && pPars->fColorDiff && Gia_ManAndNum(p->pAig) < 100000 )
         {
             if ( p->pPars->fVerbose )
                 printf( "Switching into reduced mode.\n" );
             pPars->fColorDiff = 0;
         }
-        if ( pPars->fDoubleOuts && Gia_ManAndNum(p->pAig) < 20000 )
+        if ( pPars->fDualOut && Gia_ManAndNum(p->pAig) < 20000 )
         {
             if ( p->pPars->fVerbose )
                 printf( "Switching into normal mode.\n" );
             pPars->fColorDiff = 0;
-            pPars->fDoubleOuts = 0;
+            pPars->fDualOut = 0;
         }
     }
 finalize:

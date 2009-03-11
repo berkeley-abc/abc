@@ -3571,6 +3571,10 @@ SOURCE=.\src\aig\cec\cecPat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\cec\cecSeq.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\cec\cecSim.c
 # End Source File
 # Begin Source File

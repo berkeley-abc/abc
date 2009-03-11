@@ -288,7 +288,9 @@ static int Abc_CommandAbc9Cof        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc9Trim       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dfs        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sim        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Resim      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Equiv      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Semi       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Times      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Frames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -296,6 +298,7 @@ static int Abc_CommandAbc9Scl        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc9Sat        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Reduce     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Force      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Embed      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -596,7 +599,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&trim",         Abc_CommandAbc9Trim,         0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&dfs",          Abc_CommandAbc9Dfs,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&sim",          Abc_CommandAbc9Sim,          0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&resim",        Abc_CommandAbc9Resim,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&equiv",        Abc_CommandAbc9Equiv,        0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&semi",         Abc_CommandAbc9Semi,         0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&times",        Abc_CommandAbc9Times,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&frames",       Abc_CommandAbc9Frames,       0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&miter",        Abc_CommandAbc9Miter,        0 );
@@ -604,6 +609,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&fraig",        Abc_CommandAbc9Fraig,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&srm",          Abc_CommandAbc9Srm,          0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&reduce",       Abc_CommandAbc9Reduce,       0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&cec",          Abc_CommandAbc9Cec,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&force",        Abc_CommandAbc9Force,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&embed",        Abc_CommandAbc9Embed,        0 );
@@ -15904,8 +15910,8 @@ usage:
     fprintf( pErr, "\t-P num : partition size for multi-output networks [default = %s]\n", Buffer );
     fprintf( pErr, "\t-p     : toggle automatic partitioning [default = %s]\n", fPartition? "yes": "no" );
     fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
-    fprintf( pErr, "\t-n     : toggle using names to match CIs/COs [default = %s]\n", fIgnoreNames? "yes": "no" );
-    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-n     : toggle ignoring names when matching CIs/COs [default = %s]\n", fIgnoreNames? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
     fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
@@ -16236,6 +16242,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int nArgcNew;
     int c;
+    int fIgnoreNames;
 
     extern void Fra_SecSetDefaultParams( Fra_Sec_t * p );
     extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * p );
@@ -16247,8 +16254,9 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Fra_SecSetDefaultParams( pSecPar );
     pSecPar->TimeLimit = 0;
+    fIgnoreNames = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTarmfwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTarmfnwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16286,6 +16294,9 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pSecPar->fFraiging ^= 1;
             break;
+        case 'n':
+            fIgnoreNames ^= 1;
+            break;
         case 'w':
             pSecPar->fVeryVerbose ^= 1;
             break;
@@ -16308,6 +16319,12 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "The network has no latches. Used combinational command \"cec\".\n" );
         return 0;
     }
+    
+    if ( fIgnoreNames )
+    {
+        Abc_NtkShortNames( pNtk1 );
+        Abc_NtkShortNames( pNtk2 );
+    }
 
     // perform verification
     Abc_NtkDarSec( pNtk1, pNtk2, pSecPar );
@@ -16317,7 +16334,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dsec [-F num] [-T num] [-armfwvh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: dsec [-F num] [-T num] [-armfnwvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs inductive sequential equivalence checking\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
     fprintf( pErr, "\t-T num : the approximate runtime limit (in seconds) [default = %d]\n", pSecPar->TimeLimit );
@@ -16325,6 +16342,7 @@ usage:
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", pSecPar->fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-m     : toggles min-register retiming [default = %s]\n", pSecPar->fRetimeRegs? "yes": "no" );
     fprintf( pErr, "\t-f     : toggles the internal use of fraiging [default = %s]\n", pSecPar->fFraiging? "yes": "no" );
+    fprintf( pErr, "\t-n     : toggle ignoring names when matching PIs/POs [default = %s]\n", fIgnoreNames? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", pSecPar->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", pSecPar->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -16479,6 +16497,11 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -16488,6 +16511,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform verification
     Abc_NtkDarProve( pNtk, pSecPar );
+    pAbc->pCex = pNtk->pSeqModel; // temporary ???
 
     // Fra_SmlWriteCounterExample( stdout, Aig_Man_t * pAig, Fra_Cex_t * p )
 
@@ -17664,6 +17688,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fVerbose );
+    pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
 usage:
@@ -17813,6 +17838,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fVerbose );
+    pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
 usage:
@@ -22456,6 +22482,69 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Resim( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cec_ParSim_t Pars, * pPars = &Pars;
+    int c;
+    Cec_ManSimSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fmvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRounds < 0 ) 
+                goto usage;
+            break;
+        case 'm':
+            pPars->fCheckMiter ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Resim(): There is no AIG.\n" );
+        return 1;
+    } 
+    Cec_ManSeqResimulateCounter( pAbc->pAig, pPars, pAbc->pCex );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &resim [-F <num>] [-mvh]\n" );
+    fprintf( stdout, "\t         resimulates equivalence classes using counter-example\n" );
+    fprintf( stdout, "\t-F num : the number of additinal frames to simulate [default = %d]\n", pPars->nRounds );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "not miter" );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cec_ParSim_t Pars, * pPars = &Pars;
@@ -22509,7 +22598,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fFirstStop ^= 1;
             break;
         case 'd':
-            pPars->fDoubleOuts ^= 1;
+            pPars->fDualOut ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -22537,11 +22626,130 @@ usage:
     fprintf( stdout, "\t-s     : toggle seq vs. comb simulation [default = %s]\n", pPars->fSeqSimulate? "yes": "no" );
     fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
     fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
-    fprintf( stdout, "\t-d     : toggle using two POs intead of XOR [default = %s]\n", pPars->fDoubleOuts? "yes": "no" );
+    fprintf( stdout, "\t-d     : toggle using two POs intead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cec_ParSmf_t Pars, * pPars = &Pars;
+    int c;
+    Cec_ManSmfSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WRFCTmfdvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWords < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRounds < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimeLimit < 0 ) 
+                goto usage;
+            break;
+        case 'm':
+            pPars->fCheckMiter ^= 1;
+            break;
+        case 'f':
+            pPars->fFirstStop ^= 1;
+            break;
+        case 'd':
+            pPars->fDualOut ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Resim(): There is no AIG.\n" );
+        return 1;
+    } 
+    Cec_ManSeqSemiformal( pAbc->pAig, pPars );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &semi [-WRFCT <num>] [-mfdvh]\n" );
+    fprintf( stdout, "\t         performs semiformal refinement of equivalence classes\n" );
+    fprintf( stdout, "\t-W num : the number of words to simulate [default = %d]\n", pPars->nWords );
+    fprintf( stdout, "\t-R num : the number of rounds to simulate [default = %d]\n", pPars->nRounds );
+    fprintf( stdout, "\t-F num : the number of frames to simulate [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    fprintf( stdout, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
+    fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
+    fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
+    fprintf( stdout, "\t-d     : toggle using two POs intead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -22685,20 +22893,20 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int nArgcNew;
     int c;
-    int fXorOuts = 1;
-    int fComb    = 1;
+    int fDualOut = 0;
+    int fSeq     = 0;
     int fTrans   = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "xctvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dstvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'x':
-            fXorOuts ^= 1;
+        case 'd':
+            fDualOut ^= 1;
             break;
-        case 'c':
-            fComb ^= 1;
+        case 's':
+            fSeq ^= 1;
             break;
         case 't':
             fTrans ^= 1;
@@ -22755,7 +22963,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // compute the miter
-    pAbc->pAig = Gia_ManMiter( pAux = pAbc->pAig, pSecond, fXorOuts, fComb, fVerbose );
+    pAbc->pAig = Gia_ManMiter( pAux = pAbc->pAig, pSecond, fDualOut, fSeq, fVerbose );
     Gia_ManStop( pSecond );
     if ( pAbc->pAig == NULL )
     {
@@ -22767,10 +22975,10 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &miter [-xctvh] <file>\n" );
+    fprintf( stdout, "usage: &miter [-dstvh] <file>\n" );
     fprintf( stdout, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
-    fprintf( stdout, "\t-x     : toggle creating XOR of output pairs [default = %s]\n", fXorOuts? "yes": "no" );
-    fprintf( stdout, "\t-c     : toggle creating combinational miter [default = %s]\n", fComb? "yes": "no" );
+    fprintf( stdout, "\t-d     : toggle creating dual output miter [default = %s]\n", fDualOut? "yes": "no" );
+    fprintf( stdout, "\t-s     : toggle creating sequential miter [default = %s]\n", fSeq? "yes": "no" );
     fprintf( stdout, "\t-t     : toggle XORing pair-wise POs of the miter [default = %s]\n", fTrans? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
@@ -23021,7 +23229,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fFirstStop ^= 1;
             break;
         case 'd':
-            pPars->fDoubleOuts ^= 1;
+            pPars->fDualOut ^= 1;
             break;
         case 'w':
             pPars->fVeryVerbose ^= 1;
@@ -23058,7 +23266,7 @@ usage:
     fprintf( stdout, "\t-r     : toggle the use of AIG rewriting [default = %s]\n", pPars->fRewriting? "yes": "no" );
     fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
     fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
-    fprintf( stdout, "\t-d     : toggle using double output miters [default = %s]\n", pPars->fDoubleOuts? "yes": "no" );
+    fprintf( stdout, "\t-d     : toggle using double output miters [default = %s]\n", pPars->fDualOut? "yes": "no" );
     fprintf( stdout, "\t-w     : toggle printing even more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
@@ -23078,13 +23286,18 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char * pFileName = "gia_srm.aig";
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
+    int fDualOut = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'd':
+            fDualOut ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -23099,15 +23312,72 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Srm(): There is no AIG.\n" );
         return 1;
     } 
-    pAbc->pAig = Gia_ManSpecReduce( pTemp = pAbc->pAig );
+//    pAbc->pAig = Gia_ManSpecReduce( pTemp = pAbc->pAig, fDualOut );
+//    Gia_ManStop( pTemp );
+    pTemp = Gia_ManSpecReduce( pAbc->pAig, fDualOut );
+    Gia_WriteAiger( pTemp, "gia_srm.aig", 0, 0 );
+    printf( "Speculatively reduced model was written into file \"%s\".\n", pFileName );
+    Gia_ManPrintStatsShort( pTemp );
     Gia_ManStop( pTemp );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &srm [-vh]\n" );
-    fprintf( stdout, "\t        testing various procedures\n" );
-    fprintf( stdout, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( stdout, "\t-h    : print the command usage\n");
+    fprintf( stdout, "usage: &srm [-dvh]\n" );
+    fprintf( stdout, "\t         writes speculatively reduced model into file \"%s\"\n", pFileName );
+    fprintf( stdout, "\t-d     : toggle creating dual output miter [default = %s]\n", fDualOut? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Reduce( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c, fVerbose = 0;
+    int fUseAll = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "avh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fUseAll ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Reduce(): There is no AIG.\n" );
+        return 1;
+    } 
+    pAbc->pAig = Gia_ManEquivReduce( pTemp = pAbc->pAig, fUseAll );
+    Gia_ManStop( pTemp );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &reduce [-avh]\n" );
+    fprintf( stdout, "\t         reduces the circuit using equivalence classes\n" );
+    fprintf( stdout, "\t-a     : toggle creating dual output miter [default = %s]\n", fUseAll? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -23207,7 +23477,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // compute the miter
-    pMiter = Gia_ManMiter( pAbc->pAig, pSecond, 0, 1, pPars->fVerbose );
+    pMiter = Gia_ManMiter( pAbc->pAig, pSecond, 1, 0, pPars->fVerbose );
     if ( pMiter )
     {
         Cec_ManVerify( pMiter, pPars );

@@ -117,13 +117,17 @@ struct Cec_ManSim_t_
     int              nMemsMax;       // the max number of used entries 
     int              MemFree;        // next free entry
     int              nWordsOld;      // the number of simulation words after previous relink
-    // bug catcher
+    // internal simulation info
     Vec_Ptr_t *      vCiSimInfo;     // CI simulation info  
     Vec_Ptr_t *      vCoSimInfo;     // CO simulation info  
+    // counter examples
     void **          pCexes;         // counter-examples for each output
     int              iOut;           // first failed output
     int              nOuts;          // the number of failed outputs
     Gia_Cex_t *      pCexComb;       // counter-example for the first failed output
+    Gia_Cex_t *      pBestState;     // the state that led to most of the refinements
+    // scoring simulation patterns
+    int *            pScores;        // counters of refinement for each pattern
     // temporaries
     Vec_Int_t *      vClassOld;      // old class numbers
     Vec_Int_t *      vClassNew;      // new class numbers
@@ -182,6 +186,7 @@ extern Vec_Ptr_t *          Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int
 /*=== cecSolve.c ============================================================*/
 extern int                  Cec_ObjSatVarValue( Cec_ManSat_t * p, Gia_Obj_t * pObj );
 extern void                 Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars );
+extern void                 Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat_t * pPars, int nRegs, int * pnPats );
 /*=== ceFraeep.c ============================================================*/
 extern Gia_Man_t *          Cec_ManFraSpecReduction( Cec_ManFra_t * p );
 extern int                  Cec_ManFraClassesUpdate( Cec_ManFra_t * p, Cec_ManSim_t * pSim, Cec_ManPat_t * pPat, Gia_Man_t * pNew );

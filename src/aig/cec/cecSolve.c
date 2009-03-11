@@ -630,6 +630,85 @@ ABC_PRT( "time", clock() - clk2 );
     Cec_ManSatStop( p );
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Save values in the cone of influence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSatSolveSeq_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vInfo, int iPat, int nRegs )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        unsigned * pInfo = Vec_PtrEntry( vInfo, nRegs + Gia_ObjCioId(pObj) );
+        if ( Cec_ObjSatVarValue( pSat, pObj ) != Aig_InfoHasBit( pInfo, iPat ) )
+            Aig_InfoXorBit( pInfo, iPat );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Cec_ManSatSolveSeq_rec( pSat, p, Gia_ObjFanin0(pObj), vInfo, iPat, nRegs );
+    Cec_ManSatSolveSeq_rec( pSat, p, Gia_ObjFanin1(pObj), vInfo, iPat, nRegs );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs one round of solving for the POs of the AIG.]
+
+  Description [Labels the nodes that have been proved (pObj->fMark1) 
+  and returns the set of satisfying assignments.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat_t * pPars, int nRegs, int * pnPats )
+{
+    Bar_Progress_t * pProgress = NULL;
+    Cec_ManSat_t * p;
+    Gia_Obj_t * pObj;
+    int iPat = 1, nPats = 32 * Vec_PtrReadWordsSimInfo(vPatts);
+    int i, status, clk = clock();
+    Gia_ManSetPhase( pAig );
+    Gia_ManLevelNum( pAig );
+    Gia_ManResetTravId( pAig );
+    p = Cec_ManSatCreate( pAig, pPars );
+    pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
+    Gia_ManForEachCo( pAig, pObj, i )
+    {
+        if ( Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+            continue;
+        Bar_ProgressUpdate( pProgress, i, "BMC..." );
+        status = Cec_ManSatCheckNode( p, pObj );
+        if ( status != 0 )
+            continue;
+        // save the pattern
+        Gia_ManIncrementTravId( pAig );
+        Cec_ManSatSolveSeq_rec( p, pAig, Gia_ObjFanin0(pObj), vPatts, iPat++, nRegs );
+        if ( iPat == nPats )
+            break;
+        // quit if one of them is solved
+        if ( pPars->fFirstStop )
+            break;
+    }
+    p->timeTotal = clock() - clk;
+    Bar_ProgressStop( pProgress );
+//    Cec_ManSatPrintStats( p );
+    Cec_ManSatStop( p );
+    if ( pnPats )
+        *pnPats = iPat-1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

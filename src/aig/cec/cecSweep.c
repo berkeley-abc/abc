@@ -83,7 +83,7 @@ Gia_Man_t * Cec_ManFraSpecReduction( Cec_ManFra_t * p )
             (Gia_ObjLevel(p->pAig, pObj)  > p->pPars->nLevelMax || 
              Gia_ObjLevel(p->pAig, pRepr) > p->pPars->nLevelMax) )
             continue;
-        if ( p->pPars->fDoubleOuts )
+        if ( p->pPars->fDualOut )
         {
 //            if ( i % 1000 == 0 && Gia_ObjRepr(p->pAig, i) )
 //                Gia_ManEquivPrintOne( p->pAig, Gia_ObjRepr(p->pAig, i), 0 );

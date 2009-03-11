@@ -155,6 +155,70 @@ int Cec_ManSimCompareEqualFirstBit( unsigned * p0, unsigned * p1, int nWords )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the number of the first non-equal bit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSimCompareConstScore( unsigned * p, int nWords, int * pScores )
+{
+    int w, b;
+    if ( p[0] & 1 )
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( p[w] != ~0 )
+                for ( b = 0; b < 32; b++ )
+                    if ( ((~p[w]) >> b ) & 1 )
+                        pScores[32*w + b]++;
+    }
+    else
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( p[w] != 0 )
+                for ( b = 0; b < 32; b++ )
+                    if ( ((p[w]) >> b ) & 1 )
+                        pScores[32*w + b]++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compares simulation info of two nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSimCompareEqualScore( unsigned * p0, unsigned * p1, int nWords, int * pScores )
+{
+    int w, b;
+    if ( (p0[0] & 1) == (p1[0] & 1) )
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( p0[w] != p1[w] )
+                for ( b = 0; b < 32; b++ )
+                    if ( ((p0[w] ^ p1[w]) >> b ) & 1 )
+                        pScores[32*w + b]++;
+    }
+    else
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( p0[w] != ~p1[w] )
+                for ( b = 0; b < 32; b++ )
+                    if ( ((p0[w] ^ ~p1[w]) >> b ) & 1 )
+                        pScores[32*w + b]++;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates equivalence class.]
 
   Description []
@@ -211,7 +275,11 @@ int Cec_ManSimClassRefineOne( Cec_ManSim_t * p, int i )
         if ( Cec_ManSimCompareEqual( pSim0, pSim1, p->nWords ) )
             Vec_IntPush( p->vClassOld, Ent );
         else
+        {
             Vec_IntPush( p->vClassNew, Ent );
+            if ( p->pBestState )
+                Cec_ManSimCompareEqualScore( pSim0, pSim1, p->nWords, p->pScores );
+        }
     }
     if ( Vec_IntSize( p->vClassNew ) == 0 )
         return 0;
@@ -422,6 +490,42 @@ void Cec_ManSimSavePattern( Cec_ManSim_t * p, int iPat )
 
 /**Function*************************************************************
 
+  Synopsis    [Find the best pattern using the scores.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSimFindBestPattern( Cec_ManSim_t * p )
+{
+    unsigned * pInfo;
+    int i, ScoreBest = 0, iPatBest = 1;
+    // find the best pattern
+    for ( i = 0; i < 32 * p->nWords; i++ )
+        if ( ScoreBest < p->pScores[i] )
+        {
+            ScoreBest = p->pScores[i];
+            iPatBest = i;
+        }
+    // compare this with the available patterns - and save
+    if ( p->pBestState->iPo <= ScoreBest )
+    {
+        assert( p->pBestState->nRegs == Gia_ManRegNum(p->pAig) );
+        for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
+        {
+            pInfo = Vec_PtrEntry( p->vCiSimInfo, Gia_ManPiNum(p->pAig) + i );
+            if ( Aig_InfoHasBit(p->pBestState->pData, i) != Aig_InfoHasBit(pInfo, iPatBest) )
+                Aig_InfoXorBit( p->pBestState->pData, i );
+        }
+        p->pBestState->iPo = ScoreBest;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if computation should stop.]
 
   Description []
@@ -435,10 +539,11 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
 {
     unsigned * pInfo, * pInfo2;
     int i;
-    if ( p->vCoSimInfo == NULL )
+    if ( !p->pPars->fCheckMiter )
         return 0;
+    assert( p->vCoSimInfo != NULL );
     // compare outputs with 0
-    if ( p->pPars->fDoubleOuts )
+    if ( p->pPars->fDualOut )
     {
         assert( (Gia_ManCoNum(p->pAig) & 1) == 0 );
         for ( i = 0; i < Gia_ManCoNum(p->pAig); i++ )
@@ -507,6 +612,10 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
     if ( p->nWordsOld != p->nWords )
         Cec_ManSimMemRelink( p );
     p->nMemsMax = 0;
+    // allocate score counters
+    ABC_FREE( p->pScores );
+    if ( p->pBestState )
+        p->pScores = ABC_CALLOC( int, 32 * p->nWords );
     // simulate nodes
     Vec_IntClear( p->vRefinedC );
     if ( Gia_ObjValue(Gia_ManConst0(p->pAig)) )
@@ -583,6 +692,8 @@ references:
         {
             pRes[0]++;
             Vec_IntPush( p->vRefinedC, i );
+            if ( p->pBestState )
+                Cec_ManSimCompareConstScore( pRes + 1, p->nWords, p->pScores );
         }
         // if the node belongs to a class, save it
         if ( Gia_ObjIsClass(p->pAig, i) )
@@ -607,6 +718,8 @@ references:
         printf( "Cec_ManSimSimulateRound(): Memory management error!\n" );
     if ( p->pPars->fVeryVerbose )
         Gia_ManEquivPrintClasses( p->pAig, 0, Cec_MemUsage(p) );
+    if ( p->pBestState )
+        Cec_ManSimFindBestPattern( p );
 /*
     if ( p->nMems > 1 ) {
         for ( i = 1; i < p->nObjs; i++ )
@@ -682,8 +795,13 @@ int Cec_ManSimClassesPrepare( Cec_ManSim_t * p )
     // allocate representation
     p->pAig->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p->pAig) );
     p->pAig->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p->pAig) );
+    // set starting representative of internal nodes to be constant 0
     Gia_ManForEachObj( p->pAig, pObj, i )
-        Gia_ObjSetRepr( p->pAig, i, (Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj)) ? 0 : GIA_VOID );
+        Gia_ObjSetRepr( p->pAig, i, Gia_ObjIsAnd(pObj) ? 0 : GIA_VOID );
+    // if sequential simulation, set starting representative of ROs to be constant 0
+    if ( p->pPars->fSeqSimulate )
+        Gia_ManForEachRo( p->pAig, pObj, i )
+            Gia_ObjSetRepr( p->pAig, Gia_ObjId(p->pAig, pObj), 0 );
     // perform simulation
     Gia_ManSetRefs( p->pAig );
     p->nWords = 1;

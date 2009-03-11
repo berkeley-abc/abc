@@ -57,11 +57,26 @@ struct Cec_ParSim_t_
     int              nWords;        // the number of simulation words
     int              nRounds;       // the number of simulation rounds
     int              TimeLimit;     // the runtime limit in seconds
-    int              fDoubleOuts;   // miter with separate outputs
+    int              fDualOut;      // miter with separate outputs
     int              fCheckMiter;   // the circuit is the miter
     int              fFirstStop;    // stop on the first sat output
     int              fSeqSimulate;  // performs sequential simulation
     int              fVeryVerbose;  // verbose stats
+    int              fVerbose;      // verbose stats
+};
+
+// semiformal parameters
+typedef struct Cec_ParSmf_t_ Cec_ParSmf_t;
+struct Cec_ParSmf_t_
+{
+    int              nWords;        // the number of simulation words
+    int              nRounds;       // the number of simulation rounds
+    int              nFrames;       // the number of time frames
+    int              nBTLimit;      // conflict limit at a node
+    int              TimeLimit;     // the runtime limit in seconds
+    int              fDualOut;      // miter with separate outputs
+    int              fCheckMiter;   // the circuit is the miter
+    int              fFirstStop;    // stop on the first sat output
     int              fVerbose;      // verbose stats
 };
 
@@ -79,7 +94,7 @@ struct Cec_ParFra_t_
     int              fRewriting;    // enables AIG rewriting
     int              fCheckMiter;   // the circuit is the miter
     int              fFirstStop;    // stop on the first sat output
-    int              fDoubleOuts;   // miter with separate outputs
+    int              fDualOut;      // miter with separate outputs
     int              fColorDiff;    // miter with separate outputs
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
@@ -112,11 +127,15 @@ extern int           Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerb
 /*=== cecCore.c ==========================================================*/
 extern void          Cec_ManSatSetDefaultParams( Cec_ParSat_t * p );
 extern void          Cec_ManSimSetDefaultParams( Cec_ParSim_t * p );
+extern void          Cec_ManSmfSetDefaultParams( Cec_ParSmf_t * p );
 extern void          Cec_ManFraSetDefaultParams( Cec_ParFra_t * p );
 extern void          Cec_ManCecSetDefaultParams( Cec_ParCec_t * p );
 extern Gia_Man_t *   Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars );
 extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars );
 extern void          Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars );
+/*=== cecSeq.c ==========================================================*/
+extern int           Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Gia_Cex_t * pCex );
+extern int           Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars );
 
 #ifdef __cplusplus
 }
