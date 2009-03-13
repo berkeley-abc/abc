@@ -30,6 +30,57 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if AIG is not in the required topo order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCheckTopoOrder_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Gia_Obj_t * pRepr;
+    if ( pObj->Value == 0 )
+        return 1;
+    pObj->Value = 0;
+    assert( Gia_ObjIsAnd(pObj) );
+    if ( !Gia_ManCheckTopoOrder_rec( p, Gia_ObjFanin0(pObj) ) )
+        return 0;
+    if ( !Gia_ManCheckTopoOrder_rec( p, Gia_ObjFanin1(pObj) ) )
+        return 0;
+    pRepr = Gia_ObjReprObj( p, Gia_ObjId(p,pObj) );
+    return pRepr == NULL || pRepr->Value == 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 0 if AIG is not in the required topo order.]
+
+  Description [AIG should be in such an order that the representative
+  is always traversed before the node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCheckTopoOrder( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, RetValue = 1;
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = 0;
+    Gia_ManForEachCo( p, pObj, i )
+        RetValue &= Gia_ManCheckTopoOrder_rec( p, Gia_ObjFanin0(pObj) );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Given representatives, derives pointers to the next objects.]
 
   Description []
@@ -192,18 +243,21 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Gia_Obj_t * Gia_ManEquivRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int fUseAll )
+static inline Gia_Obj_t * Gia_ManEquivRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int fUseAll, int fDualOut )
 {
     if ( fUseAll )
     {
         if ( Gia_ObjRepr(p, Gia_ObjId(p,pObj)) == GIA_VOID )
             return NULL;
-    }
+    } 
     else
     {
         if ( !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
             return NULL;
     }
+//    if ( fDualOut && !Gia_ObjDiffColors( p, Gia_ObjId(p, pObj), Gia_ObjRepr(p, Gia_ObjId(p,pObj)) ) )
+    if ( fDualOut && !Gia_ObjDiffColors2( p, Gia_ObjId(p, pObj), Gia_ObjRepr(p, Gia_ObjId(p,pObj)) ) )
+        return NULL;
     return Gia_ManObj( p, Gia_ObjRepr(p, Gia_ObjId(p,pObj)) );
 }
 
@@ -218,20 +272,20 @@ static inline Gia_Obj_t * Gia_ManEquivRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManEquivReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int fUseAll )
+void Gia_ManEquivReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int fUseAll, int fDualOut )
 {
     Gia_Obj_t * pRepr;
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    if ( (pRepr = Gia_ManEquivRepr(p, pObj, fUseAll)) )
+    if ( (pRepr = Gia_ManEquivRepr(p, pObj, fUseAll, fDualOut)) )
     {
-        Gia_ManEquivReduce_rec( pNew, p, pRepr, fUseAll );
+        Gia_ManEquivReduce_rec( pNew, p, pRepr, fUseAll, fDualOut );
         pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
         return;
     }
-    Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin0(pObj), fUseAll );
-    Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin1(pObj), fUseAll );
+    Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin0(pObj), fUseAll, fDualOut );
+    Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin1(pObj), fUseAll, fDualOut );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
 }
 
@@ -246,12 +300,24 @@ void Gia_ManEquivReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll )
+Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fVerbose )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj, * pRepr;
     int i;
+    if ( fDualOut && (Gia_ManPoNum(p) & 1) )
+    {
+        printf( "Gia_ManEquivReduce(): Dual-output miter should have even number of POs.\n" );
+        return NULL;
+    }
+    if ( !Gia_ManCheckTopoOrder( p ) )
+    {
+        printf( "Gia_ManEquivReduce(): AIG is not in a correct topological order.\n" );
+        return NULL;
+    }
     Gia_ManSetPhase( p );
+    if ( fDualOut )
+        Gia_ManEquivSetColors( p, fVerbose );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     Gia_ManFillValue( p );
@@ -259,12 +325,12 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll )
     Gia_ManForEachCi( p, pObj, i )
     {
         pObj->Value = Gia_ManAppendCi(pNew);
-        if ( (pRepr = Gia_ManEquivRepr(p, pObj, fUseAll)) )
+        if ( (pRepr = Gia_ManEquivRepr(p, pObj, fUseAll, fDualOut)) )
             pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     }
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin0(pObj), fUseAll );
+        Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin0(pObj), fUseAll, fDualOut );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
@@ -386,6 +452,52 @@ void Gia_ManEquivDeriveReprs( Gia_Man_t * p, Gia_Man_t * pNew, Gia_Man_t * pFina
 
 /**Function*************************************************************
 
+  Synopsis    [Removes pointers to the unmarked nodes..]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManEquivRemapDfs( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vClass;
+    int i, k, iNode, iRepr, iPrev;
+    pNew = Gia_ManDupDfs( p );
+    // start representatives
+    pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pNew) );
+    for ( i = 0; i < Gia_ManObjNum(pNew); i++ )
+        Gia_ObjSetRepr( pNew, i, GIA_VOID );
+    // iterate over constant candidates
+    Gia_ManForEachConst( p, i )
+        Gia_ObjSetRepr( pNew, Gia_Lit2Var(Gia_ManObj(p, i)->Value), 0 );
+    // iterate over class candidates
+    vClass = Vec_IntAlloc( 100 );
+    Gia_ManForEachClass( p, i )
+    {
+        Vec_IntClear( vClass );
+        Gia_ClassForEachObj( p, i, k )
+            Vec_IntPushUnique( vClass, Gia_Lit2Var(Gia_ManObj(p, k)->Value) );
+        assert( Vec_IntSize( vClass ) > 1 );
+        Vec_IntSort( vClass, 0 );
+        iRepr = iPrev = Vec_IntEntry( vClass, 0 );
+        Vec_IntForEachEntryStart( vClass, iNode, k, 1 )
+        {
+            Gia_ObjSetRepr( pNew, iNode, iRepr );
+            assert( iPrev < iNode );
+            iPrev = iNode;
+        }
+    }
+    Vec_IntFree( vClass );
+    pNew->pNexts = Gia_ManDeriveNexts( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reduces AIG while remapping equivalence classes.]
 
   Description [Drops the pairs of outputs if they are proved equivalent.]
@@ -398,7 +510,9 @@ void Gia_ManEquivDeriveReprs( Gia_Man_t * p, Gia_Man_t * pNew, Gia_Man_t * pFina
 Gia_Man_t * Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs )
 {
     Gia_Man_t * pNew, * pFinal;
-    pNew = Gia_ManEquivReduce( p, 0 );
+    pNew = Gia_ManEquivReduce( p, 0, 0, 0 );
+    if ( pNew == NULL )
+        return NULL;
     if ( fMiterPairs )
         Gia_ManEquivFixOutputPairs( pNew );
     if ( fSeq )
@@ -408,6 +522,8 @@ Gia_Man_t * Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs
     Gia_ManEquivUpdatePointers( p, pNew );
     pFinal = Gia_ManDupMarked( pNew );
     Gia_ManEquivDeriveReprs( p, pNew, pFinal );
+    Gia_ManStop( pNew );
+    pFinal = Gia_ManEquivRemapDfs( pNew = pFinal );
     Gia_ManStop( pNew );
     return pFinal;
 }
@@ -448,25 +564,24 @@ int Gia_ManEquivSetColor_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int fOdds )
 int Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose )
 {
     Gia_Obj_t * pObj;
-    int i, nNodes[2] = {0,0}, nDiffs[2];
+    int i, nNodes[2], nDiffs[2];
     assert( (Gia_ManPoNum(p) & 1) == 0 );
     Gia_ObjSetColors( p, 0 );
     Gia_ManForEachPi( p, pObj, i )
         Gia_ObjSetColors( p, Gia_ObjId(p,pObj) );
+    nNodes[0] = nNodes[1] = Gia_ManPiNum(p);
     Gia_ManForEachPo( p, pObj, i )
         nNodes[i&1] += Gia_ManEquivSetColor_rec( p, Gia_ObjFanin0(pObj), i&1 );
 //    Gia_ManForEachObj( p, pObj, i )
 //        if ( Gia_ObjIsCi(pObj) || Gia_ObjIsAnd(pObj) )
 //            assert( Gia_ObjColors(p, i) );
-    nDiffs[0] = Gia_ManCiNum(p) + Gia_ManAndNum(p) - (Gia_ManPiNum(p) + nNodes[0]);
-    nDiffs[1] = Gia_ManCiNum(p) + Gia_ManAndNum(p) - (Gia_ManPiNum(p) + nNodes[1]);
+    nDiffs[0] = Gia_ManCandNum(p) - nNodes[0];
+    nDiffs[1] = Gia_ManCandNum(p) - nNodes[1];
     if ( fVerbose )
     {
         printf( "CI+AND = %7d  A = %7d  B = %7d  Ad = %7d  Bd = %7d  AB = %7d.\n", 
-            Gia_ManCiNum(p) + Gia_ManAndNum(p), 
-            Gia_ManPiNum(p) + nNodes[0], Gia_ManPiNum(p) + nNodes[1], 
-            nDiffs[0], nDiffs[1], 
-            Gia_ManCiNum(p) + Gia_ManAndNum(p) - nDiffs[0] - nDiffs[1] );
+            Gia_ManCandNum(p), nNodes[0], nNodes[1], nDiffs[0], nDiffs[1], 
+            Gia_ManCandNum(p) - nDiffs[0] - nDiffs[1] );
     }
     return (nDiffs[0] + nDiffs[1]) / 2;
 }
@@ -482,12 +597,15 @@ int Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits )
+static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut )
 {
     Gia_Obj_t * pRepr;
     unsigned iLitNew;
     pRepr = Gia_ObjReprObj( p, Gia_ObjId(p,pObj) );
     if ( pRepr == NULL )
+        return;
+//    if ( fDualOut && !Gia_ObjDiffColors( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
+    if ( fDualOut && !Gia_ObjDiffColors2( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
         return;
     iLitNew = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     if ( pObj->Value != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
@@ -506,15 +624,15 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits )
+void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut )
 {
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManSpecBuild( pNew, p, pObj, vXorLits );
+    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut );
 }
 
 /**Function*************************************************************
@@ -528,7 +646,7 @@ void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, V
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut )
+Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -539,9 +657,21 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut )
         printf( "Gia_ManSpecReduce(): Equivalence classes are not available.\n" );
         return NULL;
     }
+    if ( fDualOut && (Gia_ManPoNum(p) & 1) )
+    {
+        printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
+        return NULL;
+    }
+    if ( !Gia_ManCheckTopoOrder( p ) )
+    {
+        printf( "Gia_ManSpecReduce(): AIG is not in a correct topological order.\n" );
+        return NULL;
+    }
     vXorLits = Vec_IntAlloc( 1000 );
     Gia_ManSetPhase( p );
     Gia_ManFillValue( p );
+    if ( fDualOut )
+        Gia_ManEquivSetColors( p, fVerbose );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -549,9 +679,9 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut )
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ManSpecBuild( pNew, p, pObj, vXorLits );
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits );
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut );
     Vec_IntForEachEntry( vXorLits, iLitNew, i )
         Gia_ManAppendCo( pNew, iLitNew );
     if ( Vec_IntSize(vXorLits) == 0 )
@@ -570,12 +700,6 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut )
 }
 
 
-static inline int  Gia_ObjSpec( Gia_Man_t * p, int f, Gia_Obj_t * pObj )               { return p->pCopies[Gia_ManObjNum(p) * f + Gia_ObjId(p,pObj)];  }
-static inline void Gia_ObjSetSpec( Gia_Man_t * p, int f, Gia_Obj_t * pObj, int iLit )  { p->pCopies[Gia_ManObjNum(p) * f + Gia_ObjId(p,pObj)] = iLit;  }
-
-static inline int  Gia_ObjChild0Spec( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Gia_LitNotCond(Gia_ObjSpec(p, f, Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj));  }
-static inline int  Gia_ObjChild1Spec( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Gia_LitNotCond(Gia_ObjSpec(p, f, Gia_ObjFanin1(pObj)), Gia_ObjFaninC1(pObj));  }
-
 /**Function*************************************************************
 
   Synopsis    [Duplicates the AIG in the DFS order.]
@@ -587,17 +711,20 @@ static inline int  Gia_ObjChild1Spec( Gia_Man_t * p, int f, Gia_Obj_t * pObj )  
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSpecBuildInit( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int f )
+void Gia_ManSpecBuildInit( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int f, int fDualOut )
 {
     Gia_Obj_t * pRepr;
     int iLitNew;
     pRepr = Gia_ObjReprObj( p, Gia_ObjId(p,pObj) );
     if ( pRepr == NULL )
         return;
-    iLitNew = Gia_LitNotCond( Gia_ObjSpec(p, f, pRepr), Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
-    if ( Gia_ObjSpec(p, f, pObj) != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
-        Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, Gia_ObjSpec(p, f, pObj), iLitNew) );
-    Gia_ObjSetSpec( p, f, pObj, iLitNew );
+//    if ( fDualOut && !Gia_ObjDiffColors( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
+    if ( fDualOut && !Gia_ObjDiffColors2( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
+        return;
+    iLitNew = Gia_LitNotCond( Gia_ObjCopyF(p, f, pRepr), Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+    if ( Gia_ObjCopyF(p, f, pObj) != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
+        Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, Gia_ObjCopyF(p, f, pObj), iLitNew) );
+    Gia_ObjSetCopyF( p, f, pObj, iLitNew );
 }
 
 /**Function*************************************************************
@@ -611,15 +738,15 @@ void Gia_ManSpecBuildInit( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Ve
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSpecReduceInit_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int f )
+void Gia_ManSpecReduceInit_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int f, int fDualOut )
 {
-    if ( ~Gia_ObjSpec(p, f, pObj) )
+    if ( ~Gia_ObjCopyF(p, f, pObj) )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManSpecReduceInit_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, f );
-    Gia_ManSpecReduceInit_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, f );
-    Gia_ObjSetSpec( p, f, pObj, Gia_ManHashAnd(pNew, Gia_ObjChild0Spec(p, f, pObj), Gia_ObjChild1Spec(p, f, pObj)) );
-    Gia_ManSpecBuildInit( pNew, p, pObj, vXorLits, f );
+    Gia_ManSpecReduceInit_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, f, fDualOut );
+    Gia_ManSpecReduceInit_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, f, fDualOut );
+    Gia_ObjSetCopyF( p, f, pObj, Gia_ManHashAnd(pNew, Gia_ObjFanin0CopyF(p, f, pObj), Gia_ObjFanin1CopyF(p, f, pObj)) );
+    Gia_ManSpecBuildInit( pNew, p, pObj, vXorLits, f, fDualOut );
 }
 
 /**Function*************************************************************
@@ -654,31 +781,43 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames
         printf( "Gia_ManSpecReduceInit(): Mismatch in the number of registers.\n" );
         return NULL;
     }
+    if ( fDualOut && (Gia_ManPoNum(p) & 1) )
+    {
+        printf( "Gia_ManSpecReduceInit(): Dual-output miter should have even number of POs.\n" );
+        return NULL;
+    }
+    if ( !Gia_ManCheckTopoOrder( p ) )
+    {
+        printf( "Gia_ManSpecReduceInit(): AIG is not in a correct topological order.\n" );
+        return NULL;
+    }
     assert( pInit->nRegs == Gia_ManRegNum(p) && pInit->nPis == 0 );
     p->pCopies = ABC_FALLOC( int, nFrames * Gia_ManObjNum(p) );
     vXorLits = Vec_IntAlloc( 1000 );
     Gia_ManSetPhase( p );
+    if ( fDualOut )
+        Gia_ManEquivSetColors( p, 0 );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ObjSetSpec( p, 0, pObj, Aig_InfoHasBit(pInit->pData, i) );
+        Gia_ObjSetCopyF( p, 0, pObj, Aig_InfoHasBit(pInit->pData, i) );
     for ( f = 0; f < nFrames; f++ )
     {
-        Gia_ObjSetSpec( p, f, Gia_ManConst0(p), 0 );
+        Gia_ObjSetCopyF( p, f, Gia_ManConst0(p), 0 );
         Gia_ManForEachPi( p, pObj, i )
-            Gia_ObjSetSpec( p, f, pObj, Gia_ManAppendCi(pNew) );
+            Gia_ObjSetCopyF( p, f, pObj, Gia_ManAppendCi(pNew) );
         Gia_ManForEachRo( p, pObj, i )
-            Gia_ManSpecBuildInit( pNew, p, pObj, vXorLits, f );
+            Gia_ManSpecBuildInit( pNew, p, pObj, vXorLits, f, fDualOut );
         Gia_ManForEachCo( p, pObj, i )
         {
-            Gia_ManSpecReduceInit_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, f );
-            Gia_ObjSetSpec( p, f, pObj, Gia_ObjChild0Spec(p, f, pObj) );
+            Gia_ManSpecReduceInit_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, f, fDualOut );
+            Gia_ObjSetCopyF( p, f, pObj, Gia_ObjFanin0CopyF(p, f, pObj) );
         }
         if ( f == nFrames - 1 )
             break;
         Gia_ManForEachRiRo( p, pObjRi, pObjRo, i )
-            Gia_ObjSetSpec( p, f+1, pObjRo, Gia_ObjSpec(p, f, pObjRi) );
+            Gia_ObjSetCopyF( p, f+1, pObjRo, Gia_ObjCopyF(p, f, pObjRi) );
     }
     Vec_IntForEachEntry( vXorLits, iLitNew, i )
         Gia_ManAppendCo( pNew, iLitNew );

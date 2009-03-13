@@ -62,6 +62,45 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates while adding self-loops to the registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupSelf( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pTemp; 
+    Gia_Obj_t * pObj;
+    int i, iCtrl;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    iCtrl = Gia_ManAppendCi( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->Value = Gia_ObjFanin0Copy(pObj);
+    Gia_ManForEachRi( p, pObj, i )
+        pObj->Value = Gia_ManHashMux( pNew, iCtrl, Gia_ObjFanin0Copy(pObj), Gia_ObjRiToRo(p, pObj)->Value );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, pObj->Value );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG without any changes.]
 
   Description []
@@ -192,22 +231,22 @@ Gia_Man_t * Gia_ManDupTimes( Gia_Man_t * p, int nTimes )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManDupDfs_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+int Gia_ManDupDfs2_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( ~pObj->Value )
         return pObj->Value;
     if ( p->pReprsOld && ~p->pReprsOld[Gia_ObjId(p, pObj)] )
     {
         Gia_Obj_t * pRepr = Gia_ManObj( p, p->pReprsOld[Gia_ObjId(p, pObj)] );
-        pRepr->Value = Gia_ManDupDfs_rec( pNew, p, pRepr );
+        pRepr->Value = Gia_ManDupDfs2_rec( pNew, p, pRepr );
         return pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     }
     if ( Gia_ObjIsCi(pObj) )
         return pObj->Value = Gia_ManAppendCi(pNew);
-    Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManDupDfs2_rec( pNew, p, Gia_ObjFanin0(pObj) );
     if ( Gia_ObjIsCo(pObj) )
         return pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    Gia_ManDupDfs2_rec( pNew, p, Gia_ObjFanin1(pObj) );
     if ( pNew->pHTable )
         return pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     return pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -224,7 +263,7 @@ int Gia_ManDupDfs_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupDfs2( Gia_Man_t * p )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj, * pObjNew;
@@ -234,7 +273,7 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
     pNew->pName = Aig_UtilStrsav( p->pName );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManDupDfs_rec( pNew, p, pObj );
+        Gia_ManDupDfs2_rec( pNew, p, pObj );
     Gia_ManForEachCi( p, pObj, i )
         if ( ~pObj->Value == 0 )
             pObj->Value = Gia_ManAppendCi(pNew);
@@ -247,6 +286,57 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
         Vec_IntWriteEntry( pNew->vCis, Gia_ObjCioId(pObj), Gia_ObjId(pNew, pObjNew) );
         Gia_ObjSetCioId( pObjNew, Gia_ObjCioId(pObj) );
     }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupDfs_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
@@ -332,7 +422,7 @@ Gia_Man_t * Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits )
         pObj->Value = Gia_ManAppendCi(pNew);
     Vec_IntForEachEntry( vLits, iLit, i )
     {
-        iLitRes = Gia_ManDupDfs_rec( pNew, p, Gia_ManObj(p, Gia_Lit2Var(iLit)) );
+        iLitRes = Gia_ManDupDfs2_rec( pNew, p, Gia_ManObj(p, Gia_Lit2Var(iLit)) );
         Gia_ManAppendCo( pNew, Gia_LitNotCond( iLitRes, Gia_LitIsCompl(iLit)) );
     }
     Gia_ManSetRegNum( pNew, 0 );
@@ -404,95 +494,6 @@ Gia_Man_t * Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos )
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Gia_ManDupCofactored( Gia_Man_t * p, int iVar, int nLimFan )
-{
-    Gia_Man_t * pNew, * pTemp;
-    Gia_Obj_t * pObj, * pPivot;
-    int i, iCofVar = -1;
-    if ( nLimFan > 0 )
-    {
-        printf( "This feature is not implemented.\n" );
-        return NULL;
-    }
-    if ( !(iVar > 0 && iVar < Gia_ManObjNum(p)) )
-    {
-        printf( "Gia_ManDupCofactored(): Variable %d is out of range (%d; %d).\n", iVar, 0, Gia_ManObjNum(p) );
-        return NULL;
-    }
-    // find the cofactoring variable
-    pPivot = Gia_ManObj( p, iVar );
-    if ( !(Gia_ObjIsCi(pPivot) || Gia_ObjIsAnd(pPivot)) )
-    {
-        printf( "Gia_ManDupCofactored(): Variable %d should be a CI or an AND node.\n", iVar );
-        return NULL;
-    }
-//    assert( Gia_ManRegNum(p) == 0 );
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    Gia_ManHashAlloc( pNew );
-    Gia_ManConst0(p)->Value = 0;
-    // compute negative cofactor
-    Gia_ManForEachCi( p, pObj, i )
-    {
-        pObj->Value = Gia_ManAppendCi(pNew);
-        if ( pObj == pPivot )
-        {
-            iCofVar = pObj->Value;
-            pObj->Value = Gia_Var2Lit( 0, 0 );
-        }
-    }
-    Gia_ManForEachAnd( p, pObj, i )
-    {
-        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        if ( pObj == pPivot )
-        {
-            iCofVar = pObj->Value;
-            pObj->Value = Gia_Var2Lit( 0, 0 );
-        }
-    }
-    Gia_ManForEachCo( p, pObj, i )
-        pObj->Value = Gia_ObjFanin0Copy(pObj);
-    // compute the positive cofactor
-    Gia_ManForEachCi( p, pObj, i )
-    {
-        pObj->Value = Gia_Var2Lit( Gia_ObjId(pNew, Gia_ManCi(pNew, i)), 0 );
-        if ( pObj == pPivot )
-            pObj->Value = Gia_Var2Lit( 0, 1 );
-    }
-    Gia_ManForEachAnd( p, pObj, i )
-    {
-        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        if ( pObj == pPivot )
-            pObj->Value = Gia_Var2Lit( 0, 1 );
-    }
-    // create MUXes
-    assert( iCofVar > 0 );
-    Gia_ManForEachCo( p, pObj, i )
-    {
-        if ( pObj->Value == (unsigned)Gia_ObjFanin0Copy(pObj) )
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-        else
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ManHashMux(pNew, iCofVar, Gia_ObjFanin0Copy(pObj), pObj->Value) );
-    }
-    Gia_ManHashStop( pNew );
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    // rehash the result
-    pNew = Gia_ManCleanup( pTemp = pNew );
-    Gia_ManStop( pTemp );
-    return pNew;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Print representatives.]
 
   Description []
@@ -544,7 +545,7 @@ Gia_Man_t * Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits 
         int iLit, iLitRes;
         Vec_IntForEachEntry( vLits, iLit, i )
         {
-            iLitRes = Gia_ManDupDfs_rec( pNew, p, Gia_ManObj(p, Gia_Lit2Var(iLit)) );
+            iLitRes = Gia_ManDupDfs2_rec( pNew, p, Gia_ManObj(p, Gia_Lit2Var(iLit)) );
             Gia_ManAppendCo( pNew, Gia_LitNotCond( iLitRes, Gia_LitIsCompl(iLit)) );
         }
     }

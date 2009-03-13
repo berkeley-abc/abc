@@ -67,6 +67,11 @@ struct Gia_Obj_t_
 
     unsigned       Value;         // application-specific value
 };
+// Value is currently use to store several types of information
+// - pointer to the next node in the hash table during structural hashing
+// - pointer to the node copy during duplication 
+// - traversal ID of the node during traversal
+// - reference counter of the node (will not be used in the future)
 
 // sequential counter-example
 typedef struct Gia_Cex_t_   Gia_Cex_t;
@@ -177,6 +182,7 @@ static inline int          Gia_ManPoNum( Gia_Man_t * p )       { return Vec_IntS
 static inline int          Gia_ManRegNum( Gia_Man_t * p )      { return p->nRegs;              }
 static inline int          Gia_ManObjNum( Gia_Man_t * p )      { return p->nObjs;              }
 static inline int          Gia_ManAndNum( Gia_Man_t * p )      { return p->nObjs - Vec_IntSize(p->vCis) - Vec_IntSize(p->vCos) - 1;  }
+static inline int          Gia_ManCandNum( Gia_Man_t * p )     { return Gia_ManCiNum(p) + Gia_ManAndNum(p);                          }
 
 static inline Gia_Obj_t *  Gia_ManConst0( Gia_Man_t * p )      { return p->pObjs;                                               }
 static inline Gia_Obj_t *  Gia_ManConst1( Gia_Man_t * p )      { return Gia_Not(Gia_ManConst0(p));                              }
@@ -193,6 +199,7 @@ static inline int          Gia_ObjIsAndOrConst0( Gia_Obj_t * pObj )            {
 static inline int          Gia_ObjIsCi( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 == GIA_NONE; } 
 static inline int          Gia_ObjIsCo( Gia_Obj_t * pObj )                     { return pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
 static inline int          Gia_ObjIsAnd( Gia_Obj_t * pObj )                    { return!pObj->fTerm && pObj->iDiff0 != GIA_NONE; } 
+static inline int          Gia_ObjIsCand( Gia_Obj_t * pObj )                   { return Gia_ObjIsAnd(pObj) || Gia_ObjIsCi(pObj); } 
 static inline int          Gia_ObjIsConst0( Gia_Obj_t * pObj )                 { return pObj->iDiff0 == GIA_NONE && pObj->iDiff1 == GIA_NONE; } 
 static inline int          Gia_ManObjIsConst0( Gia_Man_t * p, Gia_Obj_t * pObj){ return pObj == p->pObjs;                        } 
 
@@ -231,6 +238,12 @@ static inline int          Gia_ObjWhatFanin( Gia_Obj_t * pObj, Gia_Obj_t * pFani
 
 static inline int          Gia_ObjFanin0Copy( Gia_Obj_t * pObj )               { return Gia_LitNotCond( Gia_ObjFanin0(pObj)->Value, Gia_ObjFaninC0(pObj) );     }
 static inline int          Gia_ObjFanin1Copy( Gia_Obj_t * pObj )               { return Gia_LitNotCond( Gia_ObjFanin1(pObj)->Value, Gia_ObjFaninC1(pObj) );     }
+
+static inline int          Gia_ObjCopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )               { return p->pCopies[Gia_ManObjNum(p) * f + Gia_ObjId(p,pObj)];  }
+static inline void         Gia_ObjSetCopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj, int iLit )  { p->pCopies[Gia_ManObjNum(p) * f + Gia_ObjId(p,pObj)] = iLit;  }
+
+static inline int          Gia_ObjFanin0CopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Gia_LitNotCond(Gia_ObjCopyF(p, f, Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj));  }
+static inline int          Gia_ObjFanin1CopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Gia_LitNotCond(Gia_ObjCopyF(p, f, Gia_ObjFanin1(pObj)), Gia_ObjFaninC1(pObj));  }
 
 static inline Gia_Obj_t *  Gia_ObjFromLit( Gia_Man_t * p, int iLit )           { return Gia_NotCond( Gia_ManObj(p, Gia_Lit2Var(iLit)), Gia_LitIsCompl(iLit) );  }
 static inline int          Gia_ObjToLit( Gia_Man_t * p, Gia_Obj_t * pObj )     { return Gia_Var2Lit( Gia_ObjId(p, pObj), Gia_IsComplement(pObj) );              }
@@ -397,6 +410,8 @@ static inline int *      Gia_ObjGateFanins( Gia_Man_t * p, int Id )         { re
     for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Gia_ManObj(p, Vec_IntEntry(vVec,i))); i++ )
 #define Gia_ManForEachObjVecLit( vVec, p, pObj, fCompl, i )             \
     for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Gia_ManObj(p, Gia_Lit2Var(Vec_IntEntry(vVec,i)))) && (((fCompl) = Gia_LitIsCompl(Vec_IntEntry(vVec,i))),1); i++ )
+#define Gia_ManForEachObjReverse( p, pObj, i )                          \
+    for ( i = p->nObjs - 1; (i > 0) && ((pObj) = Gia_ManObj(p, i)); i-- )
 #define Gia_ManForEachAnd( p, pObj, i )                                 \
     for ( i = 0; (i < p->nObjs) && ((pObj) = Gia_ManObj(p, i)); i++ )  if ( !Gia_ObjIsAnd(pObj) ) {} else
 #define Gia_ManForEachCi( p, pObj, i )                                  \
@@ -429,6 +444,9 @@ extern Gia_Man_t *         Gia_ReadAiger( char * pFileName, int fCheck );
 extern void                Gia_WriteAiger( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact );
 /*=== giaCof.c ============================================================*/
 extern void                Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes );
+extern Gia_Man_t *         Gia_ManDupCof( Gia_Man_t * p, int iVar );
+extern Gia_Man_t *         Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose );
+extern Gia_Man_t *         Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVerbose );
 /*=== giaDfs.c ============================================================*/
 extern void                Gia_ManCollectCis( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vSupp );
 extern void                Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vNodes );
@@ -436,6 +454,7 @@ extern int                 Gia_ManSuppSize( Gia_Man_t * p, int * pNodes, int nNo
 extern int                 Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNodes );
 /*=== giaDup.c ============================================================*/
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
+extern Gia_Man_t *         Gia_ManDupSelf( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupMarked( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTimes( Gia_Man_t * p, int nTimes );  
 extern Gia_Man_t *         Gia_ManDupDfs( Gia_Man_t * p );  
@@ -444,22 +463,23 @@ extern Gia_Man_t *         Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern Gia_Man_t *         Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits );
 extern Gia_Man_t *         Gia_ManDupNormalized( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos );
-extern Gia_Man_t *         Gia_ManDupCofactored( Gia_Man_t * p, int iVar, int nLimFan );
 extern Gia_Man_t *         Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits );
 extern Gia_Man_t *         Gia_ManDupDfsClasses( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTopAnd( Gia_Man_t * p, int fVerbose );
 extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, int fDualOut, int fSeq, int fVerbose );
 extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 /*=== giaEnable.c ==========================================================*/
-extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset );
+extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
+extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
 /*=== giaEquiv.c ==========================================================*/
+extern int                 Gia_ManCheckTopoOrder( Gia_Man_t * p );
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );
 extern void                Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter );
 extern void                Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem );
-extern Gia_Man_t *         Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll );
+extern Gia_Man_t *         Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fVerbose );
 extern Gia_Man_t *         Gia_ManEquivReduceAndRemap( Gia_Man_t * p, int fSeq, int fMiterPairs );
 extern int                 Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose );
-extern Gia_Man_t *         Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut );
+extern Gia_Man_t *         Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose );
 extern Gia_Man_t *         Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames, int fDualOut );
 extern void                Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose );
 /*=== giaFanout.c =========================================================*/

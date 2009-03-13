@@ -70,9 +70,27 @@ char * Abc_ObjAssignName( Abc_Obj_t * pObj, char * pName, char * pSuffix )
 
 /**Function*************************************************************
 
-  Synopsis    [Gets the long name of the node.]
+  Synopsis    [Appends name to the prefix]
 
-  Description [This name is the output net's name.]
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_ObjNamePrefix( Abc_Obj_t * pObj, char * pPrefix )
+{
+    static char Buffer[2000];
+    sprintf( Buffer, "%s%s", pPrefix, Abc_ObjName(pObj) );
+    return Buffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Appends suffic to the name.]
+
+  Description []
                
   SideEffects []
 
@@ -81,7 +99,7 @@ char * Abc_ObjAssignName( Abc_Obj_t * pObj, char * pName, char * pSuffix )
 ***********************************************************************/
 char * Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix )
 {
-    static char Buffer[500];
+    static char Buffer[2000];
     sprintf( Buffer, "%s%s", Abc_ObjName(pObj), pSuffix );
     return Buffer;
 }
@@ -99,7 +117,7 @@ char * Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix )
 ***********************************************************************/
 char * Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits )
 {
-    static char Buffer[100];
+    static char Buffer[2000];
     sprintf( Buffer, "%s%0*d", pPrefix, nDigits, Num );
     return Buffer;
 }

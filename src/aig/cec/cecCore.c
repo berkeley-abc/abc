@@ -90,10 +90,10 @@ void Cec_ManSimSetDefaultParams( Cec_ParSim_t * p )
 void Cec_ManSmfSetDefaultParams( Cec_ParSmf_t * p )
 {
     memset( p, 0, sizeof(Cec_ParSmf_t) );
-    p->nWords         =      15;  // the number of simulation words
-    p->nRounds        =      15;  // the number of simulation rounds
+    p->nWords         =      31;  // the number of simulation words
+    p->nRounds        =       1;  // the number of simulation rounds
     p->nFrames        =       2;  // the number of time frames
-    p->nBTLimit       =    1000;  // conflict limit at a node
+    p->nBTLimit       =     100;  // conflict limit at a node
     p->TimeLimit      =       0;  // the runtime limit in seconds
     p->fDualOut       =       0;  // miter with separate outputs
     p->fCheckMiter    =       0;  // the circuit is the miter
@@ -118,8 +118,8 @@ void Cec_ManFraSetDefaultParams( Cec_ParFra_t * p )
     p->nWords         =      15;  // the number of simulation words
     p->nRounds        =      15;  // the number of simulation rounds
     p->TimeLimit      =       0;  // the runtime limit in seconds
-    p->nItersMax      =    1000;  // the maximum number of iterations of SAT sweeping
-    p->nBTLimit       =    1000;  // conflict limit at a node
+    p->nItersMax      =      10;  // the maximum number of iterations of SAT sweeping
+    p->nBTLimit       =     100;  // conflict limit at a node
     p->nLevelMax      =       0;  // restriction on the level of nodes to be swept
     p->nDepthMax      =       1;  // the depth in terms of steps of speculative reduction
     p->fRewriting     =       0;  // enables AIG rewriting
@@ -322,6 +322,8 @@ p->timeSat += clock() - clk;
         // update the manager
         pSim->pAig = p->pAig = Gia_ManEquivReduceAndRemap( pTemp = p->pAig, 0, pParsSim->fDualOut );
         Gia_ManStop( pTemp );
+        if ( p->pAig == NULL )
+            break;
         if ( p->pPars->fVerbose )
         {
             printf( "%3d : P =%7d. D =%7d. F =%6d. M = %7d. And =%8d. ", 
@@ -381,7 +383,7 @@ finalize:
     }
 
     pTemp = p->pAig; p->pAig = NULL;
-    if ( pTemp == NULL )
+    if ( pTemp == NULL && pSim->iOut >= 0 )
         printf( "Disproved at least one output of the miter (zero-based number %d).\n", pSim->iOut );
     else if ( pSim->pCexes )
         printf( "Disproved %d outputs of the miter.\n", pSim->nOuts );

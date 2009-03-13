@@ -661,6 +661,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, 
 /*=== abcNames.c ====================================================*/
 extern ABC_DLL char *             Abc_ObjName( Abc_Obj_t * pNode );
 extern ABC_DLL char *             Abc_ObjAssignName( Abc_Obj_t * pObj, char * pName, char * pSuffix );
+extern ABC_DLL char *             Abc_ObjNamePrefix( Abc_Obj_t * pObj, char * pPrefix );
 extern ABC_DLL char *             Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix );
 extern ABC_DLL char *             Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits );
 extern ABC_DLL void               Abc_NtkTrasferNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );

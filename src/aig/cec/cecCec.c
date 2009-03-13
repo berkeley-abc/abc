@@ -129,6 +129,7 @@ int Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars )
     double clkTotal = clock();
     // sweep for equivalences
     Cec_ManFraSetDefaultParams( pParsFra );
+    pParsFra->nItersMax    = 1000;
     pParsFra->nBTLimit     = pPars->nBTLimit;
     pParsFra->TimeLimit    = pPars->TimeLimit;
     pParsFra->fVerbose     = pPars->fVerbose;

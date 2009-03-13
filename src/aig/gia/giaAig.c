@@ -205,6 +205,29 @@ Aig_Man_t * Gia_ManToAig( Gia_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Gia_ManCofactorAig( Aig_Man_t * p, int nFrames, int nCofFanLit )
+{
+    Aig_Man_t * pMan;
+    Gia_Man_t * pGia, * pTemp;
+    pGia = Gia_ManFromAig( p );
+    pGia = Gia_ManUnrollAndCofactor( pTemp = pGia, nFrames, nCofFanLit, 1 );
+    Gia_ManStop( pTemp );
+    pMan = Gia_ManToAig( pGia );
+    Gia_ManStop( pGia );
+    return pMan;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

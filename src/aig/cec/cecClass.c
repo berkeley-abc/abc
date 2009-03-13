@@ -242,6 +242,7 @@ void Cec_ManSimClassCreate( Gia_Man_t * p, Vec_Int_t * vClass )
         }
         else
         {
+            assert( Repr < Ent );
             Gia_ObjSetRepr( p, Ent, Repr );
             Gia_ObjSetNext( p, EntPrev, Ent );
             EntPrev = Ent;
@@ -500,7 +501,7 @@ void Cec_ManSimSavePattern( Cec_ManSim_t * p, int iPat )
 
 ***********************************************************************/
 void Cec_ManSimFindBestPattern( Cec_ManSim_t * p )
-{
+{ 
     unsigned * pInfo;
     int i, ScoreBest = 0, iPatBest = 1;
     // find the best pattern
@@ -838,7 +839,7 @@ int Cec_ManSimClassesRefine( Cec_ManSim_t * p )
     p->nWords = p->pPars->nWords;
     for ( i = 0; i < p->pPars->nRounds; i++ )
     {
-        if ( (i % 4) == 0 && p->pPars->fVerbose )
+        if ( (i % (p->pPars->nRounds / 5)) == 0 && p->pPars->fVerbose )
             Gia_ManEquivPrintClasses( p->pAig, 0, Cec_MemUsage(p) );
         Cec_ManSimCreateInfo( p, p->vCiSimInfo, p->vCoSimInfo );
         if ( Cec_ManSimSimulateRound( p, p->vCiSimInfo, p->vCoSimInfo ) )

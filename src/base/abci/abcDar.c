@@ -1538,7 +1538,7 @@ Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, in
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fVerbose )
+int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose )
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1, clk = clock();
@@ -1554,7 +1554,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, 
     if ( fNewAlgo )
     {
         int iFrame;
-        RetValue = Saig_ManBmcSimple( pMan, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &iFrame );
+        RetValue = Saig_ManBmcSimple( pMan, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &iFrame, nCofFanLit );
         ABC_FREE( pNtk->pModel );
         ABC_FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
@@ -1751,7 +1751,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
     }
     if ( pSecPar->fTryBmc )
     {
-        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, -1, 2000, -1, 0, 1, 0 );
+        RetValue = Abc_NtkDarBmc( pNtk, 20, 100000, -1, 2000, -1, 0, 1, 0, 0 );
         if ( RetValue == 0 )
         {
             printf( "Networks are not equivalent.\n" );

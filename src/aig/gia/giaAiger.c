@@ -230,6 +230,7 @@ Gia_Rpr_t * Gia_ReadEquivClasses( unsigned char ** ppPos, int nSize )
         iNode += Item;
         pReprs[iNode].fProved = fProved;
         pReprs[iNode].iRepr = iRepr;
+        assert( iRepr < iNode );
 //printf( "Node = %d ", iNode );
     }
     return pReprs;

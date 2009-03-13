@@ -173,16 +173,24 @@ Aig_Man_t * Saig_ManFramesBmcLimit( Aig_Man_t * pAig, int nFrames, int nSizeMax 
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLimit, int fRewrite, int fVerbose, int * piFrame )
+int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit )
 {
+    extern Aig_Man_t * Gia_ManCofactorAig( Aig_Man_t * p, int nFrames, int nCofFanLit );
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pFrames, * pAigTemp;
     Aig_Obj_t * pObj;
     int status, clk, Lit, i, RetValue = 1;
+
     // derive the timeframes
     clk = clock();
-    if ( nSizeMax > 0 )
+    if ( nCofFanLit )
+    {
+        pFrames = Gia_ManCofactorAig( pAig, nFrames, nCofFanLit );
+        if ( pFrames == NULL )
+            return -1;
+    }
+    else if ( nSizeMax > 0 )
     {
         pFrames = Saig_ManFramesBmcLimit( pAig, nFrames, nSizeMax );
         nFrames = Aig_ManPoNum(pFrames) / Saig_ManPoNum(pAig) + ((Aig_ManPoNum(pFrames) % Saig_ManPoNum(pAig)) > 0);

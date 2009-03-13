@@ -255,7 +255,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
     Gia_Man_t * pSrm;
     int r, nPats, RetValue = -1;
     if ( pAig->pReprs == NULL )
-    {
+    { 
         printf( "Cec_ManSeqSemiformal(): Equivalence classes are not available.\n" );
         return -1;
     }

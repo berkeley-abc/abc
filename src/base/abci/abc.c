@@ -17580,9 +17580,10 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nNodeDelta;
     int fRewrite;
     int fNewAlgo;
+    int nCofFanLit;
     int fVerbose;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fVerbose );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -17596,9 +17597,10 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     nNodeDelta  =     1000;
     fRewrite    =        0;
     fNewAlgo    =        1;
+    nCofFanLit  =        0;
     fVerbose    =        0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FNCGDrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FNCGDLrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17657,6 +17659,17 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nNodeDelta < 0 ) 
                 goto usage;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCofFanLit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCofFanLit < 0 ) 
+                goto usage;
+            break;
         case 'r':
             fRewrite ^= 1;
             break;
@@ -17687,19 +17700,20 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Does not work for combinational networks.\n" );
         return 0;
     }
-    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fVerbose );
+    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, nCofFanLit, fVerbose );
     pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
 usage:
 //    fprintf( pErr, "usage: bmc [-FNCGD num] [-ravh]\n" );
-    fprintf( pErr, "usage: bmc [-FNC num] [-rvh]\n" );
+    fprintf( pErr, "usage: bmc [-FNCL num] [-rcvh]\n" );
     fprintf( pErr, "\t         performs bounded model checking with static unrolling\n" );
     fprintf( pErr, "\t-F num : the number of time frames [default = %d]\n", nFrames );
     fprintf( pErr, "\t-N num : the max number of nodes in the frames [default = %d]\n", nSizeMax );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
 //    fprintf( pErr, "\t-G num : the max number of conflicts globally [default = %d]\n", nBTLimitAll );
 //    fprintf( pErr, "\t-D num : the delta in the number of nodes [default = %d]\n", nNodeDelta );
+    fprintf( pErr, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit? "yes": "no" );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
 //    fprintf( pErr, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -17732,7 +17746,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fNewAlgo;
     int fVerbose;
 
-    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int fVerbose );
+    extern int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nSizeMax, int nNodeDelta, int nBTLimit, int nBTLimitAll, int fRewrite, int fNewAlgo, int nCofFanLit, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -17837,7 +17851,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Does not work for combinational networks.\n" );
         return 0;
     }
-    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fVerbose );
+    Abc_NtkDarBmc( pNtk, nFrames, nSizeMax, nNodeDelta, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, 0, fVerbose );
     pAbc->pCex = pNtk->pSeqModel; // temporary ???
     return 0;
 
@@ -22007,7 +22021,7 @@ usage:
 int Abc_CommandAbc9PSig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
-    int fSetReset = 0;
+    int fSetReset = 1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
     {
@@ -22032,7 +22046,7 @@ int Abc_CommandAbc9PSig( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9PSigs(): Works only for sequential circuits.\n" );
         return 1;
     } 
-    Gia_ManDetectSeqSignals( pAbc->pAig, fSetReset );
+    Gia_ManDetectSeqSignals( pAbc->pAig, fSetReset, 1 );
     return 0;
 
 usage:
@@ -22233,9 +22247,10 @@ usage:
 int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, iVar = 0, nLimFan = 0;
+    int c, fVerbose = 0;
+    int iVar = 0, nLimFan = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "VLh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "VLvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22255,11 +22270,14 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
             {
                 fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
-            }
+            } 
             nLimFan = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nLimFan < 0 ) 
                 goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -22272,7 +22290,21 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Cof(): There is no AIG.\n" );
         return 1;
     } 
-    pAbc->pAig = Gia_ManDupCofactored( pTemp = pAbc->pAig, iVar, nLimFan );
+    if ( nLimFan )
+    {
+        printf( "Cofactoring all variables whose fanout count is higher than %d.\n", nLimFan );
+        pAbc->pAig = Gia_ManDupCofAll( pTemp = pAbc->pAig, nLimFan, fVerbose );
+    }
+    else if ( iVar )
+    {
+        printf( "Cofactoring one variable with object ID %d.\n", iVar );
+        pAbc->pAig = Gia_ManDupCof( pTemp = pAbc->pAig, iVar );
+    }
+    else
+    {
+        printf( "One of the paramters, -V <num> or -L <num>, should be set on the command line.\n" );
+        goto usage;
+    }
     if ( pAbc->pAig == NULL )
     {
         pAbc->pAig = pTemp;
@@ -22283,10 +22315,11 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &cof [-VL num] [-h]\n" );
-    fprintf( stdout, "\t         performs cofactoring w.r.t. a variable\n" );
-    fprintf( stdout, "\t-V num : the zero-based ID of the variable to cofactor [default = %d]\n", iVar );
-    fprintf( stdout, "\t-L num : cofactor w.r.t. variables whose fanout is higher [default = %d]\n", nLimFan );
+    fprintf( stdout, "usage: &cof [-VL num] [-vh]\n" );
+    fprintf( stdout, "\t         performs cofactoring w.r.t. variable(s)\n" );
+    fprintf( stdout, "\t-V num : the zero-based ID of one variable to cofactor [default = %d]\n", iVar );
+    fprintf( stdout, "\t-L num : cofactor vars with fanout count higher than this [default = %d]\n", nLimFan );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -22825,9 +22858,10 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp;
     Gia_ParFra_t Pars, * pPars = &Pars;
     int c;
+    int nCofFanLit = 0;
     Gia_ManFraSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FLivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22840,6 +22874,17 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCofFanLit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCofFanLit < 0 ) 
                 goto usage;
             break;
         case 'i':
@@ -22859,14 +22904,18 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Times(): There is no AIG.\n" );
         return 1;
     } 
-    pAbc->pAig = Gia_ManFrames( pTemp = pAbc->pAig, pPars );
+    if ( nCofFanLit )
+        pAbc->pAig = Gia_ManUnrollAndCofactor( pTemp = pAbc->pAig, pPars->nFrames, nCofFanLit, pPars->fVerbose );
+    else
+        pAbc->pAig = Gia_ManFrames( pTemp = pAbc->pAig, pPars );
     Gia_ManStop( pTemp );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &frames [-F <num>] [-ivh]\n" );
+    fprintf( stdout, "usage: &frames [-FL <num>] [-ivh]\n" );
     fprintf( stdout, "\t         unrolls the design for several timeframes\n" );
     fprintf( stdout, "\t-F num : the number of frames to unroll [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit? "yes": "no" );
     fprintf( stdout, "\t-i     : toggle initializing registers [default = %s]\n", pPars->fInit? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
@@ -22929,7 +22978,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         pAbc->pAig = Gia_ManTransformMiter( pAux = pAbc->pAig );
         Gia_ManStop( pAux );
-        printf( "Abc_CommandAbc9Miter(): Miter is transformed by merging POs pair-wise.\n" );
+        printf( "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
         return 0;
     }
 
@@ -23286,7 +23335,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    char * pFileName = "gia_srm.aig";
+    char * pFileName = "gsrm.aig";
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
     int fDualOut = 0;
@@ -23314,11 +23363,14 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     } 
 //    pAbc->pAig = Gia_ManSpecReduce( pTemp = pAbc->pAig, fDualOut );
 //    Gia_ManStop( pTemp );
-    pTemp = Gia_ManSpecReduce( pAbc->pAig, fDualOut );
-    Gia_WriteAiger( pTemp, "gia_srm.aig", 0, 0 );
-    printf( "Speculatively reduced model was written into file \"%s\".\n", pFileName );
-    Gia_ManPrintStatsShort( pTemp );
-    Gia_ManStop( pTemp );
+    pTemp = Gia_ManSpecReduce( pAbc->pAig, fDualOut, fVerbose );
+    if ( pTemp )
+    {
+        Gia_WriteAiger( pTemp, pFileName, 0, 0 );
+        printf( "Speculatively reduced model was written into file \"%s\".\n", pFileName );
+        Gia_ManPrintStatsShort( pTemp );
+        Gia_ManStop( pTemp );
+    }
     return 0;
 
 usage:
@@ -23346,13 +23398,17 @@ int Abc_CommandAbc9Reduce( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
     int fUseAll = 0;
+    int fDualOut = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "avh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "advh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fUseAll ^= 1;
+            break;
+        case 'd':
+            fDualOut ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -23368,14 +23424,18 @@ int Abc_CommandAbc9Reduce( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Reduce(): There is no AIG.\n" );
         return 1;
     } 
-    pAbc->pAig = Gia_ManEquivReduce( pTemp = pAbc->pAig, fUseAll );
-    Gia_ManStop( pTemp );
+    pAbc->pAig = Gia_ManEquivReduce( pTemp = pAbc->pAig, fUseAll, fDualOut, fVerbose );
+    if ( pAbc->pAig == NULL )
+        pAbc->pAig = pTemp;
+    else
+        Gia_ManStop( pTemp );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &reduce [-avh]\n" );
+    fprintf( stdout, "usage: &reduce [-advh]\n" );
     fprintf( stdout, "\t         reduces the circuit using equivalence classes\n" );
-    fprintf( stdout, "\t-a     : toggle creating dual output miter [default = %s]\n", fUseAll? "yes": "no" );
+    fprintf( stdout, "\t-a     : toggle merging all equivalences [default = %s]\n", fUseAll? "yes": "no" );
+    fprintf( stdout, "\t-d     : toggle using dual-output merging [default = %s]\n", fDualOut? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
@@ -23922,6 +23982,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManTestDistance( pAbc->pAig );
 //    Gia_SatSolveTest( pAbc->pAig );
 //    For_ManExperiment( pAbc->pAig, 20, 1, 1 );
+//    Gia_ManUnrollSpecial( pAbc->pAig, 5, 100, 1 );
+    pAbc->pAig = Gia_ManDupSelf( pTemp = pAbc->pAig );
+    Gia_ManStop( pTemp );
     return 0;
 
 usage:

@@ -146,6 +146,18 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     nSatProof = nSatCallsSat = nRecycles = nSatFailsReal = nUniques = 0;
     for ( nIter = 0; ; nIter++ )
     {
+        if ( p->pPars->nItersStop >= 0 && p->pPars->nItersStop == nIter )
+        {
+            Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
+            Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
+            Aig_ManStop( pSRed );
+            printf( "Iterative refinement is stopped before iteration %d.\n", nIter );
+            printf( "The network is reduced using candidate equivalences.\n" );
+            printf( "Speculatively reduced miter is saved in file \"%s\".\n", "srm.blif" );
+            printf( "If the miter is SAT, the reduced result is incorrect.\n" );
+            break;
+        }
+
 clk = clock();
         p->pMSat = Ssw_SatStart( 0 );
         if ( p->pPars->fLatchCorrOpt )
@@ -199,18 +211,6 @@ clk = clock();
         Ssw_ManCleanup( p );
         if ( !RetValue ) 
             break;
-
-        if ( p->pPars->nItersStop >= 0 && p->pPars->nItersStop == nIter )
-        {
-            Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
-            Aig_ManDumpBlif( pSRed, "srm.blif", NULL, NULL );
-            Aig_ManStop( pSRed );
-            printf( "Iterative refinement is stopped after iteration %d.\n", nIter );
-            printf( "The network is reduced using candidate equivalences.\n" );
-            printf( "Speculatively reduced miter is saved in file \"%s\".\n", "srm.blif" );
-            printf( "If the miter is SAT, the reduced result is incorrect.\n" );
-            break;
-        }
     } 
     p->pPars->nIters = nIter + 1;
 p->timeTotal = clock() - clkTotal;

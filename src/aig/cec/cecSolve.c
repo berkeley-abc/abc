@@ -703,7 +703,8 @@ void Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat_t * pP
     }
     p->timeTotal = clock() - clk;
     Bar_ProgressStop( pProgress );
-//    Cec_ManSatPrintStats( p );
+    if ( pPars->fVerbose )
+        Cec_ManSatPrintStats( p );
     Cec_ManSatStop( p );
     if ( pnPats )
         *pnPats = iPat-1;

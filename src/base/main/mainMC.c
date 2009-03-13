@@ -91,7 +91,7 @@ int main( int argc, char * argv[] )
     {
         // perform BMC
         if ( pAig->nRegs != 0 )
-            RetValue = Saig_ManBmcSimple( pAig, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, NULL );
+            RetValue = Saig_ManBmcSimple( pAig, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, NULL, 0 );
 
         // perform full-blown SEC
         if ( RetValue != 0 )
@@ -120,7 +120,7 @@ int main( int argc, char * argv[] )
         int nSizeMax = 500000;
         int nBTLimit = 10000000;
         int fRewrite = 0;
-        RetValue = Saig_ManBmcSimple( pAig, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &Depth );
+        RetValue = Saig_ManBmcSimple( pAig, nFrames, nSizeMax, nBTLimit, fRewrite, fVerbose, &Depth, 0 );
         if ( RetValue != 0 )
             RetValue = -1;
     }

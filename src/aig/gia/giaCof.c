@@ -685,6 +685,232 @@ ABC_PRT( "Time", clock() - clk );
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupCofInt( Gia_Man_t * p, int iVar )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj, * pPivot;
+    int i, iCofVar = -1;
+    if ( !(iVar > 0 && iVar < Gia_ManObjNum(p)) )
+    {
+        printf( "Gia_ManDupCof(): Variable %d is out of range (%d; %d).\n", iVar, 0, Gia_ManObjNum(p) );
+        return NULL;
+    }
+    // find the cofactoring variable
+    pPivot = Gia_ManObj( p, iVar );
+    if ( !Gia_ObjIsCand(pPivot) )
+    {
+        printf( "Gia_ManDupCof(): Variable %d should be a CI or an AND node.\n", iVar );
+        return NULL;
+    }
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    // compute negative cofactor
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        pObj->Value = Gia_ManAppendCi(pNew);
+        if ( pObj == pPivot )
+        {
+            iCofVar = pObj->Value;
+            pObj->Value = Gia_Var2Lit( 0, 0 );
+        }
+    }
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( pObj == pPivot )
+        {
+            iCofVar = pObj->Value;
+            pObj->Value = Gia_Var2Lit( 0, 0 );
+        }
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ObjFanin0Copy(pObj);
+    // compute the positive cofactor
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        pObj->Value = Gia_Var2Lit( Gia_ObjId(pNew, Gia_ManCi(pNew, i)), 0 );
+        if ( pObj == pPivot )
+            pObj->Value = Gia_Var2Lit( 0, 1 );
+    }
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( pObj == pPivot )
+            pObj->Value = Gia_Var2Lit( 0, 1 );
+    }
+    // create MUXes
+    assert( iCofVar > 0 );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        if ( pObj->Value == (unsigned)Gia_ObjFanin0Copy(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ManHashMux(pNew, iCofVar, Gia_ObjFanin0Copy(pObj), pObj->Value) );
+    }
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG in the DFS order while putting CIs first.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupCof( Gia_Man_t * p, int iVar )
+{
+    Gia_Man_t * pNew, * pTemp;
+    pNew = Gia_ManDupCofInt( p, iVar );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Determines variables whose fanout count is higher than this.]
+
+  Description [Variables are returned in a reverse topological order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManCofVars( Gia_Man_t * p, int nFanLim )
+{
+    Vec_Int_t * vVars;
+    Gia_Obj_t * pObj;
+    int i;
+    ABC_FREE( p->pRefs );
+    Gia_ManCreateRefs( p );
+    vVars = Vec_IntAlloc( 100 );
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjIsCand(pObj) && Gia_ObjRefs(p, pObj) >= nFanLim )
+            Vec_IntPush( vVars, i );
+    ABC_FREE( p->pRefs );
+    return vVars;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transfers attributes from the original one to the final one.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManTransfer( Gia_Man_t * pAig, Gia_Man_t * pCof, Gia_Man_t * pNew, Vec_Int_t * vSigs )
+{
+    Vec_Int_t * vSigsNew;
+    Gia_Obj_t * pObj, * pObjF;
+    int i;
+    vSigsNew = Vec_IntAlloc( 100 );
+    Gia_ManForEachObjVec( vSigs, pAig, pObj, i )
+    {
+        assert( Gia_ObjIsCand(pObj) );
+        pObjF = Gia_ManObj( pCof, Gia_Lit2Var(pObj->Value) );
+        if ( pObjF->Value && ~pObjF->Value )
+            Vec_IntPushUnique( vSigsNew, Gia_Lit2Var(pObjF->Value) );
+    }
+    return vSigsNew;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cofactors selected variables (should be in reverse topo order).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose )
+{
+    Vec_Int_t * vSigsNew, * vTemp;
+    Gia_Man_t * pAig, * pCof, * pNew;
+    int iVar;
+    if ( fVerbose )
+    { 
+        printf( "Cofactoring %d signals.\n", Vec_IntSize(vSigs) );
+        Gia_ManPrintStats( p );
+    }
+    if ( Vec_IntSize( vSigs ) > 200 )
+    {
+        printf( "Too many signals to cofactor.\n" );
+        return NULL;
+    }
+    pAig = Gia_ManDup( p );
+    vSigsNew = Vec_IntDup( vSigs );
+    while ( Vec_IntSize(vSigsNew) > 0 )
+    {
+        Vec_IntSort( vSigsNew, 0 );
+        iVar = Vec_IntPop( vSigsNew );
+//        Gia_ManCreateRefs( pAig );
+//        printf( "ref count = %d\n", Gia_ObjRefs( pAig, Gia_ManObj(pAig, iVar) ) );
+//        ABC_FREE( pAig->pRefs );
+        pCof = Gia_ManDupCofInt( pAig, iVar );
+        pNew = Gia_ManCleanup( pCof );
+        vSigsNew = Gia_ManTransfer( pAig, pCof, pNew, vTemp = vSigsNew );
+        Vec_IntFree( vTemp );
+        Gia_ManStop( pAig );
+        Gia_ManStop( pCof );
+        pAig = pNew;
+        if ( fVerbose )
+            printf( "Cofactored variable %d.\n", iVar );
+        if ( fVerbose )
+            Gia_ManPrintStats( pAig );
+    }
+    Vec_IntFree( vSigsNew );
+    return pAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cofactors all variables whose fanout is higher than this.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vSigs = Gia_ManCofVars( p, nFanLim );
+    pNew = Gia_ManDupCofAllInt( p, vSigs, fVerbose );
+    Vec_IntFree( vSigs );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
