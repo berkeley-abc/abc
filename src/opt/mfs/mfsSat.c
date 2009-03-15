@@ -43,11 +43,16 @@ int Abc_NtkMfsSolveSat_iter( Mfs_Man_t * p )
 {
     int Lits[MFS_FANIN_MAX];
     int RetValue, nBTLimit, iVar, b, Mint;
+//    int nConfs = p->pSat->stats.conflicts;
     if ( p->nTotConfLim && p->nTotConfLim <= p->pSat->stats.conflicts )
         return -1;
     nBTLimit = p->nTotConfLim? p->nTotConfLim - p->pSat->stats.conflicts : 0;
     RetValue = sat_solver_solve( p->pSat, NULL, NULL, (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     assert( RetValue == l_Undef || RetValue == l_True || RetValue == l_False );
+//printf( "%c", RetValue==l_Undef ? '?' : (RetValue==l_False ? '-' : '+') );
+//printf( "%d ", p->pSat->stats.conflicts-nConfs );
+//if ( RetValue==l_False )
+//printf( "\n" );
     if ( RetValue == l_Undef )
         return -1;
     if ( RetValue == l_False )

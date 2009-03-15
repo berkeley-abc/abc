@@ -3729,8 +3729,8 @@ int Abc_CommandLutmin( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nLutSize = 6;
-    fVerbose = 1;
+    nLutSize = 4;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Kvh" ) ) != EOF )
     {
@@ -3744,8 +3744,6 @@ int Abc_CommandLutmin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize > 1 ) 
-                goto usage;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -23956,6 +23954,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     extern void Gia_SatSolveTest( Gia_Man_t * p );
+    extern void Cbs_ManSolveTest( Gia_Man_t * pGia );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -23983,8 +23982,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_SatSolveTest( pAbc->pAig );
 //    For_ManExperiment( pAbc->pAig, 20, 1, 1 );
 //    Gia_ManUnrollSpecial( pAbc->pAig, 5, 100, 1 );
-    pAbc->pAig = Gia_ManDupSelf( pTemp = pAbc->pAig );
-    Gia_ManStop( pTemp );
+//    pAbc->pAig = Gia_ManDupSelf( pTemp = pAbc->pAig );
+//    Gia_ManStop( pTemp );
+//    Cbs_ManSolveTest( pAbc->pAig );
     return 0;
 
 usage:

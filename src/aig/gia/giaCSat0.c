@@ -122,8 +122,10 @@ void Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, V
     }
     Value = Gia_XsimNotCond( Value, Gia_ObjFaninC0(pRoot) );
     if ( Value != GIA_ONE )
-        printf( "Gia_SatVerifyPattern(): Verification failed.\n" );
-    assert( Value == GIA_ONE );
+        printf( "Gia_SatVerifyPattern(): Verification FAILED.\n" );
+//    else
+//        printf( "Gia_SatVerifyPattern(): Verification succeeded.\n" );
+//    assert( Value == GIA_ONE );
     // clean the nodes
     Gia_ManForEachObjVec( vVisit, p, pObj, i )
         Sat_ObjSetXValue( pObj, 0 );

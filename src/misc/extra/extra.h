@@ -169,7 +169,7 @@ extern DdNode *    Extra_bddImageRead2( Extra_ImageTree2_t * pTree );
 extern DdNode *     Extra_TransferPermute( DdManager * ddSource, DdManager * ddDestination, DdNode * f, int * Permute );
 extern DdNode *     Extra_TransferLevelByLevel( DdManager * ddSource, DdManager * ddDestination, DdNode * f );
 extern DdNode *     Extra_bddRemapUp( DdManager * dd, DdNode * bF );
-extern DdNode *     Extra_bddMove( DdManager * dd, DdNode * bF, int fShiftUp );
+extern DdNode *     Extra_bddMove( DdManager * dd, DdNode * bF, int nVars );
 extern DdNode *     extraBddMove( DdManager * dd, DdNode * bF, DdNode * bFlag );
 extern void         Extra_StopManager( DdManager * dd );
 extern void         Extra_bddPrint( DdManager * dd, DdNode * F );

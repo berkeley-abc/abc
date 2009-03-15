@@ -282,6 +282,9 @@ p->timeSim += clock() - clk;
 //            Gia_ManEquivTransform( p->pAig, 1 );
         }
         pSrm = Cec_ManFraSpecReduction( p ); 
+
+//        Gia_WriteAiger( pSrm, "gia_srm.aig", 0, 0 );
+
         if ( pPars->fVeryVerbose )
             Gia_ManPrintStats( pSrm );
         if ( Gia_ManCoNum(pSrm) == 0 )

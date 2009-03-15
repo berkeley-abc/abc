@@ -435,14 +435,15 @@ static inline int *      Gia_ObjGateFanins( Gia_Man_t * p, int Id )         { re
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== giaAig.c ============================================================*/
+/*=== giaAig.c =============================================================*/
 extern Gia_Man_t *         Gia_ManFromAig( Aig_Man_t * p );
 extern Gia_Man_t *         Gia_ManFromAigSwitch( Aig_Man_t * p );
 extern Aig_Man_t *         Gia_ManToAig( Gia_Man_t * p );
-/*=== giaAiger.c ==========================================================*/
+/*=== giaAiger.c ===========================================================*/
 extern Gia_Man_t *         Gia_ReadAiger( char * pFileName, int fCheck );
 extern void                Gia_WriteAiger( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact );
-/*=== giaCof.c ============================================================*/
+/*=== giaCsat.c ============================================================*/
+/*=== giaCof.c =============================================================*/
 extern void                Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes );
 extern Gia_Man_t *         Gia_ManDupCof( Gia_Man_t * p, int iVar );
 extern Gia_Man_t *         Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose );
