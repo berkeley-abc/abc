@@ -116,6 +116,7 @@ struct Gia_Man_t_
     int *          pMapping;      // mapping for each node
     Gia_Cex_t *    pCexComb;      // combinational counter-example
     int *          pCopies;       // intermediate copies
+    Vec_Int_t *    vFlopClasses;  // classes of flops for retiming/merging/etc
 };
 
 
@@ -123,15 +124,15 @@ struct Gia_Man_t_
 typedef struct Emb_Par_t_ Emb_Par_t;
 struct Emb_Par_t_
 {
-    int            nDims;            // the number of dimension
-    int            nSols;            // the number of solutions (typically, 2)
-    int            nIters;           // the number of iterations of FORCE
-    int            fRefine;          // use refinement by FORCE
-    int            fCluster;         // use clustered representation 
-    int            fDump;            // dump Gnuplot file
-    int            fDumpLarge;       // dump Gnuplot file for large benchmarks
-    int            fShowImage;       // shows image if Gnuplot is installed
-    int            fVerbose;         // verbose flag  
+    int            nDims;         // the number of dimension
+    int            nSols;         // the number of solutions (typically, 2)
+    int            nIters;        // the number of iterations of FORCE
+    int            fRefine;       // use refinement by FORCE
+    int            fCluster;      // use clustered representation 
+    int            fDump;         // dump Gnuplot file
+    int            fDumpLarge;    // dump Gnuplot file for large benchmarks
+    int            fShowImage;    // shows image if Gnuplot is installed
+    int            fVerbose;      // verbose flag  
 };
 
 
@@ -139,9 +140,9 @@ struct Emb_Par_t_
 typedef struct Gia_ParFra_t_ Gia_ParFra_t;
 struct Gia_ParFra_t_
 {
-    int            nFrames;      // the number of frames to unroll
-    int            fInit;        // initialize the timeframes
-    int            fVerbose;     // enables verbose output
+    int            nFrames;       // the number of frames to unroll
+    int            fInit;         // initialize the timeframes
+    int            fVerbose;      // enables verbose output
 };
 
 
@@ -151,11 +152,11 @@ typedef struct Gia_ParSim_t_ Gia_ParSim_t;
 struct Gia_ParSim_t_
 {
     // user-controlled parameters
-    int            nWords;       // the number of machine words
-    int            nIters;       // the number of timeframes
-    int            TimeLimit;    // time limit in seconds
-    int            fCheckMiter;  // check if miter outputs are non-zero
-    int            fVerbose;     // enables verbose output
+    int            nWords;        // the number of machine words
+    int            nIters;        // the number of timeframes
+    int            TimeLimit;     // time limit in seconds
+    int            fCheckMiter;   // check if miter outputs are non-zero
+    int            fVerbose;      // enables verbose output
 };
 
 extern void Gia_ManSimSetDefaultParams( Gia_ParSim_t * p );
@@ -456,6 +457,7 @@ extern int                 Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNo
 /*=== giaDup.c ============================================================*/
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
 extern Gia_Man_t *         Gia_ManDupSelf( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManDupFlopClass( Gia_Man_t * p, int iClass );
 extern Gia_Man_t *         Gia_ManDupMarked( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTimes( Gia_Man_t * p, int nTimes );  
 extern Gia_Man_t *         Gia_ManDupDfs( Gia_Man_t * p );  
@@ -472,6 +474,7 @@ extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
+extern Gia_Man_t *         Gia_ManRemoveEnables( Gia_Man_t * p );
 /*=== giaEquiv.c ==========================================================*/
 extern int                 Gia_ManCheckTopoOrder( Gia_Man_t * p );
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );
@@ -515,8 +518,11 @@ extern void                Gia_ManPrintStats( Gia_Man_t * p );
 extern void                Gia_ManPrintStatsShort( Gia_Man_t * p ); 
 extern void                Gia_ManPrintMiterStatus( Gia_Man_t * p ); 
 extern void                Gia_ManSetRegNum( Gia_Man_t * p, int nRegs );
+extern void                Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew );
 /*=== giaMap.c ===========================================================*/
 extern void                Gia_ManPrintMappingStats( Gia_Man_t * p );
+/*=== giaRetime.c ===========================================================*/
+extern Gia_Man_t *         Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose );
 /*=== giaSat.c ============================================================*/
 extern int                 Sat_ManTest( Gia_Man_t * pGia, Gia_Obj_t * pObj, int nConfsMax );
 /*=== giaScl.c ============================================================*/

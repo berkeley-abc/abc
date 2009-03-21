@@ -293,6 +293,8 @@ static int Abc_CommandAbc9Equiv      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc9Semi       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Times      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Frames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Retime     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Enable     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Miter      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -604,6 +606,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&semi",         Abc_CommandAbc9Semi,         0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&times",        Abc_CommandAbc9Times,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&frames",       Abc_CommandAbc9Frames,       0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&retime",       Abc_CommandAbc9Retime,       0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&enable",       Abc_CommandAbc9Enable,       0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&miter",        Abc_CommandAbc9Miter,        0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&scl",          Abc_CommandAbc9Scl,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&sat",          Abc_CommandAbc9Sat,          0 );
@@ -22899,7 +22903,7 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAig == NULL )
     {
-        printf( "Abc_CommandAbc9Times(): There is no AIG.\n" );
+        printf( "Abc_CommandAbc9Frames(): There is no AIG.\n" );
         return 1;
     } 
     if ( nCofFanLit )
@@ -22916,6 +22920,121 @@ usage:
     fprintf( stdout, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit? "yes": "no" );
     fprintf( stdout, "\t-i     : toggle initializing registers [default = %s]\n", pPars->fInit? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Retime( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c;
+    int nMaxIters = 100;
+    int fVerbose  =   0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMaxIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxIters < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Retime(): There is no AIG.\n" );
+        return 1;
+    } 
+    pAbc->pAig = Gia_ManRetimeForward( pTemp = pAbc->pAig, nMaxIters, fVerbose );
+    Gia_ManStop( pTemp );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &retime [-N <num>] [-vh]\n" );
+    fprintf( stdout, "\t         performs most-forward retiming\n" );
+    fprintf( stdout, "\t-N num : the number of incremental iterations [default = %d]\n", nMaxIters );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Enable( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c;
+    int fRemove  = 0;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'r':
+            fRemove ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAig == NULL )
+    {
+        printf( "Abc_CommandAbc9Enable(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( fRemove )
+        pAbc->pAig = Gia_ManRemoveEnables( pTemp = pAbc->pAig );
+    else
+        pAbc->pAig = Gia_ManDupSelf( pTemp = pAbc->pAig );
+    Gia_ManStop( pTemp );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: &enable [-rvh]\n" );
+    fprintf( stdout, "\t         adds or removes flop enable signals\n" );
+    fprintf( stdout, "\t-r     : toggle adding vs. removing enables [default = %s]\n", fRemove? "remove": "add" );
+    fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -23047,7 +23166,10 @@ usage:
 int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
-    int c, fConst = 1, fEquiv = 1, fVerbose = 1;
+    int c;
+    int fConst = 1;
+    int fEquiv = 1;
+    int fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "cevh" ) ) != EOF )
     {
@@ -23071,9 +23193,6 @@ int Abc_CommandAbc9Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Scl(): There is no AIG.\n" );
         return 1;
     } 
-    printf( "Implementation of this command is not finished.\n" );
-    return 0;
-
     pAbc->pAig = Gia_ManSeqStructSweep( pTemp = pAbc->pAig, fConst, fEquiv, fVerbose );
     Gia_ManStop( pTemp );
     return 0;
@@ -23953,14 +24072,18 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
+    int fSwitch = 0;
     extern void Gia_SatSolveTest( Gia_Man_t * p );
     extern void Cbs_ManSolveTest( Gia_Man_t * pGia );
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fSwitch ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -23982,14 +24105,19 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_SatSolveTest( pAbc->pAig );
 //    For_ManExperiment( pAbc->pAig, 20, 1, 1 );
 //    Gia_ManUnrollSpecial( pAbc->pAig, 5, 100, 1 );
-//    pAbc->pAig = Gia_ManDupSelf( pTemp = pAbc->pAig );
-//    Gia_ManStop( pTemp );
+
+    if ( fSwitch )
+        pAbc->pAig = Gia_ManDupSelf( pTemp = pAbc->pAig );
+    else 
+        pAbc->pAig = Gia_ManRemoveEnables( pTemp = pAbc->pAig );
+    Gia_ManStop( pTemp );
 //    Cbs_ManSolveTest( pAbc->pAig );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &test [-vh]\n" );
+    fprintf( stdout, "usage: &test [-svh]\n" );
     fprintf( stdout, "\t        testing various procedures\n" );
+    fprintf( stdout, "\t-s    : toggle enable (yes) vs. disable (no) [default = %s]\n", fSwitch? "yes": "no" );
     fprintf( stdout, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;

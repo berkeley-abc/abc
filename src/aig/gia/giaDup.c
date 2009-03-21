@@ -101,6 +101,50 @@ Gia_Man_t * Gia_ManDupSelf( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates while adding self-loops to the registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupFlopClass( Gia_Man_t * p, int iClass )
+{
+    Gia_Man_t * pNew; 
+    Gia_Obj_t * pObj;
+    int i, Counter1 = 0, Counter2 = 0;
+    assert( p->vFlopClasses != NULL );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Vec_IntEntry(p->vFlopClasses, i) != iClass )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Vec_IntEntry(p->vFlopClasses, i) == iClass )
+            pObj->Value = Gia_ManAppendCi( pNew ), Counter1++;
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachRi( p, pObj, i )
+        if ( Vec_IntEntry(p->vFlopClasses, i) != iClass )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachRi( p, pObj, i )
+        if ( Vec_IntEntry(p->vFlopClasses, i) == iClass )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) ), Counter2++;
+    assert( Counter1 == Counter2 );
+    Gia_ManSetRegNum( pNew, Counter1 );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG without any changes.]
 
   Description []
@@ -132,6 +176,8 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
         }
         else if ( Gia_ObjIsCo(pObj) )
         {
+            Gia_Obj_t * pFanin = Gia_ObjFanin0(pObj);
+
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
             nRis += Gia_ObjIsRi(p, pObj);
         }
@@ -552,7 +598,10 @@ Gia_Man_t * Gia_ManDupDfsCiMap( Gia_Man_t * p, int * pCi2Lit, Vec_Int_t * vLits 
     else
     {
         Gia_ManForEachCo( p, pObj, i )
-            Gia_ManDupDfs_rec( pNew, p, pObj );
+        {
+            Gia_ManDupDfs2_rec( pNew, p, Gia_ObjFanin0(pObj) );
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        }
     }
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );

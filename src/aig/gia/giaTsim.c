@@ -47,6 +47,8 @@ struct Gia_ManTer_t_
     int            nStateWords;
     Vec_Ptr_t *    vStates;
     Vec_Ptr_t *    vFlops;
+    Vec_Int_t *    vRetired;     // retired registers
+    char *         pRetired;     // retired registers
     int *          pCount0;
     int *          pCountX;
     // hash table for states
@@ -84,11 +86,13 @@ Gia_ManTer_t * Gia_ManTerCreate( Gia_Man_t * pAig )
     p->pDataSimCos = ABC_ALLOC( unsigned, Aig_BitWordNum(2*Gia_ManCoNum(p->pAig)) );
     // allocate storage for terminary states
     p->nStateWords = Aig_BitWordNum( 2*Gia_ManRegNum(pAig) );
-    p->vStates = Vec_PtrAlloc( 1000 );
-    p->pCount0 = ABC_CALLOC( int, Gia_ManRegNum(pAig) );
-    p->pCountX = ABC_CALLOC( int, Gia_ManRegNum(pAig) );
-    p->nBins   = Aig_PrimeCudd( 500 );
-    p->pBins   = ABC_CALLOC( unsigned *, p->nBins );
+    p->vStates  = Vec_PtrAlloc( 1000 );
+    p->pCount0  = ABC_CALLOC( int, Gia_ManRegNum(pAig) );
+    p->pCountX  = ABC_CALLOC( int, Gia_ManRegNum(pAig) );
+    p->nBins    = Aig_PrimeCudd( 500 );
+    p->pBins    = ABC_CALLOC( unsigned *, p->nBins );
+    p->vRetired = Vec_IntAlloc( 100 );
+    p->pRetired = ABC_CALLOC( char, Gia_ManRegNum(pAig) );
     return p;
 }
 
@@ -130,6 +134,8 @@ void Gia_ManTerDelete( Gia_ManTer_t * p )
     if ( p->vFlops ) 
         Gia_ManTerStatesFree( p->vFlops );
     Gia_ManStop( p->pAig );
+    Vec_IntFree( p->vRetired );
+    ABC_FREE( p->pRetired );
     ABC_FREE( p->pCount0 );
     ABC_FREE( p->pCountX );
     ABC_FREE( p->pBins );
@@ -169,6 +175,10 @@ static inline void Gia_ManTerSimulateCi( Gia_ManTer_t * p, Gia_Obj_t * pObj, int
 static inline void Gia_ManTerSimulateCo( Gia_ManTer_t * p, int iCo, Gia_Obj_t * pObj )
 {
     int Value = Gia_ManTerSimInfoGet( p->pDataSim, Gia_ObjDiff0(pObj) );
+    if ( iCo == Gia_ManCoNum(p->pAig) -1 )
+    {
+        int s = 0;
+    }
     Gia_ManTerSimInfoSet( p->pDataSimCos, iCo, Gia_XsimNotCond( Value, Gia_ObjFaninC0(pObj) ) );
 }
 
@@ -368,7 +378,7 @@ static inline void Gia_ManTerSimulateRound( Gia_ManTer_t * p )
     int i, iCis = 0, iCos = 0;
     assert( p->pAig->nFront > 0 );
     assert( Gia_ManConst0(p->pAig)->Value == 0 );
-    Gia_ManTerSimInfoSet( p->pDataSim, 0, GIA_ONE );
+    Gia_ManTerSimInfoSet( p->pDataSim, 0, GIA_ZER );
     Gia_ManForEachObj1( p->pAig, pObj, i )
     {
         if ( Gia_ObjIsAndOrConst0(pObj) )
@@ -403,20 +413,54 @@ static inline void Gia_ManTerSimulateRound( Gia_ManTer_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManTerRetire( Gia_ManTer_t * p, unsigned * pState )
+int Gia_ManTerRetire2( Gia_ManTer_t * p, unsigned * pState )
 {
-    int i, iMaxTerValue = 0, Counter = 0;
+    int i, Entry, iMaxTerValue = -1, Counter = 0;
+    // find non-retired register with this value
     for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
-        if ( Gia_ManTerSimInfoGet( pState, i ) != GIA_UND && iMaxTerValue < p->pCountX[i] )
+        if ( Gia_ManTerSimInfoGet( pState, i ) != GIA_UND && !p->pRetired[i] && iMaxTerValue < p->pCountX[i] )
             iMaxTerValue = p->pCountX[i];
-    // retire all registers with this value
+    assert( iMaxTerValue >= 0 );
+    // retire the first registers with this value
     for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
-        if ( Gia_ManTerSimInfoGet( pState, i ) != GIA_UND && iMaxTerValue == p->pCountX[i] )
+        if ( Gia_ManTerSimInfoGet( pState, i ) != GIA_UND && !p->pRetired[i] && iMaxTerValue == p->pCountX[i] )
         {
-            Gia_ManTerSimInfoSet( p->pDataSimCis, Gia_ManPiNum(p->pAig)+i, GIA_UND );
-            Counter++;
+            assert( p->pRetired[i] == 0 );
+            p->pRetired[i] = 1;
+            Vec_IntPush( p->vRetired, i );
+            if ( iMaxTerValue == 0 )
+                break;
         }
-    return Counter;
+    // update all the retired registers
+    Vec_IntForEachEntry( p->vRetired, Entry, i )
+        Gia_ManTerSimInfoSet( p->pDataSimCis, Gia_ManPiNum(p->pAig)+Entry, GIA_UND );
+    return Vec_IntSize(p->vRetired);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Retires a set of registers to speed up convergence.]
+
+  Description [Retire all non-ternary registers which has max number 
+  of ternary values so far.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManTerRetire( Gia_ManTer_t * p, unsigned * pThis, unsigned * pPrev )
+{
+    int i, Entry;
+    // find registers whose value has changed
+    Vec_IntClear( p->vRetired );
+    for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
+        if ( Gia_ManTerSimInfoGet( pThis, i ) != Gia_ManTerSimInfoGet( pPrev, i ) )
+            Vec_IntPush( p->vRetired, i );
+    // set all of them to zero
+    Vec_IntForEachEntry( p->vRetired, Entry, i )
+        Gia_ManTerSimInfoSet( p->pDataSimCis, Gia_ManPiNum(p->pAig)+Entry, GIA_UND );
+    return Vec_IntSize(p->vRetired);
 }
 
 /**Function*************************************************************
@@ -509,8 +553,8 @@ void Gia_ManTerAnalyze( Gia_ManTer_t * p )
             nZeros++;
         else if ( p->pCountX[i] == 0 )
             nConsts++;
-    printf( "Found %d constant registers.\n", nZeros );
-    printf( "Found %d non-ternary registers.\n", nConsts );
+//    printf( "Found %d constant registers.\n", nZeros );
+//    printf( "Found %d non-ternary registers.\n", nConsts );
 }
 
 
@@ -581,7 +625,7 @@ int Gia_ManFindEqualFlop( Vec_Ptr_t * vFlops, int iFlop, int nFlopWords )
   SeeAlso     []
 
 ***********************************************************************/
-int * Gia_ManTerCreateMap( Gia_ManTer_t * p )
+int * Gia_ManTerCreateMap( Gia_ManTer_t * p, int fVerbose )
 {
     int * pCi2Lit;
     Gia_Obj_t * pObj;
@@ -605,7 +649,8 @@ int * Gia_ManTerCreateMap( Gia_ManTer_t * p )
             CounterE++;
         }
     Vec_IntFree( vMapKtoI );
-    printf( "Transformed %d const registers and %d equiv registers.\n", Counter0, CounterE );
+    if ( fVerbose )
+        printf( "Transforming %d const and %d equiv registers.\n", Counter0, CounterE );
     return pCi2Lit;
 }
 
@@ -624,13 +669,13 @@ int * Gia_ManTerCreateMap( Gia_ManTer_t * p )
 Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
 {
     Gia_ManTer_t * p;
-    unsigned * pState, * pLoop;
+    unsigned * pState, * pPrev, * pLoop;
     int i, Counter, clk, clkTotal = clock();
     assert( Gia_ManRegNum(pAig) > 0 );
     // create manager
     clk = clock();
     p = Gia_ManTerCreate( pAig );
-    if ( fVerbose )
+    if ( 0 )
     {
         printf( "Obj = %8d (%8d). F = %6d. ", 
             pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront, 
@@ -648,6 +693,7 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     Gia_ManTerStateInsert( pState, p->nStateWords, p->pBins, p->nBins );
 //Gia_ManTerStatePrint( pState, Gia_ManRegNum(pAig), 0 );
     // perform simuluation till convergence
+    pPrev = NULL;
     for ( i = 0; ; i++ )
     {
         Gia_ManTerSimulateRound( p );
@@ -663,15 +709,17 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
         Gia_ManTerStateInsert( pState, p->nStateWords, p->pBins, p->nBins );
         if ( i >= p->nIters && i % 10 == 0 )
         {
-            Counter = Gia_ManTerRetire( p, pState );
-            if ( fVerbose )
-                printf( "Retired %d registers.\n", Counter );
+            Counter = Gia_ManTerRetire( p, pState, pPrev );
+//            Counter = Gia_ManTerRetire2( p, pState );
+//            if ( fVerbose )
+//                printf( "Retired %d registers.\n", Counter );
         }
+        pPrev = pState;
     }
     if ( fVerbose )
     {
-        printf( "Saturated after %d iterations. ", i+1 );
-        ABC_PRT( "Total time", clock() - clkTotal );
+        printf( "Ternary simulation saturated after %d iterations. ", i+1 );
+        ABC_PRT( "Time", clock() - clkTotal );
     }
     return p;
 }
@@ -694,7 +742,7 @@ Gia_Man_t * Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose )
     int * pCi2Lit;
     p = Gia_ManTerSimulate( pAig, fVerbose );
     Gia_ManTerAnalyze( p );
-    pCi2Lit = Gia_ManTerCreateMap( p );
+    pCi2Lit = Gia_ManTerCreateMap( p, fVerbose );
     Gia_ManTerDelete( p );
     pNew = Gia_ManDupDfsCiMap( pAig, pCi2Lit, NULL );
     ABC_FREE( pCi2Lit );

@@ -44,10 +44,10 @@ static inline int  Aig_XsimInv( int Value )
 }
 static inline int  Aig_XsimAnd( int Value0, int Value1 )   
 { 
-    if ( Value0 == AIG_XVSX || Value1 == AIG_XVSX )
-        return AIG_XVSX;
     if ( Value0 == AIG_XVS0 || Value1 == AIG_XVS0 )
         return AIG_XVS0;
+    if ( Value0 == AIG_XVSX || Value1 == AIG_XVSX )
+        return AIG_XVSX;
     assert( Value0 == AIG_XVS1 && Value1 == AIG_XVS1 );
     return AIG_XVS1;
 }
@@ -347,7 +347,7 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
     Vec_Ptr_t * vMap;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     unsigned * pState;//, * pPrev;
-    int i, f, fConstants, Value, nCounter;
+    int i, f, fConstants, Value, nCounter, nRetired;
     // allocate the simulation manager
     pTsi = Aig_TsiStart( p );
     // initialize the values
@@ -383,11 +383,17 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
         Aig_TsiStateInsert( pTsi, pState, pTsi->nWords );
         // simulate internal nodes
         Aig_ManForEachNode( p, pObj, i )
+        {
             Aig_ObjSetXsim( pObj, Aig_XsimAnd(Aig_ObjGetXsimFanin0(pObj), Aig_ObjGetXsimFanin1(pObj)) );
+//            printf( "%d %d    Id = %2d.  Value = %d.\n", 
+//                Aig_ObjGetXsimFanin0(pObj), Aig_ObjGetXsimFanin1(pObj),
+//                i, Aig_XsimAnd(Aig_ObjGetXsimFanin0(pObj), Aig_ObjGetXsimFanin1(pObj)) );
+        }
         // transfer the latch values
         Aig_ManForEachLiSeq( p, pObj, i )
             Aig_ObjSetXsim( pObj, Aig_ObjGetXsimFanin0(pObj) );
         nCounter = 0;
+        nRetired = 0;
         Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
         {
             if ( f < TSI_ONE_SERIES )
@@ -395,10 +401,16 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
             else
             {
                 if ( Aig_ObjGetXsim(pObjLi) != Aig_ObjGetXsim(pObjLo) )
+                {
                     Aig_ObjSetXsim( pObjLo, AIG_XVSX );
+                    nRetired++;
+                }
             }
             nCounter += (Aig_ObjGetXsim(pObjLo) == AIG_XVS0);
         }
+//        if ( nRetired )
+//        printf( "Retired %d registers.\n", nRetired );
+
 //        if ( f && (f % 1000 == 0) )
 //            printf( "%d \n", f );
 //printf( "%d  ", nCounter );

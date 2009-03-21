@@ -194,12 +194,19 @@ Aig_Man_t * Gia_ManToAig( Gia_Man_t * p )
 //        if ( Aig_ObjRefs(pObj) == 0 )
             ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
     }
+
     // add logic for the POs
     Gia_ManForEachCo( p, pObj, i )
     {
         Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );        
         ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
     }
+/*
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );        
+    Gia_ManForEachCo( p, pObj, i )
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
+*/
     Aig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     ABC_FREE( ppNodes );
     return pNew;

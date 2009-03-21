@@ -66,6 +66,8 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
 ***********************************************************************/
 void Gia_ManStop( Gia_Man_t * p )  
 {
+    if ( p->vFlopClasses )
+    Vec_IntFree( p->vFlopClasses );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
     ABC_FREE( p->pCexComb );
@@ -81,6 +83,38 @@ void Gia_ManStop( Gia_Man_t * p )
     ABC_FREE( p->pHTable );
     ABC_FREE( p->pObjs );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintClasses( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( p->vFlopClasses == NULL )
+        return;
+    Gia_ManForEachRo( p, pObj, i )
+        printf( "%d", Vec_IntEntry(p->vFlopClasses, i) );
+    printf( "\n" );
+
+    {
+        Gia_Man_t * pTemp;
+        pTemp = Gia_ManDupFlopClass( p, 1 );
+        Gia_WriteAiger( pTemp, "dom1.aig", 0, 0 );
+        Gia_ManStop( pTemp );
+        pTemp = Gia_ManDupFlopClass( p, 2 );
+        Gia_WriteAiger( pTemp, "dom2.aig", 0, 0 );
+        Gia_ManStop( pTemp );
+    }
 }
 
 /**Function*************************************************************
@@ -113,6 +147,8 @@ void Gia_ManPrintStats( Gia_Man_t * p )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
     if ( p->pMapping )
         Gia_ManPrintMappingStats( p );
+    // print register classes
+//    Gia_ManPrintClasses( p );
 }
 
 /**Function*************************************************************
@@ -204,6 +240,28 @@ void Gia_ManSetRegNum( Gia_Man_t * p, int nRegs )
     p->nRegs = nRegs;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Reports the reduction of the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew )
+{
+    printf( "REG: Beg = %5d. End = %5d. (R =%5.1f %%)  ",
+        Gia_ManRegNum(p), Gia_ManRegNum(pNew), 
+        Gia_ManRegNum(p)? 100.0*(Gia_ManRegNum(p)-Gia_ManRegNum(pNew))/Gia_ManRegNum(p) : 0.0 );
+    printf( "AND: Beg = %6d. End = %6d. (R =%5.1f %%)",
+        Gia_ManAndNum(p), Gia_ManAndNum(pNew), 
+        Gia_ManAndNum(p)? 100.0*(Gia_ManAndNum(p)-Gia_ManAndNum(pNew))/Gia_ManAndNum(p) : 0.0 );
+    printf( "\n" );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

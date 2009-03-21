@@ -415,7 +415,225 @@ Gia_Man_t * Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, i
     Vec_IntFree( vCofSigs );
     Gia_ManStop( pAig );
     return pNew;
+}
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transform seq circuits with enables by removing enables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManRemoveEnables2( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pAux; 
+    Gia_Obj_t * pTemp, * pObjC, * pObj0, * pObj1, * pFlopIn, * pFlopOut;
+    Gia_Obj_t * pThis, * pNode;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pThis, i )
+        pThis->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pThis, i )
+        pThis->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pThis), Gia_ObjFanin1Copy(pThis) );
+    Gia_ManForEachPo( p, pThis, i )
+        pThis->Value = Gia_ObjFanin0Copy(pThis);
+    Gia_ManForEachRi( p, pFlopIn, i )
+    {
+        pNode = Gia_ObjFanin0(pFlopIn);
+        if ( !Gia_ObjIsMuxType(pNode) )
+        {
+            printf( "Cannot recognize enable of flop %d.\n", i );
+            continue;
+        }
+        pObjC = Gia_ObjRecognizeMux( pNode, &pObj1, &pObj0 );
+        pFlopOut = Gia_ObjRiToRo( p, pFlopIn );
+        if ( Gia_Regular(pObj0) != pFlopOut && Gia_Regular(pObj1) != pFlopOut )
+        {
+            printf( "Cannot recognize self-loop of enable flop %d.\n", i );
+            continue;
+        }
+        if ( !Gia_ObjFaninC0(pFlopIn) )
+        {
+            pObj0 = Gia_Not(pObj0);
+            pObj1 = Gia_Not(pObj1);
+        }
+        if ( Gia_IsComplement(pObjC) )
+        {
+            pObjC = Gia_Not(pObjC);
+            pTemp = pObj0;
+            pObj0 = pObj1;
+            pObj1 = pTemp;
+        }
+        if ( Gia_Regular(pObj0) == pFlopOut )
+        {
+//            printf( "FlopIn compl = %d. FlopOut is d0. Complement = %d.\n", 
+//                Gia_ObjFaninC0(pFlopIn), Gia_IsComplement(pObj0) );
+            pFlopIn->Value = Gia_LitNotCond(Gia_Regular(pObj1)->Value, !Gia_IsComplement(pObj1));
+        }
+        else if ( Gia_Regular(pObj1) == pFlopOut )
+        {
+//            printf( "FlopIn compl = %d. FlopOut is d1. Complement = %d.\n", 
+//                Gia_ObjFaninC0(pFlopIn), Gia_IsComplement(pObj1) );
+            pFlopIn->Value = Gia_LitNotCond(Gia_Regular(pObj0)->Value, !Gia_IsComplement(pObj0));
+        }
+    }
+    Gia_ManForEachCo( p, pThis, i )
+        Gia_ManAppendCo( pNew, pThis->Value );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pAux = pNew );
+    Gia_ManStop( pAux );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transform seq circuits with enables by removing enables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
+{
+    Vec_Ptr_t * vCtrls, * vDatas;
+    Vec_Int_t * vFlopClasses;
+    Gia_Man_t * pNew, * pAux; 
+    Gia_Obj_t * pFlopIn, * pFlopOut, * pDriver, * pFan0, * pFan1, * pCtrl, * pData, * pObj;
+    int i, iClass, fCompl, Counter = 0;
+    vCtrls = Vec_PtrAlloc( 100 );
+    Vec_PtrPush( vCtrls, NULL );
+    vDatas = Vec_PtrAlloc( Gia_ManRegNum(p) );
+    vFlopClasses = Vec_IntAlloc( Gia_ManRegNum(p) );
+    Gia_ManForEachRi( p, pFlopIn, i )
+    {
+        fCompl = Gia_ObjFaninC0(pFlopIn);
+        pDriver = Gia_ObjFanin0(pFlopIn);
+        if ( !Gia_ObjIsAnd(pDriver) )
+        {
+            printf( "The flop driver %d is not a node.\n", i );
+            Vec_PtrPush( vDatas, NULL );
+            Vec_IntPush( vFlopClasses, 0 );
+            Counter++;
+            continue;
+        }
+        if ( !Gia_ObjFaninC0(pDriver) || !Gia_ObjFaninC1(pDriver) )
+        {
+            printf( "The flop driver %d is not an OR gate.\n", i );
+            Vec_PtrPush( vDatas, NULL );
+            Vec_IntPush( vFlopClasses, 0 );
+            Counter++;
+            continue;
+        }
+        pFan0 = Gia_ObjFanin0(pDriver);
+        pFan1 = Gia_ObjFanin1(pDriver);
+        if ( !Gia_ObjIsAnd(pFan0) || !Gia_ObjIsAnd(pFan1) )
+        {
+            printf( "The flop driver fanin %d is not a node.\n", i );
+            Vec_PtrPush( vDatas, NULL );
+            Vec_IntPush( vFlopClasses, 0 );
+            Counter++;
+            continue;
+        }
+        pFlopOut = Gia_ObjRiToRo( p, pFlopIn );
+        pFlopOut = Gia_NotCond( pFlopOut, !fCompl );
+        if ( Gia_ObjChild0(pFan0) != pFlopOut && Gia_ObjChild1(pFan0) != pFlopOut && 
+             Gia_ObjChild0(pFan1) != pFlopOut && Gia_ObjChild1(pFan1) != pFlopOut )
+        {
+            printf( "The flop %d does not have a self-loop.\n", i );
+            Vec_PtrPush( vDatas, NULL );
+            Vec_IntPush( vFlopClasses, 0 );
+            Counter++;
+            continue;
+        }
+        pData = NULL;
+        if ( Gia_ObjChild0(pFan0) == pFlopOut )
+        {
+            pCtrl = Gia_Not( Gia_ObjChild1(pFan0) );
+            if ( Gia_ObjFanin0(pFan1) == Gia_Regular(pCtrl) )
+                pData = Gia_ObjChild1(pFan1);
+            else
+                pData = Gia_ObjChild0(pFan1);
+        }
+        else if ( Gia_ObjChild1(pFan0) == pFlopOut )
+        {
+            pCtrl = Gia_Not( Gia_ObjChild0(pFan0) );
+            if ( Gia_ObjFanin0(pFan1) == Gia_Regular(pCtrl) )
+                pData = Gia_ObjChild1(pFan1);
+            else
+                pData = Gia_ObjChild0(pFan1);
+        }
+        else if ( Gia_ObjChild0(pFan1) == pFlopOut )
+        {
+            pCtrl = Gia_Not( Gia_ObjChild1(pFan1) );
+            if ( Gia_ObjFanin0(pFan0) == Gia_Regular(pCtrl) )
+                pData = Gia_ObjChild1(pFan0);
+            else
+                pData = Gia_ObjChild0(pFan0);
+        }
+        else if ( Gia_ObjChild1(pFan1) == pFlopOut )
+        {
+            pCtrl = Gia_Not( Gia_ObjChild0(pFan1) );
+            if ( Gia_ObjFanin0(pFan0) == Gia_Regular(pCtrl) )
+                pData = Gia_ObjChild1(pFan0);
+            else
+                pData = Gia_ObjChild0(pFan0);
+        }
+        else assert( 0 );
+        if ( Vec_PtrFind( vCtrls, pCtrl ) == -1 )
+            Vec_PtrPush( vCtrls, pCtrl );
+        iClass = Vec_PtrFind( vCtrls, pCtrl );
+        pData = Gia_NotCond( pData, !fCompl );
+        Vec_PtrPush( vDatas, pData );
+        Vec_IntPush( vFlopClasses, iClass );
+    }
+    assert( Vec_PtrSize( vDatas ) == Gia_ManRegNum(p) );
+    assert( Vec_IntSize( vFlopClasses ) == Gia_ManRegNum(p) );
+    printf( "Detected %d classes.\n", Vec_PtrSize(vCtrls) - (Counter == 0) );
+    Vec_PtrFree( vCtrls );
+    
+
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsPo(p, pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManForEachRi( p, pObj, i )
+    {
+        pData = Vec_PtrEntry(vDatas, i);
+        if ( pData == NULL )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_LitNotCond(Gia_Regular(pData)->Value, Gia_IsComplement(pData)) );
+    }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Vec_PtrFree( vDatas );
+
+
+    pNew = Gia_ManCleanup( pAux = pNew );
+    Gia_ManStop( pAux );
+    pNew->vFlopClasses = vFlopClasses;
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -136,8 +136,6 @@ int Gia_ManSeqMarkUsed( Gia_Man_t * p )
     Gia_ManConst0(p)->fMark0 = 0;
     Gia_ManForEachPi( p, pObj, i )
         pObj->fMark0 = 0;
-    Gia_ManForEachPo( p, pObj, i )
-        pObj->fMark0 = 0;
     vRoots = Gia_ManCollectPoIds( p );
     Gia_ManForEachObjVec( vRoots, p, pObj, i )
         nNodes += Gia_ManSeqMarkUsed_rec( p, pObj, vRoots );
@@ -166,7 +164,7 @@ Gia_Man_t * Gia_ManSeqCleanup( Gia_Man_t * p )
 
   Synopsis    [Find representatives due to identical fanins.]
 
-  Description []
+  Description [Returns the old manager if there is no changes.]
                
   SideEffects []
 
@@ -189,7 +187,7 @@ Gia_Man_t * Gia_ManReduceEquiv( Gia_Man_t * p, int fVerbose )
     Gia_ManForEachRiRo( p, pObjRi, pObjRo, i )
     {
         iLit = Gia_ObjFanin0Copy( pObjRi );
-        if ( Gia_ObjFaninId0p(p, pObjRi) == 0 )
+        if ( Gia_ObjFaninId0p(p, pObjRi) == 0 && Gia_ObjFaninC0(pObjRi) == 0 ) // const 0 
             pCi2Lit[Gia_ManPiNum(p)+i] = 0, Counter0++;
         else if ( ~pMaps[iLit] ) // in this case, ID(pObj) > ID(pRepr) 
             pCi2Lit[Gia_ManPiNum(p)+i] = pMaps[iLit], Counter++; 
@@ -209,10 +207,13 @@ Gia_Man_t * Gia_ManReduceEquiv( Gia_Man_t * p, int fVerbose )
         }
     }
 */
-    if ( fVerbose )
-        printf( "ReduceEquiv detected %d constant regs and %d equivalent regs.\n", Counter0, Counter );
+//    if ( fVerbose )
+//        printf( "ReduceEquiv detected %d constant regs and %d equivalent regs.\n", Counter0, Counter );
     ABC_FREE( pMaps );
-    pNew = Gia_ManDupDfsCiMap( p, pCi2Lit, NULL );
+    if ( Counter0 || Counter )
+        pNew = Gia_ManDupDfsCiMap( p, pCi2Lit, NULL );
+    else
+        pNew = p;
     ABC_FREE( pCi2Lit );
     return pNew;
 }
@@ -233,19 +234,34 @@ Gia_Man_t * Gia_ManSeqStructSweep( Gia_Man_t * p, int fConst, int fEquiv, int fV
     Gia_Man_t * pTemp;
     if ( Gia_ManRegNum(p) == 0 )
         return Gia_ManDup( p );
-    p = Gia_ManSeqCleanup( p );
+    if ( fVerbose )
+        printf( "Performing sequential cleanup.\n" );
+    p = Gia_ManSeqCleanup( pTemp = p );
+    if ( fVerbose )
+        Gia_ManReportImprovement( pTemp, p );
     if ( fConst && Gia_ManRegNum(p) )
     {
         p = Gia_ManReduceConst( pTemp = p, fVerbose );
+        if ( fVerbose )
+            Gia_ManReportImprovement( pTemp, p );
         Gia_ManStop( pTemp );
     }
-    if ( fEquiv && Gia_ManRegNum(p) )
+    if ( fVerbose && fEquiv )
+        printf( "Merging combinationally equivalent flops.\n" );
+    if ( fEquiv )
+    while ( 1 )
     {
+        p = Gia_ManSeqCleanup( pTemp = p );
+        if ( fVerbose )
+            Gia_ManReportImprovement( pTemp, p );
+        Gia_ManStop( pTemp );
+        if ( Gia_ManRegNum(p) == 0 )
+            break;
         p = Gia_ManReduceEquiv( pTemp = p, fVerbose );
+        if ( p == pTemp )
+            break;
         Gia_ManStop( pTemp );
     }
-    p = Gia_ManSeqCleanup( pTemp = p );
-    Gia_ManStop( pTemp );
     return p;
 }
 

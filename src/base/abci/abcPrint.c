@@ -174,20 +174,20 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
 
     fprintf( pFile, "%-13s:",       pNtk->pName );
     if ( Abc_NtkAssertNum(pNtk) )
-        fprintf( pFile, " i/o/a = %5d/%5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkAssertNum(pNtk) );
+        fprintf( pFile, " i/o/a =%5d/%5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkAssertNum(pNtk) );
     else
-        fprintf( pFile, " i/o = %5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
-    fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
+        fprintf( pFile, " i/o =%5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
+    fprintf( pFile, "  lat =%5d", Abc_NtkLatchNum(pNtk) );
     if ( Abc_NtkIsNetlist(pNtk) )
     {
-        fprintf( pFile, "  net = %5d", Abc_NtkNetNum(pNtk) );
-        fprintf( pFile, "  nd = %5d",  Abc_NtkNodeNum(pNtk) );
-        fprintf( pFile, "  wbox = %3d", Abc_NtkWhiteboxNum(pNtk) );
-        fprintf( pFile, "  bbox = %3d", Abc_NtkBlackboxNum(pNtk) );
+        fprintf( pFile, "  net =%5d", Abc_NtkNetNum(pNtk) );
+        fprintf( pFile, "  nd =%5d",  Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, "  wbox =%3d", Abc_NtkWhiteboxNum(pNtk) );
+        fprintf( pFile, "  bbox =%3d", Abc_NtkBlackboxNum(pNtk) );
     }
     else if ( Abc_NtkIsStrash(pNtk) )
     {        
-        fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, "  and =%7d", Abc_NtkNodeNum(pNtk) );
         if ( (Num = Abc_NtkGetChoiceNum(pNtk)) )
             fprintf( pFile, " (choice = %d)", Num );
         if ( fPrintMuxes )
@@ -201,8 +201,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
     }
     else 
     {
-        fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
-        fprintf( pFile, "  edge = %6d", Abc_NtkGetTotalFanins(pNtk) );
+        fprintf( pFile, "  nd =%6d", Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, "  edge =%7d", Abc_NtkGetTotalFanins(pNtk) );
     }
 
     if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsNetlist(pNtk) )
@@ -211,19 +211,19 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
     else if ( Abc_NtkHasSop(pNtk) )   
     {
 
-        fprintf( pFile, "  cube = %5d",  Abc_NtkGetCubeNum(pNtk) );
+        fprintf( pFile, "  cube =%6d",  Abc_NtkGetCubeNum(pNtk) );
 //        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
         if ( fFactored )
-            fprintf( pFile, "  lit(fac) = %5d",  Abc_NtkGetLitFactNum(pNtk) );
+            fprintf( pFile, "  lit(fac) =%6d",  Abc_NtkGetLitFactNum(pNtk) );
     }
     else if ( Abc_NtkHasAig(pNtk) )
-        fprintf( pFile, "  aig  = %5d",  Abc_NtkGetAigNodeNum(pNtk) );
+        fprintf( pFile, "  aig  =%6d",  Abc_NtkGetAigNodeNum(pNtk) );
     else if ( Abc_NtkHasBdd(pNtk) )
-        fprintf( pFile, "  bdd  = %5d",  Abc_NtkGetBddNodeNum(pNtk) );
+        fprintf( pFile, "  bdd  =%6d",  Abc_NtkGetBddNodeNum(pNtk) );
     else if ( Abc_NtkHasMapping(pNtk) )
     {
-        fprintf( pFile, "  area = %5.2f", Abc_NtkGetMappedArea(pNtk) );
-        fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTrace(pNtk) );
+        fprintf( pFile, "  area =%5.2f", Abc_NtkGetMappedArea(pNtk) );
+        fprintf( pFile, "  delay =%5.2f", Abc_NtkDelayTrace(pNtk) );
     }
     else if ( !Abc_NtkHasBlackbox(pNtk) )
     {
@@ -233,28 +233,28 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
     if ( Abc_NtkIsStrash(pNtk) )
     {
         extern int Abc_NtkGetMultiRefNum( Abc_Ntk_t * pNtk );
-        fprintf( pFile, "  lev = %3d", Abc_AigLevel(pNtk) );
+        fprintf( pFile, "  lev =%3d", Abc_AigLevel(pNtk) );
 //        fprintf( pFile, "  ff = %5d", Abc_NtkNodeNum(pNtk) + 2 * (Abc_NtkCoNum(pNtk)+Abc_NtkGetMultiRefNum(pNtk)) );
 //        fprintf( pFile, "  var = %5d", Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk)+Abc_NtkGetMultiRefNum(pNtk) );
     }
     else 
-        fprintf( pFile, "  lev = %3d", Abc_NtkLevel(pNtk) );
+        fprintf( pFile, "  lev =%3d", Abc_NtkLevel(pNtk) );
     if ( fUseLutLib && Abc_FrameReadLibLut() )
-        fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTraceLut(pNtk, 1) );
+        fprintf( pFile, "  delay =%5.2f", Abc_NtkDelayTraceLut(pNtk, 1) );
     if ( fPower )
-        fprintf( pFile, "  power = %7.2f", Abc_NtkMfsTotalSwitching(pNtk) );
+        fprintf( pFile, "  power =%7.2f", Abc_NtkMfsTotalSwitching(pNtk) );
     if ( fGlitch )
     {
         extern float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk );
         if ( Abc_NtkIsLogic(pNtk) && Abc_NtkGetFaninMax(pNtk) <= 6 )
-            fprintf( pFile, "  glitch = %7.2f %%", Abc_NtkMfsTotalGlitching(pNtk) );
+            fprintf( pFile, "  glitch =%7.2f %%", Abc_NtkMfsTotalGlitching(pNtk) );
         else
             printf( "\nCurrently computes glitching only for K-LUT networks with K <= 6." ); 
     }
     fprintf( pFile, "\n" );
 
     {
-        extern int Abc_NtkPrintSubraphSizes( Abc_Ntk_t * pNtk );
+//        extern int Abc_NtkPrintSubraphSizes( Abc_Ntk_t * pNtk );
 //        Abc_NtkPrintSubraphSizes( pNtk );
     }
 
