@@ -1189,11 +1189,11 @@ unsigned Aig_ManRandom( int fReset )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManRandomInfo( Vec_Ptr_t * vInfo, int iWordStart, int iWordStop )
+void Aig_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int iWordStop )
 {
     unsigned * pInfo;
     int i, w;
-    Vec_PtrForEachEntry( vInfo, pInfo, i )
+    Vec_PtrForEachEntryStart( vInfo, pInfo, i, iInputStart )
         for ( w = iWordStart; w < iWordStop; w++ )
             pInfo[w] = Aig_ManRandom(0);
 }

@@ -86,7 +86,7 @@ static inline int * Gia_ManHashFind( Gia_Man_t * p, int iLit0, int iLit1 )
 void Gia_ManHashAlloc( Gia_Man_t * p )  
 {
     assert( p->pHTable == NULL );
-    p->nHTable = Aig_PrimeCudd( p->nObjsAlloc / 3 );
+    p->nHTable = Aig_PrimeCudd( p->nObjsAlloc );
     p->pHTable = ABC_CALLOC( int, p->nHTable );
 }
 
@@ -174,6 +174,34 @@ void Gia_ManHashResize( Gia_Man_t * p )
     ABC_FREE( pHTableOld );
 }
 
+/**Function********************************************************************
+
+  Synopsis    [Profiles the hash table.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+void Gia_ManHashProfile( Gia_Man_t * p )
+{
+    Gia_Obj_t * pEntry;
+    int i, Counter;
+    printf( "Table size = %d. Entries = %d.\n", p->nHTable, Gia_ManAndNum(p) );
+    for ( i = 0; i < p->nHTable; i++ )
+    {
+        Counter = 0;
+        for ( pEntry = (p->pHTable[i]? Gia_ManObj(p, Gia_Lit2Var(p->pHTable[i])) : NULL); 
+              pEntry; 
+              pEntry = (pEntry->Value? Gia_ManObj(p, Gia_Lit2Var(pEntry->Value)) : NULL) )
+            Counter++;
+        if ( Counter ) 
+            printf( "%d ", Counter );
+    }
+    printf( "\n" );
+}
 
 /**Function*************************************************************
 

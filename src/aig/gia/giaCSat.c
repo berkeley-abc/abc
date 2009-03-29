@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [giaCSat2.c]
+  FileName    [giaCSat.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaCSat2.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: giaCSat.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -48,10 +48,10 @@ struct Cbs_Que_t_
 {
     int           iHead;        // beginning of the queue
     int           iTail;        // end of the queue
-    int           nSize;        // allocated size
+   int           nSize;        // allocated size
     Gia_Obj_t **  pData;        // nodes stored in the queue
 };
-
+ 
 typedef struct Cbs_Man_t_ Cbs_Man_t;
 struct Cbs_Man_t_
 {
@@ -60,6 +60,20 @@ struct Cbs_Man_t_
     Cbs_Que_t     pProp;        // propagation queue
     Cbs_Que_t     pJust;        // justification queue
     Vec_Int_t *   vModel;       // satisfying assignment
+    // SAT calls statistics
+    int           nSatUnsat;    // the number of proofs
+    int           nSatSat;      // the number of failure
+    int           nSatUndec;    // the number of timeouts
+    int           nSatTotal;    // the number of calls
+    // conflicts
+    int           nConfUnsat;   // conflicts in unsat problems
+    int           nConfSat;     // conflicts in sat problems
+    int           nConfUndec;   // conflicts in undec problems
+    // runtime stats
+    int           timeSatUnsat; // unsat
+    int           timeSatSat;   // sat
+    int           timeSatUndec; // undecided
+    int           timeTotal;    // total runtime
 };
 
 static inline int   Cbs_VarIsAssigned( Gia_Obj_t * pVar )      { return pVar->fMark0;                        }
@@ -196,7 +210,8 @@ static inline void Cbs_ManSaveModel( Cbs_Man_t * p, Vec_Int_t * vCex )
     p->pProp.iHead = 0;
     Cbs_QueForEachEntry( p->pProp, pVar, i )
         if ( Gia_ObjIsCi(pVar) )
-            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs_VarValue(pVar)) );
+//            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs_VarValue(pVar)) );
+            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjCioId(pVar), !Cbs_VarValue(pVar)) );
 } 
 
 /**Function*************************************************************
@@ -714,7 +729,7 @@ void Cbs_ManSolveTest( Gia_Man_t * pGia )
             CountUndec++;
         else 
         {
-            int iLit, k;
+//            int iLit, k;
             vCex = Cbs_ReadModel( p );
 
 //        printf( "complemented = %d.  ", Gia_ObjFaninC0(pRoot) );
@@ -735,6 +750,132 @@ void Cbs_ManSolveTest( Gia_Man_t * pGia )
     Vec_IntFree( vVisit );
     printf( "Unsat = %d. Sat = %d. Undec = %d.  ", CountUnsat, CountSat, CountUndec );
     ABC_PRT( "Time", clock() - clk );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Prints statistics of the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cbs_ManSatPrintStats( Cbs_Man_t * p )
+{
+    printf( "CO = %6d  ", Gia_ManCoNum(p->pAig) );
+    printf( "Conf = %5d  ", p->Pars.nBTLimit );
+    printf( "JustMax = %5d  ", p->Pars.nJustLimit );
+    printf( "\n" );
+    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+        p->nSatUnsat, 100.0*p->nSatUnsat/p->nSatTotal, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
+    ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
+    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+        p->nSatSat,   100.0*p->nSatSat/p->nSatTotal, p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
+    ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
+    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+        p->nSatUndec, 100.0*p->nSatUndec/p->nSatTotal, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
+    ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
+    ABC_PRT( "Total time", p->timeTotal );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure to test the new SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Cbs_ManSolveMiter( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus )
+{
+    extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
+    Cbs_Man_t * p; 
+    Vec_Int_t * vCex, * vVisit, * vCexStore;
+    Vec_Str_t * vStatus;
+    Gia_Obj_t * pRoot; 
+    int i, status, clk, clkTotal = clock();
+    assert( Gia_ManRegNum(pAig) == 0 );
+    // prepare AIG
+    Gia_ManCreateRefs( pAig );
+    Gia_ManCleanMark0( pAig );
+    Gia_ManCleanMark1( pAig );
+    // create logic network
+    p = Cbs_ManAlloc();
+    p->Pars.nBTLimit = nConfs;
+    p->pAig   = pAig;
+    // create resulting data-structures
+    vStatus   = Vec_StrAlloc( Gia_ManPoNum(pAig) );
+    vCexStore = Vec_IntAlloc( 10000 );
+    vVisit    = Vec_IntAlloc( 100 );
+    vCex      = Cbs_ReadModel( p );
+    // solve for each output
+    Gia_ManForEachCo( pAig, pRoot, i )
+    {
+        Vec_IntClear( vCex );
+        if ( Gia_ObjIsConst0(Gia_ObjFanin0(pRoot)) )
+        {
+            if ( Gia_ObjFaninC0(pRoot) )
+            {
+                printf( "Constant 1 output of SRM!!!\n" );
+                Cec_ManSatAddToStore( vCexStore, vCex, i ); // trivial counter-example
+                Vec_StrPush( vStatus, 0 );
+            }
+            else
+            {
+                printf( "Constant 0 output of SRM!!!\n" );
+                Vec_StrPush( vStatus, 1 );
+            }
+            continue;
+        }
+        clk = clock();
+        p->Pars.fUseHighest = 1;
+        p->Pars.fUseLowest  = 0;
+        status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot) );
+        if ( status == -1 )
+        {
+            p->Pars.fUseHighest = 0;
+            p->Pars.fUseLowest  = 1;
+            status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot) );
+        }
+        Vec_StrPush( vStatus, (char)status );
+        if ( status == -1 )
+        {
+            p->nSatUndec++;
+            p->nConfUndec += p->Pars.nBTThis;
+            Cec_ManSatAddToStore( vCexStore, NULL, i ); // timeout
+            p->timeSatUndec += clock() - clk;
+            continue;
+        }
+        if ( status == 1 )
+        {
+            p->nSatUnsat++;
+            p->nConfUnsat += p->Pars.nBTThis;
+            p->timeSatUnsat += clock() - clk;
+            continue;
+        }
+        p->nSatSat++;
+        p->nConfUnsat += p->Pars.nBTThis;
+//        Gia_SatVerifyPattern( pAig, pRoot, vCex, vVisit );
+        Cec_ManSatAddToStore( vCexStore, vCex, i );
+        p->timeSatSat += clock() - clk;
+    }
+    Vec_IntFree( vVisit );
+    p->nSatTotal = Gia_ManPoNum(pAig);
+    p->timeTotal = clock() - clkTotal;
+//    Cbs_ManSatPrintStats( p );
+    Cbs_ManStop( p );
+    *pvStatus = vStatus;
+//    printf( "Total number of cex literals = %d. (Ave = %d)\n", 
+//         Vec_IntSize(vCexStore)-2*p->nSatUndec-2*p->nSatSat, 
+//        (Vec_IntSize(vCexStore)-2*p->nSatUndec-2*p->nSatSat)/p->nSatSat );
+    return vCexStore;
 }
 
 

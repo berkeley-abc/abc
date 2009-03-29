@@ -82,6 +82,8 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
                 continue;
 //            pNtk->pManFunc = NULL;
             pNtk->pDesign = NULL;
+            if ( pNtk->pManFunc == pNtkSave->pManFunc )
+                pNtk->pManFunc = NULL;
             Abc_NtkDelete( pNtk );
         }
         Vec_PtrFree( pLib->vModules );

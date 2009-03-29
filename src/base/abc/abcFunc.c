@@ -595,6 +595,7 @@ Hop_Obj_t * Abc_ConvertSopToAigInternal( Hop_Man_t * pMan, char * pSop )
     Hop_Obj_t * pAnd, * pSum;
     int i, Value, nFanins;
     char * pCube;
+    int fExor = Abc_SopIsExorType(pSop);
     // get the number of variables
     nFanins = Abc_SopGetVarNum(pSop);
     // go through the cubes of the node's SOP
@@ -611,7 +612,10 @@ Hop_Obj_t * Abc_ConvertSopToAigInternal( Hop_Man_t * pMan, char * pSop )
                 pAnd = Hop_And( pMan, pAnd, Hop_Not(Hop_IthVar(pMan,i)) );
         }
         // add to the sum of cubes
-        pSum = Hop_Or( pMan, pSum, pAnd );
+        if ( fExor )
+            pSum = Hop_Exor( pMan, pSum, pAnd );
+        else
+            pSum = Hop_Or( pMan, pSum, pAnd );
     }
     // decide whether to complement the result
     if ( Abc_SopIsComplement(pSop) )
@@ -637,11 +641,8 @@ Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop )
     // consider the constant node
     if ( Abc_SopGetVarNum(pSop) == 0 )
         return Hop_NotCond( Hop_ManConst1(pMan), Abc_SopIsConst0(pSop) );
-    // consider the special case of EXOR function
-    if ( Abc_SopIsExorType(pSop) )
-        return Hop_NotCond( Hop_CreateExor(pMan, Abc_SopGetVarNum(pSop)), Abc_SopIsComplement(pSop) );
     // decide when to use factoring
-    if ( fUseFactor && Abc_SopGetVarNum(pSop) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
+    if ( fUseFactor && Abc_SopGetVarNum(pSop) > 2 && Abc_SopGetCubeNum(pSop) > 1 && !Abc_SopIsExorType(pSop) )
         return Dec_GraphFactorSop( pMan, pSop );
     return Abc_ConvertSopToAigInternal( pMan, pSop );
 }

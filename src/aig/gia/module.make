@@ -2,6 +2,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaAig.c \
     src/aig/gia/giaAiger.c \
     src/aig/gia/giaCof.c \
+    src/aig/gia/giaCSat.c \
     src/aig/gia/giaDfs.c \
     src/aig/gia/giaDup.c \
     src/aig/gia/giaEmbed.c \
@@ -15,6 +16,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaHash.c \
     src/aig/gia/giaMan.c \
     src/aig/gia/giaMap.c \
+    src/aig/gia/giaPat.c \
     src/aig/gia/giaRetime.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaSim.c \

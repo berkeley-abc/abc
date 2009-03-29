@@ -135,8 +135,10 @@ float Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk )
     Abc_NtkForEachObj( pNtk, pObjAbc, i )
     {
         if ( (pObjAbc2 = Abc_ObjRegular(pObjAbc->pTemp)) && (pObjAig = Aig_Regular(pObjAbc2->pTemp)) )
+        {
             Result += Abc_ObjFanoutNum(pObjAbc) * pSwitching[pObjAig->Id];
-//            Result += pSwitching[pObjAig->Id];
+//            printf( "%d = %.2f\n", i, Abc_ObjFanoutNum(pObjAbc) * pSwitching[pObjAig->Id] );
+        }
     }
     Vec_IntFree( vSwitching );
     Aig_ManStop( pAig );

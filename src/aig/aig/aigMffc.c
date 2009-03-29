@@ -176,9 +176,15 @@ void Aig_NodeMffsSupp_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin, 
 int Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t * vSupp )
 {
     int ConeSize1, ConeSize2;
+    if ( vSupp ) Vec_PtrClear( vSupp );
+    if ( !Aig_ObjIsNode(pNode) )
+    {
+        if ( Aig_ObjIsPi(pNode) && vSupp )
+            Vec_PtrPush( vSupp, pNode );
+        return 0;
+    }
     assert( !Aig_IsComplement(pNode) );
     assert( Aig_ObjIsNode(pNode) );
-    if ( vSupp ) Vec_PtrClear( vSupp );
     Aig_ManIncrementTravId( p );
     ConeSize1 = Aig_NodeDeref_rec( pNode, LevelMin, NULL, NULL );
     Aig_NodeMffsSupp_rec( p, pNode, LevelMin, vSupp, 1, NULL );

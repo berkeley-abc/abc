@@ -2042,6 +2042,11 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
     assert( !Ver_ObjIsConnected(pBox) );
     assert( Ver_NtkIsDefined(pNtkBox) );
     assert( !Abc_NtkHasBlackbox(pNtkBox) || Abc_NtkBoxNum(pNtkBox) == 1 );
+
+    if ( !strcmp(pNtkBox->pName,"add_4u_4u") )
+    {
+        int s = 0;
+    }
 /*
     // clean the PI/PO nets
     Abc_NtkForEachPi( pNtkBox, pTerm, i )
@@ -2134,7 +2139,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
                 if ( Length > 0 )
                 {
                     Vec_PtrForEachEntry( vBundles, pBundle, j )
-                        if ( !strncmp(pBundle->pNameFormal, pNameFormal, Length) )
+                        if ( !strncmp(pBundle->pNameFormal, pNameFormal, Length) && (int)strlen(pBundle->pNameFormal) == Length )
                             break;
                     if ( j == Vec_PtrSize(vBundles) )
                         pBundle = NULL;
@@ -2185,7 +2190,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
                 if ( Length > 0 )
                 {
                     Vec_PtrForEachEntry( vBundles, pBundle, j )
-                        if ( !strncmp(pBundle->pNameFormal, pNameFormal, Length) )
+                        if ( !strncmp(pBundle->pNameFormal, pNameFormal, Length) && (int)strlen(pBundle->pNameFormal) == Length ) 
                             break;
                     if ( j == Vec_PtrSize(vBundles) )
                         pBundle = NULL;
@@ -2193,8 +2198,14 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             }
             if ( pBundle == NULL )
             {
+                char Buffer[1000];
 //                printf( "Warning: The formal output %s is not driven when instantiating network %s in box %s.", 
 //                    pNameFormal, pNtkBox->pName, Abc_ObjName(pBox) );
+                pTermNew = Abc_NtkCreateBo( pNtk );
+                sprintf( Buffer, "_temp_net%d", Abc_ObjId(pTermNew) );
+                pNetAct = Abc_NtkFindOrCreateNet( pNtk, Buffer );
+                Abc_ObjAddFanin( pTermNew, pBox );
+                Abc_ObjAddFanin( pNetAct, pTermNew );
                 continue;
             }
         }

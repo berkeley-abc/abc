@@ -1849,6 +1849,7 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( argc != globalUtilOptind + 1 )
     {
+        printf( "File name is missing on the command line.\n" );
         goto usage;
     }
     // get the input file name

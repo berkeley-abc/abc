@@ -156,6 +156,56 @@ void Cec_ManCecSetDefaultParams( Cec_ParCec_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [This procedure sets default parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManCorSetDefaultParams( Cec_ParCor_t * p )
+{
+    memset( p, 0, sizeof(Cec_ParCor_t) );
+    p->nWords         =      15;  // the number of simulation words
+    p->nRounds        =      15;  // the number of simulation rounds
+    p->nFrames        =       1;  // the number of time frames
+    p->nBTLimit       =     100;  // conflict limit at a node
+    p->fLatchCorr     =       0;  // consider only latch outputs
+    p->fUseRings      =       1;  // combine classes into rings
+    p->fUseCSat       =       1;  // use circuit-based solver
+    p->fFirstStop     =       0;  // stop on the first sat output
+    p->fUseSmartCnf   =       0;  // use smart CNF computation
+    p->fVeryVerbose   =       0;  // verbose stats
+    p->fVerbose       =       0;  // verbose stats
+}  
+
+/**Function*************************************************************
+
+  Synopsis    [This procedure sets default parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManChcSetDefaultParams( Cec_ParChc_t * p )
+{
+    memset( p, 0, sizeof(Cec_ParChc_t) );
+    p->nWords         =      15;  // the number of simulation words
+    p->nRounds        =      15;  // the number of simulation rounds
+    p->nBTLimit       =    1000;  // conflict limit at a node
+    p->fFirstStop     =       0;  // stop on the first sat output
+    p->fUseSmartCnf   =       0;  // use smart CNF computation
+    p->fVeryVerbose   =       0;  // verbose stats
+    p->fVerbose       =       0;  // verbose stats
+}  
+
+/**Function*************************************************************
+
   Synopsis    [Core procedure for SAT sweeping.]
 
   Description []
@@ -171,7 +221,8 @@ Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
     Cec_ManPat_t * pPat;
     pPat = Cec_ManPatStart();
     Cec_ManSatSolve( pPat, pAig, pPars );
-    pNew = Gia_ManDupDfsSkip( pAig );
+//    pNew = Gia_ManDupDfsSkip( pAig );
+    pNew = Gia_ManDup( pAig );
     Cec_ManPatStop( pPat );
     return pNew;
 }
@@ -193,7 +244,7 @@ void Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
     int RetValue, clkTotal = clock();
     if ( pPars->fSeqSimulate )
         printf( "Performing sequential simulation of %d frames with %d words.\n", 
-            pPars->nWords, pPars->nRounds );
+            pPars->nRounds, pPars->nWords );
     Aig_ManRandom( 1 );
     pSim = Cec_ManSimStart( pAig, pPars );
     if ( pAig->pReprs == NULL )
@@ -286,7 +337,7 @@ p->timeSim += clock() - clk;
 //        Gia_WriteAiger( pSrm, "gia_srm.aig", 0, 0 );
 
         if ( pPars->fVeryVerbose )
-            Gia_ManPrintStats( pSrm );
+            Gia_ManPrintStats( pSrm, 0 );
         if ( Gia_ManCoNum(pSrm) == 0 )
         {
             Gia_ManStop( pSrm );

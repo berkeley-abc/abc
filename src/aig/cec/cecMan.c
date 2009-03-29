@@ -52,6 +52,8 @@ Cec_ManSat_t * Cec_ManSatCreate( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
     p->pSatVars     = ABC_CALLOC( int, Gia_ManObjNum(pAig) );
     p->vUsedNodes   = Vec_PtrAlloc( 1000 );
     p->vFanins      = Vec_PtrAlloc( 100 );
+    p->vCex         = Vec_IntAlloc( 100 );
+    p->vVisits      = Vec_IntAlloc( 100 );
     return p;
 }
 
@@ -81,6 +83,7 @@ void Cec_ManSatPrintStats( Cec_ManSat_t * p )
     printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, 100.0*p->nSatUndec/p->nSatTotal, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
     ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
+    ABC_PRT( "Total time", p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -98,6 +101,8 @@ void Cec_ManSatStop( Cec_ManSat_t * p )
 {
     if ( p->pSat )
         sat_solver_delete( p->pSat );
+    Vec_IntFree( p->vCex );
+    Vec_IntFree( p->vVisits );
     Vec_PtrFree( p->vUsedNodes );
     Vec_PtrFree( p->vFanins );
     ABC_FREE( p->pSatVars );

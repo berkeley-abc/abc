@@ -73,13 +73,13 @@ static inline unsigned * Gia_SwiDataCo( Gia_ManSwi_t * p, int i )  { return p->p
 void Gia_ManSetDefaultParamsSwi( Gia_ParSwi_t * p )
 {
     memset( p, 0, sizeof(Gia_ParSwi_t) );
-    p->nWords        =   1;  // the number of machine words of simulatation data 
+    p->nWords        =  10;  // the number of machine words of simulatation data 
     p->nIters        =  48;  // the number of all timeframes to simulate
     p->nPref         =  16;  // the number of first timeframes to skip when computing switching
     p->nRandPiFactor =   2;  // primary input transition probability (-1=3/8; 0=1/2; 1=1/4; 2=1/8, etc)
     p->fProbOne      =   0;  // compute probability of signal being one (if 0, compute probability of switching)
     p->fProbTrans    =   1;  // compute signal transition probability (if 0, compute transition probability using probability of being one)
-    p->fVerbose      =   1;  // enables verbose output
+    p->fVerbose      =   0;  // enables verbose output
 }
 
 /**Function*************************************************************
@@ -483,12 +483,14 @@ static inline void Gia_ManSwiSimulateRound( Gia_ManSwi_t * p, int fCount )
         else if ( Gia_ObjIsCo(pObj) )
         {
             assert( Gia_ObjValue(pObj) == GIA_NONE );
-            Gia_ManSwiSimulateCo( p, iCos++, pObj );
+//            Gia_ManSwiSimulateCo( p, iCos++, pObj );
+            Gia_ManSwiSimulateCo( p, Gia_ObjCioId(pObj), pObj );
         }
         else // if ( Gia_ObjIsCi(pObj) )
         {
             assert( Gia_ObjValue(pObj) < p->pAig->nFront );
-            Gia_ManSwiSimulateCi( p, pObj, iCis++ );
+//            Gia_ManSwiSimulateCi( p, pObj, iCis++ );
+            Gia_ManSwiSimulateCi( p, pObj, Gia_ObjCioId(pObj) );
         }
         if ( fCount && !Gia_ObjIsCo(pObj) )
         {
@@ -498,8 +500,8 @@ static inline void Gia_ManSwiSimulateRound( Gia_ManSwi_t * p, int fCount )
                 p->pData1[i] += Gia_ManSwiSimInfoCountOnes( p, Gia_ObjValue(pObj) );
         }
     }
-    assert( Gia_ManCiNum(p->pAig) == iCis );
-    assert( Gia_ManCoNum(p->pAig) == iCos );
+//    assert( Gia_ManCiNum(p->pAig) == iCis );
+//    assert( Gia_ManCoNum(p->pAig) == iCos );
 }
 
 /**Function*************************************************************
@@ -633,12 +635,10 @@ Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref
     // set the default parameters
     Gia_ManSetDefaultParamsSwi( pPars ); 
     // override some of the defaults
-    pPars->nWords   = 10;       // set number machine words to simulate
     pPars->nIters   = nFrames;  // set number of total timeframes
     if ( Abc_FrameReadFlag("seqsimframes") )
         pPars->nIters = atoi( Abc_FrameReadFlag("seqsimframes") );
     pPars->nPref    = nPref;    // set number of first timeframes to skip  
-    pPars->fVerbose = 0;        // disable verbose output
     // decide what should be computed
     if ( fProbOne )
     {
@@ -666,7 +666,94 @@ Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref
     return vResult;
 }
 
-  ////////////////////////////////////////////////////////////////////////
+/**Function*************************************************************
+
+  Synopsis    [Computes probability of switching (or of being 1).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Gia_ManEvaluateSwitching( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    float SwitchTotal = 0.0;
+    int i;
+    assert( p->pSwitching );
+    ABC_FREE( p->pRefs );
+    Gia_ManCreateRefs( p );
+    Gia_ManForEachObj( p, pObj, i )
+        SwitchTotal += (float)Gia_ObjRefs(p, pObj) * p->pSwitching[i] / 255;
+    return SwitchTotal;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes probability of switching (or of being 1).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbOne )
+{
+    Gia_Man_t * pDfs;
+    Gia_Obj_t * pObj, * pObjDfs;
+    Vec_Int_t * vSwitching;
+    float * pSwitching, Switch, SwitchTotal = 0.0, SwitchTotal2 = 0.0;
+    int i;
+    Gia_ParSwi_t Pars, * pPars = &Pars;
+    ABC_FREE( p->pSwitching );
+    // set the default parameters
+    Gia_ManSetDefaultParamsSwi( pPars ); 
+    // override some of the defaults
+    pPars->nIters   = nFrames;  // set number of total timeframes
+    pPars->nPref    = nPref;    // set number of first timeframes to skip  
+    // decide what should be computed
+    if ( fProbOne )
+    {
+        // if the user asked to compute propability of 1, we do not need transition information
+        pPars->fProbOne   = 1;  // enable computing probabiblity of being one
+        pPars->fProbTrans = 0;  // disable computing transition probability 
+    }
+    else
+    {
+        // if the user asked for transition propabability, we do not need to compute probability of 1
+        pPars->fProbOne   = 0;  // disable computing probabiblity of being one
+        pPars->fProbTrans = 1;  // enable computing transition probability 
+    }
+    // derives the DFS ordered AIG
+    Gia_ManCreateRefs( p );
+//    pDfs = Gia_ManDupOrderDfs( p );
+    pDfs = Gia_ManDup( p );
+    assert( Gia_ManObjNum(pDfs) == Gia_ManObjNum(p) );
+    // perform the computation of switching activity
+    vSwitching = Gia_ManSwiSimulate( pDfs, pPars );
+    // transfer the computed result to the original AIG
+    p->pSwitching = ABC_CALLOC( unsigned char, Gia_ManObjNum(p) );
+    pSwitching = (float *)vSwitching->pArray;
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        pObjDfs = Gia_ObjFromLit( pDfs, pObj->Value );
+        Switch = pSwitching[ Gia_ObjId(pDfs, pObjDfs) ];
+        p->pSwitching[i] = (char)((Switch >= 1.0) ? 255 : (int)((0.002 + Switch) * 255)); // 0.00196 = (1/255)/2
+        SwitchTotal += (float)Gia_ObjRefs(p, pObj) * p->pSwitching[i] / 255;
+//        SwitchTotal2 += Gia_ObjRefs(p, pObj) * Switch;
+//        printf( "%d = %.2f\n", i, Gia_ObjRefs(p, pObj) * Switch );
+    }
+//    printf( "\nSwitch float = %f. Switch char = %f.\n", SwitchTotal2, SwitchTotal );
+    Vec_IntFree( vSwitching );
+    Gia_ManStop( pDfs );
+    return SwitchTotal;
+}
+
+////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 

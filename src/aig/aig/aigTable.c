@@ -236,6 +236,7 @@ void Aig_TableProfile( Aig_Man_t * p )
 {
     Aig_Obj_t * pEntry;
     int i, Counter;
+    printf( "Table size = %d. Entries = %d.\n", p->nTableSize, Aig_ManNodeNum(p) );
     for ( i = 0; i < p->nTableSize; i++ )
     {
         Counter = 0;

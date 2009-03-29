@@ -450,7 +450,7 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
     int nBits = 32 * nWords;
     int clk = clock();
     vInfo = Vec_PtrAllocSimInfo( nInputs, nWords );
-    Aig_ManRandomInfo( vInfo, 0, nWords );
+    Aig_ManRandomInfo( vInfo, 0, 0, nWords );
     vPres = Vec_PtrAllocSimInfo( nInputs, nWords );
     Vec_PtrCleanSimInfo( vPres, 0, nWords );
     while ( pMan->iStart < Vec_StrSize(pMan->vStorage) )
@@ -464,7 +464,7 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
         if ( k == nBits-1 )
         {
             Vec_PtrReallocSimInfo( vInfo );
-            Aig_ManRandomInfo( vInfo, nWords, 2*nWords );
+            Aig_ManRandomInfo( vInfo, 0, nWords, 2*nWords );
             Vec_PtrReallocSimInfo( vPres );
             Vec_PtrCleanSimInfo( vPres, nWords, 2*nWords );
             nWords *= 2;
@@ -483,6 +483,77 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
         ABC_PRT( "Time", clock() - clk );
         Cec_ManPatPrintStats( pMan );
     }
+    return vInfo;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Packs patterns into array of simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nRegs, int nWordsInit )
+{
+    Vec_Int_t * vPat;
+    Vec_Ptr_t * vInfo, * vPres;
+    int k, nSize, iStart, kMax = 0, nPatterns = 0;
+    int nWords = nWordsInit;
+    int nBits = 32 * nWords;
+//    int RetValue;
+    assert( nRegs <= nInputs );
+    vPat  = Vec_IntAlloc( 100 );
+
+    vInfo = Vec_PtrAllocSimInfo( nInputs, nWords );
+    Vec_PtrCleanSimInfo( vInfo, 0, nWords );
+    Aig_ManRandomInfo( vInfo, nRegs, 0, nWords );
+
+    vPres = Vec_PtrAllocSimInfo( nInputs, nWords );
+    Vec_PtrCleanSimInfo( vPres, 0, nWords );
+    iStart = 0;
+    while ( iStart < Vec_IntSize(vCexStore) )
+    {
+        nPatterns++;
+        // skip the output number
+        iStart++;
+        // get the number of items
+        nSize = Vec_IntEntry( vCexStore, iStart++ );
+        if ( nSize <= 0 )
+            continue;
+        // extract pattern
+        Vec_IntClear( vPat );
+        for ( k = 0; k < nSize; k++ )
+            Vec_IntPush( vPat, Vec_IntEntry( vCexStore, iStart++ ) );
+        // add pattern to storage
+        for ( k = 1; k < nBits; k++, k += ((k % (32 * nWordsInit)) == 0) )
+            if ( Cec_ManPatCollectTry( vInfo, vPres, k, (int *)Vec_IntArray(vPat), Vec_IntSize(vPat) ) )
+                break;
+
+//        k = kMax + 1;
+//        RetValue = Cec_ManPatCollectTry( vInfo, vPres, k, (int *)Vec_IntArray(vPat), Vec_IntSize(vPat) );
+//        assert( RetValue == 1 );
+
+        kMax = AIG_MAX( kMax, k );
+        if ( k == nBits-1 )
+        {
+            Vec_PtrReallocSimInfo( vInfo );
+            Vec_PtrCleanSimInfo( vInfo, nWords, 2*nWords );
+            Aig_ManRandomInfo( vInfo, nRegs, nWords, 2*nWords );
+
+            Vec_PtrReallocSimInfo( vPres );
+            Vec_PtrCleanSimInfo( vPres, nWords, 2*nWords );
+            nWords *= 2;
+            nBits *= 2;
+        }
+    }
+//    printf( "packed %d patterns into %d vectors (out of %d)\n", nPatterns, kMax, nBits );
+    Vec_PtrFree( vPres );
+    Vec_IntFree( vPat );
     return vInfo;
 }
 

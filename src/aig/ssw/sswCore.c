@@ -216,6 +216,7 @@ clk = clock();
 p->timeTotal = clock() - clkTotal;
     pAigNew = Aig_ManDupRepr( p->pAig, 0 );
     Aig_ManSeqCleanup( pAigNew );
+//Ssw_ClassesPrint( p->ppClasses, 1 );
     // get the final stats
     p->nLitsEnd  = Ssw_ClassesLitNum( p->ppClasses );
     p->nNodesEnd = Aig_ManNodeNum(pAigNew);

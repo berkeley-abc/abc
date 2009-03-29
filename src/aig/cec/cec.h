@@ -61,6 +61,7 @@ struct Cec_ParSim_t_
     int              fCheckMiter;   // the circuit is the miter
     int              fFirstStop;    // stop on the first sat output
     int              fSeqSimulate;  // performs sequential simulation
+    int              fLatchCorr;    // consider only latch outputs
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
 };
@@ -113,6 +114,36 @@ struct Cec_ParCec_t_
     int              fVerbose;      // verbose stats
 };
 
+// sequential register correspodence parameters
+typedef struct Cec_ParCor_t_ Cec_ParCor_t;
+struct Cec_ParCor_t_
+{
+    int              nWords;        // the number of simulation words
+    int              nRounds;       // the number of simulation rounds
+    int              nFrames;       // the number of time frames
+    int              nBTLimit;      // conflict limit at a node
+    int              fLatchCorr;    // consider only latch outputs
+    int              fUseRings;     // use rings
+    int              fUseCSat;      // use circuit-based solver
+    int              fFirstStop;    // stop on the first sat output
+    int              fUseSmartCnf;  // use smart CNF computation
+    int              fVeryVerbose;  // verbose stats
+    int              fVerbose;      // verbose stats
+};
+
+// sequential register correspodence parameters
+typedef struct Cec_ParChc_t_ Cec_ParChc_t;
+struct Cec_ParChc_t_
+{
+    int              nWords;        // the number of simulation words
+    int              nRounds;       // the number of simulation rounds
+    int              nBTLimit;      // conflict limit at a node
+    int              fFirstStop;    // stop on the first sat output
+    int              fUseSmartCnf;  // use smart CNF computation
+    int              fVeryVerbose;  // verbose stats
+    int              fVerbose;      // verbose stats
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -124,12 +155,18 @@ struct Cec_ParCec_t_
 /*=== cecCec.c ==========================================================*/
 extern int           Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars );
 extern int           Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose );
+/*=== cecChoice.c ==========================================================*/
+extern Gia_Man_t *   Cec_ManChoiceComputation( Gia_Man_t * pAig, Cec_ParChc_t * pPars );
+/*=== cecCorr.c ==========================================================*/
+extern Gia_Man_t *   Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
 /*=== cecCore.c ==========================================================*/
 extern void          Cec_ManSatSetDefaultParams( Cec_ParSat_t * p );
 extern void          Cec_ManSimSetDefaultParams( Cec_ParSim_t * p );
 extern void          Cec_ManSmfSetDefaultParams( Cec_ParSmf_t * p );
 extern void          Cec_ManFraSetDefaultParams( Cec_ParFra_t * p );
 extern void          Cec_ManCecSetDefaultParams( Cec_ParCec_t * p );
+extern void          Cec_ManCorSetDefaultParams( Cec_ParCor_t * p );
+extern void          Cec_ManChcSetDefaultParams( Cec_ParChc_t * p );
 extern Gia_Man_t *   Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars );
 extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars );
 extern void          Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars );

@@ -308,6 +308,9 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
             p->nRecycleCalls = 0;
         }
     }
+//    ABC_PRT( "reduce", p->timeReduce );
+//    Aig_TableProfile( p->pFrames );
+//    printf( "And gates = %d\n", Aig_ManNodeNum(p->pFrames) );
     // resimulate
     if ( p->nPatterns > 0 )
         Ssw_ManSweepResimulate( p );

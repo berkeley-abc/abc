@@ -556,18 +556,10 @@ p->timeSatUndec += clock() - clk;
 ***********************************************************************/
 void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 {
-    static int Counter;
-//    char Buffer[1000];
-
     Bar_Progress_t * pProgress = NULL;
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
     int i, status, clk = clock(), clk2;
-
-//    sprintf( Buffer, "gia%03d.aig", Counter++ );
-//Gia_WriteAiger( pAig, Buffer, 0, 0 );
-//printf( "Dumpted slice into file \"%s\".\n", Buffer );
-
     // reset the manager
     if ( pPat )
     {
@@ -594,13 +586,6 @@ clk2 = clock();
         status = Cec_ManSatCheckNode( p, pObj );
         pObj->fMark0 = (status == 0);
         pObj->fMark1 = (status == 1);
-/*
-printf( "Output %6d : ", i );
-printf( "conf = %6d ", p->pSat->stats.conflicts );
-printf( "prop = %6d ", p->pSat->stats.propagations );
-ABC_PRT( "time", clock() - clk2 );
-*/
-
 /*
         if ( status == -1 )
         {
@@ -653,6 +638,8 @@ void Cec_ManSatSolveSeq_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * pOb
         unsigned * pInfo = Vec_PtrEntry( vInfo, nRegs + Gia_ObjCioId(pObj) );
         if ( Cec_ObjSatVarValue( pSat, pObj ) != Aig_InfoHasBit( pInfo, iPat ) )
             Aig_InfoXorBit( pInfo, iPat );
+        pSat->nCexLits++;
+//        Vec_IntPush( pSat->vCex, Gia_Var2Lit( Gia_ObjCioId(pObj), !Cec_ObjSatVarValue(pSat, pObj) ) );
         return;
     }
     assert( Gia_ObjIsAnd(pObj) );
@@ -672,43 +659,206 @@ void Cec_ManSatSolveSeq_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat_t * pPars, int nRegs, int * pnPats )
+Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat_t * pPars, int nRegs, int * pnPats )
 {
     Bar_Progress_t * pProgress = NULL;
+    Vec_Str_t * vStatus;
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
-    int iPat = 1, nPats = 32 * Vec_PtrReadWordsSimInfo(vPatts);
+    int iPat = 0, nPatsInit, nPats;
     int i, status, clk = clock();
+    nPatsInit = nPats = 32 * Vec_PtrReadWordsSimInfo(vPatts);
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );
     Gia_ManResetTravId( pAig );
     p = Cec_ManSatCreate( pAig, pPars );
+    vStatus = Vec_StrAlloc( Gia_ManPoNum(pAig) );
     pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
     Gia_ManForEachCo( pAig, pObj, i )
     {
+        Bar_ProgressUpdate( pProgress, i, "SAT..." );
         if ( Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+        {
+            if ( Gia_ObjFaninC0(pObj) )
+            {
+                printf( "Constant 1 output of SRM!!!\n" );
+                Vec_StrPush( vStatus, 0 );
+            }
+            else
+            {
+                printf( "Constant 0 output of SRM!!!\n" );
+                Vec_StrPush( vStatus, 1 );
+            }
             continue;
-        Bar_ProgressUpdate( pProgress, i, "BMC..." );
+        }
         status = Cec_ManSatCheckNode( p, pObj );
+//printf( "output %d   status = %d\n", i, status );
+        Vec_StrPush( vStatus, (char)status );
         if ( status != 0 )
             continue;
+        // resize storage
+        if ( iPat == nPats )
+        {
+            int nWords = Vec_PtrReadWordsSimInfo(vPatts);
+            Vec_PtrReallocSimInfo( vPatts );
+            Vec_PtrCleanSimInfo( vPatts, nWords, 2*nWords );
+            nPats = 32 * Vec_PtrReadWordsSimInfo(vPatts);
+        }
+        if ( iPat % nPatsInit == 0 )
+            iPat++;
         // save the pattern
         Gia_ManIncrementTravId( pAig );
+//        Vec_IntClear( p->vCex );
         Cec_ManSatSolveSeq_rec( p, pAig, Gia_ObjFanin0(pObj), vPatts, iPat++, nRegs );
-        if ( iPat == nPats )
-            break;
+//        Gia_SatVerifyPattern( pAig, pObj, p->vCex, p->vVisits );
+//        Cec_ManSatAddToStore( p->vCexStore, p->vCex );
+//        if ( iPat == nPats )
+//            break;
         // quit if one of them is solved
-        if ( pPars->fFirstStop )
-            break;
+//        if ( pPars->fFirstStop )
+//            break;
+//        if ( iPat == 32 * 15 * 16 - 1 )
+//            break;
     }
     p->timeTotal = clock() - clk;
     Bar_ProgressStop( pProgress );
     if ( pPars->fVerbose )
         Cec_ManSatPrintStats( p );
+//    printf( "Total number of cex literals = %d. (Ave = %d)\n", p->nCexLits, p->nCexLits/p->nSatSat );
     Cec_ManSatStop( p );
     if ( pnPats )
         *pnPats = iPat-1;
+    return vStatus;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Save values in the cone of influence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out )
+{
+    int i, Entry;
+    Vec_IntPush( vCexStore, Out );
+    if ( vCex == NULL ) // timeout
+    {
+        Vec_IntPush( vCexStore, -1 );
+        return;
+    }
+    // write the counter-example
+    Vec_IntPush( vCexStore, Vec_IntSize(vCex) );
+    Vec_IntForEachEntry( vCex, Entry, i )
+        Vec_IntPush( vCexStore, Entry );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Save values in the cone of influence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_ManSatSolveMiter_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        pSat->nCexLits++;
+        Vec_IntPush( pSat->vCex, Gia_Var2Lit( Gia_ObjCioId(pObj), !Cec_ObjSatVarValue(pSat, pObj) ) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Cec_ManSatSolveMiter_rec( pSat, p, Gia_ObjFanin0(pObj) );
+    Cec_ManSatSolveMiter_rec( pSat, p, Gia_ObjFanin1(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs one round of solving for the POs of the AIG.]
+
+  Description [Labels the nodes that have been proved (pObj->fMark1) 
+  and returns the set of satisfying assignments.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Str_t ** pvStatus )
+{
+    Bar_Progress_t * pProgress = NULL;
+    Vec_Int_t * vCexStore;
+    Vec_Str_t * vStatus;
+    Cec_ManSat_t * p;
+    Gia_Obj_t * pObj;
+    int i, status, clk = clock();
+    // prepare AIG
+    Gia_ManSetPhase( pAig );
+    Gia_ManLevelNum( pAig );
+    Gia_ManResetTravId( pAig );
+    // create resulting data-structures
+    vStatus = Vec_StrAlloc( Gia_ManPoNum(pAig) );
+    vCexStore = Vec_IntAlloc( 10000 );
+    // perform solving
+    p = Cec_ManSatCreate( pAig, pPars );
+    pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
+    Gia_ManForEachCo( pAig, pObj, i )
+    {
+        Vec_IntClear( p->vCex );
+        Bar_ProgressUpdate( pProgress, i, "SAT..." );
+        if ( Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
+        {
+            if ( Gia_ObjFaninC0(pObj) )
+            {
+                printf( "Constant 1 output of SRM!!!\n" );
+                Cec_ManSatAddToStore( vCexStore, p->vCex, i ); // trivial counter-example
+                Vec_StrPush( vStatus, 0 );
+            }
+            else
+            {
+                printf( "Constant 0 output of SRM!!!\n" );
+                Vec_StrPush( vStatus, 1 );
+            }
+            continue;
+        }
+        status = Cec_ManSatCheckNode( p, pObj );
+        Vec_StrPush( vStatus, (char)status );
+        if ( status == -1 )
+        {
+            Cec_ManSatAddToStore( vCexStore, NULL, i ); // timeout
+            continue;
+        }
+        if ( status == 1 )
+            continue;
+        assert( status == 0 );
+        // save the pattern
+        Gia_ManIncrementTravId( pAig );
+        Cec_ManSatSolveMiter_rec( p, pAig, Gia_ObjFanin0(pObj) );
+//        Gia_SatVerifyPattern( pAig, pObj, p->vCex, p->vVisits );
+        Cec_ManSatAddToStore( vCexStore, p->vCex, i );
+    }
+    p->timeTotal = clock() - clk;
+    Bar_ProgressStop( pProgress );
+//    if ( pPars->fVerbose )
+//        Cec_ManSatPrintStats( p );
+    Cec_ManSatStop( p );
+    *pvStatus = vStatus;
+    return vCexStore;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

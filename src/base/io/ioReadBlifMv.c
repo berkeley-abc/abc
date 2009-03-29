@@ -1615,7 +1615,7 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Vec_Str_t * vFunc = p->pMan->vFunc;
-    char * pProduct, * pOutput;
+    char * pProduct, * pOutput, c;
     int i, Polarity = -1;
 
     p->pMan->nTablesRead++;
@@ -1626,7 +1626,8 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
     if ( Vec_PtrSize(vTokens) == 1 )
     {
         pOutput = Vec_PtrEntry( vTokens, 0 );
-        if ( ((pOutput[0] - '0') & 0x8E) || pOutput[1] )
+        c = pOutput[0];
+        if ( (c!='0'&&c!='1'&&c!='x'&&c!='n') || pOutput[1] )
         {
             sprintf( p->pMan->sError, "Line %d: Constant table has wrong output value \"%s\".", Io_MvGetLine(p->pMan, pOutput), pOutput );
             return NULL;
@@ -1650,14 +1651,15 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
             sprintf( p->pMan->sError, "Line %d: Cube \"%s\" has size different from the fanin count (%d).", Io_MvGetLine(p->pMan, pProduct), pProduct, nFanins );
             return NULL;
         }
-        if ( ((pOutput[0] - '0') & 0x8E) || pOutput[1] )
+        c = pOutput[0];
+        if ( (c!='0'&&c!='1'&&c!='x'&&c!='n') || pOutput[1] )
         {
             sprintf( p->pMan->sError, "Line %d: Output value \"%s\" is incorrect.", Io_MvGetLine(p->pMan, pProduct), pOutput );
             return NULL;
         }
         if ( Polarity == -1 )
-            Polarity = pOutput[0] - '0';
-        else if ( Polarity != pOutput[0] - '0' )
+            Polarity = (c=='1' || c=='x');
+        else if ( Polarity != (c=='1' || c=='x') )
         {
             sprintf( p->pMan->sError, "Line %d: Output value \"%s\" differs from the value in the first line of the table (%d).", Io_MvGetLine(p->pMan, pProduct), pOutput, Polarity );
             return NULL;

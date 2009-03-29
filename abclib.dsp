@@ -1954,14 +1954,6 @@ SOURCE=.\src\map\if\ifTruth.c
 SOURCE=.\src\map\if\ifUtil.c
 # End Source File
 # End Group
-# Begin Group "ply"
-
-# PROP Default_Filter ""
-# End Group
-# Begin Group "pcm"
-
-# PROP Default_Filter ""
-# End Group
 # Begin Group "amap"
 
 # PROP Default_Filter ""
@@ -2024,6 +2016,46 @@ SOURCE=.\src\map\amap\amapRule.c
 # Begin Source File
 
 SOURCE=.\src\map\amap\amapUniq.c
+# End Source File
+# End Group
+# Begin Group "cov"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\map\cov\cov.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covBuild.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covMinEsop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covMinMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covMinSop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\cov\covMinUtil.c
 # End Source File
 # End Group
 # End Group
@@ -3547,11 +3579,19 @@ SOURCE=.\src\aig\cec\cecCec.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\cec\cecChoice.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\cec\cecClass.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\cec\cecCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\cec\cecCorr.c
 # End Source File
 # Begin Source File
 
@@ -3651,6 +3691,10 @@ SOURCE=.\src\aig\gia\giaCof.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaCSat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaDfs.c
 # End Source File
 # Begin Source File
@@ -3700,6 +3744,10 @@ SOURCE=.\src\aig\gia\giaMan.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaPat.c
 # End Source File
 # Begin Source File
 

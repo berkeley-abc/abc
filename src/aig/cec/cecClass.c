@@ -293,6 +293,48 @@ int Cec_ManSimClassRefineOne( Cec_ManSim_t * p, int i )
 
 /**Function*************************************************************
 
+  Synopsis    [Refines one equivalence class.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManSimClassRemoveOne( Cec_ManSim_t * p, int i )
+{
+    int iRepr, Ent;
+    if ( Gia_ObjIsConst(p->pAig, i) )
+    {
+        Gia_ObjSetRepr( p->pAig, i, GIA_VOID );
+        return 1;
+    }
+    if ( !Gia_ObjIsClass(p->pAig, i) )
+        return 0;
+    assert( Gia_ObjIsClass(p->pAig, i) );
+    iRepr = Gia_ObjRepr( p->pAig, i );
+    if ( iRepr == GIA_VOID )
+        iRepr = i;
+    // collect nodes
+    Vec_IntClear( p->vClassOld );
+    Vec_IntClear( p->vClassNew );
+    Gia_ClassForEachObj( p->pAig, iRepr, Ent )
+    {
+        if ( Ent == i )
+            Vec_IntPush( p->vClassNew, Ent );
+        else
+            Vec_IntPush( p->vClassOld, Ent );
+    }
+    assert( Vec_IntSize( p->vClassNew ) == 1 );
+    Cec_ManSimClassCreate( p->pAig, p->vClassOld );
+    Cec_ManSimClassCreate( p->pAig, p->vClassNew );
+    assert( !Gia_ObjIsClass(p->pAig, i) );
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes hash key of the simuation info.]
 
   Description []
@@ -797,8 +839,12 @@ int Cec_ManSimClassesPrepare( Cec_ManSim_t * p )
     p->pAig->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p->pAig) );
     p->pAig->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p->pAig) );
     // set starting representative of internal nodes to be constant 0
-    Gia_ManForEachObj( p->pAig, pObj, i )
-        Gia_ObjSetRepr( p->pAig, i, Gia_ObjIsAnd(pObj) ? 0 : GIA_VOID );
+    if ( p->pPars->fLatchCorr )
+        Gia_ManForEachObj( p->pAig, pObj, i )
+            Gia_ObjSetRepr( p->pAig, i, GIA_VOID );
+    else
+        Gia_ManForEachObj( p->pAig, pObj, i )
+            Gia_ObjSetRepr( p->pAig, i, Gia_ObjIsAnd(pObj) ? 0 : GIA_VOID );
     // if sequential simulation, set starting representative of ROs to be constant 0
     if ( p->pPars->fSeqSimulate )
         Gia_ManForEachRo( p->pAig, pObj, i )

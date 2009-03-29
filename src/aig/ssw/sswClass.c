@@ -391,7 +391,8 @@ void Ssw_ClassesPrintOne( Ssw_Cla_t * p, Aig_Obj_t * pRepr )
     int i;
     printf( "{ " );
     Ssw_ClassForEachNode( p, pRepr, pObj, i )
-        printf( "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
+        printf( "%d(%d,%d,%d) ", pObj->Id, pObj->Level, 
+        Aig_SupportSize(p->pAig,pObj), Aig_NodeMffsSupp(p->pAig,pObj,0,NULL) );
     printf( "}\n" );
 }
 
@@ -418,7 +419,8 @@ void Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose )
     printf( "Constants { " );
     Aig_ManForEachObj( p->pAig, pObj, i )
         if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
-            printf( "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
+            printf( "%d(%d,%d,%d) ", pObj->Id, pObj->Level, 
+            Aig_SupportSize(p->pAig,pObj), Aig_NodeMffsSupp(p->pAig,pObj,0,NULL) );
     printf( "}\n" );
     Ssw_ManForEachClass( p, ppClass, i )
     {

@@ -70,6 +70,8 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFree( p->vFlopClasses );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
+    ABC_FREE( p->pPlacement );
+    ABC_FREE( p->pSwitching );
     ABC_FREE( p->pCexComb );
     ABC_FREE( p->pIso );
     ABC_FREE( p->pMapping );
@@ -128,17 +130,48 @@ void Gia_ManPrintClasses( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintStats( Gia_Man_t * p )
+void Gia_ManPrintPlacement( Gia_Man_t * p )
+{
+    int i, nFixed = 0, nUndef = 0;
+    if ( p->pPlacement == NULL )
+        return;
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+    {
+        nFixed += p->pPlacement[i].fFixed;
+        nUndef += p->pPlacement[i].fUndef;
+    }
+    printf( "Placement:  Objects = %8d.  Fixed = %8d.  Undef = %8d.\n", Gia_ManObjNum(p), nFixed, nUndef );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
 {
     if ( p->pName )
         printf( "%8s : ", p->pName );
-    printf( "i/o =%7d/%7d  ", Gia_ManPiNum(p), Gia_ManPoNum(p) );
+    printf( "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
     if ( Gia_ManRegNum(p) )
-        printf( "ff =%7d  ", Gia_ManRegNum(p) );
-    printf( "and =%8d  ", Gia_ManAndNum(p) );
-    printf( "lev =%5d  ", Gia_ManLevelNum(p) );
-    printf( "cut =%5d  ", Gia_ManCrossCut(p) );
-    printf( "mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
+        printf( "  ff =%7d", Gia_ManRegNum(p) );
+    printf( "  and =%8d", Gia_ManAndNum(p) );
+    printf( "  lev =%5d", Gia_ManLevelNum(p) );
+    printf( "  cut =%5d", Gia_ManCrossCut(p) );
+    printf( "  mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
+    if ( fSwitch )
+    {
+        if ( p->pSwitching )
+            printf( "  power =%7.2f", Gia_ManEvaluateSwitching(p) );
+        else
+            printf( "  power =%7.2f", Gia_ManComputeSwitching(p, 48, 16, 0) );
+    }
 //    printf( "obj =%5d  ", Gia_ManObjNum(p) );
     printf( "\n" );
 
@@ -147,6 +180,8 @@ void Gia_ManPrintStats( Gia_Man_t * p )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
     if ( p->pMapping )
         Gia_ManPrintMappingStats( p );
+    if ( p->pPlacement )
+        Gia_ManPrintPlacement( p );
     // print register classes
 //    Gia_ManPrintClasses( p );
 }

@@ -111,6 +111,8 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     Cnf_DataFree( pCnf );
     if ( pSat == NULL )
     {
+        printf( "Counter-example generation in command \"int\" has failed.\n" );
+        printf( "Use command \"bmc2\" to produce a valid counter-example.\n" );
         Vec_IntFree( vCiIds );
         return NULL;
     }

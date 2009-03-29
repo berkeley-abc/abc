@@ -36,6 +36,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define GIA_PLACE_SIZE 0x7fff 
+// objects will be placed in box [0, GIA_PLACE_SIZE] x [0, GIA_PLACE_SIZE]
 
 typedef float  Emb_Dat_t;
 
@@ -247,6 +249,7 @@ Emb_Man_t * Emb_ManStartSimple( Gia_Man_t * pGia )
         Emb_ObjAddFanin( Emb_ManObj(p,Gia_ObjValue(pObjRo)), Emb_ManObj(p,Gia_ObjValue(pObjRi)) );
     assert( nNodes  == Emb_ManNodeNum(p) );
     assert( hHandle == p->nObjData );
+    assert( p->nObjs == Gia_ManObjNum(pGia) );
     if ( hHandle != p->nObjData )
         printf( "Emb_ManStartSimple(): Fatal error in internal representation.\n" );
     // make sure the fanin/fanout counters are correct
@@ -1407,7 +1410,7 @@ void Emb_ManComputeSolutions( Emb_Man_t * p, int nDims, int nSols )
 
 /**Function*************************************************************
 
-  Synopsis    [Projects into square of size [0;0xffff] x [0;0xffff].]
+  Synopsis    [Projects into square of size [0;GIA_PLACE_SIZE] x [0;GIA_PLACE_SIZE].]
 
   Description []
                
@@ -1432,7 +1435,7 @@ void Emb_ManDerivePlacement( Emb_Man_t * p, int nSols )
         Min0 = ABC_MIN( Min0, pY0[k] );
         Max0 = ABC_MAX( Max0, pY0[k] );
     }
-    Str0 = 1.0*0xffff/(Max0 - Min0);
+    Str0 = 1.0*GIA_PLACE_SIZE/(Max0 - Min0);
     // update the coordinates
     for ( k = 0; k < p->nObjs; k++ )
         pY0[k] = (pY0[k] != 0.0) ? ((pY0[k] - Min0) * Str0) : 0.0;
@@ -1446,7 +1449,7 @@ void Emb_ManDerivePlacement( Emb_Man_t * p, int nSols )
         Min1 = ABC_MIN( Min1, pY1[k] );
         Max1 = ABC_MAX( Max1, pY1[k] );
     }
-    Str1 = 1.0*0xffff/(Max1 - Min1);
+    Str1 = 1.0*GIA_PLACE_SIZE/(Max1 - Min1);
     // update the coordinates
     for ( k = 0; k < p->nObjs; k++ )
         pY1[k] = (pY1[k] != 0.0) ? ((pY1[k] - Min1) * Str1) : 0.0;
@@ -1455,12 +1458,12 @@ void Emb_ManDerivePlacement( Emb_Man_t * p, int nSols )
     pPerm0 = Gia_SortFloats( pY0, NULL, p->nObjs );
     pPerm1 = Gia_SortFloats( pY1, NULL, p->nObjs );
 
-    // average solutions and project them into square [0;0xffff] x [0;0xffff]
+    // average solutions and project them into square [0;GIA_PLACE_SIZE] x [0;GIA_PLACE_SIZE]
     p->pPlacement = ABC_ALLOC( unsigned short, 2 * p->nObjs );
     for ( k = 0; k < p->nObjs; k++ )
     {
-        p->pPlacement[2*pPerm0[k]+0] = (unsigned short)(int)(1.0 * k * 0xffff / p->nObjs);
-        p->pPlacement[2*pPerm1[k]+1] = (unsigned short)(int)(1.0 * k * 0xffff / p->nObjs);
+        p->pPlacement[2*pPerm0[k]+0] = (unsigned short)(int)(1.0 * k * GIA_PLACE_SIZE / p->nObjs);
+        p->pPlacement[2*pPerm1[k]+1] = (unsigned short)(int)(1.0 * k * GIA_PLACE_SIZE / p->nObjs);
     }
     ABC_FREE( pPerm0 );
     ABC_FREE( pPerm1 );
@@ -1568,8 +1571,8 @@ void Emb_ManPlacementRefine( Emb_Man_t * p, int nIters, int fVerbose )
         pPermY = Gia_SortFloats( pVertY, NULL, p->nObjs );
         for ( k = 0; k < p->nObjs; k++ )
         {
-            p->pPlacement[2*pPermX[k]+0] = (unsigned short)(int)(1.0 * k * 0xffff / p->nObjs);
-            p->pPlacement[2*pPermY[k]+1] = (unsigned short)(int)(1.0 * k * 0xffff / p->nObjs);
+            p->pPlacement[2*pPermX[k]+0] = (unsigned short)(int)(1.0 * k * GIA_PLACE_SIZE / p->nObjs);
+            p->pPlacement[2*pPermY[k]+1] = (unsigned short)(int)(1.0 * k * GIA_PLACE_SIZE / p->nObjs);
         }
         ABC_FREE( pPermX );
         ABC_FREE( pPermY );
@@ -1783,7 +1786,7 @@ void Emb_ManDumpGnuplot( Emb_Man_t * p, char * pName, int fDumpLarge, int fShowI
 void Gia_ManSolveProblem( Gia_Man_t * pGia, Emb_Par_t * pPars )
 {
     Emb_Man_t * p;
-    int clk, clkSetup;
+    int i, clk, clkSetup;
 //   Gia_ManTestDistance( pGia );
 
     // transform AIG into internal data-structure
@@ -1843,6 +1846,17 @@ if ( pPars->fVerbose )
 ABC_PRT( "Image dump", clock() - clk );
     }
 
+    // transfer placement
+    if ( Gia_ManObjNum(pGia) == p->nObjs )
+    {
+        // assuming normalized ordering of the AIG
+        pGia->pPlacement = ABC_CALLOC( Gia_Plc_t, p->nObjs );
+        for ( i = 0; i < p->nObjs; i++ ) 
+        {
+            pGia->pPlacement[i].xCoord = p->pPlacement[2*i+0];
+            pGia->pPlacement[i].yCoord = p->pPlacement[2*i+1];
+        }
+    }
     Emb_ManStop( p );
 }
 

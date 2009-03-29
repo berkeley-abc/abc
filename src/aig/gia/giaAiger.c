@@ -194,6 +194,25 @@ int Gia_ReadInt( unsigned char * pPos )
 
 /**Function*************************************************************
 
+  Synopsis    [Reads decoded value.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Gia_ReadDiffValue( char ** ppPos, int iPrev )
+{
+    int Item = Gia_ReadAigerDecode( ppPos );
+    if ( Item & 1 )
+        return iPrev + (Item >> 1);
+    return iPrev - (Item >> 1);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Read equivalence classes from the string.]
 
   Description []
@@ -238,7 +257,7 @@ Gia_Rpr_t * Gia_ReadEquivClasses( unsigned char ** ppPos, int nSize )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads decoded value.]
+  Synopsis    [Read flop classes from the string.]
 
   Description []
   
@@ -247,12 +266,13 @@ Gia_Rpr_t * Gia_ReadEquivClasses( unsigned char ** ppPos, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Gia_ReadDiffValue( char ** ppPos, int iPrev )
+void Gia_ReadFlopClasses( unsigned char ** ppPos, Vec_Int_t * vClasses, int nSize )
 {
-    int Item = Gia_ReadAigerDecode( ppPos );
-    if ( Item & 1 )
-        return iPrev + (Item >> 1);
-    return iPrev - (Item >> 1);
+    int nAlloc = Gia_ReadInt( *ppPos ); *ppPos += 4;
+    assert( nAlloc/4 == nSize );
+    assert( Vec_IntSize(vClasses) == nSize );
+    memcpy( Vec_IntArray(vClasses), *ppPos, 4*nSize );
+    *ppPos += 4 * nSize;
 }
 
 /**Function*************************************************************
@@ -286,6 +306,50 @@ int * Gia_ReadMapping( unsigned char ** ppPos, int nSize )
     }
     assert( iOffset <= nAlloc );
     return pMapping;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read switching from the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned char * Gia_ReadSwitching( unsigned char ** ppPos, int nSize )
+{
+    unsigned char * pSwitching;
+    int nAlloc = Gia_ReadInt( *ppPos ); *ppPos += 4;
+    assert( nAlloc == nSize );
+    pSwitching = ABC_ALLOC( unsigned char, nSize );
+    memcpy( pSwitching, *ppPos, nSize );
+    *ppPos += nSize;
+    return pSwitching;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read placement from the string.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Plc_t * Gia_ReadPlacement( unsigned char ** ppPos, int nSize )
+{
+    Gia_Plc_t * pPlacement;
+    int nAlloc = Gia_ReadInt( *ppPos ); *ppPos += 4;
+    assert( nAlloc/4 == nSize );
+    pPlacement = ABC_ALLOC( Gia_Plc_t, nSize );
+    memcpy( pPlacement, *ppPos, 4*nSize );
+    *ppPos += 4 * nSize;
+    return pPlacement;
 }
 
 /**Function*************************************************************
@@ -455,6 +519,13 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
             pNew->pReprs = Gia_ReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
             pNew->pNexts = Gia_ManDeriveNexts( pNew );
         }
+        if ( *pCur == 'f' )
+        {
+            pCur++;
+            // read flop classes
+            pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
+            Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
+        }
         if ( *pCur == 'm' )
         {
             pCur++;
@@ -465,6 +536,13 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
         {
             pCur++;
             // read placement
+            pNew->pPlacement = Gia_ReadPlacement( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 's' )
+        {
+            pCur++;
+            // read switching activity
+            pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
         }
         if ( *pCur == 'n' )
         {
@@ -762,7 +840,10 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
 
     // create normalized AIG
     if ( !Gia_ManIsNormalized(pInit) )
+    {
+        printf( "Gia_WriteAiger(): Normalizing AIG for writing.\n" );
         p = Gia_ManDupNormalized( pInit );
+    }
     else
         p = pInit;
 
@@ -831,6 +912,15 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fwrite( pEquivs, 1, nEquivSize, pFile );
         ABC_FREE( pEquivs );
     }
+    // write flop classes
+    if ( p->vFlopClasses )
+    {
+        char Buffer[10];
+        int nSize = 4*Gia_ManRegNum(p);
+        fprintf( pFile, "f" );
+        fwrite( Buffer, 1, 4, pFile );
+        fwrite( Vec_IntArray(p->vFlopClasses), 1, nSize, pFile );
+    }
     // write mapping
     if ( p->pMapping )
     {
@@ -841,6 +931,26 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         ABC_FREE( pMaps );
     }
     // write placement
+    if ( p->pPlacement )
+    {
+        char Buffer[10];
+        int nSize = 4*Gia_ManObjNum(p);
+        Gia_WriteInt( Buffer, nSize );
+        fprintf( pFile, "p" );
+        fwrite( Buffer, 1, 4, pFile );
+        fwrite( p->pPlacement, 1, nSize, pFile );
+    }
+    // write flop classes
+    if ( p->pSwitching )
+    {
+        char Buffer[10];
+        int nSize = Gia_ManObjNum(p);
+        Gia_WriteInt( Buffer, nSize );
+        fprintf( pFile, "s" );
+        fwrite( Buffer, 1, 4, pFile );
+        fwrite( p->pSwitching, 1, nSize, pFile );
+    }
+    // write name
     if ( p->pName )
         fprintf( pFile, "n%s%c", p->pName, '\0' );
     fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
@@ -848,6 +958,24 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     fclose( pFile );
     if ( p != pInit )
         Gia_ManStop( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits )
+{
+    char Buffer[100];
+    sprintf( Buffer, "%s%0*d.aig", pFilePrefix, nFileNumDigits, iFileNum );
+    Gia_WriteAiger( p, Buffer, 0, 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////

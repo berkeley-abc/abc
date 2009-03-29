@@ -42,23 +42,32 @@
 void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t * pCex )
 {
     unsigned * pInfo;
-    int k, w, nWords;
+    int k, i, w, nWords;
     assert( pCex->nBits == pCex->nRegs + pCex->nPis * (pCex->iFrame + 1) );
-    assert( pCex->nBits <= Vec_PtrSize(vInfo) );
+    assert( pCex->nBits - pCex->nRegs + Gia_ManRegNum(pAig) <= Vec_PtrSize(vInfo) );
     nWords = Vec_PtrReadWordsSimInfo( vInfo );
+/*
     for ( k = 0; k < pCex->nRegs; k++ )
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = Aig_InfoHasBit( pCex->pData, k )? ~0 : 0;
     }
-    for ( ; k < pCex->nBits; k++ )
+*/
+    for ( k = 0; k < Gia_ManRegNum(pAig); k++ )
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
+            pInfo[w] = 0;
+    }
+
+    for ( i = pCex->nRegs; i < pCex->nBits; i++ )
+    {
+        pInfo = Vec_PtrEntry( vInfo, k++ );
+        for ( w = 0; w < nWords; w++ )
             pInfo[w] = Aig_ManRandom(0);
         // set simulation pattern and make sure it is second (first will be erased during simulation)
-        pInfo[0] = (pInfo[0] << 1) | Aig_InfoHasBit( pCex->pData, k ); 
+        pInfo[0] = (pInfo[0] << 1) | Aig_InfoHasBit( pCex->pData, i ); 
         pInfo[0] <<= 1;
     }
     for ( ; k < Vec_PtrSize(vInfo); k++ )
@@ -85,13 +94,13 @@ void Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Ce
     unsigned * pInfo;
     int k, w, nWords;
     nWords = Vec_PtrReadWordsSimInfo( vInfo );
-    assert( Gia_ManRegNum(pAig) == pCex->nRegs );
+    assert( pCex == NULL || Gia_ManRegNum(pAig) == pCex->nRegs );
     assert( Gia_ManRegNum(pAig) <= Vec_PtrSize(vInfo) );
     for ( k = 0; k < Gia_ManRegNum(pAig); k++ )
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
-            pInfo[w] = Aig_InfoHasBit( pCex->pData, k )? ~0 : 0;
+            pInfo[w] = (pCex && Aig_InfoHasBit(pCex->pData, k))? ~0 : 0;
     }
 
     for ( ; k < Vec_PtrSize(vInfo); k++ )
@@ -212,9 +221,10 @@ int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Gia_Cex
         printf( "Cec_ManSeqResimulateCounter(): Not a sequential AIG.\n" );
         return -1;
     }
-    if ( Gia_ManRegNum(pAig) != pCex->nRegs || Gia_ManPiNum(pAig) != pCex->nPis )
+//    if ( Gia_ManRegNum(pAig) != pCex->nRegs || Gia_ManPiNum(pAig) != pCex->nPis )
+    if ( Gia_ManPiNum(pAig) != pCex->nPis )
     {
-        printf( "Cec_ManSeqResimulateCounter(): Parameters of the ccounter-example differ.\n" );
+        printf( "Cec_ManSeqResimulateCounter(): The number of PIs in the AIG and the counter-example differ.\n" );
         return -1;
     }
     if ( pPars->fVerbose )
@@ -251,6 +261,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
     int nAddFrames = 10; // additional timeframes to simulate
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Vec_Ptr_t * vSimInfo; 
+    Vec_Str_t * vStatus;
     Gia_Cex_t * pState;
     Gia_Man_t * pSrm;
     int r, nPats, RetValue = -1;
@@ -284,13 +295,14 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
 //        Gia_ManPrintCounterExample( pState );
         // derive speculatively reduced model
         pSrm = Gia_ManSpecReduceInit( pAig, pState, pPars->nFrames, pPars->fDualOut );
-        assert( Gia_ManRegNum(pSrm) == 0 && Gia_ManPiNum(pSrm) == Gia_ManPiNum(pAig) * pPars->nFrames );
+        assert( Gia_ManRegNum(pSrm) == 0 && Gia_ManPiNum(pSrm) == (Gia_ManPiNum(pAig) * pPars->nFrames) );
         // allocate room for simulation info
         vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pAig) + 
             Gia_ManPiNum(pAig) * (pPars->nFrames + nAddFrames), pPars->nWords );
         Cec_ManSeqDeriveInfoInitRandom( vSimInfo, pAig, pState );
         // fill in simulation info with counter-examples
-        Cec_ManSatSolveSeq( vSimInfo, pSrm, pParsSat, Gia_ManRegNum(pAig), &nPats );
+        vStatus = Cec_ManSatSolveSeq( vSimInfo, pSrm, pParsSat, Gia_ManRegNum(pAig), &nPats );
+        Vec_StrFree( vStatus );
         Gia_ManStop( pSrm );
         // resimulate and refine the classes
         RetValue = Cec_ManSeqResimulateInfo( pAig, vSimInfo, pState );

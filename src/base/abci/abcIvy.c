@@ -946,12 +946,8 @@ Ivy_Obj_t * Abc_NodeStrashAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode )
     if ( Abc_NodeIsConst(pNode) )
         return Ivy_NotCond( Ivy_ManConst1(pMan), Abc_SopIsConst0(pSop) );
 
-    // consider the special case of EXOR function
-    if ( Abc_SopIsExorType(pSop) )
-        return Abc_NodeStrashAigExorAig( pMan, pNode, pSop );
-
     // decide when to use factoring
-    if ( fUseFactor && Abc_ObjFaninNum(pNode) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
+    if ( fUseFactor && Abc_ObjFaninNum(pNode) > 2 && Abc_SopGetCubeNum(pSop) > 1 && !Abc_SopIsExorType(pSop) )
         return Abc_NodeStrashAigFactorAig( pMan, pNode, pSop );
     return Abc_NodeStrashAigSopAig( pMan, pNode, pSop );
 }
@@ -973,6 +969,7 @@ Ivy_Obj_t * Abc_NodeStrashAigSopAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char *
     Ivy_Obj_t * pAnd, * pSum;
     char * pCube;
     int i, nFanins;
+    int fExor = Abc_SopIsExorType(pSop);
 
     // get the number of node's fanins
     nFanins = Abc_ObjFaninNum( pNode );
@@ -991,7 +988,10 @@ Ivy_Obj_t * Abc_NodeStrashAigSopAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char *
                 pAnd = Ivy_And( pMan, pAnd, Ivy_Not((Ivy_Obj_t *)pFanin->pCopy) );
         }
         // add to the sum of cubes
-        pSum = Ivy_Or( pMan, pSum, pAnd );
+        if ( fExor )
+            pSum = Ivy_Exor( pMan, pSum, pAnd );
+        else
+            pSum = Ivy_Or( pMan, pSum, pAnd );
     }
     // decide whether to complement the result
     if ( Abc_SopIsComplement(pSop) )

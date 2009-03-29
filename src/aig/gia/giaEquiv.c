@@ -226,6 +226,10 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     assert( Gia_ManEquivCheckLits( p, nLits ) );
     if ( fVerbose )
     {
+        printf( "Const0 = " );
+        Gia_ManForEachConst( p, i )
+            printf( "%d ", i );
+        printf( "\n" );
         Counter = 0;
         Gia_ManForEachClass( p, i )
             Gia_ManEquivPrintOne( p, i, ++Counter );
@@ -275,15 +279,15 @@ static inline Gia_Obj_t * Gia_ManEquivRepr( Gia_Man_t * p, Gia_Obj_t * pObj, int
 void Gia_ManEquivReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int fUseAll, int fDualOut )
 {
     Gia_Obj_t * pRepr;
-    if ( ~pObj->Value )
-        return;
-    assert( Gia_ObjIsAnd(pObj) );
     if ( (pRepr = Gia_ManEquivRepr(p, pObj, fUseAll, fDualOut)) )
     {
         Gia_ManEquivReduce_rec( pNew, p, pRepr, fUseAll, fDualOut );
         pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
         return;
     }
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
     Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin0(pObj), fUseAll, fDualOut );
     Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin1(pObj), fUseAll, fDualOut );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -303,18 +307,25 @@ void Gia_ManEquivReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, 
 Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fVerbose )
 {
     Gia_Man_t * pNew;
-    Gia_Obj_t * pObj, * pRepr;
+    Gia_Obj_t * pObj;
     int i;
+    if ( !p->pReprs )
+    {
+        printf( "Gia_ManEquivReduce(): Equivalence classes are not available.\n" );
+        return NULL;
+    }
     if ( fDualOut && (Gia_ManPoNum(p) & 1) )
     {
         printf( "Gia_ManEquivReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
+/*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
         printf( "Gia_ManEquivReduce(): AIG is not in a correct topological order.\n" );
         return NULL;
     }
+*/
     Gia_ManSetPhase( p );
     if ( fDualOut )
         Gia_ManEquivSetColors( p, fVerbose );
@@ -323,11 +334,7 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fV
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
-    {
         pObj->Value = Gia_ManAppendCi(pNew);
-        if ( (pRepr = Gia_ManEquivRepr(p, pObj, fUseAll, fDualOut)) )
-            pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
-    }
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManEquivReduce_rec( pNew, p, Gia_ObjFanin0(pObj), fUseAll, fDualOut );
@@ -662,11 +669,13 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
         printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
+/*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
         printf( "Gia_ManSpecReduce(): AIG is not in a correct topological order.\n" );
         return NULL;
     }
+*/
     vXorLits = Vec_IntAlloc( 1000 );
     Gia_ManSetPhase( p );
     Gia_ManFillValue( p );
@@ -786,11 +795,13 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames
         printf( "Gia_ManSpecReduceInit(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
+/*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
         printf( "Gia_ManSpecReduceInit(): AIG is not in a correct topological order.\n" );
         return NULL;
     }
+*/
     assert( pInit->nRegs == Gia_ManRegNum(p) && pInit->nPis == 0 );
     p->pCopies = ABC_FALLOC( int, nFrames * Gia_ManObjNum(p) );
     vXorLits = Vec_IntAlloc( 1000 );

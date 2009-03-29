@@ -287,6 +287,10 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
     }
     else
     {
+//        Aig_ManForEachObj( p, pObj, i )
+//            if ( p->pReprs[i] )
+//                printf( "Substituting %d for %d.\n", p->pReprs[i]->Id, pObj->Id );
+
         Aig_ManForEachPo( p, pObj, i )
             Aig_ManDupRepr_rec( pNew, p, Aig_ObjFanin0(pObj) );
     }

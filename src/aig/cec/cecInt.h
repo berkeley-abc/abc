@@ -85,15 +85,19 @@ struct Cec_ManSat_t_
     int              nRecycles;      // the number of times SAT solver was recycled
     int              nCallsSince;    // the number of calls since the last recycle
     Vec_Ptr_t *      vFanins;        // fanins of the CNF node
+    // counter-examples
+    Vec_Int_t *      vCex;           // the latest counter-example
+    Vec_Int_t *      vVisits;        // temporary array for visited nodes  
     // SAT calls statistics
     int              nSatUnsat;      // the number of proofs
     int              nSatSat;        // the number of failure
     int              nSatUndec;      // the number of timeouts
     int              nSatTotal;      // the number of calls
+    int              nCexLits;
     // conflicts
-    int              nConfUnsat;
-    int              nConfSat;
-    int              nConfUndec;
+    int              nConfUnsat;     // conflicts in unsat problems
+    int              nConfSat;       // conflicts in sat problems
+    int              nConfUndec;     // conflicts in undec problems
     // runtime stats
     int              timeSatUnsat;   // unsat
     int              timeSatSat;     // sat
@@ -164,6 +168,7 @@ struct Cec_ManFra_t_
 
 /*=== cecCore.c ============================================================*/
 /*=== cecClass.c ============================================================*/
+extern int                  Cec_ManSimClassRemoveOne( Cec_ManSim_t * p, int i );
 extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p );
 extern int                  Cec_ManSimClassesRefine( Cec_ManSim_t * p );
 extern int                  Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * vInfoCos );
@@ -183,10 +188,16 @@ extern void                 Cec_ManFraStop( Cec_ManFra_t * p );
 /*=== cecPat.c ============================================================*/
 extern void                 Cec_ManPatSavePattern( Cec_ManPat_t *  pPat, Cec_ManSat_t *  p, Gia_Obj_t * pObj );
 extern Vec_Ptr_t *          Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nWords );
+extern Vec_Ptr_t *          Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nRegs, int nWordsInit );
+/*=== cecSeq.c ============================================================*/
+extern int                  Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo );
+extern int                  Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Gia_Cex_t * pBestState );
+extern void                 Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t * pCex );
 /*=== cecSolve.c ============================================================*/
 extern int                  Cec_ObjSatVarValue( Cec_ManSat_t * p, Gia_Obj_t * pObj );
 extern void                 Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars );
-extern void                 Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat_t * pPars, int nRegs, int * pnPats );
+extern Vec_Str_t *          Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat_t * pPars, int nRegs, int * pnPats );
+extern Vec_Int_t *          Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Str_t ** pvStatus );
 /*=== ceFraeep.c ============================================================*/
 extern Gia_Man_t *          Cec_ManFraSpecReduction( Cec_ManFra_t * p );
 extern int                  Cec_ManFraClassesUpdate( Cec_ManFra_t * p, Cec_ManSim_t * pSim, Cec_ManPat_t * pPat, Gia_Man_t * pNew );
