@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Combinatinoal equivalence checking.]
+  PackageName [Combinational equivalence checking.]
 
   Synopsis    [External declarations.]
 
@@ -44,6 +44,7 @@ struct Cec_ParSat_t_
     int              nBTLimit;      // conflict limit at a node
     int              nSatVarMax;    // the max number of SAT variables
     int              nCallsRecycle; // calls to perform before recycling SAT solver
+    int              fNonChrono;    // use non-chronological backtracling (for circuit SAT only)
     int              fPolarFlip;    // flops polarity of variables
     int              fCheckMiter;   // the circuit is the miter
     int              fFirstStop;    // stop on the first sat output

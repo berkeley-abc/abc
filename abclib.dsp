@@ -3695,6 +3695,10 @@ SOURCE=.\src\aig\gia\giaCSat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaCSatOld.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaDfs.c
 # End Source File
 # Begin Source File

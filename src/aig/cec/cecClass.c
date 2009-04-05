@@ -4,9 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Combinatinoal equivalence checking.]
+  PackageName [Combinational equivalence checking.]
 
-  Synopsis    [Equivalence class representation.]
+  Synopsis    [Equivalence class refinement.]
 
   Author      [Alan Mishchenko]
   
@@ -838,6 +838,8 @@ int Cec_ManSimClassesPrepare( Cec_ManSim_t * p )
     // allocate representation
     p->pAig->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p->pAig) );
     p->pAig->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p->pAig) );
+    // create references
+    Gia_ManSetRefs( p->pAig );
     // set starting representative of internal nodes to be constant 0
     if ( p->pPars->fLatchCorr )
         Gia_ManForEachObj( p->pAig, pObj, i )
@@ -848,9 +850,9 @@ int Cec_ManSimClassesPrepare( Cec_ManSim_t * p )
     // if sequential simulation, set starting representative of ROs to be constant 0
     if ( p->pPars->fSeqSimulate )
         Gia_ManForEachRo( p->pAig, pObj, i )
-            Gia_ObjSetRepr( p->pAig, Gia_ObjId(p->pAig, pObj), 0 );
+            if ( pObj->Value )
+                Gia_ObjSetRepr( p->pAig, Gia_ObjId(p->pAig, pObj), 0 );
     // perform simulation
-    Gia_ManSetRefs( p->pAig );
     p->nWords = 1;
     do {
         if ( p->pPars->fVerbose )

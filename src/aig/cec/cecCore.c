@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Combinatinoal equivalence checking.]
+  PackageName [Combinational equivalence checking.]
 
   Synopsis    [Core procedures.]
 
@@ -42,9 +42,10 @@
 void Cec_ManSatSetDefaultParams( Cec_ParSat_t * p )
 {
     memset( p, 0, sizeof(Cec_ParSat_t) );
-    p->nBTLimit       =      10;  // conflict limit at a node
+    p->nBTLimit       =     100;  // conflict limit at a node
     p->nSatVarMax     =    2000;  // the max number of SAT variables
     p->nCallsRecycle  =     200;  // calls to perform before recycling SAT solver
+    p->fNonChrono     =       0;  // use non-chronological backtracling (for circuit SAT only)
     p->fPolarFlip     =       1;  // flops polarity of variables
     p->fCheckMiter    =       0;  // the circuit is the miter
     p->fFirstStop     =       0;  // stop on the first sat output
@@ -399,7 +400,7 @@ p->timeSat += clock() - clk;
 //        if ( p->nAllFailed && !p->nAllProved && !p->nAllDisproved )
         if ( p->nAllFailed > p->nAllProved + p->nAllDisproved )
         {
-            if ( pParsSat->nBTLimit >= 10000 )
+            if ( pParsSat->nBTLimit >= 10001 )
                 break;
             pParsSat->nBTLimit *= 10;
             if ( p->pPars->fVerbose )
@@ -413,7 +414,7 @@ p->timeSat += clock() - clk;
                 }
             }
         }
-        if ( pPars->fDualOut && pPars->fColorDiff && Gia_ManAndNum(p->pAig) < 100000 )
+        if ( pPars->fDualOut && pPars->fColorDiff && (Gia_ManAndNum(p->pAig) < 100000 || p->nAllProved + p->nAllDisproved < 10) )
         {
             if ( p->pPars->fVerbose )
                 printf( "Switching into reduced mode.\n" );

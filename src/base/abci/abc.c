@@ -17681,7 +17681,7 @@ usage:
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
 //    fprintf( pErr, "\t-G num : the max number of conflicts globally [default = %d]\n", nBTLimitAll );
 //    fprintf( pErr, "\t-D num : the delta in the number of nodes [default = %d]\n", nNodeDelta );
-    fprintf( pErr, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit? "yes": "no" );
+    fprintf( pErr, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit );
     fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
 //    fprintf( pErr, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -23472,7 +23472,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCSat = 0;
     Cec_ManSatSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNmfcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNnmfcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23509,6 +23509,9 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nCallsRecycle < 0 ) 
                 goto usage;
             break;
+        case 'n':
+            pPars->fNonChrono ^= 1;
+            break;
         case 'm':
             pPars->fCheckMiter ^= 1;
             break;
@@ -23534,7 +23537,10 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Vec_Int_t * vCounters;
         Vec_Str_t * vStatus;
-        vCounters = Cbs_ManSolveMiter( pAbc->pAig, 10*pPars->nBTLimit, &vStatus );
+        if ( pPars->fNonChrono )
+            vCounters = Cbs_ManSolveMiterNc( pAbc->pAig, pPars->nBTLimit, &vStatus, pPars->fVerbose );
+        else
+            vCounters = Cbs_ManSolveMiter( pAbc->pAig, pPars->nBTLimit, &vStatus, pPars->fVerbose );
         Vec_IntFree( vCounters );
         Vec_StrFree( vStatus );
     }
@@ -23546,11 +23552,12 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &sat [-CSN <num>] [-mfcvh]\n" );
+    fprintf( stdout, "usage: &sat [-CSN <num>] [-nmfcvh]\n" );
     fprintf( stdout, "\t         performs SAT solving for the combinational outputs\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-S num : the min number of variables to recycle the solver [default = %d]\n", pPars->nSatVarMax );
     fprintf( stdout, "\t-N num : the min number of calls to recycle the solver [default = %d]\n", pPars->nCallsRecycle );
+    fprintf( stdout, "\t-n     : toggle using non-chronological backtracking [default = %s]\n", pPars->fNonChrono? "yes": "no" );
     fprintf( stdout, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "yes": "no" );
     fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", fCSat? "yes": "no" );

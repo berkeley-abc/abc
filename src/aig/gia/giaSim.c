@@ -405,7 +405,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
         if ( pPars->fVerbose )
         {
             printf( "Frame %4d out of %4d and timeout %3d sec. ", i+1, pPars->nIters, pPars->TimeLimit );
-            printf( "Time = %7.2f sec\r", (1.0*clock()-clkTotal)/CLOCKS_PER_SEC );
+            printf( "Time = %7.2f sec\r", (1.0*clock()-clk)/CLOCKS_PER_SEC );
         }
         if ( pPars->fCheckMiter && Gia_ManCheckPos( p, &iOut, &iPat ) )
         {

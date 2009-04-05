@@ -4,9 +4,9 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Combinatinoal equivalence checking.]
+  PackageName [Combinational equivalence checking.]
 
-  Synopsis    [Manager pcocures.]
+  Synopsis    [Manager procedures.]
 
   Author      [Alan Mishchenko]
   

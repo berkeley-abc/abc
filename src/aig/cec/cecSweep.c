@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [ceFraeep.c]
+  FileName    [cecSweep.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Combinatinoal equivalence checking.]
+  PackageName [Combinational equivalence checking.]
 
   Synopsis    [SAT sweeping manager.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ceFraeep.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: cecSweep.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

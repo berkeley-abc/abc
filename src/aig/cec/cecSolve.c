@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Combinatinoal equivalence checking.]
+  PackageName [Combinational equivalence checking.]
 
   Synopsis    [Performs one round of SAT solving.]
 

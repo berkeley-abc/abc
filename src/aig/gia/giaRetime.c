@@ -243,6 +243,7 @@ Gia_Man_t * Gia_ManRetimeForwardOne( Gia_Man_t * p, int * pnRegFixed, int * pnRe
     // finally derive the new manager
     pNew = Gia_ManRetimeDupForward( p, vCut );
     Vec_PtrFree( vCut );
+    if ( vObjClasses )
     Vec_IntFree( vObjClasses );
     pNew->vFlopClasses = vFlopClasses;
     return pNew;
