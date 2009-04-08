@@ -407,7 +407,7 @@ int Aig_ManLevelNum( Aig_Man_t * p )
     int i, LevelsMax;
     LevelsMax = 0;
     Aig_ManForEachPo( p, pObj, i )
-        LevelsMax = AIG_MAX( LevelsMax, (int)Aig_ObjFanin0(pObj)->Level );
+        LevelsMax = ABC_MAX( LevelsMax, (int)Aig_ObjFanin0(pObj)->Level );
     return LevelsMax;
 }
 

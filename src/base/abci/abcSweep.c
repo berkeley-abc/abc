@@ -111,7 +111,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, 
     Abc_NtkFraigTransform( pNtk, tEquiv, fUseInv, fVerbose );
     stmm_free_table( tEquiv );
 
-    // ABC_FREE the manager
+    // free the manager
     Fraig_ManFree( pMan );
     Abc_NtkDelete( pNtkAig );
 

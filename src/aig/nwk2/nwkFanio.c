@@ -172,7 +172,7 @@ void Nwk_ObjAddFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin )
         pObj->pFanio[i] = pObj->pFanio[i-1];
     pObj->pFanio[pObj->nFanins++] = pFanin;
     pFanin->pFanio[pFanin->nFanins + pFanin->nFanouts++] = pObj;
-    pObj->Level = AIG_MAX( pObj->Level, pFanin->Level + Nwk_ObjIsNode(pObj) );
+    pObj->Level = ABC_MAX( pObj->Level, pFanin->Level + Nwk_ObjIsNode(pObj) );
 }
 
 /**Function*************************************************************

@@ -2422,7 +2422,7 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
                 // compute the sum total of supports
                 nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nStep+1][2*i+0], nVars );
                 nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nStep+1][2*i+1], nVars );
-                // ABC_FREE the networks
+                // free the networks
                 Kit_DsdNtkFree( ppNtks[nStep+1][2*i+0] );
                 Kit_DsdNtkFree( ppNtks[nStep+1][2*i+1] );
             }
@@ -2460,7 +2460,7 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
         }
     }
 
-    // ABC_FREE the networks
+    // free the networks
     for ( i = 0; i <  5; i++ )
     for ( k = 0; k < 16; k++ )
         if ( ppNtks[i][k] )

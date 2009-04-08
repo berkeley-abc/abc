@@ -736,7 +736,7 @@ int Nwk_ObjLevelNew( Nwk_Obj_t * pObj )
                 for ( i = 0; i < nTerms; i++ )
                 {
                     pFanin = Nwk_ManCo(pObj->pMan, iTerm1 + i);
-                    Level = AIG_MAX( Level, Nwk_ObjLevel(pFanin) );
+                    Level = ABC_MAX( Level, Nwk_ObjLevel(pFanin) );
                 }
                 Level++;
             }
@@ -745,7 +745,7 @@ int Nwk_ObjLevelNew( Nwk_Obj_t * pObj )
     }
     assert( Nwk_ObjIsNode(pObj) || Nwk_ObjIsCo(pObj) );
     Nwk_ObjForEachFanin( pObj, pFanin, i )
-        Level = AIG_MAX( Level, Nwk_ObjLevel(pFanin) );
+        Level = ABC_MAX( Level, Nwk_ObjLevel(pFanin) );
     return Level + (Nwk_ObjIsNode(pObj) && Nwk_ObjFaninNum(pObj) > 0);
 }
 

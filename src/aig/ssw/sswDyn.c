@@ -438,8 +438,8 @@ p->timeReduce += clock() - clk;
             // replace the solver
             if ( p->pMSat )
             {
-                p->nVarsMax  = AIG_MAX( p->nVarsMax,  p->pMSat->nSatVars );
-                p->nCallsMax = AIG_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
+                p->nVarsMax  = ABC_MAX( p->nVarsMax,  p->pMSat->nSatVars );
+                p->nCallsMax = ABC_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
                 Ssw_SatStop( p->pMSat );
                 p->nRecycles++;
                 p->nRecyclesTotal++;

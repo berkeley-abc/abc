@@ -597,7 +597,7 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, 
 //    int nWords  =  4;
 //    int nIters  =  0;
 
-    int nFrames =  AIG_MAX( nFramesK, 4 );
+    int nFrames =  ABC_MAX( nFramesK, 4 );
     int nWords  =  2;
     int nIters  = 16;
     Ssw_Cla_t * p;

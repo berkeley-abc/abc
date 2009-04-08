@@ -304,7 +304,7 @@ void Msat_SolverResize( Msat_Solver_t * p, int nVarsAlloc )
 void Msat_SolverClean( Msat_Solver_t * p, int nVars )
 {
     int i;
-    // ABC_FREE the clauses
+    // free the clauses
     int nClauses;
     Msat_Clause_t ** pClauses;
 
@@ -384,7 +384,7 @@ void Msat_SolverFree( Msat_Solver_t * p )
 {
     int i;
 
-    // ABC_FREE the clauses
+    // free the clauses
     int nClauses;
     Msat_Clause_t ** pClauses;
 //printf( "clauses = %d. learned = %d.\n", Msat_ClauseVecReadSize( p->vClauses ), 

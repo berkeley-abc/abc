@@ -398,7 +398,7 @@ ABC_PRT( "Fraiging", clock() - clk );
 clk = clock();
     pRes2 = Saig_ManFramesInitialMapped( pAig, nFrames, nFramesMax, fInit );
 ABC_PRT( "Mapped", clock() - clk );
-    // ABC_FREE mapping
+    // free mapping
     Saig_ManStopMap2( pAig );
 clk = clock();
     pRes1 = Saig_ManFramesInitialMapped( pAig, nFrames, nFramesMax, fInit );

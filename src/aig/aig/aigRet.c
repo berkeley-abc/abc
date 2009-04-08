@@ -173,7 +173,7 @@ void Rtm_ObjTransferToBig( Rtm_Man_t * p, Rtm_Edg_t * pEdge )
     assert( pEdge->nLats == 10 );
     if ( p->nExtraCur + 1 > p->nExtraAlloc )
     {
-        int nExtraAllocNew = AIG_MAX( 2 * p->nExtraAlloc, 1024 );
+        int nExtraAllocNew = ABC_MAX( 2 * p->nExtraAlloc, 1024 );
         p->pExtra = ABC_REALLOC( unsigned, p->pExtra, nExtraAllocNew );
         p->nExtraAlloc = nExtraAllocNew;
     }
@@ -199,7 +199,7 @@ void Rtm_ObjTransferToBigger( Rtm_Man_t * p, Rtm_Edg_t * pEdge )
     nWords = (pEdge->nLats + 1) >> 4;
     if ( p->nExtraCur + nWords + 1 > p->nExtraAlloc )
     {
-        int nExtraAllocNew = AIG_MAX( 2 * p->nExtraAlloc, 1024 );
+        int nExtraAllocNew = ABC_MAX( 2 * p->nExtraAlloc, 1024 );
         p->pExtra = ABC_REALLOC( unsigned, p->pExtra, nExtraAllocNew );
         p->nExtraAlloc = nExtraAllocNew;
     }
@@ -357,7 +357,7 @@ int Rtm_ManLatchMax( Rtm_Man_t * p )
             assert( Val == 1 || Val == 2 );
         }
 */
-        nLatchMax = AIG_MAX( nLatchMax, (int)pEdge->nLats );
+        nLatchMax = ABC_MAX( nLatchMax, (int)pEdge->nLats );
     }
     return nLatchMax;
 }
@@ -474,7 +474,7 @@ int Rtm_ObjGetDegreeFwd( Rtm_Obj_t * pObj )
     Rtm_Obj_t * pFanin;
     int i, Degree = 0;
     Rtm_ObjForEachFanin( pObj, pFanin, i )
-        Degree = AIG_MAX( Degree, (int)pFanin->Num );
+        Degree = ABC_MAX( Degree, (int)pFanin->Num );
     return Degree + 1;
 }
 
@@ -494,7 +494,7 @@ int Rtm_ObjGetDegreeBwd( Rtm_Obj_t * pObj )
     Rtm_Obj_t * pFanout;
     int i, Degree = 0;
     Rtm_ObjForEachFanout( pObj, pFanout, i )
-        Degree = AIG_MAX( Degree, (int)pFanout->Num );
+        Degree = ABC_MAX( Degree, (int)pFanout->Num );
     return Degree + 1;
 }
 
@@ -907,7 +907,7 @@ clk = clock();
                 if ( !Rtm_ObjCheckRetimeFwd( pNext ) ) // skip non-retimable
                     continue;
                 Degree = Rtm_ObjGetDegreeFwd( pNext );
-                DegreeMax = AIG_MAX( DegreeMax, Degree );
+                DegreeMax = ABC_MAX( DegreeMax, Degree );
                 if ( Degree > nStepsMax ) // skip nodes with high degree
                     continue;
                 pNext->fMark = 1;
@@ -928,7 +928,7 @@ clk = clock();
                 if ( !Rtm_ObjCheckRetimeBwd( pNext ) ) // skip non-retimable
                     continue;
                 Degree = Rtm_ObjGetDegreeBwd( pNext );
-                DegreeMax = AIG_MAX( DegreeMax, Degree );
+                DegreeMax = ABC_MAX( DegreeMax, Degree );
                 if ( Degree > nStepsMax ) // skip nodes with high degree
                     continue;
                 pNext->fMark = 1;

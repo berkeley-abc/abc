@@ -124,7 +124,7 @@ static inline void * Vec_AttFree( Vec_Att_t * p, int fFreeMan )
     void * pMan;
     if ( p == NULL )
         return NULL;
-    // ABC_FREE the attributes of objects
+    // free the attributes of objects
     if ( p->pFuncFreeObj )
     {
         int i;
@@ -132,7 +132,7 @@ static inline void * Vec_AttFree( Vec_Att_t * p, int fFreeMan )
             if ( p->pArrayPtr[i] )
                 p->pFuncFreeObj( p->pMan, p->pArrayPtr[i] );
     }
-    // ABC_FREE the memory manager
+    // free the memory manager
     pMan = fFreeMan? NULL : p->pMan;
     if ( p->pMan && fFreeMan )  
         p->pFuncFreeMan( p->pMan );
@@ -154,7 +154,7 @@ static inline void * Vec_AttFree( Vec_Att_t * p, int fFreeMan )
 ***********************************************************************/
 static inline void Vec_AttClear( Vec_Att_t * p )
 {
-    // ABC_FREE the attributes of objects
+    // free the attributes of objects
     if ( p->pFuncFreeObj )
     {
         int i;

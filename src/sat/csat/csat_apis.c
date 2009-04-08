@@ -569,7 +569,7 @@ void ABC_SolveInit( ABC_Manager mng )
     if ( mng->nog == 0 )
         { printf( "ABC_SolveInit: Target is not specified by ABC_AddTarget().\n" ); return; }
 
-    // ABC_FREE the previous target network if present
+    // free the previous target network if present
     if ( mng->pTarget ) Abc_NtkDelete( mng->pTarget );
 
     // set the new target network

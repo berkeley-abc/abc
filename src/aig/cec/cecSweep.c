@@ -50,7 +50,7 @@ Gia_Man_t * Cec_ManFraSpecReduction( Cec_ManFra_t * p )
     if ( p->pPars->nLevelMax )
         Gia_ManLevelNum( p->pAig );
     pNew = Gia_ManStart( Gia_ManObjNum(p->pAig) );
-    pNew->pName = Aig_UtilStrsav( p->pAig->pName );
+    pNew->pName = Gia_UtilStrsav( p->pAig->pName );
     Gia_ManHashAlloc( pNew );
     piCopies = ABC_FALLOC( int, Gia_ManObjNum(p->pAig) );
     pDepths  = ABC_CALLOC( int, Gia_ManObjNum(p->pAig) );
@@ -70,7 +70,7 @@ Gia_Man_t * Cec_ManFraSpecReduction( Cec_ManFra_t * p )
         iRes0 = Gia_LitNotCond( piCopies[Gia_ObjFaninId0(pObj,i)], Gia_ObjFaninC0(pObj) );
         iRes1 = Gia_LitNotCond( piCopies[Gia_ObjFaninId1(pObj,i)], Gia_ObjFaninC1(pObj) );
         iNode = piCopies[i] = Gia_ManHashAnd( pNew, iRes0, iRes1 );
-        pDepths[i] = AIG_MAX( pDepths[Gia_ObjFaninId0(pObj,i)], pDepths[Gia_ObjFaninId1(pObj,i)] );
+        pDepths[i] = ABC_MAX( pDepths[Gia_ObjFaninId0(pObj,i)], pDepths[Gia_ObjFaninId1(pObj,i)] );
         if ( Gia_ObjRepr(p->pAig, i) == GIA_VOID || Gia_ObjFailed(p->pAig, i) )
             continue;
         assert( Gia_ObjRepr(p->pAig, i) < i );
@@ -109,7 +109,7 @@ Gia_Man_t * Cec_ManFraSpecReduction( Cec_ManFra_t * p )
         Vec_IntPush( p->vXorNodes, Gia_ObjRepr(p->pAig, i) );
         Vec_IntPush( p->vXorNodes, i );
         // add to the depth of this node
-        pDepths[i] = 1 + AIG_MAX( pDepths[i], pDepths[Gia_ObjRepr(p->pAig, i)] );
+        pDepths[i] = 1 + ABC_MAX( pDepths[i], pDepths[Gia_ObjRepr(p->pAig, i)] );
         if ( p->pPars->nDepthMax && pDepths[i] >= p->pPars->nDepthMax )
             piCopies[i] = -1;
     }

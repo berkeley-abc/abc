@@ -86,7 +86,7 @@ p->timeWin += clock() - clk;
     // compute the divisors of the window
 clk = clock();
     p->vDivs  = Mfx_ComputeDivisors( p, pNode, Nwk_ObjRequired(pNode) - If_LutLibSlowestPinDelay(pNode->pMan->pLutLib) );
-//    p->vDivs  = Mfx_ComputeDivisors( p, pNode, AIG_INFINITY );
+//    p->vDivs  = Mfx_ComputeDivisors( p, pNode, ABC_INFINITY );
     p->nTotalDivs += Vec_PtrSize(p->vDivs);
 p->timeDiv += clock() - clk;
     // construct AIG for the window
@@ -371,7 +371,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
     if ( pPars->fPower )
         printf( "Total switching after  = %7.2f.\n", Nwl_ManComputeTotalSwitching(pNtk) );
 
-    // ABC_FREE the manager
+    // free the manager
     p->timeTotal = clock() - clk;
     Mfx_ManStop( p );
 

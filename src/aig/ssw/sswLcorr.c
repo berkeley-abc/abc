@@ -300,8 +300,8 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
              p->pMSat->nSatVars > p->pPars->nSatVarMax &&
              p->nRecycleCalls > p->pPars->nRecycleCalls )
         {
-            p->nVarsMax  = AIG_MAX( p->nVarsMax,  p->pMSat->nSatVars );
-            p->nCallsMax = AIG_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
+            p->nVarsMax  = ABC_MAX( p->nVarsMax,  p->pMSat->nSatVars );
+            p->nCallsMax = ABC_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
             Ssw_SatStop( p->pMSat );
             p->pMSat = Ssw_SatStart( 0 );
             p->nRecycles++;

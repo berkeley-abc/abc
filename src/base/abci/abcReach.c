@@ -102,7 +102,7 @@ DdNode ** Abc_NtkCreatePartitions( DdManager * dd, Abc_Ntk_t * pNtk, int fReorde
         bVar  = Cudd_bddIthVar( dd, Abc_NtkCiNum(pNtk) + i );
         pbParts[i] = Cudd_bddXnor( dd, bVar, Abc_ObjGlobalBdd(Abc_ObjFanin0(pNode)) );  Cudd_Ref( pbParts[i] );
     }
-    // ABC_FREE the global BDDs
+    // free the global BDDs
     Abc_NtkFreeGlobalBdds( pNtk, 0 );
 
     // reorder and disable reordering

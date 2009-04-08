@@ -177,12 +177,12 @@ void Abc_NtkFxuCollectInfo( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
 void Abc_NtkFxuFreeInfo( Fxu_Data_t * p )
 {
     int i;
-    // ABC_FREE the arrays of new fanins
+    // free the arrays of new fanins
     if ( p->vFaninsNew )
         for ( i = 0; i < p->vFaninsNew->nSize; i++ )
             if ( p->vFaninsNew->pArray[i] )
                 Vec_IntFree( p->vFaninsNew->pArray[i] );
-    // ABC_FREE the arrays
+    // free the arrays
     if ( p->vSops      ) Vec_PtrFree( p->vSops      );
     if ( p->vSopsNew   ) Vec_PtrFree( p->vSopsNew   );
     if ( p->vFanins    ) Vec_PtrFree( p->vFanins    );

@@ -180,7 +180,7 @@ Gia_Man_t * Gia_ManFramesInit( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     Gia_ManFraSupports( p );
     pFrames = Gia_ManStart( Vec_VecSizeSize((Vec_Vec_t*)p->vIns)+
         Vec_VecSizeSize((Vec_Vec_t*)p->vAnds)+Vec_VecSizeSize((Vec_Vec_t*)p->vOuts) );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
+    pFrames->pName = Gia_UtilStrsav( pAig->pName );
     Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )
@@ -290,7 +290,7 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     if ( pPars->fInit )
         return Gia_ManFramesInit( pAig, pPars );
     pFrames = Gia_ManStart( pPars->nFrames * Gia_ManObjNum(pAig) );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
+    pFrames->pName = Gia_UtilStrsav( pAig->pName );
     Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )

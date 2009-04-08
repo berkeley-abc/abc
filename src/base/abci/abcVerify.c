@@ -799,7 +799,7 @@ void Abc_NtkGetSeqPoSupp( Abc_Ntk_t * pNtk, int iFrame, int iNumPo )
         for ( k = 0; k <= iFrame; k++ )
             if ( Abc_NtkPi(pFrames, k*Abc_NtkPiNum(pNtk) + i)->pCopy )
                 pObj->pCopy = (void *)1;
-    // ABC_FREE stuff
+    // free stuff
     Vec_PtrFree( vSupp );
     Abc_NtkDelete( pFrames );
 }

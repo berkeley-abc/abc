@@ -747,7 +747,7 @@ void Frc_ManPlaceRandom( Frc_Man_t * p )
         pPlacement[i] = i;
     for ( i = 0; i < p->nObjs; i++ )
     {
-        iNext = Aig_ManRandom( 0 ) % p->nObjs;
+        iNext = Gia_ManRandom( 0 ) % p->nObjs;
         Temp = pPlacement[i];
         pPlacement[i] = pPlacement[iNext];
         pPlacement[iNext] = Temp;
@@ -774,7 +774,7 @@ void Frc_ManArrayShuffle( Vec_Int_t * vArray )
     int i, iNext, Temp;
     for ( i = 0; i < vArray->nSize; i++ )
     {
-        iNext = Aig_ManRandom( 0 ) % vArray->nSize;
+        iNext = Gia_ManRandom( 0 ) % vArray->nSize;
         Temp = vArray->pArray[i];
         vArray->pArray[i] = vArray->pArray[iNext];
         vArray->pArray[iNext] = Temp;
@@ -1036,7 +1036,7 @@ void Frc_DumpGraphIntoFile( Frc_Man_t * p )
 void For_ManExperiment( Gia_Man_t * pGia, int nIters, int fClustered, int fVerbose )
 {
     Frc_Man_t * p;
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     if ( fClustered )
         p = Frc_ManStart( pGia );
     else

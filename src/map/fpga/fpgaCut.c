@@ -1115,7 +1115,7 @@ Fpga_Cut_t * Fpga_CutSortCuts( Fpga_Man_t * pMan, Fpga_CutTable_t * p, Fpga_Cut_
     if ( nCuts > FPGA_CUTS_MAX_USE - 1 )
     {
 //        printf( "*" );
-        // ABC_FREE the remaining cuts
+        // free the remaining cuts
         for ( i = FPGA_CUTS_MAX_USE - 1; i < nCuts; i++ )
             Extra_MmFixedEntryRecycle( pMan->mmCuts, (char *)p->pCuts1[i] );
         // update the number of cuts

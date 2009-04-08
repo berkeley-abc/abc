@@ -68,7 +68,7 @@ Ssw_Sem_t * Ssw_SemManStart( Ssw_Man_t * pMan, int nConfMax, int fVerbose )
     memset( p, 0, sizeof(Ssw_Sem_t) );
     p->nConfMaxStart  = nConfMax;
     p->nConfMax       = nConfMax;
-    p->nFramesSweep   = AIG_MAX( (1<<21)/Aig_ManNodeNum(pMan->pAig), pMan->nFrames );
+    p->nFramesSweep   = ABC_MAX( (1<<21)/Aig_ManNodeNum(pMan->pAig), pMan->nFrames );
     p->fVerbose       = fVerbose;
     // equivalences considered
     p->pMan           = pMan;

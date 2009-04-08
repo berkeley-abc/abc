@@ -262,7 +262,7 @@ int Gia_ManSatPartCount( Gia_Man_t * p, Gia_Obj_t * pObj, int * pnLeaves, int * 
         (*pnLeaves)++;
     else
         Level1 = Gia_ManSatPartCount(p, pFanin, pnLeaves, pnNodes) + Gia_ObjFaninC1(pObj);
-    return AIG_MAX( Level0, Level1 );
+    return ABC_MAX( Level0, Level1 );
 }
 
 /**Function*************************************************************

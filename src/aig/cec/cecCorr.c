@@ -49,6 +49,11 @@ static inline int Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_
         Gia_ManCorrSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), f );
         return Gia_ManHashAnd( pNew, Gia_ObjFanin0CopyF(p, f, pObj), Gia_ObjFanin1CopyF(p, f, pObj) );
     }
+    if ( f == 0 )
+    {
+        assert( Gia_ObjIsRo(p, pObj) );
+        return Gia_ObjCopyF(p, f, pObj);
+    }
     assert( f && Gia_ObjIsRo(p, pObj) );
     pObj = Gia_ObjRoToRi( p, pObj );
     Gia_ManCorrSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), f-1 );
@@ -107,7 +112,7 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
     p->pCopies = ABC_FALLOC( int, (nFrames+fScorr)*Gia_ManObjNum(p) );
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ObjSetCopyF( p, 0, Gia_ManConst0(p), 0 );
     Gia_ManForEachRo( p, pObj, i )
@@ -202,6 +207,74 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
 
 /**Function*************************************************************
 
+  Synopsis    [Derives SRM for signal correspondence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pRepr;
+    Vec_Int_t * vXorLits;
+    int f, i, iPrevNew, iObjNew;
+    assert( (!fScorr && nFrames > 1) || (fScorr && nFrames > 0) );
+    assert( Gia_ManRegNum(p) > 0 );
+    assert( p->pReprs != NULL );
+    p->pCopies = ABC_FALLOC( int, (nFrames+fScorr)*Gia_ManObjNum(p) );
+    Gia_ManSetPhase( p );
+    pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachRo( p, pObj, i )
+    {
+        Gia_ManAppendCi(pNew);
+        Gia_ObjSetCopyF( p, 0, pObj, 0 );
+    }
+    for ( f = 0; f < nFrames+fScorr; f++ )
+    { 
+        Gia_ObjSetCopyF( p, f, Gia_ManConst0(p), 0 );
+        Gia_ManForEachPi( p, pObj, i )
+            Gia_ObjSetCopyF( p, f, pObj, Gia_ManAppendCi(pNew) );
+    }
+    *pvOutputs = Vec_IntAlloc( 1000 );
+    vXorLits = Vec_IntAlloc( 1000 );
+    for ( f = 0; f < nFrames; f++ )
+    {
+        Gia_ManForEachObj1( p, pObj, i )
+        {
+            pRepr = Gia_ObjReprObj( p, Gia_ObjId(p,pObj) );
+            if ( pRepr == NULL )
+                continue;
+            iPrevNew = Gia_ObjIsConst(p, i)? 0 : Gia_ManCorrSpecReal( pNew, p, pRepr, f );
+            iObjNew  = Gia_ManCorrSpecReal( pNew, p, pObj, f );
+            iObjNew  = Gia_LitNotCond( iObjNew, Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
+            if ( iPrevNew != iObjNew )
+            {
+                Vec_IntPush( *pvOutputs, Gia_ObjId(p, pRepr) );
+                Vec_IntPush( *pvOutputs, Gia_ObjId(p, pObj) );
+                Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, iPrevNew, iObjNew) );
+            }
+        }
+    }
+    Vec_IntForEachEntry( vXorLits, iObjNew, i )
+        Gia_ManAppendCo( pNew, iObjNew );
+    Vec_IntFree( vXorLits );
+    Gia_ManHashStop( pNew );
+    ABC_FREE( p->pCopies );
+//printf( "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+//printf( "After sweeping = %d\n", Gia_ManAndNum(pNew) );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Initializes simulation info for lcorr/scorr counter-examples.]
 
   Description []
@@ -227,7 +300,7 @@ void Cec_ManStartSimInfo( Vec_Ptr_t * vInfo, int nFlops )
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
-            pInfo[w] = Aig_ManRandom( 0 );
+            pInfo[w] = Gia_ManRandom( 0 );
     }
 }
 
@@ -351,17 +424,17 @@ int Cec_ManLoadCounterExamplesTry( Vec_Ptr_t * vInfo, Vec_Ptr_t * vPres, int iBi
     {
         pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
         pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        if ( Aig_InfoHasBit( pPres, iBit ) && 
-             Aig_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
+        if ( Gia_InfoHasBit( pPres, iBit ) && 
+             Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
              return 0;
     }
     for ( i = 0; i < nLits; i++ )
     {
         pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
         pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        Aig_InfoSetBit( pPres, iBit );
-        if ( Aig_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
-            Aig_InfoXorBit( pInfo, iBit );
+        Gia_InfoSetBit( pPres, iBit );
+        if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
+            Gia_InfoXorBit( pInfo, iBit );
     }
     return 1;
 }
@@ -403,7 +476,7 @@ int Cec_ManLoadCounterExamples( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int iS
         for ( k = 1; k < nBits; k++ )
             if ( Cec_ManLoadCounterExamplesTry( vInfo, vPres, k, (int *)Vec_IntArray(vPat), Vec_IntSize(vPat) ) )
                 break;
-        kMax = AIG_MAX( kMax, k );
+        kMax = ABC_MAX( kMax, k );
         if ( k == nBits-1 )
             break;
     }
@@ -443,8 +516,8 @@ int Cec_ManLoadCounterExamples2( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int i
         {
             iLit = Vec_IntEntry( vCexStore, iStart++ );
             pInfo = Vec_PtrEntry( vInfo, Gia_Lit2Var(iLit) );
-            if ( Aig_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(iLit) )
-                Aig_InfoXorBit( pInfo, iBit );
+            if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(iLit) )
+                Gia_InfoXorBit( pInfo, iBit );
         }
         if ( ++iBit == nBits )
             break;
@@ -591,7 +664,11 @@ void Cec_ManLCorrPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int 
     }
     CounterX -= Gia_ManCoNum(p);
     nLits = Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
-    printf( "%3d : c =%8d  cl =%7d  lit =%8d  ", iIter, Counter0, Counter, nLits );
+    if ( iIter == -1 )
+        printf( "BMC : " );
+    else
+        printf( "%3d : ", iIter );
+    printf( "c =%8d  cl =%7d  lit =%8d  ", Counter0, Counter, nLits );
     if ( vStatus )
     Vec_StrForEachEntry( vStatus, Entry, i )
     {
@@ -638,7 +715,7 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         printf( "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );
         return NULL;
     }
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     // prepare simulation manager
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords     = pPars->nWords;
@@ -704,14 +781,57 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         Vec_IntFree( vOutputs );
 //Gia_ManEquivPrintClasses( pAig, 1, 0 );
     }
+    // check the base case
+    if ( !pPars->fLatchCorr || pPars->nFrames > 1 )
+    {
+        int fChanges = 1;
+        while ( fChanges )
+        {
+            int clkBmc = clock();
+            fChanges = 0;
+            pSrm = Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
+            if ( Gia_ManPoNum(pSrm) == 0 )
+            {
+                Gia_ManStop( pSrm );
+                Vec_IntFree( vOutputs );
+                break;
+            }
+            pParsSat->nBTLimit *= 10;
+            if ( pPars->fUseCSat )
+                vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
+            else
+                vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
+            // refine classes with these counter-examples
+            if ( Vec_IntSize(vCexStore) )
+            {
+                clk2 = clock();
+                RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nAddFrames );
+                clkSim += clock() - clk2;
+                Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
+                fChanges = 1;
+            }
+            if ( pPars->fVerbose )
+                Cec_ManLCorrPrintStats( pAig, vStatus, -1, clock() - clkBmc );
+            // recycle
+            Vec_IntFree( vCexStore );
+            Vec_StrFree( vStatus );
+            Gia_ManStop( pSrm );
+            Vec_IntFree( vOutputs );
+        }
+    }
+    else
+    {
+        if ( pPars->fVerbose )
+            Cec_ManLCorrPrintStats( pAig, NULL, r+1, clock() - clk );
+    }
+    // check the overflow
     if ( r == 100000 )
         printf( "The refinement was not finished. The result may be incorrect.\n" );
     Cec_ManSimStop( pSim );
     clkTotal = clock() - clkTotal;
-    if ( pPars->fVerbose )
-        Cec_ManLCorrPrintStats( pAig, NULL, r+1, clock() - clk );
     // derive reduced AIG
     Gia_ManSetProvedNodes( pAig );
+    Gia_ManEquivImprove( pAig );
     pNew = Gia_ManEquivReduce( pAig, 0, 0, 0 );
 //Gia_WriteAiger( pNew, "reduced.aig", 0, 0 );
     pNew = Gia_ManSeqCleanup( pTemp = pNew );

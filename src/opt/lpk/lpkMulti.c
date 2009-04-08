@@ -492,7 +492,7 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
         printf( "Verification failed.\n" );
 
 
-    // ABC_FREE the networks
+    // free the networks
     for ( i = 0; i < 8; i++ )
         if ( ppNtks[i] )
             Kit_DsdNtkFree( ppNtks[i] );

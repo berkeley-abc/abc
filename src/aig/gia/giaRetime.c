@@ -122,7 +122,7 @@ Gia_Man_t * Gia_ManRetimeDupForward( Gia_Man_t * p, Vec_Ptr_t * vCut )
     int i;
     // create the new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     // create the true PIs
     Gia_ManFillValue( p );

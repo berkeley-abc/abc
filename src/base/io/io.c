@@ -1140,7 +1140,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     printf( "The library contains %d gates.\n", st_count(pLibrary->tModules) );
-    // ABC_FREE old library
+    // free old library
     if ( Abc_FrameReadLibVer() )
         Abc_LibFree( Abc_FrameReadLibVer(), NULL );
     // read new library

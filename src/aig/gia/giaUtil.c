@@ -23,10 +23,120 @@
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+ 
+#define NUMBER1  3716960521u
+#define NUMBER2  2174103536u
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a sequence or random numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [http://www.codeproject.com/KB/recipes/SimpleRNG.aspx]
+
+***********************************************************************/
+unsigned Gia_ManRandom( int fReset )
+{
+    static unsigned int m_z = NUMBER1;
+    static unsigned int m_w = NUMBER2;
+    if ( fReset )
+    {
+        m_z = NUMBER1;
+        m_w = NUMBER2;
+    }
+    m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+    m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+    return (m_z << 16) + m_w;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates random info for the primary inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int iWordStop )
+{
+    unsigned * pInfo;
+    int i, w;
+    Vec_PtrForEachEntryStart( vInfo, pInfo, i, iInputStart )
+        for ( w = iWordStart; w < iWordStop; w++ )
+            pInfo[w] = Gia_ManRandom(0);
+}
+
+/**Function********************************************************************
+
+  Synopsis    [Returns the next prime >= p.]
+
+  Description [Copied from CUDD, for stand-aloneness.]
+
+  SideEffects [None]
+
+  SeeAlso     []
+
+******************************************************************************/
+unsigned int Gia_PrimeCudd( unsigned int p )
+{
+    int i,pn;
+
+    p--;
+    do {
+        p++;
+        if (p&1) {
+        pn = 1;
+        i = 3;
+        while ((unsigned) (i * i) <= p) {
+        if (p % i == 0) {
+            pn = 0;
+            break;
+        }
+        i += 2;
+        }
+    } else {
+        pn = 0;
+    }
+    } while (!pn);
+    return(p);
+
+} /* end of Cudd_Prime */
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the composite name of the file.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Gia_FileNameGenericAppend( char * pBase, char * pSuffix )
+{
+    static char Buffer[1000];
+    char * pDot;
+    strcpy( Buffer, pBase );
+    if ( (pDot = strrchr( Buffer, '.' )) )
+        *pDot = 0;
+    strcat( Buffer, pSuffix );
+    if ( (pDot = strrchr( Buffer, '\\' )) || (pDot = strrchr( Buffer, '/' )) )
+        return pDot+1;
+    return Buffer;
+}
 
 /**Function*************************************************************
 
@@ -592,7 +702,7 @@ Gia_Obj_t * Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Ob
 Gia_Cex_t * Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 {
     Gia_Cex_t * pCex;
-    int nWords = Aig_BitWordNum( nRegs + nRealPis * nFrames );
+    int nWords = Gia_BitWordNum( nRegs + nRealPis * nFrames );
     pCex = (Gia_Cex_t *)ABC_ALLOC( char, sizeof(Gia_Cex_t) + sizeof(unsigned) * nWords );
     memset( pCex, 0, sizeof(Gia_Cex_t) + sizeof(unsigned) * nWords );
     pCex->nRegs  = nRegs;
@@ -617,11 +727,11 @@ int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDualOut )
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int RetValue, i, k, iBit = 0;
     Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark0 = Aig_InfoHasBit(p->pData, iBit++);
+        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
     for ( i = 0; i <= p->iFrame; i++ )
     {
         Gia_ManForEachPi( pAig, pObj, k )
-            pObj->fMark0 = Aig_InfoHasBit(p->pData, iBit++);
+            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
         Gia_ManForEachAnd( pAig, pObj, k )
             pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
                            (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
@@ -657,16 +767,95 @@ void Gia_ManPrintCounterExample( Gia_Cex_t * p )
         p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits );
     printf( "State    : " );
     for ( k = 0; k < p->nRegs; k++ )
-        printf( "%d", Aig_InfoHasBit(p->pData, k) );
+        printf( "%d", Gia_InfoHasBit(p->pData, k) );
     printf( "\n" );
     for ( f = 0; f <= p->iFrame; f++ )
     {
         printf( "Frame %2d : ", f );
         for ( i = 0; i < p->nPis; i++ )
-            printf( "%d", Aig_InfoHasBit(p->pData, k++) );
+            printf( "%d", Gia_InfoHasBit(p->pData, k++) );
         printf( "\n" );
     }
     assert( k == p->nBits );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dereferences the node's MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_NodeDeref_rec( Gia_Man_t * p, Gia_Obj_t * pNode )
+{
+    Gia_Obj_t * pFanin;
+    int Counter = 0;
+    if ( Gia_ObjIsCi(pNode) )
+        return 0;
+    assert( Gia_ObjIsAnd(pNode) );
+    pFanin = Gia_ObjFanin0(pNode);
+    assert( Gia_ObjRefs(p, pFanin) > 0 );
+    if ( Gia_ObjRefDec(p, pFanin) == 0 )
+        Counter += Gia_NodeDeref_rec( p, pFanin );
+    pFanin = Gia_ObjFanin1(pNode);
+    assert( Gia_ObjRefs(p, pFanin) > 0 );
+    if ( Gia_ObjRefDec(p, pFanin) == 0 )
+        Counter += Gia_NodeDeref_rec( p, pFanin );
+    return Counter + 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [References the node's MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_NodeRef_rec( Gia_Man_t * p, Gia_Obj_t * pNode )
+{
+    Gia_Obj_t * pFanin;
+    int Counter = 0;
+    if ( Gia_ObjIsCi(pNode) )
+        return 0;
+    assert( Gia_ObjIsAnd(pNode) );
+    pFanin = Gia_ObjFanin0(pNode);
+    if ( Gia_ObjRefInc(p, pFanin) == 0 )
+        Counter += Gia_NodeRef_rec( p, pFanin );
+    pFanin = Gia_ObjFanin1(pNode);
+    if ( Gia_ObjRefInc(p, pFanin) == 0 )
+        Counter += Gia_NodeRef_rec( p, pFanin );
+    return Counter + 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of internal nodes in the MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_NodeMffcSize( Gia_Man_t * p, Gia_Obj_t * pNode )
+{
+    int ConeSize1, ConeSize2;
+    assert( !Gia_IsComplement(pNode) );
+    assert( Gia_ObjIsCand(pNode) );
+    ConeSize1 = Gia_NodeDeref_rec( p, pNode );
+    ConeSize2 = Gia_NodeRef_rec( p, pNode );
+    assert( ConeSize1 == ConeSize2 );
+    assert( ConeSize1 >= 0 );
+    return ConeSize1;
 }
 
 ////////////////////////////////////////////////////////////////////////

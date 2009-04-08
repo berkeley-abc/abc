@@ -274,7 +274,7 @@ void Ver_ParsePrintErrorMessage( Ver_Man_t * p )
     else // print the error message with the line number
         fprintf( p->Output, "%s (line %d): %s\n", 
             p->pFileName, Ver_StreamGetLineNumber(p->pReader), p->sError );
-    // ABC_FREE the data
+    // free the data
     Ver_ParseFreeData( p );
 }
 
@@ -2104,7 +2104,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             i--;
         }
 
-        // ABC_FREE the bundling
+        // free the bundling
         Vec_PtrForEachEntry( vBundles, pBundle, k )
             Ver_ParseFreeBundle( pBundle );
         Vec_PtrFree( vBundles );
@@ -2227,7 +2227,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         i--;
     }
 
-    // ABC_FREE the bundling
+    // free the bundling
     Vec_PtrForEachEntry( vBundles, pBundle, k )
         Ver_ParseFreeBundle( pBundle );
     Vec_PtrFree( vBundles );
@@ -2626,7 +2626,7 @@ int Ver_ParseDriveInputs( Ver_Man_t * pMan, Vec_Ptr_t * vUndefs )
                 Vec_PtrWriteEntry( (Vec_Ptr_t *)pBox->pCopy, j, NULL );
             }
 
-            // ABC_FREE the bundles
+            // free the bundles
             Vec_PtrFree( (Vec_Ptr_t *)pBox->pCopy );
             pBox->pCopy = NULL;
         }

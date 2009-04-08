@@ -160,7 +160,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     pDesignName  = Extra_FileNameGeneric( pFileName );
     p->pDesign   = Abc_LibCreate( pDesignName );
     ABC_FREE( pDesignName );
-    // ABC_FREE the HOP manager
+    // free the HOP manager
     Hop_ManStop( p->pDesign->pManFunc );
     p->pDesign->pManFunc = NULL;
     // prepare the file for parsing

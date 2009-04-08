@@ -371,6 +371,116 @@ printf( "Converted %d one-hot registers.\n", Vec_IntSize(vNumbers) );
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Converts registers with DC values into additional PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pFanin, * pObjNew, * pObjLiNew, * pObjLoNew;
+    int i, k, nFlops, nStates, iState, pfCompl[32];
+    assert( Abc_NtkIsLogic(pNtk) );
+    nFlops = Abc_NtkLatchNum(pNtk);
+    if ( nFlops == 0 )
+        return Abc_NtkDup( pNtk );
+    if ( nFlops > 16 )
+    {
+        printf( "Cannot reencode %d flops because it will lead to 2^%d states.\n", nFlops, nFlops );
+        return NULL;
+    }
+    // check if there are latches with DC values
+    iState = 0;
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        if ( Abc_LatchIsInitDc(pObj) )
+        {
+            printf( "Cannot process logic network with don't-care init values. Run \"zero\".\n" );
+            return NULL;
+        }
+        if ( Abc_LatchIsInit1(pObj) )
+            iState |= (1 << i);
+    }
+    // transfer logic to SOPs
+    Abc_NtkToSop( pNtk, 0 );
+    // create new network
+    pNtkNew = Abc_NtkStartFromNoLatches( pNtk, pNtk->ntkType, pNtk->ntkFunc );
+    nStates = (1 << nFlops);
+    for ( i = 0; i < nStates; i++ )
+    {
+        pObjNew   = Abc_NtkCreateLatch( pNtkNew );
+        pObjLiNew = Abc_NtkCreateBi( pNtkNew );
+        pObjLoNew = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pObjLiNew );
+        Abc_ObjAddFanin( pObjLoNew, pObjNew );
+        if ( i == iState )
+            Abc_LatchSetInit1( pObjNew );
+        else
+            Abc_LatchSetInit0( pObjNew );
+    }
+    Abc_NtkAddDummyBoxNames( pNtkNew );
+    assert( Abc_NtkLatchNum(pNtkNew) == nStates );
+    assert( Abc_NtkPiNum(pNtkNew) == Abc_NtkPiNum(pNtk) );
+    assert( Abc_NtkPoNum(pNtkNew) == Abc_NtkPoNum(pNtk) );
+    assert( Abc_NtkCiNum(pNtkNew) == Abc_NtkPiNum(pNtkNew) + nStates );
+    assert( Abc_NtkCoNum(pNtkNew) == Abc_NtkPoNum(pNtkNew) + nStates );
+    assert( Abc_NtkCiNum(pNtk) == Abc_NtkPiNum(pNtk) + nFlops );
+    assert( Abc_NtkCoNum(pNtk) == Abc_NtkPoNum(pNtk) + nFlops );
+    // create hot-to-log transformers
+    for ( i = 0; i < nFlops; i++ ) 
+    {
+        pObjNew = Abc_NtkCreateNode( pNtkNew );
+        for ( k = 0; k < nStates; k++ )
+            if ( (k >> i) & 1 )
+                Abc_ObjAddFanin( pObjNew, Abc_NtkCi(pNtkNew, Abc_NtkPiNum(pNtkNew)+k) );
+        assert( Abc_ObjFaninNum(pObjNew) == nStates/2 );
+        pObjNew->pData = Abc_SopCreateOr( pNtkNew->pManFunc, nStates/2, NULL );
+        // save the new flop
+        pObj = Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i );
+        pObj->pCopy = pObjNew;
+    }
+    // duplicate the nodes
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        pObj->pCopy = Abc_NtkDupObj( pNtkNew, pObj, 1 );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    Vec_PtrFree( vNodes );
+    // connect the POs
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjNotCond(Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj)) );
+    // write entries into the nodes
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->pCopy = Abc_ObjNotCond(Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj));
+    // create log-to-hot transformers
+    for ( k = 0; k < nStates; k++ )
+    {
+        pObjNew = Abc_NtkCreateNode( pNtkNew );
+        for ( i = 0; i < nFlops; i++ )
+        {
+            pObj = Abc_NtkCo( pNtk, Abc_NtkPoNum(pNtk) + i );
+            Abc_ObjAddFanin( pObjNew, Abc_ObjRegular(pObj->pCopy) );
+            pfCompl[i] = Abc_ObjIsComplement(pObj->pCopy) ^ !((k >> i) & 1);
+        }
+        pObjNew->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, nFlops, pfCompl );
+        // connect it to the flop input
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, Abc_NtkPoNum(pNtkNew)+k), pObjNew );
+    }
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkConvertOnehot(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

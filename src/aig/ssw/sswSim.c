@@ -590,7 +590,7 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
         Aig_ManForEachPi( p->pAig, pObj, i )
             Ssw_SmlObjAssignConst( p, pObj, Aig_InfoHasBit(pPat, i), 0 );
         // flip one bit
-        Limit = AIG_MIN( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
+        Limit = ABC_MIN( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
         for ( i = 0; i < Limit; i++ )
             Aig_InfoXorBit( Ssw_ObjSim( p, Aig_ManPi(p->pAig,i)->Id ), i+1 );
     }
@@ -612,7 +612,7 @@ void Ssw_SmlAssignDist1( Ssw_Sml_t * p, unsigned * pPat )
         // flip one bit of the last frame
         if ( fUseDist1 ) //&& p->nFrames == 2 )
         {
-            Limit = AIG_MIN( nTruePis, p->nWordsFrame * 32 - 1 );
+            Limit = ABC_MIN( nTruePis, p->nWordsFrame * 32 - 1 );
             for ( i = 0; i < Limit; i++ )
                 Aig_InfoXorBit( Ssw_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ) + p->nWordsFrame*(p->nFrames-1), i+1 );
         }
@@ -641,7 +641,7 @@ void Ssw_SmlAssignDist1Plus( Ssw_Sml_t * p, unsigned * pPat )
         Ssw_SmlObjAssignConst( p, pObj, Aig_InfoHasBit(pPat, i), 0 );
 
     // set distance one PIs for the first frame
-    Limit = AIG_MIN( Saig_ManPiNum(p->pAig), p->nWordsFrame * 32 - 1 );
+    Limit = ABC_MIN( Saig_ManPiNum(p->pAig), p->nWordsFrame * 32 - 1 );
     for ( i = 0; i < Limit; i++ )
         Aig_InfoXorBit( Ssw_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ), i+1 );
 

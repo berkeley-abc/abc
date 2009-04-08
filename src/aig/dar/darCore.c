@@ -151,7 +151,7 @@ p->timeCuts += clock() - clk;
 
         // evaluate the cuts
         p->GainBest = -1;
-        Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : AIG_INFINITY;
+        Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : ABC_INFINITY;
         Dar_ObjForEachCut( pObj, pCut, k )
             Dar_LibEval( p, pObj, pCut, Required );
         // check the best gain
@@ -292,7 +292,7 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose
                 Dar_ObjCutPrint( pAig, pObj );
 */
     }
-    // ABC_FREE the cuts
+    // free the cuts
     pMemCuts = p->pMemCuts;
     p->pMemCuts = NULL;
 //    Dar_ManCutsFree( p );

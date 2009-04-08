@@ -114,7 +114,7 @@ int Aig_ManLevels( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i, LevelMax = 0;
     Aig_ManForEachPo( p, pObj, i )
-        LevelMax = AIG_MAX( LevelMax, (int)Aig_ObjFanin0(pObj)->Level );
+        LevelMax = ABC_MAX( LevelMax, (int)Aig_ObjFanin0(pObj)->Level );
     return LevelMax;
 }
 
@@ -1255,7 +1255,7 @@ void Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * v
     Aig_Obj_t ** pBeg2 = (Aig_Obj_t **)vArr2->pArray;
     Aig_Obj_t ** pEnd1 = (Aig_Obj_t **)vArr1->pArray + vArr1->nSize;
     Aig_Obj_t ** pEnd2 = (Aig_Obj_t **)vArr2->pArray + vArr2->nSize;
-    Vec_PtrGrow( vArr, AIG_MAX( Vec_PtrSize(vArr1), Vec_PtrSize(vArr2) ) );
+    Vec_PtrGrow( vArr, ABC_MAX( Vec_PtrSize(vArr1), Vec_PtrSize(vArr2) ) );
     pBeg  = (Aig_Obj_t **)vArr->pArray;
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {

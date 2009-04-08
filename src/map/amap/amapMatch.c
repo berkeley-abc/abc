@@ -102,7 +102,7 @@ float Amap_ManMaxDelay( Amap_Man_t * p )
     float Delay = 0.0;
     int i;
     Amap_ManForEachPo( p, pObj, i )
-        Delay = AIG_MAX( Delay, Amap_ObjFanin0(p,pObj)->Best.Delay );
+        Delay = ABC_MAX( Delay, Amap_ObjFanin0(p,pObj)->Best.Delay );
     return Delay;
 }
 
@@ -373,7 +373,7 @@ static inline void Amap_ManMatchGetFlows( Amap_Man_t * p, Amap_Mat_t * pM )
     Amap_MatchForEachFanin( p, pM, pFanin, i )
     {
         pMFanin = &pFanin->Best;
-        pM->Delay = AIG_MAX( pM->Delay, pMFanin->Delay );
+        pM->Delay = ABC_MAX( pM->Delay, pMFanin->Delay );
         pM->AveFan += Amap_ObjRefsTotal(pFanin);
         if ( Amap_ObjRefsTotal(pFanin) == 0 )
             pM->Area += pMFanin->Area;
@@ -409,7 +409,7 @@ static inline void Amap_ManMatchGetExacts( Amap_Man_t * p, Amap_Obj_t * pNode, A
     Amap_MatchForEachFanin( p, pM, pFanin, i )
     {
         pMFanin = &pFanin->Best;
-        pM->Delay = AIG_MAX( pM->Delay, pMFanin->Delay );
+        pM->Delay = ABC_MAX( pM->Delay, pMFanin->Delay );
         pM->AveFan += Amap_ObjRefsTotal(pFanin);
     }
     pM->AveFan /= pGate->nPins;

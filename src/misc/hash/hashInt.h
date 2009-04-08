@@ -272,7 +272,7 @@ static inline void Hash_IntFree( Hash_Int_t *p ) {
   int bin;
   Hash_Int_Entry_t *pEntry, *pTemp;
 
-  // ABC_FREE bins
+  // free bins
   for(bin = 0; bin < p->nBins; bin++) {
     pEntry = p->pArray[bin];
     while(pEntry) {
@@ -282,7 +282,7 @@ static inline void Hash_IntFree( Hash_Int_t *p ) {
     }
   }
 
-  // ABC_FREE hash
+  // free hash
   ABC_FREE( p->pArray );
   ABC_FREE( p );
 }

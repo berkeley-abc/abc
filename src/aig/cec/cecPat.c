@@ -414,17 +414,17 @@ int Cec_ManPatCollectTry( Vec_Ptr_t * vInfo, Vec_Ptr_t * vPres, int iBit, int * 
     {
         pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
         pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        if ( Aig_InfoHasBit( pPres, iBit ) && 
-             Aig_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
+        if ( Gia_InfoHasBit( pPres, iBit ) && 
+             Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
              return 0;
     }
     for ( i = 0; i < nLits; i++ )
     {
         pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
         pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        Aig_InfoSetBit( pPres, iBit );
-        if ( Aig_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
-            Aig_InfoXorBit( pInfo, iBit );
+        Gia_InfoSetBit( pPres, iBit );
+        if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
+            Gia_InfoXorBit( pInfo, iBit );
     }
     return 1;
 }
@@ -450,7 +450,7 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
     int nBits = 32 * nWords;
     int clk = clock();
     vInfo = Vec_PtrAllocSimInfo( nInputs, nWords );
-    Aig_ManRandomInfo( vInfo, 0, 0, nWords );
+    Gia_ManRandomInfo( vInfo, 0, 0, nWords );
     vPres = Vec_PtrAllocSimInfo( nInputs, nWords );
     Vec_PtrCleanSimInfo( vPres, 0, nWords );
     while ( pMan->iStart < Vec_StrSize(pMan->vStorage) )
@@ -460,11 +460,11 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
         for ( k = 1; k < nBits; k++, k += ((k % (32 * nWordsInit)) == 0) )
             if ( Cec_ManPatCollectTry( vInfo, vPres, k, (int *)Vec_IntArray(vPat), Vec_IntSize(vPat) ) )
                 break;
-        kMax = AIG_MAX( kMax, k );
+        kMax = ABC_MAX( kMax, k );
         if ( k == nBits-1 )
         {
             Vec_PtrReallocSimInfo( vInfo );
-            Aig_ManRandomInfo( vInfo, 0, nWords, 2*nWords );
+            Gia_ManRandomInfo( vInfo, 0, nWords, 2*nWords );
             Vec_PtrReallocSimInfo( vPres );
             Vec_PtrCleanSimInfo( vPres, nWords, 2*nWords );
             nWords *= 2;
@@ -511,7 +511,7 @@ Vec_Ptr_t * Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nReg
 
     vInfo = Vec_PtrAllocSimInfo( nInputs, nWords );
     Vec_PtrCleanSimInfo( vInfo, 0, nWords );
-    Aig_ManRandomInfo( vInfo, nRegs, 0, nWords );
+    Gia_ManRandomInfo( vInfo, nRegs, 0, nWords );
 
     vPres = Vec_PtrAllocSimInfo( nInputs, nWords );
     Vec_PtrCleanSimInfo( vPres, 0, nWords );
@@ -538,12 +538,12 @@ Vec_Ptr_t * Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nReg
 //        RetValue = Cec_ManPatCollectTry( vInfo, vPres, k, (int *)Vec_IntArray(vPat), Vec_IntSize(vPat) );
 //        assert( RetValue == 1 );
 
-        kMax = AIG_MAX( kMax, k );
+        kMax = ABC_MAX( kMax, k );
         if ( k == nBits-1 )
         {
             Vec_PtrReallocSimInfo( vInfo );
             Vec_PtrCleanSimInfo( vInfo, nWords, 2*nWords );
-            Aig_ManRandomInfo( vInfo, nRegs, nWords, 2*nWords );
+            Gia_ManRandomInfo( vInfo, nRegs, nWords, 2*nWords );
 
             Vec_PtrReallocSimInfo( vPres );
             Vec_PtrCleanSimInfo( vPres, nWords, 2*nWords );

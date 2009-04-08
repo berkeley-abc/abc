@@ -143,7 +143,7 @@ DdNode * Abc_NtkTransitionRelation( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
         Cudd_RecursiveDeref( dd, bTemp ); 
         Cudd_RecursiveDeref( dd, bProd ); 
     }
-    // ABC_FREE the global BDDs
+    // free the global BDDs
 //    Abc_NtkFreeGlobalBdds( pNtk );
     Abc_NtkFreeGlobalBdds( pNtk, 0 );
 

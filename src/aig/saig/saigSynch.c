@@ -616,7 +616,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
         return NULL;
     }
     clk = clock();
-    vSimInfo = Vec_PtrAllocSimInfo( AIG_MAX( Aig_ManObjNumMax(pAig1), Aig_ManObjNumMax(pAig2) ), 1 );
+    vSimInfo = Vec_PtrAllocSimInfo( ABC_MAX( Aig_ManObjNumMax(pAig1), Aig_ManObjNumMax(pAig2) ), 1 );
 
     // process Design 1
     RetValue = Saig_SynchSequenceRun( pAig1, vSimInfo, vSeq1, 1 );

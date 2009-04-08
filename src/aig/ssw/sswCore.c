@@ -204,8 +204,8 @@ clk = clock();
         nSatFailsReal = p->nSatFailsReal;
         nUniques      = p->nUniques;
 
-        p->nVarsMax  = AIG_MAX( p->nVarsMax,  p->pMSat->nSatVars );
-        p->nCallsMax = AIG_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
+        p->nVarsMax  = ABC_MAX( p->nVarsMax,  p->pMSat->nSatVars );
+        p->nCallsMax = ABC_MAX( p->nCallsMax, p->pMSat->nSolverCalls );
         Ssw_SatStop( p->pMSat );
         p->pMSat = NULL;
         Ssw_ManCleanup( p );

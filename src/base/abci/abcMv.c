@@ -349,7 +349,7 @@ void Abc_MvDecompose( Mv_Man_t * p )
             printf( "%d ", Vec_PtrSize(vCofs) );
             Vec_PtrFree( vCofs );
 
-            // ABC_FREE the cofactors
+            // free the cofactors
             for ( v1 = 0; v1 < 4; v1++ )
             for ( v2 = 0; v2 < 4; v2++ )
                 Cudd_RecursiveDeref( p->dd, bCofs[v1 * 4 + v2] );

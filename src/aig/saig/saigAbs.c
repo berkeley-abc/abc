@@ -693,15 +693,15 @@ Ssw_Cex_t * Saig_ManCexShrink( Aig_Man_t * p, Aig_Man_t * pAbs, Ssw_Cex_t * pCex
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int fVerbose )
-{
+Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int nFrames, int nConfMaxOne, int fVerbose )
+{ 
     extern void Saig_BmcPerform( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose );
     extern Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, void * pCex, int fVerbose );
 
     Vec_Int_t * vFlopsNew, * vPiToReg;
     Aig_Obj_t * pObj;
     int i, Entry, iFlop;
-    Saig_BmcPerform( pAbs, 2000, 2000, 5000, 1000000, fVerbose );
+    Saig_BmcPerform( pAbs, nFrames, 2000, nConfMaxOne, 1000000, fVerbose );
     if ( pAbs->pSeqModel == NULL )
         return NULL;
 //    Saig_ManExtendCounterExampleTest( p->pAig, 0, p->pAig->pSeqModel );
@@ -765,7 +765,7 @@ Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vF
   SeeAlso     []
  
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int fVerbose )
+Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int fVerbose )
 {
     Aig_Man_t * pResult, * pTemp;
     Cnf_Dat_t * pCnf;
@@ -779,11 +779,12 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
 
     if ( fSkipProof )
     {
-        assert( 0 );
+//        assert( 0 );
         if ( fVerbose )
             printf( "Performing counter-example-based refinement.\n" );
 //        vFlops = Vec_IntStartNatural( 100 );
 //        Vec_IntPush( vFlops, 0 );
+        vFlops = Vec_IntStartNatural( 1 );
     }
     else
     {
@@ -858,7 +859,7 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
         printf( "Refining abstraction...\n" );
         for ( Iter = 0; ; Iter++ )
         {
-            pTemp = Saig_ManProofRefine( p, pResult, vFlops, fVerbose );
+            pTemp = Saig_ManProofRefine( p, pResult, vFlops, nFramesBmc, nConfMaxBmc, fVerbose );
             if ( pTemp == NULL )
                 break;
             Aig_ManStop( pResult );

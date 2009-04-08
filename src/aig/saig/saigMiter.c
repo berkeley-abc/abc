@@ -327,7 +327,7 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
     assert( Saig_ManRegNum(pBot) == Saig_ManRegNum(pTop) );
     assert( Saig_ManRegNum(pBot) > 0 || Saig_ManRegNum(pTop) > 0 );
     // start timeframes
-    p = Aig_ManStart( nFrames * AIG_MAX(Aig_ManObjNumMax(pBot), Aig_ManObjNumMax(pTop)) );
+    p = Aig_ManStart( nFrames * ABC_MAX(Aig_ManObjNumMax(pBot), Aig_ManObjNumMax(pTop)) );
     p->pName = Aig_UtilStrsav( "frames" );
     // create variables for register outputs
     pAig = pBot;

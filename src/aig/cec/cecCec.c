@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "cecInt.h"
+#include "giaAig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -44,7 +45,7 @@ void Cec_ManTransformPattern( Gia_Man_t * p, int iOut, int * pValues )
     int i;
     assert( p->pCexComb == NULL );
     p->pCexComb = (Gia_Cex_t *)ABC_CALLOC( char, 
-        sizeof(Gia_Cex_t) + sizeof(unsigned) * Aig_BitWordNum(Gia_ManCiNum(p)) );
+        sizeof(Gia_Cex_t) + sizeof(unsigned) * Gia_BitWordNum(Gia_ManCiNum(p)) );
     p->pCexComb->iPo = iOut;
     p->pCexComb->nPis = Gia_ManCiNum(p);
     p->pCexComb->nBits = Gia_ManCiNum(p);

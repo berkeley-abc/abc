@@ -420,7 +420,7 @@ Kit_DsdPrint( stdout, pNtks[i] );
             pvBSets[i][k] = Lpk_MergeBoundSets( pvBSets[i+1][2*k+0], pvBSets[i+1][2*k+1], p->nLutK - nCofDepth );
     // compare bound-sets
     Lpk_FunCompareBoundSets( p, pvBSets[0][0], nCofDepth, uNonDecSupp, uLateArrSupp, pRes );
-    // ABC_FREE the bound sets
+    // free the bound sets
     for ( i = nCofDepth; i >= 0; i-- )
         for ( k = 0; k < (1<<i); k++ )
             Vec_IntFree( pvBSets[i][k] );
@@ -539,7 +539,7 @@ Lpk_Res_t * Lpk_DsdAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p, int nShared )
     }
 
 finish:
-    // ABC_FREE the networks
+    // free the networks
     for ( i = 0; i < (1<<nShared); i++ )
         if ( pNtks[i] )
             Kit_DsdNtkFree( pNtks[i] );

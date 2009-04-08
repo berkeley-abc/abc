@@ -138,7 +138,7 @@ void If_ManStop( If_Man_t * p )
     ABC_FREE( p->pMemCi );
     ABC_FREE( p->pMemAnd );
     ABC_FREE( p->puTemp[0] );
-    // ABC_FREE pars memory
+    // free pars memory
     if ( p->pPars->pTimesArr )
         ABC_FREE( p->pPars->pTimesArr );
     if ( p->pPars->pTimesReq )

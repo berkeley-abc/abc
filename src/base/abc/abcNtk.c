@@ -935,10 +935,10 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 //    int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
-    // ABC_FREE the HAIG
+    // free the HAIG
 //    if ( pNtk->pHaig )
 //        Abc_NtkHaigStop( pNtk );
-    // ABC_FREE EXDC Ntk
+    // free EXDC Ntk
     if ( pNtk->pExdc )
         Abc_NtkDelete( pNtk->pExdc );
     if ( pNtk->pExcare )
@@ -952,7 +952,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // make sure all the marks are clean
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
-        // ABC_FREE large fanout arrays
+        // free large fanout arrays
 //        if ( pNtk->pMmObj && pObj->vFanouts.nCap * 4 > LargePiece )
 //            ABC_FREE( pObj->vFanouts.pArray );
         // these flags should be always zero
@@ -961,7 +961,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         assert( pObj->fMarkB == 0 );
         assert( pObj->fMarkC == 0 );
     }
-    // ABC_FREE the nodes
+    // free the nodes
     if ( pNtk->pMmStep == NULL )
     {
         Abc_NtkForEachObj( pNtk, pObj, i )
@@ -976,7 +976,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
             ABC_FREE( pObj );
     }
         
-    // ABC_FREE the arrays
+    // free the arrays
     Vec_PtrFree( pNtk->vPios );
     Vec_PtrFree( pNtk->vPis );
     Vec_PtrFree( pNtk->vPos );
@@ -992,14 +992,14 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     TotalMemory += pNtk->pMmObj? Extra_MmFixedReadMemUsage(pNtk->pMmObj)  : 0;
     TotalMemory += pNtk->pMmStep? Extra_MmStepReadMemUsage(pNtk->pMmStep) : 0;
 //    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
-    // ABC_FREE the storage 
+    // free the storage 
     if ( pNtk->pMmObj )
         Extra_MmFixedStop( pNtk->pMmObj );
     if ( pNtk->pMmStep )
         Extra_MmStepStop ( pNtk->pMmStep );
     // name manager
     Nm_ManFree( pNtk->pManName );
-    // ABC_FREE the timing manager
+    // free the timing manager
     if ( pNtk->pManTime )
         Abc_ManTimeStop( pNtk->pManTime );
     // start the functionality manager
@@ -1015,7 +1015,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         pNtk->pManFunc = NULL;
     else if ( !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
-    // ABC_FREE the hierarchy
+    // free the hierarchy
     if ( pNtk->pDesign )
     {
         Abc_LibFree( pNtk->pDesign, pNtk );
@@ -1023,7 +1023,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     }
 //    if ( pNtk->pBlackBoxes ) 
 //        Vec_IntFree( pNtk->pBlackBoxes );
-    // ABC_FREE node attributes
+    // free node attributes
     Vec_PtrForEachEntry( pNtk->vAttrs, pAttrMan, i )
         if ( pAttrMan )
         {

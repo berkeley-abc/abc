@@ -123,7 +123,7 @@ void Cnf_DeriveMapping( Cnf_Man_t * p )
 //        Aig_ObjCollectSuper( pObj, vSuper );
         // get the area flow of this cut
 //        AreaFlow = Cnf_CutSuperAreaFlow( vSuper, pAreaFlows );
-        AreaFlow = AIG_INFINITY;
+        AreaFlow = ABC_INFINITY;
         if ( AreaFlow >= (int)pCutBest->uSign )
         {
             pAreaFlows[pObj->Id] = pCutBest->uSign;

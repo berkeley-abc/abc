@@ -111,14 +111,14 @@ int Cec_ManSimCompareConstFirstBit( unsigned * p, int nWords )
     {
         for ( w = 0; w < nWords; w++ )
             if ( p[w] != ~0 )
-                return 32*w + Aig_WordFindFirstBit( ~p[w] );
+                return 32*w + Gia_WordFindFirstBit( ~p[w] );
         return -1;
     }
     else
     {
         for ( w = 0; w < nWords; w++ )
             if ( p[w] != 0 )
-                return 32*w + Aig_WordFindFirstBit( p[w] );
+                return 32*w + Gia_WordFindFirstBit( p[w] );
         return -1;
     }
 }
@@ -141,14 +141,14 @@ int Cec_ManSimCompareEqualFirstBit( unsigned * p0, unsigned * p1, int nWords )
     {
         for ( w = 0; w < nWords; w++ )
             if ( p0[w] != p1[w] )
-                return 32*w + Aig_WordFindFirstBit( p0[w] ^ p1[w] );
+                return 32*w + Gia_WordFindFirstBit( p0[w] ^ p1[w] );
         return -1;
     }
     else
     {
         for ( w = 0; w < nWords; w++ )
             if ( p0[w] != ~p1[w] )
-                return 32*w + Aig_WordFindFirstBit( p0[w] ^ ~p1[w] );
+                return 32*w + Gia_WordFindFirstBit( p0[w] ^ ~p1[w] );
         return -1;
     }
 }
@@ -467,7 +467,7 @@ void Cec_ManSimProcessRefined( Cec_ManSim_t * p, Vec_Int_t * vRefined )
     int * pTable, nTableSize, i, k, Key;
     if ( Vec_IntSize(vRefined) == 0 )
         return;
-    nTableSize = Aig_PrimeCudd( 100 + Vec_IntSize(vRefined) / 3 );
+    nTableSize = Gia_PrimeCudd( 100 + Vec_IntSize(vRefined) / 3 );
     pTable = ABC_CALLOC( int, nTableSize );
     Vec_IntForEachEntry( vRefined, i, k )
     {
@@ -519,15 +519,15 @@ void Cec_ManSimSavePattern( Cec_ManSim_t * p, int iPat )
     assert( p->pCexComb == NULL );
     assert( iPat >= 0 && iPat < 32 * p->nWords );
     p->pCexComb = (Gia_Cex_t *)ABC_CALLOC( char, 
-        sizeof(Gia_Cex_t) + sizeof(unsigned) * Aig_BitWordNum(Gia_ManCiNum(p->pAig)) );
+        sizeof(Gia_Cex_t) + sizeof(unsigned) * Gia_BitWordNum(Gia_ManCiNum(p->pAig)) );
     p->pCexComb->iPo = p->iOut;
     p->pCexComb->nPis = Gia_ManCiNum(p->pAig);
     p->pCexComb->nBits = Gia_ManCiNum(p->pAig);
     for ( i = 0; i < Gia_ManCiNum(p->pAig); i++ )
     {
         pInfo = Vec_PtrEntry( p->vCiSimInfo, i );
-        if ( Aig_InfoHasBit( pInfo, iPat ) )
-            Aig_InfoSetBit( p->pCexComb->pData, i );
+        if ( Gia_InfoHasBit( pInfo, iPat ) )
+            Gia_InfoSetBit( p->pCexComb->pData, i );
     }
 }
 
@@ -560,8 +560,8 @@ void Cec_ManSimFindBestPattern( Cec_ManSim_t * p )
         for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
         {
             pInfo = Vec_PtrEntry( p->vCiSimInfo, Gia_ManPiNum(p->pAig) + i );
-            if ( Aig_InfoHasBit(p->pBestState->pData, i) != Aig_InfoHasBit(pInfo, iPatBest) )
-                Aig_InfoXorBit( p->pBestState->pData, i );
+            if ( Gia_InfoHasBit(p->pBestState->pData, i) != Gia_InfoHasBit(pInfo, iPatBest) )
+                Gia_InfoXorBit( p->pBestState->pData, i );
         }
         p->pBestState->iPo = ScoreBest;
     }
@@ -686,7 +686,7 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
             else
             {
                 for ( w = 1; w <= p->nWords; w++ )
-                    pRes[w] = Aig_ManRandom( 0 );
+                    pRes[w] = Gia_ManRandom( 0 );
             }
             // make sure the first pattern is always zero
             pRes[1] ^= (pRes[1] & 1);
@@ -798,7 +798,7 @@ void Cec_ManSimCreateInfo( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * v
         {
             pRes0 = Vec_PtrEntry( vInfoCis, i );
             for ( w = 0; w < p->nWords; w++ )
-                pRes0[w] = Aig_ManRandom( 0 );
+                pRes0[w] = Gia_ManRandom( 0 );
         }
         for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
         {
@@ -814,7 +814,7 @@ void Cec_ManSimCreateInfo( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * v
         {
             pRes0 = Vec_PtrEntry( vInfoCis, i );
             for ( w = 0; w < p->nWords; w++ )
-                pRes0[w] = Aig_ManRandom( 0 );
+                pRes0[w] = Gia_ManRandom( 0 );
         }
     }
 }

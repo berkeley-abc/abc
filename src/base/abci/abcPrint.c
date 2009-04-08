@@ -64,7 +64,7 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
         int    nPis;   // the number of primary inputs
         int    nPos;   // the number of primary outputs
     } ParsNew, ParsBest = { 0 };
-    // ABC_FREE storage for the name
+    // free storage for the name
     if ( pNtk == NULL )
     {
         ABC_FREE( ParsBest.pName );

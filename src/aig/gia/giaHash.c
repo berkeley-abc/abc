@@ -86,7 +86,7 @@ static inline int * Gia_ManHashFind( Gia_Man_t * p, int iLit0, int iLit1 )
 void Gia_ManHashAlloc( Gia_Man_t * p )  
 {
     assert( p->pHTable == NULL );
-    p->nHTable = Aig_PrimeCudd( p->nObjsAlloc );
+    p->nHTable = Gia_PrimeCudd( p->nObjsAlloc );
     p->pHTable = ABC_CALLOC( int, p->nHTable );
 }
 
@@ -152,7 +152,7 @@ void Gia_ManHashResize( Gia_Man_t * p )
     // replace the table
     pHTableOld = p->pHTable;
     nHTableOld = p->nHTable;
-    p->nHTable = Aig_PrimeCudd( 2 * Gia_ManAndNum(p) ); 
+    p->nHTable = Gia_PrimeCudd( 2 * Gia_ManAndNum(p) ); 
     p->pHTable = ABC_CALLOC( int, p->nHTable );
     // rehash the entries from the old table
     Counter = 0;
@@ -322,14 +322,14 @@ static inline Gia_Obj_t * Gia_ManAddStrash( Gia_Man_t * p, Gia_Obj_t * p0, Gia_O
 { 
     Gia_Obj_t * pNode0, * pNode1, * pFanA, * pFanB, * pFanC, * pFanD;
     assert( p->fAddStrash );
-    if ( !Gia_ObjIsAnd(Gia_Regular(p0)) && !Gia_ObjIsAnd(Gia_Regular(p1)) )
-        return NULL;
     pNode0 = Gia_Regular(p0);
     pNode1 = Gia_Regular(p1);
-    pFanA = Gia_ObjChild0(pNode0);
-    pFanB = Gia_ObjChild1(pNode0);
-    pFanC = Gia_ObjChild0(pNode1);
-    pFanD = Gia_ObjChild1(pNode1);
+    if ( !Gia_ObjIsAnd(pNode0) && !Gia_ObjIsAnd(pNode1) )
+        return NULL;
+    pFanA = Gia_ObjIsAnd(pNode0) ? Gia_ObjChild0(pNode0) : NULL;
+    pFanB = Gia_ObjIsAnd(pNode0) ? Gia_ObjChild1(pNode0) : NULL;
+    pFanC = Gia_ObjIsAnd(pNode1) ? Gia_ObjChild0(pNode1) : NULL;
+    pFanD = Gia_ObjIsAnd(pNode1) ? Gia_ObjChild1(pNode1) : NULL;
     if ( Gia_IsComplement(p0) )
     {
         if ( pFanA == Gia_Not(p1) || pFanB == Gia_Not(p1) )
@@ -404,6 +404,7 @@ static inline Gia_Obj_t * Gia_ManAddStrash( Gia_Man_t * p, Gia_Obj_t * p0, Gia_O
         if ( pFanB == pFanD && pFanA == Gia_Not(pFanC) )
             return Gia_Not(pFanB);
     }
+/*
     if ( !Gia_IsComplement(p0) || !Gia_IsComplement(p1) )
         return NULL;
     if ( !Gia_ObjIsAnd(pNode0) || !Gia_ObjIsAnd(pNode1) )
@@ -424,8 +425,12 @@ static inline Gia_Obj_t * Gia_ManAddStrash( Gia_Man_t * p, Gia_Obj_t * p0, Gia_O
         }
         pNode0 = Gia_ManHashAndP( p, Gia_Not(pNodeC), pNodeE );
         pNode1 = Gia_ManHashAndP( p, pNodeC,          pNodeT );
-        return Gia_NotCond( Gia_ManHashAndP( p, pNode0, pNode1 ), !fCompl );
+        p->fAddStrash = 0;
+        pNodeC = Gia_NotCond( Gia_ManHashAndP( p, Gia_Not(pNode0), Gia_Not(pNode1) ), !fCompl );
+        p->fAddStrash = 1;
+        return pNodeC;
     }
+*/
     return NULL;
 }
 
@@ -555,13 +560,14 @@ int Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManRehash( Gia_Man_t * p )  
+Gia_Man_t * Gia_ManRehash( Gia_Man_t * p, int fAddStrash )  
 {
-    Gia_Man_t * pNew;
+    Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->fAddStrash = fAddStrash;
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj( p, pObj, i )
@@ -574,8 +580,11 @@ Gia_Man_t * Gia_ManRehash( Gia_Man_t * p )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
     Gia_ManHashStop( pNew );
+    pNew->fAddStrash = 0;
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
 //    printf( "Top gate is %s\n", Gia_ObjFaninC0(Gia_ManCo(pNew, 0))? "OR" : "AND" );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
     return pNew;
 }
 

@@ -567,7 +567,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 #endif
     }
 
-    // ABC_FREE the manager
+    // free the manager
     p->timeTotal = clock() - clk;
     Mfs_ManStop( p );
     return 1;

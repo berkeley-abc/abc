@@ -183,7 +183,7 @@ void Dch_ManResimulateCex( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
     Aig_ObjSetTravIdCurrent( p->pAigTotal, Aig_ManConst1(p->pAigTotal) );
     Dch_ManResimulateSolved_rec( p, pObj );
     Dch_ManResimulateSolved_rec( p, pRepr );
-    p->nConeMax = AIG_MAX( p->nConeMax, p->nConeThis );
+    p->nConeMax = ABC_MAX( p->nConeMax, p->nConeThis );
     // resimulate the cone of influence of the other nodes
     Vec_PtrForEachEntry( p->vSimRoots, pRoot, i )
         Dch_ManResimulateOther_rec( p, pRoot );
@@ -233,7 +233,7 @@ void Dch_ManResimulateCex2( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
     Aig_ObjSetTravIdCurrent( p->pAigTotal, Aig_ManConst1(p->pAigTotal) );
     Dch_ManResimulateSolved_rec( p, pObj );
     Dch_ManResimulateSolved_rec( p, pRepr );
-    p->nConeMax = AIG_MAX( p->nConeMax, p->nConeThis );
+    p->nConeMax = ABC_MAX( p->nConeMax, p->nConeThis );
     // resimulate the cone of influence of the other nodes
     Vec_PtrForEachEntry( p->vSimRoots, pRoot, i )
         Dch_ManResimulateOther_rec( p, pRoot );

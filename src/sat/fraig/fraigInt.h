@@ -68,10 +68,6 @@
 #define FRAIG_FULL                 (~((unsigned)0))
 #define FRAIG_NUM_WORDS(n)         (((n)>>5) + (((n)&31) > 0))
 
-// maximum/minimum operators
-#define FRAIG_MIN(a,b)             (((a) < (b))? (a) : (b))
-#define FRAIG_MAX(a,b)             (((a) > (b))? (a) : (b))
-
 // generating random unsigned (#define RAND_MAX 0x7fff)
 #define FRAIG_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
 

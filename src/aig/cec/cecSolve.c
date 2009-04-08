@@ -369,7 +369,7 @@ void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
         Vec_PtrForEachEntry( p->vUsedNodes, pObj, i )
             Cec_ObjSetSatNum( p, pObj, 0 );
         Vec_PtrClear( p->vUsedNodes );
-//        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAigTotal) );
+//        memset( p->pSatVars, 0, sizeof(int) * Gia_ManObjNumMax(p->pAigTotal) );
         sat_solver_delete( p->pSat );
     }
     p->pSat = sat_solver_new();
@@ -636,8 +636,8 @@ void Cec_ManSatSolveSeq_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * pOb
     if ( Gia_ObjIsCi(pObj) )
     {
         unsigned * pInfo = Vec_PtrEntry( vInfo, nRegs + Gia_ObjCioId(pObj) );
-        if ( Cec_ObjSatVarValue( pSat, pObj ) != Aig_InfoHasBit( pInfo, iPat ) )
-            Aig_InfoXorBit( pInfo, iPat );
+        if ( Cec_ObjSatVarValue( pSat, pObj ) != Gia_InfoHasBit( pInfo, iPat ) )
+            Gia_InfoXorBit( pInfo, iPat );
         pSat->nCexLits++;
 //        Vec_IntPush( pSat->vCex, Gia_Var2Lit( Gia_ObjCioId(pObj), !Cec_ObjSatVarValue(pSat, pObj) ) );
         return;

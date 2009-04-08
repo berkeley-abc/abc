@@ -1218,7 +1218,7 @@ void Ivy_FraigCreateClasses( Ivy_FraigMan_t * p )
         Ivy_ObjSetClassNodeRepr( pObj, NULL );
         Ivy_FraigAddClass( &p->lClasses, pObj );
     }
-    // ABC_FREE the table
+    // free the table
     ABC_FREE( pTable );
 }
 

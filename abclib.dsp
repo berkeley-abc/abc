@@ -3683,6 +3683,10 @@ SOURCE=.\src\aig\gia\giaAig.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaAig.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaAiger.c
 # End Source File
 # Begin Source File

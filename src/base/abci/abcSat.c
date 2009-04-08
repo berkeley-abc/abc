@@ -117,7 +117,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
         pNtk->pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
         Vec_IntFree( vCiIds );
     }
-    // ABC_FREE the sat_solver
+    // free the sat_solver
     if ( fVerbose )
         Sat_SolverPrintStats( stdout, pSat );
 

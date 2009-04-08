@@ -136,7 +136,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
     {
         pMan->pData = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
     }
-    // ABC_FREE the sat_solver
+    // free the sat_solver
     if ( fVerbose )
         Sat_SolverPrintStats( stdout, pSat );
 //sat_solver_store_write( pSat, "trace.cnf" );
@@ -318,7 +318,7 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimi
         printf( "Timed out after verifying %d partitions (out of %d).\n", nOutputs, Vec_PtrSize(vParts) );
         fflush( stdout );
     }
-    // ABC_FREE intermediate results
+    // free intermediate results
     Vec_PtrForEachEntry( vParts, pAig, i )
         Aig_ManStop( pAig );
     Vec_PtrFree( vParts );

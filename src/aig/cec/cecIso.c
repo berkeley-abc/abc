@@ -125,7 +125,7 @@ static inline void Gia_ManIsoRandom( int Id, unsigned * pStore, int nWords )
     unsigned * pInfo0 = Cec_ManIsoInfo( pStore, nWords, Id );
     int w;
     for ( w = 0; w < nWords; w++ )
-        pInfo0[w] = Aig_ManRandom( 0 );
+        pInfo0[w] = Gia_ManRandom( 0 );
 }
 
 /**Function*************************************************************
@@ -314,7 +314,7 @@ int * Cec_ManDetectIsomorphism( Gia_Man_t * p )
     // start simulation info
     pStore = ABC_ALLOC( unsigned, Gia_ManObjNum(p) * nWords );
     // simulate and create table
-    nTableSize = Aig_PrimeCudd( 100 + Gia_ManObjNum(p)/2 );
+    nTableSize = Gia_PrimeCudd( 100 + Gia_ManObjNum(p)/2 );
     pTable = ABC_CALLOC( int, nTableSize );
     Gia_ManCleanValue( p );
     Gia_ManForEachObj1( p, pObj, i )

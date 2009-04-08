@@ -143,7 +143,7 @@ int Gia_FileSize( char * pFileName )
 char * Gia_FileNameGeneric( char * FileName )
 {
     char * pDot, * pRes;
-    pRes = Aig_UtilStrsav( FileName );
+    pRes = Gia_UtilStrsav( FileName );
     if ( (pDot = strrchr( pRes, '.' )) )
         *pDot = 0;
     return pRes;
@@ -412,7 +412,7 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     // allocate the empty AIG
     pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
     pName = Gia_FileNameGeneric( pFileName );
-    pNew->pName = Aig_UtilStrsav( pName );
+    pNew->pName = Gia_UtilStrsav( pName );
 //    pNew->pSpec = Aig_UtilStrsav( pFileName );
     ABC_FREE( pName );
 
@@ -549,7 +549,7 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
             pCur++;
             // read model name
             ABC_FREE( pNew->pName );
-            pNew->pName = Aig_UtilStrsav( pCur );
+            pNew->pName = Gia_UtilStrsav( pCur );
         }
     }
 

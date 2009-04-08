@@ -362,7 +362,7 @@ Gia_Man_t * Gia_ManUnrollInit( Gia_Man_t * p, int nFrames )
     ABC_FREE( p->pCopies );
     p->pCopies = ABC_FALLOC( int, nFrames * Gia_ManObjNum(p) );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachRo( p, pObj, i )
         Gia_ObjSetCopyF( p, 0, pObj, 0 );
@@ -437,7 +437,7 @@ Gia_Man_t * Gia_ManRemoveEnables2( Gia_Man_t * p )
     Gia_Obj_t * pThis, * pNode;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
@@ -607,7 +607,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
     
 
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {

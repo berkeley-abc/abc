@@ -360,7 +360,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
             printf( "Imp = %5d. ", Vec_IntSize(p->pCla->vImps) );
         printf( "\n" );
     }
-    // ABC_FREE the BMC manager
+    // free the BMC manager
     Fra_BmcStop( p->pBmc );  
     p->pBmc = NULL;
 }

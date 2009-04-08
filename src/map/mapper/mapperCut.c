@@ -1005,7 +1005,7 @@ Map_Cut_t * Map_CutSortCuts( Map_Man_t * pMan, Map_CutTable_t * p, Map_Cut_t * p
     // move them back into the list
     if ( nCuts > MAP_CUTS_MAX_USE - 1 )
     {
-        // ABC_FREE the remaining cuts
+        // free the remaining cuts
         for ( i = MAP_CUTS_MAX_USE - 1; i < nCuts; i++ )
             Extra_MmFixedEntryRecycle( pMan->mmCuts, (char *)p->pCuts1[i] );
         // update the number of cuts

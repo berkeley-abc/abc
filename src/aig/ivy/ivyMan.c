@@ -143,7 +143,7 @@ Ivy_Man_t * Ivy_ManDup( Ivy_Man_t * p )
     // update the counters of different objects
     pNew->nObjs[IVY_PI] -= Ivy_ManLatchNum(p);
     pNew->nObjs[IVY_LATCH] += Ivy_ManLatchNum(p);
-    // ABC_FREE arrays
+    // free arrays
     Vec_IntFree( vNodes );
     Vec_IntFree( vLatches );
     // make sure structural hashing did not change anything
@@ -346,7 +346,7 @@ int Ivy_ManCleanupSeq( Ivy_Man_t * p )
         // delete buffer from the array of buffers
         if ( p->fFanout && Ivy_ObjIsBuf(pObj) )
             Vec_PtrRemove( p->vBufs, pObj );
-        // ABC_FREE the node
+        // free the node
         Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
         Ivy_ManRecycleMemory( p, pObj );
     }

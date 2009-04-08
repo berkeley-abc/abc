@@ -185,7 +185,7 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
         Ntl_ObjForEachFanin( pObj, pNetFanin, i )
         {
             LevelCur = Aig_ObjLevel( Aig_Regular(pNetFanin->pCopy) );
-            LevelMax = AIG_MAX( LevelMax, LevelCur );
+            LevelMax = ABC_MAX( LevelMax, LevelCur );
             Vec_PtrPush( p->vCos, pNetFanin );
             Aig_ObjCreatePo( p->pAig, pNetFanin->pCopy );
         }

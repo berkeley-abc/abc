@@ -330,7 +330,7 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fV
     if ( fDualOut )
         Gia_ManEquivSetColors( p, fVerbose );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -682,7 +682,7 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
     if ( fDualOut )
         Gia_ManEquivSetColors( p, fVerbose );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -809,10 +809,10 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames
     if ( fDualOut )
         Gia_ManEquivSetColors( p, 0 );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ObjSetCopyF( p, 0, pObj, Aig_InfoHasBit(pInit->pData, i) );
+        Gia_ObjSetCopyF( p, 0, pObj, Gia_InfoHasBit(pInit->pData, i) );
     for ( f = 0; f < nFrames; f++ )
     {
         Gia_ObjSetCopyF( p, f, Gia_ManConst0(p), 0 );
@@ -904,6 +904,66 @@ void Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     printf( "Removed classes = %6d (out of %6d). Removed literals = %6d (out of %6d).\n", 
         nRemovedClas, nTotalClas, nRemovedLits, nTotalLits );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms equiv classes by setting a good representative.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManEquivImprove( Gia_Man_t * p )
+{
+    Vec_Int_t * vClass;
+    int i, k, iNode, iRepr;
+    int iReprBest, iLevelBest, iLevelCur, iMffcBest, iMffcCur;
+    assert( p->pReprs != NULL && p->pNexts != NULL );
+    Gia_ManLevelNum( p );
+    Gia_ManCreateRefs( p );
+    // iterate over class candidates
+    vClass = Vec_IntAlloc( 100 );
+    Gia_ManForEachClass( p, i )
+    {
+        Vec_IntClear( vClass );
+        iReprBest = -1;
+        iLevelBest = iMffcBest = ABC_INFINITY;
+        Gia_ClassForEachObj( p, i, k )
+        {
+            iLevelCur = Gia_ObjLevel( p,Gia_ManObj(p, k) );
+            iMffcCur  = Gia_NodeMffcSize( p, Gia_ManObj(p, k) );
+            if ( iLevelBest > iLevelCur || (iLevelBest == iLevelCur && iMffcBest > iMffcCur) )
+            {
+                iReprBest  = k;
+                iLevelBest = iLevelCur;
+                iMffcBest  = iMffcCur;
+            }
+            Vec_IntPush( vClass, k );
+        }
+        assert( Vec_IntSize( vClass ) > 1 );
+        assert( iReprBest > 0 );
+        if ( i == iReprBest )
+            continue;
+/*
+        printf( "Repr/Best = %6d/%6d. Lev = %3d/%3d. Mffc = %3d/%3d.\n", 
+            i, iReprBest, Gia_ObjLevel( p,Gia_ManObj(p, i) ), Gia_ObjLevel( p,Gia_ManObj(p, iReprBest) ),
+            Gia_NodeMffcSize( p, Gia_ManObj(p, i) ), Gia_NodeMffcSize( p, Gia_ManObj(p, iReprBest) ) );
+*/
+        iRepr = iReprBest;
+        Gia_ObjSetRepr( p, iRepr, GIA_VOID );
+        Gia_ObjSetProved( p, i );
+        Gia_ObjUnsetProved( p, iRepr );
+        Vec_IntForEachEntry( vClass, iNode, k )
+            if ( iNode != iRepr )
+                Gia_ObjSetRepr( p, iNode, iRepr );
+    }
+    Vec_IntFree( vClass );
+    ABC_FREE( p->pNexts );
+//    p->pNexts = Gia_ManDeriveNexts( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

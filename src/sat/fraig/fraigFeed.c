@@ -412,7 +412,7 @@ void Fraig_FeedBackCovering( Fraig_Man_t * p, Msat_IntVec_t * vPats )
         Msat_IntVecPush( vPats, iPat );
     }
 
-    // ABC_FREE the set of columns
+    // free the set of columns
     for ( i = 0; i < vColumns->nSize; i++ )
         Fraig_MemFixedEntryRecycle( p->mmSims, (char *)vColumns->pArray[i] );
 

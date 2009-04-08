@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "bbr.h"
+#include "ssw.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -180,7 +181,7 @@ DdNode ** Aig_ManCreatePartitions( DdManager * dd, Aig_Man_t * p, int fReorder, 
         bVar  = Cudd_bddIthVar( dd, Saig_ManCiNum(p) + i );
         pbParts[i] = Cudd_bddXnor( dd, bVar, Aig_ObjGlobalBdd(pNode) );  Cudd_Ref( pbParts[i] );
     }
-    // ABC_FREE global BDDs
+    // free global BDDs
     Aig_ManFreeGlobalBdds( p, dd );
 
     // reorder and disable reordering
@@ -220,9 +221,6 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     int nThreshold = 10000;
     Vec_Ptr_t * vOnionRings;
 
-    // start the onion rings
-    vOnionRings = Vec_PtrAlloc( 1000 );
-
     // start the image computation
     bCubeCs  = Bbr_bddComputeRangeCube( dd, Saig_ManPiNum(p), Saig_ManCiNum(p) );    Cudd_Ref( bCubeCs );
     if ( fPartition )
@@ -236,6 +234,9 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
             printf( "BDDs blew up during qualitification scheduling.  " );
         return -1;
     }
+
+    // start the onion rings
+    vOnionRings = Vec_PtrAlloc( 1000 );
 
     // perform reachability analisys
     bCurrent = bInitial;   Cudd_Ref( bCurrent );
@@ -256,6 +257,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
                 Bbr_bddImageTreeDelete( pTree );
             else
                 Bbr_bddImageTreeDelete2( pTree2 );
+            Vec_PtrFree( vOnionRings );
             return -1;
         }
         Cudd_Ref( bNext );
@@ -316,7 +318,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
             fprintf( stdout, "\r" );
     }
     Cudd_RecursiveDeref( dd, bNext );
-    // ABC_FREE the onion rings
+    // free the onion rings
     Vec_PtrForEachEntry( vOnionRings, bTemp, i )
         Cudd_RecursiveDeref( dd, bTemp );
     Vec_PtrFree( vOnionRings );
@@ -353,7 +355,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
 
 /**Function*************************************************************
 
-  Synopsis    [Performs reachability to see if any .]
+  Synopsis    [Performs reachability to see if any PO can be asserted.]
 
   Description []
                
@@ -362,7 +364,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
+int Aig_ManVerifyUsingBdds_int( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
 {
     DdManager * dd;
     DdNode ** pbParts, ** pbOutputs;
@@ -371,9 +373,6 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     Vec_Ptr_t * vOnionRings;
 
     assert( Saig_ManRegNum(p) > 0 );
-
-    // start the onion rings
-    vOnionRings = Vec_PtrAlloc( 1000 );
 
     // compute the global BDDs of the latches
     dd = Aig_ManComputeGlobalBdds( p, nBddMax, 1, fReorder, fVerbose );    
@@ -385,6 +384,9 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     }
     if ( fVerbose )
         printf( "Shared BDD size is %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+
+    // start the onion rings
+    vOnionRings = Vec_PtrAlloc( 1000 );
 
     // save outputs
     pbOutputs = Aig_ManCreateOutputs( dd, p );
@@ -413,7 +415,7 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
             break;
         }
     }
-    // ABC_FREE the onion rings
+    // free the onion rings
     Vec_PtrForEachEntry( vOnionRings, bTemp, i )
         Cudd_RecursiveDeref( dd, bTemp );
     Vec_PtrFree( vOnionRings );
@@ -443,6 +445,80 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fParti
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs reachability to see if any PO can be asserted.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose, int fSilent )
+{
+    Ssw_Cex_t * pCexOld, * pCexNew;
+    Aig_Man_t * p;
+    Aig_Obj_t * pObj;
+    Vec_Int_t * vInputMap;
+    int i, k, Entry, iBitOld, iBitNew, RetValue;
+    // check if there are PIs without fanout
+    Saig_ManForEachPi( pInit, pObj, i )
+        if ( Aig_ObjRefs(pObj) == 0 )
+            break;
+    if ( i == Saig_ManPiNum(pInit) )
+        return Aig_ManVerifyUsingBdds_int( pInit, nBddMax, nIterMax, fPartition, fReorder, fVerbose, fSilent );
+    // create new AIG
+    p = Aig_ManDupTrim( pInit );
+    assert( Aig_ManPiNum(p) < Aig_ManPiNum(pInit) );
+    assert( Aig_ManRegNum(p) == Aig_ManRegNum(pInit) );
+    RetValue = Aig_ManVerifyUsingBdds_int( p, nBddMax, nIterMax, fPartition, fReorder, fVerbose, fSilent );
+    if ( RetValue != 0 )
+    {
+        Aig_ManStop( p );
+        return RetValue;
+    }
+    // the problem is satisfiable - remap the pattern
+    pCexOld = p->pSeqModel;
+    assert( pCexOld != NULL );
+    // create input map
+    vInputMap = Vec_IntAlloc( Saig_ManPiNum(pInit) );
+    Saig_ManForEachPi( pInit, pObj, i )
+        if ( pObj->pData != NULL )
+            Vec_IntPush( vInputMap, Aig_ObjPioNum(pObj->pData) );
+        else
+            Vec_IntPush( vInputMap, -1 );
+    // create new pattern
+    pCexNew = Ssw_SmlAllocCounterExample( Saig_ManRegNum(pInit), Saig_ManPiNum(pInit), pCexOld->iFrame+1 );
+    pCexNew->iFrame = pCexOld->iFrame;
+    pCexNew->iPo    = pCexOld->iPo;
+    // copy the bit-data
+    for ( iBitOld = 0; iBitOld < pCexOld->nRegs; iBitOld++ )
+        if ( Aig_InfoHasBit( pCexOld->pData, iBitOld ) )
+            Aig_InfoSetBit( pCexNew->pData, iBitOld );
+    // copy the primary input data
+    iBitNew = iBitOld;
+    for ( i = 0; i <= pCexNew->iFrame; i++ )
+    {
+        Vec_IntForEachEntry( vInputMap, Entry, k )
+        {
+            if ( Entry == -1 )
+                continue;
+            if ( Aig_InfoHasBit( pCexOld->pData, iBitOld + Entry ) )
+                Aig_InfoSetBit( pCexNew->pData, iBitNew + k );
+        }
+        iBitOld += Saig_ManPiNum(p);
+        iBitNew += Saig_ManPiNum(pInit);
+    }
+    assert( iBitOld < iBitNew );
+    assert( iBitOld == pCexOld->nBits );
+    assert( iBitNew == pCexNew->nBits );
+    Vec_IntFree( vInputMap );
+    pInit->pSeqModel = pCexNew;
+    Aig_ManStop( p );
+    return 0;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

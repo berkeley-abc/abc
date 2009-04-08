@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "aig.h"
+#include "giaAig.h"
 #include "saig.h"
 #include "dar.h"
 #include "cnf.h"
@@ -2299,7 +2299,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
             ABC_FREE( pNtk->pSeqModel );
             pNtk->pSeqModel = pCex;
             RetValue = 1;
-        }
+        } 
         else
         {
             RetValue = 0;
@@ -2375,7 +2375,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
         pGia = Gia_ManFromAig( pMan );
         if ( Gia_ManSimSimulate( pGia, pPars ) )
         { 
-            if ( (pCex = pMan->pSeqModel) )
+            if ( (pCex = (Fra_Cex_t *)pGia->pCexSeq) )
             {
                 printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                     nFrames, nWords, pCex->iPo, pCex->iFrame );
@@ -2404,8 +2404,13 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
         {
             pCex = Fra_SmlGetCounterExample( pSml );
             if ( pCex )
+            {
                 printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                     nFrames, nWords, pCex->iPo, pCex->iFrame );
+                status = Ssw_SmlRunCounterExample( pMan, (Ssw_Cex_t *)pCex );
+                if ( status == 0 )
+                    printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
+            }
             ABC_FREE( pNtk->pModel );
             ABC_FREE( pNtk->pSeqModel );
             pNtk->pSeqModel = pCex;
@@ -2557,7 +2562,7 @@ ABC_PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
@@ -2567,7 +2572,7 @@ Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConf
         return NULL;
 
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, 0, fVerbose );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, fVerbose );
     if ( pTemp->pSeqModel )
     {
         ABC_FREE( pNtk->pModel );
@@ -3380,7 +3385,7 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
         return NULL;
 /*
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 0, 0, 0, 1 );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 0, 0, 0, -1, -1, 1 );
     Aig_ManStop( pTemp );
     if ( pMan == NULL )
         return NULL;

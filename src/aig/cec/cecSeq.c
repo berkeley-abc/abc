@@ -51,7 +51,7 @@ void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
-            pInfo[w] = Aig_InfoHasBit( pCex->pData, k )? ~0 : 0;
+            pInfo[w] = Gia_InfoHasBit( pCex->pData, k )? ~0 : 0;
     }
 */
     for ( k = 0; k < Gia_ManRegNum(pAig); k++ )
@@ -65,16 +65,16 @@ void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t
     {
         pInfo = Vec_PtrEntry( vInfo, k++ );
         for ( w = 0; w < nWords; w++ )
-            pInfo[w] = Aig_ManRandom(0);
+            pInfo[w] = Gia_ManRandom(0);
         // set simulation pattern and make sure it is second (first will be erased during simulation)
-        pInfo[0] = (pInfo[0] << 1) | Aig_InfoHasBit( pCex->pData, i ); 
+        pInfo[0] = (pInfo[0] << 1) | Gia_InfoHasBit( pCex->pData, i ); 
         pInfo[0] <<= 1;
     }
     for ( ; k < Vec_PtrSize(vInfo); k++ )
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
-            pInfo[w] = Aig_ManRandom(0);
+            pInfo[w] = Gia_ManRandom(0);
     }
 }
 
@@ -100,14 +100,14 @@ void Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Ce
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
-            pInfo[w] = (pCex && Aig_InfoHasBit(pCex->pData, k))? ~0 : 0;
+            pInfo[w] = (pCex && Gia_InfoHasBit(pCex->pData, k))? ~0 : 0;
     }
 
     for ( ; k < Vec_PtrSize(vInfo); k++ )
     {
         pInfo = Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
-            pInfo[w] = Aig_ManRandom( 0 );
+            pInfo[w] = Gia_ManRandom( 0 );
     }
 }
 
@@ -229,7 +229,7 @@ int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Gia_Cex
     }
     if ( pPars->fVerbose )
         printf( "Resimulating %d timeframes.\n", pPars->nRounds + pCex->iFrame + 1 );
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pAig) + 
         Gia_ManPiNum(pAig) * (pPars->nRounds + pCex->iFrame + 1), 1 );
     Cec_ManSeqDeriveInfoFromCex( vSimInfo, pAig, pCex );
@@ -275,7 +275,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
         printf( "Cec_ManSeqSemiformal(): Not a sequential AIG.\n" );
         return -1;
     }
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     // prepare starting pattern
     pState = Gia_ManAllocCounterExample( Gia_ManRegNum(pAig), 0, 0 );
     pState->iFrame = -1;

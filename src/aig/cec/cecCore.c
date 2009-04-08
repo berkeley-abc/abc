@@ -246,7 +246,7 @@ void Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
     if ( pPars->fSeqSimulate )
         printf( "Performing sequential simulation of %d frames with %d words.\n", 
             pPars->nRounds, pPars->nWords );
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     pSim = Cec_ManSimStart( pAig, pPars );
     if ( pAig->pReprs == NULL )
         RetValue = Cec_ManSimClassesPrepare( pSim );
@@ -283,7 +283,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     double clkTotal = clock();
 
     // duplicate AIG and transfer equivalence classes
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     pIni = Gia_ManDup(pAig);
     pIni->pReprs = pAig->pReprs; pAig->pReprs = NULL;
     pIni->pNexts = pAig->pNexts; pAig->pNexts = NULL;
@@ -420,7 +420,8 @@ p->timeSat += clock() - clk;
                 printf( "Switching into reduced mode.\n" );
             pPars->fColorDiff = 0;
         }
-        if ( pPars->fDualOut && Gia_ManAndNum(p->pAig) < 20000 )
+//        if ( pPars->fDualOut && Gia_ManAndNum(p->pAig) < 20000 )
+        else if ( pPars->fDualOut && (Gia_ManAndNum(p->pAig) < 20000 || p->nAllProved + p->nAllDisproved < 10) )
         {
             if ( p->pPars->fVerbose )
                 printf( "Switching into normal mode.\n" );
@@ -431,6 +432,11 @@ p->timeSat += clock() - clk;
 finalize:
     if ( p->pPars->fVerbose )
     {
+        printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+            Gia_ManAndNum(pAig), Gia_ManAndNum(p->pAig), 
+            100.0*(Gia_ManAndNum(pAig)-Gia_ManAndNum(p->pAig))/(Gia_ManAndNum(pAig)?Gia_ManAndNum(pAig):1), 
+            Gia_ManRegNum(pAig), Gia_ManRegNum(p->pAig), 
+            100.0*(Gia_ManRegNum(pAig)-Gia_ManRegNum(p->pAig))/(Gia_ManRegNum(pAig)?Gia_ManRegNum(pAig):1) );
         ABC_PRTP( "Sim ", p->timeSim, clock() - (int)clkTotal );
         ABC_PRTP( "Sat ", p->timeSat-pPat->timeTotalSave, clock() - (int)clkTotal );
         ABC_PRTP( "Pat ", p->timePat+pPat->timeTotalSave, clock() - (int)clkTotal );

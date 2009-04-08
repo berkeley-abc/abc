@@ -580,7 +580,7 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
     }
 
     // allocate storage for fanin/fanout numbers
-    nSizeMax = AIG_MAX( 10 * (Aig_Base10Log(nFaninsMax) + 1), 10 * (Aig_Base10Log(nFanoutsMax) + 1) );
+    nSizeMax = ABC_MAX( 10 * (Gia_Base10Log(nFaninsMax) + 1), 10 * (Gia_Base10Log(nFanoutsMax) + 1) );
     vFanins  = Vec_IntStart( nSizeMax );
     vFanouts = Vec_IntStart( nSizeMax );
 
@@ -714,7 +714,7 @@ Gia_Man_t * Gia_ManDupCofInt( Gia_Man_t * p, int iVar )
         return NULL;
     }
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;

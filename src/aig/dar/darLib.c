@@ -472,7 +472,7 @@ void Dar_LibPrepare( int nSubgraphs )
         if ( i == 1 ) // special classes 
             p->nSubgr0[i] = p->nSubgr[i];
         else
-            p->nSubgr0[i] = AIG_MIN( p->nSubgr[i], nSubgraphs );
+            p->nSubgr0[i] = ABC_MIN( p->nSubgr[i], nSubgraphs );
         p->nSubgr0Total += p->nSubgr0[i];
         for ( k = 0; k < p->nSubgr0[i]; k++ )
             p->pSubgr0[i][k] = p->pSubgr[i][ p->pPrios[i][k] ];
@@ -494,7 +494,7 @@ void Dar_LibPrepare( int nSubgraphs )
         for ( k = 0; k < p->nSubgr0[i]; k++ )
             Dar_LibSetup0_rec( p, Dar_LibObj(p, p->pSubgr0[i][k]), i, 0 );
         p->nNodes0Total += p->nNodes0[i];
-        p->nNodes0Max = AIG_MAX( p->nNodes0Max, p->nNodes0[i] );
+        p->nNodes0Max = ABC_MAX( p->nNodes0Max, p->nNodes0[i] );
     }
 
     // clean node counters
@@ -799,7 +799,7 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class, Aig_Obj_t * pRoot )
         assert( (int)Dar_LibObj(s_DarLib, pObj->Fan1)->Num < s_DarLib->nNodes0Max + 4 );
         pData0 = s_DarLib->pDatas + Dar_LibObj(s_DarLib, pObj->Fan0)->Num;
         pData1 = s_DarLib->pDatas + Dar_LibObj(s_DarLib, pObj->Fan1)->Num;
-        pData->Level = 1 + AIG_MAX(pData0->Level, pData1->Level);
+        pData->Level = 1 + ABC_MAX(pData0->Level, pData1->Level);
         if ( pData0->pFunc == NULL || pData1->pFunc == NULL )
             continue;
         pFanin0 = Aig_NotCond( pData0->pFunc, pObj->fCompl0 );

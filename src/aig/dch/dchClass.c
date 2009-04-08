@@ -544,7 +544,7 @@ void Dch_ClassesCollectConst1Group( Dch_Cla_t * p, Aig_Obj_t * pObj, int nNodes,
 {
     int i, Limit;
     Vec_PtrClear( vRoots );
-    Limit = AIG_MIN( pObj->Id + nNodes, Aig_ManObjNumMax(p->pAig) );
+    Limit = ABC_MIN( pObj->Id + nNodes, Aig_ManObjNumMax(p->pAig) );
     for ( i = pObj->Id; i < Limit; i++ )
     {
         pObj = Aig_ManObj( p->pAig, i );

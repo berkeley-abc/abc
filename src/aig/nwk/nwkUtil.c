@@ -368,12 +368,12 @@ void Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk )
         nFanouts = Nwk_ObjFanoutNum(pNode);
         nFaninsAll  += nFanins;
         nFanoutsAll += nFanouts;
-        nFaninsMax   = AIG_MAX( nFaninsMax, nFanins );
-        nFanoutsMax  = AIG_MAX( nFanoutsMax, nFanouts );
+        nFaninsMax   = ABC_MAX( nFaninsMax, nFanins );
+        nFanoutsMax  = ABC_MAX( nFanoutsMax, nFanouts );
     }
 
     // allocate storage for fanin/fanout numbers
-    nSizeMax = AIG_MAX( 10 * (Aig_Base10Log(nFaninsMax) + 1), 10 * (Aig_Base10Log(nFanoutsMax) + 1) );
+    nSizeMax = ABC_MAX( 10 * (Aig_Base10Log(nFaninsMax) + 1), 10 * (Aig_Base10Log(nFanoutsMax) + 1) );
     vFanins  = Vec_IntStart( nSizeMax );
     vFanouts = Vec_IntStart( nSizeMax );
 

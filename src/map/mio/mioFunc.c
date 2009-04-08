@@ -173,7 +173,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
             {
                 if ( pPinNames[i] && strcmp( pPinNames[i], pPin->pName ) == 0 )
                 {
-                    // ABC_FREE pPinNames[i] because it is already available as pPin->pName
+                    // free pPinNames[i] because it is already available as pPin->pName
                     // setting pPinNames[i] to NULL is useful to make sure that
                     // this name is not assigned to two pins in the list
                     ABC_FREE( pPinNames[i] );

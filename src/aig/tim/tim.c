@@ -28,10 +28,6 @@
 #include "mem.h"
 #include "tim.h"
 
-#define AIG_MIN(a,b)       (((a) < (b))? (a) : (b))
-#define AIG_MAX(a,b)       (((a) > (b))? (a) : (b))
-#define AIG_ABS(a)         (((a) >= 0)?  (a) :-(a))
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -773,7 +769,7 @@ float Tim_ManGetCiArrival( Tim_Man_t * p, int iCi )
         pDelays = pBox->pDelayTable + i * pBox->nInputs;
         DelayBest = -TIM_ETERNITY;
         Tim_ManBoxForEachInput( p, pBox, pObj, k )
-            DelayBest = AIG_MAX( DelayBest, pObj->timeArr + pDelays[k] );
+            DelayBest = ABC_MAX( DelayBest, pObj->timeArr + pDelays[k] );
         pObjRes->timeArr = DelayBest;
         pObjRes->TravId = p->nTravIds;
     }
@@ -820,7 +816,7 @@ float Tim_ManGetCoRequired( Tim_Man_t * p, int iCo )
         Tim_ManBoxForEachOutput( p, pBox, pObj, k )
         {
             pDelays = pBox->pDelayTable + k * pBox->nInputs;
-            DelayBest = AIG_MIN( DelayBest, pObj->timeReq - pDelays[i] );
+            DelayBest = ABC_MIN( DelayBest, pObj->timeReq - pDelays[i] );
         }
         pObjRes->timeReq = DelayBest;
         pObjRes->TravId = p->nTravIds;

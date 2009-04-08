@@ -267,7 +267,7 @@ int Dar_RefactTryGraph( Aig_Man_t * pAig, Aig_Obj_t * pRoot, Vec_Ptr_t * vCut, K
                 return -1;
         }
         // count the number of new levels
-        LevelNew = 1 + AIG_MAX( pNode0->Level, pNode1->Level );
+        LevelNew = 1 + ABC_MAX( pNode0->Level, pNode1->Level );
         if ( pAnd )
         {
             if ( Aig_Regular(pAnd) == Aig_ManConst1(pAig) )
@@ -527,7 +527,7 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 //printf( "\nConsidering node %d.\n", pObj->Id );
         // get the bounded MFFC size
 clk = clock();
-        nLevelMin = AIG_MAX( 0, Aig_ObjLevel(pObj) - 10 );
+        nLevelMin = ABC_MAX( 0, Aig_ObjLevel(pObj) - 10 );
         nNodesSaved = Aig_NodeMffsSupp( pAig, pObj, nLevelMin, vCut );
         if ( nNodesSaved < p->pPars->nMffcMin ) // too small to consider
         {
@@ -564,7 +564,7 @@ p->timeCuts += clock() - clk;
 
         // try the cuts
 clk = clock();
-        Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : AIG_INFINITY;
+        Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : ABC_INFINITY;
         Dar_ManRefactorTryCuts( p, pObj, nNodesSaved, Required );
 p->timeEval += clock() - clk;
 

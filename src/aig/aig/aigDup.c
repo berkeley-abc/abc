@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "aig.h"
+#include "saig.h"
 #include "tim.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -299,6 +299,52 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManDupOrdered(): The check has failed.\n" );
+    return pNew;
+}
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description [Assumes topological ordering of the nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupTrim( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjNew;
+    int i, nNodes;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    // create the PIs
+    Aig_ManCleanData( p );
+    // duplicate internal nodes
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjIsNode(pObj) )
+            pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
+        else if ( Aig_ObjIsPi(pObj) )
+            pObjNew = (Aig_ObjRefs(pObj) > 0 || Saig_ObjIsLo(p, pObj)) ? Aig_ObjCreatePi(pNew) : NULL;
+        else if ( Aig_ObjIsPo(pObj) )
+            pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        else if ( Aig_ObjIsConst1(pObj) )
+            pObjNew = Aig_ManConst1(pNew);
+        else
+            assert( 0 );
+        pObj->pData = pObjNew;
+    }
+    assert( Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
+    if ( (nNodes = Aig_ManCleanup( pNew )) )
+        printf( "Aig_ManDupTrim(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupTrim(): The check has failed.\n" );
     return pNew;
 }
 

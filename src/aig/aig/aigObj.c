@@ -529,7 +529,7 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     if ( p->pFanData && Aig_ObjIsBuf(pObjOld) )
     {
         Vec_PtrPush( p->vBufs, pObjOld );
-        p->nBufMax = AIG_MAX( p->nBufMax, Vec_PtrSize(p->vBufs) );
+        p->nBufMax = ABC_MAX( p->nBufMax, Vec_PtrSize(p->vBufs) );
         Aig_ManPropagateBuffers( p, fUpdateLevel );
     }
 }

@@ -327,7 +327,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
                 i++;
     }
     else // modified AIGER
-    {
+    { 
         vLits = Io_WriteDecodeLiterals( &pCur, nLatches + nOutputs );
     }
 

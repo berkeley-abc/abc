@@ -457,7 +457,7 @@ int Fraig_MappingUpdateLevel_rec( Fraig_Man_t * pMan, Fraig_Node_t * pNode, int 
     // compute levels of the children nodes
     Level1 = Fraig_MappingUpdateLevel_rec( pMan, Fraig_Regular(pNode->p1), fMaximum );
     Level2 = Fraig_MappingUpdateLevel_rec( pMan, Fraig_Regular(pNode->p2), fMaximum );
-    pNode->Level = 1 + FRAIG_MAX( Level1, Level2 );
+    pNode->Level = 1 + ABC_MAX( Level1, Level2 );
     if ( pNode->pNextE )
     {
         LevelE = Fraig_MappingUpdateLevel_rec( pMan, pNode->pNextE, fMaximum );

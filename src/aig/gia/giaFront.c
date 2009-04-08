@@ -112,7 +112,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
     Gia_ManSetRefs( p );
     // start the new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     pNew->nFront = 1 + (int)((float)1.1 * nCrossCutMaxInit); 
     // start the frontier
     pFront = ABC_CALLOC( char, pNew->nFront );

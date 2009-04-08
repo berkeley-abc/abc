@@ -691,7 +691,7 @@ Abc_Ntk_t * Abc_NtkHaigUse( Abc_Ntk_t * pNtk )
     pNtkAig = Abc_NtkHaigRecreateAig( pNtk, pMan );
     Hop_ManStop( pMan );
 
-    // ABC_FREE HAIG
+    // free HAIG
     return pNtkAig;
 }
 

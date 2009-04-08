@@ -539,7 +539,7 @@ clk = clock();
     Aig_ManIncrementTravId( p->pManFraig );
     // determine the min and max level to visit
     assert( p->pPars->dActConeRatio > 0 && p->pPars->dActConeRatio < 1 );
-    LevelMax = AIG_MAX( (pNew ? pNew->Level : 0), (pOld ? pOld->Level : 0) );
+    LevelMax = ABC_MAX( (pNew ? pNew->Level : 0), (pOld ? pOld->Level : 0) );
     LevelMin = (int)(LevelMax * (1.0 - p->pPars->dActConeRatio));
     // traverse
     if ( pOld && !Aig_ObjIsConst1(pOld) )

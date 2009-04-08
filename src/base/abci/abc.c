@@ -27,7 +27,7 @@
 #include "if.h"
 #include "res.h"
 #include "lpk.h"
-#include "aig.h"
+#include "giaAig.h"
 #include "dar.h"
 #include "mfs.h"
 #include "mfx.h"
@@ -39,7 +39,6 @@
 #include "ssw.h"
 #include "cgt.h"
 #include "amap.h"
-#include "gia.h"
 #include "cec.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -194,6 +193,7 @@ static int Abc_CommandScut           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandInit           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandZero           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUndc           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOneHot         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPipe           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeq            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnseq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -513,6 +513,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "zero",          Abc_CommandZero,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "undc",          Abc_CommandUndc,             1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "onehot",        Abc_CommandOneHot,           1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "dretime",       Abc_CommandDRetime,          1 );
@@ -598,7 +599,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "AIG",          "&psig",         Abc_CommandAbc9PSig,         0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&show",         Abc_CommandAbc9Show,         0 );
-    Cmd_CommandAdd( pAbc, "AIG",          "&hash",         Abc_CommandAbc9Hash,         0 );
+    Cmd_CommandAdd( pAbc, "AIG",          "&st",           Abc_CommandAbc9Hash,         0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&topand",       Abc_CommandAbc9Topand,       0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&cof",          Abc_CommandAbc9Cof,          0 );
     Cmd_CommandAdd( pAbc, "AIG",          "&trim",         Abc_CommandAbc9Trim,         0 );
@@ -11945,7 +11946,7 @@ usage:
     fprintf( pErr, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->fEpsilon );  
     fprintf( pErr, "\t-m       : toggles using MUX matching [default = %s]\n", pPars->fUseMuxes? "yes": "no" );
     fprintf( pErr, "\t-x       : toggles using XOR matching [default = %s]\n", pPars->fUseXors? "yes": "no" );
-    fprintf( pErr, "\t-i       : toggles assuming inverters are ABC_FREE [default = %s]\n", pPars->fFreeInvs? "yes": "no" );
+    fprintf( pErr, "\t-i       : toggles assuming inverters are free [default = %s]\n", pPars->fFreeInvs? "yes": "no" );
     fprintf( pErr, "\t-s       : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");
@@ -13094,7 +13095,74 @@ int Abc_CommandUndc( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: undc [-h]\n" );
-    fprintf( pErr, "\t        converts latches with DC init values into ABC_FREE PIs\n" );
+    fprintf( pErr, "\t        converts latches with DC init values into free PIs\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandOneHot( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The current network is combinational.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "This command works only for logic networks.\n" );
+        return 0;
+    }
+    // get the new network
+    pNtkRes = Abc_NtkConvertOnehot( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Converting to one-hot encoding has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: onehot [-h]\n" );
+    fprintf( pErr, "\t        converts natural encoding into one-hot encoding\n" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -15030,7 +15098,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fNew       =  1;
+    fNew       =  0;
     fComb      =  0;
     nFrames    = 32;
     nWords     =  8;
@@ -18381,22 +18449,28 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfMax;
     int fDynamic;
     int fExtend;
+    int fSkipProof;
+    int nFramesBmc;
+    int nConfMaxBmc;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFramesMax =    10;
-    nConfMax   = 10000;
-    fDynamic   =     1;
-    fExtend    =     0;
-    fVerbose   =     0;
+    nFramesMax  =    10;
+    nConfMax    = 10000;
+    fDynamic    =     1;
+    fExtend     =     0;
+    fSkipProof  =     0;
+    nFramesBmc  =  2000;
+    nConfMaxBmc =  5000;
+    fVerbose    =     0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCdevh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGDdesvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18422,11 +18496,36 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConfMax < 0 ) 
                 goto usage;
             break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesBmc = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesBmc < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMaxBmc = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMaxBmc < 0 ) 
+                goto usage;
+            break;
         case 'd':
             fDynamic ^= 1;
             break;
         case 'e':
             fExtend ^= 1;
+            break;
+        case 's':
+            fSkipProof ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -18454,7 +18553,7 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fVerbose );
+    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, fVerbose );
     if ( pNtkRes == NULL )
     {
         if ( pNtk->pSeqModel == NULL )
@@ -18465,12 +18564,16 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 usage:
-    fprintf( pErr, "usage: abs [-FC num] [-devh]\n" );
-    fprintf( pErr, "\t         proof-based abstraction from UNSAT core of the BMC instance\n" );
-    fprintf( pErr, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
-    fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
+    fprintf( pErr, "usage: abs [-FCGD num] [-desvh]\n" );
+    fprintf( pErr, "\t         proof-based abstraction (PBA) using UNSAT core of BMC\n" );
+    fprintf( pErr, "\t         followed by counter-example-based abstraction\n" );
+    fprintf( pErr, "\t-F num : the max number of timeframes for PBA [default = %d]\n", nFramesMax );
+    fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver for PBA [default = %d]\n", nConfMax );
+    fprintf( pErr, "\t-G num : the max number of timeframes for BMC [default = %d]\n", nFramesBmc );
+    fprintf( pErr, "\t-D num : the max number of conflicts by SAT solver for BMC [default = %d]\n", nConfMaxBmc );
     fprintf( pErr, "\t-d     : toggle dynamic unrolling of timeframes [default = %s]\n", fDynamic? "yes": "no" );
     fprintf( pErr, "\t-e     : toggle extending abstraction using COI of flops [default = %s]\n", fExtend? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle skipping proof-based abstraction [default = %s]\n", fSkipProof? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -22128,11 +22231,15 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
     int c;
+    int fAddStrash = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'a':
+            fAddStrash ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -22144,13 +22251,14 @@ int Abc_CommandAbc9Hash( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Hash(): There is no AIG.\n" );
         return 1;
     } 
-    pAbc->pAig = Gia_ManRehash( pTemp = pAbc->pAig );
+    pAbc->pAig = Gia_ManRehash( pTemp = pAbc->pAig, fAddStrash );
     Gia_ManStop( pTemp );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &hash [-h]\n" );
+    fprintf( stdout, "usage: &st [-ah]\n" );
     fprintf( stdout, "\t        performs structural hashing\n" );
+    fprintf( stdout, "\t-a    : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -22186,7 +22294,7 @@ int Abc_CommandAbc9Topand( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAig == NULL )
     {
-        printf( "Abc_CommandAbc9Hash(): There is no AIG.\n" );
+        printf( "Abc_CommandAbc9Topand(): There is no AIG.\n" );
         return 1;
     } 
     if ( Gia_ManRegNum(pAbc->pAig) > 0 )

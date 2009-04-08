@@ -1434,7 +1434,7 @@ void Fraig_SetActivity( Fraig_Man_t * pMan, Fraig_Node_t * pOld, Fraig_Node_t * 
     float * pFactors = Msat_SolverReadFactors(pMan->pSat);
     if ( pFactors == NULL )
         return;
-    MaxLevel = FRAIG_MAX( pOld->Level, pNew->Level );
+    MaxLevel = ABC_MAX( pOld->Level, pNew->Level );
     // create the variable order
     for ( i = 0; i < Msat_IntVecReadSize(pMan->vVarsInt); i++ )
     {

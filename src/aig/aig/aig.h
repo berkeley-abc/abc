@@ -215,11 +215,6 @@ static inline Aig_Cut_t *  Aig_CutNext( Aig_Cut_t * pCut )              { return
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#define AIG_MIN(a,b)       (((a) < (b))? (a) : (b))
-#define AIG_MAX(a,b)       (((a) > (b))? (a) : (b))
-#define AIG_ABS(a)         (((a) >= 0)?  (a) :-(a))
-#define AIG_INFINITY       (100000000)
-
 static inline int          Aig_IntAbs( int n )                    { return (n < 0)? -n : n;                                }
 static inline int          Aig_Float2Int( float Val )             { return *((int *)&Val);                                 }
 static inline float        Aig_Int2Float( int Num )               { return *((float *)&Num);                               }
@@ -320,7 +315,7 @@ static inline Aig_Obj_t *  Aig_ObjChild1Next( Aig_Obj_t * pObj )  { assert( !Aig
 static inline void         Aig_ObjChild0Flip( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); pObj->pFanin0 = Aig_Not(pObj->pFanin0);        }
 static inline void         Aig_ObjChild1Flip( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); pObj->pFanin1 = Aig_Not(pObj->pFanin1);        }
 static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { assert( !Aig_IsComplement(pObj) ); return pObj->Level;                            }
-static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
+static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + ABC_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
 static inline int          Aig_ObjSetLevel( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return pObj->Level = i;                    }
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
@@ -483,6 +478,7 @@ extern Aig_Man_t *     Aig_ManDupSimple( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupSimpleDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupSimpleDfsPart( Aig_Man_t * p, Vec_Ptr_t * vPis, Vec_Ptr_t * vPos );
 extern Aig_Man_t *     Aig_ManDupOrdered( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupTrim( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfsGuided( Aig_Man_t * p, Aig_Man_t * pGuide );

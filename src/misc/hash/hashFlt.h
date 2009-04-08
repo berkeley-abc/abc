@@ -309,7 +309,7 @@ static inline void Hash_FltFree( Hash_Flt_t *p ) {
   int bin;
   Hash_Flt_Entry_t *pEntry;
 
-  // ABC_FREE bins
+  // free bins
   for(bin = 0; bin < p->nBins; bin++) {
     pEntry = p->pArray[bin];
     while(pEntry) {
@@ -318,7 +318,7 @@ static inline void Hash_FltFree( Hash_Flt_t *p ) {
     }
   }
  
-  // ABC_FREE hash
+  // free hash
   ABC_FREE( p->pArray );
   ABC_FREE( p );
 }

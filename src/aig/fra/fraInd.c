@@ -629,7 +629,7 @@ p->timeTotal = clock() - clk;
     p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
     p->nNodesEnd = Aig_ManNodeNum(pManAigNew);
     p->nRegsEnd  = Aig_ManRegNum(pManAigNew);
-    // ABC_FREE the manager
+    // free the manager
 finish:
     Fra_ManStop( p );
     // check the output

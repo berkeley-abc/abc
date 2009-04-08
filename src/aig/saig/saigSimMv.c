@@ -180,7 +180,7 @@ static inline int Saig_MvCreateObj( Saig_MvMan_t * p, int iFan0, int iFan1 )
     pNode->iFan1 = iFan1;
     pNode->iNext = 0;
     if ( iFan0 || iFan1 )
-        p->pLevels[p->nObjs] = 1 + AIG_MAX( Saig_MvLev(p, iFan0), Saig_MvLev(p, iFan1) );
+        p->pLevels[p->nObjs] = 1 + ABC_MAX( Saig_MvLev(p, iFan0), Saig_MvLev(p, iFan1) );
     else
         p->pLevels[p->nObjs] = 0, p->nPis++;
     return p->nObjs++;

@@ -170,7 +170,7 @@ clk = clock();
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
         TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
-        TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+        TimeLeft = ABC_MAX( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
             if ( !pParSec->fSilent )
@@ -240,7 +240,7 @@ ABC_PRT( "Time", clock() - clk );
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
         TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
-        TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+        TimeLeft = ABC_MAX( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
             if ( !pParSec->fSilent )
@@ -275,7 +275,7 @@ ABC_PRT( "Time", clock() - clk );
     if ( RetValue == -1 && pParSec->TimeLimit )
     {
         TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
-        TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+        TimeLeft = ABC_MAX( TimeLeft, 0.0 );
         if ( TimeLeft == 0.0 )
         {
             if ( !pParSec->fSilent )
@@ -315,7 +315,7 @@ ABC_PRT( "Time", clock() - clk );
         if ( RetValue == -1 && pParSec->TimeLimit )
         {
             TimeLeft = (float)pParSec->TimeLimit - ((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC));
-            TimeLeft = AIG_MAX( TimeLeft, 0.0 );
+            TimeLeft = ABC_MAX( TimeLeft, 0.0 );
             if ( TimeLeft == 0.0 )
             {
                 if ( !pParSec->fSilent )

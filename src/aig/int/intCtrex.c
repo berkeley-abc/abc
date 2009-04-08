@@ -138,7 +138,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
                 Aig_InfoSetBit( pCtrex->pData, Saig_ManRegNum(pAig) + i );
         ABC_FREE( pModel );
     }
-    // ABC_FREE the sat_solver
+    // free the sat_solver
     sat_solver_delete( pSat );
     Vec_IntFree( vCiIds );
     // verify counter-example

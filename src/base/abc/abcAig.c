@@ -163,7 +163,7 @@ void Abc_AigFree( Abc_Aig_t * pMan )
 {
     assert( Vec_PtrSize( pMan->vStackReplaceOld ) == 0 );
     assert( Vec_PtrSize( pMan->vStackReplaceNew ) == 0 );
-    // ABC_FREE the table
+    // free the table
     if ( pMan->vAddedCells )
         Vec_PtrFree( pMan->vAddedCells );
     if ( pMan->vUpdatedNets )

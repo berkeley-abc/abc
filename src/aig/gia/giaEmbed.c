@@ -691,7 +691,7 @@ void Emb_ManPrintFanio( Emb_Man_t * p )
     }
 
     // allocate storage for fanin/fanout numbers
-    nSizeMax = AIG_MAX( 10 * (Aig_Base10Log(nFaninsMax) + 1), 10 * (Aig_Base10Log(nFanoutsMax) + 1) );
+    nSizeMax = ABC_MAX( 10 * (Gia_Base10Log(nFaninsMax) + 1), 10 * (Gia_Base10Log(nFanoutsMax) + 1) );
     vFanins  = Vec_IntStart( nSizeMax );
     vFanouts = Vec_IntStart( nSizeMax );
 
@@ -836,14 +836,14 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
     int nAttempts = 20;
     int i, iNode, Dist, clk;
     Emb_Obj_t * pPivot, * pNext;
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     Emb_ManResetTravId( p );
     // compute distances from several randomly selected PIs
     clk = clock();
     printf( "From inputs: " );
     for ( i = 0; i < nAttempts; i++ )
     {
-        iNode = Aig_ManRandom( 0 ) % Emb_ManCiNum(p);
+        iNode = Gia_ManRandom( 0 ) % Emb_ManCiNum(p);
         pPivot = Emb_ManCi( p, iNode );
         if ( Emb_ObjFanoutNum(pPivot) == 0 )
             { i--; continue; }
@@ -859,7 +859,7 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
     printf( "From outputs: " );
     for ( i = 0; i < nAttempts; i++ )
     {
-        iNode = Aig_ManRandom( 0 ) % Emb_ManCoNum(p);
+        iNode = Gia_ManRandom( 0 ) % Emb_ManCoNum(p);
         pPivot = Emb_ManCo( p, iNode );
         pNext = Emb_ObjFanin( pPivot, 0 );
         if ( !Emb_ObjIsNode(pNext) )
@@ -873,7 +873,7 @@ void Gia_ManTestDistanceInternal( Emb_Man_t * p )
     printf( "From nodes: " );
     for ( i = 0; i < nAttempts; i++ )
     {
-        iNode = Aig_ManRandom( 0 ) % Gia_ManObjNum(p->pGia);
+        iNode = Gia_ManRandom( 0 ) % Gia_ManObjNum(p->pGia);
         if ( !~Gia_ManObj(p->pGia, iNode)->Value )
             { i--; continue; }
         pPivot = Emb_ManObj( p, Gia_ManObj(p->pGia, iNode)->Value );
@@ -1043,7 +1043,7 @@ Emb_Obj_t * Emb_ManRandomVertex( Emb_Man_t * p )
 {
     Emb_Obj_t * pPivot;
     do {
-        int iNode = (911 * Aig_ManRandom(0)) % Gia_ManObjNum(p->pGia);
+        int iNode = (911 * Gia_ManRandom(0)) % Gia_ManObjNum(p->pGia);
         if ( ~Gia_ManObj(p->pGia, iNode)->Value )
             pPivot = Emb_ManObj( p, Gia_ManObj(p->pGia, iNode)->Value );
         else
@@ -1240,7 +1240,7 @@ void Emb_ManVecRandom( float * pVec, int nDims )
 {
     int i;
     for ( i = 0; i < nDims; i++ )
-        pVec[i] = Aig_ManRandom( 0 );
+        pVec[i] = Gia_ManRandom( 0 );
 }
 
 /**Function*************************************************************
@@ -1702,7 +1702,7 @@ void Emb_ManDumpGnuplot( Emb_Man_t * p, char * pName, int fDumpLarge, int fShowI
         printf( "Emb_ManDumpGnuplot(): Placement is not available.\n" );
         return;
     }
-    sprintf( Buffer, "%s%s", pDirectory, Aig_FileNameGenericAppend(pName, ".plt") ); 
+    sprintf( Buffer, "%s%s", pDirectory, Gia_FileNameGenericAppend(pName, ".plt") ); 
     pFile = fopen( Buffer, "w" );
     fprintf( pFile, "# This Gnuplot file was produced by ABC on %s\n", Ioa_TimeStamp() );
     fprintf( pFile, "\n" );
@@ -1712,7 +1712,7 @@ void Emb_ManDumpGnuplot( Emb_Man_t * p, char * pName, int fDumpLarge, int fShowI
     {
 //    fprintf( pFile, "set terminal postscript\n" );
     fprintf( pFile, "set terminal gif font \'arial\' 10 size 800,600 xffffff x000000 x000000 x000000\n" );
-    fprintf( pFile, "set output \'%s\'\n", Aig_FileNameGenericAppend(pName, ".gif") );
+    fprintf( pFile, "set output \'%s\'\n", Gia_FileNameGenericAppend(pName, ".gif") );
     fprintf( pFile, "\n" );
     }
     fprintf( pFile, "set title \"%s :  PI = %d   PO = %d   FF = %d   Node = %d   Obj = %d  HPWL = %.2e\\n", 
@@ -1806,7 +1806,7 @@ clk = clock();
 //    Emb_ManPrintFanio( p );
 
     // prepare data-structure
-    Aig_ManRandom( 1 );  // reset random numbers for deterministic behavior
+    Gia_ManRandom( 1 );  // reset random numbers for deterministic behavior
     Emb_ManResetTravId( p );
     Emb_ManSetValue( p );
 clkSetup = clock() - clk;

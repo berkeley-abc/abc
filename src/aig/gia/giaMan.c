@@ -72,6 +72,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFree( p->vCos );
     ABC_FREE( p->pPlacement );
     ABC_FREE( p->pSwitching );
+    ABC_FREE( p->pCexSeq );
     ABC_FREE( p->pCexComb );
     ABC_FREE( p->pIso );
     ABC_FREE( p->pMapping );

@@ -268,7 +268,7 @@ void Ivy_ObjDelete( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fFreeTop )
     // clean and recycle the entry
     if ( fFreeTop )
     {
-        // ABC_FREE the node
+        // free the node
         Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
         Ivy_ManRecycleMemory( p, pObj );
     }

@@ -290,8 +290,8 @@ Vec_Int_t * Fra_SmlSelectMaxCost( Vec_Int_t * vImps, int * pCosts, int nCostMax,
 ***********************************************************************/
 int Sml_CompareMaxId( unsigned short * pImp1, unsigned short * pImp2 )
 {
-    int Max1 = AIG_MAX( pImp1[0], pImp1[1] );
-    int Max2 = AIG_MAX( pImp2[0], pImp2[1] );
+    int Max1 = ABC_MAX( pImp1[0], pImp1[1] );
+    int Max2 = ABC_MAX( pImp2[0], pImp2[1] );
     if ( Max1 < Max2 )
         return -1;
     if ( Max1 > Max2  )
@@ -323,7 +323,7 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     Vec_Ptr_t * vNodes;
     int * pImpCosts, * pNodesI, * pNodesK;
     int nImpsTotal = 0, nImpsTried = 0, nImpsNonSeq = 0, nImpsComb = 0, nImpsCollected = 0;
-    int CostMin = AIG_INFINITY, CostMax = 0;
+    int CostMin = ABC_INFINITY, CostMax = 0;
     int i, k, Imp, CostRange, clk = clock();
     assert( Aig_ManObjNumMax(p->pManAig) < (1 << 15) );
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
@@ -364,8 +364,8 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
                 nImpsCollected++;
                 Imp = Fra_ImpCreate( *pNodesI, *pNodesK );
                 pImpCosts[ Vec_IntSize(vImps) ] = Sml_NodeNotImpWeight(pComb, *pNodesI, *pNodesK);
-                CostMin = AIG_MIN( CostMin, pImpCosts[ Vec_IntSize(vImps) ] );
-                CostMax = AIG_MAX( CostMax, pImpCosts[ Vec_IntSize(vImps) ] );
+                CostMin = ABC_MIN( CostMin, pImpCosts[ Vec_IntSize(vImps) ] );
+                CostMax = ABC_MAX( CostMax, pImpCosts[ Vec_IntSize(vImps) ] );
                 Vec_IntPush( vImps, Imp );
                 if ( Vec_IntSize(vImps) == nImpMaxLimit )
                     goto finish;
@@ -508,7 +508,7 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
             continue;
         Left = Fra_ImpLeft(Imp);
         Right = Fra_ImpRight(Imp);
-        Max = AIG_MAX( Left, Right );
+        Max = ABC_MAX( Left, Right );
         assert( Max >= pNode->Id );
         if ( Max > pNode->Id )
             return i;

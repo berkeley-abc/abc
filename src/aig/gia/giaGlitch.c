@@ -330,7 +330,7 @@ static inline int Gli_NodeComputeValue( Gli_Obj_t * pNode )
     int i, Phase = 0;
     for ( i = 0; i < (int)pNode->nFanins; i++ )
         Phase |= (Gli_ObjFanin(pNode, i)->fPhase << i);
-    return Aig_InfoHasBit( pNode->uTruth, Phase );
+    return Gia_InfoHasBit( pNode->uTruth, Phase );
 }
 
 /**Function*************************************************************
@@ -349,7 +349,7 @@ static inline int Gli_NodeComputeValue2( Gli_Obj_t * pNode )
     int i, Phase = 0;
     for ( i = 0; i < (int)pNode->nFanins; i++ )
         Phase |= (Gli_ObjFanin(pNode, i)->fPhase2 << i);
-    return Aig_InfoHasBit( pNode->uTruth, Phase );
+    return Gia_InfoHasBit( pNode->uTruth, Phase );
 }
 
 /**Function*************************************************************
@@ -429,7 +429,7 @@ void Gli_ManSetPiRandom( Gli_Man_t * p, float PiTransProb )
     assert( 0.0 < PiTransProb && PiTransProb < 1.0 );
     Vec_IntClear( p->vCisChanged );
     Gli_ManForEachCi( p, pObj, i )
-        if ( Multi * (Aig_ManRandom(0) & 0xffff) < PiTransProb )
+        if ( Multi * (Gia_ManRandom(0) & 0xffff) < PiTransProb )
         {
             Vec_IntPush( p->vCisChanged, pObj->Handle );
             pObj->fPhase  ^= 1;
@@ -590,7 +590,7 @@ unsigned Gli_ManSimulateSeqNode( Gli_Man_t * p, Gli_Obj_t * pNode )
         for ( k = 0; k < nFanins; k++ )
             if ( (pSimInfos[k] >> i) & 1 )
                 Phase |= (1 << k);
-        if ( Aig_InfoHasBit( pNode->uTruth, Phase ) )
+        if ( Gia_InfoHasBit( pNode->uTruth, Phase ) )
             Result |= (1 << i);
     }
     return Result;
@@ -612,9 +612,9 @@ static inline unsigned Gli_ManUpdateRandomInput( unsigned uInfo, float PiTransPr
     float Multi = 1.0 / (1 << 16);
     int i;
     if ( PiTransProb == 0.5 )
-        return Aig_ManRandom(0);
+        return Gia_ManRandom(0);
     for ( i = 0; i < 32; i++ )
-        if ( Multi * (Aig_ManRandom(0) & 0xffff) < PiTransProb )
+        if ( Multi * (Gia_ManRandom(0) & 0xffff) < PiTransProb )
             uInfo ^= (1 << i);
     return uInfo;
 }
@@ -703,7 +703,7 @@ void Gli_ManSetPiRandomSeq( Gli_Man_t * p, float PiTransProb )
     // set changed PIs
     Vec_IntClear( p->vCisChanged );
     Gli_ManForEachPi( p, pObj, i )
-        if ( Multi * (Aig_ManRandom(0) & 0xffff) < PiTransProb )
+        if ( Multi * (Gia_ManRandom(0) & 0xffff) < PiTransProb )
         {
             Vec_IntPush( p->vCisChanged, pObj->Handle );
             pObj->fPhase  ^= 1;
@@ -738,7 +738,7 @@ void Gli_ManSetPiRandomSeq( Gli_Man_t * p, float PiTransProb )
 void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb, int fVerbose )
 {
     int i, k, clk = clock();
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     Gli_ManFinalize( p );
     if ( p->nRegs == 0 )
     {
@@ -752,7 +752,7 @@ void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb
     }
     else 
     {
-        int nIters = Aig_BitWordNum(nPatterns);
+        int nIters = Gia_BitWordNum(nPatterns);
         Gli_ManSimulateSeqPref( p, 16 );
         for ( i = 0; i < 32; i++ )
         {

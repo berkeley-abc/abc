@@ -194,7 +194,7 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
         Vec_PtrPush( vCosNew, pLatchIn );
         Vec_PtrPush( vBoxesNew, pLatch );
     }
-    // ABC_FREE useless Cis/Cos
+    // free useless Cis/Cos
     Vec_PtrForEachEntry( vCisOld, pObj, i )
         if ( !Abc_ObjIsPi(pObj) && Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
             Abc_NtkDeleteObj(pObj);

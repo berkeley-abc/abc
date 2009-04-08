@@ -39,7 +39,7 @@ struct Aig_ManPre_t_
     // info about the current partition
     Vec_Int_t *     vRegs;           // registers of this partition
     Vec_Int_t *     vUniques;        // unique registers of this partition
-    Vec_Int_t *     vFreeVars;       // ABC_FREE variables of this partition
+    Vec_Int_t *     vFreeVars;       // free variables of this partition
     Vec_Flt_t *     vPartCost;       // costs of adding each variable
     char *          pfPartVars;      // input/output registers of the partition
 };
@@ -153,7 +153,7 @@ int Aig_ManRegFindSeed( Aig_ManPre_t * p )
 int Aig_ManRegFindBestVar( Aig_ManPre_t * p )
 {
     Vec_Int_t * vSupp;
-    int nNewVars, nNewVarsBest = AIG_INFINITY;
+    int nNewVars, nNewVarsBest = ABC_INFINITY;
     int iVarFree, iVarSupp, iVarBest = -1, i, k;
     // go through the ABC_FREE variables
     Vec_IntForEachEntry( p->vFreeVars, iVarFree, i )

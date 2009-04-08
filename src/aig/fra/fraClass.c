@@ -652,7 +652,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
         if ( pRepr == NULL )
             continue;
         pWeights[i] = Fra_SmlNodeNotEquWeight( pComb, pRepr->Id, pObj->Id );
-        WeightMax = AIG_MAX( WeightMax, pWeights[i] );
+        WeightMax = ABC_MAX( WeightMax, pWeights[i] );
     }
     Fra_SmlStop( pComb );
     printf( "Before: Const = %6d. Class = %6d.  ", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
@@ -710,7 +710,7 @@ void Fra_ClassesSelectRepr( Fra_Cla_t * p )
         // collect support sizes and find the min-support node
         cMinSupp = -1;
         pNodeMin = NULL;
-        nSuppSizeMin = AIG_INFINITY;
+        nSuppSizeMin = ABC_INFINITY;
         for ( c = 0; pClass[c]; c++ )
         {
             nSuppSizeCur = Aig_SupportSize( p->pAig, pClass[c] );

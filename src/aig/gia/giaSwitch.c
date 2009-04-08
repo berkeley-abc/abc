@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "gia.h"
+#include "giaAig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -146,23 +146,23 @@ static inline void Gia_ManSwiSimInfoRandom( Gia_ManSwi_t * p, unsigned * pInfo, 
     int w, i;
     if ( nProbNum == -1 )
     { // 3/8 = 1/4 + 1/8
-        Mask = (Aig_ManRandom( 0 ) & Aig_ManRandom( 0 )) | 
-               (Aig_ManRandom( 0 ) & Aig_ManRandom( 0 ) & Aig_ManRandom( 0 ));
+        Mask = (Gia_ManRandom( 0 ) & Gia_ManRandom( 0 )) | 
+               (Gia_ManRandom( 0 ) & Gia_ManRandom( 0 ) & Gia_ManRandom( 0 ));
         for ( w = p->nWords-1; w >= 0; w-- )
             pInfo[w] ^= Mask;
     }
     else if ( nProbNum > 0 )
     {
-        Mask = Aig_ManRandom( 0 );
+        Mask = Gia_ManRandom( 0 );
         for ( i = 0; i < nProbNum; i++ )
-            Mask &= Aig_ManRandom( 0 );
+            Mask &= Gia_ManRandom( 0 );
         for ( w = p->nWords-1; w >= 0; w-- )
             pInfo[w] ^= Mask;
     }
     else if ( nProbNum == 0 )
     {
         for ( w = p->nWords-1; w >= 0; w-- )
-            pInfo[w] = Aig_ManRandom( 0 );
+            pInfo[w] = Gia_ManRandom( 0 );
     }
     else
         assert( 0 );
@@ -185,14 +185,14 @@ static inline void Gia_ManSwiSimInfoRandomShift( Gia_ManSwi_t * p, unsigned * pI
     int w, i;
     if ( nProbNum == -1 )
     { // 3/8 = 1/4 + 1/8
-        Mask = (Aig_ManRandom( 0 ) & Aig_ManRandom( 0 )) | 
-               (Aig_ManRandom( 0 ) & Aig_ManRandom( 0 ) & Aig_ManRandom( 0 ));
+        Mask = (Gia_ManRandom( 0 ) & Gia_ManRandom( 0 )) | 
+               (Gia_ManRandom( 0 ) & Gia_ManRandom( 0 ) & Gia_ManRandom( 0 ));
     }
     else if ( nProbNum >= 0 )
     {
-        Mask = Aig_ManRandom( 0 );
+        Mask = Gia_ManRandom( 0 );
         for ( i = 0; i < nProbNum; i++ )
-            Mask &= Aig_ManRandom( 0 );
+            Mask &= Gia_ManRandom( 0 );
     }
     else
         assert( 0 );
@@ -430,7 +430,7 @@ static inline int Gia_ManSwiSimInfoCountOnes( Gia_ManSwi_t * p, int iPlace )
     int w, Counter = 0;
     pInfo = Gia_SwiData( p, iPlace );
     for ( w = p->nWords-1; w >= 0; w-- )
-        Counter += Aig_WordCountOnes( pInfo[w] );
+        Counter += Gia_WordCountOnes( pInfo[w] );
     return Counter;
 }
 
@@ -451,7 +451,7 @@ static inline int Gia_ManSwiSimInfoCountTrans( Gia_ManSwi_t * p, int iPlace )
     int w, Counter = 0;
     pInfo = Gia_SwiData( p, iPlace );
     for ( w = p->nWords-1; w >= 0; w-- )
-        Counter += 2*Aig_WordCountOnes( (pInfo[w] ^ (pInfo[w] >> 16)) & 0xffff );
+        Counter += 2*Gia_WordCountOnes( (pInfo[w] ^ (pInfo[w] >> 16)) & 0xffff );
     return Counter;
 }
 
@@ -565,7 +565,7 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     {
         printf( "Obj = %8d (%8d). F = %6d. ", 
             pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront, 
-            4.0*Aig_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
+            4.0*Gia_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
         printf( "AIG = %7.2f Mb. F-mem = %7.2f Mb. Other = %7.2f Mb.  ", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
             4.0*p->nWords*p->pAig->nFront/(1<<20), 
@@ -573,7 +573,7 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
         ABC_PRT( "Time", clock() - clk );
     }
     // perform simulation
-    Aig_ManRandom( 1 );
+    Gia_ManRandom( 1 );
     Gia_ManSwiSimInfoInit( p );
     for ( i = 0; i < pPars->nIters; i++ )
     {
@@ -612,7 +612,6 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     return vSwitching;
 
 }
-
 /**Function*************************************************************
 
   Synopsis    [Computes probability of switching (or of being 1).]

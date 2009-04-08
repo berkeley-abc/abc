@@ -112,9 +112,6 @@ struct Hop_Man_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#define AIG_MIN(a,b)       (((a) < (b))? (a) : (b))
-#define AIG_MAX(a,b)       (((a) > (b))? (a) : (b))
-
 static inline int          Hop_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);           }
 static inline int          Hop_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));     }
 static inline int          Hop_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;       }
@@ -186,7 +183,7 @@ static inline Hop_Obj_t *  Hop_ObjChild1( Hop_Obj_t * pObj )      { return pObj-
 static inline Hop_Obj_t *  Hop_ObjChild0Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin0(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin0(pObj)->pData, Hop_ObjFaninC0(pObj)) : NULL;  }
 static inline Hop_Obj_t *  Hop_ObjChild1Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin1(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin1(pObj)->pData, Hop_ObjFaninC1(pObj)) : NULL;  }
 static inline int          Hop_ObjLevel( Hop_Obj_t * pObj )       { return pObj->nRefs;                            }
-static inline int          Hop_ObjLevelNew( Hop_Obj_t * pObj )    { return 1 + Hop_ObjIsExor(pObj) + AIG_MAX(Hop_ObjFanin0(pObj)->nRefs, Hop_ObjFanin1(pObj)->nRefs);       }
+static inline int          Hop_ObjLevelNew( Hop_Obj_t * pObj )    { return 1 + Hop_ObjIsExor(pObj) + ABC_MAX(Hop_ObjFanin0(pObj)->nRefs, Hop_ObjFanin1(pObj)->nRefs);       }
 static inline int          Hop_ObjPhaseCompl( Hop_Obj_t * pObj )  { return Hop_IsComplement(pObj)? !Hop_Regular(pObj)->fPhase : pObj->fPhase; }
 static inline void         Hop_ObjClean( Hop_Obj_t * pObj )       { memset( pObj, 0, sizeof(Hop_Obj_t) ); }
 static inline int          Hop_ObjWhatFanin( Hop_Obj_t * pObj, Hop_Obj_t * pFanin )    

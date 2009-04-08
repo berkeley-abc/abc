@@ -127,7 +127,7 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
         int    nPis;   // the number of primary inputs
         int    nPos;   // the number of primary outputs
     } ParsNew, ParsBest = { 0 };
-    // ABC_FREE storage for the name
+    // free storage for the name
     if ( pNtk == NULL )
     {
         ABC_FREE( ParsBest.pName );

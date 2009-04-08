@@ -785,7 +785,7 @@ static inline void Vec_PtrDoubleSimInfo( Vec_Ptr_t * vInfo )
     vInfo->pArray = vInfoNew->pArray;
     vInfo->nSize *= 2;
     vInfo->nCap *= 2;
-    // ABC_FREE the old array
+    // free the old array
     vInfoNew->pArray = NULL;
     ABC_FREE( vInfoNew );
 }
@@ -815,7 +815,7 @@ static inline void Vec_PtrReallocSimInfo( Vec_Ptr_t * vInfo )
     // replace the array
     ABC_FREE( vInfo->pArray );
     vInfo->pArray = vInfoNew->pArray;
-    // ABC_FREE the old array
+    // free the old array
     vInfoNew->pArray = NULL;
     ABC_FREE( vInfoNew );
 }

@@ -81,15 +81,15 @@ Gia_ManTer_t * Gia_ManTerCreate( Gia_Man_t * pAig )
     p = ABC_CALLOC( Gia_ManTer_t, 1 );
     p->pAig   = Gia_ManFront( pAig );
     p->nIters = 300;
-    p->pDataSim    = ABC_ALLOC( unsigned, Aig_BitWordNum(2*p->pAig->nFront) );
-    p->pDataSimCis = ABC_ALLOC( unsigned, Aig_BitWordNum(2*Gia_ManCiNum(p->pAig)) );
-    p->pDataSimCos = ABC_ALLOC( unsigned, Aig_BitWordNum(2*Gia_ManCoNum(p->pAig)) );
+    p->pDataSim    = ABC_ALLOC( unsigned, Gia_BitWordNum(2*p->pAig->nFront) );
+    p->pDataSimCis = ABC_ALLOC( unsigned, Gia_BitWordNum(2*Gia_ManCiNum(p->pAig)) );
+    p->pDataSimCos = ABC_ALLOC( unsigned, Gia_BitWordNum(2*Gia_ManCoNum(p->pAig)) );
     // allocate storage for terminary states
-    p->nStateWords = Aig_BitWordNum( 2*Gia_ManRegNum(pAig) );
+    p->nStateWords = Gia_BitWordNum( 2*Gia_ManRegNum(pAig) );
     p->vStates  = Vec_PtrAlloc( 1000 );
     p->pCount0  = ABC_CALLOC( int, Gia_ManRegNum(pAig) );
     p->pCountX  = ABC_CALLOC( int, Gia_ManRegNum(pAig) );
-    p->nBins    = Aig_PrimeCudd( 500 );
+    p->nBins    = Gia_PrimeCudd( 500 );
     p->pBins    = ABC_CALLOC( unsigned *, p->nBins );
     p->vRetired = Vec_IntAlloc( 100 );
     p->pRetired = ABC_CALLOC( char, Gia_ManRegNum(pAig) );
@@ -508,7 +508,7 @@ void Gia_ManTerAnalyze2( Vec_Ptr_t * vStates, int nRegs )
     unsigned * pTemp, * pStates = Vec_PtrPop( vStates );
     int i, w, nZeros, nConsts, nStateWords;
     // detect constant zero registers
-    nStateWords = Aig_BitWordNum( 2*nRegs );
+    nStateWords = Gia_BitWordNum( 2*nRegs );
     memset( pStates, 0, sizeof(int) * nStateWords );
     Vec_PtrForEachEntry( vStates, pTemp, i )
         for ( w = 0; w < nStateWords; w++ )
@@ -576,7 +576,7 @@ Vec_Ptr_t * Gia_ManTerTranspose( Gia_ManTer_t * p )
     unsigned * pState, * pFlop;
     int i, k, nFlopWords;
     vFlops = Vec_PtrAlloc( 100 );
-    nFlopWords = Aig_BitWordNum( 2*Vec_PtrSize(p->vStates) );
+    nFlopWords = Gia_BitWordNum( 2*Vec_PtrSize(p->vStates) );
     for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
     {
         if ( p->pCount0[i] == Vec_PtrSize(p->vStates) ) 
@@ -631,7 +631,7 @@ int * Gia_ManTerCreateMap( Gia_ManTer_t * p, int fVerbose )
     Gia_Obj_t * pObj;
     Vec_Int_t * vMapKtoI;
     int i, iRepr, nFlopWords, Counter0 = 0, CounterE = 0;
-    nFlopWords = Aig_BitWordNum( 2*Vec_PtrSize(p->vStates) );
+    nFlopWords = Gia_BitWordNum( 2*Vec_PtrSize(p->vStates) );
     p->vFlops = Gia_ManTerTranspose( p );
     pCi2Lit = ABC_FALLOC( unsigned, Gia_ManCiNum(p->pAig) );
     vMapKtoI = Vec_IntAlloc( 100 );
@@ -679,11 +679,11 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     {
         printf( "Obj = %8d (%8d). F = %6d. ", 
             pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront, 
-            4.0*Aig_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
+            4.0*Gia_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
         printf( "AIG = %7.2f Mb. F-mem = %7.2f Mb. Other = %7.2f Mb.  ", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
-            4.0*Aig_BitWordNum(2 * p->pAig->nFront)/(1<<20), 
-            4.0*Aig_BitWordNum(2 * (Gia_ManCiNum(pAig) + Gia_ManCoNum(pAig)))/(1<<20) );
+            4.0*Gia_BitWordNum(2 * p->pAig->nFront)/(1<<20), 
+            4.0*Gia_BitWordNum(2 * (Gia_ManCiNum(pAig) + Gia_ManCoNum(pAig)))/(1<<20) );
         ABC_PRT( "Time", clock() - clk );
     }
     // perform simulation

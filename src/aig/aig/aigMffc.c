@@ -266,13 +266,13 @@ int Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     // dereference the current cut
     LevelMax = 0;
     Vec_PtrForEachEntry( vLeaves, pObj, i )
-        LevelMax = AIG_MAX( LevelMax, (int)pObj->Level );
+        LevelMax = ABC_MAX( LevelMax, (int)pObj->Level );
     if ( LevelMax == 0 )
         return 0;
     // dereference the cut
     ConeSize1 = Aig_NodeDeref_rec( pNode, 0, NULL, NULL );
     // try expanding each node in the boundary
-    ConeBest = AIG_INFINITY;
+    ConeBest = ABC_INFINITY;
     pLeafBest = NULL;
     Vec_PtrForEachEntry( vLeaves, pObj, i )
     {
