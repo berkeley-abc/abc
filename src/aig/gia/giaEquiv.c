@@ -94,7 +94,8 @@ int * Gia_ManDeriveNexts( Gia_Man_t * p )
 {
     unsigned * pNexts, * pTails;
     int i;
-    assert( p->pReprs );
+    assert( p->pReprs != NULL );
+    assert( p->pNexts == NULL );
     pNexts = ABC_CALLOC( unsigned, Gia_ManObjNum(p) );
     pTails = ABC_ALLOC( unsigned, Gia_ManObjNum(p) );
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
@@ -108,6 +109,37 @@ int * Gia_ManDeriveNexts( Gia_Man_t * p )
     }
     ABC_FREE( pTails );
     return (int *)pNexts;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Given points to the next objects, derives representatives.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDeriveReprs( Gia_Man_t * p )
+{
+    int i, iObj;
+    assert( p->pReprs == NULL );
+    assert( p->pNexts != NULL );
+    p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        Gia_ObjSetRepr( p, i, GIA_VOID );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+    {
+        if ( p->pNexts[i] == 0 )
+            continue;
+        if ( p->pReprs[i].iRepr != GIA_VOID )
+            continue;
+        // next is set, repr is not set
+        for ( iObj = p->pNexts[i]; iObj; iObj = p->pNexts[iObj] )
+            p->pReprs[iObj].iRepr = i;
+    }
 }
 
 /**Function*************************************************************
@@ -173,6 +205,25 @@ int Gia_ManEquivCountLitsAll( Gia_Man_t * p )
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
         nLits += (Gia_ObjRepr(p, i) != GIA_VOID);
     return nLits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManEquivCountClasses( Gia_Man_t * p )
+{
+    int i, Counter = 0;
+    for ( i = 1; i < Gia_ManObjNum(p); i++ )
+        Counter += Gia_ObjIsHead(p, i);
+    return Counter;
 }
 
 /**Function*************************************************************
@@ -964,6 +1015,246 @@ void Gia_ManEquivImprove( Gia_Man_t * p )
     Vec_IntFree( vClass );
     ABC_FREE( p->pNexts );
 //    p->pNexts = Gia_ManDeriveNexts( p );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pOld is in the TFI of pNode.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ObjCheckTfi_rec( Gia_Man_t * p, Gia_Obj_t * pOld, Gia_Obj_t * pNode, Vec_Ptr_t * vVisited )
+{
+    // check the trivial cases
+    if ( pNode == NULL )
+        return 0;
+    if ( Gia_ObjIsCi(pNode) )
+        return 0;
+//    if ( pNode->Id < pOld->Id ) // cannot use because of choices of pNode
+//        return 0;
+    if ( pNode == pOld )
+        return 1;
+    // skip the visited node
+    if ( pNode->fMark0 )
+        return 0;
+    pNode->fMark0 = 1;
+    Vec_PtrPush( vVisited, pNode );
+    // check the children
+    if ( Gia_ObjCheckTfi_rec( p, pOld, Gia_ObjFanin0(pNode), vVisited ) )
+        return 1;
+    if ( Gia_ObjCheckTfi_rec( p, pOld, Gia_ObjFanin1(pNode), vVisited ) )
+        return 1;
+    // check equivalent nodes
+    return Gia_ObjCheckTfi_rec( p, pOld, Gia_ObjNextObj(p, Gia_ObjId(p, pNode)), vVisited );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pOld is in the TFI of pNode.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ObjCheckTfi( Gia_Man_t * p, Gia_Obj_t * pOld, Gia_Obj_t * pNode )
+{
+    Vec_Ptr_t * vVisited;
+    Gia_Obj_t * pObj;
+    int RetValue, i;
+    assert( !Gia_IsComplement(pOld) );
+    assert( !Gia_IsComplement(pNode) );
+    vVisited = Vec_PtrAlloc( 100 );
+    RetValue = Gia_ObjCheckTfi_rec( p, pOld, pNode, vVisited );
+    Vec_PtrForEachEntry( vVisited, pObj, i )
+        pObj->fMark0 = 0;
+    Vec_PtrFree( vVisited );
+    return RetValue;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the next entry while making choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManAddNextEntry_rec( Gia_Man_t * p, Gia_Obj_t * pOld, Gia_Obj_t * pNode )
+{
+    if ( Gia_ObjNext(p, Gia_ObjId(p, pOld)) == 0 )
+    {
+        Gia_ObjSetNext( p, Gia_ObjId(p, pOld), Gia_ObjId(p, pNode) );
+        return;
+    }
+    Gia_ManAddNextEntry_rec( p, Gia_ObjNextObj(p, Gia_ObjId(p, pOld)), pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Gia_Obj_t * pRepr, * pReprNew, * pObjNew;
+    if ( ~pObj->Value )
+        return;
+    if ( (pRepr = Gia_ObjReprObj(p, Gia_ObjId(p, pObj))) )
+    {
+        if ( Gia_ObjIsConst0(pRepr) )
+        {
+            pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+            return;
+        }
+        Gia_ManEquivToChoices_rec( pNew, p, pRepr );
+        assert( Gia_ObjIsAnd(pObj) );
+        Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
+        Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin1(pObj) );
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( Gia_LitRegular(pObj->Value) == Gia_LitRegular(pRepr->Value) )
+        {
+            assert( (int)pObj->Value == Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) ) );
+            return;
+        }
+        assert( pRepr->Value < pObj->Value );
+        pReprNew = Gia_ManObj( pNew, Gia_Lit2Var(pRepr->Value) );
+        pObjNew  = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );
+        if ( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) )
+        {
+            assert( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) == pReprNew );
+            pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+            return;
+        }
+        if ( !Gia_ObjCheckTfi( pNew, pReprNew, pObjNew ) )
+        {
+            assert( Gia_ObjNext(pNew, Gia_ObjId(pNew, pObjNew)) == 0 );
+            Gia_ObjSetRepr( pNew, Gia_ObjId(pNew, pObjNew), Gia_ObjId(pNew, pReprNew) );
+            Gia_ManAddNextEntry_rec( pNew, pReprNew, pObjNew ); 
+        }
+        pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes choices, which contain fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManRemoveBadChoices( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, iObj, iPrev, Counter = 0;
+    // mark nodes with fanout
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        pObj->fMark0 = 0;
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+            Gia_ObjFanin1(pObj)->fMark0 = 1;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+    }
+    // go through the classes and remove 
+    Gia_ManForEachClass( p, i )
+    {
+        for ( iPrev = i, iObj = Gia_ObjNext(p, i); iObj; iObj = Gia_ObjNext(p, iPrev) )
+        {
+            if ( !Gia_ManObj(p, iObj)->fMark0 )
+            {
+                iPrev = iObj; 
+                continue;
+            }
+            Gia_ObjSetRepr( p, iObj, GIA_VOID );
+            Gia_ObjSetNext( p, iPrev, Gia_ObjNext(p, iObj) );
+            Gia_ObjSetNext( p, iObj, 0 );
+            Counter++;
+        } 
+    }
+    // remove the marks
+    Gia_ManCleanMark0( p );
+//    printf( "Removed %d bad choices.\n", Counter );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces AIG using equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pRepr;
+    int i;
+    assert( (Gia_ManCoNum(p) % nSnapshots) == 0 );
+    Gia_ManSetPhase( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+    pNew->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        Gia_ObjSetRepr( pNew, i, GIA_VOID );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachRo( p, pObj, i )
+        if ( (pRepr = Gia_ObjReprObj(p, Gia_ObjId(p, pObj))) )
+        {
+            assert( Gia_ObjIsConst0(pRepr) || Gia_ObjIsRo(p, pRepr) );
+            pObj->Value = pRepr->Value;
+        }
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( i % nSnapshots == 0 )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManRemoveBadChoices( pNew );
+//    Gia_ManEquivPrintClasses( pNew, 0, 0 );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+//    Gia_ManEquivPrintClasses( pNew, 0, 0 );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

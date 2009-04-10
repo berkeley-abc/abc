@@ -435,6 +435,7 @@ ABC_PRT( "Choicing time ", clock() - clk );
 Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     extern Aig_Man_t * Dch_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
+    extern Aig_Man_t * Cec_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
 
     int fVerbose = pPars->fVerbose;
     int fConstruct = 0;
@@ -444,7 +445,8 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 
 clk = clock();
 //    vAigs = Dar_ManChoiceSynthesisExt();
-    vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, fVerbose );
+//    vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, fVerbose );
+    vAigs = Dar_ManChoiceSynthesis( pAig, 1, 1, pPars->fPower, 0 );
 
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis
@@ -458,9 +460,9 @@ clk = clock();
 
 if ( fVerbose )
 {
-ABC_PRT( "Synthesis time", clock() - clk );
+//ABC_PRT( "Synthesis time", clock() - clk );
 }
-//    pPars->timeSynth = clock() - clk;
+    pPars->timeSynth = clock() - clk;
 
 clk = clock();
 /*
@@ -469,7 +471,11 @@ clk = clock();
     else
         pMan = Aig_ManChoicePartitioned( vAigs, 300, nConfMax, nLevelMax, fVerbose );
 */
-    pMan = Dch_ComputeChoices( vAigs, pPars );
+    // perform choice computation
+    if ( pPars->fUseGia )
+        pMan = Cec_ComputeChoices( vAigs, pPars );
+    else
+        pMan = Dch_ComputeChoices( vAigs, pPars );
 
     // reconstruct the network
     pMan = Aig_ManDupDfsGuided( pTemp = pMan, Vec_PtrEntry(vAigs,0) );
@@ -483,6 +489,8 @@ clk = clock();
     }
     // reset levels
     Aig_ManChoiceLevel( pMan );
+    ABC_FREE( pMan->pName );
+    ABC_FREE( pMan->pSpec );
     pMan->pName = Aig_UtilStrsav( pTemp->pName );
     pMan->pSpec = Aig_UtilStrsav( pTemp->pSpec );
 

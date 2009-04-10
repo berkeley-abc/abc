@@ -586,7 +586,7 @@ Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;//, * pTemp;
     int i;//, k;
     int nNodesTotal = 0, nMffcsTotal = 0;
-    extern Vec_Ptr_t * Abc_NodeMffsInsideCollect( Abc_Obj_t * pNode );
+    extern Vec_Ptr_t * Abc_NodeMffcInsideCollect( Abc_Obj_t * pNode );
 
     vAttrs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) + 1 );
 //    Abc_NtkForEachCi( pNtk, pObj, i )
@@ -615,7 +615,7 @@ Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk )
     {
         if ( Vec_IntEntry( vAttrs, pObj->Id ) )
         {
-            vNodes = Abc_NodeMffsInsideCollect( pObj );
+            vNodes = Abc_NodeMffcInsideCollect( pObj );
             Vec_PtrForEachEntry( vNodes, pTemp, k )
                 if ( pTemp != pObj )
                     Vec_IntWriteEntry( vAttrs, pTemp->Id, 0 );

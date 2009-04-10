@@ -260,7 +260,7 @@ int Abc_NodeRef_rec( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeMffsConeSupp_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp, int fTopmost )
+void Abc_NodeMffcConeSupp_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp, int fTopmost )
 {
     Abc_Obj_t * pFanin;
     int i;
@@ -276,7 +276,7 @@ void Abc_NodeMffsConeSupp_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t *
     }
     // recur on the children
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        Abc_NodeMffsConeSupp_rec( pFanin, vCone, vSupp, 0 );
+        Abc_NodeMffcConeSupp_rec( pFanin, vCone, vSupp, 0 );
     // collect the internal node
     if ( vCone ) Vec_PtrPush( vCone, pNode );
 //    printf( "%d ", pNode->Id );
@@ -293,14 +293,14 @@ void Abc_NodeMffsConeSupp_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t *
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp )
+void Abc_NodeMffcConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp )
 {
     assert( Abc_ObjIsNode(pNode) );
     assert( !Abc_ObjIsComplement(pNode) );
     if ( vCone ) Vec_PtrClear( vCone );
     if ( vSupp ) Vec_PtrClear( vSupp );
     Abc_NtkIncrementTravId( pNode->pNtk );
-    Abc_NodeMffsConeSupp_rec( pNode, vCone, vSupp, 1 );
+    Abc_NodeMffcConeSupp_rec( pNode, vCone, vSupp, 1 );
 //    printf( "\n" );
 }
 
@@ -315,7 +315,7 @@ void Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSu
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode )
+void Abc_NodeMffcConeSuppPrint( Abc_Obj_t * pNode )
 {
     Vec_Ptr_t * vCone, * vSupp;
     Abc_Obj_t * pObj;
@@ -323,7 +323,7 @@ void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode )
     vCone = Vec_PtrAlloc( 100 );
     vSupp = Vec_PtrAlloc( 100 );
     Abc_NodeDeref_rec( pNode );
-    Abc_NodeMffsConeSupp( pNode, vCone, vSupp );
+    Abc_NodeMffcConeSupp( pNode, vCone, vSupp );
     Abc_NodeRef_rec( pNode );
     printf( "Node = %6s : Supp = %3d  Cone = %3d  (", 
         Abc_ObjName(pNode), Vec_PtrSize(vSupp), Vec_PtrSize(vCone) );
@@ -345,7 +345,7 @@ void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeMffsInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vInside )
+int Abc_NodeMffcInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vInside )
 {
     Abc_Obj_t * pObj;
     int i, Count1, Count2;
@@ -355,7 +355,7 @@ int Abc_NodeMffsInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vIns
     // dereference the node
     Count1 = Abc_NodeDeref_rec( pNode );
     // collect the nodes inside the MFFC
-    Abc_NodeMffsConeSupp( pNode, vInside, NULL );
+    Abc_NodeMffcConeSupp( pNode, vInside, NULL );
     // reference it back
     Count2 = Abc_NodeRef_rec( pNode );
     assert( Count1 == Count2 );
@@ -376,7 +376,7 @@ int Abc_NodeMffsInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vIns
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NodeMffsInsideCollect( Abc_Obj_t * pNode )
+Vec_Ptr_t * Abc_NodeMffcInsideCollect( Abc_Obj_t * pNode )
 {
     Vec_Ptr_t * vInside;
     int Count1, Count2;
@@ -384,7 +384,7 @@ Vec_Ptr_t * Abc_NodeMffsInsideCollect( Abc_Obj_t * pNode )
     Count1 = Abc_NodeDeref_rec( pNode );
     // collect the nodes inside the MFFC
     vInside = Vec_PtrAlloc( 10 );
-    Abc_NodeMffsConeSupp( pNode, vInside, NULL );
+    Abc_NodeMffcConeSupp( pNode, vInside, NULL );
     // reference it back
     Count2 = Abc_NodeRef_rec( pNode );
     assert( Count1 == Count2 );

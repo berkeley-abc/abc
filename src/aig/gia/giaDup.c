@@ -387,6 +387,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     {
         if ( pObj->fMark0 )
             continue;
+        pObj->fMark0 = 0;
         if ( Gia_ObjIsAnd(pObj) )
             pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         else if ( Gia_ObjIsCi(pObj) )
@@ -396,14 +397,32 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
         }
         else if ( Gia_ObjIsCo(pObj) )
         {
-            Gia_Obj_t * pFanin = Gia_ObjFanin0(pObj);
-
+//            Gia_Obj_t * pFanin = Gia_ObjFanin0(pObj);
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
             nRis += Gia_ObjIsRi(p, pObj);
         }
     }
     assert( nRos == nRis );
     Gia_ManSetRegNum( pNew, nRos );
+    if ( p->pReprs && p->pNexts )
+    {
+        Gia_Obj_t * pRepr;
+        pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+            Gia_ObjSetRepr( pNew, i, GIA_VOID );
+        Gia_ManForEachObj1( p, pObj, i )
+        {
+            if ( !~pObj->Value )
+                continue;
+            pRepr = Gia_ObjReprObj( p, i );
+            if ( pRepr == NULL )
+                continue;
+            assert( ~pRepr->Value );
+            if ( Gia_Lit2Var(pObj->Value) != Gia_Lit2Var(pRepr->Value) )
+                Gia_ObjSetRepr( pNew, Gia_Lit2Var(pObj->Value), Gia_Lit2Var(pRepr->Value) ); 
+        }
+        pNew->pNexts = Gia_ManDeriveNexts( pNew );
+    }
     return pNew;
 }
 

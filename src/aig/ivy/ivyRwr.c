@@ -96,9 +96,9 @@ int Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fV
             }
             if ( nGain > 0 )
             { // print stats on the MFFC
-                extern void Ivy_NodeMffsConeSuppPrint( Ivy_Obj_t * pNode );
+                extern void Ivy_NodeMffcConeSuppPrint( Ivy_Obj_t * pNode );
                 printf( "Node %6d : Gain = %4d  ", pNode->Id, nGain );
-                Ivy_NodeMffsConeSuppPrint( pNode );
+                Ivy_NodeMffcConeSuppPrint( pNode );
             }
 */
             // complement the FF if needed

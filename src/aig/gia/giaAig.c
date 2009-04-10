@@ -45,19 +45,24 @@ static inline Aig_Obj_t * Gia_ObjChild1Copy2( Aig_Obj_t ** ppNodes, Gia_Obj_t * 
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFromAig_rec( Gia_Man_t * pNew, Aig_Obj_t * pObj )
+void Gia_ManFromAig_rec( Gia_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    if ( pObj->pData )
+    Aig_Obj_t * pNext;
+    if ( pObj->iData )
         return;
-    if ( Aig_ObjIsPi(pObj) )
-    {
-        pObj->iData = Gia_ManAppendCi( pNew );
-        return;
-    }
     assert( Aig_ObjIsNode(pObj) );
-    Gia_ManFromAig_rec( pNew, Aig_ObjFanin0(pObj) );
-    Gia_ManFromAig_rec( pNew, Aig_ObjFanin1(pObj) );
+    Gia_ManFromAig_rec( pNew, p, Aig_ObjFanin0(pObj) );
+    Gia_ManFromAig_rec( pNew, p, Aig_ObjFanin1(pObj) );
     pObj->iData = Gia_ManAppendAnd( pNew, Gia_ObjChild0Copy(pObj), Gia_ObjChild1Copy(pObj) );
+    if ( p->pEquivs && (pNext = Aig_ObjEquiv(p, pObj)) )
+    {
+        int iObjNew, iNextNew;
+        Gia_ManFromAig_rec( pNew, p, pNext );
+        iObjNew  = Gia_Lit2Var(pObj->iData);
+        iNextNew = Gia_Lit2Var(pNext->iData);
+        if ( pNew->pNexts )
+            pNew->pNexts[iObjNew] = iNextNew;        
+    }
 }
 
 /**Function*************************************************************
@@ -76,26 +81,25 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
     Gia_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;
-    // add fake POs to all the dangling nodes (choices)
-    Aig_ManForEachNode( p, pObj, i )
-        assert( Aig_ObjRefs(pObj) > 0 );
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    // create room to store equivalences
+    if ( p->pEquivs )
+        pNew->pNexts = ABC_CALLOC( int, Aig_ManObjNum(p) );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->iData = 1;
     Aig_ManForEachPi( p, pObj, i )
-    {
-//        if ( Aig_ObjRefs(pObj) == 0 )
-            pObj->iData = Gia_ManAppendCi( pNew );
-    }
+        pObj->iData = Gia_ManAppendCi( pNew );
     // add logic for the POs
     Aig_ManForEachPo( p, pObj, i )
-        Gia_ManFromAig_rec( pNew, Aig_ObjFanin0(pObj) );        
+        Gia_ManFromAig_rec( pNew, p, Aig_ObjFanin0(pObj) );        
     Aig_ManForEachPo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    if ( pNew->pNexts )
+        Gia_ManDeriveReprs( pNew );
     return pNew;
 }
 
@@ -117,7 +121,7 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
     int i;
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Gia_UtilStrsav( p->pName );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->iData = 1;
@@ -127,12 +131,12 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
     Aig_ManForEachNode( p, pObj, i )
         if ( Aig_ObjRefs(pObj) == 0 )
         {
-            Gia_ManFromAig_rec( pNew, pObj );        
+            Gia_ManFromAig_rec( pNew, p, pObj );        
             Gia_ManAppendCo( pNew, pObj->iData );
         }
     // add logic for the POs
     Aig_ManForEachPo( p, pObj, i )
-        Gia_ManFromAig_rec( pNew, Aig_ObjFanin0(pObj) );        
+        Gia_ManFromAig_rec( pNew, p, Aig_ObjFanin0(pObj) );        
     Aig_ManForEachPo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
@@ -152,17 +156,27 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
 ***********************************************************************/
 void Gia_ManToAig_rec( Aig_Man_t * pNew, Aig_Obj_t ** ppNodes, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
+    Gia_Obj_t * pNext;
     if ( ppNodes[Gia_ObjId(p, pObj)] )
         return;
     if ( Gia_ObjIsCi(pObj) )
-    {
         ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
-        return;
+    else
+    {
+        assert( Gia_ObjIsAnd(pObj) );
+        Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );
+        Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin1(pObj) );
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_And( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)), Gia_ObjChild1Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
     }
-    assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );
-    Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin1(pObj) );
-    ppNodes[Gia_ObjId(p, pObj)] = Aig_And( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)), Gia_ObjChild1Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
+    if ( pNew->pEquivs && (pNext = Gia_ObjNextObj(p, Gia_ObjId(p, pObj))) )
+    {
+        Aig_Obj_t * pObjNew, * pNextNew;
+        Gia_ManToAig_rec( pNew, ppNodes, p, pNext );
+        pObjNew  = ppNodes[Gia_ObjId(p, pObj)];
+        pNextNew = ppNodes[Gia_ObjId(p, pNext)];
+        if ( pNew->pEquivs )
+            pNew->pEquivs[Aig_Regular(pObjNew)->Id] = Aig_Regular(pNextNew);        
+    }
 }
 
 /**Function*************************************************************
@@ -176,37 +190,31 @@ void Gia_ManToAig_rec( Aig_Man_t * pNew, Aig_Obj_t ** ppNodes, Gia_Man_t * p, Gi
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Gia_ManToAig( Gia_Man_t * p )
+Aig_Man_t * Gia_ManToAig( Gia_Man_t * p, int fChoices )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t ** ppNodes;
     Gia_Obj_t * pObj;
     int i;
-
+    assert( !fChoices || (p->pNexts && p->pReprs) );
     // create the new manager
     pNew = Aig_ManStart( Gia_ManAndNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    ppNodes = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+//    pNew->pSpec = Gia_UtilStrsav( p->pName );
+    // duplicate representation of choice nodes
+    if ( fChoices )
+        pNew->pEquivs = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
     // create the PIs
+    ppNodes = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
     ppNodes[0] = Aig_ManConst0(pNew);
     Gia_ManForEachCi( p, pObj, i )
-    {
-//        if ( Aig_ObjRefs(pObj) == 0 )
-            ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
-    }
-
+        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePi( pNew );
     // add logic for the POs
     Gia_ManForEachCo( p, pObj, i )
     {
         Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );        
         ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
     }
-/*
-    Gia_ManForEachCo( p, pObj, i )
-        Gia_ManToAig_rec( pNew, ppNodes, p, Gia_ObjFanin0(pObj) );        
-    Gia_ManForEachCo( p, pObj, i )
-        ppNodes[Gia_ObjId(p, pObj)] = Aig_ObjCreatePo( pNew, Gia_ObjChild0Copy2(ppNodes, pObj, Gia_ObjId(p, pObj)) );
-*/
     Aig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     ABC_FREE( ppNodes );
     return pNew;
@@ -230,7 +238,7 @@ Aig_Man_t * Gia_ManCofactorAig( Aig_Man_t * p, int nFrames, int nCofFanLit )
     pGia = Gia_ManFromAig( p );
     pGia = Gia_ManUnrollAndCofactor( pTemp = pGia, nFrames, nCofFanLit, 1 );
     Gia_ManStop( pTemp );
-    pMan = Gia_ManToAig( pGia );
+    pMan = Gia_ManToAig( pGia, 0 );
     Gia_ManStop( pGia );
     return pMan;
 }

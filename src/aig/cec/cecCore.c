@@ -199,8 +199,8 @@ void Cec_ManChcSetDefaultParams( Cec_ParChc_t * p )
     p->nWords         =      15;  // the number of simulation words
     p->nRounds        =      15;  // the number of simulation rounds
     p->nBTLimit       =    1000;  // conflict limit at a node
-    p->fFirstStop     =       0;  // stop on the first sat output
-    p->fUseSmartCnf   =       0;  // use smart CNF computation
+    p->fUseRings      =       1;  // use rings
+    p->fUseCSat       =       0;  // use circuit-based solver
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
 }  

@@ -476,15 +476,9 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // duplicate representation of choice nodes
     if ( p->pEquivs )
-    {
-        pNew->pEquivs = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
-        memset( pNew->pEquivs, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p) );
-    }
+        pNew->pEquivs = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
     if ( p->pReprs )
-    {
-        pNew->pReprs = ABC_ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
-        memset( pNew->pReprs, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p) );
-    }
+        pNew->pReprs = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
     // create the PIs
     Aig_ManCleanData( p );
     // duplicate internal nodes

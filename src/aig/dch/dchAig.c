@@ -72,7 +72,7 @@ Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs )
     {
         assert( Aig_ManPiNum(pAig) == Aig_ManPiNum(pAig2) );
         assert( Aig_ManPoNum(pAig) == Aig_ManPoNum(pAig2) );
-        nNodes += Aig_ManNodeNum(pAig);
+        nNodes += Aig_ManNodeNum(pAig2);
         Aig_ManCleanData( pAig2 );
     }
     // map constant nodes

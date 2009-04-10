@@ -704,9 +704,9 @@ void Abc_NtkPrintMffc( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i;
-    extern void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode );
+    extern void Abc_NodeMffcConeSuppPrint( Abc_Obj_t * pNode );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Abc_NodeMffsConeSuppPrint( pNode );
+        Abc_NodeMffcConeSuppPrint( pNode );
 }
 
 /**Function*************************************************************

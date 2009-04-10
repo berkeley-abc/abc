@@ -144,7 +144,7 @@ int Aig_NodeRefLabel_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_NodeMffsSupp_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin, Vec_Ptr_t * vSupp, int fTopmost, Aig_Obj_t * pObjSkip )
+void Aig_NodeMffcSupp_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin, Vec_Ptr_t * vSupp, int fTopmost, Aig_Obj_t * pObjSkip )
 {
     // skip visited nodes
     if ( Aig_ObjIsTravIdCurrent(p, pNode) )
@@ -158,8 +158,8 @@ void Aig_NodeMffsSupp_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin, 
     }
     assert( Aig_ObjIsNode(pNode) );
     // recur on the children
-    Aig_NodeMffsSupp_rec( p, Aig_ObjFanin0(pNode), LevelMin, vSupp, 0, pObjSkip );
-    Aig_NodeMffsSupp_rec( p, Aig_ObjFanin1(pNode), LevelMin, vSupp, 0, pObjSkip );
+    Aig_NodeMffcSupp_rec( p, Aig_ObjFanin0(pNode), LevelMin, vSupp, 0, pObjSkip );
+    Aig_NodeMffcSupp_rec( p, Aig_ObjFanin1(pNode), LevelMin, vSupp, 0, pObjSkip );
 }
 
 /**Function*************************************************************
@@ -173,7 +173,7 @@ void Aig_NodeMffsSupp_rec( Aig_Man_t * p, Aig_Obj_t * pNode, unsigned LevelMin, 
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t * vSupp )
+int Aig_NodeMffcSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t * vSupp )
 {
     int ConeSize1, ConeSize2;
     if ( vSupp ) Vec_PtrClear( vSupp );
@@ -187,7 +187,7 @@ int Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t 
     assert( Aig_ObjIsNode(pNode) );
     Aig_ManIncrementTravId( p );
     ConeSize1 = Aig_NodeDeref_rec( pNode, LevelMin, NULL, NULL );
-    Aig_NodeMffsSupp_rec( p, pNode, LevelMin, vSupp, 1, NULL );
+    Aig_NodeMffcSupp_rec( p, pNode, LevelMin, vSupp, 1, NULL );
     ConeSize2 = Aig_NodeRef_rec( pNode, LevelMin );
     assert( ConeSize1 == ConeSize2 );
     assert( ConeSize1 > 0 );
@@ -205,7 +205,7 @@ int Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t 
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode, float * pPower )
+int Aig_NodeMffcLabel( Aig_Man_t * p, Aig_Obj_t * pNode, float * pPower )
 {
     int ConeSize1, ConeSize2;
     assert( (pPower != NULL) == (p->vProbs != NULL) );
@@ -230,7 +230,7 @@ int Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode, float * pPower )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_NodeMffsLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves )
+int Aig_NodeMffcLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves )
 {
     Aig_Obj_t * pObj;
     int i, ConeSize1, ConeSize2;
@@ -259,7 +259,7 @@ int Aig_NodeMffsLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves 
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vResult )
+int Aig_NodeMffcExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vResult )
 {
     Aig_Obj_t * pObj, * pLeafBest;
     int i, LevelMax, ConeSize1, ConeSize2, ConeCur1, ConeCur2, ConeBest;
@@ -294,7 +294,7 @@ int Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     // collect the cut nodes
     Vec_PtrClear( vResult );
     Aig_ManIncrementTravId( p );
-    Aig_NodeMffsSupp_rec( p, pNode, 0, vResult, 1, pLeafBest );
+    Aig_NodeMffcSupp_rec( p, pNode, 0, vResult, 1, pLeafBest );
     // ref the nodes
     ConeCur2 = Aig_NodeRef_rec( pLeafBest, 0 );
     assert( ConeCur1 == ConeCur2 );

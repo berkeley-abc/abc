@@ -730,7 +730,7 @@ int Dar_LibCutMarkMffc( Aig_Man_t * p, Aig_Obj_t * pRoot, int nLeaves, float * p
     for ( i = 0; i < nLeaves; i++ )
         Aig_Regular(s_DarLib->pDatas[i].pFunc)->nRefs++;
     // label MFFC with current ID
-    nNodes = Aig_NodeMffsLabel( p, pRoot, pPower );
+    nNodes = Aig_NodeMffcLabel( p, pRoot, pPower );
     // unmark the cut leaves
     for ( i = 0; i < nLeaves; i++ )
         Aig_Regular(s_DarLib->pDatas[i].pFunc)->nRefs--;

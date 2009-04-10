@@ -125,6 +125,7 @@ struct Cec_ParCor_t_
     int              nBTLimit;      // conflict limit at a node
     int              fLatchCorr;    // consider only latch outputs
     int              fUseRings;     // use rings
+    int              fMakeChoices;  // use equilvaences as choices
     int              fUseCSat;      // use circuit-based solver
     int              fFirstStop;    // stop on the first sat output
     int              fUseSmartCnf;  // use smart CNF computation
@@ -139,8 +140,8 @@ struct Cec_ParChc_t_
     int              nWords;        // the number of simulation words
     int              nRounds;       // the number of simulation rounds
     int              nBTLimit;      // conflict limit at a node
-    int              fFirstStop;    // stop on the first sat output
-    int              fUseSmartCnf;  // use smart CNF computation
+    int              fUseRings;     // use rings
+    int              fUseCSat;      // use circuit-based solver
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
 };

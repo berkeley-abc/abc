@@ -413,7 +413,7 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
     pName = Gia_FileNameGeneric( pFileName );
     pNew->pName = Gia_UtilStrsav( pName );
-//    pNew->pSpec = Aig_UtilStrsav( pFileName );
+//    pNew->pSpec = Gia_UtilStrsav( pFileName );
     ABC_FREE( pName );
 
     // prepare the array of nodes

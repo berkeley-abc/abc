@@ -1624,7 +1624,7 @@ void Abc_ManResubCleanup( Abc_ManRes_t * p )
 ***********************************************************************/
 Dec_Graph_t * Abc_ManResubEval( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves, int nSteps, bool fUpdateLevel, bool fVerbose )
 {
-    extern int Abc_NodeMffsInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vInside );
+    extern int Abc_NodeMffcInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vInside );
     Dec_Graph_t * pGraph;
     int Required;
     int clk;
@@ -1639,7 +1639,7 @@ Dec_Graph_t * Abc_ManResubEval( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t *
 
     // collect the MFFC
 clk = clock();
-    p->nMffc = Abc_NodeMffsInside( pRoot, vLeaves, p->vTemp );
+    p->nMffc = Abc_NodeMffcInside( pRoot, vLeaves, p->vTemp );
 p->timeMffc += clock() - clk;
     assert( p->nMffc > 0 );
 

@@ -896,6 +896,7 @@ Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, in
 Abc_Ntk_t * Abc_NtkDch( Abc_Ntk_t * pNtk, Dch_Pars_t * pPars )
 {
     extern Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fPower, int fVerbose );
+    extern Aig_Man_t * Cec_ComputeChoices( Vec_Ptr_t * vAigs, Dch_Pars_t * pPars );
 
     Vec_Ptr_t * vAigs;
     Aig_Man_t * pMan, * pTemp;
@@ -911,6 +912,10 @@ clk = clock();
 //        vAigs = Dar_ManChoiceSynthesis( pMan, 1, 1, pPars->fPower, pPars->fVerbose );
         vAigs = Dar_ManChoiceSynthesis( pMan, 1, 1, pPars->fPower, 0 );
         Aig_ManStop( pMan );
+        // swap around the first and the last
+        pTemp = Vec_PtrPop( vAigs );
+        Vec_PtrPush( vAigs, Vec_PtrEntry(vAigs,0) );
+        Vec_PtrWriteEntry( vAigs, 0, pTemp );
     }
     else
     {
@@ -918,7 +923,10 @@ clk = clock();
         Vec_PtrPush( vAigs, pMan );
     }
 pPars->timeSynth = clock() - clk;
-    pMan = Dch_ComputeChoices( vAigs, pPars );
+    if ( pPars->fUseGia )
+        pMan = Cec_ComputeChoices( vAigs, pPars );
+    else
+        pMan = Dch_ComputeChoices( vAigs, pPars );
     pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
 //    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
     Aig_ManStop( pMan );

@@ -70,7 +70,7 @@ int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose )
     extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
     extern int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs );
     Gia_Man_t * pTemp = Gia_ManTransformMiter( pMiter );
-    Aig_Man_t * pMiterCec = Gia_ManToAig( pTemp );
+    Aig_Man_t * pMiterCec = Gia_ManToAig( pTemp, 0 );
     int RetValue, iOut, nOuts, clkTotal = clock();
     Gia_ManStop( pTemp );
     // run CEC on this miter

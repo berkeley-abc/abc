@@ -514,10 +514,10 @@ extern void            Aig_ManStopMemory( Aig_Man_t * p );
 /*=== aigMffc.c ==========================================================*/
 extern int             Aig_NodeRef_rec( Aig_Obj_t * pNode, unsigned LevelMin );
 extern int             Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin, float * pPower, float * pProbs );
-extern int             Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t * vSupp );
-extern int             Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode, float * pPower );
-extern int             Aig_NodeMffsLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves );
-extern int             Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vResult );
+extern int             Aig_NodeMffcSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t * vSupp );
+extern int             Aig_NodeMffcLabel( Aig_Man_t * p, Aig_Obj_t * pNode, float * pPower );
+extern int             Aig_NodeMffcLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves );
+extern int             Aig_NodeMffcExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vResult );
 /*=== aigObj.c ==========================================================*/
 extern Aig_Obj_t *     Aig_ObjCreatePi( Aig_Man_t * p );
 extern Aig_Obj_t *     Aig_ObjCreatePo( Aig_Man_t * p, Aig_Obj_t * pDriver );

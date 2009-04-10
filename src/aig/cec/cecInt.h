@@ -166,7 +166,8 @@ struct Cec_ManFra_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== cecCore.c ============================================================*/
+/*=== cecCorr.c ============================================================*/
+extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int Time );
 /*=== cecClass.c ============================================================*/
 extern int                  Cec_ManSimClassRemoveOne( Cec_ManSim_t * p, int i );
 extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p );

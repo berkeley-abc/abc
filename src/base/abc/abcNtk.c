@@ -741,7 +741,7 @@ Abc_Ntk_t * Abc_NtkCreateMffc( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     vCone = Vec_PtrAlloc( 100 );
     vSupp = Vec_PtrAlloc( 100 );
     Abc_NodeDeref_rec( pNode );
-    Abc_NodeMffsConeSupp( pNode, vCone, vSupp );
+    Abc_NodeMffcConeSupp( pNode, vCone, vSupp );
     Abc_NodeRef_rec( pNode );
     // create the PIs
     Vec_PtrForEachEntry( vSupp, pObj, i )

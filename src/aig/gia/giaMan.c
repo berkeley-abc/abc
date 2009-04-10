@@ -158,7 +158,7 @@ void Gia_ManPrintPlacement( Gia_Man_t * p )
 void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
 {
     if ( p->pName )
-        printf( "%8s : ", p->pName );
+        printf( "%-8s : ", p->pName );
     printf( "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
     if ( Gia_ManRegNum(p) )
         printf( "  ff =%7d", Gia_ManRegNum(p) );
@@ -166,6 +166,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
     printf( "  lev =%5d", Gia_ManLevelNum(p) );
     printf( "  cut =%5d", Gia_ManCrossCut(p) );
     printf( "  mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
+    if ( Gia_ManHasDandling(p) )
+        printf( "  ch =%5d", Gia_ManEquivCountClasses(p) );
     if ( fSwitch )
     {
         if ( p->pSwitching )

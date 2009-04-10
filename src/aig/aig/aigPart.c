@@ -1520,7 +1520,7 @@ void Aig_ManChoiceEval( Aig_Man_t * p )
         printf( "Choice node = %5d. Level = %2d. Choices = %d. { ", pNode->Id, pNode->Level, Counter );
         for ( pTemp = pNode; pTemp; pTemp = Aig_ObjEquiv(p, pTemp) )
         {
-            Counter = Aig_NodeMffsSupp( p, pTemp, 0, vSupp );
+            Counter = Aig_NodeMffcSupp( p, pTemp, 0, vSupp );
             printf( "S=%d N=%d L=%d  ", Vec_PtrSize(vSupp), Counter, pTemp->Level );
         }
         printf( "}\n" );

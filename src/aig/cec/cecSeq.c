@@ -126,7 +126,7 @@ int Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo )
 {
     unsigned * pInfo0, * pInfo1;
     int f, i, k, w, RetValue = 0;
-    assert( Gia_ManRegNum(p->pAig) > 0 );
+//    assert( Gia_ManRegNum(p->pAig) > 0 );
     assert( Vec_PtrSize(vInfo) == Gia_ManRegNum(p->pAig) + Gia_ManPiNum(p->pAig) * p->pPars->nRounds );
     for ( k = 0; k < Gia_ManRegNum(p->pAig); k++ )
     {

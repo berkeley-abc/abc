@@ -566,6 +566,35 @@ int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore
 
 /**Function*************************************************************
 
+  Synopsis    [Resimulates counter-examples derived by the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManResimulateCounterExamplesComb( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore )
+{ 
+    Vec_Ptr_t * vSimInfo; 
+    int RetValue = 0, iStart = 0;
+    Gia_ManSetRefs( pSim->pAig );
+    pSim->pPars->nRounds = 1;
+    vSimInfo = Vec_PtrAllocSimInfo( Gia_ManCiNum(pSim->pAig), pSim->pPars->nWords );
+    while ( iStart < Vec_IntSize(vCexStore) )
+    {
+        Cec_ManStartSimInfo( vSimInfo, 0 );
+        iStart = Cec_ManLoadCounterExamples( vSimInfo, vCexStore, iStart );
+        RetValue |= Cec_ManSeqResimulate( pSim, vSimInfo );
+    }
+    assert( iStart == Vec_IntSize(vCexStore) );
+    Vec_PtrFree( vSimInfo );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Updates equivalence classes by marking those that timed out.]
 
   Description [Returns 1 if all ndoes are proved.]
@@ -613,9 +642,10 @@ int Gia_ManCheckRefinements( Gia_Man_t * p, Vec_Str_t * vStatus, Vec_Int_t * vOu
     return 1;
 }
 
+
 /**Function*************************************************************
 
-  Synopsis    [Marks all the nodes as proved.]
+  Synopsis    [Duplicates the AIG in the DFS order.]
 
   Description []
                
@@ -624,19 +654,56 @@ int Gia_ManCheckRefinements( Gia_Man_t * p, Vec_Str_t * vStatus, Vec_Int_t * vOu
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSetProvedNodes( Gia_Man_t * p )
+void Gia_ManCorrReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
-    Gia_Obj_t * pObj;
-    int i, nLits = 0;
-    Gia_ManForEachObj1( p, pObj, i )
+    Gia_Obj_t * pRepr;
+    if ( (pRepr = Gia_ObjReprObj(p, Gia_ObjId(p, pObj))) )
     {
-        if ( Gia_ObjRepr(p, i) == GIA_VOID )
-            continue;
-        Gia_ObjSetProved( p, i );
-        nLits++;
+        Gia_ManCorrReduce_rec( pNew, p, pRepr );
+        pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+        return;
     }
-//    printf( "Identified %d proved literals.\n", nLits );
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManCorrReduce_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManCorrReduce_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces AIG using equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCorrReduce( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManSetPhase( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManCorrReduce_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
 
 /**Function*************************************************************
 
@@ -649,7 +716,7 @@ void Gia_ManSetProvedNodes( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManLCorrPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int Time )
+void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int Time )
 { 
     int nLits, CounterX = 0, Counter0 = 0, Counter = 0;
     int i, Entry, nProve = 0, nDispr = 0, nFail = 0;
@@ -685,7 +752,7 @@ void Cec_ManLCorrPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int 
 
 /**Function*************************************************************
 
-  Synopsis    [Top-level procedure for register correspondence.]
+  Synopsis    [Internal procedure for register correspondence.]
 
   Description []
                
@@ -694,26 +761,26 @@ void Cec_ManLCorrPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
+int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 {  
+    int nIterMax = 100000;
     int nAddFrames = 1; // additional timeframes to simulate
     Vec_Str_t * vStatus;
     Vec_Int_t * vOutputs;
     Vec_Int_t * vCexStore;
-    Gia_Man_t * pNew, * pTemp;
     Cec_ParSim_t ParsSim, * pParsSim = &ParsSim;
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
-    int r, RetValue;
-    int clkSat = 0, clkSim = 0, clkSrm = 0, clkTotal = clock();
+    int r, RetValue, clkTotal = clock();
+    int clkSat = 0, clkSim = 0, clkSrm = 0;
     int clk2, clk = clock();
     ABC_FREE( pAig->pReprs );
     ABC_FREE( pAig->pNexts );
     if ( Gia_ManRegNum(pAig) == 0 )
     {
         printf( "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );
-        return NULL;
+        return 0;
     }
     Gia_ManRandom( 1 );
     // prepare simulation manager
@@ -736,10 +803,10 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         printf( "Obj = %7d. And = %7d. Conf = %5d. Fr = %d. Lcorr = %d. Ring = %d. CSat = %d.\n",
             Gia_ManObjNum(pAig), Gia_ManAndNum(pAig), 
             pPars->nBTLimit, pPars->nFrames, pPars->fLatchCorr, pPars->fUseRings, pPars->fUseCSat );
-        Cec_ManLCorrPrintStats( pAig, NULL, 0, clock() - clk );
+        Cec_ManRefinedClassPrintStats( pAig, NULL, 0, clock() - clk );
     }
     // perform refinement of equivalence classes
-    for ( r = 0; r < 100000; r++ )
+    for ( r = 0; r < nIterMax; r++ )
     { 
         clk = clock();
         // perform speculative reduction
@@ -776,7 +843,7 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         clkSim += clock() - clk2;
         Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
         if ( pPars->fVerbose )
-            Cec_ManLCorrPrintStats( pAig, vStatus, r+1, clock() - clk );
+            Cec_ManRefinedClassPrintStats( pAig, vStatus, r+1, clock() - clk );
         Vec_StrFree( vStatus );
         Vec_IntFree( vOutputs );
 //Gia_ManEquivPrintClasses( pAig, 1, 0 );
@@ -811,7 +878,7 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
                 fChanges = 1;
             }
             if ( pPars->fVerbose )
-                Cec_ManLCorrPrintStats( pAig, vStatus, -1, clock() - clkBmc );
+                Cec_ManRefinedClassPrintStats( pAig, vStatus, -1, clock() - clkBmc );
             // recycle
             Vec_IntFree( vCexStore );
             Vec_StrFree( vStatus );
@@ -822,20 +889,55 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     else
     {
         if ( pPars->fVerbose )
-            Cec_ManLCorrPrintStats( pAig, NULL, r+1, clock() - clk );
+            Cec_ManRefinedClassPrintStats( pAig, NULL, r+1, clock() - clk );
     }
     // check the overflow
-    if ( r == 100000 )
+    if ( r == nIterMax )
         printf( "The refinement was not finished. The result may be incorrect.\n" );
     Cec_ManSimStop( pSim );
     clkTotal = clock() - clkTotal;
+    // report the results
+    if ( pPars->fVerbose )
+    {
+        ABC_PRTP( "Srm  ", clkSrm,                        clkTotal );
+        ABC_PRTP( "Sat  ", clkSat,                        clkTotal );
+        ABC_PRTP( "Sim  ", clkSim,                        clkTotal );
+        ABC_PRTP( "Other", clkTotal-clkSat-clkSrm-clkSim, clkTotal );
+        ABC_PRT( "TOTAL",  clkTotal );
+    }
+    return 0;
+}    
+
+/**Function*************************************************************
+
+  Synopsis    [Top-level procedure for register correspondence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
+{  
+    Gia_Man_t * pNew, * pTemp;
+    int RetValue;
+    RetValue = Cec_ManLSCorrespondenceClasses( pAig, pPars );
     // derive reduced AIG
-    Gia_ManSetProvedNodes( pAig );
-    Gia_ManEquivImprove( pAig );
-    pNew = Gia_ManEquivReduce( pAig, 0, 0, 0 );
-//Gia_WriteAiger( pNew, "reduced.aig", 0, 0 );
-    pNew = Gia_ManSeqCleanup( pTemp = pNew );
-    Gia_ManStop( pTemp );
+    if ( pPars->fMakeChoices )
+    {
+        pNew = Gia_ManEquivToChoices( pAig, 1 );
+        Gia_ManHasChoices( pNew );
+    }
+    else
+    {
+        Gia_ManEquivImprove( pAig );
+        pNew = Gia_ManCorrReduce( pAig );
+        pNew = Gia_ManSeqCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+        //Gia_WriteAiger( pNew, "reduced.aig", 0, 0 );
+    }
     // report the results
     if ( pPars->fVerbose )
     {
@@ -844,11 +946,6 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             100.0*(Gia_ManAndNum(pAig)-Gia_ManAndNum(pNew))/(Gia_ManAndNum(pAig)?Gia_ManAndNum(pAig):1), 
             Gia_ManRegNum(pAig), Gia_ManRegNum(pNew), 
             100.0*(Gia_ManRegNum(pAig)-Gia_ManRegNum(pNew))/(Gia_ManRegNum(pAig)?Gia_ManRegNum(pAig):1) );
-        ABC_PRTP( "Srm  ", clkSrm,                        clkTotal );
-        ABC_PRTP( "Sat  ", clkSat,                        clkTotal );
-        ABC_PRTP( "Sim  ", clkSim,                        clkTotal );
-        ABC_PRTP( "Other", clkTotal-clkSat-clkSrm-clkSim, clkTotal );
-        ABC_PRT( "TOTAL",  clkTotal );
     }
     return pNew;
 }

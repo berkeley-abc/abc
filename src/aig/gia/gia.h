@@ -418,6 +418,7 @@ static inline int         Gia_ObjVisitColor( Gia_Man_t * p, int Id, int c )  { i
 static inline int         Gia_ObjDiffColors( Gia_Man_t * p, int i, int j )   { return (p->pReprs[i].fColorA ^ p->pReprs[j].fColorA) && (p->pReprs[i].fColorB ^ p->pReprs[j].fColorB); }
 static inline int         Gia_ObjDiffColors2( Gia_Man_t * p, int i, int j )  { return (p->pReprs[i].fColorA ^ p->pReprs[j].fColorA) || (p->pReprs[i].fColorB ^ p->pReprs[j].fColorB); }
 
+static inline Gia_Obj_t * Gia_ObjNextObj( Gia_Man_t * p, int Id )            { return p->pNexts[Id] == 0 ? NULL : Gia_ManObj( p, p->pNexts[Id] );}
 static inline int         Gia_ObjNext( Gia_Man_t * p, int Id )               { return p->pNexts[Id];               }
 static inline void        Gia_ObjSetNext( Gia_Man_t * p, int Id, int Num )   { p->pNexts[Id] = Num;                }
 
@@ -535,6 +536,8 @@ extern Gia_Man_t *         Gia_ManRemoveEnables( Gia_Man_t * p );
 /*=== giaEquiv.c ==========================================================*/
 extern int                 Gia_ManCheckTopoOrder( Gia_Man_t * p );
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );
+extern void                Gia_ManDeriveReprs( Gia_Man_t * p );
+extern int                 Gia_ManEquivCountClasses( Gia_Man_t * p );
 extern void                Gia_ManEquivPrintOne( Gia_Man_t * p, int i, int Counter );
 extern void                Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem );
 extern Gia_Man_t *         Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fVerbose );
@@ -544,6 +547,7 @@ extern Gia_Man_t *         Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int f
 extern Gia_Man_t *         Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames, int fDualOut );
 extern void                Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose );
 extern void                Gia_ManEquivImprove( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots );
 /*=== giaFanout.c =========================================================*/
 extern void                Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
 extern void                Gia_ObjRemoveFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
@@ -629,6 +633,8 @@ extern Gia_Cex_t *         Gia_ManAllocCounterExample( int nRegs, int nRealPis, 
 extern int                 Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDualOut );
 extern void                Gia_ManPrintCounterExample( Gia_Cex_t * p );
 extern int                 Gia_NodeMffcSize( Gia_Man_t * p, Gia_Obj_t * pNode );
+extern int                 Gia_ManHasChoices( Gia_Man_t * p );
+extern int                 Gia_ManHasDandling( Gia_Man_t * p );
  
 #ifdef __cplusplus
 }

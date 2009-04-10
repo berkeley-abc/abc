@@ -376,14 +376,14 @@ int Dar_ManRefactorTryCuts( Ref_Man_t * p, Aig_Obj_t * pObj, int nNodesSaved, in
         pTruth = Aig_ManCutTruth( pObj, vCut, p->vCutNodes, p->vTruthElem, p->vTruthStore );
         if ( Kit_TruthIsConst0(pTruth, Vec_PtrSize(vCut)) )
         {
-            p->GainBest = Aig_NodeMffsSupp( p->pAig, pObj, 0, NULL );
+            p->GainBest = Aig_NodeMffcSupp( p->pAig, pObj, 0, NULL );
             p->pGraphBest = Kit_GraphCreateConst0();
             Vec_PtrCopy( p->vLeavesBest, vCut );
             return p->GainBest;
         }
         if ( Kit_TruthIsConst1(pTruth, Vec_PtrSize(vCut)) )
         {
-            p->GainBest = Aig_NodeMffsSupp( p->pAig, pObj, 0, NULL );
+            p->GainBest = Aig_NodeMffcSupp( p->pAig, pObj, 0, NULL );
             p->pGraphBest = Kit_GraphCreateConst1();
             Vec_PtrCopy( p->vLeavesBest, vCut );
             return p->GainBest;
@@ -528,7 +528,7 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
         // get the bounded MFFC size
 clk = clock();
         nLevelMin = ABC_MAX( 0, Aig_ObjLevel(pObj) - 10 );
-        nNodesSaved = Aig_NodeMffsSupp( pAig, pObj, nLevelMin, vCut );
+        nNodesSaved = Aig_NodeMffcSupp( pAig, pObj, nLevelMin, vCut );
         if ( nNodesSaved < p->pPars->nMffcMin ) // too small to consider
         {
 p->timeCuts += clock() - clk;
@@ -538,15 +538,15 @@ p->timeCuts += clock() - clk;
         if ( Vec_PtrSize(vCut) > p->pPars->nLeafMax ) // get one reconv-driven cut
         {
             Aig_ManFindCut( pObj, vCut, p->vCutNodes, p->pPars->nLeafMax, 50 );
-            nNodesSaved = Aig_NodeMffsLabelCut( p->pAig, pObj, vCut );
+            nNodesSaved = Aig_NodeMffcLabelCut( p->pAig, pObj, vCut );
         }
         else if ( Vec_PtrSize(vCut) < p->pPars->nLeafMax - 2 && p->pPars->fExtend )
         {
             if ( !Dar_ObjCutLevelAchieved(vCut, nLevelMin) )
             {
-                if ( Aig_NodeMffsExtendCut( pAig, pObj, vCut, vCut2 ) )
+                if ( Aig_NodeMffcExtendCut( pAig, pObj, vCut, vCut2 ) )
                 {
-                    nNodesSaved2 = Aig_NodeMffsLabelCut( p->pAig, pObj, vCut );
+                    nNodesSaved2 = Aig_NodeMffcLabelCut( p->pAig, pObj, vCut );
                     assert( nNodesSaved2 == nNodesSaved );
                 }
                 if ( Vec_PtrSize(vCut2) > p->pPars->nLeafMax )

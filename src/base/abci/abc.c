@@ -9515,7 +9515,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptgcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9561,6 +9561,12 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             pPars->fSimulateTfo ^= 1;
             break;
+        case 'g':
+            pPars->fUseGia ^= 1;
+            break;
+        case 'c':
+            pPars->fUseCSat ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -9591,7 +9597,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dch [-WCS num] [-sptvh]\n" );
+    fprintf( pErr, "usage: dch [-WCS num] [-sptgcvh]\n" );
     fprintf( pErr, "\t         computes structural choices using a new approach\n" );
     fprintf( pErr, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
@@ -9599,6 +9605,8 @@ usage:
     fprintf( pErr, "\t-s     : toggle synthesizing three snapshots [default = %s]\n", pPars->fSynthesis? "yes": "no" );
     fprintf( pErr, "\t-p     : toggle power-aware rewriting [default = %s]\n", pPars->fPower? "yes": "no" );
     fprintf( pErr, "\t-t     : toggle simulation of the TFO classes [default = %s]\n", pPars->fSimulateTfo? "yes": "no" );
+    fprintf( pErr, "\t-g     : toggle using GIA to prove equivalences [default = %s]\n", pPars->fUseGia? "yes": "no" );
+    fprintf( pErr, "\t-c     : toggle using circuit-based SAT vs. MiniSat [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -21820,6 +21828,7 @@ usage:
 int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk );
     Gia_Man_t * pAig;
     Aig_Man_t * pMan;
     int c, fVerbose = 0;
@@ -21845,12 +21854,15 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "The current network should be strashed.\n" );
         return 1;
     }
+//    if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
+//    {
+//        printf( "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pAbc->pNtkCur) );
+//        Abc_AigCleanup(pAbc->pNtkCur->pManFunc);
+//    }
     if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
-    {
-        printf( "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pAbc->pNtkCur) );
-        Abc_AigCleanup(pAbc->pNtkCur->pManFunc);
-    }
-    pMan = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        pMan = Abc_NtkToDarChoices( pAbc->pNtkCur );
+    else
+        pMan = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
     pAig = Gia_ManFromAig( pMan );
     Aig_ManStop( pMan );
     if ( pAig == NULL )
@@ -21886,6 +21898,7 @@ usage:
 int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+    extern Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan );
     Aig_Man_t * pMan;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -21917,9 +21930,27 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    pMan = Gia_ManToAig( pAbc->pAig );
-    pNtk = Abc_NtkFromAigPhase( pMan );
-    Aig_ManStop( pMan );
+    if ( Gia_ManHasDandling(pAbc->pAig) == 0 )
+    {
+        pMan = Gia_ManToAig( pAbc->pAig, 0 );
+        pNtk = Abc_NtkFromAigPhase( pMan );
+        Aig_ManStop( pMan );
+    }
+    else
+    {
+        Abc_Ntk_t * pNtkNoCh;
+//        printf( "Transforming AIG with %d choice nodes.\n", Gia_ManEquivCountClasses(pAbc->pAig) );
+        // create network without choices
+        pMan = Gia_ManToAig( pAbc->pAig, 0 );
+        pNtkNoCh = Abc_NtkFromAigPhase( pMan );
+        pNtkNoCh->pName = Extra_UtilStrsav(pMan->pName);
+        Aig_ManStop( pMan );
+        // derive network with choices
+        pMan = Gia_ManToAig( pAbc->pAig, 1 );
+        pNtk = Abc_NtkFromDarChoices( pNtkNoCh, pMan );
+        Abc_NtkDelete( pNtkNoCh );
+        Aig_ManStop( pMan );
+    }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
     return 0;
@@ -22204,7 +22235,7 @@ int Abc_CommandAbc9Show( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Show(): There is no AIG.\n" );
         return 1;
     } 
-    pMan = Gia_ManToAig( pAbc->pAig );
+    pMan = Gia_ManToAig( pAbc->pAig, 0 );
     Aig_ManShow( pMan, 0, NULL );
     Aig_ManStop( pMan );
     return 0;
@@ -23400,7 +23431,7 @@ usage:
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
     fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
-    fprintf( stdout, "\t-r     : toggle using implication rings for equivalence classes [default = %s]\n", pPars->fUseRings? "yes": "no" );
+    fprintf( stdout, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
@@ -23425,7 +23456,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManCorSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCfrcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCfrecvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23457,6 +23488,9 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             pPars->fUseRings ^= 1;
             break;
+        case 'e':
+            pPars->fMakeChoices ^= 1;
+            break;
         case 'c':
             pPars->fUseCSat ^= 1;
             break;
@@ -23483,12 +23517,13 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &scorr [-FC num] [-frcvh]\n" );
+    fprintf( stdout, "usage: &scorr [-FC num] [-frecvh]\n" );
     fprintf( stdout, "\t         performs signal correpondence computation\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
     fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
-    fprintf( stdout, "\t-r     : toggle using implication rings for equivalence classes [default = %s]\n", pPars->fUseRings? "yes": "no" );
+    fprintf( stdout, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
+    fprintf( stdout, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
@@ -23513,7 +23548,7 @@ int Abc_CommandAbc9Choice( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManChcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ccvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23528,6 +23563,9 @@ int Abc_CommandAbc9Choice( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nBTLimit < 0 ) 
                 goto usage;
             break;
+        case 'c':
+            pPars->fUseCSat ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -23540,8 +23578,6 @@ int Abc_CommandAbc9Choice( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc9Choice(): There is no AIG.\n" );
         return 1;
     } 
-    printf("The command is not yet ready.\n" );
-    return 0;
     pAbc->pAig = Cec_ManChoiceComputation( pTemp = pAbc->pAig, pPars );
     if ( pAbc->pAig == NULL )
     {
@@ -23553,9 +23589,10 @@ int Abc_CommandAbc9Choice( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &choice [-C num] [-vh]\n" );
+    fprintf( stdout, "usage: &choice [-C num] [-cvh]\n" );
     fprintf( stdout, "\t         performs computation of structural choices\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
+    fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
