@@ -1135,6 +1135,8 @@ void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
             assert( (int)pObj->Value == Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) ) );
             return;
         }
+        if ( pRepr->Value > pObj->Value ) // should never happen with high resource limit
+            return;
         assert( pRepr->Value < pObj->Value );
         pReprNew = Gia_ManObj( pNew, Gia_Lit2Var(pRepr->Value) );
         pObjNew  = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );

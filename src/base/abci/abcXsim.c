@@ -181,15 +181,15 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXS
 
   Synopsis    [Cycles the circuit to create a new initial state.]
 
-  Description [Simulates the circuit with random input for the given 
-  number of timeframes to get a better initial state.]
+  Description [Simulates the circuit with random (or ternary) input 
+  for the given number of timeframes to get a better initial state.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
+void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fUseXval, int fVerbose )
 { 
     Abc_Obj_t * pObj;
     int i, f;
@@ -198,13 +198,12 @@ void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     // initialize the values
     Abc_ObjSetXsim( Abc_AigConst1(pNtk), XVS1 );
     Abc_NtkForEachLatch( pNtk, pObj, i )
-//        Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchIsInit1(pObj)? XVS1 : XVS0 );
         Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchInit(pObj) );
     // simulate for the given number of timeframes
     for ( f = 0; f < nFrames; f++ )
     {
         Abc_NtkForEachPi( pNtk, pObj, i )
-            Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
+            Abc_ObjSetXsim( pObj, fUseXval? ABC_INIT_DC : Abc_XsimRand2() );
         Abc_AigForEachAnd( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, Abc_XsimAnd(Abc_ObjGetXsimFanin0(pObj), Abc_ObjGetXsimFanin1(pObj)) );
         Abc_NtkForEachCo( pNtk, pObj, i )

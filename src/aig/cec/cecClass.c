@@ -711,6 +711,7 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
         pRes  = Cec_ManSimSimRef( p, i );
         pRes0 = Cec_ManSimSimDeref( p, Gia_ObjFaninId0(pObj,i) );
         pRes1 = Cec_ManSimSimDeref( p, Gia_ObjFaninId1(pObj,i) );
+
         if ( Gia_ObjFaninC0(pObj) )
         {
             if ( Gia_ObjFaninC1(pObj) )
@@ -729,6 +730,7 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
                 for ( w = 1; w <= p->nWords; w++ )
                     pRes[w] = pRes0[w] & pRes1[w];
         }
+
 references:
         // if this node is candidate constant, collect it
         if ( Gia_ObjIsConst(p->pAig, i) && !Cec_ManSimCompareConst(pRes + 1, p->nWords) )

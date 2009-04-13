@@ -332,6 +332,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     Hop_Obj_t * pFunc;
     int nFanins, status;
     int c, i, * pGloVars;
+//    int clk = clock();
 
 //    p->nDcMints += Abc_NtkMfsInterplateEval( p, pCands, nCands );
 
@@ -345,6 +346,8 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
         p->nTimeOuts++;
         return NULL;
     }
+//printf( "%d\n", pSat->stats.conflicts );
+//    ABC_PRT( "S", clock() - clk );
     // get the learned clauses
     pCnf = sat_solver_store_release( pSat );
     sat_solver_delete( pSat );

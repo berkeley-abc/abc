@@ -70,7 +70,8 @@ Cec_ManSat_t * Cec_ManSatCreate( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 ***********************************************************************/
 void Cec_ManSatPrintStats( Cec_ManSat_t * p )
 {
-    printf( "CO = %6d  ", Gia_ManCoNum(p->pAig) );
+    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
     printf( "Conf = %5d  ", p->pPars->nBTLimit );
     printf( "MinVar = %5d  ", p->pPars->nSatVarMax );
     printf( "MinCalls = %5d\n", p->pPars->nCallsRecycle );

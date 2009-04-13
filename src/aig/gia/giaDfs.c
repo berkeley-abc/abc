@@ -122,7 +122,7 @@ void Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vN
     Gia_Obj_t * pObj;
     int i; 
     Vec_IntClear( vNodes );
-    Gia_ManIncrementTravId( p );
+//    Gia_ManIncrementTravId( p );
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
     for ( i = 0; i < nNodes; i++ )
     {
@@ -132,6 +132,34 @@ void Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vN
         else
             Gia_ManCollectAnds_rec( p, pObj, vNodes );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects support nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCollectTest( Gia_Man_t * p )
+{
+    Vec_Int_t * vNodes;
+    Gia_Obj_t * pObj;
+    int i, iNode, clk = clock();
+    vNodes = Vec_IntAlloc( 100 );
+    Gia_ManResetTravId( p );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        iNode = Gia_ObjId(p, pObj);
+        Gia_ManCollectAnds( p, &iNode, 1, vNodes );
+    }
+    Vec_IntFree( vNodes );
+    ABC_PRT( "DFS from each output", clock() - clk );
 }
 
 /**Function*************************************************************

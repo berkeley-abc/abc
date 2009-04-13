@@ -2575,7 +2575,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fComplOuts )
-    Abc_NtkForEachCo( pNtkRes, pObj, c )
+    Abc_NtkForEachPo( pNtkRes, pObj, c )
         Abc_ObjXorFaninC( pObj, 0 );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -14914,8 +14914,9 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int nFrames;
+    int fUseXval;
     int fVerbose;
-    extern void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fVerbose );
+    extern void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fUseXval, int fVerbose );
     extern void Abc_NtkCycleInitStateSop( Abc_Ntk_t * pNtk, int nFrames, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -14924,9 +14925,10 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nFrames    = 100;
+    fUseXval   =   0;
     fVerbose   =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14940,6 +14942,9 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nFrames < 0 ) 
                 goto usage;
+            break;
+        case 'x':
+            fUseXval ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -14966,18 +14971,25 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "The network is combinational.\n" );
         return 0;
     }
-
-    if ( Abc_NtkIsStrash(pNtk) )
-        Abc_NtkCycleInitState( pNtk, nFrames, fVerbose );
+    if ( fUseXval && !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "X-valued simulation only works for AIGs. Run \"strash\".\n" );
+        return 0;
+    }
+    if ( fUseXval )
+        Abc_NtkCycleInitState( pNtk, nFrames, 1, fVerbose );
+    else if ( Abc_NtkIsStrash(pNtk) )
+        Abc_NtkCycleInitState( pNtk, nFrames, 0, fVerbose );
     else
         Abc_NtkCycleInitStateSop( pNtk, nFrames, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cycle [-F num] [-vh]\n" );
-    fprintf( pErr, "\t         cycles sequiential circuit for the given number of timeframes\n" );
+    fprintf( pErr, "usage: cycle [-F num] [-xvh]\n" );
+    fprintf( pErr, "\t         cycles sequential circuit for the given number of timeframes\n" );
     fprintf( pErr, "\t         to derive a new initial state (which may be on the envelope)\n" );
     fprintf( pErr, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-x     : use x-valued primary inputs [default = %s]\n", fUseXval? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -16088,6 +16100,14 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
             return 1;
+    }
+
+    if ( Abc_NtkLatchNum(pNtk1) || Abc_NtkLatchNum(pNtk2) )
+    {
+        if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
+        if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
+        printf( "Currently this command only works for networks without latches. Run \"comb\".\n" );
+        return 1;
     }
 
     // perform equivalence checking
@@ -21934,6 +21954,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pMan = Gia_ManToAig( pAbc->pAig, 0 );
         pNtk = Abc_NtkFromAigPhase( pMan );
+        pNtk->pName = Extra_UtilStrsav(pMan->pName);
         Aig_ManStop( pMan );
     }
     else
@@ -23059,7 +23080,7 @@ usage:
     fprintf( stdout, "usage: &frames [-FL <num>] [-ivh]\n" );
     fprintf( stdout, "\t         unrolls the design for several timeframes\n" );
     fprintf( stdout, "\t-F num : the number of frames to unroll [default = %d]\n", pPars->nFrames );
-    fprintf( stdout, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit? "yes": "no" );
+    fprintf( stdout, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit );
     fprintf( stdout, "\t-i     : toggle initializing registers [default = %s]\n", pPars->fInit? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");

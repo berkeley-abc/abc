@@ -885,6 +885,8 @@ int Cbs_ManSolve_rec( Cbs_Man_t * p, int Level )
         pDecVar = Gia_Not(Gia_ObjChild0(pVar));
     else
         pDecVar = Gia_Not(Gia_ObjChild1(pVar));
+//    pDecVar = Gia_NotCond( Gia_Regular(pDecVar), Gia_Regular(pDecVar)->fPhase );
+//    pDecVar = Gia_Not(pDecVar);
     // decide on first fanin
     Cbs_ManAssign( p, pDecVar, Level+1, NULL, NULL );
     if ( !(hLearn0 = Cbs_ManSolve_rec( p, Level+1 )) )
@@ -955,8 +957,9 @@ int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
 ***********************************************************************/
 void Cbs_ManSatPrintStats( Cbs_Man_t * p )
 {
-    printf( "CO = %6d  ", Gia_ManCoNum(p->pAig) );
-    printf( "Conf = %5d  ", p->Pars.nBTLimit );
+    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    printf( "Conf = %6d  ", p->Pars.nBTLimit );
     printf( "JustMax = %5d  ", p->Pars.nJustLimit );
     printf( "\n" );
     printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
@@ -984,6 +987,7 @@ void Cbs_ManSatPrintStats( Cbs_Man_t * p )
 ***********************************************************************/
 Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus, int fVerbose )
 {
+    extern void Gia_ManCollectTest( Gia_Man_t * pAig );
     extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
     Cbs_Man_t * p; 
     Vec_Int_t * vCex, * vVisit, * vCexStore;
@@ -991,11 +995,13 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
     Gia_Obj_t * pRoot; 
     int i, status, clk, clkTotal = clock();
     assert( Gia_ManRegNum(pAig) == 0 );
+//    Gia_ManCollectTest( pAig );
     // prepare AIG
     Gia_ManCreateRefs( pAig );
     Gia_ManCleanMark0( pAig );
     Gia_ManCleanMark1( pAig );
     Gia_ManFillValue( pAig ); // maps nodes into trail ids
+    Gia_ManSetPhase( pAig ); // maps nodes into trail ids
     // create logic network
     p = Cbs_ManAlloc();
     p->Pars.nBTLimit = nConfs;

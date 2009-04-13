@@ -674,8 +674,9 @@ int Cbs0_ManSolve( Cbs0_Man_t * p, Gia_Obj_t * pObj )
 ***********************************************************************/
 void Cbs0_ManSatPrintStats( Cbs0_Man_t * p )
 {
-    printf( "CO = %6d  ", Gia_ManCoNum(p->pAig) );
-    printf( "Conf = %5d  ", p->Pars.nBTLimit );
+    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    printf( "Conf = %6d  ", p->Pars.nBTLimit );
     printf( "JustMax = %5d  ", p->Pars.nJustLimit );
     printf( "\n" );
     printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
