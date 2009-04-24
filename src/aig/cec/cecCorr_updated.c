@@ -284,7 +284,7 @@ Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t * p, int nFrames, int nPrefix, 
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManStartSimInfo( Vec_Ptr_t * vInfo, int nFlops )
+void Cec_ManStartSimInfo( Vec_Ptr_t * vInfo, int nFlops, int * pInitState )
 {
     unsigned * pInfo;
     int k, w, nWords;
@@ -293,8 +293,17 @@ void Cec_ManStartSimInfo( Vec_Ptr_t * vInfo, int nFlops )
     for ( k = 0; k < nFlops; k++ )
     {
         pInfo = Vec_PtrEntry( vInfo, k );
-        for ( w = 0; w < nWords; w++ )
-            pInfo[w] = 0;
+        if ( pInitState && Gia_InfoHasBit(pInitState, k) )
+        {
+            for ( w = 0; w < nWords; w++ )
+                pInfo[w] = ~0;
+//            pInfo[0] <<= 1;
+        }
+        else
+        {
+            for ( w = 0; w < nWords; w++ )
+                pInfo[w] = 0;
+        }
     }
     for ( k = nFlops; k < Vec_PtrSize(vInfo); k++ )
     {
@@ -387,7 +396,7 @@ Vec_Int_t * Gia_ManCorrCreateRemapping( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCorrPerformRemapping( Vec_Int_t * vPairs, Vec_Ptr_t * vInfo )
+void Gia_ManCorrPerformRemapping( Vec_Int_t * vPairs, Vec_Ptr_t * vInfo, int * pInitState )
 {
     unsigned * pInfoObj, * pInfoRepr;
     int w, i, iObj, iRepr, nWords;
@@ -399,7 +408,7 @@ void Gia_ManCorrPerformRemapping( Vec_Int_t * vPairs, Vec_Ptr_t * vInfo )
         pInfoRepr = Vec_PtrEntry( vInfo, iRepr );
         for ( w = 0; w < nWords; w++ )
         {
-            assert( pInfoObj[w] == 0 );
+            assert( pInitState || pInfoObj[w] == 0 );
             pInfoObj[w] = pInfoRepr[w];
         }
     }
@@ -537,7 +546,7 @@ int Cec_ManLoadCounterExamples2( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int i
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames )
+int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames, int * pInitState )
 { 
     Vec_Int_t * vPairs;
     Vec_Ptr_t * vSimInfo; 
@@ -549,11 +558,11 @@ int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pSim->pAig) + Gia_ManPiNum(pSim->pAig) * nFrames, pSim->pPars->nWords );
     while ( iStart < Vec_IntSize(vCexStore) )
     {
-        Cec_ManStartSimInfo( vSimInfo, Gia_ManRegNum(pSim->pAig) );
+        Cec_ManStartSimInfo( vSimInfo, Gia_ManRegNum(pSim->pAig), pInitState );
         iStart = Cec_ManLoadCounterExamples( vSimInfo, vCexStore, iStart );
 //        iStart = Cec_ManLoadCounterExamples2( vSimInfo, vCexStore, iStart );
 //        Gia_ManCorrRemapSimInfo( pSim->pAig, vSimInfo );
-        Gia_ManCorrPerformRemapping( vPairs, vSimInfo );
+        Gia_ManCorrPerformRemapping( vPairs, vSimInfo, pInitState );
         RetValue |= Cec_ManSeqResimulate( pSim, vSimInfo );
 //        Cec_ManSeqResimulateInfo( pSim->pAig, vSimInfo, NULL );
     }
@@ -584,7 +593,7 @@ int Cec_ManResimulateCounterExamplesComb( Cec_ManSim_t * pSim, Vec_Int_t * vCexS
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManCiNum(pSim->pAig), pSim->pPars->nWords );
     while ( iStart < Vec_IntSize(vCexStore) )
     {
-        Cec_ManStartSimInfo( vSimInfo, 0 );
+        Cec_ManStartSimInfo( vSimInfo, 0, NULL );
         iStart = Cec_ManLoadCounterExamples( vSimInfo, vCexStore, iStart );
         RetValue |= Cec_ManSeqResimulate( pSim, vSimInfo );
     }
@@ -752,7 +761,7 @@ void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIte
 
 /**Function*************************************************************
 
-  Synopsis    [Runs BMC for the equivalence classes.]
+  Synopsis    [Computes new initial state.]
 
   Description []
                
@@ -761,61 +770,38 @@ void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIte
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPrefs )
+unsigned * Cec_ManComputeInitState( Gia_Man_t * pAig, int nFrames )
 {  
-    Cec_ParSim_t ParsSim, * pParsSim = &ParsSim;
-    Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
-    Vec_Str_t * vStatus;
-    Vec_Int_t * vOutputs;
-    Vec_Int_t * vCexStore;
-    Cec_ManSim_t * pSim;
-    Gia_Man_t * pSrm;
-    int fChanges, RetValue;
-    // prepare simulation manager
-    Cec_ManSimSetDefaultParams( pParsSim );
-    pParsSim->nWords     = pPars->nWords;
-    pParsSim->nRounds    = pPars->nRounds;
-    pParsSim->fVerbose   = pPars->fVerbose;
-    pParsSim->fLatchCorr = pPars->fLatchCorr;
-    pParsSim->fSeqSimulate = 1;
-    pSim = Cec_ManSimStart( pAig, pParsSim );
-    // prepare SAT solving
-    Cec_ManSatSetDefaultParams( pParsSat );
-    pParsSat->nBTLimit = pPars->nBTLimit;
-    pParsSat->fVerbose = pPars->fVerbose;
-    fChanges = 1;
-    while ( fChanges )
+    Gia_Obj_t * pObj, * pObjRo, * pObjRi;
+    unsigned * pInitState;
+    int i, f; 
+    printf( "Simulating %d timeframes.\n", nFrames );
+    Gia_ManForEachRo( pAig, pObj, i )
+        pObj->fMark1 = 0;
+    for ( f = 0; f < nFrames; f++ )
     {
-        int clkBmc = clock();
-        fChanges = 0;
-        pSrm = Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, nPrefs, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
-        if ( Gia_ManPoNum(pSrm) == 0 )
-        {
-            Gia_ManStop( pSrm );
-            Vec_IntFree( vOutputs );
-            break;
-        } 
-        pParsSat->nBTLimit *= 10;
-        if ( pPars->fUseCSat )
-            vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
-        else
-            vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
-        // refine classes with these counter-examples
-        if ( Vec_IntSize(vCexStore) )
-        {
-            RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nPrefs );
-            Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
-            fChanges = 1;
-        }
-        if ( pPars->fVerbose )
-            Cec_ManRefinedClassPrintStats( pAig, vStatus, -1, clock() - clkBmc );
-        // recycle
-        Vec_IntFree( vCexStore );
-        Vec_StrFree( vStatus );
-        Gia_ManStop( pSrm );
-        Vec_IntFree( vOutputs );
+        Gia_ManConst0(pAig)->fMark1 = 0;
+        Gia_ManForEachPi( pAig, pObj, i )
+            pObj->fMark1 = Gia_ManRandom(0) & 1;
+//            pObj->fMark1 = 1;
+        Gia_ManForEachAnd( pAig, pObj, i )
+            pObj->fMark1 = (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj)) & 
+                (Gia_ObjFanin1(pObj)->fMark1 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachRi( pAig, pObj, i )
+            pObj->fMark1 = (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj));
+        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, i )
+            pObjRo->fMark1 = pObjRi->fMark1;
     }
-    Cec_ManSimStop( pSim );
+    pInitState = ABC_CALLOC( unsigned, Gia_BitWordNum(Gia_ManRegNum(pAig)) );
+    Gia_ManForEachRo( pAig, pObj, i )
+    {
+        if ( pObj->fMark1 )
+            Gia_InfoSetBit( pInitState, i );
+//        printf( "%d", pObj->fMark1 );
+    }
+//    printf( "\n" );
+    Gia_ManCleanMark1( pAig );
+    return pInitState;
 }
 
 /**Function*************************************************************
@@ -840,15 +826,22 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
+    unsigned * pInitState = NULL;
     int r, RetValue, clkTotal = clock();
     int clkSat = 0, clkSim = 0, clkSrm = 0;
     int clk2, clk = clock();
+    ABC_FREE( pAig->pReprs );
+    ABC_FREE( pAig->pNexts );
     if ( Gia_ManRegNum(pAig) == 0 )
     {
         printf( "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );
         return 0;
     }
     Gia_ManRandom( 1 );
+    // derive initial state for resimulation
+    if ( pPars->nPrefix )
+//        pInitState = Cec_ManComputeInitState( pAig, 5+(1<<20)/Gia_ManAndNum(pAig) );
+        pInitState = Cec_ManComputeInitState( pAig, 100 );
     // prepare simulation manager
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords     = pPars->nWords;
@@ -857,12 +850,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     pParsSim->fLatchCorr = pPars->fLatchCorr;
     pParsSim->fSeqSimulate = 1;
     // create equivalence classes of registers
-    pSim = Cec_ManSimStart( pAig, pParsSim );
-    if ( pAig->pReprs == NULL )
-    {
-        Cec_ManSimClassesPrepare( pSim );
-        Cec_ManSimClassesRefine( pSim );
-    }
+    pSim = Cec_ManSimStart( pAig, pParsSim, pInitState );
+    Cec_ManSimClassesPrepare( pSim );
+    Cec_ManSimClassesRefine( pSim );
     // prepare SAT solving
     Cec_ManSatSetDefaultParams( pParsSat );
     pParsSat->nBTLimit = pPars->nBTLimit;
@@ -874,9 +864,6 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             pPars->nBTLimit, pPars->nFrames, pPars->fLatchCorr, pPars->fUseRings, pPars->fUseCSat );
         Cec_ManRefinedClassPrintStats( pAig, NULL, 0, clock() - clk );
     }
-    // check the base case
-    if ( !pPars->fLatchCorr || pPars->nFrames > 1 )
-            Cec_ManLSCorrespondenceBmc( pAig, pPars, 0 );
     // perform refinement of equivalence classes
     for ( r = 0; r < nIterMax; r++ )
     { 
@@ -910,7 +897,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         }
         // refine classes with these counter-examples
         clk2 = clock();
-        RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nAddFrames );
+        RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nAddFrames, pInitState );
         Vec_IntFree( vCexStore );
         clkSim += clock() - clk2;
         Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
@@ -920,8 +907,55 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         Vec_IntFree( vOutputs );
 //Gia_ManEquivPrintClasses( pAig, 1, 0 );
     }
-    if ( pPars->fVerbose )
-        Cec_ManRefinedClassPrintStats( pAig, NULL, r+1, clock() - clk );
+    ABC_FREE( pInitState );
+    // check the base case
+    if ( (!pPars->fLatchCorr || pPars->nFrames > 1) || pPars->nPrefix )
+    {
+        int fChanges = 1;
+        while ( fChanges )
+        {
+            int clkBmc = clock();
+            fChanges = 0;
+            pSrm = Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, pPars->nPrefix, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
+            if ( Gia_ManPoNum(pSrm) == 0 )
+            {
+                Gia_ManStop( pSrm );
+                Vec_IntFree( vOutputs );
+                break;
+            }
+            pParsSat->nBTLimit *= 10;
+            if ( pPars->nPrefix )
+            {
+                pParsSat->nBTLimit = 10000;
+                vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
+            }
+            else if ( pPars->fUseCSat )
+                vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
+            else
+                vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
+            // refine classes with these counter-examples
+            if ( Vec_IntSize(vCexStore) )
+            {
+                clk2 = clock();
+                RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nAddFrames + pPars->nPrefix, NULL );
+                clkSim += clock() - clk2;
+                Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
+                fChanges = 1;
+            }
+            if ( pPars->fVerbose )
+                Cec_ManRefinedClassPrintStats( pAig, vStatus, -1, clock() - clkBmc );
+            // recycle
+            Vec_IntFree( vCexStore );
+            Vec_StrFree( vStatus );
+            Gia_ManStop( pSrm );
+            Vec_IntFree( vOutputs );
+        }
+    }
+    else
+    {
+        if ( pPars->fVerbose )
+            Cec_ManRefinedClassPrintStats( pAig, NULL, r+1, clock() - clk );
+    }
     // check the overflow
     if ( r == nIterMax )
         printf( "The refinement was not finished. The result may be incorrect.\n" );
@@ -941,51 +975,6 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes new initial state.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned * Cec_ManComputeInitState( Gia_Man_t * pAig, int nFrames )
-{  
-    Gia_Obj_t * pObj, * pObjRo, * pObjRi;
-    unsigned * pInitState;
-    int i, f; 
-    Gia_ManRandom( 1 );
-//    printf( "Simulating %d timeframes.\n", nFrames );
-    Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark1 = 0;
-    for ( f = 0; f < nFrames; f++ )
-    {
-        Gia_ManConst0(pAig)->fMark1 = 0;
-        Gia_ManForEachPi( pAig, pObj, i )
-            pObj->fMark1 = Gia_ManRandom(0) & 1;
-        Gia_ManForEachAnd( pAig, pObj, i )
-            pObj->fMark1 = (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj)) & 
-                (Gia_ObjFanin1(pObj)->fMark1 ^ Gia_ObjFaninC1(pObj));
-        Gia_ManForEachRi( pAig, pObj, i )
-            pObj->fMark1 = (Gia_ObjFanin0(pObj)->fMark1 ^ Gia_ObjFaninC0(pObj));
-        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, i )
-            pObjRo->fMark1 = pObjRi->fMark1;
-    }
-    pInitState = ABC_CALLOC( unsigned, Gia_BitWordNum(Gia_ManRegNum(pAig)) );
-    Gia_ManForEachRo( pAig, pObj, i )
-    {
-        if ( pObj->fMark1 )
-            Gia_InfoSetBit( pInitState, i );
-//        printf( "%d", pObj->fMark1 );
-    }
-//    printf( "\n" );
-    Gia_ManCleanMark1( pAig );
-    return pInitState;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Top-level procedure for register correspondence.]
 
   Description []
@@ -998,39 +987,8 @@ unsigned * Cec_ManComputeInitState( Gia_Man_t * pAig, int nFrames )
 Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 {  
     Gia_Man_t * pNew, * pTemp;
-    unsigned * pInitState;
     int RetValue;
-    ABC_FREE( pAig->pReprs );
-    ABC_FREE( pAig->pNexts );
-    if ( pPars->nPrefix == 0 )
-        RetValue = Cec_ManLSCorrespondenceClasses( pAig, pPars );
-    else
-    {
-        // compute the cycles AIG
-        pInitState = Cec_ManComputeInitState( pAig, pPars->nPrefix );
-        pTemp = Gia_ManDupFlip( pAig, pInitState );
-        ABC_FREE( pInitState );
-        // compute classes of this AIG
-        RetValue = Cec_ManLSCorrespondenceClasses( pTemp, pPars );
-        // transfer the class info
-        pAig->pReprs = pTemp->pReprs; pTemp->pReprs = NULL;
-        pAig->pNexts = pTemp->pNexts; pTemp->pNexts = NULL;
-        // perform additional BMC
-        pPars->fUseCSat = 0;
-        pPars->nBTLimit = ABC_MAX( pPars->nBTLimit, 1000 );
-        Cec_ManLSCorrespondenceBmc( pAig, pPars, pPars->nPrefix );
-/*
-        // transfer the class info back
-        pTemp->pReprs = pAig->pReprs; pAig->pReprs = NULL;
-        pTemp->pNexts = pAig->pNexts; pAig->pNexts = NULL;
-        // continue refining
-        RetValue = Cec_ManLSCorrespondenceClasses( pTemp, pPars );
-        // transfer the class info
-        pAig->pReprs = pTemp->pReprs; pTemp->pReprs = NULL;
-        pAig->pNexts = pTemp->pNexts; pTemp->pNexts = NULL;
-*/
-        Gia_ManStop( pTemp );
-    }
+    RetValue = Cec_ManLSCorrespondenceClasses( pAig, pPars );
     // derive reduced AIG
     if ( pPars->fMakeChoices )
     {
@@ -1039,7 +997,7 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     }
     else
     {
-//        Gia_ManEquivImprove( pAig );
+        Gia_ManEquivImprove( pAig );
         pNew = Gia_ManCorrReduce( pAig );
         pNew = Gia_ManSeqCleanup( pTemp = pNew );
         Gia_ManStop( pTemp );
@@ -1054,8 +1012,6 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             Gia_ManRegNum(pAig), Gia_ManRegNum(pNew), 
             100.0*(Gia_ManRegNum(pAig)-Gia_ManRegNum(pNew))/(Gia_ManRegNum(pAig)?Gia_ManRegNum(pAig):1) );
     }
-    if ( pPars->nPrefix && (Gia_ManAndNum(pNew) < Gia_ManAndNum(pAig) || Gia_ManRegNum(pNew) < Gia_ManRegNum(pAig)) )
-        printf( "The reduced AIG was produced using %d-th invariants and will not verify.\n", pPars->nPrefix );
     return pNew;
 }
 

@@ -36,6 +36,14 @@
     (3) read a binary BLIF file with a mapped network produced by ABC
     (4) return the mapped network to the caller through a set of APIs
 
+    It should be noted that the BBLIF interface can be used to pass
+    the network from the calling application into ABC without writing it
+    into a file. In this case, ABC should be compiled as a library and
+    linked to the calling application. The BBLIF manager can be given
+    directly to the procedure Bbl_ManToAbc() to convert it into an AIG.
+    Similarly, the resulting mapped network can be converted into
+    BBLIF manager and passed back after the call to Bbl_ManFromAbc().
+
     Here these steps are described in more detail:
 
     (1) The BBLIF manager is allocated by calling Bbl_ManStart() and 

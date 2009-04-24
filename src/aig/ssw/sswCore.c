@@ -277,6 +277,13 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
              || (pAig->vClockDoms && Vec_VecSize(pAig->vClockDoms) > 0)  )
             return Ssw_SignalCorrespondencePart( pAig, pPars );
     }
+
+    if ( pPars->fScorrGia )
+    {
+        extern Aig_Man_t * Cec_SignalCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat );
+        return Cec_SignalCorrespondence( pAig, pPars->nBTLimit, pPars->fUseCSat );
+    }
+
     // start the induction manager
     p = Ssw_ManCreate( pAig, pPars );
     // compute candidate equivalence classes

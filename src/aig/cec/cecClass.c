@@ -712,6 +712,8 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
         pRes0 = Cec_ManSimSimDeref( p, Gia_ObjFaninId0(pObj,i) );
         pRes1 = Cec_ManSimSimDeref( p, Gia_ObjFaninId1(pObj,i) );
 
+//        printf( "%d,%d  ", Gia_ObjValue( Gia_ObjFanin0(pObj) ), Gia_ObjValue( Gia_ObjFanin1(pObj) ) );
+
         if ( Gia_ObjFaninC0(pObj) )
         {
             if ( Gia_ObjFaninC1(pObj) )

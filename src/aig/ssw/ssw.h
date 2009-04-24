@@ -61,6 +61,8 @@ struct Ssw_Pars_t_
     int              fLocalSim;     // enable local simulation simulation
     int              fPartSigCorr;  // uses partial signal correspondence
     int              nIsleDist;     // extends islands by the given distance
+    int              fScorrGia;     // new signal correspondence implementation
+    int              fUseCSat;      // new SAT solver using when fScorrGia is selected
     int              fVerbose;      // verbose stats
     int              fFlopVerbose;  // verbose printout of redundant flops
     // optimized latch correspondence

@@ -261,6 +261,7 @@ static int Abc_CommandAbc8Lutmin     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Balance    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Speedup    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Merge      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Insert     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc8Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -578,6 +579,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*b",            Abc_CommandAbc8Balance,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*speedup",      Abc_CommandAbc8Speedup,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*merge",        Abc_CommandAbc8Merge,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*insert",       Abc_CommandAbc8Insert,       0 );
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*fraig",        Abc_CommandAbc8Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
@@ -5281,6 +5283,8 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fRemoveLatches;
+    int nLatchesToAdd;
+    extern void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nLatchesToAdd );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5288,11 +5292,23 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fRemoveLatches = 0;
+    nLatchesToAdd = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Llh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            } 
+            nLatchesToAdd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLatchesToAdd < 0 ) 
+                goto usage;
+            break;
         case 'l':
             fRemoveLatches ^= 1;
             break;
@@ -5308,7 +5324,12 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkIsComb(pNtk) )
+    if ( Abc_NtkIsComb(pNtk) && nLatchesToAdd == 0 )
+    {
+        fprintf( pErr, "The network is already combinational.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsComb(pNtk) && nLatchesToAdd != 0 )
     {
         fprintf( pErr, "The network is already combinational.\n" );
         return 0;
@@ -5316,15 +5337,19 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     pNtkRes = Abc_NtkDup( pNtk );
-    Abc_NtkMakeComb( pNtkRes, fRemoveLatches );
+    if ( nLatchesToAdd ) 
+        Abc_NtkMakeSeq( pNtkRes, nLatchesToAdd );
+    else
+        Abc_NtkMakeComb( pNtkRes, fRemoveLatches );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: comb [-lh]\n" );
-    fprintf( pErr, "\t        makes the current network combinational by replacing latches by PI/PO pairs\n" );
-    fprintf( pErr, "\t-l    : toggle removing latches [default = %s]\n", fRemoveLatches? "yes": "no" );
+    fprintf( pErr, "usage: comb [-L num] [-lh]\n" );
+    fprintf( pErr, "\t        converts comb network into seq, and vice versa\n" );
+    fprintf( pErr, "\t-L    : number of latches to add to comb network (0 = do not add) [default = %d]\n", nLatchesToAdd );
+    fprintf( pErr, "\t-l    : toggle converting latches to PIs/POs or removing them [default = %s]\n", fRemoveLatches? "remove": "convert" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -8449,7 +8474,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 //    Abc_NtkDarTest( pNtk );
 
-    Bbl_ManTest( pNtk );
+//    Bbl_ManTest( pNtk );
+
+    {
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern void Aig_ManFactorAlgebraicTest( Aig_Man_t * p );
+    Aig_Man_t * pAig;
+    pAig = Abc_NtkToDar( pNtk, 0, 0 );
+    Aig_ManFactorAlgebraicTest( pAig );
+    Aig_ManStop( pAig );
+    }
+
 //    Bbl_ManSimpleDemo();
     return 0;
 usage:
@@ -9576,7 +9611,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pNtk == NULL )
+    if ( pNtk == NULL ) 
     {
         fprintf( pErr, "Empty network.\n" );
         return 1;
@@ -18480,9 +18515,10 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSkipProof;
     int nFramesBmc;
     int nConfMaxBmc;
+    int nRatio;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -18496,9 +18532,10 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSkipProof  =     0;
     nFramesBmc  =  2000;
     nConfMaxBmc =  5000;
+    nRatio      =    10;
     fVerbose    =     0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGDdesvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGDRdesvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18546,6 +18583,17 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConfMaxBmc < 0 ) 
                 goto usage;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRatio = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRatio < 0 ) 
+                goto usage;
+            break;
         case 'd':
             fDynamic ^= 1;
             break;
@@ -18579,9 +18627,14 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
+    if ( !(0 <= nRatio && nRatio <= 100) )
+    {
+        fprintf( stdout, "Wrong value of parameter \"-R <num>\".\n" );
+        return 0;
+    }
 
     // modify the current network
-    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, fVerbose );
+    pNtkRes = Abc_NtkDarPBAbstraction( pNtk, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fVerbose );
     if ( pNtkRes == NULL )
     {
         if ( pNtk->pSeqModel == NULL )
@@ -18592,13 +18645,14 @@ int Abc_CommandPBAbstraction( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 usage:
-    fprintf( pErr, "usage: abs [-FCGD num] [-desvh]\n" );
+    fprintf( pErr, "usage: abs [-FCGDR num] [-desvh]\n" );
     fprintf( pErr, "\t         proof-based abstraction (PBA) using UNSAT core of BMC\n" );
     fprintf( pErr, "\t         followed by counter-example-based abstraction\n" );
     fprintf( pErr, "\t-F num : the max number of timeframes for PBA [default = %d]\n", nFramesMax );
     fprintf( pErr, "\t-C num : the max number of conflicts by SAT solver for PBA [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-G num : the max number of timeframes for BMC [default = %d]\n", nFramesBmc );
     fprintf( pErr, "\t-D num : the max number of conflicts by SAT solver for BMC [default = %d]\n", nConfMaxBmc );
+    fprintf( pErr, "\t-R num : the %% of abstracted flops when refinement stops (0<=num<=100) [default = %d]\n", nRatio );
     fprintf( pErr, "\t-d     : toggle dynamic unrolling of timeframes [default = %s]\n", fDynamic? "yes": "no" );
     fprintf( pErr, "\t-e     : toggle extending abstraction using COI of flops [default = %s]\n", fExtend? "yes": "no" );
     fprintf( pErr, "\t-s     : toggle skipping proof-based abstraction [default = %s]\n", fSkipProof? "yes": "no" );
@@ -18806,7 +18860,7 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Ioa_WriteBlif( pTemp, "test_boxes.blif" );
         Ntl_ManFree( pTemp );
         }
-        return 0;
+        return 0; 
     }
 
     Abc_FrameClearDesign(); 
@@ -18960,7 +19014,7 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     fCollapsed = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "abch" ) ) != EOF )
-    {
+    { 
         switch ( c )
         {
         case 'a':
@@ -19392,7 +19446,7 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( pAbc->pAbc8Lib == NULL )
         {
-            printf( "LUT library is not given. Using default 6-LUT library.\n" );
+            printf( "LUT library is not given. Using default LUT library.\n" );
             pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
         }
         printf( "MAPPED:  " );
@@ -19480,7 +19534,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( pAbc->pAbc8Lib == NULL )
     {
-        printf( "LUT library is not given. Using default 6-LUT library.\n" );
+        printf( "LUT library is not given. Using default LUT library.\n" );
         pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
     }
 
@@ -20460,8 +20514,6 @@ usage:
     return 1;
 }
 
-
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -20594,6 +20646,56 @@ usage:
     fprintf( stdout, "\t-h       : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Insert( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
+    void * pNtlNew;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Insert(): There is no design.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Nwk == NULL ) 
+    {
+        printf( "Abc_CommandAbc8Insert(): There is no network to insert.\n" );
+        return 1;
+    }
+    pNtlNew = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *insert [-h]\n" );
+    fprintf( stdout, "\t         inserts the mapped network into the netlist\n" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -21148,7 +21250,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSDVMpldsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLNSDVMpldsncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21274,6 +21376,12 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fLocalSim ^= 1;
             break;
+        case 'n':
+            pPars->fScorrGia ^= 1;
+            break;
+        case 'c':
+            pPars->fUseCSat ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -21327,7 +21435,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *scorr [-PQFCLNSDVM <num>] [-pldsvh]\n" );
+    fprintf( stdout, "usage: *scorr [-PQFCLNSDVM <num>] [-pldsncvh]\n" );
     fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -21343,6 +21451,8 @@ usage:
     fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
     fprintf( stdout, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
     fprintf( stdout, "\t-s     : toggle local simulation in the cone of influence [default = %s]\n", pPars->fLocalSim? "yes": "no" );
+    fprintf( stdout, "\t-n     : toggle using new AIG package [default = %s]\n", pPars->fScorrGia? "yes": "no" );
+    fprintf( stdout, "\t-c     : toggle using new AIG package and SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
@@ -21414,7 +21524,7 @@ int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameClearDesign(); 
         pAbc->pAbc8Ntl = pNtlTemp;
     }
-
+ 
     // sweep the current design
     Counter = Ntl_ManSweep( pAbc->pAbc8Ntl, fVerbose );
     if ( Counter == 0 )
@@ -23389,7 +23499,7 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ManCorSetDefaultParams( pPars );
     pPars->fLatchCorr = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCfrcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPfrcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23413,6 +23523,17 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPrefix = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPrefix < 0 ) 
                 goto usage;
             break;
         case 'f':
@@ -23447,10 +23568,11 @@ int Abc_CommandAbc9Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &lcorr [-FC num] [-frcvh]\n" );
+    fprintf( stdout, "usage: &lcorr [-FCP num] [-frcvh]\n" );
     fprintf( stdout, "\t         performs latch correpondence computation\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-P num : the number of timeframes in the prefix [default = %d]\n", pPars->nPrefix );
     fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
     fprintf( stdout, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     fprintf( stdout, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
@@ -23477,7 +23599,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManCorSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCfrecvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPfrecvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23501,6 +23623,17 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nBTLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPrefix = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPrefix < 0 ) 
                 goto usage;
             break;
         case 'f':
@@ -23538,10 +23671,11 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: &scorr [-FC num] [-frecvh]\n" );
+    fprintf( stdout, "usage: &scorr [-FCP num] [-frecvh]\n" );
     fprintf( stdout, "\t         performs signal correpondence computation\n" );
     fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     fprintf( stdout, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
+    fprintf( stdout, "\t-P num : the number of timeframes in the prefix [default = %d]\n", pPars->nPrefix );
     fprintf( stdout, "\t-f     : toggle quitting when one PO is asserted [default = %s]\n", pPars->fFirstStop? "yes": "no" );
     fprintf( stdout, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     fprintf( stdout, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
@@ -24297,7 +24431,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Gia_MappingIf( Gia_Man_t * p, If_Par_t * pPars );
     if ( pAbc->pAbc8Lib == NULL )
     {
-        printf( "LUT library is not given. Using default 6-LUT library.\n" );
+        printf( "LUT library is not given. Using default LUT library.\n" );
         pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
     }
     // set defaults

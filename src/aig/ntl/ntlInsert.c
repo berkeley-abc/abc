@@ -245,6 +245,42 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
 
 /**Function*************************************************************
 
+  Synopsis    [Find drivers of the given net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManFindDriver( Ntl_Man_t * p, char * pName )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pNode;
+    Ntl_Net_t * pNet, * pNetThis;
+    int i, k;
+    pRoot = Ntl_ManRootModel( p );
+    pNetThis = Ntl_ModelFindNet( pRoot, pName );
+    printf( "\n*** Net %d \"%s\":\n", pNetThis->NetId, pName );
+    // mark from the nodes
+    Ntl_ModelForEachPo( pRoot, pNode, i )
+        if ( pNetThis == Ntl_ObjFanin0(pNode) )
+            printf( "driven by PO %d\n", i );
+    Ntl_ModelForEachNode( pRoot, pNode, i )
+        Ntl_ObjForEachFanin( pNode, pNet, k )
+            if ( pNetThis == pNet )
+                printf( "driven by node %d with %d fanins and %d fanouts\n (%s)\n", 
+                    pNode->Id, Ntl_ObjFaninNum(pNode), Ntl_ObjFanoutNum(pNode), Ntl_ObjFanout(pNode,0)->pName );
+    Ntl_ModelForEachBox( pRoot, pNode, i )
+        Ntl_ObjForEachFanin( pNode, pNet, k )
+            if ( pNetThis == pNet )
+                printf( "driven by box %d with %d fanins and %d fanouts\n (%s)\n", 
+                    pNode->Id, Ntl_ObjFaninNum(pNode), Ntl_ObjFanoutNum(pNode), Ntl_ObjFanout(pNode,0)->pName );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Inserts the given mapping into the netlist.]
 
   Description []

@@ -2959,6 +2959,10 @@ SOURCE=.\src\aig\aig\aigDup.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigFact.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigFanout.c
 # End Source File
 # Begin Source File

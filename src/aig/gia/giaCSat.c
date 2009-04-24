@@ -473,6 +473,8 @@ static inline void Cbs_ManCancelUntil( Cbs_Man_t * p, int iBound )
     Vec_IntShrink( p->vLevReas, 3*iBound );
 }
 
+int s_Counter = 0;
+
 /**Function*************************************************************
 
   Synopsis    [Assigns the variables a value.]
@@ -498,6 +500,7 @@ static inline void Cbs_ManAssign( Cbs_Man_t * p, Gia_Obj_t * pObj, int Level, Gi
     Vec_IntPush( p->vLevReas, pRes0 ? pRes0-pObjR : 0 );
     Vec_IntPush( p->vLevReas, pRes1 ? pRes1-pObjR : 0 );
     assert( Vec_IntSize(p->vLevReas) == 3 * p->pProp.iTail );
+    s_Counter++;
 }
 
 
@@ -925,6 +928,7 @@ int Cbs_ManSolve_rec( Cbs_Man_t * p, int Level )
 int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
 {
     int RetValue = 0;
+    s_Counter = 0;
     assert( !p->pProp.iHead && !p->pProp.iTail );
     assert( !p->pJust.iHead && !p->pJust.iTail );
     assert( p->pClauses.iHead == 1 && p->pClauses.iTail == 1 );
@@ -941,6 +945,8 @@ int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
     p->Pars.nJustTotal = ABC_MAX( p->Pars.nJustTotal, p->Pars.nJustThis );
     if ( Cbs_ManCheckLimits( p ) )
         RetValue = -1;
+
+//    printf( "%d ", s_Counter );
     return RetValue;
 }
 
@@ -1019,7 +1025,7 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
         {
             if ( Gia_ObjFaninC0(pRoot) )
             {
-                printf( "Constant 1 output of SRM!!!\n" );
+//                printf( "Constant 1 output of SRM!!!\n" );
                 Cec_ManSatAddToStore( vCexStore, vCex, i ); // trivial counter-example
                 Vec_StrPush( vStatus, 0 );
             }

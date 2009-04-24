@@ -204,6 +204,7 @@ void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fUseXval, int fVe
     {
         Abc_NtkForEachPi( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, fUseXval? ABC_INIT_DC : Abc_XsimRand2() );
+//            Abc_ObjSetXsim( pObj, ABC_INIT_ONE );
         Abc_AigForEachAnd( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, Abc_XsimAnd(Abc_ObjGetXsimFanin0(pObj), Abc_ObjGetXsimFanin1(pObj)) );
         Abc_NtkForEachCo( pNtk, pObj, i )
@@ -213,7 +214,11 @@ void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fUseXval, int fVe
     }
     // set the final values
     Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
         pObj->pData = (void *)(ABC_PTRINT_T)Abc_ObjGetXsim(Abc_ObjFanout0(pObj));
+//        printf( "%d", Abc_LatchIsInit1(pObj) );
+    }
+//    printf( "\n" );
 }
 
 ///////////////////////////////////////////////////////////////////////

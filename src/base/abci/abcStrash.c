@@ -103,6 +103,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
     Abc_Ntk_t * pNtkAig;
     Abc_Obj_t * pObj;
     int i, nNodes;//, RetValue;
+    int Counter = 0;
     assert( Abc_NtkIsStrash(pNtk) );
 //timeRetime = clock();
     // print warning about choice nodes
@@ -112,8 +113,14 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // complement the 1-values registers
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        if ( Abc_LatchIsInit1(pObj) )
+    {
+        if ( Abc_LatchIsInitDc(pObj) )
+            Counter++;
+        else if ( Abc_LatchIsInit1(pObj) )
             Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNot(Abc_ObjFanout0(pObj)->pCopy);
+    }
+    if ( Counter )
+    printf( "Converting %d flops from don't-care to zero initial value.\n", Counter );
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )
         pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );

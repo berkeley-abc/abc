@@ -765,7 +765,7 @@ Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vF
   SeeAlso     []
  
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int fVerbose )
+Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fVerbose )
 {
     Aig_Man_t * pResult, * pTemp;
     Cnf_Dat_t * pCnf;
@@ -869,9 +869,13 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, int nFrames, int nConfMax, 
                 Aig_ManPrintStats( pResult );
             else
                 printf( " -----------------------------------------------------\n" );
+            if ( 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pTemp))/Aig_ManRegNum(p) < 1.0*nRatio )
+            {
+                printf( "Refinements is stopped because flop reduction is less than %d%%\n", nRatio );
+                break;
+            }
         }
     }
-
     Vec_IntFree( vFlops );
     return pResult;
 }

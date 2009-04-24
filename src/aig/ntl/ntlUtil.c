@@ -657,6 +657,68 @@ void Ntl_ModelClearNets( Ntl_Mod_t * pModel )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Removes nets without fanins and fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManRemoveUselessNets( Ntl_Man_t * p )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pNode;
+    Ntl_Net_t * pNet;
+    int i, k, Counter;
+    pRoot = Ntl_ManRootModel( p );
+    Ntl_ModelForEachNet( pRoot, pNet, i )
+        pNet->fMark = 0;
+    Ntl_ModelForEachPi( pRoot, pNode, i )
+    {
+        pNet = Ntl_ObjFanout0(pNode);
+        pNet->fMark = 1;
+    }
+    Ntl_ModelForEachPo( pRoot, pNode, i )
+    {
+        pNet = Ntl_ObjFanin0(pNode);
+        pNet->fMark = 1;
+    }
+    Ntl_ModelForEachNode( pRoot, pNode, i )
+    {
+        Ntl_ObjForEachFanin( pNode, pNet, k )
+            pNet->fMark = 1;
+        Ntl_ObjForEachFanout( pNode, pNet, k )
+            pNet->fMark = 1;
+    }
+    Ntl_ModelForEachBox( pRoot, pNode, i )
+    {
+        Ntl_ObjForEachFanin( pNode, pNet, k )
+            pNet->fMark = 1;
+        Ntl_ObjForEachFanout( pNode, pNet, k )
+            pNet->fMark = 1;
+    }
+    Counter = 0;
+    Ntl_ModelForEachNet( pRoot, pNet, i )
+    {
+        if ( pNet->fMark )
+        {
+            pNet->fMark = 0;
+            continue;
+        }
+        if ( pNet->fFixed )
+            continue;
+        Ntl_ModelDeleteNet( pRoot, pNet );
+        Vec_PtrWriteEntry( pRoot->vNets, pNet->NetId, NULL );
+        Counter++;
+    }
+    if ( Counter )
+        printf( "Deleted %d nets without fanins/fanouts.\n", Counter );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

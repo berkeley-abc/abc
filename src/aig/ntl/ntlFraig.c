@@ -422,6 +422,8 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
 
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
+//Ntl_ManPrintStats( p );
+//Aig_ManPrintStats( pAig );
     pNew = Ntl_ManInsertAig( p, pAig );
     pAigCol = Ntl_ManCollapseSeq( pNew, 0 );
     if ( pAigCol == NULL )
@@ -429,6 +431,8 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
         Aig_ManStop( pAig );
         return pNew;
     }
+//Ntl_ManPrintStats( pNew );
+//Aig_ManPrintStats( pAigCol );
 
     // perform SCL for the given design
     pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );

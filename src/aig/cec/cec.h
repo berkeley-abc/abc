@@ -122,6 +122,7 @@ struct Cec_ParCor_t_
     int              nWords;        // the number of simulation words
     int              nRounds;       // the number of simulation rounds
     int              nFrames;       // the number of time frames
+    int              nPrefix;       // the number of time frames in the prefix
     int              nBTLimit;      // conflict limit at a node
     int              fLatchCorr;    // consider only latch outputs
     int              fUseRings;     // use rings

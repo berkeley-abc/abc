@@ -813,6 +813,12 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class, Aig_Obj_t * pRoot )
             pData->Level = Aig_Regular(pData->pFunc)->Level;
             // mark the node if it is part of MFFC
             pData->fMffc = Aig_ObjIsTravIdCurrent(p->pAig, Aig_Regular(pData->pFunc));
+            // assign the probability
+            if ( p->pPars->fPower )
+            {
+                float Prob = Aig_Int2Float( Vec_IntEntry( p->pAig->vProbs, Aig_ObjId(Aig_Regular(pData->pFunc)) ) );
+                pData->dProb = Aig_IsComplement(pData->pFunc)? 1.0-Prob : Prob;
+            }
         }
     }
 }
@@ -830,22 +836,30 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class, Aig_Obj_t * pRoot )
 ***********************************************************************/
 int Dar_LibEval_rec( Dar_LibObj_t * pObj, int Out, int nNodesSaved, int Required, float * pPower )
 {
-    float Power0, Power1;
     Dar_LibDat_t * pData;
+    float Power0, Power1;
     int Area;
     if ( pPower )
         *pPower = (float)0.0;
-    if ( pObj->fTerm )
-        return 0;
-    assert( pObj->Num > 3 );
     pData = s_DarLib->pDatas + pObj->Num;
-    if ( pData->Level > Required )
-        return 0xff;
-    if ( pData->pFunc && !pData->fMffc )
-        return 0;
     if ( pData->TravId == Out )
         return 0;
     pData->TravId = Out;
+    if ( pObj->fTerm )
+    {
+        if ( pPower )
+            *pPower = pData->dProb;
+        return 0;
+    }
+    assert( pObj->Num > 3 );
+    if ( pData->Level > Required )
+        return 0xff;
+    if ( pData->pFunc && !pData->fMffc )
+    {
+        if ( pPower )
+            *pPower = pData->dProb;
+        return 0;
+    }
     // this is a new node - get a bound on the area of its branches
     nNodesSaved--;
     Area = Dar_LibEval_rec( Dar_LibObj(s_DarLib, pObj->Fan0), Out, nNodesSaved, Required+1, pPower? &Power0 : NULL );

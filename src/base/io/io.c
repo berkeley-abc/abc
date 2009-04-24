@@ -1823,13 +1823,18 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     int c;
     int fNames;
+    int forceSeq;
 
     fNames = 0;
+    forceSeq = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 's':
+                forceSeq ^= 1;
+                break;
             case 'n':
                 fNames ^= 1;
                 break;
@@ -1912,8 +1917,10 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         }
         if ( fNames )
         {
+            char *cycle_ctr = forceSeq?"@0":"";
             Abc_NtkForEachPi( pNtk, pObj, i )
-                fprintf( pFile, "%s=%c ", Abc_ObjName(pObj), '0'+(pNtk->pModel[i]==1) );
+//                fprintf( pFile, "%s=%c\n", Abc_ObjName(pObj), '0'+(pNtk->pModel[i]==1) );
+                fprintf( pFile, "%s%s=%c\n", Abc_ObjName(pObj), cycle_ctr, '0'+(pNtk->pModel[i]==1) );
         }
         else
         {
@@ -1927,9 +1934,10 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_counter [-nh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_counter [-snh] <file>\n" );
     fprintf( pAbc->Err, "\t         saves counter-example derived by \"sat\", \"iprove\", or \"dprove\"\n" );
     fprintf( pAbc->Err, "\t         the file contains values for each PI in the natural order\n" );
+    fprintf( pAbc->Err, "\t-s     : always report a sequential ctrex (cycle 0 for comb) [default = %s]\n", forceSeq? "yes": "no" );
     fprintf( pAbc->Err, "\t-n     : write input names into the file [default = %s]\n", fNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );

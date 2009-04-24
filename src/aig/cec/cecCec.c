@@ -236,6 +236,33 @@ int Cec_ManVerifyTwoAigs( Aig_Man_t * pAig0, Aig_Man_t * pAig1, int fVerbose )
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Implementation of new signal correspodence.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Cec_SignalCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat )
+{
+    extern int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
+    Gia_Man_t * pGia;
+    Cec_ParCor_t CorPars, * pCorPars = &CorPars;
+    Cec_ManCorSetDefaultParams( pCorPars );
+    pCorPars->fUseCSat  = fUseCSat;
+    pCorPars->nBTLimit  = nConfs;
+    pGia = Gia_ManFromAigSimple( pAig );
+    Cec_ManLSCorrespondenceClasses( pGia, pCorPars );
+    Gia_ManReprToAigRepr( pAig, pGia );
+    Gia_ManStop( pGia );
+    return Aig_ManDupSimple( pAig );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

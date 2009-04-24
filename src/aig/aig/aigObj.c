@@ -313,6 +313,16 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
     int fHaig = 0;
     int fShowFanouts = 0;
     Aig_Obj_t * pTemp;
+    if ( pObj == NULL )
+    {
+        printf( "Object is NULL." );
+        return;
+    }
+    if ( Aig_IsComplement(pObj) )
+    {
+        printf( "Compl " );
+        pObj = Aig_Not(pObj);
+    }
     assert( !Aig_IsComplement(pObj) );
     printf( "Node %4d : ", Aig_ObjId(pObj) );
     if ( Aig_ObjIsConst1(pObj) )

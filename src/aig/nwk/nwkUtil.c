@@ -518,9 +518,21 @@ void Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose )
     Vec_Int_t * vTruth;
     Nwk_Obj_t * pObj;
     int i, Counter = 0;
+    Nwk_Obj_t * pNodeThis = pNtk->vObjs->pArray[72688];
+
     vTruth = Vec_IntAlloc( 1 << 16 );
     Nwk_ManForEachNode( pNtk, pObj, i )
+    {
+        if ( i == 641386 )
+        {
+            int x = 0;
+        }
         Counter += Nwk_ManMinimumBaseNode( pObj, vTruth, fVerbose );
+        if ( pNodeThis->nFanouts != 15 )
+        {
+            int s = 0;
+        }
+    }
     if ( fVerbose && Counter )
         printf( "Support minimization reduced support of %d nodes.\n", Counter );
     Vec_IntFree( vTruth );

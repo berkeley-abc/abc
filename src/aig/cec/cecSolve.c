@@ -823,13 +823,13 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
         {
             if ( Gia_ObjFaninC0(pObj) )
             {
-                printf( "Constant 1 output of SRM!!!\n" );
+//                printf( "Constant 1 output of SRM!!!\n" );
                 Cec_ManSatAddToStore( vCexStore, p->vCex, i ); // trivial counter-example
                 Vec_StrPush( vStatus, 0 );
             }
             else
             {
-                printf( "Constant 0 output of SRM!!!\n" );
+//                printf( "Constant 0 output of SRM!!!\n" );
                 Vec_StrPush( vStatus, 1 );
             }
             continue;

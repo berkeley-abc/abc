@@ -105,6 +105,46 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManFromAigSimple( Aig_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    // create the new manager
+    pNew = Gia_ManStart( Aig_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjIsAnd(pObj) )
+            pObj->iData = Gia_ManAppendAnd( pNew, Gia_ObjChild0Copy(pObj), Gia_ObjChild1Copy(pObj) );
+        else if ( Aig_ObjIsPi(pObj) )
+            pObj->iData = Gia_ManAppendCi( pNew );
+        else if ( Aig_ObjIsPo(pObj) )
+            pObj->iData = Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
+        else if ( Aig_ObjIsConst1(pObj) )
+            pObj->iData = 1;
+        else
+            assert( 0 );
+    }
+    Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    if ( pNew->pNexts )
+        Gia_ManDeriveReprs( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Handles choices as additional combinational outputs.]
 
   Description []
@@ -241,6 +281,43 @@ Aig_Man_t * Gia_ManCofactorAig( Aig_Man_t * p, int nFrames, int nCofFanLit )
     pMan = Gia_ManToAig( pGia, 0 );
     Gia_ManStop( pGia );
     return pMan;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transfers representatives from pGia to pAig.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManReprToAigRepr( Aig_Man_t * p, Gia_Man_t * pGia )
+{
+    Aig_Obj_t * pObj;
+    Gia_Obj_t * pGiaObj, * pGiaRepr;
+    int i;
+    assert( p->pReprs == NULL );
+    assert( pGia->pReprs != NULL );
+    // move pointers from AIG to GIA
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        assert( i == 0 || !Gia_LitIsCompl(pObj->iData) );
+        pGiaObj = Gia_ManObj( pGia, Gia_Lit2Var(pObj->iData) );
+        pGiaObj->Value = i;
+    }
+    // set the pointers to the nodes in AIG
+    Aig_ManReprStart( p, Aig_ManObjNumMax(p) );
+    Gia_ManForEachObj( pGia, pGiaObj, i )
+    {
+        pGiaRepr = Gia_ObjReprObj( pGia, i );
+        if ( pGiaRepr == NULL )
+            continue;
+        Aig_ObjCreateRepr( p, Aig_ManObj(p, pGiaRepr->Value), Aig_ManObj(p, pGiaObj->Value) );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

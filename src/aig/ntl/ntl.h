@@ -162,9 +162,10 @@ struct Ntl_Net_t_
         int            iTemp;          // other data
     };
     Ntl_Obj_t *        pDriver;        // driver of the net
-    int                NetId;          // unique ID of the net
-    char               nVisits;        // the number of times the net is visited
-    char               fMark;          // temporary mark
+    unsigned           NetId     : 28; // unique ID of the net
+    unsigned           nVisits   :  2; // the number of times the net is visted
+    unsigned           fMark     :  1; // temporary mark
+    unsigned           fFixed    :  1; // the fixed net
     char               pName[0];       // the name of this net
 };
 
@@ -392,6 +393,7 @@ extern ABC_DLL int             Ntl_ModelSeqLeafNum( Ntl_Mod_t * p );
 extern ABC_DLL int             Ntl_ModelSeqRootNum( Ntl_Mod_t * p );
 extern ABC_DLL int             Ntl_ModelCheckNetsAreNotMarked( Ntl_Mod_t * pModel );
 extern ABC_DLL void            Ntl_ModelClearNets( Ntl_Mod_t * pModel );
+extern ABC_DLL void            Ntl_ManRemoveUselessNets( Ntl_Man_t * p );
 
 #ifdef __cplusplus
 }

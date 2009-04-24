@@ -627,6 +627,7 @@ void Dar_ManCutsRestart( Dar_Man_t * p, Aig_Obj_t * pRoot )
 {
     Aig_Obj_t * pObj;
     int i;
+    Dar_ObjSetCuts( Aig_ManConst1(p->pAig), NULL );
     Vec_PtrForEachEntry( p->vCutNodes, pObj, i )
         if ( !Aig_ObjIsNone(pObj) )
             Dar_ObjSetCuts( pObj, NULL );
@@ -653,7 +654,7 @@ Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
     Aig_Obj_t * pFaninR0 = Aig_Regular(pFanin0);
     Aig_Obj_t * pFaninR1 = Aig_Regular(pFanin1);
     Dar_Cut_t * pCutSet, * pCut0, * pCut1, * pCut;
-    int i, k, RetValue;
+    int i, k, RetValue; 
 
     assert( !Aig_IsComplement(pObj) );
     assert( Aig_ObjIsNode(pObj) );

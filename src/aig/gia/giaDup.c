@@ -246,6 +246,47 @@ Gia_Man_t * Gia_ManDupOrderAiger( Gia_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG while complementing the flops.]
+
+  Description [The array of initial state contains the init state
+  for each state bit of the flops in the design.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupFlip( Gia_Man_t * p, int * pInitState )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+        {
+            pObj->Value = Gia_ManAppendCi( pNew );
+            if ( Gia_ObjCioId(pObj) >= Gia_ManPiNum(p) )
+                pObj->Value = Gia_LitNotCond( pObj->Value, Gia_InfoHasBit(pInitState, Gia_ObjCioId(pObj) - Gia_ManPiNum(p)) );
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+        {
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+            if ( Gia_ObjCioId(pObj) >= Gia_ManPoNum(p) )
+                pObj->Value = Gia_LitNotCond( pObj->Value, Gia_InfoHasBit(pInitState, Gia_ObjCioId(pObj) - Gia_ManPoNum(p)) );
+            pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+        }
+    }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
 
 
 /**Function*************************************************************

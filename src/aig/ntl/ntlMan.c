@@ -460,6 +460,8 @@ Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
         }
         else
             pNet->pCopy = NULL;
+        if ( pNet->pCopy )
+            ((Ntl_Net_t *)pNet->pCopy)->fFixed = pNet->fFixed;
     }
     Ntl_ModelForEachObj( pModelOld, pObj, i )
     {
@@ -511,6 +513,7 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     Ntl_ModelForEachNet( pModelOld, pNet, i )
     {
         pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+        ((Ntl_Net_t *)pNet->pCopy)->fFixed = pNet->fFixed;
         if ( pNet->pDriver == NULL )
         {
             assert( !pModelOld->attrWhite );

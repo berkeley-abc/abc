@@ -1743,6 +1743,18 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
         RetValue = Abc_NtkIvyProve( &pNtkComb, pParams );
         // transfer model if given
 //        pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
+        if ( RetValue == 0  && (Abc_NtkLatchNum(pNtk) == 0) )
+        {
+            pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
+            printf( "Networks are not equivalent.\n" );
+            ABC_PRT( "Time", clock() - clk );
+            if ( pSecPar->fReportSolution )
+            {
+                printf( "SOLUTION: FAIL       " );
+                ABC_PRT( "Time", clock() - clkTotal );
+            }
+            return RetValue;
+        }
         Abc_NtkDelete( pNtkComb );
         // return the result, if solved
         if ( RetValue == 1 )
@@ -2570,7 +2582,7 @@ ABC_PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fDynamic, int fExtend, int fSkipProof, int nFramesBmc, int nConfMaxBmc, int nRatio, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
@@ -2580,7 +2592,7 @@ Abc_Ntk_t * Abc_NtkDarPBAbstraction( Abc_Ntk_t * pNtk, int nFramesMax, int nConf
         return NULL;
 
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, fVerbose );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, nFramesMax, nConfMax, fDynamic, fExtend, fSkipProof, nFramesBmc, nConfMaxBmc, nRatio, fVerbose );
     if ( pTemp->pSeqModel )
     {
         ABC_FREE( pNtk->pModel );
@@ -2710,7 +2722,7 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelation
     // consider the case of one output
     if ( Abc_NtkCoNum(pNtkOn) == 1 )
         return Abc_NtkInterOne( pNtkOn, pNtkOff, fRelation, fVerbose );
-    // start the new newtork
+    // start the new network
     pNtkInter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkInter->pName = Extra_UtilStrsav(pNtkOn->pName);
     Abc_NtkForEachPi( pNtkOn, pObj, i )
@@ -3393,7 +3405,7 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
         return NULL;
 /*
     Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 0, 0, 0, -1, -1, 1 );
+    pMan = Saig_ManProofAbstraction( pTemp = pMan, 5, 10000, 0, 0, 0, -1, -1, 99, 1 );
     Aig_ManStop( pTemp );
     if ( pMan == NULL )
         return NULL;

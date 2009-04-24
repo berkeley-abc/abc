@@ -1185,6 +1185,81 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches )
         fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Converts the network to sequential.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nLatchesToAdd )
+{
+    Abc_Obj_t * pObjLi, * pObjLo, * pObj;
+    int i;
+    assert( Abc_NtkBoxNum(pNtk) == 0 );
+    if ( !Abc_NtkIsComb(pNtk) )
+    {
+        printf( "The network is a not a combinational one.\n" );
+        return;
+    }
+    if ( nLatchesToAdd >= Abc_NtkPiNum(pNtk) )
+    {
+        printf( "The number of latches is more or equal than the number of PIs.\n" );
+        return;
+    }
+    if ( nLatchesToAdd >= Abc_NtkPoNum(pNtk) )
+    {
+        printf( "The number of latches is more or equal than the number of POs.\n" );
+        return;
+    }
+
+    // move the last PIs to become CIs
+    Vec_PtrClear( pNtk->vPis );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( i < Abc_NtkCiNum(pNtk) - nLatchesToAdd )
+        {
+            Vec_PtrPush( pNtk->vPis, pObj );
+            continue;
+        }
+        pObj->Type = ABC_OBJ_BO;
+        pNtk->nObjCounts[ABC_OBJ_PI]--;
+        pNtk->nObjCounts[ABC_OBJ_BO]++;
+    }
+
+    // move the last POs to become COs
+    Vec_PtrClear( pNtk->vPos );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        if ( i < Abc_NtkCoNum(pNtk) - nLatchesToAdd )
+        {
+            Vec_PtrPush( pNtk->vPos, pObj );
+            continue;
+        }
+        pObj->Type = ABC_OBJ_BI;
+        pNtk->nObjCounts[ABC_OBJ_PO]--;
+        pNtk->nObjCounts[ABC_OBJ_BI]++;
+    }
+
+    // create latches
+    for ( i = 0; i < nLatchesToAdd; i++ )
+    {
+        pObjLo = Abc_NtkCi( pNtk, Abc_NtkCiNum(pNtk) - nLatchesToAdd + i );
+        pObjLi = Abc_NtkCo( pNtk, Abc_NtkCoNum(pNtk) - nLatchesToAdd + i );
+        pObj = Abc_NtkCreateLatch( pNtk );
+        Abc_ObjAddFanin( pObj, pObjLi );
+        Abc_ObjAddFanin( pObjLo, pObj );
+        Abc_LatchSetInit0( pObj );
+    }
+
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkMakeSeq(): Network check has failed.\n" );
+}
+
 
 /**Function*************************************************************
 
