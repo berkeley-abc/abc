@@ -62,6 +62,7 @@ static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerLib ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteSortCnf( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteTruth  ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 extern int glo_fMapped;
 
@@ -119,6 +120,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_verilog", IoCommandWriteVerilog, 0 );
 //    Cmd_CommandAdd( pAbc, "I/O", "write_verlib",  IoCommandWriteVerLib,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_sorter_cnf", IoCommandWriteSortCnf,  0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_truth",   IoCommandWriteTruth,   0 );
 }
 
 /**Function*************************************************************
@@ -2317,6 +2319,97 @@ usage:
     fprintf( pAbc->Err, "\t         write CNF for the sorter\n" );
     fprintf( pAbc->Err, "\t-N num : the number of sorter bits [default = %d]\n", nVars );
     fprintf( pAbc->Err, "\t-Q num : the number of bits to be asserted to 1 [default = %d]\n", nQueens );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Vec_Int_t * vTruth;
+    Abc_Ntk_t * pNtk = pAbc->pNtkCur;
+    Abc_Obj_t * pNode;
+    char * pFileName;
+    FILE * pFile;
+    unsigned * pTruth;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        printf( "Current networks is not available.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        printf( "Current networks should not an AIG. Run \"logic\".\n" );
+        return 0;
+    }
+    if ( Abc_NtkPoNum(pNtk) != 1 )
+    {
+        printf( "Current networks should have exactly one primary output.\n" );
+        return 0;
+    }
+    if ( Abc_NtkNodeNum(pNtk) != 1 )
+    {
+        printf( "Current networks should have exactly one node.\n" );
+        return 0;
+    }
+    pNode = Abc_ObjFanin0( Abc_NtkPo(pNtk, 0) );
+    if ( Abc_ObjFaninNum(pNode) == 0 )
+    { 
+        printf( "Can only write logic function with 0 inputs.\n" );
+        return 0;
+    }
+    if ( Abc_ObjFaninNum(pNode) > 16 )
+    { 
+        printf( "Can only write logic function with no more than 16 inputs.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    // convert to logic
+    Abc_NtkToAig( pNtk );
+    vTruth = Vec_IntAlloc( 0 );
+    pTruth = Hop_ManConvertAigToTruth( pNtk->pManFunc, pNode->pData, Abc_ObjFaninNum(pNode), vTruth, 0 );
+    pFile = fopen( pFileName, "w" );
+    if ( pFile == NULL )
+    {
+        Vec_IntFree( vTruth );
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return 0;
+    }
+    Extra_PrintBinary( pFile, pTruth, 1<<Abc_ObjFaninNum(pNode) );
+    fclose( pFile );
+    Vec_IntFree( vTruth );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_truth [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         writes truth table into a file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

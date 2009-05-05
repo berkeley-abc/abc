@@ -219,7 +219,7 @@ int Saig_TsiStateHash( unsigned * pState, int nWords, int nTableSize )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nWords )
+int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nWords, int nPref )
 {
     unsigned * pState;
     int nRegs = p->pAig->nRegs;
@@ -228,7 +228,7 @@ int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nWords )
     p->vNonXRegs = Vec_IntAlloc( 10 );
     for ( i = 0; i < nRegs; i++ )
     {
-        Vec_PtrForEachEntry( p->vStates, pState, k )
+        Vec_PtrForEachEntryStart( p->vStates, pState, k, nPref )
         {
             Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
             assert( Value != 0 );
@@ -777,7 +777,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose )
+Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose )
 {
     Aig_Man_t * pNew = NULL;
     Saig_Tsim_t * pTsi;
@@ -791,7 +791,7 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     // derive information
     pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
-    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords);
+    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords, ABC_MIN(pTsi->nPrefix,nPref));
     // print statistics
     if ( fVerbose )
     {
@@ -847,7 +847,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     // derive information
     pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
-    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords);
+    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords, 0);
     // print statistics
     if ( fVerbose )
     {

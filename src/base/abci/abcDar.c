@@ -2862,9 +2862,9 @@ Abc_Ntk_t * Abc_NtkBalanceExor( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, int fPrint, int fVerbose )
+Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose )
 {
-    extern Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose );
+    extern Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose );
     Vec_Int_t * vInits;
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
@@ -2872,7 +2872,7 @@ Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, in
     if ( pMan == NULL )
         return NULL;
     vInits = Abc_NtkGetLatchValues(pNtk);
-    pMan = Saig_ManPhaseAbstract( pTemp = pMan, vInits, nFrames, fIgnore, fPrint, fVerbose );
+    pMan = Saig_ManPhaseAbstract( pTemp = pMan, vInits, nFrames, nPref, fIgnore, fPrint, fVerbose );
     Vec_IntFree( vInits );
     Aig_ManStop( pTemp );
     if ( pMan == NULL )

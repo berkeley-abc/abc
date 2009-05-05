@@ -1129,8 +1129,8 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk )
     {
         vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
-        printf( "%20s :  Cone = %5d.  Supp = %5d.\n", 
-            Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize );
+        printf( "%5d  %20s :  Cone = %5d.  Supp = %5d.\n", 
+            i, Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize );
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vSupp );
     }

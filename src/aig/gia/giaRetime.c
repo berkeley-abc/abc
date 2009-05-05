@@ -183,7 +183,7 @@ Gia_Man_t * Gia_ManRetimeForwardOne( Gia_Man_t * p, int * pnRegFixed, int * pnRe
     int i;
     if ( p->vFlopClasses )
     {
-        printf( "Performing retiming with register classes.\n" );
+//        printf( "Performing retiming with register classes.\n" );
         vObjClasses = Vec_IntAlloc( Gia_ManObjNum(p) );
         for ( i = 0; i < Gia_ManObjNum(p); i++ )
             Vec_IntPush( vObjClasses, -1 );

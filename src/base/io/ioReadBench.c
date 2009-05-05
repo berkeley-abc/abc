@@ -224,7 +224,8 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 else if ( strcmp(pType, "NOT") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateInv(pNtk->pManFunc) );
                 else if ( strncmp(pType, "MUX", 3) == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1-0 1\n-11 1\n") );
+//                    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1-0 1\n-11 1\n") );
+                    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "0-1 1\n11- 1\n") );
                 else if ( strncmp(pType, "gnd", 3) == 0 )
                     Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 0\n" ) );
                 else if ( strncmp(pType, "vdd", 3) == 0 )
