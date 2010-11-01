@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "ivy.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -93,7 +96,7 @@ void Abc_NtkBmcReport( Ivy_Man_t * pMan, Ivy_Man_t * pFrames, Ivy_Man_t * pFraig
     {
         Ivy_ManForEachNode( pMan, pFirst1, i )
         {
-            pFirst2 = Ivy_Regular( Vec_PtrEntry(vMapping, f * nIdMax + pFirst1->Id) );
+            pFirst2 = Ivy_Regular( (Ivy_Obj_t *)Vec_PtrEntry(vMapping, f * nIdMax + pFirst1->Id) );
             if ( Ivy_ObjIsConst1(pFirst2) || pFirst2->Type == 0 )
                 continue;
             pFirst3 = Ivy_Regular( pFirst2->pEquiv );
@@ -114,4 +117,6 @@ void Abc_NtkBmcReport( Ivy_Man_t * pMan, Ivy_Man_t * pFrames, Ivy_Man_t * pFraig
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

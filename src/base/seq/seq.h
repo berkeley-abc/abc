@@ -21,6 +21,7 @@
 #ifndef __SEQ_H__
 #define __SEQ_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -70,7 +72,7 @@ extern void            Seq_NtkSkewForward( Abc_Ntk_t * pNtk, float period, int f
 /*=== abcSeq.c ===============================================================*/
 extern Abc_Ntk_t *     Abc_NtkAigToSeq( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *     Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk );
-extern bool            Abc_NtkSeqCheck( Abc_Ntk_t * pNtk ); 
+extern int             Abc_NtkSeqCheck( Abc_Ntk_t * pNtk ); 
 /*=== seqShare.c =============================================================*/
 extern void            Seq_NtkShareFanouts( Abc_Ntk_t * pNtk );
 extern void            Seq_NtkShareLatches( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk );
@@ -89,9 +91,11 @@ extern int             Seq_MapComputeAreaFlows( Abc_Ntk_t * pNtk, int fVerbose )
 extern Vec_Ptr_t *     Seq_NtkReachNodes( Abc_Ntk_t * pNtk, int fFromPos );
 extern int             Seq_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

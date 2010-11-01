@@ -21,6 +21,7 @@
 #ifndef __MFS_INT_H__
 #define __MFS_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -38,9 +39,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #define MFS_FANIN_MAX   12
 
@@ -168,9 +170,11 @@ extern void             Abc_NtkMfsConstructGia( Mfs_Man_t * p );
 extern void             Abc_NtkMfsDeconstructGia( Mfs_Man_t * p );
 extern int              Abc_NtkMfsTryResubOnceGia( Mfs_Man_t * p, int * pCands, int nCands );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

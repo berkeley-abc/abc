@@ -21,11 +21,15 @@
 #ifndef __VEC_VEC_H__
 #define __VEC_VEC_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -60,26 +64,26 @@ struct Vec_Vec_t_
     for ( i = LevelStart; (i >= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
 
 // iteratores through entries
-#define Vec_VecForEachEntry( vGlob, pEntry, i, k )                                            \
+#define Vec_VecForEachEntry( Type, vGlob, pEntry, i, k )                                            \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
-#define Vec_VecForEachEntryLevel( vGlob, pEntry, i, Level )                                   \
-        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, Level), pEntry, i ) 
-#define Vec_VecForEachEntryStart( vGlob, pEntry, i, k, LevelStart )                           \
+        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryLevel( Type, vGlob, pEntry, i, Level )                                   \
+        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, Level), pEntry, i ) 
+#define Vec_VecForEachEntryStart( Type, vGlob, pEntry, i, k, LevelStart )                           \
     for ( i = LevelStart; i < Vec_VecSize(vGlob); i++ )                                       \
-        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
-#define Vec_VecForEachEntryStartStop( vGlob, pEntry, i, k, LevelStart, LevelStop )            \
+        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryStartStop( Type, vGlob, pEntry, i, k, LevelStart, LevelStop )            \
     for ( i = LevelStart; i <= LevelStop; i++ )                                               \
-        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
-#define Vec_VecForEachEntryReverse( vGlob, pEntry, i, k )                                     \
+        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryReverse( Type, vGlob, pEntry, i, k )                                     \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_PtrForEachEntryReverse( Vec_VecEntry(vGlob, i), pEntry, k ) 
-#define Vec_VecForEachEntryReverseReverse( vGlob, pEntry, i, k )                              \
+        Vec_PtrForEachEntryReverse( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryReverseReverse( Type, vGlob, pEntry, i, k )                              \
     for ( i = Vec_VecSize(vGlob) - 1; i >= 0; i-- )                                           \
-        Vec_PtrForEachEntryReverse( Vec_VecEntry(vGlob, i), pEntry, k ) 
-#define Vec_VecForEachEntryReverseStart( vGlob, pEntry, i, k, LevelStart )                    \
+        Vec_PtrForEachEntryReverse( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryReverseStart( Type, vGlob, pEntry, i, k, LevelStart )                    \
     for ( i = LevelStart; i >= 0; i-- )                                                       \
-        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
+        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -203,6 +207,25 @@ static inline void Vec_VecFree( Vec_Vec_t * p )
     Vec_VecForEachLevel( p, vVec, i )
         Vec_PtrFree( vVec );
     Vec_PtrFree( (Vec_Ptr_t *)p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_VecFreeP( Vec_Vec_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    Vec_VecFree( *p );
+    *p = NULL;
 }
 
 /**Function*************************************************************
@@ -389,6 +412,10 @@ static inline void Vec_VecSort( Vec_Vec_t * p, int fReverse )
         qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
                 (int (*)(const void *, const void *)) Vec_VecSortCompare1 );
 }
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

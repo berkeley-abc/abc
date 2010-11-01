@@ -19,6 +19,10 @@
 #ifndef __PARSE_H__
 #define __PARSE_H__
 
+
+ABC_NAMESPACE_HEADER_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -46,6 +50,10 @@
 /*=== parseCore.c =============================================================*/
 extern DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormula, int nVars, int nRanks, 
       char * ppVarNames[], DdManager * dd, DdNode * pbVars[] );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

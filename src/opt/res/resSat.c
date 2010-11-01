@@ -23,6 +23,9 @@
 #include "hop.h"
 #include "satSolver.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -55,7 +58,7 @@ void * Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins )
     int i, nNodes, status;
 
     // make sure fanins contain POs of the AIG
-    pObj = Vec_PtrEntry( vFanins, 0 );
+    pObj = (Abc_Obj_t *)Vec_PtrEntry( vFanins, 0 );
     assert( pObj->pNtk == pAig && Abc_ObjIsPo(pObj) );
 
     // collect reachable nodes
@@ -63,13 +66,13 @@ void * Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins )
 
     // assign unique numbers to each node
     nNodes = 0;
-    Abc_AigConst1(pAig)->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
+    Abc_AigConst1(pAig)->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
     Abc_NtkForEachPi( pAig, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
-    Vec_PtrForEachEntry( vFanins, pObj, i ) // useful POs
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pObj, i ) // useful POs
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
 
     // start the solver
     pSat = sat_solver_new();
@@ -78,28 +81,28 @@ void * Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins )
     // add clause for the constant node
     Res_SatAddConst1( pSat, (int)(ABC_PTRUINT_T)Abc_AigConst1(pAig)->pCopy, 0 );
     // add clauses for AND gates
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         Res_SatAddAnd( pSat, (int)(ABC_PTRUINT_T)pObj->pCopy, 
             (int)(ABC_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, (int)(ABC_PTRUINT_T)Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     Vec_PtrFree( vNodes );
     // add clauses for POs
-    Vec_PtrForEachEntry( vFanins, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pObj, i )
         Res_SatAddEqual( pSat, (int)(ABC_PTRUINT_T)pObj->pCopy, 
             (int)(ABC_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
     // add trivial clauses
-    pObj = Vec_PtrEntry(vFanins, 0);
+    pObj = (Abc_Obj_t *)Vec_PtrEntry(vFanins, 0);
     Res_SatAddConst1( pSat, (int)(ABC_PTRUINT_T)pObj->pCopy, 0 ); // care-set
-    pObj = Vec_PtrEntry(vFanins, 1);
+    pObj = (Abc_Obj_t *)Vec_PtrEntry(vFanins, 1);
     Res_SatAddConst1( pSat, (int)(ABC_PTRUINT_T)pObj->pCopy, 0 ); // on-set
 
     // bookmark the clauses of A
     sat_solver_store_mark_clauses_a( pSat );
 
     // duplicate the clauses
-    pObj = Vec_PtrEntry(vFanins, 1);
+    pObj = (Abc_Obj_t *)Vec_PtrEntry(vFanins, 1);
     Sat_SolverDoubleClauses( pSat, (int)(ABC_PTRUINT_T)pObj->pCopy );
     // add the equality constraints
-    Vec_PtrForEachEntryStart( vFanins, pObj, i, 2 )
+    Vec_PtrForEachEntryStart( Abc_Obj_t *, vFanins, pObj, i, 2 )
         Res_SatAddEqual( pSat, (int)(ABC_PTRUINT_T)pObj->pCopy, ((int)(ABC_PTRUINT_T)pObj->pCopy) + nNodes, 0 );
 
     // bookmark the roots
@@ -155,13 +158,13 @@ void * Res_SatSimulateConstr( Abc_Ntk_t * pAig, int fOnSet )
 
     // assign unique numbers to each node
     nNodes = 0;
-    Abc_AigConst1(pAig)->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
+    Abc_AigConst1(pAig)->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
     Abc_NtkForEachPi( pAig, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
-    Vec_PtrForEachEntry( vFanins, pObj, i ) // useful POs
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)nNodes++;
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pObj, i ) // useful POs
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)nNodes++;
 
     // start the solver
     pSat = sat_solver_new();
@@ -169,7 +172,7 @@ void * Res_SatSimulateConstr( Abc_Ntk_t * pAig, int fOnSet )
     // add clause for the constant node
     Res_SatAddConst1( pSat, (int)(ABC_PTRUINT_T)Abc_AigConst1(pAig)->pCopy, 0 );
     // add clauses for AND gates
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         Res_SatAddAnd( pSat, (int)(ABC_PTRUINT_T)pObj->pCopy, 
             (int)(ABC_PTRUINT_T)Abc_ObjFanin0(pObj)->pCopy, (int)(ABC_PTRUINT_T)Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     Vec_PtrFree( vNodes );
@@ -232,7 +235,7 @@ int Res_SatSimulate( Res_Sim_t * p, int nPatsLimit, int fOnSet )
     assert( iPat < nPatsLimit );
 
     // derive the SAT solver
-    pSat = Res_SatSimulateConstr( p->pAig, fOnSet );
+    pSat = (sat_solver *)Res_SatSimulateConstr( p->pAig, fOnSet );
     pSat->fSkipSimplify = 1;
     status = sat_solver_simplify( pSat );
     if ( status == 0 )
@@ -278,7 +281,7 @@ int Res_SatSimulate( Res_Sim_t * p, int nPatsLimit, int fOnSet )
                 Var = (int)(ABC_PTRUINT_T)Abc_NtkPi(p->pAig,i)->pCopy;
                 value = (int)(pSat->model.ptr[Var] == l_True);
                 if ( value )
-                    Abc_InfoSetBit( Vec_PtrEntry(vPats, i), k );
+                    Abc_InfoSetBit( (unsigned *)Vec_PtrEntry(vPats, i), k );
                 Lit = toLitCond( Var, value );
                 Vec_IntPush( vLits, Lit );
 //                printf( "%d", value );
@@ -405,4 +408,6 @@ int Res_SatAddAnd( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fCompl
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

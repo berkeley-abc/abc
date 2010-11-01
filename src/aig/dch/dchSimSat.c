@@ -20,6 +20,9 @@
 
 #include "dchInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -88,9 +91,9 @@ void Dch_ManCollectTfoCands( Dch_Man_t * p, Aig_Obj_t * pObj1, Aig_Obj_t * pObj2
     Aig_ObjSetTravIdCurrent( p->pAigTotal, Aig_ManConst1(p->pAigTotal) );    
     Dch_ManCollectTfoCands_rec( p, pObj1 );
     Dch_ManCollectTfoCands_rec( p, pObj2 );
-    Vec_PtrSort( p->vSimRoots, Aig_ObjCompareIdIncrease );
-    Vec_PtrSort( p->vSimClasses, Aig_ObjCompareIdIncrease );
-    Vec_PtrForEachEntry( p->vSimClasses, pObj, i )
+    Vec_PtrSort( p->vSimRoots, (int (*)(void))Aig_ObjCompareIdIncrease );
+    Vec_PtrSort( p->vSimClasses, (int (*)(void))Aig_ObjCompareIdIncrease );
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vSimClasses, pObj, i )
         pObj->fMarkA = 0;
 }
 
@@ -185,13 +188,13 @@ void Dch_ManResimulateCex( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
     Dch_ManResimulateSolved_rec( p, pRepr );
     p->nConeMax = ABC_MAX( p->nConeMax, p->nConeThis );
     // resimulate the cone of influence of the other nodes
-    Vec_PtrForEachEntry( p->vSimRoots, pRoot, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vSimRoots, pRoot, i )
         Dch_ManResimulateOther_rec( p, pRoot );
     // refine these nodes
     RetValue1 = Dch_ClassesRefineConst1Group( p->ppClasses, p->vSimRoots, 0 );
     // resimulate the cone of influence of the cand classes
     RetValue2 = 0;
-    Vec_PtrForEachEntry( p->vSimClasses, pRoot, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vSimClasses, pRoot, i )
     {
         ppClass = Dch_ClassesReadClass( p->ppClasses, pRoot, &nSize );
         for ( k = 0; k < nSize; k++ )
@@ -235,7 +238,7 @@ void Dch_ManResimulateCex2( Dch_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pRepr )
     Dch_ManResimulateSolved_rec( p, pRepr );
     p->nConeMax = ABC_MAX( p->nConeMax, p->nConeThis );
     // resimulate the cone of influence of the other nodes
-    Vec_PtrForEachEntry( p->vSimRoots, pRoot, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vSimRoots, pRoot, i )
         Dch_ManResimulateOther_rec( p, pRoot );
     // refine this class
     if ( Dch_ObjIsConst1Cand(p->pAigTotal, pObj) )
@@ -250,4 +253,6 @@ p->timeSimSat += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

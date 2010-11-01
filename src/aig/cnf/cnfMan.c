@@ -22,6 +22,9 @@
 #include "satSolver.h"
 #include "zlib.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -422,7 +425,7 @@ void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit )
 ***********************************************************************/
 int Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
 {
-    sat_solver * pSat = p;
+    sat_solver * pSat = (sat_solver *)p;
     Aig_Obj_t * pObj;
     int i, * pLits;
     pLits = ABC_ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
@@ -450,7 +453,7 @@ int Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
 ***********************************************************************/
 int Cnf_DataWriteAndClauses( void * p, Cnf_Dat_t * pCnf )
 {
-    sat_solver * pSat = p;
+    sat_solver * pSat = (sat_solver *)p;
     Aig_Obj_t * pObj;
     int i, Lit;
     Aig_ManForEachPo( pCnf->pMan, pObj, i )
@@ -498,8 +501,53 @@ void Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos )
     ABC_FREE( pVarToPol );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds constraints for the two-input AND-gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cnf_DataAddXorClause( void * pSat, int iVarA, int iVarB, int iVarC )
+{
+    lit Lits[3];
+    assert( iVarA > 0 && iVarB > 0 && iVarC > 0 );
+
+    Lits[0] = toLitCond( iVarA, 1 );
+    Lits[1] = toLitCond( iVarB, 1 );
+    Lits[2] = toLitCond( iVarC, 1 );
+    if ( !sat_solver_addclause( (sat_solver *)pSat, Lits, Lits + 3 ) )
+        return 0;
+
+    Lits[0] = toLitCond( iVarA, 1 );
+    Lits[1] = toLitCond( iVarB, 0 );
+    Lits[2] = toLitCond( iVarC, 0 );
+    if ( !sat_solver_addclause( (sat_solver *)pSat, Lits, Lits + 3 ) )
+        return 0;
+
+    Lits[0] = toLitCond( iVarA, 0 );
+    Lits[1] = toLitCond( iVarB, 1 );
+    Lits[2] = toLitCond( iVarC, 0 );
+    if ( !sat_solver_addclause( (sat_solver *)pSat, Lits, Lits + 3 ) )
+        return 0;
+
+    Lits[0] = toLitCond( iVarA, 0 );
+    Lits[1] = toLitCond( iVarB, 0 );
+    Lits[2] = toLitCond( iVarC, 1 );
+    if ( !sat_solver_addclause( (sat_solver *)pSat, Lits, Lits + 3 ) )
+        return 0;
+
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

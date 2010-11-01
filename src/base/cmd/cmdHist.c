@@ -18,9 +18,13 @@
 
 ***********************************************************************/
 
+#include "abc.h"
 #include "mainInt.h"
 #include "cmd.h"
 #include "cmdInt.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -41,7 +45,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Cmd_HistoryAddCommand(    Abc_Frame_t * p, char * command )
+void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 {
     static char Buffer[MAX_STR];
     strcpy( Buffer, command );
@@ -53,3 +57,5 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, char * command )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

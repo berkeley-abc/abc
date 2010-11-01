@@ -9,4 +9,5 @@ SRC +=    src/aig/cec/cecCec.c \
     src/aig/cec/cecSeq.c \
     src/aig/cec/cecSim.c \
     src/aig/cec/cecSolve.c \
+    src/aig/cec/cecSynth.c \
     src/aig/cec/cecSweep.c

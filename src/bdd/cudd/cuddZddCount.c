@@ -37,6 +37,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -113,7 +116,7 @@ Cudd_zddCount(
     if (res == CUDD_OUT_OF_MEM) {
     zdd->errorCode = CUDD_MEMORY_OUT;
     }
-    st_foreach(table, st_zdd_countfree, NIL(char));
+    st_foreach(table, (ST_PFSR)st_zdd_countfree, NIL(char));
     st_free_table(table);
 
     return(res);
@@ -152,7 +155,7 @@ Cudd_zddCountDouble(
     if (res == (double)CUDD_OUT_OF_MEM) {
     zdd->errorCode = CUDD_MEMORY_OUT;
     }
-    st_foreach(table, st_zdd_count_dbl_free, NIL(char));
+    st_foreach(table, (ST_PFSR)st_zdd_count_dbl_free, NIL(char));
     st_free_table(table);
 
     return(res);
@@ -322,3 +325,5 @@ st_zdd_count_dbl_free(
     return(ST_CONTINUE);
 
 } /* end of st_zdd_count_dbl_free */
+ABC_NAMESPACE_IMPL_END
+

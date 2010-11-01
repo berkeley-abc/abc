@@ -18,7 +18,14 @@
 
 ***********************************************************************/
 
+#ifndef __COV_INT_H__
+#define __COV_INT_H__
+
 #include "abc.h"
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -636,8 +643,12 @@ static inline int Min_CoverContainsCube( Min_Man_t * p, Min_Cube_t * pCube )
     return 0;
 }
 
+
+ABC_NAMESPACE_HEADER_END
+
+#endif
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-

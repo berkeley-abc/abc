@@ -49,6 +49,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -100,7 +103,7 @@ static int cuddBddConstrainDecomp ARGS((DdManager *dd, DdNode *f, DdNode **decom
 static DdNode * cuddBddCharToVect ARGS((DdManager *dd, DdNode *f, DdNode *x));
 static int cuddBddLICMarkEdges ARGS((DdManager *dd, DdNode *f, DdNode *c, st_table *table, st_table *cache));
 static DdNode * cuddBddLICBuildResult ARGS((DdManager *dd, DdNode *f, st_table *cache, st_table *table));
-static int MarkCacheHash ARGS((char *ptr, int modulus));
+static int MarkCacheHash ARGS((const char *ptr, int modulus));
 static int MarkCacheCompare ARGS((const char *ptr1, const char *ptr2));
 static enum st_retval MarkCacheCleanUp ARGS((char *key, char *value, char *arg));
 static DdNode * cuddBddSqueeze ARGS((DdManager *dd, DdNode *l, DdNode *u));
@@ -1237,7 +1240,7 @@ cuddBddLICompaction(
     ** appears. Hence, the same node and constrain may give different results
     ** in successive invocations.
     */
-    marktable = st_init_table(st_ptrcmp,st_ptrhash);
+    marktable = st_init_table(st_ptrcmp, st_ptrhash);;
     if (marktable == NULL) {
     return(NULL);
     }
@@ -1247,14 +1250,14 @@ cuddBddLICompaction(
     return(NULL);
     }
     if (cuddBddLICMarkEdges(dd,f,c,marktable,markcache) == CUDD_OUT_OF_MEM) {
-    st_foreach(markcache, MarkCacheCleanUp, NULL);
+    st_foreach(markcache, (ST_PFSR)MarkCacheCleanUp, NULL);
     st_free_table(marktable);
     st_free_table(markcache);
     return(NULL);
     }
-    st_foreach(markcache, MarkCacheCleanUp, NULL);
+    st_foreach(markcache, (ST_PFSR)MarkCacheCleanUp, NULL);
     st_free_table(markcache);
-    buildcache = st_init_table(st_ptrcmp,st_ptrhash);
+    buildcache = st_init_table(st_ptrcmp, st_ptrhash);;
     if (buildcache == NULL) {
     st_free_table(marktable);
     return(NULL);
@@ -1662,13 +1665,13 @@ cuddBddLICBuildResult(
 ******************************************************************************/
 static int
 MarkCacheHash(
-  char * ptr,
+  const char * ptr,
   int  modulus)
 {
     int val = 0;
-    MarkCacheKey *entry;
+    const MarkCacheKey *entry;
 
-    entry = (MarkCacheKey *) ptr;
+    entry = (const MarkCacheKey *) ptr;
 
     val = (int) (ptrint) entry->f;
     val = val * 997 + (int) (ptrint) entry->c;
@@ -1966,3 +1969,5 @@ cuddBddSqueeze(
     return(Cudd_NotCond(r,comple));
 
 } /* end of cuddBddSqueeze */
+ABC_NAMESPACE_IMPL_END
+

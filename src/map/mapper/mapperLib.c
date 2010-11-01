@@ -23,6 +23,9 @@
 
 #include "mapperInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,7 +53,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Map_SuperLib_t * Map_SuperLibCreate( char * pFileName, char * pExcludeFile, bool fAlgorithm, bool fVerbose )
+Map_SuperLib_t * Map_SuperLibCreate( char * pFileName, char * pExcludeFile, int fAlgorithm, int fVerbose )
 {
     Map_SuperLib_t * p;
     int clk;
@@ -250,4 +253,6 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

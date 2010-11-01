@@ -20,6 +20,9 @@
 
 #include "retInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -38,7 +41,7 @@ static int         Abc_NtkRetimeUsingLags( Abc_Ntk_t * pNtk, Vec_Int_t * vLags, 
 
 static inline int  Abc_NodeComputeLag( int LValue, int Fi )          { return (LValue + (1<<16)*Fi)/Fi - (1<<16) - (int)(LValue % Fi == 0);     }
 static inline int  Abc_NodeGetLValue( Abc_Obj_t * pNode )            { return (int)(ABC_PTRUINT_T)pNode->pCopy;        }
-static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value ) { pNode->pCopy = (void *)(ABC_PTRUINT_T)Value;    }
+static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value ) { pNode->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Value;    }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -247,7 +250,7 @@ int Abc_NtkRetimeUpdateLValue( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t *
     int i, k, lValueNew, fChange;
     // go through the nodes and detect change
     fChange = 0;
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         assert( Abc_ObjIsNode(pObj) );
         lValueNew = -ABC_INFINITY;
@@ -264,7 +267,7 @@ int Abc_NtkRetimeUpdateLValue( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t *
         }
     }
     // propagate values through the latches
-    Vec_PtrForEachEntry( vLatches, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLatches, pObj, i )
         Abc_NodeSetLValue( Abc_ObjFanout0(pObj), Abc_NodeGetLValue(Abc_ObjFanin0(Abc_ObjFanin0(pObj))) - Fi );
     return fChange;
 }
@@ -392,4 +395,6 @@ int Abc_NtkRetimeUsingLags( Abc_Ntk_t * pNtk, Vec_Int_t * vLags, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

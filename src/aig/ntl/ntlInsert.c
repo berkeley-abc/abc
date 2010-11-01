@@ -21,6 +21,9 @@
 #include "ntl.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -65,7 +68,7 @@ Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t
     // create a new node for each LUT
     vCover = Vec_IntAlloc( 1 << 16 );
     nDigits = Aig_Base10Log( Vec_PtrSize(vMapping) );
-    Vec_PtrForEachEntry( vMapping, pLut, i )
+    Vec_PtrForEachEntry( Ntl_Lut_t *, vMapping, pLut, i )
     {
         pNode = Ntl_ModelCreateNode( pRoot, pLut->nFanins );
         pNode->pSop = Kit_PlaFromTruth( p->pMemSops, pLut->pTruth, pLut->nFanins, vCover );
@@ -73,7 +76,7 @@ Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t
         {
             for ( k = 0; k < pLut->nFanins; k++ )
             {
-                pNet = Vec_PtrEntry( vCopies, pLut->pFanins[k] );
+                pNet = (Ntl_Net_t *)Vec_PtrEntry( vCopies, pLut->pFanins[k] );
                 if ( pNet == NULL )
                 {
                     printf( "Ntl_ManInsert(): Internal error: Net not found.\n" );
@@ -108,9 +111,9 @@ Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t
         if ( pNetCo->fMark )
             continue;
         pNetCo->fMark = 1;
-        pNet = Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pCopy)->Id );
+        pNet = (Ntl_Net_t *)Vec_PtrEntry( vCopies, Aig_Regular((Aig_Obj_t *)pNetCo->pCopy)->Id );
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = Aig_IsComplement(pNetCo->pCopy)? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
+        pNode->pSop = Aig_IsComplement((Aig_Obj_t *)pNetCo->pCopy)? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
         assert( pNetCo->pDriver == NULL );
@@ -187,8 +190,8 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
             return 0;
         }
         pNode = Ntl_ModelCreateNode( pRoot, 2 );
-        Ntl_ObjSetFanin( pNode, Aig_ObjFanin0(pObj)->pData, 0 );
-        Ntl_ObjSetFanin( pNode, Aig_ObjFanin1(pObj)->pData, 1 );
+        Ntl_ObjSetFanin( pNode, (Ntl_Net_t *)Aig_ObjFanin0(pObj)->pData, 0 );
+        Ntl_ObjSetFanin( pNode, (Ntl_Net_t *)Aig_ObjFanin1(pObj)->pData, 1 );
         if ( Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj) )
             pNode->pSop = Ntl_ManStoreSop( p->pMemSops, "00 1\n" );
         else if ( Aig_ObjFaninC0(pObj) && !Aig_ObjFaninC1(pObj) )
@@ -224,7 +227,7 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
         pObj = Aig_ManPo( pAig, i );
         pFanin = Aig_ObjFanin0( pObj );
         // get the net driving the driver
-        pNet = pFanin->pData; 
+        pNet = (Ntl_Net_t *)pFanin->pData; 
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
         pNode->pSop = Aig_ObjFaninC0(pObj)? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
@@ -317,7 +320,7 @@ Ntl_Man_t * Ntl_ManInsertNtk2( Ntl_Man_t * p, Nwk_Man_t * pNtk )
     nDigits = Aig_Base10Log( Nwk_ManNodeNum(pNtk) );
     // go through the nodes in the topological order
     vObjs = Nwk_ManDfs( pNtk );
-    Vec_PtrForEachEntry( vObjs, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vObjs, pObj, i )
     {
         if ( !Nwk_ObjIsNode(pObj) )
             continue;
@@ -351,7 +354,7 @@ Ntl_Man_t * Ntl_ManInsertNtk2( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         {
             Nwk_ObjForEachFanin( pObj, pFanin, k )
             {
-                pNet = pFanin->pCopy;
+                pNet = (Ntl_Net_t *)pFanin->pCopy;
                 if ( pNet == NULL )
                 {
                     printf( "Ntl_ManInsertNtk(): Internal error: Net not found.\n" );
@@ -404,7 +407,7 @@ Ntl_Man_t * Ntl_ManInsertNtk2( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         pObj = Nwk_ManCo( pNtk, i );
         pFanin = Nwk_ObjFanin0( pObj );
         // get the net driving this PO
-        pNet = pFanin->pCopy; 
+        pNet = (Ntl_Net_t *)pFanin->pCopy; 
         if ( pNet == NULL ) // constant net
         {
             assert( fWriteConstants );
@@ -500,7 +503,7 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
     nDigits = Aig_Base10Log( Nwk_ManNodeNum(pNtk) );
     // go through the nodes in the topological order
     vObjs = Nwk_ManDfs( pNtk );
-    Vec_PtrForEachEntry( vObjs, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vObjs, pObj, i )
     {
         if ( !Nwk_ObjIsNode(pObj) )
             continue;
@@ -512,7 +515,7 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         {
             Nwk_ObjForEachFanin( pObj, pFanin, k )
             {
-                pNet = pFanin->pCopy;
+                pNet = (Ntl_Net_t *)pFanin->pCopy;
                 if ( pNet == NULL )
                 {
                     printf( "Ntl_ManInsertNtk(): Internal error: Net not found.\n" );
@@ -562,7 +565,7 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         pObj = Nwk_ManCo( pNtk, i );
         pFanin = Nwk_ObjFanin0( pObj );
         // get the net driving this PO
-        pNet = pFanin->pCopy; 
+        pNet = (Ntl_Net_t *)pFanin->pCopy; 
         if ( Nwk_ObjFanoutNum(pFanin) == 1 && Ntl_ObjIsNode(pNet->pDriver) )
         {
             pNode = pNet->pDriver;
@@ -606,4 +609,6 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

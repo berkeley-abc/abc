@@ -18,6 +18,9 @@
 
 #include "dsdInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -100,7 +103,7 @@ void Dsd_ManagerStop( Dsd_Manager_t * dMan )
     Dsd_Node_t * pNode;
     DdNode * bFunc;
     // delete the nodes
-    st_foreach_item( dMan->Table, gen, (char**)&bFunc, (char**)&pNode )
+    st_foreach_item( dMan->Table, gen, (const char**)&bFunc, (char**)&pNode )
         Dsd_TreeNodeDelete( dMan->dd, Dsd_Regular(pNode) );
     st_free_table(dMan->Table);
     ABC_FREE( dMan->pInputs );
@@ -112,3 +115,5 @@ void Dsd_ManagerStop( Dsd_Manager_t * dMan )
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

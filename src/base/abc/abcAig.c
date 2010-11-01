@@ -20,6 +20,8 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
 /*
     AIG is an And-Inv Graph with structural hashing.
     It is always structurally hashed. It means that at any time:
@@ -203,7 +205,7 @@ int Abc_AigCleanup( Abc_Aig_t * pMan )
             if ( Abc_ObjFanoutNum(pAnd) == 0 )
                 Vec_PtrPush( vDangles, pAnd );
     // process the dangling nodes and their MFFCs
-    Vec_PtrForEachEntry( vDangles, pAnd, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vDangles, pAnd, i )
         Abc_AigDeleteNode( pMan, pAnd );
     Vec_PtrFree( vDangles );
     return nNodesOld - pMan->nEntries;
@@ -220,7 +222,7 @@ int Abc_AigCleanup( Abc_Aig_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_AigCheck( Abc_Aig_t * pMan )
+int Abc_AigCheck( Abc_Aig_t * pMan )
 {
     Abc_Obj_t * pObj, * pAnd;
     int i, nFanins, Counter;
@@ -265,7 +267,7 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
     // if the node is a choice node, nodes in its class should not have fanouts
     Abc_NtkForEachNode( pMan->pNtkAig, pObj, i )
         if ( Abc_AigNodeIsChoice(pObj) )
-            for ( pAnd = pObj->pData; pAnd; pAnd = pAnd->pData )
+            for ( pAnd = (Abc_Obj_t *)pObj->pData; pAnd; pAnd = (Abc_Obj_t *)pAnd->pData )
                 if ( Abc_ObjFanoutNum(pAnd) > 0 )
                 {
                     printf( "Abc_AigCheck: Representative %s", Abc_ObjName(pAnd) );
@@ -796,12 +798,12 @@ Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs, int fImplic )
     if ( fImplic )
     {
         for ( i = 0; i < vPairs->nSize; i += 2 )
-            vPairs->pArray[i/2] = Abc_AigAnd( pMan, vPairs->pArray[i], Abc_ObjNot(vPairs->pArray[i+1]) );
+            vPairs->pArray[i/2] = Abc_AigAnd( pMan, (Abc_Obj_t *)vPairs->pArray[i], Abc_ObjNot((Abc_Obj_t *)vPairs->pArray[i+1]) );
     }
     else
     {
         for ( i = 0; i < vPairs->nSize; i += 2 )
-            vPairs->pArray[i/2] = Abc_AigXor( pMan, vPairs->pArray[i], vPairs->pArray[i+1] );
+            vPairs->pArray[i/2] = Abc_AigXor( pMan, (Abc_Obj_t *)vPairs->pArray[i], (Abc_Obj_t *)vPairs->pArray[i+1] );
     }
     vPairs->nSize = vPairs->nSize/2;
     return Abc_AigMiter_rec( pMan, (Abc_Obj_t **)vPairs->pArray, vPairs->nSize );
@@ -827,7 +829,7 @@ Abc_Obj_t * Abc_AigMiter2( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
     pMiter = Abc_ObjNot( Abc_AigConst1(pMan->pNtkAig) );
     for ( i = 0; i < vPairs->nSize; i += 2 )
     {
-        pXor   = Abc_AigXor( pMan, vPairs->pArray[i], vPairs->pArray[i+1] );
+        pXor   = Abc_AigXor( pMan, (Abc_Obj_t *)vPairs->pArray[i], (Abc_Obj_t *)vPairs->pArray[i+1] );
         pMiter = Abc_AigOr( pMan, pMiter, pXor );
     }
     return pMiter;
@@ -847,7 +849,7 @@ Abc_Obj_t * Abc_AigMiter2( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool fUpdateLevel )
+void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int fUpdateLevel )
 {
     assert( Vec_PtrSize(pMan->vStackReplaceOld) == 0 );
     assert( Vec_PtrSize(pMan->vStackReplaceNew) == 0 );
@@ -860,8 +862,8 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool 
     // process the replacements
     while ( Vec_PtrSize(pMan->vStackReplaceOld) )
     {
-        pOld = Vec_PtrPop( pMan->vStackReplaceOld );
-        pNew = Vec_PtrPop( pMan->vStackReplaceNew );
+        pOld = (Abc_Obj_t *)Vec_PtrPop( pMan->vStackReplaceOld );
+        pNew = (Abc_Obj_t *)Vec_PtrPop( pMan->vStackReplaceNew );
         Abc_AigReplace_int( pMan, pOld, pNew, fUpdateLevel );
     }
     if ( fUpdateLevel )
@@ -893,7 +895,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
     assert( Abc_ObjFanoutNum(pOld) > 0 );
     // look at the fanouts of old node
     Abc_NodeCollectFanouts( pOld, pMan->vNodes );
-    Vec_PtrForEachEntry( pMan->vNodes, pFanout, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, pMan->vNodes, pFanout, k )
     {
         if ( Abc_ObjIsCo(pFanout) )
         {
@@ -984,7 +986,7 @@ void Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
     assert( Abc_ObjFanoutNum(pNode) == 0 );
 
     // when deleting an old node that is scheduled for replacement, remove it from the replacement queue
-    Vec_PtrForEachEntry( pMan->vStackReplaceOld, pTemp, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, pMan->vStackReplaceOld, pTemp, i )
         if ( pNode == pTemp )
         {
             // remove the entry from the replacement array
@@ -998,7 +1000,7 @@ void Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
         }
 
     // when deleting a new node that should replace another node, do not delete
-    Vec_PtrForEachEntry( pMan->vStackReplaceNew, pTemp, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, pMan->vStackReplaceNew, pTemp, i )
         if ( pNode == Abc_ObjRegular(pTemp) )
             return;
 
@@ -1057,7 +1059,7 @@ void Abc_AigUpdateLevel_int( Abc_Aig_t * pMan )
     {
         if ( Vec_PtrSize(vVec) == 0 )
             continue;
-        Vec_PtrForEachEntry( vVec, pNode, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vVec, pNode, k )
         {
             if ( pNode == NULL )
                 continue;
@@ -1113,7 +1115,7 @@ void Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan )
     {
         if ( Vec_PtrSize(vVec) == 0 )
             continue;
-        Vec_PtrForEachEntry( vVec, pNode, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vVec, pNode, k )
         {
             if ( pNode == NULL )
                 continue;
@@ -1168,8 +1170,8 @@ void Abc_AigRemoveFromLevelStructure( Vec_Vec_t * vStruct, Abc_Obj_t * pNode )
     Abc_Obj_t * pTemp;
     int m;
     assert( pNode->fMarkA );
-    vVecTemp = Vec_VecEntry( vStruct, pNode->Level );
-    Vec_PtrForEachEntry( vVecTemp, pTemp, m )
+    vVecTemp = (Vec_Ptr_t *)Vec_VecEntry( vStruct, pNode->Level );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVecTemp, pTemp, m )
     {
         if ( pTemp != pNode )
             continue;
@@ -1197,8 +1199,8 @@ void Abc_AigRemoveFromLevelStructureR( Vec_Vec_t * vStruct, Abc_Obj_t * pNode )
     Abc_Obj_t * pTemp;
     int m;
     assert( pNode->fMarkB );
-    vVecTemp = Vec_VecEntry( vStruct, Abc_ObjReverseLevel(pNode) );
-    Vec_PtrForEachEntry( vVecTemp, pTemp, m )
+    vVecTemp = (Vec_Ptr_t *)Vec_VecEntry( vStruct, Abc_ObjReverseLevel(pNode) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVecTemp, pTemp, m )
     {
         if ( pTemp != pNode )
             continue;
@@ -1224,7 +1226,7 @@ void Abc_AigRemoveFromLevelStructureR( Vec_Vec_t * vStruct, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_AigNodeHasComplFanoutEdge( Abc_Obj_t * pNode )
+int Abc_AigNodeHasComplFanoutEdge( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanout;
     int i, iFanin;
@@ -1251,7 +1253,7 @@ bool Abc_AigNodeHasComplFanoutEdge( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_AigNodeHasComplFanoutEdgeTrav( Abc_Obj_t * pNode )
+int Abc_AigNodeHasComplFanoutEdgeTrav( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanout;
     int i, iFanin;
@@ -1313,7 +1315,7 @@ void Abc_AigPrintNode( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_AigNodeIsAcyclic( Abc_Obj_t * pNode, Abc_Obj_t * pRoot )
+int Abc_AigNodeIsAcyclic( Abc_Obj_t * pNode, Abc_Obj_t * pRoot )
 {
     Abc_Obj_t * pFanin0, * pFanin1;
     Abc_Obj_t * pChild00, * pChild01;
@@ -1497,4 +1499,12 @@ int Abc_AigCountNext( Abc_Aig_t * pMan )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+void Abc_NtkHelloWorld( Abc_Ntk_t * pNtk )
+{
+    printf( "Hello, World!\n" );
+}
+
+
+ABC_NAMESPACE_IMPL_END
 

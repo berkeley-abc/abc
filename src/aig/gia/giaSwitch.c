@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "giaAig.h"
+#include "main.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -597,6 +601,13 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     {
         Gia_ManForEachObj( pAig, pObj, i )
             pSwitching[i] = Gia_ManSwiComputeProbOne( p->pData1[i], pPars->nWords*(pPars->nIters-pPars->nPref) );
+        Gia_ManForEachCo( pAig, pObj, i )
+        {
+            if ( Gia_ObjFaninC0(pObj) )
+                pSwitching[Gia_ObjId(pAig,pObj)] = (float)1.0-pSwitching[Gia_ObjId(pAig,Gia_ObjFanin0(pObj))];
+            else
+                pSwitching[Gia_ObjId(pAig,pObj)] = pSwitching[Gia_ObjId(pAig,Gia_ObjFanin0(pObj))];
+        }
     }
     else if ( pPars->fProbTrans )
     {
@@ -608,6 +619,27 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
         Gia_ManForEachObj( pAig, pObj, i )
             pSwitching[i] = Gia_ManSwiComputeSwitching( p->pData1[i], pPars->nWords*(pPars->nIters-pPars->nPref) );
     }
+/*
+    printf( "PI: " );
+    Gia_ManForEachPi( pAig, pObj, i )
+        printf( "%d=%d (%f)  ", i, p->pData1[Gia_ObjId(pAig,pObj)], pSwitching[Gia_ObjId(pAig,pObj)] );
+    printf( "\n" );
+
+    printf( "LO: " );
+    Gia_ManForEachRo( pAig, pObj, i )
+        printf( "%d=%d (%f)  ", i, p->pData1[Gia_ObjId(pAig,pObj)], pSwitching[Gia_ObjId(pAig,pObj)] );
+    printf( "\n" );
+
+    printf( "PO: " );
+    Gia_ManForEachPo( pAig, pObj, i )
+        printf( "%d=%d (%f)  ", i, p->pData1[Gia_ObjId(pAig,pObj)], pSwitching[Gia_ObjId(pAig,pObj)] );
+    printf( "\n" );
+
+    printf( "LI: " );
+    Gia_ManForEachRi( pAig, pObj, i )
+        printf( "%d=%d (%f)  ", i, p->pData1[Gia_ObjId(pAig,pObj)], pSwitching[Gia_ObjId(pAig,pObj)] );
+    printf( "\n" );
+*/
     Gia_ManSwiDelete( p );
     return vSwitching;
 
@@ -625,7 +657,6 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
 ***********************************************************************/
 Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref, int fProbOne )
 {
-    extern char * Abc_FrameReadFlag( char * pFlag );
     Gia_ParSwi_t Pars, * pPars = &Pars;
     Vec_Int_t * vSwitching, * vResult;
     Gia_Man_t * p;
@@ -658,7 +689,11 @@ Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref
     // transfer the computed result to the original AIG
     vResult = Vec_IntStart( Aig_ManObjNumMax(pAig) );
     Aig_ManForEachObj( pAig, pObj, i )
+    {
+//        if ( Aig_ObjIsPo(pObj) )
+//            printf( "%d=%f\n", i, Aig_Int2Float( Vec_IntEntry(vSwitching, Gia_Lit2Var(pObj->iData)) ) );
         Vec_IntWriteEntry( vResult, i, Vec_IntEntry(vSwitching, Gia_Lit2Var(pObj->iData)) );
+    }
     // delete intermediate results
     Vec_IntFree( vSwitching );
     Gia_ManStop( p );
@@ -756,4 +791,6 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

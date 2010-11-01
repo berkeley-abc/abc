@@ -19,7 +19,11 @@
 ***********************************************************************/
 
 #include "cecInt.h"
+#include "fra.h"
 #include "giaAig.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -44,8 +48,8 @@ void Cec_ManTransformPattern( Gia_Man_t * p, int iOut, int * pValues )
 {
     int i;
     assert( p->pCexComb == NULL );
-    p->pCexComb = (Gia_Cex_t *)ABC_CALLOC( char, 
-        sizeof(Gia_Cex_t) + sizeof(unsigned) * Gia_BitWordNum(Gia_ManCiNum(p)) );
+    p->pCexComb = (Abc_Cex_t *)ABC_CALLOC( char, 
+        sizeof(Abc_Cex_t) + sizeof(unsigned) * Gia_BitWordNum(Gia_ManCiNum(p)) );
     p->pCexComb->iPo = iOut;
     p->pCexComb->nPis = Gia_ManCiNum(p);
     p->pCexComb->nBits = Gia_ManCiNum(p);
@@ -65,45 +69,53 @@ void Cec_ManTransformPattern( Gia_Man_t * p, int iOut, int * pValues )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose )
+int Cec_ManVerifyOld( Gia_Man_t * pMiter, int fVerbose, int * piOutFail )
 {
-    extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
+//    extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
     extern int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs );
     Gia_Man_t * pTemp = Gia_ManTransformMiter( pMiter );
     Aig_Man_t * pMiterCec = Gia_ManToAig( pTemp, 0 );
     int RetValue, iOut, nOuts, clkTotal = clock();
+    if ( piOutFail )
+        *piOutFail = -1;
     Gia_ManStop( pTemp );
     // run CEC on this miter
-    RetValue = Fra_FraigCec( &pMiterCec, 100000, fVerbose );
+    RetValue = Fra_FraigCec( &pMiterCec, 10000000, fVerbose );
     // report the miter
     if ( RetValue == 1 )
     {
-        printf( "Networks are equivalent.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+        Abc_Print( 1, "Networks are equivalent.   " );
+Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
-        printf( "Networks are NOT EQUIVALENT.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+        Abc_Print( 1, "Networks are NOT EQUIVALENT.   " );
+Abc_PrintTime( 1, "Time", clock() - clkTotal );
         if ( pMiterCec->pData == NULL )
-            printf( "Counter-example is not available.\n" );
+            Abc_Print( 1, "Counter-example is not available.\n" );
         else
         {
-            iOut = Ssw_SecCexResimulate( pMiterCec, pMiterCec->pData, &nOuts );
+            iOut = Ssw_SecCexResimulate( pMiterCec, (int *)pMiterCec->pData, &nOuts );
             if ( iOut == -1 )
-                printf( "Counter-example verification has failed.\n" );
+                Abc_Print( 1, "Counter-example verification has failed.\n" );
             else 
             {
-                printf( "Primary output %d has failed in frame %d.\n", iOut );
-                printf( "The counter-example detected %d incorrect outputs.\n", nOuts );
+//                Aig_Obj_t * pObj = Aig_ManPo(pMiterCec, iOut);
+//                Aig_Obj_t * pFan = Aig_ObjFanin0(pObj);
+                Abc_Print( 1, "Primary output %d has failed", iOut );
+                if ( nOuts-1 >= 0 )
+                    Abc_Print( 1, ", along with other %d incorrect outputs", nOuts-1 );
+                Abc_Print( 1, ".\n" );
+                if ( piOutFail )
+                    *piOutFail = iOut;
             }
-            Cec_ManTransformPattern( pMiter, iOut, pMiterCec->pData );
+            Cec_ManTransformPattern( pMiter, iOut, (int *)pMiterCec->pData );
         }
     }
     else
     {
-        printf( "Networks are UNDECIDED.   " );
-ABC_PRT( "Time", clock() - clkTotal );
+        Abc_Print( 1, "Networks are UNDECIDED.   " );
+Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     fflush( stdout );
     Aig_ManStop( pMiterCec );
@@ -121,13 +133,18 @@ ABC_PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars )
+int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
 {
-    int fDumpUndecided = 1;
+    int fDumpUndecided = 0;
     Cec_ParFra_t ParsFra, * pParsFra = &ParsFra;
-    Gia_Man_t * pNew;
+    Gia_Man_t * p, * pNew;
     int RetValue, clk = clock();
     double clkTotal = clock();
+    // preprocess 
+    p = Gia_ManDup( pInit );
+    Gia_ManEquivFixOutputPairs( p );
+    p = Gia_ManCleanup( pNew = p );
+    Gia_ManStop( pNew );
     // sweep for equivalences
     Cec_ManFraSetDefaultParams( pParsFra );
     pParsFra->nItersMax    = 1000;
@@ -137,27 +154,60 @@ int Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars )
     pParsFra->fCheckMiter  = 1;
     pParsFra->fDualOut     = 1;
     pNew = Cec_ManSatSweeping( p, pParsFra );
+    pPars->iOutFail = pParsFra->iOutFail;
+    // update
+    pInit->pCexComb = p->pCexComb; p->pCexComb = NULL;
+    Gia_ManStop( p );
+    p = pInit;
+    // continue
     if ( pNew == NULL )
     {
-        if ( !Gia_ManVerifyCounterExample( p, p->pCexComb, 1 ) )
-            printf( "Counter-example simulation has failed.\n" );
-        printf( "Networks are NOT EQUIVALENT.  " );
-        ABC_PRT( "Time", clock() - clk );
-        return 0;
+        if ( p->pCexComb != NULL )
+        {
+            if ( p->pCexComb && !Gia_ManVerifyCounterExample( p, p->pCexComb, 1 ) )
+                Abc_Print( 1, "Counter-example simulation has failed.\n" );
+            Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
+            Abc_PrintTime( 1, "Time", clock() - clk );
+            return 0;
+        }
+        p = Gia_ManDup( pInit );
+        Gia_ManEquivFixOutputPairs( p );
+        p = Gia_ManCleanup( pNew = p );
+        Gia_ManStop( pNew );
+        pNew = p;
     }
     if ( Gia_ManAndNum(pNew) == 0 )
     {
-        printf( "Networks are equivalent.  " );
-        ABC_PRT( "Time", clock() - clk );
+        Gia_Obj_t * pObj1, * pObj2;
+        int i;
+        Gia_ManForEachPo( pNew, pObj1, i )
+        {
+            pObj2 = Gia_ManPo( pNew, ++i );
+            if ( Gia_ObjChild0(pObj1) != Gia_ObjChild0(pObj2) )
+            {
+                Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
+                Abc_PrintTime( 1, "Time", clock() - clk );
+                Gia_ManStop( pNew );
+                pPars->iOutFail = i/2;
+                return 0;
+            }
+        }
+        Abc_Print( 1, "Networks are equivalent.  " );
+        Abc_PrintTime( 1, "Time", clock() - clk );
         Gia_ManStop( pNew );
         return 1;
     }
-    printf( "Networks are UNDECIDED after the new CEC engine.  " );
-    ABC_PRT( "Time", clock() - clk );
+    if ( pPars->fVerbose )
+    {
+    Abc_Print( 1, "Networks are UNDECIDED after the new CEC engine.  " );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    }
     if ( fDumpUndecided )
     {
+        ABC_FREE( pNew->pReprs );
+        ABC_FREE( pNew->pNexts );
         Gia_WriteAiger( pNew, "gia_cec_undecided.aig", 0, 0 );
-        printf( "The result is written into file \"%s\".\n", "gia_cec_undecided.aig" );
+        Abc_Print( 1, "The result is written into file \"%s\".\n", "gia_cec_undecided.aig" );
     }
     if ( pPars->TimeLimit && ((double)clock() - clkTotal)/CLOCKS_PER_SEC >= pPars->TimeLimit )
     {
@@ -165,12 +215,13 @@ int Cec_ManVerify( Gia_Man_t * p, Cec_ParCec_t * pPars )
         return -1;
     }
     // call other solver
-    printf( "Calling the old CEC engine.\n" );
+    if ( pPars->fVerbose )
+    Abc_Print( 1, "Calling the old CEC engine.\n" );
     fflush( stdout );
-    RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose );
+    RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail );
     p->pCexComb = pNew->pCexComb; pNew->pCexComb = NULL;
     if ( p->pCexComb && !Gia_ManVerifyCounterExample( p, p->pCexComb, 1 ) )
-        printf( "Counter-example simulation has failed.\n" );
+        Abc_Print( 1, "Counter-example simulation has failed.\n" );
     Gia_ManStop( pNew );
     return RetValue;
 }
@@ -208,7 +259,7 @@ int Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose )
 
   Description [Returns 1 if equivalent, 0 if counter-example, -1 if undecided.
   Counter-example is returned in the first manager as pAig0->pSeqModel.
-  The format is given in Gia_Cex_t (file "abc\src\aig\gia\gia.h").]
+  The format is given in Abc_Cex_t (file "abc\src\aig\gia\gia.h").]
                
   SideEffects []
 
@@ -248,7 +299,6 @@ int Cec_ManVerifyTwoAigs( Aig_Man_t * pAig0, Aig_Man_t * pAig1, int fVerbose )
 ***********************************************************************/
 Aig_Man_t * Cec_LatchCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat )
 {
-    extern int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
     Gia_Man_t * pGia;
     Cec_ParCor_t CorPars, * pCorPars = &CorPars;
     Cec_ManCorSetDefaultParams( pCorPars );
@@ -275,7 +325,6 @@ Aig_Man_t * Cec_LatchCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat 
 ***********************************************************************/
 Aig_Man_t * Cec_SignalCorrespondence( Aig_Man_t * pAig, int nConfs, int fUseCSat )
 {
-    extern int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
     Gia_Man_t * pGia;
     Cec_ParCor_t CorPars, * pCorPars = &CorPars;
     Cec_ManCorSetDefaultParams( pCorPars );
@@ -304,6 +353,7 @@ Aig_Man_t * Cec_FraigCombinational( Aig_Man_t * pAig, int nConfs, int fVerbose )
     Gia_Man_t * pGia;
     Cec_ParFra_t FraPars, * pFraPars = &FraPars;
     Cec_ManFraSetDefaultParams( pFraPars );
+    pFraPars->fSatSweeping = 1;
     pFraPars->nBTLimit  = nConfs;
     pFraPars->nItersMax = 20;
     pFraPars->fVerbose  = fVerbose;
@@ -318,4 +368,6 @@ Aig_Man_t * Cec_FraigCombinational( Aig_Man_t * pAig, int nConfs, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

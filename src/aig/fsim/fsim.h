@@ -21,6 +21,7 @@
 #ifndef __FSIM_H__
 #define __FSIM_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -85,9 +87,11 @@ extern Vec_Int_t *    Fsim_ManSwitchSimulate( Aig_Man_t * pAig, Fsim_ParSwitch_t
 /*=== fsimTsim.c ==========================================================*/
 extern Vec_Ptr_t *    Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

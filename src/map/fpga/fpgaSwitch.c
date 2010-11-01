@@ -18,6 +18,9 @@
 
 #include "fpgaInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -148,4 +151,6 @@ float Fpga_MappingGetSwitching( Fpga_Man_t * pMan, Fpga_NodeVec_t * vMapping )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

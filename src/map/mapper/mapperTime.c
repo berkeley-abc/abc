@@ -18,6 +18,9 @@
 
 #include "mapperInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -96,7 +99,7 @@ float Map_TimeCutComputeArrival( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhas
     unsigned uPhaseTot = pM->uPhaseBest;
     Map_Time_t * ptArrRes = &pM->tArrive;
     Map_Time_t * ptArrIn;
-    bool fPinPhase;
+    int fPinPhase;
     float tDelay;
     int i;
 
@@ -507,4 +510,6 @@ float Map_MatchComputeReqTimes( Map_Cut_t * pCut, int fPhase, Map_Time_t * ptArr
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

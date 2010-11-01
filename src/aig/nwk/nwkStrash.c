@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -79,7 +82,7 @@ Aig_Obj_t * Nwk_ManStrashNode( Aig_Man_t * p, Nwk_Obj_t * pObj )
     Nwk_ManStrashNode_rec( p, Hop_Regular(pRoot) );
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
     // return the final node
-    return Aig_NotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
+    return Aig_NotCond( (Aig_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
 }
 
 /**Function*************************************************************
@@ -103,25 +106,25 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
     pMan = Aig_ManStart( Nwk_ManGetAigNodeNum(pNtk) );
     pMan->pName = Aig_UtilStrsav( pNtk->pName );
     pMan->pSpec = Aig_UtilStrsav( pNtk->pSpec );
-    pMan->pManTime = Tim_ManDup( pNtk->pManTime, 1 );
-    Tim_ManIncrementTravId( pMan->pManTime );
+    pMan->pManTime = Tim_ManDup( (Tim_Man_t *)pNtk->pManTime, 1 );
+    Tim_ManIncrementTravId( (Tim_Man_t *)pMan->pManTime );
     Nwk_ManForEachObj( pNtk, pObj, i )
         pObj->pCopy = NULL;
 //    Nwk_ManForEachObj( pNtk, pObj, i )
     vObjs = Nwk_ManDfs( pNtk );
-    Vec_PtrForEachEntry( vObjs, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vObjs, pObj, i )
     {
         if ( Nwk_ObjIsCi(pObj) )
         {
             pObjNew = Aig_ObjCreatePi(pMan);
-            Level = Tim_ManGetCiArrival( pMan->pManTime, pObj->PioId );
+            Level = Tim_ManGetCiArrival( (Tim_Man_t *)pMan->pManTime, pObj->PioId );
             Aig_ObjSetLevel( pObjNew, Level );
         }
         else if ( Nwk_ObjIsCo(pObj) )
         {
-            pObjNew = Aig_ObjCreatePo( pMan, Aig_NotCond(Nwk_ObjFanin0(pObj)->pCopy, pObj->fInvert) );
+            pObjNew = Aig_ObjCreatePo( pMan, Aig_NotCond((Aig_Obj_t *)Nwk_ObjFanin0(pObj)->pCopy, pObj->fInvert) );
             Level = Aig_ObjLevel( pObjNew );
-            Tim_ManSetCoArrival( pMan->pManTime, pObj->PioId, (float)Level );
+            Tim_ManSetCoArrival( (Tim_Man_t *)pMan->pManTime, pObj->PioId, (float)Level );
         }
         else if ( Nwk_ObjIsNode(pObj) )
         {
@@ -141,4 +144,6 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

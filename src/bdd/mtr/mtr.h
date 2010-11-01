@@ -36,6 +36,8 @@
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
 
+ABC_NAMESPACE_HEADER_START
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -58,17 +60,18 @@
 /* These are potential duplicates. */
 #ifndef EXTERN
 #   ifdef __cplusplus
-#    define EXTERN extern "C"
+#       ifdef ABC_NAMESPACE
+#           define EXTERN extern
+#       else
+#           define EXTERN extern "C"
+#       endif
 #   else
-#    define EXTERN extern
+#       define EXTERN extern
 #   endif
 #endif
+
 #ifndef ARGS
-#   if defined(__STDC__) || defined(__cplusplus)
-#    define ARGS(protos)    protos          /* ANSI C */
-#   else /* !(__STDC__ || __cplusplus) */
-#    define ARGS(protos)    ()              /* K&R C */
-#   endif /* !(__STDC__ || __cplusplus) */
+#define ARGS(protos) protos
 #endif
 
 #if defined(__GNUC__)
@@ -169,5 +172,7 @@ EXTERN void Mtr_PrintGroups ARGS((MtrNode *root, int silent));
 EXTERN MtrNode * Mtr_ReadGroups ARGS((FILE *fp, int nleaves));
 
 /**AutomaticEnd***************************************************************/
+
+ABC_NAMESPACE_HEADER_END
 
 #endif /* __MTR */

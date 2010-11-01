@@ -22,6 +22,9 @@
 #include "main.h"
 #include "mio.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -66,16 +69,16 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        pNode->pData = Abc_ConvertSopToBdd( dd, pNode->pData );
+        pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );
         if ( pNode->pData == NULL )
         {
             printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
             return 0;
         }
-        Cudd_Ref( pNode->pData );
+        Cudd_Ref( (DdNode *)pNode->pData );
     }
 
-    Extra_MmFlexStop( pNtk->pManFunc );
+    Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
     pNtk->pManFunc = dd;
 
     // update the network type
@@ -164,7 +167,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     // check if there are nodes with complemented SOPs
     fFound = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_SopIsComplement(pNode->pData) )
+        if ( Abc_SopIsComplement((char *)pNode->pData) )
         {
             fFound = 1;
             break;
@@ -181,12 +184,12 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     // change the cover of negated nodes
     vCube = Vec_StrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_SopIsComplement(pNode->pData) )
+        if ( Abc_SopIsComplement((char *)pNode->pData) )
         {
-            bFunc = Abc_ConvertSopToBdd( dd, pNode->pData );  Cudd_Ref( bFunc );
-            pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, 1 );
+            bFunc = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );  Cudd_Ref( bFunc );
+            pNode->pData = Abc_ConvertBddToSop( (Extra_MmFlex_t *)pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, 1 );
             Cudd_RecursiveDeref( dd, bFunc );
-            assert( !Abc_SopIsComplement(pNode->pData) );
+            assert( !Abc_SopIsComplement((char *)pNode->pData) );
         }
     Vec_StrFree( vCube );
     Extra_StopManager( dd );
@@ -211,7 +214,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
 {
     Abc_Obj_t * pNode;
     Extra_MmFlex_t * pManNew;
-    DdManager * dd = pNtk->pManFunc;
+    DdManager * dd = (DdManager *)pNtk->pManFunc;
     DdNode * bFunc;
     Vec_Str_t * vCube;
     int i, fMode;
@@ -232,7 +235,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        bFunc = pNode->pData;
+        bFunc = (DdNode *)pNode->pData;
         pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, fMode );
         if ( pNode->pNext == NULL )
         {
@@ -252,7 +255,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     // transfer from next to data
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        Cudd_RecursiveDeref( dd, pNode->pData );
+        Cudd_RecursiveDeref( dd, (DdNode *)pNode->pData );
         pNode->pData = pNode->pNext;
         pNode->pNext = NULL;
     }
@@ -482,8 +485,8 @@ int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFani
 void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 )
 {
     assert( Abc_NtkHasBdd(pNode->pNtk) ); 
-    *ppSop0 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 0 );
-    *ppSop1 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 1 );
+    *ppSop0 = Abc_ConvertBddToSop( pMmMan, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, (DdNode *)pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 0 );
+    *ppSop1 = Abc_ConvertBddToSop( pMmMan, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, (DdNode *)pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 1 );
 }
 
 
@@ -563,14 +566,14 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        pNode->pData = Abc_ConvertSopToAig( pMan, pNode->pData );
+        pNode->pData = Abc_ConvertSopToAig( pMan, (char *)pNode->pData );
         if ( pNode->pData == NULL )
         {
             printf( "Abc_NtkSopToAig: Error while converting SOP into AIG.\n" );
             return 0;
         }
     }
-    Extra_MmFlexStop( pNtk->pManFunc );
+    Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
     pNtk->pManFunc = pMan;
 
     // update the network type
@@ -595,27 +598,32 @@ Hop_Obj_t * Abc_ConvertSopToAigInternal( Hop_Man_t * pMan, char * pSop )
     Hop_Obj_t * pAnd, * pSum;
     int i, Value, nFanins;
     char * pCube;
-    int fExor = Abc_SopIsExorType(pSop);
     // get the number of variables
     nFanins = Abc_SopGetVarNum(pSop);
-    // go through the cubes of the node's SOP
-    pSum = Hop_ManConst0(pMan);
-    Abc_SopForEachCube( pSop, nFanins, pCube )
+    if ( Abc_SopIsExorType(pSop) )
     {
-        // create the AND of literals
-        pAnd = Hop_ManConst1(pMan);
-        Abc_CubeForEachVar( pCube, Value, i )
+        pSum = Hop_ManConst0(pMan); 
+        for ( i = 0; i < nFanins; i++ )
+            pSum = Hop_Exor( pMan, pSum, Hop_IthVar(pMan,i) );
+    }
+    else
+    {
+        // go through the cubes of the node's SOP
+        pSum = Hop_ManConst0(pMan); 
+        Abc_SopForEachCube( pSop, nFanins, pCube )
         {
-            if ( Value == '1' )
-                pAnd = Hop_And( pMan, pAnd, Hop_IthVar(pMan,i) );
-            else if ( Value == '0' )
-                pAnd = Hop_And( pMan, pAnd, Hop_Not(Hop_IthVar(pMan,i)) );
-        }
-        // add to the sum of cubes
-        if ( fExor )
-            pSum = Hop_Exor( pMan, pSum, pAnd );
-        else
+            // create the AND of literals
+            pAnd = Hop_ManConst1(pMan);
+            Abc_CubeForEachVar( pCube, Value, i )
+            {
+                if ( Value == '1' )
+                    pAnd = Hop_And( pMan, pAnd, Hop_IthVar(pMan,i) );
+                else if ( Value == '0' )
+                    pAnd = Hop_And( pMan, pAnd, Hop_Not(Hop_IthVar(pMan,i)) );
+            }
+            // add to the sum of cubes
             pSum = Hop_Or( pMan, pSum, pAnd );
+        }
     }
     // decide whether to complement the result
     if ( Abc_SopIsComplement(pSop) )
@@ -675,32 +683,32 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
 
     // set the mapping of elementary AIG nodes into the elementary BDD nodes
-    pMan = pNtk->pManFunc;
+    pMan = (Hop_Man_t *)pNtk->pManFunc;
     assert( Hop_ManPiNum(pMan) >= nFaninsMax ); 
     for ( i = 0; i < nFaninsMax; i++ )
     {
         Hop_ManPi(pMan, i)->pData = Cudd_bddIthVar(dd, i);
-        Cudd_Ref( Hop_ManPi(pMan, i)->pData );
+        Cudd_Ref( (DdNode *)Hop_ManPi(pMan, i)->pData );
     }
 
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        pNode->pData = Abc_ConvertAigToBdd( dd, pNode->pData );
+        pNode->pData = Abc_ConvertAigToBdd( dd, (Hop_Obj_t *)pNode->pData );
         if ( pNode->pData == NULL )
         {
             printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
             return 0;
         }
-        Cudd_Ref( pNode->pData );
+        Cudd_Ref( (DdNode *)pNode->pData );
     }
 
     // dereference intermediate BDD nodes
     for ( i = 0; i < nFaninsMax; i++ )
-        Cudd_RecursiveDeref( dd, Hop_ManPi(pMan, i)->pData );
+        Cudd_RecursiveDeref( dd, (DdNode *) Hop_ManPi(pMan, i)->pData );
 
-    Hop_ManStop( pNtk->pManFunc );
+    Hop_ManStop( (Hop_Man_t *)pNtk->pManFunc );
     pNtk->pManFunc = dd;
 
     // update the network type
@@ -727,7 +735,7 @@ void Abc_ConvertAigToBdd_rec1( DdManager * dd, Hop_Obj_t * pObj )
     Abc_ConvertAigToBdd_rec1( dd, Hop_ObjFanin0(pObj) ); 
     Abc_ConvertAigToBdd_rec1( dd, Hop_ObjFanin1(pObj) );
     pObj->pData = Cudd_bddAnd( dd, (DdNode *)Hop_ObjChild0Copy(pObj), (DdNode *)Hop_ObjChild1Copy(pObj) ); 
-    Cudd_Ref( pObj->pData );
+    Cudd_Ref( (DdNode *)pObj->pData );
     assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
     Hop_ObjSetMarkA( pObj );
 }
@@ -750,7 +758,7 @@ void Abc_ConvertAigToBdd_rec2( DdManager * dd, Hop_Obj_t * pObj )
         return;
     Abc_ConvertAigToBdd_rec2( dd, Hop_ObjFanin0(pObj) ); 
     Abc_ConvertAigToBdd_rec2( dd, Hop_ObjFanin1(pObj) );
-    Cudd_RecursiveDeref( dd, pObj->pData );
+    Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
     pObj->pData = NULL;
     assert( Hop_ObjIsMarkA(pObj) ); // loop detection
     Hop_ObjClearMarkA( pObj );
@@ -805,7 +813,7 @@ void Abc_ConvertAigToAig_rec( Abc_Ntk_t * pNtkAig, Hop_Obj_t * pObj )
         return;
     Abc_ConvertAigToAig_rec( pNtkAig, Hop_ObjFanin0(pObj) ); 
     Abc_ConvertAigToAig_rec( pNtkAig, Hop_ObjFanin1(pObj) );
-    pObj->pData = Abc_AigAnd( pNtkAig->pManFunc, (Abc_Obj_t *)Hop_ObjChild0Copy(pObj), (Abc_Obj_t *)Hop_ObjChild1Copy(pObj) ); 
+    pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, (Abc_Obj_t *)Hop_ObjChild0Copy(pObj), (Abc_Obj_t *)Hop_ObjChild1Copy(pObj) ); 
     assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
     Hop_ObjSetMarkA( pObj );
 }
@@ -828,8 +836,8 @@ Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
     Abc_Obj_t * pFanin;
     int i;
     // get the local AIG
-    pHopMan = pObjOld->pNtk->pManFunc;
-    pRoot = pObjOld->pData;
+    pHopMan = (Hop_Man_t *)pObjOld->pNtk->pManFunc;
+    pRoot = (Hop_Obj_t *)pObjOld->pData;
     // check the case of a constant
     if ( Hop_ObjIsConst1( Hop_Regular(pRoot) ) )
         return Abc_ObjNotCond( Abc_AigConst1(pNtkAig), Hop_IsComplement(pRoot) );
@@ -843,7 +851,7 @@ Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
     Abc_ConvertAigToAig_rec( pNtkAig, Hop_Regular(pRoot) );
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
     // return the result
-    return Abc_ObjNotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  
+    return Abc_ObjNotCond( (Abc_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  
 }
 
 
@@ -873,9 +881,9 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
     // update the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        pSop = Mio_GateReadSop(pNode->pData);
+        pSop = Mio_GateReadSop((Mio_Gate_t *)pNode->pData);
         assert( Abc_SopGetVarNum(pSop) == Abc_ObjFaninNum(pNode) );
-        pNode->pData = Abc_SopRegister( pNtk->pManFunc, pSop );
+        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, pSop );
     }
     return 1;
 }
@@ -999,4 +1007,6 @@ int Abc_NtkToAig( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

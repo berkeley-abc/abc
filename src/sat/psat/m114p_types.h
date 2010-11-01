@@ -3,7 +3,11 @@
 #ifndef m114p_types_h
 #define m114p_types_h
 
+
+ABC_NAMESPACE_HEADER_START
+
 typedef int   M114p_Solver_t;
-typedef int   lit;
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

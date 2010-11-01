@@ -20,6 +20,8 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -39,7 +41,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkLatchIsSelfFeed_rec( Abc_Obj_t * pLatch, Abc_Obj_t * pLatchRoot )
+int Abc_NtkLatchIsSelfFeed_rec( Abc_Obj_t * pLatch, Abc_Obj_t * pLatchRoot )
 {
     Abc_Obj_t * pFanin;
     assert( Abc_ObjIsLatch(pLatch) );
@@ -62,7 +64,7 @@ bool Abc_NtkLatchIsSelfFeed_rec( Abc_Obj_t * pLatch, Abc_Obj_t * pLatchRoot )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch )
+int Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch )
 {
     Abc_Obj_t * pFanin;
     assert( Abc_ObjIsLatch(pLatch) );
@@ -163,7 +165,7 @@ void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches )
             Abc_ObjAssignName( pLatch, Abc_ObjNameDummy("LL", i*nLatches + k, nDigits), NULL );
         }
         // patch the PI fanouts
-        Vec_PtrForEachEntry( vNodes, pFanout, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pFanout, k )
             Abc_ObjPatchFanin( pFanout, pObj, pFanin );
     }
     Vec_PtrFree( vNodes );
@@ -255,11 +257,11 @@ void Abc_NtkNodeConvertToMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * 
     Abc_ObjAddFanin( pMux, pNode1 );
     Abc_ObjAddFanin( pMux, pNode0 );
     if ( Abc_NtkHasSop(pNtk) )
-        pMux->pData = Abc_SopRegister( pNtk->pManFunc, "11- 1\n0-1 1\n" );
+        pMux->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, "11- 1\n0-1 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
-        pMux->pData = Cudd_bddIte(pNtk->pManFunc,Cudd_bddIthVar(pNtk->pManFunc,0),Cudd_bddIthVar(pNtk->pManFunc,1),Cudd_bddIthVar(pNtk->pManFunc,2)), Cudd_Ref( pMux->pData );
+        pMux->pData = Cudd_bddIte((DdManager *)pNtk->pManFunc,Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,1),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,2)), Cudd_Ref( (DdNode *)pMux->pData );
     else if ( Abc_NtkHasAig(pNtk) )
-        pMux->pData = Hop_Mux(pNtk->pManFunc,Hop_IthVar(pNtk->pManFunc,0),Hop_IthVar(pNtk->pManFunc,1),Hop_IthVar(pNtk->pManFunc,2));
+        pMux->pData = Hop_Mux((Hop_Man_t *)pNtk->pManFunc,Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,0),Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,1),Hop_IthVar((Hop_Man_t *)pNtk->pManFunc,2));
     else
         assert( 0 );
 }
@@ -343,10 +345,10 @@ Vec_Ptr_t * Abc_NtkConverLatchNamesIntoNumbers( Abc_Ntk_t * pNtk )
         pObj->pNext = (Abc_Obj_t *)(ABC_PTRINT_T)i;
     // add the numbers
     vResult = Vec_PtrAlloc( Vec_PtrSize(pNtk->vOnehots) );
-    Vec_PtrForEachEntry( pNtk->vOnehots, vNames, i )
+    Vec_PtrForEachEntry( Vec_Ptr_t *, pNtk->vOnehots, vNames, i )
     {
         vNumbers = Vec_IntAlloc( Vec_PtrSize(vNames) );
-        Vec_PtrForEachEntry( vNames, pName, k )
+        Vec_PtrForEachEntry( char *, vNames, pName, k )
         {
             Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
             if ( Num < 0 )
@@ -442,14 +444,14 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
             if ( (k >> i) & 1 )
                 Abc_ObjAddFanin( pObjNew, Abc_NtkCi(pNtkNew, Abc_NtkPiNum(pNtkNew)+k) );
         assert( Abc_ObjFaninNum(pObjNew) == nStates/2 );
-        pObjNew->pData = Abc_SopCreateOr( pNtkNew->pManFunc, nStates/2, NULL );
+        pObjNew->pData = Abc_SopCreateOr( (Extra_MmFlex_t *)pNtkNew->pManFunc, nStates/2, NULL );
         // save the new flop
         pObj = Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i );
         pObj->pCopy = pObjNew;
     }
     // duplicate the nodes
     vNodes = Abc_NtkDfs( pNtk, 0 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         pObj->pCopy = Abc_NtkDupObj( pNtkNew, pObj, 1 );
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -472,7 +474,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObjNew, Abc_ObjRegular(pObj->pCopy) );
             pfCompl[i] = Abc_ObjIsComplement(pObj->pCopy) ^ !((k >> i) & 1);
         }
-        pObjNew->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, nFlops, pfCompl );
+        pObjNew->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtkNew->pManFunc, nFlops, pfCompl );
         // connect it to the flop input
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, Abc_NtkPoNum(pNtkNew)+k), pObjNew );
     }
@@ -481,7 +483,12 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
     return pNtkNew;
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #include "giaAig.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /**Function*************************************************************
 
@@ -559,7 +566,7 @@ void Abc_NtkTransformBack( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, Vec_Ptr_t *
     Abc_NtkForEachPo( pNtkOld, pObj, i )
         pObj->pCopy = Abc_NtkPo( pNtkNew, i );
     // remap the flops
-    Vec_PtrForEachEntry( vControls, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vControls, pObj, i )
     {
         assert( Abc_ObjIsPo(pObj) && pObj->pNtk == pNtkOld );
         Vec_PtrWriteEntry( vControls, i, pObj->pCopy );
@@ -572,17 +579,17 @@ void Abc_NtkTransformBack( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, Vec_Ptr_t *
         if ( Class == -1 )
             continue;
         pDriver = Abc_ObjFanin0(Abc_ObjFanin0(pObj));
-        pCtrl = Vec_PtrEntry( vControls, Class );
+        pCtrl = (Abc_Obj_t *)Vec_PtrEntry( vControls, Class );
         pCtrl = Abc_ObjFanin0( pCtrl );
         pNodeNew = Abc_NtkCreateNode( pNtkNew );
         Abc_ObjAddFanin( pNodeNew, pCtrl );
         Abc_ObjAddFanin( pNodeNew, pDriver );
         Abc_ObjAddFanin( pNodeNew, Abc_ObjFanout0(pObj) );
-        Abc_ObjSetData( pNodeNew, Abc_SopRegister(pNtkNew->pManFunc, "0-1 1\n11- 1\n") );
+        Abc_ObjSetData( pNodeNew, Abc_SopRegister((Extra_MmFlex_t *)pNtkNew->pManFunc, "0-1 1\n11- 1\n") );
         Abc_ObjPatchFanin( Abc_ObjFanin0(pObj), pDriver, pNodeNew );
     }
     // remove the useless POs
-    Vec_PtrForEachEntry( vControls, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vControls, pObj, i )
         Abc_NtkDeleteObj( pObj );
 }
 
@@ -649,7 +656,7 @@ Abc_Ntk_t * Abc_NtkCRetime( Abc_Ntk_t * pNtk, int fVerbose )
         CountN, Count2, Count1, Count0, Vec_PtrSize(vControls) );
 
     // add the controls to the list of POs
-    Vec_PtrForEachEntry( vControls, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vControls, pObj, i )
     {
         pObjPo = Abc_NtkCreatePo( pNtk );
         Abc_ObjAddFanin( pObjPo, pObj );
@@ -675,4 +682,6 @@ Abc_Ntk_t * Abc_NtkCRetime( Abc_Ntk_t * pNtk, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

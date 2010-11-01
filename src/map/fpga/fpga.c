@@ -19,6 +19,9 @@
 #include "fpgaInt.h"
 #include "main.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -78,9 +81,9 @@ void Fpga_Init( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ***********************************************************************/
-void Fpga_End()
+void Fpga_End( Abc_Frame_t * pAbc )
 {
-    Fpga_LutLibFree( Abc_FrameReadLibLut() );
+    Fpga_LutLibFree( (Fpga_LutLib_t *)Abc_FrameReadLibLut() );
 }
 
 
@@ -153,7 +156,7 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
     }
     // replace the current library
-    Fpga_LutLibFree( Abc_FrameReadLibLut() );
+    Fpga_LutLibFree( (Fpga_LutLib_t *)Abc_FrameReadLibLut() );
     Abc_FrameSetLibLut( pLib );
     return 0;
 
@@ -224,7 +227,7 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // set the new network
-    Fpga_LutLibPrint( Abc_FrameReadLibLut() );
+    Fpga_LutLibPrint( (Fpga_LutLib_t *)Abc_FrameReadLibLut() );
     return 0;
 
 usage:
@@ -272,7 +275,7 @@ void Fpga_SetSimpleLutLib( int nLutSize )
     }
     if ( pLutLib == NULL )
         return;
-    Fpga_LutLibFree( Abc_FrameReadLibLut() );
+    Fpga_LutLibFree( (Fpga_LutLib_t *)Abc_FrameReadLibLut() );
     Abc_FrameSetLibLut( Fpga_LutLibDup(pLutLib) );
 }
 
@@ -280,4 +283,6 @@ void Fpga_SetSimpleLutLib( int nLutSize )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

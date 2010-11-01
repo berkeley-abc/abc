@@ -20,6 +20,11 @@
 
 #include "saig.h"
 
+#include "main.h"
+
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -260,7 +265,6 @@ float Saig_ManComputeProbOnePlus( int nOnes, int nSimWords, int fCompl )
 ***********************************************************************/
 Vec_Int_t * Saig_ManComputeSwitchProb4s( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
 {
-    extern char * Abc_FrameReadFlag( char * pFlag ); 
     Saig_SimObj_t * pAig, * pEntry;
     Vec_Int_t * vSwitching;
     float * pSwitching;
@@ -563,4 +567,6 @@ Aig_CMan_t * Aig_CManCreate( Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,7 @@
 #ifndef __SAT_STORE_H__
 #define __SAT_STORE_H__
 
+
 /*
     The trace of SAT solving contains the original clauses of the problem
     along with the learned clauses derived during SAT solving.
@@ -38,9 +39,7 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+ABC_NAMESPACE_HEADER_START
 
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
@@ -116,7 +115,9 @@ extern int          Sto_ManMemoryReport( Sto_Man_t * p );
 extern void         Sto_ManMarkRoots( Sto_Man_t * p );
 extern void         Sto_ManMarkClausesA( Sto_Man_t * p );
 extern void         Sto_ManDumpClauses( Sto_Man_t * p, char * pFileName );
+extern int          Sto_ManChangeLastClause( Sto_Man_t * p );
 extern Sto_Man_t *  Sto_ManLoadClauses( char * pFileName );
+
 
 /*=== satInter.c ==========================================================*/
 typedef struct Int_Man_t_ Int_Man_t;
@@ -143,9 +144,11 @@ extern Intp_Man_t * Intp_ManAlloc();
 extern void         Intp_ManFree( Intp_Man_t * p );
 extern void *       Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

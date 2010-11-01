@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -57,13 +60,12 @@ Ssw_Man_t * Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     p->iOutputLit    = -1;
     // allocate storage for sim pattern
     p->nPatWords     = Aig_BitWordNum( Saig_ManPiNum(pAig) * p->nFrames + Saig_ManRegNum(pAig) );
-    p->pPatWords     = ABC_ALLOC( unsigned, p->nPatWords ); 
+    p->pPatWords     = ABC_CALLOC( unsigned, p->nPatWords ); 
     // other
     p->vNewLos       = Vec_PtrAlloc( 100 );
     p->vNewPos       = Vec_IntAlloc( 100 );
     p->vResimConsts  = Vec_PtrAlloc( 100 );
     p->vResimClasses = Vec_PtrAlloc( 100 );
-
 //    p->pPars->fVerbose = 1;
     return p;
 }
@@ -104,10 +106,10 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
     double nMemory = 1.0*Aig_ManObjNumMax(p->pAig)*p->nFrames*(2*sizeof(int)+2*sizeof(void*))/(1<<20);
 
     printf( "Parameters: F = %d. AddF = %d. C-lim = %d. Constr = %d. MaxLev = %d. Mem = %0.2f Mb.\n", 
-        p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, p->pPars->nConstrs, p->pPars->nMaxLevs, nMemory );
+        p->pPars->nFramesK, p->pPars->nFramesAddSim, p->pPars->nBTLimit, Saig_ManConstrNum(p->pAig), p->pPars->nMaxLevs, nMemory );
     printf( "AIG       : PI = %d. PO = %d. Latch = %d. Node = %d.  Ave SAT vars = %d.\n", 
         Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), Saig_ManRegNum(p->pAig), Aig_ManNodeNum(p->pAig), 
-        0/p->pPars->nIters );
+        0/(p->pPars->nIters+1) );
     printf( "SAT calls : Proof = %d. Cex = %d. Fail = %d. Lits proved = %d.\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFailsReal, Ssw_ManCountEquivs(p) );
     printf( "SAT solver: Vars max = %d. Calls max = %d. Recycles = %d. Sim rounds = %d.\n", 
@@ -127,6 +129,19 @@ void Ssw_ManPrintStats( Ssw_Man_t * p )
     ABC_PRTP( "  undecided", p->timeSatUndec,  p->timeTotal );
     ABC_PRTP( "Other      ", p->timeOther,     p->timeTotal );
     ABC_PRTP( "TOTAL      ", p->timeTotal,     p->timeTotal );
+
+    // report the reductions
+    if ( p->pAig->nConstrs )
+    {
+        printf( "Statistics reflecting the use of constraints:\n" );
+        printf( "Total cones  = %6d.  Constraint cones = %6d. (%6.2f %%)\n", 
+            p->nConesTotal, p->nConesConstr, 100.0*p->nConesConstr/p->nConesTotal );
+        printf( "Total equivs = %6d.  Removed equivs   = %6d. (%6.2f %%)\n", 
+            p->nEquivsTotal, p->nEquivsConstr, 100.0*p->nEquivsConstr/p->nEquivsTotal );
+        printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+            p->nNodesBegC, p->nNodesEndC, 100.0*(p->nNodesBegC-p->nNodesEndC)/(p->nNodesBegC?p->nNodesBegC:1), 
+            p->nRegsBegC, p->nRegsEndC,   100.0*(p->nRegsBegC-p->nRegsEndC)/(p->nRegsBegC?p->nRegsBegC:1) );
+    }
 }
 
 /**Function*************************************************************
@@ -174,7 +189,7 @@ void Ssw_ManCleanup( Ssw_Man_t * p )
 void Ssw_ManStop( Ssw_Man_t * p )
 {
     ABC_FREE( p->pVisited );
-    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose )//&& p->pPars->nStepsMax == -1 )
         Ssw_ManPrintStats( p );
     if ( p->ppClasses )
         Ssw_ClassesStop( p->ppClasses );
@@ -182,6 +197,8 @@ void Ssw_ManStop( Ssw_Man_t * p )
         Ssw_SmlStop( p->pSml );
     if ( p->vDiffPairs )
         Vec_IntFree( p->vDiffPairs );
+    if ( p->vInits )
+        Vec_IntFree( p->vInits );
     Vec_PtrFree( p->vResimConsts );
     Vec_PtrFree( p->vResimClasses );
     Vec_PtrFree( p->vNewLos );
@@ -196,4 +213,6 @@ void Ssw_ManStop( Ssw_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

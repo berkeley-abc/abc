@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -72,7 +75,7 @@ void Gia_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int 
 {
     unsigned * pInfo;
     int i, w;
-    Vec_PtrForEachEntryStart( vInfo, pInfo, i, iInputStart )
+    Vec_PtrForEachEntryStart( unsigned *, vInfo, pInfo, i, iInputStart )
         for ( w = iWordStart; w < iWordStop; w++ )
             pInfo[w] = Gia_ManRandom(0);
 }
@@ -116,6 +119,30 @@ unsigned int Gia_PrimeCudd( unsigned int p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the time stamp.]
+
+  Description [The file should be closed.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Gia_TimeStamp()
+{
+    static char Buffer[100];
+    char * TimeStamp;
+    time_t ltime;
+    // get the current time
+    time( &ltime );
+    TimeStamp = asctime( localtime( &ltime ) );
+    TimeStamp[ strlen(TimeStamp) - 1 ] = 0;
+    strcpy( Buffer, TimeStamp );
+    return Buffer;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the composite name of the file.]
 
   Description []
@@ -136,6 +163,34 @@ char * Gia_FileNameGenericAppend( char * pBase, char * pSuffix )
     if ( (pDot = strrchr( Buffer, '\\' )) || (pDot = strrchr( Buffer, '/' )) )
         return pDot+1;
     return Buffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManIncrementTravId( Gia_Man_t * p )                     
+{ 
+    if ( p->pTravIds == NULL )
+    {
+        p->nTravIdsAlloc = Gia_ManObjNum(p) + 100; 
+        p->pTravIds = ABC_CALLOC( int, p->nTravIdsAlloc ); 
+        p->nTravIds = 0;  
+    }
+    while ( p->nTravIdsAlloc < Gia_ManObjNum(p) )
+    {
+        p->nTravIdsAlloc *= 2;
+        p->pTravIds = ABC_REALLOC( int, p->pTravIds, p->nTravIdsAlloc );
+        memset( p->pTravIds + p->nTravIdsAlloc/2, 0, sizeof(int) * p->nTravIdsAlloc/2 );
+    }
+    p->nTravIds++;                                                    
 }
 
 /**Function*************************************************************
@@ -290,6 +345,28 @@ void Gia_ManFillValue( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Sets the phase of one object.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjSetPhase( Gia_Obj_t * pObj )  
+{
+    if ( Gia_ObjIsAnd(pObj) )
+        pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj)) & 
+                       (Gia_ObjPhase(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(pObj));
+    else if ( Gia_ObjIsCo(pObj) )
+        pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj));
+    else
+        pObj->fPhase = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sets phases of the internal nodes.]
 
   Description []
@@ -304,15 +381,29 @@ void Gia_ManSetPhase( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i;
     Gia_ManForEachObj( p, pObj, i )
-    {
-        if ( Gia_ObjIsAnd(pObj) )
-            pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj)) & 
-                           (Gia_ObjPhase(Gia_ObjFanin1(pObj)) ^ Gia_ObjFaninC1(pObj));
-        else if ( Gia_ObjIsCo(pObj) )
-            pObj->fPhase = (Gia_ObjPhase(Gia_ObjFanin0(pObj)) ^ Gia_ObjFaninC0(pObj));
-        else
-            pObj->fPhase = 0;
-    }
+        Gia_ObjSetPhase( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets phases of the internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSetPhase1( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->fPhase = 1;
+    Gia_ManForEachObj( p, pObj, i )
+        if ( !Gia_ObjIsCi(pObj) )
+            Gia_ObjSetPhase( pObj );
 }
 
 /**Function*************************************************************
@@ -336,6 +427,41 @@ void Gia_ManCleanPhase( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Prepares copies for the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCleanLevels( Gia_Man_t * p, int Size )
+{
+    if ( p->vLevels == NULL )
+        p->vLevels = Vec_IntAlloc( Size );
+    Vec_IntFill( p->vLevels, Size, 0 );
+}
+/**Function*************************************************************
+
+  Synopsis    [Prepares copies for the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCleanTruth( Gia_Man_t * p )
+{
+    if ( p->vTruths == NULL )
+        p->vTruths = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Vec_IntFill( p->vTruths, Gia_ManObjNum(p), -1 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Assigns levels.]
 
   Description []
@@ -349,24 +475,18 @@ int Gia_ManLevelNum( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
-    if ( p->pLevels )
-        return p->nLevels;
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
     p->nLevels = 0;
-    p->pLevels = ABC_ALLOC( int, p->nObjsAlloc );
     Gia_ManForEachObj( p, pObj, i )
         if ( Gia_ObjIsAnd(pObj) )
-        {
-            if ( p->pLevels[Gia_ObjFaninId0(pObj, i)] > p->pLevels[Gia_ObjFaninId1(pObj, i)] )
-                p->pLevels[i] = 1 + p->pLevels[Gia_ObjFaninId0(pObj, i)];
-            else
-                p->pLevels[i] = 1 + p->pLevels[Gia_ObjFaninId1(pObj, i)];
-            if ( p->nLevels < p->pLevels[i] )
-                p->nLevels = p->pLevels[i];
-        }
+            Gia_ObjSetAndLevel( p, pObj );
         else if ( Gia_ObjIsCo(pObj) )
-            p->pLevels[i] = p->pLevels[Gia_ObjFaninId0(pObj, i)];
+        {
+            Gia_ObjSetCoLevel( p, pObj );
+            p->nLevels = ABC_MAX( p->nLevels, Gia_ObjLevel(p, pObj) );
+        }
         else
-            p->pLevels[i] = 0;
+            Gia_ObjSetLevel( p, pObj, 0 );
     return p->nLevels;
 }
 
@@ -718,15 +838,90 @@ Gia_Obj_t * Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Ob
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Cex_t * Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames )
+Abc_Cex_t * Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 {
-    Gia_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     int nWords = Gia_BitWordNum( nRegs + nRealPis * nFrames );
-    pCex = (Gia_Cex_t *)ABC_ALLOC( char, sizeof(Gia_Cex_t) + sizeof(unsigned) * nWords );
-    memset( pCex, 0, sizeof(Gia_Cex_t) + sizeof(unsigned) * nWords );
+    pCex = (Abc_Cex_t *)ABC_ALLOC( char, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
+    memset( pCex, 0, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
     pCex->nRegs  = nRegs;
     pCex->nPis   = nRealPis;
     pCex->nBits  = nRegs + nRealPis * nFrames;
+    return pCex;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintCex( Abc_Cex_t * p )
+{
+    int i, f, k;
+    for ( k = 0; k < p->nRegs; k++ )
+        printf( "%d", Gia_InfoHasBit(p->pData, k) );
+    printf( "\n" );
+    for ( f = 0; f <= p->iFrame; f++ )
+    {
+        for ( i = 0; i < p->nPis; i++ )
+            printf( "%d", Gia_InfoHasBit(p->pData, k++) );
+        printf( "\n" );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Gia_ManDeriveCexFromArray( Gia_Man_t * pAig, Vec_Int_t * vValues, int nSkip, int iFrame )
+{
+    Abc_Cex_t * pCex;
+    int i;
+    pCex = Gia_ManAllocCounterExample( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), iFrame+1 );
+    assert( Vec_IntSize(vValues) == nSkip + pCex->nBits );
+    pCex->iPo    = 0;
+    pCex->iFrame = iFrame;
+    for ( i = 0; i < pCex->nBits; i++ )
+        if ( Vec_IntEntry(vValues, nSkip + i) )
+            Gia_InfoSetBit( pCex->pData, i );
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates a counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Gia_ManCreateFromComb( int nRegs, int nRealPis, int iPo, int * pModel )
+{
+    Abc_Cex_t * pCex;
+    int i;
+    pCex = Gia_ManAllocCounterExample( nRegs, nRealPis, 1 );
+    pCex->iPo    = iPo;
+    pCex->iFrame = 0;
+    for ( i = pCex->nRegs; i < pCex->nBits; i++ )
+        if ( pModel[i-pCex->nRegs] )
+            Gia_InfoSetBit( pCex->pData, i );
     return pCex;
 }
 
@@ -741,10 +936,11 @@ Gia_Cex_t * Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDualOut )
+int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut )
 {
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int RetValue, i, k, iBit = 0;
+    Gia_ManCleanMark0(pAig);
     Gia_ManForEachRo( pAig, pObj, i )
         pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
     for ( i = 0; i <= p->iFrame; i++ )
@@ -770,6 +966,73 @@ int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDualOut )
 
 /**Function*************************************************************
 
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManVerifyCounterExampleAllOuts( Gia_Man_t * pAig, Abc_Cex_t * p )
+{
+    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    Gia_ManCleanMark0(pAig);
+    Gia_ManForEachRo( pAig, pObj, i )
+        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Gia_ManForEachPi( pAig, pObj, k )
+            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+        Gia_ManForEachAnd( pAig, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( pAig, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+    }
+    assert( iBit == p->nBits );
+    // remember the number of failed output
+    RetValue = -1;
+    Gia_ManForEachPo( pAig, pObj, i )
+        if ( Gia_ManPo(pAig, i)->fMark0 )
+        {
+            RetValue = i;
+            break;
+        }
+    Gia_ManCleanMark0(pAig);
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Make the trivial counter-example for the trivially asserted output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Gia_ManDupCounterExample( Abc_Cex_t * p, int nRegsNew )
+{
+    Abc_Cex_t * pCex;
+    int i;
+    pCex = Gia_ManAllocCounterExample( nRegsNew, p->nPis, p->iFrame+1 );
+    pCex->iPo    = p->iPo;
+    pCex->iFrame = p->iFrame;
+    for ( i = p->nRegs; i < p->nBits; i++ )
+        if ( Gia_InfoHasBit(p->pData, i) )
+            Gia_InfoSetBit( pCex->pData, pCex->nRegs + i - p->nRegs );
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints out the counter-example.]
 
   Description []
@@ -779,7 +1042,7 @@ int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Gia_Cex_t * p, int fDualOut )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintCounterExample( Gia_Cex_t * p )
+void Gia_ManPrintCounterExample( Abc_Cex_t * p )
 {
     int i, f, k;
     printf( "Counter-example: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits = %d\n", 
@@ -979,7 +1242,7 @@ int Gia_ManHasChoices( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManHasDandling( Gia_Man_t * p )
+int Gia_ManHasDangling( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i, Counter = 0;
@@ -1000,8 +1263,115 @@ int Gia_ManHasDandling( Gia_Man_t * p )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if AIG has dangling nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManGetDangling( Gia_Man_t * p )
+{
+    Vec_Int_t * vDangles;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        pObj->fMark0 = 0;
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+            Gia_ObjFanin1(pObj)->fMark0 = 1;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjFanin0(pObj)->fMark0 = 1;
+    }
+    vDangles = Vec_IntAlloc( 100 );
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( !pObj->fMark0 )
+            Vec_IntPush( vDangles, i );
+    Gia_ManCleanMark0( p );
+    return vDangles;
+}
+/**Function*************************************************************
+
+  Synopsis    [Verbose printing of the AIG node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( pObj == NULL )
+    {
+        printf( "Object is NULL." );
+        return;
+    }
+    if ( Gia_IsComplement(pObj) )
+    {
+        printf( "Compl " );
+        pObj = Gia_Not(pObj);
+    }
+    assert( !Gia_IsComplement(pObj) );
+    printf( "Node %4d : ", Gia_ObjId(p, pObj) );
+    if ( Gia_ObjIsConst0(pObj) )
+        printf( "constant 0" );
+    else if ( Gia_ObjIsPi(p, pObj) )
+        printf( "PI" );
+    else if ( Gia_ObjIsPo(p, pObj) )
+        printf( "PO( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
+    else if ( Gia_ObjIsCi(pObj) )
+        printf( "RI" );
+    else if ( Gia_ObjIsCo(pObj) )
+        printf( "RO( %4d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
+//    else if ( Gia_ObjIsBuf(pObj) )
+//        printf( "BUF( %d%s )", Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " ") );
+    else
+        printf( "AND( %4d%s, %4d%s )", 
+            Gia_ObjFaninId0p(p, pObj), (Gia_ObjFaninC0(pObj)? "\'" : " "), 
+            Gia_ObjFaninId1p(p, pObj), (Gia_ObjFaninC1(pObj)? "\'" : " ") );
+    if ( p->pRefs )
+        printf( " (refs = %3d)", Gia_ObjRefs(p, pObj) );
+    printf( "\n" );
+/*
+    if ( p->pRefs )
+    {
+        Gia_Obj_t * pFanout;
+        int i;
+        int iFan = -1; // Suppress "might be used uninitialized"
+        printf( "\nFanouts:\n" );
+        Gia_ObjForEachFanout( p, pObj, pFanout, iFan, i )
+        {
+            printf( "    " );
+            printf( "Node %4d : ", Gia_ObjId(pFanout) );
+            if ( Gia_ObjIsPo(pFanout) )
+                printf( "PO( %4d%s )", Gia_ObjFanin0(pFanout)->Id, (Gia_ObjFaninC0(pFanout)? "\'" : " ") );
+            else if ( Gia_ObjIsBuf(pFanout) )
+                printf( "BUF( %d%s )", Gia_ObjFanin0(pFanout)->Id, (Gia_ObjFaninC0(pFanout)? "\'" : " ") );
+            else
+                printf( "AND( %4d%s, %4d%s )", 
+                    Gia_ObjFanin0(pFanout)->Id, (Gia_ObjFaninC0(pFanout)? "\'" : " "), 
+                    Gia_ObjFanin1(pFanout)->Id, (Gia_ObjFaninC1(pFanout)? "\'" : " ") );
+            printf( "\n" );
+        }
+        return;
+    }
+*/
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

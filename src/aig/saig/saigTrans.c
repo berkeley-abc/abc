@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "saig.h"
+#include "fra.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /* 
     A similar approach is presented in the his paper:
@@ -59,7 +63,7 @@ static inline void Saig_ManStartMap1( Aig_Man_t * p, int nFrames )
 static inline void Saig_ManStopMap1( Aig_Man_t * p )
 {
     assert( p->pData != NULL );
-    Vec_IntFree( p->pData );
+    Vec_IntFree( (Vec_Int_t *)p->pData );
     p->pData = NULL;
 }
 static inline int Saig_ManHasMap1( Aig_Man_t * p )
@@ -68,7 +72,7 @@ static inline int Saig_ManHasMap1( Aig_Man_t * p )
 }
 static inline void Saig_ManSetMap1( Aig_Man_t * p, Aig_Obj_t * pOld, int f1, Aig_Obj_t * pNew ) 
 {
-    Vec_Int_t * vMap = p->pData;
+    Vec_Int_t * vMap = (Vec_Int_t *)p->pData;
     int nOffset = f1 * Aig_ManObjNumMax(p) + pOld->Id;
     assert( !Aig_IsComplement(pOld) );
     assert( !Aig_IsComplement(pNew) );
@@ -76,7 +80,7 @@ static inline void Saig_ManSetMap1( Aig_Man_t * p, Aig_Obj_t * pOld, int f1, Aig
 }
 static inline int Saig_ManGetMap1( Aig_Man_t * p, Aig_Obj_t * pOld, int f1 )
 {
-    Vec_Int_t * vMap = p->pData;
+    Vec_Int_t * vMap = (Vec_Int_t *)p->pData;
     int nOffset = f1 * Aig_ManObjNumMax(p) + pOld->Id;
     return Vec_IntEntry( vMap, nOffset );
 }
@@ -106,7 +110,7 @@ static inline void Saig_ManStartMap2( Aig_Man_t * p, int nFrames )
 static inline void Saig_ManStopMap2( Aig_Man_t * p )
 {
     assert( p->pData2 != NULL );
-    Vec_IntFree( p->pData2 );
+    Vec_IntFree( (Vec_Int_t *)p->pData2 );
     p->pData2 = NULL;
 }
 static inline int Saig_ManHasMap2( Aig_Man_t * p )
@@ -115,7 +119,7 @@ static inline int Saig_ManHasMap2( Aig_Man_t * p )
 }
 static inline void Saig_ManSetMap2( Aig_Man_t * p, Aig_Obj_t * pOld, int f1, Aig_Obj_t * pNew, int f2 ) 
 {
-    Vec_Int_t * vMap = p->pData2;
+    Vec_Int_t * vMap = (Vec_Int_t *)p->pData2;
     int nOffset = f1 * Aig_ManObjNumMax(p) + pOld->Id;
     assert( !Aig_IsComplement(pOld) );
     assert( !Aig_IsComplement(pNew) );
@@ -124,7 +128,7 @@ static inline void Saig_ManSetMap2( Aig_Man_t * p, Aig_Obj_t * pOld, int f1, Aig
 }
 static inline int Saig_ManGetMap2( Aig_Man_t * p, Aig_Obj_t * pOld, int f1, int * pf2 )
 {
-    Vec_Int_t * vMap = p->pData2;
+    Vec_Int_t * vMap = (Vec_Int_t *)p->pData2;
     int nOffset = f1 * Aig_ManObjNumMax(p) + pOld->Id;
     *pf2 = Vec_IntEntry( vMap, 2*nOffset + 1 );
     return Vec_IntEntry( vMap, 2*nOffset );
@@ -222,7 +226,7 @@ Aig_Man_t * Saig_ManFramesNonInitial( Aig_Man_t * pAig, int nFrames )
         Aig_ManForEachObj( pAig, pObj, i )
         {
             assert( pObj->pData != NULL );
-            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular(pObj->pData) );
+            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
         // quit if the last frame
         if ( f == nFrames - 1 )
@@ -233,7 +237,7 @@ Aig_Man_t * Saig_ManFramesNonInitial( Aig_Man_t * pAig, int nFrames )
     }
     // remember register outputs
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
-        Aig_ObjCreatePo( pFrames, pObjLi->pData );
+        Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObjLi->pData );
     Aig_ManCleanup( pFrames );
     return pFrames;
 }
@@ -266,7 +270,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
         Saig_ManForEachLo( pAig, pObj, i )
         {
             pObj->pData = Aig_ManConst0( pFrames );
-            Saig_ManSetMap1( pAig, pObj, 0, Aig_Regular(pObj->pData) );
+            Saig_ManSetMap1( pAig, pObj, 0, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
     }
     else
@@ -279,7 +283,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
         Saig_ManForEachLo( pAig, pObj, i )
         {
             pObj->pData = Aig_ObjCreatePi( pFrames );
-            Saig_ManSetMap1( pAig, pObj, 0, Aig_Regular(pObj->pData) );
+            Saig_ManSetMap1( pAig, pObj, 0, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
     }
     // add timeframes
@@ -288,7 +292,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
         // map the constant node
         pObj = Aig_ManConst1(pAig);
         pObj->pData = Aig_ManConst1( pFrames );
-        Saig_ManSetMap1( pAig, pObj, f, Aig_Regular(pObj->pData) );
+        Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         // create PI nodes for this frame
         Saig_ManForEachPi( pAig, pObj, i )
         {
@@ -296,13 +300,13 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
                 pObj->pData = Aig_ObjCreatePi( pFrames );
             else
                 pObj->pData = Aig_ManPi( pFrames, f * Saig_ManPiNum(pAig) + i );
-            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular(pObj->pData) );
+            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
         {
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular(pObj->pData) );
+            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
             if ( !Saig_ManHasMap2(pAig) )
                 continue;
             if ( f < nFrames )
@@ -322,19 +326,19 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
             iNum1 = Saig_ManGetMap1( pAig, Aig_ManObj(pAig, iNum2), iFrame2 );
             pRepr = Aig_ManObj( pFrames, iNum1 );
             // compare the phases of these nodes
-            pObj->pData = Aig_NotCond( pRepr, pRepr->fPhase ^ Aig_ObjPhaseReal(pObj->pData) );
+            pObj->pData = Aig_NotCond( pRepr, pRepr->fPhase ^ Aig_ObjPhaseReal((Aig_Obj_t *)pObj->pData) );
         }
         // create POs for this frame
         Saig_ManForEachPo( pAig, pObj, i )
         {
             pObj->pData = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Copy(pObj) );
-            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular(pObj->pData) );
+            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
         {
             pObj->pData = Aig_ObjChild0Copy(pObj);
-            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular(pObj->pData) );
+            Saig_ManSetMap1( pAig, pObj, f, Aig_Regular((Aig_Obj_t *)pObj->pData) );
         }
         // quit if the last frame
         if ( f == nFramesMax - 1 )
@@ -344,14 +348,14 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
         {
             pObjLo->pData = pObjLi->pData;
             if ( !fInit )
-                Saig_ManSetMap1( pAig, pObjLo, f+1, Aig_Regular(pObjLo->pData) );
+                Saig_ManSetMap1( pAig, pObjLo, f+1, Aig_Regular((Aig_Obj_t *)pObjLo->pData) );
         }
     }
     if ( !fInit )
     {
         // create registers
         Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
-            Aig_ObjCreatePo( pFrames, pObjLi->pData );
+            Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObjLi->pData );
         // set register number
         Aig_ManSetRegNum( pFrames, pAig->nRegs );
     }
@@ -373,7 +377,7 @@ Aig_Man_t * Saig_ManFramesInitialMapped( Aig_Man_t * pAig, int nFrames, int nFra
 ***********************************************************************/
 Aig_Man_t * Saig_ManTimeframeSimplify( Aig_Man_t * pAig, int nFrames, int nFramesMax, int fInit, int fVerbose )
 {
-    extern Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve );
+//    extern Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve );
     Aig_Man_t * pFrames, * pFraig, * pRes1, * pRes2;
     int clk;
     // create uninitialized timeframes with map1
@@ -419,4 +423,6 @@ ABC_PRT( "Normal", clock() - clk );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

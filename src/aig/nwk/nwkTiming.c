@@ -20,6 +20,9 @@
  
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -349,13 +352,13 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
         Tim_ManIncrementTravId( pNtk->pManTime );
 //    Nwk_ManForEachObj( pNtk, pObj, i )
     vObjs = Nwk_ManDfs( pNtk );
-    Vec_PtrForEachEntry( vObjs, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vObjs, pObj, i )
     {
         tArrival = Nwk_NodeComputeArrival( pObj, fUseSorting );
-        if ( Nwk_ObjIsCo(pObj) && pNtk->pManTime )
-            Tim_ManSetCoArrival( pNtk->pManTime, pObj->PioId, tArrival );
         if ( Nwk_ObjIsCi(pObj) && pNtk->pManTime )
             tArrival = Tim_ManGetCiArrival( pNtk->pManTime, pObj->PioId );
+        if ( Nwk_ObjIsCo(pObj) && pNtk->pManTime )
+            Tim_ManSetCoArrival( pNtk->pManTime, pObj->PioId, tArrival );
         Nwk_ObjSetArrival( pObj, tArrival );
     }
     Vec_PtrFree( vObjs );
@@ -379,7 +382,7 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
     }
 
     // propagate the required times
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
     {
         if ( Nwk_ObjIsNode(pObj) )
         {
@@ -518,8 +521,8 @@ void Nwk_NodeUpdateAddToQueue( Vec_Ptr_t * vQueue, Nwk_Obj_t * pObj, int iCurren
     Vec_PtrPush( vQueue, pObj );
     for ( i = Vec_PtrSize(vQueue) - 1; i > iCurrent + 1; i-- )
     {
-        pTemp1 = vQueue->pArray[i];
-        pTemp2 = vQueue->pArray[i-1];
+        pTemp1 = (Nwk_Obj_t *)vQueue->pArray[i];
+        pTemp2 = (Nwk_Obj_t *)vQueue->pArray[i-1];
         if ( fArrival )
         {
             if ( Nwk_ObjLevel(pTemp2) <= Nwk_ObjLevel(pTemp1) )
@@ -536,8 +539,8 @@ void Nwk_NodeUpdateAddToQueue( Vec_Ptr_t * vQueue, Nwk_Obj_t * pObj, int iCurren
     // verification
     for ( i = iCurrent + 1; i < Vec_PtrSize(vQueue) - 1; i++ )
     {
-        pTemp1 = vQueue->pArray[i];
-        pTemp2 = vQueue->pArray[i+1];
+        pTemp1 = (Nwk_Obj_t *)vQueue->pArray[i];
+        pTemp2 = (Nwk_Obj_t *)vQueue->pArray[i+1];
         if ( fArrival )
             assert( Nwk_ObjLevel(pTemp1) <= Nwk_ObjLevel(pTemp2) );
         else
@@ -575,7 +578,7 @@ void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
     // process objects
     if ( pManTime )
         Tim_ManIncrementTravId( pManTime );
-    Vec_PtrForEachEntry( vQueue, pTemp, iCur )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vQueue, pTemp, iCur )
     {
         pTemp->MarkA = 0;
         tArrival = Nwk_NodeComputeArrival( pTemp, 1 );
@@ -659,7 +662,7 @@ void Nwk_NodeUpdateRequired( Nwk_Obj_t * pObj )
     // process objects
     if ( pManTime )
         Tim_ManIncrementTravId( pManTime );
-    Vec_PtrForEachEntry( vQueue, pTemp, iCur )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vQueue, pTemp, iCur )
     {
         pTemp->MarkA = 0;
         tRequired = Nwk_NodeComputeRequired( pTemp, 1 );
@@ -773,7 +776,7 @@ void Nwk_ManUpdateLevel( Nwk_Obj_t * pObj )
     Vec_PtrPush( vQueue, pObj );
     pObj->MarkA = 1;
     // process objects
-    Vec_PtrForEachEntry( vQueue, pTemp, iCur )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vQueue, pTemp, iCur )
     {
         pTemp->MarkA = 0;
         LevelNew = Nwk_ObjLevelNew( pTemp );
@@ -886,4 +889,6 @@ void Nwk_ManUpdate( Nwk_Obj_t * pObj, Nwk_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 #include "hop.h"
 #include "st.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -352,4 +355,6 @@ void Cudd2_bddEqual( void * pCudd, void * pArg0, void * pArg1, int Result )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

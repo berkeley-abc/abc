@@ -20,6 +20,9 @@
 
 #include "intInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -296,11 +299,11 @@ clk = clock();
 */
 
     pManInterA = Inta_ManAlloc();
-    p->pInterNew = Inta_ManInterpolate( pManInterA, pSatCnf, p->vVarsAB, 0 );
+    p->pInterNew = (Aig_Man_t *)Inta_ManInterpolate( pManInterA, (Sto_Man_t *)pSatCnf, p->vVarsAB, 0 );
     Inta_ManFree( pManInterA );
 
 p->timeInt += clock() - clk;
-    Sto_ManFree( pSatCnf );
+    Sto_ManFree( (Sto_Man_t *)pSatCnf );
     return RetValue;
 }
 
@@ -308,4 +311,6 @@ p->timeInt += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -56,7 +59,7 @@ int If_ManPerformMapping( If_Man_t * p )
     if ( p->pPars->fSeqMap )
     {
 //        if ( p->pPars->fVerbose )
-            printf( "Performing sequential mapping without retiming.\n" );
+            Abc_Print( 1, "Performing sequential mapping without retiming.\n" );
         return If_ManPerformMappingSeq( p );
     }
     return If_ManPerformMappingComb( p );
@@ -128,21 +131,20 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     if ( p->pPars->fVerbose )
     {
-//        printf( "Total memory = %7.2f Mb. Peak cut memory = %7.2f Mb.  ", 
+//        Abc_Print( 1, "Total memory = %7.2f Mb. Peak cut memory = %7.2f Mb.  ", 
 //            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
 //            1.0 * p->nSetBytes * Mem_FixedReadMaxEntriesUsed(p->pMemSet) / (1<<20) );
-        ABC_PRT( "Total time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Total time", clock() - clkTotal );
     }
-//    printf( "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
+//    Abc_Print( 1, "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
     s_MappingTime = clock() - clkTotal;
-//    printf( "Special POs = %d.\n", If_ManCountSpecialPos(p) );
+//    Abc_Print( 1, "Special POs = %d.\n", If_ManCountSpecialPos(p) );
     {
     extern int If_CutGetCones( If_Man_t * p );
     extern int If_CutCountTotalFanins( If_Man_t * p );
 //    If_CutGetCones( p );
 //    If_CutCountTotalFanins( p );
     }
-
     return 1;
 }
 
@@ -150,4 +152,6 @@ int If_ManPerformMappingComb( If_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

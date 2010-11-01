@@ -33,6 +33,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -80,7 +83,7 @@ static    int    num_calls;
 static double bddCorrelationAux ARGS((DdManager *dd, DdNode *f, DdNode *g, st_table *table));
 static double bddCorrelationWeightsAux ARGS((DdManager *dd, DdNode *f, DdNode *g, double *prob, st_table *table));
 static int CorrelCompare ARGS((const char *key1, const char *key2));
-static int CorrelHash ARGS((char *key, int modulus));
+static int CorrelHash ARGS((const char *key, int modulus));
 static enum st_retval CorrelCleanUp ARGS((char *key, char *value, char *arg));
 
 /**AutomaticEnd***************************************************************/
@@ -122,7 +125,7 @@ Cudd_bddCorrelation(
     table = st_init_table(CorrelCompare,CorrelHash);
     if (table == NULL) return((double)CUDD_OUT_OF_MEM);
     correlation = bddCorrelationAux(manager,f,g,table);
-    st_foreach(table, CorrelCleanUp, NIL(char));
+    st_foreach(table, (ST_PFSR)CorrelCleanUp, NIL(char));
     st_free_table(table);
     return(correlation);
 
@@ -165,7 +168,7 @@ Cudd_bddCorrelationWeights(
     table = st_init_table(CorrelCompare,CorrelHash);
     if (table == NULL) return((double)CUDD_OUT_OF_MEM);
     correlation = bddCorrelationWeightsAux(manager,f,g,prob,table);
-    st_foreach(table, CorrelCleanUp, NIL(char));
+    st_foreach(table, (ST_PFSR)CorrelCleanUp, NIL(char));
     st_free_table(table);
     return(correlation);
 
@@ -434,13 +437,13 @@ CorrelCompare(
 ******************************************************************************/
 static int
 CorrelHash(
-  char * key,
+  const char * key,
   int  modulus)
 {
-    HashEntry *entry;
+    const HashEntry *entry;
     int val = 0;
 
-    entry = (HashEntry *) key;
+    entry = (const HashEntry *) key;
 #if SIZEOF_VOID_P == 8 && SIZEOF_INT == 4
     val = ((int) ((long)entry->f))*997 + ((int) ((long)entry->g));
 #else
@@ -478,4 +481,6 @@ CorrelCleanUp(
     return ST_CONTINUE;
 
 } /* end of CorrelCleanUp */
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 #include "lpkInt.h"
 #include "cloud.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -94,10 +97,10 @@ int Lpk_NodeHasChanged( Lpk_Man_t * p, int iNode )
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pTemp;
     int i;
-    vNodes = Vec_VecEntry( p->vVisited, iNode );
+    vNodes = (Vec_Ptr_t *)Vec_VecEntry( p->vVisited, iNode );
     if ( Vec_PtrSize(vNodes) == 0 )
         return 1;
-    Vec_PtrForEachEntry( vNodes, pTemp, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pTemp, i )
     {
         // check if the node has changed
         pTemp = Abc_NtkObj( p->pNtk, (int)(ABC_PTRUINT_T)pTemp );
@@ -213,7 +216,7 @@ p->timeMap += clock() - clk;
         If_ObjSetCopy( If_ManCi(p->pIfMan, i), pLeaf );
     // get the area of mapping
     pObjNew = Abc_NodeFromIf_rec( p->pNtk, p->pIfMan, If_Regular(pDriver), p->vCover );
-    pObjNew->pData = Hop_NotCond( pObjNew->pData, If_IsComplement(pDriver) );
+    pObjNew->pData = Hop_NotCond( (Hop_Obj_t *)pObjNew->pData, If_IsComplement(pDriver) );
     // perform replacement
     Abc_NtkUpdate( p->pObj, pObjNew, p->vLevels );
 //printf( "%3d : %d-%d=%d(%d) \n", p->nChanges, nNodesBef, Abc_NtkNodeNum(p->pNtk), nNodesBef-Abc_NtkNodeNum(p->pNtk), nGain );
@@ -444,7 +447,7 @@ p->timeTruth3 += clock() - clk;
             int nSuppSize = Extra_TruthSupportSize( pTruth, pCut->nLeaves );
             printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
                 i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
-            Vec_PtrForEachEntry( p->vLeaves, pLeaf, k )
+            Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pLeaf, k )
                 printf( "%c=%d ", 'a'+k, Abc_ObjLevel(pLeaf) );
             printf( "\n" );
             Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
@@ -682,4 +685,6 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

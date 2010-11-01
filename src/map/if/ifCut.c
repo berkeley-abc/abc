@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -440,7 +443,7 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
                 return -1;
             if ( pC0->Area > pC1->Area + p->fEpsilon )
                 return 1;
-            //printf("area(%.2f, %.2f), power(%.2f, %.2f), edge(%.2f, %.2f)\n",
+            //Abc_Print( 1,"area(%.2f, %.2f), power(%.2f, %.2f), edge(%.2f, %.2f)\n",
             //         pC0->Area, pC1->Area, pC0->Power, pC1->Power, pC0->Edge, pC1->Edge);
             if ( pC0->Power < pC1->Power - p->fEpsilon )
                 return -1;
@@ -511,7 +514,7 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
             return 1;
         return 0;
     } 
-    else  // reglar
+    else  // regular
     {
         if ( p->SortMode == 1 ) // area
         {
@@ -682,16 +685,28 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
         return;
     }
 
+    if ( p->pPars->fUseBat && !pCut->fUseless )
+    {
+        If_Cut_t * pFirst = pCutSet->ppCuts[0];
+        if ( pFirst->fUseless || If_ManSortCompare(p, pFirst, pCut) == 1 )
+        {
+            pCutSet->ppCuts[0] = pCut;
+            pCutSet->ppCuts[pCutSet->nCuts] = pFirst;
+            If_CutSort( p, pCutSet, pFirst );
+            return;
+        }
+    }
+
     // the cut will be added - find its place
     for ( i = pCutSet->nCuts-1; i >= 0; i-- )
     {
 //        Counter++;
-        if ( If_ManSortCompare( p, pCutSet->ppCuts[i], pCut ) <= 0 )
+        if ( If_ManSortCompare( p, pCutSet->ppCuts[i], pCut ) <= 0 || (i == 0 && !pCutSet->ppCuts[0]->fUseless && pCut->fUseless) )
             break;
         pCutSet->ppCuts[i+1] = pCutSet->ppCuts[i];
         pCutSet->ppCuts[i] = pCut;
     }
-//    printf( "%d ", Counter );
+//    Abc_Print( 1, "%d ", Counter );
 
     // update the number of cuts
     if ( pCutSet->nCuts < pCutSet->nCutsMax )
@@ -746,7 +761,7 @@ int If_CutCheck( If_Cut_t * pCut )
     {
         if ( pCut->pLeaves[i-1] >= pCut->pLeaves[i] )
         {
-            printf( "If_CutCheck(): Cut has wrong ordering of inputs.\n" );
+            Abc_Print( -1, "If_CutCheck(): Cut has wrong ordering of inputs.\n" );
             return 0;
         }
         assert( pCut->pLeaves[i-1] < pCut->pLeaves[i] );
@@ -769,10 +784,10 @@ int If_CutCheck( If_Cut_t * pCut )
 void If_CutPrint( If_Cut_t * pCut )
 {
     unsigned i;
-    printf( "{" );
+    Abc_Print( 1, "{" );
     for ( i = 0; i < pCut->nLeaves; i++ )
-        printf( " %d", pCut->pLeaves[i] );
-    printf( " }\n" );
+        Abc_Print( 1, " %d", pCut->pLeaves[i] );
+    Abc_Print( 1, " }\n" );
 }
 
 /**Function*************************************************************
@@ -790,10 +805,10 @@ void If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut )
 {
     If_Obj_t * pLeaf;
     unsigned i;
-    printf( "{" );
+    Abc_Print( 1, "{" );
     If_CutForEachLeaf( p, pCut, pLeaf, i )
-        printf( " %d(%.2f/%.2f)", pLeaf->Id, If_ObjCutBest(pLeaf)->Delay, pLeaf->Required );
-    printf( " }\n" );
+        Abc_Print( 1, " %d(%.2f/%.2f)", pLeaf->Id, If_ObjCutBest(pLeaf)->Delay, pLeaf->Required );
+    Abc_Print( 1, " }\n" );
 }
 
 /**Function*************************************************************
@@ -1345,11 +1360,11 @@ int If_CutGetCones( If_Man_t * p )
         if ( If_ObjIsAnd(pObj) && pObj->nRefs )
         {
             Counter += !If_CutGetCone_rec( p, pObj, If_ObjCutBest(pObj) );
-//            printf( "%d ", If_CutGetCutMinLevel( p, If_ObjCutBest(pObj) ) );
+//            Abc_Print( 1, "%d ", If_CutGetCutMinLevel( p, If_ObjCutBest(pObj) ) );
         }
     }
-    printf( "Cound not find boundary for %d nodes.\n", Counter );
-    ABC_PRT( "Cones", clock() - clk );
+    Abc_Print( 1, "Cound not find boundary for %d nodes.\n", Counter );
+    Abc_PrintTime( 1, "Cones", clock() - clk );
     return 1;
 }
 
@@ -1405,8 +1420,8 @@ int If_CutCountTotalFanins( If_Man_t * p )
             Counter += Vec_IntSize(vLeaves);
         }
     }
-    printf( "Total cut inputs = %d. Total fanins incremental = %d.\n", nFaninsTotal, Counter );
-    ABC_PRT( "Fanins", clock() - clk );
+    Abc_Print( 1, "Total cut inputs = %d. Total fanins incremental = %d.\n", nFaninsTotal, Counter );
+    Abc_PrintTime( 1, "Fanins", clock() - clk );
     Vec_IntFree( vLeaves );
     return 1;
 }
@@ -1415,4 +1430,6 @@ int If_CutCountTotalFanins( If_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

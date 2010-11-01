@@ -20,6 +20,9 @@
 #include "fxuInt.h"
 #include "fxu.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -71,7 +74,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     nPairsStore =  0;
     nBitsMax    = -1; 
     for ( i = 0; i < pData->nNodesOld; i++ )
-        if ( (pSopCover = pData->vSops->pArray[i]) )
+        if ( (pSopCover = (char *)pData->vSops->pArray[i]) )
         {
             nCubes       = Abc_SopGetCubeNum( pSopCover );
             nFanins      = Abc_SopGetVarNum( pSopCover );
@@ -109,7 +112,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     iCube = 0;
     iPair = 0;
     for ( i = 0; i < pData->nNodesOld; i++ )
-        if ( (pSopCover = pData->vSops->pArray[i]) )
+        if ( (pSopCover = (char *)pData->vSops->pArray[i]) )
         {
             // get the number of cubes
             nCubes = Abc_SopGetCubeNum( pSopCover );
@@ -136,14 +139,14 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     pOrder = ABC_ALLOC( int, nBitsMax );
     // create the rows
     for ( i = 0; i < pData->nNodesOld; i++ )
-    if ( (pSopCover = pData->vSops->pArray[i]) )
+    if ( (pSopCover = (char *)pData->vSops->pArray[i]) )
     {
         // get the new var in the matrix
         pVar = p->ppVars[2*i+1];
         // here we sort the literals of the cover
         // in the increasing order of the numbers of the corresponding nodes
         // because literals should be added to the matrix in this order
-        vFanins = pData->vFanins->pArray[i];
+        vFanins = (Vec_Int_t *)pData->vFanins->pArray[i];
         s_pLits = vFanins->pArray;
         // start the variable order
         nFanins = Abc_SopGetVarNum( pSopCover );
@@ -272,7 +275,7 @@ void Fxu_CreateCovers( Fxu_Matrix * p, Fxu_Data_t * pData )
 
     // go through the internal nodes
     for ( n = 0; n < pData->nNodesOld; n++ )
-    if ( (pSopCover = pData->vSops->pArray[n]) )
+    if ( (pSopCover = (char *)pData->vSops->pArray[n]) )
     {
         // get the number of this node
         iNode = n;
@@ -358,7 +361,7 @@ void Fxu_CreateCoversNode( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode, Fxu_Cu
     // allocate room for the new cover
     pSopCover = Abc_SopStart( pData->pManSop, nCubes, vInputsNew->nSize );
     // set the correct polarity of the cover
-    if ( iNode < pData->nNodesOld && Abc_SopGetPhase( pData->vSops->pArray[iNode] ) == 0 )
+    if ( iNode < pData->nNodesOld && Abc_SopGetPhase( (char *)pData->vSops->pArray[iNode] ) == 0 )
         Abc_SopComplement( pSopCover );
 
     // add the cubes
@@ -429,3 +432,5 @@ int Fxu_CreateMatrixLitCompare( int * ptrX, int * ptrY )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

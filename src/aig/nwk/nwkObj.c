@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -157,7 +160,7 @@ void Nwk_ManDeleteNode( Nwk_Obj_t * pObj )
     assert( Nwk_ObjFanoutNum(pObj) == 0 );
     // delete fanins
     Nwk_ObjCollectFanins( pObj, vNodes );
-    Vec_PtrForEachEntry( vNodes, pTemp, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pTemp, i )
         Nwk_ObjDeleteFanin( pObj, pTemp );
     // remove from the list of objects
     Vec_PtrWriteEntry( pObj->pMan->vObjs, pObj->Id, NULL );
@@ -186,7 +189,7 @@ void Nwk_ManDeleteNode_rec( Nwk_Obj_t * pObj )
     vNodes = Vec_PtrAlloc( 100 );
     Nwk_ObjCollectFanins( pObj, vNodes );
     Nwk_ManDeleteNode( pObj );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
         if ( Nwk_ObjIsNode(pObj) && Nwk_ObjFanoutNum(pObj) == 0 )
             Nwk_ManDeleteNode_rec( pObj );
     Vec_PtrFree( vNodes );
@@ -196,4 +199,6 @@ void Nwk_ManDeleteNode_rec( Nwk_Obj_t * pObj )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

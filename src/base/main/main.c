@@ -17,8 +17,16 @@
   Revision    [$Id: main.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
+#include "abc.h"
 #include "mainInt.h"
+
+#ifdef ABC_PYTHON_EMBED
+#include <Python.h>
+
+#endif /* ABC_PYTHON_EMBED */
+
+ABC_NAMESPACE_IMPL_START
 
 // this line should be included in the library project
 //#define ABC_LIB
@@ -29,7 +37,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static int TypeCheck( Abc_Frame_t * pAbc, char * s);
+static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -48,29 +56,43 @@ static int TypeCheck( Abc_Frame_t * pAbc, char * s);
   SeeAlso     []
 
 ***********************************************************************/
-#if defined(ABC_USE_BINARY)
-int main_( int argc, char * argv[] )
-#else
-int main( int argc, char * argv[] )
-#endif
+int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
     char sCommandUsr[500], sCommandTmp[100], sReadCmd[20], sWriteCmd[20], c;
-    char * sCommand, * sOutFile, * sInFile;
+    const char * sOutFile, * sInFile;
+    char * sCommand;
     int  fStatus = 0;
-    bool fBatch, fInitSource, fInitRead, fFinalWrite;
+    int fBatch, fInitSource, fInitRead, fFinalWrite;
 
     // added to detect memory leaks:
 #if defined(_DEBUG) && defined(_MSC_VER) 
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
-    
+     
 //    Npn_Experiment();
 //    Npn_Generate();
 
     // get global frame (singleton pattern)
     // will be initialized on first call
     pAbc = Abc_FrameGetGlobalFrame();
+
+#ifdef ABC_PYTHON_EMBED
+    {
+        PyObject* pName;
+        PyObject* pModule;
+        void init_pyabc(void);
+
+        Py_SetProgramName(argv[0]);
+        Py_NoSiteFlag = 1;
+        Py_Initialize();
+
+        init_pyabc();
+
+        pModule = PyImport_ImportModule("pyabc");
+        Py_DECREF(pModule);
+    }
+#endif /* ABC_PYTHON_EMBED */
 
     // default options
     fBatch      = 0;
@@ -223,9 +245,15 @@ int main( int argc, char * argv[] )
                 break;
         }
     } 
-     
+
+#ifdef ABC_PYTHON_EMBED
+    {
+        Py_Finalize();
+    }
+#endif /* ABC_PYTHON_EMBED */
+
     // if the memory should be freed, quit packages
-    if ( fStatus < 0 ) 
+//    if ( fStatus < 0 ) 
     {
         Abc_Stop(); 
     }    
@@ -239,57 +267,6 @@ usage:
 
 #endif
 
-/**Function*************************************************************
-
-  Synopsis    [Initialization procedure for the library project.]
-
-  Description [Note that when Abc_Start() is run in a static library
-  project, it does not load the resource file by default. As a result, 
-  ABC is not set up the same way, as when it is run on a command line. 
-  For example, some error messages while parsing files will not be 
-  produced, and intermediate networks will not be checked for consistancy. 
-  One possibility is to load the resource file after Abc_Start() as follows:
-  Abc_UtilsSource(  Abc_FrameGetGlobalFrame() );]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_Start()
-{
-    Abc_Frame_t * pAbc;
-    // added to detect memory leaks:
-#if defined(_DEBUG) && defined(_MSC_VER) 
-    _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-#endif
-    // start the glocal frame
-    pAbc = Abc_FrameGetGlobalFrame();
-    // source the resource file
-//    Abc_UtilsSource( pAbc );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Deallocation procedure for the library project.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_Stop()
-{
-    Abc_Frame_t * pAbc;
-    pAbc = Abc_FrameGetGlobalFrame();
-    // perform uninitializations
-    Abc_FrameEnd( pAbc );
-    // stop the framework
-    Abc_FrameDeallocate( pAbc );
-}
-
 /**Function********************************************************************
 
   Synopsis    [Returns 1 if s is a file type recognized, else returns 0.]
@@ -300,7 +277,7 @@ void Abc_Stop()
   SideEffects []
 
 ******************************************************************************/
-static int TypeCheck( Abc_Frame_t * pAbc, char * s )
+static int TypeCheck( Abc_Frame_t * pAbc, const char * s )
 {
     if (strcmp(s, "blif") == 0)
         return 1;
@@ -324,3 +301,13 @@ static int TypeCheck( Abc_Frame_t * pAbc, char * s )
 ////////////////////////////////////////////////////////////////////////
 
 
+ABC_NAMESPACE_IMPL_END
+
+#if defined(ABC_USE_BINARY)
+int main_( int argc, char * argv[] )
+#else
+int main( int argc, char * argv[] )
+#endif
+{
+  return ABC_NAMESPACE_PREFIX Abc_RealMain(argc, argv);
+}

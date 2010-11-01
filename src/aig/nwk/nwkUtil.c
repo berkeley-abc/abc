@@ -18,9 +18,12 @@
 
 ***********************************************************************/
 
+#include <math.h>
 #include "nwk.h"
 #include "kit.h"
-#include <math.h>
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -295,7 +298,7 @@ void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, 
     vTruth = Vec_IntAlloc( 1 << 16 );
     vCover = Vec_IntAlloc( 1 << 16 );
     vNodes = Nwk_ManDfs( pNtk );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
     {
         if ( !Nwk_ObjIsNode(pObj) )
             continue;
@@ -425,7 +428,7 @@ void Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk )
             printf( "%15d : ", k );
         else
         {
-            sprintf( Buffer, "%d - %d", (int)pow(10, k/10) * (k%10), (int)pow(10, k/10) * (k%10+1) - 1 ); 
+            sprintf( Buffer, "%d - %d", (int)pow((double)10, k/10) * (k%10), (int)pow((double)10, k/10) * (k%10+1) - 1 ); 
             printf( "%15s : ", Buffer );
         }
         if ( vFanins->pArray[k] == 0 )
@@ -635,4 +638,6 @@ void Nwk_ManRemoveDupFanins( Nwk_Man_t * pNtk, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

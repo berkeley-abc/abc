@@ -9,6 +9,9 @@
  */
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 static pcube Gcube;
 static pset Gminterm;
 
@@ -115,3 +118,5 @@ pcover T;
     }
     set_free(m);
 }
+ABC_NAMESPACE_IMPL_END
+

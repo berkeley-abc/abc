@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -113,8 +116,8 @@ Vec_Int_t * Ssw_TransferSignalPairs( Aig_Man_t * pMiter, Aig_Man_t * pAig1, Aig_
     {
         pObj1 = Aig_ManObj( pAig1, Vec_IntEntry(vIds1, i) );
         pObj2 = Aig_ManObj( pAig2, Vec_IntEntry(vIds2, i) );
-        pObj1m = Aig_Regular(pObj1->pData);
-        pObj2m = Aig_Regular(pObj2->pData);
+        pObj1m = Aig_Regular((Aig_Obj_t *)pObj1->pData);
+        pObj2m = Aig_Regular((Aig_Obj_t *)pObj2->pData);
         assert( pObj1m && pObj2m );
         if ( pObj1m == pObj2m )
             continue;
@@ -290,7 +293,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pA
     // create equivalence classes using these IDs
     p->ppClasses = Ssw_ClassesPreparePairs( pMiter, pvClasses );
     p->pSml = Ssw_SmlStart( pMiter, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
-    Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
+    Ssw_ClassesSetData( p->ppClasses, p->pSml, (unsigned(*)(void *,Aig_Obj_t *))Ssw_SmlObjHashWord, (int(*)(void *,Aig_Obj_t *))Ssw_SmlObjIsConstWord, (int(*)(void *,Aig_Obj_t *,Aig_Obj_t *))Ssw_SmlObjsAreEqualWord );
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );
     // cleanup
@@ -326,7 +329,7 @@ Aig_Man_t * Ssw_SignalCorrespondeceTestPairs( Aig_Man_t * pAig )
     vIds2 = Vec_IntAlloc( Aig_ManObjNumMax(pAig) );
     Aig_ManForEachObj( pAig, pObj, i )
     {
-        pRepr = Aig_Regular(pObj->pData);
+        pRepr = Aig_Regular((Aig_Obj_t *)pObj->pData);
         if ( pRepr == NULL )
             continue;
         if ( Aig_ManObj(pAigNew, pRepr->Id) == NULL )
@@ -469,4 +472,6 @@ int Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

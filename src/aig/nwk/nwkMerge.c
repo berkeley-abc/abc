@@ -21,6 +21,9 @@
 #include "nwk.h"
 #include "nwkMerge.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -787,7 +790,7 @@ void Nwk_ManCollectCircle( Vec_Ptr_t * vStart, Vec_Ptr_t * vNext, int nFanMax )
     Nwk_Obj_t * pObj, * pNext;
     int i, k;
     Vec_PtrClear( vNext );
-    Vec_PtrForEachEntry( vStart, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vStart, pObj, i )
     {
         Nwk_ObjForEachFanin( pObj, pNext, k )
         {
@@ -845,7 +848,7 @@ void Nwk_ManCollectNonOverlapCands( Nwk_Obj_t * pLut, Vec_Ptr_t * vStart, Vec_Pt
         vStart = vNext;
         vNext  = vTemp;
         // collect the nodes in vStart
-        Vec_PtrForEachEntry( vStart, pObj, k )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, vStart, pObj, k )
             Vec_PtrPush( vCands, pObj );
     }
 
@@ -867,7 +870,7 @@ void Nwk_ManCollectNonOverlapCands( Nwk_Obj_t * pLut, Vec_Ptr_t * vStart, Vec_Pt
     // - they have no more than the given number of fanins
     // - they have no more than the given diff in delay
     k = 0;
-    Vec_PtrForEachEntry( vCands, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vCands, pObj, i )
     {
         if ( Nwk_ObjIsTravIdCurrent(pObj) )
             continue;
@@ -963,8 +966,9 @@ void Nwk_ManCollectOverlapCands( Nwk_Obj_t * pLut, Vec_Ptr_t * vCands, Nwk_LMPar
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
+Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, void * pParsInit )
 {
+    Nwk_LMPars_t * pPars = (Nwk_LMPars_t *)pParsInit;
     Nwk_Grf_t * p;
     Vec_Int_t * vResult;
     Vec_Ptr_t * vStart, * vNext, * vCands1, * vCands2;
@@ -992,9 +996,9 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
             continue;
         nCands += Vec_PtrSize(vCands1) + Vec_PtrSize(vCands2);
         // save candidates
-        Vec_PtrForEachEntry( vCands1, pCand, k )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, vCands1, pCand, k )
             Nwk_ManGraphHashEdge( p, Nwk_ObjId(pLut), Nwk_ObjId(pCand) );
-        Vec_PtrForEachEntry( vCands2, pCand, k )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, vCands2, pCand, k )
             Nwk_ManGraphHashEdge( p, Nwk_ObjId(pLut), Nwk_ObjId(pCand) );
         // print statistics about this node
         if ( pPars->fVeryVerbose )
@@ -1035,4 +1039,6 @@ Vec_Int_t * Nwk_ManLutMerge( Nwk_Man_t * pNtk, Nwk_LMPars_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

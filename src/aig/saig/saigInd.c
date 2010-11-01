@@ -22,6 +22,9 @@
 #include "cnf.h"
 #include "satSolver.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,7 +35,51 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Performs localization by unrolling timeframes backward.]
+  Synopsis    [Returns 1 if two state are equal.]
+
+  Description [Array vState contains indexes of CNF variables for each
+  flop in the first N time frames (0 < i < k, i < N, k < N).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManStatesAreEqual( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int i, int k )
+{
+    int * pStateI = (int *)Vec_IntArray(vState) + nRegs * i;
+    int * pStateK = (int *)Vec_IntArray(vState) + nRegs * k;
+    int v;
+    assert( i && k && i < k );
+    assert( nRegs * k <= Vec_IntSize(vState) );
+    // check if the states are available
+    for ( v = 0; v < nRegs; v++ )
+        if ( pStateI[v] >= 0 && pStateK[v] == -1 )
+            return 0;
+/*
+    printf( "\nchecking uniqueness\n" );
+    printf( "%3d : ", i );
+    for ( v = 0; v < nRegs; v++ )
+        printf( "%d", sat_solver_var_value(pSat, pStateI[v]) );
+    printf( "\n" );
+
+    printf( "%3d : ", k );
+    for ( v = 0; v < nRegs; v++ )
+        printf( "%d", sat_solver_var_value(pSat, pStateK[v]) );
+    printf( "\n" );
+*/
+    for ( v = 0; v < nRegs; v++ )
+        if ( pStateI[v] >= 0 )
+        {
+            if ( sat_solver_var_value(pSat, pStateI[v]) != sat_solver_var_value(pSat, pStateK[v]) )
+                return 0;
+        }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Add uniqueness constraint.]
 
   Description []
                
@@ -41,21 +88,78 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose )
+void Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, int i, int k, int * pnSatVarNum, int * pnClauses )
+{
+    int * pStateI = (int *)Vec_IntArray(vState) + nRegs * i;
+    int * pStateK = (int *)Vec_IntArray(vState) + nRegs * k;
+    int v, iVars, nSatVarsOld, RetValue, * pClause;
+    assert( i && k && i < k );
+    assert( nRegs * k <= Vec_IntSize(vState) );
+    // check if the states are available
+    for ( v = 0; v < nRegs; v++ )
+        if ( pStateI[v] >= 0 && pStateK[v] == -1 )
+        {
+//            printf( "Cannot constrain an incomplete state.\n" );
+            return;
+        }
+    // add XORs
+    nSatVarsOld = *pnSatVarNum;
+    for ( v = 0; v < nRegs; v++ )
+        if ( pStateI[v] >= 0 )
+        {
+            *pnClauses += 4;
+            RetValue = Cnf_DataAddXorClause( pSat, pStateI[v], pStateK[v], (*pnSatVarNum)++ );
+            if ( RetValue == 0 )
+            {
+                printf( "SAT solver became UNSAT.\n" );
+                return;
+            }
+        }
+    // add OR clause
+    (*pnClauses)++;
+    iVars = 0;
+    pClause = ABC_ALLOC( int, nRegs );
+    for ( v = nSatVarsOld; v < *pnSatVarNum; v++ )
+        pClause[iVars++] = toLitCond( v, 0 );
+    assert( iVars <= nRegs );
+    RetValue = sat_solver_addclause( pSat, pClause, pClause + iVars );
+    ABC_FREE( pClause );
+    if ( RetValue == 0 )
+    {
+        printf( "SAT solver became UNSAT.\n" );
+        return;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs induction by unrolling timeframes backward.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fVerbose, int fVeryVerbose )
 {
     sat_solver * pSat;
     Aig_Man_t * pAigPart;
     Cnf_Dat_t * pCnfPart;
-    Vec_Int_t * vTopVarNums;
+    Vec_Int_t * vTopVarNums, * vState;
     Vec_Ptr_t * vTop, * vBot;
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;
-    int i, f, clk, Lits[2], status, RetValue, nSatVarNum, nConfPrev;
+    int i, k, f, clk, Lits[2], status, RetValue, nSatVarNum, nConfPrev;
+    int nOldSize, iReg, iLast, fAdded, nConstrs = 0, nClauses = 0;
+    assert( fUnique == 0 || fUniqueAll == 0 );
     assert( Saig_ManPoNum(p) == 1 );
     Aig_ManSetPioNumbers( p );
 
     // start the top by including the PO
     vBot = Vec_PtrAlloc( 100 );
     vTop = Vec_PtrAlloc( 100 );
+    vState = Vec_IntAlloc( 1000 );
     Vec_PtrPush( vTop, Aig_ManPo(p, 0) );
     // start the array of CNF variables
     vTopVarNums = Vec_IntAlloc( 100 );
@@ -67,7 +171,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
     RetValue = -1;
     nSatVarNum = 0;
     if ( fVerbose )
-        printf( "Localization parameters: FramesMax = %5d. ConflictMax = %6d.\n", nFramesMax, nConfMax );
+        printf( "Induction parameters: FramesMax = %5d. ConflictMax = %6d.\n", nFramesMax, nConfMax );
     for ( f = 0; ; f++ )
     { 
         if ( f > 0 )
@@ -84,6 +188,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
         pCnfPart = Cnf_Derive( pAigPart, Aig_ManPoNum(pAigPart) );
         Cnf_DataLift( pCnfPart, nSatVarNum );
         nSatVarNum += pCnfPart->nVars;
+        nClauses   += pCnfPart->nClauses;
 
         // stitch variables of top and bot
         assert( Aig_ManPoNum(pAigPart)-1 == Vec_IntSize(vTopVarNums) );
@@ -98,6 +203,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
                 Lits[0] = toLitCond( pCnfPart->pVarNums[pObjPo->Id], f>0 );
                 if ( !sat_solver_addclause( pSat, Lits, Lits+1 ) )
                     assert( 0 );
+                nClauses++;
                 continue;
             }
             Lits[0] = toLitCond( Vec_IntEntry(vTopVarNums, i-1), 0 );
@@ -108,6 +214,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
             Lits[1] = toLitCond( pCnfPart->pVarNums[pObjPo->Id], 0 );
             if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
                 assert( 0 );
+            nClauses += 2;
         }
         // add CNF to the SAT solver
         for ( i = 0; i < pCnfPart->nClauses; i++ )
@@ -119,14 +226,50 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
             RetValue = 1;
             break;
         }
+
+        // create new set of POs to derive new top
+        Vec_PtrClear( vTop );
+        Vec_PtrPush( vTop, Aig_ManPo(p, 0) );
+        Vec_IntClear( vTopVarNums );
+        nOldSize = Vec_IntSize(vState);
+        Vec_IntFillExtra( vState, nOldSize + Aig_ManRegNum(p), -1 );
+        Vec_PtrForEachEntry( Aig_Obj_t *, vBot, pObjPi, i )
+        {
+            assert( Aig_ObjIsPi(pObjPi) );
+            if ( Saig_ObjIsLo(p, pObjPi) )
+            {
+                pObjPiCopy = (Aig_Obj_t *)pObjPi->pData;
+                assert( pObjPiCopy != NULL );
+                Vec_PtrPush( vTop, Saig_ObjLoToLi(p, pObjPi) );
+                Vec_IntPush( vTopVarNums, pCnfPart->pVarNums[pObjPiCopy->Id] );
+
+                iReg = pObjPi->PioNum - Saig_ManPiNum(p);
+                assert( iReg >= 0 && iReg < Aig_ManRegNum(p) );
+                Vec_IntWriteEntry( vState, nOldSize+iReg, pCnfPart->pVarNums[pObjPiCopy->Id] );
+            }
+        } 
+        iLast = Vec_IntSize(vState)/Aig_ManRegNum(p);
+        if ( fUniqueAll )
+        {
+            for ( i = 1; i < iLast-1; i++ )
+            {
+                nConstrs++;
+                Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, iLast-1, &nSatVarNum, &nClauses );
+                if ( fVeryVerbose )
+                    printf( "added constaint for %3d and %3d\n", i, iLast-1 );
+            }
+        }
+
+nextrun:
+        fAdded = 0;
         // run the SAT solver
         nConfPrev = pSat->stats.conflicts;
         status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, 0, 0, 0 );
         if ( fVerbose )
         {
-            printf( "%3d : PI = %5d. PO = %5d. AIG = %5d. Var = %6d. Conf = %6d. ",
-                f+1, Aig_ManPiNum(pAigPart), Aig_ManPoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
-                nSatVarNum, pSat->stats.conflicts-nConfPrev );
+            printf( "%4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
+                f, Aig_ManPiNum(pAigPart), Aig_ManPoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
+                nSatVarNum, nClauses, pSat->stats.conflicts-nConfPrev );
             ABC_PRT( "Time", clock() - clk );
         }
         if ( status == l_Undef )
@@ -137,26 +280,49 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
             break;
         }
         assert( status == l_True );
+        // the problem is SAT - add more clauses
+        if ( fVeryVerbose )
+        {
+            Vec_IntForEachEntry( vState, iReg, i )
+            {
+                if ( i && (i % Aig_ManRegNum(p)) == 0 )
+                    printf( "\n" );
+                if ( (i % Aig_ManRegNum(p)) == 0 )
+                    printf( "%3d : ", i/Aig_ManRegNum(p) );
+                printf( "%c", (iReg >= 0) ? ('0' + sat_solver_var_value(pSat, iReg)) : 'x' );
+            }
+            printf( "\n" );
+        }
         if ( f == nFramesMax - 1 )
             break;
-        // the problem is SAT - add more clauses
-        // create new set of POs to derive new top
-        Vec_PtrClear( vTop );
-        Vec_PtrPush( vTop, Aig_ManPo(p, 0) );
-        Vec_IntClear( vTopVarNums );
-        Vec_PtrForEachEntry( vBot, pObjPi, i )
+        if ( fUnique )
         {
-            assert( Aig_ObjIsPi(pObjPi) );
-            if ( Saig_ObjIsLo(p, pObjPi) )
+            for ( i = 1; i < iLast; i++ )
+            for ( k = i+1; k < iLast; k++ )
             {
-                pObjPiCopy = pObjPi->pData;
-                assert( pObjPiCopy != NULL );
-                Vec_PtrPush( vTop, Saig_ObjLoToLi(p, pObjPi) );
-                Vec_IntPush( vTopVarNums, pCnfPart->pVarNums[pObjPiCopy->Id] );
+                if ( !Saig_ManStatesAreEqual( pSat, vState, Aig_ManRegNum(p), i, k ) )
+                    continue;
+                nConstrs++;
+                fAdded = 1;
+                Saig_ManAddUniqueness( pSat, vState, Aig_ManRegNum(p), i, k, &nSatVarNum, &nClauses );
+                if ( fVeryVerbose )
+                    printf( "added constaint for %3d and %3d\n", i, k );
             }
         }
+        if ( fAdded )
+        {
+//            if ( fVeryVerbose )
+//                printf( "Trying a new run.\n" );
+            goto nextrun;
+        }
     }
-//    printf( "Completed %d interations.\n", f+1 );
+    if ( fVerbose )
+    {
+        if ( fUnique || fUniqueAll )
+            printf( "Completed %d interations and added %d uniqueness constraints.\n", f+1, nConstrs );
+        else
+            printf( "Completed %d interations.\n", f+1 );
+    }
     // cleanup
     sat_solver_delete( pSat );
     Aig_ManStop( pAigPart );
@@ -164,11 +330,15 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fVerbose
     Vec_IntFree( vTopVarNums );
     Vec_PtrFree( vTop );
     Vec_PtrFree( vBot );
+    Vec_IntFree( vState );
     return RetValue;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

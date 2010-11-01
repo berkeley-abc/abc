@@ -28,6 +28,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -276,4 +279,6 @@ ddFindEssentialRecur(
     return(res);
 
 } /* end of ddFindEssentialRecur */
+
+ABC_NAMESPACE_IMPL_END
 

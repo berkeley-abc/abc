@@ -21,6 +21,9 @@
 #include "sswInt.h"
 #include "bar.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -157,14 +160,14 @@ void Ssw_SmlAddPatternDyn( Ssw_Man_t * p )
     unsigned * pInfo;
     int i, nVarNum;
     // iterate through the PIs of the frames
-    Vec_PtrForEachEntry( p->pMSat->vUsedPis, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->pMSat->vUsedPis, pObj, i )
     {
         assert( Aig_ObjIsPi(pObj) );
         nVarNum = Ssw_ObjSatNum( p->pMSat, pObj );
         assert( nVarNum > 0 );
         if ( sat_solver_var_value( p->pMSat->pSat, nVarNum ) )
         {
-            pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
+            pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
             Aig_InfoSetBit( pInfo, p->nPatterns );
         }
     }
@@ -232,34 +235,7 @@ p->timeMarkCones += clock() - clk;
     }
     else
         Ssw_SmlSavePatternAig( p, f );
-    // consider uniqueness
-    if ( !fBmc && !p->pPars->fDynamic && p->pPars->fUniqueness && p->pPars->nFramesK > 1 && 
-        Ssw_ManUniqueOne( p, pObjRepr, pObj, p->pPars->fVerbose ) && p->iOutputLit == -1 )
-    {
-        if ( Ssw_ManUniqueAddConstraint( p, p->vCommon, 0, 1 ) )
-        {
-            int RetValue2 = Ssw_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
-            p->iOutputLit = -1;
-            p->nUniques++;
-            p->nUniquesAdded++;
-            if ( RetValue2 == 0 )
-            {
-                int x;
-//                printf( "Second time:\n" );
-                x = Ssw_ManUniqueOne( p, pObjRepr, pObj, p->pPars->fVerbose );
-                Ssw_SmlSavePatternAig( p, f );
-                Ssw_ManResimulateWord( p, pObj, pObjRepr, f );
-                if ( Aig_ObjRepr( p->pAig, pObj ) == pObjRepr )
-                    printf( "Ssw_ManSweepNode(): Refinement did not happen!!!.\n" );
-                return 1;
-            }
-            else
-                p->nUniquesUseful++;
-//                printf( "Counter-example prevented!!!\n" );
-            return 0;
-        }
-    }
-    if ( p->pPars->nConstrs == 0 )
+    if ( !p->pPars->fConstrs )
         Ssw_ManResimulateWord( p, pObj, pObjRepr, f );
     else
         Ssw_ManResimulateBit( p, pObj, pObjRepr );
@@ -298,7 +274,6 @@ clk = clock();
     p->fRefined = 0;
     if ( p->pPars->fVerbose )
         pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
-//    Ssw_ManStartSolver( p );
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // map constants and PIs
@@ -318,10 +293,12 @@ clk = clock();
         if ( f == p->pPars->nFramesK - 1 )
             break;
         // transfer latch input to the latch outputs 
+        Aig_ManForEachPo( p->pAig, pObj, i )
+            Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
         // build logic cones for register outputs
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
         {
-            pObjNew = Ssw_ObjChild0Fra(p, pObjLi,f);
+            pObjNew = Ssw_ObjFrame( p, pObjLi, f );
             Ssw_ObjSetFrame( p, pObjLo, f+1, pObjNew );
             Ssw_CnfNodeAddToSolver( p->pMSat, Aig_Regular(pObjNew) );//
         }
@@ -350,7 +327,7 @@ int Ssw_ManSweep( Ssw_Man_t * p )
 { 
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
-    int nConstrPairs, clk, i, f, v;
+    int nConstrPairs, clk, i, f;
 
     // perform speculative reduction
 clk = clock();
@@ -379,12 +356,6 @@ clk = clock();
     Saig_ManForEachPi( p->pAig, pObj, i )
         Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(p->pFrames) );
 p->timeReduce += clock() - clk;
-
-    // bring up the previous frames
-    if ( p->pPars->fUniqueness )
-        for ( v = 0; v < f; v++ )
-            Saig_ManForEachLo( p->pAig, pObj, i )
-                Ssw_CnfNodeAddToSolver( p->pMSat, Aig_Regular(Ssw_ObjFrame(p, pObj, v)) );
 
     // sweep internal nodes
     p->fRefined = 0;
@@ -416,4 +387,6 @@ p->timeReduce += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

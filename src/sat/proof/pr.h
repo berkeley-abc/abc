@@ -21,6 +21,7 @@
 #ifndef __PR_H__
 #define __PR_H__
 
+
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -33,9 +34,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -53,9 +55,11 @@ typedef struct Pr_Man_t_ Pr_Man_t;
 
 /*=== pr.c ==========================================================*/
  
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

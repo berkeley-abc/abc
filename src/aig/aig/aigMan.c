@@ -21,6 +21,9 @@
 #include "aig.h"
 #include "tim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -118,14 +121,14 @@ Aig_Obj_t * Aig_ManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pObjNew;
     if ( pObj->pData )
-        return pObj->pData;
+        return (Aig_Obj_t *)pObj->pData;
     Aig_ManDup_rec( pNew, p, Aig_ObjFanin0(pObj) );
     if ( Aig_ObjIsBuf(pObj) )
-        return pObj->pData = Aig_ObjChild0Copy(pObj);
+        return (Aig_Obj_t *)(pObj->pData = Aig_ObjChild0Copy(pObj));
     Aig_ManDup_rec( pNew, p, Aig_ObjFanin1(pObj) );
     pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
     Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
-    return pObj->pData = pObjNew;
+    return (Aig_Obj_t *)(pObj->pData = pObjNew);
 }
 
 /**Function*************************************************************
@@ -157,7 +160,7 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     Aig_ManDup_rec( pNew, p, pNode1 );   
     Aig_ManDup_rec( pNew, p, pNode2 );   
     // construct the EXOR
-    pObj = Aig_Exor( pNew, pNode1->pData, pNode2->pData ); 
+    pObj = Aig_Exor( pNew, (Aig_Obj_t *)pNode1->pData, (Aig_Obj_t *)pNode2->pData ); 
     pObj = Aig_NotCond( pObj, Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) );
     // add the PO
     Aig_ObjCreatePo( pNew, pObj );
@@ -183,35 +186,33 @@ void Aig_ManStop( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
-    if ( p->vMapped )
-        Vec_PtrFree( p->vMapped );
-    // print time
     if ( p->time1 ) { ABC_PRT( "time1", p->time1 ); }
     if ( p->time2 ) { ABC_PRT( "time2", p->time2 ); }
-    // delete timing
-    if ( p->pManTime )
-        Tim_ManStop( p->pManTime );
-    // delete fanout
-    if ( p->pFanData ) 
-        Aig_ManFanoutStop( p );
     // make sure the nodes have clean marks
     Aig_ManForEachObj( p, pObj, i )
         assert( !pObj->fMarkA && !pObj->fMarkB );
+    Tim_ManStopP( (Tim_Man_t **)&p->pManTime );
+    if ( p->pFanData ) 
+        Aig_ManFanoutStop( p );
+    if ( p->pManExdc )  
+        Aig_ManStop( p->pManExdc );
 //    Aig_TableProfile( p );
     Aig_MmFixedStop( p->pMemObjs, 0 );
-    if ( p->vPis )      Vec_PtrFree( p->vPis );
-    if ( p->vPos )      Vec_PtrFree( p->vPos );
-    if ( p->vObjs )     Vec_PtrFree( p->vObjs );
-    if ( p->vBufs )     Vec_PtrFree( p->vBufs );
-    if ( p->vLevelR )   Vec_IntFree( p->vLevelR );
-    if ( p->vLevels )   Vec_VecFree( p->vLevels );
-    if ( p->vFlopNums)  Vec_IntFree( p->vFlopNums );
-    if ( p->vFlopReprs) Vec_IntFree( p->vFlopReprs );
-    if ( p->pManExdc )  Aig_ManStop( p->pManExdc );
-    if ( p->vOnehots )  Vec_VecFree( (Vec_Vec_t *)p->vOnehots );
-    if ( p->vClockDoms) Vec_VecFree( p->vClockDoms );
-    if ( p->vProbs )    Vec_IntFree( p->vProbs );
-    if ( p->vCiNumsOrig)Vec_IntFree( p->vCiNumsOrig );
+    Vec_PtrFreeP( &p->vPis );
+    Vec_PtrFreeP( &p->vPos );
+    Vec_PtrFreeP( &p->vObjs );
+    Vec_PtrFreeP( &p->vBufs );
+    Vec_IntFreeP( &p->vLevelR );
+    Vec_VecFreeP( &p->vLevels );
+    Vec_IntFreeP( &p->vFlopNums );
+    Vec_IntFreeP( &p->vFlopReprs );
+    Vec_VecFreeP( (Vec_Vec_t **)&p->vOnehots );
+    Vec_VecFreeP( &p->vClockDoms );
+    Vec_IntFreeP( &p->vProbs );
+    Vec_IntFreeP( &p->vCiNumsOrig );
+    Vec_PtrFreeP( &p->vMapped );
+    if ( p->pSeqModelVec )
+        Vec_PtrFreeFree( p->pSeqModelVec );
     ABC_FREE( p->pFastSim );
     ABC_FREE( p->pData );
     ABC_FREE( p->pSeqModel );
@@ -222,6 +223,25 @@ void Aig_ManStop( Aig_Man_t * p )
     ABC_FREE( p->pEquivs );
     ABC_FREE( p->pTable );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManStopP( Aig_Man_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    Aig_ManStop( *p );
+    *p = NULL;
 }
 
 /**Function*************************************************************
@@ -246,7 +266,7 @@ int Aig_ManCleanup( Aig_Man_t * p )
         if ( Aig_ObjIsNode(pNode) && Aig_ObjRefs(pNode) == 0 )
             Vec_PtrPush( vObjs, pNode );
     // recursively remove dangling nodes
-    Vec_PtrForEachEntry( vObjs, pNode, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vObjs, pNode, i )
         Aig_ObjDelete_rec( p, pNode, 1 );
     Vec_PtrFree( vObjs );
     return nNodesOld - Aig_ManNodeNum(p);
@@ -288,7 +308,7 @@ int Aig_ManPiCleanup( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i, k = 0, nPisOld = Aig_ManPiNum(p);
-    Vec_PtrForEachEntry( p->vPis, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vPis, pObj, i )
     {
         if ( i >= Aig_ManPiNum(p) - Aig_ManRegNum(p) )
             Vec_PtrWriteEntry( p->vPis, k++, pObj );
@@ -319,7 +339,7 @@ int Aig_ManPoCleanup( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i, k = 0, nPosOld = Aig_ManPoNum(p);
-    Vec_PtrForEachEntry( p->vPos, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vPos, pObj, i )
     {
         if ( i >= Aig_ManPoNum(p) - Aig_ManRegNum(p) )
             Vec_PtrWriteEntry( p->vPos, k++, pObj );
@@ -453,9 +473,28 @@ void Aig_ManFlipFirstPo( Aig_Man_t * p )
     Aig_ObjChild0Flip( Aig_ManPo(p, 0) ); 
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Aig_ManReleaseData( Aig_Man_t * p )
+{ 
+    void * pD = p->pData; 
+    p->pData = NULL; 
+    return pD;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

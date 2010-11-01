@@ -21,6 +21,9 @@
 #include "fsimInt.h"
 #include "ssw.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -426,9 +429,9 @@ static inline int Fsim_ManCheckPos( Fsim_Man_t * p, int * piPo, int * piPat )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Fsim_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int nWords, int iPat, Vec_Int_t * vCis2Ids )
+Abc_Cex_t * Fsim_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int nWords, int iPat, Vec_Int_t * vCis2Ids )
 {
-    Ssw_Cex_t * p;
+    Abc_Cex_t * p;
     unsigned * pData;
     int f, i, w, iPioId, Counter;
     p = Ssw_SmlAllocCounterExample( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), iFrame+1 );
@@ -514,7 +517,7 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
     p->pDataSimCos = ABC_ALLOC( unsigned, p->nWords * p->nCos );
     Fsim_ManSimInfoInit( p );
     for ( i = 0; i < pPars->nIters; i++ )
-    {
+    { 
         Fsim_ManSimulateRound( p );
         if ( pPars->fVerbose )
         {
@@ -530,15 +533,14 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
             break;
         }
         if ( (clock() - clkTotal)/CLOCKS_PER_SEC >= pPars->TimeLimit )
-        {
-            printf( "No bug detected after %d frames with time limit %d seconds.\n", i+1, pPars->TimeLimit );
             break;
-        }
         clk2 = clock();
         if ( i < pPars->nIters - 1 )
             Fsim_ManSimInfoTransfer( p );
         clk2Total += clock() - clk2;
     }
+    if ( pAig->pSeqModel == NULL )
+        printf( "No bug detected after %d frames with time limit %d seconds.\n", i+1, pPars->TimeLimit );
     if ( pPars->fVerbose )
     {
         printf( "Maxcut = %8d.  AigMem = %7.2f Mb.  SimMem = %7.2f Mb.  ", 
@@ -560,4 +562,6 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

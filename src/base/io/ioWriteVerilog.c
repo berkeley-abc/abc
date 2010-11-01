@@ -22,6 +22,9 @@
 #include "main.h"
 #include "mio.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -80,7 +83,7 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName )
         // write the network first
         Io_WriteVerilogInt( pFile, pNtk );
         // write other things
-        Vec_PtrForEachEntry( pNtk->pDesign->vModules, pNetlist, i )
+        Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pNetlist, i )
         {
             assert( Abc_NtkIsNetlist(pNetlist) );
             if ( pNetlist == pNtk )
@@ -495,7 +498,7 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
     {
         if ( Abc_ObjIsLatch(pObj) )
             continue;
-        pNtkBox = pObj->pData;
+        pNtkBox = (Abc_Ntk_t *)pObj->pData;
         fprintf( pFile, "  %s box%0*d", pNtkBox->pName, nDigits, Counter++ );
         fprintf( pFile, "(" );
         Abc_NtkForEachPi( pNtkBox, pTerm, k )
@@ -513,12 +516,12 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
     // write nodes
     if ( Abc_NtkHasMapping(pNtk) )
     {
-        Length  = Mio_LibraryReadGateNameMax(pNtk->pManFunc);
+        Length  = Mio_LibraryReadGateNameMax((Mio_Library_t *)pNtk->pManFunc);
         nDigits = Extra_Base10Log( Abc_NtkNodeNum(pNtk) );
         Counter = 0;
         Abc_NtkForEachNode( pNtk, pObj, k )
         {
-            Mio_Gate_t * pGate = pObj->pData;
+            Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
             Mio_Pin_t * pGatePin;
             // write the node
             fprintf( pFile, "  %-*s g%0*d", Length, Mio_GateReadName(pGate), nDigits, Counter++ );
@@ -539,17 +542,17 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
         vLevels = Vec_VecAlloc( 10 );
         Abc_NtkForEachNode( pNtk, pObj, i )
         {
-            pFunc = pObj->pData;
+            pFunc = (Hop_Obj_t *)pObj->pData;
             fprintf( pFile, "  assign %s = ", Io_WriteVerilogGetName(Abc_ObjName(Abc_ObjFanout0(pObj))) );
             // set the input names
             Abc_ObjForEachFanin( pObj, pFanin, k )
-                Hop_IthVar(pNtk->pManFunc, k)->pData = Extra_UtilStrsav(Io_WriteVerilogGetName(Abc_ObjName(pFanin)));
+                Hop_IthVar((Hop_Man_t *)pNtk->pManFunc, k)->pData = Extra_UtilStrsav(Io_WriteVerilogGetName(Abc_ObjName(pFanin)));
             // write the formula
             Hop_ObjPrintVerilog( pFile, pFunc, vLevels, 0 );
             fprintf( pFile, ";\n" );
             // clear the input names
             Abc_ObjForEachFanin( pObj, pFanin, k )
-                ABC_FREE( Hop_IthVar(pNtk->pManFunc, k)->pData );
+                ABC_FREE( Hop_IthVar((Hop_Man_t *)pNtk->pManFunc, k)->pData );
         }
         Vec_VecFree( vLevels );
     }
@@ -636,4 +639,6 @@ char * Io_WriteVerilogGetName( char * pName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

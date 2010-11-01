@@ -21,6 +21,7 @@
 #ifndef __NM_INT_H__
 #define __NM_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -33,9 +34,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -78,9 +80,11 @@ extern Nm_Entry_t *     Nm_ManTableLookupId( Nm_Man_t * p, int ObjId );
 extern Nm_Entry_t *     Nm_ManTableLookupName( Nm_Man_t * p, char * pName, int Type );
 extern unsigned int     Cudd_PrimeNm( unsigned int p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

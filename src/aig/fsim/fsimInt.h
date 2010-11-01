@@ -21,6 +21,7 @@
 #ifndef __FSIM_INT_H__
 #define __FSIM_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,9 +33,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -122,9 +124,11 @@ extern Fsim_Man_t *        Fsim_ManCreate( Aig_Man_t * pAig );
 extern void                Fsim_ManDelete( Fsim_Man_t * p );
 extern void                Fsim_ManTest( Aig_Man_t * pAig );
  
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

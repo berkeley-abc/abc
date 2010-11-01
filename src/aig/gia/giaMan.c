@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "tim.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -66,10 +70,18 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
 ***********************************************************************/
 void Gia_ManStop( Gia_Man_t * p )  
 {
+    Tim_ManStopP( (Tim_Man_t **)&p->pManTime );
+    assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
     Vec_PtrFreeFree( p->vNamesOut );
-    if ( p->vFlopClasses )
-    Vec_IntFree( p->vFlopClasses );
+    Vec_FltFreeP( &p->vTiming );
+    Vec_VecFreeP( &p->vClockDoms );
+    Vec_IntFreeP( &p->vLutConfigs );
+    Vec_IntFreeP( &p->vCiNumsOrig );
+    Vec_IntFreeP( &p->vCoNumsOrig );
+    Vec_IntFreeP( &p->vFlopClasses );
+    Vec_IntFreeP( &p->vLevels );
+    Vec_IntFreeP( &p->vTruths );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
     ABC_FREE( p->pTravIds );
@@ -85,10 +97,29 @@ void Gia_ManStop( Gia_Man_t * p )
     ABC_FREE( p->pNexts );
     ABC_FREE( p->pName );
     ABC_FREE( p->pRefs );
-    ABC_FREE( p->pLevels );
+    ABC_FREE( p->pNodeRefs );
     ABC_FREE( p->pHTable );
     ABC_FREE( p->pObjs );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManStopP( Gia_Man_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    Gia_ManStop( *p );
+    *p = NULL;
 }
 
 /**Function*************************************************************
@@ -102,7 +133,7 @@ void Gia_ManStop( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintClasses( Gia_Man_t * p )
+void Gia_ManPrintClasses_old( Gia_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -121,6 +152,44 @@ void Gia_ManPrintClasses( Gia_Man_t * p )
         Gia_WriteAiger( pTemp, "dom2.aig", 0, 0 );
         Gia_ManStop( pTemp );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintClasses( Gia_Man_t * p )
+{
+    int i, Class, Counter0, Counter1;
+    if ( p->vFlopClasses == NULL )
+        return;
+    if ( Vec_IntSize(p->vFlopClasses) != Gia_ManRegNum(p) )
+    {
+        printf( "Gia_ManPrintClasses(): The number of flop map entries differs from the number of flops.\n" );
+        return;
+    }
+    printf( "Register classes: " );
+    // count zero entries
+    Counter0 = 0;
+    Vec_IntForEachEntry( p->vFlopClasses, Class, i )
+        Counter0 += (Class == 0);
+    printf( "0=%d  ", Counter0 );
+    // count one entries
+    Counter1 = 0;
+    Vec_IntForEachEntry( p->vFlopClasses, Class, i )
+        Counter1 += (Class == 1);
+    printf( "1=%d  ", Counter1 );
+    // add comment
+    if ( Counter0 + Counter1 < Gia_ManRegNum(p) )
+        printf( "there are other classes..." );
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -163,13 +232,15 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
     if ( p->pName )
         printf( "%-8s : ", p->pName );
     printf( "i/o =%7d/%7d", Gia_ManPiNum(p), Gia_ManPoNum(p) );
+    if ( Gia_ManConstrNum(p) )
+        printf( "(c=%d)", Gia_ManConstrNum(p) );
     if ( Gia_ManRegNum(p) )
         printf( "  ff =%7d", Gia_ManRegNum(p) );
     printf( "  and =%8d", Gia_ManAndNum(p) );
     printf( "  lev =%5d", Gia_ManLevelNum(p) );
     printf( "  cut =%5d", Gia_ManCrossCut(p) );
     printf( "  mem =%5.2f Mb", 12.0*Gia_ManObjNum(p)/(1<<20) );
-    if ( Gia_ManHasDandling(p) )
+    if ( Gia_ManHasDangling(p) )
         printf( "  ch =%5d", Gia_ManEquivCountClasses(p) );
     if ( fSwitch )
     {
@@ -189,7 +260,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
     if ( p->pPlacement )
         Gia_ManPrintPlacement( p );
     // print register classes
-//    Gia_ManPrintClasses( p );
+    Gia_ManPrintClasses( p );
 }
 
 /**Function*************************************************************
@@ -308,4 +379,6 @@ void Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

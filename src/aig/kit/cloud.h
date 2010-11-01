@@ -19,15 +19,18 @@
 #ifndef __CLOUD_H__
 #define __CLOUD_H__
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
+
 #include "abc_global.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
@@ -239,9 +242,11 @@ extern CloudNode *    Cloud_bddOr( CloudManager * dd, CloudNode * f, CloudNode *
 extern void           Cloud_PrintInfo( CloudManager * dd );
 extern void           Cloud_PrintHashTable( CloudManager * dd );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

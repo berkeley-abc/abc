@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -349,7 +352,7 @@ int Ssw_SmlNodeCountOnesRealVec( Ssw_Sml_t * p, Vec_Ptr_t * vObjs )
     for ( i = 0; i < p->nWordsTotal; i++ )
     {
         uWord = 0;
-        Vec_PtrForEachEntry( vObjs, pObj, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vObjs, pObj, k )
         {
             pSims = Ssw_ObjSim(p, Aig_Regular(pObj)->Id);
             if ( Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) )
@@ -858,7 +861,7 @@ void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
     if ( fInit )
     {
         assert( Aig_ManRegNum(p->pAig) > 0 );
-        assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+        assert( Aig_ManRegNum(p->pAig) <= Aig_ManPiNum(p->pAig) );
         // assign random info for primary inputs
         Saig_ManForEachPi( p->pAig, pObj, i )
             Ssw_SmlAssignRandom( p, pObj );
@@ -1240,12 +1243,12 @@ unsigned * Ssw_SmlSimInfo( Ssw_Sml_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
+Abc_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     int nWords = Aig_BitWordNum( nRegs + nRealPis * nFrames );
-    pCex = (Ssw_Cex_t *)ABC_ALLOC( char, sizeof(Ssw_Cex_t) + sizeof(unsigned) * nWords );
-    memset( pCex, 0, sizeof(Ssw_Cex_t) + sizeof(unsigned) * nWords );
+    pCex = (Abc_Cex_t *)ABC_ALLOC( char, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
+    memset( pCex, 0, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
     pCex->nRegs  = nRegs;
     pCex->nPis   = nRealPis;
     pCex->nBits  = nRegs + nRealPis * nFrames;
@@ -1263,7 +1266,7 @@ Ssw_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_SmlFreeCounterExample( Ssw_Cex_t * pCex )
+void Ssw_SmlFreeCounterExample( Abc_Cex_t * pCex )
 {
     ABC_FREE( pCex );
 }
@@ -1279,11 +1282,15 @@ void Ssw_SmlFreeCounterExample( Ssw_Cex_t * pCex )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
+int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p )
 { 
     Ssw_Sml_t * pSml;
     Aig_Obj_t * pObj;
     int RetValue, i, k, iBit;
+    if ( Saig_ManPiNum(pAig) != p->nPis )
+        return 0;
+//    if ( Saig_ManRegNum(pAig) != p->nRegs )
+//        return 0;
 //    assert( Aig_ManRegNum(pAig) > 0 );
 //    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
     // start a new sequential simulator
@@ -1293,10 +1300,11 @@ int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
     Saig_ManForEachLo( pAig, pObj, i )
         Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
     // assign simulation info for the primary inputs
+    iBit = Saig_ManRegNum(pAig);
     for ( i = 0; i <= p->iFrame; i++ )
         Saig_ManForEachPi( pAig, pObj, k )
             Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
-    assert( iBit == p->nBits );
+//    assert( iBit == p->nBits );
     // run random simulation
     Ssw_SmlSimulateOne( pSml );
     // check if the given output has failed
@@ -1316,7 +1324,7 @@ int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
+int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p )
 {
     Ssw_Sml_t * pSml;
     Aig_Obj_t * pObj;
@@ -1359,9 +1367,9 @@ int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Ssw_SmlGetCounterExample( Ssw_Sml_t * p )
+Abc_Cex_t * Ssw_SmlGetCounterExample( Ssw_Sml_t * p )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     unsigned * pSims;
     int iPo, iFrame, iBit, i, k;
@@ -1433,9 +1441,9 @@ Ssw_Cex_t * Ssw_SmlGetCounterExample( Ssw_Sml_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Ssw_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel )
+Abc_Cex_t * Ssw_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     int i, nFrames, nTruePis, nTruePos, iPo, iFrame;
     // get the number of frames
@@ -1493,9 +1501,9 @@ Ssw_Cex_t * Ssw_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, in
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Ssw_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
+Abc_Cex_t * Ssw_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     int nTruePis, nTruePos, iPo, iFrame;
     assert( Aig_ManRegNum(pAig) > 0 );
     nTruePis = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
@@ -1520,9 +1528,9 @@ Ssw_Cex_t * Ssw_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Ssw_SmlDupCounterExample( Ssw_Cex_t * p, int nRegsNew )
+Abc_Cex_t * Ssw_SmlDupCounterExample( Abc_Cex_t * p, int nRegsNew )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     int i;
     pCex = Ssw_SmlAllocCounterExample( nRegsNew, p->nPis, p->iFrame+1 );
     pCex->iPo    = p->iPo;
@@ -1544,7 +1552,7 @@ Ssw_Cex_t * Ssw_SmlDupCounterExample( Ssw_Cex_t * p, int nRegsNew )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Ssw_Cex_t * p )
+int Ssw_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Abc_Cex_t * p )
 {
     Ssw_Sml_t * pSml;
     Aig_Obj_t * pObj;
@@ -1613,4 +1621,6 @@ int Ssw_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Ssw_Cex_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

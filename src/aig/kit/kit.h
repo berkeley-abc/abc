@@ -21,6 +21,7 @@
 #ifndef __KIT_H__
 #define __KIT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -38,9 +39,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -197,8 +199,10 @@ static inline void         Kit_SopWriteCube( Kit_Sop_t * cSop, unsigned uCube, i
 static inline Kit_Edge_t   Kit_EdgeCreate( int Node, int fCompl )                         { Kit_Edge_t eEdge = { fCompl, Node }; return eEdge;  }
 static inline unsigned     Kit_EdgeToInt( Kit_Edge_t eEdge )                              { return (eEdge.Node << 1) | eEdge.fCompl;            }
 static inline Kit_Edge_t   Kit_IntToEdge( unsigned Edge )                                 { return Kit_EdgeCreate( Edge >> 1, Edge & 1 );       }
-static inline unsigned     Kit_EdgeToInt_( Kit_Edge_t eEdge )                             { return *(unsigned *)&eEdge;                         }
-static inline Kit_Edge_t   Kit_IntToEdge_( unsigned Edge )                                { return *(Kit_Edge_t *)&Edge;                        }
+//static inline unsigned     Kit_EdgeToInt_( Kit_Edge_t eEdge )                             { return *(unsigned *)&eEdge;                         }
+//static inline Kit_Edge_t   Kit_IntToEdge_( unsigned Edge )                                { return *(Kit_Edge_t *)&Edge;                        }
+static inline unsigned     Kit_EdgeToInt_( Kit_Edge_t m )                                 { union { Kit_Edge_t x; unsigned y; } v; v.x = m; return v.y;  }
+static inline Kit_Edge_t   Kit_IntToEdge_( unsigned m )                                   { union { Kit_Edge_t x; unsigned y; } v; v.y = m; return v.x;  }
 
 static inline int          Kit_GraphIsConst( Kit_Graph_t * pGraph )                       { return pGraph->fConst;                              }
 static inline int          Kit_GraphIsConst0( Kit_Graph_t * pGraph )                      { return pGraph->fConst && pGraph->eRoot.fCompl;      }
@@ -219,8 +223,12 @@ static inline Kit_Node_t * Kit_GraphNodeFanin0( Kit_Graph_t * pGraph, Kit_Node_t
 static inline Kit_Node_t * Kit_GraphNodeFanin1( Kit_Graph_t * pGraph, Kit_Node_t * pNode ){ return Kit_GraphNodeIsVar(pGraph, pNode)? NULL : Kit_GraphNode(pGraph, pNode->eEdge1.Node);     }
 static inline int          Kit_GraphRootLevel( Kit_Graph_t * pGraph )                     { return Kit_GraphNode(pGraph, pGraph->eRoot.Node)->Level;                                        }
 
-static inline int          Kit_Float2Int( float Val )     { return *((int *)&Val);               }
-static inline float        Kit_Int2Float( int Num )       { return *((float *)&Num);             }
+static inline int          Kit_SuppIsMinBase( int Supp )                                  { return (Supp & (Supp+1)) == 0;                      }
+
+//static inline int          Kit_Float2Int( float Val )     { return *((int *)&Val);               }
+//static inline float        Kit_Int2Float( int Num )       { return *((float *)&Num);             }
+static inline int          Kit_Float2Int( float Val )             { union { int x; float y; } v; v.y = Val; return v.x;    }
+static inline float        Kit_Int2Float( int Num )               { union { int x; float y; } v; v.x = Num; return v.y;    }
 static inline int          Kit_BitWordNum( int nBits )    { return nBits/(8*sizeof(unsigned)) + ((nBits%(8*sizeof(unsigned))) > 0); }
 static inline int          Kit_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5));                             }
 static inline unsigned     Kit_BitMask( int nBits )       { assert( nBits <= 32 ); return ~((~(unsigned)0) << nBits);               }
@@ -277,6 +285,14 @@ static inline int Kit_TruthIsEqual( unsigned * pIn0, unsigned * pIn1, int nVars 
     int w;
     for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
         if ( pIn0[w] != pIn1[w] )
+            return 0;
+    return 1;
+}
+static inline int Kit_TruthIsEqualWithCare( unsigned * pIn0, unsigned * pIn1, unsigned * pCare, int nVars )
+{
+    int w;
+    for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( (pIn0[w] & pCare[w]) != (pIn1[w] & pCare[w]) )
             return 0;
     return 1;
 }
@@ -423,6 +439,30 @@ static inline void Kit_TruthAndPhase( unsigned * pOut, unsigned * pIn0, unsigned
             pOut[w] = pIn0[w] & pIn1[w];
     }
 }
+static inline void Kit_TruthOrPhase( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars, int fCompl0, int fCompl1 )
+{
+    int w;
+    if ( fCompl0 && fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = ~(pIn0[w] & pIn1[w]);
+    }
+    else if ( fCompl0 && !fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = ~pIn0[w] | pIn1[w];
+    }
+    else if ( !fCompl0 && fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = pIn0[w] | ~pIn1[w];
+    }
+    else // if ( !fCompl0 && !fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = pIn0[w] | pIn1[w];
+    }
+}
 static inline void Kit_TruthMux( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, unsigned * pCtrl, int nVars )
 {
     int w;
@@ -547,7 +587,10 @@ extern char *          Kit_PlaStart( void * p, int nCubes, int nVars );
 extern char *          Kit_PlaCreateFromIsop( void * p, int nVars, Vec_Int_t * vCover );
 extern void            Kit_PlaToIsop( char * pSop, Vec_Int_t * vCover );
 extern char *          Kit_PlaStoreSop( void * p, char * pSop );
-extern ABC_DLL char *  Kit_PlaFromTruth( void * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
+extern char *          Kit_PlaFromTruth( void * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
+extern char *          Kit_PlaFromTruthNew( unsigned * pTruth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vStr );
+extern ABC_UINT64_T    Kit_PlaToTruth6( char * pSop, int nVars );
+extern void            Kit_PlaToTruth( char * pSop, int nVars, Vec_Ptr_t * vVars, unsigned * pTemp, unsigned * pTruth );
 /*=== kitSop.c ==========================================================*/
 extern void            Kit_SopCreate( Kit_Sop_t * cResult, Vec_Int_t * vInput, int nVars, Vec_Int_t * vMemory );
 extern void            Kit_SopCreateInverse( Kit_Sop_t * cResult, Vec_Int_t * vInput, int nVars, Vec_Int_t * vMemory );
@@ -584,6 +627,8 @@ extern void            Kit_TruthUniqueNew( unsigned * pRes, unsigned * pTruth, i
 extern void            Kit_TruthMuxVar( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
 extern void            Kit_TruthMuxVarPhase( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar, int fCompl0 );
 extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
+extern int             Kit_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1, unsigned * pCof0, unsigned * pCof1 );
+extern int             Kit_TruthVarsAntiSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1, unsigned * pCof0, unsigned * pCof1 );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
 extern int             Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigned * pCof1 );
 extern void            Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
@@ -592,10 +637,13 @@ extern void            Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVar
 extern unsigned        Kit_TruthHash( unsigned * pIn, int nWords );
 extern unsigned        Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
 extern char *          Kit_TruthDumpToFile( unsigned * pTruth, int nVars, int nFile );
+extern void            Kit_TruthPrintProfile( unsigned * pTruth, int nVars );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

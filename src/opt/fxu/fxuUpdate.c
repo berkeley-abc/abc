@@ -18,6 +18,9 @@
 
 #include "fxuInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -292,7 +295,7 @@ void Fxu_UpdateDoublePairs( Fxu_Matrix * p, Fxu_Double * pDouble, Fxu_Var * pVar
     {
         // get the pair
 //        pPair = p->pPairsTemp[i];
-        pPair = p->vPairs->pArray[i];
+        pPair = (Fxu_Pair *)p->vPairs->pArray[i];
         // out of the two cubes, select the one which comes earlier
         pCubeUse = Fxu_PairMinCube( pPair );
         pCubeRem = Fxu_PairMaxCube( pPair );
@@ -344,7 +347,7 @@ void Fxu_UpdateMatrixDoubleCreateCubes( Fxu_Matrix * p, Fxu_Cube * pCube1, Fxu_C
         if ( pLit1 && pLit2 )
         {
             if ( pLit1->iVar == pLit2->iVar )
-            { // skip the cube ABC_FREE part
+            { // skip the cube free part
                 pLit1 = pLit1->pHNext;
                 pLit2 = pLit2->pHNext;
                 nBase++;
@@ -803,4 +806,6 @@ void Fxu_UpdateAddNewSingles( Fxu_Matrix * p, Fxu_Var * pVar )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

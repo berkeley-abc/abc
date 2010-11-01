@@ -20,6 +20,9 @@
 
 #include "dchInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -74,34 +77,34 @@ Dch_Man_t * Dch_ManCreate( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 void Dch_ManPrintStats( Dch_Man_t * p )
 {
     int nNodeNum = Aig_ManNodeNum(p->pAigTotal) / 3;
-    printf( "Parameters: Sim words = %d. Conf limit = %d. SAT var max = %d.\n", 
+    Abc_Print( 1, "Parameters: Sim words = %d. Conf limit = %d. SAT var max = %d.\n", 
         p->pPars->nWords, p->pPars->nBTLimit, p->pPars->nSatVarMax );
-    printf( "AIG nodes : Total = %6d. Dangling = %6d. Main = %6d. (%6.2f %%)\n", 
+    Abc_Print( 1, "AIG nodes : Total = %6d. Dangling = %6d. Main = %6d. (%6.2f %%)\n", 
         Aig_ManNodeNum(p->pAigTotal), 
         Aig_ManNodeNum(p->pAigTotal)-nNodeNum,
         nNodeNum,
         100.0 * nNodeNum/Aig_ManNodeNum(p->pAigTotal) );
-    printf( "SAT solver: Vars = %d. Max cone = %d. Recycles = %d.\n", 
+    Abc_Print( 1, "SAT solver: Vars = %d. Max cone = %d. Recycles = %d.\n", 
         p->nSatVars, p->nConeMax, p->nRecycles );
-    printf( "SAT calls : All = %6d. Unsat = %6d. Sat = %6d. Fail = %6d.\n", 
+    Abc_Print( 1, "SAT calls : All = %6d. Unsat = %6d. Sat = %6d. Fail = %6d.\n", 
         p->nSatCalls, p->nSatCalls-p->nSatCallsSat-p->nSatFailsReal, 
         p->nSatCallsSat, p->nSatFailsReal );
-    printf( "Choices   : Lits = %6d. Reprs = %5d. Equivs = %5d. Choices = %5d.\n", 
+    Abc_Print( 1, "Choices   : Lits = %6d. Reprs = %5d. Equivs = %5d. Choices = %5d.\n", 
         p->nLits, p->nReprs, p->nEquivs, p->nChoices );
-    printf( "Choicing runtime statistics:\n" );
+    Abc_Print( 1, "Choicing runtime statistics:\n" );
     p->timeOther = p->timeTotal-p->timeSimInit-p->timeSimSat-p->timeSat-p->timeChoice;
-    ABC_PRTP( "Sim init   ", p->timeSimInit,  p->timeTotal );
-    ABC_PRTP( "Sim SAT    ", p->timeSimSat,   p->timeTotal );
-    ABC_PRTP( "SAT solving", p->timeSat,      p->timeTotal );
-    ABC_PRTP( "  sat      ", p->timeSatSat,   p->timeTotal );
-    ABC_PRTP( "  unsat    ", p->timeSatUnsat, p->timeTotal );
-    ABC_PRTP( "  undecided", p->timeSatUndec, p->timeTotal );
-    ABC_PRTP( "Choice     ", p->timeChoice,   p->timeTotal );
-    ABC_PRTP( "Other      ", p->timeOther,    p->timeTotal );
-    ABC_PRTP( "TOTAL      ", p->timeTotal,    p->timeTotal );
+    Abc_PrintTimeP( 1, "Sim init   ", p->timeSimInit,  p->timeTotal );
+    Abc_PrintTimeP( 1, "Sim SAT    ", p->timeSimSat,   p->timeTotal );
+    Abc_PrintTimeP( 1, "SAT solving", p->timeSat,      p->timeTotal );
+    Abc_PrintTimeP( 1, "  sat      ", p->timeSatSat,   p->timeTotal );
+    Abc_PrintTimeP( 1, "  unsat    ", p->timeSatUnsat, p->timeTotal );
+    Abc_PrintTimeP( 1, "  undecided", p->timeSatUndec, p->timeTotal );
+    Abc_PrintTimeP( 1, "Choice     ", p->timeChoice,   p->timeTotal );
+    Abc_PrintTimeP( 1, "Other      ", p->timeOther,    p->timeTotal );
+    Abc_PrintTimeP( 1, "TOTAL      ", p->timeTotal,    p->timeTotal );
     if ( p->pPars->timeSynth )
     {
-    ABC_PRT( "Synthesis  ", p->pPars->timeSynth );
+    Abc_PrintTime( 1, "Synthesis  ", p->pPars->timeSynth );
     }
 } 
 
@@ -154,7 +157,7 @@ void Dch_ManSatSolverRecycle( Dch_Man_t * p )
     {
         Aig_Obj_t * pObj;
         int i;
-        Vec_PtrForEachEntry( p->vUsedNodes, pObj, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, p->vUsedNodes, pObj, i )
             Dch_ObjSetSatNum( p, pObj, 0 );
         Vec_PtrClear( p->vUsedNodes );
 //        memset( p->pSatVars, 0, sizeof(int) * Aig_ManObjNumMax(p->pAigTotal) );
@@ -183,4 +186,6 @@ void Dch_ManSatSolverRecycle( Dch_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

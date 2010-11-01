@@ -19,6 +19,7 @@
 #ifndef __FRAIG_INT_H__
 #define __FRAIG_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,6 +33,9 @@
 #include "abc_global.h"
 #include "fraig.h"
 #include "msat.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -57,9 +61,9 @@
 #define FRAIG_MAX_PRIMES        1024   // the maximum number of primes used for hashing
 
 // this parameter determines when simulation info is extended
-// it will be extended when the ABC_FREE storage in the dynamic simulation
+// it will be extended when the free storage in the dynamic simulation
 // info is less or equal to this number of words (FRAIG_WORDS_STORE)
-// this is done because if the ABC_FREE storage for dynamic simulation info 
+// this is done because if the free storage for dynamic simulation info 
 // is not sufficient, computation becomes inefficient 
 #define FRAIG_WORDS_STORE           5   
 
@@ -418,6 +422,10 @@ extern int                 Fraig_NodeIsTravIdCurrent( Fraig_Man_t * pMan, Fraig_
 extern int                 Fraig_NodeIsTravIdPrevious( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
 /*=== fraigVec.c ===============================================================*/
 extern void                Fraig_NodeVecSortByRefCount( Fraig_NodeVec_t * p );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

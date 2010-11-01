@@ -20,6 +20,9 @@
 
 #include "ntl.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -160,7 +163,7 @@ Ntl_Obj_t * Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts )
     p->Type     = NTL_OBJ_BOX;
     p->nFanins  = nFanins;
     p->nFanouts = nFanouts;
-//    p->Reset    = -1;
+    p->Reset    = -1;
     pModel->nObjs[NTL_OBJ_BOX]++;
     return p;
 }
@@ -246,7 +249,7 @@ char * Ntl_ManStoreName( Ntl_Man_t * p, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-char * Ntl_ManStoreSop( Aig_MmFlex_t * pMan, char * pSop )
+char * Ntl_ManStoreSop( Aig_MmFlex_t * pMan, const char * pSop )
 {
     char * pStore;
     pStore = Aig_MmFlexEntryFetch( pMan, strlen(pSop) + 1 );
@@ -311,4 +314,6 @@ int Ntl_ManObjWhichFanout( Ntl_Obj_t * pNode, Ntl_Net_t * pFanout )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

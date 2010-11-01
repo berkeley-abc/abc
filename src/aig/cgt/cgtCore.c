@@ -21,6 +21,9 @@
 #include "cgtInt.h"
 #include "bar.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -68,8 +71,8 @@ int Cgt_SimulationFilter( Cgt_Man_t * p, Aig_Obj_t * pCandPart, Aig_Obj_t * pMit
 {
     unsigned * pInfoCand, * pInfoMiter;
     int w, nWords = Aig_BitWordNum( p->nPatts );  
-    pInfoCand  = Vec_PtrEntry( p->vPatts, Aig_ObjId(Aig_Regular(pCandPart)) );
-    pInfoMiter = Vec_PtrEntry( p->vPatts, Aig_ObjId(pMiterPart) );
+    pInfoCand  = (unsigned *)Vec_PtrEntry( p->vPatts, Aig_ObjId(Aig_Regular(pCandPart)) );
+    pInfoMiter = (unsigned *)Vec_PtrEntry( p->vPatts, Aig_ObjId(pMiterPart) );
     // C => !M -- true   is the same as    C & M -- false
     if ( !Aig_IsComplement(pCandPart) )
     {
@@ -103,7 +106,7 @@ void Cgt_SimulationRecord( Cgt_Man_t * p )
     int i;
     Aig_ManForEachObj( p->pPart, pObj, i )
         if ( sat_solver_var_value( p->pSat, p->pCnf->pVarNums[i] ) )
-            Aig_InfoSetBit( Vec_PtrEntry(p->vPatts, i), p->nPatts );
+            Aig_InfoSetBit( (unsigned *)Vec_PtrEntry(p->vPatts, i), p->nPatts );
     p->nPatts++;
     if ( p->nPatts == 32 * p->nPattWords )
     {
@@ -137,14 +140,14 @@ void Cgt_ClockGatingRangeCheck( Cgt_Man_t * p, int iStart, int nOutputs )
         pMiter = Saig_ManLi( p->pAig, i );
         Cgt_ManDetectCandidates( p->pAig, Aig_ObjFanin0(pMiter), p->pPars->nLevelMax, vNodes );
         // go through the candidates of this PO
-        Vec_PtrForEachEntry( vNodes, pCand, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pCand, k )
         {
             // get the corresponding nodes from the frames
-            pCandFrame  = pCand->pData;
-            pMiterFrame = pMiter->pData;
+            pCandFrame  = (Aig_Obj_t *)pCand->pData;
+            pMiterFrame = (Aig_Obj_t *)pMiter->pData;
             // get the corresponding nodes from the part
-            pCandPart   = pCandFrame->pData;
-            pMiterPart  = pMiterFrame->pData;
+            pCandPart   = (Aig_Obj_t *)pCandFrame->pData;
+            pMiterPart  = (Aig_Obj_t *)pMiterFrame->pData;
             // try direct polarity
             if ( Cgt_SimulationFilter( p, pCandPart, pMiterPart ) )
             {
@@ -205,7 +208,7 @@ int Cgt_ClockGatingRange( Cgt_Man_t * p, int iStart )
 clk = clock();
     p->pPart = Cgt_ManDupPartition( p->pFrame, p->pPars->nVarsMin, p->pPars->nFlopsMin, iStart, p->pCare, p->vSuppsInv, &nOutputs );
     p->pCnf  = Cnf_DeriveSimple( p->pPart, nOutputs );
-    p->pSat  = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
+    p->pSat  = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
     sat_solver_compress( p->pSat );
     p->vPatts = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p->pPart), p->nPattWords );
     Vec_PtrCleanSimInfo( p->vPatts, 0, p->nPattWords );
@@ -313,4 +316,6 @@ Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pP
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

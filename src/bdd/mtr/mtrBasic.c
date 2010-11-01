@@ -36,6 +36,9 @@
 #include "util_hack.h"
 #include "mtrInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -423,4 +426,6 @@ Mtr_PrintTree(
 /*---------------------------------------------------------------------------*/
 /* Definition of static functions                                            */
 /*---------------------------------------------------------------------------*/
+
+ABC_NAMESPACE_IMPL_END
 

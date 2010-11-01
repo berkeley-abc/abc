@@ -38,6 +38,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -136,7 +139,7 @@ Cudd_DumpBlif(
     scan = cuddT(scan);
     }
     Cudd_RecursiveDeref(dd,support);
-    support = NULL; /* so that we do not try to ABC_FREE it in case of failure */
+    support = NULL; /* so that we do not try to free it in case of failure */
 
     /* Write the header (.model .inputs .outputs). */
     if (mname == NULL) {
@@ -342,7 +345,7 @@ Cudd_DumpDot(
     scan = cuddT(scan);
     }
     Cudd_RecursiveDeref(dd,support);
-    support = NULL; /* so that we do not try to ABC_FREE it in case of failure */
+    support = NULL; /* so that we do not try to free it in case of failure */
 
     /* Initialize symbol table for visited nodes. */
     visited = st_init_table(st_ptrcmp, st_ptrhash);
@@ -370,7 +373,7 @@ Cudd_DumpDot(
     diff = 0;
     gen = st_init_gen(visited);
     if (gen == NULL) goto failure;
-    while (st_gen(gen, (char **) &scan, NULL)) {
+    while (st_gen(gen, (const char **) &scan, NULL)) {
     diff |= refAddr ^ (long) scan;
     }
     st_free_gen(gen); gen = NULL;
@@ -621,7 +624,7 @@ Cudd_DumpDaVinci(
     refAddr = (long) Cudd_Regular(f[0]);
     diff = 0;
     gen = st_init_gen(visited);
-    while (st_gen(gen, (char **) &scan, NULL)) {
+    while (st_gen(gen, (const char **) &scan, NULL)) {
     diff |= refAddr ^ (long) scan;
     }
     st_free_gen(gen);
@@ -737,7 +740,7 @@ Cudd_DumpDDcal(
     refAddr = (long) Cudd_Regular(f[0]);
     diff = 0;
     gen = st_init_gen(visited);
-    while (st_gen(gen, (char **) &scan, NULL)) {
+    while (st_gen(gen, (const char **) &scan, NULL)) {
     diff |= refAddr ^ (long) scan;
     }
     st_free_gen(gen);
@@ -767,7 +770,7 @@ Cudd_DumpDDcal(
     scan = cuddT(scan);
     }
     Cudd_RecursiveDeref(dd,support);
-    support = NULL; /* so that we do not try to ABC_FREE it in case of failure */
+    support = NULL; /* so that we do not try to free it in case of failure */
     for (i = 0; i < nvars; i++) {
         if (sorted[dd->invperm[i]]) {
         if (inames == NULL || inames[dd->invperm[i]] == NULL) {
@@ -1286,4 +1289,6 @@ ddDoDumpFactoredForm(
     return(1);
 
 } /* end of ddDoDumpFactoredForm */
+
+ABC_NAMESPACE_IMPL_END
 

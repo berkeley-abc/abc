@@ -20,6 +20,9 @@
 
 #include "amapInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -341,7 +344,7 @@ void Amap_ManCreate( Amap_Man_t * p, Aig_Man_t * pAig )
     Aig_ManForEachPi( pAig, pObj, i )
         pObj->pData = Amap_ManCreatePi( p );
     // load the AIG into the mapper
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         fChoices = 0;
         if ( p->fUseXor && Aig_ObjRecognizeExor(pObj, &pFan0, &pFan1 ) )
@@ -391,4 +394,6 @@ void Amap_ManCreate( Amap_Man_t * p, Aig_Man_t * pAig )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

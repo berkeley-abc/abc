@@ -11,6 +11,9 @@
 #include "extra.h"
 #include "stmm.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 #define STMM_NUMCMP(x,y) ((x) != (y))
 #define STMM_NUMHASH(x,size) (ABC_ABS((long)x)%(size))
 //#define STMM_PTRHASH(x,size) ((int)((ABC_PTRUINT_T)(x)>>2)%size) //  64-bit bug fix 9/17/2007
@@ -25,54 +28,45 @@
      (table->hash == stmm_numhash) ? STMM_NUMHASH((key), (table)->num_bins) :\
      (*table->hash)((key), (table)->num_bins))
 
-static int rehash ();
-int stmm_numhash (), stmm_ptrhash (), stmm_numcmp (), stmm_ptrcmp ();
+static int rehash (stmm_table *table);
+//int stmm_numhash (), stmm_ptrhash (), stmm_numcmp (), stmm_ptrcmp ();
 
 stmm_table *
-stmm_init_table_with_params (compare, hash, size, density, grow_factor,
-                 reorder_flag)
-    int (*compare) ();
-    int (*hash) ();
-    int size;
-    int density;
-    double grow_factor;
-    int reorder_flag;
+stmm_init_table_with_params (stmm_compare_func_type compare, stmm_hash_func_type hash, int size, int density, double grow_factor, int reorder_flag)
 {
     int i;
-    stmm_table *new;
+    stmm_table *newTable;
 
-    new = ABC_ALLOC(stmm_table, 1);
-    if (new == NULL) {
+    newTable = ABC_ALLOC(stmm_table, 1);
+    if (newTable == NULL) {
     return NULL;
     }
-    new->compare = compare;
-    new->hash = hash;
-    new->num_entries = 0;
-    new->max_density = density;
-    new->grow_factor = grow_factor;
-    new->reorder_flag = reorder_flag;
+    newTable->compare = compare;
+    newTable->hash = hash;
+    newTable->num_entries = 0;
+    newTable->max_density = density;
+    newTable->grow_factor = grow_factor;
+    newTable->reorder_flag = reorder_flag;
     if (size <= 0) {
     size = 1;
     }
-    new->num_bins = size;
-    new->bins = ABC_ALLOC(stmm_table_entry *, size);
-    if (new->bins == NULL) {
-    ABC_FREE (new);
+    newTable->num_bins = size;
+    newTable->bins = ABC_ALLOC(stmm_table_entry *, size);
+    if (newTable->bins == NULL) {
+    ABC_FREE(newTable);
     return NULL;
     }
     for (i = 0; i < size; i++) {
-    new->bins[i] = 0;
+    newTable->bins[i] = 0;
     }
 
     // added by alanmi
-    new->pMemMan = Extra_MmFixedStart(sizeof (stmm_table_entry));
-    return new;
+    newTable->pMemMan = Extra_MmFixedStart(sizeof (stmm_table_entry));
+    return newTable;
 }
 
 stmm_table *
-stmm_init_table (compare, hash)
-    int (*compare) ();
-    int (*hash) ();
+stmm_init_table (stmm_compare_func_type compare, stmm_hash_func_type hash)
 {
     return stmm_init_table_with_params (compare, hash,
                     STMM_DEFAULT_INIT_TABLE_SIZE,
@@ -82,8 +76,7 @@ stmm_init_table (compare, hash)
 }
 
 void
-stmm_free_table (table)
-    stmm_table *table;
+stmm_free_table (stmm_table *table)
 {
 /*
     register stmm_table_entry *ptr, *next;
@@ -103,14 +96,13 @@ stmm_free_table (table)
     // added by alanmi
     if ( table->pMemMan )
         Extra_MmFixedStop (table->pMemMan);
-    ABC_FREE (table->bins);
-    ABC_FREE (table);
+    ABC_FREE(table->bins);
+    ABC_FREE(table);
 }
 
 // this function recycles all the bins
 void
-stmm_clean (table)
-    stmm_table *table;
+stmm_clean (stmm_table *table)
 {
     int i;
     // clean the bins
@@ -139,10 +131,7 @@ stmm_clean (table)
     }
 
 int
-stmm_lookup (table, key, value)
-    stmm_table *table;
-    register char *key;
-    char **value;
+stmm_lookup (stmm_table *table, register char *key, char **value)
 {
     int hash_val;
     register stmm_table_entry *ptr, **last;
@@ -164,10 +153,7 @@ stmm_lookup (table, key, value)
 }
 
 int
-stmm_lookup_int (table, key, value)
-    stmm_table *table;
-    register char *key;
-    int *value;
+stmm_lookup_int (stmm_table *table, register char *key, int *value)
 {
     int hash_val;
     register stmm_table_entry *ptr, **last;
@@ -211,13 +197,10 @@ stmm_lookup_int (table, key, value)
 }
 
 int
-stmm_insert (table, key, value)
-    register stmm_table *table;
-    register char *key;
-    char *value;
+stmm_insert (register stmm_table *table, register char *key, char *value)
 {
     int hash_val;
-    stmm_table_entry *new;
+    stmm_table_entry *newEntry;
     register stmm_table_entry *ptr, **last;
 
     hash_val = do_hash (key, table);
@@ -232,16 +215,16 @@ stmm_insert (table, key, value)
         hash_val = do_hash (key, table);
     }
 
-//              new = ABC_ALLOC( stmm_table_entry, 1 );
-    new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
-    if (new == NULL) {
+//              newEntry = ABC_ALLOC( stmm_table_entry, 1 );
+    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
+    if (newEntry == NULL) {
         return STMM_OUT_OF_MEM;
     }
 
-    new->key = key;
-    new->record = value;
-    new->next = table->bins[hash_val];
-    table->bins[hash_val] = new;
+    newEntry->key = key;
+    newEntry->record = value;
+    newEntry->next = table->bins[hash_val];
+    table->bins[hash_val] = newEntry;
     table->num_entries++;
     return 0;
     }
@@ -252,13 +235,10 @@ stmm_insert (table, key, value)
 }
 
 int
-stmm_add_direct (table, key, value)
-    stmm_table *table;
-    char *key;
-    char *value;
+stmm_add_direct (stmm_table *table, char *key, char *value)
 {
     int hash_val;
-    stmm_table_entry *new;
+    stmm_table_entry *newEntry;
 
     hash_val = do_hash (key, table);
     if (table->num_entries / table->num_bins >= table->max_density) {
@@ -268,28 +248,25 @@ stmm_add_direct (table, key, value)
     }
     hash_val = do_hash (key, table);
 
-//      new = ABC_ALLOC( stmm_table_entry, 1 );
-    new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
-    if (new == NULL) {
+//      newEntry = ABC_ALLOC( stmm_table_entry, 1 );
+    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
+    if (newEntry == NULL) {
     return STMM_OUT_OF_MEM;
     }
 
-    new->key = key;
-    new->record = value;
-    new->next = table->bins[hash_val];
-    table->bins[hash_val] = new;
+    newEntry->key = key;
+    newEntry->record = value;
+    newEntry->next = table->bins[hash_val];
+    table->bins[hash_val] = newEntry;
     table->num_entries++;
     return 1;
 }
 
 int
-stmm_find_or_add (table, key, slot)
-    stmm_table *table;
-    char *key;
-    char ***slot;
+stmm_find_or_add (stmm_table *table, char *key, char ***slot)
 {
     int hash_val;
-    stmm_table_entry *new, *ptr, **last;
+    stmm_table_entry *newEntry, *ptr, **last;
 
     hash_val = do_hash (key, table);
 
@@ -303,19 +280,19 @@ stmm_find_or_add (table, key, slot)
         hash_val = do_hash (key, table);
     }
 
-    // new = ABC_ALLOC( stmm_table_entry, 1 );
-    new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
-    if (new == NULL) {
+    // newEntry = ABC_ALLOC( stmm_table_entry, 1 );
+    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
+    if (newEntry == NULL) {
         return STMM_OUT_OF_MEM;
     }
 
-    new->key = key;
-    new->record = (char *) 0;
-    new->next = table->bins[hash_val];
-    table->bins[hash_val] = new;
+    newEntry->key = key;
+    newEntry->record = (char *) 0;
+    newEntry->next = table->bins[hash_val];
+    table->bins[hash_val] = newEntry;
     table->num_entries++;
     if (slot != NULL)
-         *slot = &new->record;
+         *slot = &newEntry->record;
     return 0;
     }
     else {
@@ -326,10 +303,7 @@ stmm_find_or_add (table, key, slot)
 }
 
 int
-stmm_find (table, key, slot)
-    stmm_table *table;
-    char *key;
-    char ***slot;
+stmm_find (stmm_table *table, char *key, char ***slot)
 {
     int hash_val;
     stmm_table_entry *ptr, **last;
@@ -351,8 +325,7 @@ stmm_find (table, key, slot)
 }
 
 static int
-rehash (table)
-    register stmm_table *table;
+rehash (register stmm_table *table)
 {
     register stmm_table_entry *ptr, *next, **old_bins;
     int i, old_num_bins, hash_val, old_num_entries;
@@ -392,77 +365,73 @@ rehash (table)
         ptr = next;
     }
     }
-    ABC_FREE (old_bins);
+    ABC_FREE(old_bins);
 
     return 1;
 }
 
 stmm_table *
-stmm_copy (old_table)
-    stmm_table *old_table;
+stmm_copy (stmm_table *old_table)
 {
-    stmm_table *new_table;
-    stmm_table_entry *ptr, /* *newptr, *next, */ *new;
+    stmm_table *newEntry_table;
+    stmm_table_entry *ptr, /* *newEntryptr, *next, */ *newEntry;
     int i, /*j, */ num_bins = old_table->num_bins;
 
-    new_table = ABC_ALLOC(stmm_table, 1);
-    if (new_table == NULL) {
+    newEntry_table = ABC_ALLOC(stmm_table, 1);
+    if (newEntry_table == NULL) {
     return NULL;
     }
 
-    *new_table = *old_table;
-    new_table->bins = ABC_ALLOC(stmm_table_entry *, num_bins);
-    if (new_table->bins == NULL) {
-    ABC_FREE (new_table);
+    *newEntry_table = *old_table;
+    newEntry_table->bins = ABC_ALLOC(stmm_table_entry *, num_bins);
+    if (newEntry_table->bins == NULL) {
+    ABC_FREE(newEntry_table);
     return NULL;
     }
 
-    // allocate the memory manager for the new table
-    new_table->pMemMan =
+    // allocate the memory manager for the newEntry table
+    newEntry_table->pMemMan =
     Extra_MmFixedStart (sizeof (stmm_table_entry));
 
     for (i = 0; i < num_bins; i++) {
-    new_table->bins[i] = NULL;
+    newEntry_table->bins[i] = NULL;
     ptr = old_table->bins[i];
     while (ptr != NULL) {
-//                      new = ABC_ALLOC( stmm_table_entry, 1 );
-        new =
-        (stmm_table_entry *) Extra_MmFixedEntryFetch (new_table->
+//                      newEntry = ABC_ALLOC( stmm_table_entry, 1 );
+        newEntry =
+        (stmm_table_entry *) Extra_MmFixedEntryFetch (newEntry_table->
                                 pMemMan);
 
-        if (new == NULL) {
+        if (newEntry == NULL) {
 /*
                 for ( j = 0; j <= i; j++ )
                 {
-                    newptr = new_table->bins[j];
-                    while ( newptr != NULL )
+                    newEntryptr = newEntry_table->bins[j];
+                    while ( newEntryptr != NULL )
                     {
-                        next = newptr->next;
-                        ABC_FREE( newptr );
-                        newptr = next;
+                        next = newEntryptr->next;
+                        ABC_FREE( newEntryptr );
+                        newEntryptr = next;
                     }
                 }
 */
-        Extra_MmFixedStop (new_table->pMemMan);
+        Extra_MmFixedStop (newEntry_table->pMemMan);
 
-        ABC_FREE (new_table->bins);
-        ABC_FREE (new_table);
+        ABC_FREE(newEntry_table->bins);
+        ABC_FREE(newEntry_table);
         return NULL;
         }
-        *new = *ptr;
-        new->next = new_table->bins[i];
-        new_table->bins[i] = new;
+        *newEntry = *ptr;
+        newEntry->next = newEntry_table->bins[i];
+        newEntry_table->bins[i] = newEntry;
         ptr = ptr->next;
     }
     }
-    return new_table;
+    return newEntry_table;
 }
 
 int
-stmm_delete (table, keyp, value)
-    register stmm_table *table;
-    register char **keyp;
-    char **value;
+stmm_delete (register stmm_table *table, register char **keyp, char **value)
 {
     int hash_val;
     char *key = *keyp;
@@ -488,10 +457,7 @@ stmm_delete (table, keyp, value)
 }
 
 int
-stmm_delete_int (table, keyp, value)
-    register stmm_table *table;
-    register long *keyp;
-    char **value;
+stmm_delete_int (register stmm_table *table, register long *keyp, char **value)
 {
     int hash_val;
     char *key = (char *) *keyp;
@@ -517,10 +483,7 @@ stmm_delete_int (table, keyp, value)
 }
 
 int
-stmm_foreach (table, func, arg)
-    stmm_table *table;
-    enum stmm_retval (*func) ();
-    char *arg;
+stmm_foreach (stmm_table *table, enum stmm_retval (*func) (char *, char *, char *), char *arg)
 {
     stmm_table_entry *ptr, **last;
     enum stmm_retval retval;
@@ -552,9 +515,7 @@ stmm_foreach (table, func, arg)
 }
 
 int
-stmm_strhash (string, modulus)
-    register char *string;
-    int modulus;
+stmm_strhash (register const char *string, int modulus)
 {
     register int val = 0;
     register int c;
@@ -567,40 +528,31 @@ stmm_strhash (string, modulus)
 }
 
 int
-stmm_numhash (x, size)
-    char *x;
-    int size;
+stmm_numhash (const char *x, int size)
 {
     return STMM_NUMHASH (x, size);
 }
 
 int
-stmm_ptrhash (x, size)
-    char *x;
-    int size;
+stmm_ptrhash (const char *x, int size)
 {
     return STMM_PTRHASH (x, size);
 }
 
 int
-stmm_numcmp (x, y)
-    char *x;
-    char *y;
+stmm_numcmp (const char *x, const char *y)
 {
     return STMM_NUMCMP (x, y);
 }
 
 int
-stmm_ptrcmp (x, y)
-    char *x;
-    char *y;
+stmm_ptrcmp (const char *x, const char *y)
 {
     return STMM_NUMCMP (x, y);
 }
 
 stmm_generator *
-stmm_init_gen (table)
-    stmm_table *table;
+stmm_init_gen (stmm_table *table)
 {
     stmm_generator *gen;
 
@@ -616,10 +568,7 @@ stmm_init_gen (table)
 
 
 int
-stmm_gen (gen, key_p, value_p)
-    stmm_generator *gen;
-    char **key_p;
-    char **value_p;
+stmm_gen (stmm_generator *gen, char **key_p, char **value_p)
 {
     register int i;
 
@@ -646,10 +595,7 @@ stmm_gen (gen, key_p, value_p)
 
 
 int
-stmm_gen_int (gen, key_p, value_p)
-    stmm_generator *gen;
-    char **key_p;
-    long *value_p;
+stmm_gen_int (stmm_generator *gen, char **key_p, long *value_p)
 {
     register int i;
 
@@ -677,8 +623,9 @@ stmm_gen_int (gen, key_p, value_p)
 
 
 void
-stmm_free_gen (gen)
-    stmm_generator *gen;
+stmm_free_gen (stmm_generator *gen)
 {
-    ABC_FREE (gen);
+    ABC_FREE(gen);
 }
+ABC_NAMESPACE_IMPL_END
+

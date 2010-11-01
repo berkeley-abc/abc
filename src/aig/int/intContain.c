@@ -21,6 +21,8 @@
 #include "intInt.h"
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -219,7 +221,7 @@ int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, 
 
     // convert to CNF
     pCnf = Cnf_Derive( pFrames, 0 ); 
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
 //    Cnf_DataFree( pCnf );
 //    Aig_ManStop( pFrames );
 
@@ -241,8 +243,12 @@ int Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, 
     sat_solver_delete( pSat );
     return status == l_False;
 }
+ABC_NAMESPACE_IMPL_END
 
 #include "fra.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /**Function*************************************************************
 
@@ -325,4 +331,6 @@ int Inter_ManCheckUniqueness( Aig_Man_t * p, sat_solver * pSat, Cnf_Dat_t * pCnf
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

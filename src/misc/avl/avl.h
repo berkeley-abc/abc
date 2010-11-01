@@ -10,8 +10,15 @@
 #ifndef AVL_INCLUDED
 #define AVL_INCLUDED
 
+
+ABC_NAMESPACE_HEADER_START
+
+
 #define EXTERN
-#define ARGS(protos)    protos
+
+#ifndef ARGS
+#define ARGS(protos) protos
+#endif
 
 #define MAX(a,b)    ((a) > (b) ? (a) : (b))
 
@@ -76,5 +83,9 @@ EXTERN avl_generator *avl_init_gen ARGS((avl_tree *, int));
 #define avl_foreach_item(table, gen, dir, key_p, value_p)     \
     for(gen = avl_init_gen(table, dir);             \
         avl_gen(gen, key_p, value_p) || (avl_free_gen(gen),0);)
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

@@ -20,6 +20,9 @@
 
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -68,7 +71,7 @@ static inline Aig_Obj_t *  Bmc_ObjChild1Frames( Aig_Obj_t * pObj, int i ) { asse
 ***********************************************************************/
 int Fra_BmcNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
-    Fra_Man_t * p = pObj0->pData;
+    Fra_Man_t * p = (Fra_Man_t *)pObj0->pData;
     Aig_Obj_t * pObjFrames0, * pObjFrames1;
     Aig_Obj_t * pObjFraig0, * pObjFraig1;
     int i;
@@ -99,7 +102,7 @@ int Fra_BmcNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 ***********************************************************************/
 int Fra_BmcNodeIsConst( Aig_Obj_t * pObj )
 {
-    Fra_Man_t * p = pObj->pData;
+    Fra_Man_t * p = (Fra_Man_t *)pObj->pData;
     return Fra_BmcNodesAreEqual( pObj, Aig_ManConst1(p->pManAig) );
 }
 
@@ -421,7 +424,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
         iOutput = Fra_FraigMiterAssertedOutput( pBmc->pAigFraig );
         if ( pBmc->pAigFraig->pData )
         {
-            pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pBmc->pAigFrames, pBmc->pAigFraig->pData );
+            pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pBmc->pAigFrames, (int *)pBmc->pAigFraig->pData );
             ABC_FREE( pBmc->pAigFraig->pData );
         }
         else if ( iOutput >= 0 )
@@ -443,4 +446,6 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 
 #include "bzlib_private.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*--
   I think this is an implementation of the AUTODIN-II,
   Ethernet & FDDI 32-bit CRC standard.  Vaguely derived
@@ -102,3 +105,5 @@ UInt32 BZ2_crc32Table[256] = {
 /*-------------------------------------------------------------*/
 /*--- end                                        crctable.c ---*/
 /*-------------------------------------------------------------*/
+ABC_NAMESPACE_IMPL_END
+

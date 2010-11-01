@@ -21,12 +21,11 @@
 #ifndef __COV_H__
 #define __COV_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "abc.h"
 #include "covInt.h"
+
+
+ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -69,7 +68,7 @@ struct Cov_Man_t_
     int               nNodes;       // the number of nodes processed
 };
 
-static inline Cov_Obj_t *  Abc_ObjGetStr( Abc_Obj_t * pObj )                       { return Vec_PtrEntry(((Cov_Man_t *)pObj->pNtk->pManCut)->vObjStrs, pObj->Id); }
+static inline Cov_Obj_t *  Abc_ObjGetStr( Abc_Obj_t * pObj )                       { return (Cov_Obj_t *)Vec_PtrEntry(((Cov_Man_t *)pObj->pNtk->pManCut)->vObjStrs, pObj->Id); }
 
 static inline void         Abc_ObjSetSupp( Abc_Obj_t * pObj, Vec_Int_t * vVec )    { Abc_ObjGetStr(pObj)->vSupp = vVec;   }
 static inline Vec_Int_t *  Abc_ObjGetSupp( Abc_Obj_t * pObj )                      { return Abc_ObjGetStr(pObj)->vSupp;   }
@@ -89,7 +88,7 @@ extern Abc_Ntk_t * Abc_NtkCovDerive( Cov_Man_t * p, Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t * Abc_NtkCovDeriveClean( Cov_Man_t * p, Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t * Abc_NtkCovDeriveRegular( Cov_Man_t * p, Abc_Ntk_t * pNtk );
 /*=== covCore.c ===========================================================*/
-extern Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, bool fUseEsop, bool fUseSop, bool fUseInvs, bool fVerbose );
+extern Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int fUseEsop, int fUseSop, int fUseInvs, int fVerbose );
 /*=== covMan.c ============================================================*/
 extern Cov_Man_t * Cov_ManAlloc( Abc_Ntk_t * pNtk, int nFaninMax );
 extern void        Cov_ManFree( Cov_Man_t * p );
@@ -97,9 +96,8 @@ extern void        Abc_NodeCovDropData( Cov_Man_t * p, Abc_Obj_t * pObj );
 /*=== covTest.c ===========================================================*/
 extern Abc_Ntk_t * Abc_NtkCovTestSop( Abc_Ntk_t * pNtk );
 
-#ifdef __cplusplus
-}
-#endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

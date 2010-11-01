@@ -20,6 +20,9 @@
 
 #include "mfxInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -109,4 +112,6 @@ Vec_Ptr_t * Mfx_ComputeRoots( Nwk_Obj_t * pNode, int nWinTfoMax, int nFanoutLimi
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

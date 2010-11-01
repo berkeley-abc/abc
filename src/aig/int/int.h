@@ -21,6 +21,7 @@
 #ifndef __INT_H__
 #define __INT_H__
 
+
 /* 
     The interpolation algorithm implemented here was introduced in the paper:
     K. L. McMillan. Interpolation and SAT-based model checking. CAV’03, pp. 1-13.
@@ -34,9 +35,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -48,6 +50,7 @@ struct Inter_ManParams_t_
 {
     int  nBTLimit;      // limit on the number of conflicts
     int  nFramesMax;    // the max number timeframes to unroll
+    int  nSecLimit;     // time limit in seconds
     int  nFramesK;      // the number of timeframes to use in induction
     int  fRewrite;      // use additional rewriting to simplify timeframes
     int  fTransLoop;    // add transition into the init state under new PI var
@@ -58,7 +61,9 @@ struct Inter_ManParams_t_
     int  fUseBias;      // bias decisions to global variables
     int  fUseBackward;  // perform backward interpolation
     int  fUseSeparate;  // solve each output separately
+    int  fDropSatOuts;  // replace by 1 the solved outputs
     int  fVerbose;      // print verbose statistics
+    int  iFrameMax;     // the time frame reached
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -74,9 +79,11 @@ extern void       Inter_ManSetDefaultParams( Inter_ManParams_t * p );
 extern int        Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, int * piFrame );
 
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

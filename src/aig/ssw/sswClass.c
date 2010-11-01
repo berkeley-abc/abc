@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     The candidate equivalence classes are stored as a vector of pointers 
     to the array of pointers to the nodes in each class.
@@ -144,8 +147,8 @@ Ssw_Cla_t * Ssw_ClassesStart( Aig_Man_t * pAig )
     p->vClassOld    = Vec_PtrAlloc( 100 );
     p->vClassNew    = Vec_PtrAlloc( 100 );
     p->vRefined     = Vec_PtrAlloc( 1000 );
-    assert( pAig->pReprs == NULL );
-    Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
+    if ( pAig->pReprs == NULL )
+        Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
     return p;
 }
 
@@ -412,7 +415,7 @@ void Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose )
     Aig_Obj_t ** ppClass;
     Aig_Obj_t * pObj;
     int i;
-    printf( "Equivalence classes: Const1 = %5d. Class = %5d. Lit = %5d.\n", 
+    printf( "Equiv classes: Const1 = %5d. Class = %5d. Lit = %5d.\n", 
         p->nCands1, p->nClasses, p->nCands1+p->nLits );
     if ( !fVeryVerbose )
         return;
@@ -508,7 +511,7 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
     // sort through the candidates
     nEntries = 0;
     p->nCands1 = 0;
-    Vec_PtrForEachEntry( vCands, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCands, pObj, i )
     {
         assert( p->pClassSizes[pObj->Id] == 0 );
         Aig_ObjSetRepr( p->pAig, pObj, NULL );
@@ -547,7 +550,7 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
  
     // copy the entries into storage in the topological order
     nEntries2 = 0;
-    Vec_PtrForEachEntry( vCands, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCands, pObj, i )
     {
         nNodes = p->pClassSizes[pObj->Id];
         // skip the nodes that are not representatives of non-trivial classes
@@ -587,7 +590,7 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int nMaxLevs, int fVerbose )
+Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int fOutputCorr, int nMaxLevs, int fVerbose )
 {
 //    int nFrames =  4;
 //    int nWords  =  1;
@@ -622,7 +625,7 @@ if ( fVerbose )
 
     // set comparison procedures
 clk = clock();
-    Ssw_ClassesSetData( p, pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
+    Ssw_ClassesSetData( p, pSml, (unsigned(*)(void *,Aig_Obj_t *))Ssw_SmlObjHashWord, (int(*)(void *,Aig_Obj_t *))Ssw_SmlObjIsConstWord, (int(*)(void *,Aig_Obj_t *,Aig_Obj_t *))Ssw_SmlObjsAreEqualWord );
 
     // collect nodes to be considered as candidates
     vCands = Vec_PtrAlloc( 1000 );
@@ -642,6 +645,22 @@ clk = clock();
                 continue;
         }
         Vec_PtrPush( vCands, pObj );
+    }
+ 
+    // this change will consider all PO drivers
+    if ( fOutputCorr )
+    {
+        Vec_PtrClear( vCands );
+        Aig_ManForEachObj( p->pAig, pObj, i )
+            pObj->fMarkB = 0;
+        Saig_ManForEachPo( p->pAig, pObj, i )
+            if ( Aig_ObjIsCand(Aig_ObjFanin0(pObj)) )
+                Aig_ObjFanin0(pObj)->fMarkB = 1;
+        Aig_ManForEachObj( p->pAig, pObj, i )
+            if ( pObj->fMarkB )
+                Vec_PtrPush( vCands, pObj );
+        Aig_ManForEachObj( p->pAig, pObj, i )
+            pObj->fMarkB = 0;
     }
 
     // allocate room for classes
@@ -726,6 +745,69 @@ Ssw_Cla_t * Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMax
     }
     // allocate room for classes
     p->pMemClassesFree = p->pMemClasses = ABC_ALLOC( Aig_Obj_t *, p->nCands1 );
+//    Ssw_ClassesPrint( p, 0 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates initial simulation classes.]
+
+  Description [Assumes that simulation info is assigned.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ssw_Cla_t * Ssw_ClassesPrepareFromReprs( Aig_Man_t * pAig )
+{
+    Ssw_Cla_t * p;
+    Aig_Obj_t * pObj, * pRepr;
+    int * pClassSizes, nEntries, i;
+    // start the classes
+    p = Ssw_ClassesStart( pAig );
+    // allocate memory for classes
+    p->pMemClasses = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    // count classes
+    p->nCands1 = 0;
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        if ( Ssw_ObjIsConst1Cand(pAig, pObj) )
+        {
+            p->nCands1++;
+            continue;
+        }
+        if ( (pRepr = Aig_ObjRepr(pAig, pObj)) )
+        {
+            if ( p->pClassSizes[pRepr->Id]++ == 0 )
+                p->pClassSizes[pRepr->Id]++;
+        }
+    }
+    // add nodes
+    nEntries = 0;
+    p->nClasses = 0;
+    pClassSizes = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        if ( p->pClassSizes[i] )
+        {
+            p->pId2Class[i] = p->pMemClasses + nEntries;
+            nEntries += p->pClassSizes[i];
+            p->pId2Class[i][pClassSizes[i]++] = pObj;
+            p->nClasses++;
+            continue;
+        }
+        if ( Ssw_ObjIsConst1Cand(pAig, pObj) )
+            continue;
+        if ( (pRepr = Aig_ObjRepr(pAig, pObj)) )
+            p->pId2Class[pRepr->Id][pClassSizes[pRepr->Id]++] = pObj;
+    }
+    p->pMemClassesFree = p->pMemClasses + nEntries;
+    p->nLits = nEntries - p->nClasses;
+    assert( memcmp(pClassSizes, p->pClassSizes, sizeof(int)*Aig_ManObjNumMax(pAig)) == 0 );
+    ABC_FREE( pClassSizes );
+//    printf( "After converting:\n" );
 //    Ssw_ClassesPrint( p, 0 );
     return p;
 }
@@ -902,20 +984,20 @@ int Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pReprOld, int fRecursi
 //        Vec_PtrPush( p->vRefined, pObj );
 
     // get the new representative
-    pReprNew = Vec_PtrEntry( p->vClassNew, 0 );
+    pReprNew = (Aig_Obj_t *)Vec_PtrEntry( p->vClassNew, 0 );
     assert( Vec_PtrSize(p->vClassOld) > 0 );
     assert( Vec_PtrSize(p->vClassNew) > 0 );
 
     // create old class
     pClassOld = Ssw_ObjRemoveClass( p, pReprOld );
-    Vec_PtrForEachEntry( p->vClassOld, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassOld, pObj, i )
     {
         pClassOld[i] = pObj;
         Aig_ObjSetRepr( p->pAig, pObj, i? pReprOld : NULL );
     }
     // create new class
     pClassNew = pClassOld + i;
-    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
     {
         pClassNew[i] = pObj;
         Aig_ObjSetRepr( p->pAig, pObj, i? pReprNew : NULL );
@@ -972,21 +1054,21 @@ int Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecurs
         return 0;
     // collect the nodes to be refined
     Vec_PtrClear( p->vClassNew );
-    Vec_PtrForEachEntry( vRoots, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vRoots, pObj, i )
         if ( !p->pFuncNodeIsConst( p->pManData, pObj ) )
             Vec_PtrPush( p->vClassNew, pObj );
     // check if there is a new class
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
     p->nCands1 -= Vec_PtrSize(p->vClassNew);
-    pReprNew = Vec_PtrEntry( p->vClassNew, 0 );
+    pReprNew = (Aig_Obj_t *)Vec_PtrEntry( p->vClassNew, 0 );
     Aig_ObjSetRepr( p->pAig, pReprNew, NULL );
     if ( Vec_PtrSize(p->vClassNew) == 1 )
         return 1;
     // create a new class composed of these nodes
     ppClassNew = p->pMemClassesFree;
     p->pMemClassesFree += Vec_PtrSize(p->vClassNew);
-    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
     {
         ppClassNew[i] = pObj;
         Aig_ObjSetRepr( p->pAig, pObj, i? pReprNew : NULL );
@@ -1029,14 +1111,14 @@ int Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive )
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
     p->nCands1 -= Vec_PtrSize(p->vClassNew);
-    pReprNew = Vec_PtrEntry( p->vClassNew, 0 );
+    pReprNew = (Aig_Obj_t *)Vec_PtrEntry( p->vClassNew, 0 );
     Aig_ObjSetRepr( p->pAig, pReprNew, NULL );
     if ( Vec_PtrSize(p->vClassNew) == 1 )
         return 1;
     // create a new class composed of these nodes
     ppClassNew = p->pMemClassesFree;
     p->pMemClassesFree += Vec_PtrSize(p->vClassNew);
-    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
     {
         ppClassNew[i] = pObj;
         Aig_ObjSetRepr( p->pAig, pObj, i? pReprNew : NULL );
@@ -1053,4 +1135,6 @@ int Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

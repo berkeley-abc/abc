@@ -4,16 +4,16 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcAuto.c \
     src/base/abci/abcBalance.c \
     src/base/abci/abcBidec.c \
+    src/base/abci/abcBm.c \
     src/base/abci/abcBmc.c \
     src/base/abci/abcCas.c \
-    src/base/abci/abcClpBdd.c \
-    src/base/abci/abcClpSop.c \
+    src/base/abci/abcCascade.c \
+    src/base/abci/abcCollapse.c \
     src/base/abci/abcCut.c \
     src/base/abci/abcDar.c \
     src/base/abci/abcDebug.c \
-    src/base/abci/abcDelay.c \
-    src/base/abci/abcDprove2.c \
     src/base/abci/abcDress.c \
+    src/base/abci/abcDress2.c \
     src/base/abci/abcDsd.c \
     src/base/abci/abcExtract.c \
     src/base/abci/abcFpga.c \
@@ -23,7 +23,9 @@ SRC +=    src/base/abci/abc.c \
         src/base/abci/abcGen.c \
         src/base/abci/abcHaig.c \
     src/base/abci/abcIf.c \
+    src/base/abci/abcIfMux.c \
         src/base/abci/abcIvy.c \
+    src/base/abci/abcLog.c \
     src/base/abci/abcLut.c \
     src/base/abci/abcLutmin.c \
     src/base/abci/abcMap.c \
@@ -49,7 +51,9 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcRewrite.c \
     src/base/abci/abcRr.c \
     src/base/abci/abcSat.c \
+    src/base/abci/abcScorr.c \
     src/base/abci/abcSense.c \
+    src/base/abci/abcSpeedup.c \
     src/base/abci/abcStrash.c \
     src/base/abci/abcSweep.c \
     src/base/abci/abcSymm.c \

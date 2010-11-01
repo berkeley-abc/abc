@@ -20,6 +20,9 @@
 
 #include "lpkInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -505,4 +508,6 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

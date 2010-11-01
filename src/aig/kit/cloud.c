@@ -18,6 +18,9 @@
 
 #include "cloud.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 // the number of operators using cache
 static int CacheOperNum = 4;
 
@@ -984,4 +987,6 @@ void Cloud_PrintHashTable( CloudManager * dd )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

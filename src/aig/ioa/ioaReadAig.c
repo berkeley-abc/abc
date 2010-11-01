@@ -21,6 +21,9 @@
 
 #include "ioa.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -91,7 +94,7 @@ Vec_Int_t * Ioa_WriteDecodeLiterals( char ** ppPos, int nEntries )
   Synopsis    [Reads the AIG in from the memory buffer.]
 
   Description [The buffer constains the AIG in AIGER format. The size gives
-  the number of types in the buffer. The buffer is allocated by the user 
+  the number of bytes in the buffer. The buffer is allocated by the user 
   and not deallocated by this procedure.]
   
   SideEffects []
@@ -198,8 +201,8 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         uLit1 = uLit  - Ioa_ReadAigerDecode( &pCur );
         uLit0 = uLit1 - Ioa_ReadAigerDecode( &pCur );
 //        assert( uLit1 > uLit0 );
-        pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
-        pNode1 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
+        pNode0 = Aig_NotCond( (Aig_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
+        pNode1 = Aig_NotCond( (Aig_Obj_t *)Vec_PtrEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_PtrSize(vNodes) == i + 1 + nInputs + nLatches );
         Vec_PtrPush( vNodes, Aig_And(pNew, pNode0, pNode1) );
     }
@@ -216,14 +219,14 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         for ( i = 0; i < nLatches; i++ )
         {
             uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            pNode0 = Aig_NotCond( (Aig_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
             Vec_PtrPush( vDrivers, pNode0 );
         }
         // read the PO driver literals
         for ( i = 0; i < nOutputs; i++ )
         {
             uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            pNode0 = Aig_NotCond( (Aig_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
             Vec_PtrPush( vDrivers, pNode0 );
         }
 
@@ -234,14 +237,14 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         for ( i = 0; i < nLatches; i++ )
         {
             uLit0 = Vec_IntEntry( vLits, i );
-            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            pNode0 = Aig_NotCond( (Aig_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
             Vec_PtrPush( vDrivers, pNode0 );
         }
         // read the PO driver literals
         for ( i = 0; i < nOutputs; i++ )
         {
             uLit0 = Vec_IntEntry( vLits, i+nLatches );
-            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            pNode0 = Aig_NotCond( (Aig_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
             Vec_PtrPush( vDrivers, pNode0 );
         }
         Vec_IntFree( vLits );
@@ -249,9 +252,9 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
 
     // create the POs
     for ( i = 0; i < nOutputs; i++ )
-        Aig_ObjCreatePo( pNew, Vec_PtrEntry(vDrivers, nLatches + i) );
+        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vDrivers, nLatches + i) );
     for ( i = 0; i < nLatches; i++ )
-        Aig_ObjCreatePo( pNew, Vec_PtrEntry(vDrivers, i) );
+        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Vec_PtrEntry(vDrivers, i) );
     Vec_PtrFree( vDrivers );
 
 /*
@@ -402,4 +405,6 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

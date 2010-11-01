@@ -28,6 +28,9 @@
 #include "mem.h"
 #include "tim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -71,12 +74,12 @@ struct Tim_Obj_t_
     float            timeReq;        // required time of the object
 };
 
-static inline Tim_Obj_t * Tim_ManCi( Tim_Man_t * p, int i )                           { assert( i < p->nCis ); return p->pCis + i;    }
-static inline Tim_Obj_t * Tim_ManCo( Tim_Man_t * p, int i )                           { assert( i < p->nCos ); return p->pCos + i;    }
-static inline Tim_Box_t * Tim_ManBox( Tim_Man_t * p, int i )                          { return Vec_PtrEntry(p->vBoxes, i);            }
+static inline Tim_Obj_t * Tim_ManCi( Tim_Man_t * p, int i )                           { assert( i < p->nCis ); return p->pCis + i;      }
+static inline Tim_Obj_t * Tim_ManCo( Tim_Man_t * p, int i )                           { assert( i < p->nCos ); return p->pCos + i;      }
+static inline Tim_Box_t * Tim_ManBox( Tim_Man_t * p, int i )                          { return (Tim_Box_t *)Vec_PtrEntry(p->vBoxes, i); }
 
-static inline Tim_Box_t * Tim_ManCiBox( Tim_Man_t * p, int i )                        { return Tim_ManCi(p,i)->iObj2Box < 0 ? NULL : Vec_PtrEntry( p->vBoxes, Tim_ManCi(p,i)->iObj2Box ); }
-static inline Tim_Box_t * Tim_ManCoBox( Tim_Man_t * p, int i )                        { return Tim_ManCo(p,i)->iObj2Box < 0 ? NULL : Vec_PtrEntry( p->vBoxes, Tim_ManCo(p,i)->iObj2Box ); }
+static inline Tim_Box_t * Tim_ManCiBox( Tim_Man_t * p, int i )                        { return Tim_ManCi(p,i)->iObj2Box < 0 ? NULL : (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, Tim_ManCi(p,i)->iObj2Box ); }
+static inline Tim_Box_t * Tim_ManCoBox( Tim_Man_t * p, int i )                        { return Tim_ManCo(p,i)->iObj2Box < 0 ? NULL : (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, Tim_ManCo(p,i)->iObj2Box ); }
 
 static inline Tim_Obj_t * Tim_ManBoxInput( Tim_Man_t * p, Tim_Box_t * pBox, int i )   { assert( i < pBox->nInputs  ); return p->pCos + pBox->Inouts[i];               }
 static inline Tim_Obj_t * Tim_ManBoxOutput( Tim_Man_t * p, Tim_Box_t * pBox, int i )  { assert( i < pBox->nOutputs ); return p->pCis + pBox->Inouts[pBox->nInputs+i]; }
@@ -93,7 +96,7 @@ static inline Tim_Obj_t * Tim_ManBoxOutput( Tim_Man_t * p, Tim_Box_t * pBox, int
     for ( i = 0; (i < (p)->nCos) && ((pObj) = (p)->pCos + i); i++ )              \
         if ( pObj->iObj2Box >= 0 ) {} else 
 #define Tim_ManForEachBox( p, pBox, i )                                          \
-    Vec_PtrForEachEntry( p->vBoxes, pBox, i )
+    Vec_PtrForEachEntry( Tim_Box_t *, p->vBoxes, pBox, i )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -178,12 +181,25 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fDiscrete )
     pNew->vDelayTables = Vec_PtrAlloc( 100 );
     Tim_ManForEachBox( p, pBox, i )
     {
+//printf( "%d %d\n", pBox->nInputs, pBox->nOutputs );
         pDelayTableNew = ABC_ALLOC( float, pBox->nInputs * pBox->nOutputs );
         Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
         if ( fDiscrete )
         {
             for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
                 pDelayTableNew[k] = 1.0; // modify here
+
+///// begin part of improved CIN/COUT propagation
+            for ( k = 0; k < pBox->nInputs; k++ )  // fill in the first row
+               pDelayTableNew[k] = 0.5;
+            for ( k = 0; k < pBox->nOutputs; k++ ) // fill in the first column
+               pDelayTableNew[k*pBox->nInputs] = 0.5;
+            pDelayTableNew[0] = 0.0; // fill in the first entry 
+///// end part of improved CIN/COUT propagation
+
+            /// change
+//            pDelayTableNew[0] = 0.0;
+            /// change
         }
         else
             memcpy( pDelayTableNew, pBox->pDelayTable, sizeof(float) * pBox->nInputs * pBox->nOutputs );
@@ -278,7 +294,7 @@ void Tim_ManStop( Tim_Man_t * p )
     int i;
     if ( p->vDelayTables )
     {
-        Vec_PtrForEachEntry( p->vDelayTables, pTable, i )
+        Vec_PtrForEachEntry( float *, p->vDelayTables, pTable, i )
             ABC_FREE( pTable );
         Vec_PtrFree( p->vDelayTables );
     }
@@ -287,6 +303,25 @@ void Tim_ManStop( Tim_Man_t * p )
     ABC_FREE( p->pCis );
     ABC_FREE( p->pCos );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the timing manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManStopP( Tim_Man_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    Tim_ManStop( *p );
+    *p = NULL;
 }
 
 /**Function*************************************************************
@@ -547,11 +582,10 @@ void Tim_ManCreateBoxFirst( Tim_Man_t * p, int firstIn, int nIns, int firstOut, 
 {
     Tim_Box_t * pBox;
     int i;
+
     pBox = (Tim_Box_t *)Mem_FlexEntryFetch( p->pMemObj, sizeof(Tim_Box_t) + sizeof(int) * (nIns+nOuts) );
     memset( pBox, 0, sizeof(Tim_Box_t) );
     pBox->iBox = Vec_PtrSize( p->vBoxes );
-//printf( "Creating box %d: First in = %d. (%d) First out = %d. (%d)\n", pBox->iBox, 
-//       firstIn, nIns, firstOut, nOuts );
     Vec_PtrPush( p->vBoxes, pBox );
     pBox->pDelayTable = pDelayTable;
     pBox->nInputs  = nIns;
@@ -570,6 +604,8 @@ void Tim_ManCreateBoxFirst( Tim_Man_t * p, int firstIn, int nIns, int firstOut, 
         p->pCis[firstOut+i].iObj2Box = pBox->iBox;
         p->pCis[firstOut+i].iObj2Num = i;
     }
+//    if ( pBox->iBox < 50 )
+//    printf( "%4d  %4d  %4d  %4d  \n", firstIn, nIns, firstOut, nOuts );
 }
 
 
@@ -726,7 +762,10 @@ void Tim_ManSetCoRequiredAll( Tim_Man_t * p, float Delay )
     Tim_Obj_t * pObj;
     int i;
     Tim_ManForEachCo( p, pObj, i )
+    {
         Tim_ManSetCoRequired( p, i, Delay );
+//printf( "%d ", i );
+    }
 }
 
 
@@ -873,7 +912,7 @@ int Tim_ManBoxForCo( Tim_Man_t * p, int iCo )
 ***********************************************************************/
 int Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
     return pBox->Inouts[0];
 }
 
@@ -890,7 +929,7 @@ int Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox )
 ***********************************************************************/
 int Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
     return pBox->Inouts[pBox->nInputs];
 }
 
@@ -907,7 +946,7 @@ int Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox )
 ***********************************************************************/
 int Tim_ManBoxInputNum( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
     return pBox->nInputs;
 }
 
@@ -924,8 +963,27 @@ int Tim_ManBoxInputNum( Tim_Man_t * p, int iBox )
 ***********************************************************************/
 int Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox )
 {
-    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    Tim_Box_t * pBox = (Tim_Box_t *)Vec_PtrEntry( p->vBoxes, iBox );
     return pBox->nOutputs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManChangeForAdders( Tim_Man_t * p )
+{
+    Tim_Box_t * pBox;
+    int i;
+    Tim_ManForEachBox( p, pBox, i )
+        pBox->pDelayTable[0] = 0.0;
 }
 
 
@@ -933,4 +991,6 @@ int Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

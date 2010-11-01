@@ -23,8 +23,13 @@
 #include <string.h>
 #include <time.h>
 
+#include "main.h"
+#include "cmd.h"
 #include "extra.h"
 #include "cas.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                      static functions                            ///
@@ -254,8 +259,6 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
     // verify the results
     if ( fCheck )
     {
-        extern int Cmd_CommandExecute( void * pAbc, char * sCommand );
-        extern void * Abc_FrameGetGlobalFrame();
         char Command[200];
         sprintf( Command, "cec %s %s", FileNameIni, FileNameFin );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
@@ -845,7 +848,7 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
     refAddr = ( long )Cudd_Regular(Func);
     diff = 0;
     gen = st_init_gen( visited );
-    while ( st_gen( gen, ( char ** ) &Node, NULL ) )
+    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
     {
         diff |= refAddr ^ ( long ) Node;
     }
@@ -867,7 +870,7 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
 
 
     gen = st_init_gen( visited );
-    while ( st_gen( gen, ( char ** ) &Node, NULL ) )
+    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
     {
         if ( Node->index == CUDD_MAXINDEX )
         {
@@ -990,7 +993,7 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
     refAddr = ( long )Cudd_Regular(bFmin);
     diff = 0;
     gen = st_init_gen( visited );
-    while ( st_gen( gen, ( char ** ) &Node, NULL ) )
+    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
     {
         diff |= refAddr ^ ( long ) Node;
     }
@@ -1012,7 +1015,7 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
 
 
     gen = st_init_gen( visited );
-    while ( st_gen( gen, ( char ** ) &Node, NULL ) )
+    while ( st_gen( gen, ( const char ** ) &Node, NULL ) )
     {
         if ( Node->index == CUDD_MAXINDEX )
         {
@@ -1143,7 +1146,7 @@ cuddBddTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Perm
     gen = st_init_gen( table );
     if ( gen == NULL )
         goto failure;
-    while ( st_gen( gen, ( char ** ) &key, ( char ** ) &value ) )
+    while ( st_gen( gen, ( const char ** ) &key, ( char ** ) &value ) )
     {
         Cudd_RecursiveDeref( ddD, value );
     }
@@ -1258,4 +1261,6 @@ cuddBddTransferPermuteRecur( DdManager * ddS,
 
 
 
+
+ABC_NAMESPACE_IMPL_END
 

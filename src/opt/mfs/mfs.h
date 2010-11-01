@@ -21,6 +21,7 @@
 #ifndef __MFS_H__
 #define __MFS_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -73,9 +75,11 @@ extern void        Abc_NtkMfsParsDefault( Mfs_Par_t * pPars );
 extern int         Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars );
 
  
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

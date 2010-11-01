@@ -19,6 +19,7 @@
 #ifndef __MIO_H__
 #define __MIO_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,9 +28,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -134,16 +136,18 @@ extern void              Mio_GateDelete( Mio_Gate_t * pGate );
 extern void              Mio_PinDelete( Mio_Pin_t * pPin );
 extern Mio_Pin_t *       Mio_PinDup( Mio_Pin_t * pPin );
 extern void              Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops );
-extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, bool fSkipInv, int * pnGates );
+extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates );
 extern void              Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] );
 extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate, 
                             float ** ptPinDelays, int nPins, int nInputs, float tDelayZero, 
                             float * ptDelaysRes, float * ptPinDelayMax );
 extern Mio_Gate_t *      Mio_GateCreatePseudo( int nInputs );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

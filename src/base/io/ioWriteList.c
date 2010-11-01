@@ -20,6 +20,9 @@
 
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
 -------- Original Message --------
 Subject: Re: abc release and retiming
@@ -285,4 +288,6 @@ void Io_WriteCellNet( Abc_Ntk_t * pNtk, char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

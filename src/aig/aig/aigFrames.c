@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -132,4 +135,6 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

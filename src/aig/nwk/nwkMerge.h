@@ -21,6 +21,7 @@
 #ifndef __NWK_MERGE_H__
 #define __NWK_MERGE_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #define NWK_MAX_LIST  16
 
@@ -137,9 +139,11 @@ extern ABC_DLL void          Nwk_ManGraphHashEdge( Nwk_Grf_t * p, int iLut1, int
 extern ABC_DLL void          Nwk_ManGraphSolve( Nwk_Grf_t * p );
 extern ABC_DLL int           Nwk_ManLutMergeGraphTest( char * pFileName );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -19,6 +19,9 @@
 #include "abc.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -64,13 +67,13 @@ DdNode * Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph )
     {
         bFunc0 = Cudd_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
         bFunc1 = Cudd_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
-        pNode->pFunc = Cudd_bddAnd( dd, bFunc0, bFunc1 );   Cudd_Ref( pNode->pFunc );
+        pNode->pFunc = Cudd_bddAnd( dd, bFunc0, bFunc1 );   Cudd_Ref( (DdNode *)pNode->pFunc );
     }
 
     // deref the intermediate results
-    bFunc = pNode->pFunc;   Cudd_Ref( bFunc );
+    bFunc = (DdNode *)pNode->pFunc;   Cudd_Ref( bFunc );
     Dec_GraphForEachNode( pGraph, pNode, i )
-        Cudd_RecursiveDeref( dd, pNode->pFunc );
+        Cudd_RecursiveDeref( dd, (DdNode *)pNode->pFunc );
     Cudd_Deref( bFunc );
 
     // complement the result if necessary
@@ -132,4 +135,6 @@ unsigned Dec_GraphDeriveTruth( Dec_Graph_t * pGraph )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

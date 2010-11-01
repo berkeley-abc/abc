@@ -10,6 +10,10 @@
 #ifndef SPARSE_H
 #define SPARSE_H
 
+
+ABC_NAMESPACE_HEADER_START
+
+
 /*
  *  sparse.h -- sparse matrix package header file
  */
@@ -131,5 +135,9 @@ extern int sm_col_contains(), sm_col_intersects();
 extern int sm_col_compare(), sm_col_hash();
 
 extern int sm_row_dominance(), sm_col_dominance(), sm_block_partition();
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

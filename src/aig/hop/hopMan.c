@@ -20,6 +20,9 @@
 
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -127,7 +130,7 @@ int Hop_ManCleanup( Hop_Man_t * p )
         if ( Hop_ObjRefs(pNode) == 0 )
             Vec_PtrPush( vObjs, pNode );
     // recursively remove dangling nodes
-    Vec_PtrForEachEntry( vObjs, pNode, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vObjs, pNode, i )
         Hop_ObjDelete_rec( p, pNode );
     Vec_PtrFree( vObjs );
     return nNodesOld - Hop_ManNodeNum(p);
@@ -161,4 +164,6 @@ void Hop_ManPrintStats( Hop_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

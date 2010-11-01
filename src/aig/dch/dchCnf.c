@@ -20,6 +20,9 @@
 
 #include "dchInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -169,7 +172,7 @@ void Dch_AddClausesSuper( Dch_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     pLits = ABC_ALLOC( int, nLits );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
     {
         pLits[0] = toLitCond(Dch_ObjSatNum(p,Aig_Regular(pFanin)), Aig_IsComplement(pFanin));
         pLits[1] = toLitCond(Dch_ObjSatNum(p,pNode), 1);
@@ -182,7 +185,7 @@ void Dch_AddClausesSuper( Dch_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
     {
         pLits[i] = toLitCond(Dch_ObjSatNum(p,Aig_Regular(pFanin)), !Aig_IsComplement(pFanin));
         if ( p->pPars->fPolarFlip )
@@ -293,7 +296,7 @@ void Dch_CnfNodeAddToSolver( Dch_Man_t * p, Aig_Obj_t * pObj )
     vFrontier = Vec_PtrAlloc( 100 );
     Dch_ObjAddToFrontier( p, pObj, vFrontier );
     // explore nodes in the frontier
-    Vec_PtrForEachEntry( vFrontier, pNode, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vFrontier, pNode, i )
     {
         // create the supergate
         assert( Dch_ObjSatNum(p,pNode) );
@@ -304,14 +307,14 @@ void Dch_CnfNodeAddToSolver( Dch_Man_t * p, Aig_Obj_t * pObj )
             Vec_PtrPushUnique( p->vFanins, Aig_ObjFanin0( Aig_ObjFanin1(pNode) ) );
             Vec_PtrPushUnique( p->vFanins, Aig_ObjFanin1( Aig_ObjFanin0(pNode) ) );
             Vec_PtrPushUnique( p->vFanins, Aig_ObjFanin1( Aig_ObjFanin1(pNode) ) );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Aig_Obj_t *, p->vFanins, pFanin, k )
                 Dch_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Dch_AddClausesMux( p, pNode );
         }
         else
         {
             Dch_CollectSuper( pNode, fUseMuxes, p->vFanins );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Aig_Obj_t *, p->vFanins, pFanin, k )
                 Dch_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Dch_AddClausesSuper( p, pNode, p->vFanins );
         }
@@ -326,4 +329,6 @@ void Dch_CnfNodeAddToSolver( Dch_Man_t * p, Aig_Obj_t * pObj )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

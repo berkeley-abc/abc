@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -135,8 +138,8 @@ Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
         pObj->pData = Abc_NtkCi(pNtkNew, i);
     // rebuild the AIG
     vNodes = Hop_ManDfs( pMan );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Hop_ObjChild0Copy(pObj), (Abc_Obj_t *)Hop_ObjChild1Copy(pObj) );
+    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
+        pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Hop_ObjChild0Copy(pObj), (Abc_Obj_t *)Hop_ObjChild1Copy(pObj) );
     Vec_PtrFree( vNodes );
     // connect the PO nodes
     Hop_ManForEachPo( pMan, pObj, i )
@@ -150,4 +153,6 @@ Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

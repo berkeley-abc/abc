@@ -30,6 +30,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -280,4 +283,6 @@ addDoIthBit(
     return(res);
 
 } /* end of addDoIthBit */
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 #include "ntl.h"
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -319,7 +322,7 @@ void Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel )
     if ( Vec_PtrSize(vNets) > 0 )
     {
         printf( "Warning: Constant-0 drivers added to %d non-driven nets in network \"%s\": ", Vec_PtrSize(vNets), pModel->pName );
-        Vec_PtrForEachEntry( vNets, pNet, i )
+        Vec_PtrForEachEntry( Ntl_Net_t *, vNets, pNet, i )
         {
             printf( "%s%s", (i? ", ": ""), pNet->pName );
             if ( i == 3 )
@@ -371,4 +374,6 @@ void Ntl_ModelTransformLatches( Ntl_Mod_t * pModel )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

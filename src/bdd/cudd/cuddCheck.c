@@ -37,6 +37,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -125,7 +128,7 @@ Cudd_DebugCheck(
     int        index;
     
 
-    edgeTable = st_init_table(st_ptrcmp,st_ptrhash);
+    edgeTable = st_init_table(st_ptrcmp, st_ptrhash);;
     if (edgeTable == NULL) return(CUDD_OUT_OF_MEM);
 
     /* Check the BDD/ADD subtables. */
@@ -380,7 +383,7 @@ Cudd_DebugCheck(
     flag = 1;
     }
     gen = st_init_gen(edgeTable);
-    while (st_gen(gen,(char **)&f,(char **)&count)) {
+    while (st_gen(gen,(const char **)&f,(char **)&count)) {
     if (count > (int)(f->ref) && f->ref != DD_MAXREF) {
 #if SIZEOF_VOID_P == 8
         fprintf(table->err,"ref count error at node 0x%lx, count = %d, id = %d, ref = %d, then = 0x%lx, else = 0x%lx\n",(unsigned long)f,count,f->index,f->ref,(unsigned long)cuddT(f),(unsigned long)cuddE(f));
@@ -849,3 +852,5 @@ debugCheckParent(
     }
 }
 #endif
+ABC_NAMESPACE_IMPL_END
+

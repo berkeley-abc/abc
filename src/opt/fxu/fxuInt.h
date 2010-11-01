@@ -19,12 +19,16 @@
 #ifndef __FXU_INT_H__
 #define __FXU_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include "extra.h"
 #include "vec.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -530,6 +534,10 @@ extern void         Fxu_HeapSingleDelete( Fxu_HeapSingle * p, Fxu_Single * pSing
 extern int          Fxu_HeapSingleReadMaxWeight( Fxu_HeapSingle * p );  
 extern Fxu_Single * Fxu_HeapSingleReadMax( Fxu_HeapSingle * p );
 extern Fxu_Single * Fxu_HeapSingleGetMax( Fxu_HeapSingle * p );  
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

@@ -36,6 +36,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -611,3 +614,5 @@ addVarToConst(
     }
 
 } /* end of addVarToConst */
+ABC_NAMESPACE_IMPL_END
+

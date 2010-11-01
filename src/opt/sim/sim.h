@@ -21,6 +21,7 @@
 #ifndef __SIM_H__
 #define __SIM_H__
 
+
 /*
     The ideas realized in this package are described in the paper:
     "Detecting Symmetries in Boolean Functions using Circuit Representation, 
@@ -35,9 +36,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -197,15 +199,15 @@ extern void            Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMa
 /*=== simSymSim.c ==========================================================*/
 extern void            Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPatRand, Vec_Ptr_t * vMatrsNonSym );
 /*=== simUtil.c ==========================================================*/
-extern Vec_Ptr_t *     Sim_UtilInfoAlloc( int nSize, int nWords, bool fClean );
+extern Vec_Ptr_t *     Sim_UtilInfoAlloc( int nSize, int nWords, int  fClean );
 extern void            Sim_UtilInfoFree( Vec_Ptr_t * p );
 extern void            Sim_UtilInfoAdd( unsigned * pInfo1, unsigned * pInfo2, int nWords );
 extern void            Sim_UtilInfoDetectDiffs( unsigned * pInfo1, unsigned * pInfo2, int nWords, Vec_Int_t * vDiffs );
 extern void            Sim_UtilInfoDetectNews( unsigned * pInfo1, unsigned * pInfo2, int nWords, Vec_Int_t * vDiffs );
 extern void            Sim_UtilInfoFlip( Sim_Man_t * p, Abc_Obj_t * pNode );
-extern bool            Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode );
-extern void            Sim_UtilSimulate( Sim_Man_t * p, bool fFirst );
-extern void            Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fType1, bool fType2 );
+extern int             Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode );
+extern void            Sim_UtilSimulate( Sim_Man_t * p, int  fFirst );
+extern void            Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, int  fType, int  fType1, int  fType2 );
 extern void            Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords, int nOffset );
 extern void            Sim_UtilTransferNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords, int nOffset, int fShift );
 extern int             Sim_UtilCountSuppSizes( Sim_Man_t * p, int fStruct );
@@ -221,9 +223,11 @@ extern int             Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWord
 extern void            Sim_UtilCountPairsAll( Sym_Man_t * p );
 extern int             Sim_UtilMatrsAreDisjoint( Sym_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

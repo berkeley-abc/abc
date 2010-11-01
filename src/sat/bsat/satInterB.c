@@ -26,6 +26,9 @@
 #include "satStore.h"
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -188,6 +191,7 @@ int Intb_ManGlobalVars( Intb_Man_t * p )
 ***********************************************************************/
 void Intb_ManResize( Intb_Man_t * p )
 {
+    p->Counter = 0;
     // check if resizing is needed
     if ( p->nVarsAlloc < p->pCnf->nVars )
     {
@@ -205,7 +209,7 @@ void Intb_ManResize( Intb_Man_t * p )
         p->pWatches  = ABC_REALLOC(Sto_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
     }
 
-    // clean the ABC_FREE space
+    // clean the free space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
     memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
@@ -232,7 +236,7 @@ void Intb_ManResize( Intb_Man_t * p )
     if ( p->nIntersAlloc < p->pCnf->nClauses )
     {
         p->nIntersAlloc = p->pCnf->nClauses;
-        p->pInters = ABC_REALLOC(Aig_Obj_t *, p->pInters, p->nIntersAlloc );
+        p->pInters = ABC_REALLOC( Aig_Obj_t *, p->pInters, p->nIntersAlloc );
     }
     memset( p->pInters, 0, sizeof(Aig_Obj_t *) * p->pCnf->nClauses );
 }
@@ -550,7 +554,6 @@ int Intb_ManGetGlobalVar( Intb_Man_t * p, int Var )
     return VarAB;
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Traces the proof for one clause.]
@@ -607,7 +610,6 @@ int Intb_ManProofTraceOne( Intb_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         // add the variables to seen
         for ( v = 1; v < (int)pReason->nLits; v++ )
             p->pSeens[lit_var(pReason->pLits[v])] = 1;
-
 
         // record the reason clause
         assert( Intb_ManProofGet(p, pReason) > 0 );
@@ -677,7 +679,6 @@ int Intb_ManProofTraceOne( Intb_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
                 printf( "Recording clause %d: Trying to resolve the clause with more than one opposite literal.\n", pFinal->Id );
             }
         }
-
 //        Vec_PtrPush( pFinal->pAntis, pReason );
     }
 
@@ -710,6 +711,27 @@ int Intb_ManProofTraceOne( Intb_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
             Intb_ManPrintResolvent( p->pResLits, p->nResLits );
             Intb_ManPrintClause( p, pFinal );
         }
+
+        // if there are literals in the clause that are not in the resolvent
+        // it means that the derived resolvent is stronger than the clause
+        // we can replace the clause with the resolvent by removing these literals
+        if ( p->nResLits != (int)pFinal->nLits )
+        {
+            for ( v1 = 0; v1 < (int)pFinal->nLits; v1++ )
+            {
+                for ( v2 = 0; v2 < p->nResLits; v2++ )
+                    if ( pFinal->pLits[v1] == p->pResLits[v2] )
+                        break;
+                if ( v2 < p->nResLits )
+                    continue;
+                // remove literal v1 from the final clause
+                pFinal->nLits--;
+                for ( v2 = v1; v2 < (int)pFinal->nLits; v2++ )
+                    pFinal->pLits[v2] = pFinal->pLits[v2+1];
+                v1--;
+            }
+            assert( p->nResLits == (int)pFinal->nLits );
+        }
     }
 p->timeTrace += clock() - clk;
 
@@ -719,6 +741,10 @@ p->timeTrace += clock() - clk;
 //        Intb_ManPrintInterOne( p, pFinal );
     }
     Intb_ManProofSet( p, pFinal, p->Counter );
+    // make sure the same proof ID is not asssigned to two consecutive clauses
+    assert( p->pProofNums[pFinal->Id-1] != p->Counter );
+//    if ( p->pProofNums[pFinal->Id] == p->pProofNums[pFinal->Id-1] )
+//        p->pProofNums[pFinal->Id] = p->pProofNums[pConflict->Id];
     return p->Counter;
 }
 
@@ -743,9 +769,16 @@ int Intb_ManProofRecordOne( Intb_Man_t * p, Sto_Cls_t * pClause )
     if ( pClause->nLits == 0 )
         printf( "Error: Empty clause is attempted.\n" );
 
-    // add assumptions to the trail
     assert( !pClause->fRoot );
     assert( p->nTrailSize == p->nRootSize );
+
+    // if any of the clause literals are already assumed
+    // it means that the clause is redundant and can be skipped
+    for ( i = 0; i < (int)pClause->nLits; i++ )
+        if ( p->pAssigns[lit_var(pClause->pLits[i])] == pClause->pLits[i] )
+            return 1;
+
+    // add assumptions to the trail
     for ( i = 0; i < (int)pClause->nLits; i++ )
         if ( !Intb_ManEnqueue( p, lit_neg(pClause->pLits[i]), NULL ) )
         {
@@ -759,6 +792,27 @@ int Intb_ManProofRecordOne( Intb_Man_t * p, Sto_Cls_t * pClause )
     {
         assert( 0 ); // cannot prove
         return 0;
+    } 
+
+    // skip the clause if it is weaker or the same as the conflict clause
+    if ( pClause->nLits >= pConflict->nLits )
+    {
+        // check if every literal of conflict clause can be found in the given clause
+        int j;
+        for ( i = 0; i < (int)pConflict->nLits; i++ )
+        {
+            for ( j = 0; j < (int)pClause->nLits; j++ )
+                if ( pConflict->pLits[i] == pClause->pLits[j] )
+                    break;
+            if ( j == (int)pClause->nLits ) // literal pConflict->pLits[i] is not found
+                break;
+        }
+        if ( i == (int)pConflict->nLits ) // all lits are found
+        {
+            // undo to the root level
+            Intb_ManCancelUntil( p, p->nRootSize );
+            return 1;
+        }
     }
 
     // construct the proof
@@ -846,8 +900,12 @@ int Intb_ManProcessRoots( Intb_Man_t * p )
         if ( !Intb_ManEnqueue( p, pClause->pLits[0], pClause ) )
         {
             // detected root level conflict
-            printf( "Error in Intb_ManProcessRoots(): Detected a root-level conflict too early!\n" );
-            assert( 0 );
+//            printf( "Error in Intb_ManProcessRoots(): Detected a root-level conflict too early!\n" );
+//            assert( 0 );
+            // detected root level conflict
+            Intb_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
+            if ( p->fVerbose )
+                printf( "Found root level conflict!\n" );
             return 0;
         }
     }
@@ -895,7 +953,6 @@ void Intb_ManPrepareInter( Intb_Man_t * p )
         }
         // clause of A
         Intb_ManAigClear( p, Intb_ManAigRead(p, pClause) );
-
         for ( v = 0; v < (int)pClause->nLits; v++ )
         {
             Var = lit_var(pClause->pLits[v]);
@@ -909,7 +966,6 @@ void Intb_ManPrepareInter( Intb_Man_t * p )
                     Intb_ManAigOrVar( p, Intb_ManAigRead(p, pClause), VarAB );
             }
         }
-
 //        Intb_ManPrintInterOne( p, pClause );
     }
 }
@@ -940,7 +996,7 @@ void * Intb_ManInterpolate( Intb_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );
     p->pCnf = pCnf;
     p->fVerbose = fVerbose;
-    p->vVarsAB = vVarsAB;
+    p->vVarsAB = (Vec_Int_t *)vVarsAB;
     p->pAig = pRes = Aig_ManStart( 10000 );
     Aig_IthVar( p->pAig, Vec_IntSize(p->vVarsAB) - 1 );
 
@@ -980,8 +1036,9 @@ void * Intb_ManInterpolate( Intb_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
 
     // stop the proof
     if ( p->fProofWrite )
-    {
+    { 
         fclose( p->pFile );
+//        Sat_ProofChecker( "proof.cnf_" );
         p->pFile = NULL;    
     }
 
@@ -1003,6 +1060,7 @@ p->timeTotal += clock() - clkTotal;
     return pRes;
     
 }
+
 
 /**Function*************************************************************
 
@@ -1052,4 +1110,6 @@ Aig_Man_t * Intb_ManDeriveClauses( Intb_Man_t * pMan, Sto_Man_t * pCnf, int fCla
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

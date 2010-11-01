@@ -18,6 +18,9 @@
 
 #include "fraigInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 #ifdef FRAIG_ENABLE_FANOUTS
 
 ////////////////////////////////////////////////////////////////////////
@@ -172,4 +175,6 @@ int Fraig_NodeGetFanoutNum( Fraig_Node_t * pNode )
 ////////////////////////////////////////////////////////////////////////
 
 #endif
+
+ABC_NAMESPACE_IMPL_END
 

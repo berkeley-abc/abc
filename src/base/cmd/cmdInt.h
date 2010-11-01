@@ -21,12 +21,16 @@
 #ifndef __CMD_INT_H__
 #define __CMD_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include "mainInt.h"
 #include "cmd.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -40,7 +44,7 @@ struct MvCommand
 {
     char *        sName;       // the command name  
     char *        sGroup;      // the group name  
-    void *        pFunc;       // the function to execute the command 
+    Cmd_CommandFuncType        pFunc;       // the function to execute the command
     int           fChange;     // set to 1 to mark that the network is changed
 };
 
@@ -66,19 +70,23 @@ extern char *     CmdCommandAliasLookup( Abc_Frame_t * pAbc, char * sCommand );
 extern void       CmdCommandAliasFree( Abc_Alias * p );
 /*=== cmdUtils.c =======================================================*/
 extern int        CmdCommandDispatch( Abc_Frame_t * pAbc, int * argc, char *** argv );
-extern char *     CmdSplitLine( Abc_Frame_t * pAbc, char * sCommand, int * argc, char *** argv );
+extern const char *     CmdSplitLine( Abc_Frame_t * pAbc, const char * sCommand, int * argc, char *** argv );
 extern int        CmdApplyAlias( Abc_Frame_t * pAbc, int * argc, char *** argv, int * loop );
 extern char *     CmdHistorySubstitution( Abc_Frame_t * pAbc, char * line, int * changed );
 extern FILE *     CmdFileOpen( Abc_Frame_t * pAbc, char * sFileName, char * sMode, char ** pFileNameReal, int silent );
 extern void       CmdFreeArgv( int argc, char ** argv );
 extern char **    CmdAddToArgv( int argc, char ** argv );
 extern void       CmdCommandFree( Abc_Command * pCommand );
-extern void       CmdCommandPrint( Abc_Frame_t * pAbc, bool fPrintAll );
+extern void       CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll );
 extern void       CmdPrintTable( st_table * tTable, int fAliases );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

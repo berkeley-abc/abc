@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include "bbr.h"
-#include "mtr.h" 
+#include "mtr.h"
+
+ABC_NAMESPACE_IMPL_START
+ 
 
 /* 
     The ideas implemented in this file are inspired by the paper:
@@ -1319,4 +1322,6 @@ DdNode * Bbr_bddImageRead2( Bbr_ImageTree2_t * pTree )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

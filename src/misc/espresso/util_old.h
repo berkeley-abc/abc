@@ -240,7 +240,8 @@ extern long random();
 
 /*
 #if !defined(__osf__)
-#define MAXPATHLEN 1024
+#define MAXPATHLEN
+ 1024
 #endif
 */
 
@@ -298,4 +299,11 @@ extern char *util_optarg;
 #endif
 
 #include <varargs.h>
+
+ABC_NAMESPACE_HEADER_START
+
+
+
+ABC_NAMESPACE_HEADER_END
+
 #endif

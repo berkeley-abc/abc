@@ -20,6 +20,9 @@
 
 #include "lpkInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -324,8 +327,8 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
     Kit_DsdNtk_t * ppNtks[2], * pTemp;
     Vec_Int_t * vSets0 = p->vSets[0];
     Vec_Int_t * vSets1 = p->vSets[1];
-    unsigned * pCof0 = Vec_PtrEntry( p->vTtNodes, 0 );
-    unsigned * pCof1 = Vec_PtrEntry( p->vTtNodes, 1 );
+    unsigned * pCof0 = (unsigned *)Vec_PtrEntry( p->vTtNodes, 0 );
+    unsigned * pCof1 = (unsigned *)Vec_PtrEntry( p->vTtNodes, 1 );
     int nSets, i, SizeMax;//, SRedMax;
     unsigned Entry;
     int fVerbose = p->pPars->fVeryVerbose;
@@ -437,4 +440,6 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

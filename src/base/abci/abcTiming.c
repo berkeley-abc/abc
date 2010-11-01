@@ -22,6 +22,9 @@
 #include "main.h"
 #include "mio.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -42,8 +45,8 @@ void                       Abc_NtkTimePrepare( Abc_Ntk_t * pNtk );
 void                       Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode );
 
 // accessing the arrival and required times of a node
-static inline Abc_Time_t * Abc_NodeArrival( Abc_Obj_t * pNode )  {  return pNode->pNtk->pManTime->vArrs->pArray[pNode->Id];  }
-static inline Abc_Time_t * Abc_NodeRequired( Abc_Obj_t * pNode ) {  return pNode->pNtk->pManTime->vReqs->pArray[pNode->Id];  }
+static inline Abc_Time_t * Abc_NodeArrival( Abc_Obj_t * pNode )  {  return (Abc_Time_t *)pNode->pNtk->pManTime->vArrs->pArray[pNode->Id];  }
+static inline Abc_Time_t * Abc_NodeRequired( Abc_Obj_t * pNode ) {  return (Abc_Time_t *)pNode->pNtk->pManTime->vReqs->pArray[pNode->Id];  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -183,7 +186,7 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
     // set the arrival time
     vTimes = pNtk->pManTime->vArrs;
-    pTime = vTimes->pArray[ObjId];
+    pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
     pTime->Worst = ABC_MAX( Rise, Fall );
@@ -211,7 +214,7 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
     // set the required time
     vTimes = pNtk->pManTime->vReqs;
-    pTime = vTimes->pArray[ObjId];
+    pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
     pTime->Worst = ABC_MAX( Rise, Fall );
@@ -419,13 +422,13 @@ void Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive )
     vTimes = p->vArrs;
     Vec_PtrGrow( vTimes, nSizeNew );
     vTimes->nSize = nSizeNew;
-    ppTimesOld = ( nSizeOld == 0 )? NULL : vTimes->pArray[0];
+    ppTimesOld = ( nSizeOld == 0 )? NULL : (Abc_Time_t *)vTimes->pArray[0];
     ppTimes = ABC_REALLOC( Abc_Time_t, ppTimesOld, nSizeNew );
     for ( i = 0; i < nSizeNew; i++ )
         vTimes->pArray[i] = ppTimes + i;
     for ( i = nSizeOld; i < nSizeNew; i++ )
     {
-        pTime = vTimes->pArray[i];
+        pTime = (Abc_Time_t *)vTimes->pArray[i];
         pTime->Rise  = -ABC_INFINITY;
         pTime->Fall  = -ABC_INFINITY;
         pTime->Worst = -ABC_INFINITY;    
@@ -434,13 +437,13 @@ void Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive )
     vTimes = p->vReqs;
     Vec_PtrGrow( vTimes, nSizeNew );
     vTimes->nSize = nSizeNew;
-    ppTimesOld = ( nSizeOld == 0 )? NULL : vTimes->pArray[0];
+    ppTimesOld = ( nSizeOld == 0 )? NULL : (Abc_Time_t *)vTimes->pArray[0];
     ppTimes = ABC_REALLOC( Abc_Time_t, ppTimesOld, nSizeNew );
     for ( i = 0; i < nSizeNew; i++ )
         vTimes->pArray[i] = ppTimes + i;
     for ( i = nSizeOld; i < nSizeNew; i++ )
     {
-        pTime = vTimes->pArray[i];
+        pTime = (Abc_Time_t *)vTimes->pArray[i];
         pTime->Rise  = -ABC_INFINITY;
         pTime->Fall  = -ABC_INFINITY;
         pTime->Worst = -ABC_INFINITY;    
@@ -470,9 +473,9 @@ void Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtkOld )
     int i;
     if ( pNtkOld->pManTime == NULL )
         return;
-    if ( Mio_LibraryReadNand2(Abc_FrameReadLibGen()) == NULL )
+    if ( Mio_LibraryReadNand2((Mio_Library_t *)Abc_FrameReadLibGen()) == NULL )
         return;
-    tAndDelay = Mio_LibraryReadDelayNand2Max(Abc_FrameReadLibGen());
+    tAndDelay = Mio_LibraryReadDelayNand2Max((Mio_Library_t *)Abc_FrameReadLibGen());
     Abc_NtkForEachPi( pNtkOld, pNodeOld, i )
     {
         pNodeNew = pNodeOld->pCopy;
@@ -558,7 +561,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk )
     Abc_NtkTimePrepare( pNtk );
     vNodes = Abc_NtkDfs( pNtk, 1 );
     for ( i = 0; i < vNodes->nSize; i++ )
-        Abc_NodeDelayTraceArrival( vNodes->pArray[i] );
+        Abc_NodeDelayTraceArrival( (Abc_Obj_t *)vNodes->pArray[i] );
     Vec_PtrFree( vNodes );
 
     // get the latest arrival times
@@ -597,7 +600,7 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
     pTimeOut = Abc_NodeArrival(pNode);
     pTimeOut->Rise = pTimeOut->Fall = -ABC_INFINITY; 
     // go through the pins of the gate
-    pPin = Mio_GateReadPins(pNode->pData);
+    pPin = Mio_GateReadPins((Mio_Gate_t *)pNode->pData);
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
         pTimeIn = Abc_NodeArrival(pFanin);
@@ -755,7 +758,7 @@ void Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk, int nMaxLevelIncrease )
     Vec_IntFill( pNtk->vLevelsR, 1 + Abc_NtkObjNumMax(pNtk), 0 );
     // compute levels in reverse topological order
     vNodes = Abc_NtkDfsReverse( pNtk );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         Abc_ObjSetReverseLevel( pObj, Abc_ObjReverseLevelNew(pObj) );
     Vec_PtrFree( vNodes );
 }
@@ -807,7 +810,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
     Vec_VecPush( vLevels, LevelOld, pObjNew );
     pObjNew->fMarkA = 1;
     // recursively update level
-    Vec_VecForEachEntryStart( vLevels, pTemp, Lev, k, LevelOld )
+    Vec_VecForEachEntryStart( Abc_Obj_t *, vLevels, pTemp, Lev, k, LevelOld )
     {
 //        Counter--;
         pTemp->fMarkA = 0;
@@ -858,7 +861,7 @@ void Abc_NtkUpdateReverseLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
     Vec_VecPush( vLevels, LevelOld, pObjNew );
     pObjNew->fMarkA = 1;
     // recursively update level
-    Vec_VecForEachEntryStart( vLevels, pTemp, Lev, k, LevelOld )
+    Vec_VecForEachEntryStart( Abc_Obj_t *, vLevels, pTemp, Lev, k, LevelOld )
     {
         pTemp->fMarkA = 0;
         LevelOld = Abc_ObjReverseLevel(pTemp); 
@@ -907,4 +910,6 @@ void Abc_NtkUpdate( Abc_Obj_t * pObj, Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

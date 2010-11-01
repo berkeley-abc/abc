@@ -22,6 +22,9 @@
 #include "main.h"
 #include "mio.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -105,10 +108,10 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     }
 
     // mark the nodes from the set
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         pNode->fMarkC = 1;
     if ( vNodesShow )
-        Vec_PtrForEachEntry( vNodesShow, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodesShow, pNode, i )
             pNode->fMarkB = 1;
 
     // get the levels of nodes
@@ -117,7 +120,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     {
         LevelMin = Abc_NtkLevelReverse( pNtk );
         assert( LevelMax == LevelMin );
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
             if ( Abc_ObjIsNode(pNode) )
                 pNode->Level = LevelMax - pNode->Level + 1;
     }
@@ -126,7 +129,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     LevelMin = 10000;
     LevelMax = -1;
     fHasCos  = 0;
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_ObjIsCo(pNode) )
         {
@@ -143,7 +146,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     if ( fHasCos )
     {
         LevelMax++;
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         {
             if ( Abc_ObjIsCo(pNode) )
                 pNode->Level = LevelMax;
@@ -247,7 +250,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  LevelMax );
         // generate the PO nodes
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         {
             if ( !Abc_ObjIsCo(pNode) )
                 continue;
@@ -273,7 +276,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         fprintf( pFile, "  rank = same;\n" );
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  Level );
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         {
             if ( (int)pNode->Level != Level )
                 continue;
@@ -296,11 +299,11 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             if ( Abc_NtkIsStrash(pNtk) )
                 pSopString = "";
             else if ( Abc_NtkHasMapping(pNtk) && fGateNames )
-                pSopString = Mio_GateReadName(pNode->pData);
+                pSopString = Mio_GateReadName((Mio_Gate_t *)pNode->pData);
             else if ( Abc_NtkHasMapping(pNtk) )
-                pSopString = Abc_NtkPrintSop(Mio_GateReadSop(pNode->pData));
+                pSopString = Abc_NtkPrintSop(Mio_GateReadSop((Mio_Gate_t *)pNode->pData));
             else
-                pSopString = Abc_NtkPrintSop(pNode->pData);
+                pSopString = Abc_NtkPrintSop((char *)pNode->pData);
             fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id, pSopString );
 //            fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, 
 //                SuppSize, 
@@ -324,7 +327,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  LevelMin );
         // generate the PO nodes
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         {
             if ( !Abc_ObjIsCi(pNode) )
             {
@@ -356,7 +359,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
 
     // generate invisible edges from the square down
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( (int)pNode->Level != LevelMax )
             continue;
@@ -364,7 +367,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     }
 
     // generate edges
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_ObjIsLatch(pNode) )
             continue;
@@ -392,10 +395,10 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     fclose( pFile );
 
     // unmark the nodes from the set
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         pNode->fMarkC = 0;
     if ( vNodesShow )
-        Vec_PtrForEachEntry( vNodesShow, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodesShow, pNode, i )
             pNode->fMarkB = 0;
 
     // convert the network back into BDDs if this is how it was
@@ -456,10 +459,10 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     }
 
     // mark the nodes from the set
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         pNode->fMarkC = 1;
     if ( vNodesShow )
-        Vec_PtrForEachEntry( vNodesShow, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodesShow, pNode, i )
             pNode->fMarkB = 1;
 
     // get the levels of nodes
@@ -468,7 +471,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     {
         LevelMin = Abc_NtkLevelReverse( pNtk );
         assert( LevelMax == LevelMin );
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
             if ( Abc_ObjIsNode(pNode) )
                 pNode->Level = LevelMax - pNode->Level + 1;
     }
@@ -477,7 +480,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     LevelMin = 10000;
     LevelMax = -1;
     fHasCos  = 0;
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_ObjIsCo(pNode) )
         {
@@ -494,7 +497,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     if ( fHasCos )
     {
         LevelMax++;
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         {
             if ( Abc_ObjIsCo(pNode) )
                 pNode->Level = LevelMax;
@@ -598,7 +601,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  LevelMax );
         // generate the PO nodes
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         {
             if ( !Abc_ObjIsPo(pNode) )
                 continue;
@@ -629,11 +632,11 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             if ( Abc_NtkIsStrash(pNtk) )
                 pSopString = "";
             else if ( Abc_NtkHasMapping(pNtk) && fGateNames )
-                pSopString = Mio_GateReadName(pNode->pData);
+                pSopString = Mio_GateReadName((Mio_Gate_t *)pNode->pData);
             else if ( Abc_NtkHasMapping(pNtk) )
-                pSopString = Abc_NtkPrintSop(Mio_GateReadSop(pNode->pData));
+                pSopString = Abc_NtkPrintSop(Mio_GateReadSop((Mio_Gate_t *)pNode->pData));
             else
-                pSopString = Abc_NtkPrintSop(pNode->pData);
+                pSopString = Abc_NtkPrintSop((char *)pNode->pData);
             fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id, pSopString );
 
             fprintf( pFile, ", shape = ellipse" );
@@ -654,7 +657,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  LevelMin );
         // generate the PO nodes
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         {
             if ( pNode->Level > 0 )
                 continue;
@@ -685,7 +688,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     }
 
 //    fprintf( pFile, "{\n" );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( !Abc_ObjIsLatch(pNode) )
             continue;
@@ -702,7 +705,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
 
     // generate invisible edges from the square down
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( (int)pNode->Level != LevelMax )
             continue;
@@ -712,7 +715,7 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     }
 
     // generate edges
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_ObjIsBi(pNode) || Abc_ObjIsBo(pNode) )
             continue;
@@ -750,10 +753,10 @@ void Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     fclose( pFile );
 
     // unmark the nodes from the set
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
         pNode->fMarkC = 0;
     if ( vNodesShow )
-        Vec_PtrForEachEntry( vNodesShow, pNode, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodesShow, pNode, i )
             pNode->fMarkB = 0;
 
     // convert the network back into BDDs if this is how it was
@@ -807,7 +810,7 @@ int Abc_NtkCountLogicNodes( Vec_Ptr_t * vNodes )
 {
     Abc_Obj_t * pObj;
     int i, Counter = 0;
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         if ( !Abc_ObjIsNode(pObj) )
             continue;
@@ -822,4 +825,6 @@ int Abc_NtkCountLogicNodes( Vec_Ptr_t * vNodes )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

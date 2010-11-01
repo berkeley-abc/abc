@@ -21,6 +21,7 @@
 #ifndef __MFX_H__
 #define __MFX_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -68,10 +70,12 @@ struct Mfx_Par_t_
 
 /*=== mfxCore.c ==========================================================*/
 extern void        Mfx_ParsDefault( Mfx_Par_t * pPars );
- 
-#ifdef __cplusplus
-}
-#endif
+extern int         Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib );
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

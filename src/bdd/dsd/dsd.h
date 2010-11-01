@@ -28,6 +28,7 @@
 #ifndef __DSD_H__
 #define __DSD_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -36,9 +37,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 // types of DSD nodes
 enum Dsd_Type_t_ { 
@@ -118,9 +120,11 @@ extern void            Dsd_NodePrint( FILE * pFile, Dsd_Node_t * pNode );
 /*=== dsdLocal.c =======================================================*/
 extern DdNode *        Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

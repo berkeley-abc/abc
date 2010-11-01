@@ -9,6 +9,9 @@
  */
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 void map_dcset(PLA)
 pPLA PLA;
 {
@@ -639,3 +642,5 @@ int verbose_mode;
     kiss_print_cube(stdout, PLA, p, "~1");
     }
 }
+ABC_NAMESPACE_IMPL_END
+

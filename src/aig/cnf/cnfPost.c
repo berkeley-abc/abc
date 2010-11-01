@@ -20,6 +20,9 @@
 
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -143,7 +146,7 @@ void Cnf_ManFreeCuts( Cnf_Man_t * p )
     Aig_ManForEachObj( p->pManAig, pObj, i )
         if ( pObj->pData )
         {
-            Cnf_CutFree( pObj->pData );
+            Cnf_CutFree( (Cnf_Cut_t *)pObj->pData );
             pObj->pData = NULL;
         }
 }
@@ -230,4 +233,6 @@ void Cnf_ManPostprocess( Cnf_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

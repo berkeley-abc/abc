@@ -2,6 +2,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaAbs.c \
     src/aig/gia/giaAig.c \
     src/aig/gia/giaAiger.c \
+    src/aig/gia/giaBidec.c \
     src/aig/gia/giaCof.c \
     src/aig/gia/giaCSatOld.c \
     src/aig/gia/giaCSat.c \
@@ -19,13 +20,18 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaFront.c \
     src/aig/gia/giaGlitch.c \
     src/aig/gia/giaHash.c \
+    src/aig/gia/giaIf.c \
     src/aig/gia/giaMan.c \
-    src/aig/gia/giaMap.c \
+    src/aig/gia/giaMem.c \
     src/aig/gia/giaPat.c \
+    src/aig/gia/giaReparam.c \
     src/aig/gia/giaRetime.c \
     src/aig/gia/giaScl.c \
+    src/aig/gia/giaShrink.c \
     src/aig/gia/giaSim.c \
     src/aig/gia/giaSort.c \
+    src/aig/gia/giaSpeedup.c \
+    src/aig/gia/giaSupMin.c \
     src/aig/gia/giaSwitch.c \
     src/aig/gia/giaTsim.c \
     src/aig/gia/giaUtil.c

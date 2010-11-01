@@ -20,6 +20,9 @@
 
 #include "dchInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -67,8 +70,8 @@ Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs )
     assert( Vec_PtrSize(vAigs) > 0 );
     // make sure they have the same number of PIs/POs
     nNodes = 0;
-    pAig = Vec_PtrEntry( vAigs, 0 );
-    Vec_PtrForEachEntry( vAigs, pAig2, i )
+    pAig = (Aig_Man_t *)Vec_PtrEntry( vAigs, 0 );
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, i )
     {
         assert( Aig_ManPiNum(pAig) == Aig_ManPiNum(pAig2) );
         assert( Aig_ManPoNum(pAig) == Aig_ManPoNum(pAig2) );
@@ -77,19 +80,19 @@ Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs )
     }
     // map constant nodes
     pAigTotal = Aig_ManStart( nNodes );
-    Vec_PtrForEachEntry( vAigs, pAig2, k )
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
         Aig_ManConst1(pAig2)->pData = Aig_ManConst1(pAigTotal);
     // map primary inputs
     Aig_ManForEachPi( pAig, pObj, i )
     {
         pObjPi = Aig_ObjCreatePi( pAigTotal );
-        Vec_PtrForEachEntry( vAigs, pAig2, k )
+        Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
             Aig_ManPi( pAig2, i )->pData = pObjPi;
     }
     // construct the AIG in the order of POs
     Aig_ManForEachPo( pAig, pObj, i )
     {
-        Vec_PtrForEachEntry( vAigs, pAig2, k )
+        Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig2, k )
         {
             pObjPo = Aig_ManPo( pAig2, i );
             Dch_DeriveTotalAig_rec( pAigTotal, Aig_ObjFanin0(pObjPo) );
@@ -111,4 +114,6 @@ Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "msatInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -133,7 +136,7 @@ static void skipLine( char ** pIn )
 static int Msat_ReadInt( char ** pIn ) 
 {
     int     val = 0;
-    bool    neg = 0;
+    int     neg = 0;
 
     Msat_ReadWhitespace( pIn );
     if ( **pIn == '-' ) 
@@ -194,7 +197,7 @@ static void Msat_ReadClause( char ** pIn, Msat_Solver_t * p, Msat_IntVec_t * pLi
   SeeAlso     []
 
 ***********************************************************************/
-static bool Msat_ReadDimacs( char * pText, Msat_Solver_t ** pS, bool fVerbose ) 
+static int  Msat_ReadDimacs( char * pText, Msat_Solver_t ** pS, int  fVerbose ) 
 {
     Msat_Solver_t * p = NULL; // Suppress "might be used uninitialized"
     Msat_IntVec_t * pLits = NULL; // Suppress "might be used uninitialized"
@@ -251,10 +254,10 @@ static bool Msat_ReadDimacs( char * pText, Msat_Solver_t ** pS, bool fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverParseDimacs( FILE * pFile, Msat_Solver_t ** p, int fVerbose )
+int  Msat_SolverParseDimacs( FILE * pFile, Msat_Solver_t ** p, int fVerbose )
 {
     char * pText;
-    bool Value;
+    int  Value;
     pText = Msat_FileRead( pFile );
     Value = Msat_ReadDimacs( pText, p, fVerbose );
     ABC_FREE( pText );
@@ -265,4 +268,6 @@ bool Msat_SolverParseDimacs( FILE * pFile, Msat_Solver_t ** p, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

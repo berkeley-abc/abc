@@ -20,6 +20,9 @@
 
 #include "dchInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -204,8 +207,8 @@ void Dch_DeriveChoiceAigNode( Aig_Man_t * pAigNew, Aig_Man_t * pAigOld, Aig_Obj_
     if ( pRepr == NULL )
         return;
     // get the corresponding new nodes
-    pObjNew  = Aig_Regular(pObj->pData);
-    pReprNew = Aig_Regular(pRepr->pData);
+    pObjNew  = Aig_Regular((Aig_Obj_t *)pObj->pData);
+    pReprNew = Aig_Regular((Aig_Obj_t *)pRepr->pData);
     if ( pObjNew == pReprNew )
         return;
     // skip the earlier nodes
@@ -240,7 +243,7 @@ void Dch_DeriveChoiceAigNode( Aig_Man_t * pAigNew, Aig_Man_t * pAigOld, Aig_Obj_
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig )
+Aig_Man_t * Dch_DeriveChoiceAig_old( Aig_Man_t * pAig )
 {
     Aig_Man_t * pChoices, * pTemp;
     Aig_Obj_t * pObj;
@@ -268,8 +271,70 @@ Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig )
     return pChoices;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the AIG with choices from representatives.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Dch_DeriveChoiceAigInt( Aig_Man_t * pAig )
+{
+    Aig_Man_t * pChoices;
+    Aig_Obj_t * pObj;
+    int i;
+    // start recording equivalences
+    pChoices = Aig_ManStart( Aig_ManObjNumMax(pAig) );
+    pChoices->pEquivs = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    pChoices->pReprs  = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    // map constants and PIs
+    Aig_ManCleanData( pAig );
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1(pChoices);
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pChoices );
+    // construct choices for the internal nodes
+    assert( pAig->pReprs != NULL );
+    Aig_ManForEachNode( pAig, pObj, i )
+        Dch_DeriveChoiceAigNode( pChoices, pAig, pObj );
+    Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjCreatePo( pChoices, Aig_ObjChild0CopyRepr(pChoices, pObj) );
+    Dch_DeriveChoiceCountEquivs( pChoices );
+    return pChoices;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the AIG with choices from representatives.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig )
+{
+    Aig_Man_t * pChoices, * pTemp;
+    pChoices = Dch_DeriveChoiceAigInt( pAig );
+//    pChoices = Dch_DeriveChoiceAigInt( pTemp = pChoices );
+//    Aig_ManStop( pTemp );
+    // there is no need for cleanup
+    ABC_FREE( pChoices->pReprs );
+    pChoices = Aig_ManDupDfs( pTemp = pChoices );
+    Aig_ManStop( pTemp );
+    return pChoices;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

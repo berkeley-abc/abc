@@ -21,6 +21,9 @@
 #include "intInt.h"
 #include "ssw.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -92,7 +95,7 @@ Aig_Man_t * Inter_ManFramesBmc( Aig_Man_t * pAig, int nFrames )
 void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
 {
     int nConfLimit = 1000000;
-    Ssw_Cex_t * pCtrex = NULL;
+    Abc_Cex_t * pCtrex = NULL;
     Aig_Man_t * pFrames;
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
@@ -107,7 +110,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     vCiIds = Cnf_DataCollectPiSatNums( pCnf, pFrames );
     Aig_ManStop( pFrames );
     // convert into SAT solver
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Cnf_DataFree( pCnf );
     if ( pSat == NULL )
     {
@@ -159,4 +162,6 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

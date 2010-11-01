@@ -19,8 +19,12 @@
 #ifndef __DSD_INT_H__
 #define __DSD_INT_H__
 
+
 #include "extra.h"
 #include "dsd.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                      TYPEDEF DEFINITIONS                         ///
@@ -82,6 +86,10 @@ extern Dsd_Node_t * Dsd_TreeNodeCreate( int Type, int nDecs, int BlockNum );
 extern void         Dsd_TreeNodeDelete( DdManager * dd, Dsd_Node_t * pNode );
 extern void         Dsd_TreeUnmark( Dsd_Manager_t * dMan );
 extern DdNode *     Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fRemap );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

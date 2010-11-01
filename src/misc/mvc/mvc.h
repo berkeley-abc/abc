@@ -19,6 +19,7 @@
 #ifndef __MVC_H__
 #define __MVC_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -26,6 +27,9 @@
 #include <stdio.h>
 #include "extra.h"
 #include "extra.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -723,6 +727,10 @@ extern Mvc_Manager_t *  Mvc_ManagerAllocCover();
 extern Mvc_Manager_t *  Mvc_ManagerAllocCube( int nWords );
 extern Mvc_Manager_t *  Mvc_ManagerFreeCover( Mvc_Cover_t * pCover );
 extern Mvc_Manager_t *  Mvc_ManagerFreeCube( Mvc_Cover_t * pCube, int nWords );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

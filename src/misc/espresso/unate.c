@@ -13,6 +13,9 @@
 
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 static pset_family abs_covered();
 static pset_family abs_covered_many();
 static int abs_select_restricted();
@@ -439,3 +442,5 @@ pset restrict;
 
     return best_var;
 }
+ABC_NAMESPACE_IMPL_END
+

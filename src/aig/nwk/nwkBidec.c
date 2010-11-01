@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,7 +47,7 @@ static inline void Extra_TruthSharp( unsigned * pOut, unsigned * pIn0, unsigned 
         pOut[w] = pIn0[w] & ~pIn1[w];
 }
 
-static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCond( Bdc_FuncCopy(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
+static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCond( (Hop_Obj_t *)Bdc_FuncCopy(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -169,4 +172,6 @@ void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

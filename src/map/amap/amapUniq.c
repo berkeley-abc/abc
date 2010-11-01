@@ -20,6 +20,9 @@
 
 #include "amapInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -87,9 +90,9 @@ static inline void Vec_IntPushOrderWithMask( Vec_Int_t * p, int Entry )
 int Amap_LibFindNode( Amap_Lib_t * pLib, int iFan0, int iFan1, int fXor )
 {
     if ( fXor )
-        return Vec_IntCheckWithMask( Vec_PtrEntry(pLib->vRulesX, iFan0), iFan1 );
+        return Vec_IntCheckWithMask( (Vec_Int_t *)Vec_PtrEntry(pLib->vRulesX, iFan0), iFan1 );
     else
-        return Vec_IntCheckWithMask( Vec_PtrEntry(pLib->vRules, iFan0), iFan1 );
+        return Vec_IntCheckWithMask( (Vec_Int_t *)Vec_PtrEntry(pLib->vRules, iFan0), iFan1 );
 }
 
 /**Function*************************************************************
@@ -207,21 +210,21 @@ Amap_Lit2Var(iFan1), (Amap_LitIsCompl(iFan1)?'-':'+') );
     if ( fXor )
     {
         if ( iFan0 == iFan1 )
-            Vec_IntPushOrderWithMask( Vec_PtrEntry(p->vRulesX, iFan0), (pNode->Id << 16) | iFan1 );
+            Vec_IntPushOrderWithMask( (Vec_Int_t *)Vec_PtrEntry(p->vRulesX, iFan0), (pNode->Id << 16) | iFan1 );
         else
         {
-            Vec_IntPushOrderWithMask( Vec_PtrEntry(p->vRulesX, iFan0), (pNode->Id << 16) | iFan1 );
-            Vec_IntPushOrderWithMask( Vec_PtrEntry(p->vRulesX, iFan1), (pNode->Id << 16) | iFan0 );
+            Vec_IntPushOrderWithMask( (Vec_Int_t *)Vec_PtrEntry(p->vRulesX, iFan0), (pNode->Id << 16) | iFan1 );
+            Vec_IntPushOrderWithMask( (Vec_Int_t *)Vec_PtrEntry(p->vRulesX, iFan1), (pNode->Id << 16) | iFan0 );
         }
     }
     else
     {
         if ( iFan0 == iFan1 )
-            Vec_IntPushOrderWithMask( Vec_PtrEntry(p->vRules, iFan0), (pNode->Id << 16) | iFan1 );
+            Vec_IntPushOrderWithMask( (Vec_Int_t *)Vec_PtrEntry(p->vRules, iFan0), (pNode->Id << 16) | iFan1 );
         else
         {
-            Vec_IntPushOrderWithMask( Vec_PtrEntry(p->vRules, iFan0), (pNode->Id << 16) | iFan1 );
-            Vec_IntPushOrderWithMask( Vec_PtrEntry(p->vRules, iFan1), (pNode->Id << 16) | iFan0 );
+            Vec_IntPushOrderWithMask( (Vec_Int_t *)Vec_PtrEntry(p->vRules, iFan0), (pNode->Id << 16) | iFan1 );
+            Vec_IntPushOrderWithMask( (Vec_Int_t *)Vec_PtrEntry(p->vRules, iFan1), (pNode->Id << 16) | iFan0 );
         }
     }
     return pNode->Id;
@@ -279,13 +282,13 @@ int ** Amap_LibLookupTableAlloc( Vec_Ptr_t * vVec, int fVerbose )
     int i, k, nTotal, nSize, nEntries, Value;
     // count the total size
     nEntries = nSize = Vec_PtrSize( vVec );
-    Vec_PtrForEachEntry( vVec, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vVec, vOne, i )
         nEntries += Vec_IntSize(vOne);
     pBuffer = ABC_ALLOC( int, nSize * sizeof(void *) + nEntries );
     pRes = (int **)pBuffer;
     pRes[0] = pBuffer + nSize * sizeof(void *);
     nTotal = 0;
-    Vec_PtrForEachEntry( vVec, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vVec, vOne, i )
     {
         pRes[i] = pRes[0] + nTotal;
         nTotal += Vec_IntSize(vOne) + 1;
@@ -309,4 +312,6 @@ int ** Amap_LibLookupTableAlloc( Vec_Ptr_t * vVec, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

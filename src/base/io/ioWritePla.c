@@ -20,6 +20,9 @@
 
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -100,7 +103,7 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
                 nProducts++;
             continue;
         }
-        nProducts += Abc_SopGetCubeNum(pDriver->pData);
+        nProducts += Abc_SopGetCubeNum((char *)pDriver->pData);
     }
 
     // collect the parameters
@@ -155,11 +158,11 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
         }
 
         // make sure the cover is not complemented
-        assert( !Abc_SopIsComplement( pDriver->pData ) );
+        assert( !Abc_SopIsComplement( (char *)pDriver->pData ) );
 
         // write the cubes
         nFanins = Abc_ObjFaninNum(pDriver);
-        Abc_SopForEachCube( pDriver->pData, nFanins, pCube )
+        Abc_SopForEachCube( (char *)pDriver->pData, nFanins, pCube )
         {
             Abc_ObjForEachFanin( pDriver, pFanin, k )
             {
@@ -194,4 +197,6 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

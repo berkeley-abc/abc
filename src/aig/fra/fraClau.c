@@ -22,6 +22,9 @@
 #include "cnf.h"
 #include "satSolver.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     This code is inspired by the paper: Aaron Bradley and Zohar Manna, 
     "Checking safety by inductive generalization of counterexamples to 
@@ -233,7 +236,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     Aig_ObjChild0Flip( Aig_ManPo(pFramesMain, 0) ); // complement the first output
     pCnfMain = Cnf_DeriveSimple( pFramesMain, 0 );
 //Cnf_DataWriteIntoFile( pCnfMain, "temp.cnf", 1 );
-    p->pSatMain = Cnf_DataWriteIntoSolver( pCnfMain, 1, 0 );
+    p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( pCnfMain, 1, 0 );
 /*
     {
         int i;
@@ -248,7 +251,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     pFramesTest = Aig_ManFrames( pMan, 1, 0, 0, 1, 0, NULL );
     assert( Aig_ManPoNum(pFramesTest) == Aig_ManRegNum(pMan) );
     pCnfTest = Cnf_DeriveSimple( pFramesTest, Aig_ManRegNum(pMan) );
-    p->pSatTest = Cnf_DataWriteIntoSolver( pCnfTest, 1, 0 );
+    p->pSatTest = (sat_solver *)Cnf_DataWriteIntoSolver( pCnfTest, 1, 0 );
     p->nSatVarsTestBeg = p->nSatVarsTestCur = sat_solver_nvars( p->pSatTest );
 
     // derive one timeframe to be checked for BMC
@@ -256,7 +259,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
 //Aig_ManShow( pFramesBmc, 0, NULL );
     assert( Aig_ManPoNum(pFramesBmc) == Aig_ManRegNum(pMan) );
     pCnfBmc = Cnf_DeriveSimple( pFramesBmc, Aig_ManRegNum(pMan) );
-    p->pSatBmc = Cnf_DataWriteIntoSolver( pCnfBmc, 1, 0 );
+    p->pSatBmc = (sat_solver *)Cnf_DataWriteIntoSolver( pCnfBmc, 1, 0 );
 
     // create variable sets
     p->vSatVarsMainCs = Fra_ClauSaveInputVars( pFramesMain, pCnfMain, 2 * (Aig_ManPiNum(pMan)-Aig_ManRegNum(pMan)) );
@@ -755,4 +758,6 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

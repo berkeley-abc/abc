@@ -20,6 +20,9 @@
 
 #include "mfxInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -84,7 +87,7 @@ void Nwk_ConvertHopToAig( Nwk_Obj_t * pObjOld, Aig_Man_t * pMan )
         Hop_ManPi(pHopMan, i)->pData = pFanin->pCopy;
     // construct the AIG
     Nwk_ConvertHopToAig_rec( Hop_Regular(pRoot), pMan );
-    pObjOld->pCopy = (Nwk_Obj_t *)Aig_NotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  
+    pObjOld->pCopy = (Nwk_Obj_t *)Aig_NotCond( (Aig_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
 
     // assign the fanin nodes
@@ -92,7 +95,7 @@ void Nwk_ConvertHopToAig( Nwk_Obj_t * pObjOld, Aig_Man_t * pMan )
         Hop_ManPi(pHopMan, i)->pData = pFanin->pNext;
     // construct the AIG
     Nwk_ConvertHopToAig_rec( Hop_Regular(pRoot), pMan );
-    pObjOld->pNext = (Nwk_Obj_t *)Aig_NotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  
+    pObjOld->pNext = (Nwk_Obj_t *)Aig_NotCond( (Aig_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
 }
 
@@ -113,19 +116,19 @@ Aig_Obj_t * Mfx_ConstructAig_rec( Mfx_Man_t * p, Nwk_Obj_t * pNode, Aig_Man_t * 
     Nwk_Obj_t * pObj;
     int i;
     // assign AIG nodes to the leaves
-    Vec_PtrForEachEntry( p->vSupp, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vSupp, pObj, i )
         pObj->pCopy = pObj->pNext = (Nwk_Obj_t *)Aig_ObjCreatePi( pMan );
     // strash intermediate nodes
     Nwk_ManIncrementTravId( pNode->pMan );
-    Vec_PtrForEachEntry( p->vNodes, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vNodes, pObj, i )
     {
         Nwk_ConvertHopToAig( pObj, pMan );
         if ( pObj == pNode )
-            pObj->pNext = Aig_Not(pObj->pNext);
+            pObj->pNext = Aig_Not((Aig_Obj_t *)pObj->pNext);
     }
     // create the observability condition
     pRoot = Aig_ManConst0(pMan);
-    Vec_PtrForEachEntry( p->vRoots, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vRoots, pObj, i )
     {
         pExor = Aig_Exor( pMan, (Aig_Obj_t *)pObj->pCopy, (Aig_Obj_t *)pObj->pNext );
         pRoot = Aig_Or( pMan, pRoot, pExor );
@@ -148,19 +151,19 @@ Aig_Obj_t * Mfx_ConstructCare_rec( Aig_Man_t * pCare, Aig_Obj_t * pObj, Aig_Man_
 {
     Aig_Obj_t * pObj0, * pObj1;
     if ( Aig_ObjIsTravIdCurrent( pCare, pObj ) )
-        return pObj->pData;
+        return (Aig_Obj_t *)pObj->pData;
     Aig_ObjSetTravIdCurrent( pCare, pObj );
     if ( Aig_ObjIsPi(pObj) )
-        return pObj->pData = NULL;
+        return (Aig_Obj_t *)(pObj->pData = NULL);
     pObj0 = Mfx_ConstructCare_rec( pCare, Aig_ObjFanin0(pObj), pMan );
     if ( pObj0 == NULL )
-        return pObj->pData = NULL;
+        return (Aig_Obj_t *)(pObj->pData = NULL);
     pObj1 = Mfx_ConstructCare_rec( pCare, Aig_ObjFanin1(pObj), pMan );
     if ( pObj1 == NULL )
-        return pObj->pData = NULL;
+        return (Aig_Obj_t *)(pObj->pData = NULL);
     pObj0 = Aig_NotCond( pObj0, Aig_ObjFaninC0(pObj) );
     pObj1 = Aig_NotCond( pObj1, Aig_ObjFaninC1(pObj) );
-    return pObj->pData = Aig_And( pMan, pObj0, pObj1 );
+    return (Aig_Obj_t *)(pObj->pData = Aig_And( pMan, pObj0, pObj1 ));
 }
 
 /**Function*************************************************************
@@ -213,16 +216,16 @@ Aig_Man_t * Mfx_ConstructAig( Mfx_Man_t * p, Nwk_Obj_t * pNode )
     {
         // mark the care set
         Aig_ManIncrementTravId( p->pCare );
-        Vec_PtrForEachEntry( p->vSupp, pFanin, i )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, p->vSupp, pFanin, i )
         {
             pPi = Aig_ManPi( p->pCare, pFanin->PioId );
             Aig_ObjSetTravIdCurrent( p->pCare, pPi );
             pPi->pData = pFanin->pCopy;
         }
         // construct the constraints
-        Vec_PtrForEachEntry( p->vSupp, pFanin, i )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, p->vSupp, pFanin, i )
         {
-            vOuts = Vec_PtrEntry( p->vSuppsInv, pFanin->PioId );
+            vOuts = (Vec_Int_t *)Vec_PtrEntry( p->vSuppsInv, pFanin->PioId );
             Vec_IntForEachEntry( vOuts, iOut, k )
             {
                 pPo = Aig_ManPo( p->pCare, iOut );
@@ -258,7 +261,7 @@ Aig_Man_t * Mfx_ConstructAig( Mfx_Man_t * p, Nwk_Obj_t * pNode )
         pObjAig = (Aig_Obj_t *)pNode->pCopy;
         Aig_ObjCreatePo( pMan, pObjAig );
         // construct the divisors
-        Vec_PtrForEachEntry( p->vDivs, pFanin, i )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, p->vDivs, pFanin, i )
         {
             pObjAig = (Aig_Obj_t *)pFanin->pCopy;
             Aig_ObjCreatePo( pMan, pObjAig );
@@ -300,7 +303,7 @@ Aig_Man_t * Nwk_AigForConstraints( Mfx_Man_t * p, Nwk_Obj_t * pNode )
     pMan = Aig_ManStart( 1000 );
     // mark the care set
     Aig_ManIncrementTravId( p->pCare );
-    Vec_PtrForEachEntry( p->vSupp, pFanin, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vSupp, pFanin, i )
     {
         pPi = Aig_ManPi( p->pCare, pFanin->PioId );
         Aig_ObjSetTravIdCurrent( p->pCare, pPi );
@@ -308,9 +311,9 @@ Aig_Man_t * Nwk_AigForConstraints( Mfx_Man_t * p, Nwk_Obj_t * pNode )
     }
     // construct the constraints
     pObjRoot = Aig_ManConst1(pMan);
-    Vec_PtrForEachEntry( p->vSupp, pFanin, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vSupp, pFanin, i )
     {
-        vOuts = Vec_PtrEntry( p->vSuppsInv, pFanin->PioId );
+        vOuts = (Vec_Int_t *)Vec_PtrEntry( p->vSuppsInv, pFanin->PioId );
         Vec_IntForEachEntry( vOuts, iOut, k )
         {
             pPo = Aig_ManPo( p->pCare, iOut );
@@ -336,4 +339,6 @@ Aig_Man_t * Nwk_AigForConstraints( Mfx_Man_t * p, Nwk_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

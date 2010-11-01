@@ -18,6 +18,9 @@
 
 #include "reo.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -315,7 +318,7 @@ void reoResizeStructures( reo_man * p, int nDdVarsMax, int nNodesMax, int nFuncs
     }
     else if ( p->nNodesMaxAlloc < nNodesMax )
     {
-        void * pTemp;
+        reo_unit ** pTemp;
         int nMemChunksAllocPrev = p->nMemChunksAlloc;
 
         p->nNodesMaxAlloc  = nNodesMax;
@@ -433,4 +436,6 @@ int reoCheckLevels( reo_man * p )
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

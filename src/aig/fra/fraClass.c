@@ -20,6 +20,9 @@
 
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     The candidate equivalence classes are stored as a vector of pointers 
     to the array of pointers to the nodes in each class.
@@ -124,7 +127,7 @@ void Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed )
         }
     }
     if ( vFailed )
-        Vec_PtrForEachEntry( vFailed, pObj, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vFailed, pObj, i )
             p->pAig->pReprs[pObj->Id] = NULL;
 }
 
@@ -163,7 +166,7 @@ int Fra_ClassesCountLits( Fra_Cla_t * p )
     Aig_Obj_t ** pClass;
     int i, nNodes, nLits = 0;
     nLits = Vec_PtrSize( p->vClasses1 );
-    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+    Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, pClass, i )
     {
         nNodes = Fra_ClassCount( pClass );
         assert( nNodes > 1 );
@@ -187,7 +190,7 @@ int Fra_ClassesCountPairs( Fra_Cla_t * p )
 {
     Aig_Obj_t ** pClass;
     int i, nNodes, nPairs = 0;
-    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+    Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, pClass, i )
     {
         nNodes = Fra_ClassCount( pClass );
         assert( nNodes > 1 );
@@ -244,13 +247,13 @@ void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
 
     if ( fVeryVerbose )
     {
-        Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, p->vClasses1, pObj, i )
             assert( Fra_ClassObjRepr(pObj) == Aig_ManConst1(p->pAig) );
         printf( "Constants { " );
-        Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, p->vClasses1, pObj, i )
             printf( "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
         printf( "}\n" );
-        Vec_PtrForEachEntry( p->vClasses, pClass, i )
+        Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, pClass, i )
         {
             printf( "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
             Fra_PrintClass( p, pClass );
@@ -415,15 +418,15 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Cla_t * p, Aig_Obj_t ** ppClass )
             Vec_PtrPush( p->vClassNew, pObj );
 /*
     printf( "Refining class (" );
-    Vec_PtrForEachEntry( p->vClassOld, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassOld, pObj, i )
         printf( "%d,", pObj->Id );
     printf( ") + (" );
-    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
         printf( "%d,", pObj->Id );
     printf( ")\n" );
 */
     // put the nodes back into the class memory
-    Vec_PtrForEachEntry( p->vClassOld, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassOld, pObj, i )
     {
         ppClass[i] = pObj;
         ppClass[Vec_PtrSize(p->vClassOld)+i] = NULL;
@@ -431,7 +434,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Cla_t * p, Aig_Obj_t ** ppClass )
     }
     ppClass += 2*Vec_PtrSize(p->vClassOld);
     // put the new nodes into the class memory
-    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
     {
         ppClass[i] = pObj;
         ppClass[Vec_PtrSize(p->vClassNew)+i] = NULL;
@@ -455,7 +458,7 @@ int Fra_RefineClassLastIter( Fra_Cla_t * p, Vec_Ptr_t * vClasses )
 {
     Aig_Obj_t ** pClass, ** pClass2;
     int nRefis;
-    pClass = Vec_PtrEntryLast( vClasses );
+    pClass = (Aig_Obj_t **)Vec_PtrEntryLast( vClasses );
     for ( nRefis = 0; (pClass2 = Fra_RefineClassOne( p, pClass )); nRefis++ )
     {
         // if the original class is trivial, remove it
@@ -495,7 +498,7 @@ int Fra_ClassesRefine( Fra_Cla_t * p )
     // refine the classes
     nRefis = 0;
     Vec_PtrClear( p->vClassesTemp );
-    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+    Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, pClass, i )
     {
         // add the class to the new array
         assert( pClass[0] != NULL );
@@ -533,7 +536,7 @@ int Fra_ClassesRefine1( Fra_Cla_t * p, int fRefineNewClass, int * pSkipped )
     // collect all the nodes to be refined
     k = 0;
     Vec_PtrClear( p->vClassNew );
-    Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClasses1, pObj, i )
     {
         if ( p->pFuncNodeIsConst( pObj ) )
             Vec_PtrWriteEntry( p->vClasses1, k++, pObj );
@@ -545,19 +548,19 @@ int Fra_ClassesRefine1( Fra_Cla_t * p, int fRefineNewClass, int * pSkipped )
         return 0;
 /*
     printf( "Refined const-1 class: {" );
-    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
         printf( " %d", pObj->Id );
     printf( " }\n" );
 */
     if ( Vec_PtrSize(p->vClassNew) == 1 )
     {
-        Fra_ClassObjSetRepr( Vec_PtrEntry(p->vClassNew,0), NULL );
+        Fra_ClassObjSetRepr( (Aig_Obj_t *)Vec_PtrEntry(p->vClassNew,0), NULL );
         return 1;
     }
     // create a new class composed of these nodes
     ppClass = p->pMemClassesFree;
     p->pMemClassesFree += 2 * Vec_PtrSize(p->vClassNew);
-    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
     {
         ppClass[i] = pObj;
         ppClass[Vec_PtrSize(p->vClassNew)+i] = NULL;
@@ -658,7 +661,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
     printf( "Before: Const = %6d. Class = %6d.  ", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
     // remove nodes from classes whose weight is less than WeightMax/Ratio
     k = 0;
-    Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vClasses1, pObj, i )
     {
         if ( pWeights[pObj->Id] >= WeightMax/Ratio )
             Vec_PtrWriteEntry( p->vClasses1, k++, pObj );
@@ -667,7 +670,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
     }
     Vec_PtrShrink( p->vClasses1, k );
     // in each class, compact the nodes
-    Vec_PtrForEachEntry( p->vClasses, ppClass, i )
+    Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, ppClass, i )
     {
         k = 1;
         for ( c = 1; ppClass[c]; c++ )
@@ -681,7 +684,7 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
     }
     // remove classes with only repr
     k = 0;
-    Vec_PtrForEachEntry( p->vClasses, ppClass, i )
+    Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, ppClass, i )
         if ( ppClass[1] != NULL )
             Vec_PtrWriteEntry( p->vClasses, k++, ppClass );
     Vec_PtrShrink( p->vClasses, k );
@@ -705,7 +708,7 @@ void Fra_ClassesSelectRepr( Fra_Cla_t * p )
     Aig_Obj_t ** pClass, * pNodeMin;
     int i, c, cMinSupp, nSuppSizeMin, nSuppSizeCur;
     // reassign representatives in each class
-    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+    Vec_PtrForEachEntry( Aig_Obj_t **, p->vClasses, pClass, i )
     {
         // collect support sizes and find the min-support node
         cMinSupp = -1;
@@ -854,4 +857,6 @@ printf( "Assert miters = %6d. Output miters = %6d.\n",
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

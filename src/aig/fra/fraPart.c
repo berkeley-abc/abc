@@ -20,6 +20,9 @@
 
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -63,7 +66,7 @@ ABC_PRT( "Supports", clock() - clk );
     // remove last entry
     Aig_ManForEachPo( p, pObj, i )
     {
-        vSup = Vec_VecEntry( vSupps, i );
+        vSup = (Vec_Int_t *)Vec_VecEntry( vSupps, i );
         Vec_IntPop( vSup );
         // remember support
 //        pObj->pNext = (Aig_Obj_t *)vSup;
@@ -74,7 +77,7 @@ clk = clock();
     vSuppsIn = Vec_VecStart( Aig_ManPiNum(p) );
     Aig_ManForEachPo( p, pObj, i )
     {
-        vSup = Vec_VecEntry( vSupps, i );
+        vSup = (Vec_Int_t *)Vec_VecEntry( vSupps, i );
         Vec_IntForEachEntry( vSup, Entry, k )
             Vec_VecPush( vSuppsIn, Entry, (void *)(ABC_PTRUINT_T)i );
     }
@@ -91,7 +94,7 @@ clk = clock();
     {
 //        Bar_ProgressUpdate( pProgress, i, NULL );
         // get old supports
-        vSup = Vec_VecEntry( vSupps, i );
+        vSup = (Vec_Int_t *)Vec_VecEntry( vSupps, i );
         if ( Vec_IntSize(vSup) < 2 )
             continue;
         // compute new supports
@@ -106,7 +109,7 @@ clk = clock();
 //            pObj = Aig_ManObj( p, Entry );
             // get support of this output
 //            vSup2 = (Vec_Int_t *)pObj->pNext;
-            vSup2 = Vec_VecEntry( vSupps, k );
+            vSup2 = (Vec_Int_t *)Vec_VecEntry( vSupps, k );
             // count the number of common vars
             nCommon = Vec_IntTwoCountCommon(vSup, vSup2);
             if ( nCommon < 2 )
@@ -197,7 +200,7 @@ ABC_PRT( "Supports", clock() - clk );
     // remove last entry
     Aig_ManForEachPo( p, pObj, i )
     {
-        vSup = Vec_VecEntry( vSupps, i );
+        vSup = (Vec_Int_t *)Vec_VecEntry( vSupps, i );
         Vec_IntPop( vSup );
         // remember support
 //        pObj->pNext = (Aig_Obj_t *)vSup;
@@ -210,7 +213,7 @@ clk = clock();
     {
         if ( i == p->nAsserts )
             break;
-        vSup = Vec_VecEntry( vSupps, i );
+        vSup = (Vec_Int_t *)Vec_VecEntry( vSupps, i );
         Vec_IntForEachEntry( vSup, Entry, k )
             Vec_VecPush( vSuppsIn, Entry, (void *)(ABC_PTRUINT_T)i );
     }
@@ -223,17 +226,17 @@ clk = clock();
     {
         if ( i % 50 != 0 )
             continue;
-        vSup = Vec_VecEntry( vSupps, i );
+        vSup = (Vec_Int_t *)Vec_VecEntry( vSupps, i );
         memset( pSupp, 0, sizeof(char) * Aig_ManPiNum(p) );
         // go through each input of this output
         Vec_IntForEachEntry( vSup, Entry, k )
         {
             pSupp[Entry] = 1;
-            vSup2 = Vec_VecEntry( vSuppsIn, Entry );
+            vSup2 = (Vec_Int_t *)Vec_VecEntry( vSuppsIn, Entry );
             // go though each assert of this input
             Vec_IntForEachEntry( vSup2, Entry2, m )
             {
-                vSup3 = Vec_VecEntry( vSupps, Entry2 );
+                vSup3 = (Vec_Int_t *)Vec_VecEntry( vSupps, Entry2 );
                 // go through each input of this assert
                 Vec_IntForEachEntry( vSup3, Entry3, n )
                 {
@@ -260,4 +263,6 @@ ABC_PRT( "Extension ", clock() - clk );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -193,7 +196,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
             pFront[iFront] = 0;
     }
     assert( pNew->nObjs == p->nObjs );
-    assert( nCrossCut == 0 && nCrossCutMax == nCrossCutMaxInit );
+    assert( nCrossCut == 0 || nCrossCutMax == nCrossCutMaxInit );
     for ( i = 0; i < pNew->nFront; i++ )
         assert( pFront[i] == 0 );
     ABC_FREE( pFront );
@@ -245,4 +248,6 @@ void Gia_ManFrontTest( Gia_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

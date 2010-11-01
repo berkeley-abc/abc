@@ -20,6 +20,9 @@
 
 #include "bdcInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -46,7 +49,9 @@ int          Bdc_ManNodeNum( Bdc_Man_t * p )                   { return p->nNode
 Bdc_Fun_t *  Bdc_FuncFanin0( Bdc_Fun_t * p )                   { return p->pFan0;            }
 Bdc_Fun_t *  Bdc_FuncFanin1( Bdc_Fun_t * p )                   { return p->pFan1;            }
 void *       Bdc_FuncCopy( Bdc_Fun_t * p )                     { return p->pCopy;            }
+int          Bdc_FuncCopyInt( Bdc_Fun_t * p )                  { return p->iCopy;            }
 void         Bdc_FuncSetCopy( Bdc_Fun_t * p, void * pCopy )    { p->pCopy = pCopy;           }
+void         Bdc_FuncSetCopyInt( Bdc_Fun_t * p, int iCopy )    { p->iCopy = iCopy;           }
 
 /**Function*************************************************************
 
@@ -160,13 +165,13 @@ void Bdc_ManPrepare( Bdc_Man_t * p, Vec_Ptr_t * vDivs )
     {
         pNode = Bdc_FunNew( p );
         pNode->Type = BDC_TYPE_PI;
-        pNode->puFunc = Vec_PtrEntry( p->vTruths, i );
+        pNode->puFunc = (unsigned *)Vec_PtrEntry( p->vTruths, i );
         pNode->uSupp = (1 << i);
         Bdc_TableAdd( p, pNode );
     }
     // add the divisors
     if ( vDivs )
-    Vec_PtrForEachEntry( vDivs, puTruth, i )
+    Vec_PtrForEachEntry( unsigned *, vDivs, puTruth, i )
     {
         pNode = Bdc_FunNew( p );
         pNode->Type = BDC_TYPE_PI;
@@ -304,4 +309,6 @@ void Bdc_ManDecomposeTest( unsigned uTruth, int nVars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

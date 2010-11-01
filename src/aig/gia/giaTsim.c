@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -111,7 +114,7 @@ void Gia_ManTerStatesFree( Vec_Ptr_t * vStates )
 {
     unsigned * pTemp;
     int i;
-    Vec_PtrForEachEntry( vStates, pTemp, i )
+    Vec_PtrForEachEntry( unsigned *, vStates, pTemp, i )
         ABC_FREE( pTemp );
     Vec_PtrFree( vStates );
 }
@@ -505,12 +508,12 @@ void Gia_ManTerStatePrint( unsigned * pState, int nRegs, int iNum )
 ***********************************************************************/
 void Gia_ManTerAnalyze2( Vec_Ptr_t * vStates, int nRegs )
 {
-    unsigned * pTemp, * pStates = Vec_PtrPop( vStates );
+    unsigned * pTemp, * pStates = (unsigned *)Vec_PtrPop( vStates );
     int i, w, nZeros, nConsts, nStateWords;
     // detect constant zero registers
     nStateWords = Gia_BitWordNum( 2*nRegs );
     memset( pStates, 0, sizeof(int) * nStateWords );
-    Vec_PtrForEachEntry( vStates, pTemp, i )
+    Vec_PtrForEachEntry( unsigned *, vStates, pTemp, i )
         for ( w = 0; w < nStateWords; w++ )
             pStates[w] |= pTemp[w];
     // count the number of zeros
@@ -521,7 +524,7 @@ void Gia_ManTerAnalyze2( Vec_Ptr_t * vStates, int nRegs )
     printf( "Found %d constant registers.\n", nZeros );
     // detect non-ternary registers
     memset( pStates, 0, sizeof(int) * nStateWords );
-    Vec_PtrForEachEntry( vStates, pTemp, i )
+    Vec_PtrForEachEntry( unsigned *, vStates, pTemp, i )
         for ( w = 0; w < nStateWords; w++ )
             pStates[w] |= (~(pTemp[w] ^ (pTemp[w] >> 1)) & 0x55555555);
     // count the nonternary registers
@@ -585,7 +588,7 @@ Vec_Ptr_t * Gia_ManTerTranspose( Gia_ManTer_t * p )
             continue;
         pFlop = Gia_ManTerStateAlloc( nFlopWords );
         Vec_PtrPush( vFlops, pFlop );
-        Vec_PtrForEachEntry( p->vStates, pState, k )
+        Vec_PtrForEachEntry( unsigned *, p->vStates, pState, k )
             Gia_ManTerSimInfoSet( pFlop, k, Gia_ManTerSimInfoGet(pState, i) );
 //Gia_ManTerStatePrint( pFlop, Vec_PtrSize(p->vStates), i );
     }
@@ -607,8 +610,8 @@ int Gia_ManFindEqualFlop( Vec_Ptr_t * vFlops, int iFlop, int nFlopWords )
 {
     unsigned * pFlop, * pTemp;
     int i;
-    pFlop = Vec_PtrEntry( vFlops, iFlop );
-    Vec_PtrForEachEntryStop( vFlops, pTemp, i, iFlop )
+    pFlop = (unsigned *)Vec_PtrEntry( vFlops, iFlop );
+    Vec_PtrForEachEntryStop( unsigned *, vFlops, pTemp, i, iFlop )
         if ( !memcmp( pTemp, pFlop, sizeof(unsigned) * nFlopWords ) )
             return i;
     return -1;
@@ -633,7 +636,7 @@ int * Gia_ManTerCreateMap( Gia_ManTer_t * p, int fVerbose )
     int i, iRepr, nFlopWords, Counter0 = 0, CounterE = 0;
     nFlopWords = Gia_BitWordNum( 2*Vec_PtrSize(p->vStates) );
     p->vFlops = Gia_ManTerTranspose( p );
-    pCi2Lit = ABC_FALLOC( unsigned, Gia_ManCiNum(p->pAig) );
+    pCi2Lit = ABC_FALLOC( int, Gia_ManCiNum(p->pAig) );
     vMapKtoI = Vec_IntAlloc( 100 );
     for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
         if ( p->pCount0[i] == Vec_PtrSize(p->vStates) )
@@ -678,8 +681,7 @@ Gia_ManTer_t * Gia_ManTerSimulate( Gia_Man_t * pAig, int fVerbose )
     if ( 0 )
     {
         printf( "Obj = %8d (%8d). F = %6d. ", 
-            pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront, 
-            4.0*Gia_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
+            pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront );
         printf( "AIG = %7.2f Mb. F-mem = %7.2f Mb. Other = %7.2f Mb.  ", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
             4.0*Gia_BitWordNum(2 * p->pAig->nFront)/(1<<20), 
@@ -753,4 +755,6 @@ Gia_Man_t * Gia_ManReduceConst( Gia_Man_t * pAig, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -18,6 +18,9 @@
 
 #include "superInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     One record in the supergate library file consists of:
 
@@ -73,4 +76,6 @@
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

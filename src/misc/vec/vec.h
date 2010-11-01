@@ -21,17 +21,20 @@
 #ifndef __VEC_H__
 #define __VEC_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include "abc_global.h"
+
 #include "vecInt.h"
 #include "vecFlt.h"
 #include "vecStr.h"
 #include "vecPtr.h"
 #include "vecVec.h"
 #include "vecAtt.h"
+#include "vecWrd.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -41,9 +44,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -53,9 +57,11 @@ extern "C" {
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -20,12 +20,15 @@
 
 #include "cov.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void         Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose );
-static int          Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose );
+static void         Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose );
+static int          Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose );
 static void         Abc_NtkCovCovers_rec( Cov_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vBoundary );
 /*
 static int          Abc_NodeCovPropagateEsop( Cov_Man_t * p, Abc_Obj_t * pObj, Abc_Obj_t * pObj0, Abc_Obj_t * pObj1 );
@@ -54,7 +57,7 @@ static Min_Cube_t * Abc_NodeCovSum( Cov_Man_t * p, Min_Cube_t * pCover0, Min_Cub
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, bool fUseEsop, bool fUseSop, bool fUseInvs, bool fVerbose )
+Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, int fUseEsop, int fUseSop, int fUseInvs, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     Cov_Man_t * p;
@@ -102,7 +105,7 @@ Abc_Ntk_t * Abc_NtkSopEsopCover( Abc_Ntk_t * pNtk, int nFaninMax, bool fUseEsop,
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose )
+void Abc_NtkCovCovers( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Obj_t * pObj;
     int i, clk = clock();
@@ -146,7 +149,7 @@ ABC_PRT( "Total", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose )
+int Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, int fVerbose )
 {
     ProgressBar * pProgress;
     Abc_Obj_t * pObj;
@@ -202,7 +205,7 @@ int Abc_NtkCovCoversOne( Cov_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose )
 
     // create the new boundary
     p->nBoundary = 0;
-    Vec_PtrForEachEntry( vBoundary, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vBoundary, pObj, i )
     {
         if ( !pObj->fMarkA )
         {
@@ -1020,4 +1023,6 @@ int Abc_NodeCovUnionSop( Cov_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCove
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

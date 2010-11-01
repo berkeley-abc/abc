@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,21 +54,25 @@ void Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr )
     Aig_ManForEachNode( p->pAig, pObj, i )
         pObj->fMarkB = ( Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj) )
                      & ( Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj) );
-    // check equivalence classes
-    RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 0 );
-    RetValue2 = Ssw_ClassesRefine( p->ppClasses, 0 );
-    // make sure refinement happened
-    if ( Aig_ObjIsConst1(pRepr) ) 
+    // if repr is given, perform refinement
+    if ( pRepr )
     {
-        assert( RetValue1 );
-        if ( RetValue1 == 0 )
-            printf( "\nSsw_ManResimulateBit() Error: RetValue1 does not hold.\n" );
-    }
-    else
-    {
-        assert( RetValue2 );
-        if ( RetValue2 == 0 )
-            printf( "\nSsw_ManResimulateBit() Error: RetValue2 does not hold.\n" );
+        // check equivalence classes
+        RetValue1 = Ssw_ClassesRefineConst1( p->ppClasses, 0 );
+        RetValue2 = Ssw_ClassesRefine( p->ppClasses, 0 );
+        // make sure refinement happened
+        if ( Aig_ObjIsConst1(pRepr) ) 
+        {
+            assert( RetValue1 );
+            if ( RetValue1 == 0 )
+                printf( "\nSsw_ManResimulateBit() Error: RetValue1 does not hold.\n" );
+        }
+        else
+        {
+            assert( RetValue2 );
+            if ( RetValue2 == 0 )
+                printf( "\nSsw_ManResimulateBit() Error: RetValue2 does not hold.\n" );
+        }
     }
 p->timeSimSat += clock() - clk;
 }
@@ -111,4 +118,6 @@ p->timeSimSat += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

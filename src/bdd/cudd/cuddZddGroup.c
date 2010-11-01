@@ -43,6 +43,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1314,4 +1317,6 @@ zddMergeGroups(
     return;
 
 } /* end of zddMergeGroups */
+
+ABC_NAMESPACE_IMPL_END
 

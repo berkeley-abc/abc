@@ -35,6 +35,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -936,4 +939,6 @@ cuddZddUndoMovesOutOfMem:
     return((Move *) CUDD_OUT_OF_MEM);
 
 } /* end of cuddZddUndoMoves */
+
+ABC_NAMESPACE_IMPL_END
 

@@ -18,7 +18,11 @@
 
 ***********************************************************************/
 
+#include "abc.h"
 #include "mainInt.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -58,7 +62,7 @@ char * Cmd_FlagReadByName( Abc_Frame_t * pAbc, char * flag )
   SideEffects []
 
 ******************************************************************************/
-void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * value )
+void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, const char * key, char * value )
 {
     char * oldValue, * newValue;
     if ( !key )
@@ -83,7 +87,7 @@ void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * value )
   SideEffects []
 
 ******************************************************************************/
-void Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, char * key )
+void Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, const char * key )
 {
     char *value;
     if ( !key )
@@ -101,4 +105,6 @@ void Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, char * key )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

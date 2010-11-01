@@ -22,6 +22,9 @@
 #include "if.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -613,13 +616,13 @@ int Abc_NtkRecCollectNodes( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut
     }
 
     // clean the mark
-    Vec_PtrForEachEntry( vNodes, pLeaf, i )
+    Vec_PtrForEachEntry( If_Obj_t *, vNodes, pLeaf, i )
         pLeaf->fMark = 0;
 /*
     if ( pRoot->Id == 2639 )
     {
         // print the cut
-        Vec_PtrForEachEntry( vNodes, pLeaf, i )
+        Vec_PtrForEachEntry( If_Obj_t *, vNodes, pLeaf, i )
         {
             if ( If_ObjIsAnd(pLeaf) )
                 printf( "%4d = %c%4d & %c%4d\n", pLeaf->Id, 
@@ -657,7 +660,7 @@ int Abc_NtkRecCutTruth( Vec_Ptr_t * vNodes, int nLeaves, Vec_Ptr_t * vTtTemps, V
     assert( Vec_PtrSize(vNodes) > nLeaves );
 
     // set the elementary truth tables and compute the truth tables of the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( If_Obj_t *, vNodes, pObj, i )
     {
         pObj->pCopy = Vec_PtrEntry(vTtTemps, i);
         pSims = (unsigned *)pObj->pCopy;
@@ -683,12 +686,12 @@ int Abc_NtkRecCutTruth( Vec_Ptr_t * vNodes, int nLeaves, Vec_Ptr_t * vTtTemps, V
     // make sure none of the nodes has the same simulation info as the output
     // check pairwise comparisons
     nLimit = Vec_PtrSize(vNodes) - 1;
-    Vec_PtrForEachEntryStop( vNodes, pObj, i, nLimit )
+    Vec_PtrForEachEntryStop( If_Obj_t *, vNodes, pObj, i, nLimit )
     {
         pSims0 = (unsigned *)pObj->pCopy;
         if ( Kit_TruthIsEqualWithPhase(pSims, pSims0, nInputs) )
             return 0;
-        Vec_PtrForEachEntryStop( vNodes, pObj2, k, i )
+        Vec_PtrForEachEntryStop( If_Obj_t *, vNodes, pObj2, k, i )
         {
             if ( (If_ObjFanin0(pRoot) == pObj && If_ObjFanin1(pRoot) == pObj2) ||
                  (If_ObjFanin1(pRoot) == pObj && If_ObjFanin0(pRoot) == pObj2) )
@@ -861,7 +864,7 @@ s_pMan->timeCanon += clock() - clk;
 
     // build the node and compute its truth table
     nNodesBeg = Abc_NtkObjNumMax( pAig );
-    Vec_PtrForEachEntryStart( vNodes, pIfObj, i, nLeaves )
+    Vec_PtrForEachEntryStart( If_Obj_t *, vNodes, pIfObj, i, nLeaves )
     {
         pFanin0 = Abc_ObjNotCond( If_ObjFanin0(pIfObj)->pCopy, If_ObjFaninC0(pIfObj) );
         pFanin1 = Abc_ObjNotCond( If_ObjFanin1(pIfObj)->pCopy, If_ObjFaninC1(pIfObj) );
@@ -1162,4 +1165,6 @@ int Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTru
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

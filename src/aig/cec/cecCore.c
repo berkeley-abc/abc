@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -133,8 +136,10 @@ void Cec_ManFraSetDefaultParams( Cec_ParFra_t * p )
 //    p->fFirstStop     =       0;  // stop on the first sat output
     p->fDualOut       =       0;  // miter with separate outputs
     p->fColorDiff     =       0;  // miter with separate outputs
+    p->fSatSweeping   =       0;  // enable SAT sweeping
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
+    p->iOutFail       =      -1;  // the failed output
 } 
 
 /**Function*************************************************************
@@ -158,6 +163,7 @@ void Cec_ManCecSetDefaultParams( Cec_ParCec_t * p )
     p->fRewriting     =       0;  // enables AIG rewriting
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
+    p->iOutFail       =      -1;  // the number of failed output
 }  
 
 /**Function*************************************************************
@@ -178,6 +184,8 @@ void Cec_ManCorSetDefaultParams( Cec_ParCor_t * p )
     p->nRounds        =      15;  // the number of simulation rounds
     p->nFrames        =       1;  // the number of time frames
     p->nBTLimit       =     100;  // conflict limit at a node
+    p->nLevelMax      =      -1;  // (scorr only) the max number of levels
+    p->nStepsMax      =      -1;  // (scorr only) the max number of induction steps
     p->fLatchCorr     =       0;  // consider only latch outputs
     p->fUseRings      =       1;  // combine classes into rings
     p->fUseCSat       =       1;  // use circuit-based solver
@@ -249,12 +257,12 @@ int Cec_ManSimulationOne( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
     Cec_ManSim_t * pSim;
     int RetValue = 0, clkTotal = clock();
     pSim = Cec_ManSimStart( pAig, pPars );
-    if ( (pAig->pReprs == NULL && (RetValue = Cec_ManSimClassesPrepare( pSim ))) ||
+    if ( (pAig->pReprs == NULL && (RetValue = Cec_ManSimClassesPrepare( pSim, -1 ))) ||
          (RetValue == 0 &&        (RetValue = Cec_ManSimClassesRefine( pSim ))) )
-        printf( "The number of failed outputs of the miter = %6d. (Words = %4d. Frames = %4d.)\n", 
+        Abc_Print( 1, "The number of failed outputs of the miter = %6d. (Words = %4d. Frames = %4d.)\n", 
             pSim->nOuts, pPars->nWords, pPars->nFrames );
     if ( pPars->fVerbose )
-        ABC_PRT( "Time", clock() - clkTotal );
+        Abc_PrintTime( 1, "Time", clock() - clkTotal );
     Cec_ManSimStop( pSim );
     return RetValue;
 }
@@ -275,7 +283,7 @@ void Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
     int r, nLitsOld, nLitsNew, nCountNoRef = 0, fStop = 0;
     Gia_ManRandom( 1 );
     if ( pPars->fSeqSimulate )
-        printf( "Performing rounds of random simulation of %d frames with %d words.\n", 
+        Abc_Print( 1, "Performing rounds of random simulation of %d frames with %d words.\n", 
             pPars->nRounds, pPars->nFrames, pPars->nWords );
     nLitsOld = Gia_ManEquivCountLits( pAig );
     for ( r = 0; r < pPars->nRounds; r++ )
@@ -301,14 +309,14 @@ void Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars )
     }
 //    if ( pPars->fVerbose )
     if ( r == pPars->nRounds || fStop )
-        printf( "Random simulation is stopped after %d rounds.\n", r );
+        Abc_Print( 1, "Random simulation is stopped after %d rounds.\n", r );
     else
-        printf( "Random simulation saturated after %d rounds.\n", r );
+        Abc_Print( 1, "Random simulation saturated after %d rounds.\n", r );
     if ( pPars->fCheckMiter )
     {
         int nNonConsts = Cec_ManCountNonConstOutputs( pAig );
         if ( nNonConsts )
-            printf( "The number of POs that are not const-0 candidates = %d.\n", nNonConsts );
+            Abc_Print( 1, "The number of POs that are not const-0 candidates = %d.\n", nNonConsts );
     }
 }
 
@@ -366,7 +374,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
 clk = clock();
     if ( p->pAig->pReprs == NULL )
     {
-        if ( Cec_ManSimClassesPrepare(pSim) || Cec_ManSimClassesRefine(pSim) )
+        if ( Cec_ManSimClassesPrepare(pSim, -1) || Cec_ManSimClassesRefine(pSim) )
         {
             Gia_ManStop( p->pAig );
             p->pAig = NULL;
@@ -395,19 +403,19 @@ p->timeSim += clock() - clk;
         {
             Gia_ManStop( pSrm );
             if ( p->pPars->fVerbose )
-                printf( "Considered all available candidate equivalences.\n" );
+                Abc_Print( 1, "Considered all available candidate equivalences.\n" );
             if ( pPars->fDualOut && Gia_ManAndNum(p->pAig) > 0 )
             {
                 if ( pPars->fColorDiff )
                 {
                     if ( p->pPars->fVerbose )
-                        printf( "Switching into reduced mode.\n" );
+                        Abc_Print( 1, "Switching into reduced mode.\n" );
                     pPars->fColorDiff = 0;
                 }
                 else
                 {
                     if ( p->pPars->fVerbose )
-                        printf( "Switching into normal mode.\n" );
+                        Abc_Print( 1, "Switching into normal mode.\n" );
                     pPars->fDualOut = 0;
                 }
                 continue;
@@ -433,14 +441,14 @@ p->timeSat += clock() - clk;
             break;
         if ( p->pPars->fVerbose )
         {
-            printf( "%3d : P =%7d. D =%7d. F =%6d. M = %7d. And =%8d. ", 
+            Abc_Print( 1, "%3d : P =%7d. D =%7d. F =%6d. M = %7d. And =%8d. ", 
                 i, p->nAllProved, p->nAllDisproved, p->nAllFailed, nMatches, Gia_ManAndNum(p->pAig) );
-            ABC_PRT( "Time", clock() - clk2 );
+            Abc_PrintTime( 1, "Time", clock() - clk2 );
         }
         if ( Gia_ManAndNum(p->pAig) == 0 )
         {
             if ( p->pPars->fVerbose )
-                printf( "Network after reduction is empty.\n" );
+                Abc_Print( 1, "Network after reduction is empty.\n" );
             break;
         }
         // check resource limits
@@ -454,54 +462,63 @@ p->timeSat += clock() - clk;
         {
             if ( pParsSat->nBTLimit >= 10001 )
                 break;
+            if ( pPars->fSatSweeping )
+            {
+                if ( p->pPars->fVerbose )
+                    Abc_Print( 1, "Exceeded the limit on the number of conflicts (%d).\n", pParsSat->nBTLimit );
+                break;
+            }
             pParsSat->nBTLimit *= 10;
             if ( p->pPars->fVerbose )
             {
                 if ( p->pPars->fVerbose )
-                    printf( "Increasing conflict limit to %d.\n", pParsSat->nBTLimit );
+                    Abc_Print( 1, "Increasing conflict limit to %d.\n", pParsSat->nBTLimit );
                 if ( fOutputResult )
                 {
                     Gia_WriteAiger( p->pAig, "gia_cec_temp.aig", 0, 0 );
-                    printf("The result is written into file \"%s\".\n", "gia_cec_temp.aig" );
+                    Abc_Print( 1,"The result is written into file \"%s\".\n", "gia_cec_temp.aig" );
                 }
             }
         }
         if ( pPars->fDualOut && pPars->fColorDiff && (Gia_ManAndNum(p->pAig) < 100000 || p->nAllProved + p->nAllDisproved < 10) )
         {
             if ( p->pPars->fVerbose )
-                printf( "Switching into reduced mode.\n" );
+                Abc_Print( 1, "Switching into reduced mode.\n" );
             pPars->fColorDiff = 0;
         }
 //        if ( pPars->fDualOut && Gia_ManAndNum(p->pAig) < 20000 )
         else if ( pPars->fDualOut && (Gia_ManAndNum(p->pAig) < 20000 || p->nAllProved + p->nAllDisproved < 10) )
         {
             if ( p->pPars->fVerbose )
-                printf( "Switching into normal mode.\n" );
+                Abc_Print( 1, "Switching into normal mode.\n" );
             pPars->fColorDiff = 0;
             pPars->fDualOut = 0;
         }
     }
 finalize:
-    if ( p->pPars->fVerbose )
+    if ( p->pPars->fVerbose && p->pAig )
     {
-        printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+        Abc_Print( 1, "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
             Gia_ManAndNum(pAig), Gia_ManAndNum(p->pAig), 
             100.0*(Gia_ManAndNum(pAig)-Gia_ManAndNum(p->pAig))/(Gia_ManAndNum(pAig)?Gia_ManAndNum(pAig):1), 
             Gia_ManRegNum(pAig), Gia_ManRegNum(p->pAig), 
             100.0*(Gia_ManRegNum(pAig)-Gia_ManRegNum(p->pAig))/(Gia_ManRegNum(pAig)?Gia_ManRegNum(pAig):1) );
-        ABC_PRTP( "Sim ", p->timeSim, clock() - (int)clkTotal );
-        ABC_PRTP( "Sat ", p->timeSat-pPat->timeTotalSave, clock() - (int)clkTotal );
-        ABC_PRTP( "Pat ", p->timePat+pPat->timeTotalSave, clock() - (int)clkTotal );
-        ABC_PRT( "Time", clock() - clkTotal );
+        Abc_PrintTimeP( 1, "Sim ", p->timeSim, clock() - (int)clkTotal );
+        Abc_PrintTimeP( 1, "Sat ", p->timeSat-pPat->timeTotalSave, clock() - (int)clkTotal );
+        Abc_PrintTimeP( 1, "Pat ", p->timePat+pPat->timeTotalSave, clock() - (int)clkTotal );
+        Abc_PrintTime( 1, "Time", (int)(clock() - clkTotal) );
     }
 
     pTemp = p->pAig; p->pAig = NULL;
     if ( pTemp == NULL && pSim->iOut >= 0 )
-        printf( "Disproved at least one output of the miter (zero-based number %d).\n", pSim->iOut );
+    {
+        Abc_Print( 1, "Disproved at least one output of the miter (zero-based number %d).\n", pSim->iOut );
+        pPars->iOutFail = pSim->iOut;
+    }
     else if ( pSim->pCexes )
-        printf( "Disproved %d outputs of the miter.\n", pSim->nOuts );
+        Abc_Print( 1, "Disproved %d outputs of the miter.\n", pSim->nOuts );
     if ( fTimeOut )
-        printf( "Timed out after %d seconds.\n", (int)((double)clock() - clkTotal)/CLOCKS_PER_SEC );
+        Abc_Print( 1, "Timed out after %d seconds.\n", (int)((double)clock() - clkTotal)/CLOCKS_PER_SEC );
 
     pAig->pCexComb = pSim->pCexComb; pSim->pCexComb = NULL;
     Cec_ManSimStop( pSim );
@@ -515,4 +532,6 @@ finalize:
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

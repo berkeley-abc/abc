@@ -18,8 +18,12 @@
 
 ***********************************************************************/
 
+#include "abc.h"
 #include "mainInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+ 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -38,8 +42,10 @@ extern void Mio_Init( Abc_Frame_t * pAbc );
 extern void Mio_End ( Abc_Frame_t * pAbc );
 extern void Super_Init( Abc_Frame_t * pAbc );
 extern void Super_End ( Abc_Frame_t * pAbc );
-extern void Libs_Init(Abc_Frame_t * pAbc);
-extern void Libs_End(Abc_Frame_t * pAbc);
+extern void Libs_Init( Abc_Frame_t * pAbc );
+extern void Libs_End( Abc_Frame_t * pAbc );
+extern void Load_Init( Abc_Frame_t * pAbc );
+extern void Load_End( Abc_Frame_t * pAbc );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -59,6 +65,7 @@ extern void Libs_End(Abc_Frame_t * pAbc);
 void Abc_FrameInit( Abc_Frame_t * pAbc )
 {
     Cmd_Init( pAbc );
+    Cmd_CommandExecute( pAbc, "set checkread" ); 
     Io_Init( pAbc );
     Abc_Init( pAbc );
     Fpga_Init( pAbc );
@@ -66,6 +73,8 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Mio_Init( pAbc );
     Super_Init( pAbc );
     Libs_Init( pAbc );
+    Load_Init( pAbc );
+    EXT_ABC_INIT(pAbc) // plugin for external functionality
 }
 
 
@@ -90,6 +99,8 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Mio_End( pAbc );
     Super_End( pAbc );
     Libs_End( pAbc );
+    Load_End( pAbc );
+    EXT_ABC_END(pAbc) // plugin for external functionality
 }
 
 
@@ -97,4 +108,6 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

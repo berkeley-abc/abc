@@ -20,6 +20,9 @@
 
 #include "ntl.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -55,7 +58,9 @@ static unsigned Ntl_HashString( const char * pName, int TableSize )
 Ntl_Net_t * Ntl_ModelCreateNet( Ntl_Mod_t * p, const char * pName )
 {
     Ntl_Net_t * pNet;
-    pNet = (Ntl_Net_t *)Aig_MmFlexEntryFetch( p->pMan->pMemObjs, sizeof(Ntl_Net_t) + strlen(pName) + 1 );
+    int nSize = sizeof(Ntl_Net_t) + strlen(pName) + 1;
+    nSize = (nSize / sizeof(char*) + ((nSize % sizeof(char*)) > 0)) * sizeof(char*); // added by Saurabh on Sep 3, 2009
+    pNet = (Ntl_Net_t *)Aig_MmFlexEntryFetch( p->pMan->pMemObjs, nSize );
     memset( pNet, 0, sizeof(Ntl_Net_t) );
     strcpy( pNet->pName, pName );
     pNet->NetId = Vec_PtrSize( p->vNets );
@@ -362,7 +367,7 @@ int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, const char 
     }
     if ( fPoOnly )
     {
-        pTerm = pNet->pCopy;
+        pTerm = (Ntl_Obj_t *)pNet->pCopy;
         if ( pTerm && Ntl_ObjIsPo(pTerm) )
         {
             *pNumber = pTerm->iTemp;
@@ -370,7 +375,7 @@ int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, int fPiOnly, int fPoOnly, const char 
         }
         return 0;
     }
-    pTerm = pNet->pCopy;
+    pTerm = (Ntl_Obj_t *)pNet->pCopy;
     if ( pTerm && Ntl_ObjIsPo(pTerm) )
     {
         *pNumber = pTerm->iTemp;
@@ -544,4 +549,6 @@ Ntl_Mod_t * Ntl_ManFindModel( Ntl_Man_t * p, const char * pName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

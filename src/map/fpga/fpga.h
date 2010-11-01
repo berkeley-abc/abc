@@ -19,6 +19,7 @@
 #ifndef __FPGA_H__
 #define __FPGA_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,9 +28,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 // the maximum size of LUTs used for mapping
 #define FPGA_MAX_LUTSIZE   32
@@ -164,9 +166,11 @@ extern Fpga_NodeVec_t * Fpga_CollectNodeTfo( Fpga_Man_t * pMan, Fpga_Node_t * pN
 /*=== fpga.c =============================================================*/
 extern void            Fpga_SetSimpleLutLib( int nLutSize );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -19,6 +19,7 @@
 #ifndef __MAPPER_H__
 #define __MAPPER_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,9 +28,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -84,7 +86,7 @@ extern Map_Node_t **   Map_ManReadOutputs( Map_Man_t * p );
 extern Map_Node_t *    Map_ManReadConst1 ( Map_Man_t * p );
 extern Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p );
 extern Mio_Library_t * Map_ManReadGenLib ( Map_Man_t * p );
-extern bool            Map_ManReadVerbose( Map_Man_t * p );
+extern int             Map_ManReadVerbose( Map_Man_t * p );
 extern float           Map_ManReadAreaFinal( Map_Man_t * p );
 extern float           Map_ManReadRequiredGlo( Map_Man_t * p );
 extern void            Map_ManSetTimeToMap( Map_Man_t * p, int Time );
@@ -95,7 +97,7 @@ extern void            Map_ManSetOutputNames( Map_Man_t * p, char ** ppNames );
 extern void            Map_ManSetAreaRecovery( Map_Man_t * p, int fAreaRecovery );
 extern void            Map_ManSetDelayTarget( Map_Man_t * p, float DelayTarget );
 extern void            Map_ManSetInputArrivals( Map_Man_t * p, Map_Time_t * pArrivals );
-extern void            Map_ManSetObeyFanoutLimits( Map_Man_t * p, bool fObeyFanoutLimits );              
+extern void            Map_ManSetObeyFanoutLimits( Map_Man_t * p, int  fObeyFanoutLimits );              
 extern void            Map_ManSetNumIterations( Map_Man_t * p, int nNumIterations );
 extern int             Map_ManReadPass( Map_Man_t * p );
 extern void            Map_ManSetPass( Map_Man_t * p, int nPass );
@@ -167,6 +169,7 @@ extern void            Map_CutCreateFromNode( Map_Man_t * p, Map_Super_t * pSupe
 extern int             Map_Mapping( Map_Man_t * p );
 /*=== mapperLib.c =============================================================*/
 extern int             Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib );
+extern void            Map_SuperLibFree( Map_SuperLib_t * p );
 /*=== mapperMntk.c =============================================================*/
 //extern Mntk_Man_t *    Map_ConvertMappingToMntk( Map_Man_t * pMan );
 /*=== mapperSuper.c =============================================================*/
@@ -183,9 +186,11 @@ extern void            Map_ManCleanData( Map_Man_t * p );
 extern void            Map_MappingSetupTruthTables( unsigned uTruths[][2] );
 extern void            Map_MappingSetupTruthTablesLarge( unsigned uTruths[][32] );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

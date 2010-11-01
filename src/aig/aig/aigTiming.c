@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -150,7 +153,7 @@ void Aig_ManStartReverseLevels( Aig_Man_t * p, int nMaxLevelIncrease )
     Vec_IntFill( p->vLevelR, Aig_ManObjNumMax(p), 0 );
     // compute levels in reverse topological order
     vNodes = Aig_ManDfsReverse( p );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         assert( pObj->fMarkA == 0 );
         Aig_ObjSetReverseLevel( p, pObj, Aig_ObjReverseLevelNew(p, pObj) );
@@ -209,7 +212,7 @@ void Aig_ManUpdateLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew )
     Vec_VecPush( p->vLevels, LevelOld, pObjNew );
     pObjNew->fMarkA = 1;
     // recursively update level
-    Vec_VecForEachEntryStart( p->vLevels, pTemp, Lev, k, LevelOld )
+    Vec_VecForEachEntryStart( Aig_Obj_t *, p->vLevels, pTemp, Lev, k, LevelOld )
     {
         pTemp->fMarkA = 0;
         assert( Aig_ObjLevel(pTemp) == Lev );
@@ -261,7 +264,7 @@ void Aig_ManUpdateReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew )
     Vec_VecPush( p->vLevels, LevelOld, pObjNew );
     pObjNew->fMarkA = 1;
     // recursively update level
-    Vec_VecForEachEntryStart( p->vLevels, pTemp, Lev, k, LevelOld )
+    Vec_VecForEachEntryStart( Aig_Obj_t *, p->vLevels, pTemp, Lev, k, LevelOld )
     {
         pTemp->fMarkA = 0;
         LevelOld = Aig_ObjReverseLevel(p, pTemp); 
@@ -348,4 +351,6 @@ void Aig_ManVerifyReverseLevel( Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

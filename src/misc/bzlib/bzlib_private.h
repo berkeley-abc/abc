@@ -22,6 +22,7 @@
 #ifndef _BZLIB_PRIVATE_H
 #define _BZLIB_PRIVATE_H
 
+
 #include <stdlib.h>
 
 #ifndef BZ_NO_STDIO
@@ -30,9 +31,10 @@
 #include <string.h>
 #endif
 
+
 #include "bzlib.h"
 
-
+ABC_NAMESPACE_HEADER_START
 
 /*-- General stuff. --*/
 
@@ -481,7 +483,7 @@ typedef
 
 /*-- externs for decompression. --*/
 
-extern Int32 
+Int32
 BZ2_indexIntoF ( Int32, Int32* );
 
 extern Int32 
@@ -501,8 +503,10 @@ BZ2_hbCreateDecodeTables ( Int32*, Int32*, Int32*, UChar*,
 #ifndef NULL
 #define NULL 0
 #endif
+
 #endif
 
+ABC_NAMESPACE_HEADER_END
 
 /*-------------------------------------------------------------*/
 /*--- end                                   bzlib_private.h ---*/

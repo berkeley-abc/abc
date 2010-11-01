@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,7 +54,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
     pFile = fopen( FileName, "r" );
     if ( pFile == NULL )
     {
-        printf( "Cannot open LUT library file \"%s\".\n", FileName );
+        Abc_Print( -1, "Cannot open LUT library file \"%s\".\n", FileName );
         return NULL;
     }
 
@@ -69,7 +72,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
             continue;
         if ( i != atoi(pToken) )
         {
-            printf( "Error in the LUT library file \"%s\".\n", FileName );
+            Abc_Print( 1, "Error in the LUT library file \"%s\".\n", FileName );
             ABC_FREE( p );
             return NULL;
         }
@@ -86,7 +89,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
         // check for out-of-bound
         if ( k > i )
         {
-            printf( "LUT %d has too many pins (%d). Max allowed is %d.\n", i, k, i );
+            Abc_Print( 1, "LUT %d has too many pins (%d). Max allowed is %d.\n", i, k, i );
             return NULL;
         }
 
@@ -96,7 +99,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
 
         if ( i == IF_MAX_LUTSIZE )
         {
-            printf( "Skipping LUTs of size more than %d.\n", i );
+            Abc_Print( 1, "Skipping LUTs of size more than %d.\n", i );
             return NULL;
         }
         i++;
@@ -110,10 +113,10 @@ If_Lib_t * If_LutLibRead( char * FileName )
             for ( k = 0; k < i; k++ )
             {
                 if ( p->pLutDelays[i][k] <= 0.0 )
-                    printf( "Warning: Pin %d of LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
+                    Abc_Print( 0, "Pin %d of LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
                         k, i, p->pLutDelays[i][k] );
                 if ( k && p->pLutDelays[i][k-1] > p->pLutDelays[i][k] )
-                    printf( "Warning: Pin %d of LUT %d has delay %f. Pin %d of LUT %d has delay %f. Pin delays should be in non-decreasing order. Technology mapping may not work correctly.\n", 
+                    Abc_Print( 0, "Pin %d of LUT %d has delay %f. Pin %d of LUT %d has delay %f. Pin delays should be in non-decreasing order. Technology mapping may not work correctly.\n", 
                         k-1, i, p->pLutDelays[i][k-1], 
                         k, i, p->pLutDelays[i][k] );
             }
@@ -123,7 +126,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
         for ( i = 1; i <= p->LutMax; i++ )
         {
             if ( p->pLutDelays[i][0] <= 0.0 )
-                printf( "Warning: LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
+                Abc_Print( 0, "LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
                     i, p->pLutDelays[i][0] );
         }
     }
@@ -185,21 +188,21 @@ void If_LutLibFree( If_Lib_t * pLutLib )
 void If_LutLibPrint( If_Lib_t * pLutLib )
 {
     int i, k;
-    printf( "# The area/delay of k-variable LUTs:\n" );
-    printf( "# k    area     delay\n" );
+    Abc_Print( 1, "# The area/delay of k-variable LUTs:\n" );
+    Abc_Print( 1, "# k    area     delay\n" );
     if ( pLutLib->fVarPinDelays )
     {
         for ( i = 1; i <= pLutLib->LutMax; i++ )
         {
-            printf( "%d   %7.2f  ", i, pLutLib->pLutAreas[i] );
+            Abc_Print( 1, "%d   %7.2f  ", i, pLutLib->pLutAreas[i] );
             for ( k = 0; k < i; k++ )
-                printf( " %7.2f", pLutLib->pLutDelays[i][k] );
-            printf( "\n" );
+                Abc_Print( 1, " %7.2f", pLutLib->pLutDelays[i][k] );
+            Abc_Print( 1, "\n" );
         }
     }
     else
         for ( i = 1; i <= pLutLib->LutMax; i++ )
-            printf( "%d   %7.2f   %7.2f\n", i, pLutLib->pLutAreas[i], pLutLib->pLutDelays[i][0] );
+            Abc_Print( 1, "%d   %7.2f   %7.2f\n", i, pLutLib->pLutAreas[i], pLutLib->pLutDelays[i][0] );
 }
 
 /**Function*************************************************************
@@ -333,4 +336,6 @@ float If_LutLibSlowestPinDelay( If_Lib_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

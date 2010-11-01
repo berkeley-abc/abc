@@ -21,6 +21,7 @@
 #ifndef __BBLIF_H__
 #define __BBLIF_H__
 
+
 /*
     This file (taken together with "bblif.c") implements a stand-alone 
     interface between ABC and an application that uses ABC. 
@@ -186,9 +187,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #ifdef _WIN32
 #define inline __inline
@@ -269,9 +271,11 @@ extern void        Bbl_ManDumpBlif( Bbl_Man_t * p, char * pFileName );
 extern void        Bbl_ManSimpleDemo();
 
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

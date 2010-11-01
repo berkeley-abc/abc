@@ -20,6 +20,9 @@
 
 #include "msatInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
 The J-boundary (justification boundary) is defined as a set of unassigned 
 variables belonging to the cone of interest, such that for each of them,
@@ -469,4 +472,6 @@ void Msat_OrderRingRemove( Msat_OrderRing_t * pRing, Msat_OrderVar_t * pVar )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

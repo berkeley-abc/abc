@@ -20,6 +20,9 @@
 
 #include "seqInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -156,7 +159,7 @@ void Seq_NodeShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNode
     Seq_NodeInsertFirst( pBuffer, 0, InitNew );
 
     // redirect the fanouts
-    Vec_PtrForEachEntry( vNodes, pFanout, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pFanout, i )
         Abc_ObjPatchFanin( pFanout, pNode, pBuffer );
 }
 
@@ -279,7 +282,7 @@ void Seq_NtkShareLatches( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk )
     stmm_table * tLatchMap;
     int i;
     assert( Abc_NtkIsSeq( pNtk ) );
-    tLatchMap = stmm_init_table( stmm_ptrcmp, stmm_ptrhash );
+    tLatchMap = stmm_init_table( (int (*)(void))stmm_ptrcmp, (int (*)(void))stmm_ptrhash );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         pFanin = Abc_ObjFanin0(pObj);
@@ -315,7 +318,7 @@ void Seq_NtkShareLatchesMapping( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_
     assert( Abc_NtkIsSeq( pNtk ) );
 
     // start the table
-    tLatchMap = stmm_init_table( stmm_ptrcmp, stmm_ptrhash );
+    tLatchMap = stmm_init_table( (int (*)(void))stmm_ptrcmp, (int (*)(void))stmm_ptrhash );
 
     // create the array of all nodes with sharable fanouts
     vNodes = Vec_PtrAlloc( 100 );
@@ -324,17 +327,17 @@ void Seq_NtkShareLatchesMapping( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_
         Vec_PtrPush( vNodes, pObj );
     if ( fFpga )
     {
-        Vec_PtrForEachEntry( vMapAnds, pObj, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vMapAnds, pObj, i )
             Vec_PtrPush( vNodes, pObj );
     }
     else 
     {
-        Vec_PtrForEachEntry( vMapAnds, pMatch, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vMapAnds, pMatch, i )
             Vec_PtrPush( vNodes, pMatch->pAnd );
     }
 
     // process nodes used in the mapping
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         // make sure the label is clean
         Abc_ObjForEachFanout( pObj, pFanout, k )
@@ -386,3 +389,5 @@ void Seq_NtkShareLatchesClean( Abc_Ntk_t * pNtk )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

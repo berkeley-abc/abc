@@ -14,6 +14,9 @@
 /* LINTLIBRARY */
 
 #include "espresso.h"
+
+ABC_NAMESPACE_IMPL_START
+
 static pset_family set_family_garbage = NULL;
 
 static void intcpy(d, s, n)
@@ -818,3 +821,5 @@ register int *permute, npermute;
     sf_free(A);
     return B;
 }
+ABC_NAMESPACE_IMPL_END
+

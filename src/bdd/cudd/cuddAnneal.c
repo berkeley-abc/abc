@@ -38,6 +38,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -785,4 +788,6 @@ restoreOrder(
     return(1);
 
 } /* end of restoreOrder */
+
+ABC_NAMESPACE_IMPL_END
 

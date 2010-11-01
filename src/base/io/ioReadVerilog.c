@@ -19,12 +19,16 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
+#include "ver.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
+//extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -54,7 +58,7 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
 
     // detect top-level model
     RetValue = Abc_LibFindTopLevelModels( pDesign );
-    pNtk = Vec_PtrEntry( pDesign->vTops, 0 );
+    pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pDesign->vTops, 0 );
     if ( RetValue > 1 )
         printf( "Warning: The design has %d root-level modules. The first one (%s) will be used.\n",
             Vec_PtrSize(pDesign->vTops), pNtk->pName );
@@ -87,4 +91,6 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
 ////////////////////////////////////////////////////////////////////////
 
 
+
+ABC_NAMESPACE_IMPL_END
 

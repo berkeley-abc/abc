@@ -20,6 +20,9 @@
 
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -268,7 +271,7 @@ void Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk )
     if ( Kit_DsdLitIsCompl(pNtk->Root) )
         fprintf( pFile, "!" );
     Kit_DsdPrint_rec( pFile, pNtk, Kit_DsdLit2Var(pNtk->Root) );
-    fprintf( pFile, "\n" );
+//    fprintf( pFile, "\n" );
 }
 
 /**Function*************************************************************
@@ -333,7 +336,7 @@ unsigned * Kit_DsdTruthComputeNode_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, i
 
     // get the node with this ID
     pObj = Kit_DsdNtkObj( pNtk, Id );
-    pTruthRes = Vec_PtrEntry( p->vTtNodes, Id );
+    pTruthRes = (unsigned *)Vec_PtrEntry( p->vTtNodes, Id );
 
     // special case: literal of an internal node
     if ( pObj == NULL )
@@ -434,7 +437,7 @@ unsigned * Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk )
     // assign elementary truth ables
     assert( pNtk->nVars <= p->nVars );
     for ( i = 0; i < (int)pNtk->nVars; i++ )
-        Kit_TruthCopy( Vec_PtrEntry(p->vTtNodes, i), Vec_PtrEntry(p->vTtElems, i), p->nVars );
+        Kit_TruthCopy( (unsigned *)Vec_PtrEntry(p->vTtNodes, i), (unsigned *)Vec_PtrEntry(p->vTtElems, i), p->nVars );
     // compute truth table for each node
     pTruthRes = Kit_DsdTruthComputeNode_rec( p, pNtk, Kit_DsdLit2Var(pNtk->Root) );
     // complement the truth table if needed
@@ -463,7 +466,7 @@ unsigned * Kit_DsdTruthComputeNodeOne_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk
 
     // get the node with this ID
     pObj = Kit_DsdNtkObj( pNtk, Id );
-    pTruthRes = Vec_PtrEntry( p->vTtNodes, Id );
+    pTruthRes = (unsigned *)Vec_PtrEntry( p->vTtNodes, Id );
 
     // special case: literal of an internal node
     if ( pObj == NULL )
@@ -597,7 +600,7 @@ unsigned * Kit_DsdTruthComputeOne( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsign
     // assign elementary truth tables
     assert( pNtk->nVars <= p->nVars );
     for ( i = 0; i < (int)pNtk->nVars; i++ )
-        Kit_TruthCopy( Vec_PtrEntry(p->vTtNodes, i), Vec_PtrEntry(p->vTtElems, i), p->nVars );
+        Kit_TruthCopy( (unsigned *)Vec_PtrEntry(p->vTtNodes, i), (unsigned *)Vec_PtrEntry(p->vTtElems, i), p->nVars );
     // compute truth table for each node
     pTruthRes = Kit_DsdTruthComputeNodeOne_rec( p, pNtk, Kit_DsdLit2Var(pNtk->Root), uSupp );
     // complement the truth table if needed
@@ -628,7 +631,7 @@ unsigned * Kit_DsdTruthComputeNodeTwo_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk
 
     // get the node with this ID
     pObj = Kit_DsdNtkObj( pNtk, Id );
-    pTruthRes = Vec_PtrEntry( p->vTtNodes, Id );
+    pTruthRes = (unsigned *)Vec_PtrEntry( p->vTtNodes, Id );
     if ( pObj == NULL )
     {
         assert( Id < pNtk->nVars );
@@ -812,7 +815,7 @@ unsigned * Kit_DsdTruthComputeTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsign
     }
     // assign elementary truth tables
     for ( i = 0; i < (int)pNtk->nVars; i++ )
-        Kit_TruthCopy( Vec_PtrEntry(p->vTtNodes, i), Vec_PtrEntry(p->vTtElems, i), p->nVars );
+        Kit_TruthCopy( (unsigned *)Vec_PtrEntry(p->vTtNodes, i), (unsigned *)Vec_PtrEntry(p->vTtElems, i), p->nVars );
     // compute truth table for each node
     pTruthRes = Kit_DsdTruthComputeNodeTwo_rec( p, pNtk, Kit_DsdLit2Var(pNtk->Root), uSupp, iVar, pTruthDec );
     // complement the truth table if needed
@@ -1125,7 +1128,7 @@ int Kit_DsdExpandNode_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit )
         return iLit;
     if ( pObj->Type == KIT_DSD_AND )
     {
-        Kit_DsdExpandCollectAnd_rec( p, Kit_DsdLitRegular(iLit), piLitsNew, &nLitsNew );
+        Kit_DsdExpandCollectAnd_rec( p, Kit_DsdLitRegular(iLit), piLitsNew, (int *)&nLitsNew );
         pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_AND, nLitsNew );
         for ( i = 0; i < pObjNew->nFans; i++ )
             pObjNew->pFans[i] = Kit_DsdExpandNode_rec( pNew, p, piLitsNew[i] );
@@ -1134,7 +1137,7 @@ int Kit_DsdExpandNode_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit )
     if ( pObj->Type == KIT_DSD_XOR )
     {
         int fCompl = Kit_DsdLitIsCompl(iLit);
-        Kit_DsdExpandCollectXor_rec( p, Kit_DsdLitRegular(iLit), piLitsNew, &nLitsNew );
+        Kit_DsdExpandCollectXor_rec( p, Kit_DsdLitRegular(iLit), piLitsNew, (int *)&nLitsNew );
         pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_XOR, nLitsNew );
         for ( i = 0; i < pObjNew->nFans; i++ )
         {
@@ -2716,8 +2719,252 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
     ABC_FREE( ppCofs[0][0] );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char ** Kit_DsdNpn4ClassNames()
+{
+    static const char * pNames[222] = {
+        "F = 0",                     /*   0 */ 
+        "F = (!d*(!c*(!b*!a)))",     /*   1 */
+        "F = (!d*(!c*!b))",          /*   2 */
+        "F = (!d*(!c*(b+a)))",       /*   3 */
+        "F = (!d*(!c*!(b*a)))",      /*   4 */
+        "F = (!d*!c)",               /*   5 */
+        "F = (!d*16(a,b,c))",        /*   6 */
+        "F = (!d*17(a,b,c))",        /*   7 */
+        "F = (!d*18(a,b,c))",        /*   8 */
+        "F = (!d*19(a,b,c))",        /*   9 */
+        "F = (!d*CA(!b,!c,a))",      /*  10 */
+        "F = (!d*(c+!(!b*!a)))",     /*  11 */
+        "F = (!d*!(c*!(!b*!a)))",    /*  12 */
+        "F = (!d*(c+b))",            /*  13 */
+        "F = (!d*3D(a,b,c))",        /*  14 */
+        "F = (!d*!(c*b))",           /*  15 */
+        "F = (!d*(c+(b+!a)))",       /*  16 */
+        "F = (!d*6B(a,b,c))",        /*  17 */
+        "F = (!d*!(c*!(b+a)))",      /*  18 */
+        "F = (!d*7E(a,b,c))",        /*  19 */
+        "F = (!d*!(c*(b*a)))",       /*  20 */
+        "F = (!d)",                  /*  21 */
+        "F = 0116(a,b,c,d)",         /*  22 */
+        "F = 0117(a,b,c,d)",         /*  23 */
+        "F = 0118(a,b,c,d)",         /*  24 */
+        "F = 0119(a,b,c,d)",         /*  25 */
+        "F = 011A(a,b,c,d)",         /*  26 */
+        "F = 011B(a,b,c,d)",         /*  27 */
+        "F = 29((!b*!a),c,d)",       /*  28 */
+        "F = 2B((!b*!a),c,d)",       /*  29 */
+        "F = 012C(a,b,c,d)",         /*  30 */
+        "F = 012D(a,b,c,d)",         /*  31 */
+        "F = 012F(a,b,c,d)",         /*  32 */
+        "F = 013C(a,b,c,d)",         /*  33 */
+        "F = 013D(a,b,c,d)",         /*  34 */
+        "F = 013E(a,b,c,d)",         /*  35 */
+        "F = 013F(a,b,c,d)",         /*  36 */
+        "F = 0168(a,b,c,d)",         /*  37 */
+        "F = 0169(a,b,c,d)",         /*  38 */
+        "F = 016A(a,b,c,d)",         /*  39 */
+        "F = 016B(a,b,c,d)",         /*  40 */
+        "F = 016E(a,b,c,d)",         /*  41 */
+        "F = 016F(a,b,c,d)",         /*  42 */
+        "F = 017E(a,b,c,d)",         /*  43 */
+        "F = 017F(a,b,c,d)",         /*  44 */
+        "F = 0180(a,b,c,d)",         /*  45 */
+        "F = 0181(a,b,c,d)",         /*  46 */
+        "F = 0182(a,b,c,d)",         /*  47 */
+        "F = 0183(a,b,c,d)",         /*  48 */
+        "F = 0186(a,b,c,d)",         /*  49 */
+        "F = 0187(a,b,c,d)",         /*  50 */
+        "F = 0189(a,b,c,d)",         /*  51 */
+        "F = 018B(a,b,c,d)",         /*  52 */
+        "F = 018F(a,b,c,d)",         /*  53 */
+        "F = 0196(a,b,c,d)",         /*  54 */
+        "F = 0197(a,b,c,d)",         /*  55 */
+        "F = 0198(a,b,c,d)",         /*  56 */
+        "F = 0199(a,b,c,d)",         /*  57 */
+        "F = 019A(a,b,c,d)",         /*  58 */
+        "F = 019B(a,b,c,d)",         /*  59 */
+        "F = 019E(a,b,c,d)",         /*  60 */
+        "F = 019F(a,b,c,d)",         /*  61 */
+        "F = 42(a,(!c*!b),d)",       /*  62 */
+        "F = 46(a,(!c*!b),d)",       /*  63 */
+        "F = 4A(a,(!c*!b),d)",       /*  64 */
+        "F = CA((!c*!b),!d,a)",      /*  65 */
+        "F = 01AC(a,b,c,d)",         /*  66 */
+        "F = 01AD(a,b,c,d)",         /*  67 */
+        "F = 01AE(a,b,c,d)",         /*  68 */
+        "F = 01AF(a,b,c,d)",         /*  69 */
+        "F = 01BC(a,b,c,d)",         /*  70 */
+        "F = 01BD(a,b,c,d)",         /*  71 */
+        "F = 01BE(a,b,c,d)",         /*  72 */
+        "F = 01BF(a,b,c,d)",         /*  73 */
+        "F = 01E8(a,b,c,d)",         /*  74 */
+        "F = 01E9(a,b,c,d)",         /*  75 */
+        "F = 01EA(a,b,c,d)",         /*  76 */
+        "F = 01EB(a,b,c,d)",         /*  77 */
+        "F = 25((!b*!a),c,d)",       /*  78 */
+        "F = !CA(d,c,(!b*!a))",      /*  79 */
+        "F = (d+!(!c*(!b*!a)))",     /*  80 */
+        "F = 16(b,c,d)",             /*  81 */
+        "F = 033D(a,b,c,d)",         /*  82 */
+        "F = 17(b,c,d)",             /*  83 */
+        "F = ((!d*!a)+(!c*!b))",     /*  84 */
+        "F = !(!(!c*!b)*!(!d*!a))",  /*  85 */
+        "F = 0358(a,b,c,d)",         /*  86 */
+        "F = 0359(a,b,c,d)",         /*  87 */
+        "F = 035A(a,b,c,d)",         /*  88 */
+        "F = 035B(a,b,c,d)",         /*  89 */
+        "F = 035E(a,b,c,d)",         /*  90 */
+        "F = 035F(a,b,c,d)",         /*  91 */
+        "F = 0368(a,b,c,d)",         /*  92 */
+        "F = 0369(a,b,c,d)",         /*  93 */
+        "F = 036A(a,b,c,d)",         /*  94 */
+        "F = 036B(a,b,c,d)",         /*  95 */
+        "F = 036C(a,b,c,d)",         /*  96 */
+        "F = 036D(a,b,c,d)",         /*  97 */
+        "F = 036E(a,b,c,d)",         /*  98 */
+        "F = 036F(a,b,c,d)",         /*  99 */
+        "F = 037C(a,b,c,d)",         /* 100 */
+        "F = 037D(a,b,c,d)",         /* 101 */
+        "F = 037E(a,b,c,d)",         /* 102 */
+        "F = 18(b,c,d)",             /* 103 */
+        "F = 03C1(a,b,c,d)",         /* 104 */
+        "F = 19(b,c,d)",             /* 105 */
+        "F = 03C5(a,b,c,d)",         /* 106 */
+        "F = 03C6(a,b,c,d)",         /* 107 */
+        "F = 03C7(a,b,c,d)",         /* 108 */
+        "F = CA(!c,!d,b)",           /* 109 */
+        "F = 03D4(a,b,c,d)",         /* 110 */
+        "F = 03D5(a,b,c,d)",         /* 111 */
+        "F = 03D6(a,b,c,d)",         /* 112 */
+        "F = 03D7(a,b,c,d)",         /* 113 */
+        "F = 03D8(a,b,c,d)",         /* 114 */
+        "F = 03D9(a,b,c,d)",         /* 115 */
+        "F = 03DB(a,b,c,d)",         /* 116 */
+        "F = 03DC(a,b,c,d)",         /* 117 */
+        "F = 03DD(a,b,c,d)",         /* 118 */
+        "F = 03DE(a,b,c,d)",         /* 119 */
+        "F = (d+!(!c*!b))",          /* 120 */
+        "F = ((d+c)*(b+a))",         /* 121 */
+        "F = 0661(a,b,c,d)",         /* 122 */
+        "F = 0662(a,b,c,d)",         /* 123 */
+        "F = 0663(a,b,c,d)",         /* 124 */
+        "F = (!(d*c)*(b+a))",        /* 125 */
+        "F = 0667(a,b,c,d)",         /* 126 */
+        "F = 29((b+a),c,d)",         /* 127 */
+        "F = 066B(a,b,c,d)",         /* 128 */
+        "F = 2B((b+a),c,d)",         /* 129 */
+        "F = 0672(a,b,c,d)",         /* 130 */
+        "F = 0673(a,b,c,d)",         /* 131 */
+        "F = 0676(a,b,c,d)",         /* 132 */
+        "F = 0678(a,b,c,d)",         /* 133 */
+        "F = 0679(a,b,c,d)",         /* 134 */
+        "F = 067A(a,b,c,d)",         /* 135 */
+        "F = 067B(a,b,c,d)",         /* 136 */
+        "F = 067E(a,b,c,d)",         /* 137 */
+        "F = 24((b+a),c,d)",         /* 138 */
+        "F = 0691(a,b,c,d)",         /* 139 */
+        "F = 0693(a,b,c,d)",         /* 140 */
+        "F = 26((b+a),c,d)",         /* 141 */
+        "F = 0697(a,b,c,d)",         /* 142 */
+        "F = !CA(d,c,(b+a))",        /* 143 */
+        "F = 06B0(a,b,c,d)",         /* 144 */
+        "F = 06B1(a,b,c,d)",         /* 145 */
+        "F = 06B2(a,b,c,d)",         /* 146 */
+        "F = 06B3(a,b,c,d)",         /* 147 */
+        "F = 06B4(a,b,c,d)",         /* 148 */
+        "F = 06B5(a,b,c,d)",         /* 149 */
+        "F = 06B6(a,b,c,d)",         /* 150 */
+        "F = 06B7(a,b,c,d)",         /* 151 */
+        "F = 06B9(a,b,c,d)",         /* 152 */
+        "F = 06BD(a,b,c,d)",         /* 153 */
+        "F = 2C((b+a),c,d)",         /* 154 */
+        "F = 06F1(a,b,c,d)",         /* 155 */
+        "F = 06F2(a,b,c,d)",         /* 156 */
+        "F = CA((b+a),!d,c)",        /* 157 */
+        "F = (d+!(!c*!(b+!a)))",     /* 158 */
+        "F = 0776(a,b,c,d)",         /* 159 */
+        "F = 16((b*a),c,d)",         /* 160 */
+        "F = 0779(a,b,c,d)",         /* 161 */
+        "F = 077A(a,b,c,d)",         /* 162 */
+        "F = 077E(a,b,c,d)",         /* 163 */
+        "F = 07B0(a,b,c,d)",         /* 164 */
+        "F = 07B1(a,b,c,d)",         /* 165 */
+        "F = 07B4(a,b,c,d)",         /* 166 */
+        "F = 07B5(a,b,c,d)",         /* 167 */
+        "F = 07B6(a,b,c,d)",         /* 168 */
+        "F = 07BC(a,b,c,d)",         /* 169 */
+        "F = 07E0(a,b,c,d)",         /* 170 */
+        "F = 07E1(a,b,c,d)",         /* 171 */
+        "F = 07E2(a,b,c,d)",         /* 172 */
+        "F = 07E3(a,b,c,d)",         /* 173 */
+        "F = 07E6(a,b,c,d)",         /* 174 */
+        "F = 07E9(a,b,c,d)",         /* 175 */
+        "F = 1C((b*a),c,d)",         /* 176 */
+        "F = 07F1(a,b,c,d)",         /* 177 */
+        "F = 07F2(a,b,c,d)",         /* 178 */
+        "F = (d+!(!c*!(b*a)))",      /* 179 */
+        "F = (d+c)",                 /* 180 */
+        "F = 1668(a,b,c,d)",         /* 181 */
+        "F = 1669(a,b,c,d)",         /* 182 */
+        "F = 166A(a,b,c,d)",         /* 183 */
+        "F = 166B(a,b,c,d)",         /* 184 */
+        "F = 166E(a,b,c,d)",         /* 185 */
+        "F = 167E(a,b,c,d)",         /* 186 */
+        "F = 1681(a,b,c,d)",         /* 187 */
+        "F = 1683(a,b,c,d)",         /* 188 */
+        "F = 1686(a,b,c,d)",         /* 189 */
+        "F = 1687(a,b,c,d)",         /* 190 */
+        "F = 1689(a,b,c,d)",         /* 191 */
+        "F = 168B(a,b,c,d)",         /* 192 */
+        "F = 168E(a,b,c,d)",         /* 193 */
+        "F = 1696(a,b,c,d)",         /* 194 */
+        "F = 1697(a,b,c,d)",         /* 195 */
+        "F = 1698(a,b,c,d)",         /* 196 */
+        "F = 1699(a,b,c,d)",         /* 197 */
+        "F = 169A(a,b,c,d)",         /* 198 */
+        "F = 169B(a,b,c,d)",         /* 199 */
+        "F = 169E(a,b,c,d)",         /* 200 */
+        "F = 16A9(a,b,c,d)",         /* 201 */
+        "F = 16AC(a,b,c,d)",         /* 202 */
+        "F = 16AD(a,b,c,d)",         /* 203 */
+        "F = 16BC(a,b,c,d)",         /* 204 */
+        "F = (d+E9(a,b,c))",         /* 205 */
+        "F = 177E(a,b,c,d)",         /* 206 */
+        "F = 178E(a,b,c,d)",         /* 207 */
+        "F = 1796(a,b,c,d)",         /* 208 */
+        "F = 1798(a,b,c,d)",         /* 209 */
+        "F = 179A(a,b,c,d)",         /* 210 */
+        "F = 17AC(a,b,c,d)",         /* 211 */
+        "F = (d+E8(a,b,c))",         /* 212 */
+        "F = (d+E7(a,b,c))",         /* 213 */
+        "F = 19E1(a,b,c,d)",         /* 214 */
+        "F = 19E3(a,b,c,d)",         /* 215 */
+        "F = (d+E6(a,b,c))",         /* 216 */
+        "F = 1BD8(a,b,c,d)",         /* 217 */
+        "F = (d+CA(b,c,a))",         /* 218 */
+        "F = (d+(c+(!b*!a)))",       /* 219 */
+        "F = (d+(c+!b))",            /* 220 */
+        "F = (d+(c+(b+a)))"          /* 221 */
+    };
+    return (char **)pNames;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

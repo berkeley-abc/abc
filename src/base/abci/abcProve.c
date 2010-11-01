@@ -22,11 +22,14 @@
 #include "fraig.h"
 #include "math.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern int  Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
+extern int  Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose );
 extern Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
 
 static Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, ABC_INT64_T nInspLimit, int * pRetValue, int * pNumFails, ABC_INT64_T * pNumConfs, ABC_INT64_T * pNumInspects );
@@ -53,7 +56,7 @@ static void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fV
 ***********************************************************************/
 int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
 {
-    Prove_Params_t * pParams = pPars;
+    Prove_Params_t * pParams = (Prove_Params_t *)pPars;
     Abc_Ntk_t * pNtk, * pNtkTemp;
     int RetValue = -1, nIter, nSatFails, Counter, clk; //, timeStart = clock();
     ABC_INT64_T nSatConfs, nSatInspects, nInspectLimit;
@@ -195,7 +198,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
         if ( pNtk )   
         {
             Abc_NtkDelete( pNtkTemp );
-            RetValue = ( (Abc_NtkNodeNum(pNtk) == 1) && (Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->pData == Cudd_ReadLogicZero(pNtk->pManFunc)) );
+            RetValue = ( (Abc_NtkNodeNum(pNtk) == 1) && (Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->pData == Cudd_ReadLogicZero((DdManager *)pNtk->pManFunc)) );
         }
         else 
             pNtk = pNtkTemp;
@@ -264,7 +267,7 @@ Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, ABC_INT64_T nInsp
     pParams->nInspLimit = nInspLimit;
 
     // transform the target into a fraig
-    pMan = Abc_NtkToFraig( pNtk, pParams, 0, 0 ); 
+    pMan = (Fraig_Man_t *)Abc_NtkToFraig( pNtk, pParams, 0, 0 ); 
     Fraig_ManProveMiter( pMan );
     RetValue = Fraig_ManCheckMiter( pMan );
 
@@ -338,4 +341,6 @@ Abc_Ntk_t * Abc_NtkMiterRwsat( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

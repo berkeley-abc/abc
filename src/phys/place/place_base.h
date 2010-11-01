@@ -10,6 +10,10 @@
 #if !defined(PLACE_BASE_H_)
 #define PLACE_BASE_H_
 
+
+ABC_NAMESPACE_HEADER_START
+
+
 // --------------------------------------------------------------------
 // Data structures
 //
@@ -133,5 +137,9 @@ int    netSortByID(const void *a, const void *b);
 int    cellSortByX(const void *a, const void *b);
 int    cellSortByY(const void *a, const void *b);
 int    cellSortByID(const void *a, const void *b);
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

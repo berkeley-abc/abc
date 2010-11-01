@@ -24,7 +24,11 @@
 #ifndef _MTRINT
 #define _MTRINT
 
+
 #include "mtr.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 /*---------------------------------------------------------------------------*/
 /* Nested includes                                                           */
@@ -61,5 +65,9 @@
 
 
 /**AutomaticEnd***************************************************************/
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif /* _MTRINT */

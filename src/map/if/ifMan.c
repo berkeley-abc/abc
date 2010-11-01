@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,14 +53,14 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     // start the manager
     p = ABC_ALLOC( If_Man_t, 1 );
     memset( p, 0, sizeof(If_Man_t) );
-    p->pPars = pPars;
+    p->pPars    = pPars;
     p->fEpsilon = pPars->Epsilon;
     // allocate arrays for nodes
-    p->vCis    = Vec_PtrAlloc( 100 );
-    p->vCos    = Vec_PtrAlloc( 100 );
-    p->vObjs   = Vec_PtrAlloc( 100 );
+    p->vCis     = Vec_PtrAlloc( 100 );
+    p->vCos     = Vec_PtrAlloc( 100 );
+    p->vObjs    = Vec_PtrAlloc( 100 );
 //    p->vMapped = Vec_PtrAlloc( 100 );
-    p->vTemp   = Vec_PtrAlloc( 100 );
+    p->vTemp    = Vec_PtrAlloc( 100 );
     // prepare the memory manager
     p->nTruthWords = p->pPars->fTruth? If_CutTruthWords( p->pPars->nLutSize ) : 0;
     p->nPermWords  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
@@ -68,7 +71,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
 //    p->pMemSet     = Mem_FixedStart( p->nSetBytes );
     // report expected memory usage
     if ( p->pPars->fVerbose )
-        printf( "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d.\n", 
+        Abc_Print( 1, "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d.\n", 
             p->pPars->nLutSize, 4 * p->nTruthWords, p->nCutBytes, p->nObjBytes, p->nSetBytes );
     // room for temporary truth tables
     p->puTemp[0] = p->pPars->fTruth? ABC_ALLOC( unsigned, 4 * p->nTruthWords ) : NULL;
@@ -76,7 +79,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
     p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
     // create the constant node
-    p->pConst1 = If_ManSetupObj( p );
+    p->pConst1   = If_ManSetupObj( p );
     p->pConst1->Type   = IF_CONST1;
     p->pConst1->fPhase = 1;
     p->nObjs[IF_CONST1]++;
@@ -124,8 +127,11 @@ void If_ManRestart( If_Man_t * p )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
-//    ABC_PRT( "Truth", p->timeTruth );
-//    printf( "Small support = %d.\n", p->nSmallSupp );
+    if ( p->nCutsUseless && p->pPars->fVerbose )
+    Abc_Print( 1, "Useless cuts = %7d  (out of %7d)  (%6.2f %%)\n", p->nCutsUseless, p->nCutsTotal, 100.0*p->nCutsUseless/(p->nCutsTotal+1) );
+//    Abc_PrintTime( 1, "Truth", p->timeTruth );
+//    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );
+    Vec_IntFreeP( &p->vCoAttrs );
     Vec_PtrFree( p->vCis );
     Vec_PtrFree( p->vCos );
     Vec_PtrFree( p->vObjs );
@@ -192,6 +198,7 @@ If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver )
     pObj->Type = IF_CO;
     pObj->fCompl0 = If_IsComplement(pDriver); pDriver = If_Regular(pDriver);
     pObj->pFanin0 = pDriver; pDriver->nRefs++; 
+    pObj->fPhase  = (pObj->fCompl0 ^ pDriver->fPhase);
     pObj->Level   = pDriver->Level;
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
@@ -379,6 +386,8 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
         for ( i = 0; i < nTruthWords; i++ )
             If_CutTruth(pCut)[i] = 0xAAAAAAAA;
     }
+
+    assert( pCut->pLeaves[0] < p->vObjs->nSize );
 }
 
 /**Function*************************************************************
@@ -566,12 +575,12 @@ void If_ManSetupSetAll( If_Man_t * p, int nCrossCut )
 
     if ( p->pPars->fVerbose )
     {
-        printf( "Node = %7d.  Ch = %5d.  Total mem = %7.2f Mb. Peak cut mem = %7.2f Mb.\n", 
+        Abc_Print( 1, "Node = %7d.  Ch = %5d.  Total mem = %7.2f Mb. Peak cut mem = %7.2f Mb.\n", 
             If_ManAndNum(p), p->nChoices,
             1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
             1.0 * p->nSetBytes * nCrossCut / (1<<20) );
     }
-//    printf( "Cross cut = %d.\n", nCrossCut );
+//    Abc_Print( 1, "Cross cut = %d.\n", nCrossCut );
 
 }
 
@@ -579,4 +588,6 @@ void If_ManSetupSetAll( If_Man_t * p, int nCrossCut )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

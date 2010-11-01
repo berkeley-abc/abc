@@ -20,6 +20,9 @@
 
 #include "msatInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -39,7 +42,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverAddVar( Msat_Solver_t * p, int Level )
+int  Msat_SolverAddVar( Msat_Solver_t * p, int Level )
 {
     if ( p->nVars == p->nVarsAlloc )
         Msat_SolverResize( p, 2 * p->nVarsAlloc );
@@ -59,10 +62,10 @@ bool Msat_SolverAddVar( Msat_Solver_t * p, int Level )
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverAddClause( Msat_Solver_t * p, Msat_IntVec_t * vLits )
+int  Msat_SolverAddClause( Msat_Solver_t * p, Msat_IntVec_t * vLits )
 {
     Msat_Clause_t * pC; 
-    bool Value;
+    int  Value;
     Value = Msat_ClauseCreate( p, vLits, 0, &pC );
     if ( pC != NULL )
         Msat_ClauseVecPush( p->vClauses, pC );
@@ -132,7 +135,7 @@ void Msat_SolverPrintStats( Msat_Solver_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTrackLimit, int nTimeLimit )
+int  Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTrackLimit, int nTimeLimit )
 {
     Msat_SearchParams_t Params = { 0.95, 0.999 };
     double nConflictsLimit, nLearnedLimit;
@@ -207,4 +210,6 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

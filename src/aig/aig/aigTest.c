@@ -2,6 +2,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 void Aig_ProcedureTest()
 {
     Aig_Man_t * p;
@@ -32,4 +35,5 @@ void Aig_ProcedureTest()
 
     Aig_ManDumpBlif( p, "aig_test_file.blif", NULL, NULL );
     Aig_ManStop( p );
-}
+}ABC_NAMESPACE_IMPL_END
+

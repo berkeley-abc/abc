@@ -20,6 +20,9 @@
 
 #include "darInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -130,7 +133,7 @@ void Dar_Permutations_rec( char ** pRes, int nFact, int n, char Array[] )
 
   Description [The number of permutations in the array is n!. The number of
   entries in each permutation is n. Therefore, the resulting array is a 
-  two-dimentional array of the size: n! x n. To ABC_FREE the resulting array,
+  two-dimentional array of the size: n! x n. To free the resulting array,
   call ABC_FREE() on the pointer returned by this procedure.]
 
   SideEffects []
@@ -297,14 +300,10 @@ void Dar_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puP
     int i, k;
 
     nFuncs  = (1 << 16);
-    uCanons = ABC_ALLOC( unsigned short, nFuncs );
-    uPhases = ABC_ALLOC( char, nFuncs );
-    uPerms  = ABC_ALLOC( char, nFuncs );
-    uMap    = ABC_ALLOC( unsigned char, nFuncs );
-    memset( uCanons, 0, sizeof(unsigned short) * nFuncs );
-    memset( uPhases, 0, sizeof(char) * nFuncs );
-    memset( uPerms,  0, sizeof(char) * nFuncs );
-    memset( uMap,    0, sizeof(unsigned char) * nFuncs );
+    uCanons = ABC_CALLOC( unsigned short, nFuncs );
+    uPhases = ABC_CALLOC( char, nFuncs );
+    uPerms  = ABC_CALLOC( char, nFuncs );
+    uMap    = ABC_CALLOC( unsigned char, nFuncs );
     pPerms4 = Dar_Permutations( 4 );
 
     nClasses = 1;
@@ -330,11 +329,13 @@ void Dar_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puP
                     uCanons[uPerm] = uTruth;
                     uPhases[uPerm] = i;
                     uPerms[uPerm]  = k;
+                    uMap[uPerm]    = uMap[uTruth];
 
                     uPerm = ~uPerm & 0xFFFF;
                     uCanons[uPerm] = uTruth;
                     uPhases[uPerm] = i | 16;
                     uPerms[uPerm]  = k;
+                    uMap[uPerm]    = uMap[uTruth];
                 }
                 else
                     assert( uCanons[uPerm] == uTruth );
@@ -348,17 +349,21 @@ void Dar_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puP
                     uCanons[uPerm] = uTruth;
                     uPhases[uPerm] = i;
                     uPerms[uPerm]  = k;
+                    uMap[uPerm]    = uMap[uTruth];
 
                     uPerm = ~uPerm & 0xFFFF;
                     uCanons[uPerm] = uTruth;
                     uPhases[uPerm] = i | 16;
                     uPerms[uPerm]  = k;
+                    uMap[uPerm]    = uMap[uTruth];
                 }
                 else
                     assert( uCanons[uPerm] == uTruth );
             }
         }
     }
+    for ( uTruth = 1; uTruth < 0xffff; uTruth++ )
+        assert( uMap[uTruth] != 0 );
     uPhases[(1<<16)-1] = 16;
     assert( nClasses == 222 );
     ABC_FREE( pPerms4 );
@@ -384,4 +389,6 @@ void Dar_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puP
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

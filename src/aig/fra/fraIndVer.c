@@ -21,6 +21,9 @@
 #include "fra.h"
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -72,7 +75,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     }
 */
     // derive initialized frames for the base case
-    pSat = Cnf_DataWriteIntoSolver( pCnf, nFrames, 1 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, nFrames, 1 );
     // check clauses in the base case
     Beg = 0;
     pStart = Vec_IntArray( vLits );
@@ -93,7 +96,7 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
     sat_solver_delete( pSat );
 
     // derive initialized frames for the base case
-    pSat = Cnf_DataWriteIntoSolver( pCnf, nFrames + 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, nFrames + 1, 0 );
     assert( pSat->size == 2 * pCnf->nVars );
     // add clauses to the first frame
     Beg = 0;
@@ -158,4 +161,6 @@ int Fra_InvariantVerify( Aig_Man_t * pAig, int nFrames, Vec_Int_t * vClauses, Ve
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

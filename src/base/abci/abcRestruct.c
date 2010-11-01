@@ -23,6 +23,9 @@
 #include "dsd.h"
 #include "cut.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -75,7 +78,7 @@ static Dec_Graph_t * Abc_NodeRestructureCut( Abc_ManRst_t * p, Abc_Obj_t * pNode
 static Dec_Graph_t * Abc_NodeEvaluateDsd( Abc_ManRst_t * pManRst, Dsd_Node_t * pNodeDsd, Abc_Obj_t * pRoot, int Required, int nNodesSaved, int * pnNodesAdded );
 
 static Cut_Man_t * Abc_NtkStartCutManForRestruct( Abc_Ntk_t * pNtk, int nCutMax, int fDag );
-static Abc_ManRst_t * Abc_NtkManRstStart( int nCutMax, bool fUpdateLevel, bool fUseZeros, bool fVerbose );
+static Abc_ManRst_t * Abc_NtkManRstStart( int nCutMax, int fUpdateLevel, int fUseZeros, int fVerbose );
 static void Abc_NtkManRstStop( Abc_ManRst_t * p );
 static void Abc_NtkManRstPrintStats( Abc_ManRst_t * p );
 
@@ -94,9 +97,9 @@ static void Abc_NtkManRstPrintStats( Abc_ManRst_t * p );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, bool fUpdateLevel, bool fUseZeros, bool fVerbose )
+int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, int fUpdateLevel, int fUseZeros, int fVerbose )
 {
-    extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain );
+    extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Abc_ManRst_t * pManRst;
     Cut_Man_t * pManCut;
@@ -110,7 +113,7 @@ int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, bool fUpdateLevel, bool f
 
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
-    Abc_AigCleanup(pNtk->pManFunc);
+    Abc_AigCleanup((Abc_Aig_t *)pNtk->pManFunc);
     Abc_NtkCleanCopy(pNtk);
 
     // compute the reverse levels if level update is requested
@@ -149,7 +152,7 @@ pManRst->timeCut += clock() - clk;
             break;
         // get the cuts for the given node
 clk = clock();
-        pCutList = Abc_NodeGetCutsRecursive( pManCut, pNode, fMulti, 0 ); 
+        pCutList = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, fMulti, 0 ); 
 pManRst->timeCut += clock() - clk;
 
         // perform restructuring
@@ -211,14 +214,14 @@ void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot, int nNodesSa
     int i, k;
     // start with the leaves
     Vec_PtrClear( p->vDecs );
-    Vec_PtrForEachEntry( p->vLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pNode, i )
     {
         Vec_PtrPush( p->vDecs, pNode );
         assert( pNode->fMarkC == 0 );
         pNode->fMarkC = 1;
     }
     // explore the fanouts
-    Vec_PtrForEachEntry( p->vDecs, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vDecs, pNode, i )
     {
         // if the fanout has both fanins in the set, add it
         Abc_ObjForEachFanout( pNode, pFanout, k )
@@ -233,15 +236,15 @@ void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot, int nNodesSa
         }
     }
     // unmark the nodes
-    Vec_PtrForEachEntry( p->vDecs, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vDecs, pNode, i )
         pNode->fMarkC = 0;
 /*
     // print the nodes
-    Vec_PtrForEachEntryStart( p->vDecs, pNode, i, Vec_PtrSize(p->vLeaves) )
+    Vec_PtrForEachEntryStart( Abc_Obj_t *, p->vDecs, pNode, i, Vec_PtrSize(p->vLeaves) )
     {
         printf( "%2d %s = ", i, Abc_NodeIsTravIdCurrent(pNode)? "*" : " " );
         // find the first fanin
-        Vec_PtrForEachEntry( p->vDecs, pFanin, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vDecs, pFanin, k )
             if ( Abc_ObjFanin0(pNode) == pFanin )
                 break;
         if ( k < Vec_PtrSize(p->vLeaves) )
@@ -250,7 +253,7 @@ void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot, int nNodesSa
             printf( "%d", k );
         printf( "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
         // find the second fanin
-        Vec_PtrForEachEntry( p->vDecs, pFanin, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vDecs, pFanin, k )
             if ( Abc_ObjFanin1(pNode) == pFanin )
                 break;
         if ( k < Vec_PtrSize(p->vLeaves) )
@@ -383,13 +386,13 @@ p->timeDsd += clock() - clk;
 
     // mark the fanin boundary 
     // (can mark only essential fanins, belonging to bNodeFunc!)
-    Vec_PtrForEachEntry( p->vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pLeaf, i )
         pLeaf->vFanouts.nSize++;
     // label MFFC with current traversal ID
     Abc_NtkIncrementTravId( pRoot->pNtk );
     nNodesSaved = Abc_NodeMffcLabelAig( pRoot );
     // unmark the fanin boundary and set the fanins as leaves in the form
-    Vec_PtrForEachEntry( p->vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pLeaf, i )
         pLeaf->vFanouts.nSize--;
 /*
     if ( nNodesSaved < 3 )
@@ -488,8 +491,8 @@ void Abc_NodeEdgeDsdPermute( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst, Vec_I
     // get the two last nodes
     eNode1 = Dec_IntToEdge( Vec_IntEntry(vEdges, RightBound + 1) );
     eNode2 = Dec_IntToEdge( Vec_IntEntry(vEdges, RightBound    ) );
-    pNode1 = Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
-    pNode2 = Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
+    pNode1 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
+    pNode2 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
     pNode1 = !pNode1? NULL : Abc_ObjNotCond( pNode1, eNode1.fCompl );
     pNode2 = !pNode2? NULL : Abc_ObjNotCond( pNode2, eNode2.fCompl );
     // quit if the last node does not exist
@@ -500,7 +503,7 @@ void Abc_NodeEdgeDsdPermute( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst, Vec_I
     {
         // get the third node
         eNode3 = Dec_IntToEdge( Vec_IntEntry(vEdges, i) );
-        pNode3 = Dec_GraphNode( pGraph, eNode3.Node )->pFunc;
+        pNode3 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode3.Node )->pFunc;
         pNode3 = !pNode3? NULL : Abc_ObjNotCond( pNode3, eNode3.fCompl );
         if ( pNode3 == NULL )
             continue;
@@ -509,7 +512,7 @@ void Abc_NodeEdgeDsdPermute( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst, Vec_I
         {
             if ( pNode1 && pNode3 )
             {
-                pTemp = Abc_AigXorLookup( pManRst->pNtk->pManFunc, pNode1, pNode3, NULL );
+                pTemp = Abc_AigXorLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, pNode1, pNode3, NULL );
                 if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                     continue;
 
@@ -524,7 +527,7 @@ void Abc_NodeEdgeDsdPermute( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst, Vec_I
         {
             if ( pNode1 && pNode3 )
             {
-                pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode3) );
+                pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode3) );
                 if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                     continue;
 
@@ -634,15 +637,15 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
             // get the two last nodes
             eNode1 = Dec_IntToEdge( Vec_IntPop(vEdges) );
             eNode2 = Dec_IntToEdge( Vec_IntPop(vEdges) );
-            pNode1 = Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
-            pNode2 = Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
+            pNode1 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
+            pNode2 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
             pNode1 = !pNode1? NULL : Abc_ObjNotCond( pNode1, eNode1.fCompl );
             pNode2 = !pNode2? NULL : Abc_ObjNotCond( pNode2, eNode2.fCompl );
             // check if the new node exists
             pNode3 = NULL;
             if ( pNode1 && pNode2 )
             {
-                pNode3 = Abc_AigAndLookup( pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) ); 
+                pNode3 = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) ); 
                 pNode3 = !pNode3? NULL : Abc_ObjNot(pNode3);
             }
             // create the new node
@@ -689,15 +692,15 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
             // get the two last nodes
             eNode1 = Dec_IntToEdge( Vec_IntPop(vEdges) );
             eNode2 = Dec_IntToEdge( Vec_IntPop(vEdges) );
-            pNode1 = Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
-            pNode2 = Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
+            pNode1 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
+            pNode2 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
             pNode1 = !pNode1? NULL : Abc_ObjNotCond( pNode1, eNode1.fCompl );
             pNode2 = !pNode2? NULL : Abc_ObjNotCond( pNode2, eNode2.fCompl );
             // check if the new node exists
             Type = 0;
             pNode3 = NULL;
             if ( pNode1 && pNode2 )
-                pNode3 = Abc_AigXorLookup( pManRst->pNtk->pManFunc, pNode1, pNode2, &Type ); 
+                pNode3 = Abc_AigXorLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, pNode1, pNode2, &Type ); 
             // create the new node
             eNode3 = Dec_GraphAddNodeXor( pGraph, eNode1, eNode2, Type ); // should have the same structure as in AIG
             // set level
@@ -718,19 +721,19 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
                     (*pnNodesAdded) += 2;
                 else if ( Type == 0 )
                 {
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, pNode1, Abc_ObjNot(pNode2) );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, pNode1, Abc_ObjNot(pNode2) );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), pNode2 );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), pNode2 );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
                 }
                 else
                 {
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, pNode1, pNode2 );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, pNode1, pNode2 );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
                 }
@@ -799,9 +802,9 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
         Cudd_RecursiveDeref( pManRst->dd, bCofT );
 
         // find the ABC nodes
-        pNode1 = Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
-        pNode2 = Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
-        pNode3 = Dec_GraphNode( pGraph, eNode3.Node )->pFunc;
+        pNode1 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode1.Node )->pFunc;
+        pNode2 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode2.Node )->pFunc;
+        pNode3 = (Abc_Obj_t *)Dec_GraphNode( pGraph, eNode3.Node )->pFunc;
         pNode1 = !pNode1? NULL : Abc_ObjNotCond( pNode1, eNode1.fCompl );
         pNode2 = !pNode2? NULL : Abc_ObjNotCond( pNode2, eNode2.fCompl );
         pNode3 = !pNode3? NULL : Abc_ObjNotCond( pNode3, eNode3.fCompl );
@@ -810,7 +813,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
         Type = 0;
         pNode4 = NULL;
         if ( pNode1 && pNode2 && pNode3 )
-            pNode4 = Abc_AigMuxLookup( pManRst->pNtk->pManFunc, pNode1, pNode2, pNode3, &Type ); 
+            pNode4 = Abc_AigMuxLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, pNode1, pNode2, pNode3, &Type ); 
 
         // create the new node
         eResult = Dec_GraphAddNodeMux( pGraph, eNode1, eNode2, eNode3, Type ); // should have the same structure as AIG
@@ -836,7 +839,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
                     (*pnNodesAdded)++;
                 else
                 {
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, pNode1, pNode2 );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, pNode1, pNode2 );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
                 }
@@ -844,7 +847,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
                     (*pnNodesAdded)++;
                 else
                 {
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), pNode3 );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), pNode3 );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
                 }
@@ -855,7 +858,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
                     (*pnNodesAdded)++;
                 else
                 {
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, pNode1, Abc_ObjNot(pNode2) );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, pNode1, Abc_ObjNot(pNode2) );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
                 }
@@ -863,7 +866,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
                     (*pnNodesAdded)++;
                 else
                 {
-                    pTemp = Abc_AigAndLookup( pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode3) );
+                    pTemp = Abc_AigAndLookup( (Abc_Aig_t *)pManRst->pNtk->pManFunc, Abc_ObjNot(pNode1), Abc_ObjNot(pNode3) );
                     if ( !pTemp || Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pTemp)) )
                         (*pnNodesAdded)++;
                 }
@@ -907,7 +910,7 @@ Dec_Graph_t * Abc_NodeEvaluateDsd( Abc_ManRst_t * pManRst, Dsd_Node_t * pNodeDsd
     pGraph = Dec_GraphCreate( Vec_PtrSize(pManRst->vLeaves) );
     Dec_GraphForEachLeaf( pGraph, pNode, i )
     {
-        pLeaf = Vec_PtrEntry( pManRst->vLeaves, i );
+        pLeaf = (Abc_Obj_t *)Vec_PtrEntry( pManRst->vLeaves, i );
         pNode->pFunc = pLeaf;
         pNode->Level = pLeaf->Level;
     }
@@ -923,7 +926,7 @@ Dec_Graph_t * Abc_NodeEvaluateDsd( Abc_ManRst_t * pManRst, Dsd_Node_t * pNodeDsd
     }
 
     // quit if the root node is the same
-    pLeaf = Dec_GraphNode( pGraph, gEdge.Node )->pFunc;
+    pLeaf = (Abc_Obj_t *)Dec_GraphNode( pGraph, gEdge.Node )->pFunc;
     if ( Abc_ObjRegular(pLeaf) == pRoot )
     {
         *pnNodesAdded = -1;
@@ -987,7 +990,7 @@ Cut_Man_t * Abc_NtkStartCutManForRestruct( Abc_Ntk_t * pNtk, int nCutMax, int fD
   SeeAlso     []
 
 ***********************************************************************/
-Abc_ManRst_t * Abc_NtkManRstStart( int nCutMax, bool fUpdateLevel, bool fUseZeros, bool fVerbose )
+Abc_ManRst_t * Abc_NtkManRstStart( int nCutMax, int fUpdateLevel, int fUseZeros, int fVerbose )
 {
     Abc_ManRst_t * p;
     p = ABC_ALLOC( Abc_ManRst_t, 1 );
@@ -1104,7 +1107,7 @@ int Abc_Abc_NodeResubCollectDivs( Abc_ManRst_t * p, Abc_Obj_t * pRoot, Cut_Cut_t
         Abc_NodeSetTravIdCurrent( pNode );        
     }
     // explore the fanouts
-    Vec_PtrForEachEntry( p->vDecs, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vDecs, pNode, i )
     {
         // if the fanout has both fanins in the set, add it
         Abc_ObjForEachFanout( pNode, pFanout, k )
@@ -1159,7 +1162,7 @@ int Abc_NodeResubMffc( Abc_ManRst_t * p, Vec_Ptr_t * vDecs, int nLeaves, Abc_Obj
     // increment the traversal ID for the leaves
     Abc_NtkIncrementTravId( pRoot->pNtk );
     // label the leaves
-    Vec_PtrForEachEntryStop( vDecs, pObj, i, nLeaves )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vDecs, pObj, i, nLeaves )
         Abc_NodeSetTravIdCurrent( pObj ); 
     // make sure the node is in the cone and is no one of the leaves
     assert( Abc_NodeIsTravIdPrevious(pRoot) );
@@ -1167,13 +1170,13 @@ int Abc_NodeResubMffc( Abc_ManRst_t * p, Vec_Ptr_t * vDecs, int nLeaves, Abc_Obj
     // move the labeled nodes to the end 
     Vec_PtrClear( p->vTemp );
     k = 0;
-    Vec_PtrForEachEntryStart( vDecs, pObj, i, nLeaves )
+    Vec_PtrForEachEntryStart( Abc_Obj_t *, vDecs, pObj, i, nLeaves )
         if ( Abc_NodeIsTravIdCurrent(pObj) )
             Vec_PtrPush( p->vTemp, pObj );
         else
             Vec_PtrWriteEntry( vDecs, k++, pObj );
     // add the labeled nodes
-    Vec_PtrForEachEntry( p->vTemp, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vTemp, pObj, i )
         Vec_PtrWriteEntry( vDecs, k++, pObj );
     assert( k == Vec_PtrSize(p->vDecs) );
     assert( pRoot == Vec_PtrEntryLast(p->vDecs) );
@@ -1198,14 +1201,14 @@ void Abc_NodeMffcSimulate( Vec_Ptr_t * vDecs, int nLeaves, Vec_Int_t * vRands, V
     int i;
     // initialize random simulation data
     Vec_IntClear( vSims );
-    Vec_PtrForEachEntryStop( vDecs, pObj, i, nLeaves )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vDecs, pObj, i, nLeaves )
     {
         uData = (unsigned)Vec_IntEntry( vRands, i );
         pObj->pData = (void *)(ABC_PTRUINT_T)uData;
         Vec_IntPush( vSims, uData );
     }
     // simulate
-    Vec_PtrForEachEntryStart( vDecs, pObj, i, nLeaves )
+    Vec_PtrForEachEntryStart( Abc_Obj_t *, vDecs, pObj, i, nLeaves )
     {
         uData0 = (unsigned)(ABC_PTRUINT_T)Abc_ObjFanin0(pObj)->pData;
         uData1 = (unsigned)(ABC_PTRUINT_T)Abc_ObjFanin1(pObj)->pData;
@@ -1490,4 +1493,6 @@ Dec_Graph_t * Abc_NodeResubstitute( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

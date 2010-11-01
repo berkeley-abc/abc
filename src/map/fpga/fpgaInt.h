@@ -19,6 +19,7 @@
 #ifndef __FPGA_INT_H__
 #define __FPGA_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -28,6 +29,9 @@
 #include <string.h>
 #include "extra.h"
 #include "fpga.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -376,6 +380,10 @@ extern void              Fpga_MappingSetChoiceLevels( Fpga_Man_t * pMan );
 
 /*=== CUDD package.c ===============================================================*/
 extern unsigned int      Cudd_Prime( unsigned int p );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

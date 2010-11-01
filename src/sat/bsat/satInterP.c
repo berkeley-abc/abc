@@ -27,6 +27,9 @@
 #include "satStore.h"
 #include "vec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -54,8 +57,10 @@ struct Intp_Man_t_
     Sto_Cls_t **    pReasons;     // reasons for each assignment (size nVars)          
     Sto_Cls_t **    pWatches;     // watched clauses for each literal (size 2*nVars)          
     // proof data
-    Vec_Int_t *     vAnties;      // anticedents for all clauses
-    Vec_Int_t *     vBreaks;      // beginnings of anticedents for each clause
+//    Vec_Int_t *     vAnties;      // anticedents for all clauses
+//    Vec_Int_t *     vBreaks;      // beginnings of anticedents for each clause
+    Vec_Ptr_t *     vAntClas;     // anticedant clauses
+    int             nAntStart;    // starting antecedant clause
     // proof recording
     int             Counter;      // counter of resolved clauses
     int *           pProofNums;   // the proof numbers for each clause (size nClauses)
@@ -99,8 +104,10 @@ Intp_Man_t * Intp_ManAlloc()
     p->nResLitsAlloc = (1<<16);
     p->pResLits = ABC_ALLOC( lit, p->nResLitsAlloc );
     // proof recording
-    p->vAnties = Vec_IntAlloc( 1000 );
-    p->vBreaks = Vec_IntAlloc( 1000 );
+//    p->vAnties = Vec_IntAlloc( 1000 );
+//    p->vBreaks = Vec_IntAlloc( 1000 );
+    p->vAntClas = Vec_PtrAlloc( 1000 );
+    p->nAntStart = 0;
     // parameters
     p->fProofWrite = 0;
     p->fProofVerif = 1;
@@ -137,7 +144,7 @@ void Intp_ManResize( Intp_Man_t * p )
         p->pWatches  = ABC_REALLOC(Sto_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
     }
 
-    // clean the ABC_FREE space
+    // clean the free space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
 //    memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
@@ -177,8 +184,9 @@ ABC_PRT( "BCP     ", p->timeBcp   );
 ABC_PRT( "Trace   ", p->timeTrace );
 ABC_PRT( "TOTAL   ", p->timeTotal );
 */
-    Vec_IntFree( p->vAnties );
-    Vec_IntFree( p->vBreaks );
+//    Vec_IntFree( p->vAnties );
+//    Vec_IntFree( p->vBreaks );
+    Vec_VecFree( (Vec_Vec_t *)p->vAntClas );
 //    ABC_FREE( p->pInters );
     ABC_FREE( p->pProofNums );
     ABC_FREE( p->pTrail );
@@ -485,9 +493,16 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
     // start the anticedents
 //    pFinal->pAntis = Vec_PtrAlloc( 32 );
 //    Vec_PtrPush( pFinal->pAntis, pConflict );
-    assert( pFinal->Id == Vec_IntSize(p->vBreaks) );
-    Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
-    Vec_IntPush( p->vAnties, pConflict->Id );
+
+//    assert( pFinal->Id == Vec_IntSize(p->vBreaks) );
+//    Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+//    Vec_IntPush( p->vAnties, pConflict->Id );
+    {
+        Vec_Int_t * vAnts = Vec_IntAlloc( 16 );
+        assert( Vec_PtrSize(p->vAntClas) == pFinal->Id - p->nAntStart );
+        Vec_IntPush( vAnts, pConflict->Id );
+        Vec_PtrPush( p->vAntClas, vAnts );
+    }
 
 //    if ( p->pCnf->nClausesA )
 //        Intp_ManAigCopy( p, Intp_ManAigRead(p, pFinal), Intp_ManAigRead(p, pConflict) );
@@ -570,7 +585,8 @@ int Intp_ManProofTraceOne( Intp_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pF
         }
 
 //        Vec_PtrPush( pFinal->pAntis, pReason );
-        Vec_IntPush( p->vAnties, pReason->Id );
+//        Vec_IntPush( p->vAnties, pReason->Id );
+        Vec_IntPush( (Vec_Int_t *)Vec_PtrEntryLast(p->vAntClas), pReason->Id );
     }
 
     // unmark all seen variables
@@ -668,7 +684,8 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
     for ( i = 0; i < (int)pClause->nLits; i++ )
         if ( p->pAssigns[lit_var(pClause->pLits[i])] == pClause->pLits[i] )
         {
-            Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+//            Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+            Vec_PtrPush( p->vAntClas, Vec_IntAlloc(0) );
             return 1;
         }
 
@@ -705,7 +722,8 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
         {
             // undo to the root level
             Intp_ManCancelUntil( p, p->nRootSize );
-            Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+//            Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+            Vec_PtrPush( p->vAntClas, Vec_IntAlloc(0) );
             return 1;
         }
     }
@@ -736,7 +754,10 @@ int Intp_ManProofRecordOne( Intp_Man_t * p, Sto_Cls_t * pClause )
     pConflict = Intp_ManPropagate( p, p->nRootSize );
     if ( pConflict )
     {
-        // construct the proof
+        // insert place-holders till the empty clause
+        while ( Vec_PtrSize(p->vAntClas) < p->pCnf->pEmpty->Id - p->nAntStart )
+            Vec_PtrPush( p->vAntClas, Vec_IntAlloc(0) );
+        // construct the proof for the empty clause
         Intp_ManProofTraceOne( p, pConflict, p->pCnf->pEmpty );
 //        if ( p->fVerbose )
 //            printf( "Found last conflict after adding unit clause number %d!\n", pClause->Id );
@@ -856,7 +877,7 @@ void Intp_ManUnsatCoreVerify( Sto_Man_t * pCnf, Vec_Int_t * vCore )
 //    sat_solver_setnvars( pSat, nSatVars );
     Vec_IntForEachEntry( vCore, iClause, i )
     {
-        pClause = Vec_PtrEntry( vClauses, iClause );
+        pClause = (Sto_Cls_t *)Vec_PtrEntry( vClauses, iClause );
         if ( !sat_solver_addclause( pSat, pClause->pLits, pClause->pLits+pClause->nLits ) )
         {
             printf( "The core verification problem is trivially UNSAT.\n" );
@@ -895,9 +916,11 @@ void Intp_ManUnsatCoreVerify( Sto_Man_t * pCnf, Vec_Int_t * vCore )
   SeeAlso     []
 
 ***********************************************************************/
-void Intp_ManUnsatCore_rec( Vec_Int_t * vAnties, Vec_Int_t * vBreaks, int iThis, Vec_Int_t * vCore, int nRoots, Vec_Int_t * vVisited )
+void Intp_ManUnsatCore_rec( Vec_Ptr_t * vAntClas, int iThis, Vec_Int_t * vCore, int nRoots, Vec_Int_t * vVisited )
 {
-    int i, iStop, iStart;
+//    int i, iStop, iStart;
+    Vec_Int_t * vAnt;
+    int i, Entry;
     // skip visited clauses
     if ( Vec_IntEntry( vVisited, iThis ) )
         return;
@@ -906,14 +929,17 @@ void Intp_ManUnsatCore_rec( Vec_Int_t * vAnties, Vec_Int_t * vBreaks, int iThis,
     if ( iThis < nRoots )
     {
         Vec_IntPush( vCore, iThis );
-        return;
+        return; 
     }
     // iterate through the clauses
-    iStart = Vec_IntEntry( vBreaks, iThis );
-    iStop = Vec_IntEntry( vBreaks, iThis+1 );
-    assert( iStop != -1 );
-    for ( i = iStart; i < iStop; i++ )
-        Intp_ManUnsatCore_rec( vAnties, vBreaks, Vec_IntEntry(vAnties, i), vCore, nRoots, vVisited );
+//    iStart = Vec_IntEntry( vBreaks, iThis );
+//    iStop = Vec_IntEntry( vBreaks, iThis+1 );
+//    assert( iStop != -1 );
+//    for ( i = iStart; i < iStop; i++ )
+    vAnt = (Vec_Int_t *)Vec_PtrEntry( vAntClas, iThis - nRoots );
+    Vec_IntForEachEntry( vAnt, Entry, i )
+//        Intp_ManUnsatCore_rec( vAntClas, Vec_IntEntry(vAnties, i), vCore, nRoots, vVisited );
+        Intp_ManUnsatCore_rec( vAntClas, Entry, vCore, nRoots, vVisited );
 }
 
 /**Function*************************************************************
@@ -944,7 +970,7 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
     p->fVerbose = fVerbose;
 
     // adjust the manager
-    Intp_ManResize( p );
+    Intp_ManResize( p ); 
 
     // construct proof for each clause
     // start the proof
@@ -955,8 +981,11 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
     }
 
     // write the root clauses
-    Vec_IntClear( p->vAnties );
-    Vec_IntFill( p->vBreaks, p->pCnf->nRoots, 0 );
+//    Vec_IntClear( p->vAnties );
+//    Vec_IntFill( p->vBreaks, p->pCnf->nRoots, 0 );
+    Vec_PtrClear( p->vAntClas );
+    p->nAntStart = p->pCnf->nRoots;
+
     Sto_ManForEachClauseRoot( p->pCnf, pClause )
         Intp_ManProofWriteOne( p, pClause );
 
@@ -977,8 +1006,10 @@ void * Intp_ManUnsatCore( Intp_Man_t * p, Sto_Man_t * pCnf, int fVerbose )
     }
 
     // add the last breaker
-    assert( p->pCnf->pEmpty->Id == Vec_IntSize(p->vBreaks) - 1 );
-    Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+//    assert( p->pCnf->pEmpty->Id == Vec_IntSize(p->vBreaks) - 1 );
+//    Vec_IntPush( p->vBreaks, Vec_IntSize(p->vAnties) );
+    assert( p->pCnf->pEmpty->Id - p->nAntStart == Vec_PtrSize(p->vAntClas) - 1 );
+    Vec_PtrPush( p->vAntClas, Vec_IntAlloc(0) );
 
     // stop the proof
     if ( p->fProofWrite )
@@ -1001,7 +1032,7 @@ p->timeTotal += clock() - clkTotal;
     // derive the UNSAT core
     vCore = Vec_IntAlloc( 1000 );
     vVisited = Vec_IntStart( p->pCnf->pEmpty->Id+1 );
-    Intp_ManUnsatCore_rec( p->vAnties, p->vBreaks, p->pCnf->pEmpty->Id, vCore, p->pCnf->nRoots, vVisited );
+    Intp_ManUnsatCore_rec( p->vAntClas, p->pCnf->pEmpty->Id, vCore, p->pCnf->nRoots, vVisited );
     Vec_IntFree( vVisited );
     if ( fVerbose )
         printf( "Root clauses = %d. Learned clauses = %d. UNSAT core size = %d.\n", 
@@ -1014,4 +1045,6 @@ p->timeTotal += clock() - clkTotal;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

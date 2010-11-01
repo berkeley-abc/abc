@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -321,7 +324,7 @@ void Aig_TsiStateOrAll( Aig_Tsi_t * pTsi, unsigned * pState )
 {
     unsigned * pPrev;
     int i, k;
-    Vec_PtrForEachEntry( pTsi->vStates, pPrev, i )
+    Vec_PtrForEachEntry( unsigned *, pTsi->vStates, pPrev, i )
     {
         for ( k = 0; k < pTsi->nWords; k++ )
             pState[k] |= pPrev[k];
@@ -423,7 +426,7 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
         return NULL;
     }
     // OR all the states
-    pState = Vec_PtrEntry( pTsi->vStates, 0 );
+    pState = (unsigned *)Vec_PtrEntry( pTsi->vStates, 0 );
     Aig_TsiStateOrAll( pTsi, pState );
     // check if there are constants
     fConstants = 0;
@@ -505,4 +508,6 @@ Aig_Man_t * Aig_ManConstReduce( Aig_Man_t * p, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

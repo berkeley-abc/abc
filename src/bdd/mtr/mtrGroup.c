@@ -36,6 +36,9 @@
 #include "util_hack.h"
 #include "mtrInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -687,4 +690,6 @@ mtrShiftHL(
     return(1);
 
 } /* end of mtrShiftHL */
+
+ABC_NAMESPACE_IMPL_END
 

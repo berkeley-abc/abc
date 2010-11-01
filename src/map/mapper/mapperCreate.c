@@ -18,6 +18,9 @@
 
 #include "mapperInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,7 +54,7 @@ Map_Node_t **   Map_ManReadOutputs( Map_Man_t * p )                     { return
 Map_Node_t *    Map_ManReadConst1 ( Map_Man_t * p )                     { return p->pConst1;    }
 Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p )               { return p->pInputArrivals;}
 Mio_Library_t * Map_ManReadGenLib ( Map_Man_t * p )                     { return p->pSuperLib->pGenlib; }
-bool            Map_ManReadVerbose( Map_Man_t * p )                     { return p->fVerbose;   }
+int             Map_ManReadVerbose( Map_Man_t * p )                     { return p->fVerbose;   }
 float           Map_ManReadAreaFinal( Map_Man_t * p )                   { return p->AreaFinal;  }
 float           Map_ManReadRequiredGlo( Map_Man_t * p )                 { return p->fRequiredGlo;  }
 void            Map_ManSetTimeToMap( Map_Man_t * p, int Time )          { p->timeToMap = Time;  }
@@ -62,7 +65,7 @@ void            Map_ManSetOutputNames( Map_Man_t * p, char ** ppNames ) { p->ppO
 void            Map_ManSetAreaRecovery( Map_Man_t * p, int fAreaRecovery ) { p->fAreaRecovery = fAreaRecovery;}
 void            Map_ManSetDelayTarget( Map_Man_t * p, float DelayTarget ) { p->DelayTarget = DelayTarget;}
 void            Map_ManSetInputArrivals( Map_Man_t * p, Map_Time_t * pArrivals ) { p->pInputArrivals = pArrivals;}
-void            Map_ManSetObeyFanoutLimits( Map_Man_t * p, bool fObeyFanoutLimits )  { p->fObeyFanoutLimits = fObeyFanoutLimits;     }
+void            Map_ManSetObeyFanoutLimits( Map_Man_t * p, int  fObeyFanoutLimits )  { p->fObeyFanoutLimits = fObeyFanoutLimits;     }
 void            Map_ManSetNumIterations( Map_Man_t * p, int nIterations )            { p->nIterations = nIterations;     }
 int             Map_ManReadFanoutViolations( Map_Man_t * p )            { return p->nFanoutViolations; }  
 void            Map_ManSetFanoutViolations( Map_Man_t * p, int nVio )   { p->nFanoutViolations = nVio; }  
@@ -192,7 +195,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // start the manager
     p = ABC_ALLOC( Map_Man_t, 1 );
     memset( p, 0, sizeof(Map_Man_t) );
-    p->pSuperLib = Abc_FrameReadLibSuper();
+    p->pSuperLib = (Map_SuperLib_t *)Abc_FrameReadLibSuper();
     p->nVarsMax  = p->pSuperLib->nVarsMax;
     p->fVerbose  = fVerbose;
     p->fEpsilon  = (float)0.001;
@@ -597,4 +600,6 @@ void Map_NodeSetChoice( Map_Man_t * pMan, Map_Node_t * pNodeOld, Map_Node_t * pN
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

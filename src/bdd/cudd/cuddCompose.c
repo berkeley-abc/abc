@@ -58,6 +58,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -1720,3 +1723,5 @@ ddIsIthAddVarPair(
        cuddT(g) == DD_ZERO(dd) && cuddE(g) == DD_ONE(dd));
 
 } /* end of ddIsIthAddVarPair */
+ABC_NAMESPACE_IMPL_END
+

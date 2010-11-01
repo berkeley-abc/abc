@@ -22,8 +22,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "abc_global.h"
+
 #include "mem.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -36,7 +39,7 @@ struct Mem_Fixed_t_
     int           nEntriesAlloc; // the total number of entries allocated
     int           nEntriesUsed;  // the number of entries in use
     int           nEntriesMax;   // the max number of entries in use
-    char *        pEntriesFree;  // the linked list of ABC_FREE entries
+    char *        pEntriesFree;  // the linked list of free entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -53,8 +56,8 @@ struct Mem_Flex_t_
 {
     // information about individual entries
     int           nEntriesUsed;  // the number of entries allocated
-    char *        pCurrent;      // the current pointer to ABC_FREE memory
-    char *        pEnd;          // the first entry outside the ABC_FREE memory
+    char *        pCurrent;      // the current pointer to free memory
+    char *        pEnd;          // the first entry outside the free memory
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -164,7 +167,7 @@ char * Mem_FixedEntryFetch( Mem_Fixed_t * p )
     char * pTemp;
     int i;
 
-    // check if there are still ABC_FREE entries
+    // check if there are still free entries
     if ( p->nEntriesUsed == p->nEntriesAlloc )
     { // need to allocate more entries
         assert( p->pEntriesFree == NULL );
@@ -193,7 +196,7 @@ char * Mem_FixedEntryFetch( Mem_Fixed_t * p )
     p->nEntriesUsed++;
     if ( p->nEntriesMax < p->nEntriesUsed )
         p->nEntriesMax = p->nEntriesUsed;
-    // return the first entry in the ABC_FREE entry list
+    // return the first entry in the free entry list
     pTemp = p->pEntriesFree;
     p->pEntriesFree = *((char **)pTemp);
     return pTemp;
@@ -214,7 +217,7 @@ void Mem_FixedEntryRecycle( Mem_Fixed_t * p, char * pEntry )
 {
     // decrement the counter of used entries
     p->nEntriesUsed--;
-    // add the entry to the linked list of ABC_FREE entries
+    // add the entry to the linked list of free entries
     *((char **)pEntry) = p->pEntriesFree;
     p->pEntriesFree = pEntry;
 }
@@ -248,7 +251,7 @@ void Mem_FixedRestart( Mem_Fixed_t * p )
     }
     // set the last link
     *((char **)pTemp) = NULL;
-    // set the ABC_FREE entry list
+    // set the free entry list
     p->pEntriesFree  = p->pChunks[0];
     // set the correct statistics
     p->nMemoryAlloc  = p->nEntrySize * p->nChunkSize;
@@ -366,7 +369,7 @@ void Mem_FlexStop( Mem_Flex_t * p, int fVerbose )
 char * Mem_FlexEntryFetch( Mem_Flex_t * p, int nBytes )
 {
     char * pTemp;
-    // check if there are still ABC_FREE entries
+    // check if there are still free entries
     if ( p->pCurrent == NULL || p->pCurrent + nBytes > p->pEnd )
     { // need to allocate more entries
         if ( p->nChunks == p->nChunksAlloc )
@@ -597,3 +600,5 @@ int Mem_StepReadMemUsage( Mem_Step_t * p )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

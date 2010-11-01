@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "fraig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ Abc_Obj_t * Abc_NtkSensitivityMiter_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode 
         return pNode->pCopy;
     Abc_NtkSensitivityMiter_rec( pNtkNew, Abc_ObjFanin0(pNode) );
     Abc_NtkSensitivityMiter_rec( pNtkNew, Abc_ObjFanin1(pNode) );
-    return pNode->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
+    return pNode->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
 }
 
 /**Function*************************************************************
@@ -80,7 +83,10 @@ Abc_Ntk_t * Abc_NtkSensitivityMiter( Abc_Ntk_t * pNtk, int iVar )
     Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pMiter);
     Abc_AigConst1(pNtk)->pData = Abc_AigConst1(pMiter);
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = pObj->pData = Abc_NtkCreatePi( pMiter );
+    {
+        pObj->pCopy = Abc_NtkCreatePi( pMiter );
+        pObj->pData = pObj->pCopy;
+    }
     Abc_NtkAddDummyPiNames( pMiter );
 
     // assign the cofactors of the CI node to be constants
@@ -90,7 +96,7 @@ Abc_Ntk_t * Abc_NtkSensitivityMiter( Abc_Ntk_t * pNtk, int iVar )
 
     // collect the internal nodes
     vNodes = Abc_NtkDfsReverseNodes( pNtk, &pObj, 1 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         for ( pNext = pObj? pObj->pCopy : pObj; pObj; pObj = pNext, pNext = pObj? pObj->pCopy : pObj )
         {
@@ -100,8 +106,8 @@ Abc_Ntk_t * Abc_NtkSensitivityMiter( Abc_Ntk_t * pNtk, int iVar )
             pFanin = Abc_ObjFanin1(pObj);
             if ( !Abc_NodeIsTravIdCurrent(pFanin) )
                 pFanin->pData = Abc_NtkSensitivityMiter_rec( pMiter, pFanin );
-            pObj->pCopy = Abc_AigAnd( pMiter->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
-            pObj->pData = Abc_AigAnd( pMiter->pManFunc, Abc_ObjChild0Data(pObj), Abc_ObjChild1Data(pObj) );
+            pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pMiter->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+            pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pMiter->pManFunc, Abc_ObjChild0Data(pObj), Abc_ObjChild1Data(pObj) );
         }
     }
     Vec_PtrFree( vNodes );
@@ -115,13 +121,13 @@ Abc_Ntk_t * Abc_NtkSensitivityMiter( Abc_Ntk_t * pNtk, int iVar )
         // get the result of quantification
         if ( i == Abc_NtkCoNum(pNtk) - 1 )
         {
-            pOutput = Abc_AigAnd( pMiter->pManFunc, pOutput, Abc_ObjChild0Data(pObj) );
-            pOutput = Abc_AigAnd( pMiter->pManFunc, pOutput, Abc_ObjChild0Copy(pObj) );
+            pOutput = Abc_AigAnd( (Abc_Aig_t *)pMiter->pManFunc, pOutput, Abc_ObjChild0Data(pObj) );
+            pOutput = Abc_AigAnd( (Abc_Aig_t *)pMiter->pManFunc, pOutput, Abc_ObjChild0Copy(pObj) );
         }
         else
         {
-            pNext   = Abc_AigXor( pMiter->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild0Data(pObj) );
-            pOutput = Abc_AigOr( pMiter->pManFunc, pOutput, pNext );
+            pNext   = Abc_AigXor( (Abc_Aig_t *)pMiter->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild0Data(pObj) );
+            pOutput = Abc_AigOr( (Abc_Aig_t *)pMiter->pManFunc, pOutput, pNext );
         }
     }
     // add the PO node and name
@@ -205,4 +211,6 @@ Vec_Int_t * Abc_NtkSensitivity( Abc_Ntk_t * pNtk, int nConfLim, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -18,6 +18,9 @@
 
 #include "reo.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -233,7 +236,7 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
     // (2) walk through the uppoer level, and tranform all the remaning nodes 
     //     while employing cache for the new lower level
     // (3) walk through the old lower level, find those nodes whose ref counters are not zero, 
-    //     and move them to the new uppoer level, ABC_FREE other nodes
+    //     and move them to the new uppoer level, free other nodes
 
     // (1) walk through the upper level, find units without cofactors in the lower level 
     //     and move them to the new lower level (while adding to the cache)
@@ -759,7 +762,7 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
     }
 
     // (3) walk through the old lower level, find those nodes whose ref counters are not zero, 
-    //     and move them to the new uppoer level, ABC_FREE other nodes
+    //     and move them to the new uppoer level, free other nodes
     for ( pLoop = pListOld1; pLoop; )
     {
         pUnit = pLoop;
@@ -897,4 +900,6 @@ finish:
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

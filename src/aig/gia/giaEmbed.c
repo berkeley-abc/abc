@@ -20,6 +20,10 @@
 
 #include <math.h>
 #include "gia.h"
+#include "ioa.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /* 
     The code is based on the paper by D. Harel and Y. Koren, 
@@ -743,7 +747,7 @@ void Emb_ManPrintFanio( Emb_Man_t * p )
             printf( "%15d : ", k );
         else
         {
-            sprintf( Buffer, "%d - %d", (int)pow(10, k/10) * (k%10), (int)pow(10, k/10) * (k%10+1) - 1 ); 
+            sprintf( Buffer, "%d - %d", (int)pow((double)10, k/10) * (k%10), (int)pow((double)10, k/10) * (k%10+1) - 1 ); 
             printf( "%15s : ", Buffer );
         }
         if ( vFanins->pArray[k] == 0 )
@@ -1692,7 +1696,7 @@ void Emb_ManDumpGnuplot( Emb_Man_t * p, char * pName, int fDumpLarge, int fShowI
     extern void Gia_ManGnuplotShow( char * pPlotFileName );
 //    char * pDirectory = "place\\";
     char * pDirectory = "";
-    extern char * Ioa_TimeStamp();
+//    extern char * Ioa_TimeStamp();
     FILE * pFile;
     char Buffer[1000];
     Emb_Obj_t * pThis, * pNext;
@@ -1864,4 +1868,6 @@ ABC_PRT( "Image dump", clock() - clk );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

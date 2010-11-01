@@ -20,6 +20,9 @@
 
 #include "msatInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ int                Msat_SolverReadVarAllocNum( Msat_Solver_t * p )             {
 int                Msat_SolverReadDecisionLevel( Msat_Solver_t * p )           { return Msat_IntVecReadSize(p->vTrailLim); }
 int *              Msat_SolverReadDecisionLevelArray( Msat_Solver_t * p )      { return p->pLevel;     }
 Msat_Clause_t **    Msat_SolverReadReasonArray( Msat_Solver_t * p )            { return p->pReasons;   }
-Msat_Lit_t          Msat_SolverReadVarValue( Msat_Solver_t * p, Msat_Var_t Var ) { return p->pAssigns[Var]; }
+Msat_Type_t         Msat_SolverReadVarValue( Msat_Solver_t * p, Msat_Var_t Var ) { return (Msat_Type_t)p->pAssigns[Var]; }
 Msat_ClauseVec_t *  Msat_SolverReadLearned( Msat_Solver_t * p )                { return p->vLearned;   }
 Msat_ClauseVec_t ** Msat_SolverReadWatchedArray( Msat_Solver_t * p )           { return p->pvWatched;  }
 int *              Msat_SolverReadAssignsArray( Msat_Solver_t * p )            { return p->pAssigns;   }
@@ -151,7 +154,7 @@ Msat_IntVec_t *  Msat_SolverReadVarsUsed( Msat_Solver_t * p )
 Msat_Solver_t * Msat_SolverAlloc( int nVarsAlloc,
     double dClaInc, double dClaDecay, 
     double dVarInc, double dVarDecay, 
-    bool fVerbose )
+    int  fVerbose )
 {
     Msat_Solver_t * p;
     int i;
@@ -497,4 +500,6 @@ void Msat_SolverSetupTruthTables( unsigned uTruths[][2] )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

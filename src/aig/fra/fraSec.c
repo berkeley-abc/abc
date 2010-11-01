@@ -23,6 +23,10 @@
 #include "int.h"
 #include "ssw.h"
 #include "saig.h"
+#include "bbr.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -63,7 +67,7 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     p->fInterpolation    =       1;  // enables interpolation
     p->fInterSeparate    =       0;  // enables interpolation for each outputs separately
     p->fReachability     =       1;  // enables BDD based reachability
-    p->fReorderImage     =       0;  // enables variable reordering during image computation
+    p->fReorderImage     =       1;  // enables variable reordering during image computation
     p->fStopOnFirstFail  =       1;  // enables stopping after first output of a miter has failed to prove
     p->fUseNewProver     =       0;  // enables new prover
     p->fSilent           =       0;  // disables all output
@@ -292,7 +296,7 @@ ABC_PRT( "Time", clock() - clk );
     // perform min-area retiming
     if ( pParSec->fRetimeRegs && pNew->nRegs )
     {
-    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+//    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
 clk = clock();
     pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
     pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
@@ -353,9 +357,9 @@ clk = clock();
         Aig_ManSetRegNum( pNew, pNew->nRegs );
 //        pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
         if ( Aig_ManRegNum(pNew) > 0 )
-              pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
+            pNew = Ssw_SignalCorrespondence( pTemp = pNew, pPars2 );
         else
-              pNew = Aig_ManDupSimpleDfs( pTemp = pNew );
+            pNew = Aig_ManDupSimpleDfs( pTemp = pNew );
 
         if ( pNew == NULL )
         {
@@ -382,7 +386,7 @@ ABC_PRT( "Time", clock() - clk );
 //        if ( pParSec->fRetimeFirst && pNew->nRegs )
         if ( pNew->nRegs )
         {
-        extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+//        extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
 clk = clock();
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
@@ -480,7 +484,7 @@ clk = clock();
         }
         else if ( pParSec->fInterSeparate )
         {
-            Ssw_Cex_t * pCex = NULL;
+            Abc_Cex_t * pCex = NULL;
             Aig_Man_t * pTemp, * pAux;
             Aig_Obj_t * pObjPo;
             int i, Counter = 0;
@@ -488,6 +492,8 @@ clk = clock();
             { 
                 if ( Aig_ObjFanin0(pObjPo) == Aig_ManConst1(pNew) )
                     continue;
+                if ( pPars->fVerbose )
+                    printf( "Solving output %2d (out of %2d):\n", i, Saig_ManPoNum(pNew) );
                 pTemp = Aig_ManDupOneOutput( pNew, i, 1 );
                 pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0 );
                 Aig_ManStop( pAux );
@@ -537,7 +543,7 @@ clk = clock();
             RetValue = Inter_ManPerformInterpolation( pNewOrpos, pPars, &Depth );
             if ( pNewOrpos->pSeqModel )
             {
-                Ssw_Cex_t * pCex;
+                Abc_Cex_t * pCex;
                 pCex = pNew->pSeqModel = pNewOrpos->pSeqModel; pNewOrpos->pSeqModel = NULL;
                 pCex->iPo = Ssw_SmlFindOutputCounterExample( pNew, pNew->pSeqModel );
             }
@@ -561,10 +567,19 @@ ABC_PRT( "Time", clock() - clk );
     // try reachability analysis
     if ( pParSec->fReachability && RetValue == -1 && Aig_ManRegNum(pNew) > 0 && Aig_ManRegNum(pNew) < pParSec->nBddVarsMax )
     {
-        extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent );
+        Saig_ParBbr_t Pars, * pPars = &Pars;
+        Bbr_ManSetDefaultParams( pPars );
+        pPars->TimeLimit     = 0;
+        pPars->nBddMax       = pParSec->nBddMax;
+        pPars->nIterMax      = pParSec->nBddIterMax;
+        pPars->fPartition    = 1;
+        pPars->fReorder      = 1;
+        pPars->fReorderImage = 1;
+        pPars->fVerbose      = 0;
+        pPars->fSilent       = pParSec->fSilent;
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-        RetValue = Aig_ManVerifyUsingBdds( pNew, pParSec->nBddMax, pParSec->nBddIterMax, 1, 1, pParSec->fReorderImage, 0, pParSec->fSilent );
+        RetValue = Aig_ManVerifyUsingBdds( pNew, pPars );
     }
 
 finish:
@@ -644,4 +659,6 @@ ABC_PRT( "Time", clock() - clkTotal );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

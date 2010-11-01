@@ -23,9 +23,13 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+
 //#include "vec.h"
 #include "abc_global.h"
 #include "pr.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -186,7 +190,7 @@ void Pr_ManResize( Pr_Man_t * p, int nVarsNew )
         p->pVarTypes = ABC_REALLOC(char,       p->pVarTypes, p->nVarsAlloc );
         p->pReasons  = ABC_REALLOC(Pr_Cls_t *, p->pReasons,  p->nVarsAlloc );
         p->pWatches  = ABC_REALLOC(Pr_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
-        // clean the ABC_FREE space
+        // clean the free space
         memset( p->pAssigns  + nVarsAllocOld, 0xff, sizeof(lit) * (p->nVarsAlloc - nVarsAllocOld) );
         memset( p->pSeens    + nVarsAllocOld, 0, sizeof(char) * (p->nVarsAlloc - nVarsAllocOld) );
         memset( p->pVarTypes + nVarsAllocOld, 0, sizeof(char) * (p->nVarsAlloc - nVarsAllocOld) );
@@ -649,10 +653,10 @@ void Pr_ManProofWriteOne( Pr_Man_t * p, Pr_Cls_t * pClause )
     if ( p->fProofWrite )
     {
         int v;
-        fprintf( p->pManProof, "%d", (int)pClause->pProof );
+        fprintf( (FILE *)p->pManProof, "%d", (int)pClause->pProof );
         for ( v = 0; v < (int)pClause->nLits; v++ )
-            fprintf( p->pManProof, " %d", lit_print(pClause->pLits[v]) );
-        fprintf( p->pManProof, " 0 0\n" );
+            fprintf( (FILE *)p->pManProof, " %d", lit_print(pClause->pLits[v]) );
+        fprintf( (FILE *)p->pManProof, " 0 0\n" );
     }
 }
 
@@ -718,7 +722,7 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
         assert( pReason->pProof > 0 );
         p->Counter++;
         if ( p->fProofWrite )
-            fprintf( p->pManProof, "%d * %d %d 0\n", p->Counter, PrevId, (int)pReason->pProof );
+            fprintf( (FILE *)p->pManProof, "%d * %d %d 0\n", p->Counter, PrevId, (int)pReason->pProof );
         PrevId = p->Counter;
 
         if ( p->nClausesA )
@@ -1086,7 +1090,7 @@ int Pr_ManProofWrite( Pr_Man_t * p )
     // stop the proof
     if ( p->fProofWrite )
     {
-        fclose( p->pManProof );
+        fclose( (FILE *)p->pManProof );
         p->pManProof = NULL;    
     }
     return RetValue;
@@ -1162,7 +1166,7 @@ Pr_Man_t * Pr_ManProofRead( char * pFileName )
             for ( ; *pCur && *pCur != ' '; pCur++ );
         }
         // add the clause
-        if ( !Pr_ManAddClause( p, pArray, pArray + nNumbers, Counter < nRoots, Counter < nClausesA ) )
+        if ( !Pr_ManAddClause( p, (unsigned *)pArray, (unsigned *)pArray + nNumbers, Counter < nRoots, Counter < nClausesA ) )
         {
             printf( "Bad clause number %d.\n", Counter );
             return NULL;
@@ -1204,7 +1208,7 @@ int Pr_ManProofCount_rec( Pr_Cls_t * pClause )
     pClause->fVisit = 1;
     // count the number of visited clauses
     Counter = 1;
-    Vec_PtrForEachEntry( pClause->pAntis, pNext, i )
+    Vec_PtrForEachEntry( Pr_Cls_t *, pClause->pAntis, pNext, i )
         Counter += Pr_ManProofCount_rec( pNext );
     return Counter;
 }
@@ -1257,4 +1261,6 @@ p->timeTotal = clock() - clkTotal;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

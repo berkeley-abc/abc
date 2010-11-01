@@ -20,12 +20,16 @@
 
 #include "abc.h"
 #include "bdc.h"
+#include "kit.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCond( Bdc_FuncCopy(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
+static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCond( (Hop_Obj_t *)Bdc_FuncCopy(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -128,9 +132,9 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     {
         if ( Abc_ObjFaninNum(pObj) > 15 )
             continue;
-        nNodes1 = Hop_DagSize(pObj->pData);
-        pObj->pData = Abc_NodeIfNodeResyn( p, pNtk->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj), vTruth, NULL, -1.0 );
-        nNodes2 = Hop_DagSize(pObj->pData);
+        nNodes1 = Hop_DagSize((Hop_Obj_t *)pObj->pData);
+        pObj->pData = Abc_NodeIfNodeResyn( p, (Hop_Man_t *)pNtk->pManFunc, (Hop_Obj_t *)pObj->pData, Abc_ObjFaninNum(pObj), vTruth, NULL, -1.0 );
+        nNodes2 = Hop_DagSize((Hop_Obj_t *)pObj->pData);
         nGainTotal += nNodes1 - nNodes2;
     }
     Bdc_ManFree( p );
@@ -147,4 +151,6 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

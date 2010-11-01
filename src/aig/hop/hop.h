@@ -21,6 +21,7 @@
 #ifndef __HOP_H__
 #define __HOP_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -37,9 +38,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -102,7 +104,7 @@ struct Hop_Man_t_
     // memory management
     Vec_Ptr_t *      vChunks;        // allocated memory pieces
     Vec_Ptr_t *      vPages;         // memory pages used by nodes
-    Hop_Obj_t *      pListFree;      // the list of ABC_FREE nodes 
+    Hop_Obj_t *      pListFree;      // the list of free nodes 
     // timing statistics
     int              time1;
     int              time2;
@@ -111,14 +113,15 @@ struct Hop_Man_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+extern void Hop_ManAddMemory( Hop_Man_t * p );
 
 static inline int          Hop_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);           }
 static inline int          Hop_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));     }
 static inline int          Hop_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;       }
 static inline void         Hop_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
 static inline void         Hop_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
-static inline int          Hop_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
-static inline int          Hop_Base10Log( unsigned n )            { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
+static inline int          Hop_Base2Log( unsigned n )             { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
+static inline int          Hop_Base10Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
 
 static inline Hop_Obj_t *  Hop_Regular( Hop_Obj_t * p )           { return (Hop_Obj_t *)((ABC_PTRUINT_T)(p) & ~01); }
 static inline Hop_Obj_t *  Hop_Not( Hop_Obj_t * p )               { return (Hop_Obj_t *)((ABC_PTRUINT_T)(p) ^  01); }
@@ -224,7 +227,6 @@ static inline Hop_Obj_t *  Hop_ObjCreateGhost( Hop_Man_t * p, Hop_Obj_t * p0, Ho
 // internal memory manager
 static inline Hop_Obj_t * Hop_ManFetchMemory( Hop_Man_t * p )  
 { 
-    extern void Hop_ManAddMemory( Hop_Man_t * p );
     Hop_Obj_t * pTemp;
     if ( p->pListFree == NULL )
         Hop_ManAddMemory( p );
@@ -253,10 +255,10 @@ static inline void Hop_ManRecycleMemory( Hop_Man_t * p, Hop_Obj_t * pEntry )
 
 // iterator over the primary inputs
 #define Hop_ManForEachPi( p, pObj, i )                                          \
-    Vec_PtrForEachEntry( p->vPis, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vPis, pObj, i )
 // iterator over the primary outputs
 #define Hop_ManForEachPo( p, pObj, i )                                          \
-    Vec_PtrForEachEntry( p->vPos, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vPos, pObj, i )
 // iterator over all objects, including those currently not used
 #define Hop_ManForEachNode( p, pObj, i )                                        \
     for ( i = 0; i < p->nTableSize; i++ )                                       \
@@ -334,9 +336,11 @@ extern void            Hop_ObjPrintVerbose( Hop_Obj_t * pObj, int fHaig );
 extern void            Hop_ManPrintVerbose( Hop_Man_t * p, int fHaig );
 extern void            Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

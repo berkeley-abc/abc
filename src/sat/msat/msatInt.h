@@ -21,6 +21,7 @@
 #ifndef __MSAT_INT_H__
 #define __MSAT_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -31,8 +32,12 @@
 #include <assert.h>
 #include <time.h>
 #include <math.h>
+
 #include "abc_global.h"
 #include "msat.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -120,7 +125,7 @@ struct Msat_Solver_t_
 
     double              dRandSeed;   // For the internal random number generator (makes solver deterministic over different platforms). 
 
-    bool                fVerbose;    // the verbosity flag
+    int                 fVerbose;    // the verbosity flag
     double              dProgress;   // Set by 'search()'.
 
     // the variable cone and variable connectivity
@@ -197,10 +202,10 @@ extern void                Msat_SolverClausesIncrementL( Msat_Solver_t * p );
 extern void                Msat_SolverClausesDecrementL( Msat_Solver_t * p );
 extern void                Msat_SolverVarBumpActivity( Msat_Solver_t * p, Msat_Lit_t Lit );
 extern void                Msat_SolverClaBumpActivity( Msat_Solver_t * p, Msat_Clause_t * pC );
-extern bool                Msat_SolverEnqueue( Msat_Solver_t * p, Msat_Lit_t Lit, Msat_Clause_t * pC );
+extern int                 Msat_SolverEnqueue( Msat_Solver_t * p, Msat_Lit_t Lit, Msat_Clause_t * pC );
 extern double              Msat_SolverProgressEstimate( Msat_Solver_t * p );
 /*=== satSolverSearch.c ===========================================================*/
-extern bool                Msat_SolverAssume( Msat_Solver_t * p, Msat_Lit_t Lit );
+extern int                 Msat_SolverAssume( Msat_Solver_t * p, Msat_Lit_t Lit );
 extern Msat_Clause_t *     Msat_SolverPropagate( Msat_Solver_t * p );
 extern void                Msat_SolverCancelUntil( Msat_Solver_t * p, int Level );
 extern Msat_Type_t         Msat_SolverSearch( Msat_Solver_t * p, int nConfLimit, int nLearnedLimit, int nBackTrackLimit, Msat_SearchParams_t * pPars );
@@ -222,29 +227,29 @@ extern void                Msat_OrderVarAssigned( Msat_Order_t * p, int Var );
 extern void                Msat_OrderVarUnassigned( Msat_Order_t * p, int Var );
 extern void                Msat_OrderUpdate( Msat_Order_t * p, int Var );
 /*=== satClause.c ===========================================================*/
-extern bool                Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearnt, Msat_Clause_t ** pClause_out );
+extern int                 Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, int  fLearnt, Msat_Clause_t ** pClause_out );
 extern Msat_Clause_t *     Msat_ClauseCreateFake( Msat_Solver_t * p, Msat_IntVec_t * vLits );
 extern Msat_Clause_t *     Msat_ClauseCreateFakeLit( Msat_Solver_t * p, Msat_Lit_t Lit );
-extern bool                Msat_ClauseReadLearned( Msat_Clause_t * pC );
+extern int                 Msat_ClauseReadLearned( Msat_Clause_t * pC );
 extern int                 Msat_ClauseReadSize( Msat_Clause_t * pC );
 extern int *               Msat_ClauseReadLits( Msat_Clause_t * pC );
-extern bool                Msat_ClauseReadMark( Msat_Clause_t * pC );
-extern void                Msat_ClauseSetMark( Msat_Clause_t * pC, bool fMark );
+extern int                 Msat_ClauseReadMark( Msat_Clause_t * pC );
+extern void                Msat_ClauseSetMark( Msat_Clause_t * pC, int  fMark );
 extern int                 Msat_ClauseReadNum( Msat_Clause_t * pC );
 extern void                Msat_ClauseSetNum( Msat_Clause_t * pC, int Num );
-extern bool                Msat_ClauseReadTypeA( Msat_Clause_t * pC );
-extern void                Msat_ClauseSetTypeA( Msat_Clause_t * pC, bool fTypeA );
-extern bool                Msat_ClauseIsLocked( Msat_Solver_t * p, Msat_Clause_t * pC );
+extern int                 Msat_ClauseReadTypeA( Msat_Clause_t * pC );
+extern void                Msat_ClauseSetTypeA( Msat_Clause_t * pC, int  fTypeA );
+extern int                 Msat_ClauseIsLocked( Msat_Solver_t * p, Msat_Clause_t * pC );
 extern float               Msat_ClauseReadActivity( Msat_Clause_t * pC );
 extern void                Msat_ClauseWriteActivity( Msat_Clause_t * pC, float Num );
-extern void                Msat_ClauseFree( Msat_Solver_t * p, Msat_Clause_t * pC, bool fRemoveWatched );
-extern bool                Msat_ClausePropagate( Msat_Clause_t * pC, Msat_Lit_t Lit, int * pAssigns, Msat_Lit_t * pLit_out );
-extern bool                Msat_ClauseSimplify( Msat_Clause_t * pC, int * pAssigns );
+extern void                Msat_ClauseFree( Msat_Solver_t * p, Msat_Clause_t * pC, int  fRemoveWatched );
+extern int                 Msat_ClausePropagate( Msat_Clause_t * pC, Msat_Lit_t Lit, int * pAssigns, Msat_Lit_t * pLit_out );
+extern int                 Msat_ClauseSimplify( Msat_Clause_t * pC, int * pAssigns );
 extern void                Msat_ClauseCalcReason( Msat_Solver_t * p, Msat_Clause_t * pC, Msat_Lit_t Lit, Msat_IntVec_t * vLits_out );
 extern void                Msat_ClauseRemoveWatch( Msat_ClauseVec_t * vClauses, Msat_Clause_t * pC );
 extern void                Msat_ClausePrint( Msat_Clause_t * pC );
 extern void                Msat_ClausePrintSymbols( Msat_Clause_t * pC );
-extern void                Msat_ClauseWriteDimacs( FILE * pFile, Msat_Clause_t * pC, bool fIncrement );
+extern void                Msat_ClauseWriteDimacs( FILE * pFile, Msat_Clause_t * pC, int  fIncrement );
 extern unsigned            Msat_ClauseComputeTruth( Msat_Solver_t * p, Msat_Clause_t * pC );
 /*=== satSort.c ===========================================================*/
 extern void                Msat_SolverSortDB( Msat_Solver_t * p );
@@ -284,4 +289,8 @@ extern int                 Msat_MmStepReadMemUsage( Msat_MmStep_t * p );
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+
+ABC_NAMESPACE_HEADER_END
+
 #endif

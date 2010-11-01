@@ -48,6 +48,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -658,7 +661,7 @@ cuddHashTableInsert(
   is an entry for the given key in the table; NULL otherwise. If the
   entry is present, its reference counter is decremented if not
   saturated. If the counter reaches 0, the value of the entry is
-  dereferenced, and the entry is returned to the ABC_FREE list.]
+  dereferenced, and the entry is returned to the free list.]
 
   SideEffects [None]
 
@@ -1071,7 +1074,7 @@ cuddLocalCacheResize(
     int i, shift;
     unsigned int posn;
     unsigned int slots, oldslots;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
     olditem = cache->item;
@@ -1261,7 +1264,7 @@ cuddHashTableResize(
 #endif
     int shift;
     int oldNumBuckets = hash->numBuckets;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
     /* Compute the new size of the table. */
@@ -1362,7 +1365,7 @@ cuddHashTableAlloc(
 {
     int i;
     unsigned int itemsize = hash->itemsize;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 #ifdef __osf__
 #pragma pointer_size save
@@ -1384,7 +1387,7 @@ cuddHashTableAlloc(
         hash->manager->stash = NULL;
         /* Inhibit resizing of tables. */
         hash->manager->maxCacheHard = hash->manager->cacheSlots - 1;
-        hash->manager->cacheSlack = -(hash->manager->cacheSlots + 1);
+        hash->manager->cacheSlack = -(int)(hash->manager->cacheSlots + 1);
         for (i = 0; i < hash->manager->size; i++) {
             hash->manager->subtables[i].maxKeys <<= 2;
         }
@@ -1426,3 +1429,5 @@ cuddHashTableAlloc(
     return(item);
 
 } /* end of cuddHashTableAlloc */
+ABC_NAMESPACE_IMPL_END
+

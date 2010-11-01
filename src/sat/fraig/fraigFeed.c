@@ -18,6 +18,9 @@
 
 #include "fraigInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -736,7 +739,7 @@ void Fraig_ReallocateSimulationInfo( Fraig_Man_t * p )
         // signatures remain without changes
     }
 
-    // replace the manager to ABC_FREE up some memory
+    // replace the manager to free up some memory
     Fraig_MemFixedStop( p->mmSims, 0 );
     p->mmSims = mmSimsNew;
 
@@ -905,4 +908,6 @@ printf( "\n" );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

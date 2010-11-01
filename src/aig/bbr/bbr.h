@@ -21,22 +21,24 @@
 #ifndef __BBR_H__
 #define __BBR_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "cuddInt.h"
 #include "aig.h"
 #include "saig.h"
+#include "cuddInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -46,7 +48,7 @@ extern "C" {
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline DdNode * Aig_ObjGlobalBdd( Aig_Obj_t * pObj )  { return pObj->pData; }
+static inline DdNode * Aig_ObjGlobalBdd( Aig_Obj_t * pObj )  { return (DdNode *)pObj->pData; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -74,11 +76,14 @@ extern void        Aig_ManFreeGlobalBdds( Aig_Man_t * p, DdManager * dd );
 extern int         Aig_ManSizeOfGlobalBdds( Aig_Man_t * p );
 extern DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropInternal, int fReorder, int fVerbose );
 /*=== bbrReach.c ==========================================================*/
-extern int         Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent );
+extern int         Aig_ManVerifyUsingBdds( Aig_Man_t * p, Saig_ParBbr_t * pPars );
+extern void        Bbr_ManSetDefaultParams( Saig_ParBbr_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

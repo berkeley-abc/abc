@@ -21,6 +21,9 @@
 
 #include "bzlib_private.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------*/
 #define WEIGHTOF(zz0)  ((zz0) & 0xffffff00)
 #define DEPTHOF(zz1)   ((zz1) & 0x000000ff)
@@ -203,3 +206,5 @@ void BZ2_hbCreateDecodeTables ( Int32 *limit,
 /*-------------------------------------------------------------*/
 /*--- end                                         huffman.c ---*/
 /*-------------------------------------------------------------*/
+
+ABC_NAMESPACE_IMPL_END

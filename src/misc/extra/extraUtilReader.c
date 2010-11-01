@@ -22,6 +22,9 @@
 #include "extra.h"
 #include "vec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -232,7 +235,7 @@ int Extra_FileReaderGetLineNumber( Extra_FileReader_t * p, int iToken )
 void * Extra_FileReaderGetTokens( Extra_FileReader_t * p )
 {
     Vec_Ptr_t * vTokens;
-    while ( (vTokens = Extra_FileReaderGetTokens_int( p )) )
+    while ( (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens_int( p )) )
         if ( vTokens->nSize > 0 )
             break;
     return vTokens;
@@ -380,4 +383,6 @@ void Extra_FileReaderReload( Extra_FileReader_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

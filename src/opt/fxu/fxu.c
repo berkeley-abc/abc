@@ -19,6 +19,9 @@
 #include "fxuInt.h" 
 #include "fxu.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -251,4 +254,6 @@ void Fxu_MemRecycle( Fxu_Matrix * p, char * pItem, int nBytes )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

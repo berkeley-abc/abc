@@ -21,21 +21,28 @@
 #ifndef __RWT_H__
 #define __RWT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "mem.h"
-#include "extra.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
 #include "vec.h"
+#include "extra.h"
+#include "mem.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -144,9 +151,11 @@ extern char *            Rwt_ManGetPractical( Rwt_Man_t * p );
 extern Rwt_Node_t *      Rwt_ManAddVar( Rwt_Man_t * p, unsigned uTruth, int fPrecompute );
 extern void              Rwt_ManIncTravId( Rwt_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

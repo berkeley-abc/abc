@@ -18,6 +18,9 @@
 
 #include "mvc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -76,7 +79,7 @@ void Mvc_CoverDivisorZeroKernel( Mvc_Cover_t * pCover )
 //    iLit = Mvc_CoverBestLiteral( pCover, NULL );
     if ( iLit == -1 )
         return;
-    // derive the cube-ABC_FREE quotient
+    // derive the cube-free quotient
     Mvc_CoverDivideByLiteralQuo( pCover, iLit ); // the same cover
     Mvc_CoverMakeCubeFree( pCover );             // the same cover
     // call recursively
@@ -87,4 +90,6 @@ void Mvc_CoverDivisorZeroKernel( Mvc_Cover_t * pCover )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

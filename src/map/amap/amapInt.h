@@ -21,6 +21,7 @@
 #ifndef __AMAP_INT_H__
 #define __AMAP_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,9 +33,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 // the largest gate size in the library
 // (gates above this size will be ignored)
@@ -59,7 +61,6 @@ typedef enum {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Amap_Lib_t_ Amap_Lib_t;
 typedef struct Amap_Pin_t_ Amap_Pin_t;
 typedef struct Amap_Gat_t_ Amap_Gat_t;
 typedef struct Amap_Nod_t_ Amap_Nod_t;
@@ -264,7 +265,7 @@ static inline void         Amap_ObjSetChoice( Amap_Obj_t * pObj, Amap_Obj_t * pE
 static inline int          Amap_ObjPhaseReal( Amap_Obj_t * pObj )                  { return Amap_Regular(pObj)->fPhase ^ Amap_IsComplement(pObj);   }
 static inline int          Amap_ObjRefsTotal( Amap_Obj_t * pObj )                  { return pObj->nFouts[0] + pObj->nFouts[1];          }
 
-static inline Amap_Gat_t * Amap_LibGate( Amap_Lib_t * p, int i ) { return Vec_PtrEntry(p->vGates, i); }
+static inline Amap_Gat_t * Amap_LibGate( Amap_Lib_t * p, int i ) { return (Amap_Gat_t *)Vec_PtrEntry(p->vGates, i); }
 static inline Amap_Nod_t * Amap_LibNod( Amap_Lib_t * p, int i )  { return p->pNodes + i;           }
 
 // returns pointer to the next cut (internal cuts only)
@@ -282,20 +283,20 @@ extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
 // iterator over the primary inputs
 #define Amap_ManForEachPi( p, pObj, i )                                    \
-    Vec_PtrForEachEntry( p->vPis, pObj, i )
+    Vec_PtrForEachEntry( Amap_Obj_t *, p->vPis, pObj, i )
 // iterator over the primary outputs
 #define Amap_ManForEachPo( p, pObj, i )                                    \
-    Vec_PtrForEachEntry( p->vPos, pObj, i )
+    Vec_PtrForEachEntry( Amap_Obj_t *, p->vPos, pObj, i )
 // iterator over all objects, including those currently not used
 #define Amap_ManForEachObj( p, pObj, i )                                   \
-    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
+    Vec_PtrForEachEntry( Amap_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
 // iterator over all nodes
 #define Amap_ManForEachNode( p, pObj, i )                                  \
-    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Amap_ObjIsNode(pObj) ) {} else
+    Vec_PtrForEachEntry( Amap_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Amap_ObjIsNode(pObj) ) {} else
 
 // iterator through all gates of the library
 #define Amap_LibForEachGate( pLib, pGate, i )                              \
-    Vec_PtrForEachEntry( pLib->vGates, pGate, i )
+    Vec_PtrForEachEntry( Amap_Gat_t *, pLib->vGates, pGate, i )
 // iterator through all pins of the gate
 #define Amap_GateForEachPin( pGate, pPin )                                 \
     for ( pPin = pGate->Pins; pPin < pGate->Pins + pGate->nPins; pPin++ )
@@ -337,12 +338,9 @@ extern void          Amap_ManCreateChoice( Amap_Man_t * p, Amap_Obj_t * pObj );
 extern void          Amap_ManCreate( Amap_Man_t * p, Aig_Man_t * pAig );
 /*=== amapLib.c ==========================================================*/
 extern Amap_Lib_t *  Amap_LibAlloc();
-extern void          Amap_LibFree( Amap_Lib_t * p );
 extern int           Amap_LibNumPinsMax( Amap_Lib_t * p );
 extern void          Amap_LibWrite( FILE * pFile, Amap_Lib_t * pLib, int fPrintDsd );
 extern Vec_Ptr_t *   Amap_LibSelectGates( Amap_Lib_t * p, int fVerbose );
-extern void          Amap_LibPrintSelectedGates( Amap_Lib_t * p, int fAllGates );
-extern Amap_Lib_t *  Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVerbose );
 /*=== amapMan.c ==========================================================*/
 extern Amap_Man_t *  Amap_ManStart( int nNodes );
 extern void          Amap_ManStop( Amap_Man_t * p );
@@ -368,9 +366,11 @@ extern int           Amap_LibCreateNode( Amap_Lib_t * p, int iFan0, int iFan1, i
 extern int           Amap_LibCreateMux( Amap_Lib_t * p, int iFan0, int iFan1, int iFan2 );
 extern int **        Amap_LibLookupTableAlloc( Vec_Ptr_t * vVec, int fVerbose );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

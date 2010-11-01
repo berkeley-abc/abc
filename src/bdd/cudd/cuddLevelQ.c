@@ -21,7 +21,7 @@
   pointers.  The level queue functions make sure that each node
   appears at most once in the queue. They do so by keeping a hash
   table where the node is used as key.  Queue items are recycled via a
-  ABC_FREE list for efficiency.
+  free list for efficiency.
   
   Internal procedures provided by this module:
                 <ul>
@@ -52,6 +52,9 @@
 
 #include "util_hack.h"
 #include "cuddInt.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -125,7 +128,7 @@ static int hashResize ARGS((DdLevelQueue *queue));
   Description [Initializes a level queue. A level queue is a queue
   where inserts are based on the levels of the nodes. Within each
   level the policy is FIFO. Level queues are useful in traversing a
-  BDD top-down. Queue items are kept in a ABC_FREE list when dequeued for
+  BDD top-down. Queue items are kept in a free list when dequeued for
   efficiency. Returns a pointer to the new queue if successful; NULL
   otherwise.]
 
@@ -263,7 +266,7 @@ cuddLevelQueueEnqueue(
     item = hashLookup(queue,key);
     if (item != NULL) return(item);
 
-    /* Get a ABC_FREE item from either the ABC_FREE list or the memory manager. */
+    /* Get a free item from either the free list or the memory manager. */
     if (queue->freelist == NULL) {
     item = (DdQueueItem *) ABC_ALLOC(char, queue->itemsize);
     if (item == NULL)
@@ -335,7 +338,7 @@ cuddLevelQueueDequeue(
     queue->last[level] = NULL;
 
     queue->first = item->next;
-    /* Put item on the ABC_FREE list. */
+    /* Put item on the free list. */
     item->next = queue->freelist;
     queue->freelist = item;
     /* Update stats. */
@@ -493,7 +496,7 @@ hashResize(
 #endif
     int shift;
     int oldNumBuckets = queue->numBuckets;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
     /* Compute the new size of the subtable. */
@@ -531,3 +534,5 @@ hashResize(
     return(1);
 
 } /* end of hashResize */
+ABC_NAMESPACE_IMPL_END
+

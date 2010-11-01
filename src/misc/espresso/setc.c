@@ -49,6 +49,9 @@
 
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* see if the cube has a full row of 1's (with respect to cof) */
 bool full_row(p, cof)
 IN register pcube p, cof;
@@ -481,3 +484,5 @@ register pset a, b;
     }
     return 0;
 }
+ABC_NAMESPACE_IMPL_END
+

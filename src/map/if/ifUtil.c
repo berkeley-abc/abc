@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -103,7 +106,7 @@ float If_ManDelayMax( If_Man_t * p, int fSeq )
     int i;
     if ( p->pPars->fLatchPaths && p->pPars->nLatches == 0 )
     {
-        printf( "Delay optimization of latch path is not performed because there is no latches.\n" );
+        Abc_Print( 0, "Delay optimization of latch path is not performed because there is no latches.\n" );
         p->pPars->fLatchPaths = 0;
     }
     DelayBest = -IF_FLOAT_LARGE;
@@ -163,18 +166,25 @@ void If_ManComputeRequired( If_Man_t * p )
                 if ( If_ObjArrTime(If_ObjFanin0(pObj)) > p->pPars->pTimesReq[i] + p->fEpsilon )
                 {
                     Counter++;
-    //                printf( "Required times are violated for output %d (arr = %d; req = %d).\n", 
+    //                Abc_Print( 0, "Required times are violated for output %d (arr = %d; req = %d).\n", 
     //                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
                 }
                 If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
             }
             if ( Counter )
-                printf( "Required times are violated for %d outputs.\n", Counter );
+                Abc_Print( 0, "Required times are violated for %d outputs.\n", Counter );
         }
         else
         {
             // get the global required times
             p->RequiredGlo = If_ManDelayMax( p, 0 );
+/*
+            ////////////////////////////////////////
+            // redefine the delay target (positive number means percentage)    
+            if ( p->pPars->DelayTarget > 0 )
+                p->pPars->DelayTarget = p->RequiredGlo * (100.0 + p->pPars->DelayTarget) / 100.0; 
+            ////////////////////////////////////////
+*/
             // update the required times according to the target
             if ( p->pPars->DelayTarget != -1 )
             {
@@ -183,7 +193,7 @@ void If_ManComputeRequired( If_Man_t * p )
                     if ( p->fNextRound == 0 )
                     {
                         p->fNextRound = 1;
-                        printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                        Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
                     }
                 }
                 else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
@@ -191,7 +201,7 @@ void If_ManComputeRequired( If_Man_t * p )
                     if ( p->fNextRound == 0 )
                     {
                         p->fNextRound = 1;
-                        printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
+//                        Abc_Print( 0, "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
                     }
                     p->RequiredGlo = p->pPars->DelayTarget;
                 }
@@ -212,7 +222,7 @@ void If_ManComputeRequired( If_Man_t * p )
             }
         }
         // go through the nodes in the reverse topological order
-    //    Vec_PtrForEachEntry( p->vMapped, pObj, i )
+    //    Vec_PtrForEachEntry( If_Obj_t *, p->vMapped, pObj, i )
     //        If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
         If_ManForEachObjReverse( p, pObj, i )
         {
@@ -225,12 +235,49 @@ void If_ManComputeRequired( If_Man_t * p )
     {
         // get the global required times
         p->RequiredGlo = If_ManDelayMax( p, 0 );
+        // update the required times according to the target
+        if ( p->pPars->DelayTarget != -1 )
+        {
+            if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
+            {
+                if ( p->fNextRound == 0 )
+                {
+                    p->fNextRound = 1;
+                    Abc_Print( 0, "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                }
+            }
+            else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
+            {
+                if ( p->fNextRound == 0 )
+                {
+                    p->fNextRound = 1;
+//                    Abc_Print( 0, "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
+                }
+                p->RequiredGlo = p->pPars->DelayTarget;
+            }
+        }
         // do not propagate required times if area minimization is requested
         if ( p->pPars->fAreaOnly ) 
             return;
         // set the required times for the POs
         Tim_ManIncrementTravId( p->pManTim );
-        if ( p->pPars->fLatchPaths )
+        if ( p->vCoAttrs )
+        {
+            assert( If_ManCoNum(p) == Vec_IntSize(p->vCoAttrs) );
+            If_ManForEachCo( p, pObj, i )
+            { 
+                if ( Vec_IntEntry(p->vCoAttrs, i) == -1 )       // -1=internal
+                    continue;
+                if ( Vec_IntEntry(p->vCoAttrs, i) == 0 )        //  0=optimize
+                    Tim_ManSetCoRequired( p->pManTim, i, p->RequiredGlo );
+                else if ( Vec_IntEntry(p->vCoAttrs, i) == 1 )   //  1=keep
+                    Tim_ManSetCoRequired( p->pManTim, i, If_ObjArrTime(If_ObjFanin0(pObj)) );
+                else if ( Vec_IntEntry(p->vCoAttrs, i) == 2 )   //  2=relax
+                    Tim_ManSetCoRequired( p->pManTim, i, IF_FLOAT_LARGE );
+                else assert( 0 );
+            }
+        }
+        else if ( p->pPars->fLatchPaths )
         {
             assert( 0 );
             If_ManForEachPo( p, pObj, i )
@@ -529,7 +576,7 @@ int If_ManCrossCut( If_Man_t * p )
         pObj->nVisits = pObj->nVisitsCopy;
     }
     assert( nCutSize == 0 );
-//    printf( "Max cross cut size = %6d.\n", nCutSizeMax );
+//    Abc_Print( 1, "Max cross cut size = %6d.\n", nCutSizeMax );
     return nCutSizeMax;
 }
 
@@ -561,12 +608,12 @@ Vec_Ptr_t * If_ManReverseOrder( If_Man_t * p )
     }
     vOrder = Vec_PtrAlloc( If_ManObjNum(p) );
     for ( i = p->nLevelMax; i >= 0; i-- )
-        for ( pObj = ppStore[i]; pObj; pObj = pObj->pCopy )
+        for ( pObj = ppStore[i]; pObj; pObj = (If_Obj_t *)pObj->pCopy )
             Vec_PtrPush( vOrder, pObj );
     ABC_FREE( ppStore );
     // print the order
-//    Vec_PtrForEachEntry( vOrder, pObj, i )
-//        printf( "Obj %2d   Type %d  Level = %d\n", pObj->Id, pObj->Type, pObj->Level );
+//    Vec_PtrForEachEntry( If_Obj_t *, vOrder, pObj, i )
+//        Abc_Print( 1, "Obj %2d   Type %d  Level = %d\n", pObj->Id, pObj->Type, pObj->Level );
     return vOrder;
 }
  
@@ -726,4 +773,6 @@ int If_ManCountSpecialPos( If_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

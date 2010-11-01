@@ -1,0 +1,32 @@
+On Windows:
+
+python setup.py build
+python setup.py bdist_wininst
+
+On Linux (from the main abc directory)
+
+To build the extensions (make sure -fPIC is added to OPTFLAG in the main ABC Makefile first)
+
+make ABC_PYTHON=/usr/bin/python pyabc_extension_install
+
+To build the ABC with embedded python
+
+make pyabc.tgz
+
+
+
+
+Updating the latest version on mima:
+
+alanmi@mima:~/abc_60$ cp ./src/python/build/lib.linux-x86_64-2.6/_pyabc.so /hd/common/pyabc/builds/101030/_pyabc.so
+alanmi@mima:~/abc_60$ cp ./src/python/build/lib.linux-x86_64-2.6/pyabc.py /hd/common/pyabc/builds/101030/pyabc.py
+
+alanmi@mima:/hd/common/pyabc$ rm current
+alanmi@mima:/hd/common/pyabc$ ln -s builds/101030 current
+alanmi@mima:/hd/common/pyabc$ ls -l
+total 4
+lrwxrwxrwx 1 alanmi common   13 2010-10-30 14:55 current -> builds/101030
+
+
+Latest documentation:
+http://goo.gl/jNV2

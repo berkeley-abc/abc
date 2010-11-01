@@ -21,11 +21,15 @@
 #ifndef __VEC_FLT_H__
 #define __VEC_FLT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -220,6 +224,25 @@ static inline void Vec_FltFree( Vec_Flt_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_FltFreeP( Vec_Flt_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    ABC_FREE( (*p)->pArray );
+    ABC_FREE( (*p) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline float * Vec_FltReleaseArray( Vec_Flt_t * p )
 {
     float * pArray = p->pArray;
@@ -378,16 +401,17 @@ static inline void Vec_FltFill( Vec_Flt_t * p, int nSize, float Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_FltFillExtra( Vec_Flt_t * p, int nSize, float Entry )
+static inline void Vec_FltFillExtra( Vec_Flt_t * p, int nSize, float Fill )
 {
     int i;
-    if ( p->nSize >= nSize )
+    if ( nSize <= p->nSize )
         return;
-    if ( nSize < 2 * p->nSize )
-        nSize = 2 * p->nSize;
-    Vec_FltGrow( p, nSize );
+    if ( nSize > 2 * p->nCap )
+        Vec_FltGrow( p, nSize );
+    else if ( nSize > p->nCap )
+        Vec_FltGrow( p, 2 * p->nCap );
     for ( i = p->nSize; i < nSize; i++ )
-        p->pArray[i] = Entry;
+        p->pArray[i] = Fill;
     p->nSize = nSize;
 }
 
@@ -627,6 +651,10 @@ static inline void Vec_FltSort( Vec_Flt_t * p, int fReverse )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

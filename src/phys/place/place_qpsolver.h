@@ -10,7 +10,11 @@
 #if !defined(_QPS_H)
 #define _QPS_H
 
+
 #include <stdio.h>
+
+ABC_NAMESPACE_HEADER_START
+
 
 #if defined(__cplusplus)
 extern "C" {
@@ -137,4 +141,8 @@ extern "C" {
 #if defined(__cplusplus)
 }
 #endif                /* __cplusplus */
+
+
+ABC_NAMESPACE_HEADER_END
+
 #endif                /* _QPS_H */

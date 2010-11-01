@@ -18,6 +18,9 @@
 
 #include "mioInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -220,7 +223,7 @@ void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin )
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, bool fSkipInv, int * pnGates )
+Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates )
 {
     Mio_Gate_t * pGate;
     Mio_Gate_t ** ppGates;
@@ -533,4 +536,6 @@ Mio_Gate_t * Mio_GateCreatePseudo( int nInputs )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

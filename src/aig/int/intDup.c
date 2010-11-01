@@ -20,6 +20,9 @@
 
 #include "intInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -83,12 +86,21 @@ Aig_Man_t * Inter_ManStartDuplicated( Aig_Man_t * p )
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
     // set registers
-    pNew->nRegs    = p->nRegs;
     pNew->nTruePis = p->nTruePis;
-    pNew->nTruePos = 0;
+    pNew->nTruePos = Saig_ManConstrNum(p);
+    pNew->nRegs    = p->nRegs;
     // duplicate internal nodes
     Aig_ManForEachNode( p, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+
+    // create constraint outputs
+    Saig_ManForEachPo( p, pObj, i )
+    {
+        if ( i < Saig_ManPoNum(p)-Saig_ManConstrNum(p) )
+            continue;
+        Aig_ObjCreatePo( pNew, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
+    }
+
     // create register inputs with MUXes
     Saig_ManForEachLi( p, pObj, i )
         Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
@@ -130,10 +142,19 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
     // set registers
     pNew->nRegs    = fAddFirstPo? 0 : p->nRegs;
     pNew->nTruePis = fAddFirstPo? Aig_ManPiNum(p) + 1 : p->nTruePis + 1;
-    pNew->nTruePos = fAddFirstPo;
+    pNew->nTruePos = fAddFirstPo + Saig_ManConstrNum(p);
     // duplicate internal nodes
     Aig_ManForEachNode( p, pObj, i )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+
+    // create constraint outputs
+    Saig_ManForEachPo( p, pObj, i )
+    {
+        if ( i < Saig_ManPoNum(p)-Saig_ManConstrNum(p) )
+            continue;
+        Aig_ObjCreatePo( pNew, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
+    }
+
     // add the PO
     if ( fAddFirstPo )
     {
@@ -145,7 +166,7 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
         // create register inputs with MUXes
         Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
         {
-            pObj = Aig_Mux( pNew, pCtrl, pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
+            pObj = Aig_Mux( pNew, pCtrl, (Aig_Obj_t *)pObjLo->pData, Aig_ObjChild0Copy(pObjLi) );
     //        pObj = Aig_Mux( pNew, pCtrl, Aig_ManConst0(pNew), Aig_ObjChild0Copy(pObjLi) );
             Aig_ObjCreatePo( pNew, pObj );
         }
@@ -158,4 +179,6 @@ Aig_Man_t * Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,7 @@ SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigRetF.c \
     src/aig/aig/aigScl.c \
     src/aig/aig/aigShow.c \
+    src/aig/aig/aigSplit.c \
     src/aig/aig/aigTable.c \
     src/aig/aig/aigTiming.c \
     src/aig/aig/aigTruth.c \

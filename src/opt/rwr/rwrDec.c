@@ -21,6 +21,9 @@
 #include "rwr.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -66,7 +69,7 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
         }
     }
     // compute decomposition forms for each node and verify them
-    Vec_VecForEachEntry( p->vClasses, pNode, i, k )
+    Vec_VecForEachEntry( Rwr_Node_t *, p->vClasses, pNode, i, k )
     {
         pGraph = Rwr_NodePreprocess( p, pNode );
         pNode->pNext = (Rwr_Node_t *)pGraph;
@@ -147,4 +150,6 @@ Dec_Edge_t Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Dec_Graph_t *
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,8 @@
 
 #include "darInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -11145,6 +11147,9 @@ Vec_Int_t * Dar_LibReadPrios()
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /**Function*************************************************************
 
   Synopsis    [Generate arrays.]
@@ -11284,4 +11289,6 @@ void Aig_NtkGenerateArrays( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -74,9 +77,9 @@ void Aig_ManSpeedupNode( Nwk_Man_t * pNtk, Aig_Man_t * pAig, Nwk_Obj_t * pNode, 
     int nCofs, i, k, nSkip;
 
     // quit of regulars are the same
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
-    Vec_PtrForEachEntry( vLeaves, pObj2, k )
-        if ( i != k && Aig_Regular(pObj->pCopy) == Aig_Regular(pObj2->pCopy) )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vLeaves, pObj2, k )
+        if ( i != k && Aig_Regular((Aig_Obj_t *)pObj->pCopy) == Aig_Regular((Aig_Obj_t *)pObj2->pCopy) )
         {
 //            printf( "Identical after structural hashing!!!\n" );
             return;
@@ -86,13 +89,13 @@ void Aig_ManSpeedupNode( Nwk_Man_t * pNtk, Aig_Man_t * pAig, Nwk_Obj_t * pNode, 
     vNodes = Vec_PtrAlloc( 100 );
     Aig_ManIncrementTravId( pAig );
     Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vLeaves, pObj, i )
     {
-        pAnd = pObj->pCopy;
+        pAnd = (Aig_Obj_t *)pObj->pCopy;
         Aig_ObjSetTravIdCurrent( pAig, Aig_Regular(pAnd) );
     }
     // traverse from the root node
-    pAnd = pNode->pCopy;
+    pAnd = (Aig_Obj_t *)pNode->pCopy;
     if ( !Aig_ManSpeedupNode_rec( pAig, Aig_Regular(pAnd), vNodes ) )
     {
 //        printf( "Bad node!!!\n" );
@@ -104,21 +107,21 @@ void Aig_ManSpeedupNode( Nwk_Man_t * pNtk, Aig_Man_t * pAig, Nwk_Obj_t * pNode, 
     nCofs = (1 << Vec_PtrSize(vTimes));
     for ( i = 0; i < nCofs; i++ )
     {
-        Vec_PtrForEachEntry( vLeaves, pObj, k )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, vLeaves, pObj, k )
         {
-            pAnd = pObj->pCopy;
+            pAnd = (Aig_Obj_t *)pObj->pCopy;
             Aig_Regular(pAnd)->pData = Aig_Regular(pAnd);
         }
-        Vec_PtrForEachEntry( vTimes, pObj, k )
+        Vec_PtrForEachEntry( Nwk_Obj_t *, vTimes, pObj, k )
         {
-            pAnd = pObj->pCopy;
+            pAnd = (Aig_Obj_t *)pObj->pCopy;
             Aig_Regular(pAnd)->pData = Aig_NotCond( Aig_ManConst1(pAig), ((i & (1<<k)) == 0) );
         }
-        Vec_PtrForEachEntry( vNodes, pTemp, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pTemp, k )
             pTemp->pData = Aig_And( pAig, Aig_ObjChild0Copy(pTemp), Aig_ObjChild1Copy(pTemp) );
         // save the result
-        pAnd = pNode->pCopy;
-        ppCofs[i] = Aig_NotCond( Aig_Regular(pAnd)->pData, Aig_IsComplement(pAnd) );
+        pAnd = (Aig_Obj_t *)pNode->pCopy;
+        ppCofs[i] = Aig_NotCond( (Aig_Obj_t *)Aig_Regular(pAnd)->pData, Aig_IsComplement(pAnd) );
     }
     Vec_PtrFree( vNodes );
 
@@ -126,16 +129,16 @@ void Aig_ManSpeedupNode( Nwk_Man_t * pNtk, Aig_Man_t * pAig, Nwk_Obj_t * pNode, 
 //Nwk_ObjAddFanin( Nwk_ManCreatePo(pAig), ppCofs[1] );
 
     // collect the resulting tree
-    Vec_PtrForEachEntry( vTimes, pObj, k )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vTimes, pObj, k )
         for ( nSkip = (1<<k), i = 0; i < nCofs; i += 2*nSkip )
         {
-            pAnd = pObj->pCopy;
+            pAnd = (Aig_Obj_t *)pObj->pCopy;
             ppCofs[i] = Aig_Mux( pAig, Aig_Regular(pAnd), ppCofs[i+nSkip], ppCofs[i] );
         }
 //Nwk_ObjAddFanin( Nwk_ManCreatePo(pAig), ppCofs[0] );
 
     // create choice node
-    pAnd  = Aig_Regular(pNode->pCopy); // repr
+    pAnd  = Aig_Regular((Aig_Obj_t *)pNode->pCopy); // repr
     pTemp = Aig_Regular(ppCofs[0]);    // new
     if ( Aig_ObjEquiv(pAig, pAnd) == NULL && Aig_ObjEquiv(pAig, pTemp) == NULL && !Aig_ObjCheckTfi(pAig, pTemp, pAnd) )
         pAig->pEquivs[pAnd->Id] = pTemp;
@@ -204,12 +207,20 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
     Nwk_Obj_t * pNode, * pFanin, * pFanin2;
     Aig_Obj_t * pAnd;
     If_Lib_t * pTempLib = pNtk->pLutLib;
+    Tim_Man_t * pTempTim = NULL; 
     float tDelta, tArrival;
     int i, k, k2, Counter, CounterRes, nTimeCris;
     unsigned * puTCEdges;
     // perform delay trace
     if ( !fUseLutLib )
+    {
         pNtk->pLutLib = NULL;
+        if ( pNtk->pManTime )
+        {
+            pTempTim = pNtk->pManTime;
+            pNtk->pManTime = Tim_ManDup( pTempTim, 1 );
+        }
+    }
     tArrival = Nwk_ManDelayTraceLut( pNtk );
     tDelta = fUseLutLib ? tArrival*Percentage/100.0 : 1.0;
     if ( fVerbose )
@@ -302,8 +313,8 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
         // order the fanins in the increasing order of criticalily
         if ( Vec_PtrSize(vTimeCries) > 1 )
         {
-            pFanin = Vec_PtrEntry( vTimeCries, 0 );
-            pFanin2 = Vec_PtrEntry( vTimeCries, 1 );
+            pFanin = (Nwk_Obj_t *)Vec_PtrEntry( vTimeCries, 0 );
+            pFanin2 = (Nwk_Obj_t *)Vec_PtrEntry( vTimeCries, 1 );
             if ( Nwk_ObjSlack(pFanin) < Nwk_ObjSlack(pFanin2) )
             {
                 Vec_PtrWriteEntry( vTimeCries, 0, pFanin2 );
@@ -312,15 +323,15 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
         }
         if ( Vec_PtrSize(vTimeCries) > 2 )
         {
-            pFanin = Vec_PtrEntry( vTimeCries, 1 );
-            pFanin2 = Vec_PtrEntry( vTimeCries, 2 );
+            pFanin = (Nwk_Obj_t *)Vec_PtrEntry( vTimeCries, 1 );
+            pFanin2 = (Nwk_Obj_t *)Vec_PtrEntry( vTimeCries, 2 );
             if ( Nwk_ObjSlack(pFanin) < Nwk_ObjSlack(pFanin2) )
             {
                 Vec_PtrWriteEntry( vTimeCries, 1, pFanin2 );
                 Vec_PtrWriteEntry( vTimeCries, 2, pFanin );
             }
-            pFanin = Vec_PtrEntry( vTimeCries, 0 );
-            pFanin2 = Vec_PtrEntry( vTimeCries, 1 );
+            pFanin = (Nwk_Obj_t *)Vec_PtrEntry( vTimeCries, 0 );
+            pFanin2 = (Nwk_Obj_t *)Vec_PtrEntry( vTimeCries, 1 );
             if ( Nwk_ObjSlack(pFanin) < Nwk_ObjSlack(pFanin2) )
             {
                 Vec_PtrWriteEntry( vTimeCries, 0, pFanin2 );
@@ -348,6 +359,11 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
     // put back the library
     if ( !fUseLutLib )
         pNtk->pLutLib = pTempLib;
+    if ( pTempTim )
+    {
+        Tim_ManStop( pNtk->pManTime );
+        pNtk->pManTime = pTempTim;
+    }
 
     // reconstruct the network
     pAig = Aig_ManDupDfs( pTemp = pAig );
@@ -361,4 +377,6 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -43,6 +43,9 @@
 
 #include "parseInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 // the list of operation symbols to be used in expressions
 #define PARSE_SYM_OPEN    '('   // opening paranthesis
 #define PARSE_SYM_CLOSE   ')'   // closing paranthesis
@@ -342,7 +345,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
 
                 if ( fLower )
                 {
-                    bFunc = Parse_StackFnPop( pStackFn );
+                    bFunc = (DdNode *)Parse_StackFnPop( pStackFn );
                     bFunc = Extra_bddMove( dd, bTemp = bFunc, -nVars );   Cudd_Ref( bFunc );
                     Cudd_RecursiveDeref( dd, bTemp );
                     Parse_StackFnPush( pStackFn, bFunc );
@@ -465,7 +468,7 @@ DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormulaInit, int nVars, in
     {
         if ( !Parse_StackFnIsEmpty(pStackFn) )
         {    
-            bFunc = Parse_StackFnPop(pStackFn);
+            bFunc = (DdNode *)Parse_StackFnPop(pStackFn);
             if ( Parse_StackFnIsEmpty(pStackFn) )
                 if ( Parse_StackOpIsEmpty(pStackOp) )
                 {
@@ -502,8 +505,8 @@ DdNode * Parse_ParserPerformTopOp( DdManager * dd, Parse_StackFn_t * pStackFn, i
 {
     DdNode * bArg1, * bArg2, * bFunc;
     // perform the given operation
-    bArg2 = Parse_StackFnPop( pStackFn );
-    bArg1 = Parse_StackFnPop( pStackFn );
+    bArg2 = (DdNode *)Parse_StackFnPop( pStackFn );
+    bArg1 = (DdNode *)Parse_StackFnPop( pStackFn );
     if ( Oper == PARSE_OPER_AND )
         bFunc = Cudd_bddAnd( dd, bArg1, bArg2 );
     else if ( Oper == PARSE_OPER_XOR )
@@ -529,3 +532,5 @@ DdNode * Parse_ParserPerformTopOp( DdManager * dd, Parse_StackFn_t * pStackFn, i
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

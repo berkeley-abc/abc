@@ -21,12 +21,6 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
-////////////////////////////////////////////////////////////////////////
-///                         TYPEDEFS                                 ///
-////////////////////////////////////////////////////////////////////////
-
-// the framework containing all data
-typedef struct Abc_Frame_t_      Abc_Frame_t;   
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -39,16 +33,24 @@ typedef struct Abc_Frame_t_      Abc_Frame_t;
 
 // core packages
 #include "abc.h"
+
+ABC_NAMESPACE_HEADER_START
+// the framework containing all data
+typedef struct Abc_Frame_t_      Abc_Frame_t;
+ABC_NAMESPACE_HEADER_END
+
 #include "cmd.h"
 #include "ioAbc.h"
+
+ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+////////////////////////////////////////////////////////////////////////
+///                         TYPEDEFS                                 ///
+////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///
@@ -74,10 +76,11 @@ extern ABC_DLL void            Abc_Stop();
 extern ABC_DLL Abc_Ntk_t *     Abc_FrameReadNtk( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadOut( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadErr( Abc_Frame_t * p );
-extern ABC_DLL bool            Abc_FrameReadMode( Abc_Frame_t * p );
-extern ABC_DLL bool            Abc_FrameSetMode( Abc_Frame_t * p, bool fNameMode );
+extern ABC_DLL int             Abc_FrameReadMode( Abc_Frame_t * p );
+extern ABC_DLL int             Abc_FrameSetMode( Abc_Frame_t * p, int fNameMode );
 extern ABC_DLL void            Abc_FrameRestart( Abc_Frame_t * p );
-extern ABC_DLL bool            Abc_FrameShowProgress( Abc_Frame_t * p );
+extern ABC_DLL int             Abc_FrameShowProgress( Abc_Frame_t * p );
+extern ABC_DLL void            Abc_FrameClearVerifStatus( Abc_Frame_t * p );
 
 extern ABC_DLL void            Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNet );
 extern ABC_DLL void            Abc_FrameSwapCurrentAndBackup( Abc_Frame_t * p );
@@ -99,7 +102,16 @@ extern ABC_DLL void *          Abc_FrameReadLibVer();
 extern ABC_DLL void *          Abc_FrameReadManDd();                     
 extern ABC_DLL void *          Abc_FrameReadManDec();                    
 extern ABC_DLL char *          Abc_FrameReadFlag( char * pFlag ); 
-extern ABC_DLL bool            Abc_FrameIsFlagEnabled( char * pFlag );
+extern ABC_DLL int             Abc_FrameIsFlagEnabled( char * pFlag );
+
+extern ABC_DLL int             Abc_FrameReadBmcFrames( Abc_Frame_t * p );              
+extern ABC_DLL int             Abc_FrameReadProbStatus( Abc_Frame_t * p );              
+extern ABC_DLL void *          Abc_FrameReadCex( Abc_Frame_t * p );              
+
+extern ABC_DLL int             Abc_FrameReadCexPiNum( Abc_Frame_t * p );              
+extern ABC_DLL int             Abc_FrameReadCexRegNum( Abc_Frame_t * p );              
+extern ABC_DLL int             Abc_FrameReadCexPo( Abc_Frame_t * p );              
+extern ABC_DLL int             Abc_FrameReadCexFrame( Abc_Frame_t * p );              
 
 extern ABC_DLL void            Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ); 
 extern ABC_DLL void            Abc_FrameSetNtkStoreSize( int nStored );  
@@ -110,9 +122,11 @@ extern ABC_DLL void            Abc_FrameSetLibSuper( void * pLib );
 extern ABC_DLL void            Abc_FrameSetLibVer( void * pLib );      
 extern ABC_DLL void            Abc_FrameSetFlag( char * pFlag, char * pValue );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

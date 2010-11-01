@@ -47,6 +47,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -1251,4 +1254,6 @@ bddVarToCanonicalSimple(
     return(comple);
 
 } /* end of bddVarToCanonicalSimple */
+
+ABC_NAMESPACE_IMPL_END
 

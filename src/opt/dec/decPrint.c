@@ -19,6 +19,9 @@
 #include "abc.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -281,4 +284,6 @@ int Dec_GraphPrintOutputName( FILE * pFile, char * pNameOut, int fCompl )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

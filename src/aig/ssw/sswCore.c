@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -46,16 +49,18 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->nOverSize      =       0;  // size of the overlap between partitions
     p->nFramesK       =       1;  // the induction depth
     p->nFramesAddSim  =       2;  // additional frames to simulate
-    p->nConstrs       =       0;  // treat the last nConstrs POs as seq constraints
+    p->fConstrs       =       0;  // treat the last nConstrs POs as seq constraints
+    p->fMergeFull     =       0;  // enables full merge when constraints are used
     p->nBTLimit       =    1000;  // conflict limit at a node
     p->nBTLimitGlobal = 5000000;  // conflict limit for all runs
     p->nMinDomSize    =     100;  // min clock domain considered for optimization
     p->nItersStop     =      -1;  // stop after the given number of iterations
     p->nResimDelta    =    1000;  // the internal of nodes to resimulate
+    p->nStepsMax      =      -1;  // (scorr only) the max number of induction steps
     p->fPolarFlip     =       0;  // uses polarity adjustment
     p->fLatchCorr     =       0;  // performs register correspondence
+    p->fOutputCorr    =       0;  // perform 'PO correspondence'
     p->fSemiFormal    =       0;  // enable semiformal filtering
-    p->fUniqueness    =       0;  // enable uniqueness constraints
     p->fDynamic       =       0;  // dynamic partitioning
     p->fLocalSim      =       0;  // local simulation
     p->fVerbose       =       0;  // verbose stats
@@ -90,6 +95,130 @@ void Ssw_ManSetDefaultParamsLcorr( Ssw_Pars_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Reports improvements for property cones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ReportConeReductions( Ssw_Man_t * p, Aig_Man_t * pAigInit, Aig_Man_t * pAigStop )
+{
+    Aig_Man_t * pAig1, * pAig2, * pAux;
+    pAig1 = Aig_ManDupOneOutput( pAigInit, 0, 1 );
+    pAig1 = Aig_ManScl( pAux = pAig1, 1, 1, 0 );
+    Aig_ManStop( pAux );
+    pAig2 = Aig_ManDupOneOutput( pAigStop, 0, 1 );
+    pAig2 = Aig_ManScl( pAux = pAig2, 1, 1, 0 );
+    Aig_ManStop( pAux );
+   
+    p->nNodesBegC = Aig_ManNodeNum(pAig1);
+    p->nNodesEndC = Aig_ManNodeNum(pAig2);
+    p->nRegsBegC  = Aig_ManRegNum(pAig1);
+    p->nRegsEndC  = Aig_ManRegNum(pAig2);
+
+    Aig_ManStop( pAig1 );
+    Aig_ManStop( pAig2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reports one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ReportOneOutput( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    if ( pObj == Aig_ManConst1(p) )
+        printf( "1" );
+    else if ( pObj == Aig_ManConst0(p) )
+        printf( "0" );
+    else 
+        printf( "X" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reports improvements for property cones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ReportOutputs( Aig_Man_t * pAig )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Saig_ManForEachPo( pAig, pObj, i )
+    {
+        if ( i < Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) )
+            printf( "o" );
+        else
+            printf( "c" );
+        Ssw_ReportOneOutput( pAig, Aig_ObjChild0(pObj) );
+    }
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Remove from-equivs that are in the cone of constraints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManUpdateEquivs( Ssw_Man_t * p, Aig_Man_t * pAig, int fVerbose )
+{
+    Vec_Ptr_t * vCones;
+    Aig_Obj_t ** pArray;
+    Aig_Obj_t * pObj;
+    int i, nTotal = 0, nRemoved = 0;
+    // collect the nodes in the cone of constraints
+    pArray  = (Aig_Obj_t **)Vec_PtrArray(pAig->vPos);
+    pArray += Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig);
+    vCones  = Aig_ManDfsNodes( pAig, pArray, Saig_ManConstrNum(pAig) );
+    // remove all the node that are equiv to something and are in the cones
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+            continue;
+        if ( pAig->pReprs[i] != NULL )
+            nTotal++;
+        if ( !Aig_ObjIsTravIdCurrent(pAig, pObj) )
+            continue;
+        if ( pAig->pReprs[i] )
+        {
+            if ( p->pPars->fConstrs && !p->pPars->fMergeFull )
+            {
+                pAig->pReprs[i] = NULL;
+                nRemoved++;
+            }
+        }
+    }
+    // collect statistics    
+    p->nConesTotal   = Aig_ManPiNum(pAig) + Aig_ManNodeNum(pAig);
+    p->nConesConstr  = Vec_PtrSize(vCones);
+    p->nEquivsTotal  = nTotal;
+    p->nEquivsConstr = nRemoved;
+    Vec_PtrFree( vCones );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs computation of signal correspondence with constraints.]
 
   Description []
@@ -118,9 +247,10 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
     if ( !p->pPars->fLatchCorr )
     { 
         p->pMSat = Ssw_SatStart( 0 );
-        Ssw_ManSweepBmc( p );
-        if ( p->pPars->nFramesK > 1 && p->pPars->fUniqueness )
-            Ssw_UniqueRegisterPairInfo( p );
+        if ( p->pPars->fConstrs ) 
+            Ssw_ManSweepBmcConstr( p );
+        else
+            Ssw_ManSweepBmc( p );
         Ssw_SatStop( p->pMSat );
         p->pMSat = NULL;
         Ssw_ManCleanup( p );
@@ -142,10 +272,25 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
         Aig_ManStop( pSRed );
     }
 */
+    if ( p->pPars->pFunc )
+    {
+        ((int (*)(void *))p->pPars->pFunc)( p->pPars->pData );
+        ((int (*)(void *))p->pPars->pFunc)( p->pPars->pData );
+    }
+    if ( p->pPars->nStepsMax == 0 )
+    {
+        printf( "Stopped signal correspondence after BMC.\n" );
+        goto finalize;
+    }
     // refine classes using induction
     nSatProof = nSatCallsSat = nRecycles = nSatFailsReal = nUniques = 0;
     for ( nIter = 0; ; nIter++ )
     {
+        if ( p->pPars->nStepsMax == nIter )
+        {
+            printf( "Stopped signal correspondence after %d refiment iterations.\n", nIter );
+            goto finalize;
+        }
         if ( p->pPars->nItersStop >= 0 && p->pPars->nItersStop == nIter )
         {
             Aig_Man_t * pSRed = Ssw_SpeculativeReduction( p );
@@ -174,19 +319,20 @@ clk = clock();
         }
         else
         {
-            if ( p->pPars->fDynamic )
+            if ( p->pPars->fConstrs ) 
+                RetValue = Ssw_ManSweepConstr( p );
+            else if ( p->pPars->fDynamic )
                 RetValue = Ssw_ManSweepDyn( p );
             else
                 RetValue = Ssw_ManSweep( p );
+
             p->pPars->nConflicts += p->pMSat->pSat->stats.conflicts;
             if ( p->pPars->fVerbose )
             {
                 printf( "%3d : C =%7d. Cl =%7d. LR =%6d. NR =%6d. ", 
                     nIter, Ssw_ClassesCand1Num(p->ppClasses), Ssw_ClassesClassNum(p->ppClasses), 
                     p->nConstrReduced, Aig_ManNodeNum(p->pFrames) );
-                if ( p->pPars->fUniqueness )
-                    printf( "U =%4d. ", p->nUniques-nUniques );
-                else if ( p->pPars->fDynamic )
+                if ( p->pPars->fDynamic )
                 {
                     printf( "Cex =%5d. ", p->nSatCallsSat-nSatCallsSat );
                     printf( "R =%4d. ",   p->nRecycles-nRecycles );
@@ -211,9 +357,15 @@ clk = clock();
         Ssw_ManCleanup( p );
         if ( !RetValue ) 
             break;
+        if ( p->pPars->pFunc )
+            ((int (*)(void *))p->pPars->pFunc)( p->pPars->pData );
     } 
+
+finalize:
     p->pPars->nIters = nIter + 1;
 p->timeTotal = clock() - clkTotal;
+
+    Ssw_ManUpdateEquivs( p, p->pAig, p->pPars->fVerbose );
     pAigNew = Aig_ManDupRepr( p->pAig, 0 );
     Aig_ManSeqCleanup( pAigNew );
 //Ssw_ClassesPrint( p->ppClasses, 1 );
@@ -221,6 +373,9 @@ p->timeTotal = clock() - clkTotal;
     p->nLitsEnd  = Ssw_ClassesLitNum( p->ppClasses );
     p->nNodesEnd = Aig_ManNodeNum(pAigNew);
     p->nRegsEnd  = Aig_ManRegNum(pAigNew);
+    // cleanup
+    Aig_ManSetPhase( p->pAig );
+    Aig_ManCleanMarkB( p->pAig );
     return pAigNew;
 }
 
@@ -255,13 +410,6 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
         return Aig_ManDupOrdered(pAig);
     }
     // check and update parameters
-    if ( pPars->fUniqueness )
-    {
-        pPars->nFramesAddSim = 0;
-        if ( pPars->nFramesK != 2 )
-            printf( "Setting K = 2 for uniqueness constraints to work.\n" );
-        pPars->nFramesK = 2;
-    }
     if ( pPars->fLatchCorrOpt )
     {
         pPars->fLatchCorr = 1;
@@ -291,15 +439,31 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
             return Cec_SignalCorrespondence( pAig, pPars->nBTLimit, pPars->fUseCSat );
         }
     }
-
+ 
     // start the induction manager
     p = Ssw_ManCreate( pAig, pPars );
     // compute candidate equivalence classes
 //    p->pPars->nConstrs = 1;
-    if ( p->pPars->nConstrs == 0 )
+    if ( p->pPars->fConstrs )
+    {
+        // create trivial equivalence classes with all nodes being candidates for constant 1
+        p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
+        Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_SmlObjIsConstBit, Ssw_SmlObjsAreEqualBit );
+        // derive phase bits to satisfy the constraints
+        if ( Ssw_ManSetConstrPhases( pAig, p->pPars->nFramesK + 1, &p->vInits ) != 0 )
+        {
+            printf( "Ssw_SignalCorrespondence(): The init state does not satisfy the constraints!\n" );
+            p->pPars->fVerbose = 0;
+            Ssw_ManStop( p );
+            return NULL;
+        }
+        // perform simulation of the first timeframes
+        Ssw_ManRefineByConstrSim( p );
+    }
+    else
     {
         // perform one round of seq simulation and generate candidate equivalence classes
-        p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->nFramesK, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
+        p->ppClasses = Ssw_ClassesPrepare( pAig, pPars->nFramesK, pPars->fLatchCorr, pPars->fOutputCorr, pPars->nMaxLevs, pPars->fVerbose );
 //        p->ppClasses = Ssw_ClassesPrepareTargets( pAig );
         if ( pPars->fLatchCorrOpt )
             p->pSml = Ssw_SmlStart( pAig, 0, 2, 1 );
@@ -307,21 +471,16 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
             p->pSml = Ssw_SmlStart( pAig, 0, p->nFrames + p->pPars->nFramesAddSim, 1 );
         else
             p->pSml = Ssw_SmlStart( pAig, 0, 1 + p->pPars->nFramesAddSim, 1 );
-        Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
+        Ssw_ClassesSetData( p->ppClasses, p->pSml, (unsigned(*)(void *,Aig_Obj_t *))Ssw_SmlObjHashWord, (int(*)(void *,Aig_Obj_t *))Ssw_SmlObjIsConstWord, (int(*)(void *,Aig_Obj_t *,Aig_Obj_t *))Ssw_SmlObjsAreEqualWord );
     }
-    else
-    {
-        // create trivial equivalence classes with all nodes being candidates for constant 1
-        p->ppClasses = Ssw_ClassesPrepareSimple( pAig, pPars->fLatchCorr, pPars->nMaxLevs );
-        Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_SmlObjIsConstBit, Ssw_SmlObjsAreEqualBit );
-    }
+    // allocate storage
     if ( p->pPars->fLocalSim )
         p->pVisited = ABC_CALLOC( int, Ssw_SmlNumFrames( p->pSml ) * Aig_ManObjNumMax(p->pAig) );
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );    
-    if ( pPars->fUniqueness )
-        printf( "Uniqueness constraints = %3d. Prevented counter-examples = %3d.\n", 
-            p->nUniquesAdded, p->nUniquesUseful );
+//    Ssw_ReportOutputs( pAigNew );
+    if ( pPars->fConstrs && pPars->fVerbose )
+        Ssw_ReportConeReductions( p, pAig, pAigNew );
     // cleanup
     Ssw_ManStop( p );
     return pAigNew;
@@ -340,10 +499,14 @@ Aig_Man_t * Ssw_SignalCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 ***********************************************************************/
 Aig_Man_t * Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 {
+    Aig_Man_t * pRes;
     Ssw_Pars_t Pars;
     if ( pPars == NULL )
         Ssw_ManSetDefaultParamsLcorr( pPars = &Pars );
-    return Ssw_SignalCorrespondence( pAig, pPars );
+    pRes = Ssw_SignalCorrespondence( pAig, pPars );
+//    if ( pPars->fConstrs && pPars->fVerbose )
+//        Ssw_ReportConeReductions( pAig, pRes );
+    return pRes;
 }
 
 
@@ -351,4 +514,6 @@ Aig_Man_t * Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

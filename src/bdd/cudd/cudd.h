@@ -30,12 +30,16 @@
 #ifndef _CUDD
 #define _CUDD
 
+
 /*---------------------------------------------------------------------------*/
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
 
 #include "mtr.h"
 #include "epd.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -530,19 +534,19 @@ typedef DdApaDigit * DdApaNumber;
 /* These are potential duplicates. */
 #ifndef EXTERN
 #   ifdef __cplusplus
-#    define EXTERN extern "C"
+#       ifdef ABC_NAMESPACE
+#           define EXTERN extern
+#       else
+#           define EXTERN extern "C"
+#       endif
 #   else
 #    define EXTERN extern
 #   endif
 #endif
-#ifndef ARGS
-#   if defined(__STDC__) || defined(__cplusplus)
-#    define ARGS(protos)    protos        /* ANSI C */
-#   else /* !(__STDC__ || __cplusplus) */
-#    define ARGS(protos)    ()        /* K&R C */
-#   endif /* !(__STDC__ || __cplusplus) */
-#endif
 
+#ifndef ARGS
+#define ARGS(protos) protos
+#endif
 
 /**AutomaticStart*************************************************************/
 
@@ -955,5 +959,9 @@ EXTERN int Cudd_bddIsVarToBeUngrouped ARGS((DdManager *dd, int index));
 EXTERN int Cudd_bddIsVarHardGroup ARGS((DdManager *dd, int index));
 
 /**AutomaticEnd***************************************************************/
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif /* _CUDD */

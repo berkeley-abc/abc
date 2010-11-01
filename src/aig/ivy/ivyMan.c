@@ -20,6 +20,9 @@
 
 #include "ivy.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -333,10 +336,10 @@ int Ivy_ManCleanupSeq( Ivy_Man_t * p )
         return 0;
     }
     // disconnect the marked objects
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vNodes, pObj, i )
         Ivy_ObjDisconnect( p, pObj );
     // remove the dangling objects
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vNodes, pObj, i )
     {
         assert( Ivy_ObjIsNode(pObj) || Ivy_ObjIsLatch(pObj) || Ivy_ObjIsBuf(pObj) );
         assert( Ivy_ObjRefs(pObj) == 0 );
@@ -416,7 +419,7 @@ int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
     int nSteps;
     for ( nSteps = 0; Vec_PtrSize(p->vBufs) > 0; nSteps++ )
     {
-        pNode = Vec_PtrEntryLast(p->vBufs);
+        pNode = (Ivy_Obj_t *)Vec_PtrEntryLast(p->vBufs);
         while ( Ivy_ObjIsBuf(pNode) )
             pNode = Ivy_ObjReadFirstFanout( p, pNode );
         // check if this buffer should remain
@@ -494,7 +497,7 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
     for ( i = 0; i < nLatches; i++ )
     {
         // get the latch value
-        Init = pInits? pInits[i] : IVY_INIT_0;
+        Init = pInits? (Ivy_Init_t)pInits[i] : IVY_INIT_0;
         // create latch
         pObj = Ivy_ManPo( p, Ivy_ManPoNum(p) - nLatches + i );
         pLatch = Ivy_Latch( p, Ivy_ObjChild0(pObj), Init );
@@ -544,4 +547,6 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

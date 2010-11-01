@@ -20,6 +20,9 @@
 
 #include "seqInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -220,4 +223,6 @@ int Seq_NodeCompareLats( Abc_Obj_t * pObj1, int Edge1, Abc_Obj_t * pObj2, int Ed
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

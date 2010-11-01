@@ -18,6 +18,9 @@
 
 #include "fpgaInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -982,4 +985,6 @@ Fpga_NodeVec_t * Fpga_MappingOrderCosByLevel( Fpga_Man_t * pMan )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

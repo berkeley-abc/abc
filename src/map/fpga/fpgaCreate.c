@@ -19,6 +19,9 @@
 #include "fpgaInt.h"
 #include "main.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -169,7 +172,7 @@ Fpga_Man_t * Fpga_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // start the manager
     p = ABC_ALLOC( Fpga_Man_t, 1 );
     memset( p, 0, sizeof(Fpga_Man_t) );
-    p->pLutLib   = Abc_FrameReadLibLut();
+    p->pLutLib   = (Fpga_LutLib_t *)Abc_FrameReadLibLut();
     p->nVarsMax  = p->pLutLib->LutMax;
     p->fVerbose  = fVerbose;
     p->fAreaRecovery = 1;
@@ -579,4 +582,6 @@ void Fpga_ManStats( Fpga_Man_t * p )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

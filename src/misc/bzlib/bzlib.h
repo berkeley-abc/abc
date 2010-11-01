@@ -27,10 +27,6 @@
 #ifndef _BZLIB_H
 #define _BZLIB_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define BZ_RUN               0
 #define BZ_FLUSH             1
 #define BZ_FINISH            2
@@ -99,6 +95,10 @@ typedef
 #   define BZ_EXTERN extern
 #endif
 
+#include <stdio.h>
+#include "abc_global.h"
+
+ABC_NAMESPACE_HEADER_START
 
 /*-- Core (low-level) library functions --*/
 
@@ -276,9 +276,9 @@ BZ_EXTERN const char * BZ_API(BZ2_bzerror) (
    );
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+
+ABC_NAMESPACE_HEADER_END
+
 
 #endif
 

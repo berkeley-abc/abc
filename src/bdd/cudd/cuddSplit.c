@@ -35,6 +35,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -150,7 +153,7 @@ Cudd_SplitSet(
         cuddRef(result);
         ABC_FREE(varSeen);
     } else {
-        mtable = st_init_table(st_ptrcmp,st_ptrhash);
+        mtable = st_init_table(st_ptrcmp, st_ptrhash);;
         if (mtable == NULL) {
         (void) fprintf(manager->out,
                    "Cudd_SplitSet: out-of-memory.\n");
@@ -164,7 +167,7 @@ Cudd_SplitSet(
         */
         num = bddAnnotateMintermCount(manager,S,max,mtable);
         if (m == num) {
-        st_foreach(mtable,cuddStCountfree,NIL(char));
+        st_foreach(mtable,(ST_PFSR)cuddStCountfree,NIL(char));
         st_free_table(mtable);
         ABC_FREE(varSeen);
         return(S);
@@ -173,7 +176,7 @@ Cudd_SplitSet(
         result = cuddSplitSetRecur(manager,mtable,varSeen,S,m,max,0);
         if (result)
         cuddRef(result);
-        st_foreach(mtable,cuddStCountfree,NULL);
+        st_foreach(mtable,(ST_PFSR)cuddStCountfree,NULL);
         st_free_table(mtable);
         ABC_FREE(varSeen);
     }
@@ -655,3 +658,5 @@ bddAnnotateMintermCount(
     return(min_N);
 
 } /* end of bddAnnotateMintermCount */
+ABC_NAMESPACE_IMPL_END
+

@@ -22,6 +22,9 @@
 #include "mio.h"
 #include "main.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -164,7 +167,7 @@ Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, i
     p->fUseMemMan = fUseMemMan;
     if ( glo_fMapped )
     {
-        Hop_ManStop(p->pDesign->pManFunc);
+        Hop_ManStop((Hop_Man_t *)p->pDesign->pManFunc);
         p->pDesign->pManFunc = NULL;
     }
     // parse the file
@@ -220,7 +223,7 @@ void Ver_ParseInternal( Ver_Man_t * pMan )
         return;
 
     // connect the boxes and check
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
     {
         // fix the dangling nets
         Abc_NtkFinalizeRead( pNtk );
@@ -484,7 +487,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
             RetValue = Ver_ParseInitial( pMan, pNtk );
         else if ( !strcmp( pWord, "endmodule" ) )
             break;
-        else if ( pMan->pDesign->pGenlib && (pGate = Mio_LibraryReadGateByName(pMan->pDesign->pGenlib, pWord)) ) // current design
+        else if ( pMan->pDesign->pGenlib && (pGate = Mio_LibraryReadGateByName((Mio_Library_t *)pMan->pDesign->pGenlib, pWord)) ) // current design
             RetValue = Ver_ParseGate( pMan, pNtk, pGate );
 //        else if ( pMan->pDesign->pLibrary && st_lookup(pMan->pDesign->pLibrary->tModules, pWord, (char**)&pNtkTemp) ) // gate library
 //            RetValue = Ver_ParseGate( pMan, pNtkTemp );
@@ -604,7 +607,7 @@ void Ver_ParseRemoveSuffixTable( Ver_Man_t * pMan )
     char * pKey, * pValue;
     if ( pMan->tName2Suffix == NULL )
         return;
-    st_foreach_item( pMan->tName2Suffix, gen, (char **)&pKey, (char **)&pValue )
+    st_foreach_item( pMan->tName2Suffix, gen, (const char **)&pKey, (char **)&pValue )
         ABC_FREE( pKey );
     st_free_table( pMan->tName2Suffix );
     pMan->tName2Suffix = NULL;
@@ -1205,9 +1208,9 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
             if ( pMan->fMapped )
             {
                 if ( !strcmp( pEquation, "1\'b0" ) )
-                    pFunc = (Hop_Obj_t *)Mio_LibraryReadConst0(Abc_FrameReadLibGen());
+                    pFunc = (Hop_Obj_t *)Mio_LibraryReadConst0((Mio_Library_t *)Abc_FrameReadLibGen());
                 else if ( !strcmp( pEquation, "1\'b1" ) )
-                    pFunc = (Hop_Obj_t *)Mio_LibraryReadConst1(Abc_FrameReadLibGen());
+                    pFunc = (Hop_Obj_t *)Mio_LibraryReadConst1((Mio_Library_t *)Abc_FrameReadLibGen());
                 else
                 {
                     // "assign foo = \bar ;"
@@ -1225,7 +1228,7 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
                     Vec_PtrPush( pMan->vNames, (void *)(ABC_PTRUINT_T)strlen(pEquation) );
                     Vec_PtrPush( pMan->vNames, pEquation );
                     // get the buffer
-                    pFunc = (Hop_Obj_t *)Mio_LibraryReadBuf(Abc_FrameReadLibGen());
+                    pFunc = (Hop_Obj_t *)Mio_LibraryReadBuf((Mio_Library_t *)Abc_FrameReadLibGen());
                     if ( pFunc == NULL )
                     {
                         sprintf( pMan->sError, "Reading assign statement for node %s has failed because the genlib library has no buffer.", Abc_ObjName(pNet) );
@@ -1237,13 +1240,13 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
             else
             {
                 if ( !strcmp(pEquation, "0") || !strcmp(pEquation, "1\'b0") || !strcmp(pEquation, "1\'bx") )
-                    pFunc = Hop_ManConst0(pNtk->pManFunc);
+                    pFunc = Hop_ManConst0((Hop_Man_t *)pNtk->pManFunc);
                 else if ( !strcmp(pEquation, "1") || !strcmp(pEquation, "1\'b1") )
-                    pFunc = Hop_ManConst1(pNtk->pManFunc);
+                    pFunc = Hop_ManConst1((Hop_Man_t *)pNtk->pManFunc);
                 else if ( fReduction )
-                    pFunc = Ver_FormulaReduction( pEquation, pNtk->pManFunc, pMan->vNames, pMan->sError );  
+                    pFunc = (Hop_Obj_t *)Ver_FormulaReduction( pEquation, pNtk->pManFunc, pMan->vNames, pMan->sError );  
                 else
-                    pFunc = Ver_FormulaParser( pEquation, pNtk->pManFunc, pMan->vNames, pMan->vStackFn, pMan->vStackOp, pMan->sError );  
+                    pFunc = (Hop_Obj_t *)Ver_FormulaParser( pEquation, pNtk->pManFunc, pMan->vNames, pMan->vStackFn, pMan->vStackOp, pMan->sError );  
                 if ( pFunc == NULL )
                 {
                     Ver_ParsePrintErrorMessage( pMan );
@@ -1260,7 +1263,7 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
             {
                 // get the name of this signal
                 Length = (int)(ABC_PTRUINT_T)Vec_PtrEntry( pMan->vNames, 2*i );
-                pName  = Vec_PtrEntry( pMan->vNames, 2*i + 1 );
+                pName  = (char *)Vec_PtrEntry( pMan->vNames, 2*i + 1 );
                 pName[Length] = 0;
                 // find the corresponding net
                 pNet = Ver_ParseFindNet( pNtk, pName );
@@ -1367,15 +1370,15 @@ int Ver_ParseGateStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_GateType_t Ga
     }
     // add logic function
     if ( GateType == VER_GATE_AND || GateType == VER_GATE_NAND )
-        pNode->pData = Hop_CreateAnd( pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
+        pNode->pData = Hop_CreateAnd( (Hop_Man_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
     else if ( GateType == VER_GATE_OR || GateType == VER_GATE_NOR )
-        pNode->pData = Hop_CreateOr( pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
+        pNode->pData = Hop_CreateOr( (Hop_Man_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
     else if ( GateType == VER_GATE_XOR || GateType == VER_GATE_XNOR )
-        pNode->pData = Hop_CreateExor( pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
+        pNode->pData = Hop_CreateExor( (Hop_Man_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
     else if ( GateType == VER_GATE_BUF || GateType == VER_GATE_NOT )
-        pNode->pData = Hop_CreateAnd( pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
+        pNode->pData = Hop_CreateAnd( (Hop_Man_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode) );
     if ( GateType == VER_GATE_NAND || GateType == VER_GATE_NOR || GateType == VER_GATE_XNOR || GateType == VER_GATE_NOT )
-        pNode->pData = Hop_Not( pNode->pData );
+        pNode->pData = Hop_Not( (Hop_Obj_t *)pNode->pData );
     return 1;
 }
 
@@ -2033,7 +2036,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
 {
     Vec_Ptr_t * vBundles = (Vec_Ptr_t *)pBox->pCopy;
     Abc_Ntk_t * pNtk = pBox->pNtk;
-    Abc_Ntk_t * pNtkBox = pBox->pData;
+    Abc_Ntk_t * pNtkBox = (Abc_Ntk_t *)pBox->pData;
     Abc_Obj_t * pTerm, * pTermNew, * pNetAct;
     Ver_Bundle_t * pBundle;
     char * pNameFormal;
@@ -2055,7 +2058,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         Abc_ObjFanin0(pTerm)->pCopy = NULL;
 */
     // check if some of them do not have formal names
-    Vec_PtrForEachEntry( vBundles, pBundle, k )
+    Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
         if ( pBundle->pNameFormal == NULL )
             break;
     if ( k < Vec_PtrSize(vBundles) )
@@ -2063,7 +2066,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         printf( "Warning: The instance %s of network %s will be connected without using formal names.\n", pNtkBox->pName, Abc_ObjName(pBox) );
         // add all actual nets in the bundles
         iBundle = 0;
-        Vec_PtrForEachEntry( vBundles, pBundle, j )
+        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, j )
             iBundle += Vec_PtrSize(pBundle->vNetsActual);
 
         // check the number of actual nets is the same as the number of formal nets
@@ -2078,9 +2081,9 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         iBundle = 0;
         Abc_NtkForEachPi( pNtkBox, pTerm, i )
         {
-            pBundle = Vec_PtrEntry( vBundles, iBundle++ );
+            pBundle = (Ver_Bundle_t *)Vec_PtrEntry( vBundles, iBundle++ );
             // the bundle is found - add the connections - using order LSB to MSB
-            Vec_PtrForEachEntryReverse( pBundle->vNetsActual, pNetAct, k )
+            Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, k )
             {
                 pTermNew = Abc_NtkCreateBi( pNtk );
                 Abc_ObjAddFanin( pBox, pTermNew );
@@ -2092,9 +2095,9 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         // create fanins of the box
         Abc_NtkForEachPo( pNtkBox, pTerm, i )
         {
-            pBundle = Vec_PtrEntry( vBundles, iBundle++ );
+            pBundle = (Ver_Bundle_t *)Vec_PtrEntry( vBundles, iBundle++ );
             // the bundle is found - add the connections - using order LSB to MSB
-            Vec_PtrForEachEntryReverse( pBundle->vNetsActual, pNetAct, k )
+            Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, k )
             {
                 pTermNew = Abc_NtkCreateBo( pNtk );
                 Abc_ObjAddFanin( pTermNew, pBox );
@@ -2105,7 +2108,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         }
 
         // free the bundling
-        Vec_PtrForEachEntry( vBundles, pBundle, k )
+        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
             Ver_ParseFreeBundle( pBundle );
         Vec_PtrFree( vBundles );
         pBox->pCopy = NULL;
@@ -2120,7 +2123,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         pNameFormal = Abc_ObjName( Abc_ObjFanout0(pTerm) );
         // try to find the bundle with this formal net
         pBundle = NULL;
-        Vec_PtrForEachEntry( vBundles, pBundle, k )
+        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
             if ( !strcmp(pBundle->pNameFormal, pNameFormal) )
                 break;
         assert( pBundle != NULL );
@@ -2138,7 +2141,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
                 // compare names before brace
                 if ( Length > 0 )
                 {
-                    Vec_PtrForEachEntry( vBundles, pBundle, j )
+                    Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, j )
                         if ( !strncmp(pBundle->pNameFormal, pNameFormal, Length) && (int)strlen(pBundle->pNameFormal) == Length )
                             break;
                     if ( j == Vec_PtrSize(vBundles) )
@@ -2154,7 +2157,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             }
         }
         // the bundle is found - add the connections - using order LSB to MSB
-        Vec_PtrForEachEntryReverse( pBundle->vNetsActual, pNetAct, k )
+        Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, k )
         {
             pTermNew = Abc_NtkCreateBi( pNtk );
             Abc_ObjAddFanin( pBox, pTermNew );
@@ -2171,7 +2174,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
         pNameFormal = Abc_ObjName( Abc_ObjFanin0(pTerm) );
         // try to find this formal net in the bundle
         pBundle = NULL;
-        Vec_PtrForEachEntry( vBundles, pBundle, k )
+        Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
             if ( !strcmp(pBundle->pNameFormal, pNameFormal) )
                 break;
         assert( pBundle != NULL );
@@ -2189,7 +2192,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
                 // compare names before brace
                 if ( Length > 0 )
                 {
-                    Vec_PtrForEachEntry( vBundles, pBundle, j )
+                    Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, j )
                         if ( !strncmp(pBundle->pNameFormal, pNameFormal, Length) && (int)strlen(pBundle->pNameFormal) == Length ) 
                             break;
                     if ( j == Vec_PtrSize(vBundles) )
@@ -2210,7 +2213,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             }
         }
         // the bundle is found - add the connections
-        Vec_PtrForEachEntryReverse( pBundle->vNetsActual, pNetAct, k )
+        Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, k )
         {
             if ( !strcmp(Abc_ObjName(pNetAct), "1\'b0") || !strcmp(Abc_ObjName(pNetAct), "1\'b1") )
             {
@@ -2228,7 +2231,7 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
     }
 
     // free the bundling
-    Vec_PtrForEachEntry( vBundles, pBundle, k )
+    Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, k )
         Ver_ParseFreeBundle( pBundle );
     Vec_PtrFree( vBundles );
     pBox->pCopy = NULL;
@@ -2253,7 +2256,7 @@ int Ver_ParseConnectDefBoxes( Ver_Man_t * pMan )
     Abc_Obj_t * pBox;
     int i, k, RetValue = 1;
     // go through all the modules
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
     {
         // go through all the boxes of this module
         Abc_NtkForEachBox( pNtk, pBox, k )
@@ -2264,7 +2267,7 @@ int Ver_ParseConnectDefBoxes( Ver_Man_t * pMan )
             if ( pBox->pData == NULL )
                 continue;
             // if the network is undefined, it will be connected later
-            if ( !Ver_NtkIsDefined(pBox->pData) )
+            if ( !Ver_NtkIsDefined((Abc_Ntk_t *)pBox->pData) )
             {
                 RetValue = 2;
                 continue;
@@ -2273,7 +2276,7 @@ int Ver_ParseConnectDefBoxes( Ver_Man_t * pMan )
             if ( !Ver_ParseConnectBox( pMan, pBox ) )
                 return 0;
             // if the network is a true blackbox, skip
-            if ( Abc_NtkHasBlackbox(pBox->pData) )
+            if ( Abc_NtkHasBlackbox((Abc_Ntk_t *)pBox->pData) )
                 continue;
             // convert the box to the whitebox
             Abc_ObjBlackboxToWhitebox( pBox );
@@ -2300,15 +2303,15 @@ Vec_Ptr_t * Ver_ParseCollectUndefBoxes( Ver_Man_t * pMan )
     Abc_Obj_t * pBox;
     int i, k;
     // clear the module structures
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         pNtk->pData = NULL;
     // go through all the blackboxes
     vUndefs = Vec_PtrAlloc( 16 );
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
     {
         Abc_NtkForEachBlackbox( pNtk, pBox, k )
         {
-            pNtkBox = pBox->pData;
+            pNtkBox = (Abc_Ntk_t *)pBox->pData;
             if ( pNtkBox == NULL )
                 continue;
             if ( Ver_NtkIsDefined(pNtkBox) )
@@ -2320,7 +2323,7 @@ Vec_Ptr_t * Ver_ParseCollectUndefBoxes( Ver_Man_t * pMan )
                 pNtkBox->pData = Vec_PtrAlloc( 16 );
             }
             // save the instance
-            Vec_PtrPush( pNtkBox->pData, pBox );
+            Vec_PtrPush( (Vec_Ptr_t *)pNtkBox->pData, pBox );
         }
     }
     return vUndefs;
@@ -2344,25 +2347,25 @@ void Ver_ParseReportUndefBoxes( Ver_Man_t * pMan )
     int i, k, nBoxes;
     // clean 
     nBoxes = 0;
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
     {
         pNtk->fHiePath = 0;
         if ( !Ver_NtkIsDefined(pNtk) )
             nBoxes++;
     }
     // count
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         Abc_NtkForEachBlackbox( pNtk, pBox, k )
-            if ( pBox->pData && !Ver_NtkIsDefined(pBox->pData) )
+            if ( pBox->pData && !Ver_NtkIsDefined((Abc_Ntk_t *)pBox->pData) )
                 ((Abc_Ntk_t *)pBox->pData)->fHiePath++;
     // print the stats
     printf( "Warning: The design contains %d undefined objects interpreted as blackboxes:\n", nBoxes );
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         if ( !Ver_NtkIsDefined(pNtk) )
             printf( "%s (%d)  ", Abc_NtkName(pNtk), pNtk->fHiePath );
     printf( "\n" );
     // clean 
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         pNtk->fHiePath = 0;
 }
 
@@ -2384,14 +2387,14 @@ int Ver_ParseCheckNondrivenNets( Vec_Ptr_t * vUndefs )
     Abc_Obj_t * pBox, * pNet;
     int i, k, j, m;
     // go through undef box types
-    Vec_PtrForEachEntry( vUndefs, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vUndefs, pNtk, i )
         // go through instances of this type
-        Vec_PtrForEachEntry( pNtk->pData, pBox, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, (Vec_Ptr_t *)pNtk->pData, pBox, k )
             // go through the bundles of this instance
-            Vec_PtrForEachEntryReverse( (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
+            Vec_PtrForEachEntryReverse( Ver_Bundle_t *, (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
                 // go through the actual nets of this bundle
                 if ( pBundle )
-                Vec_PtrForEachEntry( pBundle->vNetsActual, pNet, m )
+                Vec_PtrForEachEntry( Abc_Obj_t *, pBundle->vNetsActual, pNet, m )
                 {
                     if ( Abc_ObjFaninNum(pNet) == 0 ) // non-driven
                         if ( strcmp(Abc_ObjName(pNet), "1\'b0") && strcmp(Abc_ObjName(pNet), "1\'b1") ) // diff from a const
@@ -2417,10 +2420,10 @@ int Ver_ParseFormalNetsAreDriven( Abc_Ntk_t * pNtk, char * pNameFormal )
     Abc_Obj_t * pBox, * pNet;
     int k, j, m;
     // go through instances of this type
-    Vec_PtrForEachEntry( pNtk->pData, pBox, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, (Vec_Ptr_t *)pNtk->pData, pBox, k )
     {
         // find a bundle with the given name in this instance
-        Vec_PtrForEachEntryReverse( (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
+        Vec_PtrForEachEntryReverse( Ver_Bundle_t *, (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
             if ( pBundle && !strcmp( pBundle->pNameFormal, pNameFormal ) )
                 break;
         // skip non-driven bundles
@@ -2428,7 +2431,7 @@ int Ver_ParseFormalNetsAreDriven( Abc_Ntk_t * pNtk, char * pNameFormal )
             continue;
         // check if all nets are driven in this bundle
         assert(pBundle); // Verify that pBundle was assigned to.
-        Vec_PtrForEachEntry( pBundle->vNetsActual, pNet, m )
+        Vec_PtrForEachEntry( Abc_Obj_t *, pBundle->vNetsActual, pNet, m )
             if ( Abc_ObjFaninNum(pNet) > 0 )
                 return 1;
     }
@@ -2452,16 +2455,16 @@ Ver_Bundle_t * Ver_ParseGetNondrivenBundle( Abc_Ntk_t * pNtk, int Counter )
     Abc_Obj_t * pBox, * pNet;
     int k, m;
     // go through instances of this type
-    Vec_PtrForEachEntry( pNtk->pData, pBox, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, (Vec_Ptr_t *)pNtk->pData, pBox, k )
     {
         if ( Counter >= Vec_PtrSize((Vec_Ptr_t *)pBox->pCopy) )
             continue;
         // get the bundle given distance away
-        pBundle = Vec_PtrEntry( (Vec_Ptr_t *)pBox->pCopy, Vec_PtrSize((Vec_Ptr_t *)pBox->pCopy) - 1 - Counter );
+        pBundle = (Ver_Bundle_t *)Vec_PtrEntry( (Vec_Ptr_t *)pBox->pCopy, Vec_PtrSize((Vec_Ptr_t *)pBox->pCopy) - 1 - Counter );
         if ( pBundle == NULL )
             continue;
         // go through the actual nets of this bundle
-        Vec_PtrForEachEntry( pBundle->vNetsActual, pNet, m )
+        Vec_PtrForEachEntry( Abc_Obj_t *, pBundle->vNetsActual, pNet, m )
             if ( !Abc_ObjFaninNum(pNet) && !Ver_ParseFormalNetsAreDriven(pNtk, pBundle->pNameFormal) ) // non-driven
                 return pBundle;
     }
@@ -2488,7 +2491,7 @@ int Ver_ParseDriveFormal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_Bundle_t * pBu
     int k, j, m;
 
     // drive this net in the undef box
-    Vec_PtrForEachEntry( pBundle0->vNetsActual, pNetAct, m )
+    Vec_PtrForEachEntry( Abc_Obj_t *, pBundle0->vNetsActual, pNetAct, m )
     {
         // create the formal net
         if ( Vec_PtrSize(pBundle0->vNetsActual) == 1 )
@@ -2508,10 +2511,10 @@ int Ver_ParseDriveFormal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_Bundle_t * pBu
 
     // go through instances of this type
     pName = Extra_UtilStrsav(pBundle0->pNameFormal);
-    Vec_PtrForEachEntry( pNtk->pData, pBox, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, (Vec_Ptr_t *)pNtk->pData, pBox, k )
     {
         // find a bundle with the given name in this instance
-        Vec_PtrForEachEntryReverse( (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
+        Vec_PtrForEachEntryReverse( Ver_Bundle_t *, (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
             if ( pBundle && !strcmp( pBundle->pNameFormal, pName ) )
                 break;
         // skip non-driven bundles
@@ -2519,7 +2522,7 @@ int Ver_ParseDriveFormal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_Bundle_t * pBu
             continue;
         // check if any nets are driven in this bundle
         assert(pBundle); // Verify pBundle was assigned to.
-        Vec_PtrForEachEntry( pBundle->vNetsActual, pNetAct, m )
+        Vec_PtrForEachEntry( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, m )
             if ( Abc_ObjFaninNum(pNetAct) > 0 )
             {
                 sprintf( pMan->sError, "Internal error while trying to connect undefined boxes. It is likely that the algorithm currently used has its limitations." );
@@ -2527,7 +2530,7 @@ int Ver_ParseDriveFormal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_Bundle_t * pBu
                 return 0;
             }
         // drive the nets by the undef box
-        Vec_PtrForEachEntryReverse( pBundle->vNetsActual, pNetAct, m )
+        Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, m )
         {
             pTermNew = Abc_NtkCreateBo( pNetAct->pNtk );
             Abc_ObjAddFanin( pTermNew, pBox );
@@ -2561,14 +2564,14 @@ int Ver_ParseDriveInputs( Ver_Man_t * pMan, Vec_Ptr_t * vUndefs )
     Abc_Obj_t * pBox, * pBox2, * pTerm, * pTermNew, * pNetFormal, * pNetAct;
     int i, k, j, m, CountCur, CountTotal = -1;
     // iterate through the undef boxes
-    Vec_PtrForEachEntry( vUndefs, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vUndefs, pNtk, i )
     {
         // count the number of unconnected bundles for instances of this type of box
         CountTotal = -1;
-        Vec_PtrForEachEntry( pNtk->pData, pBox, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, (Vec_Ptr_t *)pNtk->pData, pBox, k )
         {
             CountCur = 0;
-            Vec_PtrForEachEntry( (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
+            Vec_PtrForEachEntry( Ver_Bundle_t *, (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
                 CountCur += (pBundle != NULL);
             if ( CountTotal == -1 )
                 CountTotal = CountCur;
@@ -2582,12 +2585,12 @@ int Ver_ParseDriveInputs( Ver_Man_t * pMan, Vec_Ptr_t * vUndefs )
         }
 
         // create formals
-        pBox = Vec_PtrEntry( pNtk->pData, 0 );
-        Vec_PtrForEachEntry( (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
+        pBox = (Abc_Obj_t *)Vec_PtrEntry( (Vec_Ptr_t *)pNtk->pData, 0 );
+        Vec_PtrForEachEntry( Ver_Bundle_t *, (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
         {
             if ( pBundle == NULL )
                 continue;
-            Vec_PtrForEachEntry( pBundle->vNetsActual, pNetAct, m )
+            Vec_PtrForEachEntry( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, m )
             {
                 // find create the formal net
                 if ( Vec_PtrSize(pBundle->vNetsActual) == 1 )
@@ -2607,15 +2610,15 @@ int Ver_ParseDriveInputs( Ver_Man_t * pMan, Vec_Ptr_t * vUndefs )
         }
 
         // go through all the boxes
-        Vec_PtrForEachEntry( pNtk->pData, pBox, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, (Vec_Ptr_t *)pNtk->pData, pBox, k )
         {
             // go through all the bundles
-            Vec_PtrForEachEntry( (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
+            Vec_PtrForEachEntry( Ver_Bundle_t *, (Vec_Ptr_t *)pBox->pCopy, pBundle, j )
             {
                 if ( pBundle == NULL )
                     continue;
                 // drive the nets by the undef box
-                Vec_PtrForEachEntryReverse( pBundle->vNetsActual, pNetAct, m )
+                Vec_PtrForEachEntryReverse( Abc_Obj_t *, pBundle->vNetsActual, pNetAct, m )
                 {
                     pTermNew = Abc_NtkCreateBi( pNetAct->pNtk );
                     Abc_ObjAddFanin( pBox, pTermNew );
@@ -2652,9 +2655,9 @@ int Ver_ParseMaxBoxSize( Vec_Ptr_t * vUndefs )
     Abc_Obj_t * pBox;
     int i, k, nMaxSize = 0;
     // go through undef box types
-    Vec_PtrForEachEntry( vUndefs, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vUndefs, pNtk, i )
         // go through instances of this type
-        Vec_PtrForEachEntry( pNtk->pData, pBox, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, (Vec_Ptr_t *)pNtk->pData, pBox, k )
             // check the number of bundles of this instance
             if ( nMaxSize < Vec_PtrSize((Vec_Ptr_t *)pBox->pCopy) )
                 nMaxSize = Vec_PtrSize((Vec_Ptr_t *)pBox->pCopy);
@@ -2688,21 +2691,21 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
     pFile = fopen( Buffer, "w" );
 
     // count the total number of instances and how many times they occur
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         pNtk->fHieVisited = 0;
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         Abc_NtkForEachBox( pNtk, pBox, k )
         {
             if ( Abc_ObjIsLatch(pBox) )
                 continue;
-            pNtkBox = pBox->pData;
+            pNtkBox = (Abc_Ntk_t *)pBox->pData;
             if ( pNtkBox == NULL )
                 continue;
             pNtkBox->fHieVisited++;
         }
     // print each box and its stats
     fprintf( pFile, "The hierarhical design %s contains %d modules:\n", pMan->pFileName, Vec_PtrSize(pMan->pDesign->vModules) );
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
     {
         fprintf( pFile, "%-24s : ", Abc_NtkName(pNtk) );
         if ( !Ver_NtkIsDefined(pNtk) )
@@ -2720,7 +2723,7 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
         fprintf( pFile, " box = %6d", Abc_NtkBoxNum(pNtk)-Abc_NtkLatchNum(pNtk) );
         fprintf( pFile, "\n" );
     }
-    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         pNtk->fHieVisited = 0;
 
     // report instances with dangling outputs
@@ -2730,21 +2733,21 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
         Ver_Bundle_t * pBundle;
         int j, nActNets, Counter = 0;
         // count the number of instances with dangling outputs
-        Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+        Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
         {
             Abc_NtkForEachBox( pNtk, pBox, k )
             {
                 if ( Abc_ObjIsLatch(pBox) )
                     continue;
                 vBundles = (Vec_Ptr_t *)pBox->pCopy;
-                pNtkBox = pBox->pData;
+                pNtkBox = (Abc_Ntk_t *)pBox->pData;
                 if ( pNtkBox == NULL )
                     continue;
                 if ( !Ver_NtkIsDefined(pNtkBox) )
                     continue;
                 // count the number of actual nets
                 nActNets = 0;
-                Vec_PtrForEachEntry( vBundles, pBundle, j )
+                Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, j )
                     nActNets += Vec_PtrSize(pBundle->vNetsActual);
                 // the box is defined and will be connected
                 if ( nActNets != Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) )
@@ -2758,21 +2761,21 @@ void Ver_ParsePrintLog( Ver_Man_t * pMan )
             fprintf( pFile, "\n" );
             fprintf( pFile, "The outputs of %d box instances are not connected:\n", Counter );
             // enumerate through the boxes
-            Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+            Vec_PtrForEachEntry( Abc_Ntk_t *, pMan->pDesign->vModules, pNtk, i )
             {
                 Abc_NtkForEachBox( pNtk, pBox, k )
                 {
                     if ( Abc_ObjIsLatch(pBox) )
                         continue;
                     vBundles = (Vec_Ptr_t *)pBox->pCopy;
-                    pNtkBox = pBox->pData;
+                    pNtkBox = (Abc_Ntk_t *)pBox->pData;
                     if ( pNtkBox == NULL )
                         continue;
                     if ( !Ver_NtkIsDefined(pNtkBox) )
                         continue;
                     // count the number of actual nets
                     nActNets = 0;
-                    Vec_PtrForEachEntry( vBundles, pBundle, j )
+                    Vec_PtrForEachEntry( Ver_Bundle_t *, vBundles, pBundle, j )
                         nActNets += Vec_PtrSize(pBundle->vNetsActual);
                     // the box is defined and will be connected
                     if ( nActNets != Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) )
@@ -2835,7 +2838,7 @@ int Ver_ParseAttachBoxes( Ver_Man_t * pMan )
     {
         // go through undef box types
         pBundle = NULL;
-        Vec_PtrForEachEntry( vUndefs, pNtk, i )
+        Vec_PtrForEachEntry( Abc_Ntk_t *, vUndefs, pNtk, i )
             if ( (pBundle = Ver_ParseGetNondrivenBundle( pNtk, Counter )) )
                 break;
         if ( pBundle == NULL )
@@ -2853,9 +2856,9 @@ int Ver_ParseAttachBoxes( Ver_Man_t * pMan )
         return 0;
 
     // cleanup
-    Vec_PtrForEachEntry( vUndefs, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vUndefs, pNtk, i )
     {
-        Vec_PtrFree( pNtk->pData );
+        Vec_PtrFree( (Vec_Ptr_t *)pNtk->pData );
         pNtk->pData = NULL;
     }
     Vec_PtrFree( vUndefs ); 
@@ -2969,4 +2972,6 @@ Abc_Obj_t * Ver_ParseCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pNet )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

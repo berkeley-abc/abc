@@ -21,6 +21,9 @@
 #include "cgtInt.h"
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -96,11 +99,11 @@ int Cgt_ManCheckGateComplete( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, Aig_Obj_t
     Vec_Ptr_t * vGates;
     Aig_Obj_t * pObj;
     int i;
-    Vec_PtrForEachEntry( vFanout, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vFanout, pObj, i )
     {
         if ( Saig_ObjIsPo(pAig, pObj) )
             return 0;
-        vGates = Vec_VecEntry( vGatesAll, Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig) );
+        vGates = (Vec_Ptr_t *)Vec_VecEntry( vGatesAll, Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig) );
         if ( Vec_PtrFind( vGates, pGate ) == -1 )
             return 0;            
     }
@@ -125,7 +128,7 @@ Vec_Ptr_t * Cgt_ManCompleteGates( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int n
     int i, k;
     vFanout    = Vec_PtrAlloc( 100 );
     vGatesFull = Vec_PtrAlloc( 100 );
-    Vec_VecForEachEntry( vGatesAll, pGate, i, k )
+    Vec_VecForEachEntry( Aig_Obj_t *, vGatesAll, pGate, i, k )
     {
         pGateR = Aig_Regular(pGate);
         if ( pGateR->fMarkA )
@@ -136,7 +139,7 @@ Vec_Ptr_t * Cgt_ManCompleteGates( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int n
             Vec_PtrPush( vGatesFull, pGate );
     }
     Vec_PtrFree( vFanout );
-    Vec_VecForEachEntry( vGatesAll, pGate, i, k )
+    Vec_VecForEachEntry( Aig_Obj_t *, vGatesAll, pGate, i, k )
         Aig_Regular(pGate)->fMarkA = 0;
     return vGatesFull;
 }
@@ -197,8 +200,8 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
     {
         nHitsMax = 0;
         pCandBest = NULL;
-        vCands = Vec_VecEntry( vGatesAll, i );
-        Vec_PtrForEachEntry( vCands, pCand, k )
+        vCands = (Vec_Ptr_t *)Vec_VecEntry( vGatesAll, i );
+        Vec_PtrForEachEntry( Aig_Obj_t *, vCands, pCand, k )
         {
             // check if this is indeed a clock-gate
             if ( nOdcMax == 0 && !Ssw_SmlCheckXorImplication( pSml, pObjLi, pObjLo, pCand ) )
@@ -260,15 +263,15 @@ Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdc
     // derive and label complete gates
     vCompletes = Cgt_ManCompleteGates( pAig, vGatesAll, nOdcMax, fVerbose );
     // label complete gates
-    Vec_PtrForEachEntry( vCompletes, pGate, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCompletes, pGate, i )
         Aig_Regular(pGate)->fMarkA = 1;
     // select only complete gates
     vGates = Vec_VecStart( Saig_ManRegNum(pAig) );
-    Vec_VecForEachEntry( vGatesAll, pGate, i, k )
+    Vec_VecForEachEntry( Aig_Obj_t *, vGatesAll, pGate, i, k )
         if ( Aig_Regular(pGate)->fMarkA )
             Vec_VecPush( vGates, i, pGate );
     // unlabel complete gates
-    Vec_PtrForEachEntry( vCompletes, pGate, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCompletes, pGate, i )
         Aig_Regular(pGate)->fMarkA = 0;
     // count the number of gated flops
     Vec_VecForEachLevel( vGates, vOne, i )
@@ -293,4 +296,6 @@ Vec_Vec_t * Cgt_ManDecideArea( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nOdc
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

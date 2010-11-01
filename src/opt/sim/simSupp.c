@@ -22,12 +22,15 @@
 #include "fraig.h"
 #include "sim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static int    Sim_ComputeSuppRound( Sim_Man_t * p, bool fUseTargets );
-static int    Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets );
+static int    Sim_ComputeSuppRound( Sim_Man_t * p, int  fUseTargets );
+static int    Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, int  fUseTargets );
 static void   Sim_ComputeSuppSetTargets( Sim_Man_t * p );
 
 static void   Sim_UtilAssignRandom( Sim_Man_t * p );
@@ -68,17 +71,17 @@ Vec_Ptr_t * Sim_ComputeStrSupp( Abc_Ntk_t * pNtk )
     {
 //        if ( Abc_NodeIsConst(pNode) )
 //            continue;
-        pSimmNode  = vSuppStr->pArray[ pNode->Id ];
-        pSimmNode1 = vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
-        pSimmNode2 = vSuppStr->pArray[ Abc_ObjFaninId1(pNode) ];
+        pSimmNode  = (unsigned *)vSuppStr->pArray[ pNode->Id ];
+        pSimmNode1 = (unsigned *)vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
+        pSimmNode2 = (unsigned *)vSuppStr->pArray[ Abc_ObjFaninId1(pNode) ];
         for ( k = 0; k < nSuppWords; k++ )
             pSimmNode[k] = pSimmNode1[k] | pSimmNode2[k];
     }
     // set the structural supports of the PO nodes
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        pSimmNode  = vSuppStr->pArray[ pNode->Id ];
-        pSimmNode1 = vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
+        pSimmNode  = (unsigned *)vSuppStr->pArray[ pNode->Id ];
+        pSimmNode1 = (unsigned *)vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
         for ( k = 0; k < nSuppWords; k++ )
             pSimmNode[k] = pSimmNode1[k];
     }
@@ -165,7 +168,7 @@ p->timeTotal = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Sim_ComputeSuppRound( Sim_Man_t * p, bool fUseTargets )
+int Sim_ComputeSuppRound( Sim_Man_t * p, int  fUseTargets )
 {
     Vec_Int_t * vTargets;
     int i, Counter = 0;
@@ -177,7 +180,7 @@ p->timeSim += clock() - clk;
     // iterate through the CIs and detect COs that depend on them
     for ( i = p->iInput; i < p->nInputs; i++ )
     {
-        vTargets = p->vSuppTargs->pArray[i];
+        vTargets = (Vec_Int_t *)p->vSuppTargs->pArray[i];
         if ( fUseTargets && vTargets->nSize == 0 )
             continue;
         Counter += Sim_ComputeSuppRoundNode( p, i, fUseTargets );
@@ -196,7 +199,7 @@ p->timeSim += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets )
+int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, int  fUseTargets )
 {
     int fVerbose = 0;
     Sim_Pat_t * pPat;
@@ -217,7 +220,7 @@ p->timeTrav += clock() - clk;
     // complement the simulation info of the selected CI
     Sim_UtilInfoFlip( p, pNodeCi );
     // simulate the levelized structure of nodes
-    Vec_VecForEachEntry( vNodesByLevel, pNode, i, k )
+    Vec_VecForEachEntry( Abc_Obj_t *, vNodesByLevel, pNode, i, k )
     {
         fType0 = Abc_NodeIsTravIdCurrent( Abc_ObjFanin0(pNode) );
         fType1 = Abc_NodeIsTravIdCurrent( Abc_ObjFanin1(pNode) );
@@ -228,7 +231,7 @@ p->timeSim += clock() - clk;
     // set the simulation info of the affected COs
     if ( fUseTargets )
     {
-        vTargets = p->vSuppTargs->pArray[iNumCi];
+        vTargets = (Vec_Int_t *)p->vSuppTargs->pArray[iNumCi];
         for ( i = vTargets->nSize - 1; i >= 0; i-- )
         {
             // get the target output
@@ -253,7 +256,7 @@ if ( fVerbose )
             Sim_SuppFunSetVar( p->vSuppFun, Output, iNumCi );
             
             // detect the differences in the simulation info
-            Sim_UtilInfoDetectDiffs( p->vSim0->pArray[pNode->Id], p->vSim1->pArray[pNode->Id], p->nSimWords, p->vDiffs );
+            Sim_UtilInfoDetectDiffs( (unsigned *)p->vSim0->pArray[pNode->Id], (unsigned *)p->vSim1->pArray[pNode->Id], p->nSimWords, p->vDiffs );
             // create new patterns
             if ( !fFirst && p->vFifo->nSize > 1000 )
                 continue;
@@ -314,8 +317,8 @@ void Sim_ComputeSuppSetTargets( Sim_Man_t * p )
     int i, k, Num;
     Abc_NtkForEachCo( p->pNtk, pNode, i )
     {
-        pSuppStr = p->vSuppStr->pArray[pNode->Id];
-        pSuppFun = p->vSuppFun->pArray[i];
+        pSuppStr = (unsigned *)p->vSuppStr->pArray[pNode->Id];
+        pSuppFun = (unsigned *)p->vSuppFun->pArray[i];
         // find vars in the structural support that are not in the functional support
         Sim_UtilInfoDetectNews( pSuppFun, pSuppStr, p->nSuppWords, p->vDiffs );
         Vec_IntForEachEntry( p->vDiffs, Num, k )
@@ -342,7 +345,7 @@ void Sim_UtilAssignRandom( Sim_Man_t * p )
     // assign the random/systematic simulation info to the PIs
     Abc_NtkForEachCi( p->pNtk, pNode, i )
     {
-        pSimInfo = p->vSim0->pArray[pNode->Id];
+        pSimInfo = (unsigned *)p->vSim0->pArray[pNode->Id];
         for ( k = 0; k < p->nSimWords; k++ )
             pSimInfo[k] = SIM_RANDOM_UNSIGNED;
     }
@@ -373,7 +376,7 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
     {
         ++Counter;
         // get the pattern
-        pPat = Vec_PtrPop( p->vFifo );
+        pPat = (Sim_Pat_t *)Vec_PtrPop( p->vFifo );
         if ( fUseOneWord )
         {
             // get the first word of the next series
@@ -385,7 +388,7 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
             Abc_NtkForEachCi( p->pNtk, pNode, i )
             {
                 pNode = Abc_NtkCi(p->pNtk,i);
-                pSimInfo = p->vSim0->pArray[pNode->Id];
+                pSimInfo = (unsigned *)p->vSim0->pArray[pNode->Id];
                 if ( Sim_HasBit(pPat->pData, i) )
                     pSimInfo[iWord] = SIM_MASK_FULL;
                 else
@@ -405,7 +408,7 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
             // set the pattern for all CIs from iWord to iWord + nWordsNew
             Abc_NtkForEachCi( p->pNtk, pNode, i )
             {
-                pSimInfo = p->vSim0->pArray[pNode->Id];
+                pSimInfo = (unsigned *)p->vSim0->pArray[pNode->Id];
                 if ( Sim_HasBit(pPat->pData, i) )
                 {
                     for ( w = iWord; w < iWordLim; w++ )
@@ -457,7 +460,7 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
 
     p->nSatRuns = 0;
     // put targets into one array
-    Vec_VecForEachEntryReverse( p->vSuppTargs, pEntry, Input, k )
+    Vec_VecForEachEntryReverse( void *, p->vSuppTargs, pEntry, Input, k )
     {
         p->nSatRuns++;
         Output = (int)(ABC_PTRUINT_T)pEntry;
@@ -470,7 +473,7 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
         Params.nSeconds = ABC_INFINITY;
         Params.fInternal = 1;
 clk = clock();
-        pMan = Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
+        pMan = (Fraig_Man_t *)Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
 p->timeFraig += clock() - clk;
 clk = clock();
         Fraig_ManProveMiter( pMan );
@@ -483,7 +486,7 @@ p->timeSat += clock() - clk;
         {
             p->nSatRunsUnsat++;
             pModel = NULL;
-            Vec_PtrRemove( p->vSuppTargs->pArray[Input], pEntry );
+            Vec_PtrRemove( (Vec_Ptr_t *)p->vSuppTargs->pArray[Input], pEntry );
         }
         else // sat
         {
@@ -594,4 +597,6 @@ int Sim_SolveSuppModelVerify( Abc_Ntk_t * pNtk, int * pModel, int Input, int Out
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

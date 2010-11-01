@@ -20,6 +20,9 @@
 
 #include "msatInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -52,7 +55,7 @@ struct Msat_Clause_t_
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearned, Msat_Clause_t ** pClause_out )
+int  Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, int  fLearned, Msat_Clause_t ** pClause_out )
 {
     int * pAssigns = Msat_SolverReadAssignsArray(p);
     Msat_ClauseVec_t ** pvWatched;
@@ -61,7 +64,7 @@ bool Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearned,
     int nLits, i, j;
     int nBytes;
     Msat_Var_t Var;
-    bool Sign;
+    int  Sign;
 
     *pClause_out = NULL;
 
@@ -217,7 +220,7 @@ bool Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearned,
   SeeAlso     []
 
 ***********************************************************************/
-void Msat_ClauseFree( Msat_Solver_t * p, Msat_Clause_t * pC, bool fRemoveWatched )
+void Msat_ClauseFree( Msat_Solver_t * p, Msat_Clause_t * pC, int  fRemoveWatched )
 {
     if ( fRemoveWatched )
     {
@@ -249,16 +252,16 @@ void Msat_ClauseFree( Msat_Solver_t * p, Msat_Clause_t * pC, bool fRemoveWatched
   SeeAlso     []
 
 ***********************************************************************/
-bool  Msat_ClauseReadLearned( Msat_Clause_t * pC )  {  return pC->fLearned; }
+int   Msat_ClauseReadLearned( Msat_Clause_t * pC )  {  return pC->fLearned; }
 int   Msat_ClauseReadSize( Msat_Clause_t * pC )     {  return pC->nSize;    }
 int * Msat_ClauseReadLits( Msat_Clause_t * pC )     {  return pC->pData;    }
-bool  Msat_ClauseReadMark( Msat_Clause_t * pC )     {  return pC->fMark;    }
+int   Msat_ClauseReadMark( Msat_Clause_t * pC )     {  return pC->fMark;    }
 int   Msat_ClauseReadNum( Msat_Clause_t * pC )      {  return pC->Num;      }
-bool  Msat_ClauseReadTypeA( Msat_Clause_t * pC )    {  return pC->fTypeA;    }
+int   Msat_ClauseReadTypeA( Msat_Clause_t * pC )    {  return pC->fTypeA;    }
 
-void  Msat_ClauseSetMark( Msat_Clause_t * pC, bool fMark )   {  pC->fMark = fMark;   }
+void  Msat_ClauseSetMark( Msat_Clause_t * pC, int  fMark )   {  pC->fMark = fMark;   }
 void  Msat_ClauseSetNum( Msat_Clause_t * pC, int Num )       {  pC->Num = Num;       }
-void  Msat_ClauseSetTypeA( Msat_Clause_t * pC, bool fTypeA ) {  pC->fTypeA = fTypeA; }
+void  Msat_ClauseSetTypeA( Msat_Clause_t * pC, int  fTypeA ) {  pC->fTypeA = fTypeA; }
 
 /**Function*************************************************************
 
@@ -272,10 +275,10 @@ void  Msat_ClauseSetTypeA( Msat_Clause_t * pC, bool fTypeA ) {  pC->fTypeA = fTy
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_ClauseIsLocked( Msat_Solver_t * p, Msat_Clause_t * pC )
+int  Msat_ClauseIsLocked( Msat_Solver_t * p, Msat_Clause_t * pC )
 {
     Msat_Clause_t ** pReasons = Msat_SolverReadReasonArray( p );
-    return (bool)(pReasons[MSAT_LIT2VAR(pC->pData[0])] == pC);
+    return (int )(pReasons[MSAT_LIT2VAR(pC->pData[0])] == pC);
 }
 
 /**Function*************************************************************
@@ -326,7 +329,7 @@ void Msat_ClauseWriteActivity( Msat_Clause_t * pC, float Num )
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_ClausePropagate( Msat_Clause_t * pC, Msat_Lit_t Lit, int * pAssigns, Msat_Lit_t * pLit_out )
+int  Msat_ClausePropagate( Msat_Clause_t * pC, Msat_Lit_t Lit, int * pAssigns, Msat_Lit_t * pLit_out )
 {
     // make sure the false literal is pC->pData[1]
     Msat_Lit_t LitF = MSAT_LITNOT(Lit);
@@ -365,7 +368,7 @@ bool Msat_ClausePropagate( Msat_Clause_t * pC, Msat_Lit_t Lit, int * pAssigns, M
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_ClauseSimplify( Msat_Clause_t * pC, int * pAssigns )
+int  Msat_ClauseSimplify( Msat_Clause_t * pC, int * pAssigns )
 {
     Msat_Var_t Var;
     int i, j;
@@ -485,7 +488,7 @@ void Msat_ClausePrint( Msat_Clause_t * pC )
   SeeAlso     []
 
 ***********************************************************************/
-void Msat_ClauseWriteDimacs( FILE * pFile, Msat_Clause_t * pC, bool fIncrement )
+void Msat_ClauseWriteDimacs( FILE * pFile, Msat_Clause_t * pC, int  fIncrement )
 {
     int i;
     for ( i = 0; i < (int)pC->nSize; i++ )
@@ -526,4 +529,6 @@ void Msat_ClausePrintSymbols( Msat_Clause_t * pC )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

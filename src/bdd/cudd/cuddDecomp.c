@@ -37,6 +37,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -130,7 +133,7 @@ static int cuddConjunctsAux ARGS((DdManager * dd, DdNode * f, DdNode ** c1, DdNo
 
   SideEffects [The factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the conjuncts are already
+  to free it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -229,7 +232,7 @@ Cudd_bddApproxConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the disjuncts are already
+  to free it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -268,7 +271,7 @@ Cudd_bddApproxDisjDecomp(
 
   SideEffects [The factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the conjuncts are already
+  to free it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -412,7 +415,7 @@ Cudd_bddIterConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the disjuncts are already
+  to free it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -452,7 +455,7 @@ Cudd_bddIterDisjDecomp(
 
   SideEffects [The two factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the conjuncts are already
+  to free it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -531,7 +534,7 @@ Cudd_bddGenConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the disjuncts are already
+  to free it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -571,7 +574,7 @@ Cudd_bddGenDisjDecomp(
 
   SideEffects [The two factors are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the conjuncts are already
+  to free it. On successful completion, the conjuncts are already
   referenced. If the function returns 0, the array for the conjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -689,7 +692,7 @@ Cudd_bddVarConjDecomp(
 
   SideEffects [The two disjuncts are returned in an array as side effects.
   The array is allocated by this function. It is the caller's responsibility
-  to ABC_FREE it. On successful completion, the disjuncts are already
+  to free it. On successful completion, the disjuncts are already
   referenced. If the function returns 0, the array for the disjuncts is
   not allocated. If the function returns 1, the only factor equals the
   function to be decomposed.]
@@ -1617,7 +1620,7 @@ ZeroCase(
     Cudd_RecursiveDeref(dd, g2);
     Cudd_RecursiveDeref(dd, h2);
     } else {
-    /* now ABC_FREE what was created and not used */
+    /* now free what was created and not used */
     if ((factors->g == g1) || (factors->g == h1)) {
         Cudd_RecursiveDeref(dd, g2);
         Cudd_RecursiveDeref(dd, h2);
@@ -1943,7 +1946,7 @@ BuildConjuncts(
     Cudd_RecursiveDeref(dd, g2);
     Cudd_RecursiveDeref(dd, h2);
     } else {
-    /* now ABC_FREE what was created and not used */
+    /* now free what was created and not used */
     if ((factors->g == g1) || (factors->g == h1)) {
         Cudd_RecursiveDeref(dd, g2);
         Cudd_RecursiveDeref(dd, h2);
@@ -1996,7 +1999,7 @@ cuddConjunctsAux(
     *c2 = NULL;
 
     /* initialize distances table */
-    distanceTable = st_init_table(st_ptrcmp,st_ptrhash);
+    distanceTable = st_init_table(st_ptrcmp, st_ptrhash);;
     if (distanceTable == NULL) goto outOfMem;
     
     /* make the entry for the constant */
@@ -2023,7 +2026,7 @@ cuddConjunctsAux(
     cuddRef(*c1); cuddRef(*c2);
     stGen = st_init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
         ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -2035,7 +2038,7 @@ cuddConjunctsAux(
     maxLocalRef = 0;
     stGen = st_init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
     nodeStat = (NodeStat *)value;
     maxLocalRef = (nodeStat->localRef > maxLocalRef) ?
         nodeStat->localRef : maxLocalRef;
@@ -2045,7 +2048,7 @@ cuddConjunctsAux(
         
     /* Count minterms for each node. */
     max = pow(2.0, (double)Cudd_SupportSize(dd,f)); /* potential overflow */
-    mintermTable = st_init_table(st_ptrcmp,st_ptrhash);
+    mintermTable = st_init_table(st_ptrcmp, st_ptrhash);;
     if (mintermTable == NULL) goto outOfMem;
     minterms = CountMinterms(f, max, mintermTable, dd->err);
     if (minterms == -1.0) goto outOfMem;
@@ -2061,10 +2064,10 @@ cuddConjunctsAux(
                  approxDistance, maxLocalRef, ghTable, mintermTable);
     if (factors == NULL) goto outOfMem;
 
-    /* ABC_FREE up tables */
+    /* Free up tables */
     stGen = st_init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
     ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -2073,7 +2076,7 @@ cuddConjunctsAux(
     
     stGen = st_init_gen(mintermTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
     ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -2107,7 +2110,7 @@ cuddConjunctsAux(
 
     stGen = st_init_gen(cacheTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
     ConjunctsFree(dd, (Conjuncts *)value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -2120,7 +2123,7 @@ outOfMem:
     if (distanceTable != NULL) {
     stGen = st_init_gen(distanceTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
         ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -2129,7 +2132,7 @@ outOfMem:
     if (mintermTable != NULL) {
     stGen = st_init_gen(mintermTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
         ABC_FREE(value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -2139,7 +2142,7 @@ outOfMem:
     if (cacheTable != NULL) {
     stGen = st_init_gen(cacheTable);
     if (stGen == NULL) goto outOfMem;
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
         ConjunctsFree(dd, (Conjuncts *)value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -2149,3 +2152,5 @@ outOfMem:
     return(0);
 
 } /* end of cuddConjunctsAux */
+ABC_NAMESPACE_IMPL_END
+

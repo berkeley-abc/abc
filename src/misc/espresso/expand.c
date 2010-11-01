@@ -39,6 +39,9 @@
 */
 
 #include "espresso.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /*
     expand -- expand each nonprime cube of F into a prime implicant
@@ -693,3 +696,5 @@ pcover F, R;
     set_free(FREESET);
     return Fall_primes;
 }
+ABC_NAMESPACE_IMPL_END
+

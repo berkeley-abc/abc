@@ -20,6 +20,9 @@
 
 #include "darInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -153,7 +156,13 @@ p->timeCuts += clock() - clk;
         p->GainBest = -1;
         Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : ABC_INFINITY;
         Dar_ObjForEachCut( pObj, pCut, k )
+        {
+            int nLeavesOld = pCut->nLeaves;
+            if ( pCut->nLeaves == 3 )
+                pCut->pLeaves[pCut->nLeaves++] = 0;
             Dar_LibEval( p, pObj, pCut, Required );
+            pCut->nLeaves = nLeavesOld; 
+        }
         // check the best gain
         if ( !(p->GainBest > 0 || (p->GainBest == 0 && p->pPars->fUseZeros)) )
         {
@@ -307,4 +316,6 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

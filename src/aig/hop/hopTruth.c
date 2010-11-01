@@ -20,6 +20,9 @@
 
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -97,7 +100,7 @@ unsigned * Hop_ManConvertAigToTruth_rec2( Hop_Obj_t * pObj, Vec_Int_t * vTruth, 
     int i;
     assert( !Hop_IsComplement(pObj) );
     if ( !Hop_ObjIsNode(pObj) || !Hop_ObjIsMarkA(pObj) )
-        return pObj->pData;
+        return (unsigned *)pObj->pData;
     // compute the truth tables of the fanins
     pTruth0 = Hop_ManConvertAigToTruth_rec2( Hop_ObjFanin0(pObj), vTruth, nWords );
     pTruth1 = Hop_ManConvertAigToTruth_rec2( Hop_ObjFanin1(pObj), vTruth, nWords );
@@ -219,4 +222,6 @@ unsigned * Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

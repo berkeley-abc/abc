@@ -21,6 +21,7 @@
 #ifndef __CEC_H__
 #define __CEC_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -103,8 +105,10 @@ struct Cec_ParFra_t_
 //    int              fFirstStop;    // stop on the first sat output
     int              fDualOut;      // miter with separate outputs
     int              fColorDiff;    // miter with separate outputs
+    int              fSatSweeping;  // enable SAT sweeping
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
+    int              iOutFail;      // the failed output
 };
 
 // combinational equivalence checking parameters
@@ -118,6 +122,7 @@ struct Cec_ParCec_t_
     int              fRewriting;    // enables AIG rewriting
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
+    int              iOutFail;      // the number of failed output
 };
 
 // sequential register correspodence parameters
@@ -129,6 +134,8 @@ struct Cec_ParCor_t_
     int              nFrames;       // the number of time frames
     int              nPrefix;       // the number of time frames in the prefix
     int              nBTLimit;      // conflict limit at a node
+    int              nLevelMax;     // (scorr only) the max number of levels
+    int              nStepsMax;     // (scorr only) the max number of induction steps
     int              fLatchCorr;    // consider only latch outputs
     int              fUseRings;     // use rings
     int              fMakeChoices;  // use equilvaences as choices
@@ -138,6 +145,9 @@ struct Cec_ParCor_t_
     int              fVerboseFlops; // verbose stats
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
+    // callback
+    void *           pData;
+    void *           pFunc;
 };
 
 // sequential register correspodence parameters
@@ -149,6 +159,23 @@ struct Cec_ParChc_t_
     int              nBTLimit;      // conflict limit at a node
     int              fUseRings;     // use rings
     int              fUseCSat;      // use circuit-based solver
+    int              fVeryVerbose;  // verbose stats
+    int              fVerbose;      // verbose stats
+};
+
+// sequential synthesis parameters
+typedef struct Cec_ParSeq_t_ Cec_ParSeq_t;
+struct Cec_ParSeq_t_
+{
+    int              fUseLcorr;     // enables latch correspondence
+    int              fUseScorr;     // enables signal correspondence
+    int              nBTLimit;      // (scorr/lcorr) conflict limit at a node
+    int              nFrames;       // (scorr/lcorr) the number of timeframes
+    int              nLevelMax;     // (scorr only) the max number of levels
+    int              fConsts;       // (scl only) merging constants
+    int              fEquivs;       // (scl only) merging equivalences
+    int              fUseMiniSat;   // enables MiniSat in lcorr/scorr
+    int              nMinDomSize;   // the size of minimum clock domain
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
 };
@@ -167,6 +194,7 @@ extern int           Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerb
 /*=== cecChoice.c ==========================================================*/
 extern Gia_Man_t *   Cec_ManChoiceComputation( Gia_Man_t * pAig, Cec_ParChc_t * pPars );
 /*=== cecCorr.c ==========================================================*/
+extern int           Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
 extern Gia_Man_t *   Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars );
 /*=== cecCore.c ==========================================================*/
 extern void          Cec_ManSatSetDefaultParams( Cec_ParSat_t * p );
@@ -180,12 +208,20 @@ extern Gia_Man_t *   Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars 
 extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars );
 extern void          Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars );
 /*=== cecSeq.c ==========================================================*/
-extern int           Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Gia_Cex_t * pCex );
+extern int           Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex_t * pCex );
 extern int           Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars );
+extern int           Cec_ManCheckNonTrivialCands( Gia_Man_t * pAig );
+/*=== cecSynth.c ==========================================================*/
+extern int           Cec_SeqReadMinDomSize( Cec_ParSeq_t * p );
+extern int           Cec_SeqReadVerbose( Cec_ParSeq_t * p );
+extern void          Cec_SeqSynthesisSetDefaultParams( Cec_ParSeq_t * pPars );
+extern int           Cec_SequentialSynthesisPart( Gia_Man_t * p, Cec_ParSeq_t * pPars );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

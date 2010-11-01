@@ -23,6 +23,9 @@
 #include "mio.h"
 #include "mapper.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -76,8 +79,8 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
     {
         printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
-        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen() );
+            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
+        Map_SuperLibDeriveFromGenlib( (Mio_Library_t *)Abc_FrameReadLibGen() );
     }
 
     // print a warning about choice nodes
@@ -175,13 +178,13 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     // load the AIG into the mapper
     vNodes = Abc_AigDfs( pNtk, 0, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // add the node to the mapper
         pNodeMap = Map_NodeAnd( pMan, 
-            Map_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
-            Map_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) ) );
+            Map_NotCond( Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) ),
+            Map_NotCond( Abc_ObjFanin1(pNode)->pCopy, (int)Abc_ObjFaninC1(pNode) ) );
         assert( pNode->pCopy == NULL );
         // remember the node
         pNode->pCopy = (Abc_Obj_t *)pNodeMap;
@@ -189,7 +192,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
             Map_NodeSetSwitching( pNodeMap, pSwitching[pNode->Id] );
         // set up the choice node
         if ( Abc_AigNodeIsChoice( pNode ) )
-            for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
+            for ( pPrev = pNode, pFanin = (Abc_Obj_t *)pNode->pData; pFanin; pPrev = pFanin, pFanin = (Abc_Obj_t *)pFanin->pData )
             {
                 Map_NodeSetNextE( (Map_Node_t *)pPrev->pCopy, (Map_Node_t *)pFanin->pCopy );
                 Map_NodeSetRepr( (Map_Node_t *)pFanin->pCopy, (Map_Node_t *)pNode->pCopy );
@@ -200,7 +203,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
 
     // set the primary outputs in the required phase
     Abc_NtkForEachCo( pNtk, pNode, i )
-        Map_ManReadOutputs(pMan)[i] = Map_NotCond( (Map_Node_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
+        Map_ManReadOutputs(pMan)[i] = Map_NotCond( (Map_Node_t *)Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) );
     return pMan;
 }
 
@@ -430,8 +433,8 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
     {
         printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
-        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen() );
+            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
+        Map_SuperLibDeriveFromGenlib( (Mio_Library_t *)Abc_FrameReadLibGen() );
     }
 
     // print a warning about choice nodes
@@ -654,7 +657,7 @@ Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * p
         pNodeFanin = Abc_NodeFromMapSuperChoice_rec( pNtkNew, ppFanins[i], pNodePis, nNodePis );
         Abc_ObjAddFanin( pNodeNew, pNodeFanin );
     }
-    pNodeNew->pData = Abc_SopRegister( pNtkNew->pManFunc, Mio_GateReadSop(pRoot) );
+    pNodeNew->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtkNew->pManFunc, Mio_GateReadSop(pRoot) );
     return pNodeNew;
 }
 
@@ -663,4 +666,6 @@ Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * p
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

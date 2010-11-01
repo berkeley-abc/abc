@@ -20,6 +20,9 @@
 
 #include "mfsInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -109,4 +112,6 @@ Vec_Ptr_t * Abc_MfsComputeRoots( Abc_Obj_t * pNode, int nWinTfoMax, int nFanoutL
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

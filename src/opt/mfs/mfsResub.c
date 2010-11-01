@@ -20,6 +20,9 @@
 
 #include "mfsInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -46,7 +49,7 @@ void Abc_NtkMfsUpdateNetwork( Mfs_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFani
     // create the new node
     pObjNew = Abc_NtkCreateNode( pObj->pNtk );
     pObjNew->pData = pFunc;
-    Vec_PtrForEachEntry( vFanins, pFanin, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pFanin, k )
         Abc_ObjAddFanin( pObjNew, pFanin );
     // replace the old node by the new node
 //printf( "Replacing node " ); Abc_ObjPrint( stdout, pObj );
@@ -136,7 +139,7 @@ p->timeGia += clock() - clk;
     // store the counter-example
     Vec_IntForEachEntry( p->vProjVars, iVar, i )
     {
-        pData = Vec_PtrEntry( p->vDivCexes, i );
+        pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
         if ( !sat_solver_var_value( p->pSat, iVar ) ) // remove 0s!!!
         {
             assert( Aig_InfoHasBit(pData, p->nCexes) );
@@ -238,7 +241,7 @@ p->timeInt += clock() - clk;
             printf( "%3d: %2d ", p->nCexes, iVar );
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
-                pData = Vec_PtrEntry( p->vDivCexes, i );
+                pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
                 printf( "%d", Aig_InfoHasBit(pData, p->nCexes-1) );
             }
             printf( "\n" );
@@ -251,12 +254,12 @@ p->timeInt += clock() - clk;
         {
             if ( p->pPars->fPower )
             {
-                Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
+                Abc_Obj_t * pDiv = (Abc_Obj_t *)Vec_PtrEntry(p->vDivs, iVar);
                 // only accept the divisor if it is "cool"
                 if ( Abc_MfsObjProb(p, pDiv) >= 0.15 )
                     continue;
             }
-            pData  = Vec_PtrEntry( p->vDivCexes, iVar );
+            pData  = (unsigned *)Vec_PtrEntry( p->vDivCexes, iVar );
             for ( w = 0; w < nWords; w++ )
                 if ( pData[w] != ~0 )
                     break;
@@ -383,7 +386,7 @@ p->timeInt += clock() - clk;
             printf( "%3d: %2d %2d ", p->nCexes, iVar, iVar2 );
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
-                pData = Vec_PtrEntry( p->vDivCexes, i );
+                pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
                 printf( "%d", Aig_InfoHasBit(pData, p->nCexes-1) );
             }
             printf( "\n" );
@@ -395,11 +398,11 @@ p->timeInt += clock() - clk;
         fBreak = 0;
         for ( iVar = 1; iVar < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); iVar++ )
         {
-            pData  = Vec_PtrEntry( p->vDivCexes, iVar );
+            pData  = (unsigned *)Vec_PtrEntry( p->vDivCexes, iVar );
 #if 1  // sjang
             if ( p->pPars->fPower )
             {
-                Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
+                Abc_Obj_t * pDiv = (Abc_Obj_t *)Vec_PtrEntry(p->vDivs, iVar);
                 // only accept the divisor if it is "cool"
                 if ( Abc_MfsObjProb(p, pDiv) >= 0.12 )
                     continue;
@@ -407,11 +410,11 @@ p->timeInt += clock() - clk;
 #endif
             for ( iVar2 = 0; iVar2 < iVar; iVar2++ )
             {
-                pData2 = Vec_PtrEntry( p->vDivCexes, iVar2 );
+                pData2 = (unsigned *)Vec_PtrEntry( p->vDivCexes, iVar2 );
 #if 1 // sjang
                 if ( p->pPars->fPower )
                 {
-                    Abc_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar2);
+                    Abc_Obj_t * pDiv = (Abc_Obj_t *)Vec_PtrEntry(p->vDivs, iVar2);
                     // only accept the divisor if it is "cool"
                     if ( Abc_MfsObjProb(p, pDiv) >= 0.12 )
                         continue;
@@ -606,4 +609,6 @@ int Abc_NtkMfsResubNode2( Mfs_Man_t * p, Abc_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

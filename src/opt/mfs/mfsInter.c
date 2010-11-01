@@ -21,6 +21,9 @@
 #include "mfsInt.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -94,7 +97,7 @@ sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands, 
 
     // collect the outputs of the divisors
     Vec_IntClear( p->vProjVars );
-    Vec_PtrForEachEntryStart( p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) )
     {
         assert( p->pCnf->pVarNums[pObjPo->Id] >= 0 );
         Vec_IntPush( p->vProjVars, p->pCnf->pVarNums[pObjPo->Id] );
@@ -246,7 +249,7 @@ unsigned * Abc_NtkMfsInterplateTruth( Mfs_Man_t * p, int * pCands, int nCands, i
         return NULL;
     }
     // get the learned clauses
-    pCnf = sat_solver_store_release( pSat );
+    pCnf = (Sto_Man_t *)sat_solver_store_release( pSat );
     sat_solver_delete( pSat );
 
     // set the global variables
@@ -349,7 +352,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
 //printf( "%d\n", pSat->stats.conflicts );
 //    ABC_PRT( "S", clock() - clk );
     // get the learned clauses
-    pCnf = sat_solver_store_release( pSat );
+    pCnf = (Sto_Man_t *)sat_solver_store_release( pSat );
     sat_solver_delete( pSat );
 
     // set the global variables
@@ -369,7 +372,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
 
     // transform interpolant into AIG
     pGraph = Kit_TruthToGraph( puTruth, nFanins, p->vMem );
-    pFunc = Kit_GraphToHop( p->pNtk->pManFunc, pGraph );
+    pFunc = Kit_GraphToHop( (Hop_Man_t *)p->pNtk->pManFunc, pGraph );
     Kit_GraphFree( pGraph );
     return pFunc;
 }
@@ -378,4 +381,6 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

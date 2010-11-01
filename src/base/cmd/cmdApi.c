@@ -18,9 +18,12 @@
 
 ***********************************************************************/
 
+#include "abc.h"
 #include "mainInt.h"
 #include "cmdInt.h"
-#include "abc.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -41,9 +44,10 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Cmd_CommandAdd( Abc_Frame_t * pAbc, char * sGroup, char * sName, void * pFunc, int fChanges )
+void Cmd_CommandAdd( Abc_Frame_t * pAbc, const char * sGroup, const char * sName, Cmd_CommandFuncType pFunc, int fChanges )
 {
-    char * key, * value;
+    const char * key;
+    char * value;
     Abc_Command * pCommand;
     int fStatus;
 
@@ -61,7 +65,7 @@ void Cmd_CommandAdd( Abc_Frame_t * pAbc, char * sGroup, char * sName, void * pFu
     pCommand->sGroup  = Extra_UtilStrsav( sGroup );
     pCommand->pFunc   = pFunc;
     pCommand->fChange = fChanges;
-    fStatus = st_insert( pAbc->tCommands, sName, (char *)pCommand );
+    fStatus = st_insert( pAbc->tCommands, pCommand->sName, (char *)pCommand );
     assert( !fStatus );  // the command should not be in the table
 }
 
@@ -76,10 +80,11 @@ void Cmd_CommandAdd( Abc_Frame_t * pAbc, char * sGroup, char * sName, void * pFu
   SeeAlso     []
 
 ***********************************************************************/
-int Cmd_CommandExecute( Abc_Frame_t * pAbc, char * sCommand )
+int Cmd_CommandExecute( Abc_Frame_t * pAbc, const char * sCommand )
 {
     int fStatus = 0, argc, loop;
-    char * sCommandNext, **argv;
+    const char * sCommandNext;
+    char **argv;
 
     if ( !pAbc->fAutoexac ) 
         Cmd_HistoryAddCommand(pAbc, sCommand);
@@ -101,4 +106,6 @@ int Cmd_CommandExecute( Abc_Frame_t * pAbc, char * sCommand )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

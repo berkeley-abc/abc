@@ -22,6 +22,9 @@
 
 #include "extra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -283,6 +286,7 @@ void Extra_PrintKMap(
     // determine the Karnaugh map parameters
     nVarsVer = nVars/2;
     nVarsHor = nVars - nVarsVer;
+
     nCellsVer = (1<<nVarsVer);
     nCellsHor = (1<<nVarsHor);
     nSkipSpaces = nVarsVer + 1;
@@ -800,4 +804,6 @@ int BinCode ( int GrayCode )
   return bc;
 }
 
+
+ABC_NAMESPACE_IMPL_END
 

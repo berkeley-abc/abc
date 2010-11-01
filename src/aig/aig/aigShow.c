@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -59,7 +62,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 
     // mark the nodes
     if ( vBold )
-        Vec_PtrForEachEntry( vBold, pNode, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vBold, pNode, i )
             pNode->fMarkB = 1;
 
     // compute levels
@@ -308,7 +311,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 
     // unmark nodes
     if ( vBold )
-        Vec_PtrForEachEntry( vBold, pNode, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vBold, pNode, i )
             pNode->fMarkB = 0;
 
     Aig_ManForEachPo( pMan, pNode, i )
@@ -353,4 +356,6 @@ void Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

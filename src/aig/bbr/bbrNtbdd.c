@@ -21,6 +21,9 @@
 #include "bbr.h"
 //#include "bar.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 typedef char ProgressBar;
 
 ////////////////////////////////////////////////////////////////////////
@@ -28,7 +31,7 @@ typedef char ProgressBar;
 ////////////////////////////////////////////////////////////////////////
 
 static inline void     Aig_ObjSetGlobalBdd( Aig_Obj_t * pObj, DdNode * bFunc )   { pObj->pData = bFunc; }
-static inline void     Aig_ObjCleanGlobalBdd( DdManager * dd, Aig_Obj_t * pObj ) { Cudd_RecursiveDeref( dd, pObj->pData ); pObj->pData = NULL; }
+static inline void     Aig_ObjCleanGlobalBdd( DdManager * dd, Aig_Obj_t * pObj ) { Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData ); pObj->pData = NULL; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -210,4 +213,6 @@ DdManager * Aig_ManComputeGlobalBdds( Aig_Man_t * p, int nBddSizeMax, int fDropI
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -48,6 +48,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -378,10 +381,10 @@ cuddDynamicAllocNode(
     int     i;
     DdNodePtr *mem;
     DdNode *list, *node;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
-    if (table->nextFree == NULL) {        /* ABC_FREE list is empty */
+    if (table->nextFree == NULL) {        /* free list is empty */
     /* Try to allocate a new block. */
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
@@ -392,7 +395,7 @@ cuddDynamicAllocNode(
         table->stash = NULL;
         /* Inhibit resizing of tables. */
         table->maxCacheHard = table->cacheSlots - 1;
-        table->cacheSlack = -(table->cacheSlots + 1);
+        table->cacheSlack = -(int)(table->cacheSlots + 1);
         for (i = 0; i < table->size; i++) {
         table->subtables[i].maxKeys <<= 2;
         }
@@ -438,7 +441,7 @@ cuddDynamicAllocNode(
 
         table->nextFree = &list[0];
     }
-    } /* if ABC_FREE list empty */
+    } /* if free list empty */
 
     node = table->nextFree;
     table->nextFree = node->next;
@@ -742,7 +745,7 @@ cuddSwapInPlace(
     DdNodePtr *previousP;
     DdNode *tmp;
     DdNode *sentinel = &(table->sentinel);
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
 #if DD_DEBUG
@@ -2088,3 +2091,5 @@ ddCheckPermuation(
     }
     return(1);
 }
+ABC_NAMESPACE_IMPL_END
+

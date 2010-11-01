@@ -25,6 +25,9 @@
 #include <time.h>
 #include "satStore.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -222,7 +225,7 @@ void Int_ManResize( Int_Man_t * p )
         p->pWatches  = ABC_REALLOC(Sto_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
     }
 
-    // clean the ABC_FREE space
+    // clean the free space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
     memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
@@ -1069,4 +1072,6 @@ p->timeTotal += clock() - clkTotal;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

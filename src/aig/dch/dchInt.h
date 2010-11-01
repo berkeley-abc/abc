@@ -21,6 +21,7 @@
 #ifndef __DCH_INT_H__
 #define __DCH_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -33,9 +34,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -100,7 +102,7 @@ struct Dch_Man_t_
 static inline int  Dch_ObjSatNum( Dch_Man_t * p, Aig_Obj_t * pObj )             { return p->pSatVars[pObj->Id]; }
 static inline void Dch_ObjSetSatNum( Dch_Man_t * p, Aig_Obj_t * pObj, int Num ) { p->pSatVars[pObj->Id] = Num;  }
 
-static inline Aig_Obj_t * Dch_ObjFraig( Aig_Obj_t * pObj )                       { return pObj->pData;  }
+static inline Aig_Obj_t * Dch_ObjFraig( Aig_Obj_t * pObj )                       { return (Aig_Obj_t *)pObj->pData;  }
 static inline void        Dch_ObjSetFraig( Aig_Obj_t * pObj, Aig_Obj_t * pNode ) { pObj->pData = pNode; }
 
 static inline int  Dch_ObjIsConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj ) 
@@ -118,7 +120,6 @@ static inline void Dch_ObjSetConst1Cand( Aig_Man_t * pAig, Aig_Obj_t * pObj )
 ////////////////////////////////////////////////////////////////////////
 
 /*=== dchAig.c ===================================================*/
-extern Aig_Man_t *   Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
 /*=== dchChoice.c ===================================================*/
 extern int           Dch_DeriveChoiceCountReprs( Aig_Man_t * pAig );
 extern int           Dch_DeriveChoiceCountEquivs( Aig_Man_t * pAig );
@@ -155,9 +156,11 @@ extern void          Dch_ManResimulateCex2( Dch_Man_t * p, Aig_Obj_t * pObj, Aig
 /*=== dchSweep.c ===================================================*/
 extern void          Dch_ManSweep( Dch_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -20,6 +20,9 @@
 
 #include "retInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -88,7 +91,7 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
 ***********************************************************************/
 int Abc_ObjSopSimulate( Abc_Obj_t * pObj )
 {
-    char * pCube, * pSop = pObj->pData;
+    char * pCube, * pSop = (char *)pObj->pData;
     int nVars, Value, v, ResOr, ResAnd, ResVar;
     assert( pSop && !Abc_SopIsExorType(pSop) );
     // simulate the SOP of the node
@@ -134,11 +137,11 @@ int Abc_NtkRetimeVerifyModel( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValues, int * p
     assert( Abc_NtkIsSopLogic(pNtkCone) );
     // set the PIs
     Abc_NtkForEachPi( pNtkCone, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)pModel[i];
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)pModel[i];
     // simulate the internal nodes
     vNodes = Abc_NtkDfs( pNtkCone, 0 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
     Vec_PtrFree( vNodes );
     // compare the outputs
     Abc_NtkForEachPo( pNtkCone, pObj, i )
@@ -167,7 +170,7 @@ void Abc_NtkRetimeTranferToCopy( Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
-            pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
+            pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
 }
 
 /**Function*************************************************************
@@ -230,10 +233,10 @@ void Abc_NtkRetimeInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues )
     int i, Counter = 0;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
-            pObj->pCopy = (void *)(ABC_PTRUINT_T)Counter++;
+            pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Counter++;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
-            pObj->pData = (void *)(ABC_PTRUINT_T)(vValues? (Vec_IntEntry(vValues,(int)(ABC_PTRUINT_T)pObj->pCopy)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
+            pObj->pData = (Abc_Obj_t *)(ABC_PTRUINT_T)(vValues? (Vec_IntEntry(vValues,(int)(ABC_PTRUINT_T)pObj->pCopy)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
 }
 
 /**Function*************************************************************
@@ -316,22 +319,22 @@ void Abc_NtkCycleInitStateSop( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     srand( 0x12341234 );
     // initialize the values
     Abc_NtkForEachPi( pNtk, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)(rand() & 1);
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)(rand() & 1);
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
     // simulate for the given number of timeframes
     vNodes = Abc_NtkDfs( pNtk, 0 );
     for ( f = 0; f < nFrames; f++ )
     {
         // simulate internal nodes
-        Vec_PtrForEachEntry( vNodes, pObj, i )
-            pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+            pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
         // bring the results to the COs
         Abc_NtkForEachCo( pNtk, pObj, i )
             pObj->pCopy = Abc_ObjFanin0(pObj)->pCopy;
         // assign PI values
         Abc_NtkForEachPi( pNtk, pObj, i )
-            pObj->pCopy = (void *)(ABC_PTRUINT_T)(rand() & 1);
+            pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)(rand() & 1);
         // transfer the latch values
         Abc_NtkForEachLatch( pNtk, pObj, i )
             Abc_ObjFanout0(pObj)->pCopy = Abc_ObjFanin0(pObj)->pCopy;
@@ -346,4 +349,6 @@ void Abc_NtkCycleInitStateSop( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -1,1 +1,1 @@
-http://www.winimage.com/zLibDll/
+http://www.zlib.net/

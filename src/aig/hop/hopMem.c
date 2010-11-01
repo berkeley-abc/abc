@@ -20,6 +20,9 @@
 
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -64,7 +67,7 @@ void Hop_ManStopMemory( Hop_Man_t * p )
 {
     void * pMemory;
     int i;
-    Vec_PtrForEachEntry( p->vChunks, pMemory, i )
+    Vec_PtrForEachEntry( void *, p->vChunks, pMemory, i )
         ABC_FREE( pMemory );
     Vec_PtrFree( p->vChunks );
     Vec_PtrFree( p->vPages );
@@ -112,4 +115,6 @@ void Hop_ManAddMemory( Hop_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

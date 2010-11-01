@@ -6,7 +6,7 @@
 
   PackageName [Sequential AIG package.]
 
-  Synopsis    [Proof-based abstraction.]
+  Synopsis    [Counter-example-based abstraction.]
 
   Author      [Alan Mishchenko]
   
@@ -19,20 +19,16 @@
 ***********************************************************************/
 
 #include "saig.h"
-
-#include "cnf.h"
-#include "satSolver.h"
-#include "satStore.h"
 #include "ssw.h"
-#include "ioa.h"
 #include "fra.h"
+#include "bbr.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-static inline char Saig_AbsVisited( Vec_Str_t * p, int nObjs, Aig_Obj_t * pObj, int i )    { return Vec_StrGetEntry( p, nObjs*i+pObj->Id );    }
-static inline void Saig_AbsSetVisited( Vec_Str_t * p, int nObjs, Aig_Obj_t * pObj, int i ) { Vec_StrSetEntry( p, nObjs*i+pObj->Id, (char)1 );  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -40,7 +36,7 @@ static inline void Saig_AbsSetVisited( Vec_Str_t * p, int nObjs, Aig_Obj_t * pOb
 
 /**Function*************************************************************
 
-  Synopsis    [Finds the set of clauses involved in the UNSAT core.]
+  Synopsis    [Collects internal nodes in the DFS order.]
 
   Description []
                
@@ -49,129 +45,29 @@ static inline void Saig_AbsSetVisited( Vec_Str_t * p, int nObjs, Aig_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbose )
+int Saig_ManFindFirstFlop_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    Vec_Int_t * vCore;
-    void * pSatCnf; 
-    Intp_Man_t * pManProof;
-    int RetValue, clk = clock();
-    // solve the problem
-    RetValue = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
-    if ( RetValue == l_Undef )
+    int RetValue;
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return -1;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Saig_ObjIsPi(p, pObj) )
+        return -1;
+    if ( Saig_ObjIsLo(p, pObj) )
     {
-        printf( "Conflict limit is reached.\n" );
-        return NULL;
+        assert( Aig_ObjPioNum(pObj) >= Saig_ManPiNum(p) );
+        return Aig_ObjPioNum(pObj)-Saig_ManPiNum(p);
     }
-    if ( RetValue == l_True )
-    {
-        printf( "The BMC problem is SAT.\n" );
-        return NULL;
-    }
-    if ( fVerbose )
-    {
-        printf( "SAT solver returned UNSAT after %d conflicts.  ", pSat->stats.conflicts );
-        ABC_PRT( "Time", clock() - clk );
-    }
-    assert( RetValue == l_False );
-    pSatCnf = sat_solver_store_release( pSat ); 
-    // derive the UNSAT core
-    clk = clock();
-    pManProof = Intp_ManAlloc();
-    vCore = Intp_ManUnsatCore( pManProof, pSatCnf, 0 );
-    Intp_ManFree( pManProof );
-    Sto_ManFree( pSatCnf );
-    if ( fVerbose )
-    {
-        printf( "SAT core contains %d clauses (out of %d).  ", Vec_IntSize(vCore), pSat->stats.clauses );
-        ABC_PRT( "Time", clock() - clk );
-    }
-    return vCore;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Mark visited nodes recursively.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Saig_AbsMarkVisited_rec( Aig_Man_t * p, Vec_Str_t * vObj2Visit, Aig_Obj_t * pObj, int i )
-{
-    if ( Saig_AbsVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, i ) )
-        return 1;
-    Saig_AbsSetVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, i );
-    if ( Saig_ObjIsPi( p, pObj ) )
-        return 1;
-    if ( Saig_ObjIsLo( p, pObj ) )
-    {
-        if ( i == 0 )
-            return 1;
-        return Saig_AbsMarkVisited_rec( p, vObj2Visit, Saig_ObjLoToLi(p, pObj), i-1 );
-    }
-    if ( Aig_ObjIsPo( pObj ) )
-        return Saig_AbsMarkVisited_rec( p, vObj2Visit, Aig_ObjFanin0(pObj), i );
-    Saig_AbsMarkVisited_rec( p, vObj2Visit, Aig_ObjFanin0(pObj), i );
-    Saig_AbsMarkVisited_rec( p, vObj2Visit, Aig_ObjFanin1(pObj), i );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Mark visited nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Str_t * Saig_AbsMarkVisited( Aig_Man_t * p, int nFramesMax )
-{
-    Vec_Str_t * vObj2Visit;
-    Aig_Obj_t * pObj;
-    int i, f;
-    vObj2Visit = Vec_StrStart( Aig_ManObjNumMax(p) * nFramesMax );
-//    Saig_ManForEachLo( p, pObj, i )
-//        Saig_AbsSetVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, 0 ); 
-    for ( f = 0; f < nFramesMax; f++ )
-    {
-        Saig_AbsSetVisited( vObj2Visit, Aig_ManObjNumMax(p), Aig_ManConst1(p), f );
-        Saig_ManForEachPo( p, pObj, i )
-            Saig_AbsMarkVisited_rec( p, vObj2Visit, pObj, f );
-    }
-    return vObj2Visit;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs the actual construction of the output.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Obj_t * Saig_AbsCreateFrames_rec( Aig_Man_t * pFrame, Aig_Obj_t * pObj )
-{
-    if ( pObj->pData )
-        return pObj->pData;
     assert( Aig_ObjIsNode(pObj) );
-    Saig_AbsCreateFrames_rec( pFrame, Aig_ObjFanin0(pObj) );
-    Saig_AbsCreateFrames_rec( pFrame, Aig_ObjFanin1(pObj) );
-    return pObj->pData = Aig_And( pFrame, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    RetValue = Saig_ManFindFirstFlop_rec( p, Aig_ObjFanin0(pObj) );
+    if ( RetValue >= 0 )
+        return RetValue;
+    return Saig_ManFindFirstFlop_rec( p, Aig_ObjFanin1(pObj) );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Derives a vector of AIG managers, one for each frame.]
+  Synopsis    [Returns the index of the flop that appears in the support.]
 
   Description []
                
@@ -180,462 +76,12 @@ Aig_Obj_t * Saig_AbsCreateFrames_rec( Aig_Man_t * pFrame, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Saig_AbsCreateFrames( Aig_Man_t * p, int nFramesMax, int fVerbose )
+int Saig_ManFindFirstFlop( Aig_Man_t * p )
 {
-    Vec_Ptr_t * vFrames, * vLoObjs, * vLiObjs;
-    Vec_Str_t * vObj2Visit;
-    Aig_Man_t * pFrame;
-    Aig_Obj_t * pObj;
-    int f, i;
-    vObj2Visit = Saig_AbsMarkVisited( p, nFramesMax );
-    vFrames = Vec_PtrAlloc( nFramesMax );
-    vLoObjs = Vec_PtrAlloc( 100 );
-    vLiObjs = Vec_PtrAlloc( 100 );
-    for ( f = 0; f < nFramesMax; f++ )
-    {
-        Aig_ManCleanData( p );
-        pFrame = Aig_ManStart( 1000 );
-        Aig_ManConst1(p)->pData = Aig_ManConst1(pFrame);
-        // create PIs
-        Vec_PtrClear( vLoObjs );
-        Vec_PtrClear( vLiObjs );
-        Aig_ManForEachPi( p, pObj, i )
-        { 
-            if ( Saig_AbsVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, f ) )
-            {
-                pObj->pData = Aig_ObjCreatePi(pFrame);
-                if ( i >= Saig_ManPiNum(p) )
-                    Vec_PtrPush( vLoObjs, pObj );
-            } 
-        }
-        // remember the number of (implicit) registers in this frame
-        pFrame->nAsserts = Vec_PtrSize(vLoObjs);
-        // create POs
-        Aig_ManForEachPo( p, pObj, i )
-        {
-            if ( Saig_AbsVisited( vObj2Visit, Aig_ManObjNumMax(p), pObj, f ) )
-            {
-                Saig_AbsCreateFrames_rec( pFrame, Aig_ObjFanin0(pObj) );
-                pObj->pData = Aig_ObjCreatePo( pFrame, Aig_ObjChild0Copy(pObj) );
-                if ( i >= Saig_ManPoNum(p) )
-                    Vec_PtrPush( vLiObjs, pObj );
-            }
-        }
-//        Vec_PtrPush( vFrames, Cnf_Derive(pFrame, Aig_ManPoNum(pFrame)) );
-        Vec_PtrPush( vFrames, Cnf_DeriveSimple(pFrame, Aig_ManPoNum(pFrame)) );
-        // set the new PIs to point to the corresponding registers
-        Aig_ManCleanData( pFrame );
-        Vec_PtrForEachEntry( vLoObjs, pObj, i )
-            ((Aig_Obj_t *)pObj->pData)->pData = pObj;
-        Vec_PtrForEachEntry( vLiObjs, pObj, i )
-            ((Aig_Obj_t *)pObj->pData)->pData = pObj;
-        if ( fVerbose )
-            printf( "%3d : PI =%8d. PO =%8d. Flop =%8d. Node =%8d.\n", 
-                f, Aig_ManPiNum(pFrame), Aig_ManPoNum(pFrame), pFrame->nAsserts, Aig_ManNodeNum(pFrame) );
-    }
-    Vec_PtrFree( vLoObjs );
-    Vec_PtrFree( vLiObjs );
-    Vec_StrFree( vObj2Visit );
-    return vFrames;
-}
+    Aig_ManIncrementTravId( p );
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    return Saig_ManFindFirstFlop_rec( p, Aig_ObjFanin0(Aig_ManPo(p, 0)) );
 
-/**Function*************************************************************
-
-  Synopsis    [Derives a vector of AIG managers, one for each frame.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-sat_solver * Saig_AbsCreateSolverDyn( Aig_Man_t * p, Vec_Ptr_t * vFrames )
-{
-    sat_solver * pSat;
-    Cnf_Dat_t * pCnf, * pCnfPrev;
-    Vec_Int_t * vPoLits;
-    Aig_Obj_t * pObjPo, * pObjLi, * pObjLo;
-    int f, i, Lit, Lits[2], iVarOld, iVarNew, nSatVars, nRegisters;
-    // start array of output literals
-    vPoLits = Vec_IntAlloc( 100 );
-    // count the number of CNF variables
-    nSatVars = 0;
-    Vec_PtrForEachEntry( vFrames, pCnf, f )
-        nSatVars += pCnf->nVars;
-
-    // create the SAT solver
-    pSat = sat_solver_new();
-    sat_solver_store_alloc( pSat ); 
-    sat_solver_setnvars( pSat, nSatVars );
-
-    // add clauses for the timeframes
-    nSatVars = 0;
-//    Vec_PtrForEachEntryReverse( vFrames, pCnf, f )
-    Vec_PtrForEachEntry( vFrames, pCnf, f )
-    {
-        // lift clauses of this CNF
-        Cnf_DataLift( pCnf, nSatVars );
-        nSatVars += pCnf->nVars;
-        // copy clauses into the manager
-        for ( i = 0; i < pCnf->nClauses; i++ )
-        {
-            if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
-            {
-                printf( "The BMC problem is trivially UNSAT.\n" );
-                sat_solver_delete( pSat );
-                Vec_IntFree( vPoLits );
-                return NULL;
-            }
-        }
-        // remember output literal
-        Aig_ManForEachPo( pCnf->pMan, pObjPo, i )
-        {
-            if ( i == Saig_ManPoNum(p) )
-                break;
-            Vec_IntPush( vPoLits, toLit(pCnf->pVarNums[pObjPo->Id]) );
-        }
-    }
-
-    // add auxiliary clauses (output, connectors, initial)
-    // add output clause
-    if ( !sat_solver_addclause( pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) ) )
-    {
-        printf( "SAT solver is not created correctly.\n" );
-        assert( 0 );
-    }
-    Vec_IntFree( vPoLits );
-
-    // add connecting clauses
-    pCnfPrev = Vec_PtrEntry( vFrames, 0 );
-    Vec_PtrForEachEntryStart( vFrames, pCnf, f, 1 )
-    {
-        nRegisters = pCnf->pMan->nAsserts;
-        assert( nRegisters <= Aig_ManPoNum(pCnfPrev->pMan) );
-        assert( nRegisters <= Aig_ManPiNum(pCnf->pMan) );
-        for ( i = 0; i < nRegisters; i++ )
-        {
-            pObjLi = Aig_ManPo( pCnfPrev->pMan, Aig_ManPoNum(pCnfPrev->pMan) - nRegisters + i );
-            pObjLo = Aig_ManPi( pCnf->pMan,     Aig_ManPiNum(pCnf->pMan) -     nRegisters + i );
-            // get variable numbers
-            iVarOld = pCnfPrev->pVarNums[pObjLi->Id];
-            iVarNew = pCnf->pVarNums[pObjLo->Id];
-            // add clauses connecting existing variables
-            Lits[0] = toLitCond( iVarOld, 0 );
-            Lits[1] = toLitCond( iVarNew, 1 );
-            if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
-                assert( 0 );
-            Lits[0] = toLitCond( iVarOld, 1 );
-            Lits[1] = toLitCond( iVarNew, 0 );
-            if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
-                assert( 0 );
-        }
-        pCnfPrev = pCnf;
-    }
-    // add unit clauses
-    pCnf = Vec_PtrEntry( vFrames, 0 );
-    nRegisters = pCnf->pMan->nAsserts;
-    for ( i = 0; i < nRegisters; i++ )
-    {
-        pObjLo = Aig_ManPi( pCnf->pMan, Aig_ManPiNum(pCnf->pMan) - nRegisters + i );
-        assert( pCnf->pVarNums[pObjLo->Id] >= 0 );
-        Lit = toLitCond( pCnf->pVarNums[pObjLo->Id], 1 );
-        if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
-            assert( 0 );
-    }
-    sat_solver_store_mark_roots( pSat ); 
-    return pSat;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Creates SAT solver for BMC.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-sat_solver * Saig_AbsCreateSolver( Cnf_Dat_t * pCnf, int nFrames )
-{
-    sat_solver * pSat;
-    Vec_Int_t * vPoLits;
-    Aig_Obj_t * pObjPo, * pObjLi, * pObjLo;
-    int f, i, Lit, Lits[2], iVarOld, iVarNew;
-    // start array of output literals
-    vPoLits = Vec_IntAlloc( nFrames * Saig_ManPoNum(pCnf->pMan) );
-    // create the SAT solver
-    pSat = sat_solver_new();
-    sat_solver_store_alloc( pSat ); 
-    sat_solver_setnvars( pSat, pCnf->nVars * nFrames );
-
-    // add clauses for the timeframes
-    for ( f = 0; f < nFrames; f++ )
-    {
-        for ( i = 0; i < pCnf->nClauses; i++ )
-        {
-            if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
-            {
-                printf( "The BMC problem is trivially UNSAT.\n" );
-                sat_solver_delete( pSat );
-                Vec_IntFree( vPoLits );
-                return NULL;
-            }
-        }
-        // remember output literal
-        Saig_ManForEachPo( pCnf->pMan, pObjPo, i )
-            Vec_IntPush( vPoLits, toLit(pCnf->pVarNums[pObjPo->Id]) );
-        // lift CNF to the next frame
-        Cnf_DataLift( pCnf, pCnf->nVars );
-    }
-    // put CNF back to the original level
-    Cnf_DataLift( pCnf, - pCnf->nVars * nFrames );
-
-    // add auxiliary clauses (output, connectors, initial)
-    // add output clause
-    if ( !sat_solver_addclause( pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) ) )
-        assert( 0 );
-    Vec_IntFree( vPoLits );
-    // add connecting clauses
-    for ( f = 0; f < nFrames; f++ )
-    {
-        // connect to the previous timeframe
-        if ( f > 0 )
-        {
-            Saig_ManForEachLiLo( pCnf->pMan, pObjLi, pObjLo, i )
-            {
-                iVarOld = pCnf->pVarNums[pObjLi->Id] - pCnf->nVars;
-                iVarNew = pCnf->pVarNums[pObjLo->Id];
-                // add clauses connecting existing variables
-                Lits[0] = toLitCond( iVarOld, 0 );
-                Lits[1] = toLitCond( iVarNew, 1 );
-                if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
-                    assert( 0 );
-                Lits[0] = toLitCond( iVarOld, 1 );
-                Lits[1] = toLitCond( iVarNew, 0 );
-                if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
-                    assert( 0 );
-            }
-        }
-        // lift CNF to the next frame
-        Cnf_DataLift( pCnf, pCnf->nVars );
-    }
-    // put CNF back to the original level
-    Cnf_DataLift( pCnf, - pCnf->nVars * nFrames );
-    // add unit clauses
-    Saig_ManForEachLo( pCnf->pMan, pObjLo, i )
-    {
-        assert( pCnf->pVarNums[pObjLo->Id] >= 0 );
-        Lit = toLitCond( pCnf->pVarNums[pObjLo->Id], 1 );
-        if ( !sat_solver_addclause( pSat, &Lit, &Lit+1 ) )
-            assert( 0 );
-    }
-    sat_solver_store_mark_roots( pSat ); 
-    return pSat;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Saig_AbsCollectRegistersDyn( Aig_Man_t * p, Vec_Ptr_t * vFrames, Vec_Int_t * vCore )
-{
-    Aig_Obj_t * pObj;
-    Cnf_Dat_t * pCnf;
-    Vec_Int_t * vFlops;
-    int * pVars, * pFlops;
-    int i, f, iClause, iReg, * piLit, nSatVars, nSatClauses;
-    // count the number of CNF variables
-    nSatVars = 0;
-    Vec_PtrForEachEntry( vFrames, pCnf, f )
-        nSatVars += pCnf->nVars;
-    // mark register variables
-    pVars = ABC_ALLOC( int, nSatVars );
-    for ( i = 0; i < nSatVars; i++ )
-        pVars[i] = -1;
-    Vec_PtrForEachEntry( vFrames, pCnf, f )
-    {
-        Aig_ManForEachPi( pCnf->pMan, pObj, i )
-        {
-            assert( pCnf->pVarNums[pObj->Id] >= 0 );
-            assert( pCnf->pVarNums[pObj->Id] < nSatVars );
-            if ( pObj->pData == NULL )
-                continue;
-            iReg = Aig_ObjPioNum(pObj->pData) - Saig_ManPiNum(p);
-            assert( iReg >= 0 && iReg < Aig_ManRegNum(p) );
-            pVars[ pCnf->pVarNums[pObj->Id] ] = iReg;
-        }
-        Aig_ManForEachPo( pCnf->pMan, pObj, i )
-        {
-            assert( pCnf->pVarNums[pObj->Id] >= 0 );
-            assert( pCnf->pVarNums[pObj->Id] < nSatVars );
-            if ( pObj->pData == NULL )
-                continue;
-            iReg = Aig_ObjPioNum(pObj->pData) - Saig_ManPoNum(p);
-            assert( iReg >= 0 && iReg < Aig_ManRegNum(p) );
-            pVars[ pCnf->pVarNums[pObj->Id] ] = iReg;
-        }
-    }
-    // mark used registers
-    pFlops = ABC_CALLOC( int, Aig_ManRegNum(p) );
-    Vec_IntForEachEntry( vCore, iClause, i )
-    {
-        nSatClauses = 0;
-        Vec_PtrForEachEntry( vFrames, pCnf, f )
-        {
-            if ( iClause < nSatClauses + pCnf->nClauses )
-                break;
-            nSatClauses += pCnf->nClauses;
-        }
-        if ( f == Vec_PtrSize(vFrames) )
-            continue;
-        iClause = iClause - nSatClauses;
-        assert( iClause >= 0 );
-        assert( iClause < pCnf->nClauses );
-        // consider the clause
-        for ( piLit = pCnf->pClauses[iClause]; piLit < pCnf->pClauses[iClause+1]; piLit++ )
-        {
-            iReg = pVars[ lit_var(*piLit) ];
-            if ( iReg >= 0 )
-                pFlops[iReg] = 1;
-        }
-    }
-    // collect registers
-    vFlops = Vec_IntAlloc( Aig_ManRegNum(p) );
-    for ( i = 0; i < Aig_ManRegNum(p); i++ )
-        if ( pFlops[i] )
-            Vec_IntPush( vFlops, i );
-    ABC_FREE( pFlops );
-    ABC_FREE( pVars );
-    return vFlops;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Saig_AbsCollectRegisters( Cnf_Dat_t * pCnf, int nFrames, Vec_Int_t * vCore )
-{
-    Aig_Obj_t * pObj;
-    Vec_Int_t * vFlops;
-    int * pVars, * pFlops;
-    int i, iClause, iReg, * piLit;
-    // mark register variables
-    pVars = ABC_ALLOC( int, pCnf->nVars );
-    for ( i = 0; i < pCnf->nVars; i++ )
-        pVars[i] = -1;
-    Saig_ManForEachLi( pCnf->pMan, pObj, i )
-        pVars[ pCnf->pVarNums[pObj->Id] ] = i;
-    Saig_ManForEachLo( pCnf->pMan, pObj, i )
-        pVars[ pCnf->pVarNums[pObj->Id] ] = i;
-    // mark used registers
-    pFlops = ABC_CALLOC( int, Aig_ManRegNum(pCnf->pMan) );
-    Vec_IntForEachEntry( vCore, iClause, i )
-    {
-        // skip auxiliary clauses
-        if ( iClause >= pCnf->nClauses * nFrames )
-            continue;
-        // consider the clause
-        iClause = iClause % pCnf->nClauses;
-        for ( piLit = pCnf->pClauses[iClause]; piLit < pCnf->pClauses[iClause+1]; piLit++ )
-        {
-            iReg = pVars[ lit_var(*piLit) ];
-            if ( iReg >= 0 )
-                pFlops[iReg] = 1;
-        }
-    }
-    // collect registers
-    vFlops = Vec_IntAlloc( Aig_ManRegNum(pCnf->pMan) );
-    for ( i = 0; i < Aig_ManRegNum(pCnf->pMan); i++ )
-        if ( pFlops[i] )
-            Vec_IntPush( vFlops, i );
-    ABC_FREE( pFlops );
-    ABC_FREE( pVars );
-    return vFlops;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Saig_AbsFreeCnfs( Vec_Ptr_t * vFrames )
-{
-    Cnf_Dat_t * pCnf;
-    int i;
-    Vec_PtrForEachEntry( vFrames, pCnf, i )
-    {
-        Aig_ManStop( pCnf->pMan );
-        Cnf_DataFree( pCnf );
-    }
-    Vec_PtrFree( vFrames );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Saig_AbsExtendOneStep( Aig_Man_t * p, Vec_Int_t * vFlops )
-{
-    Vec_Ptr_t * vFlopPtrs, * vSupp;
-    Aig_Obj_t * pObj;
-    int i, Entry;
-    // collect latch inputs
-    vFlopPtrs = Vec_PtrAlloc( 1000 );
-    Vec_IntForEachEntry( vFlops, Entry, i )
-    {
-        Vec_PtrPush( vFlopPtrs, Saig_ManLi(p, Entry) );
-        pObj = Saig_ManLo(p, Entry);
-        pObj->fMarkA = 1;
-    }
-    // collect latch outputs
-    vSupp = Vec_PtrAlloc( 1000 );
-    Aig_SupportNodes( p, (Aig_Obj_t **)Vec_PtrArray(vFlopPtrs), Vec_PtrSize(vFlopPtrs), vSupp );
-    Vec_PtrFree( vFlopPtrs );
-    // mark influencing flops
-    Vec_PtrForEachEntry( vSupp, pObj, i )
-        pObj->fMarkA = 1;
-    Vec_PtrFree( vSupp );
-    // reload flops
-    Vec_IntClear( vFlops );
-    Aig_ManForEachPi( p, pObj, i )
-    {
-        if ( pObj->fMarkA == 0 )
-            continue;
-        pObj->fMarkA = 0;
-        if ( Aig_ObjPioNum(pObj)-Saig_ManPiNum(p) >= 0 )
-            Vec_IntPush( vFlops, Aig_ObjPioNum(pObj)-Saig_ManPiNum(p) );
-    }
 }
 
 /**Function*************************************************************
@@ -649,11 +95,15 @@ void Saig_AbsExtendOneStep( Aig_Man_t * p, Vec_Int_t * vFlops )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Saig_ManCexShrink( Aig_Man_t * p, Aig_Man_t * pAbs, Ssw_Cex_t * pCexAbs )
+Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexAbs )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     int i, f;
+    if ( !Ssw_SmlRunCounterExample( pAbs, pCexAbs ) )
+        printf( "Saig_ManCexRemap(): The intial counter-example is invalid.\n" );
+    else
+        printf( "Saig_ManCexRemap(): The intial counter-example is correct.\n" );
     // start the counter-example
     pCex = Ssw_SmlAllocCounterExample( Aig_ManRegNum(p), Saig_ManPiNum(p), pCexAbs->iFrame+1 );
     pCex->iFrame = pCexAbs->iFrame;
@@ -672,7 +122,7 @@ Ssw_Cex_t * Saig_ManCexShrink( Aig_Man_t * p, Aig_Man_t * pAbs, Ssw_Cex_t * pCex
     // verify the counter example
     if ( !Ssw_SmlRunCounterExample( p, pCex ) )
     {
-        printf( "Saig_ManCexShrink(): Counter-example is invalid.\n" );
+        printf( "Saig_ManCexRemap(): Counter-example is invalid.\n" );
         Ssw_SmlFreeCounterExample( pCex );
         pCex = NULL;
     }
@@ -695,7 +145,7 @@ Ssw_Cex_t * Saig_ManCexShrink( Aig_Man_t * p, Aig_Man_t * pAbs, Ssw_Cex_t * pCex
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManFirstFlopPi( Aig_Man_t * p, Aig_Man_t * pAbs )
+int Saig_ManCexFirstFlopPi( Aig_Man_t * p, Aig_Man_t * pAbs )
 { 
     Aig_Obj_t * pObj;
     int i;
@@ -710,7 +160,7 @@ int Saig_ManFirstFlopPi( Aig_Man_t * p, Aig_Man_t * pAbs )
  
 /**Function*************************************************************
 
-  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
+  Synopsis    [Refines abstraction using one step.]
 
   Description []
                
@@ -719,15 +169,12 @@ int Saig_ManFirstFlopPi( Aig_Man_t * p, Aig_Man_t * pAbs )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int nFrames, int nConfMaxOne, int fUseBdds, int fUseDprove, int * pnUseStart, int fVerbose )
+Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlops, int nFrames, int nConfMaxOne, int fUseBdds, int fUseDprove, int fVerbose, int * pnUseStart, int * piRetValue, int * pnFrames )
 { 
-    extern void Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite );
-    extern Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, void * pCex, int fVerbose );
-    extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fReorderImage, int fVerbose, int fSilent );
-
-    Vec_Int_t * vFlopsNew;//, * vPiToReg;
-//    Aig_Obj_t * pObj;
-    int i, Entry;//, iFlop;
+    extern int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames );
+    Vec_Int_t * vFlopsNew;
+    int i, Entry;
+    *piRetValue = -1;
     if ( fUseDprove && Aig_ManRegNum(pAbs) > 0 )
     {
         Fra_Sec_t SecPar, * pSecPar = &SecPar;
@@ -738,66 +185,40 @@ Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vF
     }
     else if ( fUseBdds && (Aig_ManRegNum(pAbs) > 0 && Aig_ManRegNum(pAbs) <= 80) )
     {
-        int nBddMax       = 1000000;
-        int nIterMax      = nFrames;
-        int fPartition    = 1;
-        int fReorder      = 1;
-        int fReorderImage = 1;
-        Aig_ManVerifyUsingBdds( pAbs, nBddMax, nIterMax, fPartition, fReorder, fReorderImage, fVerbose, 0 );
+        Saig_ParBbr_t Pars, * pPars = &Pars;
+        Bbr_ManSetDefaultParams( pPars );
+        pPars->TimeLimit     = 0;
+        pPars->nBddMax       = 1000000;
+        pPars->nIterMax      = nFrames;
+        pPars->fPartition    = 1;
+        pPars->fReorder      = 1;
+        pPars->fReorderImage = 1;
+        pPars->fVerbose      = fVerbose;
+        pPars->fSilent       = 0;
+        Aig_ManVerifyUsingBdds( pAbs, pPars );
     }
     else 
-        Saig_BmcPerform( pAbs, pnUseStart? *pnUseStart: 0, nFrames, 2000, 20, nConfMaxOne, 1000000, fVerbose, 0 );
+    {
+        Saig_BmcPerform( pAbs, pnUseStart? *pnUseStart: 0, nFrames, 2000, 0, nConfMaxOne, 0, fVerbose, 0, pnFrames );
+    }
     if ( pAbs->pSeqModel == NULL )
         return NULL;
     if ( pnUseStart )
-        *pnUseStart = ((Fra_Cex_t *)pAbs->pSeqModel)->iFrame;
-//    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManPiNum(p), pAbs->pSeqModel, fVerbose );
-    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManFirstFlopPi(p, pAbs), pAbs->pSeqModel, fVerbose );
+        *pnUseStart = pAbs->pSeqModel->iFrame;
+    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pAbs->pSeqModel, fVerbose );
+    if ( vFlopsNew == NULL )
+        return NULL;
     if ( Vec_IntSize(vFlopsNew) == 0 )
     {
         printf( "Discovered a true counter-example!\n" );
-        p->pSeqModel = Saig_ManCexShrink( p, pAbs, pAbs->pSeqModel );
+        p->pSeqModel = Saig_ManCexRemap( p, pAbs, pAbs->pSeqModel );
         Vec_IntFree( vFlopsNew );
+        *piRetValue = 0;
         return NULL;
     }
+    // vFlopsNew contains PI numbers that should be kept in pAbs
     if ( fVerbose )
         printf( "Adding %d registers to the abstraction.\n", Vec_IntSize(vFlopsNew) );
-    // vFlopsNew contains PI number that should be kept in pAbs
-/*
-    // for each additional PI, collect the number of a register it stands for
-    Vec_IntForEachEntry( vFlops, Entry, i )
-    {
-        pObj = Saig_ManLo( p, Entry );
-        pObj->fMarkA = 1;
-    }
-    vPiToReg = Vec_IntAlloc( 1000 );
-    Aig_ManForEachPi( p, pObj, i )
-    {
-        if ( pObj->fMarkA )
-        {
-            pObj->fMarkA = 0;
-            continue;
-        }
-        if ( i < Saig_ManPiNum(p) )
-            Vec_IntPush( vPiToReg, -1 );
-        else
-            Vec_IntPush( vPiToReg, Aig_ObjPioNum(pObj)-Saig_ManPiNum(p) );
-    }
-    // collect registers
-    Vec_IntForEachEntry( vFlopsNew, Entry, i )
-    {
-        iFlop = Vec_IntEntry( vPiToReg, Entry );
-        assert( iFlop >= 0 );
-        assert( iFlop < Aig_ManRegNum(p) );
-        Vec_IntPush( vFlops, iFlop );
-    }
-    Vec_IntFree( vPiToReg );
-    Vec_IntFree( vFlopsNew );
-
-    Vec_IntSort( vFlops, 0 );
-    Vec_IntForEachEntryStart( vFlops, Entry, i, 1 )
-        assert( Vec_IntEntry(vFlops, i-1) != Entry );
-*/
     // add to the abstraction
     Vec_IntForEachEntry( vFlopsNew, Entry, i )
     {
@@ -812,12 +233,60 @@ Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vF
     Vec_IntForEachEntryStart( vFlops, Entry, i, 1 )
         assert( Vec_IntEntry(vFlops, i-1) != Entry );
 
-    return Saig_ManAbstraction( p, vFlops );
+    return Saig_ManDeriveAbstraction( p, vFlops );
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    [Refines abstraction using one step.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fVerbose )
+{
+    Aig_Man_t * pAbs;
+    Vec_Int_t * vFlopsNew;
+    int i, Entry;
+    pAbs = Saig_ManDeriveAbstraction( p, vFlops );
+    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );
+    if ( vFlopsNew == NULL )
+    {
+        Aig_ManStop( pAbs );
+        return 0;
+    }
+    if ( Vec_IntSize(vFlopsNew) == 0 )
+    {
+        printf( "Refinement did not happen. Discovered a true counter-example.\n" );
+        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManPiNum(pAbs), Aig_ManPiNum(p) );
+        p->pSeqModel = Saig_ManCexRemap( p, pAbs, pCex );
+        Vec_IntFree( vFlopsNew );
+        Aig_ManStop( pAbs );
+        return 0;
+    }
+    if ( fVerbose )
+        printf( "Adding %d registers to the abstraction.\n", Vec_IntSize(vFlopsNew) );
+    // vFlopsNew contains PI number that should be kept in pAbs
+    // add to the abstraction
+    Vec_IntForEachEntry( vFlopsNew, Entry, i )
+    {
+        Entry = Vec_IntEntry(pAbs->vCiNumsOrig, Entry);
+        assert( Entry >= Saig_ManPiNum(p) );
+        assert( Entry < Aig_ManPiNum(p) );
+        Vec_IntPush( vFlops, Entry-Saig_ManPiNum(p) );
+    }
+    Vec_IntFree( vFlopsNew );
+    Aig_ManStop( pAbs );
+    return 1;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
+  Synopsis    [Computes the flops to remain after abstraction.]
 
   Description []
                
@@ -826,138 +295,67 @@ Aig_Man_t * Saig_ManProofRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vF
   SeeAlso     []
  
 ***********************************************************************/
-Vec_Int_t * Saig_ManProofAbstraction_int( Aig_Man_t * p, Gia_ParAbs_t * pPars )
+Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
 {
-    Aig_Man_t * pResult, * pTemp;
-    Cnf_Dat_t * pCnf;
-    Vec_Ptr_t * vFrames;
-    sat_solver * pSat;
-    Vec_Int_t * vCore;
+    int nUseStart = 0;
+    Aig_Man_t * pAbs, * pTemp;
     Vec_Int_t * vFlops;
-    int Iter, clk = clock(), clk2 = clock();
+    int Iter, clk = clock(), clk2 = clock();//, iFlop;
     assert( Aig_ManRegNum(p) > 0 );
+    if ( pPars->fVerbose )
+        printf( "Performing counter-example-based refinement.\n" );
     Aig_ManSetPioNumbers( p );
-
-    if ( pPars->fSkipProof )
-    {
-//        assert( 0 );
-        if ( pPars->fVerbose )
-            printf( "Performing counter-example-based refinement.\n" );
-//        vFlops = Vec_IntStartNatural( 100 );
-//        Vec_IntPush( vFlops, 0 );
-        vFlops = Vec_IntStartNatural( 1 );
-    }
-    else
-    {
-        if ( pPars->fVerbose )
-            printf( "Performing proof-based abstraction with %d frames and %d max conflicts.\n", pPars->nFramesMax, pPars->nConfMax );
-        if ( pPars->fDynamic )
-        {
-            // create CNF for the frames
-            vFrames = Saig_AbsCreateFrames( p, pPars->nFramesMax, pPars->fVerbose );
-            // create dynamic solver
-            pSat = Saig_AbsCreateSolverDyn( p, vFrames );
-        }
-        else
-        {
-            // create CNF for the AIG
-            pCnf = Cnf_DeriveSimple( p, Aig_ManPoNum(p) );
-            // create SAT solver for the unrolled AIG
-            pSat = Saig_AbsCreateSolver( pCnf, pPars->nFramesMax );
-        }
-        if ( pPars->fVerbose )
-        {
-            printf( "SAT solver: Vars = %7d. Clauses = %7d.  ", pSat->size, pSat->stats.clauses );
-            ABC_PRT( "Time", clock() - clk2 );
-        }
-        // compute UNSAT core
-        vCore = Saig_AbsSolverUnsatCore( pSat, pPars->nConfMax, pPars->fVerbose );
-        sat_solver_delete( pSat );
-        if ( vCore == NULL )
-        {
-            Saig_AbsFreeCnfs( vFrames );
-            return NULL;
-        }
-        // collect registers
-        if ( pPars->fDynamic )
-        {
-            vFlops = Saig_AbsCollectRegistersDyn( p, vFrames, vCore );
-            Saig_AbsFreeCnfs( vFrames );
-        }
-        else
-        {
-            vFlops = Saig_AbsCollectRegisters( pCnf, pPars->nFramesMax, vCore );
-            Cnf_DataFree( pCnf );
-        }
-        Vec_IntFree( vCore );
-        if ( pPars->fVerbose )
-        {
-            printf( "The number of relevant registers is %d (out of %d).  ", Vec_IntSize(vFlops), Aig_ManRegNum(p) );
-            ABC_PRT( "Time", clock() - clk );
-        }
-    }
+    vFlops = Vec_IntStartNatural( 1 );
 /*
-    // extend the abstraction
-    if ( fExtend )
-    {
-        if ( fVerbose )
-            printf( "Support extended from %d flops to", Vec_IntSize(vFlops) );
-        Saig_AbsExtendOneStep( p, vFlops );
-        if ( fVerbose )
-            printf( " %d flops.\n", Vec_IntSize(vFlops) );
-    } 
+    iFlop = Saig_ManFindFirstFlop( p );
+    assert( iFlop >= 0 );
+    vFlops = Vec_IntAlloc( 1 );
+    Vec_IntPush( vFlops, iFlop );
 */
     // create the resulting AIG
-    pResult = Saig_ManAbstraction( p, vFlops );
-
-    if ( pPars->fExtend )
+    pAbs = Saig_ManDeriveAbstraction( p, vFlops );
+    if ( !pPars->fVerbose )
     {
-        int nUseStart = 0;
-        if ( !pPars->fVerbose )
-        {
-            printf( "Init : " );
-            Aig_ManPrintStats( pResult );
-        }
-        printf( "Refining abstraction...\n" );
-        for ( Iter = 0; ; Iter++ )
-        {
-            pTemp = Saig_ManProofRefine( p, pResult, vFlops, pPars->nFramesBmc, pPars->nConfMaxBmc, pPars->fUseBdds, pPars->fUseDprove, pPars->fUseStart?&nUseStart:NULL, pPars->fVerbose );
-            if ( pTemp == NULL )
-                break;
-            Aig_ManStop( pResult );
-            pResult = pTemp;
-            printf( "ITER %4d : ", Iter );
-            if ( !pPars->fVerbose )
-                Aig_ManPrintStats( pResult );
-//            else
-//                printf( " -----------------------------------------------------\n" );
-            // output the intermediate result of abstraction
-            Ioa_WriteAiger( pResult, "gabs.aig", 0, 0 );
-//            printf( "Intermediate abstracted model was written into file \"%s\".\n", "gabs.aig" );
-            // check if the ratio is reached
-            if ( 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pTemp))/Aig_ManRegNum(p) < 1.0*pPars->nRatio )
-            {
-                printf( "Refinements is stopped because flop reduction is less than %d%%\n", pPars->nRatio );
-                Aig_ManStop( pResult );
-                pResult = NULL;
-                break;
-            }
-        }
+        printf( "Init : " );
+        Aig_ManPrintStats( pAbs );
     }
-    // write the final result
-    if ( pResult )
-        Aig_ManStop( pResult );
-    else
+    printf( "Refining abstraction...\n" );
+    for ( Iter = 0; ; Iter++ )
     {
-        Vec_IntFree( vFlops );
-        vFlops = NULL;
+        pTemp = Saig_ManCexRefine( p, pAbs, vFlops, pPars->nFramesBmc, pPars->nConfMaxBmc, pPars->fUseBdds, pPars->fUseDprove, pPars->fVerbose, pPars->fUseStart?&nUseStart:NULL, &pPars->Status, &pPars->nFramesDone );
+        if ( pTemp == NULL )
+        {
+            ABC_FREE( p->pSeqModel );
+            p->pSeqModel = pAbs->pSeqModel;
+            pAbs->pSeqModel = NULL;
+            Aig_ManStop( pAbs );
+            break;
+        }
+        Aig_ManStop( pAbs );
+        pAbs = pTemp;
+        printf( "ITER %4d : ", Iter );
+        if ( !pPars->fVerbose )
+            Aig_ManPrintStats( pAbs );
+        // output the intermediate result of abstraction
+        Ioa_WriteAiger( pAbs, "gabs.aig", 0, 0 );
+//            printf( "Intermediate abstracted model was written into file \"%s\".\n", "gabs.aig" );
+        // check if the ratio is reached
+        if ( 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pAbs))/Aig_ManRegNum(p) < 1.0*pPars->nRatio )
+        {
+            printf( "Refinements is stopped because flop reduction is less than %d%%\n", pPars->nRatio );
+            Aig_ManStop( pAbs );
+            pAbs = NULL;
+            Vec_IntFree( vFlops );
+            vFlops = NULL;
+            break;
+        }
     }
     return vFlops;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Performs proof-based abstraction using BMC of the given depth.]
+  Synopsis    [Performs counter-example-based abstraction.]
 
   Description []
                
@@ -966,15 +364,15 @@ Vec_Int_t * Saig_ManProofAbstraction_int( Aig_Man_t * p, Gia_ParAbs_t * pPars )
   SeeAlso     []
  
 ***********************************************************************/
-Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, Gia_ParAbs_t * pPars )
+Aig_Man_t * Saig_ManCexAbstraction( Aig_Man_t * p, Gia_ParAbs_t * pPars )
 {
     Vec_Int_t * vFlops;
     Aig_Man_t * pAbs = NULL;
-    vFlops = Saig_ManProofAbstraction_int( p, pPars );
+    vFlops = Saig_ManCexAbstractionFlops( p, pPars );
     // write the final result
     if ( vFlops )
     {
-        pAbs = Saig_ManAbstraction( p, vFlops );
+        pAbs = Saig_ManDeriveAbstraction( p, vFlops );
         Ioa_WriteAiger( pAbs, "gabs.aig", 0, 0 );
         printf( "Final abstracted model was written into file \"%s\".\n", "gabs.aig" );
         Vec_IntFree( vFlops );
@@ -986,4 +384,6 @@ Aig_Man_t * Saig_ManProofAbstraction( Aig_Man_t * p, Gia_ParAbs_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

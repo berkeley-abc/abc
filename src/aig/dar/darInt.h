@@ -21,6 +21,7 @@
 #ifndef __DAR_INT_H__
 #define __DAR_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -40,9 +41,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -104,7 +106,7 @@ struct Dar_Man_t_
     int              time2;
 };
 
-static inline Dar_Cut_t *  Dar_ObjCuts( Aig_Obj_t * pObj )                         { return pObj->pData;    }
+static inline Dar_Cut_t *  Dar_ObjCuts( Aig_Obj_t * pObj )                         { return (Dar_Cut_t *)pObj->pData;    }
 static inline void         Dar_ObjSetCuts( Aig_Obj_t * pObj, Dar_Cut_t * pCuts )   { assert( !Aig_ObjIsNone(pObj) ); pObj->pData = pCuts;   }
 
 ////////////////////////////////////////////////////////////////////////
@@ -144,7 +146,6 @@ extern Vec_Int_t *     Dar_LibReadPrios();
 /*=== darLib.c ============================================================*/
 extern void            Dar_LibStart();
 extern void            Dar_LibStop();
-extern void            Dar_LibPrepare( int nSubgraphs );
 extern void            Dar_LibReturnCanonicals( unsigned * pCanons );
 extern void            Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Required );
 extern Aig_Obj_t *     Dar_LibBuildBest( Dar_Man_t * p );
@@ -156,9 +157,11 @@ extern void            Dar_ManPrintStats( Dar_Man_t * p );
 extern char **         Dar_Permutations( int n );
 extern void            Dar_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puPerms, unsigned char ** puMap );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

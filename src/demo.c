@@ -21,6 +21,9 @@
 #include <stdio.h>
 #include <time.h>
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -178,4 +181,6 @@ clkVer = clock() - clk;
     Abc_Stop();
     return 0;
 }
+
+ABC_NAMESPACE_IMPL_END
 

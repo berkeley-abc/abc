@@ -41,6 +41,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -308,7 +311,7 @@ Cudd_DelayedDerefBdd(
 #if 0
     if (table->nextDead == table->deathRowDepth) {
     if (table->deathRowDepth < table->looseUpTo / 2) {
-        extern void (*MMoutOfMemory)(long);
+//        extern void (*MMoutOfMemory)(long);
         void (*saveHandler)(long) = MMoutOfMemory;
         DdNodePtr *newRow;
         MMoutOfMemory = Cudd_OutOfMem;
@@ -779,3 +782,5 @@ cuddTimesInDeathRow(
 /*---------------------------------------------------------------------------*/
 /* Definition of static functions                                            */
 /*---------------------------------------------------------------------------*/
+ABC_NAMESPACE_IMPL_END
+

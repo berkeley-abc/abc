@@ -22,6 +22,9 @@
 #include "main.h"
 #include "fpga.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -267,4 +270,6 @@ int Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

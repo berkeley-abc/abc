@@ -21,6 +21,7 @@
 #ifndef __VER_H__
 #define __VER_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,9 +33,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -106,9 +108,11 @@ extern void           Ver_StreamSkipChars( Ver_Stream_t * p, char * pCharsToSkip
 extern void           Ver_StreamSkipToChars( Ver_Stream_t * p, char * pCharsToStop );
 extern char *         Ver_StreamGetWord( Ver_Stream_t * p, char * pCharsToStop );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

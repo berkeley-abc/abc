@@ -52,6 +52,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -2059,7 +2062,7 @@ ddVarGroupCheck(
         ddIsVarHandled(table, yindex)) {
         if (Cudd_bddIsVarToBeGrouped(table, xindex) ||
         Cudd_bddIsVarToBeGrouped(table, yindex) ) {
-        if (table->keys - table->isolated <= originalSize) {
+        if (table->keys - table->isolated <= (unsigned)originalSize) {
             return(1);
         }
         }
@@ -2140,3 +2143,5 @@ ddIsVarHandled(
     return dd->subtables[dd->perm[index]].varHandled;
 
 } /* end of ddIsVarHandled */
+ABC_NAMESPACE_IMPL_END
+

@@ -20,6 +20,9 @@
 
 #include "seqInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     A sequential network is similar to AIG in that it contains only
     AND gates. However, the AND-gates are currently not hashed. 
@@ -269,7 +272,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         Abc_NtkDupObj(pNtkNew, pObj, 0);
-        pObj->pCopy->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+        pObj->pCopy->pData = Abc_SopCreateAnd2( (Extra_MmFlex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     }
     // share and create the latches
     Seq_NtkShareLatches( pNtkNew, pNtk );
@@ -344,10 +347,10 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop_old( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pObj) == 1 )
         {
             assert( !Abc_ObjFaninC0(pObj) );
-            pObj->pCopy->pData = Abc_SopCreateBuf( pNtkNew->pManFunc );
+            pObj->pCopy->pData = Abc_SopCreateBuf( (Extra_MmFlex_t *)pNtkNew->pManFunc );
             continue;
         }
-        pObj->pCopy->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+        pObj->pCopy->pData = Abc_SopCreateAnd2( (Extra_MmFlex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     }
     // connect the objects
     Abc_NtkForEachObj( pNtk, pObj, i )
@@ -419,7 +422,7 @@ Abc_Obj_t * Abc_NodeSeqToLogic( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanin, Seq_Lat
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkSeqCheck( Abc_Ntk_t * pNtk )
+int Abc_NtkSeqCheck( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i, nFanins;
@@ -479,4 +482,6 @@ bool Abc_NtkSeqCheck( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

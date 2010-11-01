@@ -21,6 +21,7 @@
 #ifndef __CUDD2_H__
 #define __CUDD2_H__
 
+
 // HA: Added for printing messages
 #ifndef MSG 
 #define MSG(msg) (printf("%s = \n",(msg)));
@@ -34,9 +35,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -70,9 +72,11 @@ extern void Cudd2_bddCompose( void * pCudd, void * pArg0, void * pArg1, int v, v
 extern void Cudd2_bddLeq    ( void * pCudd, void * pArg0, void * pArg1, int Result );
 extern void Cudd2_bddEqual  ( void * pCudd, void * pArg0, void * pArg1, int Result );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -20,6 +20,9 @@
 
 #include "lpkInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -49,17 +52,17 @@ If_Obj_t * Lpk_MapPrimeInternal( If_Man_t * pIfMan, Kit_Graph_t * pGraph )
         return If_ManConst1(pIfMan);
     // check for a literal
     if ( Kit_GraphIsVar(pGraph) )
-        return Kit_GraphVar(pGraph)->pFunc;
+        return (If_Obj_t *)Kit_GraphVar(pGraph)->pFunc;
     // build the AIG nodes corresponding to the AND gates of the graph
     Kit_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc; 
-        pAnd1 = Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc; 
+        pAnd0 = (If_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc; 
+        pAnd1 = (If_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc; 
         pNode->pFunc = If_ManCreateAnd( pIfMan, 
             If_NotCond( If_Regular(pAnd0), If_IsComplement(pAnd0) ^ pNode->eEdge0.fCompl ), 
             If_NotCond( If_Regular(pAnd1), If_IsComplement(pAnd1) ^ pNode->eEdge1.fCompl ) );
     }
-    return pNode->pFunc;
+    return (If_Obj_t *)pNode->pFunc;
 }
 
 /**Function*************************************************************
@@ -202,4 +205,6 @@ If_Obj_t * Lpk_MapTree_rec( Lpk_Man_t * p, Kit_DsdNtk_t * pNtk, If_Obj_t ** ppLe
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

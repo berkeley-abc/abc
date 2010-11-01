@@ -20,6 +20,9 @@
 
 #include "fsimInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -407,4 +410,6 @@ Vec_Ptr_t * Fsim_ManTerSimulate( Aig_Man_t * pAig, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

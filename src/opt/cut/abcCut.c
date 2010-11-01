@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "cut.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -102,7 +105,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     vNodes = Abc_AigDfs( pNtk, 0, 1 ); // collects POs
     vChoices = Vec_IntAlloc( 100 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vNodes) );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         // when we reached a CO, it is time to deallocate the cuts
         if ( Abc_ObjIsCo(pObj) )
@@ -176,7 +179,7 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
 
     // compute cuts for internal nodes
     vNodes = Abc_AigDfs( pNtk, 0, 1 ); // collects POs
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         // when we reached a CO, it is time to deallocate the cuts
         if ( Abc_ObjIsCo(pObj) )
@@ -489,4 +492,6 @@ void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

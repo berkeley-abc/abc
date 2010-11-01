@@ -21,6 +21,9 @@
 #include "fra.h"
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -58,7 +61,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         Cnf_DataTranformPolarity( pCnf, 0 );
 
     // convert into SAT solver
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     if ( pSat == NULL )
     {
         Cnf_DataFree( pCnf );
@@ -128,8 +131,9 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
     }
     else
         assert( 0 );
-//    ABC_PRT( "SAT sat_solver time", clock() - clk );
-//    printf( "The number of conflicts = %d.\n", (int)pSat->sat_solver_stats.conflicts );
+
+//    Abc_Print( 1, "The number of conflicts = %6d.  ", (int)pSat->stats.conflicts );
+//    Abc_PrintTime( 1, "Solving time", clock() - clk );
  
     // if the problem is SAT, get the counterexample
     if ( status == l_True )
@@ -283,7 +287,7 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimi
     vParts = Aig_ManMiterPartitioned( pMan1, pMan2, nPartSize, fSmart );
     // solve the partitions
     nOutputs = -1;
-    Vec_PtrForEachEntry( vParts, pAig, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vParts, pAig, i )
     {
         nOutputs++;
         if ( fVerbose )
@@ -319,7 +323,7 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimi
         fflush( stdout );
     }
     // free intermediate results
-    Vec_PtrForEachEntry( vParts, pAig, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vParts, pAig, i )
         Aig_ManStop( pAig );
     Vec_PtrFree( vParts );
     return RetValue;
@@ -394,4 +398,6 @@ ABC_PRT( "Time", clock() - clkTotal );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

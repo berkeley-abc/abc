@@ -21,8 +21,10 @@
 #include <string.h>
 #include <assert.h>
 
-#include "abc_global.h"
 #include "satMem.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -35,7 +37,7 @@ struct Sat_MmFixed_t_
     int           nEntriesAlloc; // the total number of entries allocated
     int           nEntriesUsed;  // the number of entries in use
     int           nEntriesMax;   // the max number of entries in use
-    char *        pEntriesFree;  // the linked list of ABC_FREE entries
+    char *        pEntriesFree;  // the linked list of free entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -52,8 +54,8 @@ struct Sat_MmFlex_t_
 {
     // information about individual entries
     int           nEntriesUsed;  // the number of entries allocated
-    char *        pCurrent;      // the current pointer to ABC_FREE memory
-    char *        pEnd;          // the first entry outside the ABC_FREE memory
+    char *        pCurrent;      // the current pointer to free memory
+    char *        pEnd;          // the first entry outside the free memory
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -167,7 +169,7 @@ char * Sat_MmFixedEntryFetch( Sat_MmFixed_t * p )
     char * pTemp;
     int i;
 
-    // check if there are still ABC_FREE entries
+    // check if there are still free entries
     if ( p->nEntriesUsed == p->nEntriesAlloc )
     { // need to allocate more entries
         assert( p->pEntriesFree == NULL );
@@ -196,7 +198,7 @@ char * Sat_MmFixedEntryFetch( Sat_MmFixed_t * p )
     p->nEntriesUsed++;
     if ( p->nEntriesMax < p->nEntriesUsed )
         p->nEntriesMax = p->nEntriesUsed;
-    // return the first entry in the ABC_FREE entry list
+    // return the first entry in the free entry list
     pTemp = p->pEntriesFree;
     p->pEntriesFree = *((char **)pTemp);
     return pTemp;
@@ -217,7 +219,7 @@ void Sat_MmFixedEntryRecycle( Sat_MmFixed_t * p, char * pEntry )
 {
     // decrement the counter of used entries
     p->nEntriesUsed--;
-    // add the entry to the linked list of ABC_FREE entries
+    // add the entry to the linked list of free entries
     *((char **)pEntry) = p->pEntriesFree;
     p->pEntriesFree = pEntry;
 }
@@ -251,7 +253,7 @@ void Sat_MmFixedRestart( Sat_MmFixed_t * p )
     }
     // set the last link
     *((char **)pTemp) = NULL;
-    // set the ABC_FREE entry list
+    // set the free entry list
     p->pEntriesFree  = p->pChunks[0];
     // set the correct statistics
     p->nMemoryAlloc  = p->nEntrySize * p->nChunkSize;
@@ -353,7 +355,7 @@ void Sat_MmFlexStop( Sat_MmFlex_t * p, int fVerbose )
 char * Sat_MmFlexEntryFetch( Sat_MmFlex_t * p, int nBytes )
 {
     char * pTemp;
-    // check if there are still ABC_FREE entries
+    // check if there are still free entries
     if ( p->pCurrent == NULL || p->pCurrent + nBytes > p->pEnd )
     { // need to allocate more entries
         if ( p->nChunks == p->nChunksAlloc )
@@ -548,3 +550,5 @@ int Sat_MmStepReadMemUsage( Sat_MmStep_t * p )
         nMemTotal += p->pMems[i]->nMemoryAlloc;
     return nMemTotal;
 }
+ABC_NAMESPACE_IMPL_END
+

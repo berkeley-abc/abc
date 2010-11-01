@@ -20,6 +20,9 @@
 
 #include "extra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -248,6 +251,32 @@ char * Extra_FileRead( FILE * pFile )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns one if the file has a given extension.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Extra_FileIsType( char * pFileName, char * pS1, char * pS2, char * pS3 )
+{
+    int lenS, lenF = strlen(pFileName);
+    lenS = pS1 ? strlen(pS1) : 0;
+    if ( lenS && lenF > lenS && !strncmp( pFileName+lenF-lenS, pS1, lenS ) )
+        return 1;
+    lenS = pS2 ? strlen(pS2) : 0;
+    if ( lenS && lenF > lenS && !strncmp( pFileName+lenF-lenS, pS2, lenS ) )
+        return 1;
+    lenS = pS3 ? strlen(pS3) : 0;
+    if ( lenS && lenF > lenS && !strncmp( pFileName+lenF-lenS, pS3, lenS ) )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the time stamp.]
 
   Description [The file should be closed.]
@@ -425,7 +454,7 @@ void Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars )
+void Extra_PrintHex( FILE * pFile, unsigned * pTruth, int nVars )
 {
     int nMints, nDigits, Digit, k;
 
@@ -435,11 +464,11 @@ void Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars )
     nDigits = nMints / 4;
     for ( k = nDigits - 1; k >= 0; k-- )
     {
-        Digit = ((uTruth >> (k * 4)) & 15);
+        Digit = ((pTruth[k/8] >> (k * 4)) & 15);
         if ( Digit < 10 )
             fprintf( pFile, "%d", Digit );
         else
-            fprintf( pFile, "%c", 'a' + Digit-10 );
+            fprintf( pFile, "%c", 'A' + Digit-10 );
     }
 //    fprintf( pFile, "\n" );
 }
@@ -504,4 +533,6 @@ char * Extra_StringAppend( char * pStrGiven, char * pStrAdd )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

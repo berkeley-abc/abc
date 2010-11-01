@@ -21,9 +21,12 @@
 
 // The code in this file is developed in collaboration with Mark Jarvin of Toronto.
 
-#include "ioAbc.h"
 #include "bzlib.h"
+#include "ioAbc.h"
 #include "zlib.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -190,7 +193,7 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
 static char * Ioa_ReadLoadFileGzAig( char * pFileName, int * pFileSize )
 {
     const int READ_BLOCK_SIZE = 100000;
-    FILE * pFile;
+    gzFile pFile;
     char * pContents;
     int amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
     pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
@@ -340,10 +343,10 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         uLit1 = uLit  - Io_ReadAigerDecode( &pCur );
         uLit0 = uLit1 - Io_ReadAigerDecode( &pCur );
 //        assert( uLit1 > uLit0 );
-        pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
-        pNode1 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
+        pNode0 = Abc_ObjNotCond( (Abc_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
+        pNode1 = Abc_ObjNotCond( (Abc_Obj_t *)Vec_PtrEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_PtrSize(vNodes) == i + 1 + nInputs + nLatches );
-        Vec_PtrPush( vNodes, Abc_AigAnd(pNtkNew->pManFunc, pNode0, pNode1) );
+        Vec_PtrPush( vNodes, Abc_AigAnd((Abc_Aig_t *)pNtkNew->pManFunc, pNode0, pNode1) );
     }
     Extra_ProgressBarStop( pProgress );
 
@@ -357,14 +360,14 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         Abc_NtkForEachLatchInput( pNtkNew, pObj, i )
         {
             uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-            pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            pNode0 = Abc_ObjNotCond( (Abc_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
             Abc_ObjAddFanin( pObj, pNode0 );
         }
         // read the PO driver literals
         Abc_NtkForEachPo( pNtkNew, pObj, i )
         {
             uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-            pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            pNode0 = Abc_ObjNotCond( (Abc_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
             Abc_ObjAddFanin( pObj, pNode0 );
         }
     }
@@ -374,14 +377,14 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         Abc_NtkForEachLatchInput( pNtkNew, pObj, i )
         {
             uLit0 = Vec_IntEntry( vLits, i );
-            pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            pNode0 = Abc_ObjNotCond( (Abc_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Abc_ObjAddFanin( pObj, pNode0 );
         }
         // read the PO driver literals
         Abc_NtkForEachPo( pNtkNew, pObj, i )
         {
             uLit0 = Vec_IntEntry( vLits, i+Abc_NtkLatchNum(pNtkNew) );
-            pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            pNode0 = Abc_ObjNotCond( (Abc_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Abc_ObjAddFanin( pObj, pNode0 );
         }
         Vec_IntFree( vLits );
@@ -415,7 +418,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
                 fprintf( stdout, "The number of terminal is out of bound.\n" );
                 return NULL;
             }
-            pObj = Vec_PtrEntry( vTerms, iTerm );
+            pObj = (Abc_Obj_t *)Vec_PtrEntry( vTerms, iTerm );
             if ( *pType == 'l' )
                 pObj = Abc_ObjFanout0(pObj);
             // assign the name
@@ -481,7 +484,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     Vec_PtrFree( vNodes );
 
     // remove the extra nodes
-    Abc_AigCleanup( pNtkNew->pManFunc );
+    Abc_AigCleanup( (Abc_Aig_t *)pNtkNew->pManFunc );
 
     // check the result
     if ( fCheck && !Abc_NtkCheckRead( pNtkNew ) )
@@ -499,4 +502,6 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

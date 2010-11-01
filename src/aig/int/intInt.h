@@ -21,6 +21,7 @@
 #ifndef __INT_INT_H__
 #define __INT_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -35,9 +36,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -118,9 +120,11 @@ extern int           Inter_ManPerformOneStepM114p( Inter_Man_t * p, int fUsePudl
 extern int           Inter_ManCheckInitialState( Aig_Man_t * p );
 extern int           Inter_ManCheckAllStates( Aig_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

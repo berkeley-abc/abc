@@ -20,6 +20,9 @@
 
 #include "mfxInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -46,7 +49,7 @@ void Mfx_UpdateNetwork( Mfx_Man_t * p, Nwk_Obj_t * pObj, Vec_Ptr_t * vFanins, Ho
     // create the new node
     pObjNew = Nwk_ManCreateNode( pObj->pMan, Vec_PtrSize(vFanins), Nwk_ObjFanoutNum(pObj) );
     pObjNew->pFunc = pFunc;
-    Vec_PtrForEachEntry( vFanins, pFanin, k )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vFanins, pFanin, k )
         Nwk_ObjAddFanin( pObjNew, pFanin );
     // replace the old node by the new node
     Nwk_ManUpdate( pObj, pObjNew, p->vLevels );
@@ -110,7 +113,7 @@ int Mfx_TryResubOnce( Mfx_Man_t * p, int * pCands, int nCands )
     // store the counter-example
     Vec_IntForEachEntry( p->vProjVars, iVar, i )
     {
-        pData = Vec_PtrEntry( p->vDivCexes, i );
+        pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
         if ( !sat_solver_var_value( p->pSat, iVar ) ) // remove 0s!!!
         {
             assert( Aig_InfoHasBit(pData, p->nCexes) );
@@ -213,7 +216,7 @@ p->timeInt += clock() - clk;
             printf( "%3d: %2d ", p->nCexes, iVar );
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
-                pData = Vec_PtrEntry( p->vDivCexes, i );
+                pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
                 printf( "%d", Aig_InfoHasBit(pData, p->nCexes-1) );
             }
             printf( "\n" );
@@ -226,12 +229,12 @@ p->timeInt += clock() - clk;
         {
             if ( p->pPars->fPower )
             {
-                Nwk_Obj_t * pDiv = Vec_PtrEntry(p->vDivs, iVar);
+                Nwk_Obj_t * pDiv = (Nwk_Obj_t *)Vec_PtrEntry(p->vDivs, iVar);
                 // only accept the divisor if it is "cool"
                 if ( pProbab[Nwk_ObjId(pDiv)] >= 0.2 )
                     continue;
             }
-            pData  = Vec_PtrEntry( p->vDivCexes, iVar );
+            pData  = (unsigned *)Vec_PtrEntry( p->vDivCexes, iVar );
             for ( w = 0; w < nWords; w++ )
                 if ( pData[w] != ~0 )
                     break;
@@ -356,7 +359,7 @@ p->timeInt += clock() - clk;
             printf( "%3d: %2d %2d ", p->nCexes, iVar, iVar2 );
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
-                pData = Vec_PtrEntry( p->vDivCexes, i );
+                pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
                 printf( "%d", Aig_InfoHasBit(pData, p->nCexes-1) );
             }
             printf( "\n" );
@@ -368,10 +371,10 @@ p->timeInt += clock() - clk;
         fBreak = 0;
         for ( iVar = 1; iVar < Vec_PtrSize(p->vDivs)-Nwk_ObjFaninNum(pNode); iVar++ )
         {
-            pData  = Vec_PtrEntry( p->vDivCexes, iVar );
+            pData  = (unsigned *)Vec_PtrEntry( p->vDivCexes, iVar );
             for ( iVar2 = 0; iVar2 < iVar; iVar2++ )
             {
-                pData2 = Vec_PtrEntry( p->vDivCexes, iVar2 );
+                pData2 = (unsigned *)Vec_PtrEntry( p->vDivCexes, iVar2 );
                 for ( w = 0; w < nWords; w++ )
                     if ( (pData[w] | pData2[w]) != ~0 )
                         break;
@@ -558,4 +561,6 @@ int Mfx_ResubNode2( Mfx_Man_t * p, Nwk_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

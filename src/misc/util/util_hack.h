@@ -21,17 +21,19 @@
 #ifndef __UTIL_HACK_H__
 #define __UTIL_HACK_H__
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <time.h>
 #include <math.h>
+
 #include "abc_global.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+ABC_NAMESPACE_HEADER_START
+
 
 #ifndef EXTERN
 #define EXTERN extern
@@ -54,17 +56,13 @@ extern "C" {
 #define util_optind            globalUtilOptind
 
 #ifndef ARGS
-#  ifdef __STDC__
-#     define ARGS(args)    args
-#  else
-#     define ARGS(args) ()
-#  endif
+#define ARGS(protos) protos
 #endif
 
 extern long        Extra_CpuTime();
 extern int         Extra_GetSoftDataLimit();
 extern void        Extra_UtilGetoptReset();
-extern int         Extra_UtilGetopt( int argc, char *argv[], char *optstring );
+extern int         Extra_UtilGetopt( int argc, char *argv[], const char *optstring );
 extern char *      Extra_UtilPrintTime( long t );
 extern char *      Extra_UtilStrsav( char *s );
 extern char *      Extra_UtilTildeExpand( char *fname );
@@ -73,8 +71,10 @@ extern char *      Extra_UtilFileSearch( char *file, char *path, char *mode );
 extern char *      globalUtilOptarg;
 extern int         globalUtilOptind;
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif

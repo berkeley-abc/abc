@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,9 +53,6 @@ int Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     assert( !Aig_IsComplement(pOld) );
     assert( !Aig_IsComplement(pNew) );
     assert( pOld != pNew );
-
-//    if ( p->pSat == NULL )
-//        Ssw_ManStartSolver( p );
     assert( p->pMSat != NULL );
 
     // if the nodes do not have SAT variables, allocate them
@@ -199,7 +199,7 @@ int Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 
     // sanity checks
     assert( Aig_Regular(pOld) != Aig_Regular(pNew) );
-    assert( Aig_ObjPhaseReal(pOld) == Aig_ObjPhaseReal(pNew) );
+    assert( p->pPars->fConstrs || Aig_ObjPhaseReal(pOld) == Aig_ObjPhaseReal(pNew) );
 
     // move constant to the old node
     if ( Aig_Regular(pNew) == Aig_ManConst1(p->pFrames) )
@@ -216,9 +216,6 @@ int Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
         pOld = Aig_Regular(pOld);
         pNew = Aig_Not(pNew);
     }
-
-//    if ( p->pSat == NULL )
-//        Ssw_ManStartSolver( p );
     assert( p->pMSat != NULL );
 
     // if the nodes do not have SAT variables, allocate them
@@ -274,8 +271,36 @@ int Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Constrains one node in the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_NodeIsConstrained( Ssw_Man_t * p, Aig_Obj_t * pPoObj )
+{
+    int RetValue, Lit;
+    Ssw_CnfNodeAddToSolver( p->pMSat, Aig_ObjFanin0(pPoObj) );
+    // add constraint A = 1  ---->  A
+    Lit = toLitCond( Ssw_ObjSatNum(p->pMSat,Aig_ObjFanin0(pPoObj)), !Aig_ObjFaninC0(pPoObj) );
+    if ( p->pPars->fPolarFlip )
+    {
+        if ( Aig_ObjFanin0(pPoObj)->fPhase )  Lit = lit_neg( Lit );
+    }
+    RetValue = sat_solver_addclause( p->pMSat->pSat, &Lit, &Lit + 1 );
+    assert( RetValue );
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

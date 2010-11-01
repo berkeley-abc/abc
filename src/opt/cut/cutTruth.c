@@ -20,6 +20,9 @@
 
 #include "cutInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
     Truth tables computed in this package are represented as bit-strings
     stored in the cut data structure. Cuts of any number of inputs have 
@@ -224,4 +227,6 @@ void Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_C
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

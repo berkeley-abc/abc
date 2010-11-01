@@ -20,6 +20,9 @@
 
 #include "lpkInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -88,7 +91,7 @@ Lpk_Fun_t * Lpk_FunCreate( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTr
     p->nDelayLim = DelayLim;
     p->uSupp = Kit_TruthSupport( pTruth, p->nVars );
     Kit_TruthCopy( Lpk_FunTruth(p,0), pTruth, p->nVars );
-    Vec_PtrForEachEntry( vLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pNode, i )
     {
         p->pFanins[i] = i;
         p->pDelays[i] = pNode->Level;
@@ -241,4 +244,6 @@ int Lpk_SuppToVars( unsigned uBoundSet, char * pVars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

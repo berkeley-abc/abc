@@ -2,6 +2,8 @@
  * Generated automatically by crc32.c
  */
 
+ABC_NAMESPACE_HEADER_START
+
 local const unsigned long FAR crc_table[TBLS][256] =
 {
   {
@@ -439,3 +441,5 @@ local const unsigned long FAR crc_table[TBLS][256] =
 #endif
   }
 };
+
+ABC_NAMESPACE_HEADER_END

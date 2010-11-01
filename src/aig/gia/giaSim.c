@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -65,6 +68,28 @@ void Gia_ManSimSetDefaultParams( Gia_ParSim_t * p )
     p->TimeLimit    =  60;    // time limit in seconds
     p->fCheckMiter  =   0;    // check if miter outputs are non-zero 
     p->fVerbose     =   0;    // enables verbose output
+    p->iOutFail     =  -1;    // index of the failed output
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSimDelete( Gia_ManSim_t * p )
+{
+    Vec_IntFreeP( &p->vCis2Ids );
+    Gia_ManStopP( &p->pAig );
+    ABC_FREE( p->pDataSim );
+    ABC_FREE( p->pDataSimCis );
+    ABC_FREE( p->pDataSimCos );
+    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -90,35 +115,22 @@ Gia_ManSim_t * Gia_ManSimCreate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     p->pDataSim = ABC_ALLOC( unsigned, p->nWords * p->pAig->nFront );
     p->pDataSimCis = ABC_ALLOC( unsigned, p->nWords * Gia_ManCiNum(p->pAig) );
     p->pDataSimCos = ABC_ALLOC( unsigned, p->nWords * Gia_ManCoNum(p->pAig) );
+    if ( !p->pDataSim || !p->pDataSimCis || !p->pDataSimCos )
+    { 
+        Abc_Print( 1, "Simulator could not allocate %.2f Gb for simulation info.\n", 
+            4.0 * p->nWords * (p->pAig->nFront + Gia_ManCiNum(p->pAig) + Gia_ManCoNum(p->pAig)) / (1<<30) );
+        Gia_ManSimDelete( p );
+        return NULL;
+    }
     p->vCis2Ids = Vec_IntAlloc( Gia_ManCiNum(p->pAig) );
     Vec_IntForEachEntry( pAig->vCis, Entry, i )
         Vec_IntPush( p->vCis2Ids, i );  //  do we need p->vCis2Ids?
-    printf( "AIG = %7.2f Mb.   Front mem = %7.2f Mb.  Other mem = %7.2f Mb.\n", 
+    if ( pPars->fVerbose )
+    Abc_Print( 1, "AIG = %7.2f Mb.   Front mem = %7.2f Mb.  Other mem = %7.2f Mb.\n", 
         12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
         4.0*p->nWords*p->pAig->nFront/(1<<20), 
         4.0*p->nWords*(Gia_ManCiNum(p->pAig) + Gia_ManCoNum(p->pAig))/(1<<20) );
     return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManSimDelete( Gia_ManSim_t * p )
-{
-    Vec_IntFree( p->vCis2Ids );
-    Gia_ManStop( p->pAig );
-    ABC_FREE( p->pDataSim );
-    ABC_FREE( p->pDataSimCis );
-    ABC_FREE( p->pDataSimCos );
-    ABC_FREE( p );
 }
 
 /**Function*************************************************************
@@ -171,9 +183,9 @@ static inline void Gia_ManSimInfoZero( Gia_ManSim_t * p, unsigned * pInfo )
 static inline int Gia_ManSimInfoIsZero( Gia_ManSim_t * p, unsigned * pInfo )
 {
     int w;
-    for ( w = p->nWords-1; w >= 0; w-- )
+    for ( w = 0; w < p->nWords; w++ )
         if ( pInfo[w] )
-            return 32*(w-1) + Gia_WordFindFirstBit( pInfo[w] );
+            return 32*w + Gia_WordFindFirstBit( pInfo[w] );
     return -1;
 }
 
@@ -418,9 +430,9 @@ static inline int Gia_ManCheckPos( Gia_ManSim_t * p, int * piPo, int * piPat )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Cex_t * Gia_ManGenerateCounter( Gia_Man_t * pAig, int iFrame, int iOut, int nWords, int iPat, Vec_Int_t * vCis2Ids )
+Abc_Cex_t * Gia_ManGenerateCounter( Gia_Man_t * pAig, int iFrame, int iOut, int nWords, int iPat, Vec_Int_t * vCis2Ids )
 {
-    Gia_Cex_t * p;
+    Abc_Cex_t * p;
     unsigned * pData;
     int f, i, w, iPioId, Counter;
     p = Gia_ManAllocCounterExample( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), iFrame+1 );
@@ -468,43 +480,44 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     for ( i = 0; i < pPars->nIters; i++ )
     {
         Gia_ManSimulateRound( p );
-
         if ( pPars->fVerbose )
         {
-            printf( "Frame %4d out of %4d and timeout %3d sec. ", i+1, pPars->nIters, pPars->TimeLimit );
-            printf( "Time = %7.2f sec\r", (1.0*clock()-clkTotal)/CLOCKS_PER_SEC );
+            Abc_Print( 1, "Frame %4d out of %4d and timeout %3d sec. ", i+1, pPars->nIters, pPars->TimeLimit );
+            Abc_Print( 1, "Time = %7.2f sec\r", (1.0*clock()-clkTotal)/CLOCKS_PER_SEC );
         }
         if ( pPars->fCheckMiter && Gia_ManCheckPos( p, &iOut, &iPat ) )
         {
+            pPars->iOutFail = iOut;
             pAig->pCexSeq = Gia_ManGenerateCounter( pAig, i, iOut, p->nWords, iPat, p->vCis2Ids );
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).\n", iOut, i );
+            Abc_Print( 1, "Networks are NOT EQUIVALENT.   Output %d was asserted in frame %d.  ", iOut, i );
             if ( !Gia_ManVerifyCounterExample( pAig, pAig->pCexSeq, 0 ) )
             {
-                printf( "\n" );
-                printf( "Generated counter-example is INVALID                        \n" );
-                printf( "\n" );
+//                Abc_Print( 1, "\n" );
+                Abc_Print( 1, "\nGenerated counter-example is INVALID.                    " );
+//                Abc_Print( 1, "\n" );
             }
             else
             {
-                printf( "\n" );
-                printf( "Generated counter-example is fine                           \n" );
-                printf( "\n" );
+//                Abc_Print( 1, "\n" );
+//                if ( pPars->fVerbose )
+//                Abc_Print( 1, "\nGenerated counter-example is verified correctly.         " );
+//                Abc_Print( 1, "\n" );
             }
             RetValue = 1;
             break;
         }
         if ( (clock() - clkTotal)/CLOCKS_PER_SEC >= pPars->TimeLimit )
         {
-            printf( "No bug detected after %d frames with time limit %d seconds.         \n", i+1, pPars->TimeLimit );
+            i++;
             break;
         }
-
         if ( i < pPars->nIters - 1 )
             Gia_ManSimInfoTransfer( p );
     }
     Gia_ManSimDelete( p );
-    printf( "Simulated %d frames with %d words.           ", i, pPars->nWords );
-    ABC_PRT( "Time", clock() - clkTotal );
+    if ( pAig->pCexSeq == NULL )
+        Abc_Print( 1, "No bug detected after simulating %d frames with %d words.  ", i, pPars->nWords );
+    Abc_PrintTime( 1, "Time", clock() - clkTotal );
     return RetValue;
 }
 
@@ -512,4 +525,6 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

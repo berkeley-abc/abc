@@ -21,6 +21,7 @@
 #ifndef __IOA_H__
 #define __IOA_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -39,9 +40,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -60,8 +62,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 /*=== ioaReadAig.c ========================================================*/
+extern Aig_Man_t *    Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck );
 extern Aig_Man_t *    Ioa_ReadAiger( char * pFileName, int fCheck );
 /*=== ioaWriteAig.c =======================================================*/
+extern char *         Ioa_WriteAigerIntoMemory( Aig_Man_t * pMan, int * pnSize );
 extern void           Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
 /*=== ioaUtil.c =======================================================*/
 extern int            Ioa_FileSize( char * pFileName );
@@ -69,9 +73,11 @@ extern char *         Ioa_FileNameGeneric( char * FileName );
 extern char *         Ioa_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern char *         Ioa_TimeStamp();
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

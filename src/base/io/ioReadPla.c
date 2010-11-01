@@ -20,6 +20,9 @@
 
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -95,12 +98,12 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
     // go through the lines of the file
     nCubes = 0;
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
-    for ( iLine = 0; (vTokens = Extra_FileReaderGetTokens(p)); iLine++ )
+    for ( iLine = 0; (vTokens = (Vec_Ptr_t *)Extra_FileReaderGetTokens(p)); iLine++ )
     {
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
 
         // if it is the end of file, quit the loop
-        if ( strcmp( vTokens->pArray[0], ".e" ) == 0 )
+        if ( strcmp( (char *)vTokens->pArray[0], ".e" ) == 0 )
             break;
 
         if ( vTokens->nSize == 1 )
@@ -111,25 +114,25 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
             return NULL;
         }
 
-        if ( strcmp( vTokens->pArray[0], ".i" ) == 0 )
-            nInputs = atoi(vTokens->pArray[1]);
-        else if ( strcmp( vTokens->pArray[0], ".o" ) == 0 )
-            nOutputs = atoi(vTokens->pArray[1]);
-        else if ( strcmp( vTokens->pArray[0], ".p" ) == 0 )
-            nProducts = atoi(vTokens->pArray[1]);
-        else if ( strcmp( vTokens->pArray[0], ".ilb" ) == 0 )
+        if ( strcmp( (char *)vTokens->pArray[0], ".i" ) == 0 )
+            nInputs = atoi((char *)vTokens->pArray[1]);
+        else if ( strcmp( (char *)vTokens->pArray[0], ".o" ) == 0 )
+            nOutputs = atoi((char *)vTokens->pArray[1]);
+        else if ( strcmp( (char *)vTokens->pArray[0], ".p" ) == 0 )
+            nProducts = atoi((char *)vTokens->pArray[1]);
+        else if ( strcmp( (char *)vTokens->pArray[0], ".ilb" ) == 0 )
         {
             if ( vTokens->nSize - 1 != nInputs )
                 printf( "Warning: Mismatch between the number of PIs on the .i line (%d) and the number of PIs on the .ilb line (%d).\n", nInputs, vTokens->nSize - 1 );
             for ( i = 1; i < vTokens->nSize; i++ )
-                Io_ReadCreatePi( pNtk, vTokens->pArray[i] );
+                Io_ReadCreatePi( pNtk, (char *)vTokens->pArray[i] );
         }
-        else if ( strcmp( vTokens->pArray[0], ".ob" ) == 0 )
+        else if ( strcmp( (char *)vTokens->pArray[0], ".ob" ) == 0 )
         {
             if ( vTokens->nSize - 1 != nOutputs )
                 printf( "Warning: Mismatch between the number of POs on the .o line (%d) and the number of POs on the .ob line (%d).\n", nOutputs, vTokens->nSize - 1 );
             for ( i = 1; i < vTokens->nSize; i++ )
-                Io_ReadCreatePo( pNtk, vTokens->pArray[i] );
+                Io_ReadCreatePo( pNtk, (char *)vTokens->pArray[i] );
         }
         else 
         {
@@ -189,8 +192,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 Abc_NtkDelete( pNtk );
                 return NULL;
             }
-            pCubeIn  = vTokens->pArray[0];
-            pCubeOut = vTokens->pArray[1];
+            pCubeIn  = (char *)vTokens->pArray[0];
+            pCubeOut = (char *)vTokens->pArray[1];
             if ( strlen(pCubeIn) != (unsigned)nInputs )
             {
                 printf( "%s (line %d): Input cube length (%zu) differs from the number of inputs (%d).\n",
@@ -211,8 +214,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 {
                     if ( pCubeOut[i] == '0' )
                     {
-                        Vec_StrAppend( ppSops[i], pCubeIn );
-                        Vec_StrAppend( ppSops[i], " 1\n" );
+                        Vec_StrPrintStr( ppSops[i], pCubeIn );
+                        Vec_StrPrintStr( ppSops[i], " 1\n" );
                     }
                 }
             }
@@ -222,8 +225,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 {
                     if ( pCubeOut[i] == '1' )
                     {
-                        Vec_StrAppend( ppSops[i], pCubeIn );
-                        Vec_StrAppend( ppSops[i], " 1\n" );
+                        Vec_StrPrintStr( ppSops[i], pCubeIn );
+                        Vec_StrPrintStr( ppSops[i], " 1\n" );
                     }
                 }
             }
@@ -242,12 +245,12 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         if ( ppSops[i]->nSize == 0 )
         {
             Abc_ObjRemoveFanins(pNode);
-            pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 0\n" );
+            pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 0\n" );
             Vec_StrFree( ppSops[i] );
             continue;
         }
         Vec_StrPush( ppSops[i], 0 );
-        pNode->pData = Abc_SopRegister( pNtk->pManFunc, ppSops[i]->pArray );
+        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, ppSops[i]->pArray );
         Vec_StrFree( ppSops[i] );
     }
     ABC_FREE( ppSops );
@@ -261,4 +264,6 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
 ////////////////////////////////////////////////////////////////////////
 
 
+
+ABC_NAMESPACE_IMPL_END
 

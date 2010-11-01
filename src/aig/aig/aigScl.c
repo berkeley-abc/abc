@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,6 +53,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
+    pNew->nConstrs = p->nConstrs;
     assert( p->vFlopNums == NULL || Vec_IntSize(p->vFlopNums) == p->nRegs );
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -69,8 +73,8 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     }
     Aig_ManForEachPi( p, pObj, i )
     {
-        pObjMapped = Vec_PtrEntry( vMap, i );
-        pObj->pData = Aig_NotCond( Aig_Regular(pObjMapped)->pData, Aig_IsComplement(pObjMapped) );
+        pObjMapped = (Aig_Obj_t *)Vec_PtrEntry( vMap, i );
+        pObj->pData = Aig_NotCond( (Aig_Obj_t *)Aig_Regular(pObjMapped)->pData, Aig_IsComplement(pObjMapped) );
         if ( pNew->vFlopReprs && i >= nTruePis && pObj != pObjMapped )
         {
             Vec_IntPush( pNew->vFlopReprs, Aig_ObjPioNum(pObj) );
@@ -172,7 +176,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
         pObjLo->pNext = pObjLi;
     // mark the nodes reachable from these nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_ManSeqCleanup_rec( p, pObj, vNodes );
     assert( Vec_PtrSize(vNodes) <= Aig_ManPoNum(p) );
     // clean latch output pointers
@@ -271,7 +275,7 @@ int Aig_ManSeqCleanupBasic( Aig_Man_t * p )
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
         pObjLo->pNext = pObjLi;
     // mark the nodes reachable from these nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_ManSeqCleanup_rec( p, pObj, vNodes );
     assert( Vec_PtrSize(vNodes) <= Aig_ManPoNum(p) );
     // clean latch output pointers
@@ -496,7 +500,7 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
     vSupports = Aig_ManSupports( p );
     // transforms the supports into the latch dependency matrix
     vMatrix = Vec_PtrStart( Aig_ManRegNum(p) );
-    Vec_PtrForEachEntry( vSupports, vSupp, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vSupports, vSupp, i )
     {
         // skip true POs
         iOut = Vec_IntPop( vSupp );
@@ -522,11 +526,11 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
     vMatrix2 = Vec_PtrAlloc( Aig_ManRegNum(p) );
     for ( i = 0; i < Aig_ManRegNum(p); i++ )
         Vec_PtrPush( vMatrix2, Vec_IntAlloc(8) );
-    Vec_PtrForEachEntry( vMatrix, vSupp, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vMatrix, vSupp, i )
     {
         Vec_IntForEachEntry( vSupp, iIn, k )
         {
-            vSupp2 = Vec_PtrEntry( vMatrix2, iIn );
+            vSupp2 = (Vec_Int_t *)Vec_PtrEntry( vMatrix2, iIn );
             Vec_IntPush( vSupp2, i );
         }
     } 
@@ -548,7 +552,7 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
         Vec_IntPush( vComp, iOut );
         Vec_IntForEachEntry( vComp, iOut, i )
         {
-            vSupp = Vec_PtrEntry( vMatrix, iOut );
+            vSupp = (Vec_Int_t *)Vec_PtrEntry( vMatrix, iOut );
             Vec_IntForEachEntry( vSupp, iIn, k )
             {
                 if ( pVarsTot[iIn] )
@@ -556,7 +560,7 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
                 pVarsTot[iIn] = 1;
                 Vec_IntPush( vComp, iIn );
             }
-            vSupp2 = Vec_PtrEntry( vMatrix2, iOut );
+            vSupp2 = (Vec_Int_t *)Vec_PtrEntry( vMatrix2, iOut );
             Vec_IntForEachEntry( vSupp2, iIn, k )
             {
                 if ( pVarsTot[iIn] )
@@ -602,14 +606,14 @@ Aig_Man_t * Aig_ManSclPart( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, 
     if ( pAig->vClockDoms ) 
     {
         vResult = Vec_PtrAlloc( 100 );
-        Vec_PtrForEachEntry( (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
+        Vec_PtrForEachEntry( Vec_Int_t *, (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
             Vec_PtrPush( vResult, Vec_IntDup(vPart) );
     } 
     else
         vResult = Aig_ManRegPartitionSimple( pAig, 0, 0 );
 
     Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
-    Vec_PtrForEachEntry( vResult, vPart, i ) 
+    Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i ) 
     {
         pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, &pMapBack );
         Aig_ManSetRegNum( pTemp, pTemp->nRegs );
@@ -698,4 +702,6 @@ Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

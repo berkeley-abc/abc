@@ -7,7 +7,7 @@
   PackageName [The main package.]
 
   Synopsis    [Miscellaneous utilities.]
-
+ 
   Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include "abc.h"
 #include "mainInt.h"
 
 #ifndef _WIN32
@@ -25,10 +26,14 @@
 #include <readline/history.h>
 #endif
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-static char * DateReadFromDateString(char * datestr);
+
+static char * DateReadFromDateString( char * datestr );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -181,6 +186,22 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
     }
 #endif
 
+#ifdef ABC_PYTHON_EMBED
+    if ( getenv("ABC_PYTHON_ABC_RC") )
+    {
+        /* read script file from $ABC_PYTHON_ABC_RC */
+
+        char * sPath = getenv("ABC_PYTHON_ABC_RC");
+        
+        if (sPath){
+            char * sCmd = ABC_ALLOC(char, strlen(sPath) + 50);
+            (void) sprintf(sCmd, "source -s %s", sPath);
+            (void) Cmd_CommandExecute(pAbc, sCmd);
+            ABC_FREE(sCmd);
+        }
+    }
+    else
+#endif /* #ifdef ABC_PYTHON_EMBED */
     {
         char * sPath1, * sPath2;
         char * home;
@@ -228,13 +249,13 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
         /* execute the abc script which can be open with the "open_path" */
         Cmd_CommandExecute( pAbc, "source -s abc.rc" );
     }
-
+    
 #endif //WIN32
     {
         // reset command history
         char * pName; 
         int i;
-        Vec_PtrForEachEntry( pAbc->aHistory, pName, i )
+        Vec_PtrForEachEntry( char *, pAbc->aHistory, pName, i )
             ABC_FREE( pName );
         pAbc->aHistory->nSize = 0;
     }
@@ -250,9 +271,7 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
   SideEffects []
 
 ******************************************************************************/
-char *
-DateReadFromDateString(
-  char * datestr)
+char * DateReadFromDateString( char * datestr )
 {
   static char result[25];
   char        day[10];
@@ -290,4 +309,6 @@ DateReadFromDateString(
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

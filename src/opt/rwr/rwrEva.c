@@ -20,6 +20,10 @@
 
 #include "rwr.h"
 #include "dec.h"
+#include "ivy.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -117,7 +121,7 @@ clk = clock();
 
         {
             int Counter = 0;
-            Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+            Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
                 if ( Abc_ObjFanoutNum(Abc_ObjRegular(pFanin)) == 1 )
                     Counter++;
             if ( Counter > 2 )
@@ -127,19 +131,19 @@ clk = clock();
 clk2 = clock();
 /*
         printf( "Considering: (" );
-        Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
             printf( "%d ", Abc_ObjFanoutNum(Abc_ObjRegular(pFanin)) );
         printf( ")\n" );
 */
         // mark the fanin boundary 
-        Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize++;
 
         // label MFFC with current ID
         Abc_NtkIncrementTravId( pNode->pNtk );
         nNodesSaved = Abc_NodeMffcLabelAig( pNode );
         // unmark the fanin boundary
-        Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize--;
 p->timeMffc += clock() - clk2;
 
@@ -159,7 +163,7 @@ p->timeEval += clock() - clk2;
             uTruthBest = 0xFFFF & *Cut_CutReadTruth(pCut);
             // collect fanins in the
             Vec_PtrClear( p->vFanins );
-            Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+            Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninsCur, pFanin, i )
                 Vec_PtrPush( p->vFanins, pFanin );
         }
     }
@@ -172,7 +176,7 @@ p->timeRes += clock() - clk;
     {
         printf( "Class %d  ", p->pMap[uTruthBest] );
         printf( "Gain = %d. Node %d : ", GainBest, pNode->Id );
-        Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanins, pFanin, i )
             printf( "%d ", Abc_ObjRegular(pFanin)->Id );
         Dec_GraphPrint( stdout, p->pGraph, NULL, NULL );
         printf( "\n" );
@@ -188,7 +192,7 @@ p->timeRes += clock() - clk;
         else
         {
             printf( "Node %d : ", pNode->Id );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+            Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanins, pFanin, i )
                 printf( "%d ", Abc_ObjRegular(pFanin)->Id );
             printf( "a" );
         }
@@ -203,11 +207,11 @@ p->timeRes += clock() - clk;
 */
 
     // copy the leaves
-    Vec_PtrForEachEntry( p->vFanins, pFanin, i )
-        Dec_GraphNode(p->pGraph, i)->pFunc = pFanin;
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanins, pFanin, i )
+        Dec_GraphNode((Dec_Graph_t *)p->pGraph, i)->pFunc = pFanin;
 /*
     printf( "(" );
-    Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanins, pFanin, i )
         printf( " %d", Abc_ObjRegular(pFanin)->vFanouts.nSize - 1 );
     printf( " )  " );
 */
@@ -228,7 +232,7 @@ p->timeRes += clock() - clk;
         printf( "Save = %d.  ", nNodesSaveCur );
         printf( "Add = %d.  ",  nNodesSaveCur-GainBest );
         printf( "GAIN = %d.  ", GainBest );
-        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum(p->pGraph) : 0 );
+        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
         printf( "Class = %d.  ", p->pMap[uTruthBest] );
         printf( "\n" );
     }
@@ -258,17 +262,17 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
     float CostBest;//, CostCur;
     // find the matching class of subgraphs
     uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
-    vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
+    vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
     p->nSubgraphs += vSubgraphs->nSize;
     // determine the best subgraph
     GainBest = -1;
     CostBest = ABC_INFINITY;
-    Vec_PtrForEachEntry( vSubgraphs, pNode, i )
+    Vec_PtrForEachEntry( Rwr_Node_t *, vSubgraphs, pNode, i )
     {
         // get the current graph
         pGraphCur = (Dec_Graph_t *)pNode->pNext;
         // copy the leaves
-        Vec_PtrForEachEntry( vFaninsCur, pFanin, k )
+        Vec_PtrForEachEntry( Rwr_Node_t *, vFaninsCur, pFanin, k )
             Dec_GraphNode(pGraphCur, k)->pFunc = pFanin;
         // detect how many unlabeled nodes will be reused
         nNodesAdded = Dec_GraphToNetworkCount( pRoot, pGraphCur, nNodesSaved, LevelMax );
@@ -376,7 +380,7 @@ int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
 {
     Abc_Obj_t * pTemp;
     int i, RetValue;
-    Vec_PtrForEachEntry( vLeaves, pTemp, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pTemp, i )
     {
         pTemp = Abc_ObjRegular(pTemp);
         assert( !pTemp->fMarkA && !pTemp->fMarkB );
@@ -384,7 +388,7 @@ int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
     Rwr_CutIsBoolean_rec( Abc_ObjFanin0(pObj), vLeaves, 1 );
     Rwr_CutIsBoolean_rec( Abc_ObjFanin1(pObj), vLeaves, 0 );
     RetValue = 0;
-    Vec_PtrForEachEntry( vLeaves, pTemp, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pTemp, i )
     {
         pTemp = Abc_ObjRegular(pTemp);
         RetValue |= pTemp->fMarkA && pTemp->fMarkB;
@@ -451,7 +455,7 @@ int Rwr_CutCountNumNodes( Abc_Obj_t * pObj, Cut_Cut_t * pCut )
     for ( pCut = pCut->pNext; pCut; pCut = pCut->pNext )
         Rwr_CutCountNumNodes_rec( pObj, pCut, vNodes );
     // clean all nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         pObj->fMarkC = 0;
     // delete and return
     Counter = Vec_PtrSize(vNodes);
@@ -477,7 +481,7 @@ int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
     int i, Depth0, Depth1;
     if ( Abc_ObjIsCi(pObj) )
         return 0;
-    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, i )
         if ( pObj == Abc_ObjRegular(pLeaf) )
             return 0;
     Depth0 = Rwr_NodeGetDepth_rec( Abc_ObjFanin0(pObj), vLeaves );
@@ -504,8 +508,8 @@ void Rwr_ScoresClean( Rwr_Man_t * p )
     int i, k;
     for ( i = 0; i < p->vClasses->nSize; i++ )
     {
-        vSubgraphs = Vec_VecEntry( p->vClasses, i );
-        Vec_PtrForEachEntry( vSubgraphs, pNode, k )
+        vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, i );
+        Vec_PtrForEachEntry( Rwr_Node_t *, vSubgraphs, pNode, k )
             pNode->nScore = pNode->nGain = pNode->nAdded = 0;
     }
 }
@@ -557,8 +561,8 @@ void Rwr_ScoresReport( Rwr_Man_t * p )
     {
         Perm[i] = i;
         Gains[i] = 0;
-        vSubgraphs = Vec_VecEntry( p->vClasses, i );
-        Vec_PtrForEachEntry( vSubgraphs, pNode, k )
+        vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, i );
+        Vec_PtrForEachEntry( Rwr_Node_t *, vSubgraphs, pNode, k )
             Gains[i] += pNode->nGain;
     }
     // sort the gains
@@ -570,13 +574,13 @@ void Rwr_ScoresReport( Rwr_Man_t * p )
         iNew = Perm[i];
         if ( Gains[iNew] == 0 )
             break;
-        vSubgraphs = Vec_VecEntry( p->vClasses, iNew );
+        vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, iNew );
         printf( "CLASS %3d: Subgr = %3d. Total gain = %6d.  ", iNew, Vec_PtrSize(vSubgraphs), Gains[iNew] );
         uTruth = (unsigned)p->pMapInv[iNew];
         Extra_PrintBinary( stdout, &uTruth, 16 );
         printf( "  " );
         Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[iNew] | ((unsigned)p->pMapInv[iNew] << 16) );
-        Vec_PtrForEachEntry( vSubgraphs, pNode, k )
+        Vec_PtrForEachEntry( Rwr_Node_t *, vSubgraphs, pNode, k )
         {
             if ( pNode->nScore == 0 )
                 continue;
@@ -590,4 +594,6 @@ void Rwr_ScoresReport( Rwr_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 #include "mvc.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -66,7 +69,7 @@ Dec_Man_t * Dec_ManStart()
 ***********************************************************************/
 void Dec_ManStop( Dec_Man_t * p )
 {
-    Mvc_ManagerFree( p->pMvcMem );
+    Mvc_ManagerFree( (Mvc_Manager_t *)p->pMvcMem );
     Vec_IntFree( p->vCubes );
     Vec_IntFree( p->vLits );
     ABC_FREE( p->puCanons );
@@ -80,4 +83,6 @@ void Dec_ManStop( Dec_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

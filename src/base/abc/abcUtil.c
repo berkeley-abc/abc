@@ -24,6 +24,9 @@
 #include "dec.h"
 //#include "seq.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ void * Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan )
 {  
     void * pUserMan;
     Vec_Att_t * pAttrMan;
-    pAttrMan = Vec_PtrEntry( pNtk->vAttrs, Attr );
+    pAttrMan = (Vec_Att_t *)Vec_PtrEntry( pNtk->vAttrs, Attr );
     Vec_PtrWriteEntry( pNtk->vAttrs, Attr, NULL );
     pUserMan = Vec_AttFree( pAttrMan, fFreeMan );
     return pUserMan;
@@ -98,8 +101,6 @@ void Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk )
         Vec_PtrPush( pNtk->vCis, pObj );
     Abc_NtkForEachPo( pNtk, pObj, i )
         Vec_PtrPush( pNtk->vCos, pObj );
-    Abc_NtkForEachAssert( pNtk, pObj, i )
-        Vec_PtrPush( pNtk->vCos, pObj );
     Abc_NtkForEachBox( pNtk, pObj, i )
     {
         if ( Abc_ObjIsLatch(pObj) )
@@ -141,7 +142,7 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
         if ( Abc_NodeIsConst(pNode) )
             continue;
         assert( pNode->pData );
-        nCubes += Abc_SopGetCubeNum( pNode->pData );
+        nCubes += Abc_SopGetCubeNum( (char *)pNode->pData );
     }
     return nCubes;
 }
@@ -167,7 +168,7 @@ int Abc_NtkGetCubePairNum( Abc_Ntk_t * pNtk )
         if ( Abc_NodeIsConst(pNode) )
             continue;
         assert( pNode->pData );
-        nCubes = Abc_SopGetCubeNum( pNode->pData );
+        nCubes = Abc_SopGetCubeNum( (char *)pNode->pData );
         nCubePairs += nCubes * (nCubes - 1) / 2;
     }
     return nCubePairs;
@@ -192,7 +193,7 @@ int Abc_NtkGetLitNum( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        nLits += Abc_SopGetLitNum( pNode->pData );
+        nLits += Abc_SopGetLitNum( (char *)pNode->pData );
     }
     return nLits;
 }
@@ -219,7 +220,7 @@ int Abc_NtkGetLitFactNum( Abc_Ntk_t * pNtk )
     {
         if ( Abc_NodeIsConst(pNode) )
             continue;
-        pFactor = Dec_Factor( pNode->pData );
+        pFactor = Dec_Factor( (char *)pNode->pData );
         nNodes += 1 + Dec_GraphNodeNum(pFactor);
         Dec_GraphFree( pFactor );
     }
@@ -269,7 +270,7 @@ int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
         assert( pNode->pData );
         if ( Abc_ObjFaninNum(pNode) < 2 )
             continue;
-        nNodes += pNode->pData? -1 + Cudd_DagSize( pNode->pData ) : 0;
+        nNodes += pNode->pData? -1 + Cudd_DagSize( (DdNode *)pNode->pData ) : 0;
     }
     return nNodes;
 }
@@ -296,7 +297,7 @@ int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pNode) < 2 )
             continue;
 //printf( "%d ", Hop_DagSize( pNode->pData ) );
-        nNodes += pNode->pData? Hop_DagSize( pNode->pData ) : 0;
+        nNodes += pNode->pData? Hop_DagSize( (Hop_Obj_t *)pNode->pData ) : 0;
     }
     return nNodes;
 }
@@ -316,13 +317,13 @@ int Abc_NtkGetClauseNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     DdNode * bCover, * zCover, * bFunc;
-    DdManager * dd = pNtk->pManFunc;
+    DdManager * dd = (DdManager *)pNtk->pManFunc;
     int i, nClauses = 0;
     assert( Abc_NtkIsBddLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        bFunc = pNode->pData;
+        bFunc = (DdNode *)pNode->pData;
 
         bCover = Cudd_zddIsop( dd, bFunc, bFunc, &zCover );  
         Cudd_Ref( bCover );
@@ -367,7 +368,7 @@ double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
             printf( "Node without mapping is encountered.\n" );
             continue;
         }
-        TotalArea += Mio_GateReadArea( pNode->pData );
+        TotalArea += Mio_GateReadArea( (Mio_Gate_t *)pNode->pData );
     }
     return TotalArea;
 }
@@ -598,7 +599,7 @@ void Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
-        pObj->pCopy = Vec_PtrEntry( vCopies, i );
+        pObj->pCopy = (Abc_Obj_t *)Vec_PtrEntry( vCopies, i );
 }
 
 /**Function*************************************************************
@@ -780,7 +781,7 @@ void Abc_NtkFixCoDriverProblem( Abc_Obj_t * pDriver, Abc_Obj_t * pNodeCo, int fD
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
+int Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode, * pDriver;
     int i;
@@ -825,7 +826,7 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
+int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, int fDuplicate )
 {
     Abc_Obj_t * pNode, * pDriver;
     int i, nDupGates = 0;
@@ -887,8 +888,8 @@ void Abc_VecObjPushUniqueOrderByLevel( Vec_Ptr_t * p, Abc_Obj_t * pNode )
     // find the p of the node
     for ( i = p->nSize-1; i > 0; i-- )
     {
-        pNode1 = p->pArray[i  ];
-        pNode2 = p->pArray[i-1];
+        pNode1 = (Abc_Obj_t *)p->pArray[i  ];
+        pNode2 = (Abc_Obj_t *)p->pArray[i-1];
         if ( Abc_ObjRegular(pNode1)->Level <= Abc_ObjRegular(pNode2)->Level )
             break;
         p->pArray[i  ] = pNode2;
@@ -909,7 +910,7 @@ void Abc_VecObjPushUniqueOrderByLevel( Vec_Ptr_t * p, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsExorType( Abc_Obj_t * pNode )
+int Abc_NodeIsExorType( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pNode0, * pNode1;
     // check that the node is regular
@@ -942,7 +943,7 @@ bool Abc_NodeIsExorType( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsMuxType( Abc_Obj_t * pNode )
+int Abc_NodeIsMuxType( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pNode0, * pNode1;
     // check that the node is regular
@@ -998,7 +999,7 @@ int Abc_NtkCountMuxes( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsMuxControlType( Abc_Obj_t * pNode )
+int Abc_NodeIsMuxControlType( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pNode0, * pNode1;
     // check that the node is regular
@@ -1424,12 +1425,6 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
         pNode->Id = Vec_PtrSize( vObjsNew );
         Vec_PtrPush( vObjsNew, pNode );
     }
-    // put assert nodes next
-    Abc_NtkForEachAssert( pNtk, pNode, i )
-    {
-        pNode->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pNode );
-    }
     // put latches and their inputs/outputs next
     Abc_NtkForEachBox( pNtk, pNode, i )
     {
@@ -1448,7 +1443,7 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     }
     // finally, internal nodes in the DFS order
     vNodes = Abc_AigDfs( pNtk, 1, 0 );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( pNode == pConst1 )
             continue;
@@ -1472,7 +1467,7 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     pNtk->vObjs = vObjsNew;
 
     // rehash the AIG
-    Abc_AigRehash( pNtk->pManFunc );
+    Abc_AigRehash( (Abc_Aig_t *)pNtk->pManFunc );
 
     // update the name manager!!!
 }
@@ -1582,7 +1577,7 @@ static inline int Abc_ObjCrossCutInc( Abc_Obj_t * pObj )
 {
 //    pObj->pCopy = (void *)(((int)pObj->pCopy)++);
     int Value = (int)(ABC_PTRINT_T)pObj->pCopy;
-    pObj->pCopy = (void *)(ABC_PTRINT_T)(Value + 1);
+    pObj->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)(Value + 1);
     return (int)(ABC_PTRINT_T)pObj->pCopy == Abc_ObjFanoutNum(pObj);
 }
 
@@ -1755,10 +1750,10 @@ void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
         // count the number of nodes in the reverse cone
         Counter = 0;
         for ( k = 1; k < Vec_PtrSize(vReverse) - 1; k++ )
-            for ( pTemp = Vec_PtrEntry(vReverse, k); pTemp; pTemp = pTemp->pCopy )
+            for ( pTemp = (Abc_Obj_t *)Vec_PtrEntry(vReverse, k); pTemp; pTemp = (Abc_Obj_t *)pTemp->pCopy )
                 Counter++;
         CounterCos = CounterCosNew = 0;
-        for ( pTemp = Vec_PtrEntryLast(vReverse); pTemp; pTemp = pTemp->pCopy )
+        for ( pTemp = (Abc_Obj_t *)Vec_PtrEntryLast(vReverse); pTemp; pTemp = (Abc_Obj_t *)pTemp->pCopy )
         {
             assert( Abc_ObjIsCo(pTemp) );
             CounterCos++;
@@ -1811,7 +1806,7 @@ void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk )
         nNodesOld = Vec_PtrSize(vSupp);
         Vec_PtrFree( vSupp );
 
-        for ( pTemp = pObj->pData; pTemp; pTemp = pTemp->pData )
+        for ( pTemp = (Abc_Obj_t *)pObj->pData; pTemp; pTemp = (Abc_Obj_t *)pTemp->pData )
         {
             vSupp = Abc_NtkNodeSupport( pNtk, &pTemp, 1 );
             if ( nNodesOld != Vec_PtrSize(vSupp) )
@@ -1825,4 +1820,6 @@ void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

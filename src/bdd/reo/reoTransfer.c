@@ -18,6 +18,9 @@
 
 #include "reo.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -89,7 +92,7 @@ reo_unit * reoTransferNodesToUnits_rec( reo_man * p, DdNode * F )
     // add to the hash table
     if ( F->ref != 1 )
     {
-        // the next ABC_FREE entry is already found - it is pointed to by HKey
+        // the next free entry is already found - it is pointed to by HKey
         // while we traversed the diagram, the hash entry to which HKey points,
         // might have been used. Make sure that its signature is different.
         for ( ; p->HTable[HKey].Sign == p->Signature; HKey = (HKey+1) % p->nTableSize );
@@ -198,4 +201,6 @@ DdNode * reoTransferUnitsToNodes_rec( reo_man * p, reo_unit * pUnit )
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

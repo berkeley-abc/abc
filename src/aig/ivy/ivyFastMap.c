@@ -20,6 +20,9 @@
 
 #include "ivy.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -168,7 +171,7 @@ clk = clock();
     {
         Vec_Ptr_t * vNodes;
         vNodes = Vec_PtrAlloc( 100 );
-        Vec_VecForEachEntry( pMan->vLuts, pObj, i, k )
+        Vec_VecForEachEntry( Ivy_Obj_t *, pMan->vLuts, pObj, i, k )
             Vec_PtrPush( vNodes, pObj );
         Ivy_ManShow( pAig, 0, vNodes );
         Vec_PtrFree( vNodes );
@@ -189,7 +192,7 @@ clk = clock();
 ***********************************************************************/
 void Ivy_FastMapStop( Ivy_Man_t * pAig )
 {
-    Ivy_SuppMan_t * p = pAig->pData;
+    Ivy_SuppMan_t * p = (Ivy_SuppMan_t *)pAig->pData;
     Vec_VecFree( p->vLuts );
     ABC_FREE( p->pMem );
     ABC_FREE( p );
@@ -886,7 +889,7 @@ void Ivy_FastMapRequired( Ivy_Man_t * pAig, int Delay, int fSetInter )
     vLuts = ((Ivy_SuppMan_t *)pAig->pData)->vLuts;
     // propagate the required times
     Vec_VecForEachLevelReverse( vLuts, vNodes, i )
-    Vec_PtrForEachEntry( vNodes, pObj, k )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vNodes, pObj, k )
     {
         pSupp = Ivy_ObjSupp( pAig, pObj );
         assert( pSupp->nRefs > 0 );
@@ -911,7 +914,7 @@ void Ivy_FastMapRequired( Ivy_Man_t * pAig, int Delay, int fSetInter )
     {
         // set the required times of the intermediate nodes
         Vec_VecForEachLevelReverse( vLuts, vNodes, i )
-        Vec_PtrForEachEntry( vNodes, pObj, k )
+        Vec_PtrForEachEntry( Ivy_Obj_t *, vNodes, pObj, k )
         {
             pSupp = Ivy_ObjSupp( pAig, pObj );
             Ivy_FastMapRequired_rec( pAig, pObj, pObj, pSupp->DelayR ); 
@@ -1117,7 +1120,7 @@ int Ivy_FastMapCutCost( Ivy_Man_t * pAig, Vec_Ptr_t * vFront )
     Ivy_Supp_t * pSuppF;
     Ivy_Obj_t * pFanin;
     int i, Counter = 0;
-    Vec_PtrForEachEntry( vFront, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pFanin, i )
     {
         pSuppF = Ivy_ObjSupp( pAig, pFanin );
         if ( pSuppF->nRefs == 0 )
@@ -1246,7 +1249,7 @@ int Ivy_FastMapNodeFaninCompact0( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit
 {
     Ivy_Obj_t * pFanin;
     int i;
-    Vec_PtrForEachEntry( vFront, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pFanin, i )
     {
         if ( Ivy_ObjIsCi(pFanin) )
             continue;
@@ -1276,7 +1279,7 @@ int Ivy_FastMapNodeFaninCompact1( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit
 {
     Ivy_Obj_t * pFanin;
     int i;
-    Vec_PtrForEachEntry( vFront, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pFanin, i )
     {
         if ( Ivy_ObjIsCi(pFanin) )
             continue;
@@ -1304,7 +1307,7 @@ int Ivy_FastMapNodeFaninCompact2( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit
 {
     Ivy_Obj_t * pFanin;
     int i;
-    Vec_PtrForEachEntry( vFront, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pFanin, i )
     {
         if ( Ivy_ObjIsCi(pFanin) )
             continue;
@@ -1409,7 +1412,7 @@ void Ivy_FastMapNodeUpdate( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, Vec_Ptr_t * vFro
     Ivy_FastMapNodeDeref( pAig, pObj );
     // update the node's cut
     pSupp->nSize = Vec_PtrSize(vFront);
-    Vec_PtrForEachEntry( vFront, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pFanin, i )
         pSupp->pArray[i] = pFanin->Id;
     // ref the new cut
     Ivy_FastMapNodeRef( pAig, pObj );
@@ -1586,4 +1589,6 @@ void Ivy_FastMapNodeRecover4( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit, Ve
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "saig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,9 +47,15 @@ Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
     Aig_Man_t * pAigNew;
     Aig_Obj_t * pObj, * pMiter;
     int i;
+    if ( pAig->nConstrs > 0 )
+    {
+        printf( "The AIG manager should have no constraints.\n" );
+        return NULL;
+    }
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
     pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->nConstrs = pAig->nConstrs;
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
@@ -82,10 +91,10 @@ Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
 Aig_Obj_t * Saig_ManAbstractionDfs_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
 {
     if ( pObj->pData )
-        return pObj->pData;
+        return (Aig_Obj_t *)pObj->pData;
     Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin0(pObj) );
     Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin1(pObj) );
-    return pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    return (Aig_Obj_t *)(pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) ));
 }
 
 /**Function*************************************************************
@@ -112,6 +121,7 @@ Aig_Man_t * Saig_ManTrimPis( Aig_Man_t * p )
     // start the new manager
     pNew = Aig_ManStart( Aig_ManObjNum(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->nConstrs = p->nConstrs;
     // start mapping of the CI numbers
     pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManPiNum(p) );
     // map const and primary inputs
@@ -142,9 +152,9 @@ Aig_Man_t * Saig_ManTrimPis( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
+Aig_Man_t * Saig_ManDeriveAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
 { 
-    Aig_Man_t * pNew, * pTemp;
+    Aig_Man_t * pNew;//, * pTemp;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, Entry;
     Aig_ManCleanData( p );
@@ -200,8 +210,8 @@ Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
     Aig_ManSetRegNum( pNew, Vec_IntSize(vFlops) );
     Aig_ManSeqCleanup( pNew );
     // remove PIs without fanout
-    pNew = Saig_ManTrimPis( pTemp = pNew );
-    Aig_ManStop( pTemp );
+//    pNew = Saig_ManTrimPis( pTemp = pNew );
+//    Aig_ManStop( pTemp );
     return pNew;
 }
 
@@ -209,4 +219,6 @@ Aig_Man_t * Saig_ManAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

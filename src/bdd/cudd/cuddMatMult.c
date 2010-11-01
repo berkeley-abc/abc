@@ -32,6 +32,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -678,3 +681,5 @@ cuddAddOuterSumRecur(
     return(R);
 
 } /* end of cuddAddOuterSumRecur */
+ABC_NAMESPACE_IMPL_END
+

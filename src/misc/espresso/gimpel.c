@@ -9,6 +9,9 @@
  */
 #include "mincov_int.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*
  *  check for:
@@ -105,3 +108,5 @@ solution_t **best;
     return 0;
     }
 }
+ABC_NAMESPACE_IMPL_END
+

@@ -19,6 +19,9 @@
 #include "fxuInt.h"
 #include "vec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -100,8 +103,8 @@ void Fxu_MatrixComputeSingles( Fxu_Matrix * p, int fUse0, int nSingleMax )
     for ( i = 0; i < Vec_PtrSize(vSingles); i += 3 )
     {
         Fxu_MatrixAddSingle( p, 
-            Vec_PtrEntry(vSingles,i), 
-            Vec_PtrEntry(vSingles,i+1), 
+            (Fxu_Var *)Vec_PtrEntry(vSingles,i), 
+            (Fxu_Var *)Vec_PtrEntry(vSingles,i+1), 
             (int)(ABC_PTRUINT_T)Vec_PtrEntry(vSingles,i+2) );
     }
     Vec_PtrFree( vSingles );
@@ -281,4 +284,6 @@ int Fxu_SingleCountCoincidence( Fxu_Matrix * p, Fxu_Var * pVar1, Fxu_Var * pVar2
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

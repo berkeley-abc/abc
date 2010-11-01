@@ -22,6 +22,9 @@
 #include "deco.h"
 #include "rwt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -83,14 +86,14 @@ int Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fV
         nGain = Ivy_NodeRewrite( p, pManRwt, pNode, fUpdateLevel, fUseZeroCost );
         if ( nGain > 0 || (nGain == 0 && fUseZeroCost) )
         {
-            Dec_Graph_t * pGraph = Rwt_ManReadDecs(pManRwt);
+            Dec_Graph_t * pGraph = (Dec_Graph_t *)Rwt_ManReadDecs(pManRwt);
             int fCompl           = Rwt_ManReadCompl(pManRwt);
 /*
             {
                 Ivy_Obj_t * pObj;
                 int i;
                 printf( "USING: (" );
-                Vec_PtrForEachEntry( Rwt_ManReadLeaves(pManRwt), pObj, i )
+                Vec_PtrForEachEntry( Ivy_Obj_t *, Rwt_ManReadLeaves(pManRwt), pObj, i )
                     printf( "%d ", Ivy_ObjFanoutNum(Ivy_Regular(pObj)) );
                 printf( ")   Gain = %d.\n", nGain );
             }
@@ -208,18 +211,18 @@ p->timeTruth += clock() - clk2;
 clk2 = clock();
 /*
         printf( "Considering: (" );
-        Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+        Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
             printf( "%d ", Ivy_ObjFanoutNum(Ivy_Regular(pFanin)) );
         printf( ")\n" );
 */
         // mark the fanin boundary 
-        Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+        Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
             Ivy_ObjRefsInc( Ivy_Regular(pFanin) );
         // label MFFC with current ID
         Ivy_ManIncrementTravId( pMan );
         nNodesSaved = Ivy_ObjMffcLabel( pMan, pNode );
         // unmark the fanin boundary
-        Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+        Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
             Ivy_ObjRefsDec( Ivy_Regular(pFanin) );
 p->timeMffc += clock() - clk2;
 
@@ -239,7 +242,7 @@ p->timeEval += clock() - clk2;
             uTruthBest = uTruth;
             // collect fanins in the
             Vec_PtrClear( p->vFanins );
-            Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+            Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFaninsCur, pFanin, i )
                 Vec_PtrPush( p->vFanins, pFanin );
         }
     }
@@ -257,7 +260,7 @@ p->timeRes += clock() - clk;
         else
         {
             printf( "Node %d : ", pNode->Id );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+            Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFanins, pFanin, i )
                 printf( "%d ", Ivy_Regular(pFanin)->Id );
             printf( "a" );
         }
@@ -272,8 +275,8 @@ p->timeRes += clock() - clk;
 */
 
     // copy the leaves
-    Vec_PtrForEachEntry( p->vFanins, pFanin, i )
-        Dec_GraphNode(p->pGraph, i)->pFunc = pFanin;
+    Vec_PtrForEachEntry( Ivy_Obj_t *, p->vFanins, pFanin, i )
+        Dec_GraphNode((Dec_Graph_t *)p->pGraph, i)->pFunc = pFanin;
 
     p->nScores[p->pMap[uTruthBest]]++;
     p->nNodesGained += GainBest;
@@ -288,7 +291,7 @@ p->timeRes += clock() - clk;
         printf( "Save = %d.  ", nNodesSaveCur );
         printf( "Add = %d.  ",  nNodesSaveCur-GainBest );
         printf( "GAIN = %d.  ", GainBest );
-        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum(p->pGraph) : 0 );
+        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum((Dec_Graph_t *)p->pGraph) : 0 );
         printf( "Class = %d.  ", p->pMap[uTruthBest] );
         printf( "\n" );
     }
@@ -363,16 +366,16 @@ Dec_Graph_t * Rwt_CutEvaluate( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pRoo
     Rwt_Node_t * pNode, * pFanin;
     int nNodesAdded, GainBest, i, k;
     // find the matching class of subgraphs
-    vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
+    vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
     p->nSubgraphs += vSubgraphs->nSize;
     // determine the best subgraph
     GainBest = -1;
-    Vec_PtrForEachEntry( vSubgraphs, pNode, i )
+    Vec_PtrForEachEntry( Rwt_Node_t *, vSubgraphs, pNode, i )
     {
         // get the current graph
         pGraphCur = (Dec_Graph_t *)pNode->pNext;
         // copy the leaves
-        Vec_PtrForEachEntry( vFaninsCur, pFanin, k )
+        Vec_PtrForEachEntry( Rwt_Node_t *, vFaninsCur, pFanin, k )
             Dec_GraphNode(pGraphCur, k)->pFunc = pFanin;
         // detect how many unlabeled nodes will be reused
         nNodesAdded = Ivy_GraphToNetworkCount( pMan, pRoot, pGraphCur, nNodesSaved, LevelMax );
@@ -417,7 +420,7 @@ int Ivy_GraphToNetworkCount( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Dec_Graph_t * pGr
         return 0;
     // set the levels of the leaves
     Dec_GraphForEachLeaf( pGraph, pNode, i )
-        pNode->Level = Ivy_Regular(pNode->pFunc)->Level;
+        pNode->Level = Ivy_Regular((Ivy_Obj_t *)pNode->pFunc)->Level;
     // compute the AIG size after adding the internal nodes
     Counter = 0;
     Dec_GraphForEachNode( pGraph, pNode, i )
@@ -426,8 +429,8 @@ int Ivy_GraphToNetworkCount( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Dec_Graph_t * pGr
         pNode0 = Dec_GraphNode( pGraph, pNode->eEdge0.Node );
         pNode1 = Dec_GraphNode( pGraph, pNode->eEdge1.Node );
         // get the AIG nodes corresponding to the children 
-        pAnd0 = pNode0->pFunc; 
-        pAnd1 = pNode1->pFunc; 
+        pAnd0 = (Ivy_Obj_t *)pNode0->pFunc; 
+        pAnd1 = (Ivy_Obj_t *)pNode1->pFunc; 
         if ( pAnd0 && pAnd1 )
         {
             // if they are both present, find the resulting node
@@ -489,16 +492,16 @@ Ivy_Obj_t * Ivy_GraphToNetwork( Ivy_Man_t * p, Dec_Graph_t * pGraph )
         return Ivy_NotCond( Ivy_ManConst1(p), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
-        return Ivy_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+        return Ivy_NotCond( (Ivy_Obj_t *)Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pAnd0 = Ivy_NotCond( (Ivy_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Ivy_NotCond( (Ivy_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
         pNode->pFunc = Ivy_And( p, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Ivy_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+    return Ivy_NotCond( (Ivy_Obj_t *)pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -561,7 +564,7 @@ void Ivy_GraphUpdateNetwork3( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Dec_Graph_t * pG
 
 //printf( "Before = %d. ", Ivy_ManNodeNum(p) );
     // mark the cut
-    Vec_PtrForEachEntry( ((Rwt_Man_t *)p->pData)->vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, ((Rwt_Man_t *)p->pData)->vFanins, pFanin, i )
         Ivy_ObjRefsInc( Ivy_Regular(pFanin) );
     // deref the old cone
     nRefsOld = pRoot->nRefs;  
@@ -569,7 +572,7 @@ void Ivy_GraphUpdateNetwork3( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Dec_Graph_t * pG
     Ivy_ObjDelete_rec( p, pRoot, 0 );
     pRoot->nRefs = nRefsOld;
     // unmark the cut
-    Vec_PtrForEachEntry( ((Rwt_Man_t *)p->pData)->vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, ((Rwt_Man_t *)p->pData)->vFanins, pFanin, i )
         Ivy_ObjRefsDec( Ivy_Regular(pFanin) );
 //printf( "Deref = %d. ", Ivy_ManNodeNum(p) );
  
@@ -591,7 +594,7 @@ void Ivy_GraphUpdateNetwork3( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Dec_Graph_t * pG
 //printf( "Replace = %d. ", Ivy_ManNodeNum(p) );
 
     // delete remaining dangling nodes
-    Vec_PtrForEachEntry( ((Rwt_Man_t *)p->pData)->vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, ((Rwt_Man_t *)p->pData)->vFanins, pFanin, i )
     {
         pFanin = Ivy_Regular(pFanin);
         if ( !Ivy_ObjIsNone(pFanin) && Ivy_ObjRefs(pFanin) == 0 )
@@ -610,4 +613,6 @@ void Ivy_GraphUpdateNetwork3( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Dec_Graph_t * pG
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

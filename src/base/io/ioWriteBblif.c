@@ -21,6 +21,9 @@
 #include "ioAbc.h"
 #include "bblif.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 // For description of Binary BLIF format, refer to "abc/src/aig/bbl/bblif.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -63,13 +66,13 @@ Bbl_Man_t * Bbl_ManFromAbc( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pObj, i )
         Bbl_ManCreateObject( p, BBL_OBJ_CI, Abc_ObjId(pObj), 0, NULL );
     // create internal nodes 
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        Bbl_ManCreateObject( p, BBL_OBJ_NODE, Abc_ObjId(pObj), Abc_ObjFaninNum(pObj), pObj->pData );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        Bbl_ManCreateObject( p, BBL_OBJ_NODE, Abc_ObjId(pObj), Abc_ObjFaninNum(pObj), (char *)pObj->pData );
     // create combinational outputs
     Abc_NtkForEachCo( pNtk, pObj, i )
         Bbl_ManCreateObject( p, BBL_OBJ_CO, Abc_ObjId(pObj), 1, NULL );
     // create fanin/fanout connections for internal nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Bbl_ManAddFanin( p, Abc_ObjId(pObj), Abc_ObjId(pFanin) );
     // create fanin/fanout connections for combinational outputs
@@ -108,4 +111,6 @@ void Io_WriteBblif( Abc_Ntk_t * pNtk, char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

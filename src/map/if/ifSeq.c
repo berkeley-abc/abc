@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -99,7 +102,7 @@ Vec_Ptr_t * If_ManCollectLatches( If_Man_t * p )
     If_ManForEachLatchOutput( p, pObj, i )
         If_ManCollectLatches_rec( pObj, vLatches );
     // clean marks
-    Vec_PtrForEachEntry( vLatches, pObj, i )
+    Vec_PtrForEachEntry( If_Obj_t *, vLatches, pObj, i )
         pObj->fMark = 0;
     assert( Vec_PtrSize(vLatches) == p->pPars->nLatches );
     return vLatches;
@@ -127,7 +130,7 @@ int If_ManPerformMappingRoundSeq( If_Man_t * p, int nIter )
     if ( nIter == 1 )
     {
         // if some latches depend on PIs, update their values
-        Vec_PtrForEachEntry( p->vLatchOrder, pObj, i )
+        Vec_PtrForEachEntry( If_Obj_t *, p->vLatchOrder, pObj, i )
         {
             If_ObjSetLValue( pObj, If_ObjLValue(If_ObjFanin0(pObj)) - p->Period );
             If_ObjSetArrTime( pObj, If_ObjLValue(pObj) );
@@ -144,7 +147,7 @@ int If_ManPerformMappingRoundSeq( If_Man_t * p, int nIter )
     }
 
     // postprocess the mapping
-//printf( "Itereation %d: \n", nIter );
+//Abc_Print( 1, "Itereation %d: \n", nIter );
     If_ManForEachNode( p, pObj, i )
     {
         // update the LValues stored separately
@@ -153,15 +156,15 @@ int If_ManPerformMappingRoundSeq( If_Man_t * p, int nIter )
             If_ObjSetLValue( pObj, If_ObjCutBest(pObj)->Delay );
             fChange = 1;
         }
-//printf( "%d ", (int)If_ObjLValue(pObj) );
+//Abc_Print( 1, "%d ", (int)If_ObjLValue(pObj) );
         // reset the visit counters
         assert( pObj->nVisits == 0 );
         pObj->nVisits = pObj->nVisitsCopy;
     }
-//printf( "\n" );
+//Abc_Print( 1, "\n" );
 
     // propagate LValues over the registers
-    Vec_PtrForEachEntry( p->vLatchOrder, pObj, i )
+    Vec_PtrForEachEntry( If_Obj_t *, p->vLatchOrder, pObj, i )
     {
         If_ObjSetLValue( pObj, If_ObjLValue(If_ObjFanin0(pObj)) - p->Period );
         If_ObjSetArrTime( pObj, If_ObjLValue(pObj) );
@@ -173,9 +176,9 @@ int If_ManPerformMappingRoundSeq( If_Man_t * p, int nIter )
     {
         p->RequiredGlo = If_ManDelayMax( p, 1 );
 //        p->AreaGlo = If_ManScanMapping(p);
-        printf( "S%d:  Fi = %6.2f. Del = %6.2f. Area = %8.2f. Cuts = %8d. ", 
+        Abc_Print( 1, "S%d:  Fi = %6.2f. Del = %6.2f. Area = %8.2f. Cuts = %8d. ", 
              nIter, (float)p->Period, p->RequiredGlo, p->AreaGlo, p->nCutsMerged );
-        ABC_PRT( "T", clock() - clk );
+        Abc_PrintTime( 1, "T", clock() - clk );
     }
     return fChange;
 }
@@ -228,7 +231,7 @@ int If_ManBinarySearchPeriod( If_Man_t * p )
             break;
         }
         p->RequiredGlo = If_ManDelayMax( p, 1 );
-//printf( "Global = %d \n", (int)p->RequiredGlo );
+//Abc_Print( 1, "Global = %d \n", (int)p->RequiredGlo );
         if ( p->RequiredGlo > p->Period + p->fEpsilon )
             break; 
     }
@@ -238,14 +241,14 @@ int If_ManBinarySearchPeriod( If_Man_t * p )
     if ( p->pPars->fVerbose )
     {
 //        p->AreaGlo = If_ManScanMapping(p);
-        printf( "Attempt = %2d.  Iters = %3d.  Area = %10.2f.  Fi = %6.2f.  ", p->nAttempts, c, p->AreaGlo, (float)p->Period );
+        Abc_Print( 1, "Attempt = %2d.  Iters = %3d.  Area = %10.2f.  Fi = %6.2f.  ", p->nAttempts, c, p->AreaGlo, (float)p->Period );
         if ( fConverged )
-            printf( "  Feasible" );
+            Abc_Print( 1, "  Feasible" );
         else if ( c > p->nMaxIters )
-            printf( "Infeasible (timeout)" );
+            Abc_Print( 1, "Infeasible (timeout)" );
         else
-            printf( "Infeasible" );
-        printf( "\n" );
+            Abc_Print( 1, "Infeasible" );
+        Abc_Print( 1, "\n" );
     }
     return fConverged;
 }
@@ -302,12 +305,12 @@ void If_ManPerformMappingSeqPost( If_Man_t * p )
     If_ManForEachPo( p, pObj, i )
     {
         p->pPars->pTimesReq[i] = p->RequiredGlo2;
-//        printf( "Out %3d : %2d   \n", i, (int)p->pPars->pTimesReq[i] );
+//        Abc_Print( 1, "Out %3d : %2d   \n", i, (int)p->pPars->pTimesReq[i] );
     }
     If_ManForEachLatchInput( p, pObjLi, i )
     {
         p->pPars->pTimesReq[i] = If_ObjLValue(If_ObjFanin0(pObjLi));
-//        printf( "Out %3d : %2d   \n", i, (int)p->pPars->pTimesReq[i] );
+//        Abc_Print( 1, "Out %3d : %2d   \n", i, (int)p->pPars->pTimesReq[i] );
     }
 
     // undo previous mapping
@@ -359,7 +362,7 @@ int If_ManPerformMappingSeq( If_Man_t * p )
     // make sure the clock period works
     if ( !If_ManBinarySearchPeriod( p ) )
     {
-        printf( "If_ManPerformMappingSeq(): The upper bound on the clock period cannot be computed.\n" );
+        Abc_Print( 1, "If_ManPerformMappingSeq(): The upper bound on the clock period cannot be computed.\n" );
         return 0;
     }
 
@@ -372,14 +375,14 @@ int If_ManPerformMappingSeq( If_Man_t * p )
         p->Period = PeriodBest;
         if ( !If_ManBinarySearchPeriod( p ) )
         {
-            printf( "If_ManPerformMappingSeq(): The final clock period cannot be confirmed.\n" );
+            Abc_Print( 1, "If_ManPerformMappingSeq(): The final clock period cannot be confirmed.\n" );
             return 0;
         }
     }
 //    if ( p->pPars->fVerbose )
     {
-        printf( "The best clock period is %3d.  ", p->Period );
-        ABC_PRT( "Time", clock() - clkTotal );
+        Abc_Print( 1, "The best clock period is %3d.  ", p->Period );
+        Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     p->RequiredGlo = (float)(PeriodBest);
 
@@ -393,4 +396,6 @@ int If_ManPerformMappingSeq( If_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

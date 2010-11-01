@@ -20,6 +20,9 @@
 
 #include "dchInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -53,6 +56,22 @@ void Dch_ManSetDefaultParams( Dch_Pars_t * p )
     p->fVerbose       =     0;  // verbose stats
     p->nNodesAhead    =  1000;  // the lookahead in terms of nodes
     p->nCallsRecycle  =   100;  // calls to perform before recycling SAT solver
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns verbose parameter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dch_ManReadVerbose( Dch_Pars_t * p )
+{
+    return p->fVerbose;
 }
 
 /**Function*************************************************************
@@ -91,7 +110,7 @@ p->timeTotal = clock() - clkTotal;
     pResult = Dch_DeriveChoiceAig( pAig );
     // count the number of representatives
     if ( pPars->fVerbose ) 
-        printf( "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 
+        Abc_Print( 1, "STATS:  Reprs = %6d.  Equivs = %6d.  Choices = %6d.\n", 
                Dch_DeriveChoiceCountReprs( pAig ),
                Dch_DeriveChoiceCountEquivs( pResult ),
                Aig_ManChoiceNum( pResult ) );
@@ -134,4 +153,6 @@ p->timeTotal = clock() - clkTotal;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

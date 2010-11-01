@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
     The SOPs in this package are represented using char * strings.
     For example, the SOP of the node: 
@@ -533,7 +536,9 @@ int Abc_SopGetLitNum( char * pSop )
 int Abc_SopGetVarNum( char * pSop )
 {
     char * pCur;
-    for ( pCur = pSop; *pCur != '\n'; pCur++ );
+    for ( pCur = pSop; *pCur != '\n'; pCur++ )
+        if ( *pCur == 0 )
+            return -1;
     return pCur - pSop - 2;
 }
 
@@ -622,7 +627,7 @@ void Abc_SopComplement( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopIsComplement( char * pSop )
+int Abc_SopIsComplement( char * pSop )
 {
     char * pCur;
     for ( pCur = pSop; *pCur; pCur++ )
@@ -643,7 +648,7 @@ bool Abc_SopIsComplement( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopIsConst0( char * pSop )
+int Abc_SopIsConst0( char * pSop )
 {
     return pSop[0] == ' ' && pSop[1] == '0';
 }
@@ -659,7 +664,7 @@ bool Abc_SopIsConst0( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopIsConst1( char * pSop )
+int Abc_SopIsConst1( char * pSop )
 {
     return pSop[0] == ' ' && pSop[1] == '1';
 }
@@ -675,7 +680,7 @@ bool Abc_SopIsConst1( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopIsBuf( char * pSop )
+int Abc_SopIsBuf( char * pSop )
 {
     if ( pSop[4] != 0 )
         return 0;
@@ -695,7 +700,7 @@ bool Abc_SopIsBuf( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopIsInv( char * pSop )
+int Abc_SopIsInv( char * pSop )
 {
     if ( pSop[4] != 0 )
         return 0;
@@ -715,7 +720,7 @@ bool Abc_SopIsInv( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopIsAndType( char * pSop )
+int Abc_SopIsAndType( char * pSop )
 {
     char * pCur;
     if ( Abc_SopGetCubeNum(pSop) != 1 )
@@ -739,7 +744,7 @@ bool Abc_SopIsAndType( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopIsOrType( char * pSop )
+int Abc_SopIsOrType( char * pSop )
 {
     char * pCube, * pCur;
     int nVars, nLits;
@@ -790,7 +795,7 @@ int Abc_SopIsExorType( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_SopCheck( char * pSop, int nFanins )
+int Abc_SopCheck( char * pSop, int nFanins )
 {
     char * pCubes, * pCubesOld;
     int fFound0 = 0, fFound1 = 0;
@@ -1122,4 +1127,6 @@ char * Abc_SopDecoderLog( Extra_MmFlex_t * pMan, int nValues )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

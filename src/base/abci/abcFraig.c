@@ -22,6 +22,9 @@
 #include "fraig.h"
 #include "main.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -54,14 +57,14 @@ static Abc_Obj_t *    Abc_NodeFraigTrust( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc )
 {
-    Fraig_Params_t * pPars = pParams;
+    Fraig_Params_t * pPars = (Fraig_Params_t *)pParams;
     Abc_Ntk_t * pNtkNew;
     Fraig_Man_t * pMan; 
     // check if EXDC is present
     if ( fExdc && pNtk->pExdc == NULL )
         fExdc = 0, printf( "Warning: Networks has no EXDC.\n" );
     // perform fraiging
-    pMan = Abc_NtkToFraig( pNtk, pParams, fAllNodes, fExdc ); 
+    pMan = (Fraig_Man_t *)Abc_NtkToFraig( pNtk, pParams, fAllNodes, fExdc ); 
     // add algebraic choices
 //    if ( pPars->fChoicing )
 //        Fraig_ManAddChoices( pMan, 0, 6 );
@@ -109,7 +112,7 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExd
     assert( Abc_NtkIsStrash(pNtk) );
 
     // create the FRAIG manager
-    pMan = Fraig_ManCreate( pParams );
+    pMan = Fraig_ManCreate( (Fraig_Params_t *)pParams );
 
     // map the constant node
     Abc_NtkCleanCopy( pNtk );
@@ -122,22 +125,18 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExd
     vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
     if ( !fInternal )
         pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_ObjFaninNum(pNode) == 0 )
             continue;
-        if ( !fInternal ) {
-            assert(pProgress);
+        if ( pProgress ) 
             Extra_ProgressBarUpdate( pProgress, i, NULL );
-        }
         pNode->pCopy = (Abc_Obj_t *)Fraig_NodeAnd( pMan, 
-                Fraig_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
-                Fraig_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) ) );
+                Fraig_NotCond( Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) ),
+                Fraig_NotCond( Abc_ObjFanin1(pNode)->pCopy, (int)Abc_ObjFaninC1(pNode) ) );
     }
-    if ( !fInternal ) {
-        assert(pProgress);
+    if ( pProgress )
         Extra_ProgressBarStop( pProgress );
-    }
     Vec_PtrFree( vNodes );
 
     // use EXDC to change the mapping of nodes into FRAIG nodes
@@ -189,11 +188,11 @@ Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtkMain, Abc
     // build FRAIG for each node
     Abc_AigForEachAnd( pNtkStrash, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Fraig_NodeAnd( pMan, 
-                Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) ),
-                Fraig_NotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) ) );
+                Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, (int)Abc_ObjFaninC0(pObj) ),
+                Fraig_NotCond( Abc_ObjFanin1(pObj)->pCopy, (int)Abc_ObjFaninC1(pObj) ) );
     // get the EXDC to be returned
     pObj = Abc_NtkPo( pNtkStrash, 0 );
-    gResult = Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
+    gResult = Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, (int)Abc_ObjFaninC0(pObj) );
     Abc_NtkDelete( pNtkStrash );
     return gResult;
 }
@@ -262,7 +261,7 @@ void Abc_NtkFraigRemapUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     // restore the next pointers
     Abc_NtkCleanNext( pNtk );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        pNode->pNext = Vec_PtrEntry( vNexts, pNode->Id );
+        pNode->pNext = (Abc_Obj_t *)Vec_PtrEntry( vNexts, pNode->Id );
     Vec_PtrFree( vNexts );
 }
 
@@ -326,7 +325,7 @@ Abc_Obj_t * Abc_NodeFromFraig_rec( Abc_Ntk_t * pNtkNew, Fraig_Node_t * pNodeFrai
     pRes0 = Abc_NodeFromFraig_rec( pNtkNew, Fraig_NodeReadOne(pNodeFraigR) );
     pRes1 = Abc_NodeFromFraig_rec( pNtkNew, Fraig_NodeReadTwo(pNodeFraigR) );
     // derive the new node
-    pRes = Abc_AigAnd( pNtkNew->pManFunc, pRes0, pRes1 );
+    pRes = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, pRes0, pRes1 );
     pRes->fPhase = Fraig_NodeReadSimInv( pNodeFraigR );
     // if the node has an equivalence class, find its representative
     if ( Fraig_NodeReadRepr(pNodeFraigR) == NULL && Fraig_NodeReadNextE(pNodeFraigR) != NULL )
@@ -459,7 +458,7 @@ void Abc_NtkFromFraig2_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t * 
     Abc_NodeSetTravIdCurrent( pNode );
     assert( Abc_ObjIsNode( pNode ) );
     // get the node's representative
-    if ( (pRepr = Vec_PtrEntry(vNodeReprs, pNode->Id)) )
+    if ( (pRepr = (Abc_Obj_t *)Vec_PtrEntry(vNodeReprs, pNode->Id)) )
     {
         Abc_NtkFromFraig2_rec( pNtkNew, pRepr, vNodeReprs );
         pNode->pCopy = Abc_ObjNotCond( pRepr->pCopy, pRepr->fPhase ^ pNode->fPhase );
@@ -467,7 +466,7 @@ void Abc_NtkFromFraig2_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t * 
     }
     Abc_NtkFromFraig2_rec( pNtkNew, Abc_ObjFanin0(pNode), vNodeReprs );
     Abc_NtkFromFraig2_rec( pNtkNew, Abc_ObjFanin1(pNode), vNodeReprs );
-    pNode->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
+    pNode->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
 }
 
 
@@ -538,9 +537,9 @@ int Abc_NtkFraigTrustCheck( Abc_Ntk_t * pNtk )
         nFanins = Abc_ObjFaninNum(pNode);
         if ( nFanins < 2 )
             continue;
-        if ( nFanins == 2 && Abc_SopIsAndType(pNode->pData) )
+        if ( nFanins == 2 && Abc_SopIsAndType((char *)pNode->pData) )
             continue;
-        if ( !Abc_SopIsOrType(pNode->pData) )
+        if ( !Abc_SopIsOrType((char *)pNode->pData) )
             return 0;
     }
     return 1;
@@ -567,7 +566,7 @@ void Abc_NtkFraigTrustOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     // perform strashing
     vNodes = Abc_NtkDfs( pNtk, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // get the node
@@ -608,18 +607,18 @@ Abc_Obj_t * Abc_NodeFraigTrust( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
     assert( Abc_ObjIsNode(pNode) );
     // get the number of node's fanins
     nFanins = Abc_ObjFaninNum( pNode );
-    assert( nFanins == Abc_SopGetVarNum(pNode->pData) );
+    assert( nFanins == Abc_SopGetVarNum((char *)pNode->pData) );
     // check if it is a constant
     if ( nFanins == 0 )
-        return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Abc_SopIsConst0(pNode->pData) );
+        return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Abc_SopIsConst0((char *)pNode->pData) );
     if ( nFanins == 1 )
-        return Abc_ObjNotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_SopIsInv(pNode->pData) );
-    if ( nFanins == 2 && Abc_SopIsAndType(pNode->pData) )
-        return Abc_AigAnd( pNtkNew->pManFunc, 
-            Abc_ObjNotCond( Abc_ObjFanin0(pNode)->pCopy, !Abc_SopGetIthCareLit(pNode->pData,0) ),
-            Abc_ObjNotCond( Abc_ObjFanin1(pNode)->pCopy, !Abc_SopGetIthCareLit(pNode->pData,1) )  );
-    assert( Abc_SopIsOrType(pNode->pData) );
-    fCompl = Abc_SopGetIthCareLit(pNode->pData,0);
+        return Abc_ObjNotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_SopIsInv((char *)pNode->pData) );
+    if ( nFanins == 2 && Abc_SopIsAndType((char *)pNode->pData) )
+        return Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, 
+            Abc_ObjNotCond( Abc_ObjFanin0(pNode)->pCopy, !Abc_SopGetIthCareLit((char *)pNode->pData,0) ),
+            Abc_ObjNotCond( Abc_ObjFanin1(pNode)->pCopy, !Abc_SopGetIthCareLit((char *)pNode->pData,1) )  );
+    assert( Abc_SopIsOrType((char *)pNode->pData) );
+    fCompl = Abc_SopGetIthCareLit((char *)pNode->pData,0);
     // get the root of the choice node (the first fanin)
     pSum = Abc_ObjFanin0(pNode)->pCopy;
     // connect other fanins
@@ -631,7 +630,7 @@ Abc_Obj_t * Abc_NodeFraigTrust( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
         *ppTail = pFanin->pCopy;
         ppTail = &pFanin->pCopy->pData;
         // set the complemented bit of this cut
-        if ( fCompl ^ Abc_SopGetIthCareLit(pNode->pData, i) )
+        if ( fCompl ^ Abc_SopGetIthCareLit((char *)pNode->pData, i) )
             pFanin->pCopy->fPhase = 1;
     }
     assert( *ppTail == NULL );
@@ -669,7 +668,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
     {
         // check that the networks have the same PIs
         // reorder PIs of pNtk2 according to pNtk1
-        if ( !Abc_NtkCompareSignals( pNtk, Vec_PtrEntry(vStore, 0), 1, 1 ) )
+        if ( !Abc_NtkCompareSignals( pNtk, (Abc_Ntk_t *)Vec_PtrEntry(vStore, 0), 1, 1 ) )
         {
             printf( "Trying to store the network with different primary inputs.\n" );
             printf( "The previously stored networks are deleted and this one is added.\n" );
@@ -709,11 +708,11 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
         return NULL;
     }
 //    printf( "Currently stored %d networks will be fraiged.\n", Vec_PtrSize(vStore) );
-    pNtk = Vec_PtrEntry( vStore, 0 );
+    pNtk = (Abc_Ntk_t *)Vec_PtrEntry( vStore, 0 );
 
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis
-    pNtk = Vec_PtrPop( vStore );
+    pNtk = (Abc_Ntk_t *)Vec_PtrPop( vStore );
     Vec_PtrPush( vStore, Vec_PtrEntry(vStore,0) );
     Vec_PtrWriteEntry( vStore, 0, pNtk );
 
@@ -763,7 +762,7 @@ void Abc_NtkFraigStoreClean()
     Abc_Ntk_t * pNtk;
     int i;
     vStore = Abc_FrameReadStore();
-    Vec_PtrForEachEntry( vStore, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vStore, pNtk, i )
         Abc_NtkDelete( pNtk );
     Vec_PtrClear( vStore );
 }
@@ -805,4 +804,6 @@ void Abc_NtkFraigStoreCheck( Abc_Ntk_t * pFraig )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

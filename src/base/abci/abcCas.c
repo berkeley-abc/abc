@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
     This LUT cascade synthesis algorithm is described in the paper:
     A. Mishchenko and T. Sasao, "Encoding of Boolean functions and its 
@@ -108,4 +111,6 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

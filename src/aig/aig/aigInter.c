@@ -22,6 +22,9 @@
 #include "cnf.h"
 #include "satStore.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -268,7 +271,7 @@ timeSat += clock() - clk;
     // create the resulting manager
 clk = clock();
     pManInter = Inta_ManAlloc();
-    pRes = Inta_ManInterpolate( pManInter, pSatCnf, vVarsAB, fVerbose );
+    pRes = (Aig_Man_t *)Inta_ManInterpolate( pManInter, (Sto_Man_t *)pSatCnf, vVarsAB, fVerbose );
     Inta_ManFree( pManInter );
 timeInt += clock() - clk;
 /*
@@ -283,7 +286,7 @@ timeInt += clock() - clk;
     }
 */
     Vec_IntFree( vVarsAB );
-    Sto_ManFree( pSatCnf );
+    Sto_ManFree( (Sto_Man_t *)pSatCnf );
 
 //    Ioa_WriteAiger( pRes, "inter2.aig", 0, 0 );
     return pRes;
@@ -293,4 +296,6 @@ timeInt += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

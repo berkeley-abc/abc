@@ -20,6 +20,9 @@
 
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -338,10 +341,10 @@ void Hop_ObjPrintEqn( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, int L
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = Vec_VecEntry(vLevels, Level);
+    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
     Hop_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vSuper, pFanin, i )
     {
         Hop_ObjPrintEqn( pFile, Hop_NotCond(pFanin, fCompl), vLevels, Level+1 );
         if ( i < Vec_PtrSize(vSuper) - 1 )
@@ -387,10 +390,10 @@ void Hop_ObjPrintVerilog( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, i
     if ( Hop_ObjIsExor(pObj) )
     {
         Vec_VecExpand( vLevels, Level );
-        vSuper = Vec_VecEntry( vLevels, Level );
+        vSuper = (Vec_Ptr_t *)Vec_VecEntry( vLevels, Level );
         Hop_ObjCollectMulti( pObj, vSuper );
         fprintf( pFile, "%s", (Level==0? "" : "(") );
-        Vec_PtrForEachEntry( vSuper, pFanin, i )
+        Vec_PtrForEachEntry( Hop_Obj_t *, vSuper, pFanin, i )
         {
             Hop_ObjPrintVerilog( pFile, Hop_NotCond(pFanin, (fCompl && i==0)), vLevels, Level+1 );
             if ( i < Vec_PtrSize(vSuper) - 1 )
@@ -425,10 +428,10 @@ void Hop_ObjPrintVerilog( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, i
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = Vec_VecEntry(vLevels, Level);
+    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
     Hop_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vSuper, pFanin, i )
     {
         Hop_ObjPrintVerilog( pFile, Hop_NotCond(pFanin, fCompl), vLevels, Level+1 );
         if ( i < Vec_PtrSize(vSuper) - 1 )
@@ -486,7 +489,7 @@ void Hop_ManPrintVerbose( Hop_Man_t * p, int fHaig )
         printf( " %p", pObj );
     printf( "\n" );
     vNodes = Hop_ManDfs( p );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
         Hop_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
     printf( "\n" );
 }
@@ -521,7 +524,7 @@ void Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName )
         pObj->pData = (void *)(ABC_PTRUINT_T)Counter++;
     Hop_ManForEachPo( p, pObj, i )
         pObj->pData = (void *)(ABC_PTRUINT_T)Counter++;
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
         pObj->pData = (void *)(ABC_PTRUINT_T)Counter++;
     nDigits = Hop_Base10Log( Counter );
     // write the file
@@ -540,7 +543,7 @@ void Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName )
         fprintf( pFile, " n%0*d", nDigits, (int)(ABC_PTRUINT_T)pObj->pData );
     fprintf( pFile, "\n" );
     // write nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
     {
         fprintf( pFile, ".names n%0*d n%0*d n%0*d\n", 
             nDigits, (int)(ABC_PTRUINT_T)Hop_ObjFanin0(pObj)->pData, 
@@ -569,4 +572,6 @@ void Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

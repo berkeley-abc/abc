@@ -43,6 +43,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1674,4 +1677,6 @@ cuddZddSymmSummary(
     return;
 
 } /* end of cuddZddSymmSummary */
+
+ABC_NAMESPACE_IMPL_END
 

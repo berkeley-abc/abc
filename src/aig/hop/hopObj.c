@@ -20,6 +20,9 @@
 
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -240,7 +243,7 @@ Hop_Obj_t * Hop_ObjRepr( Hop_Obj_t * pObj )
     assert( !Hop_IsComplement(pObj) );
     if ( pObj->pData == NULL || pObj->pData == pObj )
         return pObj;
-    return Hop_ObjRepr( pObj->pData );
+    return Hop_ObjRepr( (Hop_Obj_t *)pObj->pData );
 }
 
 /**Function*************************************************************
@@ -269,4 +272,6 @@ void Hop_ObjCreateChoice( Hop_Obj_t * pOld, Hop_Obj_t * pNew )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

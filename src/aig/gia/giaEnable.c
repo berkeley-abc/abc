@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -620,7 +623,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
     }
     Gia_ManForEachRi( p, pObj, i )
     {
-        pData = Vec_PtrEntry(vDatas, i);
+        pData = (Gia_Obj_t *)Vec_PtrEntry(vDatas, i);
         if ( pData == NULL )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         else
@@ -640,4 +643,6 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

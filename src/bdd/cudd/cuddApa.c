@@ -31,6 +31,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -651,7 +654,7 @@ Cudd_ApaCountMinterm(
     return(NULL);
     }
     Cudd_ApaSetToLiteral(*digits,min,0);
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st_init_table(st_ptrcmp, st_ptrhash);;
     if (table == NULL) {
     ABC_FREE(max);
     ABC_FREE(min);
@@ -661,7 +664,7 @@ Cudd_ApaCountMinterm(
     if (i == NULL) {
     ABC_FREE(max);
     ABC_FREE(min);
-    st_foreach(table, cuddApaStCountfree, NULL);
+    st_foreach(table, (ST_PFSR)cuddApaStCountfree, NULL);
     st_free_table(table);
     return(NULL);
     }
@@ -669,7 +672,7 @@ Cudd_ApaCountMinterm(
     if (count == NULL) {
     ABC_FREE(max);
     ABC_FREE(min);
-    st_foreach(table, cuddApaStCountfree, NULL);
+    st_foreach(table, (ST_PFSR)cuddApaStCountfree, NULL);
     st_free_table(table);
     if (Cudd_Regular(node)->ref == 1) ABC_FREE(i);
     return(NULL);
@@ -681,7 +684,7 @@ Cudd_ApaCountMinterm(
     }
     ABC_FREE(max);
     ABC_FREE(min);
-    st_foreach(table, cuddApaStCountfree, NULL);
+    st_foreach(table, (ST_PFSR)cuddApaStCountfree, NULL);
     st_free_table(table);
     if (Cudd_Regular(node)->ref == 1) ABC_FREE(i);
     return(count);
@@ -927,4 +930,6 @@ cuddApaStCountfree(
 
 } /* end of cuddApaStCountfree */
 
+
+ABC_NAMESPACE_IMPL_END
 

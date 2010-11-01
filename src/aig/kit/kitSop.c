@@ -20,6 +20,9 @@
 
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -510,7 +513,7 @@ void Kit_SopDivisorZeroKernel_rec( Kit_Sop_t * cSop, int nLits )
     iLit = Kit_SopWorstLiteral( cSop, nLits );
     if ( iLit == -1 )
         return;
-    // derive the cube-ABC_FREE quotient
+    // derive the cube-free quotient
     Kit_SopDivideByLiteralQuo( cSop, iLit ); // the same cover
     Kit_SopMakeCubeFree( cSop );             // the same cover
     // call recursively
@@ -571,4 +574,6 @@ void Kit_SopBestLiteralCover( Kit_Sop_t * cResult, Kit_Sop_t * cSop, unsigned uC
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

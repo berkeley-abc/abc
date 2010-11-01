@@ -24,6 +24,9 @@
 #include "bdc.h"
 #include "bdcInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -234,8 +237,8 @@ int Dar_RefactTryGraph( Aig_Man_t * pAig, Aig_Obj_t * pRoot, Vec_Ptr_t * vCut, K
     Kit_GraphForEachLeaf( pGraph, pNode, i )
     {
         pNode->pFunc = Vec_PtrEntry(vCut, i);
-        pNode->Level = Aig_Regular(pNode->pFunc)->Level;
-        assert( Aig_Regular(pNode->pFunc)->Level < (1<<24)-1 );
+        pNode->Level = Aig_Regular((Aig_Obj_t *)pNode->pFunc)->Level;
+        assert( Aig_Regular((Aig_Obj_t *)pNode->pFunc)->Level < (1<<24)-1 );
     }
 //printf( "Trying:\n" );
     // compute the AIG size after adding the internal nodes
@@ -246,8 +249,8 @@ int Dar_RefactTryGraph( Aig_Man_t * pAig, Aig_Obj_t * pRoot, Vec_Ptr_t * vCut, K
         pNode0 = Kit_GraphNode( pGraph, pNode->eEdge0.Node );
         pNode1 = Kit_GraphNode( pGraph, pNode->eEdge1.Node );
         // get the AIG nodes corresponding to the children 
-        pAnd0 = pNode0->pFunc; 
-        pAnd1 = pNode1->pFunc; 
+        pAnd0 = (Aig_Obj_t *)pNode0->pFunc; 
+        pAnd1 = (Aig_Obj_t *)pNode1->pFunc; 
         if ( pAnd0 && pAnd1 )
         {
             // if they are both present, find the resulting node
@@ -320,13 +323,13 @@ Aig_Obj_t * Dar_RefactBuildGraph( Aig_Man_t * pAig, Vec_Ptr_t * vCut, Kit_Graph_
         pNode->pFunc = Vec_PtrEntry(vCut, i);
     // check for a literal
     if ( Kit_GraphIsVar(pGraph) )
-        return Aig_NotCond( Kit_GraphVar(pGraph)->pFunc, Kit_GraphIsComplement(pGraph) );
+        return Aig_NotCond( (Aig_Obj_t *)Kit_GraphVar(pGraph)->pFunc, Kit_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
 //printf( "Building (current number %d):\n", Aig_ManObjNumMax(pAig) );
     Kit_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Aig_NotCond( Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Aig_NotCond( Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pAnd0 = Aig_NotCond( (Aig_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Aig_NotCond( (Aig_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
         pNode->pFunc = Aig_And( pAig, pAnd0, pAnd1 );
 /*
 printf( "Checking " );
@@ -339,7 +342,7 @@ printf( "\n" );
 */
     }
     // complement the result if necessary
-    return Aig_NotCond( pNode->pFunc, Kit_GraphIsComplement(pGraph) );
+    return Aig_NotCond( (Aig_Obj_t *)pNode->pFunc, Kit_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -473,7 +476,7 @@ int Dar_ObjCutLevelAchieved( Vec_Ptr_t * vCut, int nLevelMin )
 {
     Aig_Obj_t * pObj;
     int i;
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
         if ( !Aig_ObjIsPi(pObj) && (int)pObj->Level <= nLevelMin )
             return 1;
     return 0;
@@ -510,8 +513,8 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 
     // resynthesize each node once
     clkStart = clock();
-    vCut = Vec_VecEntry( p->vCuts, 0 );
-    vCut2 = Vec_VecEntry( p->vCuts, 1 );
+    vCut = (Vec_Ptr_t *)Vec_VecEntry( p->vCuts, 0 );
+    vCut2 = (Vec_Ptr_t *)Vec_VecEntry( p->vCuts, 1 );
     p->nNodesInit = Aig_ManNodeNum(pAig);
     nNodesOld = Vec_PtrSize( pAig->vObjs );
 //    pProgress = Bar_ProgressStart( stdout, nNodesOld );
@@ -628,4 +631,6 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "mfsInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -201,7 +204,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
 
     // count the number of PIs
     nTrueSupp = 0;
-    Vec_PtrForEachEntry( vCone, pObj, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, k )
         nTrueSupp += Abc_ObjIsCi(pObj);
 //    printf( "%d(%d) ", Vec_PtrSize(p->vSupp), m );
 
@@ -221,7 +224,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
 
     // start collecting the divisors
     vDivs = Vec_PtrAlloc( p->pPars->nDivMax );
-    Vec_PtrForEachEntry( vCone, pObj, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, k )
     {
         if ( !Abc_NodeIsTravIdPrevious(pObj) )
             continue;
@@ -235,7 +238,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
 
     // explore the fanouts of already collected divisors
     if ( Vec_PtrSize(vDivs) < p->pPars->nDivMax )
-    Vec_PtrForEachEntry( vDivs, pObj, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vDivs, pObj, k )
     {
         // consider fanouts of this node
         Abc_ObjForEachFanout( pObj, pFanout, f )
@@ -262,7 +265,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
             if ( m < Abc_ObjFaninNum(pFanout) )
                 continue;
             // make sure this divisor in not among the nodes
-//            Vec_PtrForEachEntry( p->vNodes, pFanin, m )
+//            Vec_PtrForEachEntry( Abc_Obj_t *, p->vNodes, pFanin, m )
 //                assert( pFanout != pFanin );
             // add the node to the divisors
             Vec_PtrPush( vDivs, pFanout );
@@ -278,7 +281,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
     }
 
     // sort the divisors by level in the increasing order
-    Vec_PtrSort( vDivs, Abc_NodeCompareLevelsIncrease );
+    Vec_PtrSort( vDivs, (int (*)(void))Abc_NodeCompareLevelsIncrease );
 
     // add the fanins of the node
     Abc_ObjForEachFanin( pNode, pFanin, k )
@@ -286,7 +289,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
 
 /*
     printf( "Node level = %d.  ", Abc_ObjLevel(p->pNode) );
-    Vec_PtrForEachEntryStart( vDivs, pObj, k, Vec_PtrSize(vDivs)-p->nDivsPlus )
+    Vec_PtrForEachEntryStart( Abc_Obj_t *, vDivs, pObj, k, Vec_PtrSize(vDivs)-p->nDivsPlus )
         printf( "%d ", Abc_ObjLevel(pObj) );
     printf( "\n" );
 */
@@ -300,4 +303,6 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

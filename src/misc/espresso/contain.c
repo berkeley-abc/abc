@@ -24,6 +24,9 @@
 
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*
     sf_contain -- perform containment on a set family (delete sets which
@@ -443,3 +446,5 @@ IN int totcnt, size;
     FREE(E1);
     return R;
 }
+ABC_NAMESPACE_IMPL_END
+

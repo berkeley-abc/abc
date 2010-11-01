@@ -18,6 +18,9 @@
 
 #include "fraigInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,7 +32,7 @@ struct Fraig_MemFixed_t_
     int           nEntriesAlloc; // the total number of entries allocated
     int           nEntriesUsed;  // the number of entries in use
     int           nEntriesMax;   // the max number of entries in use
-    char *        pEntriesFree;  // the linked list of ABC_FREE entries
+    char *        pEntriesFree;  // the linked list of free entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -130,7 +133,7 @@ char * Fraig_MemFixedEntryFetch( Fraig_MemFixed_t * p )
     char * pTemp;
     int i;
 
-    // check if there are still ABC_FREE entries
+    // check if there are still free entries
     if ( p->nEntriesUsed == p->nEntriesAlloc )
     { // need to allocate more entries
         assert( p->pEntriesFree == NULL );
@@ -159,7 +162,7 @@ char * Fraig_MemFixedEntryFetch( Fraig_MemFixed_t * p )
     p->nEntriesUsed++;
     if ( p->nEntriesMax < p->nEntriesUsed )
         p->nEntriesMax = p->nEntriesUsed;
-    // return the first entry in the ABC_FREE entry list
+    // return the first entry in the free entry list
     pTemp = p->pEntriesFree;
     p->pEntriesFree = *((char **)pTemp);
     return pTemp;
@@ -180,7 +183,7 @@ void Fraig_MemFixedEntryRecycle( Fraig_MemFixed_t * p, char * pEntry )
 {
     // decrement the counter of used entries
     p->nEntriesUsed--;
-    // add the entry to the linked list of ABC_FREE entries
+    // add the entry to the linked list of free entries
     *((char **)pEntry) = p->pEntriesFree;
     p->pEntriesFree = pEntry;
 }
@@ -214,7 +217,7 @@ void Fraig_MemFixedRestart( Fraig_MemFixed_t * p )
     }
     // set the last link
     *((char **)pTemp) = NULL;
-    // set the ABC_FREE entry list
+    // set the free entry list
     p->pEntriesFree  = p->pChunks[0];
     // set the correct statistics
     p->nMemoryAlloc  = p->nEntrySize * p->nChunkSize;
@@ -243,4 +246,6 @@ int Fraig_MemFixedReadMemUsage( Fraig_MemFixed_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

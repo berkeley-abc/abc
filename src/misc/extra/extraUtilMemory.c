@@ -20,6 +20,9 @@
 
 #include "extra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -35,7 +38,7 @@ struct Extra_MmFixed_t_
     int           nEntriesAlloc; // the total number of entries allocated
     int           nEntriesUsed;  // the number of entries in use
     int           nEntriesMax;   // the max number of entries in use
-    char *        pEntriesFree;  // the linked list of ABC_FREE entries
+    char *        pEntriesFree;  // the linked list of free entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -52,8 +55,8 @@ struct Extra_MmFlex_t_
 {
     // information about individual entries
     int           nEntriesUsed;  // the number of entries allocated
-    char *        pCurrent;      // the current pointer to ABC_FREE memory
-    char *        pEnd;          // the first entry outside the ABC_FREE memory
+    char *        pCurrent;      // the current pointer to free memory
+    char *        pEnd;          // the first entry outside the free memory
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
@@ -201,7 +204,7 @@ char * Extra_MmFixedEntryFetch( Extra_MmFixed_t * p )
     char * pTemp;
     int i;
 
-    // check if there are still ABC_FREE entries
+    // check if there are still free entries
     if ( p->nEntriesUsed == p->nEntriesAlloc )
     { // need to allocate more entries
         assert( p->pEntriesFree == NULL );
@@ -230,7 +233,7 @@ char * Extra_MmFixedEntryFetch( Extra_MmFixed_t * p )
     p->nEntriesUsed++;
     if ( p->nEntriesMax < p->nEntriesUsed )
         p->nEntriesMax = p->nEntriesUsed;
-    // return the first entry in the ABC_FREE entry list
+    // return the first entry in the free entry list
     pTemp = p->pEntriesFree;
     p->pEntriesFree = *((char **)pTemp);
     return pTemp;
@@ -251,7 +254,7 @@ void Extra_MmFixedEntryRecycle( Extra_MmFixed_t * p, char * pEntry )
 {
     // decrement the counter of used entries
     p->nEntriesUsed--;
-    // add the entry to the linked list of ABC_FREE entries
+    // add the entry to the linked list of free entries
     *((char **)pEntry) = p->pEntriesFree;
     p->pEntriesFree = pEntry;
 }
@@ -285,7 +288,7 @@ void Extra_MmFixedRestart( Extra_MmFixed_t * p )
     }
     // set the last link
     *((char **)pTemp) = NULL;
-    // set the ABC_FREE entry list
+    // set the free entry list
     p->pEntriesFree  = p->pChunks[0];
     // set the correct statistics
     p->nMemoryAlloc  = p->nEntrySize * p->nChunkSize;
@@ -415,7 +418,7 @@ void Extra_MmFlexStop( Extra_MmFlex_t * p )
 char * Extra_MmFlexEntryFetch( Extra_MmFlex_t * p, int nBytes )
 {
     char * pTemp;
-    // check if there are still ABC_FREE entries
+    // check if there are still free entries
     if ( p->pCurrent == NULL || p->pCurrent + nBytes > p->pEnd )
     { // need to allocate more entries
         if ( p->nChunks == p->nChunksAlloc )
@@ -565,7 +568,7 @@ char * Extra_MmStepEntryFetch( Extra_MmStep_t * p, int nBytes )
             p->pLargeChunks = ABC_REALLOC( void *, p->pLargeChunks, p->nLargeChunksAlloc );
         }
         p->pLargeChunks[ p->nLargeChunks++ ] = ABC_ALLOC( char, nBytes );
-        return p->pLargeChunks[ p->nLargeChunks - 1 ];
+        return (char *)p->pLargeChunks[ p->nLargeChunks - 1 ];
     }
     return Extra_MmFixedEntryFetch( p->pMap[nBytes] );
 }
@@ -620,4 +623,6 @@ int Extra_MmStepReadMemUsage( Extra_MmStep_t * p )
 /*---------------------------------------------------------------------------*/
 /* Definition of static functions                                            */
 /*---------------------------------------------------------------------------*/
+
+ABC_NAMESPACE_IMPL_END
 

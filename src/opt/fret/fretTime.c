@@ -22,6 +22,9 @@
 #include "vec.h"
 #include "fretime.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -131,7 +134,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
     Abc_FlowRetime_Dfs_forw( pObj, vNodes );
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanin( pObj, pNext, j )
     {
@@ -168,19 +171,19 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
 
 #if defined(DEBUG_CHECK)
   // DEBUG: check DFS ordering
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->fMarkB = 1;
     
     Abc_ObjForEachFanin( pObj, pNext, j )
       if ( Abc_NodeIsTravIdCurrent(pNext) && !Abc_ObjIsLatch(pNext))
         assert(pNext->fMarkB);
   }
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i)
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i)
     pObj->fMarkB = 0;
 #endif
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanin( pObj, pNext, j )
     {
@@ -203,7 +206,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
   }
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanin( pObj, pNext, j ) {
       if ( Abc_NodeIsTravIdCurrent(pNext) &&
@@ -231,7 +234,7 @@ void Abc_FlowRetime_ConstrainConserv_forw( Abc_Ntk_t * pNtk ) {
   }
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanin( pObj, pNext, j ) {
       if ( Abc_NodeIsTravIdCurrent(pNext) &&
@@ -269,7 +272,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
     Abc_FlowRetime_Dfs_back( pObj, vNodes );
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanout( pObj, pNext, j )
     {
@@ -306,19 +309,19 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
 
 #if defined(DEBUG_CHECK)
   // DEBUG: check DFS ordering
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->fMarkB = 1;
     
     Abc_ObjForEachFanout( pObj, pNext, j )
       if ( Abc_NodeIsTravIdCurrent(pNext) && !Abc_ObjIsLatch(pNext))
         assert(pNext->fMarkB);
   }
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i)
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i)
     pObj->fMarkB = 0;
 #endif
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanout( pObj, pNext, j )
     {
@@ -341,7 +344,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
   }
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanout( pObj, pNext, j ) {
       l = pNext->Level + (Abc_ObjIsNode(pObj) ? 1 : 0);
@@ -371,7 +374,7 @@ void Abc_FlowRetime_ConstrainConserv_back( Abc_Ntk_t * pNtk ) {
   }
 
   // ... propagate values
-  Vec_PtrForEachEntryReverse(vNodes, pObj, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *,vNodes, pObj, i) {
     pObj->Level = 0;
     Abc_ObjForEachFanout( pObj, pNext, j ) {
       l = pNext->Level + (Abc_ObjIsNode(pObj) ? 1 : 0);
@@ -462,7 +465,7 @@ void Abc_FlowRetime_ConstrainExact_forw( Abc_Obj_t * pObj ) {
   // rev topo order
   Abc_FlowRetime_ConstrainExact_forw_rec( pObj, vNodes, 0 );
 
-  Vec_PtrForEachEntryReverse( vNodes, pCur, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pCur, i) {
     pReg = Abc_ObjRegular( pCur );
 
     if (pReg == pCur) {
@@ -474,7 +477,7 @@ void Abc_FlowRetime_ConstrainExact_forw( Abc_Obj_t * pObj ) {
       pReg->fMarkA = pReg->fMarkB = 0;
     }
   }
-  Vec_PtrForEachEntryReverse( vNodes, pCur, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pCur, i) {
     pReg = Abc_ObjRegular( pCur );
     if (pReg != pCur) {
       Abc_ObjForEachFanin(pReg, pNext, j)
@@ -537,7 +540,7 @@ void Abc_FlowRetime_ConstrainExact_back( Abc_Obj_t * pObj ) {
   // rev topo order
   Abc_FlowRetime_ConstrainExact_back_rec( pObj, vNodes, 0 );
 
-  Vec_PtrForEachEntryReverse( vNodes, pCur, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pCur, i) {
     pReg = Abc_ObjRegular( pCur );
 
     if (pReg == pCur) {
@@ -549,7 +552,7 @@ void Abc_FlowRetime_ConstrainExact_back( Abc_Obj_t * pObj ) {
       pReg->fMarkA = pReg->fMarkB = 0;
     }
   }
-  Vec_PtrForEachEntryReverse( vNodes, pCur, i) {
+  Vec_PtrForEachEntryReverse( Abc_Obj_t *, vNodes, pCur, i) {
     pReg = Abc_ObjRegular( pCur );
     if (pReg != pCur) {
       Abc_ObjForEachFanout(pReg, pNext, j)
@@ -689,7 +692,7 @@ void Abc_FlowRetime_Dfs_back( Abc_Obj_t * pObj, Vec_Ptr_t *vNodes ) {
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_FlowRetime_RefineConstraints( ) {
+int Abc_FlowRetime_RefineConstraints( ) {
   Abc_Ntk_t *pNtk = pManMR->pNtk;
   int i, flow, count = 0;
   Abc_Obj_t *pObj;
@@ -760,4 +763,6 @@ bool Abc_FlowRetime_RefineConstraints( ) {
   return (count > 0);
 }
 
+
+ABC_NAMESPACE_IMPL_END
 

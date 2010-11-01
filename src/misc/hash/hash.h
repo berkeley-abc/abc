@@ -21,6 +21,7 @@
 #ifndef __HASH_H__
 #define __HASH_H__
 
+
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -33,6 +34,9 @@
 #include "hashInt.h"
 #include "hashFlt.h"
 #include "hashPtr.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -57,6 +61,10 @@ int Hash_DefaultHashFunc(int key, int nBins) {
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

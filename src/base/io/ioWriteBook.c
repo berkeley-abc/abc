@@ -21,6 +21,9 @@
 #include "ioAbc.h"
 #include "main.h"
 #include "mio.h"
+
+ABC_NAMESPACE_IMPL_START
+
 #define    NODES       0
 #define    PL       1
 #define coreHeight 1
@@ -33,8 +36,8 @@
 
 static unsigned Io_NtkWriteNodes( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWritePiPoNodes( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_NtkWriteLatchNode( FILE * pFile, Abc_Obj_t * pLatch, bool NodesOrPl );
-static unsigned Io_NtkWriteIntNode( FILE * pFile, Abc_Obj_t * pNode, bool NodesOrPl );
+static void Io_NtkWriteLatchNode( FILE * pFile, Abc_Obj_t * pLatch, int NodesOrPl );
+static unsigned Io_NtkWriteIntNode( FILE * pFile, Abc_Obj_t * pNode, int NodesOrPl );
 static unsigned Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteNets( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteIntNet( FILE * pFile, Abc_Obj_t * pNode );
@@ -42,13 +45,13 @@ static void Io_NtkBuildLayout( FILE * pFile1, FILE *pFile2, Abc_Ntk_t * pNtk, do
 static void Io_NtkWriteScl( FILE * pFile, unsigned numCoreRows, double layoutWidth );
 static void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double layoutHeight, double layoutWidth );
 static Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms ); 
-static Abc_Obj_t * Io_NtkBfsPads( Abc_Ntk_t * pNtk, Abc_Obj_t * pCurrEntry, unsigned numTerms, bool * pOrdered );
-static bool Abc_NodeIsNand2( Abc_Obj_t * pNode );
-static bool Abc_NodeIsNor2( Abc_Obj_t * pNode );
-static bool Abc_NodeIsAnd2( Abc_Obj_t * pNode );
-static bool Abc_NodeIsOr2( Abc_Obj_t * pNode );
-static bool Abc_NodeIsXor2( Abc_Obj_t * pNode );
-static bool Abc_NodeIsXnor2( Abc_Obj_t * pNode );
+static Abc_Obj_t * Io_NtkBfsPads( Abc_Ntk_t * pNtk, Abc_Obj_t * pCurrEntry, unsigned numTerms, int * pOrdered );
+static int Abc_NodeIsNand2( Abc_Obj_t * pNode );
+static int Abc_NodeIsNor2( Abc_Obj_t * pNode );
+static int Abc_NodeIsAnd2( Abc_Obj_t * pNode );
+static int Abc_NodeIsOr2( Abc_Obj_t * pNode );
+static int Abc_NodeIsXor2( Abc_Obj_t * pNode );
+static int Abc_NodeIsXnor2( Abc_Obj_t * pNode );
 
 static inline double Abc_Rint( double x )   { return (double)(int)x;  }
 
@@ -139,7 +142,7 @@ void Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName )
     // write the hierarchy if present
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        Vec_PtrForEachEntry( pNtk->pDesign->vModules, pNtkTemp, i )
+        Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pNtkTemp, i )
         {
             if ( pNtkTemp == pNtk )
                 continue;
@@ -255,7 +258,7 @@ void Io_NtkWritePiPoNodes( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWriteLatchNode( FILE * pFile, Abc_Obj_t * pLatch, bool NodesOrPl )
+void Io_NtkWriteLatchNode( FILE * pFile, Abc_Obj_t * pLatch, int NodesOrPl )
 {
     Abc_Obj_t * pNetLi, * pNetLo;
     
@@ -278,7 +281,7 @@ void Io_NtkWriteLatchNode( FILE * pFile, Abc_Obj_t * pLatch, bool NodesOrPl )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Io_NtkWriteIntNode( FILE * pFile, Abc_Obj_t * pNode, bool NodesOrPl )
+unsigned Io_NtkWriteIntNode( FILE * pFile, Abc_Obj_t * pNode, int NodesOrPl )
 {
     unsigned sizex=0, sizey=coreHeight, isize=0;
     //double nx, ny, xstep, ystep;    
@@ -317,7 +320,7 @@ unsigned Io_NtkWriteIntNode( FILE * pFile, Abc_Obj_t * pNode, bool NodesOrPl )
         else
         {
             assert( isize > 2 );
-            sizex=isize+Abc_SopGetCubeNum(pNode->pData);
+            sizex=isize+Abc_SopGetCubeNum((char *)pNode->pData);
         }
         }
     }
@@ -370,7 +373,7 @@ unsigned Io_NtkWriteIntNode( FILE * pFile, Abc_Obj_t * pNode, bool NodesOrPl )
 ***********************************************************************/
 unsigned Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode )
 {
-    Mio_Gate_t * pGate = pNode->pData;
+    Mio_Gate_t * pGate = (Mio_Gate_t *)pNode->pData;
     Mio_Pin_t * pGatePin;
     int i;
     // write the node gate
@@ -459,7 +462,7 @@ void Io_NtkWriteIntNet( FILE * pFile, Abc_Obj_t * pNet )
         Abc_ObjForEachFanout( pFanin, pNeto, j )
         fprintf( pFile, "%s_", Abc_ObjName(pNeto) );    
         if ( Abc_NtkHasMapping(pNet->pNtk) )
-        fprintf( pFile, "%s : ", Mio_GateReadName(pFanin->pData) ); 
+        fprintf( pFile, "%s : ", Mio_GateReadName((Mio_Gate_t *)pFanin->pData) ); 
         else
         fprintf( pFile, "name I : " );                                
     }
@@ -487,7 +490,7 @@ void Io_NtkWriteIntNet( FILE * pFile, Abc_Obj_t * pNet )
         Abc_ObjForEachFanout( pFanout, pNeto, j )
         fprintf( pFile, "%s_", Abc_ObjName(pNeto) );    
         if ( Abc_NtkHasMapping(pNet->pNtk) )
-            fprintf( pFile, "%s : ", Mio_GateReadName(pFanout->pData) ); 
+            fprintf( pFile, "%s : ", Mio_GateReadName((Mio_Gate_t *)pFanout->pData) ); 
         else
             fprintf( pFile, "name O : " );
         }
@@ -626,7 +629,7 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     delta   = layoutWidth / termsOnTop;
     for(t = 0; t < termsOnTop; t++)
     {
-    pTerm = Vec_PtrEntry( vOrderedTerms, t );
+    pTerm = (Abc_Obj_t *)Vec_PtrEntry( vOrderedTerms, t );
     if( Abc_ObjIsPi(pTerm) )
         fprintf( pFile, "i%s_input\t\t", Abc_ObjName(Abc_ObjFanout0(pTerm)) ); 
     else
@@ -642,7 +645,7 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     delta   = layoutWidth / termsOnBottom;
     for(;t < termsOnTop+termsOnBottom; t++)
     {
-    pTerm = Vec_PtrEntry( vOrderedTerms, t );
+    pTerm = (Abc_Obj_t *)Vec_PtrEntry( vOrderedTerms, t );
     if( Abc_ObjIsPi(pTerm) )
         fprintf( pFile, "i%s_input\t\t", Abc_ObjName(Abc_ObjFanout0(pTerm)) ); 
     else
@@ -658,7 +661,7 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     delta   = layoutHeight / termsOnLeft;
     for(;t < termsOnTop+termsOnBottom+termsOnLeft; t++)
     {
-    pTerm = Vec_PtrEntry( vOrderedTerms, t );
+    pTerm = (Abc_Obj_t *)Vec_PtrEntry( vOrderedTerms, t );
     if( Abc_ObjIsPi(pTerm) )
         fprintf( pFile, "i%s_input\t\t", Abc_ObjName(Abc_ObjFanout0(pTerm)) ); 
     else
@@ -674,7 +677,7 @@ void Io_NtkWritePl( FILE * pFile, Abc_Ntk_t * pNtk, unsigned numTerms, double la
     delta   = layoutHeight / termsOnRight;
     for(;t < termsOnTop+termsOnBottom+termsOnLeft+termsOnRight; t++)
     {
-           pTerm = Vec_PtrEntry( vOrderedTerms, t );
+           pTerm = (Abc_Obj_t *)Vec_PtrEntry( vOrderedTerms, t );
     if( Abc_ObjIsPi(pTerm) )
         fprintf( pFile, "i%s_input\t\t", Abc_ObjName(Abc_ObjFanout0(pTerm)) ); 
     else
@@ -715,8 +718,8 @@ Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms )
     ProgressBar * pProgress;
     unsigned numTerms=Vec_PtrSize(vTerms); 
     unsigned termIdx=0, termCount=0;
-    bool * pOrdered = ABC_ALLOC(bool, numTerms); 
-    bool newNeighbor=1;
+    int * pOrdered = ABC_ALLOC(int, numTerms); 
+    int newNeighbor=1;
     Vec_Ptr_t * vOrderedTerms = Vec_PtrAlloc ( numTerms );
     Abc_Obj_t * pNeighbor, * pNextTerm;     
     unsigned i; 
@@ -724,13 +727,13 @@ Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms )
     for( i=0 ; i<numTerms ; i++ )
     pOrdered[i]=0; 
    
-    pNextTerm = Vec_PtrEntry(vTerms, termIdx++);
+    pNextTerm = (Abc_Obj_t *)Vec_PtrEntry(vTerms, termIdx++);
     pProgress = Extra_ProgressBarStart( stdout, numTerms );
     while( termCount < numTerms && termIdx < numTerms )
     {
     if( pOrdered[Abc_ObjId(pNextTerm)] && !newNeighbor )
     {
-        pNextTerm = Vec_PtrEntry( vTerms, termIdx++ );
+        pNextTerm = (Abc_Obj_t *)Vec_PtrEntry( vTerms, termIdx++ );
         continue;
     }
     if(!Vec_PtrPushUnique( vOrderedTerms, pNextTerm ))
@@ -746,7 +749,7 @@ Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms )
        pNextTerm=pNeighbor;
     }
     else if(termIdx < numTerms)
-        pNextTerm = Vec_PtrEntry( vTerms, termIdx++ );
+        pNextTerm = (Abc_Obj_t *)Vec_PtrEntry( vTerms, termIdx++ );
 
     Extra_ProgressBarUpdate( pProgress, termCount, NULL );
     }
@@ -766,11 +769,11 @@ Vec_Ptr_t * Io_NtkOrderingPads( Abc_Ntk_t * pNtk, Vec_Ptr_t * vTerms )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Io_NtkBfsPads( Abc_Ntk_t * pNtk, Abc_Obj_t * pTerm, unsigned numTerms, bool * pOrdered )
+Abc_Obj_t * Io_NtkBfsPads( Abc_Ntk_t * pNtk, Abc_Obj_t * pTerm, unsigned numTerms, int * pOrdered )
 {
     Vec_Ptr_t * vNeighbors = Vec_PtrAlloc ( numTerms ); 
     Abc_Obj_t * pNet, * pNode, * pNeighbor;
-    bool foundNeighbor=0;
+    int foundNeighbor=0;
     int i;
 
     assert(Abc_ObjIsPi(pTerm) || Abc_ObjIsPo(pTerm) );
@@ -791,7 +794,7 @@ Abc_Obj_t * Io_NtkBfsPads( Abc_Ntk_t * pNtk, Abc_Obj_t * pTerm, unsigned numTerm
 
     while ( Vec_PtrSize(vNeighbors) >0 )
     {
-    pNeighbor = Vec_PtrEntry( vNeighbors, 0 );
+    pNeighbor = (Abc_Obj_t *)Vec_PtrEntry( vNeighbors, 0 );
     assert( Abc_ObjIsNode(pNeighbor) || Abc_ObjIsTerm(pNeighbor) );
     Vec_PtrRemove( vNeighbors, pNeighbor );
 
@@ -836,7 +839,7 @@ Abc_Obj_t * Io_NtkBfsPads( Abc_Ntk_t * pNtk, Abc_Obj_t * pTerm, unsigned numTerm
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsNand2( Abc_Obj_t * pNode )
+int Abc_NodeIsNand2( Abc_Obj_t * pNode )
 {
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -844,11 +847,11 @@ bool Abc_NodeIsNand2( Abc_Obj_t * pNode )
     if ( Abc_ObjFaninNum(pNode) != 2 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
-    return ( !strcmp((pNode->pData), "-0 1\n0- 1\n") || 
-         !strcmp((pNode->pData), "0- 1\n-0 1\n") || 
-         !strcmp((pNode->pData), "11 0\n") );
+    return ( !strcmp(((char *)pNode->pData), "-0 1\n0- 1\n") || 
+         !strcmp(((char *)pNode->pData), "0- 1\n-0 1\n") || 
+         !strcmp(((char *)pNode->pData), "11 0\n") );
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadNand2(Abc_FrameReadLibGen());
+        return pNode->pData == (void *)Mio_LibraryReadNand2((Mio_Library_t *)Abc_FrameReadLibGen());
     assert( 0 );
     return 0;
 }
@@ -864,7 +867,7 @@ bool Abc_NodeIsNand2( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsNor2( Abc_Obj_t * pNode )
+int Abc_NodeIsNor2( Abc_Obj_t * pNode )
 {
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -872,7 +875,7 @@ bool Abc_NodeIsNor2( Abc_Obj_t * pNode )
     if ( Abc_ObjFaninNum(pNode) != 2 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
-        return ( !strcmp((pNode->pData), "00 1\n") );
+        return ( !strcmp(((char *)pNode->pData), "00 1\n") );
     assert( 0 );
     return 0;
 }
@@ -888,7 +891,7 @@ bool Abc_NodeIsNor2( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsAnd2( Abc_Obj_t * pNode )
+int Abc_NodeIsAnd2( Abc_Obj_t * pNode )
 {
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -896,9 +899,9 @@ bool Abc_NodeIsAnd2( Abc_Obj_t * pNode )
     if ( Abc_ObjFaninNum(pNode) != 2 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
-    return Abc_SopIsAndType((pNode->pData));
+    return Abc_SopIsAndType(((char *)pNode->pData));
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadAnd2(Abc_FrameReadLibGen());
+        return pNode->pData == (void *)Mio_LibraryReadAnd2((Mio_Library_t *)Abc_FrameReadLibGen());
     assert( 0 );
     return 0;
 }
@@ -914,7 +917,7 @@ bool Abc_NodeIsAnd2( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsOr2( Abc_Obj_t * pNode )
+int Abc_NodeIsOr2( Abc_Obj_t * pNode )
 {
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -922,10 +925,10 @@ bool Abc_NodeIsOr2( Abc_Obj_t * pNode )
     if ( Abc_ObjFaninNum(pNode) != 2 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
-    return ( Abc_SopIsOrType((pNode->pData))   || 
-         !strcmp((pNode->pData), "01 0\n") ||
-         !strcmp((pNode->pData), "10 0\n") ||
-         !strcmp((pNode->pData), "00 0\n") );
+    return ( Abc_SopIsOrType(((char *)pNode->pData))   || 
+         !strcmp(((char *)pNode->pData), "01 0\n") ||
+         !strcmp(((char *)pNode->pData), "10 0\n") ||
+         !strcmp(((char *)pNode->pData), "00 0\n") );
          //off-sets, too
     assert( 0 );
     return 0;
@@ -942,7 +945,7 @@ bool Abc_NodeIsOr2( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsXor2( Abc_Obj_t * pNode )
+int Abc_NodeIsXor2( Abc_Obj_t * pNode )
 {
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -950,7 +953,7 @@ bool Abc_NodeIsXor2( Abc_Obj_t * pNode )
     if ( Abc_ObjFaninNum(pNode) != 2 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
-    return ( !strcmp((pNode->pData), "01 1\n10 1\n") || !strcmp((pNode->pData), "10 1\n01 1\n")  );
+    return ( !strcmp(((char *)pNode->pData), "01 1\n10 1\n") || !strcmp(((char *)pNode->pData), "10 1\n01 1\n")  );
     assert( 0 );
     return 0;
 }
@@ -966,7 +969,7 @@ bool Abc_NodeIsXor2( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NodeIsXnor2( Abc_Obj_t * pNode )
+int Abc_NodeIsXnor2( Abc_Obj_t * pNode )
 {
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -974,7 +977,7 @@ bool Abc_NodeIsXnor2( Abc_Obj_t * pNode )
     if ( Abc_ObjFaninNum(pNode) != 2 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
-    return ( !strcmp((pNode->pData), "11 1\n00 1\n") || !strcmp((pNode->pData), "00 1\n11 1\n") );
+    return ( !strcmp(((char *)pNode->pData), "11 1\n00 1\n") || !strcmp(((char *)pNode->pData), "00 1\n11 1\n") );
     assert( 0 );
     return 0;
 }
@@ -983,4 +986,6 @@ bool Abc_NodeIsXnor2( Abc_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

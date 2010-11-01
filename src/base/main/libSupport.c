@@ -20,14 +20,26 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#include "abc.h"
 #include "mainInt.h"
-#include "abc_global.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 #ifndef WIN32
 # include <sys/types.h>
 # include <dirent.h>
 # include <dlfcn.h>
 #endif
+
+// fix by Paddy O'Brien  on Sep 22, 2009
+#ifdef __CYGWIN__
+#ifndef RTLD_LOCAL
+#define RTLD_LOCAL 0
+#endif
+#endif 
+
 
 #define MAX_LIBS 256
 static void* libHandles[MAX_LIBS+1]; // will be null terminated
@@ -192,3 +204,5 @@ void Libs_End(Abc_Frame_t * pAbc)
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

@@ -20,6 +20,9 @@
 
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -72,7 +75,7 @@ int Cnf_CutSuperAreaFlow( Vec_Ptr_t * vSuper, int * pAreaFlows )
     Aig_Obj_t * pLeaf;
     int i, nAreaFlow;
     nAreaFlow = 100 * (Vec_PtrSize(vSuper) + 1);
-    Vec_PtrForEachEntry( vSuper, pLeaf, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pLeaf, i )
     {
         pLeaf = Aig_Regular(pLeaf);
         if ( !Aig_ObjIsNode(pLeaf) )
@@ -354,4 +357,6 @@ int Cnf_ManMapForCnf( Cnf_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

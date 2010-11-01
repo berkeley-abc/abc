@@ -19,6 +19,7 @@
 #ifndef __REO_H__
 #define __REO_H__
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "extra.h"
@@ -27,9 +28,10 @@
 ///                     MACRO DEFINITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 // reordering parameters
 #define REO_REORDER_LIMIT      1.15  // determines the quality/runtime trade-off
@@ -219,9 +221,11 @@ extern DdNode *   Extra_ReorderCudd( DdManager * dd, DdNode * aFunc, int pPermut
 extern int        Extra_bddReorderTest( DdManager * dd, DdNode * bF ); 
 extern int        Extra_addReorderTest( DdManager * dd, DdNode * aF ); 
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

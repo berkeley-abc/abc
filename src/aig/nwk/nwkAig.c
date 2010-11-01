@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -57,13 +60,13 @@ Nwk_Man_t * Nwk_ManDeriveFromAig( Aig_Man_t * p )
     Aig_ManForEachNode( p, pObj, i )
     {
         pObj->pData = Nwk_ManCreateNode( pNtk, 2, pObj->nRefs );
-        Nwk_ObjAddFanin( pObj->pData, Aig_ObjFanin0(pObj)->pData );
-        Nwk_ObjAddFanin( pObj->pData, Aig_ObjFanin1(pObj)->pData );
+        Nwk_ObjAddFanin( (Nwk_Obj_t *)pObj->pData, (Nwk_Obj_t *)Aig_ObjFanin0(pObj)->pData );
+        Nwk_ObjAddFanin( (Nwk_Obj_t *)pObj->pData, (Nwk_Obj_t *)Aig_ObjFanin1(pObj)->pData );
     }
     Aig_ManForEachPo( p, pObj, i )
     {
         pObj->pData = Nwk_ManCreateCo( pNtk );
-        Nwk_ObjAddFanin( pObj->pData, Aig_ObjFanin0(pObj)->pData );
+        Nwk_ObjAddFanin( (Nwk_Obj_t *)pObj->pData, (Nwk_Obj_t *)Aig_ObjFanin0(pObj)->pData );
     }
     return pNtk;
 }
@@ -93,7 +96,7 @@ Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose 
         vNodes = Nwk_ManRetimeCutBackward( pNtk, Aig_ManRegNum(p), fVerbose );
     Aig_ManForEachObj( p, pObj, i )
         ((Nwk_Obj_t *)pObj->pData)->pCopy = pObj;
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pNode, i )
         Vec_PtrWriteEntry( vNodes, i, pNode->pCopy );
     Nwk_ManFree( pNtk );
     assert( Vec_PtrSize(vNodes) <= Aig_ManRegNum(p) );
@@ -104,4 +107,6 @@ Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

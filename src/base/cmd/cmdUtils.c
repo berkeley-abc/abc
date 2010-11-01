@@ -18,10 +18,13 @@
 
 ***********************************************************************/
 
-#include "mainInt.h"
 #include "abc.h"
+#include "mainInt.h"
 #include "cmdInt.h"
-#include <ctype.h>    // proper declaration of isspace
+#include <ctype.h>
+
+ABC_NAMESPACE_IMPL_START
+    // proper declaration of isspace
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -107,17 +110,24 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int * pargc, char *** pargv )
     // get the command
     if ( !st_lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
     {   // the command is not in the table
-//        fprintf( pAbc->Err, "** cmd error: unknown command '%s'\n", argv[0] );
-//        return 1;
-        // add command 'read' assuming that this is the file name
-        argv2 = CmdAddToArgv( argc, argv );
-        CmdFreeArgv( argc, argv );
-        argc = argc+1;
-        argv = argv2;
-        *pargc = argc;
-        *pargv = argv;
-        if ( !st_lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
-            assert( 0 );
+        // if there is only one word with an extension, assume this is file to be read
+        if ( argc == 1 && strstr( argv[0], "." ) )
+        {
+            // add command 'read' assuming that this is the file name
+            argv2 = CmdAddToArgv( argc, argv );
+            CmdFreeArgv( argc, argv );
+            argc = argc+1;
+            argv = argv2;
+            *pargc = argc;
+            *pargv = argv;
+            if ( !st_lookup( pAbc->tCommands, argv[0], (char **)&pCommand ) )
+                assert( 0 );
+        }
+        else
+        {
+            fprintf( pAbc->Err, "** cmd error: unknown command '%s'\n", argv[0] );
+            return 1;
+        }
     }
 
     // get the backup network if the command is going to change the network
@@ -164,9 +174,10 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int * pargc, char *** pargv )
   SeeAlso     []
 
 ***********************************************************************/
-char * CmdSplitLine( Abc_Frame_t * pAbc, char *sCommand, int *argc, char ***argv )
+const char * CmdSplitLine( Abc_Frame_t * pAbc, const char *sCommand, int *argc, char ***argv )
 {
-    char *p, *start, c;
+    const char *p, *start;
+    char c;
     int i, j;
     char *new_arg;
     Vec_Ptr_t * vArgs;
@@ -252,7 +263,8 @@ char * CmdSplitLine( Abc_Frame_t * pAbc, char *sCommand, int *argc, char ***argv
 int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
 {
     int i, argc, stopit, added, offset, did_subst, subst, fError, newc, j;
-    char *arg, **argv, **newv;
+    const char *arg;
+    char **argv, **newv;
     Abc_Alias *alias;
 
     argc = *argcp;
@@ -519,9 +531,10 @@ void CmdCommandFree( Abc_Command * pCommand )
   SeeAlso     []
 
 ***********************************************************************/
-void CmdCommandPrint( Abc_Frame_t * pAbc, bool fPrintAll )
+void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll )
 {
-    char *key, *value;
+    const char *key;
+    char *value;
     st_generator * gen;
     Abc_Command ** ppCommands;
     Abc_Command * pCommands;
@@ -555,7 +568,7 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, bool fPrintAll )
     nColumns = 79 / (LenghtMax + 2);
 
     // print the starting message 
-    fprintf( pAbc->Out, "                        Welcome to ABC!" );
+    fprintf( pAbc->Out, "      Welcome to ABC compiled on %s %s!", __DATE__, __TIME__ );
 
     // print the command by group
     sGroupCur = NULL;
@@ -654,12 +667,13 @@ int CmdNamePrintCompare( char ** ppC1, char ** ppC2 )
 void CmdPrintTable( st_table * tTable, int fAliases )
 {
     st_generator * gen;
-    char ** ppNames;
-    char * key, * value;
+    const char ** ppNames;
+    const char * key;
+    char* value;
     int nNames, i;
 
     // collect keys in the array
-    ppNames = ABC_ALLOC( char *, st_count(tTable) );
+    ppNames = ABC_ALLOC( const char *, st_count(tTable) );
     nNames = 0;
     st_foreach_item( tTable, gen, &key, &value )
         ppNames[nNames++] = key;
@@ -683,3 +697,5 @@ void CmdPrintTable( st_table * tTable, int fAliases )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

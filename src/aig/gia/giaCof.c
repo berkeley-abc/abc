@@ -21,6 +21,9 @@
 #include <math.h>
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -390,7 +393,7 @@ void Cof_ManInsertEntry_rec( Vec_Ptr_t * vNodes, Cof_Obj_t * pNode, int nNodeMax
         Vec_PtrPush(vNodes, pNode);
         return;
     }
-    pLast = Vec_PtrPop(vNodes);
+    pLast = (Cof_Obj_t *)Vec_PtrPop(vNodes);
     if ( Cof_ObjFanoutNum(pLast) < Cof_ObjFanoutNum(pNode) )
     {
         Cof_ManInsertEntry_rec( vNodes, pNode, nNodeMax );
@@ -541,7 +544,7 @@ void Cof_ManPrintHighFanout( Cof_Man_t * p, int nNodes )
     Cof_Obj_t * pObj;
     int i;
     vNodes = Cof_ManCollectHighFanout( p, nNodes );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Cof_Obj_t *, vNodes, pObj, i )
         Cof_ManPrintHighFanoutOne( p, pObj );
     Vec_PtrFree( vNodes );
 }
@@ -633,7 +636,7 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
             printf( "%15d : ", k );
         else
         {
-            sprintf( Buffer, "%d - %d", (int)pow(10, k/10) * (k%10), (int)pow(10, k/10) * (k%10+1) - 1 ); 
+            sprintf( Buffer, "%d - %d", (int)pow((double)10, k/10) * (k%10), (int)pow((double)10, k/10) * (k%10+1) - 1 ); 
             printf( "%15s : ", Buffer );
         }
         if ( vFanins->pArray[k] == 0 )
@@ -915,4 +918,6 @@ Gia_Man_t * Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

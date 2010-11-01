@@ -3,7 +3,11 @@
 #ifndef m114p_h
 #define m114p_h
 
+
 #include "m114p_types.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 // SAT solver APIs
 extern M114p_Solver_t M114p_SolverNew( int fRecordProof );
@@ -35,5 +39,9 @@ extern int            M114p_SolverGetNextChain( M114p_Solver_t s, int ** ppClaus
 #define M114p_SolverForEachChain( s, ppClauses, ppVars, nVars, i )               \
     for ( i = 0, nVars = M114p_SolverGetFirstChain(s, ppClauses, ppVars); nVars; \
           i++, nVars = M114p_SolverGetNextChain(s, ppClauses, ppVars) )
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

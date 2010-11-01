@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -100,7 +103,7 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fV
     RetValue = Vec_PtrSize( p->vCommon );
     fFeasible = 0;
     k = 0;
-    Vec_PtrForEachEntry( p->vCommon, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vCommon, pTemp, i )
     {
         assert( Aig_ObjIsPi(pTemp) );
         if ( !Saig_ObjIsLo(p->pAig, pTemp) )
@@ -119,7 +122,7 @@ int Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fV
 
     // check the current values
     RetValue = 1;
-    Vec_PtrForEachEntry( p->vCommon, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vCommon, pTemp, i )
     {
         Value0 = Ssw_ManGetSatVarValue( p, pTemp, 0 );
         Value1 = Ssw_ManGetSatVarValue( p, pTemp, 1 );
@@ -153,7 +156,7 @@ int Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int 
     assert( Vec_PtrSize(vCommon) > 0 );
     // generate the constraint
     pTotal = Aig_ManConst0(p->pFrames);
-    Vec_PtrForEachEntry( vCommon, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCommon, pObj, i )
     {
         assert( Saig_ObjIsLo(p->pAig, pObj) );
         pObj1New = Ssw_ObjFrame( p, pObj, f1 );
@@ -189,4 +192,6 @@ int Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

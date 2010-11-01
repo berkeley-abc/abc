@@ -20,6 +20,9 @@
 
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,7 +44,7 @@
 ***********************************************************************/
 int Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize )
 {
-    Fra_Man_t * p = pObj->pData;
+    Fra_Man_t * p = (Fra_Man_t *)pObj->pData;
     static int s_FPrimes[128] = { 
         1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
         1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
@@ -81,7 +84,7 @@ int Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize )
 ***********************************************************************/
 int Fra_SmlNodeIsConst( Aig_Obj_t * pObj )
 {
-    Fra_Man_t * p = pObj->pData;
+    Fra_Man_t * p = (Fra_Man_t *)pObj->pData;
     unsigned * pSims;
     int i;
     pSims = Fra_ObjSim(p->pSml, pObj->Id);
@@ -104,7 +107,7 @@ int Fra_SmlNodeIsConst( Aig_Obj_t * pObj )
 ***********************************************************************/
 int Fra_SmlNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
-    Fra_Man_t * p = pObj0->pData;
+    Fra_Man_t * p = (Fra_Man_t *)pObj0->pData;
     unsigned * pSims0, * pSims1;
     int i;
     pSims0 = Fra_ObjSim(p->pSml, pObj0->Id);
@@ -885,12 +888,12 @@ Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nW
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Cex_t * Fra_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
+Abc_Cex_t * Fra_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
 {
-    Fra_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     int nWords = Aig_BitWordNum( nRegs + nRealPis * nFrames );
-    pCex = (Fra_Cex_t *)ABC_ALLOC( char, sizeof(Fra_Cex_t) + sizeof(unsigned) * nWords );
-    memset( pCex, 0, sizeof(Fra_Cex_t) + sizeof(unsigned) * nWords );
+    pCex = (Abc_Cex_t *)ABC_ALLOC( char, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
+    memset( pCex, 0, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
     pCex->nRegs  = nRegs;
     pCex->nPis   = nRealPis;
     pCex->nBits  = nRegs + nRealPis * nFrames;
@@ -908,7 +911,7 @@ Fra_Cex_t * Fra_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_SmlFreeCounterExample( Fra_Cex_t * pCex )
+void Fra_SmlFreeCounterExample( Abc_Cex_t * pCex )
 {
     ABC_FREE( pCex );
 }
@@ -924,9 +927,9 @@ void Fra_SmlFreeCounterExample( Fra_Cex_t * pCex )
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Cex_t * Fra_SmlGetCounterExample( Fra_Sml_t * p )
+Abc_Cex_t * Fra_SmlGetCounterExample( Fra_Sml_t * p )
 {
-    Fra_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     unsigned * pSims;
     int iPo, iFrame, iBit, i, k;
@@ -998,9 +1001,9 @@ Fra_Cex_t * Fra_SmlGetCounterExample( Fra_Sml_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel )
+Abc_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel )
 {
-    Fra_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     int i, nFrames, nTruePis, nTruePos, iPo, iFrame;
     // get the number of frames
@@ -1058,9 +1061,9 @@ Fra_Cex_t * Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, in
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Cex_t * Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
+Abc_Cex_t * Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
 {
-    Fra_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     int nTruePis, nTruePos, iPo, iFrame;
     assert( Aig_ManRegNum(pAig) > 0 );
     nTruePis = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
@@ -1085,7 +1088,7 @@ Fra_Cex_t * Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_SmlRunCounterExample( Aig_Man_t * pAig, Fra_Cex_t * p )
+int Fra_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p )
 {
     Fra_Sml_t * pSml;
     Aig_Obj_t * pObj;
@@ -1113,6 +1116,38 @@ int Fra_SmlRunCounterExample( Aig_Man_t * pAig, Fra_Cex_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Make the trivial counter-example for the trivially asserted output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Fra_SmlSimpleCounterExample( Aig_Man_t * pAig, int * pModel, int iFrame, int iPo )
+{
+    Abc_Cex_t * pCex;
+    int iBit;
+    pCex = Fra_SmlAllocCounterExample( Aig_ManRegNum(pAig), Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig), iFrame + 1 );
+    pCex->iPo    = iPo;
+    pCex->iFrame = iFrame;
+    for ( iBit = Aig_ManRegNum(pAig); iBit < pCex->nBits; iBit++ )
+        if ( pModel[iBit-Aig_ManRegNum(pAig)] )
+            Aig_InfoSetBit( pCex->pData, iBit );
+/*
+    if ( !Fra_SmlRunCounterExample( pAig, pCex ) )
+    {
+        printf( "Fra_SmlSimpleCounterExample(): Counter-example is invalid.\n" );
+//        Fra_SmlFreeCounterExample( pCex );
+//        pCex = NULL;
+    }
+*/
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Resimulates the counter-example.]
 
   Description []
@@ -1122,7 +1157,7 @@ int Fra_SmlRunCounterExample( Aig_Man_t * pAig, Fra_Cex_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Fra_Cex_t * p )
+int Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Abc_Cex_t * p )
 {
     Fra_Sml_t * pSml;
     Aig_Obj_t * pObj;
@@ -1190,4 +1225,6 @@ int Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Fra_Cex_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -18,6 +18,9 @@
 
 #include "extra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -266,7 +269,7 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
 
     s_CutLevel = CutLevel;
 
-    Result  = st_init_table(st_ptrcmp,st_ptrhash);
+    Result  = st_init_table(st_ptrcmp, st_ptrhash);;
     // the terminal cases
     if ( Cudd_IsConstant( bFunc ) )
     {
@@ -290,8 +293,8 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
 
     // Step 1: Start the tables and collect information about the nodes above the cut 
     // this information tells how many edges point to each node
-    Visited  = st_init_table(st_ptrcmp,st_ptrhash);
-    CutNodes = st_init_table(st_ptrcmp,st_ptrhash);
+    Visited  = st_init_table(st_ptrcmp, st_ptrhash);;
+    CutNodes = st_init_table(st_ptrcmp, st_ptrhash);;
 
     CountNodeVisits_rec( dd, aFunc, Visited );
 
@@ -303,7 +306,7 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
         st_generator * gen;
         DdNode * aNode;
         traventry * p;
-        st_foreach_item( Visited, gen, (char**)&aNode, (char**)&p ) 
+        st_foreach_item( Visited, gen, (const char**)&aNode, (char**)&p )
         {
             Cudd_RecursiveDeref( dd, p->bSum );
             ABC_FREE( p );
@@ -315,7 +318,7 @@ st_table * Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLe
     {
         st_generator * gen;
         DdNode * aNode, * bNode, * bSum;
-        st_foreach_item( CutNodes, gen, (char**)&aNode, (char**)&bSum) 
+        st_foreach_item( CutNodes, gen, (const char**)&aNode, (char**)&bSum)
         {
             // aNode is not referenced, because aFunc is holding it
             bNode = Cudd_addBddPattern( dd, aNode );  Cudd_Ref( bNode ); 
@@ -376,8 +379,8 @@ int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode *
 
     // Step 1: Start the table and collect information about the nodes above the cut 
     // this information tells how many edges point to each node
-    CutNodes = st_init_table(st_ptrcmp,st_ptrhash);
-    Visited  = st_init_table(st_ptrcmp,st_ptrhash);
+    CutNodes = st_init_table(st_ptrcmp, st_ptrhash);;
+    Visited  = st_init_table(st_ptrcmp, st_ptrhash);;
 
     for ( i = 0; i < nNodes; i++ )
         CountNodeVisits_rec( dd, paNodes[i], Visited );
@@ -391,7 +394,7 @@ int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode *
         st_generator * gen;
         DdNode * aNode;
         traventry * p;
-        st_foreach_item( Visited, gen, (char**)&aNode, (char**)&p ) 
+        st_foreach_item( Visited, gen, (const char**)&aNode, (char**)&p )
         {
             Cudd_RecursiveDeref( dd, p->bSum );
             ABC_FREE( p );
@@ -404,7 +407,7 @@ int Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode *
         st_generator * gen;
         DdNode * aNode, * bSum;
         Counter = 0;
-        st_foreach_item( CutNodes, gen, (char**)&aNode, (char**)&bSum) 
+        st_foreach_item( CutNodes, gen, (const char**)&aNode, (char**)&bSum)
         {
             paNodesRes[Counter] = aNode;   Cudd_Ref( aNode ); 
             pbCubesRes[Counter] = bSum;
@@ -525,7 +528,7 @@ int Extra_ProfileWidth( DdManager * dd, DdNode * Func, int * pProfile, int CutLe
     int WidthMax;
   
     // start the mapping table
-    tNodeTopRef = st_init_table(st_ptrcmp,st_ptrhash);
+    tNodeTopRef = st_init_table(st_ptrcmp, st_ptrhash);;
     // add the topmost node to the profile
     extraProfileUpdateTopLevel( tNodeTopRef, 0, Func );
 
@@ -533,7 +536,7 @@ int Extra_ProfileWidth( DdManager * dd, DdNode * Func, int * pProfile, int CutLe
     tNodes = Extra_CollectNodes( Func );
     // go though all the nodes and set the top level the cofactors are pointed from
 //    Cudd_ForeachNode( dd, Func, genDD, node )
-    st_foreach_item( tNodes, gen, (char**)&node, NULL )
+    st_foreach_item( tNodes, gen, (const char**)&node, NULL )
     {
 //        assert( Cudd_Regular(node) );  // this procedure works only with ADD/ZDD (not BDD w/ compl.edges)
         nodeR = Cudd_Regular(node);
@@ -551,7 +554,7 @@ int Extra_ProfileWidth( DdManager * dd, DdNode * Func, int * pProfile, int CutLe
         pProfile[i] = 0;
 
     // create the profile
-    st_foreach_item( tNodeTopRef, gen, (char**)&node, (char**)&LevelStart )
+    st_foreach_item( tNodeTopRef, gen, (const char**)&node, (char**)&LevelStart )
     {
         nodeR = Cudd_Regular(node);
         Limit = (cuddIsConstant(nodeR))? dd->size: dd->perm[nodeR->index];
@@ -634,7 +637,7 @@ DdNode * CreateTheCodes_rec( DdManager * dd, DdNode * bEncoded, int Level, DdNod
             st_generator * gen;
             DdNode * bColumn, * bCode;
             nCols = 0;
-            st_foreach_item( CutNodes, gen, (char**)&bCode, (char**)&bColumn ) 
+            st_foreach_item( CutNodes, gen, (const char**)&bCode, (char**)&bColumn )
             {
                 if ( bCode == b0 )
                 { // the unused part of the columns
@@ -1228,3 +1231,5 @@ void CollectNodesAndComputePaths_rec( DdManager * dd, DdNode * aFunc, DdNode * b
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

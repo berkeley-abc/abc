@@ -21,6 +21,7 @@
 #ifndef __CNF_H__
 #define __CNF_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -39,9 +40,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -97,7 +99,7 @@ static inline int          Cnf_CutLeaveNum( Cnf_Cut_t * pCut )    { return pCut-
 static inline int *        Cnf_CutLeaves( Cnf_Cut_t * pCut )      { return pCut->pFanins;                               }
 static inline unsigned *   Cnf_CutTruth( Cnf_Cut_t * pCut )       { return (unsigned *)(pCut->pFanins + pCut->nFanins); }
 
-static inline Cnf_Cut_t *  Cnf_ObjBestCut( Aig_Obj_t * pObj )                       { return pObj->pData;  }
+static inline Cnf_Cut_t *  Cnf_ObjBestCut( Aig_Obj_t * pObj )                       { return (Cnf_Cut_t *)pObj->pData;  }
 static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut )  { pObj->pData = pCut;  }
 
 ////////////////////////////////////////////////////////////////////////
@@ -121,6 +123,7 @@ static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cnfCore.c ========================================================*/
+extern Vec_Int_t *     Cnf_DeriveMappingArray( Aig_Man_t * pAig );
 extern Cnf_Dat_t *     Cnf_Derive( Aig_Man_t * pAig, int nOutputs );
 extern Cnf_Man_t *     Cnf_ManRead();
 extern void            Cnf_ClearMemory();
@@ -147,6 +150,7 @@ extern void *          Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int 
 extern int             Cnf_DataWriteOrClause( void * pSat, Cnf_Dat_t * pCnf );
 extern int             Cnf_DataWriteAndClauses( void * p, Cnf_Dat_t * pCnf );
 extern void            Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos );
+extern int             Cnf_DataAddXorClause( void * pSat, int iVarA, int iVarB, int iVarC );
 /*=== cnfMap.c ========================================================*/
 extern void            Cnf_DeriveMapping( Cnf_Man_t * p );
 extern int             Cnf_ManMapForCnf( Cnf_Man_t * p );
@@ -160,14 +164,17 @@ extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPre
 extern Vec_Int_t *     Cnf_DataCollectCiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 extern Vec_Int_t *     Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 /*=== cnfWrite.c ========================================================*/
+extern Vec_Int_t *     Cnf_ManWriteCnfMapping( Cnf_Man_t * p, Vec_Ptr_t * vMapped );
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );
 extern Cnf_Dat_t *     Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs );
 extern Cnf_Dat_t *     Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs );
 extern Cnf_Dat_t *     Cnf_DeriveSimpleForRetiming( Aig_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

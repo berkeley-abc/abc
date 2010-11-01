@@ -22,6 +22,9 @@
 #include "main.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,7 +44,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Rwr_Man_t * Rwr_ManStart( bool fPrecompute )
+Rwr_Man_t * Rwr_ManStart( int  fPrecompute )
 {
     Dec_Man_t * pManDec;
     Rwr_Man_t * p;
@@ -50,7 +53,7 @@ clk = clock();
     p = ABC_ALLOC( Rwr_Man_t, 1 );
     memset( p, 0, sizeof(Rwr_Man_t) );
     p->nFuncs = (1<<16);
-    pManDec   = Abc_FrameReadManDec();
+    pManDec   = (Dec_Man_t *)Abc_FrameReadManDec();
     p->puCanons = pManDec->puCanons; 
     p->pPhases  = pManDec->pPhases; 
     p->pPerms   = pManDec->pPerms; 
@@ -109,7 +112,7 @@ void Rwr_ManStop( Rwr_Man_t * p )
     {
         Rwr_Node_t * pNode;
         int i, k;
-        Vec_VecForEachEntry( p->vClasses, pNode, i, k )
+        Vec_VecForEachEntry( Rwr_Node_t *, p->vClasses, pNode, i, k )
             Dec_GraphFree( (Dec_Graph_t *)pNode->pNext );
     }
     if ( p->vClasses )  Vec_VecFree( p->vClasses );
@@ -315,4 +318,6 @@ void Rwr_Precompute()
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

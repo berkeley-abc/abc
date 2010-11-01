@@ -17,6 +17,9 @@
 
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 static void cb_unravel(c, start, end, startbase, B1)
 IN register pcube c;
@@ -537,3 +540,5 @@ int i;
     PLA->F = NULL;
     return 1;
 }
+ABC_NAMESPACE_IMPL_END
+

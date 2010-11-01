@@ -19,6 +19,7 @@
 #ifndef __MAPPER_INT_H__
 #define __MAPPER_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,10 +28,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
-#include "cuddInt.h"
 #include "main.h"
 #include "mio.h"
 #include "mapper.h"
+#include "cuddInt.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -113,10 +117,10 @@ struct Map_ManStruct_t_
     float               AreaBase;      // the area after delay-oriented mapping
     float               AreaFinal;     // the area after delay-oriented mapping
     int                 nIterations;   // How many matching passes to do
-    bool                fObeyFanoutLimits;// Should mapper try to obey fanout limits or not
+    int                 fObeyFanoutLimits;// Should mapper try to obey fanout limits or not
     float               DelayTarget;   // the required times set by the user
     int                 nTravIds;      // the traversal counter
-    bool                fSwitching;    // Should mapper try to obey fanout limits or not
+    int                 fSwitching;    // Should mapper try to obey fanout limits or not
 
     // the supergate library
     Map_SuperLib_t *    pSuperLib;     // the current supergate library
@@ -169,7 +173,7 @@ struct Map_SuperLibStruct_t_
     int                 nSupersAll;    // the total number of supergates
     int                 nSupersReal;   // the total number of supergates
     int                 nLines;        // the total number of lines in the supergate file
-    bool                fVerbose;      // the verbosity flag
+    int                 fVerbose;      // the verbosity flag
 
     // hash tables
     Map_Super_t **      ppSupers;      // the array of supergates
@@ -373,7 +377,7 @@ extern void              Map_NodeAddFaninFanout( Map_Node_t * pFanin, Map_Node_t
 extern void              Map_NodeRemoveFaninFanout( Map_Node_t * pFanin, Map_Node_t * pFanoutToRemove );
 extern int               Map_NodeGetFanoutNum( Map_Node_t * pNode );
 /*=== mapperLib.c ============================================================*/
-extern Map_SuperLib_t *  Map_SuperLibCreate( char * pFileName, char * pExcludeFile, bool fAlgorithm, bool fVerbose );
+extern Map_SuperLib_t *  Map_SuperLibCreate( char * pFileName, char * pExcludeFile, int  fAlgorithm, int  fVerbose );
 extern void              Map_SuperLibFree( Map_SuperLib_t * p );
 /*=== mapperMatch.c ===============================================================*/
 extern int               Map_MappingMatches( Map_Man_t * p );
@@ -468,6 +472,10 @@ extern void              Map_NodeVecRemove( Map_NodeVec_t * p, Map_Node_t * Entr
 extern void              Map_NodeVecWriteEntry( Map_NodeVec_t * p, int i, Map_Node_t * Entry );
 extern Map_Node_t *      Map_NodeVecReadEntry( Map_NodeVec_t * p, int i );
 extern void              Map_NodeVecSortByLevel( Map_NodeVec_t * p );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

@@ -20,6 +20,9 @@
 
 #include "mfxInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -201,7 +204,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArriva
 
     // count the number of PIs
     nTrueSupp = 0;
-    Vec_PtrForEachEntry( vCone, pObj, k )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vCone, pObj, k )
         nTrueSupp += Nwk_ObjIsCi(pObj);
 //    printf( "%d(%d) ", Vec_PtrSize(p->vSupp), m );
 
@@ -221,7 +224,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArriva
 
     // start collecting the divisors
     vDivs = Vec_PtrAlloc( p->pPars->nDivMax );
-    Vec_PtrForEachEntry( vCone, pObj, k )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vCone, pObj, k )
     {
         if ( !Nwk_ObjIsTravIdPrevious(pObj) )
             continue;
@@ -235,7 +238,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArriva
 
     // explore the fanouts of already collected divisors
     if ( Vec_PtrSize(vDivs) < p->pPars->nDivMax )
-    Vec_PtrForEachEntry( vDivs, pObj, k )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vDivs, pObj, k )
     {
         // consider fanouts of this node
         Nwk_ObjForEachFanout( pObj, pFanout, f )
@@ -262,7 +265,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArriva
             if ( m < Nwk_ObjFaninNum(pFanout) )
                 continue;
             // make sure this divisor in not among the nodes
-//            Vec_PtrForEachEntry( p->vNodes, pFanin, m )
+//            Vec_PtrForEachEntry( Aig_Obj_t *, p->vNodes, pFanin, m )
 //                assert( pFanout != pFanin );
             // add the node to the divisors
             Vec_PtrPush( vDivs, pFanout );
@@ -278,7 +281,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArriva
     }
 
     // sort the divisors by level in the increasing order
-    Vec_PtrSort( vDivs, Nwk_NodeCompareLevelsIncrease );
+    Vec_PtrSort( vDivs, (int (*)(void))Nwk_NodeCompareLevelsIncrease );
 
     // add the fanins of the node
     Nwk_ObjForEachFanin( pNode, pFanin, k )
@@ -300,4 +303,6 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArriva
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

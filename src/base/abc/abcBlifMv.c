@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -61,8 +64,8 @@ void Abc_NtkStartMvVars( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk ) 
 { 
-    void * pUserMan;
-    pUserMan = Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, 0 ); 
+    Extra_MmFlex_t * pUserMan;
+    pUserMan = (Extra_MmFlex_t *)Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, 0 ); 
     Extra_MmFlexStop( pUserMan );
 }
 
@@ -93,8 +96,8 @@ void Abc_NtkSetMvVarValues( Abc_Obj_t * pObj, int nValues )
     if ( Abc_ObjMvVar(pObj) != NULL )
         return;
     // create the structure
-    pFlex = Abc_NtkMvVarMan( pObj->pNtk );
-    pVarStruct = (void *)Extra_MmFlexEntryFetch( pFlex, sizeof(struct temp) );
+    pFlex = (Extra_MmFlex_t *)Abc_NtkMvVarMan( pObj->pNtk );
+    pVarStruct = (struct temp *)Extra_MmFlexEntryFetch( pFlex, sizeof(struct temp) );
     pVarStruct->nValues = nValues;
     pVarStruct->pNames = NULL;
     Abc_ObjSetMvVar( pObj, pVarStruct );
@@ -150,7 +153,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
         pValues[k] = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
 
     // get the BLIF-MV formula
-    pSop = pObj->pData;
+    pSop = (char *)pObj->pData;
     // skip the value line
 //    while ( *pSop++ != '\n' );
 
@@ -170,7 +173,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
             Index = Abc_StringGetNumber( &pSop );
         assert( Index < nValues );
         ////////////////////////////////////////////
-        // adding ABC_FREE variables for binary ND-constants
+        // adding free variables for binary ND-constants
         if ( fAddFreeVars && nValues == 2 && *pSop == '-' )
         {
             pValues[1] = Abc_NtkCreatePi(pNtkNew);
@@ -243,7 +246,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
                 {
                     Index = Abc_StringGetNumber( &pSop );
                     assert( Index < nValuesF );
-                    pTemp2 = Abc_AigOr( pNtkNew->pManFunc, pTemp2, pValuesF[Index] );
+                    pTemp2 = Abc_AigOr( (Abc_Aig_t *)pNtkNew->pManFunc, pTemp2, pValuesF[Index] );
                     assert( *pSop == ')' || *pSop == ',' );
                     if ( *pSop == ',' )
                         pSop++;
@@ -266,7 +269,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
                 assert( nValuesF == nValuesF2 );
                 pTemp2 = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
                 for ( v = 0; v < nValues; v++ )
-                    pTemp2 = Abc_AigOr( pNtkNew->pManFunc, pTemp2, Abc_AigAnd(pNtkNew->pManFunc, pValuesF[v], pValuesF2[v]) );
+                    pTemp2 = Abc_AigOr( (Abc_Aig_t *)pNtkNew->pManFunc, pTemp2, Abc_AigAnd((Abc_Aig_t *)pNtkNew->pManFunc, pValuesF[v], pValuesF2[v]) );
             }
             else
             {
@@ -275,7 +278,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
                 pTemp2 = pValuesF[Index];
             }
             // compute the compute
-            pTemp = Abc_AigAnd( pNtkNew->pManFunc, pTemp, pTemp2 );
+            pTemp = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, pTemp, pTemp2 );
             // advance the reading point
             assert( *pSop == ' ' );
             pSop++;
@@ -293,14 +296,14 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
             pValuesF = (Abc_Obj_t **)pFanin->pCopy;
             assert( nValuesF == nValues ); // should be guaranteed by the parser
             for ( k = 0; k < nValuesF; k++ )
-                pValues[k] = Abc_AigOr( pNtkNew->pManFunc, pValues[k], Abc_AigAnd(pNtkNew->pManFunc, pTemp, pValuesF[k]) );
+                pValues[k] = Abc_AigOr( (Abc_Aig_t *)pNtkNew->pManFunc, pValues[k], Abc_AigAnd((Abc_Aig_t *)pNtkNew->pManFunc, pTemp, pValuesF[k]) );
         }
         else
         {
             // get the output value
             Index = Abc_StringGetNumber( &pSop );
             assert( Index < nValues );
-            pValues[Index] = Abc_AigOr( pNtkNew->pManFunc, pValues[Index], pTemp );
+            pValues[Index] = Abc_AigOr( (Abc_Aig_t *)pNtkNew->pManFunc, pValues[Index], pTemp );
         }
         // advance the reading point
         assert( *pSop == '\n' );
@@ -315,7 +318,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
         {
             if ( k == Def )
                 continue;
-            pTemp = Abc_AigAnd( pNtkNew->pManFunc, pTemp, Abc_ObjNot(pValues[k]) );
+            pTemp = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, pTemp, Abc_ObjNot(pValues[k]) );
         }
 
         // assign the default value
@@ -330,7 +333,7 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
             pValuesF = (Abc_Obj_t **)pFanin->pCopy;
             assert( nValuesF == nValues ); // should be guaranteed by the parser
             for ( k = 0; k < nValuesF; k++ )
-                pValues[k] = Abc_AigOr( pNtkNew->pManFunc, pValues[k], Abc_AigAnd(pNtkNew->pManFunc, pTemp, pValuesF[k]) );
+                pValues[k] = Abc_AigOr( (Abc_Aig_t *)pNtkNew->pManFunc, pValues[k], Abc_AigAnd((Abc_Aig_t *)pNtkNew->pManFunc, pTemp, pValuesF[k]) );
         }
 
     }
@@ -484,7 +487,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 for ( k = 0; k < nBits; k++ )
                 {
                     pBit = Abc_ObjNotCond( pBits[k], (v&(1<<k)) == 0 );
-                    pValues[v] = Abc_AigAnd( pNtkNew->pManFunc, pValues[v], pBit );
+                    pValues[v] = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, pValues[v], pBit );
                 }
             }
             // save the values in the fanout net
@@ -517,7 +520,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 for ( k = 0; k < nBits; k++ )
                 {
                     pBit = Abc_ObjNotCond( pBits[k], (v&(1<<k)) == 0 );
-                    pValues[v] = Abc_AigAnd( pNtkNew->pManFunc, pValues[v], pBit );
+                    pValues[v] = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, pValues[v], pBit );
                 }
             }
             // save the values in the fanout net
@@ -528,7 +531,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
     }
 
     // process nodes in the topological order
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         if ( !Abc_NodeStrashBlifMv( pNtkNew, pObj ) )
         {
             Abc_NtkDelete( pNtkNew );
@@ -602,7 +605,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 pBit = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
                 for ( v = 0; v < nValues; v++ )
                     if ( v & (1<<k) )
-                        pBit = Abc_AigOr( pNtkNew->pManFunc, pBit, pValues[v] );
+                        pBit = Abc_AigOr( (Abc_Aig_t *)pNtkNew->pManFunc, pBit, pValues[v] );
                 pTemp = Abc_NtkCreatePo( pNtkNew );
                 Abc_ObjAddFanin( pTemp, pBit );
                 if ( nValuesMax == 2 )
@@ -628,7 +631,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
                 pBit = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
                 for ( v = 0; v < nValues; v++ )
                     if ( v & (1<<k) )
-                        pBit = Abc_AigOr( pNtkNew->pManFunc, pBit, pValues[v] );
+                        pBit = Abc_AigOr( (Abc_Aig_t *)pNtkNew->pManFunc, pBit, pValues[v] );
                 pTemp = Abc_NtkCreateBi( pNtkNew );
                 Abc_ObjAddFanin( pTemp, pBit );
                 if ( nValuesMax == 2 )
@@ -645,7 +648,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
         Vec_Ptr_t * vTemp;
         Abc_Obj_t * pLatch, * pObjLi, * pObjLo;
         int i;
-        // move ABC_FREE vars to the front among the PIs
+        // move free vars to the front among the PIs
         vTemp = Vec_PtrAlloc( Vec_PtrSize(pNtkNew->vPis) );
         Abc_NtkForEachPi( pNtkNew, pObj, i )
             if ( strncmp( Abc_ObjName(pObj), "free_var_", 9 ) == 0 )
@@ -656,7 +659,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
         assert( Vec_PtrSize(vTemp) == Vec_PtrSize(pNtkNew->vPis) );
         Vec_PtrFree( pNtkNew->vPis );
         pNtkNew->vPis = vTemp;
-        // move ABC_FREE vars to the front among the CIs
+        // move free vars to the front among the CIs
         vTemp = Vec_PtrAlloc( Vec_PtrSize(pNtkNew->vCis) );
         Abc_NtkForEachCi( pNtkNew, pObj, i )
             if ( strncmp( Abc_ObjName(pObj), "free_var_", 9 ) == 0 )
@@ -690,7 +693,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
             ABC_FREE( pObj->pCopy );
 
     // remove dangling nodes
-    i = Abc_AigCleanup(pNtkNew->pManFunc);
+    i = Abc_AigCleanup((Abc_Aig_t *)pNtkNew->pManFunc);
 //    printf( "Cleanup removed %d nodes.\n", i );
 //    Abc_NtkReassignIds( pNtkNew );
 
@@ -781,7 +784,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             for ( v = 0; v < nValues; v++ )
             {
                 pNodeNew = Abc_NtkCreateNode( pNtkNew );
-                pNodeNew->pData = Abc_SopEncoderPos( pNtkNew->pManFunc, v, nValues );
+                pNodeNew->pData = Abc_SopEncoderPos( (Extra_MmFlex_t *)pNtkNew->pManFunc, v, nValues );
                 pNetNew = Abc_NtkCreateNet( pNtkNew );
                 pTermNew = Abc_NtkCreateBi( pNtkNew );
                 Abc_ObjAddFanin( pNodeNew, pNet->pCopy );
@@ -803,7 +806,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             for ( k = 0; k < nBits; k++ )
             {
                 pNodeNew = Abc_NtkCreateNode( pNtkNew );
-                pNodeNew->pData = Abc_SopEncoderLog( pNtkNew->pManFunc, k, nValues );
+                pNodeNew->pData = Abc_SopEncoderLog( (Extra_MmFlex_t *)pNtkNew->pManFunc, k, nValues );
                 pNetNew = Abc_NtkCreateNet( pNtkNew );
                 pTermNew = Abc_NtkCreateBi( pNtkNew );
                 Abc_ObjAddFanin( pNodeNew, pNet->pCopy );
@@ -828,7 +831,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             Abc_NodeSetTravIdCurrent( pNet );
             nValues = Abc_ObjMvVarNum(pNet);
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
-            pNodeNew->pData = Abc_SopDecoderPos( pNtkNew->pManFunc, nValues );
+            pNodeNew->pData = Abc_SopDecoderPos( (Extra_MmFlex_t *)pNtkNew->pManFunc, nValues );
             for ( v = 0; v < nValues; v++ )
             {
                 pTermNew = Abc_NtkCreateBo( pNtkNew );
@@ -852,7 +855,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             nValues = Abc_ObjMvVarNum(pNet);
             nBits = Extra_Base2Log( nValues );
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
-            pNodeNew->pData = Abc_SopDecoderLog( pNtkNew->pManFunc, nValues );
+            pNodeNew->pData = Abc_SopDecoderLog( (Extra_MmFlex_t *)pNtkNew->pManFunc, nValues );
             for ( k = 0; k < nBits; k++ )
             {
                 pTermNew = Abc_NtkCreateBo( pNtkNew );
@@ -995,13 +998,13 @@ int Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk )
         *pCur++ = 0;
         assert( pCur - pBlifMv == nSize );
         // update the node representation
-        Cudd_RecursiveDeref( pNtk->pManFunc, pNode->pData );
+        Cudd_RecursiveDeref( (DdManager *)pNtk->pManFunc, (DdNode *)pNode->pData );
         pNode->pData = pBlifMv;
     }
 
     // update the functionality type
     pNtk->ntkFunc = ABC_FUNC_BLIFMV;
-    Cudd_Quit( pNtk->pManFunc );
+    Cudd_Quit( (DdManager *)pNtk->pManFunc );
     pNtk->pManFunc = pMmFlex;
 
     Vec_StrFree( vCube );
@@ -1151,4 +1154,6 @@ int Abc_NodeEvalMvCost( int nVars, Vec_Int_t * vSop0, Vec_Int_t * vSop1 )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

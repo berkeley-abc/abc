@@ -22,6 +22,9 @@
 #include "dec.h"
 #include "bblif.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 // For description of Binary BLIF format, refer to "abc/src/aig/bbl/bblif.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -70,13 +73,13 @@ Abc_Ntk_t * Bbl_ManToAbc( Bbl_Man_t * p )
             pObjNew = Abc_NtkCreateNode( pNtk );
         else assert( 0 );
         if ( Bbl_ObjIsLut(pObj) )
-            pObjNew->pData = Abc_SopRegister( pNtk->pManFunc, Bbl_ObjSop(p, pObj) );
+            pObjNew->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, Bbl_ObjSop(p, pObj) );
         Vec_PtrSetEntry( vCopy, Bbl_ObjId(pObj), pObjNew );
     }
     // connect objects
     Bbl_ManForEachObj( p, pObj )
         Bbl_ObjForEachFanin( pObj, pFanin )
-            Abc_ObjAddFanin( Vec_PtrEntry(vCopy, Bbl_ObjId(pObj)), Vec_PtrEntry(vCopy, Bbl_ObjId(pFanin)) );
+            Abc_ObjAddFanin( (Abc_Obj_t *)Vec_PtrEntry(vCopy, Bbl_ObjId(pObj)), (Abc_Obj_t *)Vec_PtrEntry(vCopy, Bbl_ObjId(pFanin)) );
     // finalize
     Vec_PtrFree( vCopy );
     Abc_NtkAddDummyPiNames( pNtk );
@@ -185,7 +188,7 @@ clk = clock();
     // create internal nodes
     vNodes = Bbl_ManDfs( p );
     vFaninAigs = Vec_PtrAlloc( 100 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Bbl_Obj_t *, vNodes, pObj, i )
     {
         // collect fanin AIGs
         Vec_PtrClear( vFaninAigs );
@@ -204,10 +207,10 @@ ABC_PRT( "AIG", clock() - clk );
     {
         if ( !Bbl_ObjIsOutput(pObj) )
             continue;
-        pObjNew = Vec_PtrEntry( vCopy, Bbl_ObjId(Bbl_ObjFaninFirst(pObj)) );
+        pObjNew = (Abc_Obj_t *)Vec_PtrEntry( vCopy, Bbl_ObjId(Bbl_ObjFaninFirst(pObj)) );
         Abc_ObjAddFanin( Abc_NtkCreatePo(pNtk), pObjNew );
     }
-    Abc_AigCleanup( pNtk->pManFunc );
+    Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
     // clear factored forms
     for ( i = Bbl_ManFncSize(p) - 1; i >= 0; i-- )
         if ( pFForms[i] )
@@ -339,4 +342,6 @@ Abc_Ntk_t * Io_ReadBblif( char * pFileName, int fCheck )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

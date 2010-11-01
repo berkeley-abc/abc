@@ -25,4 +25,5 @@ SRC +=  src/base/io/io.c \
     src/base/io/ioWriteGml.c \
     src/base/io/ioWriteList.c \
     src/base/io/ioWritePla.c \
-    src/base/io/ioWriteVerilog.c
+    src/base/io/ioWriteVerilog.c \
+    src/base/io/ioWriteSmv.c

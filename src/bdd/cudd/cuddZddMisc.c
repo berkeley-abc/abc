@@ -36,6 +36,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -249,4 +252,6 @@ cuddZddDagInt(
     cuddZddDagInt(cuddE(n), tab));
 
 } /* cuddZddDagInt */
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,287 +20,14 @@
 
 #include "rwt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 // precomputed data
-#ifdef _WIN32
-unsigned short s_RwtPracticalClasses[];
-unsigned short s_RwtAigSubgraphs[];
-#else
-static unsigned short s_RwtPracticalClasses[];
-static unsigned short s_RwtAigSubgraphs[];
-#endif
-
-////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
-////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Adds the node to the end of the list.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rwt_ListAddToTail( Rwt_Node_t ** ppList, Rwt_Node_t * pNode )
-{
-    Rwt_Node_t * pTemp;
-    // find the last one
-    for ( pTemp = *ppList; pTemp; pTemp = pTemp->pNext )
-        ppList = &pTemp->pNext;
-    // attach at the end
-    *ppList = pNode;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Rwt_Node_t * Rwt_ManAddVar( Rwt_Man_t * p, unsigned uTruth, int fPrecompute )
-{
-    Rwt_Node_t * pNew;
-    pNew = (Rwt_Node_t *)Mem_FixedEntryFetch( p->pMmNode );
-    pNew->Id     = p->vForest->nSize;
-    pNew->TravId = 0;
-    pNew->uTruth = uTruth;
-    pNew->Level  = 0;
-    pNew->Volume = 0;
-    pNew->fUsed  = 1;
-    pNew->fExor  = 0;
-    pNew->p0     = NULL;
-    pNew->p1     = NULL;    
-    pNew->pNext  = NULL;
-    Vec_PtrPush( p->vForest, pNew );
-    if ( fPrecompute )
-        Rwt_ListAddToTail( p->pTable + uTruth, pNew );
-    return pNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Rwt_Node_t * Rwt_ManAddNode( Rwt_Man_t * p, Rwt_Node_t * p0, Rwt_Node_t * p1, int fExor, int Level, int Volume )
-{
-    Rwt_Node_t * pNew;
-    unsigned uTruth;
-    // compute truth table, leve, volume
-    p->nConsidered++;
-    if ( fExor )
-        uTruth = (p0->uTruth ^ p1->uTruth);
-    else
-        uTruth = (Rwt_IsComplement(p0)? ~Rwt_Regular(p0)->uTruth : Rwt_Regular(p0)->uTruth) & 
-                 (Rwt_IsComplement(p1)? ~Rwt_Regular(p1)->uTruth : Rwt_Regular(p1)->uTruth) & 0xFFFF;
-    // create the new node
-    pNew = (Rwt_Node_t *)Mem_FixedEntryFetch( p->pMmNode );
-    pNew->Id     = p->vForest->nSize;
-    pNew->TravId = 0;
-    pNew->uTruth = uTruth;
-    pNew->Level  = Level;
-    pNew->Volume = Volume;
-    pNew->fUsed  = 0;
-    pNew->fExor  = fExor;
-    pNew->p0     = p0;
-    pNew->p1     = p1;
-    pNew->pNext  = NULL;
-    Vec_PtrPush( p->vForest, pNew );
-    // do not add if the node is not essential
-    if ( uTruth != p->puCanons[uTruth] )
-        return pNew;
-
-    // add to the list
-    p->nAdded++;
-    if ( p->pTable[uTruth] == NULL )
-        p->nClasses++;
-    Rwt_ListAddToTail( p->pTable + uTruth, pNew );
-    return pNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rwt_Trav_rec( Rwt_Man_t * p, Rwt_Node_t * pNode, int * pVolume )
-{
-    if ( pNode->fUsed || pNode->TravId == p->nTravIds )
-        return;
-    pNode->TravId = p->nTravIds;
-    (*pVolume)++;
-    if ( pNode->fExor )
-        (*pVolume)++;
-    Rwt_Trav_rec( p, Rwt_Regular(pNode->p0), pVolume );
-    Rwt_Trav_rec( p, Rwt_Regular(pNode->p1), pVolume );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rwt_ManIncTravId( Rwt_Man_t * p )
-{
-    Rwt_Node_t * pNode;
-    int i;
-    if ( p->nTravIds++ < 0x8FFFFFFF )
-        return;
-    Vec_PtrForEachEntry( p->vForest, pNode, i )
-        pNode->TravId = 0;
-    p->nTravIds = 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Rwt_ManNodeVolume( Rwt_Man_t * p, Rwt_Node_t * p0, Rwt_Node_t * p1 )
-{
-    int Volume = 0;
-    Rwt_ManIncTravId( p );
-    Rwt_Trav_rec( p, p0, &Volume );
-    Rwt_Trav_rec( p, p1, &Volume );
-    return Volume;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Loads data.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose )
-{
-    unsigned short * pArray = s_RwtAigSubgraphs;
-    Rwt_Node_t * p0, * p1;
-    unsigned Entry0, Entry1;
-    int Level, Volume, nEntries, fExor;
-    int i, clk = clock();
-
-    // reconstruct the forest
-    for ( i = 0; ; i++ )
-    {
-        Entry0 = pArray[2*i + 0];
-        Entry1 = pArray[2*i + 1];
-        if ( Entry0 == 0 && Entry1 == 0 )
-            break;
-        // get EXOR flag
-        fExor = (Entry0 & 1);
-        Entry0 >>= 1;
-        // get the nodes
-        p0 = p->vForest->pArray[Entry0 >> 1];
-        p1 = p->vForest->pArray[Entry1 >> 1];
-        // compute the level and volume of the new nodes
-        Level  = 1 + RWT_MAX( p0->Level, p1->Level );
-        Volume = 1 + Rwt_ManNodeVolume( p, p0, p1 );
-        // set the complemented attributes
-        p0 = Rwt_NotCond( p0, (Entry0 & 1) );
-        p1 = Rwt_NotCond( p1, (Entry1 & 1) );
-        // add the node
-//        Rwt_ManTryNode( p, p0, p1, Level, Volume );
-        Rwt_ManAddNode( p, p0, p1, fExor, Level, Volume + fExor );
-    }
-    nEntries = i - 1;
-    if ( fVerbose )
-    {
-        printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", clock() - clk );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create practical classes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Rwt_ManGetPractical( Rwt_Man_t * p )
-{
-    char * pPractical;
-    int i;
-    pPractical = ABC_ALLOC( char, p->nFuncs );
-    memset( pPractical, 0, sizeof(char) * p->nFuncs );
-    pPractical[0] = 1;
-    for ( i = 1; ; i++ )
-    {
-        if ( s_RwtPracticalClasses[i] == 0 )
-            break;
-        pPractical[ s_RwtPracticalClasses[i] ] = 1;
-    }
-    return pPractical;
-}
-
-////////////////////////////////////////////////////////////////////////
-///                       END OF FILE                                ///
-////////////////////////////////////////////////////////////////////////
-
-// the following 135 practical NPN classes of 4-variable functions were computed
-// by considering all 4-input cuts appearing in IWLS, MCNC, and ISCAS benchmarks
-static unsigned short s_RwtPracticalClasses[] = 
-{
-    0x0000, 0x0001, 0x0003, 0x0006, 0x0007, 0x000f, 0x0016, 0x0017, 0x0018, 0x0019, 0x001b, 
-    0x001e, 0x001f, 0x003c, 0x003d, 0x003f, 0x0069, 0x006b, 0x006f, 0x007e, 0x007f, 0x00ff, 
-    0x0116, 0x0118, 0x0119, 0x011a, 0x011b, 0x011e, 0x011f, 0x012c, 0x012d, 0x012f, 0x013c, 
-    0x013d, 0x013e, 0x013f, 0x0168, 0x0169, 0x016f, 0x017f, 0x0180, 0x0181, 0x0182, 0x0183, 
-    0x0186, 0x0189, 0x018b, 0x018f, 0x0198, 0x0199, 0x019b, 0x01a8, 0x01a9, 0x01aa, 0x01ab, 
-    0x01ac, 0x01ad, 0x01ae, 0x01af, 0x01bf, 0x01e9, 0x01ea, 0x01eb, 0x01ee, 0x01ef, 0x01fe, 
-    0x033c, 0x033d, 0x033f, 0x0356, 0x0357, 0x0358, 0x0359, 0x035a, 0x035b, 0x035f, 0x0368, 
-    0x0369, 0x036c, 0x036e, 0x037d, 0x03c0, 0x03c1, 0x03c3, 0x03c7, 0x03cf, 0x03d4, 0x03d5, 
-    0x03d7, 0x03d8, 0x03d9, 0x03dc, 0x03dd, 0x03de, 0x03fc, 0x0660, 0x0661, 0x0666, 0x0669, 
-    0x066f, 0x0676, 0x067e, 0x0690, 0x0696, 0x0697, 0x069f, 0x06b1, 0x06b6, 0x06f0, 0x06f2, 
-    0x06f6, 0x06f9, 0x0776, 0x0778, 0x07b0, 0x07b1, 0x07b4, 0x07bc, 0x07f0, 0x07f2, 0x07f8, 
-    0x0ff0, 0x1683, 0x1696, 0x1698, 0x169e, 0x16e9, 0x178e, 0x17e8, 0x18e7, 0x19e6, 0x1be4, 
-    0x1ee1, 0x3cc3, 0x6996, 0x0000
-};
-
 static unsigned short s_RwtAigSubgraphs[] = 
 {
     0x0008,0x0002, 0x000a,0x0002, 0x0008,0x0003, 0x000a,0x0003, 0x0009,0x0002, 
@@ -662,4 +389,274 @@ static unsigned short s_RwtAigSubgraphs[] =
     0x0000,0x0000 
 };
 
+
+static unsigned short s_RwtPracticalClasses[] =
+{
+    0x0000, 0x0001, 0x0003, 0x0006, 0x0007, 0x000f, 0x0016, 0x0017, 0x0018, 0x0019, 0x001b,
+    0x001e, 0x001f, 0x003c, 0x003d, 0x003f, 0x0069, 0x006b, 0x006f, 0x007e, 0x007f, 0x00ff,
+    0x0116, 0x0118, 0x0119, 0x011a, 0x011b, 0x011e, 0x011f, 0x012c, 0x012d, 0x012f, 0x013c,
+    0x013d, 0x013e, 0x013f, 0x0168, 0x0169, 0x016f, 0x017f, 0x0180, 0x0181, 0x0182, 0x0183,
+    0x0186, 0x0189, 0x018b, 0x018f, 0x0198, 0x0199, 0x019b, 0x01a8, 0x01a9, 0x01aa, 0x01ab,
+    0x01ac, 0x01ad, 0x01ae, 0x01af, 0x01bf, 0x01e9, 0x01ea, 0x01eb, 0x01ee, 0x01ef, 0x01fe,
+    0x033c, 0x033d, 0x033f, 0x0356, 0x0357, 0x0358, 0x0359, 0x035a, 0x035b, 0x035f, 0x0368,
+    0x0369, 0x036c, 0x036e, 0x037d, 0x03c0, 0x03c1, 0x03c3, 0x03c7, 0x03cf, 0x03d4, 0x03d5,
+    0x03d7, 0x03d8, 0x03d9, 0x03dc, 0x03dd, 0x03de, 0x03fc, 0x0660, 0x0661, 0x0666, 0x0669,
+    0x066f, 0x0676, 0x067e, 0x0690, 0x0696, 0x0697, 0x069f, 0x06b1, 0x06b6, 0x06f0, 0x06f2,
+    0x06f6, 0x06f9, 0x0776, 0x0778, 0x07b0, 0x07b1, 0x07b4, 0x07bc, 0x07f0, 0x07f2, 0x07f8,
+    0x0ff0, 0x1683, 0x1696, 0x1698, 0x169e, 0x16e9, 0x178e, 0x17e8, 0x18e7, 0x19e6, 0x1be4,
+    0x1ee1, 0x3cc3, 0x6996, 0x0000
+};
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the node to the end of the list.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwt_ListAddToTail( Rwt_Node_t ** ppList, Rwt_Node_t * pNode )
+{
+    Rwt_Node_t * pTemp;
+    // find the last one
+    for ( pTemp = *ppList; pTemp; pTemp = pTemp->pNext )
+        ppList = &pTemp->pNext;
+    // attach at the end
+    *ppList = pNode;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Rwt_Node_t * Rwt_ManAddVar( Rwt_Man_t * p, unsigned uTruth, int fPrecompute )
+{
+    Rwt_Node_t * pNew;
+    pNew = (Rwt_Node_t *)Mem_FixedEntryFetch( p->pMmNode );
+    pNew->Id     = p->vForest->nSize;
+    pNew->TravId = 0;
+    pNew->uTruth = uTruth;
+    pNew->Level  = 0;
+    pNew->Volume = 0;
+    pNew->fUsed  = 1;
+    pNew->fExor  = 0;
+    pNew->p0     = NULL;
+    pNew->p1     = NULL;
+    pNew->pNext  = NULL;
+    Vec_PtrPush( p->vForest, pNew );
+    if ( fPrecompute )
+        Rwt_ListAddToTail( p->pTable + uTruth, pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Rwt_Node_t * Rwt_ManAddNode( Rwt_Man_t * p, Rwt_Node_t * p0, Rwt_Node_t * p1, int fExor, int Level, int Volume )
+{
+    Rwt_Node_t * pNew;
+    unsigned uTruth;
+    // compute truth table, leve, volume
+    p->nConsidered++;
+    if ( fExor )
+        uTruth = (p0->uTruth ^ p1->uTruth);
+    else
+        uTruth = (Rwt_IsComplement(p0)? ~Rwt_Regular(p0)->uTruth : Rwt_Regular(p0)->uTruth) &
+                 (Rwt_IsComplement(p1)? ~Rwt_Regular(p1)->uTruth : Rwt_Regular(p1)->uTruth) & 0xFFFF;
+    // create the new node
+    pNew = (Rwt_Node_t *)Mem_FixedEntryFetch( p->pMmNode );
+    pNew->Id     = p->vForest->nSize;
+    pNew->TravId = 0;
+    pNew->uTruth = uTruth;
+    pNew->Level  = Level;
+    pNew->Volume = Volume;
+    pNew->fUsed  = 0;
+    pNew->fExor  = fExor;
+    pNew->p0     = p0;
+    pNew->p1     = p1;
+    pNew->pNext  = NULL;
+    Vec_PtrPush( p->vForest, pNew );
+    // do not add if the node is not essential
+    if ( uTruth != p->puCanons[uTruth] )
+        return pNew;
+
+    // add to the list
+    p->nAdded++;
+    if ( p->pTable[uTruth] == NULL )
+        p->nClasses++;
+    Rwt_ListAddToTail( p->pTable + uTruth, pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwt_Trav_rec( Rwt_Man_t * p, Rwt_Node_t * pNode, int * pVolume )
+{
+    if ( pNode->fUsed || pNode->TravId == p->nTravIds )
+        return;
+    pNode->TravId = p->nTravIds;
+    (*pVolume)++;
+    if ( pNode->fExor )
+        (*pVolume)++;
+    Rwt_Trav_rec( p, Rwt_Regular(pNode->p0), pVolume );
+    Rwt_Trav_rec( p, Rwt_Regular(pNode->p1), pVolume );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwt_ManIncTravId( Rwt_Man_t * p )
+{
+    Rwt_Node_t * pNode;
+    int i;
+    if ( p->nTravIds++ < 0x8FFFFFFF )
+        return;
+    Vec_PtrForEachEntry( Rwt_Node_t *, p->vForest, pNode, i )
+        pNode->TravId = 0;
+    p->nTravIds = 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one node.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rwt_ManNodeVolume( Rwt_Man_t * p, Rwt_Node_t * p0, Rwt_Node_t * p1 )
+{
+    int Volume = 0;
+    Rwt_ManIncTravId( p );
+    Rwt_Trav_rec( p, p0, &Volume );
+    Rwt_Trav_rec( p, p1, &Volume );
+    return Volume;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Loads data.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwt_ManLoadFromArray( Rwt_Man_t * p, int fVerbose )
+{
+    unsigned short * pArray = s_RwtAigSubgraphs;
+    Rwt_Node_t * p0, * p1;
+    unsigned Entry0, Entry1;
+    int Level, Volume, nEntries, fExor;
+    int i, clk = clock();
+
+    // reconstruct the forest
+    for ( i = 0; ; i++ )
+    {
+        Entry0 = pArray[2*i + 0];
+        Entry1 = pArray[2*i + 1];
+        if ( Entry0 == 0 && Entry1 == 0 )
+            break;
+        // get EXOR flag
+        fExor = (Entry0 & 1);
+        Entry0 >>= 1;
+        // get the nodes
+        p0 = (Rwt_Node_t *)p->vForest->pArray[Entry0 >> 1];
+        p1 = (Rwt_Node_t *)p->vForest->pArray[Entry1 >> 1];
+        // compute the level and volume of the new nodes
+        Level  = 1 + RWT_MAX( p0->Level, p1->Level );
+        Volume = 1 + Rwt_ManNodeVolume( p, p0, p1 );
+        // set the complemented attributes
+        p0 = Rwt_NotCond( p0, (Entry0 & 1) );
+        p1 = Rwt_NotCond( p1, (Entry1 & 1) );
+        // add the node
+//        Rwt_ManTryNode( p, p0, p1, Level, Volume );
+        Rwt_ManAddNode( p, p0, p1, fExor, Level, Volume + fExor );
+    }
+    nEntries = i - 1;
+    if ( fVerbose )
+    {
+        printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
+        printf( "The number of nodes loaded = %d.  ", nEntries );  ABC_PRT( "Loading", clock() - clk );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create practical classes.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Rwt_ManGetPractical( Rwt_Man_t * p )
+{
+    char * pPractical;
+    int i;
+    pPractical = ABC_ALLOC( char, p->nFuncs );
+    memset( pPractical, 0, sizeof(char) * p->nFuncs );
+    pPractical[0] = 1;
+    for ( i = 1; ; i++ )
+    {
+        if ( s_RwtPracticalClasses[i] == 0 )
+            break;
+        pPractical[ s_RwtPracticalClasses[i] ] = 1;
+    }
+    return pPractical;
+}
+
+////////////////////////////////////////////////////////////////////////
+///                       END OF FILE                                ///
+////////////////////////////////////////////////////////////////////////
+
+// the following 135 practical NPN classes of 4-variable functions were computed
+// by considering all 4-input cuts appearing in IWLS, MCNC, and ISCAS benchmarks
+ABC_NAMESPACE_IMPL_END
 

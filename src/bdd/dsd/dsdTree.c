@@ -18,6 +18,9 @@
 
 #include "dsdInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -58,8 +61,8 @@ Dsd_Node_t * Dsd_TreeNodeCreate( int Type, int nDecs, int BlockNum )
     // allocate memory for this node 
     Dsd_Node_t * p = (Dsd_Node_t *) ABC_ALLOC( char, sizeof(Dsd_Node_t) );
     memset( p, 0, sizeof(Dsd_Node_t) );
-    p->Type       = Type;       // the type of this block
-    p->nDecs      = nDecs;      // the number of decompositions
+    p->Type       = (Dsd_Type_t)Type;       // the type of this block
+    p->nDecs      = nDecs;                  // the number of decompositions
     if ( p->nDecs )
     {
         p->pDecs      = (Dsd_Node_t **) ABC_ALLOC( char, p->nDecs * sizeof(Dsd_Node_t *) );
@@ -1060,3 +1063,5 @@ DdNode * Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fR
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

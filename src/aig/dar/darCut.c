@@ -20,6 +20,9 @@
 
 #include "darInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -127,7 +130,7 @@ static inline int Dar_CutFindValue( Dar_Man_t * p, Dar_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the next ABC_FREE cut to use.]
+  Synopsis    [Returns the next free cut to use.]
 
   Description [Uses the cut with the smallest value.]
                
@@ -628,7 +631,7 @@ void Dar_ManCutsRestart( Dar_Man_t * p, Aig_Obj_t * pRoot )
     Aig_Obj_t * pObj;
     int i;
     Dar_ObjSetCuts( Aig_ManConst1(p->pAig), NULL );
-    Vec_PtrForEachEntry( p->vCutNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vCutNodes, pObj, i )
         if ( !Aig_ObjIsNone(pObj) )
             Dar_ObjSetCuts( pObj, NULL );
     Vec_PtrClear( p->vCutNodes );
@@ -744,4 +747,6 @@ Dar_Cut_t * Dar_ObjComputeCuts_rec( Dar_Man_t * p, Aig_Obj_t * pObj )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

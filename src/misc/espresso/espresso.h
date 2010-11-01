@@ -56,7 +56,11 @@
 
 /* Define host machine characteristics of "unsigned int" */
 #ifndef BPI
-#define BPI             32              /* # bits per integer */
+#define BPI
+
+
+ABC_NAMESPACE_HEADER_START
+             32              /* # bits per integer */
 #endif
 
 #if BPI == 32
@@ -509,6 +513,10 @@ extern struct cdata_struct cdata, temp_cdata_save;
 #else
 #define DISJOINT 0x5555
 #endif
+
+
+ABC_NAMESPACE_HEADER_END
+
 #endif
 
 /* function declarations */

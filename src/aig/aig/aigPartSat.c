@@ -22,6 +22,9 @@
 #include "satSolver.h"
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
 
 The node partitioners defined in this file return array of intergers 
@@ -80,7 +83,7 @@ Vec_Int_t * Aig_ManPartitionLevelized( Aig_Man_t * p, int nPartSize )
     int i, k, Counter = 0;
     vNodes = Aig_ManLevelize( p );
     vId2Part = Vec_IntStart( Aig_ManObjNumMax(p) );
-    Vec_VecForEachEntryReverseReverse( vNodes, pObj, i, k )
+    Vec_VecForEachEntryReverseReverse( Aig_Obj_t *, vNodes, pObj, i, k )
         Vec_IntWriteEntry( vId2Part, Aig_ObjId(pObj), Counter++/nPartSize );
     Vec_VecFree( vNodes );
     return vId2Part;
@@ -107,13 +110,13 @@ Vec_Int_t * Aig_ManPartitionDfs( Aig_Man_t * p, int nPartSize, int fPreorder )
     if ( fPreorder )
     {
         vNodes = Aig_ManDfsPreorder( p, 1 );
-        Vec_PtrForEachEntry( vNodes, pObj, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
             Vec_IntWriteEntry( vId2Part, Aig_ObjId(pObj), Counter++/nPartSize );
     }
     else
     {
         vNodes = Aig_ManDfs( p, 1 );
-        Vec_PtrForEachEntryReverse( vNodes, pObj, i )
+        Vec_PtrForEachEntryReverse( Aig_Obj_t *, vNodes, pObj, i )
             Vec_IntWriteEntry( vId2Part, Aig_ObjId(pObj), Counter++/nPartSize );
     }
     Vec_PtrFree( vNodes );
@@ -179,7 +182,7 @@ Aig_Man_t * Aig_ManPartSplitOne( Aig_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t **
     int i;
     // mark these nodes
     Aig_ManIncrementTravId( p );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         Aig_ObjSetTravIdCurrent( p, pObj );
         pObj->pData = NULL;
@@ -187,14 +190,14 @@ Aig_Man_t * Aig_ManPartSplitOne( Aig_Man_t * p, Vec_Ptr_t * vNodes, Vec_Int_t **
     // add these nodes in a DFS order
     pNew = Aig_ManStart( Vec_PtrSize(vNodes) );
     vPio2Id = Vec_IntAlloc( 100 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_ManPartSplitOne_rec( pNew, p, pObj, vPio2Id );
     // add the POs
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        if ( Aig_ObjRefs(pObj->pData) != Aig_ObjRefs(pObj) )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+        if ( Aig_ObjRefs((Aig_Obj_t *)pObj->pData) != Aig_ObjRefs(pObj) )
         {
-            assert( Aig_ObjRefs(pObj->pData) < Aig_ObjRefs(pObj) );
-            Aig_ObjCreatePo( pNew, pObj->pData );
+            assert( Aig_ObjRefs((Aig_Obj_t *)pObj->pData) < Aig_ObjRefs(pObj) );
+            Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObj->pData );
             Vec_IntPush( vPio2Id, Aig_ObjId(pObj) );
         }
     assert( Aig_ManNodeNum(pNew) == Vec_PtrSize(vNodes) );
@@ -440,7 +443,7 @@ int Aig_ManAddNewCnfToSolver( sat_solver * pSat, Aig_Man_t * pAig, Vec_Int_t * v
     // remove the CNF
     Cnf_DataFree( pCnf );
     // constrain the solver with the literals corresponding to the original POs
-    Vec_PtrForEachEntry( vPartPos, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vPartPos, pObj, i )
     {
         iNodeIdOld = Aig_ObjFaninId0( pObj );
         iSatVarOld = Vec_IntEntry( vNode2Var, iNodeIdOld );
@@ -537,7 +540,7 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
 
     // synthesize partitions
     if ( fSynthesize )
-    Vec_PtrForEachEntry( vAigs, pAig, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig, i )
     {
         pAig = Dar_ManRwsat( pTemp = pAig, 0, 0 );
         Vec_PtrWriteEntry( vAigs, i, pAig );
@@ -551,17 +554,17 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
     vNode2Var = Vec_IntStart( Aig_ManObjNumMax(p) );
 
     // add partitions, one at a time, and run the SAT solver 
-    Vec_PtrForEachEntry( vAigs, pAig, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pAig, i )
     {
 clk = clock();
         // transform polarity of the AIG
         if ( fAlignPol )
-            Aig_ManPartSetNodePolarity( p, pAig, Vec_VecEntry(vPio2Id,i) );
+            Aig_ManPartSetNodePolarity( p, pAig, (Vec_Int_t *)Vec_VecEntry(vPio2Id,i) );
         else
             Aig_ManPartResetNodePolarity( pAig );
         // add CNF of this partition to the SAT solver
         if ( Aig_ManAddNewCnfToSolver( pSat, pAig, vNode2Var, 
-            Vec_VecEntry(vPio2Id,i), Vec_VecEntry(vPart2Pos,i), fAlignPol ) )
+            (Vec_Int_t *)Vec_VecEntry(vPio2Id,i), (Vec_Ptr_t *)Vec_VecEntry(vPart2Pos,i), fAlignPol ) )
         {
             RetValue = 1;
             break;
@@ -596,7 +599,7 @@ ABC_PRT( "Time", clock() - clk );
         Aig_ManDeriveCounterExample( p, vNode2Var, pSat );
     // cleanup
     sat_solver_delete( pSat );
-    Vec_PtrForEachEntry( vAigs, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pTemp, i )
         Aig_ManStop( pTemp );
     Vec_PtrFree( vAigs );
     Vec_VecFree( vPio2Id );
@@ -609,4 +612,6 @@ ABC_PRT( "Time", clock() - clk );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

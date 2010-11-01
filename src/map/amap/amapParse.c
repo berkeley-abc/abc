@@ -20,6 +20,10 @@
 
 #include "amapInt.h"
 #include "hop.h"
+#include "kit.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -69,8 +73,8 @@ Hop_Obj_t * Amap_ParseFormulaOper( Hop_Man_t * pMan, Vec_Ptr_t * pStackFn, int O
 {
     Hop_Obj_t * gArg1, * gArg2, * gFunc;
     // perform the given operation
-    gArg2 = Vec_PtrPop( pStackFn );
-    gArg1 = Vec_PtrPop( pStackFn );
+    gArg2 = (Hop_Obj_t *)Vec_PtrPop( pStackFn );
+    gArg1 = (Hop_Obj_t *)Vec_PtrPop( pStackFn );
     if ( Oper == AMAP_EQN_OPER_AND )
         gFunc = Hop_And( pMan, gArg1, gArg2 );
     else if ( Oper == AMAP_EQN_OPER_OR )
@@ -177,7 +181,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                 break;
             }
             else // if ( Flag == PARSE_FLAG_VAR )
-                Vec_PtrPush( pStackFn, Hop_Not( Vec_PtrPop(pStackFn) ) );
+                Vec_PtrPush( pStackFn, Hop_Not( (Hop_Obj_t *)Vec_PtrPop(pStackFn) ) );
             break;
         case AMAP_EQN_SYM_AND:
         case AMAP_EQN_SYM_OR:
@@ -261,7 +265,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
               }
             // variable name is found
             fFound = 0;
-            Vec_PtrForEachEntry( vVarNames, pName, v )
+            Vec_PtrForEachEntry( char *, vVarNames, pName, v )
                 if ( strncmp(pTemp, pName, i) == 0 && strlen(pName) == (unsigned)i )
                 {
                     pTemp += i-1;
@@ -307,7 +311,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                 }
                 else
                 {
-                      Vec_PtrPush( pStackFn, Hop_Not(Vec_PtrPop(pStackFn)) );
+                      Vec_PtrPush( pStackFn, Hop_Not((Hop_Obj_t *)Vec_PtrPop(pStackFn)) );
                 }
             }
         else // if ( Flag == AMAP_EQN_FLAG_OPER )
@@ -344,7 +348,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
     {
         if ( Vec_PtrSize(pStackFn) != 0 )
         {    
-            gFunc = Vec_PtrPop(pStackFn);
+            gFunc = (Hop_Obj_t *)Vec_PtrPop(pStackFn);
             if ( Vec_PtrSize(pStackFn) == 0 )
                 if ( Vec_IntSize( pStackOp ) == 0 )
                 {
@@ -379,7 +383,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
 ***********************************************************************/
 int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
 {
-    extern int Kit_TruthSupportSize( unsigned * pTruth, int nVars );
+//    extern int Kit_TruthSupportSize( unsigned * pTruth, int nVars );
     Hop_Man_t * pMan;
     Hop_Obj_t * pObj;
     Vec_Ptr_t * vNames;
@@ -395,7 +399,7 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
     vNames = Vec_PtrAlloc( 100 );
     pMan = Hop_ManStart();
     Hop_IthVar( pMan, nPinMax - 1 );
-    Vec_PtrForEachEntry( p->vGates, pGate, i )
+    Vec_PtrForEachEntry( Amap_Gat_t *, p->vGates, pGate, i )
     {
         if ( pGate->nPins == 0 )
         {
@@ -462,4 +466,6 @@ void Amap_LibParseTest( char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

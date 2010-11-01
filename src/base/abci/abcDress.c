@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -206,4 +209,6 @@ void Abc_NtkDressTransferNames( Abc_Ntk_t * pNtk, stmm_table * tMapping, int fVe
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

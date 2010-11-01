@@ -20,6 +20,10 @@
 
 #include "ntl.h"
 #include "dch.h"
+#include "dar.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -42,10 +46,11 @@
 ***********************************************************************/
 Aig_Man_t * Ntl_ManPerformChoicing( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose )
 {
-    extern Aig_Man_t * Dar_ManBalance( Aig_Man_t * pAig, int fUpdateLevel );
-    extern Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fPower, int fVerbose );
-    extern Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
+//    extern Aig_Man_t * Dar_ManBalance( Aig_Man_t * pAig, int fUpdateLevel );
+//    extern Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fPower, int fVerbose );
+//    extern Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
     Aig_Man_t * pTemp;
+
     // perform synthesis
 //printf( "Pre-synthesis AIG:  " );
 //Aig_ManPrintStats( pAig );
@@ -54,6 +59,7 @@ Aig_Man_t * Ntl_ManPerformChoicing( Aig_Man_t * pAig, int fBalance, int fUpdateL
     pTemp = Dar_ManChoice( pAig, fBalance, fUpdateLevel, fConstruct, nConfMax, nLevelMax, fVerbose );
 //printf( "Post-synthesis AIG: " );
 //Aig_ManPrintStats( pTemp );
+
     return pTemp;
 }
 
@@ -70,8 +76,22 @@ Aig_Man_t * Ntl_ManPerformChoicing( Aig_Man_t * pAig, int fBalance, int fUpdateL
 ***********************************************************************/
 Aig_Man_t * Ntl_ManPerformChoicingNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
-    extern Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars );
-    return Dar_ManChoiceNew( pAig, pPars );
+//    extern Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars );
+    Aig_Man_t * pTemp;
+/*
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachPi( pAig, pObj, i )
+        printf( "%d ", pObj->Level );
+    printf( "\n" );
+*/
+    pTemp = Dar_ManChoiceNew( pAig, pPars );
+/*
+    Aig_ManForEachPi( pTemp, pObj, i )
+        printf( "%d ", pObj->Level );
+    printf( "\n" );
+*/
+    return pTemp;
 }
 
 /**Function*************************************************************
@@ -127,4 +147,6 @@ int Ntl_ManInsertTestIf( Ntl_Man_t * p, Aig_Man_t * pAig )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

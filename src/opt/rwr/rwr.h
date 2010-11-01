@@ -21,6 +21,7 @@
 #ifndef __RWR_H__
 #define __RWR_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,9 +33,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -111,7 +113,7 @@ struct Rwr_Node_t_ // 24 bytes
 };
 
 // manipulation of complemented attributes
-static inline bool         Rwr_IsComplement( Rwr_Node_t * p )    { return (bool)(((ABC_PTRUINT_T)p) & 01);           }
+static inline int          Rwr_IsComplement( Rwr_Node_t * p )    { return (int )(((ABC_PTRUINT_T)p) & 01);           }
 static inline Rwr_Node_t * Rwr_Regular( Rwr_Node_t * p )         { return (Rwr_Node_t *)((ABC_PTRUINT_T)(p) & ~01);  }
 static inline Rwr_Node_t * Rwr_Not( Rwr_Node_t * p )             { return (Rwr_Node_t *)((ABC_PTRUINT_T)(p) ^  01);  }
 static inline Rwr_Node_t * Rwr_NotCond( Rwr_Node_t * p, int c )  { return (Rwr_Node_t *)((ABC_PTRUINT_T)(p) ^ (c));  }
@@ -137,7 +139,7 @@ extern Rwr_Node_t *      Rwr_ManAddNode( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Nod
 extern int               Rwr_ManNodeVolume( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1 );
 extern void              Rwr_ManIncTravId( Rwr_Man_t * p );
 /*=== rwrMan.c ========================================================*/
-extern Rwr_Man_t *       Rwr_ManStart( bool fPrecompute );
+extern Rwr_Man_t *       Rwr_ManStart( int  fPrecompute );
 extern void              Rwr_ManStop( Rwr_Man_t * p );
 extern void              Rwr_ManPrintStats( Rwr_Man_t * p );
 extern void              Rwr_ManPrintStatsFile( Rwr_Man_t * p );
@@ -157,9 +159,11 @@ extern void              Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName );
 extern void              Rwr_ListAddToTail( Rwr_Node_t ** ppList, Rwr_Node_t * pNode );
 extern char *            Rwr_ManGetPractical( Rwr_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

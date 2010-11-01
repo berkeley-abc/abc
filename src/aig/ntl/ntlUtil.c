@@ -20,6 +20,9 @@
 
 #include "ntl.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,6 +30,32 @@
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Returns one if the file has a given extension.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_FileIsType( char * pFileName, char * pS1, char * pS2, char * pS3 )
+{
+    int lenS, lenF = strlen(pFileName);
+    lenS = pS1 ? strlen(pS1) : 0;
+    if ( lenS && lenF > lenS && !strncmp( pFileName+lenF-lenS, pS1, lenS ) )
+        return 1;
+    lenS = pS2 ? strlen(pS2) : 0;
+    if ( lenS && lenF > lenS && !strncmp( pFileName+lenF-lenS, pS2, lenS ) )
+        return 1;
+    lenS = pS3 ? strlen(pS3) : 0;
+    if ( lenS && lenF > lenS && !strncmp( pFileName+lenF-lenS, pS3, lenS ) )
+        return 1;
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -419,7 +448,7 @@ Vec_Vec_t * Ntl_ManTransformRegClasses( Ntl_Man_t * pMan, int nSizeMax, int fVer
     if ( fVerbose )
     {
         printf( "The number of selected register clases = %d.\n", Vec_PtrSize(vParts) );
-        Vec_PtrForEachEntry( vParts, vPart, i )
+        Vec_PtrForEachEntry( Vec_Int_t *, vParts, vPart, i )
             printf( "(%d, %d)  ", i, Vec_IntSize(vPart) );
         printf( "\n" );
     }
@@ -703,4 +732,6 @@ void Ntl_ManRemoveUselessNets( Ntl_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

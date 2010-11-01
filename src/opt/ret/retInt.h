@@ -21,11 +21,15 @@
 #ifndef __RET_INT_H__
 #define __RET_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include "abc.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -46,11 +50,11 @@
 /*=== retArea.c ========================================================*/
 extern int         Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose );
 /*=== retCore.c ========================================================*/
-extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fOneStep, int fVerbose );
+extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, int fBackwardOnly, int fOneStep, int fVerbose );
 /*=== retDelay.c ========================================================*/
-extern int         Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkCopy, int nIterLimit, int fForward, int fVerbose );
+extern int         Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkCopy, int nDelayLim, int nIterLimit, int fForward, int fVerbose );
 /*=== retDirect.c ========================================================*/
-extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fOneStep, int fVerbose );
+extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int fMinDelay, int fOneStep, int fVerbose );
 extern void        Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial );
 extern int         Abc_NtkRetimeNodeIsEnabled( Abc_Obj_t * pObj, int fForward );
 extern void        Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial );
@@ -70,6 +74,10 @@ extern Abc_Ntk_t * Abc_NtkRetimeBackwardInitialStart( Abc_Ntk_t * pNtk );
 extern void        Abc_NtkRetimeBackwardInitialFinish( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, Vec_Int_t * vValuesOld, int fVerbose );
 /*=== retLvalue.c ========================================================*/
 extern int         Abc_NtkRetimeLValue( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

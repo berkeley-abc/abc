@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -127,7 +130,7 @@ int Ssw_SemCheckTargets( Ssw_Sem_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
-    Vec_PtrForEachEntry( p->vTargets, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vTargets, pObj, i )
         if ( !Ssw_ObjIsConst1Cand(p->pMan->pAig, pObj) )
             return 1;
     return 0;
@@ -153,7 +156,7 @@ void Ssw_ManFilterBmcSavePattern( Ssw_Sem_t * p )
         return;
     Saig_ManForEachLo( p->pMan->pAig, pObj, i )
     {
-        pInfo = Vec_PtrEntry( p->vPatterns, i );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vPatterns, i );
         if ( Aig_InfoHasBit( p->pMan->pPatWords, Saig_ManPiNum(p->pMan->pAig) + i ) )
             Aig_InfoSetBit( pInfo, p->nPatterns );
     }
@@ -183,7 +186,7 @@ clk = clock();
     p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * 3 );
     Saig_ManForEachLo( p->pAig, pObj, i )
     {
-        pInfo = Vec_PtrEntry( pBmc->vPatterns, i );
+        pInfo = (unsigned *)Vec_PtrEntry( pBmc->vPatterns, i );
         pObjNew = Aig_NotCond( Aig_ManConst1(p->pFrames), !Aig_InfoHasBit(pInfo, iPat) );
         Ssw_ObjSetFrame( p, pObj, 0, pObjNew );
     }
@@ -314,4 +317,6 @@ clk = clock();
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

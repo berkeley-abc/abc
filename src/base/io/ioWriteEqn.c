@@ -20,6 +20,9 @@
 
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -108,9 +111,9 @@ void Io_NtkWriteEqnOne( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, "%s = ", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         // set the input names
         Abc_ObjForEachFanin( pNode, pFanin, k )
-            Hop_IthVar(pNtk->pManFunc, k)->pData = Abc_ObjName(pFanin);
+            Hop_IthVar((Hop_Man_t *)pNtk->pManFunc, k)->pData = Abc_ObjName(pFanin);
         // write the formula
-        Hop_ObjPrintEqn( pFile, pNode->pData, vLevels, 0 );
+        Hop_ObjPrintEqn( pFile, (Hop_Obj_t *)pNode->pData, vLevels, 0 );
         fprintf( pFile, ";\n" );
     }
     Extra_ProgressBarStop( pProgress );
@@ -249,4 +252,6 @@ int Io_NtkWriteEqnCheck( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

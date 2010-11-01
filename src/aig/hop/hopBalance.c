@@ -20,6 +20,9 @@
 
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -96,27 +99,27 @@ Hop_Obj_t * Hop_NodeBalance_rec( Hop_Man_t * pNew, Hop_Obj_t * pObjOld, Vec_Vec_
     assert( !Hop_IsComplement(pObjOld) );
     // return if the result is known
     if ( pObjOld->pData )
-        return pObjOld->pData;
+        return (Hop_Obj_t *)pObjOld->pData;
     assert( Hop_ObjIsNode(pObjOld) );
     // get the implication supergate
     vSuper = Hop_NodeBalanceCone( pObjOld, vStore, Level );
     // check if supergate contains two nodes in the opposite polarity
     if ( vSuper->nSize == 0 )
-        return pObjOld->pData = Hop_ManConst0(pNew);
+        return (Hop_Obj_t *)(pObjOld->pData = Hop_ManConst0(pNew));
     if ( Vec_PtrSize(vSuper) < 2 )
         printf( "BUG!\n" );
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < Vec_PtrSize(vSuper); i++ )
     {
-        pObjNew = Hop_NodeBalance_rec( pNew, Hop_Regular(vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
-        vSuper->pArray[i] = Hop_NotCond( pObjNew, Hop_IsComplement(vSuper->pArray[i]) );
+        pObjNew = Hop_NodeBalance_rec( pNew, Hop_Regular((Hop_Obj_t *)vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
+        vSuper->pArray[i] = Hop_NotCond( pObjNew, Hop_IsComplement((Hop_Obj_t *)vSuper->pArray[i]) );
     }
     // build the supergate
     pObjNew = Hop_NodeBalanceBuildSuper( pNew, vSuper, Hop_ObjType(pObjOld), fUpdateLevel );
     // make sure the balanced node is not assigned
 //    assert( pObjOld->Level >= Hop_Regular(pObjNew)->Level );
     assert( pObjOld->pData == NULL );
-    return pObjOld->pData = pObjNew;
+    return (Hop_Obj_t *)(pObjOld->pData = pObjNew);
 }
 
 /**Function*************************************************************
@@ -185,13 +188,13 @@ Vec_Ptr_t * Hop_NodeBalanceCone( Hop_Obj_t * pObj, Vec_Vec_t * vStore, int Level
     if ( Vec_VecSize( vStore ) <= Level )
         Vec_VecPush( vStore, Level, 0 );
     // get the temporary array of nodes
-    vNodes = Vec_VecEntry( vStore, Level );
+    vNodes = (Vec_Ptr_t *)Vec_VecEntry( vStore, Level );
     Vec_PtrClear( vNodes );
     // collect the nodes in the implication supergate
     RetValue = Hop_NodeBalanceCone_rec( pObj, pObj, vNodes );
     assert( vNodes->nSize > 1 );
     // unmark the visited nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
         Hop_Regular(pObj)->fMarkB = 0;
     // if we found the node and its complement in the same implication supergate, 
     // return empty set of nodes (meaning that we should use constant-0 node)
@@ -238,7 +241,7 @@ Hop_Obj_t * Hop_NodeBalanceBuildSuper( Hop_Man_t * p, Vec_Ptr_t * vSuper, Hop_Ty
     int LeftBound;
     assert( vSuper->nSize > 1 );
     // sort the new nodes by level in the decreasing order
-    Vec_PtrSort( vSuper, Hop_NodeCompareLevelsDecrease );
+    Vec_PtrSort( vSuper, (int (*)(void))Hop_NodeCompareLevelsDecrease );
     // balance the nodes
     while ( vSuper->nSize > 1 )
     {
@@ -247,11 +250,11 @@ Hop_Obj_t * Hop_NodeBalanceBuildSuper( Hop_Man_t * p, Vec_Ptr_t * vSuper, Hop_Ty
         // find the node that can be shared (if no such node, randomize choice)
         Hop_NodeBalancePermute( p, vSuper, LeftBound, Type == AIG_EXOR );
         // pull out the last two nodes
-        pObj1 = Vec_PtrPop(vSuper);
-        pObj2 = Vec_PtrPop(vSuper);
+        pObj1 = (Hop_Obj_t *)Vec_PtrPop(vSuper);
+        pObj2 = (Hop_Obj_t *)Vec_PtrPop(vSuper);
         Hop_NodeBalancePushUniqueOrderByLevel( vSuper, Hop_Oper(p, pObj1, pObj2, Type) );
     }
-    return Vec_PtrEntry(vSuper, 0);
+    return (Hop_Obj_t *)Vec_PtrEntry(vSuper, 0);
 }
 
 /**Function*************************************************************
@@ -278,19 +281,19 @@ int Hop_NodeBalanceFindLeft( Vec_Ptr_t * vSuper )
         return 0;
     // set the pointer to the one before the last
     Current = Vec_PtrSize(vSuper) - 2;
-    pObjRight = Vec_PtrEntry( vSuper, Current );
+    pObjRight = (Hop_Obj_t *)Vec_PtrEntry( vSuper, Current );
     // go through the nodes to the left of this one
     for ( Current--; Current >= 0; Current-- )
     {
         // get the next node on the left
-        pObjLeft = Vec_PtrEntry( vSuper, Current );
+        pObjLeft = (Hop_Obj_t *)Vec_PtrEntry( vSuper, Current );
         // if the level of this node is different, quit the loop
         if ( Hop_ObjLevel(Hop_Regular(pObjLeft)) != Hop_ObjLevel(Hop_Regular(pObjRight)) )
             break;
     }
     Current++;    
     // get the node, for which the equality holds
-    pObjLeft = Vec_PtrEntry( vSuper, Current );
+    pObjLeft = (Hop_Obj_t *)Vec_PtrEntry( vSuper, Current );
     assert( Hop_ObjLevel(Hop_Regular(pObjLeft)) == Hop_ObjLevel(Hop_Regular(pObjRight)) );
     return Current;
 }
@@ -317,14 +320,14 @@ void Hop_NodeBalancePermute( Hop_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, i
     if ( LeftBound == RightBound )
         return;
     // get the two last nodes
-    pObj1 = Vec_PtrEntry( vSuper, RightBound + 1 );
-    pObj2 = Vec_PtrEntry( vSuper, RightBound     );
+    pObj1 = (Hop_Obj_t *)Vec_PtrEntry( vSuper, RightBound + 1 );
+    pObj2 = (Hop_Obj_t *)Vec_PtrEntry( vSuper, RightBound     );
     if ( Hop_Regular(pObj1) == p->pConst1 || Hop_Regular(pObj2) == p->pConst1 )
         return;
     // find the first node that can be shared
     for ( i = RightBound; i >= LeftBound; i-- )
     {
-        pObj3 = Vec_PtrEntry( vSuper, i );
+        pObj3 = (Hop_Obj_t *)Vec_PtrEntry( vSuper, i );
         if ( Hop_Regular(pObj3) == p->pConst1 )
         {
             Vec_PtrWriteEntry( vSuper, i,          pObj2 );
@@ -374,8 +377,8 @@ void Hop_NodeBalancePushUniqueOrderByLevel( Vec_Ptr_t * vStore, Hop_Obj_t * pObj
     // find the p of the node
     for ( i = vStore->nSize-1; i > 0; i-- )
     {
-        pObj1 = vStore->pArray[i  ];
-        pObj2 = vStore->pArray[i-1];
+        pObj1 = (Hop_Obj_t *)vStore->pArray[i  ];
+        pObj2 = (Hop_Obj_t *)vStore->pArray[i-1];
         if ( Hop_ObjLevel(Hop_Regular(pObj1)) <= Hop_ObjLevel(Hop_Regular(pObj2)) )
             break;
         vStore->pArray[i  ] = pObj2;
@@ -388,4 +391,6 @@ void Hop_NodeBalancePushUniqueOrderByLevel( Vec_Ptr_t * vStore, Hop_Obj_t * pObj
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

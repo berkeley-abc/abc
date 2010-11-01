@@ -20,6 +20,9 @@
 
 #include "amapInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -394,9 +397,9 @@ void Amap_ManMergeNodeCutsMux( Amap_Man_t * p, Amap_Obj_t * pNode )
             continue;
         if ( Amap_ManFindCut( pNode, pFanin2, fComplFanin2, Vec_IntEntry(vRules, x+2), p->vCuts2 ) )
             continue;
-        Vec_PtrForEachEntry( p->vCuts0, pCut0, c0 )
-        Vec_PtrForEachEntry( p->vCuts1, pCut1, c1 )
-        Vec_PtrForEachEntry( p->vCuts2, pCut2, c2 )
+        Vec_PtrForEachEntry( Amap_Cut_t *, p->vCuts0, pCut0, c0 )
+        Vec_PtrForEachEntry( Amap_Cut_t *, p->vCuts1, pCut1, c1 )
+        Vec_PtrForEachEntry( Amap_Cut_t *, p->vCuts2, pCut2, c2 )
         {
             Amap_Nod_t * pNod = Amap_LibNod( p->pLib, Vec_IntEntry(vRules, x+3) );
             if ( pNod->pSets == NULL )
@@ -532,4 +535,6 @@ ABC_PRT( "Time ", clock() - clk );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

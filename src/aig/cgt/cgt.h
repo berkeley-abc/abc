@@ -21,6 +21,7 @@
 #ifndef __CGT_H__
 #define __CGT_H__
 
+
 /* 
     The algorithm implemented in this package is based on the paper:
     A. Hurst. "Automatic synthesis of clock gating logic with controlled 
@@ -35,9 +36,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -70,9 +72,11 @@ extern void            Cgt_SetDefaultParams( Cgt_Par_t * p );
 extern Vec_Vec_t *     Cgt_ClockGatingCandidates( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars );
 extern Aig_Man_t *     Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pPars );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

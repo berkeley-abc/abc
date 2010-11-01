@@ -20,6 +20,9 @@
 
 #include "seqInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -43,8 +46,8 @@ static int         Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtk, st
 static void        Abc_ObjRetimeBackwardUpdateEdge( Abc_Obj_t * pObj, int Edge, stmm_table * tTable );
 static void        Abc_NtkRetimeSetInitialValues( Abc_Ntk_t * pNtk, stmm_table * tTable, int * pModel );
 
-static Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, bool fForward );
-static Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, bool fForward );
+static Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, int fForward );
+static Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, int fForward );
 static Vec_Int_t * Abc_NtkUtilRetimingSplit( Vec_Str_t * vLags, int fForward );
 static void        Abc_ObjRetimeForwardTry( Abc_Obj_t * pObj, int nLatches );  
 static void        Abc_ObjRetimeBackwardTry( Abc_Obj_t * pObj, int nLatches );
@@ -102,7 +105,7 @@ void Seq_NtkSeqRetimeForward( Abc_Ntk_t * pNtk, int fInitial, int fVerbose )
     // get the forward moves
     vMoves = Abc_NtkUtilRetimingTry( pNtk, 1 );
     // undo the forward moves
-    Vec_PtrForEachEntryReverse( vMoves, pNode, i )
+    Vec_PtrForEachEntryReverse( Abc_Obj_t *, vMoves, pNode, i )
         Abc_ObjRetimeBackwardTry( pNode, 1 );
     // implement this forward retiming
     Seq_NtkImplementRetimingForward( pNtk, vMoves );
@@ -130,7 +133,7 @@ void Seq_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk, int fInitial, int fVerbose )
     // get the backward moves
     vMoves = Abc_NtkUtilRetimingTry( pNtk, 0 );
     // undo the backward moves
-    Vec_PtrForEachEntryReverse( vMoves, pNode, i )
+    Vec_PtrForEachEntryReverse( Abc_Obj_t *, vMoves, pNode, i )
         Abc_ObjRetimeForwardTry( pNode, 1 );
     // implement this backward retiming
     RetValue = Seq_NtkImplementRetimingBackward( pNtk, vMoves, fVerbose );
@@ -202,7 +205,7 @@ void Seq_NtkImplementRetimingForward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves )
 {
     Abc_Obj_t * pNode;
     int i;
-    Vec_PtrForEachEntry( vMoves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMoves, pNode, i )
         Abc_ObjRetimeForward( pNode );
 }
 
@@ -309,7 +312,7 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
 
     // perform the backward moves and build the network for initial state computation
     RetValue = 0;
-    Vec_PtrForEachEntry( vMoves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMoves, pNode, i )
         RetValue |= Abc_ObjRetimeBackward( pNode, pNtkProb, tTable, vValues );
 
     // add the PIs corresponding to the white spots
@@ -319,7 +322,6 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
     // add the PI/PO names
     Abc_NtkAddDummyPiNames( pNtkProb );
     Abc_NtkAddDummyPoNames( pNtkProb );
-    Abc_NtkAddDummyAssertNames( pNtkProb );
 
     // make sure everything is okay with the network structure
     if ( !Abc_NtkDoCheck( pNtkProb ) )
@@ -468,7 +470,7 @@ int Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtkNew, stmm_table * t
 
     // add new AND-gate to the network
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
-    pNodeNew->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+    pNodeNew->pData = Abc_SopCreateAnd2( (Extra_MmFlex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
 
     // add PO fanouts if any
     if ( fMet0 )
@@ -536,7 +538,7 @@ int Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtkNew, stmm_table * t
 
     // add the buffer
     pBuffer = Abc_NtkCreateNode( pNtkNew );
-    pBuffer->pData = Abc_SopCreateBuf( pNtkNew->pManFunc );
+    pBuffer->pData = Abc_SopCreateBuf( (Extra_MmFlex_t *)pNtkNew->pManFunc );
     Abc_ObjAddFanin( pNodeNew, pBuffer );
     // point to it from the table
     RetEdge.iNode  = pObj->Id;
@@ -547,7 +549,7 @@ int Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtkNew, stmm_table * t
 
     // add the buffer
     pBuffer = Abc_NtkCreateNode( pNtkNew );
-    pBuffer->pData = Abc_SopCreateBuf( pNtkNew->pManFunc );
+    pBuffer->pData = Abc_SopCreateBuf( (Extra_MmFlex_t *)pNtkNew->pManFunc );
     Abc_ObjAddFanin( pNodeNew, pBuffer );
     // point to it from the table
     RetEdge.iNode  = pObj->Id;
@@ -641,7 +643,7 @@ void Abc_NtkRetimeSetInitialValues( Abc_Ntk_t * pNtk, stmm_table * tTable, int *
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, bool fForward )
+Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, int fForward )
 {
     Vec_Ptr_t * vNodes, * vMoves;
     Abc_Obj_t * pNode, * pFanout, * pFanin;
@@ -656,7 +658,7 @@ Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, bool fForward )
     }
     // process the nodes
     vMoves = Vec_PtrAlloc( 100 );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
 //        printf( "(%d,%d) ", Seq_ObjFaninL0(pNode), Seq_ObjFaninL0(pNode) );
         // unmark the node as processed
@@ -723,7 +725,7 @@ Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, bool fForward )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, bool fForward )
+Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, int fForward )
 {
     Seq_RetStep_t RetStep;
     Vec_Ptr_t * vMoves;
@@ -833,12 +835,12 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
     // undo the tentative retiming
     if ( fForward )
     {
-        Vec_PtrForEachEntryReverse( vMoves, pNode, i )
+        Vec_PtrForEachEntryReverse( Abc_Obj_t *, vMoves, pNode, i )
             Abc_ObjRetimeBackwardTry( pNode, 1 );
     }
     else
     {
-        Vec_PtrForEachEntryReverse( vMoves, pNode, i )
+        Vec_PtrForEachEntryReverse( Abc_Obj_t *, vMoves, pNode, i )
             Abc_ObjRetimeForwardTry( pNode, 1 );
     }
     return vMoves;
@@ -974,4 +976,6 @@ void Abc_ObjRetimeBackwardTry( Abc_Obj_t * pObj, int nLatches )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 #include <math.h>
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -512,7 +515,7 @@ int Fra_SetActivityFactors_rec( Fra_Man_t * p, Aig_Obj_t * pObj, int LevelMin, i
     veci_push(&p->pSat->act_vars, Fra_ObjSatNum(pObj));
     // explore the fanins
     vFanins = Fra_ObjFaninVec( pObj );
-    Vec_PtrForEachEntry( vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vFanins, pFanin, i )
         Counter += Fra_SetActivityFactors_rec( p, Aig_Regular(pFanin), LevelMin, LevelMax );
     return 1 + Counter;
 }
@@ -556,4 +559,6 @@ p->timeTrav += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

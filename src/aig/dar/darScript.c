@@ -23,11 +23,12 @@
 #include "gia.h"
 #include "giaAig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-        extern void * Tim_ManDup( void * p, int fDiscrete );     
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -83,10 +84,11 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
 
     pParsRwr->fVerbose = fVerbose;
     pParsRef->fVerbose = fVerbose;
-
+//printf( "1" );
     pAig = Aig_ManDupDfs( pAig ); 
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
+//printf( "2" );
     // balance
     if ( fBalance )
     {
@@ -96,18 +98,21 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     }
    
 //Aig_ManDumpBlif( pAig, "inter.blif", NULL, NULL );
+//printf( "3" );
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
+//printf( "4" );
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
+//printf( "5" );
     // balance
     if ( fBalance )
     {
@@ -116,12 +121,14 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     if ( fVerbose ) Aig_ManPrintStats( pAig );
     }
     
+//printf( "6" );
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
+//printf( "7" );
     return pAig;
 }
 
@@ -369,7 +376,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
     Vec_PtrPush( vAigs, pAig );
 //Aig_ManPrintStats( pAig );
 
-    pAig = Vec_PtrEntry( vAigs, 1 );
+    pAig = (Aig_Man_t *)Vec_PtrEntry( vAigs, 1 );
     Aig_ManForEachObj( pAig, pObj, i )
         pObj->pHaig = pObj->pNext;
 
@@ -402,7 +409,7 @@ clk = clock();
     // (it is also important when constructing choices)
     if ( !fConstruct )
     {
-        pMan = Vec_PtrPop( vAigs );
+        pMan = (Aig_Man_t *)Vec_PtrPop( vAigs );
         Vec_PtrPush( vAigs, Vec_PtrEntry(vAigs,0) );
         Vec_PtrWriteEntry( vAigs, 0, pMan );
     }
@@ -416,7 +423,7 @@ clk = clock();
         pMan = Aig_ManChoiceConstructive( vAigs, fVerbose );
     else
         pMan = Aig_ManChoicePartitioned( vAigs, 300, nConfMax, nLevelMax, fVerbose );
-    Vec_PtrForEachEntry( vAigs, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pTemp, i )
         Aig_ManStop( pTemp );
     Vec_PtrFree( vAigs );
 if ( fVerbose )
@@ -425,81 +432,6 @@ ABC_PRT( "Choicing time ", clock() - clk );
 }
     return pMan;
 //    return NULL;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Duplicates the AIG in the DFS order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dar_ManChoiceMiter_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
-{
-    if ( ~pObj->Value )
-        return pObj->Value;
-    Dar_ManChoiceMiter_rec( pNew, p, Gia_ObjFanin0(pObj) );
-    if ( Gia_ObjIsCo(pObj) )
-        return pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Dar_ManChoiceMiter_rec( pNew, p, Gia_ObjFanin1(pObj) );
-    return pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-} 
-
-/**Function*************************************************************
-
-  Synopsis    [Derives the miter of several AIGs for choice computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Dar_ManChoiceMiter( Vec_Ptr_t * vGias )
-{
-    Gia_Man_t * pNew, * pGia, * pGia0;
-    int i, k, iNode, nNodes;
-    // make sure they have equal parameters
-    assert( Vec_PtrSize(vGias) > 0 );
-    pGia0 = Vec_PtrEntry( vGias, 0 );
-    Vec_PtrForEachEntry( vGias, pGia, i )
-    {
-        assert( Gia_ManCiNum(pGia)  == Gia_ManCiNum(pGia0) );
-        assert( Gia_ManCoNum(pGia)  == Gia_ManCoNum(pGia0) );
-        assert( Gia_ManRegNum(pGia) == Gia_ManRegNum(pGia0) );
-        Gia_ManFillValue( pGia );
-        Gia_ManConst0(pGia)->Value = 0;
-    }
-    // start the new manager
-    pNew = Gia_ManStart( Vec_PtrSize(vGias) * Gia_ManObjNum(pGia0) );
-    pNew->pName = Gia_UtilStrsav( pGia0->pName );
-    // create new CIs and assign them to the old manager CIs
-    for ( k = 0; k < Gia_ManCiNum(pGia0); k++ )
-    {
-        iNode = Gia_ManAppendCi(pNew);
-        Vec_PtrForEachEntry( vGias, pGia, i )
-            Gia_ManCi( pGia, k )->Value = iNode; 
-    }
-    // create internal nodes
-    Gia_ManHashAlloc( pNew );
-    for ( k = 0; k < Gia_ManCoNum(pGia0); k++ )
-    {
-        Vec_PtrForEachEntry( vGias, pGia, i )
-            Dar_ManChoiceMiter_rec( pNew, pGia, Gia_ManCo( pGia, k ) );
-    }
-    Gia_ManHashStop( pNew );
-    // check the presence of dangling nodes
-    nNodes = Gia_ManHasDandling( pNew );
-    assert( nNodes == 0 );
-    // finalize
-    Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia0) );
-    return pNew;
 }
 
 
@@ -606,9 +538,9 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     {
         // rewrite
         //Dar_ManRewrite( pAig, pParsRwr );
-        pParsRwr->fUpdateLevel = 0;  // disable level update
+//        pParsRwr->fUpdateLevel = 0;  // disable level update  // this change was requested in July and later disabled
         Dar_ManRewrite( pAig, pParsRwr );
-        pParsRwr->fUpdateLevel = fUpdateLevel;  // reenable level update if needed
+//        pParsRwr->fUpdateLevel = fUpdateLevel;  // reenable level update if needed
 
         pAig = Aig_ManDupDfs( pTemp = pAig ); 
         Aig_ManStop( pTemp );
@@ -719,21 +651,21 @@ Gia_Man_t * Dar_NewChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
     Aig_ManStop( pAig );
 
     // swap around the first and the last
-    pTemp = Vec_PtrPop( vGias );
+    pTemp = (Gia_Man_t *)Vec_PtrPop( vGias );
     Vec_PtrPush( vGias, Vec_PtrEntry(vGias,0) );
     Vec_PtrWriteEntry( vGias, 0, pTemp );
 
 //    Aig_Man_t * pAig;
 //    int i;
 //    printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(p->vAigs) );
-//    Vec_PtrForEachEntry( p->vAigs, pAig, i )
+//    Vec_PtrForEachEntry( Aig_Man_t *, p->vAigs, pAig, i )
 //        Aig_ManPrintStats( pAig );
 
     // derive the miter
-    pGia = Dar_ManChoiceMiter( vGias );
+    pGia = Gia_ManChoiceMiter( vGias );
 
     // cleanup
-    Vec_PtrForEachEntry( vGias, pTemp, i )
+    Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
         Gia_ManStop( pTemp );
     Vec_PtrFree( vGias );
     return pGia;
@@ -808,7 +740,7 @@ clk = clock();
     pMan->pSpec = Aig_UtilStrsav( pTemp->pSpec );
 
     // cleanup
-    Vec_PtrForEachEntry( vAigs, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pTemp, i )
         Aig_ManStop( pTemp );
     Vec_PtrFree( vAigs );
 
@@ -834,7 +766,7 @@ if ( fVerbose )
 ***********************************************************************/
 Aig_Man_t * Dar_ManChoiceNewAig( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
-    extern Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
+//    extern Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
     extern Aig_Man_t * Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars );
     int fVerbose = pPars->fVerbose;
     Aig_Man_t * pMan, * pTemp;
@@ -850,14 +782,14 @@ pPars->timeSynth = clock() - clk;
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis
     // (it is also important when constructing choices)
-    pMan = Vec_PtrPop( vAigs );
+    pMan = (Aig_Man_t *)Vec_PtrPop( vAigs );
     Vec_PtrPush( vAigs, Vec_PtrEntry(vAigs,0) );
     Vec_PtrWriteEntry( vAigs, 0, pMan );
 
     // derive the total AIG
     pMan = Dch_DeriveTotalAig( vAigs );
     // cleanup
-    Vec_PtrForEachEntry( vAigs, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pTemp, i )
         Aig_ManStop( pTemp );
     Vec_PtrFree( vAigs );
 
@@ -905,7 +837,7 @@ pPars->timeSynth = clock() - clk;
 Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
     extern Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars );
-    extern Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
+//    extern Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
     extern Aig_Man_t * Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars );
     int fVerbose = pPars->fVerbose;
     Aig_Man_t * pMan, * pTemp;
@@ -922,7 +854,7 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 
     // perform synthesis
 clk = clock();
-    pGia = Dar_NewChoiceSynthesis( Aig_ManDupDfs(pAig), 1, 1, pPars->fPower, pPars->fLightSynth, 0 );
+    pGia = Dar_NewChoiceSynthesis( Aig_ManDupDfs(pAig), 1, 1, pPars->fPower, pPars->fLightSynth, pPars->fVerbose );
 pPars->timeSynth = clock() - clk;
 
     // perform choice computation
@@ -962,4 +894,6 @@ pPars->timeSynth = clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

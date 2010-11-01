@@ -167,6 +167,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1740,7 +1743,7 @@ Cudd_ReadGarbageCollectionTime(
 
   Synopsis    [Returns the number of nodes freed.]
 
-  Description [Returns the number of nodes returned to the ABC_FREE list if the
+  Description [Returns the number of nodes returned to the free list if the
   keeping of this statistic is enabled; -1 otherwise. This statistic is
   enabled only if the package is compiled with DD_STATS defined.]
 
@@ -3078,7 +3081,7 @@ Cudd_PrintInfo(
   Synopsis    [Reports the peak number of nodes.]
 
   Description [Reports the peak number of nodes. This number includes
-  node on the ABC_FREE list. At the peak, the number of nodes on the ABC_FREE
+  node on the free list. At the peak, the number of nodes on the free
   list is guaranteed to be less than DD_MEM_CHUNK.]
 
   SideEffects [None]
@@ -4406,4 +4409,6 @@ addMultiplicityGroups(
     return(1);
 
 } /* end of addMultiplicityGroups */
+
+ABC_NAMESPACE_IMPL_END
 

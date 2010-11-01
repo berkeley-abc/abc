@@ -34,6 +34,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -994,4 +997,6 @@ ddWindowConv4(
     return(1);
 
 } /* end of ddWindowConv4 */
+
+ABC_NAMESPACE_IMPL_END
 

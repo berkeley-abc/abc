@@ -19,8 +19,9 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "gia.h"
 
-extern unsigned            Gia_ManRandom( int fReset );
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -30,8 +31,8 @@ extern unsigned            Gia_ManRandom( int fReset );
 #define XVS1   ABC_INIT_ONE
 #define XVSX   ABC_INIT_DC
 
-static inline void Abc_ObjSetXsim( Abc_Obj_t * pObj, int Value )  { pObj->pCopy = (void *)(ABC_PTRINT_T)Value;  }
-static inline int  Abc_ObjGetXsim( Abc_Obj_t * pObj )             { return (int)(ABC_PTRINT_T)pObj->pCopy;      }
+static inline void Abc_ObjSetXsim( Abc_Obj_t * pObj, int Value )  { pObj->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)Value;  }
+static inline int  Abc_ObjGetXsim( Abc_Obj_t * pObj )             { return (int)(ABC_PTRINT_T)pObj->pCopy;           }
 static inline int  Abc_XsimInv( int Value )   
 { 
     if ( Value == XVS0 )
@@ -158,12 +159,6 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXS
         fprintf( stdout, " : " );
         Abc_NtkForEachPo( pNtk, pObj, i )
             Abc_XsimPrint( stdout, Abc_ObjGetXsim(pObj) );
-        if ( Abc_NtkAssertNum(pNtk) )
-        {
-        fprintf( stdout, " : " );
-        Abc_NtkForEachAssert( pNtk, pObj, i )
-            Abc_XsimPrint( stdout, Abc_ObjGetXsim(pObj) );
-        }
         fprintf( stdout, "\n" );
         // assign input values
         if ( fXInputs )
@@ -231,4 +226,6 @@ void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fUseXval, int fVe
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

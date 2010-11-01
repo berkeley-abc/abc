@@ -9,6 +9,9 @@
  */
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
  *   Phase assignment technique (T. Sasao):
  *
@@ -622,3 +625,5 @@ pPLA PLA;
     EXEC_S(PLA->F = espresso(PLA->F, PLA->D, PLA->R), "ESPRESSO  ",PLA->F);
     }
 }
+ABC_NAMESPACE_IMPL_END
+

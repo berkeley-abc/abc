@@ -20,6 +20,9 @@
 
 #include "extra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -70,7 +73,6 @@ static void Extra_Permutations_rec( char ** pRes, int nFact, int n, char Array[]
 int Extra_Base2Log( unsigned Num )
 {
     int Res;
-    assert( Num >= 0 );
     if ( Num == 0 ) return 0;
     if ( Num == 1 ) return 1;
     for ( Res = 0, Num--; Num; Num >>= 1, Res++ );
@@ -115,7 +117,6 @@ int Extra_Base2LogDouble( double Num )
 int Extra_Base10Log( unsigned Num )
 {
     int Res;
-    assert( Num >= 0 );
     if ( Num == 0 ) return 0;
     if ( Num == 1 ) return 1;
     for ( Res = 0, Num--;  Num;  Num /= 10,  Res++ );
@@ -265,7 +266,7 @@ int Extra_Factorial( int n )
 
   Description [The number of permutations in the array is n!. The number of
   entries in each permutation is n. Therefore, the resulting array is a 
-  two-dimentional array of the size: n! x n. To ABC_FREE the resulting array,
+  two-dimentional array of the size: n! x n. To free the resulting array,
   call ABC_FREE() on the pointer returned by this procedure.]
 
   SideEffects []
@@ -2232,4 +2233,6 @@ void Extra_TruthExpandGeneratePermTable()
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

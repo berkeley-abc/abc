@@ -21,11 +21,15 @@
 #ifndef __VEC_INT_H__
 #define __VEC_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -102,6 +106,26 @@ static inline Vec_Int_t * Vec_IntStart( int nSize )
     p = Vec_IntAlloc( nSize );
     p->nSize = nSize;
     memset( p->pArray, 0, sizeof(int) * nSize );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates a vector with the given size and cleans it.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Int_t * Vec_IntStartFull( int nSize )
+{
+    Vec_Int_t * p;
+    p = Vec_IntAlloc( nSize );
+    p->nSize = nSize;
+    memset( p->pArray, 0xff, sizeof(int) * nSize );
     return p;
 }
 
@@ -244,6 +268,25 @@ static inline void Vec_IntFree( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntFreeP( Vec_Int_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    ABC_FREE( (*p)->pArray );
+    ABC_FREE( (*p) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int * Vec_IntReleaseArray( Vec_Int_t * p )
 {
     int * pArray = p->pArray;
@@ -347,10 +390,10 @@ static inline void Vec_IntWriteEntry( Vec_Int_t * p, int i, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntAddToEntry( Vec_Int_t * p, int i, int Addition )
+static inline int Vec_IntAddToEntry( Vec_Int_t * p, int i, int Addition )
 {
     assert( i >= 0 && i < p->nSize );
-    p->pArray[i] += Addition;
+    return p->pArray[i] += Addition;
 }
 
 /**Function*************************************************************
@@ -424,11 +467,12 @@ static inline void Vec_IntFill( Vec_Int_t * p, int nSize, int Fill )
 static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Fill )
 {
     int i;
-    if ( p->nSize >= nSize )
+    if ( nSize <= p->nSize )
         return;
-    if ( nSize < 2 * p->nSize )
-        nSize = 2 * p->nSize;
-    Vec_IntGrow( p, nSize );
+    if ( nSize > 2 * p->nCap )
+        Vec_IntGrow( p, nSize );
+    else if ( nSize > p->nCap )
+        Vec_IntGrow( p, 2 * p->nCap );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -449,6 +493,23 @@ static inline int Vec_IntGetEntry( Vec_Int_t * p, int i )
 {
     Vec_IntFillExtra( p, i + 1, 0 );
     return Vec_IntEntry( p, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the entry even if the place not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int * Vec_IntGetEntryP( Vec_Int_t * p, int i )
+{
+    Vec_IntFillExtra( p, i + 1, 0 );
+    return Vec_IntEntryP( p, i );
 }
 
 /**Function*************************************************************
@@ -713,6 +774,27 @@ static inline int Vec_IntRemove( Vec_Int_t * p, int Entry )
 
 /**Function*************************************************************
 
+  Synopsis    [Interts entry at the index iHere. Shifts other entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntInsert( Vec_Int_t * p, int iHere, int Entry )
+{
+    int i;
+    assert( iHere >= 0 && iHere < p->nSize );
+    Vec_IntPush( p, 0 );
+    for ( i = p->nSize - 1; i > iHere; i-- )
+        p->pArray[i] = p->pArray[i-1];
+    p->pArray[i] = Entry;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Find entry.]
 
   Description []
@@ -790,14 +872,62 @@ static inline void Vec_IntReverseOrder( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Int_t * Vec_IntInvert( Vec_Int_t * p ) 
+static inline Vec_Int_t * Vec_IntInvert( Vec_Int_t * p, int Fill ) 
 {
-    Vec_Int_t * vRes;
     int Entry, i;
-    vRes = Vec_IntStart( Vec_IntFindMax(p) + 1 );
+    Vec_Int_t * vRes = Vec_IntAlloc( 0 );
+    Vec_IntFill( vRes, Vec_IntFindMax(p) + 1, Fill );
     Vec_IntForEachEntry( p, Entry, i )
-        Vec_IntWriteEntry( vRes, Entry, i );
+        if ( Entry != Fill )
+            Vec_IntWriteEntry( vRes, Entry, i );
     return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntSum( Vec_Int_t * p ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += p->pArray[i];
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of common entries.]
+
+  Description [Assumes that the entries are non-negative integers that
+  are not very large, so inversion of the array can be performed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntCountCommon( Vec_Int_t * p1, Vec_Int_t * p2 ) 
+{
+    Vec_Int_t * vTemp;
+    int Entry, i, Counter = 0;
+    if ( Vec_IntSize(p1) < Vec_IntSize(p2) )
+        vTemp = p1, p1 = p2, p2 = vTemp;
+    assert( Vec_IntSize(p1) >= Vec_IntSize(p2) );
+    vTemp = Vec_IntInvert( p2, -1 );
+    Vec_IntFillExtra( vTemp, Vec_IntFindMax(p1) + 1, -1 );
+    Vec_IntForEachEntry( p1, Entry, i )
+        if ( Vec_IntEntry(vTemp, Entry) >= 0 )
+            Counter++;
+    Vec_IntFree( vTemp );
+    return Counter;
 }
 
 /**Function*************************************************************
@@ -863,6 +993,28 @@ static inline void Vec_IntSort( Vec_Int_t * p, int fReverse )
                 (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Leaves only unique entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Vec_IntUniqify( Vec_Int_t * p )
+{
+    int i, k;
+    if ( p->nSize < 2 )
+        return;
+    Vec_IntSort( p, 0 );
+    for ( i = k = 1; i < p->nSize; i++ )
+        if ( p->pArray[i] != p->pArray[i-1] )
+            p->pArray[k++] = p->pArray[i];
+    p->nSize = k;
+}
 
 /**Function*************************************************************
 
@@ -969,6 +1121,10 @@ static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 
     assert( vArr->nSize >= vArr2->nSize );
     return vArr;
 }
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

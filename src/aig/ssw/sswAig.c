@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -142,7 +145,7 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
 {
     Aig_Man_t * pFrames;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pObjNew;
-    int i, f;
+    int i, f, iLits;
     assert( p->pFrames == NULL );
     assert( Aig_ManRegNum(p->pAig) > 0 );
     assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
@@ -154,12 +157,17 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
     Saig_ManForEachLo( p->pAig, pObj, i )
         Ssw_ObjSetFrame( p, pObj, 0, Aig_ObjCreatePi(pFrames) );
     // add timeframes
+    iLits = 0;
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // map constants and PIs
         Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(pFrames) );
         Saig_ManForEachPi( p->pAig, pObj, i )
-            Ssw_ObjSetFrame( p, pObj, f, Aig_ObjCreatePi(pFrames) );
+        {
+            pObjNew = Aig_ObjCreatePi(pFrames);
+            pObjNew->fPhase = (p->vInits != NULL) && Vec_IntEntry(p->vInits, iLits++);
+            Ssw_ObjSetFrame( p, pObj, f, pObjNew );
+        }
         // set the constraints on the latch outputs
         Saig_ManForEachLo( p->pAig, pObj, i )
             Ssw_FramesConstrainNode( p, pFrames, p->pAig, pObj, f, 1 );
@@ -170,10 +178,14 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
             Ssw_FramesConstrainNode( p, pFrames, p->pAig, pObj, f, 1 );
         }
+        // transfer to the primary outputs
+        Aig_ManForEachPo( p->pAig, pObj, i )
+            Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj,f) );
         // transfer latch input to the latch outputs 
         Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
-            Ssw_ObjSetFrame( p, pObjLo, f+1, Ssw_ObjChild0Fra(p, pObjLi,f) );
+            Ssw_ObjSetFrame( p, pObjLo, f+1, Ssw_ObjFrame(p, pObjLi,f) );
     }
+    assert( p->vInits == NULL || Vec_IntSize(p->vInits) == iLits + Saig_ManPiNum(p->pAig) );
     // add the POs for the latch outputs of the last frame
     Saig_ManForEachLo( p->pAig, pObj, i )
         Aig_ObjCreatePo( pFrames, Ssw_ObjFrame( p, pObj, p->pPars->nFramesK ) );
@@ -185,8 +197,6 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
 //Aig_ManShow( pFrames, 0, NULL );
     return pFrames;
 }
-
-
 
 /**Function*************************************************************
 
@@ -244,4 +254,6 @@ Aig_Man_t * Ssw_SpeculativeReduction( Ssw_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "lpkInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -609,4 +612,6 @@ Lpk_Fun_t * Lpk_DsdSplit( Lpk_Man_t * pMan, Lpk_Fun_t * p, char * pCofVars, int 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

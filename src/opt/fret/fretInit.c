@@ -25,6 +25,9 @@
 #include "mio.h"
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 #undef DEBUG_PRINT_INIT_NTK
 
 
@@ -698,7 +701,7 @@ void Abc_FlowRetime_UpdateBackwardInit( Abc_Ntk_t * pNtk ) {
   }  
 
   // recursively build init network
-  Vec_PtrForEachEntry( vBo, pOrigObj, i )
+  Vec_PtrForEachEntry( Abc_Obj_t *, vBo, pOrigObj, i )
     Abc_FlowRetime_UpdateBackwardInit_rec( pOrigObj );
   
   // clear flags
@@ -759,9 +762,9 @@ Abc_Obj_t *Abc_FlowRetime_CopyNodeToInitNtk( Abc_Obj_t *pOrigObj ) {
     fCompl[0] = pOrigObj->fCompl0 ? 1 : 0;
     fCompl[1] = pOrigObj->fCompl1 ? 1 : 0;
     
-    pData =  Abc_SopCreateAnd( pInitNtk->pManFunc, 2, fCompl );
+    pData =  Abc_SopCreateAnd( (Extra_MmFlex_t *)pInitNtk->pManFunc, 2, fCompl );
     assert(pData);
-    pInitObj->pData = Abc_SopRegister( pInitNtk->pManFunc, pData );
+    pInitObj->pData = Abc_SopRegister( (Extra_MmFlex_t *)pInitNtk->pManFunc, pData );
   } 
 
   // (ii) mapped node -> SOP node
@@ -779,7 +782,7 @@ Abc_Obj_t *Abc_FlowRetime_CopyNodeToInitNtk( Abc_Obj_t *pOrigObj ) {
     pData = Mio_GateReadSop(pOrigObj->pData);
     assert( Abc_SopGetVarNum(pData) == Abc_ObjFaninNum(pOrigObj) );
     
-    pInitObj->pData = Abc_SopRegister( pInitNtk->pManFunc, pData );
+    pInitObj->pData = Abc_SopRegister( (Extra_MmFlex_t *)pInitNtk->pManFunc, pData );
   } 
 
   // (iii) otherwise, duplicate obj
@@ -941,7 +944,7 @@ void Abc_FlowRetime_VerifyBackwardInit_rec( Abc_Obj_t * pObj ) {
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_FlowRetime_PartialSat(Vec_Ptr_t *vNodes, int cut) {
+int Abc_FlowRetime_PartialSat(Vec_Ptr_t *vNodes, int cut) {
   Abc_Ntk_t *pPartNtk, *pInitNtk = pManMR->pInitNtk;
   Abc_Obj_t *pObj, *pNext, *pPartObj, *pPartNext, *pPo;
   int i, j, result;
@@ -951,7 +954,7 @@ bool Abc_FlowRetime_PartialSat(Vec_Ptr_t *vNodes, int cut) {
   pPartNtk = Abc_NtkAlloc( pInitNtk->ntkType, pInitNtk->ntkFunc, 0 );
 
   // copy network
-  Vec_PtrForEachEntry( vNodes, pObj, i ) {
+  Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i ) {
     pObj->Level = i;
     assert(!Abc_ObjIsPo( pObj ));
 
@@ -1117,7 +1120,7 @@ void Abc_FlowRetime_RemoveInitBias( ) {
   InitConstraint_t *pConstraint;
   int i;
 
-  Vec_PtrForEachEntry( pManMR->vInitConstraints, pConstraint, i ) {
+  Vec_PtrForEachEntry( Abc_Obj_t *, pManMR->vInitConstraints, pConstraint, i ) {
     pBiasNode = pConstraint->pBiasNode;
     pConstraint->pBiasNode = NULL;
 
@@ -1215,7 +1218,7 @@ void Abc_FlowRetime_AddInitBias( ) {
 
   vprintf("\t\tcreating %d bias structures\n", nConstraints);
 
-  Vec_PtrForEachEntry( pManMR->vInitConstraints, pConstraint, i ) {
+  Vec_PtrForEachEntry( Abc_Obj_t *, pManMR->vInitConstraints, pConstraint, i ) {
     if (pConstraint->pBiasNode) continue;
     
  //   printf("\t\t\tbias %d...\n", i);
@@ -1327,3 +1330,5 @@ void Abc_FlowRetime_GetInitToOrig( Abc_Obj_t *pInit, Abc_Obj_t **pOrig, int *lag
   *pOrig = Abc_NtkObj(pManMR->pNtk, origId);
   *lag = pManMR->pInitToOrig[id].lag;
 }
+ABC_NAMESPACE_IMPL_END
+

@@ -20,12 +20,15 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel );
-static int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference );
+static int Abc_NodeRefDeref( Abc_Obj_t * pNode, int fReference, int fLabel );
+static int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, int fReference );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -120,7 +123,7 @@ int Abc_NodeMffcLabelAig( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel )
+int Abc_NodeRefDeref( Abc_Obj_t * pNode, int fReference, int fLabel )
 {
     Abc_Obj_t * pNode0, * pNode1;
     int Counter;
@@ -165,7 +168,7 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference )
+int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, int fReference )
 {
     Abc_Obj_t * pNode0, * pNode1;
     int Counter;
@@ -327,7 +330,7 @@ void Abc_NodeMffcConeSuppPrint( Abc_Obj_t * pNode )
     Abc_NodeRef_rec( pNode );
     printf( "Node = %6s : Supp = %3d  Cone = %3d  (", 
         Abc_ObjName(pNode), Vec_PtrSize(vSupp), Vec_PtrSize(vCone) );
-    Vec_PtrForEachEntry( vCone, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, i )
         printf( " %s", Abc_ObjName(pObj) );
     printf( " )\n" );
     Vec_PtrFree( vCone );
@@ -350,7 +353,7 @@ int Abc_NodeMffcInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vIns
     Abc_Obj_t * pObj;
     int i, Count1, Count2;
     // increment the fanout counters for the leaves
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pObj, i )
         pObj->vFanouts.nSize++;
     // dereference the node
     Count1 = Abc_NodeDeref_rec( pNode );
@@ -360,7 +363,7 @@ int Abc_NodeMffcInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vIns
     Count2 = Abc_NodeRef_rec( pNode );
     assert( Count1 == Count2 );
     // remove the extra counters
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pObj, i )
         pObj->vFanouts.nSize--;
     return Count1;
 }
@@ -449,4 +452,6 @@ int Abc_NodeMffcLabel( Abc_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -228,7 +231,7 @@ void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     pLits = ABC_ALLOC( int, nLits );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
     {
         pLits[0] = toLitCond(Ssw_ObjSatNum(p,Aig_Regular(pFanin)), Aig_IsComplement(pFanin));
         pLits[1] = toLitCond(Ssw_ObjSatNum(p,pNode), 1);
@@ -241,7 +244,7 @@ void Ssw_AddClausesSuper( Ssw_Sat_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
     {
         pLits[i] = toLitCond(Ssw_ObjSatNum(p,Aig_Regular(pFanin)), !Aig_IsComplement(pFanin));
         if ( p->fPolarFlip )
@@ -357,7 +360,7 @@ void Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj )
     vFrontier = Vec_PtrAlloc( 100 );
     Ssw_ObjAddToFrontier( p, pObj, vFrontier );
     // explore nodes in the frontier
-    Vec_PtrForEachEntry( vFrontier, pNode, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vFrontier, pNode, i )
     {
         // create the supergate
         assert( Ssw_ObjSatNum(p,pNode) );
@@ -368,14 +371,14 @@ void Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj )
             Vec_PtrPushUnique( p->vFanins, Aig_ObjFanin0( Aig_ObjFanin1(pNode) ) );
             Vec_PtrPushUnique( p->vFanins, Aig_ObjFanin1( Aig_ObjFanin0(pNode) ) );
             Vec_PtrPushUnique( p->vFanins, Aig_ObjFanin1( Aig_ObjFanin1(pNode) ) );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Aig_Obj_t *, p->vFanins, pFanin, k )
                 Ssw_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Ssw_AddClausesMux( p, pNode );
         }
         else
         {
             Ssw_CollectSuper( pNode, fUseMuxes, p->vFanins );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Aig_Obj_t *, p->vFanins, pFanin, k )
                 Ssw_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Ssw_AddClausesSuper( p, pNode, p->vFanins );
         }
@@ -420,4 +423,6 @@ int Ssw_CnfGetNodeValue( Ssw_Sat_t * p, Aig_Obj_t * pObj )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -414,6 +417,7 @@ int If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut )
 //    if ( If_CutLeaveNum(pCut) - nSuppSize > 1 )
 //        return 0;
 //printf( "%d %d  ", If_CutLeaveNum(pCut), nSuppSize );
+//    pCut->fUseless = 1;
 
     // shrink the truth table
     If_TruthShrink( p->puTemp[0], If_CutTruth(pCut), nSuppSize, pCut->nLimit, uSupport, 1 );
@@ -439,4 +443,6 @@ int If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

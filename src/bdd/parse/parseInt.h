@@ -19,15 +19,19 @@
 #ifndef __PARSE_INT_H__
 #define __PARSE_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 
 #include <stdio.h>
-#include "cuddInt.h"
 #include "extra.h"
+#include "cuddInt.h"
 #include "parse.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -36,8 +40,6 @@
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-typedef int bool;
 
 typedef struct ParseStackFnStruct    Parse_StackFn_t;    // the function stack
 typedef struct ParseStackOpStruct    Parse_StackOp_t;    // the operation stack
@@ -56,16 +58,20 @@ typedef struct ParseStackOpStruct    Parse_StackOp_t;    // the operation stack
 
 /*=== parseStack.c =============================================================*/
 extern Parse_StackFn_t *  Parse_StackFnStart  ( int nDepth );
-extern bool               Parse_StackFnIsEmpty( Parse_StackFn_t * p );
+extern int                Parse_StackFnIsEmpty( Parse_StackFn_t * p );
 extern void               Parse_StackFnPush   ( Parse_StackFn_t * p, void * bFunc );
 extern void *             Parse_StackFnPop    ( Parse_StackFn_t * p );
 extern void               Parse_StackFnFree   ( Parse_StackFn_t * p );
 
 extern Parse_StackOp_t *  Parse_StackOpStart  ( int nDepth );
-extern bool               Parse_StackOpIsEmpty( Parse_StackOp_t * p );
+extern int                Parse_StackOpIsEmpty( Parse_StackOp_t * p );
 extern void               Parse_StackOpPush   ( Parse_StackOp_t * p, int Oper );
 extern int                Parse_StackOpPop    ( Parse_StackOp_t * p );
 extern void               Parse_StackOpFree   ( Parse_StackOp_t * p );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

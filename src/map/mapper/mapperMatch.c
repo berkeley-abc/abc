@@ -18,6 +18,9 @@
 
 #include "mapperInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     A potential improvement:
     When an internal node is not used in the mapping, its required times 
@@ -595,3 +598,5 @@ void Map_NodeTransferArrivalTimes( Map_Man_t * p, Map_Node_t * pNode )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

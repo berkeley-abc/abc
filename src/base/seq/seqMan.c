@@ -20,6 +20,9 @@
 
 #include "seqInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -107,7 +110,7 @@ void Seq_Delete( Abc_Seq_t * p )
     if ( p->fStandCells && p->vMapAnds )
     {
         void * pVoid; int i;
-        Vec_PtrForEachEntry( p->vMapAnds, pVoid, i )
+        Vec_PtrForEachEntry( void *, p->vMapAnds, pVoid, i )
             free( pVoid );
     }
     if ( p->vMapDelays )  Vec_VecFree( p->vMapDelays );  // the nodes used in the mapping
@@ -130,4 +133,6 @@ void Seq_Delete( Abc_Seq_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

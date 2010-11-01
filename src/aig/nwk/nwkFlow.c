@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     This code is based on the papers:
     A. Hurst, A. Mishchenko, and R. Brayton, "Fast minimum-register retiming 
@@ -33,7 +36,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // predecessors
-static inline Nwk_Obj_t * Nwk_ObjPred( Nwk_Obj_t * pObj )                   { return pObj->pCopy;        }
+static inline Nwk_Obj_t * Nwk_ObjPred( Nwk_Obj_t * pObj )                   { return (Nwk_Obj_t *)pObj->pCopy;        }
 static inline int         Nwk_ObjSetPred( Nwk_Obj_t * pObj, Nwk_Obj_t * p ) { pObj->pCopy = p; return 1; }
 // sink
 static inline int         Nwk_ObjIsSink( Nwk_Obj_t * pObj )                 { return pObj->MarkA;        }
@@ -393,7 +396,7 @@ int Nwk_ManRetimeVerifyCutForward( Nwk_Man_t * pMan, Vec_Ptr_t * vNodes )
     Nwk_Obj_t * pObj;
     int i;
     // mark the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
     {
         assert( pObj->MarkA == 0 );
         pObj->MarkA = 1;
@@ -404,7 +407,7 @@ int Nwk_ManRetimeVerifyCutForward( Nwk_Man_t * pMan, Vec_Ptr_t * vNodes )
         if ( !Nwk_ManVerifyCut_rec( pObj ) )
             printf( "Nwk_ManRetimeVerifyCutForward(): Internal cut verification failed.\n" );
     // unmark the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
         pObj->MarkA = 0;
     return 1;
 }
@@ -598,4 +601,6 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

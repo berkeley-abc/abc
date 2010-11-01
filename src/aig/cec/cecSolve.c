@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -188,7 +191,7 @@ void Cec_AddClausesSuper( Cec_ManSat_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSupe
     pLits = ABC_ALLOC( int, nLits );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, vSuper, pFanin, i )
     {
         pLits[0] = toLitCond(Cec_ObjSatNum(p,Gia_Regular(pFanin)), Gia_IsComplement(pFanin));
         pLits[1] = toLitCond(Cec_ObjSatNum(p,pNode), 1);
@@ -201,7 +204,7 @@ void Cec_AddClausesSuper( Cec_ManSat_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSupe
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, vSuper, pFanin, i )
     {
         pLits[i] = toLitCond(Cec_ObjSatNum(p,Gia_Regular(pFanin)), !Gia_IsComplement(pFanin));
         if ( p->pPars->fPolarFlip )
@@ -320,7 +323,7 @@ void Cec_CnfNodeAddToSolver( Cec_ManSat_t * p, Gia_Obj_t * pObj )
     vFrontier = Vec_PtrAlloc( 100 );
     Cec_ObjAddToFrontier( p, pObj, vFrontier );
     // explore nodes in the frontier
-    Vec_PtrForEachEntry( vFrontier, pNode, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, vFrontier, pNode, i )
     {
         // create the supergate
         assert( Cec_ObjSatNum(p,pNode) );
@@ -331,14 +334,14 @@ void Cec_CnfNodeAddToSolver( Cec_ManSat_t * p, Gia_Obj_t * pObj )
             Vec_PtrPushUnique( p->vFanins, Gia_ObjFanin0( Gia_ObjFanin1(pNode) ) );
             Vec_PtrPushUnique( p->vFanins, Gia_ObjFanin1( Gia_ObjFanin0(pNode) ) );
             Vec_PtrPushUnique( p->vFanins, Gia_ObjFanin1( Gia_ObjFanin1(pNode) ) );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Gia_Obj_t *, p->vFanins, pFanin, k )
                 Cec_ObjAddToFrontier( p, Gia_Regular(pFanin), vFrontier );
             Cec_AddClausesMux( p, pNode );
         }
         else
         {
             Cec_CollectSuper( pNode, fUseMuxes, p->vFanins );
-            Vec_PtrForEachEntry( p->vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Gia_Obj_t *, p->vFanins, pFanin, k )
                 Cec_ObjAddToFrontier( p, Gia_Regular(pFanin), vFrontier );
             Cec_AddClausesSuper( p, pNode, p->vFanins );
         }
@@ -366,7 +369,7 @@ void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
     {
         Gia_Obj_t * pObj;
         int i;
-        Vec_PtrForEachEntry( p->vUsedNodes, pObj, i )
+        Vec_PtrForEachEntry( Gia_Obj_t *, p->vUsedNodes, pObj, i )
             Cec_ObjSetSatNum( p, pObj, 0 );
         Vec_PtrClear( p->vUsedNodes );
 //        memset( p->pSatVars, 0, sizeof(int) * Gia_ManObjNumMax(p->pAigTotal) );
@@ -404,9 +407,9 @@ void Cec_SetActivityFactors_rec( Cec_ManSat_t * p, Gia_Obj_t * pObj, int LevelMi
     float dActConeBumpMax = 20.0;
     int iVar;
     // skip visited variables
-    if ( Gia_ObjIsTravIdCurrentArray(p->pAig, pObj) )
+    if ( Gia_ObjIsTravIdCurrent(p->pAig, pObj) )
         return;
-    Gia_ObjSetTravIdCurrentArray(p->pAig, pObj);
+    Gia_ObjSetTravIdCurrent(p->pAig, pObj);
     // add the PI to the list
     if ( Gia_ObjLevel(p->pAig, pObj) <= LevelMin || Gia_ObjIsCi(pObj) )
         return;
@@ -440,7 +443,7 @@ int Cec_SetActivityFactors( Cec_ManSat_t * p, Gia_Obj_t * pObj )
     // reset the active variables
     veci_resize(&p->pSat->act_vars, 0);
     // prepare for traversal
-    Gia_ManIncrementTravIdArray( p->pAig );
+    Gia_ManIncrementTravId( p->pAig );
     // determine the min and max level to visit
     assert( dActConeRatio > 0 && dActConeRatio < 1 );
     LevelMax = Gia_ObjLevel(p->pAig,pObj);
@@ -491,7 +494,7 @@ int Cec_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
 clk2 = clock();
     Cec_CnfNodeAddToSolver( p, pObjR );
 //ABC_PRT( "cnf", clock() - clk2 );
-//printf( "%d \n", p->pSat->size );
+//Abc_Print( 1, "%d \n", p->pSat->size );
 
 clk2 = clock();
 //    Cec_SetActivityFactors( p, pObjR ); 
@@ -529,7 +532,7 @@ p->timeSatUnsat += clock() - clk;
         assert( RetValue );
         p->nSatUnsat++;
         p->nConfUnsat += p->pSat->stats.conflicts - nConflicts;       
-//printf( "UNSAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+//Abc_Print( 1, "UNSAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return 1;
     }
     else if ( RetValue == l_True )
@@ -537,7 +540,7 @@ p->timeSatUnsat += clock() - clk;
 p->timeSatSat += clock() - clk;
         p->nSatSat++;
         p->nConfSat += p->pSat->stats.conflicts - nConflicts;
-//printf( "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+//Abc_Print( 1, "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return 0;
     }
     else // if ( RetValue == l_Undef )
@@ -545,7 +548,7 @@ p->timeSatSat += clock() - clk;
 p->timeSatUndec += clock() - clk;
         p->nSatUndec++;
         p->nConfUndec += p->pSat->stats.conflicts - nConflicts;
-//printf( "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+//Abc_Print( 1, "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return -1;
     }
 }
@@ -591,7 +594,7 @@ clk2 = clock();
     Cec_CnfNodeAddToSolver( p, pObjR1 );
     Cec_CnfNodeAddToSolver( p, pObjR2 );
 //ABC_PRT( "cnf", clock() - clk2 );
-//printf( "%d \n", p->pSat->size );
+//Abc_Print( 1, "%d \n", p->pSat->size );
 
 clk2 = clock();
 //    Cec_SetActivityFactors( p, pObjR1 ); 
@@ -633,7 +636,7 @@ p->timeSatUnsat += clock() - clk;
         assert( RetValue );
         p->nSatUnsat++;
         p->nConfUnsat += p->pSat->stats.conflicts - nConflicts;       
-//printf( "UNSAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+//Abc_Print( 1, "UNSAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return 1;
     }
     else if ( RetValue == l_True )
@@ -641,7 +644,7 @@ p->timeSatUnsat += clock() - clk;
 p->timeSatSat += clock() - clk;
         p->nSatSat++;
         p->nConfSat += p->pSat->stats.conflicts - nConflicts;
-//printf( "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+//Abc_Print( 1, "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return 0;
     }
     else // if ( RetValue == l_Undef )
@@ -649,7 +652,7 @@ p->timeSatSat += clock() - clk;
 p->timeSatUndec += clock() - clk;
         p->nSatUndec++;
         p->nConfUndec += p->pSat->stats.conflicts - nConflicts;
-//printf( "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+//Abc_Print( 1, "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
         return -1;
     }
 }
@@ -683,7 +686,7 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
     } 
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );
-    Gia_ManResetTravIdArray( pAig );
+    Gia_ManIncrementTravId( pAig );
     p = Cec_ManSatCreate( pAig, pPars );
     pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
     Gia_ManForEachCo( pAig, pObj, i )
@@ -705,7 +708,7 @@ clk2 = clock();
             Gia_Man_t * pTemp = Gia_ManDupDfsCone( pAig, pObj );
             Gia_WriteAiger( pTemp, "gia_hard.aig", 0, 0 );
             Gia_ManStop( pTemp );
-            printf( "Dumping hard cone into file \"%s\".\n", "gia_hard.aig" );
+            Abc_Print( 1, "Dumping hard cone into file \"%s\".\n", "gia_hard.aig" );
         }
 */
         if ( status != 0 )
@@ -759,12 +762,12 @@ Vec_Int_t * Cec_ManSatReadCex( Cec_ManSat_t * pSat )
 ***********************************************************************/
 void Cec_ManSatSolveSeq_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vInfo, int iPat, int nRegs )
 {
-    if ( Gia_ObjIsTravIdCurrentArray(p, pObj) )
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
         return;
-    Gia_ObjSetTravIdCurrentArray(p, pObj);
+    Gia_ObjSetTravIdCurrent(p, pObj);
     if ( Gia_ObjIsCi(pObj) )
     {
-        unsigned * pInfo = Vec_PtrEntry( vInfo, nRegs + Gia_ObjCioId(pObj) );
+        unsigned * pInfo = (unsigned *)Vec_PtrEntry( vInfo, nRegs + Gia_ObjCioId(pObj) );
         if ( Cec_ObjSatVarValue( pSat, pObj ) != Gia_InfoHasBit( pInfo, iPat ) )
             Gia_InfoXorBit( pInfo, iPat );
         pSat->nCexLits++;
@@ -799,7 +802,7 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
     nPatsInit = nPats = 32 * Vec_PtrReadWordsSimInfo(vPatts);
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );
-    Gia_ManResetTravIdArray( pAig );
+    Gia_ManIncrementTravId( pAig );
     p = Cec_ManSatCreate( pAig, pPars );
     vStatus = Vec_StrAlloc( Gia_ManPoNum(pAig) );
     pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
@@ -810,18 +813,18 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
         {
             if ( Gia_ObjFaninC0(pObj) )
             {
-//                printf( "Constant 1 output of SRM!!!\n" );
+//                Abc_Print( 1, "Constant 1 output of SRM!!!\n" );
                 Vec_StrPush( vStatus, 0 );
             }
             else
             {
-//                printf( "Constant 0 output of SRM!!!\n" );
+//                Abc_Print( 1, "Constant 0 output of SRM!!!\n" );
                 Vec_StrPush( vStatus, 1 );
             }
             continue;
         }
         status = Cec_ManSatCheckNode( p, Gia_ObjChild0(pObj) );
-//printf( "output %d   status = %d\n", i, status );
+//Abc_Print( 1, "output %d   status = %d\n", i, status );
         Vec_StrPush( vStatus, (char)status );
         if ( status != 0 )
             continue;
@@ -836,7 +839,7 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
         if ( iPat % nPatsInit == 0 )
             iPat++;
         // save the pattern
-        Gia_ManIncrementTravIdArray( pAig );
+        Gia_ManIncrementTravId( pAig );
 //        Vec_IntClear( p->vCex );
         Cec_ManSatSolveSeq_rec( p, pAig, Gia_ObjFanin0(pObj), vPatts, iPat++, nRegs );
 //        Gia_SatVerifyPattern( pAig, pObj, p->vCex, p->vVisits );
@@ -853,7 +856,7 @@ Vec_Str_t * Cec_ManSatSolveSeq( Vec_Ptr_t * vPatts, Gia_Man_t * pAig, Cec_ParSat
     Bar_ProgressStop( pProgress );
     if ( pPars->fVerbose )
         Cec_ManSatPrintStats( p );
-//    printf( "Total number of cex literals = %d. (Ave = %d)\n", p->nCexLits, p->nCexLits/p->nSatSat );
+//    Abc_Print( 1, "Total number of cex literals = %d. (Ave = %d)\n", p->nCexLits, p->nCexLits/p->nSatSat );
     Cec_ManSatStop( p );
     if ( pnPats )
         *pnPats = iPat-1;
@@ -900,9 +903,9 @@ void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out )
 ***********************************************************************/
 void Cec_ManSatSolveMiter_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
-    if ( Gia_ObjIsTravIdCurrentArray(p, pObj) )
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
         return;
-    Gia_ObjSetTravIdCurrentArray(p, pObj);
+    Gia_ObjSetTravIdCurrent(p, pObj);
     if ( Gia_ObjIsCi(pObj) )
     {
         pSat->nCexLits++;
@@ -928,7 +931,7 @@ void Cec_ManSatSolveMiter_rec( Cec_ManSat_t * pSat, Gia_Man_t * p, Gia_Obj_t * p
 void Cec_ManSavePattern( Cec_ManSat_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pObj2 )
 {
     Vec_IntClear( p->vCex );
-    Gia_ManIncrementTravIdArray( p->pAig );
+    Gia_ManIncrementTravId( p->pAig );
     Cec_ManSatSolveMiter_rec( p, p->pAig, Gia_Regular(pObj1) );
     if ( pObj2 )
     Cec_ManSatSolveMiter_rec( p, p->pAig, Gia_Regular(pObj2) );
@@ -957,7 +960,7 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
     // prepare AIG
     Gia_ManSetPhase( pAig );
     Gia_ManLevelNum( pAig );
-    Gia_ManResetTravIdArray( pAig );
+    Gia_ManIncrementTravId( pAig );
     // create resulting data-structures
     vStatus = Vec_StrAlloc( Gia_ManPoNum(pAig) );
     vCexStore = Vec_IntAlloc( 10000 );
@@ -972,13 +975,13 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
         {
             if ( Gia_ObjFaninC0(pObj) )
             {
-//                printf( "Constant 1 output of SRM!!!\n" );
+//                Abc_Print( 1, "Constant 1 output of SRM!!!\n" );
                 Cec_ManSatAddToStore( vCexStore, p->vCex, i ); // trivial counter-example
                 Vec_StrPush( vStatus, 0 );
             }
             else
             {
-//                printf( "Constant 0 output of SRM!!!\n" );
+//                Abc_Print( 1, "Constant 0 output of SRM!!!\n" );
                 Vec_StrPush( vStatus, 1 );
             }
             continue;
@@ -994,7 +997,7 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
             continue;
         assert( status == 0 );
         // save the pattern
-//        Gia_ManIncrementTravIdArray( pAig );
+//        Gia_ManIncrementTravId( pAig );
 //        Cec_ManSatSolveMiter_rec( p, pAig, Gia_ObjFanin0(pObj) );
         Cec_ManSavePattern( p, Gia_ObjFanin0(pObj), NULL );
 //        Gia_SatVerifyPattern( pAig, pObj, p->vCex, p->vVisits );
@@ -1014,4 +1017,6 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

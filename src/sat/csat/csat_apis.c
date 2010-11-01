@@ -19,6 +19,11 @@
 #include "abc.h"
 #include "fraig.h"
 #include "csat_apis.h"
+#include "stmm.h"
+#include "main.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -56,7 +61,7 @@ extern void  Abc_Start();
 extern void  Abc_Stop();
 
 // some external procedures
-extern int Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
+extern int Io_WriteBench( Abc_Ntk_t * pNtk, const char * FileName );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -215,51 +220,51 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
             case CSAT_CONST:
                 if ( nofi != 0 )
                     { printf( "ABC_AddGate: The constant gate \"%s\" has fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateConst1( mng->pNtk->pManFunc );
+                pSop = Abc_SopCreateConst1( (Extra_MmFlex_t *)mng->pNtk->pManFunc );
                 break;
             case CSAT_BAND:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The AND gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateAnd( mng->pNtk->pManFunc, nofi, NULL );
+                pSop = Abc_SopCreateAnd( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi, NULL );
                 break;
             case CSAT_BNAND:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The NAND gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateNand( mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateNand( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The OR gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateOr( mng->pNtk->pManFunc, nofi, NULL );
+                pSop = Abc_SopCreateOr( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi, NULL );
                 break;
             case CSAT_BNOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The NOR gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateNor( mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateNor( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BXOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The XOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
                     { printf( "ABC_AddGate: The XOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateXor( mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateXor( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BXNOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The XNOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
                     { printf( "ABC_AddGate: The XNOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateNxor( mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateNxor( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BINV:
                 if ( nofi != 1 )
                     { printf( "ABC_AddGate: The inverter gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
-                pSop = Abc_SopCreateInv( mng->pNtk->pManFunc );
+                pSop = Abc_SopCreateInv( (Extra_MmFlex_t *)mng->pNtk->pManFunc );
                 break;
             case CSAT_BBUF:
                 if ( nofi != 1 )
                     { printf( "ABC_AddGate: The buffer gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
-                pSop = Abc_SopCreateBuf( mng->pNtk->pManFunc );
+                pSop = Abc_SopCreateBuf( (Extra_MmFlex_t *)mng->pNtk->pManFunc );
                 break;
             default :
                 break;
@@ -675,7 +680,7 @@ CSAT_Target_ResultT * ABC_Get_Target_Result( ABC_Manager mng, int TargetID )
 void ABC_Dump_Bench_File( ABC_Manager mng )
 {
     Abc_Ntk_t * pNtkTemp, * pNtkAig;
-    char * pFileName;
+    const char * pFileName;
  
     // derive the netlist
     pNtkAig = Abc_NtkStrash( mng->pNtk, 0, 0, 0 );
@@ -768,4 +773,6 @@ char * ABC_GetNodeName( ABC_Manager mng, Abc_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

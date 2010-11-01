@@ -21,6 +21,7 @@
 #ifndef __DEC_H__
 #define __DEC_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -50,7 +52,8 @@ struct Dec_Node_t_
     Dec_Edge_t        eEdge0;          // the left child of the node
     Dec_Edge_t        eEdge1;          // the right child of the node
     // other info
-    void *            pFunc;           // the function of the node (BDD or AIG)
+    union { int       iFunc;           // the literal of the node (AIG)
+    void *            pFunc; };        // the function of the node (BDD or AIG)
     unsigned          Level    : 14;   // the level of this node in the global AIG
     // printing info 
     unsigned          fNodeOr  :  1;   // marks the original OR node
@@ -177,10 +180,13 @@ static inline Dec_Edge_t Dec_IntToEdge( unsigned Edge )
   SeeAlso     []
 
 ***********************************************************************/
+static inline unsigned    Dec_EdgeToInt_( Dec_Edge_t m )  { union { Dec_Edge_t x; unsigned y; } v; v.x = m; return v.y;  }
+/*
 static inline unsigned Dec_EdgeToInt_( Dec_Edge_t eEdge )   
 {
     return *(unsigned *)&eEdge;
 }
+*/
 
 /**Function*************************************************************
 
@@ -193,10 +199,13 @@ static inline unsigned Dec_EdgeToInt_( Dec_Edge_t eEdge )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Dec_Edge_t  Dec_IntToEdge_( unsigned m )    { union { Dec_Edge_t x; unsigned y; } v; v.y = m; return v.x;  }
+/*
 static inline Dec_Edge_t Dec_IntToEdge_( unsigned Edge )   
 {
     return *(Dec_Edge_t *)&Edge;
 }
+*/
 
 /**Function*************************************************************
 
@@ -702,9 +711,11 @@ static inline Dec_Edge_t Dec_GraphAddNodeMux( Dec_Graph_t * pGraph, Dec_Edge_t e
     return eNode;
 }
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

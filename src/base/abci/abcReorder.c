@@ -21,6 +21,8 @@
 #include "abc.h"
 #include "reo.h"
 
+ABC_NAMESPACE_IMPL_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,8 +52,8 @@ void Abc_NodeBddReorder( reo_man * p, Abc_Obj_t * pNode )
     for ( i = 0; i < Abc_ObjFaninNum(pNode); i++ )
         pOrder[i] = -1;
     // reorder the BDD
-    bFunc = Extra_Reorder( p, pNode->pNtk->pManFunc, pNode->pData, pOrder ); Cudd_Ref( bFunc );
-    Cudd_RecursiveDeref( pNode->pNtk->pManFunc, pNode->pData );
+    bFunc = Extra_Reorder( p, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, pOrder ); Cudd_Ref( bFunc );
+    Cudd_RecursiveDeref( (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData );
     pNode->pData = bFunc;
     // update the fanin order
     Abc_ObjForEachFanin( pNode, pFanin, i )
@@ -87,10 +89,10 @@ void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose )
         if ( fVerbose )
             fprintf( stdout, "%10s: ", Abc_ObjName(pNode) );
         if ( fVerbose )
-            fprintf( stdout, "Before = %5d  BDD nodes.  ", Cudd_DagSize(pNode->pData) );
+            fprintf( stdout, "Before = %5d  BDD nodes.  ", Cudd_DagSize((DdNode *)pNode->pData) );
         Abc_NodeBddReorder( p, pNode );
         if ( fVerbose )
-            fprintf( stdout, "After = %5d  BDD nodes.\n", Cudd_DagSize(pNode->pData) );
+            fprintf( stdout, "After = %5d  BDD nodes.\n", Cudd_DagSize((DdNode *)pNode->pData) );
     }
     Extra_ReorderQuit( p );
 }
@@ -99,4 +101,6 @@ void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

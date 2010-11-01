@@ -41,6 +41,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1666,3 +1669,5 @@ ddSymmSummary(
     return;
 
 } /* end of ddSymmSummary */
+ABC_NAMESPACE_IMPL_END
+

@@ -10,8 +10,12 @@
 #if !defined(PLACE_GORDIAN_H_)
 #define PLACE_GORDIAN_H_
 
+
 #include "place_base.h"
 #include "place_qpsolver.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 // Parameters for analytic placement
 #define CLIQUE_PENALTY 1.0
@@ -74,5 +78,9 @@ void sanitizePlacement();
 
 void constructQuadraticProblem();
 void solveQuadraticProblem(bool useCOG);
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

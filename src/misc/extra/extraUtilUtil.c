@@ -19,7 +19,10 @@
 ***********************************************************************/
 
 #include <stdio.h>
+#include <string.h>
 #include "extra.h"
+
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -38,10 +41,10 @@
  *  Purpose: get option letter from argv.
  */
 
-char * globalUtilOptarg;        // Global argument pointer (util_optarg)
+const char * globalUtilOptarg;        // Global argument pointer (util_optarg)
 int    globalUtilOptind = 0;    // Global argv index (util_optind)
 
-static char *pScanStr;
+static const char *pScanStr;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -92,10 +95,10 @@ void Extra_UtilGetoptReset()
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_UtilGetopt( int argc, char *argv[], char *optstring )
+int Extra_UtilGetopt( int argc, char *argv[], const char *optstring )
 {
     register int c;
-    register char *place;
+    register const char *place;
 
     globalUtilOptarg = NULL;
 
@@ -163,10 +166,10 @@ char * Extra_UtilPrintTime( long t )
   SeeAlso     []
 
 ***********************************************************************/
-char * Extra_UtilStrsav( char *s )
+char * Extra_UtilStrsav( const char *s )
 {
     if(s == NULL) {  /* added 7/95, for robustness */
-       return s;
+       return NULL;
     }
     else {
        return strcpy(ABC_ALLOC(char, strlen(s)+1), s);
@@ -226,7 +229,7 @@ char * Extra_UtilTildeExpand( char *fname )
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_UtilCheckFile(char *filename, char *mode)
+int Extra_UtilCheckFile(char *filename, const char *mode)
 {
     FILE *fp;
     int got_file;
@@ -310,7 +313,7 @@ char * Extra_UtilFileSearch(char *file, char *path, char *mode)
 
 ***********************************************************************/
 /* MMout_of_memory -- out of memory for lazy people, flush and exit */
-void Extra_UtilMMout_Of_Memory( long size )
+void Extra_UtilMMout_Of_Memory( long size ) 
 {
     (void) fflush(stdout);
     (void) fprintf(stderr, "\nout of memory allocating %u bytes\n",
@@ -330,7 +333,7 @@ void Extra_UtilMMout_Of_Memory( long size )
   SeeAlso     []
 
 ***********************************************************************/
-void (*Extra_UtilMMoutOfMemory)() = Extra_UtilMMout_Of_Memory;
+void (*Extra_UtilMMoutOfMemory)( long size ) = (void (*)( long size ))Extra_UtilMMout_Of_Memory;
 
 
 /**Function*************************************************************
@@ -366,9 +369,15 @@ double Extra_CpuTimeDouble()
     return (double)clock()/CLOCKS_PER_SEC;
 }
 #else
+
+ABC_NAMESPACE_IMPL_END
+
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
+
+ABC_NAMESPACE_IMPL_START
+
 double Extra_CpuTimeDouble()
 {
     struct rusage ru;
@@ -397,4 +406,6 @@ void Extra_MemTest()
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

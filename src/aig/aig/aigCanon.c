@@ -21,6 +21,10 @@
 #include "aig.h"
 #include "kit.h"
 #include "bdc.h"
+#include "ioa.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -277,7 +281,7 @@ void Aig_RManStop( Aig_RMan_t * p )
 ***********************************************************************/
 void Aig_RManQuit()
 {
-    extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
+//    extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
     char Buffer[20];
     if ( s_pRMan == NULL )
         return;
@@ -537,7 +541,7 @@ unsigned Aig_RManSemiCanonicize( unsigned * pOut, unsigned * pIn, int nVars, cha
 
 ***********************************************************************/
 static inline Aig_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  
-{ return Aig_NotCond( Bdc_FuncCopy(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
+{ return Aig_NotCond( (Aig_Obj_t *)Bdc_FuncCopy(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
 
 /**Function*************************************************************
 
@@ -691,4 +695,6 @@ Extra_PrintBinary( stdout, s_pRMan->pTruth, 1<<nVars ); printf( "\n\n" );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

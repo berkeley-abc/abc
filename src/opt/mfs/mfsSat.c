@@ -20,6 +20,9 @@
 
 #include "mfsInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -95,7 +98,7 @@ int Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
     int RetValue, i;
     // collect projection variables
     Vec_IntClear( p->vProjVars );
-    Vec_PtrForEachEntryStart( p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Abc_ObjFaninNum(pNode) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Abc_ObjFaninNum(pNode) )
     {
         assert( p->pCnf->pVarNums[pObjPo->Id] >= 0 );
         Vec_IntPush( p->vProjVars, p->pCnf->pVarNums[pObjPo->Id] );
@@ -174,4 +177,6 @@ int Abc_NtkAddOneHotness( Mfs_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

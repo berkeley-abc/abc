@@ -19,6 +19,9 @@
 #include "mapperInt.h"
 //#include "resm.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -226,3 +229,5 @@ ABC_PRT( "Time", clock() - clk );
         Map_MappingPrintOutputArrivals( p );
     return 1;
 }
+ABC_NAMESPACE_IMPL_END
+

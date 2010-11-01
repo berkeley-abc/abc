@@ -20,6 +20,9 @@
 
 #include "amapInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -237,7 +240,7 @@ Amap_Gat_t * Amap_LibFindGate( Amap_Lib_t * p, unsigned uTruth )
 {
     Amap_Gat_t * pGate;
     int i;
-    Vec_PtrForEachEntry( p->vSorted, pGate, i )
+    Vec_PtrForEachEntry( Amap_Gat_t *, p->vSorted, pGate, i )
         if ( pGate->nPins <= 5 && pGate->pFunc[0] == uTruth )
             return pGate;
     return NULL;
@@ -264,11 +267,11 @@ Vec_Ptr_t * Amap_LibSelectGates( Amap_Lib_t * p, int fVerbose )
     p->pGateBuf = Amap_LibFindGate( p, 0xAAAAAAAA );
     p->pGateInv = Amap_LibFindGate( p, ~0xAAAAAAAA );
     vSelect = Vec_PtrAlloc( 100 );
-    Vec_PtrForEachEntry( p->vSorted, pGate, i )
+    Vec_PtrForEachEntry( Amap_Gat_t *, p->vSorted, pGate, i )
     {
         if ( pGate->pFunc == NULL )
             continue;
-        Vec_PtrForEachEntryStop( p->vSorted, pGate2, k, i )
+        Vec_PtrForEachEntryStop( Amap_Gat_t *, p->vSorted, pGate2, k, i )
         {
             if ( pGate2->pFunc == NULL )
                 continue;
@@ -301,7 +304,7 @@ void Amap_LibPrintSelectedGates( Amap_Lib_t * p, int fAllGates )
     Amap_Gat_t * pGate;
     int i;
     vArray = fAllGates? p->vGates : p->vSelect;
-    Vec_PtrForEachEntry( vArray, pGate, i )
+    Vec_PtrForEachEntry( Amap_Gat_t *, vArray, pGate, i )
     {
         printf( "Gate %4d : %15s   Area = %9.2f\n", pGate->Id, pGate->pName, pGate->dArea );
         printf( "    Formula: %s=%s\n", pGate->pOutName, pGate->pForm );
@@ -358,4 +361,6 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVe
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

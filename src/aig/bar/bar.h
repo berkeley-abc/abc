@@ -21,6 +21,7 @@
 #ifndef __BAR_H__
 #define __BAR_H__
 
+
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -33,9 +34,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #define BAR_PROGRESS_USE   1
 
@@ -62,9 +64,11 @@ static inline void       Bar_ProgressUpdate( Bar_Progress_t * p, int nItemsCur, 
     if ( BAR_PROGRESS_USE && p && (nItemsCur < *((int*)p)) ) return; Bar_ProgressUpdate_int(p, nItemsCur, pString); }
 
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

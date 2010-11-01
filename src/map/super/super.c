@@ -20,6 +20,9 @@
 #include "mainInt.h"
 #include "mio.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -59,7 +62,7 @@ void Super_Init( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ***********************************************************************/
-void Super_End()
+void Super_End( Abc_Frame_t * pAbc )
 {
 }
 
@@ -152,8 +155,8 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
     char * FileName, * ExcludeFile;
     float DelayLimit;
     float AreaLimit;
-    bool fSkipInvs;
-    bool fWriteOldFormat; 
+    int fSkipInvs;
+    int fWriteOldFormat; 
     int nVarsMax, nLevels, TimeLimit;
     int fVerbose;
     int c;
@@ -316,4 +319,6 @@ usage:
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

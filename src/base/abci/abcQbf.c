@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
    Implementation of a simple QBF solver along the lines of
    A. Solar-Lezama, L. Tancau, R. Bodik, V. Saraswat, and S. Seshia, 
@@ -257,4 +260,6 @@ void Abc_NtkVectorPrintVars( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues, int nPars 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

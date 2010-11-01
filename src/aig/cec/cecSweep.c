@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -162,8 +165,8 @@ void Cec_ManFraCreateInfo( Cec_ManSim_t * p, Vec_Ptr_t * vCiInfo, Vec_Ptr_t * vI
     int i, w;
     for ( i = 0; i < Gia_ManCiNum(p->pAig); i++ )
     {
-        pRes0 = Vec_PtrEntry( vCiInfo, i );
-        pRes1 = Vec_PtrEntry( vInfo, i );
+        pRes0 = (unsigned *)Vec_PtrEntry( vCiInfo, i );
+        pRes1 = (unsigned *)Vec_PtrEntry( vInfo, i );
         pRes1 += p->nWords * nSeries;
         for ( w = 0; w < p->nWords; w++ )
             pRes0[w] = pRes1[w];
@@ -270,7 +273,7 @@ p->timeSim += clock() - clk;
 //            if ( pObjOld->fMark0 == 0 )
             {
                 if ( iRepr == Gia_ObjRepr(p->pAig, iNode) )
-                    printf( "Cec_ManFraClassesUpdate(): Error! Node is not refined!\n" );
+                    Abc_Print( 1, "Cec_ManFraClassesUpdate(): Error! Node is not refined!\n" );
                 p->nAllDisproved++;
             }
         }
@@ -291,4 +294,6 @@ p->timeSim += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

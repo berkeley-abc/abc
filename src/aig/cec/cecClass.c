@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -375,7 +378,7 @@ int Cec_ManSimHashKey( unsigned * pSim, int nWords, int nTableSize )
 void Cec_ManSimMemRelink( Cec_ManSim_t * p )
 {
     unsigned * pPlace, Ent;
-    pPlace = &p->MemFree;
+    pPlace = (unsigned *)&p->MemFree;
     for ( Ent = p->nMems * (p->nWords + 1); 
           Ent + p->nWords + 1 < (unsigned)p->nWordsAlloc; 
           Ent += p->nWords + 1 )
@@ -518,14 +521,14 @@ void Cec_ManSimSavePattern( Cec_ManSim_t * p, int iPat )
     int i;
     assert( p->pCexComb == NULL );
     assert( iPat >= 0 && iPat < 32 * p->nWords );
-    p->pCexComb = (Gia_Cex_t *)ABC_CALLOC( char, 
-        sizeof(Gia_Cex_t) + sizeof(unsigned) * Gia_BitWordNum(Gia_ManCiNum(p->pAig)) );
+    p->pCexComb = (Abc_Cex_t *)ABC_CALLOC( char, 
+        sizeof(Abc_Cex_t) + sizeof(unsigned) * Gia_BitWordNum(Gia_ManCiNum(p->pAig)) );
     p->pCexComb->iPo = p->iOut;
     p->pCexComb->nPis = Gia_ManCiNum(p->pAig);
     p->pCexComb->nBits = Gia_ManCiNum(p->pAig);
     for ( i = 0; i < Gia_ManCiNum(p->pAig); i++ )
     {
-        pInfo = Vec_PtrEntry( p->vCiSimInfo, i );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vCiSimInfo, i );
         if ( Gia_InfoHasBit( pInfo, iPat ) )
             Gia_InfoSetBit( p->pCexComb->pData, i );
     }
@@ -559,7 +562,7 @@ void Cec_ManSimFindBestPattern( Cec_ManSim_t * p )
         assert( p->pBestState->nRegs == Gia_ManRegNum(p->pAig) );
         for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
         {
-            pInfo = Vec_PtrEntry( p->vCiSimInfo, Gia_ManPiNum(p->pAig) + i );
+            pInfo = (unsigned *)Vec_PtrEntry( p->vCiSimInfo, Gia_ManPiNum(p->pAig) + i );
             if ( Gia_InfoHasBit(p->pBestState->pData, i) != Gia_InfoHasBit(pInfo, iPatBest) )
                 Gia_InfoXorBit( p->pBestState->pData, i );
         }
@@ -591,8 +594,8 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
         assert( (Gia_ManPoNum(p->pAig) & 1) == 0 );
         for ( i = 0; i < Gia_ManPoNum(p->pAig); i++ )
         {
-            pInfo  = Vec_PtrEntry( p->vCoSimInfo, i );
-            pInfo2 = Vec_PtrEntry( p->vCoSimInfo, ++i );
+            pInfo  = (unsigned *)Vec_PtrEntry( p->vCoSimInfo, i );
+            pInfo2 = (unsigned *)Vec_PtrEntry( p->vCoSimInfo, ++i );
             if ( !Cec_ManSimCompareEqual( pInfo, pInfo2, p->nWords ) )
             {
                 if ( p->iOut == -1 )
@@ -614,7 +617,7 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
     {
         for ( i = 0; i < Gia_ManPoNum(p->pAig); i++ )
         {
-            pInfo = Vec_PtrEntry( p->vCoSimInfo, i );
+            pInfo = (unsigned *)Vec_PtrEntry( p->vCoSimInfo, i );
             if ( !Cec_ManSimCompareConst( pInfo, p->nWords ) )
             {
                 if ( p->iOut == -1 )
@@ -679,7 +682,7 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
             pRes = Cec_ManSimSimRef( p, i );
             if ( vInfoCis ) 
             {
-                pRes0 = Vec_PtrEntry( vInfoCis, iCiId++ );
+                pRes0 = (unsigned *)Vec_PtrEntry( vInfoCis, iCiId++ );
                 for ( w = 1; w <= p->nWords; w++ )
                     pRes[w] = pRes0[w-1];
             }
@@ -697,7 +700,7 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
             pRes0 = Cec_ManSimSimDeref( p, Gia_ObjFaninId0(pObj,i) );
             if ( vInfoCos )
             {
-                pRes = Vec_PtrEntry( vInfoCos, iCoId++ );
+                pRes = (unsigned *)Vec_PtrEntry( vInfoCos, iCoId++ );
                 if ( Gia_ObjFaninC0(pObj) )
                     for ( w = 1; w <= p->nWords; w++ )
                         pRes[w-1] = ~pRes0[w];
@@ -712,7 +715,7 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
         pRes0 = Cec_ManSimSimDeref( p, Gia_ObjFaninId0(pObj,i) );
         pRes1 = Cec_ManSimSimDeref( p, Gia_ObjFaninId1(pObj,i) );
 
-//        printf( "%d,%d  ", Gia_ObjValue( Gia_ObjFanin0(pObj) ), Gia_ObjValue( Gia_ObjFanin1(pObj) ) );
+//        Abc_Print( 1, "%d,%d  ", Gia_ObjValue( Gia_ObjFanin0(pObj) ), Gia_ObjValue( Gia_ObjFanin1(pObj) ) );
 
         if ( Gia_ObjFaninC0(pObj) )
         {
@@ -762,7 +765,7 @@ references:
     assert( vInfoCos == NULL || iCoId == Gia_ManCoNum(p->pAig) );
     assert( p->nMems == 1 );
     if ( p->nMems != 1 )
-        printf( "Cec_ManSimSimulateRound(): Memory management error!\n" );
+        Abc_Print( 1, "Cec_ManSimSimulateRound(): Memory management error!\n" );
     if ( p->pPars->fVeryVerbose )
         Gia_ManEquivPrintClasses( p->pAig, 0, Cec_MemUsage(p) );
     if ( p->pBestState )
@@ -800,14 +803,14 @@ void Cec_ManSimCreateInfo( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * v
         assert( vInfoCis && vInfoCos );
         for ( i = 0; i < Gia_ManPiNum(p->pAig); i++ )
         {
-            pRes0 = Vec_PtrEntry( vInfoCis, i );
+            pRes0 = (unsigned *)Vec_PtrEntry( vInfoCis, i );
             for ( w = 0; w < p->nWords; w++ )
                 pRes0[w] = Gia_ManRandom( 0 );
         }
         for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
         {
-            pRes0 = Vec_PtrEntry( vInfoCis, Gia_ManPiNum(p->pAig) + i );
-            pRes1 = Vec_PtrEntry( vInfoCos, Gia_ManPoNum(p->pAig) + i );
+            pRes0 = (unsigned *)Vec_PtrEntry( vInfoCis, Gia_ManPiNum(p->pAig) + i );
+            pRes1 = (unsigned *)Vec_PtrEntry( vInfoCos, Gia_ManPoNum(p->pAig) + i );
             for ( w = 0; w < p->nWords; w++ )
                 pRes0[w] = pRes1[w];
         }
@@ -816,7 +819,7 @@ void Cec_ManSimCreateInfo( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * v
     {
         for ( i = 0; i < Gia_ManCiNum(p->pAig); i++ )
         {
-            pRes0 = Vec_PtrEntry( vInfoCis, i );
+            pRes0 = (unsigned *)Vec_PtrEntry( vInfoCis, i );
             for ( w = 0; w < p->nWords; w++ )
                 pRes0[w] = Gia_ManRandom( 0 );
         }
@@ -834,7 +837,7 @@ void Cec_ManSimCreateInfo( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * v
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManSimClassesPrepare( Cec_ManSim_t * p )
+int Cec_ManSimClassesPrepare( Cec_ManSim_t * p, int LevelMax )
 {
     Gia_Obj_t * pObj;
     int i;
@@ -848,9 +851,16 @@ int Cec_ManSimClassesPrepare( Cec_ManSim_t * p )
     if ( p->pPars->fLatchCorr )
         Gia_ManForEachObj( p->pAig, pObj, i )
             Gia_ObjSetRepr( p->pAig, i, GIA_VOID );
-    else
+    else if ( LevelMax == -1 )
         Gia_ManForEachObj( p->pAig, pObj, i )
             Gia_ObjSetRepr( p->pAig, i, Gia_ObjIsAnd(pObj) ? 0 : GIA_VOID );
+    else
+    {
+        Gia_ManLevelNum( p->pAig );
+        Gia_ManForEachObj( p->pAig, pObj, i )
+            Gia_ObjSetRepr( p->pAig, i, (Gia_ObjIsAnd(pObj) && Gia_ObjLevel(p->pAig,pObj) <= LevelMax) ? 0 : GIA_VOID );
+        Vec_IntFreeP( &p->pAig->vLevels );
+    }
     // if sequential simulation, set starting representative of ROs to be constant 0
     if ( p->pPars->fSeqSimulate )
         Gia_ManForEachRo( p->pAig, pObj, i )
@@ -905,4 +915,6 @@ int Cec_ManSimClassesRefine( Cec_ManSim_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

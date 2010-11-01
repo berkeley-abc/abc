@@ -21,6 +21,10 @@
 #include "fra.h"
 #include "cnf.h"
 #include "dar.h"
+#include "saig.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -265,7 +269,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     {
         // divide large clock domains into separate partitions
         vResult = Vec_PtrAlloc( 100 );
-        Vec_PtrForEachEntry( (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
+        Vec_PtrForEachEntry( Vec_Int_t *, (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
         {
             if ( nPartSize && Vec_IntSize(vPart) > nPartSize )
                 Aig_ManPartDivide( vResult, vPart, nPartSize, pPars->nOverSize );
@@ -281,7 +285,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     {
         // print partitions
         printf( "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
-        Vec_PtrForEachEntry( vResult, vPart, i )
+        Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i )
         {
             sprintf( Buffer, "part%03d.aig", i );
             pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, NULL );
@@ -294,7 +298,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
 
     // perform SSW with partitions
     Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
-    Vec_PtrForEachEntry( vResult, vPart, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i )
     {
         pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, &pMapBack );
         // create the projection of 1-hot registers
@@ -498,7 +502,7 @@ p->timeTrav += clock() - clk2;
 //        Cnf_DataTranformPolarity( pCnf, 0 );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 
-        p->pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+        p->pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
         p->nSatVars = pCnf->nVars;
         assert( p->pSat != NULL );
         if ( p->pSat == NULL )
@@ -523,7 +527,7 @@ p->timeTrav += clock() - clk2;
             if ( pCnf->pVarNums[pObj->Id] == -1 )
                 continue;
             Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
-            Fra_ObjSetFaninVec( pObj, (void *)1 );
+            Fra_ObjSetFaninVec( pObj, (Vec_Ptr_t *)1 );
         }
         Cnf_DataFree( pCnf );
 
@@ -653,7 +657,6 @@ finish:
 ***********************************************************************/
 int Fra_FraigInductionTest( char * pFileName, Fra_Ssw_t * pParams )
 {
-    extern Aig_Man_t * Saig_ManReadBlif( char * pFileName );
     FILE * pFile;
     char * pFilePairs;
     Aig_Man_t * pMan, * pNew;
@@ -678,7 +681,7 @@ int Fra_FraigInductionTest( char * pFileName, Fra_Ssw_t * pParams )
         Aig_ManPrintStats( pNew );
     }
     Aig_ManStop( pNew );
-    pNum2Id = pMan->pData;
+    pNum2Id = (int *)pMan->pData;
     // write the output file
     pFilePairs = Aig_FileNameGenericAppend( pFileName, ".pairs" );
     pFile = fopen( pFilePairs, "w" );
@@ -701,4 +704,6 @@ int Fra_FraigInductionTest( char * pFileName, Fra_Ssw_t * pParams )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

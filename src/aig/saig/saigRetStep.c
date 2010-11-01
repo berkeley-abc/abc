@@ -20,6 +20,9 @@
 
 #include "saig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -228,4 +231,6 @@ int Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward, int fAddBugs )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

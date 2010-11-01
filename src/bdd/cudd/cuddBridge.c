@@ -47,6 +47,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -411,7 +414,7 @@ cuddBddTransfer(
     st_generator *gen = NULL;
     DdNode *key, *value;
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st_init_table(st_ptrcmp, st_ptrhash);;
     if (table == NULL) goto failure;
     res = cuddBddTransferRecur(ddS, ddD, f, table);
     if (res != NULL) cuddRef(res);
@@ -421,7 +424,7 @@ cuddBddTransfer(
     ** reordering. */
     gen = st_init_gen(table);
     if (gen == NULL) goto failure;
-    while (st_gen(gen, (char **) &key, (char **) &value)) {
+    while (st_gen(gen, (const char **) &key, (char **) &value)) {
     Cudd_RecursiveDeref(ddD, value);
     }
     st_free_gen(gen); gen = NULL;
@@ -978,4 +981,6 @@ cuddBddTransferRecur(
     return(Cudd_NotCond(res,comple));
 
 } /* end of cuddBddTransferRecur */
+
+ABC_NAMESPACE_IMPL_END
 

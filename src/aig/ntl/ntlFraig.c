@@ -23,6 +23,9 @@
 #include "ssw.h"
 #include "dch.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -66,12 +69,12 @@ void Ntl_ManUpdateNoMergeReprs( Aig_Man_t * pAig, Aig_Obj_t ** pReprs )
         if ( pRepresNew != NULL )
             continue;
         // get the net of the representative node
-        pNet = pRepres->pData;
+        pNet = (Ntl_Net_t *)pRepres->pData;
         assert( pRepres->pData != NULL );
         if ( Ntl_ObjIsBox(pNet->pDriver) && pNet->pDriver->pImplem->attrNoMerge )
         {
             // the net belongs to the no-merge box
-            pNetObj = pObj->pData;
+            pNetObj = (Ntl_Net_t *)pObj->pData;
             if ( Ntl_ObjIsBox(pNetObj->pDriver) && pNetObj->pDriver->pImplem->attrNoMerge )
                 continue;
             // the object's net does not belong to the no-merge box
@@ -130,7 +133,7 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
 
     // remember pointers to the nets of pNew
     Aig_ManForEachObj( pAig, pObj, i )
-        pObj->pNext = pObj->pData;
+        pObj->pNext = (Aig_Obj_t *)pObj->pData;
 
     // map the AIG managers
     Aig_ManForEachObj( pAig, pObj, i )
@@ -139,8 +142,8 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
             pObj->pData = Aig_ManConst1(pAigCol);
         else if ( !Aig_ObjIsPo(pObj) )
         {
-            pNet = pObj->pData;
-            pObjCol = Aig_Regular(pNet->pCopy);
+            pNet = (Ntl_Net_t *)pObj->pData;
+            pObjCol = Aig_Regular((Aig_Obj_t *)pNet->pCopy);
             pObj->pData = pObjCol;
         }
     }
@@ -155,7 +158,7 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
     {
         if ( Aig_ObjIsPo(pObj) )
             continue;
-        pObjCol = pObj->pData;
+        pObjCol = (Aig_Obj_t *)pObj->pData;
         if ( pObjCol == NULL )
             continue;
         if ( pMapBack[pObjCol->Id] == NULL )
@@ -170,7 +173,7 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
         if ( Aig_ObjIsPo(pObj) )
             continue;
         // get the collapsed node
-        pObjCol = pObj->pData;
+        pObjCol = (Aig_Obj_t *)pObj->pData;
         if ( pObjCol == NULL )
             continue;
         // get the representative of the collapsed node
@@ -230,8 +233,8 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
         if ( pObjRepr == NULL )
             continue;
         assert( pObj != pObjRepr );
-        pNet = pObj->pData;
-        pNetRepr = pObjRepr->pData;
+        pNet = (Ntl_Net_t *)pObj->pData;
+        pNetRepr = (Ntl_Net_t *)pObjRepr->pData;
         // consider special cases, when the net should not be reduced
         if ( Ntl_ObjIsBox(pNet->pDriver) )
         {
@@ -267,8 +270,8 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
             pNetRepr->pCopy = Aig_ManConst1(pAig);
         }
         // get the complemented attributes of the nets
-        fCompl = Aig_IsComplement(pNet->pCopy) ^ Aig_Regular(pNet->pCopy)->fPhase ^
-                 Aig_IsComplement(pNetRepr->pCopy) ^ Aig_Regular(pNetRepr->pCopy)->fPhase;
+        fCompl = Aig_IsComplement((Aig_Obj_t *)pNet->pCopy) ^ Aig_Regular((Aig_Obj_t *)pNet->pCopy)->fPhase ^
+                 Aig_IsComplement((Aig_Obj_t *)pNetRepr->pCopy) ^ Aig_Regular((Aig_Obj_t *)pNetRepr->pCopy)->fPhase;
         // create interter/buffer driven by the representative net
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
         pNode->pSop = fCompl? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
@@ -322,7 +325,7 @@ void Ntl_ManResetComplemented( Ntl_Man_t * p, Aig_Man_t * pAigCol )
     {
         if ( Ntl_ObjIsInit1( pObj ) )
         {
-            pObjCol = Ntl_ObjFanout0(pObj)->pCopy;
+            pObjCol = (Aig_Obj_t *)Ntl_ObjFanout0(pObj)->pCopy;
             assert( pObjCol->fPhase == 0 );
             pObjCol->fPhase = 1;
         }
@@ -353,7 +356,20 @@ Ntl_Man_t * Ntl_ManFinalize( Ntl_Man_t * pNew, Aig_Man_t * pAig, Aig_Man_t * pAi
     pAig->nReprsAlloc = Aig_ManObjNumMax(pAig);
 if ( fVerbose )
     printf( "Equivalences:  Collapsed = %5d.  Extracted = %5d.\n", Aig_ManCountReprs(pAigCol), Aig_ManCountReprs(pAig) );
-
+/*
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachObj( pAig, pObj, i )
+        if ( pAig->pReprs[i] != NULL )
+            printf( "%s%d->%s%d  ", 
+                (Aig_ObjIsPi(pObj)? "pi": ""), 
+                pObj->Id, 
+                (Aig_ObjIsPi(pAig->pReprs[i])? "pi": ""),
+                pAig->pReprs[i]->Id ); 
+    printf( "\n" );
+}
+*/
     // implement equivalence classes and remove dangling nodes
     Ntl_ManReduce( pNew, pAig );
     Ntl_ManSweep( pNew, fVerbose );
@@ -503,7 +519,7 @@ Aig_Man_t * Ntl_ManAigToRst( Ntl_Man_t * pNtl, Aig_Man_t * p )
             if ( iRstNum < 0 )
                 continue;
             assert( iRstNum < nResets );
-            pObj->pData = Aig_And( pNew, pObj->pData, Aig_ManPi(pNew, iRstNum) ); // could be NOT(pi)
+            pObj->pData = Aig_And( pNew, (Aig_Obj_t *)pObj->pData, Aig_ManPi(pNew, iRstNum) ); // could be NOT(pi)
             Counter++;
         }
         else if ( Aig_ObjIsConst1(pObj) )
@@ -578,7 +594,7 @@ void Ntl_ManRemapClassesScorr( Ntl_Man_t * pNtl, Aig_Man_t * p, Aig_Man_t * pNew
     // map things back
     Aig_ManForEachObj( p, pObj, i )
     {
-        pObjNew = pObj->pData;
+        pObjNew = (Aig_Obj_t *)pObj->pData;
         assert( pObjNew != NULL && !Aig_IsComplement(pObjNew) );
         pObjNew->pData = pObj;
     }
@@ -588,8 +604,8 @@ void Ntl_ManRemapClassesScorr( Ntl_Man_t * pNtl, Aig_Man_t * p, Aig_Man_t * pNew
         pObjNewRepr = pNew->pReprs[pObjNew->Id];
         if ( pObjNewRepr == NULL )
             continue;
-        pObj = pObjNew->pData;
-        pObjRepr = pObjNewRepr->pData;    
+        pObj = (Aig_Obj_t *)pObjNew->pData;
+        pObjRepr = (Aig_Obj_t *)pObjNewRepr->pData;    
         assert( Aig_ObjId(pObjRepr) < Aig_ObjId(pObj) );
         Aig_ObjCreateRepr( p, pObjRepr, pObj );
     }
@@ -787,6 +803,8 @@ Ntl_Man_t * Ntl_ManScorr( Ntl_Man_t * p, Ssw_Pars_t * pPars )
     }
     else
     {
+        pPars->fVerbose = 1;
+
         pTemp = Ssw_SignalCorrespondence( pAigCol, pPars );
         Aig_ManStop( pTemp );
     }
@@ -872,7 +890,7 @@ void Ntl_ManAttachWhiteBoxes( Ntl_Man_t * p, Aig_Man_t * pAigCol, Aig_Man_t * pA
             if ( pNet->pCopy == NULL )
                 continue;
             // skip the outputs that are not preserved after merging equivalence
-            if ( Aig_Regular(pNet->pCopy2)->pData == NULL )
+            if ( Aig_Regular((Aig_Obj_t *)pNet->pCopy2)->pData == NULL )
                 continue;
             break;
         }
@@ -981,4 +999,6 @@ Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "saig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     The algorithm is described in the paper: Per Bjesse and Jim Kukula,
     "Automatic Phase Abstraction for Formal Verification", ICCAD 2005
@@ -228,7 +231,7 @@ int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nWords, int nPref )
     p->vNonXRegs = Vec_IntAlloc( 10 );
     for ( i = 0; i < nRegs; i++ )
     {
-        Vec_PtrForEachEntryStart( p->vStates, pState, k, nPref )
+        Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, k, nPref )
         {
             Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
             assert( Value != 0 );
@@ -261,7 +264,7 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix )
         return;
     for ( i = 0; i < nRegs; i++ )
     {
-        Vec_PtrForEachEntry( p->vStates, pState, k )
+        Vec_PtrForEachEntry( unsigned *, p->vStates, pState, k )
         {
             Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
             if ( Value == SAIG_XVSX )
@@ -273,7 +276,7 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix )
             continue;
         // print trace
         printf( "%5d : %5d %5d  ", Counter, i, Saig_ManLo(p->pAig, i)->Id );
-        Vec_PtrForEachEntryStop( p->vStates, pState, k, Vec_PtrSize(p->vStates)-1 )
+        Vec_PtrForEachEntryStop( unsigned *, p->vStates, pState, k, Vec_PtrSize(p->vStates)-1 )
         {
             Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
             if ( Value == SAIG_XVS0 )
@@ -310,7 +313,7 @@ int Saig_TsiComputePrefix( Saig_Tsim_t * p, unsigned * pState, int nWords )
     for ( pEntry = p->pBins[Hash]; pEntry; pEntry = Saig_TsiNext(pEntry, nWords) )
         if ( !memcmp( pEntry, pState, sizeof(unsigned) * nWords ) )
         {
-            Vec_PtrForEachEntry( p->vStates, pPrev, i )
+            Vec_PtrForEachEntry( unsigned *, p->vStates, pPrev, i )
             {
                 if ( pPrev == pEntry )
                     return i;
@@ -449,7 +452,7 @@ void Saig_TsiStateOrAll( Saig_Tsim_t * pTsi, unsigned * pState )
 {
     unsigned * pPrev;
     int i, k;
-    Vec_PtrForEachEntry( pTsi->vStates, pPrev, i )
+    Vec_PtrForEachEntry( unsigned *, pTsi->vStates, pPrev, i )
     {
         for ( k = 0; k < pTsi->nWords; k++ )
             pState[k] |= pPrev[k];
@@ -616,9 +619,9 @@ int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVe
         for ( k = 0; k < nTests; k++ )
         {
             if ( k < pTsi->nPrefix + pTsi->nCycle )
-                pState = Vec_PtrEntry( pTsi->vStates, k );
+                pState = (unsigned *)Vec_PtrEntry( pTsi->vStates, k );
             else
-                pState = Vec_PtrEntry( pTsi->vStates, k - pTsi->nCycle );
+                pState = (unsigned *)Vec_PtrEntry( pTsi->vStates, k - pTsi->nCycle );
             Value = (Aig_InfoHasBit( pState, 2 * Reg + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * Reg );
             assert( Value == SAIG_XVS0 || Value == SAIG_XVS1 );
             if ( k < nFrames || (fIgnore && k == nFrames) )
@@ -721,7 +724,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
         Vec_IntForEachEntry( pTsi->vNonXRegs, Reg, i )
         {
             pObj = Saig_ManLo( pAig, Reg );
-            pState = Vec_PtrEntry( pTsi->vStates, f );
+            pState = (unsigned *)Vec_PtrEntry( pTsi->vStates, f );
             Value = (Aig_InfoHasBit( pState, 2 * Reg + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * Reg );
             assert( Value == SAIG_XVS0 || Value == SAIG_XVS1 );
             pObjNew = (Value == SAIG_XVS1)? Aig_ManConst1(pFrames) : Aig_ManConst0(pFrames);
@@ -766,6 +769,37 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
     return pFrames;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Performs automated phase abstraction.]
+
+  Description [Takes the AIG manager and the array of initial states.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManPhaseFrameNum( Aig_Man_t * p, Vec_Int_t * vInits )
+{
+    Saig_Tsim_t * pTsi;
+    int nFrames, nPrefix;
+    assert( Saig_ManRegNum(p) );
+    assert( Saig_ManPiNum(p) );
+    assert( Saig_ManPoNum(p) );
+    // perform terminary simulation
+    pTsi = Saig_ManReachableTernary( p, vInits, 0 );
+    if ( pTsi == NULL )
+        return 1;
+    // derive information
+    nPrefix = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
+    nFrames = Vec_PtrSize(pTsi->vStates) - 1 - nPrefix;
+    Saig_TsiStop( pTsi );
+    // potentially, may need to reduce nFrames if nPrefix is less than nFrames
+    return nFrames;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Performs automated phase abstraction.]
@@ -789,7 +823,7 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     if ( pTsi == NULL )
         return NULL;
     // derive information
-    pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
+    pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
     pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords, ABC_MIN(pTsi->nPrefix,nPref));
     // print statistics
@@ -845,7 +879,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     if ( pTsi == NULL )
         return NULL;
     // derive information
-    pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
+    pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
     pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords, 0);
     // print statistics
@@ -902,4 +936,6 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

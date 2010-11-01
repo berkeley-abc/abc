@@ -18,6 +18,9 @@
 
 #include "dsdInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -1606,3 +1609,5 @@ int dsdKernelVerifyDecomposition( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pDE )
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

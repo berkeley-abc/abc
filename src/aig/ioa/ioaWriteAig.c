@@ -21,6 +21,9 @@
 
 #include "ioa.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -163,6 +166,35 @@ int Ioa_WriteAigerEncode( unsigned char * pBuffer, int Pos, unsigned x )
 
 /**Function*************************************************************
 
+  Synopsis    [Adds one unsigned AIG edge to the output buffer.]
+
+  Description [This procedure is a slightly modified version of Armin Biere's
+  procedure "void encode (FILE * file, unsigned x)" ]
+  
+  SideEffects [Returns the current writing position.]
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ioa_WriteAigerEncodeStr( Vec_Str_t * vStr, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+//        putc (ch, file);
+//        pBuffer[Pos++] = ch;
+        Vec_StrPush( vStr, ch );
+        x >>= 7;
+    }
+    ch = x;
+//    putc (ch, file);
+//    pBuffer[Pos++] = ch;
+    Vec_StrPush( vStr, ch );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Create the array of literals to be written.]
 
   Description []
@@ -236,6 +268,151 @@ Vec_Str_t * Ioa_WriteEncodeLiterals( Vec_Int_t * vLits )
     }
 */
     return vBinary;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in into the memory buffer.]
+
+  Description [The resulting buffer constains the AIG in AIGER format. 
+  The returned size (pnSize) gives the number of bytes in the buffer. 
+  The resulting buffer should be deallocated by the user.]
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Ioa_WriteAigerIntoMemory( Aig_Man_t * pMan, int * pnSize )
+{
+    char * pBuffer;
+    Vec_Str_t * vBuffer;
+    Aig_Obj_t * pObj, * pDriver;
+    int nNodes, i, uLit, uLit0, uLit1; 
+    // set the node numbers to be used in the output file
+    nNodes = 0;
+    Ioa_ObjSetAigerNum( Aig_ManConst1(pMan), nNodes++ );
+    Aig_ManForEachPi( pMan, pObj, i )
+        Ioa_ObjSetAigerNum( pObj, nNodes++ );
+    Aig_ManForEachNode( pMan, pObj, i )
+        Ioa_ObjSetAigerNum( pObj, nNodes++ );
+
+    // write the header "M I L O A" where M = I + L + A
+/*
+    fprintf( pFile, "aig%s %u %u %u %u %u\n", 
+        fCompact? "2" : "",
+        Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan), 
+        Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManRegNum(pMan),
+        Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManNodeNum(pMan) );
+*/
+    vBuffer = Vec_StrAlloc( 3*Aig_ManObjNum(pMan) );
+    Vec_StrPrintStr( vBuffer, "aig " );
+    Vec_StrPrintNum( vBuffer, Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan) );
+    Vec_StrPrintStr( vBuffer, " " );
+    Vec_StrPrintNum( vBuffer, Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
+    Vec_StrPrintStr( vBuffer, " " );
+    Vec_StrPrintNum( vBuffer, Aig_ManRegNum(pMan) );
+    Vec_StrPrintStr( vBuffer, " " );
+    Vec_StrPrintNum( vBuffer, Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
+    Vec_StrPrintStr( vBuffer, " " );
+    Vec_StrPrintNum( vBuffer, Aig_ManNodeNum(pMan) );
+    Vec_StrPrintStr( vBuffer, "\n" );
+
+    // write latch drivers
+    Aig_ManForEachLiSeq( pMan, pObj, i )
+    {
+        pDriver = Aig_ObjFanin0(pObj);
+        uLit    = Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) );
+//        fprintf( pFile, "%u\n", uLit );
+        Vec_StrPrintNum( vBuffer, uLit );
+        Vec_StrPrintStr( vBuffer, "\n" );
+    }
+
+    // write PO drivers
+    Aig_ManForEachPoSeq( pMan, pObj, i )
+    {
+        pDriver = Aig_ObjFanin0(pObj);
+        uLit    = Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) );
+//        fprintf( pFile, "%u\n", uLit );
+        Vec_StrPrintNum( vBuffer, uLit );
+        Vec_StrPrintStr( vBuffer, "\n" );
+    }
+    // write the nodes into the buffer
+    Aig_ManForEachNode( pMan, pObj, i )
+    {
+        uLit  = Ioa_ObjMakeLit( Ioa_ObjAigerNum(pObj), 0 );
+        uLit0 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) );
+        uLit1 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) );
+        assert( uLit0 != uLit1 );
+        if ( uLit0 > uLit1 )
+        {
+            int Temp = uLit0;
+            uLit0 = uLit1;
+            uLit1 = Temp;
+        }
+//        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
+//        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
+        Ioa_WriteAigerEncodeStr( vBuffer, uLit  - uLit1 );
+        Ioa_WriteAigerEncodeStr( vBuffer, uLit1 - uLit0 );
+    }
+//    fprintf( pFile, "c" );
+//    if ( pMan->pName )
+//        fprintf( pFile, "n%s%c", pMan->pName, '\0' );
+    Vec_StrPrintStr( vBuffer, "c" );
+    if ( pMan->pName )
+    {
+        Vec_StrPrintStr( vBuffer, "n" );
+        Vec_StrPrintStr( vBuffer, pMan->pName );
+        Vec_StrPush( vBuffer, 0 );
+    }
+    // prepare the return values
+    *pnSize = Vec_StrSize( vBuffer );
+    pBuffer = Vec_StrReleaseArray( vBuffer );
+    Vec_StrFree( vBuffer );
+    return pBuffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [This procedure is used to test the above procedure.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ioa_WriteAigerBufferTest( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact )
+{
+    FILE * pFile;
+    char * pBuffer;
+    int nSize;
+    if ( Aig_ManPoNum(pMan) == 0 )
+    {
+        printf( "AIG cannot be written because it has no POs.\n" );
+        return;
+    }
+    // start the output stream
+    pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Ioa_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
+        return;
+    }
+    // write the buffer
+    pBuffer = Ioa_WriteAigerIntoMemory( pMan, &nSize );
+    fwrite( pBuffer, 1, nSize, pFile );
+    ABC_FREE( pBuffer );
+    // write the comment
+//    fprintf( pFile, "c" );
+//    if ( pMan->pName )
+//        fprintf( pFile, "n%s%c", pMan->pName, '\0' );
+    fprintf( pFile, "\nThis file was produced by the IOA package in ABC on %s\n", Ioa_TimeStamp() );
+    fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
+    fclose( pFile );
 }
 
 /**Function*************************************************************
@@ -387,4 +564,6 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

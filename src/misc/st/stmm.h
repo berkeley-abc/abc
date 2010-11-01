@@ -14,11 +14,15 @@
 #ifndef STMM_INCLUDED
 #define STMM_INCLUDED
 
+
 #include "extra.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
+typedef int (*stmm_compare_func_type)(const char*, const char*);
+typedef int (*stmm_hash_func_type)(const char*, int);
 
 typedef struct stmm_table_entry stmm_table_entry;
 typedef struct stmm_table stmm_table;
@@ -33,8 +37,8 @@ struct stmm_table_entry
 
 struct stmm_table
 {
-    int (*compare) ();
-    int (*hash) ();
+    stmm_compare_func_type compare;
+    stmm_hash_func_type hash;
     int num_bins;
     int num_entries;
     int max_density;
@@ -59,12 +63,11 @@ struct stmm_generator
 enum stmm_retval
 { STMM_CONTINUE, STMM_STOP, STMM_DELETE };
 
-typedef enum stmm_retval (*STMM_PFSR) ();
-typedef int (*STMM_PFI) ();
+typedef enum stmm_retval (*STMM_PFSR) (char *, char *, char *);
 
 EXTERN stmm_table *stmm_init_table_with_params
-ARGS ((STMM_PFI, STMM_PFI, int, int, double, int));
-EXTERN stmm_table *stmm_init_table ARGS ((STMM_PFI, STMM_PFI));
+ARGS ((stmm_compare_func_type compare, stmm_hash_func_type hash, int size, int density, double grow_factor, int reorder_flag));
+EXTERN stmm_table *stmm_init_table ARGS ((stmm_compare_func_type, stmm_hash_func_type));
 EXTERN void stmm_free_table ARGS ((stmm_table *));
 EXTERN int stmm_lookup ARGS ((stmm_table *, char *, char **));
 EXTERN int stmm_lookup_int ARGS ((stmm_table *, char *, int *));
@@ -76,11 +79,11 @@ EXTERN stmm_table *stmm_copy ARGS ((stmm_table *));
 EXTERN int stmm_delete ARGS ((stmm_table *, char **, char **));
 EXTERN int stmm_delete_int ARGS ((stmm_table *, long *, char **));
 EXTERN int stmm_foreach ARGS ((stmm_table *, STMM_PFSR, char *));
-EXTERN int stmm_strhash ARGS ((char *, int));
-EXTERN int stmm_numhash ARGS ((char *, int));
-EXTERN int stmm_ptrhash ARGS ((char *, int));
-EXTERN int stmm_numcmp ARGS ((char *, char *));
-EXTERN int stmm_ptrcmp ARGS ((char *, char *));
+EXTERN int stmm_strhash ARGS ((const char *, int));
+EXTERN int stmm_numhash ARGS ((const char *, int));
+EXTERN int stmm_ptrhash ARGS ((const char *, int));
+EXTERN int stmm_numcmp ARGS ((const char *, const char *));
+EXTERN int stmm_ptrcmp ARGS ((const char *, const char *));
 EXTERN stmm_generator *stmm_init_gen ARGS ((stmm_table *));
 EXTERN int stmm_gen ARGS ((stmm_generator *, char **, char **));
 EXTERN int stmm_gen_int ARGS ((stmm_generator *, char **, long *));
@@ -120,8 +123,10 @@ EXTERN void stmm_clean ARGS ((stmm_table *));
 
 */
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif /* STMM_INCLUDED */

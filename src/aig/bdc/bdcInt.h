@@ -21,6 +21,7 @@
 #ifndef __BDC_INT_H__
 #define __BDC_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -32,9 +33,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #define BDC_SCALE 1000  // value used to compute the cost
 
@@ -62,7 +64,9 @@ struct Bdc_Fun_t_
     unsigned         uSupp;        // bit mask of current support
     unsigned *       puFunc;       // the function of the node
     Bdc_Fun_t *      pNext;        // next function with same support
-    void *           pCopy;        // the copy field
+    union { int      iCopy;        // the literal of the node (AIG)
+    void *           pCopy; };     // the function of the node (BDD or AIG)
+
 };
 
 typedef struct Bdc_Isf_t_ Bdc_Isf_t;
@@ -147,9 +151,11 @@ extern void             Bdc_TableAdd( Bdc_Man_t * p, Bdc_Fun_t * pFunc );
 extern void             Bdc_TableClear( Bdc_Man_t * p );
 extern int              Bdc_TableCheckContainment( Bdc_Man_t * p, Bdc_Isf_t * pIsf, unsigned * puTruth );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

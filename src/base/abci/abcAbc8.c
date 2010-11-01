@@ -22,6 +22,11 @@
 #include "nwk.h"
 #include "mfx.h"
 
+#include "main.h"
+
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -67,12 +72,12 @@ Nwk_Man_t * Abc_NtkToNtkNew( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Nwk_ManCreateCi( pNtkNew, Abc_ObjFanoutNum(pObj) );
     vNodes = Abc_NtkDfs( pNtk, 1 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         pObjNew = Nwk_ManCreateNode( pNtkNew, Abc_ObjFaninNum(pObj), Abc_ObjFanoutNum(pObj) );
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Nwk_ObjAddFanin( pObjNew, (Nwk_Obj_t *)pFanin->pCopy );
-        pObjNew->pFunc = Hop_Transfer( pNtk->pManFunc, pNtkNew->pManHop, pObj->pData, Abc_ObjFaninNum(pObj) );
+        pObjNew->pFunc = Hop_Transfer( (Hop_Man_t *)pNtk->pManFunc, pNtkNew->pManHop, (Hop_Obj_t *)pObj->pData, Abc_ObjFaninNum(pObj) );
         pObj->pCopy = (Abc_Obj_t *)pObjNew;
     }
     Vec_PtrFree( vNodes );
@@ -115,14 +120,14 @@ Abc_Ntk_t * Abc_NtkFromNtkNew( Abc_Ntk_t * pNtkOld, Nwk_Man_t * pNtk )
         Abc_ObjAssignName( pObjNew, Abc_ObjName( Abc_NtkCi(pNtkOld, i) ), NULL );
     }
     vNodes = Nwk_ManDfs( pNtk );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
     {
         if ( !Nwk_ObjIsNode(pObj) )
             continue;
         pObjNew = Abc_NtkCreateNode( pNtkNew );
         Nwk_ObjForEachFanin( pObj, pFanin, k )
-            Abc_ObjAddFanin( pObjNew, pFanin->pCopy );
-        pObjNew->pData = Hop_Transfer( pNtk->pManHop, pNtkNew->pManFunc, pObj->pFunc, Nwk_ObjFaninNum(pObj) );
+            Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)pFanin->pCopy );
+        pObjNew->pData = Hop_Transfer( pNtk->pManHop, (Hop_Man_t *)pNtkNew->pManFunc, pObj->pFunc, Nwk_ObjFaninNum(pObj) );
         pObj->pCopy = (Nwk_Obj_t *)pObjNew;
     }
     Vec_PtrFree( vNodes );
@@ -130,9 +135,9 @@ Abc_Ntk_t * Abc_NtkFromNtkNew( Abc_Ntk_t * pNtkOld, Nwk_Man_t * pNtk )
     {
         pObjNew = Abc_NtkCreatePo( pNtkNew );
         if ( pObj->fInvert )
-            pFaninNew = Abc_NtkCreateNodeInv( pNtkNew, Nwk_ObjFanin0(pObj)->pCopy );
+            pFaninNew = Abc_NtkCreateNodeInv( pNtkNew, (Abc_Obj_t *)Nwk_ObjFanin0(pObj)->pCopy );
         else
-            pFaninNew = Nwk_ObjFanin0(pObj)->pCopy;
+            pFaninNew = (Abc_Obj_t *)Nwk_ObjFanin0(pObj)->pCopy;
         Abc_ObjAddFanin( pObjNew, pFaninNew );
         Abc_ObjAssignName( pObjNew, Abc_ObjName( Abc_NtkCo(pNtkOld, i) ), NULL );
     }
@@ -198,7 +203,7 @@ clk = clock();
 ABC_PRT( "Time", clock() - clk );
 
     pMan = Abc_NtkToNtkNew( pNtk );
-    pMan->pLutLib = Abc_FrameReadLibLut();
+    pMan->pLutLib = (If_Lib_t *)Abc_FrameReadLibLut();
 clk = clock();
     printf( "%6.2f\n", Nwk_ManDelayTraceLut( pMan ) );
 ABC_PRT( "Time", clock() - clk );
@@ -221,7 +226,6 @@ ABC_PRT( "Time", clock() - clk );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkNtkTest4( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib ) 
 {
-    extern int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib );
 
     Mfx_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
@@ -271,4 +275,6 @@ Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

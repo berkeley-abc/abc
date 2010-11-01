@@ -18,6 +18,9 @@
 
 #include "fpgaInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -185,4 +188,6 @@ ABC_PRT( "Time", clock() - clk );
     return 1;
 }
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "satSolver.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     The trace of SAT solving contains the original clause of the problem
     along with the learned clauses derived during SAT solving.
@@ -104,4 +107,6 @@ void Sat_SolverTraceWrite( sat_solver * pSat, int * pBeg, int * pEnd, int fRoot 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

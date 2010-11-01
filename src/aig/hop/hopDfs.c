@@ -20,6 +20,9 @@
 
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -94,7 +97,7 @@ Vec_Ptr_t * Hop_ManDfsNode( Hop_Man_t * p, Hop_Obj_t * pNode )
     assert( !Hop_IsComplement(pNode) );
     vNodes = Vec_PtrAlloc( 16 );
     Hop_ManDfs_rec( pNode, vNodes );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
         Hop_ObjClearMarkA(pObj);
     return vNodes;
 }
@@ -121,7 +124,7 @@ int Hop_ManCountLevels( Hop_Man_t * p )
         pObj->pData = NULL;
     // compute levels in a DFS order
     vNodes = Hop_ManDfs( p );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
     {
         Level0 = (int)(ABC_PTRUINT_T)Hop_ObjFanin0(pObj)->pData;
         Level1 = (int)(ABC_PTRUINT_T)Hop_ObjFanin1(pObj)->pData;
@@ -335,7 +338,7 @@ Hop_Obj_t * Hop_Transfer( Hop_Man_t * pSour, Hop_Man_t * pDest, Hop_Obj_t * pRoo
     Hop_Transfer_rec( pDest, Hop_Regular(pRoot) );
     // clear the markings
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
-    return Hop_NotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
+    return Hop_NotCond( (Hop_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
 }
 
 /**Function*************************************************************
@@ -389,7 +392,7 @@ Hop_Obj_t * Hop_Compose( Hop_Man_t * p, Hop_Obj_t * pRoot, Hop_Obj_t * pFunc, in
     Hop_Compose_rec( p, Hop_Regular(pRoot), pFunc, Hop_ManPi(p, iVar) );
     // clear the markings
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
-    return Hop_NotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
+    return Hop_NotCond( (Hop_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
 }
 
 /**Function*************************************************************
@@ -457,11 +460,13 @@ Hop_Obj_t * Hop_Remap( Hop_Man_t * p, Hop_Obj_t * pRoot, unsigned uSupp, int nVa
     Hop_Remap_rec( p, Hop_Regular(pRoot) );
     // clear the markings
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
-    return Hop_NotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
+    return Hop_NotCond( (Hop_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
 }
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

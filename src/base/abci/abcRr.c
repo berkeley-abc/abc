@@ -22,6 +22,9 @@
 #include "fraig.h"
 #include "sim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -99,7 +102,7 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     Abc_Obj_t * pNode, * pFanin, * pFanout;
     int i, k, m, nNodes, RetValue, clk, clkTotal = clock();
     // start the manager
-    p = Abc_RRManStart( nFaninLevels, nFanoutLevels );
+    p = Abc_RRManStart();
     p->pNtk          = pNtk;
     p->nFaninLevels  = nFaninLevels;
     p->nFanoutLevels = nFanoutLevels;
@@ -393,17 +396,17 @@ int Abc_NtkRRUpdate( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, Abc_Obj_t * pFanin, Ab
     // replace
     if ( pFanout == NULL )
     {
-        Abc_AigReplace( pNtk->pManFunc, pNode, pNodeNew, 1 );
+        Abc_AigReplace( (Abc_Aig_t *)pNtk->pManFunc, pNode, pNodeNew, 1 );
         return 1;
     }
     // find the fanout after redundancy removal
     if ( pNode == Abc_ObjFanin0(pFanout) )
-        pFanoutNew = Abc_AigAnd( pNtk->pManFunc, Abc_ObjNotCond(pNodeNew,Abc_ObjFaninC0(pFanout)), Abc_ObjChild1(pFanout) );
+        pFanoutNew = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, Abc_ObjNotCond(pNodeNew,Abc_ObjFaninC0(pFanout)), Abc_ObjChild1(pFanout) );
     else if ( pNode == Abc_ObjFanin1(pFanout) )
-        pFanoutNew = Abc_AigAnd( pNtk->pManFunc, Abc_ObjNotCond(pNodeNew,Abc_ObjFaninC1(pFanout)), Abc_ObjChild0(pFanout) );
+        pFanoutNew = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, Abc_ObjNotCond(pNodeNew,Abc_ObjFaninC1(pFanout)), Abc_ObjChild0(pFanout) );
     else assert( 0 );
     // replace
-    Abc_AigReplace( pNtk->pManFunc, pFanout, pFanoutNew, 1 );
+    Abc_AigReplace( (Abc_Aig_t *)pNtk->pManFunc, pFanout, pFanoutNew, 1 );
     return 1;
 }
 
@@ -442,7 +445,7 @@ int Abc_NtkRRWindow( Abc_RRMan_t * p )
 
     // mark the leaves with the new TravId
     Abc_NtkIncrementTravId( p->pNtk );
-    Vec_PtrForEachEntry( p->vFaninLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vFaninLeaves, pObj, i )
         Abc_NodeSetTravIdCurrent( pObj );
     // traverse the TFO cone of the leaves (while skipping the edge)
     // (a) mark the nodes in the cone using the current TravId
@@ -450,12 +453,12 @@ int Abc_NtkRRWindow( Abc_RRMan_t * p )
     while ( Abc_NtkRRTfo_int(p->vFaninLeaves, p->vFanoutRoots, LevelMax, pEdgeFanin, pEdgeFanout) );
 
     // mark the fanout roots
-    Vec_PtrForEachEntry( p->vFanoutRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanoutRoots, pObj, i )
         pObj->fMarkA = 1;
     // collect roots reachable from the fanout (p->vRoots)
     RetValue = Abc_NtkRRTfo_rec( pEdgeFanout, p->vRoots, LevelMax + 1 );
     // unmark the fanout roots
-    Vec_PtrForEachEntry( p->vFanoutRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vFanoutRoots, pObj, i )
         pObj->fMarkA = 0;
 
     // return if the window is infeasible
@@ -465,7 +468,7 @@ int Abc_NtkRRWindow( Abc_RRMan_t * p )
     // collect the DFS-ordered new cone (p->vCone) and new leaves (p->vLeaves)
     // using the previous marks coming from the TFO cone
     Abc_NtkIncrementTravId( p->pNtk );
-    Vec_PtrForEachEntry( p->vRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vRoots, pObj, i )
         Abc_NtkRRTfi_rec( pObj, p->vLeaves, p->vCone, LevelMin );
 
     // create a new network
@@ -491,7 +494,7 @@ int Abc_NtkRRTfi_int( Vec_Ptr_t * vLeaves, int LevelLimit )
     assert( LevelLimit >= 0 );
     // find the maximum level of leaves
     LevelMax = 0;
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pObj, i )
         if ( LevelMax < (int)pObj->Level )
             LevelMax = pObj->Level;
     // if the nodes are all PIs, LevelMax == 0
@@ -499,7 +502,7 @@ int Abc_NtkRRTfi_int( Vec_Ptr_t * vLeaves, int LevelLimit )
         return 0;
     // expand the nodes with the minimum level
     nSize = Vec_PtrSize(vLeaves);
-    Vec_PtrForEachEntryStop( vLeaves, pObj, i, nSize )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vLeaves, pObj, i, nSize )
     {
         if ( LevelMax != (int)pObj->Level )
             continue;
@@ -513,7 +516,7 @@ int Abc_NtkRRTfi_int( Vec_Ptr_t * vLeaves, int LevelLimit )
     }
     // remove old nodes (cannot remove a PI)
     k = 0;
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pObj, i )
     {
         if ( LevelMax == (int)pObj->Level )
             continue;
@@ -542,7 +545,7 @@ int Abc_NtkRRTfo_int( Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int LevelLimit, A
     int i, k, LevelMin, nSize, fObjIsRoot;
     // find the minimum level of leaves
     LevelMin = ABC_INFINITY;
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pObj, i )
         if ( LevelMin > (int)pObj->Level )
             LevelMin = pObj->Level;
     // if the minimum level exceed the limit, we are done
@@ -550,7 +553,7 @@ int Abc_NtkRRTfo_int( Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int LevelLimit, A
         return 0;
     // expand the nodes with the minimum level
     nSize = Vec_PtrSize(vLeaves);
-    Vec_PtrForEachEntryStop( vLeaves, pObj, i, nSize )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vLeaves, pObj, i, nSize )
     {
         if ( LevelMin != (int)pObj->Level )
             continue;
@@ -577,7 +580,7 @@ int Abc_NtkRRTfo_int( Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int LevelLimit, A
     }
     // remove old nodes
     k = 0;
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pObj, i )
     {
         if ( LevelMin == (int)pObj->Level )
             continue;
@@ -682,17 +685,17 @@ Abc_Ntk_t * Abc_NtkWindow( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vC
     // map the constant nodes
     Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     // create and map the PIs
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pObj, i )
         pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
     // copy the AND gates
-    Vec_PtrForEachEntry( vCone, pObj, i )
-        pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, i )
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // compare the number of nodes before and after
     if ( Vec_PtrSize(vCone) != Abc_NtkNodeNum(pNtkNew) )
         printf( "Warning: Structural hashing during windowing reduced %d nodes (this is a bug).\n",
             Vec_PtrSize(vCone) - Abc_NtkNodeNum(pNtkNew) );
     // create the POs
-    Vec_PtrForEachEntry( vRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pObj, i )
     {
         assert( !Abc_ObjIsComplement(pObj->pCopy) );
         Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pObj->pCopy );
@@ -700,7 +703,6 @@ Abc_Ntk_t * Abc_NtkWindow( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vC
     // add the PI/PO names
     Abc_NtkAddDummyPiNames( pNtkNew );
     Abc_NtkAddDummyPoNames( pNtkNew );
-    Abc_NtkAddDummyAssertNames( pNtkNew );
     // check
     if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
     {
@@ -928,19 +930,19 @@ void Sim_SimulateCollected( Vec_Str_t * vTargets, Vec_Ptr_t * vNodes, Vec_Ptr_t 
     // get simulation info
     vSims = Sim_UtilInfoAlloc( Vec_PtrSize(vField), Vec_PtrSize(vNodes), 0 );
     // simulate the nodes
-    Vec_PtrForEachEntry( vField, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vField, pObj, i )
     {
         if ( Abc_ObjIsCi(pObj) )
         {
-            pUnsigned = Vec_PtrEntry( vSims, i );
+            pUnsigned = (unsigned *)Vec_PtrEntry( vSims, i );
             for ( k = 0; k < Vec_PtrSize(vNodes); k++ )
                 pUnsigned[k] = (unsigned)(ABC_PTRUINT_T)pObj->pCopy;
             continue;
         }
         if ( Abc_ObjIsCo(pObj) )
         {
-            pUnsigned  = Vec_PtrEntry( vSims, i );
-            pUnsignedF = Vec_PtrEntry( vSims, (int)(ABC_PTRUINT_T)Abc_ObjFanin0(pObj)->pData );
+            pUnsigned  = (unsigned *)Vec_PtrEntry( vSims, i );
+            pUnsignedF = (unsigned *)Vec_PtrEntry( vSims, (int)(ABC_PTRUINT_T)Abc_ObjFanin0(pObj)->pData );
             if ( Abc_ObjFaninC0(pObj) )
                 for ( k = 0; k < Vec_PtrSize(vNodes); k++ )
                     pUnsigned[k] = ~pUnsignedF[k];
@@ -952,7 +954,7 @@ void Sim_SimulateCollected( Vec_Str_t * vTargets, Vec_Ptr_t * vNodes, Vec_Ptr_t 
             {
                 if ( pUnsigned[k] == (unsigned)(ABC_PTRUINT_T)pObj->pData )
                     continue;
-                pDisproved = Vec_PtrEntry( vNodes, k );
+                pDisproved = (Abc_Obj_t *)Vec_PtrEntry( vNodes, k );
                 fCompl = Abc_ObjIsComplement(pDisproved);
                 pDisproved = Abc_ObjRegular(pDisproved);
                 Phase = Vec_StrEntry( vTargets, pDisproved->Id );
@@ -996,4 +998,6 @@ void Sim_SimulateCollected( Vec_Str_t * vTargets, Vec_Ptr_t * vNodes, Vec_Ptr_t 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

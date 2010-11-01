@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -39,7 +42,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t * pCex )
+void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Abc_Cex_t * pCex )
 {
     unsigned * pInfo;
     int k, i, w, nWords;
@@ -56,14 +59,14 @@ void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t
 */
     for ( k = 0; k < Gia_ManRegNum(pAig); k++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = 0;
     }
 
     for ( i = pCex->nRegs; i < pCex->nBits; i++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k++ );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k++ );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = Gia_ManRandom(0);
         // set simulation pattern and make sure it is second (first will be erased during simulation)
@@ -72,7 +75,7 @@ void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t
     }
     for ( ; k < Vec_PtrSize(vInfo); k++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = Gia_ManRandom(0);
     }
@@ -89,7 +92,7 @@ void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t
   SeeAlso     []
 
 ***********************************************************************/
-void Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t * pCex )
+void Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Abc_Cex_t * pCex )
 {
     unsigned * pInfo;
     int k, w, nWords;
@@ -98,14 +101,14 @@ void Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Ce
     assert( Gia_ManRegNum(pAig) <= Vec_PtrSize(vInfo) );
     for ( k = 0; k < Gia_ManRegNum(pAig); k++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = (pCex && Gia_InfoHasBit(pCex->pData, k))? ~0 : 0;
     }
 
     for ( ; k < Vec_PtrSize(vInfo); k++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = Gia_ManRandom( 0 );
     }
@@ -130,8 +133,8 @@ int Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo )
     assert( Vec_PtrSize(vInfo) == Gia_ManRegNum(p->pAig) + Gia_ManPiNum(p->pAig) * p->pPars->nFrames );
     for ( k = 0; k < Gia_ManRegNum(p->pAig); k++ )
     {
-        pInfo0 = Vec_PtrEntry( vInfo, k );
-        pInfo1 = Vec_PtrEntry( p->vCoSimInfo, Gia_ManPoNum(p->pAig) + k );
+        pInfo0 = (unsigned *)Vec_PtrEntry( vInfo, k );
+        pInfo1 = (unsigned *)Vec_PtrEntry( p->vCoSimInfo, Gia_ManPoNum(p->pAig) + k );
         for ( w = 0; w < p->nWords; w++ )
             pInfo1[w] = pInfo0[w];
     }
@@ -139,15 +142,15 @@ int Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo )
     {
         for ( i = 0; i < Gia_ManPiNum(p->pAig); i++ )
         {
-            pInfo0 = Vec_PtrEntry( vInfo, k++ );
-            pInfo1 = Vec_PtrEntry( p->vCiSimInfo, i );
+            pInfo0 = (unsigned *)Vec_PtrEntry( vInfo, k++ );
+            pInfo1 = (unsigned *)Vec_PtrEntry( p->vCiSimInfo, i );
             for ( w = 0; w < p->nWords; w++ )
                 pInfo1[w] = pInfo0[w];
         }
         for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
         {
-            pInfo0 = Vec_PtrEntry( p->vCoSimInfo, Gia_ManPoNum(p->pAig) + i );
-            pInfo1 = Vec_PtrEntry( p->vCiSimInfo, Gia_ManPiNum(p->pAig) + i );
+            pInfo0 = (unsigned *)Vec_PtrEntry( p->vCoSimInfo, Gia_ManPoNum(p->pAig) + i );
+            pInfo1 = (unsigned *)Vec_PtrEntry( p->vCiSimInfo, Gia_ManPiNum(p->pAig) + i );
             for ( w = 0; w < p->nWords; w++ )
                 pInfo1[w] = pInfo0[w];
         }
@@ -169,7 +172,7 @@ int Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Gia_Cex_t * pBestState, int fCheckMiter )
+int Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Abc_Cex_t * pBestState, int fCheckMiter )
 {
     Cec_ParSim_t ParsSim, * pParsSim = &ParsSim;
     Cec_ManSim_t * pSim;
@@ -200,33 +203,33 @@ int Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Gia_Cex_t 
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Gia_Cex_t * pCex )
+int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex_t * pCex )
 {
     Vec_Ptr_t * vSimInfo;
     int RetValue, clkTotal = clock();
     if ( pCex == NULL )
     {
-        printf( "Cec_ManSeqResimulateCounter(): Counter-example is not available.\n" );
+        Abc_Print( 1, "Cec_ManSeqResimulateCounter(): Counter-example is not available.\n" );
         return -1;
     }
     if ( pAig->pReprs == NULL )
     {
-        printf( "Cec_ManSeqResimulateCounter(): Equivalence classes are not available.\n" );
+        Abc_Print( 1, "Cec_ManSeqResimulateCounter(): Equivalence classes are not available.\n" );
         return -1;
     }
     if ( Gia_ManRegNum(pAig) == 0 )
     {
-        printf( "Cec_ManSeqResimulateCounter(): Not a sequential AIG.\n" );
+        Abc_Print( 1, "Cec_ManSeqResimulateCounter(): Not a sequential AIG.\n" );
         return -1;
     }
 //    if ( Gia_ManRegNum(pAig) != pCex->nRegs || Gia_ManPiNum(pAig) != pCex->nPis )
     if ( Gia_ManPiNum(pAig) != pCex->nPis )
     {
-        printf( "Cec_ManSeqResimulateCounter(): The number of PIs in the AIG and the counter-example differ.\n" );
+        Abc_Print( 1, "Cec_ManSeqResimulateCounter(): The number of PIs in the AIG and the counter-example differ.\n" );
         return -1;
     }
     if ( pPars->fVerbose )
-        printf( "Resimulating %d timeframes.\n", pPars->nFrames + pCex->iFrame + 1 );
+        Abc_Print( 1, "Resimulating %d timeframes.\n", pPars->nFrames + pCex->iFrame + 1 );
     Gia_ManRandom( 1 );
     vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pAig) + 
         Gia_ManPiNum(pAig) * (pPars->nFrames + pCex->iFrame + 1), 1 );
@@ -240,7 +243,7 @@ int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Gia_Cex
     if ( pPars->fVerbose )
         ABC_PRT( "Time", clock() - clkTotal );
     if ( RetValue )
-        printf( "Cec_ManSeqResimulateCounter(): An output of the miter is asserted!\n" );
+        Abc_Print( 1, "Cec_ManSeqResimulateCounter(): An output of the miter is asserted!\n" );
     return RetValue;
 }
 
@@ -320,17 +323,17 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Vec_Ptr_t * vSimInfo; 
     Vec_Str_t * vStatus;
-    Gia_Cex_t * pState;
+    Abc_Cex_t * pState;
     Gia_Man_t * pSrm, * pReduce, * pAux;
     int r, nPats, RetValue = 0;
     if ( pAig->pReprs == NULL )
     { 
-        printf( "Cec_ManSeqSemiformal(): Equivalence classes are not available.\n" );
+        Abc_Print( 1, "Cec_ManSeqSemiformal(): Equivalence classes are not available.\n" );
         return -1;
     }
     if ( Gia_ManRegNum(pAig) == 0 )
     {
-        printf( "Cec_ManSeqSemiformal(): Not a sequential AIG.\n" );
+        Abc_Print( 1, "Cec_ManSeqSemiformal(): Not a sequential AIG.\n" );
         return -1;
     }
     Gia_ManRandom( 1 );
@@ -344,7 +347,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
     pParsSat->fVerbose = pPars->fVerbose;
     if ( pParsSat->fVerbose )
     {
-        printf( "Starting: " );
+        Abc_Print( 1, "Starting: " );
         Gia_ManEquivPrintClasses( pAig, 0, 0 );
     }
     // perform the given number of BMC rounds
@@ -353,7 +356,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
     {
         if ( !Cec_ManCheckNonTrivialCands(pAig) )
         {
-            printf( "Cec_ManSeqSemiformal: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
+            Abc_Print( 1, "Cec_ManSeqSemiformal: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
             break;
         }
 //        Gia_ManPrintCounterExample( pState );
@@ -362,12 +365,12 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
         pSrm = Gia_ManSpecReduceInitFrames( pAig, pState, pPars->nFrames, &nFramesReal, pPars->fDualOut, pPars->nMinOutputs );
         if ( pSrm == NULL )
         {
-            printf( "Quitting refinement because miter could not be unrolled.\n" );
+            Abc_Print( 1, "Quitting refinement because miter could not be unrolled.\n" );
             break;
         }
         assert( Gia_ManRegNum(pSrm) == 0 && Gia_ManPiNum(pSrm) == (Gia_ManPiNum(pAig) * nFramesReal) );
         if ( pPars->fVerbose )
-            printf( "Unrolled for %d frames.\n", nFramesReal );
+            Abc_Print( 1, "Unrolled for %d frames.\n", nFramesReal );
         // allocate room for simulation info
         vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pAig) + 
             Gia_ManPiNum(pAig) * (nFramesReal + nAddFrames), pPars->nWords );
@@ -383,27 +386,27 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
         pState->iPo = -1;
         if ( pPars->fVerbose )
         {
-            printf( "BMC = %3d ", nPats );
+            Abc_Print( 1, "BMC = %3d ", nPats );
             Gia_ManEquivPrintClasses( pAig, 0, 0 );
         }
 
         // write equivalence classes
         Gia_WriteAiger( pAig, "gore.aig", 0, 0 );
         // reduce the model
-        pReduce = Gia_ManSpecReduce( pAig, 0, 0 );
+        pReduce = Gia_ManSpecReduce( pAig, 0, 0, 0 );
         if ( pReduce )
         {
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );
             Gia_ManStop( pAux );
             Gia_WriteAiger( pReduce, "gsrm.aig", 0, 0 );
-//            printf( "Speculatively reduced model was written into file \"%s\".\n", "gsrm.aig" );
+//            Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", "gsrm.aig" );
 //          Gia_ManPrintStatsShort( pReduce );
             Gia_ManStop( pReduce );
         }
 
         if ( RetValue )
         {
-            printf( "Cec_ManSeqSemiformal(): An output of the miter is asserted. Refinement stopped.\n" );
+            Abc_Print( 1, "Cec_ManSeqSemiformal(): An output of the miter is asserted. Refinement stopped.\n" );
             break;
         }
         // decide when to stop
@@ -417,7 +420,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
     {
         int nNonConsts = Cec_ManCountNonConstOutputs( pAig );
         if ( nNonConsts )
-            printf( "The number of POs that are not const-0 candidates = %d.\n", nNonConsts );
+            Abc_Print( 1, "The number of POs that are not const-0 candidates = %d.\n", nNonConsts );
     }
     return RetValue;
 }
@@ -431,4 +434,6 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

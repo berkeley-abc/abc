@@ -22,6 +22,9 @@
 #include "extra.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,7 +47,7 @@ static void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int fAl
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
+Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, int fCleanup )
 {
 //    extern int timeRetime;
     Abc_Ntk_t * pNtkAig;
@@ -59,14 +62,14 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )
-        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // finalize the network
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     // perform cleanup if requested
-    if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) ) 
+    if ( fCleanup && (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) ) 
         printf( "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
@@ -97,7 +100,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
+Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, int fCleanup )
 {
 //    extern int timeRetime;
     Abc_Ntk_t * pNtkAig;
@@ -123,7 +126,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
     printf( "Converting %d flops from don't-care to zero initial value.\n", Counter );
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )
-        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // finalize the network
     Abc_NtkFinalize( pNtk, pNtkAig );
     // complement the 1-valued registers
@@ -146,7 +149,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     // perform cleanup if requested
-    if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) ) 
+    if ( fCleanup && (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) ) 
         printf( "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
@@ -199,7 +202,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fR
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     // perform cleanup if requested
-    nNodes = fCleanup? Abc_AigCleanup(pNtkAig->pManFunc) : 0;
+    nNodes = fCleanup? Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc) : 0;
 //    if ( nNodes )
 //        printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
     // duplicate EXDC 
@@ -267,7 +270,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
         Abc_NtkStrashPerform( pNtk2, pNtk1, 1, 0 );
     else
         Abc_NtkForEachNode( pNtk2, pObj, i )
-            pObj->pCopy = Abc_AigAnd( pNtk1->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+            pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtk1->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // add the COs of the second network
     if ( fAddPos )
     {
@@ -293,7 +296,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
             // derive the new driver
             pDriverOld = Abc_ObjChild0( pObjOld );
             pDriverNew = Abc_ObjChild0Copy( pObj );
-            pDriverNew = Abc_AigOr( pNtk1->pManFunc, pDriverOld, pDriverNew );
+            pDriverNew = Abc_AigOr( (Abc_Aig_t *)pNtk1->pManFunc, pDriverOld, pDriverNew );
             if ( Abc_ObjRegular(pDriverOld) == Abc_ObjRegular(pDriverNew) )
                 continue;
             // replace the old driver by the new driver
@@ -334,7 +337,7 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, int fAllNod
 //printf( "Nodes = %d. ", Vec_PtrSize(vNodes) );
 //ABC_PRT( "Time", clock() - clk );
 //    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    Vec_PtrForEachEntry( vNodes, pNodeOld, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNodeOld, i )
     {
 //        Extra_ProgressBarUpdate( pProgress, i, NULL );
         pNodeOld->pCopy = Abc_NodeStrash( pNtkNew, pNodeOld, fRecord );
@@ -386,8 +389,8 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, int fReco
     assert( Abc_ObjIsNode(pNodeOld) );
     assert( Abc_NtkHasAig(pNodeOld->pNtk) && !Abc_NtkIsStrash(pNodeOld->pNtk) );
     // get the local AIG manager and the local root node
-    pMan = pNodeOld->pNtk->pManFunc;
-    pRoot = pNodeOld->pData;
+    pMan = (Hop_Man_t *)pNodeOld->pNtk->pManFunc;
+    pRoot = (Hop_Obj_t *)pNodeOld->pData;
     // check the constant case
     if ( Abc_NodeIsConst(pNodeOld) || Hop_Regular(pRoot) == Hop_ManConst1(pMan) )
         return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Hop_IsComplement(pRoot) );
@@ -411,10 +414,10 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, int fReco
     Abc_ObjForEachFanin( pNodeOld, pFanin, i )
         Hop_IthVar(pMan, i)->pData = pFanin->pCopy;
     // strash the AIG of this node
-    Abc_NodeStrash_rec( pNtkNew->pManFunc, Hop_Regular(pRoot) );
+    Abc_NodeStrash_rec( (Abc_Aig_t *)pNtkNew->pManFunc, Hop_Regular(pRoot) );
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
     // return the final node
-    return Abc_ObjNotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
+    return Abc_ObjNotCond( (Abc_Obj_t *)Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
 }
 
 
@@ -443,7 +446,7 @@ Abc_Obj_t * Abc_NtkTopmost_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int Leve
         return pNode->pCopy = Abc_NtkCreatePi( pNtkNew );
     Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin0(pNode), LevelCut );
     Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin1(pNode), LevelCut );
-    return pNode->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
+    return pNode->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
 }
 
 /**Function*************************************************************
@@ -532,7 +535,7 @@ Vec_Ptr_t * Abc_NodeGetSuper( Abc_Obj_t * pNode )
     // explore the frontier
     vFront = Vec_PtrAlloc( 100 );
     Vec_PtrPush( vFront, pNode );
-    Vec_PtrForEachEntry( vFront, pAnd, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pAnd, i )
     {
         pFanin = Abc_ObjChild0(pAnd);
         if ( Abc_ObjIsNode(pFanin) && !Abc_ObjIsComplement(pFanin) && Abc_ObjFanoutNum(pFanin) == 1 )
@@ -549,12 +552,12 @@ Vec_Ptr_t * Abc_NodeGetSuper( Abc_Obj_t * pNode )
     Vec_PtrFree( vFront );
     // reverse the array of pointers to start with lower IDs
     vFront = Vec_PtrAlloc( Vec_PtrSize(vSuper) );
-    Vec_PtrForEachEntryReverse( vSuper, pNode, i )
+    Vec_PtrForEachEntryReverse( Abc_Obj_t *, vSuper, pNode, i )
         Vec_PtrPush( vFront, pNode );
     Vec_PtrFree( vSuper );
     vSuper = vFront;
     // uniquify and return the frontier
-    Vec_PtrUniqify( vSuper, Vec_CompareNodeIds );
+    Vec_PtrUniqify( vSuper, (int (*)())Vec_CompareNodeIds );
     return vSuper;
 }
 
@@ -590,11 +593,11 @@ Abc_Ntk_t * Abc_NtkTopAnd( Abc_Ntk_t * pNtk )
         Abc_NtkDupObj( pNtkAig, pObj, 1 );
     // restrash the nodes reachable from the roots
     vOrder = Abc_NtkDfsIterNodes( pNtk, vNodes );
-    Vec_PtrForEachEntry( vOrder, pObj, i )
-        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     Vec_PtrFree( vOrder );
     // finalize the network
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         pObjPo = Abc_NtkCreatePo(pNtkAig);
         pDriver = Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj));
@@ -603,7 +606,7 @@ Abc_Ntk_t * Abc_NtkTopAnd( Abc_Ntk_t * pNtk )
     }
     Vec_PtrFree( vNodes );
     // perform cleanup if requested
-    if ( (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) ) 
+    if ( (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) ) 
         printf( "Abc_NtkTopAnd(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
@@ -615,8 +618,85 @@ Abc_Ntk_t * Abc_NtkTopAnd( Abc_Ntk_t * pNtk )
     return pNtkAig;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG into a file for parsing.]
+
+  Description [Ordering: c0, pis, ands, pos. ]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkWriteAig( Abc_Ntk_t * pNtk, char * pFileName )
+{
+    FILE * pFile;
+    Vec_Int_t * vId2Num;
+    Abc_Obj_t * pObj;
+    int i, iLit;
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+    if ( pFileName == NULL )
+        pFile = stdout;
+    else
+        pFile = fopen( pFileName, "w" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open output file.\n" );
+        return;
+    }
+    vId2Num = Vec_IntAlloc( 2*Abc_NtkObjNumMax(pNtk) );
+    Vec_IntFill( vId2Num, 2*Abc_NtkObjNumMax(pNtk), -1 );
+
+    iLit = 0;
+    Vec_IntWriteEntry( vId2Num, 2*Abc_ObjId(Abc_AigConst1(pNtk))+1, iLit++ );
+    Vec_IntWriteEntry( vId2Num, 2*Abc_ObjId(Abc_AigConst1(pNtk))+0, iLit++ );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+    {
+        Vec_IntWriteEntry( vId2Num, 2*Abc_ObjId(pObj)+0, iLit++ );
+        Vec_IntWriteEntry( vId2Num, 2*Abc_ObjId(pObj)+1, iLit++ );
+    }
+    Abc_AigForEachAnd( pNtk, pObj, i )
+    {
+        Vec_IntWriteEntry( vId2Num, 2*Abc_ObjId(pObj)+0, iLit++ );
+        Vec_IntWriteEntry( vId2Num, 2*Abc_ObjId(pObj)+1, iLit++ );
+    }
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "    \"%s\", ", Abc_NtkName(pNtk) );
+    fprintf( pFile, "//  pi=%d  po=%d  and=%d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkNodeNum(pNtk) );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, "    { " );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        fprintf( pFile, "\"%s\",", Abc_ObjName(pObj) );
+    fprintf( pFile, "NULL },\n" );
+    fprintf( pFile, "    { " );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        fprintf( pFile, "\"%s\",", Abc_ObjName(pObj) );
+    fprintf( pFile, "NULL },\n" );
+    fprintf( pFile, "    { " );
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        fprintf( pFile, "%d,", Vec_IntEntry(vId2Num, 2*Abc_ObjFaninId0(pObj) + Abc_ObjFaninC0(pObj)) );
+    fprintf( pFile, "0 },\n" );
+    fprintf( pFile, "    { " );
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        fprintf( pFile, "%d,", Vec_IntEntry(vId2Num, 2*Abc_ObjFaninId1(pObj) + Abc_ObjFaninC1(pObj)) );
+    fprintf( pFile, "0 },\n" );
+    fprintf( pFile, "    { " );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        fprintf( pFile, "%d,", Vec_IntEntry(vId2Num, 2*Abc_ObjFaninId0(pObj) + Abc_ObjFaninC0(pObj)) );
+    fprintf( pFile, "0 },\n" );
+    fprintf( pFile, "},\n" );
+    if ( pFile != stdout )
+        fclose( pFile );
+    Vec_IntFree( vId2Num );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

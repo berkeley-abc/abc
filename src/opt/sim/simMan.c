@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "sim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -102,8 +105,8 @@ void Sym_ManStop( Sym_Man_t * p )
     if ( p->vSupports )    Vec_VecFree( p->vSupports );
     for ( i = 0; i < p->nOutputs; i++ )
     {
-        Extra_BitMatrixStop( p->vMatrSymms->pArray[i] );
-        Extra_BitMatrixStop( p->vMatrNonSymms->pArray[i] );
+        Extra_BitMatrixStop( (Extra_BitMat_t *)p->vMatrSymms->pArray[i] );
+        Extra_BitMatrixStop( (Extra_BitMat_t *)p->vMatrNonSymms->pArray[i] );
     }
     Vec_IntFree( p->vVarsU );
     Vec_IntFree( p->vVarsV );
@@ -285,4 +288,6 @@ void Sim_ManPatFree( Sim_Man_t * p, Sim_Pat_t * pPat )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

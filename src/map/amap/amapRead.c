@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "amapInt.h"
+#include "ioAbc.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -68,7 +72,7 @@ static inline char * Amap_ParseStrsav( Aig_MmFlex_t * p, char * pStr )
 ***********************************************************************/
 char * Amap_LoadFile( char * pFileName )
 {
-    extern FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mode, int fVerbose );
+//    extern FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mode, int fVerbose );
     FILE * pFile;
     char * pBuffer;
     int nFileSize;
@@ -197,7 +201,7 @@ int Amap_ParseCountPins( Vec_Ptr_t * vTokens, int iPos )
 {
     char * pToken;
     int i, Counter = 0;
-    Vec_PtrForEachEntryStart( vTokens, pToken, i, iPos )
+    Vec_PtrForEachEntryStart( char *, vTokens, pToken, i, iPos )
         if ( !strcmp( pToken, AMAP_STRING_PIN ) )
             Counter++;
         else if ( !strcmp( pToken, AMAP_STRING_GATE ) )
@@ -295,7 +299,7 @@ int Amap_CollectFormulaTokens( Vec_Ptr_t * vTokens, char * pToken, int iPos )
     while ( *(pPrev-1) != ';' )
     {
         *pPrev++ = ' ';
-        pNext = Vec_PtrEntry(vTokens, iPos++);
+        pNext = (char *)Vec_PtrEntry(vTokens, iPos++);
         while ( *pNext )
             *pPrev++ = *pNext++;
     }
@@ -322,7 +326,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
     char * pToken;
     int nPins, iPos = 0;
     p = Amap_LibAlloc();
-    pToken = Vec_PtrEntry(vTokens, iPos++);
+    pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
     do 
     {
         if ( strcmp( pToken, AMAP_STRING_GATE ) )
@@ -339,28 +343,28 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
         pGate->pLib = p;
         pGate->nPins = nPins;
         // read gate
-        pToken = Vec_PtrEntry(vTokens, iPos++);
+        pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
         pGate->pName = Amap_ParseStrsav( p->pMemGates, pToken );    
-        pToken = Vec_PtrEntry(vTokens, iPos++);
+        pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
         pGate->dArea = atof( pToken );
-        pToken = Vec_PtrEntry(vTokens, iPos++);
+        pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
         pGate->pOutName = Amap_ParseStrsav( p->pMemGates, pToken ); 
-        pToken = Vec_PtrEntry(vTokens, iPos++);
+        pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
         iPos = Amap_CollectFormulaTokens( vTokens, pToken, iPos );
         pGate->pForm = Amap_ParseStrsav( p->pMemGates, pToken ); 
         // read pins
         Amap_GateForEachPin( pGate, pPin )
         {
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             if ( strcmp( pToken, AMAP_STRING_PIN ) )
             {
                 printf( "Cannot parse gate %s.\n", pGate->pName );
                 return NULL;
             }
             // read pin
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             pPin->pName = Amap_ParseStrsav( p->pMemGates, pToken );   
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             if ( strcmp( pToken, AMAP_STRING_UNKNOWN ) == 0 )
                 pPin->Phase = AMAP_PHASE_UNKNOWN;
             else if ( strcmp( pToken, AMAP_STRING_INV ) == 0 )
@@ -372,17 +376,17 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
                 printf( "Cannot read phase of pin %s of gate %s\n", pPin->pName, pGate->pName );
                 return NULL;
             }
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             pPin->dLoadInput = atof( pToken );
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             pPin->dLoadMax = atof( pToken );
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             pPin->dDelayBlockRise = atof( pToken );
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             pPin->dDelayFanoutRise = atof( pToken );
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             pPin->dDelayBlockFall = atof( pToken );
-            pToken = Vec_PtrEntry(vTokens, iPos++);
+            pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             pPin->dDelayFanoutFall = atof( pToken );
             if ( pPin->dDelayBlockRise > pPin->dDelayBlockFall )
                 pPin->dDelayBlockMax = pPin->dDelayBlockRise;
@@ -396,7 +400,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             Vec_PtrPop( p->vGates );
             Vec_PtrPush( p->vGates, pGate );
         }
-        pToken = Vec_PtrEntry(vTokens, iPos++);
+        pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
     }
     while ( strcmp( pToken, ".end" ) );
     return p;
@@ -436,4 +440,6 @@ Amap_Lib_t * Amap_LibReadFile( char * pFileName, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

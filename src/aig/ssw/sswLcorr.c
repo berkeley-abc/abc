@@ -21,6 +21,9 @@
 #include "sswInt.h"
 //#include "bar.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -56,7 +59,7 @@ void Ssw_ManSweepTransfer( Ssw_Man_t * p )
         }
         assert( !Aig_IsComplement(pObjFraig) );
         assert( Aig_ObjIsPi(pObjFraig) );
-        pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
         Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, 0 );
     }
 }
@@ -106,14 +109,14 @@ void Ssw_SmlAddPattern( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pCand )
     Aig_Obj_t * pObj;
     unsigned * pInfo;
     int i, nVarNum, Value;
-    Vec_PtrForEachEntry( p->pMSat->vUsedPis, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->pMSat->vUsedPis, pObj, i )
     {
         nVarNum = Ssw_ObjSatNum( p->pMSat, pObj );
         assert( nVarNum > 0 );
         Value = sat_solver_var_value( p->pMSat->pSat, nVarNum );
         if ( Value == 0 )
             continue;
-        pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObj) );
         Aig_InfoSetBit( pInfo, p->nPatterns );
     }
 }
@@ -284,7 +287,7 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
             if ( Vec_PtrSize(vClass) == 0 )
                 continue;
             // try to prove equivalences in this class
-            Vec_PtrForEachEntry( vClass, pTemp, k )
+            Vec_PtrForEachEntry( Aig_Obj_t *, vClass, pTemp, k )
                 if ( Aig_ObjRepr(p->pAig, pTemp) == pObj )
                 {
                     Ssw_ManSweepLatchOne( p, pObj, pTemp );
@@ -328,4 +331,6 @@ int Ssw_ManSweepLatch( Ssw_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

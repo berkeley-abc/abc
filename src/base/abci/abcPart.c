@@ -19,6 +19,11 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "main.h"
+#include "cmd.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -29,10 +34,10 @@ struct Supp_Man_t_
 {
     int              nChunkSize;    // the size of one chunk of memory (~1 Mb)
     int              nStepSize;     // the step size in saving memory (~64 bytes)
-    char *           pFreeBuf;      // the pointer to ABC_FREE memory
-    int              nFreeSize;     // the size of remaining ABC_FREE memory
+    char *           pFreeBuf;      // the pointer to free memory
+    int              nFreeSize;     // the size of remaining free memory
     Vec_Ptr_t *      vMemory;       // the memory allocated
-    Vec_Ptr_t *      vFree;         // the vector of ABC_FREE pieces of memory
+    Vec_Ptr_t *      vFree;         // the vector of free pieces of memory
 };
 
 typedef struct Supp_One_t_     Supp_One_t;
@@ -90,7 +95,7 @@ void Supp_ManStop( Supp_Man_t * p )
 {
     void * pMemory;
     int i;
-    Vec_PtrForEachEntry( p->vMemory, pMemory, i )
+    Vec_PtrForEachEntry( void *, p->vMemory, pMemory, i )
         ABC_FREE( pMemory );
     Vec_PtrFree( p->vMemory );
     Vec_PtrFree( p->vFree );
@@ -115,7 +120,7 @@ char * Supp_ManFetch( Supp_Man_t * p, int nSize )
     assert( nSize > 0 );
     Type = Supp_SizeType( nSize, p->nStepSize );
     Vec_PtrFillExtra( p->vFree, Type + 1, NULL );
-    if ( (pMemory = Vec_PtrEntry( p->vFree, Type )) )
+    if ( (pMemory = (char *)Vec_PtrEntry( p->vFree, Type )) )
     {
         Vec_PtrWriteEntry( p->vFree, Type, Supp_OneNext(pMemory) );
         return pMemory;
@@ -150,7 +155,7 @@ void Supp_ManRecycle( Supp_Man_t * p, char * pMemory, int nSize )
     int Type;
     Type = Supp_SizeType( nSize, p->nStepSize );
     Vec_PtrFillExtra( p->vFree, Type + 1, NULL );
-    Supp_OneSetNext( pMemory, Vec_PtrEntry(p->vFree, Type) );
+    Supp_OneSetNext( pMemory, (char *)Vec_PtrEntry(p->vFree, Type) );
     Vec_PtrWriteEntry( p->vFree, Type, pMemory );
 }
 
@@ -331,7 +336,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
     Abc_NtkCleanCopy(pNtk);
     // order the nodes so that the PIs and POs follow naturally
     vNodes = Abc_NtkDfsNatural( pNtk );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         if ( Abc_ObjIsNode(pObj) )
         {
@@ -390,7 +395,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsSmart( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->pNext = NULL;
 /*
-    Vec_PtrForEachEntry( vSupports, vSupp, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vSupports, vSupp, i )
         printf( "%d ", Vec_IntSize(vSupp) );
     printf( "\n" );
 */
@@ -417,7 +422,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsNaive( Abc_Ntk_t * pNtk )
     int i, k;
     // set the PI numbers
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pNext = (void *)(ABC_PTRINT_T)i;
+        pObj->pNext = (Abc_Obj_t *)(ABC_PTRINT_T)i;
     // save the CI numbers
     vSupports = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
@@ -426,7 +431,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsNaive( Abc_Ntk_t * pNtk )
             continue;
         vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vSuppI = (Vec_Int_t *)vSupp;
-        Vec_PtrForEachEntry( vSupp, pTemp, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pTemp, k )
             Vec_IntWriteEntry( vSuppI, k, (int)(ABC_PTRINT_T)pTemp->pNext );
         Vec_IntSort( vSuppI, 0 );
         // append the number of this output
@@ -440,7 +445,7 @@ Vec_Ptr_t * Abc_NtkComputeSupportsNaive( Abc_Ntk_t * pNtk )
     // sort supports by size
     Vec_VecSort( (Vec_Vec_t *)vSupports, 1 );
 /*
-    Vec_PtrForEachEntry( vSupports, vSuppI, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vSupports, vSuppI, i )
         printf( "%d ", Vec_IntSize(vSuppI) );
     printf( "\n" );
 */
@@ -532,7 +537,7 @@ int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vParts
     int i, nCommon, iBest;
     iBest = -1;
     CostBest = 0.0;
-    Vec_PtrForEachEntry( vPartSuppsAll, vPartSupp, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vPartSupp, i )
     {
         vPart = Vec_PtrEntry( vPartsAll, i );
         if ( nPartSizeLimit > 0 && Vec_IntSize(vPart) >= nPartSizeLimit )
@@ -565,7 +570,7 @@ int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vParts
 //    int nCommon2;
     iBest = -1;
     ValueBest = 0;
-    Vec_PtrForEachEntry( vPartSuppsAll, vPartSupp, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vPartSupp, i )
     {
         // skip partitions with too many outputs
 //        vPart = Vec_PtrEntry( vPartsAll, i );
@@ -573,7 +578,7 @@ int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vParts
 //            continue;
         // find the number of common variables between this output and the partitions
 //        nCommon2 = Vec_IntTwoCountCommon( vPartSupp, vOne );
-        nCommon = Abc_NtkSuppCharCommon( Vec_PtrEntry(vPartSuppsChar, i), vOne );
+        nCommon = Abc_NtkSuppCharCommon( (unsigned *)Vec_PtrEntry(vPartSuppsChar, i), vOne );
 //        assert( nCommon2 == nCommon );
         // if no common variables, continue searching
         if ( nCommon == 0 )
@@ -619,9 +624,9 @@ void Abc_NtkPartitionPrint( Abc_Ntk_t * pNtk, Vec_Ptr_t * vPartsAll, Vec_Ptr_t *
     int i, nOutputs, Counter;
 
     Counter = 0;
-    Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
     {
-        nOutputs = Vec_IntSize(Vec_PtrEntry(vPartsAll, i));
+        nOutputs = Vec_IntSize((Vec_Int_t *)Vec_PtrEntry(vPartsAll, i));
         printf( "%d=(%d,%d) ", i, Vec_IntSize(vOne), nOutputs );
         Counter += nOutputs;
         if ( i == Vec_PtrSize(vPartsAll) - 1 )
@@ -653,7 +658,7 @@ void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, 
     // pack smaller partitions into larger blocks
     iPart = 0;
     vPart = vPartSupp = NULL;
-    Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
     {
         if ( Vec_IntSize(vOne) < nSuppSizeLimit )
         {
@@ -661,27 +666,27 @@ void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, 
             {
                 assert( vPart == NULL );
                 vPartSupp = Vec_IntDup(vOne);
-                vPart = Vec_PtrEntry(vPartsAll, i);
+                vPart = (Vec_Int_t *)Vec_PtrEntry(vPartsAll, i);
             }
             else
             {
                 vPartSupp = Vec_IntTwoMerge( vTemp = vPartSupp, vOne );
                 Vec_IntFree( vTemp );
-                vPart = Vec_IntTwoMerge( vTemp = vPart, Vec_PtrEntry(vPartsAll, i) );
+                vPart = Vec_IntTwoMerge( vTemp = vPart, (Vec_Int_t *)Vec_PtrEntry(vPartsAll, i) );
                 Vec_IntFree( vTemp );
-                Vec_IntFree( Vec_PtrEntry(vPartsAll, i) );
+                Vec_IntFree( (Vec_Int_t *)Vec_PtrEntry(vPartsAll, i) );
             }
             if ( Vec_IntSize(vPartSupp) < nSuppSizeLimit )
                 continue;
         }
         else
-            vPart = Vec_PtrEntry(vPartsAll, i);
+            vPart = (Vec_Int_t *)Vec_PtrEntry(vPartsAll, i);
         // add the partition 
         Vec_PtrWriteEntry( vPartsAll, iPart, vPart );  
         vPart = NULL;
         if ( vPartSupp ) 
         {
-            Vec_IntFree( Vec_PtrEntry(vPartSuppsAll, iPart) );
+            Vec_IntFree( (Vec_Int_t *)Vec_PtrEntry(vPartSuppsAll, iPart) );
             Vec_PtrWriteEntry( vPartSuppsAll, iPart, vPartSupp );  
             vPartSupp = NULL;
         }
@@ -694,7 +699,7 @@ void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, 
         vPart = NULL;
 
         assert( vPartSupp != NULL );
-        Vec_IntFree( Vec_PtrEntry(vPartSuppsAll, iPart) );
+        Vec_IntFree( (Vec_Int_t *)Vec_PtrEntry(vPartSuppsAll, iPart) );
         Vec_PtrWriteEntry( vPartSuppsAll, iPart, vPartSupp );  
         vPartSupp = NULL;
         iPart++;
@@ -738,7 +743,7 @@ clk = clock();
     vPartsAll = Vec_PtrAlloc( 256 );
     vPartSuppsAll = Vec_PtrAlloc( 256 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vSupps) );
-    Vec_PtrForEachEntry( vSupps, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vSupps, vOne, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
 //        if ( i % 1000 == 0 )
@@ -766,22 +771,22 @@ timeFind += clock() - clk2;
         else
         {
             // add output to this partition
-            vPart = Vec_PtrEntry( vPartsAll, iPart );
+            vPart = (Vec_Int_t *)Vec_PtrEntry( vPartsAll, iPart );
             Vec_IntPush( vPart, iOut );
             // merge supports
-            vPartSupp = Vec_PtrEntry( vPartSuppsAll, iPart );
+            vPartSupp = (Vec_Int_t *)Vec_PtrEntry( vPartSuppsAll, iPart );
             vPartSupp = Vec_IntTwoMerge( vTemp = vPartSupp, vOne );
             Vec_IntFree( vTemp );
             // reinsert new support
             Vec_PtrWriteEntry( vPartSuppsAll, iPart, vPartSupp );
 
-            Abc_NtkSuppCharAdd( Vec_PtrEntry(vPartSuppsChar, iPart), vOne, Abc_NtkCiNum(pNtk) );
+            Abc_NtkSuppCharAdd( (unsigned *)Vec_PtrEntry(vPartSuppsChar, iPart), vOne, Abc_NtkCiNum(pNtk) );
         }
     }
     Extra_ProgressBarStop( pProgress );
 
     // stop char-based support representation
-    Vec_PtrForEachEntry( vPartSuppsChar, vTemp, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsChar, vTemp, i )
         ABC_FREE( vTemp );
     Vec_PtrFree( vPartSuppsChar );
 
@@ -794,13 +799,13 @@ ABC_PRT( "Parts", clock() - clk );
 
 clk = clock();
     // remember number of supports
-    Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
         Vec_IntPush( vOne, i );
     // sort the supports in the decreasing order
     Vec_VecSort( (Vec_Vec_t *)vPartSuppsAll, 1 );
     // reproduce partitions
     vPartsAll2 = Vec_PtrAlloc( 256 );
-    Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartSuppsAll, vOne, i )
         Vec_PtrPush( vPartsAll2, Vec_PtrEntry(vPartsAll, Vec_IntPop(vOne)) );
     Vec_PtrFree( vPartsAll );
     vPartsAll = vPartsAll2;
@@ -822,7 +827,7 @@ ABC_PRT( "Comps", clock() - clk );
     Vec_VecFree( (Vec_Vec_t *)vPartSuppsAll );
 /*
     // converts from intergers to nodes
-    Vec_PtrForEachEntry( vPartsAll, vPart, iPart )
+    Vec_PtrForEachEntry( Vec_Int_t *, vPartsAll, vPart, iPart )
     {
         vPartPtr = Vec_PtrAlloc( Vec_IntSize(vPart) );
         Vec_IntForEachEntry( vPart, iOut, i )
@@ -853,7 +858,7 @@ Vec_Ptr_t * Abc_NtkPartitionNaive( Abc_Ntk_t * pNtk, int nPartSize )
     nParts = (Abc_NtkCoNum(pNtk) / nPartSize) + ((Abc_NtkCoNum(pNtk) % nPartSize) > 0);
     vParts = (Vec_Ptr_t *)Vec_VecStart( nParts );
     Abc_NtkForEachCo( pNtk, pObj, i )
-        Vec_IntPush( Vec_PtrEntry(vParts, i / nPartSize), i );
+        Vec_IntPush( (Vec_Int_t *)Vec_PtrEntry(vParts, i / nPartSize), i );
     return vParts;
 }
 
@@ -890,7 +895,7 @@ void Abc_NtkConvertCos( Abc_Ntk_t * pNtk, Vec_Int_t * vOuts, Vec_Ptr_t * vOutsPt
 Abc_Obj_t * Abc_NtkPartStitchFindRepr_rec( Vec_Ptr_t * vEquiv, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pRepr;
-    pRepr = Vec_PtrEntry( vEquiv, pObj->Id );
+    pRepr = (Abc_Obj_t *)Vec_PtrEntry( vEquiv, pObj->Id );
     if ( pRepr == NULL || pRepr == pObj )
         return pObj;
     return Abc_NtkPartStitchFindRepr_rec( vEquiv, pRepr );
@@ -911,13 +916,13 @@ static inline Abc_Obj_t * Abc_NtkPartStitchCopy0( Vec_Ptr_t * vEquiv, Abc_Obj_t 
 {
     Abc_Obj_t * pFan = Abc_ObjFanin0( pObj );
     Abc_Obj_t * pRepr = Abc_NtkPartStitchFindRepr_rec( vEquiv, pFan );
-    return Abc_ObjNotCond( pRepr->pCopy, pRepr->fPhase ^ pFan->fPhase ^ Abc_ObjFaninC1(pObj) );
+    return Abc_ObjNotCond( pRepr->pCopy, pRepr->fPhase ^ pFan->fPhase ^ (int)Abc_ObjFaninC1(pObj) );
 }
 static inline Abc_Obj_t * Abc_NtkPartStitchCopy1( Vec_Ptr_t * vEquiv, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFan = Abc_ObjFanin1( pObj );
     Abc_Obj_t * pRepr = Abc_NtkPartStitchFindRepr_rec( vEquiv, pFan );
-    return Abc_ObjNotCond( pRepr->pCopy, pRepr->fPhase ^ pFan->fPhase ^ Abc_ObjFaninC1(pObj) );
+    return Abc_ObjNotCond( pRepr->pCopy, pRepr->fPhase ^ pFan->fPhase ^ (int)Abc_ObjFaninC1(pObj) );
 }
 
 /**Function*************************************************************
@@ -1006,7 +1011,7 @@ Abc_Ntk_t * Abc_NtkPartStitchChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vParts )
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
 
     // annotate parts to point to the new network
-    Vec_PtrForEachEntry( vParts, pNtkTemp, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vParts, pNtkTemp, i )
     {
         assert( Abc_NtkIsStrash(pNtkTemp) );
         Abc_NtkCleanCopy( pNtkTemp );
@@ -1026,12 +1031,12 @@ Abc_Ntk_t * Abc_NtkPartStitchChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vParts )
 
         // add the internal nodes while saving representatives
         vNodes = Abc_AigDfs( pNtkTemp, 1, 0 );
-        Vec_PtrForEachEntry( vNodes, pObj, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, k )
         {
-            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+            pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
             assert( !Abc_ObjIsComplement(pObj->pCopy) );
             if ( Abc_AigNodeIsChoice(pObj) )
-                for ( pFanin = pObj->pData; pFanin; pFanin = pFanin->pData )
+                for ( pFanin = (Abc_Obj_t *)pObj->pData; pFanin; pFanin = (Abc_Obj_t *)pFanin->pData )
                     pFanin->pCopy->pCopy = pObj->pCopy;
         }
         Vec_PtrFree( vNodes );
@@ -1092,16 +1097,13 @@ Abc_Ntk_t * Abc_NtkPartStitchChoices( Abc_Ntk_t * pNtk, Vec_Ptr_t * vParts )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams )
 {
-    extern int Cmd_CommandExecute( void * pAbc, char * sCommand );
-    extern void * Abc_FrameGetGlobalFrame();
-
     Vec_Ptr_t * vParts, * vFraigs, * vOnePtr;
     Vec_Int_t * vOne;
     Abc_Ntk_t * pNtk, * pNtk2, * pNtkAig, * pNtkFraig;
     int i, k;
 
     // perform partitioning
-    pNtk = Vec_PtrEntry( vStore, 0 );
+    pNtk = (Abc_Ntk_t *)Vec_PtrEntry( vStore, 0 );
     assert( Abc_NtkIsStrash(pNtk) );
 //    vParts = Abc_NtkPartitionNaive( pNtk, 20 );
     vParts = Abc_NtkPartitionSmart( pNtk, 300, 0 );
@@ -1111,13 +1113,13 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams )
     // fraig each partition
     vOnePtr = Vec_PtrAlloc( 1000 );
     vFraigs = Vec_PtrAlloc( Vec_PtrSize(vParts) );
-    Vec_PtrForEachEntry( vParts, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vParts, vOne, i )
     {
         // start the partition 
         Abc_NtkConvertCos( pNtk, vOne, vOnePtr );
         pNtkAig = Abc_NtkCreateConeArray( pNtk, vOnePtr, 0 );
         // add nodes to the partition
-        Vec_PtrForEachEntryStart( vStore, pNtk2, k, 1 )
+        Vec_PtrForEachEntryStart( Abc_Ntk_t *, vStore, pNtk2, k, 1 )
         {
             Abc_NtkConvertCos( pNtk2, vOne, vOnePtr );
             Abc_NtkAppendToCone( pNtkAig, pNtk2, vOnePtr );
@@ -1137,7 +1139,7 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams )
 
     // derive the final network
     pNtkFraig = Abc_NtkPartStitchChoices( pNtk, vFraigs );
-    Vec_PtrForEachEntry( vFraigs, pNtkAig, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vFraigs, pNtkAig, i )
         Abc_NtkDelete( pNtkAig );
     Vec_PtrFree( vFraigs );
     Vec_PtrFree( vOnePtr );
@@ -1157,9 +1159,6 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams )
 ***********************************************************************/
 void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
 {
-    extern int Cmd_CommandExecute( void * pAbc, char * sCommand );
-    extern void * Abc_FrameGetGlobalFrame();
-
     Vec_Ptr_t * vParts, * vFraigs, * vOnePtr;
     Vec_Int_t * vOne;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
@@ -1176,7 +1175,7 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
     // fraig each partition
     vOnePtr = Vec_PtrAlloc( 1000 );
     vFraigs = Vec_PtrAlloc( Vec_PtrSize(vParts) );
-    Vec_PtrForEachEntry( vParts, vOne, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vParts, vOne, i )
     {
         Abc_NtkConvertCos( pNtk, vOne, vOnePtr );
         pNtkAig = Abc_NtkCreateConeArray( pNtk, vOnePtr, 0 );
@@ -1191,7 +1190,7 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
 
     // derive the final network
-    Vec_PtrForEachEntry( vFraigs, pNtkAig, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vFraigs, pNtkAig, i )
         Abc_NtkDelete( pNtkAig );
     Vec_PtrFree( vFraigs );
     Vec_PtrFree( vOnePtr );
@@ -1202,4 +1201,6 @@ void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

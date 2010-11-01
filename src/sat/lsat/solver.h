@@ -2,7 +2,7 @@
 Copyright (c) 2008, Niklas Sorensson
               2008, Koen Claessen
 
-Permission is hereby granted, ABC_FREE of charge, to any person obtaining a copy of this software and
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
@@ -20,6 +20,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #ifndef Minisat_solver_h
 #define Minisat_solver_h
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 // SolverTypes:
 //
@@ -104,8 +108,8 @@ int          solver_num_conflicts   (solver *s);
     double    random_seed;
     double    restart_luby_start; // The factor with which the values of the luby sequence is multiplied to get the restart    (default 100)
     double    restart_luby_inc;   // The constant that the luby sequence uses powers of                                        (default 2)
-    bool      expensive_ccmin;    // FIXME: describe.
-    bool      rnd_pol;            // FIXME: describe.
+    int       expensive_ccmin;    // FIXME: describe.
+    int       rnd_pol;            // FIXME: describe.
 
     int       restart_first;      // The initial restart limit.                                                                (default 100)
     double    restart_inc;        // The factor with which the restart limit is multiplied in each restart.                    (default 1.5)
@@ -120,5 +124,9 @@ int          solver_num_conflicts   (solver *s);
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t dec_vars, clauses_literals, learnts_literals, max_literals, tot_literals;
 */
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

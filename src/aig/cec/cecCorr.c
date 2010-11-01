@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -197,9 +200,9 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
     Vec_IntFree( vXorLits );
     Gia_ManHashStop( pNew );
     ABC_FREE( p->pCopies );
-//printf( "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
+//Abc_Print( 1, "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
     pNew = Gia_ManCleanup( pTemp = pNew );
-//printf( "After sweeping = %d\n", Gia_ManAndNum(pNew) );
+//Abc_Print( 1, "After sweeping = %d\n", Gia_ManAndNum(pNew) );
     Gia_ManStop( pTemp );
     return pNew;
 }
@@ -266,9 +269,9 @@ Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t * p, int nFrames, int nPrefix, 
     Vec_IntFree( vXorLits );
     Gia_ManHashStop( pNew );
     ABC_FREE( p->pCopies );
-//printf( "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
+//Abc_Print( 1, "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
     pNew = Gia_ManCleanup( pTemp = pNew );
-//printf( "After sweeping = %d\n", Gia_ManAndNum(pNew) );
+//Abc_Print( 1, "After sweeping = %d\n", Gia_ManAndNum(pNew) );
     Gia_ManStop( pTemp );
     return pNew;
 }
@@ -292,13 +295,13 @@ void Cec_ManStartSimInfo( Vec_Ptr_t * vInfo, int nFlops )
     assert( nFlops <= Vec_PtrSize(vInfo) );
     for ( k = 0; k < nFlops; k++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = 0;
     }
     for ( k = nFlops; k < Vec_PtrSize(vInfo); k++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = Gia_ManRandom( 0 );
     }
@@ -327,20 +330,20 @@ void Gia_ManCorrRemapSimInfo( Gia_Man_t * p, Vec_Ptr_t * vInfo )
         pRepr = Gia_ObjReprObj( p, Gia_ObjId(p,pObj) );
         if ( pRepr == NULL || Gia_ObjFailed(p, Gia_ObjId(p,pObj)) )
             continue;
-        pInfoObj = Vec_PtrEntry( vInfo, i );
+        pInfoObj = (unsigned *)Vec_PtrEntry( vInfo, i );
         for ( w = 0; w < nWords; w++ )
             assert( pInfoObj[w] == 0 );
         // skip ROs with constant representatives
         if ( Gia_ObjIsConst0(pRepr) )
             continue;
         assert( Gia_ObjIsRo(p, pRepr) );
-//        printf( "%d -> %d    ", i, Gia_ObjId(p, pRepr) );
+//        Abc_Print( 1, "%d -> %d    ", i, Gia_ObjId(p, pRepr) );
         // transfer info from the representative
-        pInfoRepr = Vec_PtrEntry( vInfo, Gia_ObjCioId(pRepr) - Gia_ManPiNum(p) );
+        pInfoRepr = (unsigned *)Vec_PtrEntry( vInfo, Gia_ObjCioId(pRepr) - Gia_ManPiNum(p) );
         for ( w = 0; w < nWords; w++ )
             pInfoObj[w] = pInfoRepr[w];
     }
-//    printf( "\n" );
+//    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
@@ -368,7 +371,7 @@ Vec_Int_t * Gia_ManCorrCreateRemapping( Gia_Man_t * p )
 //        if ( pRepr == NULL || Gia_ObjIsConst0(pRepr) || Gia_ObjIsFailedPair(p, Gia_ObjId(p, pRepr), Gia_ObjId(p, pObj)) )
             continue;
         assert( Gia_ObjIsRo(p, pRepr) );
-//        printf( "%d -> %d    ", Gia_ObjId(p,pObj), Gia_ObjId(p, pRepr) );
+//        Abc_Print( 1, "%d -> %d    ", Gia_ObjId(p,pObj), Gia_ObjId(p, pRepr) );
         // remember the pair
         Vec_IntPush( vPairs, Gia_ObjCioId(pRepr) - Gia_ManPiNum(p) );
         Vec_IntPush( vPairs, i );
@@ -395,8 +398,8 @@ void Gia_ManCorrPerformRemapping( Vec_Int_t * vPairs, Vec_Ptr_t * vInfo )
     Vec_IntForEachEntry( vPairs, iRepr, i )
     {
         iObj = Vec_IntEntry( vPairs, ++i );
-        pInfoObj = Vec_PtrEntry( vInfo, iObj );
-        pInfoRepr = Vec_PtrEntry( vInfo, iRepr );
+        pInfoObj = (unsigned *)Vec_PtrEntry( vInfo, iObj );
+        pInfoRepr = (unsigned *)Vec_PtrEntry( vInfo, iRepr );
         for ( w = 0; w < nWords; w++ )
         {
             assert( pInfoObj[w] == 0 );
@@ -422,16 +425,16 @@ int Cec_ManLoadCounterExamplesTry( Vec_Ptr_t * vInfo, Vec_Ptr_t * vPres, int iBi
     int i;
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
         if ( Gia_InfoHasBit( pPres, iBit ) && 
              Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
              return 0;
     }
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
         Gia_InfoSetBit( pPres, iBit );
         if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
             Gia_InfoXorBit( pInfo, iBit );
@@ -506,7 +509,7 @@ int Cec_ManLoadCounterExamples2( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int i
         // skip the output number
 //        iStart++;
         Out = Vec_IntEntry( vCexStore, iStart++ );
-//        printf( "iBit = %d. Out = %d.\n", iBit, Out );
+//        Abc_Print( 1, "iBit = %d. Out = %d.\n", iBit, Out );
         // get the number of items
         nLits = Vec_IntEntry( vCexStore, iStart++ );
         if ( nLits <= 0 )
@@ -515,14 +518,14 @@ int Cec_ManLoadCounterExamples2( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int i
         for ( k = 0; k < nLits; k++ )
         {
             iLit = Vec_IntEntry( vCexStore, iStart++ );
-            pInfo = Vec_PtrEntry( vInfo, Gia_Lit2Var(iLit) );
+            pInfo = (unsigned *)Vec_PtrEntry( vInfo, Gia_Lit2Var(iLit) );
             if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(iLit) )
                 Gia_InfoXorBit( pInfo, iBit );
         }
         if ( ++iBit == nBits )
             break;
     }
-//    printf( "added %d bits\n", iBit-1 );
+//    Abc_Print( 1, "added %d bits\n", iBit-1 );
     return iStart;
 }
 
@@ -620,7 +623,7 @@ int Gia_ManCheckRefinements( Gia_Man_t * p, Vec_Str_t * vStatus, Vec_Int_t * vOu
             if ( Gia_ObjHasSameRepr(p, iRepr, iObj) )
                 Counter++;
 //            if ( Gia_ObjHasSameRepr(p, iRepr, iObj) )
-//                printf( "Gia_ManCheckRefinements(): Disproved equivalence (%d,%d) is not refined!\n", iRepr, iObj );
+//                Abc_Print( 1, "Gia_ManCheckRefinements(): Disproved equivalence (%d,%d) is not refined!\n", iRepr, iObj );
 //            if ( Gia_ObjHasSameRepr(p, iRepr, iObj) )
 //                Cec_ManSimClassRemoveOne( pSim, iObj );
             continue;
@@ -628,7 +631,7 @@ int Gia_ManCheckRefinements( Gia_Man_t * p, Vec_Str_t * vStatus, Vec_Int_t * vOu
         if ( status == -1 )
         {
 //            if ( !Gia_ObjFailed( p, iObj ) )
-//                printf( "Gia_ManCheckRefinements(): Failed equivalence is not marked as failed!\n" );
+//                Abc_Print( 1, "Gia_ManCheckRefinements(): Failed equivalence is not marked as failed!\n" );
 //            Gia_ObjSetFailed( p, iRepr );
 //            Gia_ObjSetFailed( p, iObj );        
 //            if ( fRings )
@@ -638,7 +641,7 @@ int Gia_ManCheckRefinements( Gia_Man_t * p, Vec_Str_t * vStatus, Vec_Int_t * vOu
         }
     }
 //    if ( Counter )
-//    printf( "Gia_ManCheckRefinements(): Could not refine %d nodes.\n", Counter );
+//    Abc_Print( 1, "Gia_ManCheckRefinements(): Could not refine %d nodes.\n", Counter );
     return 1;
 }
 
@@ -732,10 +735,10 @@ void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIte
     CounterX -= Gia_ManCoNum(p);
     nLits = Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
     if ( iIter == -1 )
-        printf( "BMC : " );
+        Abc_Print( 1, "BMC : " );
     else
-        printf( "%3d : ", iIter );
-    printf( "c =%8d  cl =%7d  lit =%8d  ", Counter0, Counter, nLits );
+        Abc_Print( 1, "%3d : ", iIter );
+    Abc_Print( 1, "c =%8d  cl =%7d  lit =%8d  ", Counter0, Counter, nLits );
     if ( vStatus )
     Vec_StrForEachEntry( vStatus, Entry, i )
     {
@@ -746,8 +749,8 @@ void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIte
         else if ( Entry == -1 )
             nFail++;
     }
-    printf( "p =%6d  d =%6d  f =%6d  ", nProve, nDispr, nFail );
-    ABC_PRT( "T", Time );
+    Abc_Print( 1, "p =%6d  d =%6d  f =%6d  ", nProve, nDispr, nFail );
+    Abc_PrintTime( 1, "T", Time );
 }
 
 /**Function*************************************************************
@@ -833,7 +836,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 {  
     int nIterMax     = 100000;
     int nAddFrames   = 1; // additional timeframes to simulate
-    int fRunBmcFirst = 0;
+    int fRunBmcFirst = 1;
     Vec_Str_t * vStatus;
     Vec_Int_t * vOutputs;
     Vec_Int_t * vCexStore;
@@ -846,7 +849,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     int clk2, clk = clock();
     if ( Gia_ManRegNum(pAig) == 0 )
     {
-        printf( "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );
+        Abc_Print( 1, "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );
         return 0;
     }
     Gia_ManRandom( 1 );
@@ -861,7 +864,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     pSim = Cec_ManSimStart( pAig, pParsSim );
     if ( pAig->pReprs == NULL )
     {
-        Cec_ManSimClassesPrepare( pSim );
+        Cec_ManSimClassesPrepare( pSim, pPars->nLevelMax );
         Cec_ManSimClassesRefine( pSim );
     }
     // prepare SAT solving
@@ -870,7 +873,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     pParsSat->fVerbose = pPars->fVerbose;
     if ( pPars->fVerbose )
     {
-        printf( "Obj = %7d. And = %7d. Conf = %5d. Fr = %d. Lcorr = %d. Ring = %d. CSat = %d.\n",
+        Abc_Print( 1, "Obj = %7d. And = %7d. Conf = %5d. Fr = %d. Lcorr = %d. Ring = %d. CSat = %d.\n",
             Gia_ManObjNum(pAig), Gia_ManAndNum(pAig), 
             pPars->nBTLimit, pPars->nFrames, pPars->fLatchCorr, pPars->fUseRings, pPars->fUseCSat );
         Cec_ManRefinedClassPrintStats( pAig, NULL, 0, clock() - clk );
@@ -878,9 +881,26 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     // check the base case
     if ( fRunBmcFirst && (!pPars->fLatchCorr || pPars->nFrames > 1) )
         Cec_ManLSCorrespondenceBmc( pAig, pPars, 0 );
+    if ( pPars->pFunc )
+    {
+        ((int (*)(void *))pPars->pFunc)( pPars->pData );
+        ((int (*)(void *))pPars->pFunc)( pPars->pData );
+    }
+    if ( pPars->nStepsMax == 0 )
+    {
+        Abc_Print( 1, "Stopped signal correspondence after BMC.\n" );
+        Cec_ManSimStop( pSim );
+        return 1;
+    }
     // perform refinement of equivalence classes
     for ( r = 0; r < nIterMax; r++ )
     { 
+        if ( pPars->nStepsMax == r )
+        {
+            Cec_ManSimStop( pSim );
+            Abc_Print( 1, "Stopped signal correspondence after %d refiment iterations.\n", r );
+            return 1;
+        }
         clk = clock();
         // perform speculative reduction
         clk2 = clock();
@@ -920,12 +940,14 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         Vec_StrFree( vStatus );
         Vec_IntFree( vOutputs );
 //Gia_ManEquivPrintClasses( pAig, 1, 0 );
+        if ( pPars->pFunc )
+            ((int (*)(void *))pPars->pFunc)( pPars->pData );
     }
     if ( pPars->fVerbose )
         Cec_ManRefinedClassPrintStats( pAig, NULL, r+1, clock() - clk );
     // check the overflow
     if ( r == nIterMax )
-        printf( "The refinement was not finished. The result may be incorrect.\n" );
+        Abc_Print( 1, "The refinement was not finished. The result may be incorrect.\n" );
     Cec_ManSimStop( pSim );
     // check the base case
     if ( !fRunBmcFirst && (!pPars->fLatchCorr || pPars->nFrames > 1) )
@@ -938,9 +960,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         ABC_PRTP( "Sat  ", clkSat,                        clkTotal );
         ABC_PRTP( "Sim  ", clkSim,                        clkTotal );
         ABC_PRTP( "Other", clkTotal-clkSat-clkSrm-clkSim, clkTotal );
-        ABC_PRT( "TOTAL",  clkTotal );
+        Abc_PrintTime( 1, "TOTAL",  clkTotal );
     }
-    return 0;
+    return 1;
 }    
 
 /**Function*************************************************************
@@ -960,7 +982,7 @@ unsigned * Cec_ManComputeInitState( Gia_Man_t * pAig, int nFrames )
     unsigned * pInitState;
     int i, f; 
     Gia_ManRandom( 1 );
-//    printf( "Simulating %d timeframes.\n", nFrames );
+//    Abc_Print( 1, "Simulating %d timeframes.\n", nFrames );
     Gia_ManForEachRo( pAig, pObj, i )
         pObj->fMark1 = 0;
     for ( f = 0; f < nFrames; f++ )
@@ -981,9 +1003,9 @@ unsigned * Cec_ManComputeInitState( Gia_Man_t * pAig, int nFrames )
     {
         if ( pObj->fMark1 )
             Gia_InfoSetBit( pInitState, i );
-//        printf( "%d", pObj->fMark1 );
+//        Abc_Print( 1, "%d", pObj->fMark1 );
     }
-//    printf( "\n" );
+//    Abc_Print( 1, "\n" );
     Gia_ManCleanMark1( pAig );
     return pInitState;
 }
@@ -1007,15 +1029,15 @@ void Cec_ManPrintFlopEquivs( Gia_Man_t * p )
     Gia_ManForEachRo( p, pObj, i )
     {
         if ( Gia_ObjIsConst(p, Gia_ObjId(p, pObj)) )
-            printf( "Original flop %s is proved equivalent to constant.\n", Vec_PtrEntry(p->vNamesIn, Gia_ObjCioId(pObj)) );
+            Abc_Print( 1, "Original flop %s is proved equivalent to constant.\n", Vec_PtrEntry(p->vNamesIn, Gia_ObjCioId(pObj)) );
         else if ( (pRepr = Gia_ObjReprObj(p, Gia_ObjId(p, pObj))) )
         {
             if ( Gia_ObjIsCi(pRepr) )
-                printf( "Original flop %s is proved equivalent to flop %s.\n",
+                Abc_Print( 1, "Original flop %s is proved equivalent to flop %s.\n",
                     Vec_PtrEntry( p->vNamesIn, Gia_ObjCioId(pObj)  ),
                     Vec_PtrEntry( p->vNamesIn, Gia_ObjCioId(pRepr) ) );
             else
-                printf( "Original flop %s is proved equivalent to internal node %d.\n",
+                Abc_Print( 1, "Original flop %s is proved equivalent to internal node %d.\n",
                     Vec_PtrEntry( p->vNamesIn, Gia_ObjCioId(pObj) ), Gia_ObjId(p, pRepr) );
         }
     }
@@ -1046,7 +1068,7 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     {
         // compute the cycles AIG
         pInitState = Cec_ManComputeInitState( pAig, pPars->nPrefix );
-        pTemp = Gia_ManDupFlip( pAig, pInitState );
+        pTemp = Gia_ManDupFlip( pAig, (int *)pInitState );
         ABC_FREE( pInitState );
         // compute classes of this AIG
         RetValue = Cec_ManLSCorrespondenceClasses( pTemp, pPars );
@@ -1086,19 +1108,19 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     // report the results
     if ( pPars->fVerbose )
     {
-        printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+        Abc_Print( 1, "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
             Gia_ManAndNum(pAig), Gia_ManAndNum(pNew), 
             100.0*(Gia_ManAndNum(pAig)-Gia_ManAndNum(pNew))/(Gia_ManAndNum(pAig)?Gia_ManAndNum(pAig):1), 
             Gia_ManRegNum(pAig), Gia_ManRegNum(pNew), 
             100.0*(Gia_ManRegNum(pAig)-Gia_ManRegNum(pNew))/(Gia_ManRegNum(pAig)?Gia_ManRegNum(pAig):1) );
     }
     if ( pPars->nPrefix && (Gia_ManAndNum(pNew) < Gia_ManAndNum(pAig) || Gia_ManRegNum(pNew) < Gia_ManRegNum(pAig)) )
-        printf( "The reduced AIG was produced using %d-th invariants and will not verify.\n", pPars->nPrefix );
+        Abc_Print( 1, "The reduced AIG was produced using %d-th invariants and will not verify.\n", pPars->nPrefix );
     // print verbose info about equivalences
     if ( pPars->fVerboseFlops )
     {
         if ( pAig->vNamesIn == NULL )
-            printf( "Flop output names are not available. Use command \"&get -n\".\n" );
+            Abc_Print( 1, "Flop output names are not available. Use command \"&get -n\".\n" );
         else
             Cec_ManPrintFlopEquivs( pAig );
     }
@@ -1109,4 +1131,6 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

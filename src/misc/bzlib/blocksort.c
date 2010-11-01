@@ -21,6 +21,8 @@
 
 #include "bzlib_private.h"
 
+ABC_NAMESPACE_IMPL_START
+
 /*---------------------------------------------*/
 /*--- Fallback O(N log(N)^2) sorting        ---*/
 /*--- algorithm, for repetitive blocks      ---*/
@@ -1092,3 +1094,5 @@ void BZ2_blockSort ( EState* s )
 /*-------------------------------------------------------------*/
 /*--- end                                       blocksort.c ---*/
 /*-------------------------------------------------------------*/
+
+ABC_NAMESPACE_IMPL_END

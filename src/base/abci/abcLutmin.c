@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
     Implememented here is the algorithm for minimal-LUT decomposition
     described in the paper: T. Sasao et al. "On the number of LUTs 
@@ -47,7 +50,7 @@
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkBddMux21( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
 {
-    DdManager * dd = pNtkNew->pManFunc;
+    DdManager * dd = (DdManager *)pNtkNew->pManFunc;
     Abc_Obj_t * pNode;
     DdNode * bSpin, * bCof0, * bCof1;
     pNode = Abc_NtkCreateNode( pNtkNew );
@@ -57,7 +60,7 @@ Abc_Obj_t * Abc_NtkBddMux21( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
     bSpin = Cudd_bddIthVar(dd, 0);
     bCof0 = Cudd_bddIthVar(dd, 1); 
     bCof1 = Cudd_bddIthVar(dd, 2); 
-    pNode->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( pNode->pData ); 
+    pNode->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( (DdNode *)pNode->pData ); 
     return pNode;
 }
 
@@ -74,7 +77,7 @@ Abc_Obj_t * Abc_NtkBddMux21( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkBddMux411( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
 {
-    DdManager * dd = pNtkNew->pManFunc;
+    DdManager * dd = (DdManager *)pNtkNew->pManFunc;
     Abc_Obj_t * pNode;
     DdNode * bSpin, * bCof0, * bCof1;
     pNode = Abc_NtkCreateNode( pNtkNew );
@@ -88,7 +91,7 @@ Abc_Obj_t * Abc_NtkBddMux411( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
     bCof0 = Cudd_bddIte( dd, bSpin, Cudd_bddIthVar(dd, 3), Cudd_bddIthVar(dd, 2) ); Cudd_Ref( bCof0 );
     bCof1 = Cudd_bddIte( dd, bSpin, Cudd_bddIthVar(dd, 5), Cudd_bddIthVar(dd, 4) ); Cudd_Ref( bCof1 );
     bSpin = Cudd_bddIthVar(dd, 0);
-    pNode->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( pNode->pData ); 
+    pNode->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( (DdNode *)pNode->pData ); 
     Cudd_RecursiveDeref( dd, bCof0 );
     Cudd_RecursiveDeref( dd, bCof1 );
     return pNode;
@@ -107,7 +110,7 @@ Abc_Obj_t * Abc_NtkBddMux411( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkBddMux412( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
 {
-    DdManager * dd = pNtkNew->pManFunc;
+    DdManager * dd = (DdManager *)pNtkNew->pManFunc;
     Abc_Obj_t * pNodeBot, * pNodeTop;
     DdNode * bSpin, * bCof0, * bCof1;
     // bottom node
@@ -119,7 +122,7 @@ Abc_Obj_t * Abc_NtkBddMux412( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
     bSpin = Cudd_bddIthVar(dd, 0);
     bCof0 = Cudd_bddIte( dd, Cudd_bddIthVar(dd, 1), Cudd_bddIthVar(dd, 3), Cudd_bddIthVar(dd, 2) ); Cudd_Ref( bCof0 );
     bCof1 = Cudd_bddIthVar(dd, 1);
-    pNodeBot->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( pNodeBot->pData ); 
+    pNodeBot->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( (DdNode *)pNodeBot->pData ); 
     Cudd_RecursiveDeref( dd, bCof0 );
     // top node
     pNodeTop = Abc_NtkCreateNode( pNtkNew );
@@ -130,7 +133,7 @@ Abc_Obj_t * Abc_NtkBddMux412( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
     bSpin = Cudd_bddIthVar(dd, 0);
     bCof0 = Cudd_bddIthVar(dd, 1);
     bCof1 = Cudd_bddIte( dd, Cudd_bddIthVar(dd, 1), Cudd_bddIthVar(dd, 3), Cudd_bddIthVar(dd, 2) ); Cudd_Ref( bCof1 );
-    pNodeTop->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( pNodeTop->pData ); 
+    pNodeTop->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( (DdNode *)pNodeTop->pData ); 
     Cudd_RecursiveDeref( dd, bCof1 );
     return pNodeTop;
 }
@@ -148,7 +151,7 @@ Abc_Obj_t * Abc_NtkBddMux412( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkBddMux412a( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
 {
-    DdManager * dd = pNtkNew->pManFunc;
+    DdManager * dd = (DdManager *)pNtkNew->pManFunc;
     Abc_Obj_t * pNodeBot, * pNodeTop;
     DdNode * bSpin, * bCof0, * bCof1;
     // bottom node
@@ -159,7 +162,7 @@ Abc_Obj_t * Abc_NtkBddMux412a( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
     bSpin = Cudd_bddIthVar(dd, 0);
     bCof0 = Cudd_bddIthVar(dd, 1);
     bCof1 = Cudd_bddIthVar(dd, 2);
-    pNodeBot->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( pNodeBot->pData ); 
+    pNodeBot->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( (DdNode *)pNodeBot->pData ); 
     // top node
     pNodeTop = Abc_NtkCreateNode( pNtkNew );
     Abc_ObjAddFanin( pNodeTop, pFanins[0] );
@@ -170,7 +173,7 @@ Abc_Obj_t * Abc_NtkBddMux412a( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanins[] )
     bSpin = Cudd_bddIthVar(dd, 0);
     bCof0 = Cudd_bddIthVar(dd, 2);
     bCof1 = Cudd_bddIte( dd, Cudd_bddIthVar(dd, 1), Cudd_bddIthVar(dd, 4), Cudd_bddIthVar(dd, 3) ); Cudd_Ref( bCof1 );
-    pNodeTop->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( pNodeTop->pData ); 
+    pNodeTop->pData = Cudd_bddIte( dd, bSpin, bCof1, bCof0 );  Cudd_Ref( (DdNode *)pNodeTop->pData ); 
     Cudd_RecursiveDeref( dd, bCof1 );
     return pNodeTop;
 }
@@ -319,7 +322,7 @@ Extra_bddPrint( dd, bFuncNew );
 printf( "\n" );
 printf( "\n" );
 }
-    pNodeNew->pData = Extra_TransferLevelByLevel( dd, pNtkNew->pManFunc, bFuncNew );  Cudd_Ref( pNodeNew->pData );
+    pNodeNew->pData = Extra_TransferLevelByLevel( dd, (DdManager *)pNtkNew->pManFunc, bFuncNew );  Cudd_Ref( (DdNode *)pNodeNew->pData );
 //Extra_bddPrint( pNtkNew->pManFunc, pNodeNew->pData );
 //printf( "\n" );
 //printf( "\n" );
@@ -340,8 +343,8 @@ printf( "\n" );
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkBddCurtis( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t * vCofs, Vec_Ptr_t * vUniq )
 {
-    DdManager * ddOld = pNode->pNtk->pManFunc;
-    DdManager * ddNew = pNtkNew->pManFunc;
+    DdManager * ddOld = (DdManager *)pNode->pNtk->pManFunc;
+    DdManager * ddNew = (DdManager *)pNtkNew->pManFunc;
     DdNode * bCof, * bUniq, * bMint, * bTemp, * bFunc, * bBits[10], ** pbCodeVars;
     Abc_Obj_t * pNodeNew = NULL, * pNodeBS[10];
     int nLutSize = Extra_Base2Log( Vec_PtrSize(vCofs) );
@@ -353,9 +356,9 @@ Abc_Obj_t * Abc_NtkBddCurtis( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t 
     for ( b = 0; b < nBits; b++ )
         bBits[b] = Cudd_ReadLogicZero(ddNew), Cudd_Ref( bBits[b] );
     // add each bound set minterm to one of the blccks
-    Vec_PtrForEachEntry( vCofs, bCof, c )
+    Vec_PtrForEachEntry( DdNode *, vCofs, bCof, c )
     {
-        Vec_PtrForEachEntry( vUniq, bUniq, u )
+        Vec_PtrForEachEntry( DdNode *, vUniq, bUniq, u )
             if ( bUniq == bCof )
                 break;
         assert( u < Vec_PtrSize(vUniq) );
@@ -388,7 +391,7 @@ Abc_Obj_t * Abc_NtkBddCurtis( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t 
     // derive function of the composition node
     bFunc = Cudd_ReadLogicZero(ddNew); Cudd_Ref( bFunc );
     pbCodeVars = ddNew->vars + Abc_ObjFaninNum(pNode) - nLutSize;
-    Vec_PtrForEachEntry( vUniq, bUniq, u )
+    Vec_PtrForEachEntry( DdNode *, vUniq, bUniq, u )
     {
         bUniq = Extra_bddMove( ddOld, bUniq, -nLutSize );                   Cudd_Ref( bUniq );
         bUniq = Extra_TransferLevelByLevel( ddOld, ddNew, bTemp = bUniq );  Cudd_Ref( bUniq );
@@ -421,8 +424,8 @@ Abc_Obj_t * Abc_NtkBddCurtis( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t 
 Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLutSize )
 {
     Abc_Obj_t * pNodeBot, * pNodeTop;
-    DdManager * ddOld = pNode->pNtk->pManFunc;
-    DdManager * ddNew = pNtkNew->pManFunc;
+    DdManager * ddOld = (DdManager *)pNode->pNtk->pManFunc;
+    DdManager * ddNew = (DdManager *)pNtkNew->pManFunc;
     DdNode * bCof0, * bCof1, * bSupp, * bTemp, * bVar;
     DdNode * bCof0n, * bCof1n;
     int i, iCof, iFreeVar, fCof1Smaller = -1;
@@ -430,8 +433,8 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
     for ( iCof = 0; iCof < Abc_ObjFaninNum(pNode); iCof++ )
     {
         bVar  = Cudd_bddIthVar( ddOld, iCof );
-        bCof0 = Cudd_Cofactor( ddOld, pNode->pData, Cudd_Not(bVar) );  Cudd_Ref( bCof0 );
-        bCof1 = Cudd_Cofactor( ddOld, pNode->pData, bVar  );           Cudd_Ref( bCof1 );
+        bCof0 = Cudd_Cofactor( ddOld, (DdNode *)pNode->pData, Cudd_Not(bVar) );  Cudd_Ref( bCof0 );
+        bCof1 = Cudd_Cofactor( ddOld, (DdNode *)pNode->pData, bVar  );           Cudd_Ref( bCof1 );
         if ( Cudd_SupportSize( ddOld, bCof0 ) <= nLutSize - 2 )
         {
             fCof1Smaller = 0;
@@ -488,7 +491,7 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
         Cudd_bddIthVar(ddNew, iCof), 
         fCof1Smaller? bCof1n : Cudd_bddIthVar(ddNew, iFreeVar), 
         fCof1Smaller? Cudd_bddIthVar(ddNew, iFreeVar) : bCof0n );
-    Cudd_Ref( pNodeTop->pData );
+    Cudd_Ref( (DdNode *)pNodeTop->pData );
     Cudd_RecursiveDeref( ddNew, fCof1Smaller? bCof1n : bCof0n );
     return pNodeTop;
 }
@@ -507,7 +510,7 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
 Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLutSize, int fVerbose )
 {
     Vec_Ptr_t * vCofs, * vUniq;
-    DdManager * dd = pNode->pNtk->pManFunc;
+    DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
     DdNode * bCof;
     Abc_Obj_t * pNodeNew = NULL;
     Abc_Obj_t * pCofs[20];
@@ -528,21 +531,21 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
 
     }
     // cofactor w.r.t. the bound set variables
-    vCofs = Abc_NtkBddCofactors( dd, pNode->pData, nLutSize );
+    vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, nLutSize );
     vUniq = Vec_PtrDup( vCofs );
     Vec_PtrUniqify( vUniq, (int (*)())Vec_PtrSortCompare );
     // only perform decomposition with it is support reduring with two less vars
     if( Vec_PtrSize(vUniq) > (1 << (nLutSize-2)) )
     {
         Vec_PtrFree( vCofs );
-        vCofs = Abc_NtkBddCofactors( dd, pNode->pData, 2 );
+        vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, 2 );
         if ( fVerbose )
         printf( "Decomposing %d-input node %d using cofactoring with %d cofactors.\n",
             Abc_ObjFaninNum(pNode), Abc_ObjId(pNode), Vec_PtrSize(vCofs) );
         // implement the cofactors
         pCofs[0] = Abc_ObjFanin(pNode, 0)->pCopy;
         pCofs[1] = Abc_ObjFanin(pNode, 1)->pCopy;
-        Vec_PtrForEachEntry( vCofs, bCof, i )
+        Vec_PtrForEachEntry( DdNode *, vCofs, bCof, i )
             pCofs[2+i] = Abc_NtkCreateCofLut( pNtkNew, dd, bCof, pNode, 2 );
         if ( nLutSize == 4 )
             pNodeNew = Abc_NtkBddMux412( pNtkNew, pCofs );
@@ -582,7 +585,7 @@ void Abc_NtkLutminConstruct( Abc_Ntk_t * pNtkClp, Abc_Ntk_t * pNtkDec, int nLutS
     Abc_Obj_t * pNode, * pFanin;
     int i, k;
     vNodes = Abc_NtkDfs( pNtkClp, 0 );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_ObjFaninNum(pNode) <= nLutSize )
         {
@@ -617,7 +620,7 @@ Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose )
     // decompose one output at a time
     pNtkDec = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has enough inputs
-    Cudd_bddIthVar( pNtkDec->pManFunc, Abc_NtkGetFaninMax(pNtk) );
+    Cudd_bddIthVar( (DdManager *)pNtkDec->pManFunc, Abc_NtkGetFaninMax(pNtk) );
     // put the results into the new network (save new CO drivers in old CO drivers)
     Abc_NtkLutminConstruct( pNtk, pNtkDec, nLutSize, fVerbose );
     // finalize the new network
@@ -640,7 +643,7 @@ Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
 {
-    extern bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtkNew, * pTemp;
     int i;
     if ( nLutSize < 4 )
@@ -694,4 +697,6 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

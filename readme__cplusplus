@@ -1,0 +1,6 @@
+
+To compile as C code: make sure CC=gcc, and, optionally, that ABC_NAMESPACE is not defined.
+To compile as C++ code without namespaces: make sure CC=g++, and that ABC_NAMESPACE is not defined.
+To compile as C++ code with namespaces: make sure CC=g++, and that ABC_NAMESPACE is defined to name of the requested namespace. For example, add to OPTFLAGS -DABC_NAMESPACE=xxx
+
+

@@ -20,6 +20,9 @@
 
 #include "retInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,7 +44,7 @@ static int Abc_NtkRetimeOneWay( Abc_Ntk_t * pNtk, int fForward, int fVerbose );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fOneStep, int fVerbose )
+int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int nDelayLim, int fForward, int fMinDelay, int fOneStep, int fVerbose )
 {
     Abc_Ntk_t * pNtkCopy = NULL;
     Vec_Ptr_t * vBoxes;
@@ -69,7 +72,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int
     vBoxes = pNtk->vBoxes;  pNtk->vBoxes = NULL;
     // perform the retiming
     if ( fMinDelay )
-        Abc_NtkRetimeMinDelay( pNtk, pNtkCopy, nIterLimit, fForward, fVerbose );
+        Abc_NtkRetimeMinDelay( pNtk, pNtkCopy, nDelayLim, nIterLimit, fForward, fVerbose );
     else
         Abc_NtkRetimeOneWay( pNtk, fForward, fVerbose );
     if ( fMinDelay ) 
@@ -113,7 +116,7 @@ st_table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk )
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         // map latch into its true number
-        st_insert( tLatches, (void *)(ABC_PTRUINT_T)pLatch, (void *)(ABC_PTRUINT_T)(i-nOffSet) );
+        st_insert( tLatches, (char *)(ABC_PTRUINT_T)pLatch, (char *)(ABC_PTRUINT_T)(i-nOffSet) );
         // disconnect LI     
         pLatchIn = Abc_ObjFanin0(pLatch);
         pFanin = Abc_ObjFanin0(pLatchIn);
@@ -150,11 +153,11 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
     vCosOld   = pNtk->vCos;    pNtk->vCos   = NULL;  vCosNew   = Vec_PtrAlloc( 100 );  
     vBoxesOld = pNtk->vBoxes;  pNtk->vBoxes = NULL;  vBoxesNew = Vec_PtrAlloc( 100 );
     // copy boxes and their CIs/COs
-    Vec_PtrForEachEntryStop( vCisOld, pObj, i, Vec_PtrSize(vCisOld) - st_count(tLatches) )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vCisOld, pObj, i, Vec_PtrSize(vCisOld) - st_count(tLatches) )
         Vec_PtrPush( vCisNew, pObj );
-    Vec_PtrForEachEntryStop( vCosOld, pObj, i, Vec_PtrSize(vCosOld) - st_count(tLatches) )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vCosOld, pObj, i, Vec_PtrSize(vCosOld) - st_count(tLatches) )
         Vec_PtrPush( vCosNew, pObj );
-    Vec_PtrForEachEntryStop( vBoxesOld, pObj, i, Vec_PtrSize(vBoxesOld) - st_count(tLatches) )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vBoxesOld, pObj, i, Vec_PtrSize(vBoxesOld) - st_count(tLatches) )
         Vec_PtrPush( vBoxesNew, pObj );
     // go through the latches
     Abc_NtkForEachObj( pNtk, pLatch, i )
@@ -180,8 +183,8 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
             }
             assert( pLatch == Vec_PtrEntry(vBoxesOld, Vec_PtrSize(vBoxesOld) - st_count(tLatches) + Index) );
             // reconnect with the old LIs/LOs
-            pLatchIn  = Vec_PtrEntry( vCosOld, Vec_PtrSize(vCosOld) - st_count(tLatches) + Index );
-            pLatchOut = Vec_PtrEntry( vCisOld, Vec_PtrSize(vCisOld) - st_count(tLatches) + Index );
+            pLatchIn  = (Abc_Obj_t *)Vec_PtrEntry( vCosOld, Vec_PtrSize(vCosOld) - st_count(tLatches) + Index );
+            pLatchOut = (Abc_Obj_t *)Vec_PtrEntry( vCisOld, Vec_PtrSize(vCisOld) - st_count(tLatches) + Index );
         }
         // connect
         Abc_ObjAddFanin( pLatchIn, Abc_ObjFanin0(pLatch) );
@@ -195,10 +198,10 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
         Vec_PtrPush( vBoxesNew, pLatch );
     }
     // free useless Cis/Cos
-    Vec_PtrForEachEntry( vCisOld, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCisOld, pObj, i )
         if ( !Abc_ObjIsPi(pObj) && Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
             Abc_NtkDeleteObj(pObj);
-    Vec_PtrForEachEntry( vCosOld, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCosOld, pObj, i )
         if ( !Abc_ObjIsPo(pObj) && Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
             Abc_NtkDeleteObj(pObj);
     // set the new arrays
@@ -316,15 +319,15 @@ void Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial )
     Abc_Obj_t * pNext, * pLatch;
     int i;
     vNodes = Vec_PtrAlloc( 10 );
-    if ( fForward )
+    if ( fForward ) 
     {
         // compute the initial value
         if ( fInitial )
-            pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
+            pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_ObjSopSimulate( pObj );
         // collect fanins
         Abc_NodeCollectFanins( pObj, vNodes );
         // make the node point to the fanins fanins
-        Vec_PtrForEachEntry( vNodes, pNext, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNext, i )
         {
             assert( Abc_ObjIsLatch(pNext) );
             Abc_ObjPatchFanin( pObj, pNext, Abc_ObjFanin0(pNext) );
@@ -356,7 +359,7 @@ void Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial )
         // collect fanouts
         Abc_NodeCollectFanouts( pObj, vNodes );
         // make the fanouts fanouts point to the node
-        Vec_PtrForEachEntry( vNodes, pNext, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNext, i )
         {
             assert( Abc_ObjIsLatch(pNext) );
             Abc_ObjTransferFanout( pNext, pObj );
@@ -439,7 +442,7 @@ void Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial )
         assert( pLatchTop && Abc_ObjIsLatch(pLatchTop) );
         // redirect compatible fanout latches to the first latch
         Abc_NodeCollectFanouts( pFanin, vNodes );
-        Vec_PtrForEachEntry( vNodes, pLatchCur, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pLatchCur, k )
         {
             if ( !Abc_ObjIsLatch(pLatchCur) )
                 continue;
@@ -462,4 +465,6 @@ void Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

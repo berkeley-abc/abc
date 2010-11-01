@@ -20,13 +20,16 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 static DdNode *    Abc_NtkTransitionRelation( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbose );
 static DdNode *    Abc_NtkInitStateAndVarMap( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbose );
-static DdNode *    Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bRelation, DdNode * bInitial, bool fVerbose );
+static DdNode *    Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bRelation, DdNode * bInitial, int fVerbose );
 static Abc_Ntk_t * Abc_NtkConstructExdc     ( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUnreach );
 
 ////////////////////////////////////////////////////////////////////////
@@ -44,7 +47,7 @@ static Abc_Ntk_t * Abc_NtkConstructExdc     ( DdManager * dd, Abc_Ntk_t * pNtk, 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
+int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, int fVerbose )
 {
     int fReorder = 1;
     DdManager * dd;
@@ -217,7 +220,7 @@ DdNode * Abc_NtkInitStateAndVarMap( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bTrans, DdNode * bInitial, bool fVerbose )
+DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bTrans, DdNode * bInitial, int fVerbose )
 {
     DdNode * bRelation, * bReached, * bCubeCs;
     DdNode * bCurrent, * bNext, * bTemp;
@@ -308,7 +311,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     Abc_NtkForEachLatch( pNtk, pNode, i )
         pPermute[Abc_NtkPiNum(pNtk) + i] = i;
     // remap the functions
-    pNodeNew->pData = Extra_TransferPermute( dd, pNtkNew->pManFunc, bUnreach, pPermute );   Cudd_Ref( pNodeNew->pData );
+    pNodeNew->pData = Extra_TransferPermute( dd, (DdManager *)pNtkNew->pManFunc, bUnreach, pPermute );   Cudd_Ref( (DdNode *)pNodeNew->pData );
     ABC_FREE( pPermute );
     Abc_NodeMinimumBase( pNodeNew );
 
@@ -327,7 +330,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
 
     // remove the extra nodes
-    Abc_AigCleanup( pNtkNew->pManFunc );
+    Abc_AigCleanup( (Abc_Aig_t *)pNtkNew->pManFunc );
 
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
@@ -346,4 +349,6 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

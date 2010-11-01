@@ -20,6 +20,9 @@
 
 #include "intInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, f;
     assert( Saig_ManRegNum(pAig) > 0 );
-    assert( Saig_ManPoNum(pAig) == 1 );
+    assert( Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) == 1 );
     pFrames = Aig_ManStart( Aig_ManNodeNum(pAig) * nFrames );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pFrames );
@@ -71,6 +74,13 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+        // add outputs for constraints
+        Saig_ManForEachPo( pAig, pObj, i )
+        {
+            if ( i < Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) )
+                continue;
+            Aig_ObjCreatePo( pFrames, Aig_Not( Aig_ObjChild0Copy(pObj) ) );
+        }
         if ( f == nFrames - 1 )
             break;
         // save register inputs
@@ -100,4 +110,6 @@ Aig_Man_t * Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

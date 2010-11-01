@@ -22,6 +22,9 @@
 #include "vec.h"
 #include "fretime.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -475,7 +478,7 @@ Abc_FlowRetime_MarkBlocks( Abc_Ntk_t * pNtk ) {
 
 ***********************************************************************/
 int
-Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, bool fVerbose ) {
+Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, int fVerbose ) {
   int i, j, flow = 0, last, srcDist = 0;
   Abc_Obj_t   *pObj, *pObj2;
 //  int clk = clock();
@@ -1049,7 +1052,7 @@ Abc_ObjBetterTransferFanout( Abc_Obj_t * pFrom, Abc_Obj_t * pTo, int compl ) {
   SeeAlso     []
 
 ***********************************************************************/
-bool
+int
 Abc_FlowRetime_IsAcrossCut( Abc_Obj_t *pObj, Abc_Obj_t *pNext ) {
 
   if (FTEST(pObj, VISITED_R) && !FTEST(pObj, VISITED_E)) {
@@ -1083,7 +1086,7 @@ Abc_FlowRetime_IsAcrossCut( Abc_Obj_t *pObj, Abc_Obj_t *pNext ) {
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_FlowRetime_ClearFlows( bool fClearAll ) {
+void Abc_FlowRetime_ClearFlows( int fClearAll ) {
   int i;
 
   if (fClearAll)
@@ -1180,7 +1183,7 @@ static Abc_Ntk_t* Abc_FlowRetime_NtkDup( Abc_Ntk_t * pNtk ) {
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_FlowRetime_NtkSilentRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
+Abc_Ntk_t * Abc_FlowRetime_NtkSilentRestrash( Abc_Ntk_t * pNtk, int fCleanup )
 {
     Abc_Ntk_t * pNtkAig;
     Abc_Obj_t * pObj;
@@ -1190,12 +1193,12 @@ Abc_Ntk_t * Abc_FlowRetime_NtkSilentRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )
-        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // finalize the network
     Abc_NtkFinalize( pNtk, pNtkAig );
     // perform cleanup if requested
     if ( fCleanup )
-      nNodes = Abc_AigCleanup(pNtkAig->pManFunc);
+      nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc);
     // duplicate EXDC 
     if ( pNtk->pExdc )
       pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
@@ -1378,3 +1381,5 @@ void Abc_ObjPrintNeighborhood( Abc_Obj_t *pObj, int depth ) {
 
   Vec_PtrFree(vNodes);
 }
+ABC_NAMESPACE_IMPL_END
+

@@ -20,13 +20,16 @@
 
 #include "dchInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 static inline unsigned * Dch_ObjSim( Vec_Ptr_t * vSims, Aig_Obj_t * pObj )
 { 
-    return Vec_PtrEntry( vSims, pObj->Id ); 
+    return (unsigned *)Vec_PtrEntry( vSims, pObj->Id ); 
 }
 static inline unsigned Dch_ObjRandomSim()    
 { 
@@ -82,7 +85,7 @@ int Dch_NodesAreEqualCex( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 ***********************************************************************/
 unsigned Dch_NodeHash( void * p, Aig_Obj_t * pObj )
 {
-    Vec_Ptr_t * vSims = p;
+    Vec_Ptr_t * vSims = (Vec_Ptr_t *)p;
     static int s_FPrimes[128] = { 
         1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
         1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
@@ -130,7 +133,7 @@ unsigned Dch_NodeHash( void * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 int Dch_NodeIsConst( void * p, Aig_Obj_t * pObj )
 {
-    Vec_Ptr_t * vSims = p;
+    Vec_Ptr_t * vSims = (Vec_Ptr_t *)p;
     unsigned * pSim;
     int k, nWords;
     nWords = (unsigned *)Vec_PtrEntry(vSims, 1) - (unsigned *)Vec_PtrEntry(vSims, 0);
@@ -163,7 +166,7 @@ int Dch_NodeIsConst( void * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 int Dch_NodesAreEqual( void * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
-    Vec_Ptr_t * vSims = p;
+    Vec_Ptr_t * vSims = (Vec_Ptr_t *)p;
     unsigned * pSim0, * pSim1;
     int k, nWords;
     nWords = (unsigned *)Vec_PtrEntry(vSims, 1) - (unsigned *)Vec_PtrEntry(vSims, 0);
@@ -289,4 +292,6 @@ Dch_Cla_t * Dch_CreateCandEquivClasses( Aig_Man_t * pAig, int nWords, int fVerbo
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

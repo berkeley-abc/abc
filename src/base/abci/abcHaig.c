@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -169,7 +172,7 @@ Vec_Ptr_t * Abc_NtkHaigCollectMembers( Hop_Man_t * p )
     Hop_Obj_t * pObj;
     int i;
     vObjs = Vec_PtrAlloc( 4098 );
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         if ( pObj->pData == NULL )
             continue;
@@ -198,9 +201,9 @@ Vec_Ptr_t * Abc_NtkHaigCreateClasses( Vec_Ptr_t * vMembers )
 
     // count classes
     vClasses = Vec_PtrAlloc( 4098 );
-    Vec_PtrForEachEntry( vMembers, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vMembers, pObj, i )
     {
-        pRepr = pObj->pData;
+        pRepr = (Hop_Obj_t *)pObj->pData;
         assert( pRepr->pData == NULL );
         if ( pRepr->fMarkA == 0 ) // new
         {
@@ -210,44 +213,44 @@ Vec_Ptr_t * Abc_NtkHaigCreateClasses( Vec_Ptr_t * vMembers )
     }
 
     // set representatives as representatives
-    Vec_PtrForEachEntry( vClasses, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vClasses, pObj, i )
     {
         pObj->fMarkA = 0;
         pObj->pData = pObj;
     }
 
     // go through the members and update
-    Vec_PtrForEachEntry( vMembers, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vMembers, pObj, i )
     {
-        pRepr = pObj->pData;
+        pRepr = (Hop_Obj_t *)pObj->pData;
         if ( ((Hop_Obj_t *)pRepr->pData)->Id > pObj->Id )
             pRepr->pData = pObj;
     }
 
     // change representatives of the class
-    Vec_PtrForEachEntry( vMembers, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vMembers, pObj, i )
     {
-        pRepr = pObj->pData;
+        pRepr = (Hop_Obj_t *)pObj->pData;
         pObj->pData = pRepr->pData;
         assert( ((Hop_Obj_t *)pObj->pData)->Id <= pObj->Id );
     }
 
     // update classes
-    Vec_PtrForEachEntry( vClasses, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vClasses, pObj, i )
     {
-        pRepr = pObj->pData;
+        pRepr = (Hop_Obj_t *)pObj->pData;
         assert( pRepr->pData == pRepr );
 //        pRepr->pData = NULL;
         Vec_PtrWriteEntry( vClasses, i, pRepr );
         Vec_PtrPush( vMembers, pObj );
     }
 
-    Vec_PtrForEachEntry( vMembers, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vMembers, pObj, i )
         if ( pObj->pData == pObj )
             pObj->pData = NULL;
 
 /*
-    Vec_PtrForEachEntry( vMembers, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, vMembers, pObj, i )
     {
         printf( "ObjId = %4d : ", pObj->Id );
         if ( pObj->pData == NULL )
@@ -280,7 +283,7 @@ int Abc_NtkHaigCountFans( Hop_Man_t * p )
 {
     Hop_Obj_t * pObj;
     int i, Counter = 0;
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         if ( pObj->pData == NULL )
             continue;
@@ -309,7 +312,7 @@ static inline Hop_Obj_t * Hop_ObjReprHop( Hop_Obj_t * pObj )
     assert( pObj->pNext != NULL );
     if ( pObj->pData == NULL )
         return pObj->pNext;
-    pRepr = pObj->pData;
+    pRepr = (Hop_Obj_t *)pObj->pData;
     assert( pRepr->pData == pRepr );
     return Hop_NotCond( pRepr->pNext, pObj->fPhase ^ pRepr->fPhase );
 }
@@ -344,7 +347,7 @@ Hop_Man_t * Abc_NtkHaigReconstruct( Hop_Man_t * p )
     Hop_Man_t * pNew;
     Hop_Obj_t * pObj;
     int i, Counter = 0;
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
         pObj->pNext = NULL;
     // start the HOP package
     pNew = Hop_ManStart();
@@ -356,7 +359,7 @@ Hop_Man_t * Abc_NtkHaigReconstruct( Hop_Man_t * p )
     Hop_ManForEachPi( p, pObj, i )
         pObj->pNext = Hop_ObjCreatePi(pNew);
     // map the internal nodes
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         if ( !Hop_ObjIsNode(pObj) )
             continue;
@@ -414,7 +417,7 @@ int Abc_NtkHaigCheckTfi_rec( Abc_Obj_t * pNode, Abc_Obj_t * pOld )
     if ( Abc_NtkHaigCheckTfi_rec( Abc_ObjFanin1(pNode), pOld ) )
         return 1;
     // check equivalent nodes
-    return Abc_NtkHaigCheckTfi_rec( pNode->pData, pOld );
+    return Abc_NtkHaigCheckTfi_rec( (Abc_Obj_t *)pNode->pData, pOld );
 }
 
 /**Function*************************************************************
@@ -478,11 +481,11 @@ Abc_Ntk_t * Abc_NtkHaigRecreateAig( Abc_Ntk_t * pNtk, Hop_Man_t * p )
         pObj->pNext = (Hop_Obj_t *)Abc_NtkCi( pNtkAig, i );
 
     // construct new nodes
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         if ( !Hop_ObjIsNode(pObj) )
             continue;
-        pObj->pNext = (Hop_Obj_t *)Abc_AigAnd( pNtkAig->pManFunc, Hop_ObjChild0Next(pObj), Hop_ObjChild1Next(pObj) );
+        pObj->pNext = (Hop_Obj_t *)Abc_AigAnd( (Abc_Aig_t *)pNtkAig->pManFunc, Hop_ObjChild0Next(pObj), Hop_ObjChild1Next(pObj) );
         assert( !Hop_IsComplement(pObj->pNext) );
     }
 
@@ -491,7 +494,7 @@ Abc_Ntk_t * Abc_NtkHaigRecreateAig( Abc_Ntk_t * pNtk, Hop_Man_t * p )
         Abc_ObjAddFanin( pObjOld->pCopy, Hop_ObjChild0Next(Hop_ManPo(p,i)) );
 
     // construct choice nodes
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         // skip the node without choices
         if ( pObj->pData == NULL )
@@ -500,7 +503,7 @@ Abc_Ntk_t * Abc_NtkHaigRecreateAig( Abc_Ntk_t * pNtk, Hop_Man_t * p )
         if ( pObj->pData == pObj )
             continue;
         // do not create choices for constant 1 and PIs
-        if ( !Hop_ObjIsNode(pObj->pData) )
+        if ( !Hop_ObjIsNode((Hop_Obj_t *)pObj->pData) )
             continue;
         // get the corresponding new nodes
         pObjAbcThis = (Abc_Obj_t *)pObj->pNext;
@@ -516,7 +519,7 @@ Abc_Ntk_t * Abc_NtkHaigRecreateAig( Abc_Ntk_t * pNtk, Hop_Man_t * p )
         {
             // find the last node in the class
             while ( pObjAbcRepr->pData )
-                pObjAbcRepr = pObjAbcRepr->pData;
+                pObjAbcRepr = (Abc_Obj_t *)pObjAbcRepr->pData;
             // add the new node at the end of the list
             pObjAbcRepr->pData = pObjAbcThis;
         }
@@ -579,10 +582,10 @@ int Abc_NtkHaigResetReprs( Hop_Man_t * p )
     Hop_Obj_t * pObj, * pRepr;
     int i, nClasses, nMembers, nFanouts, nNormals;
     // clear self-classes
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         // fix the strange situation of double-loop
-        pRepr = pObj->pData;
+        pRepr = (Hop_Obj_t *)pObj->pData;
         if ( pRepr && pRepr->pData == pObj )
             pRepr->pData = pRepr;
         // remove self-loops
@@ -590,7 +593,7 @@ int Abc_NtkHaigResetReprs( Hop_Man_t * p )
             pObj->pData = NULL;
     }
     // set representatives
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         if ( pObj->pData == NULL )
             continue;
@@ -601,7 +604,7 @@ int Abc_NtkHaigResetReprs( Hop_Man_t * p )
         pObj->pData = pRepr;
     }
     // make each class point to the smallest topological order
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         if ( pObj->pData == NULL )
             continue;
@@ -616,7 +619,7 @@ int Abc_NtkHaigResetReprs( Hop_Man_t * p )
     }
     // count classes, members, and fanouts - and verify
     nMembers = nClasses = nFanouts = nNormals = 0;
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( Hop_Obj_t *, p->vObjs, pObj, i )
     {
         if ( pObj->pData == NULL )
             continue;
@@ -730,4 +733,6 @@ Abc_Ntk_t * Abc_NtkHopRemoveLoops( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

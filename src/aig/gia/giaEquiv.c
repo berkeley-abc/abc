@@ -19,6 +19,9 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "cec.h"
+
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -221,6 +224,8 @@ int Gia_ManEquivCountLitsAll( Gia_Man_t * p )
 int Gia_ManEquivCountClasses( Gia_Man_t * p )
 {
     int i, Counter = 0;
+    if ( p->pReprs == NULL )
+        return 0;
     for ( i = 1; i < Gia_ManObjNum(p); i++ )
         Counter += Gia_ObjIsHead(p, i);
     return Counter;
@@ -448,14 +453,14 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fV
     {
         printf( "Gia_ManEquivReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
-    }
+    } 
     // check if there are any equivalences defined
     Gia_ManForEachObj( p, pObj, i )
         if ( Gia_ObjReprObj(p, i) != NULL )
             break;
     if ( i == Gia_ManObjNum(p) )
     {
-        printf( "Gia_ManEquivReduce(): There are no equivalences to reduce.\n" );
+//        printf( "Gia_ManEquivReduce(): There are no equivalences to reduce.\n" );
         return NULL;
     }
 /*
@@ -815,7 +820,7 @@ void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, V
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
+Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -858,6 +863,11 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fVerbose )
         Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut );
+    if ( !fSynthesis )
+    {
+        Gia_ManForEachPo( p, pObj, i )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
     Vec_IntForEachEntry( vXorLits, iLitNew, i )
         Gia_ManAppendCo( pNew, iLitNew );
     if ( Vec_IntSize(vXorLits) == 0 )
@@ -935,7 +945,7 @@ void Gia_ManSpecReduceInit_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames, int fDualOut )
+Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Abc_Cex_t * pInit, int nFrames, int fDualOut )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
@@ -1024,7 +1034,7 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Gia_Cex_t * pInit, int nFrames
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSpecReduceInitFrames( Gia_Man_t * p, Gia_Cex_t * pInit, int nFramesMax, int * pnFrames, int fDualOut, int nMinOutputs )
+Gia_Man_t * Gia_ManSpecReduceInitFrames( Gia_Man_t * p, Abc_Cex_t * pInit, int nFramesMax, int * pnFrames, int fDualOut, int nMinOutputs )
 {
     Gia_Man_t * pFrames;
     int f, nLits;
@@ -1225,7 +1235,7 @@ int Gia_ObjCheckTfi( Gia_Man_t * p, Gia_Obj_t * pOld, Gia_Obj_t * pNode )
     assert( !Gia_IsComplement(pNode) );
     vVisited = Vec_PtrAlloc( 100 );
     RetValue = Gia_ObjCheckTfi_rec( p, pOld, pNode, vVisited );
-    Vec_PtrForEachEntry( vVisited, pObj, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, vVisited, pObj, i )
         pObj->fMark0 = 0;
     Vec_PtrFree( vVisited );
     return RetValue;
@@ -1293,7 +1303,9 @@ void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
         pObjNew  = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );
         if ( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) )
         {
-            assert( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) == pReprNew );
+//            assert( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) == pReprNew );
+            if ( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) != pReprNew )
+                return;
             pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
             return;
         }
@@ -1373,9 +1385,11 @@ void Gia_ManRemoveBadChoices( Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
 {
+    Vec_Int_t * vNodes;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pRepr;
     int i;
+//Gia_ManEquivPrintClasses( p, 0, 0 );
     assert( (Gia_ManCoNum(p) % nSnapshots) == 0 );
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -1397,23 +1411,76 @@ Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    vNodes = Gia_ManGetDangling( p );
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        Gia_ManEquivToChoices_rec( pNew, p, pObj );
+    Vec_IntFree( vNodes );
     Gia_ManForEachCo( p, pObj, i )
         if ( i % nSnapshots == 0 )
             Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Gia_ManRemoveBadChoices( pNew );
-//    Gia_ManEquivPrintClasses( pNew, 0, 0 );
+//Gia_ManEquivPrintClasses( pNew, 0, 0 );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-//    Gia_ManEquivPrintClasses( pNew, 0, 0 );
+//Gia_ManEquivPrintClasses( pNew, 0, 0 );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of choice nodes]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCountChoiceNodes( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, Counter = 0;
+    if ( p->pReprs == NULL || p->pNexts == NULL )
+        return 0;
+    Gia_ManForEachObj( p, pObj, i )
+        Counter += Gia_ObjIsHead( p, i );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of choices]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCountChoices( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, Counter = 0;
+    if ( p->pReprs == NULL || p->pNexts == NULL )
+        return 0;
+    Gia_ManForEachObj( p, pObj, i )
+        Counter += (int)(Gia_ObjNext( p, i ) > 0);
+    return Counter;
+}
+
+ABC_NAMESPACE_IMPL_END
 
 #include "aig.h"
 #include "saig.h"
 #include "cec.h"
 #include "giaAig.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /**Function*************************************************************
 
@@ -1428,7 +1495,7 @@ Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
 ***********************************************************************/
 int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int fStart, int fCheckMiter, int fVerbose )
 {
-    extern int Cec_ManCheckNonTrivialCands( Gia_Man_t * pAig );
+//    extern int Cec_ManCheckNonTrivialCands( Gia_Man_t * pAig );
     Aig_Man_t * pTemp;
     Gia_Man_t * pSrm, * pReduce, * pAux;
     int nIter, nStart = 0;
@@ -1460,10 +1527,10 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             printf( "Gia_CommandSpecI: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
             break;
         }
-        pSrm = Gia_ManSpecReduce( pGia, 0, 0 ); 
+        pSrm = Gia_ManSpecReduce( pGia, 0, 0, 0 ); 
         // bmc2 -F 100 -C 25000
         {
-            Gia_Cex_t * pCex;
+            Abc_Cex_t * pCex;
             int nFrames     = nFramesInit; // different from default
             int nNodeDelta  = 2000;
             int nBTLimit    = nBTLimitInit; // different from default
@@ -1471,7 +1538,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             pTemp = Gia_ManToAig( pSrm, 0 );
 //            Aig_ManPrintStats( pTemp );
             Gia_ManStop( pSrm );
-            Saig_BmcPerform( pTemp, nStart, nFrames, nNodeDelta, 20, nBTLimit, nBTLimitAll, fVerbose, 0 );
+            Saig_BmcPerform( pTemp, nStart, nFrames, nNodeDelta, 0, nBTLimit, nBTLimitAll, fVerbose, 0, NULL );
             pCex = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
             Aig_ManStop( pTemp );
             if ( pCex == NULL )
@@ -1497,7 +1564,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
         // write equivalence classes
         Gia_WriteAiger( pGia, "gore.aig", 0, 0 );
         // reduce the model
-        pReduce = Gia_ManSpecReduce( pGia, 0, 0 );
+        pReduce = Gia_ManSpecReduce( pGia, 0, 0, 0 );
         if ( pReduce )
         {
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );
@@ -1515,4 +1582,6 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

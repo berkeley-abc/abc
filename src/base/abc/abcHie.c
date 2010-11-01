@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -143,7 +146,7 @@ void Abc_NtkFlattenLogicHierarchy2_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, i
     {
         if ( Abc_ObjIsLatch(pObj) )
             continue;
-        pNtkModel = pObj->pData;
+        pNtkModel = (Abc_Ntk_t *)pObj->pData;
         // check the match between the number of actual and formal parameters
         assert( Abc_ObjFaninNum(pObj) == Abc_NtkPiNum(pNtkModel) );
         assert( Abc_ObjFanoutNum(pObj) == Abc_NtkPoNum(pNtkModel) );
@@ -293,7 +296,7 @@ void Abc_NtkFlattenLogicHierarchy_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, in
     {
         char Buffer[20];
         sprintf( Buffer, "(%d)", *pCounter );
-        Vec_StrAppend( vPref, Buffer );
+        Vec_StrPrintStr( vPref, Buffer );
     }
     Vec_StrPush( vPref, '|' );
     Vec_StrPush( vPref, 0 );
@@ -369,7 +372,7 @@ void Abc_NtkFlattenLogicHierarchy_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, in
     {
         if ( Abc_ObjIsLatch(pObj) )
             continue;
-        pNtkModel = pObj->pData;
+        pNtkModel = (Abc_Ntk_t *)pObj->pData;
         // check the match between the number of actual and formal parameters
         assert( Abc_ObjFaninNum(pObj) == Abc_NtkPiNum(pNtkModel) );
         assert( Abc_ObjFanoutNum(pObj) == Abc_NtkPoNum(pNtkModel) );
@@ -382,7 +385,7 @@ void Abc_NtkFlattenLogicHierarchy_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, in
             Abc_ObjFanin0( Abc_NtkPo(pNtkModel, k) )->pCopy = Abc_ObjFanout0(pTerm)->pCopy;
         // create name
         Vec_StrShrink( vPref, Length );
-        Vec_StrAppend( vPref, Abc_NtkName(pNtkModel) );
+        Vec_StrPrintStr( vPref, Abc_NtkName(pNtkModel) );
         // call recursively
         Abc_NtkFlattenLogicHierarchy_rec( pNtkNew, pNtkModel, pCounter, vPref );
     }
@@ -444,7 +447,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
 
     // recursively flatten hierarchy, create internal logic, add new PI/PO names if there are black boxes
     vPref = Vec_StrAlloc( 1000 );
-    Vec_StrAppend( vPref, Abc_NtkName(pNtk) );
+    Vec_StrPrintStr( vPref, Abc_NtkName(pNtk) );
     Abc_NtkFlattenLogicHierarchy_rec( pNtkNew, pNtk, &Counter, vPref );
     printf( "Hierarchy reader flattened %d instances of logic boxes and left %d black boxes.\n", 
         Counter, Abc_NtkBlackboxNum(pNtkNew) );
@@ -733,4 +736,6 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

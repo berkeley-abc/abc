@@ -36,6 +36,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -528,4 +531,6 @@ cuddBddClipAndAbsRecur(
     return (r);
 
 } /* end of cuddBddClipAndAbsRecur */
+
+ABC_NAMESPACE_IMPL_END
 

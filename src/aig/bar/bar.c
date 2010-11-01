@@ -21,8 +21,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "abc_global.h"
+#include "main.h"
 #include "bar.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -61,9 +66,7 @@ static void Bar_ProgressClean( Bar_Progress_t * p );
 Bar_Progress_t * Bar_ProgressStart( FILE * pFile, int nItemsTotal )
 {
     Bar_Progress_t * p;
-    void * pFrame;
-    extern int Abc_FrameShowProgress( void * p );
-    extern void * Abc_FrameReadGlobalFrame();
+    Abc_Frame_t * pFrame;
     pFrame = Abc_FrameReadGlobalFrame();
     if ( pFrame == NULL )
         return NULL;
@@ -179,4 +182,6 @@ void Bar_ProgressClean( Bar_Progress_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

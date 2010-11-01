@@ -22,6 +22,8 @@
 #include "extra.h"
 #include "ivy.h"
 
+ABC_NAMESPACE_IMPL_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -249,7 +251,7 @@ void Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams )
 ***********************************************************************/
 int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
 {
-    Prove_Params_t * pParams = pPars;
+    Prove_Params_t * pParams = (Prove_Params_t *)pPars;
     Ivy_FraigParams_t Params, * pIvyParams = &Params; 
     Ivy_Man_t * pManAig, * pManTemp;
     int RetValue, nIter, clk;//, Counter;
@@ -1536,7 +1538,7 @@ void Ivy_FraigSavePattern( Ivy_FraigMan_t * p )
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
     Ivy_ManForEachPi( p->pManFraig, pObj, i )
-//    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
+//    Vec_PtrForEachEntry( Ivy_Obj_t *, p->vPiVars, pObj, i )
         if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
             Ivy_InfoSetBit( p->pPatWords, i );
 //            Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
@@ -1559,7 +1561,7 @@ void Ivy_FraigSavePattern2( Ivy_FraigMan_t * p )
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
 //    Ivy_ManForEachPi( p->pManFraig, pObj, i )
-    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, p->vPiVars, pObj, i )
         if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
 //            Ivy_InfoSetBit( p->pPatWords, i );
             Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
@@ -1582,7 +1584,7 @@ void Ivy_FraigSavePattern3( Ivy_FraigMan_t * p )
     int i;
     for ( i = 0; i < p->nPatWords; i++ )
         p->pPatWords[i] = Ivy_ObjRandomSim();
-    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, p->vPiVars, pObj, i )
         if ( Ivy_InfoHasBit( p->pPatWords, pObj->Id - 1 ) ^ (p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True) )
             Ivy_InfoXorBit( p->pPatWords, pObj->Id - 1 );
 }
@@ -1820,12 +1822,14 @@ int Ivy_FraigMiterStatus( Ivy_Man_t * pMan )
             CountConst0++;
             continue;
         }
+/*
         // check if the output is a primary input
         if ( Ivy_ObjIsPi(Ivy_Regular(pObjNew)) )
         {
             CountNonConst0++;
             continue;
         }
+*/
         // check if the output can be constant 0
         if ( Ivy_Regular(pObjNew)->fPhase != (unsigned)Ivy_IsComplement(pObjNew) )
         {
@@ -2398,7 +2402,7 @@ void Ivy_FraigAddClausesSuper( Ivy_FraigMan_t * p, Ivy_Obj_t * pNode, Vec_Ptr_t 
     pLits = ABC_ALLOC( int, nLits );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vSuper, pFanin, i )
     {
         pLits[0] = toLitCond(Ivy_ObjSatNum(Ivy_Regular(pFanin)), Ivy_IsComplement(pFanin));
         pLits[1] = toLitCond(Ivy_ObjSatNum(pNode), 1);
@@ -2406,7 +2410,7 @@ void Ivy_FraigAddClausesSuper( Ivy_FraigMan_t * p, Ivy_Obj_t * pNode, Vec_Ptr_t 
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vSuper, pFanin, i )
         pLits[i] = toLitCond(Ivy_ObjSatNum(Ivy_Regular(pFanin)), !Ivy_IsComplement(pFanin));
     pLits[nLits-1] = toLitCond(Ivy_ObjSatNum(pNode), 0);
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + nLits );
@@ -2511,7 +2515,7 @@ void Ivy_FraigNodeAddToSolver( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t *
     if ( pOld ) Ivy_FraigObjAddToFrontier( p, pOld, vFrontier );
     if ( pNew ) Ivy_FraigObjAddToFrontier( p, pNew, vFrontier );
     // explore nodes in the frontier
-    Vec_PtrForEachEntry( vFrontier, pNode, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFrontier, pNode, i )
     {
         // create the supergate
         assert( Ivy_ObjSatNum(pNode) );
@@ -2523,14 +2527,14 @@ void Ivy_FraigNodeAddToSolver( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t *
             Vec_PtrPushUnique( vFanins, Ivy_ObjFanin0( Ivy_ObjFanin1(pNode) ) );
             Vec_PtrPushUnique( vFanins, Ivy_ObjFanin1( Ivy_ObjFanin0(pNode) ) );
             Vec_PtrPushUnique( vFanins, Ivy_ObjFanin1( Ivy_ObjFanin1(pNode) ) );
-            Vec_PtrForEachEntry( vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Ivy_Obj_t *, vFanins, pFanin, k )
                 Ivy_FraigObjAddToFrontier( p, Ivy_Regular(pFanin), vFrontier );
             Ivy_FraigAddClausesMux( p, pNode );
         }
         else
         {
             vFanins = Ivy_FraigCollectSuper( pNode, fUseMuxes );
-            Vec_PtrForEachEntry( vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Ivy_Obj_t *, vFanins, pFanin, k )
                 Ivy_FraigObjAddToFrontier( p, Ivy_Regular(pFanin), vFrontier );
             Ivy_FraigAddClausesSuper( p, pNode, vFanins );
         }
@@ -2572,7 +2576,7 @@ int Ivy_FraigSetActivityFactors_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, int L
     veci_push(&p->pSat->act_vars, Ivy_ObjSatNum(pObj));
     // explore the fanins
     vFanins = Ivy_ObjFaninVec( pObj );
-    Vec_PtrForEachEntry( vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFanins, pFanin, i )
         Counter += Ivy_FraigSetActivityFactors_rec( p, Ivy_Regular(pFanin), LevelMin, LevelMax );
     return 1 + Counter;
 }
@@ -2611,9 +2615,12 @@ p->timeTrav += clock() - clk;
     return 1;
 }
 
-
+ABC_NAMESPACE_IMPL_END
 
 #include "cuddInt.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 /**Function*************************************************************
 
@@ -2635,7 +2642,7 @@ DdNode * Ivy_FraigNodesAreEquivBdd_int( DdManager * dd, DdNode * bFunc, Vec_Ptr_
     int i, NewSize;
     // create new frontier
     vTemp = Vec_PtrAlloc( 100 );
-    Vec_PtrForEachEntry( vFront, pObj, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pObj, i )
     {
         if ( (int)pObj->Level != Level )
         {
@@ -2664,7 +2671,7 @@ DdNode * Ivy_FraigNodesAreEquivBdd_int( DdManager * dd, DdNode * bFunc, Vec_Ptr_
     // collect the permutation
     NewSize = IVY_MAX(dd->size, Vec_PtrSize(vTemp));
     pFuncs = ABC_ALLOC( DdNode *, NewSize );
-    Vec_PtrForEachEntry( vFront, pObj, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pObj, i )
     {
         if ( (int)pObj->Level != Level )
             pFuncs[i] = Cudd_bddIthVar( dd, pObj->TravId );
@@ -2685,7 +2692,7 @@ DdNode * Ivy_FraigNodesAreEquivBdd_int( DdManager * dd, DdNode * bFunc, Vec_Ptr_
     // create new
     bFuncNew = Cudd_bddVectorCompose( dd, bFunc, pFuncs ); Cudd_Ref( bFuncNew );
     // clean trav Id
-    Vec_PtrForEachEntry( vTemp, pObj, i )
+    Vec_PtrForEachEntry( Ivy_Obj_t *, vTemp, pObj, i )
     {
         pObj->fMarkB = 0;
         pObj->TravId = 0;
@@ -2739,7 +2746,7 @@ int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 )
     {
         // find max level
         Level = 0;
-        Vec_PtrForEachEntry( vFront, pObj, i )
+        Vec_PtrForEachEntry( Ivy_Obj_t *, vFront, pObj, i )
             if ( Level < (int)pObj->Level )
                 Level = (int)pObj->Level;
         if ( Level == 0 )
@@ -2770,4 +2777,6 @@ int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

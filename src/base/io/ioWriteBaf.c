@@ -20,6 +20,9 @@
 
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -126,9 +129,9 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
     Abc_NtkCleanCopy( pNtk );
     nNodes = 1;
     Abc_NtkForEachCi( pNtk, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRINT_T)nNodes++;
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)nNodes++;
     Abc_AigForEachAnd( pNtk, pObj, i )
-        pObj->pCopy = (void *)(ABC_PTRINT_T)nNodes++;
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)nNodes++;
 
     // write the nodes into the buffer
     nAnds = 0;
@@ -138,15 +141,15 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, nAnds, NULL );
-        pBufferNode[nAnds++] = (((int)(ABC_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | Abc_ObjFaninC0(pObj);
-        pBufferNode[nAnds++] = (((int)(ABC_PTRINT_T)Abc_ObjFanin1(pObj)->pCopy) << 1) | Abc_ObjFaninC1(pObj);
+        pBufferNode[nAnds++] = (((int)(ABC_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | (int)Abc_ObjFaninC0(pObj);
+        pBufferNode[nAnds++] = (((int)(ABC_PTRINT_T)Abc_ObjFanin1(pObj)->pCopy) << 1) | (int)Abc_ObjFaninC1(pObj);
     }
 
     // write the COs into the buffer
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, nAnds, NULL );
-        pBufferNode[nAnds] = (((int)(ABC_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | Abc_ObjFaninC0(pObj);
+        pBufferNode[nAnds] = (((int)(ABC_PTRINT_T)Abc_ObjFanin0(pObj)->pCopy) << 1) | (int)Abc_ObjFaninC0(pObj);
         if ( Abc_ObjFanoutNum(pObj) > 0 && Abc_ObjIsLatch(Abc_ObjFanout0(pObj)) )
             pBufferNode[nAnds] = (pBufferNode[nAnds] << 2) | ((int)(ABC_PTRINT_T)Abc_ObjData(Abc_ObjFanout0(pObj)) & 3);
         nAnds++;
@@ -165,4 +168,6 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

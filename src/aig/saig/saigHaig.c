@@ -22,6 +22,9 @@
 #include "satSolver.h"
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,9 +54,9 @@ void Aig_ManHaigSpeculate( Aig_Man_t * pFrames, Aig_Obj_t * pObj )
         return;
 //    assert( pObjRepr->Id < pObj->Id );
     // get the new node 
-    pObjNew = pObj->pData;
+    pObjNew = (Aig_Obj_t *)pObj->pData;
     // get the new node of the representative
-    pObjReprNew = pObjRepr->pData;
+    pObjReprNew = (Aig_Obj_t *)pObjRepr->pData;
     // if this is the same node, no need to add constraints
     assert( pObjNew != NULL && pObjReprNew != NULL );
     if ( Aig_Regular(pObjNew) == Aig_Regular(pObjReprNew) )
@@ -233,7 +236,7 @@ clk = clock();
 //    Saig_ManDumpBlif( pHaig, "haig_temp.blif" );
 //    Saig_ManDumpBlif( pFrames, "haig_temp_frames.blif" );
     // create the SAT solver to be used for this problem
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     if ( pSat == NULL )
     {
         printf( "Aig_ManHaigVerify(): Computed CNF is not valid.\n" );
@@ -422,7 +425,7 @@ clk = clock();
 //    printf( "\n" );
 
     // create the SAT solver to be used for this problem
-    pSat = Cnf_DataWriteIntoSolver( pCnf, nFrames, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, nFrames, 0 );
 //Sat_SolverWriteDimacs( pSat, "1.cnf", NULL, NULL, 0 );
     if ( pSat == NULL )
     {
@@ -586,7 +589,7 @@ Aig_Man_t * Saig_ManHaigDump( Aig_Man_t * pHaig )
     }
     printf( "Added %d property outputs.\n", Vec_IntSize(pHaig->vEquPairs)/2 );
     // add the registers
-    Vec_PtrForEachEntry( vTemp, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vTemp, pObj, i )
         Vec_PtrPush( pHaig->vPos, pObj );
     Vec_PtrFree( vTemp );
     assert( pHaig->nObjs[AIG_OBJ_PO] ==  Vec_PtrSize(pHaig->vPos) ); 
@@ -630,7 +633,7 @@ clk = clock();
     // create its history AIG
     pNew->pManHaig = Aig_ManDupSimple( pNew );
     Aig_ManForEachObj( pNew, pObj, i )
-        pObj->pHaig = pObj->pData;
+        pObj->pHaig = (Aig_Obj_t *)pObj->pData;
     // remove structural hashing table
     Aig_TableClear( pNew->pManHaig );
     pNew->pManHaig->vEquPairs = Vec_IntAlloc( 10000 );
@@ -724,4 +727,6 @@ clkSynth = clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

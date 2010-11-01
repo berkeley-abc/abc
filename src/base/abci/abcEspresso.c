@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -247,4 +250,6 @@ pset_family Abc_EspressoMinimize( pset_family pOnset, pset_family pDcset )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

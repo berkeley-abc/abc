@@ -54,6 +54,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -912,7 +915,7 @@ gatherInfo(
     return(NULL);
     }
     memset(info->page, 0, info->size * sizeof(NodeData)); /* clear all page */
-    info->table = st_init_table(st_ptrcmp,st_ptrhash);
+    info->table = st_init_table(st_ptrcmp, st_ptrhash);;
     if (info->table == NULL) {
     ABC_FREE(info->page);
     ABC_FREE(info);
@@ -2190,3 +2193,5 @@ BAapplyBias(
     return(infoF->care);
 
 } /* end of BAapplyBias */
+ABC_NAMESPACE_IMPL_END
+

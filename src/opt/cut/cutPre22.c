@@ -20,6 +20,9 @@
 
 #include "cutInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -773,7 +776,7 @@ Cut_CMan_t * Cut_CManStart()
     p = ABC_ALLOC( Cut_CMan_t, 1 );
     memset( p, 0, sizeof(Cut_CMan_t) );
     // start the table and the memory manager
-    p->tTable = st_init_table(st_ptrcmp,st_ptrhash);
+    p->tTable = st_init_table(st_ptrcmp, st_ptrhash);;
     p->pMem = Extra_MmFixedStart( sizeof(Cut_Cell_t) );
     // set elementary truth tables
     for ( k = 0; k < CUT_CELL_MVAR; k++ )
@@ -985,4 +988,6 @@ int Cut_CellTruthLookup( unsigned * pTruth, int nVars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

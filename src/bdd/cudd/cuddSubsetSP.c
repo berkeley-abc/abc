@@ -44,6 +44,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -410,7 +413,7 @@ cuddSubsetShortPaths(
         st_free_table(subsetNodeTable);
     }
     st_free_table(info->maxpathTable);
-    st_foreach(pathTable, stPathTableDdFree, (char *)dd);
+    st_foreach(pathTable, (ST_PFSR)stPathTableDdFree, (char *)dd);
 
     ABC_FREE(info);
 
@@ -996,7 +999,7 @@ CreatePathTable(
     int childQueueIndex, parentQueueIndex;
 
     /* Creating path Table for storing data about nodes */
-    pathTable = st_init_table(st_ptrcmp,st_ptrhash);
+    pathTable = st_init_table(st_ptrcmp, st_ptrhash);;
 
     /* initializing pages for info about each node */
     maxNodeDistPages = INITIAL_PAGES;
@@ -1101,7 +1104,7 @@ CreatePathTable(
      */
     if (!CreateBotDist(node, pathTable, pathLengthArray, fp)) return(NULL);
 
-    /* ABC_FREE BFS queue pages as no longer required */
+    /* free BFS queue pages as no longer required */
     for (i = 0; i <= queuePage; i++) ABC_FREE(queuePages[i]);
     ABC_FREE(queuePages);
     return(pathTable);
@@ -1595,7 +1598,7 @@ BuildSubsetBdd(
 
 /**Function********************************************************************
 
-  Synopsis     [Procedure to ABC_FREE te result dds stored in the NodeDist pages.]
+  Synopsis     [Procedure to free the result dds stored in the NodeDist pages.]
 
   Description [None]
 
@@ -1624,3 +1627,5 @@ stPathTableDdFree(
     return(ST_CONTINUE);
 
 } /* end of stPathTableFree */
+ABC_NAMESPACE_IMPL_END
+

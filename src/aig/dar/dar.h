@@ -21,6 +21,7 @@
 #ifndef __DAR_H__
 #define __DAR_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -80,6 +82,8 @@ struct Dar_RefPar_t_
 /*=== darLib.c ========================================================*/
 extern void            Dar_LibStart();
 extern void            Dar_LibStop();
+extern void            Dar_LibPrepare( int nSubgraphs );
+extern int             Dar_LibReturnClass( unsigned uTruth );
 /*=== darBalance.c ========================================================*/
 extern Aig_Man_t *     Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel );
 extern Aig_Man_t *     Dar_ManBalanceXor( Aig_Man_t * pAig, int fExor, int fUpdateLevel, int fVerbose );
@@ -98,9 +102,11 @@ extern Aig_Man_t *     Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpd
 extern Aig_Man_t *     Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fPower, int fVerbose );
 extern Aig_Man_t *     Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

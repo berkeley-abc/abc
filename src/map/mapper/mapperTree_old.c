@@ -22,6 +22,9 @@
 
 #include "mapperInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -558,7 +561,7 @@ void Map_LibraryAddFaninDelays( Map_SuperLib_t * pLib, Map_Super_t * pGate, Map_
 {
     Mio_PinPhase_t PinPhase;
     float tDelayBlockRise, tDelayBlockFall, tDelayPin;
-    bool fMaxDelay = 0;
+    int fMaxDelay = 0;
     int i;
 
     // use this node to enable max-delay model
@@ -820,4 +823,6 @@ void Map_LibraryPrintTree( Map_SuperLib_t * pLib )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,17 +21,16 @@
 #ifndef __CMD_H__
 #define __CMD_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+ABC_NAMESPACE_HEADER_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -49,21 +48,24 @@ typedef struct MvAlias      Abc_Alias;    // one alias
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cmd.c ===========================================================*/
-extern void        Cmd_Init();
-extern void        Cmd_End();
+extern void        Cmd_Init( Abc_Frame_t * pAbc );
+extern void        Cmd_End( Abc_Frame_t * pAbc );
 /*=== cmdApi.c ========================================================*/
-extern void        Cmd_CommandAdd( Abc_Frame_t * pAbc, char * sGroup, char * sName, void * pFunc, int fChanges );
-extern ABC_DLL int Cmd_CommandExecute( Abc_Frame_t * pAbc, char * sCommand );
+typedef int (*Cmd_CommandFuncType)(Abc_Frame_t*, int, char**);
+extern void        Cmd_CommandAdd( Abc_Frame_t * pAbc, const char * sGroup, const char * sName, Cmd_CommandFuncType pFunc, int fChanges );
+extern ABC_DLL int Cmd_CommandExecute( Abc_Frame_t * pAbc, const char * sCommand );
 /*=== cmdFlag.c ========================================================*/
 extern char *      Cmd_FlagReadByName( Abc_Frame_t * pAbc, char * flag );
-extern void        Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, char * key );
-extern void        Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * value );
+extern void        Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, const char * key );
+extern void        Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, const char * key, char * value );
 /*=== cmdHist.c ========================================================*/
-extern void          Cmd_HistoryAddCommand( Abc_Frame_t * pAbc, char * command );
+extern void          Cmd_HistoryAddCommand( Abc_Frame_t * pAbc, const char * command );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

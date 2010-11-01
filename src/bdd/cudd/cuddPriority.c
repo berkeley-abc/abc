@@ -46,6 +46,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -1474,3 +1477,5 @@ createResult(
     return(res);
 
 } /* end of createResult */
+ABC_NAMESPACE_IMPL_END
+

@@ -20,6 +20,9 @@
  
 #include "lpkInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -52,22 +55,22 @@ Abc_Obj_t * Lpk_ImplementFun( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vL
     // create the new node
     pObjNew = Abc_NtkCreateNode( pNtk );
     for ( i = 0; i < (int)p->nVars; i++ )
-        Abc_ObjAddFanin( pObjNew, Abc_ObjRegular(Vec_PtrEntry(vLeaves, p->pFanins[i])) );
+        Abc_ObjAddFanin( pObjNew, Abc_ObjRegular((Abc_Obj_t *)Vec_PtrEntry(vLeaves, p->pFanins[i])) );
     Abc_ObjSetLevel( pObjNew, Abc_ObjLevelNew(pObjNew) );
     // assign the node's function
     pTruth = Lpk_FunTruth(p, 0);
     if ( p->nVars == 0 )
     {
-        pObjNew->pData = Hop_NotCond( Hop_ManConst1(pNtk->pManFunc), !(pTruth[0] & 1) );
+        pObjNew->pData = Hop_NotCond( Hop_ManConst1((Hop_Man_t *)pNtk->pManFunc), !(pTruth[0] & 1) );
         return pObjNew;
     }
     if ( p->nVars == 1 )
     {
-        pObjNew->pData = Hop_NotCond( Hop_ManPi(pNtk->pManFunc, 0), (pTruth[0] & 1) );
+        pObjNew->pData = Hop_NotCond( Hop_ManPi((Hop_Man_t *)pNtk->pManFunc, 0), (pTruth[0] & 1) );
         return pObjNew;
     }
     // create the logic function
-    pObjNew->pData = Kit_TruthToHop( pNtk->pManFunc, pTruth, p->nVars, NULL );
+    pObjNew->pData = Kit_TruthToHop( (Hop_Man_t *)pNtk->pManFunc, pTruth, p->nVars, NULL );
     return pObjNew;
 }
 
@@ -89,10 +92,10 @@ Abc_Obj_t * Lpk_Implement_rec( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * v
     // prepare the leaves of the function
     for ( i = 0; i < (int)pFun->nVars; i++ )
     {
-        pFanin = Vec_PtrEntry( vLeaves, pFun->pFanins[i] );
+        pFanin = (Abc_Obj_t *)Vec_PtrEntry( vLeaves, pFun->pFanins[i] );
         if ( !Abc_ObjIsComplement(pFanin) )
             Lpk_Implement_rec( pMan, pNtk, vLeaves, (Lpk_Fun_t *)pFanin );
-        pFanin = Vec_PtrEntry( vLeaves, pFun->pFanins[i] );
+        pFanin = (Abc_Obj_t *)Vec_PtrEntry( vLeaves, pFun->pFanins[i] );
         assert( Abc_ObjIsComplement(pFanin) );
     }
     // construct the function
@@ -120,10 +123,10 @@ Abc_Obj_t * Lpk_Implement( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeav
     int i;
     assert( nLeavesOld < Vec_PtrSize(vLeaves) );
     // mark implemented nodes
-    Vec_PtrForEachEntryStop( vLeaves, pFanin, i, nLeavesOld )
+    Vec_PtrForEachEntryStop( Abc_Obj_t *, vLeaves, pFanin, i, nLeavesOld )
         Vec_PtrWriteEntry( vLeaves, i, Abc_ObjNot(pFanin) );
     // recursively construct starting from the first entry
-    pRes = Lpk_Implement_rec( pMan, pNtk, vLeaves, Vec_PtrEntry( vLeaves, nLeavesOld ) );
+    pRes = Lpk_Implement_rec( pMan, pNtk, vLeaves, (Lpk_Fun_t *)Vec_PtrEntry( vLeaves, nLeavesOld ) );
     Vec_PtrShrink( vLeaves, nLeavesOld );
     return pRes;
 }
@@ -236,7 +239,7 @@ void Lpk_DecomposeClean( Vec_Ptr_t * vLeaves, int nLeavesOld )
 {
     Lpk_Fun_t * pFunc;
     int i;
-    Vec_PtrForEachEntryStart( vLeaves, pFunc, i, nLeavesOld )
+    Vec_PtrForEachEntryStart( Lpk_Fun_t *, vLeaves, pFunc, i, nLeavesOld )
         Lpk_FunFree( pFunc );
     Vec_PtrShrink( vLeaves, nLeavesOld );
 }
@@ -286,4 +289,6 @@ Abc_Obj_t * Lpk_Decompose( Lpk_Man_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves,
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

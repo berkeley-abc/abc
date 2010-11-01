@@ -18,7 +18,11 @@
 
 ***********************************************************************/
 
+#include <math.h>
 #include "saig.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -346,7 +350,7 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
         // allocate mapping
         if ( pNum2Id == NULL )
         {
-            extern double pow( double x, double y );
+//            extern double pow( double x, double y );
             int Size = (int)pow(10.0, (double)(strlen(pToken) - 1));
             pNum2Id = ABC_CALLOC( int, Size );
         }
@@ -396,4 +400,6 @@ Aig_Man_t * Saig_ManReadBlif( char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

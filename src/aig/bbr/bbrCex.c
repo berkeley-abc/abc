@@ -21,6 +21,9 @@
 #include "bbr.h"
 #include "ssw.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -42,11 +45,11 @@ extern DdNode * Bbr_bddComputeRangeCube( DdManager * dd, int iStart, int iStop )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd, 
+Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd, 
     DdNode ** pbParts, Vec_Ptr_t * vOnionRings, DdNode * bCubeFirst,
     int iOutput, int fVerbose, int fSilent )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     Bbr_ImageTree_t * pTree;
     DdNode * bCubeNs, * bState, * bImage;
@@ -96,7 +99,7 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     }
 
     // perform backward analysis
-    Vec_PtrForEachEntryReverse( vOnionRings, bRing, v )
+    Vec_PtrForEachEntryReverse( DdNode *, vOnionRings, bRing, v )
     { 
         // compute the next states
         bImage = Bbr_bddImageCompute( pTree, bState );           
@@ -165,4 +168,6 @@ Ssw_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

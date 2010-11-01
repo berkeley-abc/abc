@@ -20,6 +20,9 @@
 
 #include "saig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -75,7 +78,7 @@ void Saig_SynchSetConstant1( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords 
     unsigned * pSim;
     int w;
     pObj = Aig_ManConst1( pAig );
-    pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+    pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
     for ( w = 0; w < nWords; w++ )
         pSim[w] = 0x55555555;
 }
@@ -98,7 +101,7 @@ void Saig_SynchInitRegsTernary( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWor
     int i, w;
     Saig_ManForEachLo( pAig, pObj, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
         for ( w = 0; w < nWords; w++ )
             pSim[w] = 0xffffffff;
     }
@@ -122,7 +125,7 @@ void Saig_SynchInitRegsBinary( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWord
     int i, w;
     Saig_ManForEachLo( pAig, pObj, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
         for ( w = 0; w < nWords; w++ )
             pSim[w] = Saig_SynchTernary( pObj->fMarkA );
     }
@@ -146,7 +149,7 @@ void Saig_SynchInitPisRandom( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords
     int i, w;
     Saig_ManForEachPi( pAig, pObj, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
         for ( w = 0; w < nWords; w++ )
             pSim[w] = Saig_SynchRandomBinary();
     }
@@ -170,7 +173,7 @@ void Saig_SynchInitPisGiven( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords,
     int i, w;
     Saig_ManForEachPi( pAig, pObj, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
         for ( w = 0; w < nWords; w++ )
             pSim[w] = Saig_SynchTernary( pValues[i] );
     }
@@ -195,9 +198,9 @@ void Saig_SynchTernarySimulate( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWor
     // simulate nodes
     Aig_ManForEachNode( pAig, pObj, i )
     {
-        pSim  = Vec_PtrEntry( vSimInfo, pObj->Id );
-        pSim0 = Vec_PtrEntry( vSimInfo, Aig_ObjFaninId0(pObj) );
-        pSim1 = Vec_PtrEntry( vSimInfo, Aig_ObjFaninId1(pObj) );
+        pSim  = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim0 = (unsigned *)Vec_PtrEntry( vSimInfo, Aig_ObjFaninId0(pObj) );
+        pSim1 = (unsigned *)Vec_PtrEntry( vSimInfo, Aig_ObjFaninId1(pObj) );
         if ( Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj) )
         {
             for ( w = 0; w < nWords; w++ )
@@ -222,8 +225,8 @@ void Saig_SynchTernarySimulate( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWor
     // transfer values to register inputs
     Saig_ManForEachLi( pAig, pObj, i )
     {
-        pSim  = Vec_PtrEntry( vSimInfo, pObj->Id );
-        pSim0 = Vec_PtrEntry( vSimInfo, Aig_ObjFaninId0(pObj) );
+        pSim  = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim0 = (unsigned *)Vec_PtrEntry( vSimInfo, Aig_ObjFaninId0(pObj) );
         if ( Aig_ObjFaninC0(pObj) )
         {
             for ( w = 0; w < nWords; w++ )
@@ -255,8 +258,8 @@ void Saig_SynchTernaryTransferState( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int
     int i, w;
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
-        pSim0 = Vec_PtrEntry( vSimInfo, pObjLi->Id );
-        pSim1 = Vec_PtrEntry( vSimInfo, pObjLo->Id );
+        pSim0 = (unsigned *)Vec_PtrEntry( vSimInfo, pObjLi->Id );
+        pSim1 = (unsigned *)Vec_PtrEntry( vSimInfo, pObjLo->Id );
         for ( w = 0; w < nWords; w++ )
             pSim1[w] = pSim0[w];
     }
@@ -283,7 +286,7 @@ int Saig_SynchCountX( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords, int * 
     pCounters = ABC_CALLOC( int, nWords * 16 );
     Saig_ManForEachLi( pAig, pObj, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
         for ( w = 0; w < nWords; w++ )
             for ( b = 0; b < 16; b++ )
                 if ( ((pSim[w] >> (b << 1)) & 3) == 3 )
@@ -324,7 +327,7 @@ int Saig_SynchSavePattern( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords, i
     assert( iPat < 16 * nWords );
     Saig_ManForEachPi( pAig, pObj, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
         Value = (pSim[iPat>>4] >> ((iPat&0xf) << 1)) & 3;
         Vec_StrPush( vSequence, (char)Value );
 //        printf( "%d ", Value );
@@ -333,11 +336,11 @@ int Saig_SynchSavePattern( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, int nWords, i
     Counter = 0;
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObjLi->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObjLi->Id );
         Value = (pSim[iPat>>4] >> ((iPat&0xf) << 1)) & 3;
         Counter += (Value == 3);
         // save patern in the same register
-        pSim = Vec_PtrEntry( vSimInfo, pObjLo->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObjLo->Id );
         for ( w = 0; w < nWords; w++ )
             pSim[w] = Saig_SynchTernary( Value );
     }
@@ -377,7 +380,7 @@ int Saig_SynchSequenceRun( Aig_Man_t * pAig, Vec_Ptr_t * vSimInfo, Vec_Str_t * v
     Counter = 0;
     Saig_ManForEachLo( pAig, pObj, i )
     {
-        pSim = Vec_PtrEntry( vSimInfo, pObj->Id );
+        pSim = (unsigned *)Vec_PtrEntry( vSimInfo, pObj->Id );
         Value = pSim[0] & 3;
         assert( Value != 2 );
         Counter += (Value == 3);
@@ -655,4 +658,6 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

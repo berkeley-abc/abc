@@ -20,6 +20,9 @@
 
 #include "extra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -281,6 +284,25 @@ void Extra_bddPrint( DdManager * dd, DdNode * F )
     }
 
 //  printf("\n");
+}
+
+/**Function********************************************************************
+
+  Synopsis    [Outputs the BDD in a readable format.]
+
+  Description []
+
+  SideEffects [None]
+
+  SeeAlso     []
+
+******************************************************************************/
+void Extra_bddPrintSupport( DdManager * dd, DdNode * F )
+{
+    DdNode * bSupp;
+    bSupp = Cudd_Support( dd, F );   Cudd_Ref( bSupp );
+    Extra_bddPrint( dd, bSupp );
+    Cudd_RecursiveDeref( dd, bSupp );
 }
 
 /**Function********************************************************************
@@ -1164,7 +1186,7 @@ DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int
     gen = st_init_gen( table );
     if ( gen == NULL )
         goto failure;
-    while ( st_gen( gen, ( char ** ) &key, ( char ** ) &value ) )
+    while ( st_gen( gen, ( const char ** ) &key, ( char ** ) &value ) )
     {
         Cudd_RecursiveDeref( ddD, value );
     }
@@ -1641,4 +1663,6 @@ cuddBddPermuteRecur( DdManager * manager /* DD manager */ ,
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

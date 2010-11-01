@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -84,9 +87,9 @@ Aig_Obj_t * Ssw_BmcUnroll_rec( Ssw_Frm_t * pFrm, Aig_Obj_t * pObj, int f )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cex_t * Ssw_BmcGetCounterExample( Ssw_Frm_t * pFrm, Ssw_Sat_t * pSat, int iPo, int iFrame )
+Abc_Cex_t * Ssw_BmcGetCounterExample( Ssw_Frm_t * pFrm, Ssw_Sat_t * pSat, int iPo, int iFrame )
 {
-    Ssw_Cex_t * pCex;
+    Abc_Cex_t * pCex;
     Aig_Obj_t * pObj, * pObjFrames;
     int f, i, nShift;
     assert( Saig_ManRegNum(pFrm->pAig) > 0 );
@@ -216,4 +219,6 @@ int Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbo
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

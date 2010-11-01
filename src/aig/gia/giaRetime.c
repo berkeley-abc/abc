@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -131,7 +134,7 @@ Gia_Man_t * Gia_ManRetimeDupForward( Gia_Man_t * p, Vec_Ptr_t * vCut )
     Gia_ManForEachPi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
     // create the registers
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, vCut, pObj, i )
         pObj->Value = Gia_LitNotCond( Gia_ManAppendCi(pNew), pObj->fPhase );
     // duplicate logic above the cut
     Gia_ManForEachCo( p, pObj, i )
@@ -146,11 +149,11 @@ Gia_Man_t * Gia_ManRetimeDupForward( Gia_Man_t * p, Vec_Ptr_t * vCut )
     Gia_ManForEachRiRo( p, pObjRi, pObjRo, i )
         pObjRo->Value = pObjRi->Value;
     // erase the data values on the internal nodes of the cut
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, vCut, pObj, i )
         if ( Gia_ObjIsAnd(pObj) )
             pObj->Value = ~0;
     // duplicate logic below the cut
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, vCut, pObj, i )
     {
         Gia_ManRetimeDup_rec( pNew, pObj );
         Gia_ManAppendCo( pNew, Gia_LitNotCond( pObj->Value, pObj->fPhase ) );
@@ -192,7 +195,7 @@ Gia_Man_t * Gia_ManRetimeForwardOne( Gia_Man_t * p, int * pnRegFixed, int * pnRe
         vFlopClasses = Vec_IntAlloc( Gia_ManRegNum(p) );
     }
     // mark the retimable nodes
-    Gia_ManResetTravId( p );
+    Gia_ManIncrementTravId( p );
     Gia_ManMarkAutonomous( p );
     // mark the retimable registers with the fresh trav ID
     Gia_ManIncrementTravId( p );
@@ -294,4 +297,6 @@ Gia_Man_t * Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

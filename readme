@@ -40,3 +40,18 @@ in Makefile.
 
 Finally, run regression test:
 abc>>> so regtest.script
+
+
+The following comment was added by Krish Sundaresan:
+
+"I found that the code does compile correctly on Solaris 
+if gcc is used (instead of g++ that I was using for some reason). 
+Also readline which is not available by default on most 
+Sol10 systems, needs to be installed. I downloaded the 
+readline-5.2 package from sunfreeware.com and installed it 
+locally. Also modified CFLAGS to add the local include files 
+for readline and LIBS to add the local libreadline.a. Perhaps 
+you can add these steps in the readme to help folks compiling 
+this on Solaris."
+
+Archiving the binary: tar czf archive.tar.gz directory

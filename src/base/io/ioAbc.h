@@ -21,6 +21,7 @@
 #ifndef __IO_H__
 #define __IO_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -31,9 +32,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -56,6 +58,7 @@ typedef enum {
     IO_FILE_GML,      
     IO_FILE_LIST,      
     IO_FILE_PLA,      
+    IO_FILE_SMV,      
     IO_FILE_VERILOG,    
     IO_FILE_UNKNOWN       
 } Io_FileType_t;
@@ -82,6 +85,7 @@ extern Abc_Ntk_t *        Io_ReadBlif( char * pFileName, int fCheck );
 extern Abc_Ntk_t *        Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck );
 /*=== abcReadBench.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadBench( char * pFileName, int fCheck );
+extern void               Io_ReadBenchInit( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcReadEdif.c ===========================================================*/
 extern Abc_Ntk_t *        Io_ReadEdif( char * pFileName, int fCheck );
 /*=== abcReadEqn.c ============================================================*/
@@ -98,12 +102,12 @@ extern void               Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteBblif( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBlif.c ==========================================================*/
 extern void               Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
-extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
+extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches, int fBb2Wb, int fSeq );
 extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
 /*=== abcWriteBlifMv.c ==========================================================*/ 
 extern void               Io_WriteBlifMv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteBench.c =========================================================*/
-extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
+extern int                Io_WriteBench( Abc_Ntk_t * pNtk, const char * FileName );
 extern int                Io_WriteBenchLut( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteBook.c =========================================================*/
 extern void               Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName );
@@ -121,6 +125,8 @@ extern void               Io_WriteGml( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost );
 /*=== abcWritePla.c ===========================================================*/
 extern int                Io_WritePla( Abc_Ntk_t * pNtk, char * FileName );
+/*=== abcWriteSmv.c ===========================================================*/
+extern int                Io_WriteSmv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteVerilog.c =======================================================*/
 extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcUtil.c ===============================================================*/
@@ -136,15 +142,17 @@ extern Abc_Obj_t *        Io_ReadCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, c
 extern Abc_Obj_t *        Io_ReadCreateResetLatch( Abc_Ntk_t * pNtk, int fBlifMv );
 extern Abc_Obj_t *        Io_ReadCreateResetMux( Abc_Ntk_t * pNtk, char * pResetLO, char * pDataLI, int fBlifMv );
 extern Abc_Obj_t *        Io_ReadCreateNode( Abc_Ntk_t * pNtk, char * pNameOut, char * pNamesIn[], int nInputs );
-extern Abc_Obj_t *        Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, bool fConst1 );
+extern Abc_Obj_t *        Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, int fConst1 );
 extern Abc_Obj_t *        Io_ReadCreateInv( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut );
 extern Abc_Obj_t *        Io_ReadCreateBuf( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut );
 extern FILE *             Io_FileOpen( const char * FileName, const char * PathVar, const char * Mode, int fVerbose );
 
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -21,6 +21,7 @@
 #ifndef __TIM_H__
 #define __TIM_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -63,6 +65,7 @@ extern Tim_Man_t *     Tim_ManDup( Tim_Man_t * p, int fDiscrete );
 extern Tim_Man_t *     Tim_ManDupUnit( Tim_Man_t * p );
 extern Tim_Man_t *     Tim_ManDupApprox( Tim_Man_t * p );
 extern void            Tim_ManStop( Tim_Man_t * p );
+extern void            Tim_ManStopP( Tim_Man_t ** p );
 extern void            Tim_ManPrint( Tim_Man_t * p );
 extern void            Tim_ManTravIdDisable( Tim_Man_t * p );
 extern void            Tim_ManTravIdEnable( Tim_Man_t * p );
@@ -91,10 +94,13 @@ extern int             Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxInputNum( Tim_Man_t * p, int iBox );
 extern int             Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox );
+extern void            Tim_ManChangeForAdders( Tim_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

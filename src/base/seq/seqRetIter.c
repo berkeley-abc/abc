@@ -22,6 +22,9 @@
 #include "main.h"
 #include "fpga.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -106,21 +109,21 @@ int Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose 
     assert( RetValue );
 
     // fix the problem with non-converged delays
-    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pNode, i )
         if ( Seq_NodeGetLValueP(pNode) < -ABC_INFINITY/2 )
             Seq_NodeSetLValueP( pNode, 0 );
 
     // experiment by adding an epsilon to all LValues
-//    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+//    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pNode, i )
 //        Seq_NodeSetLValueP( pNode, Seq_NodeGetLValueP(pNode) - p->fEpsilon );
 
     // save the retiming lags
     // mark the nodes
-    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pNode, i )
         pNode->fMarkA = 1;
     // process the nodes
     Vec_StrFill( p->vLags,  p->nSize, 0 );
-    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pNode, i )
     {
         if ( Vec_PtrSize( Vec_VecEntry(p->vMapCuts, i) ) == 0 )
         {
@@ -131,7 +134,7 @@ int Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose 
         Seq_NodeRetimeSetLag_rec( pNode, NodeLag );
     }
     // unmark the nodes
-    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pNode, i )
         pNode->fMarkA = 0;
 
     // print the result
@@ -208,7 +211,7 @@ int Seq_NtkMappingForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
     for ( c = 0; c < p->nMaxIters; c++ )
     {
         fChange = 0;
-        Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pObj, i )
         {
             Counter++;
             vLeaves = Vec_VecEntry( p->vMapCuts, i );
@@ -281,7 +284,7 @@ int Seq_NtkNodeUpdateLValue( Abc_Obj_t * pObj, float Fi, Vec_Ptr_t * vLeaves, Ve
     }
     // get the new arrival time of the cut output
     lValueNew = -ABC_INFINITY;
-    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, i )
     {
         SeqEdge   = (unsigned)pLeaf;
         pLeaf     = Abc_NtkObj( pObj->pNtk, SeqEdge >> 8 );
@@ -354,7 +357,7 @@ void Seq_NodePrintInfo( Abc_Obj_t * pNode )
         pNode->Id, Seq_NodeGetLValueP(pNode), Seq_NodeGetLag(pNode) );
 
     // find the number
-    Vec_PtrForEachEntry( p->vMapAnds, pObj, Number )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pObj, Number )
         if ( pObj == pNode )
             break;
 
@@ -362,7 +365,7 @@ void Seq_NodePrintInfo( Abc_Obj_t * pNode )
     vLeaves = Vec_VecEntry( p->vMapCuts, Number );
 
     // print the leaves
-    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, i )
     {
         SeqEdge   = (unsigned)pLeaf;
         pFanin    = Abc_NtkObj( pNode->pNtk, SeqEdge >> 8 );
@@ -400,4 +403,6 @@ void Seq_NodePrintInfoPlus( Abc_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

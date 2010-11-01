@@ -20,6 +20,9 @@
 
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -143,8 +146,8 @@ Vec_Int_t * Fra_OneHotCompute( Fra_Man_t * p, Fra_Sml_t * pSim )
             continue;
         assert( i-nTruePis >= 0 );
 //        Aig_ManForEachLoSeq( pSim->pAig, pObj2, k )
-//        Vec_PtrForEachEntryStart( pSim->pAig->vPis, pObj2, k, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
-        Vec_PtrForEachEntryStart( pSim->pAig->vPis, pObj2, k, i+1 )
+//        Vec_PtrForEachEntryStart( Aig_Obj_t *, pSim->pAig->vPis, pObj2, k, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
+        Vec_PtrForEachEntryStart( Aig_Obj_t *, pSim->pAig->vPis, pObj2, k, i+1 )
         {
             if ( fSkipConstEqu && Fra_OneHotNodeIsConst(pSim, pObj2) )
                 continue;
@@ -201,7 +204,7 @@ void Fra_OneHotAssume( Fra_Man_t * p, Vec_Int_t * vOneHots )
         pObj2 = Aig_ManPi( p->pManFraig, nPiNum + Fra_LitReg(Out2) );
         pLits[0] = toLitCond( Fra_ObjSatNum(pObj1), Fra_LitSign(Out1) );
         pLits[1] = toLitCond( Fra_ObjSatNum(pObj2), Fra_LitSign(Out2) );
-        // add contraint to solver
+        // add constraint to solver
         if ( !sat_solver_addclause( p->pSat, pLits, pLits + 2 ) )
         {
             printf( "Fra_OneHotAssume(): Adding clause makes SAT solver unsat.\n" );
@@ -337,11 +340,11 @@ void Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots )
     Aig_ManRandom(1);
     for ( i = 0; i < nRegs; i++ )
     {
-        pSim1 = Vec_PtrEntry( vSimInfo, i );
+        pSim1 = (unsigned *)Vec_PtrEntry( vSimInfo, i );
         for ( w = 0; w < nSimWords; w++ )
             pSim1[w] = Fra_ObjRandomSim();
     }
-    pSimTot = Vec_PtrEntry( vSimInfo, nRegs );
+    pSimTot = (unsigned *)Vec_PtrEntry( vSimInfo, nRegs );
 
     // collect simulation info
     memset( pSimTot, 0, sizeof(unsigned) * nSimWords );
@@ -355,8 +358,8 @@ void Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots )
 //Fra_LitSign(Out1)? '-': '+', Fra_LitReg(Out1), 
 //Fra_LitSign(Out2)? '-': '+', Fra_LitReg(Out2) ); 
         Counter++;
-        pSim1 = Vec_PtrEntry( vSimInfo, Fra_LitReg(Out1) );
-        pSim2 = Vec_PtrEntry( vSimInfo, Fra_LitReg(Out2) );
+        pSim1 = (unsigned *)Vec_PtrEntry( vSimInfo, Fra_LitReg(Out1) );
+        pSim2 = (unsigned *)Vec_PtrEntry( vSimInfo, Fra_LitReg(Out2) );
         if ( Fra_LitSign(Out1) && Fra_LitSign(Out2) )
             for ( w = 0; w < nSimWords; w++ )
                 pSimTot[w] |=  pSim1[w] &  pSim2[w];
@@ -442,7 +445,7 @@ void Fra_OneHotAddKnownConstraint( Fra_Man_t * p, Vec_Ptr_t * vOnehots )
     // these constrants should be added to different timeframes!
     // (also note that PIs follow first - then registers)
     //
-    Vec_PtrForEachEntry( vOnehots, vGroup, k )
+    Vec_PtrForEachEntry( Vec_Int_t *, vOnehots, vGroup, k )
     {
         Vec_IntForEachEntry( vGroup, Out1, i )
         Vec_IntForEachEntryStart( vGroup, Out2, j, i+1 )
@@ -451,7 +454,7 @@ void Fra_OneHotAddKnownConstraint( Fra_Man_t * p, Vec_Ptr_t * vOnehots )
             pObj2 = Aig_ManPi( p->pManFraig, Out2 );
             pLits[0] = toLitCond( Fra_ObjSatNum(pObj1), 1 );
             pLits[1] = toLitCond( Fra_ObjSatNum(pObj2), 1 );
-            // add contraint to solver
+            // add constraint to solver
             if ( !sat_solver_addclause( p->pSat, pLits, pLits + 2 ) )
             {
                 printf( "Fra_OneHotAddKnownConstraint(): Adding clause makes SAT solver unsat.\n" );
@@ -468,4 +471,6 @@ void Fra_OneHotAddKnownConstraint( Fra_Man_t * p, Vec_Ptr_t * vOnehots )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -18,6 +18,9 @@
 
 #include "fraigInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -42,7 +45,7 @@ int timeAssign;
 ***********************************************************************/
 void Prove_ParamsSetDefault( Prove_Params_t * pParams )
 {
-    // clean the parameter structure
+    // clean the parameter structure 
     memset( pParams, 0, sizeof(Prove_Params_t) );
     // general parameters
     pParams->fUseFraiging         = 1;       // enables fraiging
@@ -52,7 +55,7 @@ void Prove_ParamsSetDefault( Prove_Params_t * pParams )
     // iterations
     pParams->nItersMax            = 6;       // the number of iterations
     // mitering 
-    pParams->nMiteringLimitStart  = 300;    // starting mitering limit
+    pParams->nMiteringLimitStart  = 5000;    // starting mitering limit
     pParams->nMiteringLimitMulti  = 2.0;     // multiplicative coefficient to increase the limit in each iteration
     // rewriting (currently not used)
     pParams->nRewritingLimitStart = 3;       // the number of rewriting iterations
@@ -382,7 +385,7 @@ void Fraig_ManPrintStats( Fraig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Fraig_NodeVec_t * Fraig_UtilInfoAlloc( int nSize, int nWords, bool fClean )
+Fraig_NodeVec_t * Fraig_UtilInfoAlloc( int nSize, int nWords, int fClean )
 {
     Fraig_NodeVec_t * vInfo;
     unsigned * pUnsigned;
@@ -537,4 +540,6 @@ void Fraig_ManAddClause( Fraig_Man_t * p, Fraig_Node_t ** ppNodes, int nNodes )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

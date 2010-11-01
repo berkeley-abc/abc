@@ -21,6 +21,7 @@
 #ifndef __NM_H__
 #define __NM_H__
 
+
 /*
     This manager is designed to store ID-to-name and name-to-ID mapping
     for Boolean networks and And-Inverter Graphs.
@@ -50,9 +51,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -80,9 +82,11 @@ extern int          Nm_ManFindIdByName( Nm_Man_t * p, char * pName, int Type );
 extern int          Nm_ManFindIdByNameTwoTypes( Nm_Man_t * p, char * pName, int Type1, int Type2 );
 extern Vec_Int_t *  Nm_ManReturnNameIds( Nm_Man_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -21,6 +21,7 @@
 #ifndef __FRA_H__
 #define __FRA_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,9 +42,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -55,7 +57,6 @@ typedef struct Fra_Sec_t_   Fra_Sec_t;
 typedef struct Fra_Man_t_   Fra_Man_t;
 typedef struct Fra_Cla_t_   Fra_Cla_t;
 typedef struct Fra_Sml_t_   Fra_Sml_t;
-typedef struct Fra_Cex_t_   Fra_Cex_t;
 typedef struct Fra_Bmc_t_   Fra_Bmc_t;
 
 // FRAIG parameters
@@ -178,17 +179,6 @@ struct Fra_Sml_t_
     int              nSimRounds;        // statistics
     int              timeSim;           // statistics
     unsigned         pData[0];          // simulation data for the nodes
-};
-
-// simulation manager
-struct Fra_Cex_t_
-{
-    int              iPo;               // the zero-based number of PO, for which verification failed
-    int              iFrame;            // the zero-based number of the time-frame, for which verificaiton failed
-    int              nRegs;             // the number of registers in the miter 
-    int              nPis;              // the number of primary inputs in the miter
-    int              nBits;             // the number of words of bit data used
-    unsigned         pData[0];          // the cex bit data (the number of bits: nRegs + (iFrame+1) * nPis)
 };
 
 // FRAIG manager
@@ -382,16 +372,18 @@ extern Fra_Sml_t *         Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrame
 extern void                Fra_SmlStop( Fra_Sml_t * p );
 extern Fra_Sml_t *         Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords, int fCheckMiter );
 extern Fra_Sml_t *         Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
-extern Fra_Cex_t *         Fra_SmlGetCounterExample( Fra_Sml_t * p );
-extern Fra_Cex_t *         Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel );
-extern void                Fra_SmlFreeCounterExample( Fra_Cex_t * p );
-extern Fra_Cex_t *         Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut );
-extern int                 Fra_SmlRunCounterExample( Aig_Man_t * pAig, Fra_Cex_t * p );
-extern int                 Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Fra_Cex_t * p );
+extern Abc_Cex_t *         Fra_SmlGetCounterExample( Fra_Sml_t * p );
+extern Abc_Cex_t *         Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel );
+extern void                Fra_SmlFreeCounterExample( Abc_Cex_t * p );
+extern Abc_Cex_t *         Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut );
+extern int                 Fra_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
+extern int                 Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Abc_Cex_t * p );
+extern Abc_Cex_t *         Fra_SmlSimpleCounterExample( Aig_Man_t * pAig, int * pModel, int iFrame, int iPo );
 
-#ifdef __cplusplus
-}
-#endif
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

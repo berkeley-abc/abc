@@ -20,6 +20,9 @@
 
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -134,7 +137,7 @@ void Fra_AddClausesSuper( Fra_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
     pLits = ABC_ALLOC( int, nLits );
     // suppose AND-gate is A & B = C
     // add !A => !C   or   A + !C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
     {
         pLits[0] = toLitCond(Fra_ObjSatNum(Aig_Regular(pFanin)), Aig_IsComplement(pFanin));
         pLits[1] = toLitCond(Fra_ObjSatNum(pNode), 1);
@@ -142,7 +145,7 @@ void Fra_AddClausesSuper( Fra_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
         pLits[i] = toLitCond(Fra_ObjSatNum(Aig_Regular(pFanin)), !Aig_IsComplement(pFanin));
     pLits[nLits-1] = toLitCond(Fra_ObjSatNum(pNode), 0);
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + nLits );
@@ -246,7 +249,7 @@ void Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     if ( pOld ) Fra_ObjAddToFrontier( p, pOld, vFrontier );
     if ( pNew ) Fra_ObjAddToFrontier( p, pNew, vFrontier );
     // explore nodes in the frontier
-    Vec_PtrForEachEntry( vFrontier, pNode, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vFrontier, pNode, i )
     {
         // create the supergate
         assert( Fra_ObjSatNum(pNode) );
@@ -258,14 +261,14 @@ void Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
             Vec_PtrPushUnique( vFanins, Aig_ObjFanin0( Aig_ObjFanin1(pNode) ) );
             Vec_PtrPushUnique( vFanins, Aig_ObjFanin1( Aig_ObjFanin0(pNode) ) );
             Vec_PtrPushUnique( vFanins, Aig_ObjFanin1( Aig_ObjFanin1(pNode) ) );
-            Vec_PtrForEachEntry( vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Aig_Obj_t *, vFanins, pFanin, k )
                 Fra_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Fra_AddClausesMux( p, pNode );
         }
         else
         {
             vFanins = Fra_CollectSuper( pNode, fUseMuxes );
-            Vec_PtrForEachEntry( vFanins, pFanin, k )
+            Vec_PtrForEachEntry( Aig_Obj_t *, vFanins, pFanin, k )
                 Fra_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Fra_AddClausesSuper( p, pNode, vFanins );
         }
@@ -281,4 +284,6 @@ void Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

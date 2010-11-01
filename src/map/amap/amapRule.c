@@ -21,6 +21,9 @@
 #include "amapInt.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -100,7 +103,7 @@ int Amap_CreateCheckAllZero( Vec_Ptr_t * vVecNods )
 {
     Vec_Int_t * vNods;
     int i;
-    Vec_PtrForEachEntryReverse( vVecNods, vNods, i )
+    Vec_PtrForEachEntryReverse( Vec_Int_t *, vVecNods, vNods, i )
         if ( Vec_IntSize(vNods) != 1 || Vec_IntEntry(vNods,0) != 0 )
             return 0;
     return 1;
@@ -123,7 +126,7 @@ Vec_Int_t * Amap_CreateRulesVector_rec( Amap_Lib_t * p, Vec_Ptr_t * vVecNods, in
     Vec_Int_t * vRes, * vNods, * vNods0, * vNods1;
     int i, k;
     if ( Vec_PtrSize(vVecNods) == 1 )
-        return Vec_IntDup( Vec_PtrEntry(vVecNods, 0) );
+        return Vec_IntDup( (Vec_Int_t *)Vec_PtrEntry(vVecNods, 0) );
     vRes = Vec_IntAlloc( 10 );
     vVecNods0 = Vec_PtrAlloc( Vec_PtrSize(vVecNods) );
     vVecNods1 = Vec_PtrAlloc( Vec_PtrSize(vVecNods) );
@@ -133,9 +136,9 @@ Vec_Int_t * Amap_CreateRulesVector_rec( Amap_Lib_t * p, Vec_Ptr_t * vVecNods, in
         {
             Vec_PtrClear( vVecNods0 );
             Vec_PtrClear( vVecNods1 );
-            Vec_PtrForEachEntryStop( vVecNods, vNods, k, i )
+            Vec_PtrForEachEntryStop( Vec_Int_t *, vVecNods, vNods, k, i )
                 Vec_PtrPush( vVecNods0, vNods );
-            Vec_PtrForEachEntryStart( vVecNods, vNods, k, i )
+            Vec_PtrForEachEntryStart( Vec_Int_t *, vVecNods, vNods, k, i )
                 Vec_PtrPush( vVecNods1, vNods );
             vNods0 = Amap_CreateRulesVector_rec( p, vVecNods0, fXor );
             vNods1 = Amap_CreateRulesVector_rec( p, vVecNods1, fXor );
@@ -151,7 +154,7 @@ Vec_Int_t * Amap_CreateRulesVector_rec( Amap_Lib_t * p, Vec_Ptr_t * vVecNods, in
         {
             Vec_PtrClear( vVecNods0 );
             Vec_PtrClear( vVecNods1 );
-            Vec_PtrForEachEntryReverse( vVecNods, vNods, k )
+            Vec_PtrForEachEntryReverse( Vec_Int_t *, vVecNods, vNods, k )
             {
                 if ( i & (1 << k) )
                     Vec_PtrPush( vVecNods1, vNods );
@@ -218,11 +221,11 @@ Vec_Int_t * Amap_CreateRulesFromDsd_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * p, in
     {
         assert( pObj->nFans == 3 );
         assert( Kit_DsdObjTruth(pObj)[0] == 0xCACACACA );
-        vRes = Amap_CreateRulesPrime( pLib, Vec_PtrEntry(vVecNods, 0),
-            Vec_PtrEntry(vVecNods, 1), Vec_PtrEntry(vVecNods, 2) );
+        vRes = Amap_CreateRulesPrime( pLib, (Vec_Int_t *)Vec_PtrEntry(vVecNods, 0),
+            (Vec_Int_t *)Vec_PtrEntry(vVecNods, 1), (Vec_Int_t *)Vec_PtrEntry(vVecNods, 2) );
     }
     else assert( 0 );
-    Vec_PtrForEachEntry( vVecNods, vNodsFanin, k )
+    Vec_PtrForEachEntry( Vec_Int_t *, vVecNods, vNodsFanin, k )
         Vec_IntFree( vNodsFanin );
     Vec_PtrFree( vVecNods );
     return vRes;
@@ -341,7 +344,7 @@ void Amap_LibCreateRules( Amap_Lib_t * pLib, int fVeryVerbose )
     pLib->vRulesX  = Vec_PtrAlloc( 100 );
     pLib->vRules3  = Vec_IntAlloc( 100 );
     Amap_LibCreateVar( pLib );
-    Vec_PtrForEachEntry( pLib->vSelect, pGate, i )
+    Vec_PtrForEachEntry( Amap_Gat_t *, pLib->vSelect, pGate, i )
     {
         if ( pGate->nPins < 2 )
             continue;
@@ -365,4 +368,6 @@ void Amap_LibCreateRules( Amap_Lib_t * pLib, int fVeryVerbose )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

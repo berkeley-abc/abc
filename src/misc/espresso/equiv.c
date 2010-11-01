@@ -9,6 +9,9 @@
  */
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 void find_equiv_outputs(PLA)
 pPLA PLA;
@@ -92,3 +95,5 @@ pcover f1, f2;
 
     return TRUE;
 }
+ABC_NAMESPACE_IMPL_END
+

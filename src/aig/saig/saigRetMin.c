@@ -20,15 +20,17 @@
 
 #include "saig.h"
 
+#include "nwk.h"
 #include "cnf.h"
 #include "satSolver.h"
 #include "satStore.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-extern Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -55,7 +57,7 @@ Vec_Int_t * Saig_ManRetimeInitState( Aig_Man_t * p )
     int i, RetValue, * pModel;
     // solve the SAT problem
     pCnf = Cnf_DeriveSimpleForRetiming( p );
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     if ( pSat == NULL )
     {
         Cnf_DataFree( pCnf );
@@ -126,9 +128,9 @@ int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
     sat_solver_delete( pSat );
     // derive the UNSAT core
     pManProof = Intp_ManAlloc();
-    vCore = Intp_ManUnsatCore( pManProof, pSatCnf, fVeryVerbose );
+    vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, fVeryVerbose );
     Intp_ManFree( pManProof );
-    Sto_ManFree( pSatCnf );
+    Sto_ManFree( (Sto_Man_t *)pSatCnf );
     // derive the set of variables on which the core depends
     // collect the variable numbers
     nVars = 0;
@@ -216,7 +218,7 @@ int Saig_ManRetimeCountCut( Aig_Man_t * p, Vec_Ptr_t * vCut )
     int i, RetValue;
     // mark the cones
     Aig_ManIncrementTravId( p );
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
         Saig_ManMarkCone_rec( p, pObj );
     // collect the new cut
     vNodes = Vec_PtrAlloc( 1000 );
@@ -237,7 +239,7 @@ int Saig_ManRetimeCountCut( Aig_Man_t * p, Vec_Ptr_t * vCut )
             pFanin->fMarkA = 1;
         }
     }
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->fMarkA = 0;
     RetValue = Vec_PtrSize( vNodes );
     Vec_PtrFree( vNodes );
@@ -296,7 +298,7 @@ Aig_Man_t * Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut )
     Saig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
     // create the registers
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
         pObj->pData = Aig_NotCond( Aig_ObjCreatePi(pNew), pObj->fPhase );
     // duplicate logic above the cut
     Aig_ManForEachPo( p, pObj, i )
@@ -311,14 +313,14 @@ Aig_Man_t * Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut )
     Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
         pObjLo->pData = pObjLi->pData;
     // erase the data values on the internal nodes of the cut
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = NULL;
     // duplicate logic below the cut
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
     {
         Saig_ManRetimeDup_rec( pNew, pObj );
-        Aig_ObjCreatePo( pNew, Aig_NotCond(pObj->pData, pObj->fPhase) );
+        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)pObj->pData, pObj->fPhase) );
     }
     Aig_ManCleanup( pNew );
     return pNew;
@@ -355,7 +357,7 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_
     Saig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
     // create the registers
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
         pObj->pData = Aig_NotCond( Aig_ObjCreatePi(pNew), vInit?Vec_IntEntry(vInit,i):0 );
     // duplicate logic above the cut and remember values
     Saig_ManForEachLi( p, pObj, i )
@@ -367,7 +369,7 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_
     Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
         pObjLo->pData = pObjLi->pData;
     // erase the data values on the internal nodes of the cut
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = NULL;
     // replicate the data on the constant node and the PIs
@@ -381,10 +383,10 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_
         Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
         Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     }
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
     {
         Saig_ManRetimeDup_rec( pNew, pObj );
-        Aig_ObjCreatePo( pNew, Aig_NotCond(pObj->pData, vInit?Vec_IntEntry(vInit,i):0) );
+        Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)pObj->pData, vInit?Vec_IntEntry(vInit,i):0) );
     }
     Aig_ManCleanup( pNew );
     return pNew;
@@ -414,7 +416,7 @@ Aig_Man_t * Saig_ManRetimeDupInitState( Aig_Man_t * p, Vec_Ptr_t * vCut )
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     // create the registers
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vCut, pObj, i )
         pObj->pData = Aig_ObjCreatePi(pNew);
     // duplicate logic above the cut and create POs
     Saig_ManForEachLi( p, pObj, i )
@@ -503,7 +505,7 @@ int Saig_ManHideBadRegs( Aig_Man_t * p, Vec_Ptr_t * vBadRegs )
     nTruePo = Aig_ManPoNum(p) - Aig_ManRegNum(p);
     assert( nTruePi == p->nTruePis );
     assert( nTruePo == p->nTruePos );
-    Vec_PtrForEachEntry( vBadRegs, pObjLi, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vBadRegs, pObjLi, i )
     {
         Vec_PtrWriteEntry( vPisNew, nTruePi++, pObjLi->pData );
         Vec_PtrWriteEntry( vPosNew, nTruePo++, pObjLi );
@@ -698,4 +700,6 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnl
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

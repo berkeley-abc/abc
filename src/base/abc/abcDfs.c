@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -128,7 +131,7 @@ Vec_Ptr_t * Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes 
             Abc_NodeSetTravIdCurrent(ppNodes[i]);
             Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(ppNodes[i])), vNodes );
         }
-        else if ( Abc_ObjIsNode(ppNodes[i]) )
+        else if ( Abc_ObjIsNode(ppNodes[i]) || Abc_ObjIsCi(ppNodes[i]) )
             Abc_NtkDfs_rec( ppNodes[i], vNodes );
     }
     return vNodes;
@@ -237,7 +240,7 @@ void Abc_NtkDfsReverseNodes_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // add the node after the fanins have been added
 //    Vec_PtrPush( vNodes, pNode );
     Vec_PtrFillExtra( vNodes, pNode->Level + 1, NULL );
-    pNode->pCopy = Vec_PtrEntry( vNodes, pNode->Level );
+    pNode->pCopy = (Abc_Obj_t *)Vec_PtrEntry( vNodes, pNode->Level );
     Vec_PtrWriteEntry( vNodes, pNode->Level, pNode );
 }
 
@@ -306,14 +309,14 @@ Vec_Ptr_t * Abc_NtkDfsReverseNodesContained( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNo
         Abc_NodeSetTravIdCurrent( pObj );
         // add to the array
         assert( pObj->Level == 0 );
-        pObj->pCopy = Vec_PtrEntry( vNodes, pObj->Level );
+        pObj->pCopy = (Abc_Obj_t *)Vec_PtrEntry( vNodes, pObj->Level );
         Vec_PtrWriteEntry( vNodes, pObj->Level, pObj );
     }
     // iterate through the levels
     for ( i = 0; i <= nLevels; i++ )
     {
         // iterate through the nodes on each level
-        for ( pObj = Vec_PtrEntry(vNodes, i); pObj; pObj = pObj->pCopy )
+        for ( pObj = (Abc_Obj_t *)Vec_PtrEntry(vNodes, i); pObj; pObj = pObj->pCopy )
         {
             // iterate through the fanouts of each node
             Abc_ObjForEachFanout( pObj, pFanout, k )
@@ -337,7 +340,7 @@ Vec_Ptr_t * Abc_NtkDfsReverseNodesContained( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNo
                 if ( Abc_ObjIsCo(pFanout) )
                     pFanout->Level = nLevels + 1;
                 // add to the array
-                pFanout->pCopy = Vec_PtrEntry( vNodes, pFanout->Level );
+                pFanout->pCopy = (Abc_Obj_t *)Vec_PtrEntry( vNodes, pFanout->Level );
                 Vec_PtrWriteEntry( vNodes, pFanout->Level, pFanout );
                 // handle the COs
                 if ( Abc_ObjIsCo(pFanout) )
@@ -494,7 +497,7 @@ void Abc_NtkDfs_iter( Vec_Ptr_t * vStack, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes 
     {
         // get the node and its fanin
         iFanin = (int)(ABC_PTRINT_T)Vec_PtrPop(vStack);
-        pNode  = Vec_PtrPop(vStack);
+        pNode  = (Abc_Obj_t *)Vec_PtrPop(vStack);
         assert( !Abc_ObjIsNet(pNode) );
         // add it to the array of nodes if we finished
         if ( iFanin == Abc_ObjFaninNum(pNode) )
@@ -578,7 +581,7 @@ Vec_Ptr_t * Abc_NtkDfsIterNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots )
     Abc_NtkIncrementTravId( pNtk );
     vNodes = Vec_PtrAlloc( 1000 );
     vStack = Vec_PtrAlloc( 1000 );
-    Vec_PtrForEachEntry( vRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pObj, i )
         if ( !Abc_NodeIsTravIdCurrent(Abc_ObjRegular(pObj)) )
             Abc_NtkDfs_iter( vStack, Abc_ObjRegular(pObj), vNodes );
     Vec_PtrFree( vStack );
@@ -657,7 +660,7 @@ Vec_Ptr_t * Abc_NtkDfsHie( Abc_Ntk_t * pNtk, int fCollectAll )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
+int Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode, * pFanin;
     int i, k;
@@ -675,7 +678,7 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
                 return 0;
         // check the choices of the node
         if ( Abc_NtkIsStrash(pNtk) && Abc_AigNodeIsChoice(pNode) )
-            for ( pFanin = pNode->pData; pFanin; pFanin = pFanin->pData )
+            for ( pFanin = (Abc_Obj_t *)pNode->pData; pFanin; pFanin = (Abc_Obj_t *)pFanin->pData )
                 if ( !Abc_NodeIsTravIdCurrent(pFanin) )
                     return 0;
         // mark the node as visited
@@ -832,7 +835,7 @@ void Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
         Abc_AigDfs_rec( pFanin, vNodes );
     // visit the equivalent nodes
     if ( Abc_AigNodeIsChoice( pNode ) )
-        for ( pFanin = pNode->pData; pFanin; pFanin = pFanin->pData )
+        for ( pFanin = (Abc_Obj_t *)pNode->pData; pFanin; pFanin = (Abc_Obj_t *)pFanin->pData )
             Abc_AigDfs_rec( pFanin, vNodes );
     // add the node after the fanins have been added
     Vec_PtrPush( vNodes, pNode );
@@ -921,7 +924,7 @@ void Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Vec_t * vLevels )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Vec_t * Abc_DfsLevelized( Abc_Obj_t * pNode, bool fTfi )
+Vec_Vec_t * Abc_DfsLevelized( Abc_Obj_t * pNode, int fTfi )
 {
     Vec_Vec_t * vLevels;
     Abc_Obj_t * pFanout;
@@ -1118,7 +1121,7 @@ int Abc_NtkLevelReverse( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
+int Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
 {
     Abc_Ntk_t * pNtk = pNode->pNtk;
     Abc_Obj_t * pFanin;
@@ -1157,7 +1160,7 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     // visit choices
     if ( Abc_NtkIsStrash(pNode->pNtk) && Abc_AigNodeIsChoice(pNode) )
     {
-        for ( pFanin = pNode->pData; pFanin; pFanin = pFanin->pData )
+        for ( pFanin = (Abc_Obj_t *)pNode->pData; pFanin; pFanin = (Abc_Obj_t *)pFanin->pData )
         {
             // check if the fanin is visited
             if ( Abc_NodeIsTravIdPrevious(pFanin) ) 
@@ -1194,10 +1197,11 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
+int Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    int fAcyclic, i;
+    int fAcyclic;
+    int i;
     // set the traversal ID for this DFS ordering
     Abc_NtkIncrementTravId( pNtk );   
     Abc_NtkIncrementTravId( pNtk );   
@@ -1247,16 +1251,16 @@ int Abc_NodeSetChoiceLevel_rec( Abc_Obj_t * pNode, int fMaximum )
     Level  = 1 + ABC_MAX( Level1, Level2 );
     if ( pNode->pData )
     {
-        LevelE = Abc_NodeSetChoiceLevel_rec( pNode->pData, fMaximum );
+        LevelE = Abc_NodeSetChoiceLevel_rec( (Abc_Obj_t *)pNode->pData, fMaximum );
         if ( fMaximum )
             Level = ABC_MAX( Level, LevelE );
         else
             Level = ABC_MIN( Level, LevelE );
         // set the level of all equivalent nodes to be the same minimum
-        for ( pTemp = pNode->pData; pTemp; pTemp = pTemp->pData )
-            pTemp->pCopy = (void *)(ABC_PTRINT_T)Level;
+        for ( pTemp = (Abc_Obj_t *)pNode->pData; pTemp; pTemp = (Abc_Obj_t *)pTemp->pData )
+            pTemp->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)Level;
     }
-    pNode->pCopy = (void *)(ABC_PTRINT_T)Level;
+    pNode->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)Level;
     return Level;
 }
 
@@ -1331,7 +1335,7 @@ Vec_Ptr_t * Abc_AigGetLevelizedOrder( Abc_Ntk_t * pNtk, int fCollectCis )
     }
     // recollect nodes
     vNodes = Vec_PtrStart( Abc_NtkNodeNum(pNtk) );
-    Vec_PtrForEachEntryStart( vLevels, pNode, i, !fCollectCis )
+    Vec_PtrForEachEntryStart( Abc_Obj_t *, vLevels, pNode, i, !fCollectCis )
         for ( ; pNode; pNode = pNode->pCopy )
             Vec_PtrPush( vNodes, pNode );
     Vec_PtrFree( vLevels );
@@ -1387,4 +1391,6 @@ int Abc_NtkPrintSubraphSizes( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

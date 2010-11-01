@@ -18,6 +18,9 @@
 
 #include "extra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
     The ideas implemented in this file are inspired by the paper:
     Pankaj Chauhan, Edmund Clarke, Somesh Jha, Jim Kukula, Tom Shiple, 
@@ -1154,4 +1157,6 @@ DdNode * Extra_bddImageRead2( Extra_ImageTree2_t * pTree )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

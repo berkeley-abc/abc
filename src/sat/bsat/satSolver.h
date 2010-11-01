@@ -2,7 +2,7 @@
 MiniSat -- Copyright (c) 2005, Niklas Sorensson
 http://www.cs.chalmers.se/Cs/Research/FormalMethods/MiniSat/
 
-Permission is hereby granted, ABC_FREE of charge, to any person obtaining a copy of this software and
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
@@ -22,28 +22,29 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef satSolver_h
 #define satSolver_h
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "abc_global.h"
 #include "satVec.h"
 #include "satMem.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 //=================================================================================================
 // Simple types:
 
-// does not work for c++
-//typedef int                   bool;
 #ifndef __cplusplus
-#ifndef bool
-#define bool int
+#ifndef false
+#  define false 0
+#endif
+#ifndef true
+#  define true 1
 #endif
 #endif
-
-static const bool  true      = 1;
-static const bool  false     = 0;
 
 typedef int                lit;
 typedef char               lbool;
@@ -74,8 +75,8 @@ typedef struct sat_solver_t sat_solver;
 extern sat_solver* sat_solver_new(void);
 extern void        sat_solver_delete(sat_solver* s);
 
-extern bool        sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
-extern bool        sat_solver_simplify(sat_solver* s);
+extern int         sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
+extern int         sat_solver_simplify(sat_solver* s);
 extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 
 extern int         sat_solver_nvars(sat_solver* s);
@@ -89,7 +90,7 @@ struct stats_t
     ABC_INT64_T   starts, decisions, propagations, inspects, conflicts;
     ABC_INT64_T   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
 };
-typedef struct stats_t stats;
+typedef struct stats_t stats_t;
 
 extern void        Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars );
 extern void        Sat_SolverPrintStats( FILE * pFile, sat_solver * p );
@@ -139,6 +140,7 @@ struct sat_solver_t
     clause** reasons;       //
     int*     levels;        //
     lit*     trail;
+    char*    polarity;
 
     clause*  binary;        // A temporary binary clause
     lbool*   tags;          //
@@ -148,6 +150,8 @@ struct sat_solver_t
     veci     order;         // Variable order. (heap) (contains: var)
     veci     trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
     veci     model;         // If problem is solved, this vector contains the model (contains: lbool).
+    veci     conf_final;    // If problem is unsatisfiable (possibly under assumptions),
+                            // this vector represent the final conflict clause expressed in the assumptions.
 
     int      root_level;    // Level of first proper decision.
     int      simpdb_assigns;// Number of top-level assignments at last 'simplifyDB()'.
@@ -156,7 +160,7 @@ struct sat_solver_t
     double   progress_estimate;
     int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
-    stats    stats;
+    stats_t    stats;
 
     ABC_INT64_T   nConfLimit;    // external limit on the number of conflicts
     ABC_INT64_T   nInsLimit;     // external limit on the number of implications
@@ -209,5 +213,9 @@ static void sat_solver_compress(sat_solver* s)
         assert( RetValue != 0 );
     }
 }
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

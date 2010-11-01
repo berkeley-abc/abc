@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "ioAbc.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -26,8 +30,6 @@
 
 static int Abc_NtkCountFaninsTotal( Abc_Ntk_t * pNtk );
 static Abc_Ntk_t * Abc_NtkAutoDebugModify( Abc_Ntk_t * pNtk, int ObjNum, int fConst1 );
-
-extern void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -205,4 +207,6 @@ Abc_Ntk_t * Abc_NtkAutoDebugModify( Abc_Ntk_t * pNtkInit, int Step, int fConst1 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

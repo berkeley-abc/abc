@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -87,12 +90,12 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     Abc_NodeCollectFanins( pNode, vFanins );
     for ( i = 0; i < vFanins->nSize; i++ )
         if ( vSupport->pArray[i] == 0 )
-            Abc_ObjDeleteFanin( pNode, vFanins->pArray[i] );
+            Abc_ObjDeleteFanin( pNode, (Abc_Obj_t *)vFanins->pArray[i] );
     assert( nVars == Abc_ObjFaninNum(pNode) );
 
     // update the function of the node
-    pNode->pData = Extra_bddRemapUp( pNode->pNtk->pManFunc, bTemp = pNode->pData );   Cudd_Ref( pNode->pData );
-    Cudd_RecursiveDeref( pNode->pNtk->pManFunc, bTemp );
+    pNode->pData = Extra_bddRemapUp( (DdManager *)pNode->pNtk->pManFunc, bTemp = (DdNode *)pNode->pData );   Cudd_Ref( (DdNode *)pNode->pData );
+    Cudd_RecursiveDeref( (DdManager *)pNode->pNtk->pManFunc, bTemp );
     Vec_PtrFree( vFanins );
     Vec_StrFree( vSupport );
     return 1;
@@ -146,12 +149,12 @@ int Abc_NodeRemoveDupFanins_int( Abc_Obj_t * pNode )
                 break;
             if ( pFanin1 == pFanin2 )
             {
-                DdManager * dd = pNode->pNtk->pManFunc;
+                DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
                 DdNode * bVar1 = Cudd_bddIthVar( dd, i );
                 DdNode * bVar2 = Cudd_bddIthVar( dd, k );
                 DdNode * bTrans, * bTemp;
                 bTrans = Cudd_bddXnor( dd, bVar1, bVar2 ); Cudd_Ref( bTrans );
-                pNode->pData = Cudd_bddAndAbstract( dd, bTemp = pNode->pData, bTrans, bVar2 ); Cudd_Ref( pNode->pData );
+                pNode->pData = Cudd_bddAndAbstract( dd, bTemp = (DdNode *)pNode->pData, bTrans, bVar2 ); Cudd_Ref( (DdNode *)pNode->pData );
                 Cudd_RecursiveDeref( dd, bTemp );
                 Cudd_RecursiveDeref( dd, bTrans );
                 Abc_NodeMinimumBase( pNode );
@@ -315,7 +318,7 @@ int Abc_ObjFaninNumberNew( Vec_Ptr_t * vFanins, Abc_Obj_t * pFanin )
 {
     Abc_Obj_t * pObj;
     int i;
-    Vec_PtrForEachEntry( vFanins, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pObj, i )
         if ( pObj == pFanin )
             return i;
     return -1;
@@ -363,7 +366,7 @@ int Abc_NodeCollapsePermMap( Abc_Obj_t * pNode, Abc_Obj_t * pSkip, Vec_Ptr_t * v
 ***********************************************************************/
 DdNode * Abc_NodeCollapseFunc( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFanins, int * pPermFanin, int * pPermFanout )
 {
-    DdManager * dd = pFanin->pNtk->pManFunc;
+    DdManager * dd = (DdManager *)pFanin->pNtk->pManFunc;
     DdNode * bVar, * bFunc0, * bFunc1, * bTemp, * bFanin, * bFanout;
     int RetValue, nSize, iFanin;
     // can only eliminate if fanin occurs in the fanin list of the fanout exactly once
@@ -380,14 +383,14 @@ DdNode * Abc_NodeCollapseFunc( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_
     assert( RetValue );
     // cofactor the local function of the node
     bVar   = Cudd_bddIthVar( dd, iFanin );
-    bFunc0 = Cudd_Cofactor( dd, pFanout->pData, Cudd_Not(bVar) ); Cudd_Ref( bFunc0 );
-    bFunc1 = Cudd_Cofactor( dd, pFanout->pData, bVar );           Cudd_Ref( bFunc1 );
+    bFunc0 = Cudd_Cofactor( dd, (DdNode *)pFanout->pData, Cudd_Not(bVar) ); Cudd_Ref( bFunc0 );
+    bFunc1 = Cudd_Cofactor( dd, (DdNode *)pFanout->pData, bVar );           Cudd_Ref( bFunc1 );
     // find the permutation after collapsing
     bFunc0 = Cudd_bddPermute( dd, bTemp = bFunc0, pPermFanout );  Cudd_Ref( bFunc0 );
     Cudd_RecursiveDeref( dd, bTemp ); 
     bFunc1 = Cudd_bddPermute( dd, bTemp = bFunc1, pPermFanout );  Cudd_Ref( bFunc1 );
     Cudd_RecursiveDeref( dd, bTemp );
-    bFanin = Cudd_bddPermute( dd, pFanin->pData, pPermFanin );    Cudd_Ref( bFanin );
+    bFanin = Cudd_bddPermute( dd, (DdNode *)pFanin->pData, pPermFanin );    Cudd_Ref( bFanin );
     // create the new function
     bFanout = Cudd_bddIte( dd, bFanin, bFunc1, bFunc0 );          Cudd_Ref( bFanout );
     Cudd_RecursiveDeref( dd, bFanin );
@@ -422,7 +425,7 @@ int Abc_NodeCollapse( Abc_Obj_t * pFanin, Abc_Obj_t * pFanout, Vec_Ptr_t * vFani
     Cudd_Ref( bFanoutNew );
     // create the new node
     pFanoutNew = Abc_NtkCreateNode( pFanin->pNtk );
-    Vec_PtrForEachEntry( vFanins, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pObj, i )
         Abc_ObjAddFanin( pFanoutNew, pObj );
     pFanoutNew->pData = bFanoutNew;
     // minimize the node
@@ -471,7 +474,7 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
     pPermFanout = ABC_ALLOC( int, nMaxSize + 100 );
     vFanins = Vec_PtrAlloc( 100 );
     vFanouts = Vec_PtrAlloc( 100 );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         if ( Abc_NodeFindCoFanout(pNode) != NULL )
             continue;
@@ -484,7 +487,7 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
             continue;
         // perform elimination
         Abc_NodeCollectFanouts( pNode, vFanouts );
-        Vec_PtrForEachEntry( vFanouts, pFanout, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vFanouts, pFanout, k )
         {
             RetValue = Abc_NodeCollapse( pNode, pFanout, vFanins, pPermFanin, pPermFanout );
             assert( RetValue );
@@ -503,4 +506,6 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

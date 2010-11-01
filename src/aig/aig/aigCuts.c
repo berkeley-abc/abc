@@ -21,6 +21,9 @@
 #include "aig.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -207,7 +210,7 @@ static inline float Aig_CutFindCost2( Aig_ManCut_t * p, Aig_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the next ABC_FREE cut to use.]
+  Synopsis    [Returns the next free cut to use.]
 
   Description []
                
@@ -666,4 +669,6 @@ Aig_ManCut_t * Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, in
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

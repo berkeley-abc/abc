@@ -20,6 +20,9 @@
 
 #include "ntl.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -217,7 +220,7 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     // set up the boxes
     iBox = 0;
     curPi = p->iLastCi;
-    Vec_PtrForEachEntry( p->vVisNodes, pObj, i )
+    Vec_PtrForEachEntry( Ntl_Obj_t *, p->vVisNodes, pObj, i )
     {
         if ( !Ntl_ObjIsBox(pObj) )
             continue;
@@ -237,4 +240,6 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

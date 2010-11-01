@@ -21,12 +21,16 @@
 #ifndef __HASH_FLT_H__
 #define __HASH_FLT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include "extra.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 extern int Hash_DefaultHashFunc(int key, int nBins);
 
@@ -326,5 +330,9 @@ static inline void Hash_FltFree( Hash_Flt_t *p ) {
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

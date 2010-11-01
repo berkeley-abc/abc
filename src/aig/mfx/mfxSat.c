@@ -20,6 +20,9 @@
 
 #include "mfxInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -90,7 +93,7 @@ int Mfx_SolveSat( Mfx_Man_t * p, Nwk_Obj_t * pNode )
     int RetValue, i;
     // collect projection variables
     Vec_IntClear( p->vProjVars );
-    Vec_PtrForEachEntryStart( p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Nwk_ObjFaninNum(pNode) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Nwk_ObjFaninNum(pNode) )
     {
         assert( p->pCnf->pVarNums[pObjPo->Id] >= 0 );
         Vec_IntPush( p->vProjVars, p->pCnf->pVarNums[pObjPo->Id] );
@@ -137,4 +140,6 @@ int Mfx_SolveSat( Mfx_Man_t * p, Nwk_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

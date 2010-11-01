@@ -21,6 +21,7 @@
 #ifndef __CEC_INT_H__
 #define __CEC_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -34,9 +35,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -128,8 +130,8 @@ struct Cec_ManSim_t_
     void **          pCexes;         // counter-examples for each output
     int              iOut;           // first failed output
     int              nOuts;          // the number of failed outputs
-    Gia_Cex_t *      pCexComb;       // counter-example for the first failed output
-    Gia_Cex_t *      pBestState;     // the state that led to most of the refinements
+    Abc_Cex_t *      pCexComb;       // counter-example for the first failed output
+    Abc_Cex_t *      pBestState;     // the state that led to most of the refinements
     // scoring simulation patterns
     int *            pScores;        // counters of refinement for each pattern
     // temporaries
@@ -170,7 +172,7 @@ struct Cec_ManFra_t_
 extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, int Time );
 /*=== cecClass.c ============================================================*/
 extern int                  Cec_ManSimClassRemoveOne( Cec_ManSim_t * p, int i );
-extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p );
+extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p, int LevelMax );
 extern int                  Cec_ManSimClassesRefine( Cec_ManSim_t * p );
 extern int                  Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * vInfoCos );
 /*=== cecIso.c ============================================================*/
@@ -192,8 +194,8 @@ extern Vec_Ptr_t *          Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int
 extern Vec_Ptr_t *          Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nRegs, int nWordsInit );
 /*=== cecSeq.c ============================================================*/
 extern int                  Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo );
-extern int                  Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Gia_Cex_t * pBestState, int fCheckMiter );
-extern void                 Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Gia_Cex_t * pCex );
+extern int                  Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Abc_Cex_t * pBestState, int fCheckMiter );
+extern void                 Cec_ManSeqDeriveInfoInitRandom( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Abc_Cex_t * pCex );
 extern int                  Cec_ManCountNonConstOutputs( Gia_Man_t * pAig );
 extern int                  Cec_ManCheckNonTrivialCands( Gia_Man_t * pAig );
 /*=== cecSolve.c ============================================================*/
@@ -209,9 +211,11 @@ extern Vec_Int_t *          Cec_ManSatReadCex( Cec_ManSat_t * p );
 extern Gia_Man_t *          Cec_ManFraSpecReduction( Cec_ManFra_t * p );
 extern int                  Cec_ManFraClassesUpdate( Cec_ManFra_t * p, Cec_ManSim_t * pSim, Cec_ManPat_t * pPat, Gia_Man_t * pNew );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

@@ -24,14 +24,17 @@
 #include "bzlib.h"
 #include "zlib.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Ioa_ReadMod_t_ Ioa_ReadMod_t;   // parsing model
-typedef struct Ioa_ReadMan_t_ Ioa_ReadMan_t;   // parsing manager
+typedef struct Ntl_ReadMod_t_ Ntl_ReadMod_t;   // parsing model
+typedef struct Ntl_ReadMan_t_ Ntl_ReadMan_t;   // parsing manager
 
-struct Ioa_ReadMod_t_
+struct Ntl_ReadMod_t_
 {
     // file lines
     char *               pFirst;       // .model line
@@ -53,10 +56,10 @@ struct Ioa_ReadMod_t_
     // the resulting network
     Ntl_Mod_t *          pNtk;   
     // the parent manager
-    Ioa_ReadMan_t *      pMan;         
+    Ntl_ReadMan_t *      pMan;         
 };
 
-struct Ioa_ReadMan_t_
+struct Ntl_ReadMan_t_
 {
     // general info about file
     char *               pFileName;    // the name of the file
@@ -66,7 +69,7 @@ struct Ioa_ReadMan_t_
     Ntl_Man_t *          pDesign;      // the design under construction
     // intermediate storage for models
     Vec_Ptr_t *          vModels;      // vector of models
-    Ioa_ReadMod_t *      pLatest;      // the current model
+    Ntl_ReadMod_t *      pLatest;      // the current model
     // current processing info
     Vec_Ptr_t *          vTokens;      // the current tokens
     Vec_Ptr_t *          vTokens2;     // the current tokens
@@ -79,28 +82,28 @@ struct Ioa_ReadMan_t_
 };
 
 // static functions
-static Ioa_ReadMan_t *   Ioa_ReadAlloc();
-static void              Ioa_ReadFree( Ioa_ReadMan_t * p );
-static Ioa_ReadMod_t *   Ioa_ReadModAlloc();
-static void              Ioa_ReadModFree( Ioa_ReadMod_t * p );
-static char *            Ioa_ReadLoadFile( char * pFileName );
-static char *            Ioa_ReadLoadFileBz2( char * pFileName );
-static char *            Ioa_ReadLoadFileGz( char * pFileName );
-static void              Ioa_ReadReadPreparse( Ioa_ReadMan_t * p );
-static int               Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p );
-static Ntl_Man_t *       Ioa_ReadParse( Ioa_ReadMan_t * p );
-static int               Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine );
-static int               Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine );
-static int               Ioa_ReadParseLineInputs( Ioa_ReadMod_t * p, char * pLine );
-static int               Ioa_ReadParseLineOutputs( Ioa_ReadMod_t * p, char * pLine );
-static int               Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine );
-static int               Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine );
-static int               Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine );
-static int               Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput );
-static int               Ioa_ReadParseLineNamesBlif( Ioa_ReadMod_t * p, char * pLine );
+static Ntl_ReadMan_t *   Ntl_ReadAlloc();
+static void              Ntl_ReadFree( Ntl_ReadMan_t * p );
+static Ntl_ReadMod_t *   Ntl_ReadModAlloc();
+static void              Ntl_ReadModFree( Ntl_ReadMod_t * p );
+static char *            Ntl_ReadLoadFile( char * pFileName );
+static char *            Ntl_ReadLoadFileBz2( char * pFileName );
+static char *            Ntl_ReadLoadFileGz( char * pFileName );
+static void              Ntl_ReadReadPreparse( Ntl_ReadMan_t * p );
+static int               Ntl_ReadReadInterfaces( Ntl_ReadMan_t * p );
+static Ntl_Man_t *       Ntl_ReadParse( Ntl_ReadMan_t * p );
+static int               Ntl_ReadParseLineModel( Ntl_ReadMod_t * p, char * pLine );
+static int               Ntl_ReadParseLineAttrib( Ntl_ReadMod_t * p, char * pLine );
+static int               Ntl_ReadParseLineInputs( Ntl_ReadMod_t * p, char * pLine );
+static int               Ntl_ReadParseLineOutputs( Ntl_ReadMod_t * p, char * pLine );
+static int               Ntl_ReadParseLineLatch( Ntl_ReadMod_t * p, char * pLine );
+static int               Ntl_ReadParseLineSubckt( Ntl_ReadMod_t * p, char * pLine );
+static int               Ntl_ReadParseLineDelay( Ntl_ReadMod_t * p, char * pLine );
+static int               Ntl_ReadParseLineTimes( Ntl_ReadMod_t * p, char * pLine, int fOutput );
+static int               Ntl_ReadParseLineNamesBlif( Ntl_ReadMod_t * p, char * pLine );
 
-static int               Ioa_ReadCharIsSpace( char s )   { return s == ' ' || s == '\t' || s == '\r' || s == '\n';             }
-static int               Ioa_ReadCharIsSopSymb( char s ) { return s == '0' || s == '1' || s == '-' || s == '\r' || s == '\n';  }
+static int               Ntl_ReadCharIsSpace( char s )   { return s == ' ' || s == '\t' || s == '\r' || s == '\n';             }
+static int               Ntl_ReadCharIsSopSymb( char s ) { return s == '0' || s == '1' || s == '-' || s == '\r' || s == '\n';  }
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -118,61 +121,64 @@ static int               Ioa_ReadCharIsSopSymb( char s ) { return s == '0' || s 
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
+Ntl_Man_t * Ntl_ManReadBlif( char * pFileName, int fCheck )
 {
     FILE * pFile;
-    Ioa_ReadMan_t * p;
+    Ntl_ReadMan_t * p;
     Ntl_Man_t * pDesign;
-//    int nNodes;
-
+    if ( !Ntl_FileIsType(pFileName, ".blif", ".blif.gz", ".blif.bz2") )
+    {     
+        printf( "Wrong file format\n" );
+        return NULL;
+    }
     // check that the file is available
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Ioa_ReadBlif(): The file is unavailable (absent or open).\n" );
+        printf( "Ntl_ManReadBlif(): The file is unavailable (absent or open).\n" );
         return 0;
     }
     fclose( pFile );
 
     // start the file reader
-    p = Ioa_ReadAlloc();
+    p = Ntl_ReadAlloc();
     p->pFileName = pFileName;
     if ( !strncmp(pFileName+strlen(pFileName)-4,".bz2",4) )
-        p->pBuffer = Ioa_ReadLoadFileBz2( pFileName );
+        p->pBuffer = Ntl_ReadLoadFileBz2( pFileName );
     else if ( !strncmp(pFileName+strlen(pFileName)-3,".gz",3) )
-        p->pBuffer = Ioa_ReadLoadFileGz( pFileName );
+        p->pBuffer = Ntl_ReadLoadFileGz( pFileName );
     else
-        p->pBuffer = Ioa_ReadLoadFile( pFileName );
+        p->pBuffer = Ntl_ReadLoadFile( pFileName );
     if ( p->pBuffer == NULL )
     {
-        Ioa_ReadFree( p );
+        Ntl_ReadFree( p );
         return NULL;
     }
     // set the design name
-    p->pDesign = Ntl_ManAlloc( pFileName );
+    p->pDesign = Ntl_ManAlloc();
     p->pDesign->pName = Ntl_ManStoreFileName( p->pDesign, pFileName );
     p->pDesign->pSpec = Ntl_ManStoreName( p->pDesign, pFileName );
     // prepare the file for parsing
-    Ioa_ReadReadPreparse( p );
+    Ntl_ReadReadPreparse( p );
     // parse interfaces of each network
-    if ( !Ioa_ReadReadInterfaces( p ) )
+    if ( !Ntl_ReadReadInterfaces( p ) )
     {
         if ( p->sError[0] )
             fprintf( stdout, "%s\n", p->sError );
-        Ioa_ReadFree( p );
+        Ntl_ReadFree( p );
         return NULL;
     }
     // construct the network
-    pDesign = Ioa_ReadParse( p );
+    pDesign = Ntl_ReadParse( p );
     if ( p->sError[0] )
         fprintf( stdout, "%s\n", p->sError );
     if ( pDesign == NULL )
     {
-        Ioa_ReadFree( p );
+        Ntl_ReadFree( p );
         return NULL;
     }
     p->pDesign = NULL;
-    Ioa_ReadFree( p );
+    Ntl_ReadFree( p );
 // pDesign should be linked to all models of the design
 
     // make sure that everything is okay with the network structure
@@ -180,7 +186,7 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
     {
         if ( !Ntl_ManCheck( pDesign ) )
         {
-            printf( "Ioa_ReadBlif: The check has failed for design %s.\n", pDesign->pName );
+            printf( "Ntl_ReadBlif: The check has failed for design %s.\n", pDesign->pName );
             Ntl_ManFree( pDesign );
             return NULL;
         }
@@ -189,7 +195,7 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
     // transform the design by removing the CO drivers
 //    if ( (nNodes = Ntl_ManReconnectCoDrivers(pDesign)) )
 //        printf( "The design was transformed by removing %d buf/inv CO drivers.\n", nNodes );
-//Ioa_WriteBlif( pDesign, "_temp_.blif" );
+//Ntl_ManWriteBlif( pDesign, "_temp_.blif" );
 /*
     {   
         Aig_Man_t * p = Ntl_ManCollapseSeq( pDesign );
@@ -210,11 +216,11 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
   SeeAlso     []
 
 ***********************************************************************/
-static Ioa_ReadMan_t * Ioa_ReadAlloc()
+static Ntl_ReadMan_t * Ntl_ReadAlloc()
 {
-    Ioa_ReadMan_t * p;
-    p = ABC_ALLOC( Ioa_ReadMan_t, 1 );
-    memset( p, 0, sizeof(Ioa_ReadMan_t) );
+    Ntl_ReadMan_t * p;
+    p = ABC_ALLOC( Ntl_ReadMan_t, 1 );
+    memset( p, 0, sizeof(Ntl_ReadMan_t) );
     p->vLines   = Vec_PtrAlloc( 512 );
     p->vModels  = Vec_PtrAlloc( 512 );
     p->vTokens  = Vec_PtrAlloc( 512 );
@@ -234,9 +240,9 @@ static Ioa_ReadMan_t * Ioa_ReadAlloc()
   SeeAlso     []
 
 ***********************************************************************/
-static void Ioa_ReadFree( Ioa_ReadMan_t * p )
+static void Ntl_ReadFree( Ntl_ReadMan_t * p )
 {
-    Ioa_ReadMod_t * pMod;
+    Ntl_ReadMod_t * pMod;
     int i;
     if ( p->pDesign )
         Ntl_ManFree( p->pDesign );
@@ -246,8 +252,8 @@ static void Ioa_ReadFree( Ioa_ReadMan_t * p )
         Vec_PtrFree( p->vLines );
     if ( p->vModels )
     {
-        Vec_PtrForEachEntry( p->vModels, pMod, i )
-            Ioa_ReadModFree( pMod );
+        Vec_PtrForEachEntry( Ntl_ReadMod_t *, p->vModels, pMod, i )
+            Ntl_ReadModFree( pMod );
         Vec_PtrFree( p->vModels );
     }
     Vec_PtrFree( p->vTokens );
@@ -267,11 +273,11 @@ static void Ioa_ReadFree( Ioa_ReadMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static Ioa_ReadMod_t * Ioa_ReadModAlloc()
+static Ntl_ReadMod_t * Ntl_ReadModAlloc()
 {
-    Ioa_ReadMod_t * p;
-    p = ABC_ALLOC( Ioa_ReadMod_t, 1 );
-    memset( p, 0, sizeof(Ioa_ReadMod_t) );
+    Ntl_ReadMod_t * p;
+    p = ABC_ALLOC( Ntl_ReadMod_t, 1 );
+    memset( p, 0, sizeof(Ntl_ReadMod_t) );
     p->vInputs      = Vec_PtrAlloc( 8 );
     p->vOutputs     = Vec_PtrAlloc( 8 );
     p->vLatches     = Vec_PtrAlloc( 8 );
@@ -294,7 +300,7 @@ static Ioa_ReadMod_t * Ioa_ReadModAlloc()
   SeeAlso     []
 
 ***********************************************************************/
-static void Ioa_ReadModFree( Ioa_ReadMod_t * p )
+static void Ntl_ReadModFree( Ntl_ReadMod_t * p )
 {
     Vec_PtrFree( p->vInputs );
     Vec_PtrFree( p->vOutputs );
@@ -320,7 +326,7 @@ static void Ioa_ReadModFree( Ioa_ReadMod_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadCountChars( char * pLine, char Char )
+static int Ntl_ReadCountChars( char * pLine, char Char )
 {
     char * pCur;
     int Counter = 0;
@@ -341,7 +347,7 @@ static int Ioa_ReadCountChars( char * pLine, char Char )
   SeeAlso     []
 
 ***********************************************************************/
-static void Ioa_ReadCollectTokens( Vec_Ptr_t * vTokens, char * pInput, char * pOutput )
+static void Ntl_ReadCollectTokens( Vec_Ptr_t * vTokens, char * pInput, char * pOutput )
 {
     char * pCur;
     Vec_PtrClear( vTokens );
@@ -365,15 +371,15 @@ static void Ioa_ReadCollectTokens( Vec_Ptr_t * vTokens, char * pInput, char * pO
   SeeAlso     []
 
 ***********************************************************************/
-static void Ioa_ReadSplitIntoTokens( Vec_Ptr_t * vTokens, char * pLine, char Stop )
+static void Ntl_ReadSplitIntoTokens( Vec_Ptr_t * vTokens, char * pLine, char Stop )
 {
     char * pCur;
     // clear spaces
     for ( pCur = pLine; *pCur != Stop; pCur++ )
-        if ( Ioa_ReadCharIsSpace(*pCur) )
+        if ( Ntl_ReadCharIsSpace(*pCur) )
             *pCur = 0;
     // collect tokens
-    Ioa_ReadCollectTokens( vTokens, pLine, pCur );
+    Ntl_ReadCollectTokens( vTokens, pLine, pCur );
 }
 
 /**Function*************************************************************
@@ -387,15 +393,15 @@ static void Ioa_ReadSplitIntoTokens( Vec_Ptr_t * vTokens, char * pLine, char Sto
   SeeAlso     []
 
 ***********************************************************************/
-static void Ioa_ReadSplitIntoTokensAndClear( Vec_Ptr_t * vTokens, char * pLine, char Stop, char Char )
+static void Ntl_ReadSplitIntoTokensAndClear( Vec_Ptr_t * vTokens, char * pLine, char Stop, char Char )
 {
     char * pCur;
     // clear spaces
     for ( pCur = pLine; *pCur != Stop; pCur++ )
-        if ( Ioa_ReadCharIsSpace(*pCur) || *pCur == Char )
+        if ( Ntl_ReadCharIsSpace(*pCur) || *pCur == Char )
             *pCur = 0;
     // collect tokens
-    Ioa_ReadCollectTokens( vTokens, pLine, pCur );
+    Ntl_ReadCollectTokens( vTokens, pLine, pCur );
 }
 
 /**Function*************************************************************
@@ -409,11 +415,11 @@ static void Ioa_ReadSplitIntoTokensAndClear( Vec_Ptr_t * vTokens, char * pLine, 
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadGetLine( Ioa_ReadMan_t * p, char * pToken )
+static int Ntl_ReadGetLine( Ntl_ReadMan_t * p, char * pToken )
 {
     char * pLine;
     int i;
-    Vec_PtrForEachEntry( p->vLines, pLine, i )
+    Vec_PtrForEachEntry( char *, p->vLines, pLine, i )
         if ( pToken < pLine )
             return i;
     return -1;
@@ -430,7 +436,7 @@ static int Ioa_ReadGetLine( Ioa_ReadMan_t * p, char * pToken )
   SeeAlso     []
 
 ***********************************************************************/
-static char * Ioa_ReadLoadFile( char * pFileName )
+static char * Ntl_ReadLoadFile( char * pFileName )
 {
     FILE * pFile;
     int nFileSize;
@@ -438,14 +444,14 @@ static char * Ioa_ReadLoadFile( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Ioa_ReadLoadFile(): The file is unavailable (absent or open).\n" );
+        printf( "Ntl_ReadLoadFile(): The file is unavailable (absent or open).\n" );
         return NULL;
     }
     fseek( pFile, 0, SEEK_END );  
     nFileSize = ftell( pFile ); 
     if ( nFileSize == 0 )
     {
-        printf( "Ioa_ReadLoadFile(): The file is empty.\n" );
+        printf( "Ntl_ReadLoadFile(): The file is empty.\n" );
         return NULL;
     }
     pContents = ABC_ALLOC( char, nFileSize + 10 );
@@ -475,7 +481,7 @@ typedef struct buflist {
   struct buflist * next;
 } buflist;
 
-static char * Ioa_ReadLoadFileBz2( char * pFileName )
+static char * Ntl_ReadLoadFileBz2( char * pFileName )
 {
     FILE    * pFile;
     int       nFileSize = 0;
@@ -488,12 +494,12 @@ static char * Ioa_ReadLoadFileBz2( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
-        printf( "Ioa_ReadLoadFileBz2(): The file is unavailable (absent or open).\n" );
+        printf( "Ntl_ReadLoadFileBz2(): The file is unavailable (absent or open).\n" );
         return NULL;
     }
     b = BZ2_bzReadOpen(&bzError,pFile,0,0,NULL,0);
     if (bzError != BZ_OK) {
-        printf( "Ioa_ReadLoadFileBz2(): BZ2_bzReadOpen() failed with error %d.\n",bzError );
+        printf( "Ntl_ReadLoadFileBz2(): BZ2_bzReadOpen() failed with error %d.\n",bzError );
         return NULL;
     }
     do {
@@ -525,7 +531,7 @@ static char * Ioa_ReadLoadFileBz2( char * pFileName )
         nFileSize = ftell( pFile );
         if ( nFileSize == 0 )
         {
-            printf( "Ioa_ReadLoadFileBz2(): The file is empty.\n" );
+            printf( "Ntl_ReadLoadFileBz2(): The file is empty.\n" );
             return NULL;
         }
         pContents = ABC_ALLOC( char, nFileSize + 10 );
@@ -533,7 +539,7 @@ static char * Ioa_ReadLoadFileBz2( char * pFileName )
         fread( pContents, nFileSize, 1, pFile );
     } else { 
         // Some other error.
-        printf( "Ioa_ReadLoadFileBz2(): Unable to read the compressed BLIF.\n" );
+        printf( "Ntl_ReadLoadFileBz2(): Unable to read the compressed BLIF.\n" );
         return NULL;
     }
     fclose( pFile );
@@ -554,13 +560,13 @@ static char * Ioa_ReadLoadFileBz2( char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-static char * Ioa_ReadLoadFileGz( char * pFileName )
+static char * Ntl_ReadLoadFileGz( char * pFileName )
 {
     const int READ_BLOCK_SIZE = 100000;
     FILE * pFile;
     char * pContents;
     int amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
-    pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
+    pFile = (FILE *)gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
     pContents = ABC_ALLOC( char, nFileSize );        
     readBlock = 0;
     while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
@@ -593,7 +599,7 @@ static char * Ioa_ReadLoadFileGz( char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
+static void Ntl_ReadReadPreparse( Ntl_ReadMan_t * p )
 {
     char * pCur, * pPrev;
     int i, fComment = 0;
@@ -617,13 +623,13 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
     }
 
     // unfold the line extensions and sort lines by directive
-    Vec_PtrForEachEntry( p->vLines, pCur, i )
+    Vec_PtrForEachEntry( char *, p->vLines, pCur, i )
     {
         if ( *pCur == 0 )
             continue;
         // find previous non-space character
         for ( pPrev = pCur - 2; pPrev >= p->pBuffer; pPrev-- )
-            if ( !Ioa_ReadCharIsSpace(*pPrev) )
+            if ( !Ntl_ReadCharIsSpace(*pPrev) )
                 break;
         // if it is the line extender, overwrite it with spaces
         if ( pPrev >= p->pBuffer && *pPrev == '\\' )
@@ -634,7 +640,7 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             continue;
         }
         // skip spaces at the beginning of the line
-        while ( Ioa_ReadCharIsSpace(*pCur++) );
+        while ( Ntl_ReadCharIsSpace(*pCur++) );
         // parse directives
         if ( *(pCur-1) != '.' )
             continue;
@@ -672,14 +678,14 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             p->pLatest->fBlackBox = 1;
         else if ( !strncmp(pCur, "model", 5) ) 
         {
-            p->pLatest = Ioa_ReadModAlloc();
+            p->pLatest = Ntl_ReadModAlloc();
             p->pLatest->pFirst = pCur;
             p->pLatest->pMan = p;
         }
         else if ( !strncmp(pCur, "attrib", 6) ) 
         {
             if ( p->pLatest->pAttrib != NULL )
-                fprintf( stdout, "Line %d: Skipping second .attrib line for this model.\n", Ioa_ReadGetLine(p, pCur) );
+                fprintf( stdout, "Line %d: Skipping second .attrib line for this model.\n", Ntl_ReadGetLine(p, pCur) );
             else
                 p->pLatest->pAttrib = pCur;
         }
@@ -691,7 +697,7 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
         }
         else if ( !strncmp(pCur, "exdc", 4) )
         {
-            fprintf( stdout, "Line %d: Skipping EXDC network.\n", Ioa_ReadGetLine(p, pCur) );
+            fprintf( stdout, "Line %d: Skipping EXDC network.\n", Ntl_ReadGetLine(p, pCur) );
             break;
         }
         else if ( !strncmp(pCur, "no_merge", 8) ) 
@@ -703,7 +709,7 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             pCur--;
             if ( pCur[strlen(pCur)-1] == '\r' )
                 pCur[strlen(pCur)-1] = 0;
-            fprintf( stdout, "Line %d: Skipping line \"%s\".\n", Ioa_ReadGetLine(p, pCur), pCur );
+            fprintf( stdout, "Line %d: Skipping line \"%s\".\n", Ntl_ReadGetLine(p, pCur), pCur );
         }
     }
 }
@@ -719,41 +725,41 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
+static int Ntl_ReadReadInterfaces( Ntl_ReadMan_t * p )
 {
-    Ioa_ReadMod_t * pMod;
+    Ntl_ReadMod_t * pMod;
     char * pLine;
     int i, k;
     // iterate through the models
-    Vec_PtrForEachEntry( p->vModels, pMod, i )
+    Vec_PtrForEachEntry( Ntl_ReadMod_t *, p->vModels, pMod, i )
     {
         // parse the model
-        if ( !Ioa_ReadParseLineModel( pMod, pMod->pFirst ) )
+        if ( !Ntl_ReadParseLineModel( pMod, pMod->pFirst ) )
             return 0;
         // parse the model attributes
-        if ( pMod->pAttrib && !Ioa_ReadParseLineAttrib( pMod, pMod->pAttrib ) )
+        if ( pMod->pAttrib && !Ntl_ReadParseLineAttrib( pMod, pMod->pAttrib ) )
             return 0;
         // parse no-merge
         if ( pMod->fNoMerge )
             pMod->pNtk->attrNoMerge = 1;
         // parse the inputs
-        Vec_PtrForEachEntry( pMod->vInputs, pLine, k )
-            if ( !Ioa_ReadParseLineInputs( pMod, pLine ) )
+        Vec_PtrForEachEntry( char *, pMod->vInputs, pLine, k )
+            if ( !Ntl_ReadParseLineInputs( pMod, pLine ) )
                 return 0;
         // parse the outputs
-        Vec_PtrForEachEntry( pMod->vOutputs, pLine, k )
-            if ( !Ioa_ReadParseLineOutputs( pMod, pLine ) )
+        Vec_PtrForEachEntry( char *, pMod->vOutputs, pLine, k )
+            if ( !Ntl_ReadParseLineOutputs( pMod, pLine ) )
                 return 0;
         // parse the delay info
         Ntl_ModelSetPioNumbers( pMod->pNtk );
-        Vec_PtrForEachEntry( pMod->vDelays, pLine, k )
-            if ( !Ioa_ReadParseLineDelay( pMod, pLine ) )
+        Vec_PtrForEachEntry( char *, pMod->vDelays, pLine, k )
+            if ( !Ntl_ReadParseLineDelay( pMod, pLine ) )
                 return 0;
-        Vec_PtrForEachEntry( pMod->vTimeInputs, pLine, k )
-            if ( !Ioa_ReadParseLineTimes( pMod, pLine, 0 ) )
+        Vec_PtrForEachEntry( char *, pMod->vTimeInputs, pLine, k )
+            if ( !Ntl_ReadParseLineTimes( pMod, pLine, 0 ) )
                 return 0;
-        Vec_PtrForEachEntry( pMod->vTimeOutputs, pLine, k )
-            if ( !Ioa_ReadParseLineTimes( pMod, pLine, 1 ) )
+        Vec_PtrForEachEntry( char *, pMod->vTimeOutputs, pLine, k )
+            if ( !Ntl_ReadParseLineTimes( pMod, pLine, 1 ) )
                 return 0;
         // report timing line stats
         if ( pMod->fInArr && pMod->fInReq )
@@ -780,26 +786,26 @@ static int Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static Ntl_Man_t * Ioa_ReadParse( Ioa_ReadMan_t * p )
+static Ntl_Man_t * Ntl_ReadParse( Ntl_ReadMan_t * p )
 {
     Ntl_Man_t * pDesign;
-    Ioa_ReadMod_t * pMod;
+    Ntl_ReadMod_t * pMod;
     char * pLine;
     int i, k;
     // iterate through the models
-    Vec_PtrForEachEntry( p->vModels, pMod, i )
+    Vec_PtrForEachEntry( Ntl_ReadMod_t *, p->vModels, pMod, i )
     {
         // parse the latches
-        Vec_PtrForEachEntry( pMod->vLatches, pLine, k )
-            if ( !Ioa_ReadParseLineLatch( pMod, pLine ) )
+        Vec_PtrForEachEntry( char *, pMod->vLatches, pLine, k )
+            if ( !Ntl_ReadParseLineLatch( pMod, pLine ) )
                 return NULL;
         // parse the nodes
-        Vec_PtrForEachEntry( pMod->vNames, pLine, k )
-            if ( !Ioa_ReadParseLineNamesBlif( pMod, pLine ) )
+        Vec_PtrForEachEntry( char *, pMod->vNames, pLine, k )
+            if ( !Ntl_ReadParseLineNamesBlif( pMod, pLine ) )
                 return NULL;
         // parse the subcircuits
-        Vec_PtrForEachEntry( pMod->vSubckts, pLine, k )
-            if ( !Ioa_ReadParseLineSubckt( pMod, pLine ) )
+        Vec_PtrForEachEntry( char *, pMod->vSubckts, pLine, k )
+            if ( !Ntl_ReadParseLineSubckt( pMod, pLine ) )
                 return NULL;
         // finalize the network
         Ntl_ModelFixNonDrivenNets( pMod->pNtk );
@@ -807,7 +813,7 @@ static Ntl_Man_t * Ioa_ReadParse( Ioa_ReadMan_t * p )
     if ( i == 0 )
         return NULL;
     // update the design name
-    pMod = Vec_PtrEntry( p->vModels, 0 );
+    pMod = (Ntl_ReadMod_t *)Vec_PtrEntry( p->vModels, 0 );
     if ( Ntl_ModelLatchNum(pMod->pNtk) > 0 )
         Ntl_ModelTransformLatches( pMod->pNtk );
     p->pDesign->pName = Ntl_ManStoreName( p->pDesign, pMod->pNtk->pName );
@@ -828,22 +834,22 @@ static Ntl_Man_t * Ioa_ReadParse( Ioa_ReadMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineModel( Ntl_ReadMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     char * pToken;
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
-    pToken = Vec_PtrEntry( vTokens, 0 );
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = (char *)Vec_PtrEntry( vTokens, 0 );
     assert( !strcmp(pToken, "model") );
     if ( Vec_PtrSize(vTokens) != 2 )
     {
-        sprintf( p->pMan->sError, "Line %d: The number of entries (%d) in .model line is different from two.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: The number of entries (%d) in .model line is different from two.", Ntl_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
         return 0;
     }
-    p->pNtk = Ntl_ModelAlloc( p->pMan->pDesign, Vec_PtrEntry(vTokens, 1) );
+    p->pNtk = Ntl_ModelAlloc( p->pMan->pDesign, (char *)Vec_PtrEntry(vTokens, 1) );
     if ( p->pNtk == NULL )
     {
-        sprintf( p->pMan->sError, "Line %d: Model %s already exists.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
+        sprintf( p->pMan->sError, "Line %d: Model %s already exists.", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
         return 0;
     }
     return 1;
@@ -860,17 +866,17 @@ static int Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineAttrib( Ntl_ReadMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     char * pToken;
     int i;
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
-    pToken = Vec_PtrEntry( vTokens, 0 );
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = (char *)Vec_PtrEntry( vTokens, 0 );
     assert( !strncmp(pToken, "attrib", 6) );
-    Vec_PtrForEachEntryStart( vTokens, pToken, i, 1 )
+    Vec_PtrForEachEntryStart( char *, vTokens, pToken, i, 1 )
     {
-        pToken = Vec_PtrEntry( vTokens, i );
+        pToken = (char *)Vec_PtrEntry( vTokens, i );
         if ( strcmp( pToken, "white" ) == 0 )
             p->pNtk->attrWhite = 1;
         else if ( strcmp( pToken, "black" ) == 0 )
@@ -889,7 +895,7 @@ static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
             p->pNtk->attrKeep = 0;
         else 
         {
-            sprintf( p->pMan->sError, "Line %d: Unknown attribute (%s) in the .attrib line of model %s.", Ioa_ReadGetLine(p->pMan, pToken), pToken, p->pNtk->pName );
+            sprintf( p->pMan->sError, "Line %d: Unknown attribute (%s) in the .attrib line of model %s.", Ntl_ReadGetLine(p->pMan, pToken), pToken, p->pNtk->pName );
             return 0;
         }
     }
@@ -907,23 +913,23 @@ static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineInputs( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineInputs( Ntl_ReadMod_t * p, char * pLine )
 {
     Ntl_Net_t * pNet;
     Ntl_Obj_t * pObj;
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     char * pToken;
     int i;
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
-    pToken = Vec_PtrEntry(vTokens, 0);
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = (char *)Vec_PtrEntry(vTokens, 0);
     assert( !strcmp(pToken, "inputs") );
-    Vec_PtrForEachEntryStart( vTokens, pToken, i, 1 )
+    Vec_PtrForEachEntryStart( char *, vTokens, pToken, i, 1 )
     {
         pObj = Ntl_ModelCreatePi( p->pNtk );
         pNet = Ntl_ModelFindOrCreateNet( p->pNtk, pToken );
         if ( !Ntl_ModelSetNetDriver( pObj, pNet ) )
         {
-            sprintf( p->pMan->sError, "Line %d: Net %s already has a driver.", Ioa_ReadGetLine(p->pMan, pToken), pNet->pName );
+            sprintf( p->pMan->sError, "Line %d: Net %s already has a driver.", Ntl_ReadGetLine(p->pMan, pToken), pNet->pName );
             return 0;
         }
     }
@@ -941,17 +947,17 @@ static int Ioa_ReadParseLineInputs( Ioa_ReadMod_t * p, char * pLine )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineOutputs( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineOutputs( Ntl_ReadMod_t * p, char * pLine )
 {
     Ntl_Net_t * pNet;
     Ntl_Obj_t * pObj;
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     char * pToken;
     int i;
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
-    pToken = Vec_PtrEntry(vTokens, 0);
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = (char *)Vec_PtrEntry(vTokens, 0);
     assert( !strcmp(pToken, "outputs") );
-    Vec_PtrForEachEntryStart( vTokens, pToken, i, 1 )
+    Vec_PtrForEachEntryStart( char *, vTokens, pToken, i, 1 )
     {
         pNet = Ntl_ModelFindOrCreateNet( p->pNtk, pToken );
         pObj = Ntl_ModelCreatePo( p->pNtk, pNet );
@@ -971,46 +977,47 @@ static int Ioa_ReadParseLineOutputs( Ioa_ReadMod_t * p, char * pLine )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineLatch( Ntl_ReadMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Ntl_Net_t * pNetLi, * pNetLo;
     Ntl_Obj_t * pObj;
     char * pToken, * pNameLi, * pNameLo;
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
-    pToken = Vec_PtrEntry(vTokens,0);
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = (char *)Vec_PtrEntry(vTokens,0);
     assert( !strcmp(pToken, "latch") );
     if ( Vec_PtrSize(vTokens) < 3 )
     {
-        sprintf( p->pMan->sError, "Line %d: Latch does not have input name and output name.", Ioa_ReadGetLine(p->pMan, pToken) );
+        sprintf( p->pMan->sError, "Line %d: Latch does not have input name and output name.", Ntl_ReadGetLine(p->pMan, pToken) );
         return 0;
     }
     // create latch
-    pNameLi = Vec_PtrEntry( vTokens, 1 );
-    pNameLo = Vec_PtrEntry( vTokens, 2 );
+    pNameLi = (char *)Vec_PtrEntry( vTokens, 1 );
+    pNameLo = (char *)Vec_PtrEntry( vTokens, 2 );
     pNetLi  = Ntl_ModelFindOrCreateNet( p->pNtk, pNameLi );
     pNetLo  = Ntl_ModelFindOrCreateNet( p->pNtk, pNameLo );
     pObj    = Ntl_ModelCreateLatch( p->pNtk );
     pObj->pFanio[0] = pNetLi;
     if ( !Ntl_ModelSetNetDriver( pObj, pNetLo ) )
     {
-        sprintf( p->pMan->sError, "Line %d: Net %s already has a driver.", Ioa_ReadGetLine(p->pMan, pToken), pNetLo->pName );
+        sprintf( p->pMan->sError, "Line %d: Net %s already has a driver.", Ntl_ReadGetLine(p->pMan, pToken), pNetLo->pName );
         return 0;
     }
     // get initial value
     if ( Vec_PtrSize(vTokens) > 3 )
-        pObj->LatchId.regInit = atoi( Vec_PtrEntry(vTokens,Vec_PtrSize(vTokens)-1) );
+        pObj->LatchId.regInit = atoi( (char *)Vec_PtrEntry(vTokens,Vec_PtrSize(vTokens)-1) );
     else
         pObj->LatchId.regInit = 2;
     if ( pObj->LatchId.regInit < 0 || pObj->LatchId.regInit > 2 )
     {
-        sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
+        sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
         return 0;
     }
     // get the register class
-    if ( Vec_PtrSize(vTokens) == 6 )
+//    if ( Vec_PtrSize(vTokens) == 6 )
+    if ( Vec_PtrSize(vTokens) == 5 || Vec_PtrSize(vTokens) == 6 )
     {
-        pToken = Vec_PtrEntry(vTokens,3);
+        pToken = (char *)Vec_PtrEntry(vTokens,3);
         if ( strcmp( pToken, "fe" ) == 0 )
             pObj->LatchId.regType = 1;
         else if ( strcmp( pToken, "re" ) == 0 )
@@ -1025,19 +1032,20 @@ static int Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine )
             pObj->LatchId.regClass = atoi(pToken);
         else
         {
-            sprintf( p->pMan->sError, "Line %d: Type/class of the latch is incorrect \"%s\".", Ioa_ReadGetLine(p->pMan, pToken), pToken );
+            sprintf( p->pMan->sError, "Line %d: Type/class of the latch is incorrect \"%s\".", Ntl_ReadGetLine(p->pMan, pToken), pToken );
             return 0;
         }
     }
     if ( pObj->LatchId.regClass < 0 || pObj->LatchId.regClass > (1<<24) )
     {
-        sprintf( p->pMan->sError, "Line %d: Class of the latch is incorrect \"%s\".", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
+        sprintf( p->pMan->sError, "Line %d: Class of the latch is incorrect \"%s\".", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
         return 0;
     }
     // get the clock
-    if ( Vec_PtrSize(vTokens) == 5 || Vec_PtrSize(vTokens) == 6 )
+//    if ( Vec_PtrSize(vTokens) == 5 || Vec_PtrSize(vTokens) == 6 )
+    if ( Vec_PtrSize(vTokens) == 6 )
     {
-        pToken = Vec_PtrEntry(vTokens,Vec_PtrSize(vTokens)-2);
+        pToken = (char *)Vec_PtrEntry(vTokens,Vec_PtrSize(vTokens)-2);
         pNetLi = Ntl_ModelFindOrCreateNet( p->pNtk, pToken );
         pObj->pClock = pNetLi;
     }
@@ -1055,7 +1063,7 @@ static int Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineSubckt( Ntl_ReadMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Ntl_Mod_t * pModel;
@@ -1065,17 +1073,17 @@ static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
     int nEquals, i, k;
 
     // split the line into tokens
-    nEquals = Ioa_ReadCountChars( pLine, '=' );
-    Ioa_ReadSplitIntoTokensAndClear( vTokens, pLine, '\0', '=' );
-    pToken = Vec_PtrEntry(vTokens,0);
+    nEquals = Ntl_ReadCountChars( pLine, '=' );
+    Ntl_ReadSplitIntoTokensAndClear( vTokens, pLine, '\0', '=' );
+    pToken = (char *)Vec_PtrEntry(vTokens,0);
     assert( !strcmp(pToken, "subckt") );
 
     // get the model for this box
-    pName = Vec_PtrEntry(vTokens,1);
+    pName = (char *)Vec_PtrEntry(vTokens,1);
     pModel = Ntl_ManFindModel( p->pMan->pDesign, pName );
     if ( pModel == NULL )
     {
-        sprintf( p->pMan->sError, "Line %d: Cannot find the model for subcircuit %s.", Ioa_ReadGetLine(p->pMan, pToken), pName );
+        sprintf( p->pMan->sError, "Line %d: Cannot find the model for subcircuit %s.", Ntl_ReadGetLine(p->pMan, pToken), pName );
         return 0;
     }
 /*
@@ -1087,9 +1095,9 @@ static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
         pToken = Vec_PtrEntry( vTokens, Vec_PtrSize(vTokens) - 1 );
         for ( ; *pToken; pToken++ );
         for ( ; *pToken == 0; pToken++ );
-        Ioa_ReadSplitIntoTokensAndClear( vTokens2, pToken, '\0', '=' );
+        Ntl_ReadSplitIntoTokensAndClear( vTokens2, pToken, '\0', '=' );
 //        assert( Vec_PtrSize( vTokens2 ) == 2 );
-        Vec_PtrForEachEntry( vTokens2, pToken, i )
+        Vec_PtrForEachEntry( char *, vTokens2, pToken, i )
             Vec_PtrPush( vTokens, pToken );
         nEquals += Vec_PtrSize(vTokens2)/2;
         Vec_PtrFree( vTokens2 );
@@ -1099,7 +1107,7 @@ static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
     if ( nEquals != Ntl_ModelPiNum(pModel) + Ntl_ModelPoNum(pModel) )
     {
         sprintf( p->pMan->sError, "Line %d: The number of ports (%d) in .subckt %s differs from the sum of PIs and POs of the model (%d).", 
-            Ioa_ReadGetLine(p->pMan, pToken), nEquals, pName, Ntl_ModelPiNum(pModel) + Ntl_ModelPoNum(pModel) );
+            Ntl_ReadGetLine(p->pMan, pToken), nEquals, pName, Ntl_ModelPiNum(pModel) + Ntl_ModelPoNum(pModel) );
         return 0;
     }
 
@@ -1119,7 +1127,7 @@ static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
         if ( k == nEquals )
         {
             sprintf( p->pMan->sError, "Line %d: Cannot find PI \"%s\" of the model \"%s\" as a formal input of the subcircuit.", 
-                Ioa_ReadGetLine(p->pMan, pToken), pName, pModel->pName );
+                Ntl_ReadGetLine(p->pMan, pToken), pName, pModel->pName );
             return 0;
         }
         // create the BI with the actual name
@@ -1136,7 +1144,7 @@ static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
         if ( k == nEquals )
         {
             sprintf( p->pMan->sError, "Line %d: Cannot find PO \"%s\" of the model \"%s\" as a formal output of the subcircuit.", 
-                Ioa_ReadGetLine(p->pMan, pToken), pName, pModel->pName );
+                Ntl_ReadGetLine(p->pMan, pToken), pName, pModel->pName );
             return 0;
         }
         // create the BI with the actual name
@@ -1157,54 +1165,54 @@ static int Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineDelay( Ntl_ReadMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     int RetValue1, RetValue2, Number1, Number2, Temp;
     char * pToken, * pTokenNum;
     float Delay;
     assert( sizeof(float) == sizeof(int) );
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
-    pToken = Vec_PtrEntry(vTokens,0);
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = (char *)Vec_PtrEntry(vTokens,0);
     assert( !strcmp(pToken, "delay") );
     if ( Vec_PtrSize(vTokens) < 2 && Vec_PtrSize(vTokens) > 4 )
     {
-        sprintf( p->pMan->sError, "Line %d: Delay line does not have a valid number of parameters (1, 2, or 3).", Ioa_ReadGetLine(p->pMan, pToken) );
+        sprintf( p->pMan->sError, "Line %d: Delay line does not have a valid number of parameters (1, 2, or 3).", Ntl_ReadGetLine(p->pMan, pToken) );
         return 0;
     }
     // find the delay number
-    pTokenNum = Vec_PtrEntryLast(vTokens);
+    pTokenNum = (char *)Vec_PtrEntryLast(vTokens);
     Delay = atof( pTokenNum );
     if ( Delay == 0.0 && pTokenNum[0] != '0' )
     {
-        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntryLast(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntryLast(vTokens) );
         return 0;
     }
     // find the PI/PO numbers
     RetValue1 = 0; Number1 = -1;
     if ( Vec_PtrSize(vTokens) > 2 )
     {
-        RetValue1 = Ntl_ModelFindPioNumber( p->pNtk, 0, 0, Vec_PtrEntry(vTokens, 1), &Number1 );
+        RetValue1 = Ntl_ModelFindPioNumber( p->pNtk, 0, 0, (char *)Vec_PtrEntry(vTokens, 1), &Number1 );
         if ( RetValue1 == 0 )
         {
-            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
+            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
             return 0;
         }
     }
     RetValue2 = 0; Number2 = -1;
     if ( Vec_PtrSize(vTokens) > 3 )
     {
-        RetValue2 = Ntl_ModelFindPioNumber( p->pNtk, 0, 0, Vec_PtrEntry(vTokens, 2), &Number2 );
+        RetValue2 = Ntl_ModelFindPioNumber( p->pNtk, 0, 0, (char *)Vec_PtrEntry(vTokens, 2), &Number2 );
         if ( RetValue2 == 0 )
         {
-            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 2) );
+            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs/POs.", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 2) );
             return 0;
         }
     }
     if ( RetValue1 == RetValue2 && RetValue1 )
     {
         sprintf( p->pMan->sError, "Line %d: Both signals \"%s\" and \"%s\" listed appear to be PIs or POs.", 
-            Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1), (char*)Vec_PtrEntry(vTokens, 2) );
+            Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1), (char*)Vec_PtrEntry(vTokens, 2) );
         return 0;
     }
     if ( RetValue2 < RetValue1 )
@@ -1234,26 +1242,26 @@ static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput )
+static int Ntl_ReadParseLineTimes( Ntl_ReadMod_t * p, char * pLine, int fOutput )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     int RetValue, Number = -1;
     char * pToken, * pTokenNum;
     float Delay;
     assert( sizeof(float) == sizeof(int) );
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
-    pToken = Vec_PtrEntry(vTokens,0);
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = (char *)Vec_PtrEntry(vTokens,0);
     if ( fOutput )
         assert( !strncmp(pToken, "output_", 7) );
     else
         assert( !strncmp(pToken, "input_", 6) );
     if ( Vec_PtrSize(vTokens) != 2 && Vec_PtrSize(vTokens) != 3 )
     {
-        sprintf( p->pMan->sError, "Line %d: Delay line does not have a valid number of parameters (2 or 3).", Ioa_ReadGetLine(p->pMan, pToken) );
+        sprintf( p->pMan->sError, "Line %d: Delay line does not have a valid number of parameters (2 or 3).", Ntl_ReadGetLine(p->pMan, pToken) );
         return 0;
     }
     // find the delay number
-    pTokenNum = Vec_PtrEntryLast(vTokens);
+    pTokenNum = (char *)Vec_PtrEntryLast(vTokens);
     if ( !strcmp( pTokenNum, "-inf" ) )
         Delay = -TIM_ETERNITY;
     else if ( !strcmp( pTokenNum, "inf" ) ) 
@@ -1262,7 +1270,7 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
         Delay = atof( pTokenNum );
     if ( Delay == 0.0 && pTokenNum[0] != '0' )
     {
-        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntryLast(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntryLast(vTokens) );
         return 0;
     }
     // find the PI/PO numbers
@@ -1270,10 +1278,10 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
     {
         if ( Vec_PtrSize(vTokens) == 3 )
         {
-            RetValue = Ntl_ModelFindPioNumber( p->pNtk, 0, 1, Vec_PtrEntry(vTokens, 1), &Number );
+            RetValue = Ntl_ModelFindPioNumber( p->pNtk, 0, 1, (char *)Vec_PtrEntry(vTokens, 1), &Number );
             if ( RetValue == 0 )
             {
-                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among POs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
+                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among POs.", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
                 return 0;
             }
         }
@@ -1287,10 +1295,10 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
     {
         if ( Vec_PtrSize(vTokens) == 3 )
         {
-            RetValue = Ntl_ModelFindPioNumber( p->pNtk, 1, 0, Vec_PtrEntry(vTokens, 1), &Number );
+            RetValue = Ntl_ModelFindPioNumber( p->pNtk, 1, 0, (char *)Vec_PtrEntry(vTokens, 1), &Number );
             if ( RetValue == 0 )
             {
-                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs.", Ioa_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
+                sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs.", Ntl_ReadGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens, 1) );
                 return 0;
             }
         }
@@ -1315,7 +1323,7 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
   SeeAlso     []
 
 ***********************************************************************/
-static char * Ioa_ReadParseTableBlif( Ioa_ReadMod_t * p, char * pTable, int nFanins )
+static char * Ntl_ReadParseTableBlif( Ntl_ReadMod_t * p, char * pTable, int nFanins )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Vec_Str_t * vFunc = p->pMan->vFunc;
@@ -1325,52 +1333,52 @@ static char * Ioa_ReadParseTableBlif( Ioa_ReadMod_t * p, char * pTable, int nFan
 
     p->pMan->nTablesRead++;
     // get the tokens
-    Ioa_ReadSplitIntoTokens( vTokens, pTable, '.' );
+    Ntl_ReadSplitIntoTokens( vTokens, pTable, '.' );
     if ( Vec_PtrSize(vTokens) == 0 )
         return Ntl_ManStoreSop( p->pMan->pDesign->pMemSops, " 0\n" );
     if ( Vec_PtrSize(vTokens) == 1 )
     {
-        pOutput = Vec_PtrEntry( vTokens, 0 );
+        pOutput = (char *)Vec_PtrEntry( vTokens, 0 );
         if ( *pOutput == '\"' )
             return Ntl_ManStoreSop( p->pMan->pDesign->pMemSops, pOutput );
         if ( ((pOutput[0] - '0') & 0x8E) || pOutput[1] )
         {
-            sprintf( p->pMan->sError, "Line %d: Constant table has wrong output value \"%s\".", Ioa_ReadGetLine(p->pMan, pOutput), pOutput );
+            sprintf( p->pMan->sError, "Line %d: Constant table has wrong output value \"%s\".", Ntl_ReadGetLine(p->pMan, pOutput), pOutput );
             return NULL;
         }
         return Ntl_ManStoreSop( p->pMan->pDesign->pMemSops, (pOutput[0] == '0') ? " 0\n" : " 1\n" );
     }
-    pProduct = Vec_PtrEntry( vTokens, 0 );
+    pProduct = (char *)Vec_PtrEntry( vTokens, 0 );
     if ( Vec_PtrSize(vTokens) % 2 == 1 )
     {
-        sprintf( p->pMan->sError, "Line %d: Table has odd number of tokens (%d).", Ioa_ReadGetLine(p->pMan, pProduct), Vec_PtrSize(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: Table has odd number of tokens (%d).", Ntl_ReadGetLine(p->pMan, pProduct), Vec_PtrSize(vTokens) );
         return NULL;
     }
     // parse the table
     Vec_StrClear( vFunc );
     for ( i = 0; i < Vec_PtrSize(vTokens)/2; i++ )
     {
-        pProduct = Vec_PtrEntry( vTokens, 2*i + 0 );
-        pOutput  = Vec_PtrEntry( vTokens, 2*i + 1 );
+        pProduct = (char *)Vec_PtrEntry( vTokens, 2*i + 0 );
+        pOutput  = (char *)Vec_PtrEntry( vTokens, 2*i + 1 );
         if ( strlen(pProduct) != (unsigned)nFanins )
         {
-            sprintf( p->pMan->sError, "Line %d: Cube \"%s\" has size different from the fanin count (%d).", Ioa_ReadGetLine(p->pMan, pProduct), pProduct, nFanins );
+            sprintf( p->pMan->sError, "Line %d: Cube \"%s\" has size different from the fanin count (%d).", Ntl_ReadGetLine(p->pMan, pProduct), pProduct, nFanins );
             return NULL;
         }
         if ( ((pOutput[0] - '0') & 0x8E) || pOutput[1] )
         {
-            sprintf( p->pMan->sError, "Line %d: Output value \"%s\" is incorrect.", Ioa_ReadGetLine(p->pMan, pProduct), pOutput );
+            sprintf( p->pMan->sError, "Line %d: Output value \"%s\" is incorrect.", Ntl_ReadGetLine(p->pMan, pProduct), pOutput );
             return NULL;
         }
         if ( Polarity == -1 )
             Polarity = pOutput[0] - '0';
         else if ( Polarity != pOutput[0] - '0' )
         {
-            sprintf( p->pMan->sError, "Line %d: Output value \"%s\" differs from the value in the first line of the table (%d).", Ioa_ReadGetLine(p->pMan, pProduct), pOutput, Polarity );
+            sprintf( p->pMan->sError, "Line %d: Output value \"%s\" differs from the value in the first line of the table (%d).", Ntl_ReadGetLine(p->pMan, pProduct), pOutput, Polarity );
             return NULL;
         }
         // parse one product 
-        Vec_StrAppend( vFunc, pProduct );
+        Vec_StrPrintStr( vFunc, pProduct );
         Vec_StrPush( vFunc, ' ' );
         Vec_StrPush( vFunc, pOutput[0] );
         Vec_StrPush( vFunc, '\n' );
@@ -1390,36 +1398,36 @@ static char * Ioa_ReadParseTableBlif( Ioa_ReadMod_t * p, char * pTable, int nFan
   SeeAlso     []
 
 ***********************************************************************/
-static int Ioa_ReadParseLineNamesBlif( Ioa_ReadMod_t * p, char * pLine )
+static int Ntl_ReadParseLineNamesBlif( Ntl_ReadMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Ntl_Obj_t * pNode;
     Ntl_Net_t * pNetOut, * pNetIn;
     char * pNameOut, * pNameIn;
     int i;
-    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    Ntl_ReadSplitIntoTokens( vTokens, pLine, '\0' );
     // parse the mapped node
 //    if ( !strcmp(Vec_PtrEntry(vTokens,0), "gate") )
-//        return Ioa_ReadParseLineGateBlif( p, vTokens );
+//        return Ntl_ReadParseLineGateBlif( p, vTokens );
     // parse the regular name line
-    assert( !strcmp(Vec_PtrEntry(vTokens,0), "names") );
-    pNameOut = Vec_PtrEntryLast( vTokens );
+    assert( !strcmp((char *)Vec_PtrEntry(vTokens,0), "names") );
+    pNameOut = (char *)Vec_PtrEntryLast( vTokens );
     pNetOut = Ntl_ModelFindOrCreateNet( p->pNtk, pNameOut );
     // create fanins
     pNode = Ntl_ModelCreateNode( p->pNtk, Vec_PtrSize(vTokens) - 2 );
     for ( i = 0; i < Vec_PtrSize(vTokens) - 2; i++ )
     {
-        pNameIn = Vec_PtrEntry(vTokens, i+1);
+        pNameIn = (char *)Vec_PtrEntry(vTokens, i+1);
         pNetIn = Ntl_ModelFindOrCreateNet( p->pNtk, pNameIn );
         Ntl_ObjSetFanin( pNode, pNetIn, i );
     }
     if ( !Ntl_ModelSetNetDriver( pNode, pNetOut ) )
     {
-        sprintf( p->pMan->sError, "Line %d: Signal \"%s\" is defined more than once.", Ioa_ReadGetLine(p->pMan, pNameOut), pNameOut );
+        sprintf( p->pMan->sError, "Line %d: Signal \"%s\" is defined more than once.", Ntl_ReadGetLine(p->pMan, pNameOut), pNameOut );
         return 0;
     }
     // parse the table of this node
-    pNode->pSop = Ioa_ReadParseTableBlif( p, pNameOut + strlen(pNameOut), pNode->nFanins );
+    pNode->pSop = Ntl_ReadParseTableBlif( p, pNameOut + strlen(pNameOut), pNode->nFanins );
     if ( pNode->pSop == NULL )
         return 0;
     pNode->pSop = Ntl_ManStoreSop( p->pNtk->pMan->pMemSops, pNode->pSop );
@@ -1431,4 +1439,6 @@ static int Ioa_ReadParseLineNamesBlif( Ioa_ReadMod_t * p, char * pLine )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

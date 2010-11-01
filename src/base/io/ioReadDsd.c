@@ -20,6 +20,9 @@
 
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -183,11 +186,11 @@ Abc_Obj_t * Io_ReadDsd_rec( Abc_Ntk_t * pNtk, char * pCur, char * pSop )
             }
         }
         if ( pSop )
-            pObj->pData = Abc_SopRegister( pNtk->pManFunc, pSop );
+            pObj->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, pSop );
         else if ( TypeExor )
-            pObj->pData = Abc_SopCreateXorSpecial( pNtk->pManFunc, nParts );
+            pObj->pData = Abc_SopCreateXorSpecial( (Extra_MmFlex_t *)pNtk->pManFunc, nParts );
         else
-            pObj->pData = Abc_SopCreateAnd( pNtk->pManFunc, nParts, NULL );
+            pObj->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtk->pManFunc, nParts, NULL );
         return pObj;
     }
     if ( *pCur >= 'a' && *pCur <= 'z' )
@@ -248,7 +251,7 @@ Abc_Ntk_t * Io_ReadDsd( char * pForm )
     // create PIs
     vNames = Abc_NodeGetFakeNames( nInputs );
     for ( i = 0; i < nInputs; i++ )
-        Abc_ObjAssignName( Abc_NtkCreatePi(pNtk), Vec_PtrEntry(vNames, i), NULL );
+        Abc_ObjAssignName( Abc_NtkCreatePi(pNtk), (char *)Vec_PtrEntry(vNames, i), NULL );
     Abc_NodeFreeNames( vNames );
 
     // transform the formula by inserting parantheses
@@ -305,4 +308,6 @@ Abc_Ntk_t * Io_ReadDsd( char * pForm )
 ////////////////////////////////////////////////////////////////////////
 
 
+
+ABC_NAMESPACE_IMPL_END
 

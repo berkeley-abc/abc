@@ -20,6 +20,9 @@
 
 #include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -198,12 +201,12 @@ void Fra_FraigVerifyCounterEx( Fra_Man_t * p, Vec_Int_t * vCex )
     Aig_ManForEachPo( p->pManAig, pObj, i )
         pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
     // check if the classes hold
-    Vec_PtrForEachEntry( p->pCla->vClasses1, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->pCla->vClasses1, pObj, i )
     {
         if ( pObj->fPhase != pObj->fMarkB )
             printf( "The node %d is not constant under cex!\n", pObj->Id );
     }
-    Vec_PtrForEachEntry( p->pCla->vClasses, ppClass, i )
+    Vec_PtrForEachEntry( Aig_Obj_t **, p->pCla->vClasses, ppClass, i )
     {
         for ( c = 1; ppClass[c]; c++ )
             if ( (ppClass[0]->fPhase ^ ppClass[c]->fPhase) != (ppClass[0]->fMarkB ^ ppClass[c]->fMarkB) )
@@ -482,4 +485,6 @@ Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

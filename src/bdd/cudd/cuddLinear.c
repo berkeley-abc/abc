@@ -37,6 +37,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1330,4 +1333,6 @@ cuddXorLinear(
     }
 
 } /* end of cuddXorLinear */
+
+ABC_NAMESPACE_IMPL_END
 

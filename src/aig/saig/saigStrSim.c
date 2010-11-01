@@ -21,6 +21,9 @@
 #include "saig.h"
 #include "ssw.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -66,7 +69,7 @@ unsigned Saig_StrSimHash( Aig_Obj_t * pObj )
     unsigned uHash = 0;
     int i;
     assert( SAIG_WORDS <= 128 );
-    pSims = pObj->pData;
+    pSims = (unsigned *)pObj->pData;
     for ( i = 0; i < SAIG_WORDS; i++ )
         uHash ^= pSims[i] * s_SPrimes[i & 0x7F];
     return uHash;
@@ -85,8 +88,8 @@ unsigned Saig_StrSimHash( Aig_Obj_t * pObj )
 ***********************************************************************/
 int Saig_StrSimIsEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
-    unsigned * pSims0 = pObj0->pData;
-    unsigned * pSims1 = pObj1->pData;
+    unsigned * pSims0 = (unsigned *)pObj0->pData;
+    unsigned * pSims1 = (unsigned *)pObj1->pData;
     int i;
     for ( i = 0; i < SAIG_WORDS; i++ )
         if ( pSims0[i] != pSims1[i] )
@@ -107,7 +110,7 @@ int Saig_StrSimIsEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 ***********************************************************************/
 int Saig_StrSimIsZero( Aig_Obj_t * pObj )
 {
-    unsigned * pSims = pObj->pData;
+    unsigned * pSims = (unsigned *)pObj->pData;
     int i;
     for ( i = 0; i < SAIG_WORDS; i++ )
         if ( pSims[i] != 0 )
@@ -128,7 +131,7 @@ int Saig_StrSimIsZero( Aig_Obj_t * pObj )
 ***********************************************************************/
 int Saig_StrSimIsOne( Aig_Obj_t * pObj )
 {
-    unsigned * pSims = pObj->pData;
+    unsigned * pSims = (unsigned *)pObj->pData;
     int i;
     for ( i = 0; i < SAIG_WORDS; i++ )
         if ( pSims[i] != ~0 )
@@ -149,7 +152,7 @@ int Saig_StrSimIsOne( Aig_Obj_t * pObj )
 ***********************************************************************/
 void Saig_StrSimAssignRandom( Aig_Obj_t * pObj )
 {
-    unsigned * pSims = pObj->pData;
+    unsigned * pSims = (unsigned *)pObj->pData;
     int i;
     for ( i = 0; i < SAIG_WORDS; i++ )
         pSims[i] = Aig_ManRandom(0);
@@ -168,7 +171,7 @@ void Saig_StrSimAssignRandom( Aig_Obj_t * pObj )
 ***********************************************************************/
 void Saig_StrSimAssignOne( Aig_Obj_t * pObj )
 {
-    unsigned * pSims = pObj->pData;
+    unsigned * pSims = (unsigned *)pObj->pData;
     int i;
     for ( i = 0; i < SAIG_WORDS; i++ )
         pSims[i] = ~0;
@@ -187,7 +190,7 @@ void Saig_StrSimAssignOne( Aig_Obj_t * pObj )
 ***********************************************************************/
 void Saig_StrSimAssignZeroInit( Aig_Obj_t * pObj )
 {
-    unsigned * pSims = pObj->pData;
+    unsigned * pSims = (unsigned *)pObj->pData;
     pSims[0] = 0;
 }
 
@@ -204,9 +207,9 @@ void Saig_StrSimAssignZeroInit( Aig_Obj_t * pObj )
 ***********************************************************************/
 void Saig_StrSimulateNode( Aig_Obj_t * pObj, int i )
 {
-    unsigned * pSims  = pObj->pData;
-    unsigned * pSims0 = Aig_ObjFanin0(pObj)->pData;
-    unsigned * pSims1 = Aig_ObjFanin1(pObj)->pData;
+    unsigned * pSims  = (unsigned *)pObj->pData;
+    unsigned * pSims0 = (unsigned *)Aig_ObjFanin0(pObj)->pData;
+    unsigned * pSims1 = (unsigned *)Aig_ObjFanin1(pObj)->pData;
     if ( Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj) )
         pSims[i] = ~(pSims0[i] | pSims1[i]);
     else if ( Aig_ObjFaninC0(pObj) && !Aig_ObjFaninC1(pObj) )
@@ -230,8 +233,8 @@ void Saig_StrSimulateNode( Aig_Obj_t * pObj, int i )
 ***********************************************************************/
 void Saig_StrSimSaveOutput( Aig_Obj_t * pObj, int i )
 {
-    unsigned * pSims = pObj->pData;
-    unsigned * pSims0 = Aig_ObjFanin0(pObj)->pData;
+    unsigned * pSims = (unsigned *)pObj->pData;
+    unsigned * pSims0 = (unsigned *)Aig_ObjFanin0(pObj)->pData;
     if ( Aig_ObjFaninC0(pObj) )
         pSims[i] = ~pSims0[i];
     else 
@@ -251,8 +254,8 @@ void Saig_StrSimSaveOutput( Aig_Obj_t * pObj, int i )
 ***********************************************************************/
 void Saig_StrSimTransfer( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
-    unsigned * pSims0 = pObj0->pData;
-    unsigned * pSims1 = pObj1->pData;
+    unsigned * pSims0 = (unsigned *)pObj0->pData;
+    unsigned * pSims1 = (unsigned *)pObj1->pData;
     int i;
     for ( i = 0; i < SAIG_WORDS; i++ )
         pSims1[i] = pSims0[i];
@@ -271,8 +274,8 @@ void Saig_StrSimTransfer( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 ***********************************************************************/
 void Saig_StrSimTransferNext( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1, int i )
 {
-    unsigned * pSims0 = pObj0->pData;
-    unsigned * pSims1 = pObj1->pData;
+    unsigned * pSims0 = (unsigned *)pObj0->pData;
+    unsigned * pSims1 = (unsigned *)pObj1->pData;
     assert( i < SAIG_WORDS - 1 );
     pSims1[i+1] = pSims0[i];
 }
@@ -520,7 +523,7 @@ void Saig_StrSimPrepareAig( Aig_Man_t * p )
     // allocate simulation info
     p->pData2 = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), SAIG_WORDS );
     Aig_ManForEachObj( p, pObj, i )
-        pObj->pData = Vec_PtrEntry( p->pData2, i );
+        pObj->pData = Vec_PtrEntry( (Vec_Ptr_t *)p->pData2, i );
     // set simulation info for constant1 and register outputs
     Saig_StrSimAssignOne( Aig_ManConst1(p) );
     Saig_ManForEachLo( p, pObj, i )
@@ -821,7 +824,7 @@ void Ssw_StrSimMatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fV
     {
         Ssw_StrSimMatchingExtendOne( p0, vNodes0 );
         Ssw_StrSimMatchingExtendOne( p1, vNodes1 );
-        Vec_PtrForEachEntry( vNodes0, pNext0, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes0, pNext0, k )
         {
             pNext1 = Aig_ObjRepr( p0, pNext0 );
             if ( pNext1 == NULL )
@@ -832,7 +835,7 @@ void Ssw_StrSimMatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fV
             Aig_ObjSetRepr( p0, pNext0, NULL );
             Aig_ObjSetRepr( p1, pNext1, NULL );
         }
-        Vec_PtrForEachEntry( vNodes1, pNext1, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes1, pNext1, k )
         {
             pNext0 = Aig_ObjRepr( p1, pNext1 );
             if ( pNext0 == NULL )
@@ -932,8 +935,8 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
             break;
     }
     // cleanup
-    Vec_PtrFree( pPart0->pData2 ); pPart0->pData2 = NULL;
-    Vec_PtrFree( pPart1->pData2 ); pPart1->pData2 = NULL;
+    Vec_PtrFree( (Vec_Ptr_t *)pPart0->pData2 ); pPart0->pData2 = NULL;
+    Vec_PtrFree( (Vec_Ptr_t *)pPart1->pData2 ); pPart1->pData2 = NULL;
     // extend the islands
     Aig_ManFanoutStart( pPart0 );
     Aig_ManFanoutStart( pPart1 );
@@ -968,4 +971,6 @@ Vec_Int_t * Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDis
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

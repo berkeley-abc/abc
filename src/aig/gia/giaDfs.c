@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -136,6 +139,63 @@ void Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vN
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCollectNodesCis_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManCollectNodesCis_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    Gia_ManCollectNodesCis_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects support nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManCollectNodesCis( Gia_Man_t * p, int * pNodes, int nNodes )
+{
+    Vec_Int_t * vNodes;
+    Gia_Obj_t * pObj;
+    int i; 
+    vNodes = Vec_IntAlloc( 10000 );
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    for ( i = 0; i < nNodes; i++ )
+    {
+        pObj = Gia_ManObj( p, pNodes[i] );
+        if ( Gia_ObjIsCo(pObj) )
+            Gia_ManCollectNodesCis_rec( p, Gia_ObjFanin0(pObj), vNodes );
+        else
+            Gia_ManCollectNodesCis_rec( p, pObj, vNodes );
+    }
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collects support nodes.]
 
   Description []
@@ -151,7 +211,6 @@ void Gia_ManCollectTest( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i, iNode, clk = clock();
     vNodes = Vec_IntAlloc( 100 );
-    Gia_ManResetTravId( p );
     Gia_ManIncrementTravId( p );
     Gia_ManForEachCo( p, pObj, i )
     {
@@ -276,7 +335,7 @@ int Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNodes )
 
 ***********************************************************************/
 Vec_Vec_t * Gia_ManLevelize( Gia_Man_t * p )
-{
+{ 
     Gia_Obj_t * pObj;
     Vec_Vec_t * vLevels;
     int nLevels, Level, i;
@@ -291,8 +350,49 @@ Vec_Vec_t * Gia_ManLevelize( Gia_Man_t * p )
     return vLevels;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes reverse topological order.]
+
+  Description [Assumes that levels are already assigned.
+  The levels of CO nodes may not be assigned.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManOrderReverse( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    Vec_Vec_t * vLevels;
+    Vec_Ptr_t * vLevel;
+    Vec_Int_t * vResult;
+    int i, k;
+    vLevels = Vec_VecStart( 100 );
+    // make sure levels are assigned
+    Gia_ManForEachAnd( p, pObj, i )
+        assert( Gia_ObjLevel(p, pObj) > 0 );
+    // add CO nodes based on the level of their fanin
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_VecPush( vLevels, Gia_ObjLevel(p, Gia_ObjFanin0(pObj)), pObj );
+    // add other nodes based on their level
+    Gia_ManForEachObj( p, pObj, i )
+        if ( !Gia_ObjIsCo(pObj) )
+            Vec_VecPush( vLevels, Gia_ObjLevel(p, pObj), pObj );
+    // put the nodes in the reverse topological order
+    vResult = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Vec_VecForEachLevelReverse( vLevels, vLevel, i )
+        Vec_PtrForEachEntry( Gia_Obj_t *, vLevel, pObj, k )
+            Vec_IntPush( vResult, Gia_ObjId(p, pObj) );
+    Vec_VecFree( vLevels );
+    return vResult;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

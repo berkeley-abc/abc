@@ -22,6 +22,10 @@
 #include "abcInt.h"
 #include "main.h"
 #include "mio.h"
+#include "gia.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -51,13 +55,13 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     pNtk->ntkFunc     = Func;
     // start the object storage
     pNtk->vObjs       = Vec_PtrAlloc( 100 );
-    pNtk->vAsserts    = Vec_PtrAlloc( 100 );
     pNtk->vPios       = Vec_PtrAlloc( 100 );
     pNtk->vPis        = Vec_PtrAlloc( 100 );
     pNtk->vPos        = Vec_PtrAlloc( 100 );
     pNtk->vCis        = Vec_PtrAlloc( 100 );
     pNtk->vCos        = Vec_PtrAlloc( 100 );
     pNtk->vBoxes      = Vec_PtrAlloc( 100 );
+    pNtk->vLtlProperties = Vec_PtrAlloc( 100 );
     // start the memory managers
     pNtk->pMmObj      = fUseMemMan? Extra_MmFixedStart( sizeof(Abc_Obj_t) ) : NULL;
     pNtk->pMmStep     = fUseMemMan? Extra_MmStepStart( ABC_NUM_STEPS ) : NULL;
@@ -105,6 +109,7 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     fCopyNames = ( Type != ABC_NTK_NETLIST );
     // start the network
     pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
+    pNtkNew->nConstrs = pNtk->nConstrs;
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -118,8 +123,6 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
         Abc_NtkDupObj( pNtkNew, pObj, fCopyNames );
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, fCopyNames );
-    Abc_NtkForEachAssert( pNtk, pObj, i )
-        Abc_NtkDupObj( pNtkNew, pObj, fCopyNames );
     Abc_NtkForEachBox( pNtk, pObj, i )
         Abc_NtkDupBox( pNtkNew, pObj, fCopyNames );
     // transfer the names
@@ -127,6 +130,10 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     Abc_ManTimeDup( pNtk, pNtkNew );
     if ( pNtk->vOnehots )
         pNtkNew->vOnehots = (Vec_Ptr_t *)Vec_VecDupInt( (Vec_Vec_t *)pNtk->vOnehots );
+    if ( pNtk->pSeqModel )
+    {
+        pNtkNew->pSeqModel = Gia_ManDupCounterExample( pNtk->pSeqModel, Abc_NtkLatchNum(pNtk) );
+    }
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
     assert( Abc_NtkCoNum(pNtk)    == Abc_NtkCoNum(pNtkNew) );
@@ -155,6 +162,7 @@ Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc
     assert( Type != ABC_NTK_NETLIST );
     // start the network
     pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
+    pNtkNew->nConstrs = pNtk->nConstrs;
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -167,8 +175,6 @@ Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 1 );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkDupObj( pNtkNew, pObj, 1 );
-    Abc_NtkForEachAssert( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 1 );
     Abc_NtkForEachBox( pNtk, pObj, i )
     {
@@ -320,7 +326,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     {
         // copy the AND gates
         Abc_AigForEachAnd( pNtk, pObj, i )
-            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+            pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
         // relink the choice nodes
         Abc_AigForEachAnd( pNtk, pObj, i )
             if ( pObj->pData )
@@ -349,7 +355,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     if ( pNtk->pExcare )
-        pNtkNew->pExcare = Abc_NtkDup( pNtk->pExcare );
+        pNtkNew->pExcare = Abc_NtkDup( (Abc_Ntk_t *)pNtk->pExcare );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
@@ -387,8 +393,6 @@ Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
-    Abc_NtkForEachAssert( pNtk, pObj, i )
-        Abc_NtkDupObj( pNtkNew, pObj, 0 );
     Abc_NtkForEachBox( pNtk, pObj, i )
         Abc_NtkDupBox( pNtkNew, pObj, 0 );
     // copy the internal nodes
@@ -408,8 +412,6 @@ Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkDupObj( pNtkNew, pObj, 0 );
-    Abc_NtkForEachAssert( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
     Abc_NtkForEachBox( pNtk, pObj, i )
         Abc_NtkDupBox( pNtkNew, pObj, 0 );
@@ -484,7 +486,7 @@ Abc_Ntk_t * Abc_NtkAttachBottom( Abc_Ntk_t * pNtkTop, Abc_Ntk_t * pNtkBottom )
         Abc_NtkPi(pNtkBottom, i)->pCopy = Abc_NtkPi(pNtkTop, i);
     // construct all nodes
     vNodes = Abc_NtkDfs( pNtkBottom, 0 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         Abc_NtkDupObj(pNtkTop, pObj, 0);
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -549,12 +551,12 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     pNodeCoNew = Abc_NtkCreatePo( pNtkNew );
     Abc_ObjAssignName( pNodeCoNew, pNodeName, NULL );
     // copy the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         // if it is an AIG, add to the hash table
         if ( Abc_NtkIsStrash(pNtk) )
         {
-            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+            pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
         }
         else
         {
@@ -617,12 +619,12 @@ Abc_Ntk_t * Abc_NtkCreateConeArray( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fU
     }
 
     // copy the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         // if it is an AIG, add to the hash table
         if ( Abc_NtkIsStrash(pNtk) )
         {
-            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+            pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
         }
         else
         {
@@ -634,7 +636,7 @@ Abc_Ntk_t * Abc_NtkCreateConeArray( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fU
     Vec_PtrFree( vNodes );
 
     // add the POs corresponding to the root nodes
-    Vec_PtrForEachEntry( vRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pObj, i )
     {
         // create the PO node
         pNodeCoNew = Abc_NtkCreatePo( pNtkNew );
@@ -696,8 +698,8 @@ void Abc_NtkAppendToCone( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vRo
     }
 
     // copy the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     Vec_PtrFree( vNodes );
 
     // do not add the COs
@@ -744,7 +746,7 @@ Abc_Ntk_t * Abc_NtkCreateMffc( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     Abc_NodeMffcConeSupp( pNode, vCone, vSupp );
     Abc_NodeRef_rec( pNode );
     // create the PIs
-    Vec_PtrForEachEntry( vSupp, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, i )
     {
         pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
         Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
@@ -753,12 +755,12 @@ Abc_Ntk_t * Abc_NtkCreateMffc( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     pNodeCoNew = Abc_NtkCreatePo( pNtkNew );
     Abc_ObjAssignName( pNodeCoNew, pNodeName, NULL );
     // copy the nodes
-    Vec_PtrForEachEntry( vCone, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, i )
     {
         // if it is an AIG, add to the hash table
         if ( Abc_NtkIsStrash(pNtk) )
         {
-            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+            pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
         }
         else
         {
@@ -811,13 +813,13 @@ Abc_Ntk_t * Abc_NtkCreateTarget( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t
         Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
     }
     // copy the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         pObj->pCopy = Abc_NodeStrash( pNtkNew, pObj, 0 );
     Vec_PtrFree( vNodes );
 
     // add the PO
     pFinal = Abc_AigConst1( pNtkNew );
-    Vec_PtrForEachEntry( vRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pObj, i )
     {
         if ( Abc_ObjIsCo(pObj) )
             pOther = Abc_ObjFanin0(pObj)->pCopy;
@@ -825,7 +827,7 @@ Abc_Ntk_t * Abc_NtkCreateTarget( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t
             pOther = pObj->pCopy;
         if ( Vec_IntEntry(vValues, i) == 0 )
             pOther = Abc_ObjNot(pOther);
-        pFinal = Abc_AigAnd( pNtkNew->pManFunc, pFinal, pOther );
+        pFinal = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, pFinal, pOther );
     }
 
     // add the PO corresponding to this output
@@ -900,13 +902,13 @@ Abc_Ntk_t * Abc_NtkCreateWithNode( char * pSop )
     nVars = Abc_SopGetVarNum( pSop );
     vNames = Abc_NodeGetFakeNames( nVars );
     for ( i = 0; i < nVars; i++ )
-        Abc_ObjAssignName( Abc_NtkCreatePi(pNtkNew), Vec_PtrEntry(vNames, i), NULL );
+        Abc_ObjAssignName( Abc_NtkCreatePi(pNtkNew), (char *)Vec_PtrEntry(vNames, i), NULL );
     Abc_NodeFreeNames( vNames );
     // create the node, add PIs as fanins, set the function
     pNode = Abc_NtkCreateNode( pNtkNew );
     Abc_NtkForEachPi( pNtkNew, pFanin, i )
         Abc_ObjAddFanin( pNode, pFanin );
-    pNode->pData = Abc_SopRegister( pNtkNew->pManFunc, pSop );
+    pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtkNew->pManFunc, pSop );
     // create the only PO
     pNodePo = Abc_NtkCreatePo(pNtkNew);
     Abc_ObjAddFanin( pNodePo, pNode );
@@ -942,12 +944,12 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     if ( pNtk->pExdc )
         Abc_NtkDelete( pNtk->pExdc );
     if ( pNtk->pExcare )
-        Abc_NtkDelete( pNtk->pExcare );
+        Abc_NtkDelete( (Abc_Ntk_t *)pNtk->pExcare );
     // dereference the BDDs
     if ( Abc_NtkHasBdd(pNtk) )
     {
         Abc_NtkForEachNode( pNtk, pObj, i )
-            Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
+            Cudd_RecursiveDeref( (DdManager *)pNtk->pManFunc, (DdNode *)pObj->pData );
     }
     // make sure all the marks are clean
     Abc_NtkForEachObj( pNtk, pObj, i )
@@ -982,12 +984,13 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vPos );
     Vec_PtrFree( pNtk->vCis );
     Vec_PtrFree( pNtk->vCos );
-    Vec_PtrFree( pNtk->vAsserts );
     Vec_PtrFree( pNtk->vObjs );
     Vec_PtrFree( pNtk->vBoxes );
     if ( pNtk->vLevelsR ) Vec_IntFree( pNtk->vLevelsR );
     ABC_FREE( pNtk->pModel );
     ABC_FREE( pNtk->pSeqModel );
+    if ( pNtk->pSeqModelVec )
+        Vec_PtrFreeFree( pNtk->pSeqModelVec );
     TotalMemory  = 0;
     TotalMemory += pNtk->pMmObj? Extra_MmFixedReadMemUsage(pNtk->pMmObj)  : 0;
     TotalMemory += pNtk->pMmStep? Extra_MmStepReadMemUsage(pNtk->pMmStep) : 0;
@@ -1004,13 +1007,13 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         Abc_ManTimeStop( pNtk->pManTime );
     // start the functionality manager
     if ( Abc_NtkIsStrash(pNtk) )
-        Abc_AigFree( pNtk->pManFunc );
+        Abc_AigFree( (Abc_Aig_t *)pNtk->pManFunc );
     else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
-        Extra_MmFlexStop( pNtk->pManFunc );
+        Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
     else if ( Abc_NtkHasBdd(pNtk) )
-        Extra_StopManager( pNtk->pManFunc );
+        Extra_StopManager( (DdManager *)pNtk->pManFunc );
     else if ( Abc_NtkHasAig(pNtk) )
-        { if ( pNtk->pManFunc ) Hop_ManStop( pNtk->pManFunc ); }
+        { if ( pNtk->pManFunc ) Hop_ManStop( (Hop_Man_t *)pNtk->pManFunc ); }
     else if ( Abc_NtkHasMapping(pNtk) )
         pNtk->pManFunc = NULL;
     else if ( !Abc_NtkHasBlackbox(pNtk) )
@@ -1024,11 +1027,11 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 //    if ( pNtk->pBlackBoxes ) 
 //        Vec_IntFree( pNtk->pBlackBoxes );
     // free node attributes
-    Vec_PtrForEachEntry( pNtk->vAttrs, pAttrMan, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, pNtk->vAttrs, pAttrMan, i )
         if ( pAttrMan )
         {
 //printf( "deleting attr\n" );
-            Vec_AttFree( pAttrMan, 1 );
+            Vec_AttFree( (Vec_Att_t *)pAttrMan, 1 );
         }
     Vec_PtrFree( pNtk->vAttrs );
     ABC_FREE( pNtk->pName );
@@ -1059,6 +1062,14 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     if ( Abc_NtkNodeNum(pNtk) == 0 && Abc_NtkBoxNum(pNtk) == 0 )
         return;
 
+    // special case
+    pNet = Abc_NtkFindNet( pNtk, "[_c1_]" );
+    if ( pNet != NULL )
+    {
+        pNode = Abc_NtkCreateNodeConst1( pNtk );
+        Abc_ObjAddFanin( pNet, pNode );
+    }
+
     // check for non-driven nets
     vNets = Vec_PtrAlloc( 100 );
     Abc_NtkForEachNet( pNtk, pNet, i )
@@ -1077,7 +1088,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     if ( vNets->nSize > 0 )
     {
         printf( "Warning: Constant-0 drivers added to %d non-driven nets in network \"%s\":\n", Vec_PtrSize(vNets), pNtk->pName );
-        Vec_PtrForEachEntry( vNets, pNet, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNets, pNet, i )
         {
             printf( "%s%s", (i? ", ": ""), Abc_ObjName(pNet) );
             if ( i == 3 )
@@ -1117,7 +1128,7 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches )
 
     // detach the latches
 //    Abc_NtkForEachLatch( pNtk, pObj, i )
-    Vec_PtrForEachEntryReverse( pNtk->vBoxes, pObj, i )
+    Vec_PtrForEachEntryReverse( Abc_Obj_t *, pNtk->vBoxes, pObj, i )
         Abc_NtkDeleteObj( pObj );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
     assert( Abc_NtkBoxNum(pNtk) == 0 );
@@ -1151,7 +1162,7 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches )
         Vec_PtrFree( pNtk->vCos );
         pNtk->vCos = NULL;
         // remove the BOs
-        Vec_PtrForEachEntry( vBos, pObj, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vBos, pObj, i )
             Abc_NtkDeleteObj( pObj );
         Vec_PtrFree( vBos );
         // create COs
@@ -1160,7 +1171,7 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches )
         if ( Abc_NtkIsLogic(pNtk) )
             Abc_NtkCleanup( pNtk, 0 );
         else if ( Abc_NtkIsStrash(pNtk) )
-            Abc_AigCleanup( pNtk->pManFunc );
+            Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
         else
             assert( 0 );
     }
@@ -1272,38 +1283,41 @@ void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nLatchesToAdd )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMakeOnePo( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodePo )
+Abc_Ntk_t * Abc_NtkMakeOnePo( Abc_Ntk_t * pNtkInit, int Output, int nRange )
 {
+    Abc_Ntk_t * pNtk;
     Vec_Ptr_t * vPosToRemove;
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pNodePo;
     int i;
+    assert( !Abc_NtkIsNetlist(pNtkInit) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtkInit) );
+    if ( Output < 0 || Output >= Abc_NtkPoNum(pNtkInit) )
+    {
+        printf( "PO index is incorrect.\n" );
+        return NULL;
+    }
 
-    assert( !Abc_NtkIsNetlist(pNtk) );
-    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
-
+    pNtk = Abc_NtkDup( pNtkInit );
     if ( Abc_NtkPoNum(pNtk) == 1 )
-        return;
+        return pNtk;
 
-    // make sure the node exists
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        if ( pObj == pNodePo )
-            break;
-    assert( i < Abc_NtkPoNum(pNtk) );
+    if ( nRange < 1 )
+        nRange = 1;
 
     // collect POs to remove
     vPosToRemove = Vec_PtrAlloc( 100 );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        if ( pObj != pNodePo )
-            Vec_PtrPush( vPosToRemove, pObj );
+    Abc_NtkForEachPo( pNtk, pNodePo, i )
+        if ( i < Output || i >= Output + nRange )
+            Vec_PtrPush( vPosToRemove, pNodePo );
 
     // remove the POs
-    Vec_PtrForEachEntry( vPosToRemove, pObj, i )
-        Abc_NtkDeleteObj( pObj );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vPosToRemove, pNodePo, i )
+        Abc_NtkDeleteObj( pNodePo );
     Vec_PtrFree( vPosToRemove );
 
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        Abc_AigCleanup( pNtk->pManFunc );
+        Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
         printf( "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
     }
     else
@@ -1313,6 +1327,7 @@ void Abc_NtkMakeOnePo( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodePo )
 
     if ( !Abc_NtkCheck( pNtk ) )
         fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
+    return pNtk;
 }
 
 /**Function*************************************************************
@@ -1398,9 +1413,68 @@ Abc_Ntk_t * Abc_NtkTrim( Abc_Ntk_t * pNtk )
     return Abc_NtkDup( pNtk );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose )
+{
+    Abc_Obj_t * pObj, * pConst0, * pFaninNew;
+    int i, Counter = 0;
+    assert( Vec_PtrSize(vCexes) == Abc_NtkPoNum(pNtk) );
+    pConst0 = Abc_ObjNot( Abc_AigConst1(pNtk) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        if ( Vec_PtrEntry( vCexes, i ) == NULL )
+            continue;
+        Counter++;
+        pFaninNew = Abc_ObjNotCond( pConst0, Abc_ObjFaninC0(pObj) );
+        Abc_ObjPatchFanin( pObj, Abc_ObjFanin0(pObj), pFaninNew );
+        assert( Abc_ObjChild0(pObj) == pConst0 );
+        // if a PO is driven by a latch, they have the same name...
+//        if ( Abc_ObjIsBo(pObj) )
+//            Nm_ManDeleteIdName( pNtk->pManName, Abc_ObjId(pObj) );
+    }
+    if ( fVerbose )
+        printf( "Logic cones of %d POs have been replaced by constant 0.\n", Counter );
+    Counter = Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
+//    printf( "Cleanup removed %d nodes.\n", Counter );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput )
+{
+    Abc_Obj_t * pObj, * pConst0, * pFaninNew;
+    pObj = Abc_NtkPo( pNtk, iOutput );
+    pConst0 = Abc_ObjNot( Abc_AigConst1(pNtk) );
+    pFaninNew = Abc_ObjNotCond( pConst0, Abc_ObjFaninC0(pObj) );
+    Abc_ObjPatchFanin( pObj, Abc_ObjFanin0(pObj), pFaninNew );
+    assert( Abc_ObjChild0(pObj) == pConst0 );
+    Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

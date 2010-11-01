@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -62,7 +65,7 @@ static inline void Abc_NodesMark( Vec_Ptr_t * vVisited )
 {
     Abc_Obj_t * pNode;
     int i;
-    Vec_PtrForEachEntry( vVisited, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVisited, pNode, i )
         pNode->fMarkA = 1;
 }
 
@@ -81,7 +84,7 @@ static inline void Abc_NodesUnmark( Vec_Ptr_t * vVisited )
 {
     Abc_Obj_t * pNode;
     int i;
-    Vec_PtrForEachEntry( vVisited, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVisited, pNode, i )
         pNode->fMarkA = 0;
 }
 
@@ -100,7 +103,7 @@ static inline void Abc_NodesUnmarkB( Vec_Ptr_t * vVisited )
 {
     Abc_Obj_t * pNode;
     int i;
-    Vec_PtrForEachEntry( vVisited, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVisited, pNode, i )
         pNode->fMarkB = 0;
 }
 
@@ -246,7 +249,7 @@ static inline int Abc_NodeGetLeafCostTwo( Abc_Obj_t * pNode, int nFaninLimit,
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot, bool fContain )
+Vec_Ptr_t * Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot, int fContain )
 {
     Abc_Obj_t * pNode;
     int i;
@@ -285,7 +288,7 @@ Vec_Ptr_t * Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot, bool fContain 
     assert( p->nNodeSizeMax < p->nConeSizeMax );
     // copy the current boundary
     Vec_PtrClear( p->vConeLeaves );
-    Vec_PtrForEachEntry( p->vNodeLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vNodeLeaves, pNode, i )
         Vec_PtrPush( p->vConeLeaves, pNode );
     // compute the containing cut
     while ( Abc_NodeBuildCutLevelOne_int( p->vVisited, p->vConeLeaves, p->nConeSizeMax, p->nConeFanStop ) );
@@ -317,7 +320,7 @@ int Abc_NodeBuildCutLevelOne_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLeaves, int
     CostBest   = 100;
     pFaninBest = NULL;
 //printf( "Evaluating fanins of the cut:\n" );
-    Vec_PtrForEachEntry( vLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pNode, i )
     {
         CostCur = Abc_NodeGetLeafCostOne( pNode, nFaninLimit );
 //printf( "    Fanin %s has cost %d.\n", Abc_ObjName(pNode), CostCur );
@@ -387,7 +390,7 @@ int Abc_NodeBuildCutLevelTwo_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLeaves, int
     Abc_Obj_t * pNode = NULL, * pLeafToAdd, * pNodeToMark1, * pNodeToMark2;
     int CostCur = 0, i;
     // find the best fanin
-    Vec_PtrForEachEntry( vLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pNode, i )
     {
         CostCur = Abc_NodeGetLeafCostTwo( pNode, nFaninLimit, &pLeafToAdd, &pNodeToMark1, &pNodeToMark2 );
         if ( CostCur < 2 )
@@ -444,7 +447,7 @@ void Abc_NodeConeCollect( Abc_Obj_t ** ppRoots, int nRoots, Vec_Ptr_t * vLeaves,
     Vec_PtrClear( vVisited );
     // add the fanins
     if ( fIncludeFanins )
-        Vec_PtrForEachEntry( vLeaves, pTemp, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pTemp, i )
             Vec_PtrPush( vVisited, pTemp );
     // add other nodes
     for ( i = 0; i < nRoots; i++ )
@@ -499,21 +502,21 @@ DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pRoot, V
     // get the nodes in the cut without fanins in the DFS order
     Abc_NodeConeCollect( &pRoot, 1, vLeaves, vVisited, 0 );
     // set the elementary BDDs
-    Vec_PtrForEachEntry( vLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)pbVars[i];
     // compute the BDDs for the collected nodes
-    Vec_PtrForEachEntry( vVisited, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVisited, pNode, i )
     {
         assert( !Abc_ObjIsPi(pNode) );
-        bFunc0 = Cudd_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
-        bFunc1 = Cudd_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) );
+        bFunc0 = Cudd_NotCond( Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) );
+        bFunc1 = Cudd_NotCond( Abc_ObjFanin1(pNode)->pCopy, (int)Abc_ObjFaninC1(pNode) );
         bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );    Cudd_Ref( bFunc );
         pNode->pCopy = (Abc_Obj_t *)bFunc;
     }
     assert(bFunc);
     Cudd_Ref( bFunc );
     // dereference the intermediate ones
-    Vec_PtrForEachEntry( vVisited, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVisited, pNode, i )
         Cudd_RecursiveDeref( dd, (DdNode *)pNode->pCopy );
     Cudd_Deref( bFunc );
     return bFunc;
@@ -538,19 +541,19 @@ DdNode * Abc_NodeConeDcs( DdManager * dd, DdNode ** pbVarsX, DdNode ** pbVarsY, 
     // get the nodes in the cut without fanins in the DFS order
     Abc_NodeConeCollect( (Abc_Obj_t **)vRoots->pArray, vRoots->nSize, vLeaves, vVisited, 0 );
     // set the elementary BDDs
-    Vec_PtrForEachEntry( vLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)pbVarsX[i];
     // compute the BDDs for the collected nodes
-    Vec_PtrForEachEntry( vVisited, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVisited, pNode, i )
     {
-        bFunc0 = Cudd_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
-        bFunc1 = Cudd_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) );
+        bFunc0 = Cudd_NotCond( Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) );
+        bFunc1 = Cudd_NotCond( Abc_ObjFanin1(pNode)->pCopy, (int)Abc_ObjFaninC1(pNode) );
         bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );    Cudd_Ref( bFunc );
         pNode->pCopy = (Abc_Obj_t *)bFunc;
     }
     // compute the transition relation of the cone
     bTrans = b1;    Cudd_Ref( bTrans );
-    Vec_PtrForEachEntry( vRoots, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pNode, i )
     {
         bFunc = Cudd_bddXnor( dd, (DdNode *)pNode->pCopy, pbVarsY[i] );  Cudd_Ref( bFunc );
         bTrans = Cudd_bddAnd( dd, bTemp = bTrans, bFunc );               Cudd_Ref( bTrans );
@@ -558,7 +561,7 @@ DdNode * Abc_NodeConeDcs( DdManager * dd, DdNode ** pbVarsX, DdNode ** pbVarsY, 
         Cudd_RecursiveDeref( dd, bFunc );
     }
     // dereference the intermediate ones
-    Vec_PtrForEachEntry( vVisited, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vVisited, pNode, i )
         Cudd_RecursiveDeref( dd, (DdNode *)pNode->pCopy );
     // compute don't-cares
     bCube = Extra_bddComputeRangeCube( dd, vRoots->nSize, vRoots->nSize + vLeaves->nSize );  Cudd_Ref( bCube );
@@ -700,7 +703,7 @@ Vec_Ptr_t * Abc_NodeCollectTfoCands( Abc_ManCut_t * p, Abc_Obj_t * pRoot, Vec_Pt
     // put fanins into the structure while labeling them
     Abc_NtkIncrementTravId( pNtk );
     LevelMin = -1;
-    Vec_PtrForEachEntry( vLeaves, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pNode, i )
     {
         if ( pNode->Level > (unsigned)LevelMax )
             continue;
@@ -717,7 +720,7 @@ Vec_Ptr_t * Abc_NodeCollectTfoCands( Abc_ManCut_t * p, Abc_Obj_t * pRoot, Vec_Pt
 
     // go through the levels up
     Vec_PtrClear( p->vNodesTfo );
-    Vec_VecForEachEntryStart( p->vLevels, pNode, i, k, LevelMin )
+    Vec_VecForEachEntryStart( Abc_Obj_t *, p->vLevels, pNode, i, k, LevelMin )
     {
         if ( i > LevelMax )
             break;
@@ -760,4 +763,6 @@ Vec_Ptr_t * Abc_NodeCollectTfoCands( Abc_ManCut_t * p, Abc_Obj_t * pRoot, Vec_Pt
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

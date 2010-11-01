@@ -27,6 +27,9 @@
 #include "bzlib.h"
 #include "zlib.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 #ifdef _WIN32
 #define vsnprintf _vsnprintf
 #endif
@@ -50,7 +53,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel, int fMain )
+void Ntl_ManWriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel, int fMain )
 {
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
@@ -195,7 +198,7 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel, int fMain )
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteBlif_old( Ntl_Man_t * p, char * pFileName )
+void Ntl_ManWriteBlif_old( Ntl_Man_t * p, char * pFileName )
 {
     FILE * pFile;
     Ntl_Mod_t * pModel;
@@ -204,13 +207,13 @@ void Ioa_WriteBlif_old( Ntl_Man_t * p, char * pFileName )
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Ioa_WriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( stdout, "Ntl_ManWriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "# Benchmark \"%s\" written by ABC-8 on %s\n", p->pName, Ioa_TimeStamp() );
+    fprintf( pFile, "# Benchmark \"%s\" written by ABC-8 on %s\n", p->pName, Aig_TimeStamp() );
     // write the models
     Ntl_ManForEachModel( p, pModel, i )
-        Ioa_WriteBlifModel( pFile, pModel, i==0 );
+        Ntl_ManWriteBlifModel( pFile, pModel, i==0 );
     // close the file
     fclose( pFile );
 }
@@ -226,11 +229,11 @@ void Ioa_WriteBlif_old( Ntl_Man_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName )
+void Ntl_ManWriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName )
 {
     Ntl_Man_t * pNew;
     pNew = Ntl_ManInsertNtk( p, pNtk );
-    Ioa_WriteBlif( pNew, pFileName );
+    Ntl_ManWriteBlif( pNew, pFileName );
     Ntl_ManFree( pNew );
 }
 
@@ -277,7 +280,7 @@ int fprintfBz2(bz2file * b, char * fmt, ...) {
         }
         BZ2_bzWrite( &bzError, b->b, b->buf, b->nBytes );
         if (bzError == BZ_IO_ERROR) {
-            fprintf( stdout, "Ioa_WriteBlif(): I/O error writing to compressed stream.\n" );
+            fprintf( stdout, "Ntl_ManWriteBlif(): I/O error writing to compressed stream.\n" );
             return -1;
         }
         return b->nBytes;
@@ -302,7 +305,7 @@ int fprintfBz2(bz2file * b, char * fmt, ...) {
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteBlifModelGz( gzFile pFile, Ntl_Mod_t * pModel, int fMain )
+void Ntl_ManWriteBlifModelGz( gzFile pFile, Ntl_Mod_t * pModel, int fMain )
 {
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
@@ -447,7 +450,7 @@ void Ioa_WriteBlifModelGz( gzFile pFile, Ntl_Mod_t * pModel, int fMain )
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteBlifGz( Ntl_Man_t * p, char * pFileName )
+void Ntl_ManWriteBlifGz( Ntl_Man_t * p, char * pFileName )
 {
     Ntl_Mod_t * pModel;
     int i;
@@ -457,14 +460,14 @@ void Ioa_WriteBlifGz( Ntl_Man_t * p, char * pFileName )
     pFile = gzopen( pFileName, "wb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Ioa_WriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( stdout, "Ntl_ManWriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 
-    gzprintf( pFile, "# Benchmark \"%s\" written by ABC-8 on %s\n", p->pName, Ioa_TimeStamp() );
+    gzprintf( pFile, "# Benchmark \"%s\" written by ABC-8 on %s\n", p->pName, Aig_TimeStamp() );
     // write the models
     Ntl_ManForEachModel( p, pModel, i )
-        Ioa_WriteBlifModelGz( pFile, pModel, i==0 );
+        Ntl_ManWriteBlifModelGz( pFile, pModel, i==0 );
     // close the file
     gzclose( pFile );
 }
@@ -481,7 +484,7 @@ void Ioa_WriteBlifGz( Ntl_Man_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteBlifModelBz2( bz2file * b, Ntl_Mod_t * pModel, int fMain )
+void Ntl_ManWriteBlifModelBz2( bz2file * b, Ntl_Mod_t * pModel, int fMain )
 {
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
@@ -626,12 +629,12 @@ void Ioa_WriteBlifModelBz2( bz2file * b, Ntl_Mod_t * pModel, int fMain )
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
+void Ntl_ManWriteBlif( Ntl_Man_t * p, char * pFileName )
 {
     Ntl_Mod_t * pModel;
     int i, bzError;
     bz2file b;
-    if ( p->pNal && strncmp(pFileName+strlen(pFileName)-5,".blif",5) )
+    if ( p->pNal && !Ntl_FileIsType(pFileName, ".blif", ".blif.gz", ".blif.bz2") )
     {
         p->pNalW( p, pFileName );
         return;
@@ -639,7 +642,7 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
     // write the GZ file
     if (!strncmp(pFileName+strlen(pFileName)-3,".gz",3)) 
     {
-        Ioa_WriteBlifGz( p, pFileName );
+        Ntl_ManWriteBlifGz( p, pFileName );
         return;
     }
 
@@ -651,7 +654,7 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
     b.f = fopen( pFileName, "wb" ); 
     if ( b.f == NULL )
     {
-        fprintf( stdout, "Ioa_WriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( stdout, "Ntl_ManWriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
         ABC_FREE(b.buf);
         return;
     }
@@ -659,22 +662,22 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
         b.b = BZ2_bzWriteOpen( &bzError, b.f, 9, 0, 0 );
         if ( bzError != BZ_OK ) {
             BZ2_bzWriteClose( &bzError, b.b, 0, NULL, NULL );
-            fprintf( stdout, "Ioa_WriteBlif(): Cannot start compressed stream.\n" );
+            fprintf( stdout, "Ntl_ManWriteBlif(): Cannot start compressed stream.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
             return;
         }
     }
 
-    fprintfBz2( &b, "# Benchmark \"%s\" written by ABC-8 on %s\n", p->pName, Ioa_TimeStamp() );
+    fprintfBz2( &b, "# Benchmark \"%s\" written by ABC-8 on %s\n", p->pName, Aig_TimeStamp() );
     // write the models
     Ntl_ManForEachModel( p, pModel, i )
-        Ioa_WriteBlifModelBz2( &b, pModel, i==0 );
+        Ntl_ManWriteBlifModelBz2( &b, pModel, i==0 );
     // close the file
     if (b.b) {
         BZ2_bzWriteClose( &bzError, b.b, 0, NULL, NULL );
         if (bzError == BZ_IO_ERROR) {
-            fprintf( stdout, "Ioa_WriteBlif(): I/O error closing compressed stream.\n" );
+            fprintf( stdout, "Ntl_ManWriteBlif(): I/O error closing compressed stream.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
             return;
@@ -689,4 +692,6 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

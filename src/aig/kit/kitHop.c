@@ -21,6 +21,9 @@
 #include "kit.h"
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,16 +53,16 @@ Hop_Obj_t * Kit_GraphToHopInternal( Hop_Man_t * pMan, Kit_Graph_t * pGraph )
         return Hop_NotCond( Hop_ManConst1(pMan), Kit_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Kit_GraphIsVar(pGraph) )
-        return Hop_NotCond( Kit_GraphVar(pGraph)->pFunc, Kit_GraphIsComplement(pGraph) );
+        return Hop_NotCond( (Hop_Obj_t *)Kit_GraphVar(pGraph)->pFunc, Kit_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Kit_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Hop_NotCond( Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Hop_NotCond( Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pAnd0 = Hop_NotCond( (Hop_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Hop_NotCond( (Hop_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
         pNode->pFunc = Hop_And( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Hop_NotCond( pNode->pFunc, Kit_GraphIsComplement(pGraph) );
+    return Hop_NotCond( (Hop_Obj_t *)pNode->pFunc, Kit_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -142,4 +145,6 @@ Hop_Obj_t * Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

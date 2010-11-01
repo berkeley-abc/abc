@@ -49,6 +49,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -367,7 +370,7 @@ cuddSubsetHeavyBranch(
     st_free_table(approxTable);
     return(NULL);
     }
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
     Cudd_RecursiveDeref(dd, (DdNode *)value);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -378,7 +381,7 @@ cuddSubsetHeavyBranch(
     st_free_table(storeTable);
     return(NULL);
     }
-    while(st_gen(stGen, (char **)&key, (char **)&value)) {
+    while(st_gen(stGen, (const char **)&key, (char **)&value)) {
     Cudd_RecursiveDeref(dd, (DdNode *)key);
     }
     st_free_gen(stGen); stGen = NULL;
@@ -777,7 +780,7 @@ SubsetCountMinterm(
 #endif
 
     max = pow(2.0,(double) nvars);
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st_init_table(st_ptrcmp, st_ptrhash);;
     if (table == NULL) goto OUT_OF_MEM;
     maxPages = INITIAL_PAGES;
     mintermPages = ABC_ALLOC(double *,maxPages);
@@ -1308,4 +1311,6 @@ BuildSubsetBdd(
         return(neW);
     }
 } /* end of BuildSubsetBdd */
+
+ABC_NAMESPACE_IMPL_END
 

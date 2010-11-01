@@ -25,6 +25,9 @@
 #define _EPD
 
 
+ABC_NAMESPACE_HEADER_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -156,5 +159,9 @@ int EpdIsNanOrInf(EpDouble *epd);
 int IsInfDouble(double value);
 int IsNanDouble(double value);
 int IsNanOrInfDouble(double value);
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif /* _EPD */

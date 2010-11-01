@@ -26,6 +26,9 @@
 #include "satStore.h"
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -186,6 +189,7 @@ int Inta_ManGlobalVars( Inta_Man_t * p )
 ***********************************************************************/
 void Inta_ManResize( Inta_Man_t * p )
 {
+    p->Counter = 0;
     // check if resizing is needed
     if ( p->nVarsAlloc < p->pCnf->nVars )
     {
@@ -203,7 +207,7 @@ void Inta_ManResize( Inta_Man_t * p )
         p->pWatches  = ABC_REALLOC(Sto_Cls_t *, p->pWatches,  p->nVarsAlloc*2 );
     }
 
-    // clean the ABC_FREE space
+    // clean the free space
     memset( p->pAssigns , 0xff, sizeof(lit) * p->pCnf->nVars );
     memset( p->pSeens   , 0,    sizeof(char) * p->pCnf->nVars );
     memset( p->pVarTypes, 0,    sizeof(int) * p->pCnf->nVars );
@@ -956,7 +960,7 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, in
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );
     p->pCnf = pCnf;
     p->fVerbose = fVerbose;
-    p->vVarsAB = vVarsAB;
+    p->vVarsAB = (Vec_Int_t *)vVarsAB;
     p->pAig = pRes = Aig_ManStart( 10000 );
     Aig_IthVar( p->pAig, Vec_IntSize(p->vVarsAB) - 1 );
 
@@ -1070,4 +1074,6 @@ Aig_Man_t * Inta_ManDeriveClauses( Inta_Man_t * pMan, Sto_Man_t * pCnf, int fCla
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

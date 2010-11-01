@@ -56,6 +56,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -115,7 +118,7 @@ static int sift_up ARGS((DdManager *table, int x, int x_low));
 static int build_dd ARGS((DdManager *table, int num, int lower, int upper));
 static int largest ARGS(());
 static int rand_int ARGS((int a));
-static int array_hash ARGS((char *array, int modulus));
+static int array_hash ARGS((const char *array, int modulus));
 static int array_compare ARGS((const char *array1, const char *array2));
 static int find_best ARGS(());
 static double find_average_fitness ARGS(());
@@ -333,7 +336,7 @@ cuddGa(
         repeat[index]--;
         if (repeat[index] == 0) {
             int *pointer = &STOREDD(index,0);
-            result = st_delete(computed, (char **)&pointer,NULL);
+            result = st_delete(computed, (const char **)&pointer,NULL);
             if (!result) {
             ABC_FREE(storedd);
             ABC_FREE(repeat);
@@ -632,14 +635,14 @@ rand_int(
 ******************************************************************************/
 static int
 array_hash(
-  char * array,
+  const char * array,
   int  modulus)
 {
     int val = 0;
     int i;
-    int *intarray;
+    const int *intarray;
 
-    intarray = (int *) array;
+    intarray = (const int *) array;
 
     for (i = 0; i < numvars; i++) {
     val = val * 997 + intarray[i];
@@ -918,4 +921,6 @@ roulette(
     return(1);
 
 } /* end of roulette */
+
+ABC_NAMESPACE_IMPL_END
 

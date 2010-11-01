@@ -21,6 +21,9 @@
 #include "seqInt.h"
 #include "hash.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -350,7 +353,7 @@ Hash_Ptr_t * Seq_NtkPathDelays( Abc_Ntk_t * pNtk, int fVerbose ) {
       Abc_NodeDelayTraceArrival( vNodes->pArray[i] );
 
     // there is a path to each set of Co endpoints
-    Vec_PtrForEachEntry( vEndpoints, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vEndpoints, pObj, i )
     {
       assert(pObj);
       assert( Abc_ObjIsCo( pObj ) );
@@ -565,3 +568,5 @@ void Seq_NtkSkewForward( Abc_Ntk_t * pNtk, float period, int fMinimize ) {
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

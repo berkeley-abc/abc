@@ -20,6 +20,10 @@
 
 #include <stdio.h>
 #include "extra.h"
+#include "main.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -58,9 +62,6 @@ static void Extra_ProgressBarClean( ProgressBar * p );
 ProgressBar * Extra_ProgressBarStart( FILE * pFile, int nItemsTotal )
 {
     ProgressBar * p;
-    extern int Abc_FrameShowProgress( void * p );
-    extern void * Abc_FrameGetGlobalFrame();
-
     if ( !Abc_FrameShowProgress(Abc_FrameGetGlobalFrame()) ) return NULL;
     p = ABC_ALLOC( ProgressBar, 1 );
     memset( p, 0, sizeof(ProgressBar) );
@@ -173,4 +174,6 @@ void Extra_ProgressBarClean( ProgressBar * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

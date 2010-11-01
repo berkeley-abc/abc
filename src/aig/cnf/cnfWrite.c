@@ -20,6 +20,9 @@
 
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,6 +30,43 @@
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Derives CNF mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Cnf_ManWriteCnfMapping( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
+{
+    Vec_Int_t * vResult;
+    Aig_Obj_t * pObj;
+    Cnf_Cut_t * pCut;
+    int i, k, nOffset;
+    nOffset = Aig_ManObjNumMax(p->pManAig);
+    vResult = Vec_IntStart( nOffset );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
+    {
+        assert( Aig_ObjIsNode(pObj) );
+        pCut = Cnf_ObjBestCut( pObj );
+        assert( pCut->nFanins < 5 );
+        Vec_IntWriteEntry( vResult, Aig_ObjId(pObj), nOffset );
+        Vec_IntPush( vResult, *Cnf_CutTruth(pCut) );
+        for ( k = 0; k < pCut->nFanins; k++ )
+            Vec_IntPush( vResult, pCut->pFanins[k] );
+        for (      ; k < 4; k++ )
+            Vec_IntPush( vResult, -1 );
+        nOffset += 5;
+    }
+    return vResult;
+}
+
+
 
 /**Function*************************************************************
 
@@ -169,7 +209,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     // count the number of literals and clauses
     nLiterals = 1 + Aig_ManPoNum( p->pManAig ) + 3 * nOutputs;
     nClauses = 1 + Aig_ManPoNum( p->pManAig ) + nOutputs;
-    Vec_PtrForEachEntry( vMapped, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
     {
         assert( Aig_ObjIsNode(pObj) );
         pCut = Cnf_ObjBestCut( pObj );
@@ -237,7 +277,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
         }
     }
     // assign variables to the internal nodes
-    Vec_PtrForEachEntry( vMapped, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
     // assign variables to the PIs and constant node
     Aig_ManForEachPi( p->pManAig, pObj, i )
@@ -249,7 +289,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     vSopTemp = Vec_IntAlloc( 1 << 16 );
     pLits = pCnf->pClauses[0];
     pClas = pCnf->pClauses;
-    Vec_PtrForEachEntry( vMapped, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
     {
         pCut = Cnf_ObjBestCut( pObj );
 
@@ -561,4 +601,6 @@ Cnf_Dat_t * Cnf_DeriveSimpleForRetiming( Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

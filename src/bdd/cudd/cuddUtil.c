@@ -79,6 +79,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -444,7 +447,7 @@ Cudd_EstimateCofactor(
     DdNode *ptr;
     st_table *table;
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st_init_table(st_ptrcmp, st_ptrhash);;
     if (table == NULL) return(CUDD_OUT_OF_MEM);
     val = cuddEstimateCofactor(dd,table,Cudd_Regular(f),i,phase,&ptr);
     ddClearFlag(Cudd_Regular(f));
@@ -586,12 +589,12 @@ Cudd_CountPath(
     st_table    *table;
     double    i;    
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st_init_table(st_ptrcmp, st_ptrhash);;
     if (table == NULL) {
     return((double)CUDD_OUT_OF_MEM);
     }
     i = ddCountPathAux(Cudd_Regular(node),table);
-    st_foreach(table, cuddStCountfree, NULL);
+    st_foreach(table, (ST_PFSR)cuddStCountfree, NULL);
     st_free_table(table);
     return(i);
 
@@ -633,7 +636,7 @@ Cudd_EpdCountMinterm(
     return(CUDD_OUT_OF_MEM);
     }
     status = ddEpdCountMintermAux(Cudd_Regular(node),&max,epd,table);
-    st_foreach(table, ddEpdFree, NULL);
+    st_foreach(table, (ST_PFSR)ddEpdFree, NULL);
     st_free_table(table);
     if (status == CUDD_OUT_OF_MEM) {
     EpdMakeZero(epd, 0);
@@ -670,12 +673,12 @@ Cudd_CountPathsToNonZero(
     st_table    *table;
     double    i;    
 
-    table = st_init_table(st_ptrcmp,st_ptrhash);
+    table = st_init_table(st_ptrcmp, st_ptrhash);;
     if (table == NULL) {
     return((double)CUDD_OUT_OF_MEM);
     }
     i = ddCountPathsToNonZero(node,table);
-    st_foreach(table, cuddStCountfree, NULL);
+    st_foreach(table, (ST_PFSR)cuddStCountfree, NULL);
     st_free_table(table);
     return(i);
 
@@ -2187,7 +2190,7 @@ Cudd_FirstNode(
     gen->stack.stack = NULL;
     gen->node = NULL;
 
-    gen->gen.nodes.visited = st_init_table(st_ptrcmp,st_ptrhash);
+    gen->gen.nodes.visited = st_init_table(st_ptrcmp, st_ptrhash);;
     if (gen->gen.nodes.visited == NULL) {
     ABC_FREE(gen);
     return(NULL);
@@ -2210,7 +2213,7 @@ Cudd_FirstNode(
     }
 
     /* Find the first node. */
-    retval = st_gen(gen->gen.nodes.stGen, (char **) &(gen->node), NULL);
+    retval = st_gen(gen->gen.nodes.stGen, (const char **) &(gen->node), NULL);
     if (retval != 0) {
     gen->status = CUDD_GEN_NONEMPTY;
     *node = gen->node;
@@ -2242,7 +2245,7 @@ Cudd_NextNode(
     int retval;
 
     /* Find the next node. */
-    retval = st_gen(gen->gen.nodes.stGen, (char **) &(gen->node), NULL);
+    retval = st_gen(gen->gen.nodes.stGen, (const char **) &(gen->node), NULL);
     if (retval == 0) {
     gen->status = CUDD_GEN_EMPTY;
     } else {
@@ -2647,7 +2650,7 @@ cuddP(
   DdNode * f)
 {
     int retval;
-    st_table *table = st_init_table(st_ptrcmp,st_ptrhash);
+    st_table *table = st_init_table(st_ptrcmp, st_ptrhash);;
 
     if (table == NULL) return(0);
 
@@ -3632,3 +3635,5 @@ ddEpdFree(
     return(ST_CONTINUE);
 
 } /* end of ddEpdFree */
+ABC_NAMESPACE_IMPL_END
+

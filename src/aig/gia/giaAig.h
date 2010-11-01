@@ -21,12 +21,16 @@
 #ifndef __GIA_AIG_H__
 #define __GIA_AIG_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig.h"
 #include "gia.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -51,12 +55,18 @@ extern Gia_Man_t *         Gia_ManFromAigSimple( Aig_Man_t * p );
 extern Gia_Man_t *         Gia_ManFromAigSwitch( Aig_Man_t * p );
 extern Aig_Man_t *         Gia_ManToAig( Gia_Man_t * p, int fChoices );
 extern Aig_Man_t *         Gia_ManToAigSkip( Gia_Man_t * p, int nOutDelta );
-extern void                Gia_ManReprToAigRepr( Aig_Man_t * p, Gia_Man_t * pGia );
-extern Gia_Man_t *         Gia_ManCompress2( Gia_Man_t * p );
- 
-#ifdef __cplusplus
-}
-#endif
+extern Aig_Man_t *         Gia_ManToAigSimple( Gia_Man_t * p );
+extern void                Gia_ManReprToAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia );
+extern void                Gia_ManReprToAigRepr2( Aig_Man_t * pAig, Gia_Man_t * pGia );
+extern void                Gia_ManReprFromAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia );
+extern Gia_Man_t *         Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose );
+extern Gia_Man_t *         Gia_ManPerformDch( Gia_Man_t * p, void * pPars );
+extern Gia_Man_t *         Gia_ManAbstraction( Gia_Man_t * p, Vec_Int_t * vFlops );
+extern void                Gia_ManSeqCleanupClasses( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
+extern int                 Gia_ManSolveSat( Gia_Man_t * p );
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

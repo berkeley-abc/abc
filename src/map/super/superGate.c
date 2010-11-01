@@ -16,7 +16,11 @@
 
 ***********************************************************************/
 
+#include <math.h>
 #include "superInt.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -99,9 +103,9 @@ static void           Super_ManStop( Super_Man_t * pMan );
 
 static void           Super_AddGateToTable( Super_Man_t * pMan, Super_Gate_t * pGate );
 static void           Super_First( Super_Man_t * pMan, int nVarsMax );
-static Super_Man_t *  Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGates, bool fSkipInv );
+static Super_Man_t *  Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGates, int fSkipInv );
 static Super_Gate_t * Super_CreateGateNew( Super_Man_t * pMan, Mio_Gate_t * pRoot, Super_Gate_t ** pSupers, int nSupers, unsigned uTruth[], float Area, float tPinDelaysRes[], float tDelayMax, int nPins );
-static bool           Super_CompareGates( Super_Man_t * pMan, unsigned uTruth[], float Area, float tPinDelaysRes[], int nPins );
+static int           Super_CompareGates( Super_Man_t * pMan, unsigned uTruth[], float Area, float tPinDelaysRes[], int nPins );
 static int            Super_DelayCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 );
 static int            Super_AreaCompare( Super_Gate_t ** ppG1, Super_Gate_t ** ppG2 );
 static void           Super_TranferGatesToArray( Super_Man_t * pMan );
@@ -134,7 +138,7 @@ static void           Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pM
   SeeAlso     []
 
 ***********************************************************************/
-void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, float tDelayMax, float tAreaMax, int TimeLimit, bool fSkipInv, bool fWriteOldFormat, int fVerbose )
+void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, float tDelayMax, float tAreaMax, int TimeLimit, int fSkipInv, int fWriteOldFormat, int fVerbose )
 {
     Super_Man_t * pMan;
     Mio_Gate_t ** ppGates;
@@ -291,7 +295,7 @@ void Super_First( Super_Man_t * pMan, int nVarsMax )
   SeeAlso     []
 
 ***********************************************************************/
-Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGates, bool fSkipInv )
+Super_Man_t * Super_Compute( Super_Man_t * pMan, Mio_Gate_t ** ppGates, int nGates, int fSkipInv )
 {
     Super_Gate_t * pSupers[6], * pGate0, * pGate1, * pGate2, * pGate3, * pGate4, * pGate5, * pGateNew;
     float tPinDelaysRes[6], * ptPinDelays[6], tPinDelayMax, tDelayMio;
@@ -757,7 +761,7 @@ void Super_AddGateToTable( Super_Man_t * pMan, Super_Gate_t * pGate )
   SeeAlso     []
 
 ***********************************************************************/
-bool Super_CompareGates( Super_Man_t * pMan, unsigned uTruth[], float Area, float tPinDelaysRes[], int nPins )
+int Super_CompareGates( Super_Man_t * pMan, unsigned uTruth[], float Area, float tPinDelaysRes[], int nPins )
 {
     Super_Gate_t ** ppList, * pPrev, * pGate, * pGate2;
     int i, fNewIsBetter, fGateIsBetter;
@@ -1012,7 +1016,7 @@ void Super_WriteFileHeader( Super_Man_t * pMan, FILE * pFile )
     fprintf( pFile, "# The number of attempts    = %10d.\n", pMan->nTried  );
     fprintf( pFile, "# The number of supergates  = %10d.\n", pMan->nGates  );
     fprintf( pFile, "# The number of functions   = %10d.\n", pMan->nUnique );
-    fprintf( pFile, "# The total functions       = %.0f (2^%d).\n", pow(2,pMan->nMints), pMan->nMints );
+    fprintf( pFile, "# The total functions       = %.0f (2^%d).\n", pow((double)2,pMan->nMints), pMan->nMints );
     fprintf( pFile, "#\n" );
     fprintf( pFile, "# Generation time (sec)     = %10.2f.\n", (float)(pMan->Time)/(float)(CLOCKS_PER_SEC) );
     fprintf( pFile, "#\n" );
@@ -1335,4 +1339,6 @@ void Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

@@ -19,6 +19,9 @@
 #include "mioInt.h"
 #include "parse.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -110,13 +113,13 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
         if ( strcmp( pGate->pForm, MIO_STRING_CONST0 ) == 0 )
         {
             pGate->bFunc = b0;
-            pGate->pSop = Abc_SopRegister( pGate->pLib->pMmFlex, " 0\n" );
+            pGate->pSop = Abc_SopRegister( (Extra_MmFlex_t *)pGate->pLib->pMmFlex, " 0\n" );
             pGate->pLib->pGate0 = pGate;
         }
         else if ( strcmp( pGate->pForm, MIO_STRING_CONST1 ) == 0 )
         {
             pGate->bFunc = b1;
-            pGate->pSop = Abc_SopRegister( pGate->pLib->pMmFlex, " 1\n" );
+            pGate->pSop = Abc_SopRegister( (Extra_MmFlex_t *)pGate->pLib->pMmFlex, " 1\n" );
             pGate->pLib->pGate1 = pGate;
         }
         else
@@ -270,4 +273,6 @@ int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -29,6 +29,7 @@
 #ifndef __EXTRA_H__
 #define __EXTRA_H__
 
+
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -42,13 +43,14 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include "abc_global.h"
+
 #include "st.h"
 #include "cuddInt.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -173,6 +175,7 @@ extern DdNode *     Extra_bddMove( DdManager * dd, DdNode * bF, int nVars );
 extern DdNode *     extraBddMove( DdManager * dd, DdNode * bF, DdNode * bFlag );
 extern void         Extra_StopManager( DdManager * dd );
 extern void         Extra_bddPrint( DdManager * dd, DdNode * F );
+extern void         Extra_bddPrintSupport( DdManager * dd, DdNode * F );
 extern void         extraDecomposeCover( DdManager* dd, DdNode*  zC, DdNode** zC0, DdNode** zC1, DdNode** zC2 );
 extern int          Extra_bddSuppSize( DdManager * dd, DdNode * bSupp );
 extern int          Extra_bddSuppContainVar( DdManager * dd, DdNode * bS, DdNode * bVar );
@@ -325,6 +328,7 @@ extern char *       Extra_FileNameGeneric( char * FileName );
 extern char *       Extra_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern int          Extra_FileSize( char * pFileName );
 extern char *       Extra_FileRead( FILE * pFile );
+extern int          Extra_FileIsType( char * pFileName, char * pS1, char * pS2, char * pS3 );
 extern char *       Extra_TimeStamp();
 extern char *       Extra_StringAppend( char * pStrGiven, char * pStrAdd );
 extern unsigned     Extra_ReadBinary( char * Buffer );
@@ -332,7 +336,7 @@ extern void         Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits 
 extern int          Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars );
 extern void         Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars );
 extern void         Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars );
-extern void         Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars );
+extern void         Extra_PrintHex( FILE * pFile, unsigned * pTruth, int nVars );
 extern void         Extra_PrintSymbols( FILE * pFile, char Char, int nTimes, int fPrintNewLine );
 
 /*=== extraUtilReader.c ========================================================*/
@@ -437,8 +441,10 @@ static inline void Extra_ProgressBarUpdate( ProgressBar * p, int nItemsCur, char
 
 /*=== extraUtilTruth.c ================================================================*/
 
-static inline int   Extra_Float2Int( float Val )     { return *((int *)&Val);               }
-static inline float Extra_Int2Float( int Num )       { return *((float *)&Num);             }
+//static inline int   Extra_Float2Int( float Val )     { return *((int *)&Val);               }
+//static inline float Extra_Int2Float( int Num )       { return *((float *)&Num);             }
+static inline int   Extra_Float2Int( float Val )     { union { int x; float y; } v; v.y = Val; return v.x;     }
+static inline float Extra_Int2Float( int Num )       { union { int x; float y; } v; v.x = Num; return v.y;     }
 static inline int   Extra_BitWordNum( int nBits )    { return nBits/(8*sizeof(unsigned)) + ((nBits%(8*sizeof(unsigned))) > 0);  }
 static inline int   Extra_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
 
@@ -590,20 +596,22 @@ extern long          Extra_CpuTime();
 extern double        Extra_CpuTimeDouble();
 extern int           Extra_GetSoftDataLimit();
 extern ABC_DLL void  Extra_UtilGetoptReset();
-extern int           Extra_UtilGetopt( int argc, char *argv[], char *optstring );
+extern int           Extra_UtilGetopt( int argc, char *argv[], const char *optstring );
 extern char *        Extra_UtilPrintTime( long t );
-extern char *        Extra_UtilStrsav( char *s );
+extern char *        Extra_UtilStrsav( const char *s );
 extern char *        Extra_UtilTildeExpand( char *fname );
 extern char *        Extra_UtilFileSearch( char *file, char *path, char *mode );
-extern void          (*Extra_UtilMMoutOfMemory)();
+extern void          (*Extra_UtilMMoutOfMemory)( long size );
 
-extern char *        globalUtilOptarg;
+extern const char *        globalUtilOptarg;
 extern int           globalUtilOptind;
 
 /**AutomaticEnd***************************************************************/
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif /* __EXTRA_H__ */

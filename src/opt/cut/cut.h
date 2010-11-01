@@ -21,6 +21,7 @@
 #ifndef __CUT_H__
 #define __CUT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #define CUT_SIZE_MIN    3      // the min K of the K-feasible cut computation
 #define CUT_SIZE_MAX   12      // the max K of the K-feasible cut computation
@@ -155,9 +157,11 @@ extern int              Cut_CellIsRunning();
 extern void             Cut_CellDumpToFile();
 extern int              Cut_CellTruthLookup( unsigned * pTruth, int nVars );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

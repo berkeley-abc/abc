@@ -21,6 +21,7 @@
 #ifndef __SSW_H__
 #define __SSW_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,7 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" { 
-#endif
+ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -45,7 +44,8 @@ struct Ssw_Pars_t_
     int              nOverSize;     // size of the overlap between partitions
     int              nFramesK;      // the induction depth
     int              nFramesAddSim; // the number of additional frames to simulate
-    int              nConstrs;      // treat the last nConstrs POs as seq constraints
+    int              fConstrs;      // treat the last nConstrs POs as seq constraints
+    int              fMergeFull;    // enables full merge when constraints are used
     int              nMaxLevs;      // the max number of levels of nodes to consider
     int              nBTLimit;      // conflict limit at a node
     int              nBTLimitGlobal;// conflict limit for multiple runs
@@ -53,10 +53,13 @@ struct Ssw_Pars_t_
     int              nItersStop;    // stop after the given number of iterations
     int              fDumpSRInit;   // dumps speculative reduction
     int              nResimDelta;   // the number of nodes to resimulate
+    int              nStepsMax;     // (scorr only) the max number of induction steps
+    int              TimeLimit;     // time out in seconds
     int              fPolarFlip;    // uses polarity adjustment
     int              fLatchCorr;    // perform register correspondence
+    int              fOutputCorr;   // perform 'PO correspondence'
     int              fSemiFormal;   // enable semiformal filtering
-    int              fUniqueness;   // enable uniqueness constraints
+//    int              fUniqueness;   // enable uniqueness constraints
     int              fDynamic;      // enable dynamic addition of constraints
     int              fLocalSim;     // enable local simulation simulation
     int              fPartSigCorr;  // uses partial signal correspondence
@@ -75,18 +78,9 @@ struct Ssw_Pars_t_
     // internal parameters
     int              nIters;        // the number of iterations performed
     int              nConflicts;    // the total number of conflicts performed
-};
-
-// sequential counter-example
-typedef struct Ssw_Cex_t_   Ssw_Cex_t;
-struct Ssw_Cex_t_
-{
-    int              iPo;               // the zero-based number of PO, for which verification failed
-    int              iFrame;            // the zero-based number of the time-frame, for which verificaiton failed
-    int              nRegs;             // the number of registers in the miter 
-    int              nPis;              // the number of primary inputs in the miter
-    int              nBits;             // the number of words of bit data used
-    unsigned         pData[0];          // the cex bit data (the number of bits: nRegs + (iFrame+1) * nPis)
+    // callback
+    void *           pData;
+    void *           pFunc;
 };
 
 typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager
@@ -101,6 +95,8 @@ typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager
 
 /*=== sswBmc.c ==========================================================*/
 extern int           Ssw_BmcDynamic( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbose, int * piFrame );
+/*=== sswConstr.c ==========================================================*/
+extern int           Ssw_ManSetConstrPhases( Aig_Man_t * p, int nFrames, Vec_Int_t ** pvInits );
 /*=== sswCore.c ==========================================================*/
 extern void          Ssw_ManSetDefaultParams( Ssw_Pars_t * p );
 extern void          Ssw_ManSetDefaultParamsLcorr( Ssw_Pars_t * p );
@@ -110,7 +106,6 @@ extern Aig_Man_t *   Ssw_LatchCorrespondence( Aig_Man_t * pAig, Ssw_Pars_t * pPa
 extern int           Ssw_SecWithSimilarityPairs( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs, Ssw_Pars_t * pPars );
 extern int           Ssw_SecWithSimilarity( Aig_Man_t * p0, Aig_Man_t * p1, Ssw_Pars_t * pPars );
 /*=== sswMiter.c ===================================================*/
-extern int           Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbose );
 /*=== sswPart.c ==========================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 /*=== sswPairs.c ===================================================*/
@@ -127,15 +122,17 @@ extern int           Ssw_SmlNumFrames( Ssw_Sml_t * p );
 extern int           Ssw_SmlNumWordsTotal( Ssw_Sml_t * p );
 extern unsigned *    Ssw_SmlSimInfo( Ssw_Sml_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
-extern Ssw_Cex_t *   Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
-extern void          Ssw_SmlFreeCounterExample( Ssw_Cex_t * pCex );
-extern int           Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p );
-extern int           Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Ssw_Cex_t * p );
-extern Ssw_Cex_t *   Ssw_SmlDupCounterExample( Ssw_Cex_t * p, int nRegsNew );
+extern Abc_Cex_t *   Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
+extern void          Ssw_SmlFreeCounterExample( Abc_Cex_t * pCex );
+extern int           Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
+extern int           Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
+extern Abc_Cex_t *   Ssw_SmlDupCounterExample( Abc_Cex_t * p, int nRegsNew );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

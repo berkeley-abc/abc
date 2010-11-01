@@ -9,6 +9,9 @@
  */
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 void set_pair(PLA)
 pPLA PLA;
 {
@@ -678,3 +681,5 @@ register ppair pair;
     FREE(pair->var2);
     FREE(pair);
 }
+ABC_NAMESPACE_IMPL_END
+

@@ -19,6 +19,9 @@
 #include <limits.h>
 #include "fraigInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -215,4 +218,6 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -18,6 +18,9 @@
 
 #include "parseInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -72,9 +75,9 @@ Parse_StackFn_t * Parse_StackFnStart( int nDepth )
   SeeAlso     []
 
 ***********************************************************************/
-bool Parse_StackFnIsEmpty( Parse_StackFn_t * p )
+int Parse_StackFnIsEmpty( Parse_StackFn_t * p )
 {
-    return (bool)(p->Top == 0);
+    return (int)(p->Top == 0);
 }
 
 /**Function*************************************************************
@@ -171,9 +174,9 @@ Parse_StackOp_t * Parse_StackOpStart( int nDepth )
   SeeAlso     []
 
 ***********************************************************************/
-bool Parse_StackOpIsEmpty( Parse_StackOp_t * p )
+int Parse_StackOpIsEmpty( Parse_StackOp_t * p )
 {
-    return (bool)(p->Top == 0);
+    return (int)(p->Top == 0);
 }
 
 /**Function*************************************************************
@@ -240,4 +243,6 @@ void Parse_StackOpFree( Parse_StackOp_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

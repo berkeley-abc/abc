@@ -21,6 +21,9 @@
 #include "kit.h"
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,16 +53,16 @@ Aig_Obj_t * Kit_GraphToAigInternal( Aig_Man_t * pMan, Kit_Graph_t * pGraph )
         return Aig_NotCond( Aig_ManConst1(pMan), Kit_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Kit_GraphIsVar(pGraph) )
-        return Aig_NotCond( Kit_GraphVar(pGraph)->pFunc, Kit_GraphIsComplement(pGraph) );
+        return Aig_NotCond( (Aig_Obj_t *)Kit_GraphVar(pGraph)->pFunc, Kit_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Kit_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Aig_NotCond( Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Aig_NotCond( Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pAnd0 = Aig_NotCond( (Aig_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Aig_NotCond( (Aig_Obj_t *)Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
         pNode->pFunc = Aig_And( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Aig_NotCond( pNode->pFunc, Kit_GraphIsComplement(pGraph) );
+    return Aig_NotCond( (Aig_Obj_t *)pNode->pFunc, Kit_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -118,4 +121,6 @@ Aig_Obj_t * Kit_TruthToAig( Aig_Man_t * pMan, Aig_Obj_t ** pFanins, unsigned * p
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

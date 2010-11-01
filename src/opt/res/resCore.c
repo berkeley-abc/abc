@@ -23,6 +23,9 @@
 #include "kit.h"
 #include "satStore.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -187,7 +190,7 @@ void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc
     // create the new node
     pObjNew = Abc_NtkCreateNode( pObj->pNtk );
     pObjNew->pData = pFunc;
-    Vec_PtrForEachEntry( vFanins, pFanin, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pFanin, k )
         Abc_ObjAddFanin( pObjNew, pFanin );
     // replace the old node by the new node
 //printf( "Replacing node " ); Abc_ObjPrint( stdout, pObj );
@@ -316,8 +319,8 @@ p->timeSim += clock() - clk;
         {
             p->nConstsUsed++;
 
-            pFunc = p->pSim->fConst1? Hop_ManConst1(pNtk->pManFunc) : Hop_ManConst0(pNtk->pManFunc);
-            vFanins = Vec_VecEntry( p->vResubsW, 0 );
+            pFunc = p->pSim->fConst1? Hop_ManConst1((Hop_Man_t *)pNtk->pManFunc) : Hop_ManConst0((Hop_Man_t *)pNtk->pManFunc);
+            vFanins = (Vec_Ptr_t *)Vec_VecEntry( p->vResubsW, 0 );
             Vec_PtrClear( vFanins );
             Res_UpdateNetwork( pObj, vFanins, pFunc, p->vLevels );
             continue;
@@ -349,7 +352,7 @@ p->timeCand += clock() - clk;
             // solve the SAT problem and get clauses
 clk = clock();
             if ( p->pCnf ) Sto_ManFree( p->pCnf );
-            p->pCnf = Res_SatProveUnsat( p->pAig, vFanins );
+            p->pCnf = (Sto_Man_t *)Res_SatProveUnsat( p->pAig, vFanins );
             if ( p->pCnf == NULL )
             {
 p->timeSatSat += clock() - clk;
@@ -381,12 +384,12 @@ p->timeInt += clock() - clk;
             pGraph = Kit_TruthToGraph( puTruth, nFanins, p->vMem );
 
             // derive the AIG for the decomposition tree
-            pFunc = Kit_GraphToHop( pNtk->pManFunc, pGraph );
+            pFunc = Kit_GraphToHop( (Hop_Man_t *)pNtk->pManFunc, pGraph );
             Kit_GraphFree( pGraph );
 
             // update the network
 clk = clock();
-            Res_UpdateNetwork( pObj, Vec_VecEntry(p->vResubsW, k), pFunc, p->vLevels );
+            Res_UpdateNetwork( pObj, (Vec_Ptr_t *)Vec_VecEntry(p->vResubsW, k), pFunc, p->vLevels );
 p->timeUpd += clock() - clk;
             break;
         }
@@ -419,4 +422,6 @@ s_ResynTime += clock() - clkTotal;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

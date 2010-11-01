@@ -20,6 +20,11 @@
 
 #include "saig.h"
 
+#include "main.h"
+
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -247,7 +252,7 @@ static inline unsigned Faig_SimulateTransferShift( unsigned uOld, unsigned uNew 
 ***********************************************************************/
 int * Faig_ManSimulateFrames( Faig_Man_t * p, int nFrames, int nPref, int fTrans )
 {
-    int * pNumOnes = ABC_CALLOC( unsigned, p->nObjs );
+    int * pNumOnes = ABC_CALLOC( int, p->nObjs );
     unsigned * pSimInfo = ABC_ALLOC( unsigned, p->nObjs );
     int f, i;
 //printf( "Allocating %7.2f Mb.\n", 1.0 * 4 * p->nObjs/(1<<20) );
@@ -338,7 +343,6 @@ float Faig_ManComputeProbOne( int nOnes, int nSimWords )
 ***********************************************************************/
 Vec_Int_t * Faig_ManComputeSwitchProbs4( Aig_Man_t * p, int nFrames, int nPref, int fProbOne )
 {
-    extern char * Abc_FrameReadFlag( char * pFlag ); 
     int fTrans = 1;
     Faig_Man_t * pAig;
     Vec_Int_t * vSwitching;
@@ -441,4 +445,6 @@ Vec_Int_t * Saig_ManComputeSwitchProb3s( Aig_Man_t * p, int nFrames, int nPref, 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

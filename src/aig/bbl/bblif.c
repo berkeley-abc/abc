@@ -24,7 +24,11 @@
 #include <assert.h>
 #include <time.h>
 
+#include "abc_global.h"
 #include "bblif.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -375,9 +379,10 @@ static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Fill )
     int i;
     if ( p->nSize >= nSize )
         return;
-    if ( nSize < 2 * p->nSize )
-        nSize = 2 * p->nSize;
-    Vec_IntGrow( p, nSize );
+    if ( nSize > 2 * p->nCap )
+        Vec_IntGrow( p, nSize );
+    else if ( nSize > p->nCap )
+        Vec_IntGrow( p, 2 * p->nCap );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -1508,4 +1513,6 @@ void Bbl_ManSimpleDemo()
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

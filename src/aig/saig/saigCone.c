@@ -20,6 +20,9 @@
 
 #include "saig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -78,7 +81,7 @@ Vec_Ptr_t * Saig_ManSupport( Aig_Man_t * p, Vec_Ptr_t * vNodes )
     int i;
     vSupp = Vec_PtrAlloc( 100 );
     Aig_ManIncrementTravId( p );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         assert( Aig_ObjIsPo(pObj) );
         Saig_ManSupport_rec( p, Aig_ObjFanin0(pObj), vSupp );
@@ -115,7 +118,7 @@ void Saig_ManPrintConeOne( Aig_Man_t * p, Aig_Obj_t * pObj )
     {
         // classify current into those new, prev, and older 
         nCurNew = nCurPrev = nCurOld = 0;
-        Vec_PtrForEachEntry( vCur, pObj, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vCur, pObj, i )
         {
             if ( Vec_PtrFind(vTotal, pObj) == -1 )
             {
@@ -173,4 +176,6 @@ void Saig_ManPrintCones( Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

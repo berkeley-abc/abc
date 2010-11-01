@@ -20,6 +20,9 @@
 
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -87,10 +90,13 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( pCut->nLeaves > 0 )
     {
         // recompute the parameters of the best cut
-        pCut->Delay = If_CutDelay( p, pCut );
+        if ( p->pPars->fDelayOpt )
+            pCut->Delay = If_CutDelaySopCost( p, pCut );
+        else
+            pCut->Delay = If_CutDelay( p, pCut );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
         if ( pCut->Delay > pObj->Required + 2*p->fEpsilon )
-            printf( "If_ObjPerformMappingAnd(): Warning! Delay of node %d (%f) exceeds the required times (%f).\n", 
+            Abc_Print( 1, "If_ObjPerformMappingAnd(): Warning! Delay of node %d (%f) exceeds the required times (%f).\n", 
                 pObj->Id, pCut->Delay, pObj->Required + p->fEpsilon );
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
         if ( p->pPars->fEdge )
@@ -106,17 +112,20 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_ObjForEachCut( pObj->pFanin0, pCut0, i )
     If_ObjForEachCut( pObj->pFanin1, pCut1, k )
     {
-        // get the next ABC_FREE cut
+        // get the next free cut
         assert( pCutSet->nCuts <= pCutSet->nCutsMax );
         pCut = pCutSet->ppCuts[pCutSet->nCuts];
         // make sure K-feasible cut exists
         if ( If_WordCountOnes(pCut0->uSign | pCut1->uSign) > p->pPars->nLutSize )
             continue;
-        // merge the nodes
+        // merge the cuts
         if ( !If_CutMerge( pCut0, pCut1, pCut ) )
+            continue;
+        if ( pObj->fSpec && pCut->nLeaves == (unsigned)p->pPars->nLutSize )
             continue;
         assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
         p->nCutsMerged++;
+        p->nCutsTotal++;
         // check if this cut is contained in any of the available cuts
 //        if ( p->pPars->pFuncCost == NULL && If_CutFilter( p, pCut ) ) // do not filter functionality cuts
         if ( If_CutFilter( pCutSet, pCut ) )
@@ -128,6 +137,12 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 //            int clk = clock();
             If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += clock() - clk;
+            if ( p->pPars->pFuncCell )
+            {
+                assert( pCut->nLimit >= 4 && pCut->nLimit <= 6 );
+                pCut->fUseless = !p->pPars->pFuncCell( If_CutTruth(pCut), pCut->nLimit, pCut->nLeaves );
+                p->nCutsUseless += pCut->fUseless;
+            }
         }
         // compute the application-specific cost and depth
         pCut->fUser = (p->pPars->pFuncCost != NULL);
@@ -135,8 +150,11 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( pCut->Cost == IF_COST_MAX )
             continue;
         // check if the cut satisfies the required times
-        pCut->Delay = If_CutDelay( p, pCut );
-//        printf( "%.2f ", pCut->Delay );
+        if ( p->pPars->fDelayOpt )
+            pCut->Delay = If_CutDelaySopCost( p, pCut );
+        else
+            pCut->Delay = If_CutDelay( p, pCut );
+//        Abc_Print( 1, "%.2f ", pCut->Delay );
         if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
             continue;
         // compute area of the cut (this area may depend on the application specific cost)
@@ -163,6 +181,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     // ref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaRef( p, If_ObjCutBest(pObj) );
+    if ( If_ObjCutBest(pObj)->fUseless )
+        Abc_Print( 1, "The best cut is useless.\n" );
 
     // call the user specified function for each cut
     if ( p->pPars->pFuncUser )
@@ -214,7 +234,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
         If_ObjForEachCut( pTemp, pCutTemp, i )
         {
             assert( p->pPars->fSeqMap || pCutTemp->nLeaves > 1 );
-            // get the next ABC_FREE cut
+            // get the next free cut
             assert( pCutSet->nCuts <= pCutSet->nCutsMax );
             pCut = pCutSet->ppCuts[pCutSet->nCuts];
             // copy the cut into storage
@@ -239,7 +259,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
             // insert the cut into storage
             If_CutSort( p, pCutSet, pCut );
         }
-    }
+    } 
     assert( pCutSet->nCuts > 0 );
 
     // add the trivial cut to the set
@@ -304,7 +324,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
             }
             else if ( If_ObjIsCi(pObj) )
             {
-//printf( "processing CI %d\n", pObj->Id );
+//Abc_Print( 1, "processing CI %d\n", pObj->Id );
                 arrTime = Tim_ManGetCiArrival( p->pManTim, pObj->IdPio );
                 If_ObjSetArrTime( pObj, arrTime );
             }
@@ -342,10 +362,10 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     if ( p->pPars->fVerbose )
     {
         char Symb = fPreprocess? 'P' : ((Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A'));
-        printf( "%c: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
+        Abc_Print( 1, "%c: Del = %7.2f. Ar = %9.1f. Edge = %8d. Switch = %7.2f. Cut = %8d. ", 
             Symb, p->RequiredGlo, p->AreaGlo, p->nNets, p->dPower, p->nCutsMerged );
-        ABC_PRT( "T", clock() - clk );
-//    printf( "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
+        Abc_PrintTime( 1, "T", clock() - clk );
+//    Abc_Print( 1, "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
 //        p->nCutsMax, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
     }
     return 1;
@@ -356,4 +376,6 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

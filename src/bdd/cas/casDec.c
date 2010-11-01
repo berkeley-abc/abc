@@ -26,6 +26,9 @@
 #include "extra.h"
 #include "cas.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                      type definitions                            ///
 ////////////////////////////////////////////////////////////////////////
@@ -505,4 +508,6 @@ void WriteLUTSintoBLIFfile( FILE * pFile, DdManager * dd, LUT ** pLuts, int nLut
 
 
 
+
+ABC_NAMESPACE_IMPL_END
 

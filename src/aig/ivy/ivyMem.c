@@ -20,6 +20,9 @@
 
 #include "ivy.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -64,7 +67,7 @@ void Ivy_ManStopMemory( Ivy_Man_t * p )
 {
     void * pMemory;
     int i;
-    Vec_PtrForEachEntry( p->vChunks, pMemory, i )
+    Vec_PtrForEachEntry( void *, p->vChunks, pMemory, i )
         ABC_FREE( pMemory );
     Vec_PtrFree( p->vChunks );
     Vec_PtrFree( p->vPages );
@@ -113,4 +116,6 @@ void Ivy_ManAddMemory( Ivy_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

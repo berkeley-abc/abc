@@ -20,6 +20,7 @@
  
 #ifndef __NWK_H__
 #define __NWK_H__
+
  
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -31,19 +32,20 @@
 #include "if.h"
 #include "bdc.h"
 
+#include "fra.h"
+#include "ssw.h"
+#include "ntlnwk.h"
+
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Nwk_Man_t_    Nwk_Man_t;
 typedef struct Nwk_Obj_t_    Nwk_Obj_t;
 
 // object types
@@ -175,23 +177,23 @@ static inline int         Nwk_ManTimeMore( float f1, float f2, float Eps )   { r
 ////////////////////////////////////////////////////////////////////////
 
 #define Nwk_ManForEachCi( p, pObj, i )                                     \
-    Vec_PtrForEachEntry( p->vCis, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vCis, pObj, i )
 #define Nwk_ManForEachCo( p, pObj, i )                                     \
-    Vec_PtrForEachEntry( p->vCos, pObj, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vCos, pObj, i )
 #define Nwk_ManForEachPi( p, pObj, i )                                     \
-    Vec_PtrForEachEntry( p->vCis, pObj, i )                                \
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vCis, pObj, i )                                \
         if ( !Nwk_ObjIsPi(pObj) ) {} else
 #define Nwk_ManForEachPo( p, pObj, i )                                     \
-    Vec_PtrForEachEntry( p->vCos, pObj, i )                                \
+    Vec_PtrForEachEntry( Nwk_Obj_t *, p->vCos, pObj, i )                                \
         if ( !Nwk_ObjIsPo(pObj) ) {} else
 #define Nwk_ManForEachObj( p, pObj, i )                                    \
-    for ( i = 0; (i < Vec_PtrSize(p->vObjs)) && (((pObj) = Vec_PtrEntry(p->vObjs, i)), 1); i++ ) \
+    for ( i = 0; (i < Vec_PtrSize(p->vObjs)) && (((pObj) = (Nwk_Obj_t *)Vec_PtrEntry(p->vObjs, i)), 1); i++ ) \
         if ( pObj == NULL ) {} else
 #define Nwk_ManForEachNode( p, pObj, i )                                   \
-    for ( i = 0; (i < Vec_PtrSize(p->vObjs)) && (((pObj) = Vec_PtrEntry(p->vObjs, i)), 1); i++ ) \
+    for ( i = 0; (i < Vec_PtrSize(p->vObjs)) && (((pObj) = (Nwk_Obj_t *)Vec_PtrEntry(p->vObjs, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Nwk_ObjIsNode(pObj) ) {} else
 #define Nwk_ManForEachLatch( p, pObj, i )                                  \
-    for ( i = 0; (i < Vec_PtrSize(p->vObjs)) && (((pObj) = Vec_PtrEntry(p->vObjs, i)), 1); i++ ) \
+    for ( i = 0; (i < Vec_PtrSize(p->vObjs)) && (((pObj) = (Nwk_Obj_t *)Vec_PtrEntry(p->vObjs, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Nwk_ObjIsLatch(pObj) ) {} else
 
 #define Nwk_ObjForEachFanin( pObj, pFanin, i )                                  \
@@ -201,13 +203,13 @@ static inline int         Nwk_ManTimeMore( float f1, float f2, float Eps )   { r
 
 // sequential iterators
 #define Nwk_ManForEachPiSeq( p, pObj, i )                                           \
-    Vec_PtrForEachEntryStop( p->vCis, pObj, i, (p)->nTruePis )
+    Vec_PtrForEachEntryStop( Nwk_Obj_t *, p->vCis, pObj, i, (p)->nTruePis )
 #define Nwk_ManForEachPoSeq( p, pObj, i )                                           \
-    Vec_PtrForEachEntryStop( p->vCos, pObj, i, (p)->nTruePos )
+    Vec_PtrForEachEntryStop( Nwk_Obj_t *, p->vCos, pObj, i, (p)->nTruePos )
 #define Nwk_ManForEachLoSeq( p, pObj, i )                                           \
-    for ( i = 0; (i < (p)->nLatches) && (((pObj) = Vec_PtrEntry(p->vCis, i+(p)->nTruePis)), 1); i++ )
+    for ( i = 0; (i < (p)->nLatches) && (((pObj) = (Nwk_Obj_t *)Vec_PtrEntry(p->vCis, i+(p)->nTruePis)), 1); i++ )
 #define Nwk_ManForEachLiSeq( p, pObj, i )                                           \
-    for ( i = 0; (i < (p)->nLatches) && (((pObj) = Vec_PtrEntry(p->vCos, i+(p)->nTruePos)), 1); i++ )
+    for ( i = 0; (i < (p)->nLatches) && (((pObj) = (Nwk_Obj_t *)Vec_PtrEntry(p->vCos, i+(p)->nTruePos)), 1); i++ )
 #define Nwk_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )                               \
     for ( i = 0; (i < (p)->nLatches) && (((pObjLi) = Nwk_ManCo(p, i+(p)->nTruePos)), 1)        \
         && (((pObjLo) = Nwk_ManCi(p, i+(p)->nTruePis)), 1); i++ )
@@ -253,7 +255,7 @@ extern ABC_DLL Vec_Ptr_t *     Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int n
 extern ABC_DLL Nwk_Man_t *     Nwk_ManAlloc();
 extern ABC_DLL void            Nwk_ManFree( Nwk_Man_t * p );
 extern ABC_DLL float           Nwl_ManComputeTotalSwitching( Nwk_Man_t * pNtk );
-extern ABC_DLL void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, void * pNtl );
+extern ABC_DLL void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl );
 /*=== nwkMap.c ============================================================*/
 extern ABC_DLL Nwk_Man_t *     Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
 /*=== nwkObj.c ============================================================*/
@@ -291,9 +293,11 @@ extern ABC_DLL void            Nwk_ManCleanMarks( Nwk_Man_t * pNtk );
 extern ABC_DLL void            Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose );
 extern ABC_DLL void            Nwk_ManRemoveDupFanins( Nwk_Man_t * pNtk, int fVerbose );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

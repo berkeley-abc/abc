@@ -20,6 +20,8 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -80,6 +82,30 @@ void Aig_ManIncrementTravId( Aig_Man_t * p )
     if ( p->nTravIds >= (1<<30)-1 )
         Aig_ManCleanData( p );
     p->nTravIds++;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the time stamp.]
+
+  Description [The file should be closed.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Aig_TimeStamp()
+{
+    static char Buffer[100];
+    char * TimeStamp;
+    time_t ltime;
+    // get the current time
+    time( &ltime );
+    TimeStamp = asctime( localtime( &ltime ) );
+    TimeStamp[ strlen(TimeStamp) - 1 ] = 0;
+    strcpy( Buffer, TimeStamp );
+    return Buffer;
 }
 
 /**Function*************************************************************
@@ -548,10 +574,10 @@ void Aig_ObjPrintEqn( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int L
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = Vec_VecEntry(vLevels, Level);
+    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
     Aig_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
     {
         Aig_ObjPrintEqn( pFile, Aig_NotCond(pFanin, fCompl), vLevels, Level+1 );
         if ( i < Vec_PtrSize(vSuper) - 1 )
@@ -597,10 +623,10 @@ void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, i
     if ( Aig_ObjIsExor(pObj) )
     {
         Vec_VecExpand( vLevels, Level );
-        vSuper = Vec_VecEntry( vLevels, Level );
+        vSuper = (Vec_Ptr_t *)Vec_VecEntry( vLevels, Level );
         Aig_ObjCollectMulti( pObj, vSuper );
         fprintf( pFile, "%s", (Level==0? "" : "(") );
-        Vec_PtrForEachEntry( vSuper, pFanin, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
         {
             Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin, (fCompl && i==0)), vLevels, Level+1 );
             if ( i < Vec_PtrSize(vSuper) - 1 )
@@ -635,10 +661,10 @@ void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, i
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = Vec_VecEntry(vLevels, Level);
+    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
     Aig_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
-    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
     {
         Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin, fCompl), vLevels, Level+1 );
         if ( i < Vec_PtrSize(vSuper) - 1 )
@@ -702,7 +728,7 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
         printf( " %p", pObj );
     printf( "\n" );
     vNodes = Aig_ManDfs( p, 0 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
     printf( "\n" );
 }
@@ -762,7 +788,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
         pObj->iData = Counter++;
     Aig_ManForEachPo( p, pObj, i )
         pObj->iData = Counter++;
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->iData = Counter++;
     nDigits = Aig_Base10Log( Counter );
     // write the file 
@@ -809,7 +835,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
     if ( pConst1 )
         fprintf( pFile, ".names n%0*d\n 1\n", nDigits, pConst1->iData );
     Aig_ManSetPioNumbers( p );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         fprintf( pFile, ".names" );
         if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
@@ -877,7 +903,7 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
         pObj->iData = Counter++;
     Aig_ManForEachPo( p, pObj, i )
         pObj->iData = Counter++;
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->iData = Counter++;
     nDigits = Aig_Base10Log( Counter );
     // write the file
@@ -911,14 +937,14 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
         fprintf( pFile, "wire n%0*d;\n", nDigits, pObjLi->iData );
     }
     // write nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         fprintf( pFile, "wire n%0*d;\n", nDigits, pObj->iData );
     if ( pConst1 )
         fprintf( pFile, "wire n%0*d;\n", nDigits, pConst1->iData );
     // write nodes
     if ( pConst1 )
         fprintf( pFile, "assign n%0*d = 1\'b1;\n", nDigits, pConst1->iData );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
     {
         fprintf( pFile, "assign n%0*d = %sn%0*d & %sn%0*d;\n", 
             nDigits, pObj->iData,
@@ -1193,7 +1219,7 @@ void Aig_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int 
 {
     unsigned * pInfo;
     int i, w;
-    Vec_PtrForEachEntryStart( vInfo, pInfo, i, iInputStart )
+    Vec_PtrForEachEntryStart( unsigned *, vInfo, pInfo, i, iInputStart )
         for ( w = iWordStart; w < iWordStop; w++ )
             pInfo[w] = Aig_ManRandom(0);
 }
@@ -1278,10 +1304,15 @@ void Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * v
     assert( vArr->nSize <= vArr2->nSize );
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #include "fra.h"
 #include "saig.h"
 
-extern void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Fra_Cex_t * pCex );
+ABC_NAMESPACE_IMPL_START
+
+
+extern void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Abc_Cex_t * pCex );
 extern void Aig_ManCounterExampleValueStop( Aig_Man_t * pAig );
 extern int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame );
 
@@ -1297,7 +1328,7 @@ extern int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFra
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Fra_Cex_t * pCex )
+void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 {
     Aig_Obj_t * pObj, * pObjRi, * pObjRo;
     int Val0, Val1, nObjs, i, k, iBit = 0;
@@ -1313,36 +1344,36 @@ void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Fra_Cex_t * pCex )
     for ( i = 0; i <= pCex->iFrame; i++ )
     {
         // set constant 1 node
-        Aig_InfoSetBit( pAig->pData2, nObjs * i + 0 );
+        Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + 0 );
         // set primary inputs according to the counter-example
         Saig_ManForEachPi( pAig, pObj, k )
             if ( Aig_InfoHasBit(pCex->pData, iBit++) )
-                Aig_InfoSetBit( pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
         // compute values for each node
         Aig_ManForEachNode( pAig, pObj, k )
         {
-            Val0 = Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
-            Val1 = Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjFaninId1(pObj) );
+            Val0 = Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
+            Val1 = Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId1(pObj) );
             if ( (Val0 ^ Aig_ObjFaninC0(pObj)) & (Val1 ^ Aig_ObjFaninC1(pObj)) )
-                Aig_InfoSetBit( pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
         }
         // derive values for combinational outputs
         Aig_ManForEachPo( pAig, pObj, k )
         {
-            Val0 = Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
+            Val0 = Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
             if ( Val0 ^ Aig_ObjFaninC0(pObj) )
-                Aig_InfoSetBit( pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
         }
         if ( i == pCex->iFrame )
             continue;
         // transfer values to the register output of the next frame
         Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
-            if ( Aig_InfoHasBit( pAig->pData2, nObjs * i + Aig_ObjId(pObjRi) ) )
-                Aig_InfoSetBit( pAig->pData2, nObjs * (i+1) + Aig_ObjId(pObjRo) );
+            if ( Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObjRi) ) )
+                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * (i+1) + Aig_ObjId(pObjRo) );
     }
     assert( iBit == pCex->nBits );
     // check that the counter-example is correct, that is, the corresponding output is asserted
-    assert( Aig_InfoHasBit( pAig->pData2, nObjs * pCex->iFrame + Aig_ObjId(Aig_ManPo(pAig, pCex->iPo)) ) );
+    assert( Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * pCex->iFrame + Aig_ObjId(Aig_ManPo(pAig, pCex->iPo)) ) );
 }
 
 /**Function*************************************************************
@@ -1379,7 +1410,7 @@ void Aig_ManCounterExampleValueStop( Aig_Man_t * pAig )
 int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame )
 {
     assert( Id >= 0 && Id < Aig_ManObjNum(pAig) );
-    return Aig_InfoHasBit( pAig->pData2, Aig_ManObjNum(pAig) * iFrame + Id );
+    return Aig_InfoHasBit( (unsigned *)pAig->pData2, Aig_ManObjNum(pAig) * iFrame + Id );
 }
 
 /**Function*************************************************************
@@ -1393,7 +1424,7 @@ int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Fra_Cex_t * pCex )
+void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 {
     Aig_Obj_t * pObj = Aig_ManObj( pAig, Aig_ManObjNum(pAig)/2 );
     int iFrame = ABC_MAX( 0, pCex->iFrame - 1 );
@@ -1404,9 +1435,123 @@ void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Fra_Cex_t * pCex )
     Aig_ManCounterExampleValueStop( pAig );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Handle the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManSetPhase( Aig_Man_t * pAig )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    // set the PI simulation information
+    Aig_ManConst1( pAig )->fPhase = 1;
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->fPhase = 0;
+    // simulate internal nodes
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->fPhase = ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) )
+                     & ( Aig_ObjFanin1(pObj)->fPhase ^ Aig_ObjFaninC1(pObj) );
+    // simulate PO nodes
+    Aig_ManForEachPo( pAig, pObj, i )
+        pObj->fPhase = Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj);
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects muxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManMuxesCollect( Aig_Man_t * pAig )
+{
+    Vec_Ptr_t * vMuxes;
+    Aig_Obj_t * pObj;
+    int i;
+    vMuxes = Vec_PtrAlloc( 100 );
+    Aig_ManForEachNode( pAig, pObj, i )
+        if ( Aig_ObjIsMuxType(pObj) )
+            Vec_PtrPush( vMuxes, pObj );
+    return vMuxes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dereferences muxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManMuxesDeref( Aig_Man_t * pAig, Vec_Ptr_t * vMuxes )
+{
+    Aig_Obj_t * pObj, * pNodeT, * pNodeE, * pNodeC;
+    int i;
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMuxes, pObj, i )
+    {
+        if ( Aig_ObjRecognizeExor( pObj, &pNodeT, &pNodeE ) )
+        {
+            pNodeT->nRefs--;
+            pNodeE->nRefs--;
+        }
+        else
+        {
+            pNodeC = Aig_ObjRecognizeMux( pObj, &pNodeT, &pNodeE );
+            pNodeC->nRefs--;
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [References muxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManMuxesRef( Aig_Man_t * pAig, Vec_Ptr_t * vMuxes )
+{
+    Aig_Obj_t * pObj, * pNodeT, * pNodeE, * pNodeC;
+    int i;
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMuxes, pObj, i )
+    {
+        if ( Aig_ObjRecognizeExor( pObj, &pNodeT, &pNodeE ) )
+        {
+            pNodeT->nRefs++;
+            pNodeE->nRefs++;
+        }
+        else
+        {
+            pNodeC = Aig_ObjRecognizeMux( pObj, &pNodeT, &pNodeE );
+            pNodeC->nRefs++;
+        }
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

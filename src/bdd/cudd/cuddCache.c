@@ -39,6 +39,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -865,7 +868,7 @@ cuddCacheResize(
     unsigned int slots, oldslots;
     double offset;
     int moved = 0;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 #ifndef DD_CACHE_PROFILE
     ptruint misalignment;
@@ -899,7 +902,7 @@ cuddCacheResize(
     table->acache = oldacache;
     /* Do not try to resize again. */
     table->maxCacheHard = oldslots - 1;
-    table->cacheSlack = - (oldslots + 1);
+    table->cacheSlack = - (int)(oldslots + 1);
     return;
     }
     /* If the size of the cache entry is a power of 2, we want to
@@ -1021,3 +1024,5 @@ cuddComputeFloorLog2(
 /*---------------------------------------------------------------------------*/
 /* Definition of static functions                                            */
 /*---------------------------------------------------------------------------*/
+ABC_NAMESPACE_IMPL_END
+

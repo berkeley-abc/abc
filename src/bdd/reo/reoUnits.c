@@ -18,6 +18,9 @@
 
 #include "reo.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -30,7 +33,7 @@ static void reoUnitsAddToFreeUnitList( reo_man * p );
 
 /**Function*************************************************************
 
-  Synopsis    [Extract the next unit from the ABC_FREE unit list.]
+  Synopsis    [Extract the next unit from the free unit list.]
 
   Description []
 
@@ -54,7 +57,7 @@ reo_unit * reoUnitsGetNextUnit(reo_man * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the unit to the ABC_FREE unit list.]
+  Synopsis    [Returns the unit to the free unit list.]
 
   Description []
 
@@ -72,7 +75,7 @@ void reoUnitsRecycleUnit( reo_man * p, reo_unit * pUnit )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the list of units to the ABC_FREE unit list.]
+  Synopsis    [Returns the list of units to the free unit list.]
 
   Description []
 
@@ -181,4 +184,6 @@ void reoUnitsAddToFreeUnitList( reo_man * p )
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
 

@@ -51,6 +51,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1601,3 +1604,5 @@ cuddZddGetNegVarLevel(
     int    nv = cuddZddGetNegVarIndex(dd, index);
     return(dd->permZ[nv]);
 } /* end of cuddZddGetNegVarLevel */
+ABC_NAMESPACE_IMPL_END
+

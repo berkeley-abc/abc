@@ -21,6 +21,7 @@
 #ifndef __DCH_H__
 #define __DCH_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -65,14 +67,20 @@ struct Dch_Pars_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== dchAig.c ==========================================================*/
+extern Aig_Man_t *   Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
 /*=== dchCore.c ==========================================================*/
 extern void          Dch_ManSetDefaultParams( Dch_Pars_t * p );
+extern int           Dch_ManReadVerbose( Dch_Pars_t * p );
 extern Aig_Man_t *   Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars );
 extern void          Dch_ComputeEquivalences( Aig_Man_t * pAig, Dch_Pars_t * pPars );
+/*=== dchScript.c ==========================================================*/
+extern Aig_Man_t *   Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars );
 
-#ifdef __cplusplus
-}
-#endif
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

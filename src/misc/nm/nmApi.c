@@ -20,6 +20,9 @@
 
 #include "nmInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -119,7 +122,7 @@ char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, int Type, char * pName, char 
     // create a new entry
     nEntrySize = sizeof(Nm_Entry_t) + strlen(pName) + (pSuffix?strlen(pSuffix):0) + 1;
 //    nEntrySize = (nEntrySize / 4 + ((nEntrySize % 4) > 0)) * 4;
-    nEntrySize = (nEntrySize / 8 + ((nEntrySize % 8) > 0)) * 8;
+    nEntrySize = (nEntrySize / sizeof(char*) + ((nEntrySize % sizeof(char*)) > 0)) * sizeof(char*); // added by Saurabh on Sep 3, 2009
     pEntry = (Nm_Entry_t *)Extra_MmFlexEntryFetch( p->pMem, nEntrySize );
     pEntry->pNextI2N = pEntry->pNextN2I = pEntry->pNameSake = NULL;
     pEntry->ObjId = ObjId;
@@ -270,4 +273,6 @@ Vec_Int_t * Nm_ManReturnNameIds( Nm_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

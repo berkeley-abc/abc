@@ -22,6 +22,9 @@
 #include "giaAig.h"
 #include "dch.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -175,9 +178,9 @@ Gia_Man_t * Cec_ManCombSpecReduce( Gia_Man_t * p, Vec_Int_t ** pvOutputs, int fR
         Gia_ManAppendCo( pNew, iObjNew );
     Vec_IntFree( vXorLits );
     Gia_ManHashStop( pNew );
-//printf( "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
+//Abc_Print( 1, "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
     pNew = Gia_ManCleanup( pTemp = pNew );
-//printf( "After sweeping = %d\n", Gia_ManAndNum(pNew) );
+//Abc_Print( 1, "After sweeping = %d\n", Gia_ManAndNum(pNew) );
     Gia_ManStop( pTemp );
     return pNew;
 }
@@ -219,7 +222,7 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     pParsSim->fSeqSimulate = 0;
     // create equivalence classes of registers
     pSim = Cec_ManSimStart( pAig, pParsSim );
-    Cec_ManSimClassesPrepare( pSim );
+    Cec_ManSimClassesPrepare( pSim, -1 );
     Cec_ManSimClassesRefine( pSim );
     // prepare SAT solving
     Cec_ManSatSetDefaultParams( pParsSat );
@@ -227,7 +230,7 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     pParsSat->fVerbose = pPars->fVerbose;
     if ( pPars->fVerbose )
     {
-        printf( "Obj = %7d. And = %7d. Conf = %5d. Ring = %d. CSat = %d.\n",
+        Abc_Print( 1, "Obj = %7d. And = %7d. Conf = %5d. Ring = %d. CSat = %d.\n",
             Gia_ManObjNum(pAig), Gia_ManAndNum(pAig), pPars->nBTLimit, pPars->fUseRings, pPars->fUseCSat );
         Cec_ManRefinedClassPrintStats( pAig, NULL, 0, clock() - clk );
     }
@@ -280,93 +283,19 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
     }
     // check the overflow
     if ( r == nItersMax )
-        printf( "The refinement was not finished. The result may be incorrect.\n" );
+        Abc_Print( 1, "The refinement was not finished. The result may be incorrect.\n" );
     Cec_ManSimStop( pSim );
     clkTotal = clock() - clkTotal;
     // report the results
     if ( pPars->fVerbose )
     {
-        ABC_PRTP( "Srm  ", clkSrm,                        clkTotal );
-        ABC_PRTP( "Sat  ", clkSat,                        clkTotal );
-        ABC_PRTP( "Sim  ", clkSim,                        clkTotal );
-        ABC_PRTP( "Other", clkTotal-clkSat-clkSrm-clkSim, clkTotal );
-        ABC_PRT( "TOTAL",  clkTotal );
+        Abc_PrintTimeP( 1, "Srm  ", clkSrm,                        clkTotal );
+        Abc_PrintTimeP( 1, "Sat  ", clkSat,                        clkTotal );
+        Abc_PrintTimeP( 1, "Sim  ", clkSim,                        clkTotal );
+        Abc_PrintTimeP( 1, "Other", clkTotal-clkSat-clkSrm-clkSim, clkTotal );
+        Abc_PrintTime( 1, "TOTAL",  clkTotal );
     }
     return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Duplicates the AIG in the DFS order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManChoiceMiter_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
-{
-    if ( ~pObj->Value )
-        return pObj->Value;
-    Gia_ManChoiceMiter_rec( pNew, p, Gia_ObjFanin0(pObj) );
-    if ( Gia_ObjIsCo(pObj) )
-        return pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManChoiceMiter_rec( pNew, p, Gia_ObjFanin1(pObj) );
-    return pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-} 
-
-/**Function*************************************************************
-
-  Synopsis    [Derives the miter of several AIGs for choice computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Gia_ManChoiceMiter( Vec_Ptr_t * vGias )
-{
-    Gia_Man_t * pNew, * pGia, * pGia0;
-    int i, k, iNode, nNodes;
-    // make sure they have equal parameters
-    assert( Vec_PtrSize(vGias) > 0 );
-    pGia0 = Vec_PtrEntry( vGias, 0 );
-    Vec_PtrForEachEntry( vGias, pGia, i )
-    {
-        assert( Gia_ManCiNum(pGia)  == Gia_ManCiNum(pGia0) );
-        assert( Gia_ManCoNum(pGia)  == Gia_ManCoNum(pGia0) );
-        assert( Gia_ManRegNum(pGia) == Gia_ManRegNum(pGia0) );
-        Gia_ManFillValue( pGia );
-        Gia_ManConst0(pGia)->Value = 0;
-    }
-    // start the new manager
-    pNew = Gia_ManStart( Vec_PtrSize(vGias) * Gia_ManObjNum(pGia0) );
-    pNew->pName = Gia_UtilStrsav( pGia0->pName );
-    // create new CIs and assign them to the old manager CIs
-    for ( k = 0; k < Gia_ManCiNum(pGia0); k++ )
-    {
-        iNode = Gia_ManAppendCi(pNew);
-        Vec_PtrForEachEntry( vGias, pGia, i )
-            Gia_ManCi( pGia, k )->Value = iNode; 
-    }
-    // create internal nodes
-    Gia_ManHashAlloc( pNew );
-    for ( k = 0; k < Gia_ManCoNum(pGia0); k++ )
-    {
-        Vec_PtrForEachEntry( vGias, pGia, i )
-            Gia_ManChoiceMiter_rec( pNew, pGia, Gia_ManCo( pGia, k ) );
-    }
-    Gia_ManHashStop( pNew );
-    // check the presence of dangling nodes
-    nNodes = Gia_ManHasDandling( pNew );
-    assert( nNodes == 0 );
-    // finalize
-//    Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia0) );
-    return pNew;
 }
 
 /**Function*************************************************************
@@ -386,6 +315,7 @@ Gia_Man_t * Cec_ManChoiceComputationVec( Gia_Man_t * pGia, int nGias, Cec_ParChc
     int RetValue;
     // compute equivalences of the miter
 //    pMiter = Gia_ManChoiceMiter( vGias );
+//    Gia_ManSetRegNum( pMiter, 0 );
     RetValue = Cec_ManChoiceComputation_int( pGia, pPars );
     // derive AIG with choices
     pNew = Gia_ManEquivToChoices( pGia, nGias );
@@ -394,7 +324,7 @@ Gia_Man_t * Cec_ManChoiceComputationVec( Gia_Man_t * pGia, int nGias, Cec_ParChc
     // report the results
     if ( pPars->fVerbose )
     {
-//        printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+//        Abc_Print( 1, "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
 //            Gia_ManAndNum(pAig), Gia_ManAndNum(pNew), 
 //            100.0*(Gia_ManAndNum(pAig)-Gia_ManAndNum(pNew))/(Gia_ManAndNum(pAig)?Gia_ManAndNum(pAig):1), 
 //            Gia_ManRegNum(pAig), Gia_ManRegNum(pNew), 
@@ -416,7 +346,7 @@ Gia_Man_t * Cec_ManChoiceComputationVec( Gia_Man_t * pGia, int nGias, Cec_ParChc
 ***********************************************************************/
 Gia_Man_t * Cec_ManChoiceComputation( Gia_Man_t * pAig, Cec_ParChc_t * pParsChc )
 {
-    extern Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars );
+//    extern Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars );
     Dch_Pars_t Pars, * pPars = &Pars;
     Aig_Man_t * pMan, * pManNew;
     Gia_Man_t * pGia;
@@ -456,7 +386,7 @@ Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars )
     Cec_ParChc_t ParsChc, * pParsChc = &ParsChc;
     Aig_Man_t * pAig;
     if ( pPars->fVerbose )
-        ABC_PRT( "Synthesis time", pPars->timeSynth );
+        Abc_PrintTime( 1, "Synthesis time", pPars->timeSynth );
     Cec_ManChcSetDefaultParams( pParsChc );
     pParsChc->nBTLimit = pPars->nBTLimit;
     pParsChc->fUseCSat = pPars->fUseCSat;
@@ -474,4 +404,6 @@ Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

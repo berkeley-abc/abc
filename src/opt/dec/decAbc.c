@@ -20,6 +20,9 @@
 #include "dec.h"
 #include "ivy.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,16 +53,16 @@ Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
         return Abc_ObjNotCond( Abc_AigConst1(pNtk), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
-        return Abc_ObjNotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+        return Abc_ObjNotCond( (Abc_Obj_t *)Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
-        pNode->pFunc = Abc_AigAnd( pNtk->pManFunc, pAnd0, pAnd1 );
+        pAnd0 = Abc_ObjNotCond( (Abc_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Abc_ObjNotCond( (Abc_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pNode->pFunc = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Abc_ObjNotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+    return Abc_ObjNotCond( (Abc_Obj_t *)pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -131,20 +134,20 @@ Abc_Obj_t * Dec_GraphToNetworkNoStrash( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
         return Abc_ObjNotCond( Abc_AigConst1(pNtk), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
-        return Abc_ObjNotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+        return Abc_ObjNotCond( (Abc_Obj_t *)Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
-//        pNode->pFunc = Abc_AigAnd( pNtk->pManFunc, pAnd0, pAnd1 );
+        pAnd0 = Abc_ObjNotCond( (Abc_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Abc_ObjNotCond( (Abc_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+//        pNode->pFunc = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, pAnd0, pAnd1 );
         pAnd = Abc_NtkCreateNode( pNtk );
         Abc_ObjAddFanin( pAnd, pAnd0 );
         Abc_ObjAddFanin( pAnd, pAnd1 );
         pNode->pFunc = pAnd;
     }
     // complement the result if necessary
-    return Abc_ObjNotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+    return Abc_ObjNotCond( (Abc_Obj_t *)pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -163,7 +166,7 @@ Abc_Obj_t * Dec_GraphToNetworkNoStrash( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
 ***********************************************************************/
 int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax, int LevelMax )
 {
-    Abc_Aig_t * pMan = pRoot->pNtk->pManFunc;
+    Abc_Aig_t * pMan = (Abc_Aig_t *)pRoot->pNtk->pManFunc;
     Dec_Node_t * pNode, * pNode0, * pNode1;
     Abc_Obj_t * pAnd, * pAnd0, * pAnd1;
     int i, Counter, LevelNew, LevelOld;
@@ -172,7 +175,7 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
         return 0;
     // set the levels of the leaves
     Dec_GraphForEachLeaf( pGraph, pNode, i )
-        pNode->Level = Abc_ObjRegular(pNode->pFunc)->Level;
+        pNode->Level = Abc_ObjRegular((Abc_Obj_t *)pNode->pFunc)->Level;
     // compute the AIG size after adding the internal nodes
     Counter = 0;
     Dec_GraphForEachNode( pGraph, pNode, i )
@@ -181,8 +184,8 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
         pNode0 = Dec_GraphNode( pGraph, pNode->eEdge0.Node );
         pNode1 = Dec_GraphNode( pGraph, pNode->eEdge1.Node );
         // get the AIG nodes corresponding to the children 
-        pAnd0 = pNode0->pFunc; 
-        pAnd1 = pNode1->pFunc; 
+        pAnd0 = (Abc_Obj_t *)pNode0->pFunc; 
+        pAnd1 = (Abc_Obj_t *)pNode1->pFunc; 
         if ( pAnd0 && pAnd1 )
         {
             // if they are both present, find the resulting node
@@ -234,7 +237,7 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
   SeeAlso     []
 
 ***********************************************************************/
-void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain )
+void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain )
 {
     extern Abc_Obj_t *    Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph );
     Abc_Obj_t * pRootNew;
@@ -244,7 +247,7 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpda
     // create the new structure of nodes
     pRootNew = Dec_GraphToNetwork( pNtk, pGraph );
     // remove the old nodes
-    Abc_AigReplace( pNtk->pManFunc, pRoot, pRootNew, fUpdateLevel );
+    Abc_AigReplace( (Abc_Aig_t *)pNtk->pManFunc, pRoot, pRootNew, fUpdateLevel );
     // compare the gains
     nNodesNew = Abc_NtkNodeNum(pNtk);
     assert( nGain <= nNodesOld - nNodesNew );
@@ -272,16 +275,16 @@ Hop_Obj_t * Dec_GraphToNetworkAig( Hop_Man_t * pMan, Dec_Graph_t * pGraph )
         return Hop_NotCond( Hop_ManConst1(pMan), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
-        return Hop_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+        return Hop_NotCond( (Hop_Obj_t *)Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Hop_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Hop_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pAnd0 = Hop_NotCond( (Hop_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Hop_NotCond( (Hop_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
         pNode->pFunc = Hop_And( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Hop_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+    return Hop_NotCond( (Hop_Obj_t *)pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -333,16 +336,16 @@ Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph )
         return Ivy_NotCond( Ivy_ManConst1(pMan), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
-        return Ivy_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+        return Ivy_NotCond( (Ivy_Obj_t *)Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pAnd0 = Ivy_NotCond( (Ivy_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Ivy_NotCond( (Ivy_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
         pNode->pFunc = Ivy_And( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Ivy_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+    return Ivy_NotCond( (Ivy_Obj_t *)pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 
@@ -350,4 +353,6 @@ Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

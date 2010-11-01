@@ -9,6 +9,9 @@
  */
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 static void fcube_is_covered();
 static void ftautology();
 static bool ftaut_special_cases();
@@ -438,3 +441,5 @@ start:
     /* Not much we can do about it */
     return MAYBE;
 }
+ABC_NAMESPACE_IMPL_END
+

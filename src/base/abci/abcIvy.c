@@ -20,8 +20,19 @@
 
 #include "abc.h"
 #include "dec.h"
+#include "fra.h"
 #include "ivy.h"
 #include "fraig.h"
+#include "mio.h"
+#include "aig.h"
+
+ABC_NAMESPACE_IMPL_START
+
+extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+extern void   Aig_ManStop( Aig_Man_t * pMan );
+//extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
+extern Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph );
+extern void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs );
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -36,7 +47,6 @@ static Ivy_Obj_t *  Abc_NodeStrashAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode );
 static Ivy_Obj_t *  Abc_NodeStrashAigSopAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char * pSop );
 static Ivy_Obj_t *  Abc_NodeStrashAigExorAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char * pSop );
 static Ivy_Obj_t *  Abc_NodeStrashAigFactorAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char * pSop );
-extern char *       Mio_GateReadSop( void * pGate );
 
 typedef int   Abc_Edge_t;
 static inline Abc_Edge_t   Abc_EdgeCreate( int Id, int fCompl )                { return (Id << 1) | fCompl;             }
@@ -133,7 +143,7 @@ Abc_Ntk_t * Abc_NtkIvyAfter( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, int fSeq, int f
     else
         pNtkAig = Abc_NtkFromIvy( pNtk, pMan );
     // report the cleanup results
-    if ( !fHaig && fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
+    if ( !fHaig && fCleanup && (nNodes = Abc_AigCleanup((Abc_Aig_t *)pNtkAig->pManFunc)) )
         printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
@@ -252,7 +262,6 @@ clk = clock();
 ***********************************************************************/
 void Abc_NtkIvyCuts( Abc_Ntk_t * pNtk, int nInputs )
 {
-    extern void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs );
     Ivy_Man_t * pMan;
     pMan = Abc_NtkIvyBefore( pNtk, 1, 0 );
     if ( pMan == NULL )
@@ -487,10 +496,12 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
 ***********************************************************************/
 int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
 {
-    Prove_Params_t * pParams = pPars;
+
+    Prove_Params_t * pParams = (Prove_Params_t *)pPars;
     Abc_Ntk_t * pNtk = *ppNtk, * pNtkTemp;
     Abc_Obj_t * pObj, * pFanin;
     Ivy_Man_t * pMan;
+    Aig_Man_t * pMan2;
     int RetValue;
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
     // experiment with various parameters settings
@@ -515,8 +526,18 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         return 0;
     }
 
+    // changed in "src\sat\fraig\fraigMan.c"
+    //    pParams->nMiteringLimitStart  = 300;    // starting mitering limit
+    // to be
+    //    pParams->nMiteringLimitStart  = 5000;    // starting mitering limit
+
     // if SAT only, solve without iteration
-    RetValue = Abc_NtkMiterSat( pNtk, 2*(ABC_INT64_T)pParams->nMiteringLimitStart, (ABC_INT64_T)0, 0, NULL, NULL );
+//    RetValue = Abc_NtkMiterSat( pNtk, 2*(ABC_INT64_T)pParams->nMiteringLimitStart, (ABC_INT64_T)0, 0, NULL, NULL );
+    pMan2 = Abc_NtkToDar( pNtk, 0, 0 );
+    RetValue = Fra_FraigSat( pMan2, (ABC_INT64_T)pParams->nMiteringLimitStart, (ABC_INT64_T)0, 1, 0, 0 ); 
+    pNtk->pModel = (int *)pMan2->pData, pMan2->pData = NULL;
+    Aig_ManStop( pMan2 );
+//    pNtk->pModel = Aig_ManReleaseData( pMan2 );
     if ( RetValue >= 0 )
         return RetValue;
 
@@ -546,7 +567,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     pNtk = Abc_NtkIvyAfter( pNtkTemp = pNtk, pMan, 0, 0 );
     Abc_NtkDelete( pNtkTemp );
     // transfer model if given
-    pNtk->pModel = pMan->pData; pMan->pData = NULL;
+    pNtk->pModel = (int *)pMan->pData; pMan->pData = NULL;
     Ivy_ManStop( pMan );
 
     // try to prove it using brute force SAT
@@ -561,7 +582,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         if ( pNtk )   
         {
             Abc_NtkDelete( pNtkTemp );
-            RetValue = ( (Abc_NtkNodeNum(pNtk) == 1) && (Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->pData == Cudd_ReadLogicZero(pNtk->pManFunc)) );
+            RetValue = ( (Abc_NtkNodeNum(pNtk) == 1) && (Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->pData == Cudd_ReadLogicZero((DdManager *)pNtk->pManFunc)) );
         }
         else 
             pNtk = pNtkTemp;
@@ -724,9 +745,9 @@ Abc_Ntk_t * Abc_NtkFromIvy( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
         pFaninNew1 = Abc_ObjFanin1Ivy( pNtk, pNode );
         // create the new node
         if ( Ivy_ObjIsExor(pNode) )
-            pObjNew = Abc_AigXor( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
+            pObjNew = Abc_AigXor( (Abc_Aig_t *)pNtk->pManFunc, pFaninNew0, pFaninNew1 );
         else
-            pObjNew = Abc_AigAnd( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
+            pObjNew = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, pFaninNew0, pFaninNew1 );
         pNode->TravId = Abc_EdgeFromNode( pObjNew );
     }
     // connect the PO nodes
@@ -799,9 +820,9 @@ Abc_Ntk_t * Abc_NtkFromIvySeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
         pFaninNew1 = Abc_ObjFanin1Ivy( pNtk, pNode );
         // create the new node
         if ( Ivy_ObjIsExor(pNode) )
-            pObjNew = Abc_AigXor( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
+            pObjNew = Abc_AigXor( (Abc_Aig_t *)pNtk->pManFunc, pFaninNew0, pFaninNew1 );
         else
-            pObjNew = Abc_AigAnd( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
+            pObjNew = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, pFaninNew0, pFaninNew1 );
         pNode->TravId = Abc_EdgeFromNode( pObjNew );
         // process the choice nodes
         if ( fHaig && pNode->pEquiv && Ivy_ObjRefs(pNode) > 0 )
@@ -896,7 +917,7 @@ void Abc_NtkStrashPerformAig( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan )
     int i;
     vNodes = Abc_NtkDfs( pNtk, 0 );
 //    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
 //        Extra_ProgressBarUpdate( pProgress, i, NULL );
         pNode->pCopy = (Abc_Obj_t *)Abc_NodeStrashAig( pMan, pNode );
@@ -938,9 +959,9 @@ Ivy_Obj_t * Abc_NodeStrashAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode )
 
     // get the SOP of the node
     if ( Abc_NtkHasMapping(pNode->pNtk) )
-        pSop = Mio_GateReadSop(pNode->pData);
+        pSop = Mio_GateReadSop((Mio_Gate_t *)pNode->pData);
     else
-        pSop = pNode->pData;
+        pSop = (char *)pNode->pData;
 
     // consider the constant node
     if ( Abc_NodeIsConst(pNode) )
@@ -1049,7 +1070,6 @@ Ivy_Obj_t * Abc_NodeStrashAigFactorAig( Ivy_Man_t * pMan, Abc_Obj_t * pRoot, cha
     int i;
 
 //    extern Ivy_Obj_t * Dec_GraphToNetworkAig( Ivy_Man_t * pMan, Dec_Graph_t * pGraph );
-    extern Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph );
 
 //    assert( 0 );
 
@@ -1101,4 +1121,6 @@ Vec_Int_t * Abc_NtkCollectLatchValuesIvy( Abc_Ntk_t * pNtk, int fUseDcs )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

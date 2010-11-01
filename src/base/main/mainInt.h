@@ -20,12 +20,24 @@
 
 #ifndef __MAIN_INT_H__
 #define __MAIN_INT_H__
+
  
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include "tim.h"
+#include "if.h"
+#include "aig.h"
+#include "gia.h"
+#include "ssw.h"
+#include "fra.h"
+#include "nwkMerge.h"
+#include "ntlnwk.h"
+#include "ext.h"
+
+ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -75,21 +87,33 @@ struct Abc_Frame_t_
     void *          pLibVer;     // the current Verilog library
 
     // new code
-    void *          pAbc8Ntl;    // the current design
-    void *          pAbc8Nwk;    // the current mapped network
-    void *          pAbc8Aig;    // the current AIG
-    void *          pAbc8Lib;    // the current LUT library
-    void *          pAig;
-    void *          pCex; 
+    Ntl_Man_t *     pAbc8Ntl;    // the current design
+    Nwk_Man_t *     pAbc8Nwk;    // the current mapped network
+    Aig_Man_t *     pAbc8Aig;    // the current AIG
+    If_Lib_t *      pAbc8Lib;    // the current LUT library
+
+    EXT_ABC_FRAME                // plugin for external functionality
+    If_Lib_t *      pAbc85Lib;   // the current LUT library
+
+    Gia_Man_t *     pGia;
+    Gia_Man_t *     pGia2;
+    Abc_Cex_t *     pCex; 
 
     void *          pSave1; 
     void *          pSave2; 
     void *          pSave3; 
     void *          pSave4; 
 
+    // related to LTL
+    Vec_Ptr_t *     vLTLProperties_global;
+
     // the addition to keep the best Ntl that can be used to restore
     void *            pAbc8NtlBestDelay;    // the best delay, Ntl
     void *            pAbc8NtlBestArea;    // the best area
+    int             Status;             // the status of verification problem (proved=1, disproved=0, undecided=-1)
+    int             nFrames;            // the number of time frames completed by BMC
+
+    Vec_Ptr_t *     vPlugInComBinPairs; // pairs of command and its binary name
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -119,6 +143,10 @@ extern ABC_DLL char *          Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc );
 extern ABC_DLL void            Abc_UtilsPrintHello( Abc_Frame_t * pAbc );
 extern ABC_DLL void            Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName );
 extern ABC_DLL void            Abc_UtilsSource( Abc_Frame_t * pAbc );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

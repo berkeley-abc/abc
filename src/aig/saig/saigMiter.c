@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "saig.h"
+#include "fra.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -210,10 +214,10 @@ void Saig_AndDualRail( Aig_Man_t * pNew, Aig_Obj_t * pObj, Aig_Obj_t ** ppData, 
 {
     Aig_Obj_t * pFanin0 = Aig_ObjFanin0(pObj);
     Aig_Obj_t * pFanin1 = Aig_ObjFanin1(pObj);
-    Aig_Obj_t * p0Data = Aig_ObjFaninC0(pObj)? pFanin0->pNext : pFanin0->pData;
-    Aig_Obj_t * p0Next = Aig_ObjFaninC0(pObj)? pFanin0->pData : pFanin0->pNext;
-    Aig_Obj_t * p1Data = Aig_ObjFaninC1(pObj)? pFanin1->pNext : pFanin1->pData;
-    Aig_Obj_t * p1Next = Aig_ObjFaninC1(pObj)? pFanin1->pData : pFanin1->pNext;
+    Aig_Obj_t * p0Data = Aig_ObjFaninC0(pObj)? pFanin0->pNext              : (Aig_Obj_t *)pFanin0->pData;
+    Aig_Obj_t * p0Next = Aig_ObjFaninC0(pObj)? (Aig_Obj_t *)pFanin0->pData : pFanin0->pNext;
+    Aig_Obj_t * p1Data = Aig_ObjFaninC1(pObj)? pFanin1->pNext              : (Aig_Obj_t *)pFanin1->pData;
+    Aig_Obj_t * p1Next = Aig_ObjFaninC1(pObj)? (Aig_Obj_t *)pFanin1->pData : pFanin1->pNext;
     *ppData = Aig_Or( pNew, 
         Aig_And(pNew, p0Data, Aig_Not(p0Next)),
         Aig_And(pNew, p1Data, Aig_Not(p1Next)) );
@@ -262,20 +266,20 @@ Aig_Man_t * Saig_ManDualRail( Aig_Man_t * p, int fMiter )
         Saig_ManForEachLo( p, pObj, i )
         {
             pMiter = Aig_And( pNew, pMiter, 
-                Aig_Or(pNew, pObj->pData, pObj->pNext) );
+                Aig_Or(pNew, (Aig_Obj_t *)pObj->pData, pObj->pNext) );
         } 
         Aig_ObjCreatePo( pNew, pMiter );
         Saig_ManForEachLi( p, pObj, i )
         {
             if ( !Aig_ObjFaninC0(pObj) )
             {
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
                 Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
             }
             else
             {
                 Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
             }
         }
     }
@@ -285,13 +289,13 @@ Aig_Man_t * Saig_ManDualRail( Aig_Man_t * p, int fMiter )
         {
             if ( !Aig_ObjFaninC0(pObj) )
             {
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
                 Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
             }
             else
             {
                 Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pNext );
-                Aig_ObjCreatePo( pNew, Aig_ObjFanin0(pObj)->pData );
+                Aig_ObjCreatePo( pNew, (Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData );
             }
         }
     }
@@ -396,7 +400,7 @@ Aig_Man_t * Aig_ManDupNodesAll( Aig_Man_t * p, Vec_Ptr_t * vSet )
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 //    Saig_ManForEachPo( p, pObj, i )
 //        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-    Vec_PtrForEachEntry( vSet, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSet, pObj, i )
         Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj)) );
     Saig_ManForEachLi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
@@ -447,7 +451,7 @@ Aig_Man_t * Aig_ManDupNodesHalf( Aig_Man_t * p, Vec_Ptr_t * vSet, int iPart )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
 //    Saig_ManForEachPo( p, pObj, i )
 //        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-    Vec_PtrForEachEntry( vSet, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSet, pObj, i )
         Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj)) );
     if ( iPart == 0 )
     {
@@ -712,8 +716,8 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
     vSet0 = Vec_PtrAlloc( Saig_ManPoNum(p) );
     vSet1 = Vec_PtrAlloc( Saig_ManPoNum(p) );
     // get the first pair of outputs
-    pObj0 = Vec_PtrEntry( vPairs, 0 );
-    pObj1 = Vec_PtrEntry( vPairs, 1 );
+    pObj0 = (Aig_Obj_t *)Vec_PtrEntry( vPairs, 0 );
+    pObj1 = (Aig_Obj_t *)Vec_PtrEntry( vPairs, 1 );
     // label registers reachable from the outputs
     Aig_ManIncrementTravId( p );
     Saig_ManDemiterLabel_rec( p, Aig_Regular(pObj0), 0 );
@@ -724,8 +728,8 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
     // find where each output belongs
     for ( i = 2; i < Vec_PtrSize(vPairs); i += 2 )
     {
-        pObj0 = Vec_PtrEntry( vPairs, i   );
-        pObj1 = Vec_PtrEntry( vPairs, i+1 );
+        pObj0 = (Aig_Obj_t *)Vec_PtrEntry( vPairs, i   );
+        pObj1 = (Aig_Obj_t *)Vec_PtrEntry( vPairs, i+1 );
 
         Aig_ManIncrementTravId( p );
         pFlop0 = Saig_ManGetLabeledRegister_rec( p, Aig_Regular(pObj0) );
@@ -862,7 +866,7 @@ int Ssw_SecCexResimulate( Aig_Man_t * p, int * pModel, int * pnOutputs )
 ***********************************************************************/
 int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVerbose )
 {
-    extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
+//    extern int Fra_FraigCec( Aig_Man_t ** ppAig, int nConfLimit, int fVerbose );
     int iOut, nOuts;
     Aig_Man_t * pMiterCec;
     int RetValue, clkTotal = clock();
@@ -905,7 +909,7 @@ ABC_PRT( "Time", clock() - clkTotal );
             printf( "Counter-example is not available.\n" );
         else
         {
-            iOut = Ssw_SecCexResimulate( pMiterCec, pMiterCec->pData, &nOuts );
+            iOut = Ssw_SecCexResimulate( pMiterCec, (int *)pMiterCec->pData, &nOuts );
             if ( iOut == -1 )
                 printf( "Counter-example verification has failed.\n" );
             else 
@@ -992,4 +996,6 @@ int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbo
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

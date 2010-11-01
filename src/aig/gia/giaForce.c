@@ -20,9 +20,12 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /* 
     The code is based on the paper by F. A. Aloul, I. L. Markov, and K. A. Sakallah.
-    "FORCE: A Fast and Easy-To-Implement Variable-Ordering Heuristic", Proc. GLSVLSI’03.
+    "FORCE: A Fast and Easy-To-Implement Variable-Ordering Heuristic", Proc. GLSVLSIï¿½03.
     http://www.eecs.umich.edu/~imarkov/pubs/conf/glsvlsi03-force.pdf
 */
 
@@ -1097,3 +1100,6 @@ Write  =    1.81 sec
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+ABC_NAMESPACE_IMPL_END
+

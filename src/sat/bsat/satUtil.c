@@ -22,6 +22,9 @@
 #include <assert.h>
 #include "satSolver.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -35,7 +38,7 @@ struct clause_t
 static inline int  clause_size( clause* c )  { return c->size_learnt >> 1; }
 static inline lit* clause_begin( clause* c ) { return c->lits;             }
 
-static void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, bool fIncrement );
+static void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncrement );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -78,13 +81,13 @@ void Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBe
     nClauses = p->clauses.size;
     pClauses = p->clauses.ptr;
     for ( i = 0; i < nClauses; i++ )
-        Sat_SolverClauseWriteDimacs( pFile, pClauses[i], incrementVars );
+        Sat_SolverClauseWriteDimacs( pFile, (clause *)pClauses[i], incrementVars );
 
     // write the learned clauses
     nClauses = p->learnts.size;
     pClauses = p->learnts.ptr;
     for ( i = 0; i < nClauses; i++ )
-        Sat_SolverClauseWriteDimacs( pFile, pClauses[i], incrementVars );
+        Sat_SolverClauseWriteDimacs( pFile, (clause *)pClauses[i], incrementVars );
 
     // write zero-level assertions
     for ( i = 0; i < p->size; i++ )
@@ -119,14 +122,14 @@ void Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBe
   SeeAlso     []
 
 ***********************************************************************/
-void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, bool fIncrement )
+void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncrement )
 {
     lit * pLits = clause_begin(pC);
     int nLits = clause_size(pC);
     int i;
 
     for ( i = 0; i < nLits; i++ )
-        fprintf( pFile, "%s%d ", (lit_sign(pLits[i])? "-": ""),  lit_var(pLits[i]) + (int)(fIncrement>0) );
+        fprintf( pFile, "%s%d ", (lit_sign(pLits[i])? "-": ""),  lit_var(pLits[i]) + (fIncrement>0) );
     if ( fIncrement )
         fprintf( pFile, "0" );
     fprintf( pFile, "\n" );
@@ -169,7 +172,7 @@ int * Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars )
 {
     int * pModel;
     int i;
-    pModel = ABC_ALLOC( int, nVars+1 );
+    pModel = ABC_CALLOC( int, nVars+1 );
     for ( i = 0; i < nVars; i++ )
     {
         assert( pVars[i] >= 0 && pVars[i] < p->size );
@@ -213,7 +216,7 @@ void Sat_SolverDoubleClauses( sat_solver * p, int iVar )
     nClauses = vecp_size(&p->clauses);
     for ( c = 0; c < nClauses; c++ )
     {
-        pClause = p->clauses.ptr[c];
+        pClause = (clause *)p->clauses.ptr[c];
         nLits = clause_size(pClause);
         pLits = clause_begin(pClause);
         for ( v = 0; v < nLits; v++ )
@@ -230,4 +233,6 @@ void Sat_SolverDoubleClauses( sat_solver * p, int iVar )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

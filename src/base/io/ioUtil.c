@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
+#include "main.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -73,6 +77,8 @@ Io_FileType_t Io_ReadFileType( char * pFileName )
         return IO_FILE_BLIFMV;
     if ( !strcmp( pExt, "pla" ) )
         return IO_FILE_PLA;
+    if ( !strcmp( pExt, "smv" ) )
+        return IO_FILE_SMV;
     if ( !strcmp( pExt, "v" ) )
         return IO_FILE_VERILOG;
     return IO_FILE_UNKNOWN;
@@ -156,7 +162,56 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     return pNtk;
 }
 
- 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t *temporaryLtlStore( Abc_Ntk_t *pNtk )
+{
+    Vec_Ptr_t *tempStore;
+    char *pFormula;
+    int i;
+
+    if( pNtk && Vec_PtrSize( pNtk->vLtlProperties ) > 0 )
+    {
+        tempStore = Vec_PtrAlloc( Vec_PtrSize( pNtk->vLtlProperties ) );
+        Vec_PtrForEachEntry( char *, pNtk->vLtlProperties, pFormula, i )
+            Vec_PtrPush( tempStore, pFormula );
+        assert( Vec_PtrSize( tempStore ) == Vec_PtrSize( pNtk->vLtlProperties ) );
+        return tempStore;
+    }
+    else
+        return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void updateLtlStoreOfNtk( Abc_Ntk_t *pNtk, Vec_Ptr_t *tempLtlStore )
+{
+    int i;
+    char *pFormula;
+
+    assert( tempLtlStore != NULL );
+    Vec_PtrForEachEntry( char *, tempLtlStore, pFormula, i )
+        Vec_PtrPush( pNtk->vLtlProperties, pFormula );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Read the network from a file.]
@@ -171,8 +226,10 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
 Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
 {
     Abc_Ntk_t * pNtk, * pTemp;
+    Vec_Ptr_t * vLtl;
     // get the netlist
     pNtk = Io_ReadNetlist( pFileName, FileType, fCheck );
+    vLtl = temporaryLtlStore( pNtk );
     if ( pNtk == NULL )
         return NULL;
     if ( !Abc_NtkIsNetlist(pNtk) )
@@ -217,6 +274,8 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
     }
     // convert the netlist into the logic network
     pNtk = Abc_NtkToLogic( pTemp = pNtk );
+    if( vLtl )
+        updateLtlStoreOfNtk( pNtk, vLtl );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
@@ -331,6 +390,15 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         }
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );
     }
+    else if ( FileType == IO_FILE_SMV )
+    {
+        if ( !Abc_NtkIsStrash(pNtk) )
+        {
+            fprintf( stdout, "Writing traditional SMV is available for AIGs only.\n" );
+            return;
+        }
+        pNtkTemp = Abc_NtkToNetlistBench( pNtk );
+    }
     else
         pNtkTemp = Abc_NtkToNetlist( pNtk );
 
@@ -344,7 +412,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkHasSop(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
             Abc_NtkToSop( pNtkTemp, 0 );
-        Io_WriteBlif( pNtkTemp, pFileName, 1 );
+        Io_WriteBlif( pNtkTemp, pFileName, 1, 0, 0 );
     }
     else if ( FileType == IO_FILE_BLIFMV )
     {
@@ -364,6 +432,8 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             Abc_NtkToAig( pNtkTemp );
         Io_WriteEqn( pNtkTemp, pFileName );
     }
+    else if ( FileType == IO_FILE_SMV )
+        Io_WriteSmv( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_VERILOG )
     {
         if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
@@ -459,7 +529,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     {
         if ( !Abc_NtkHasSop(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
             Abc_NtkToSop( pNtkResult, 0 );
-        Io_WriteBlif( pNtkResult, pFileName, 1 );
+        Io_WriteBlif( pNtkResult, pFileName, 1, 0, 0 );
     }
     else if ( Io_ReadFileType(pFileName) == IO_FILE_VERILOG )
     {
@@ -611,7 +681,7 @@ Abc_Obj_t * Io_ReadCreateResetLatch( Abc_Ntk_t * pNtk, int fBlifMv )
     Abc_LatchSetInit0( pLatch );
     // feed the latch with constant1- node
 //    pNode = Abc_NtkCreateNode( pNtk );   
-//    pNode->pData = Abc_SopRegister( pNtk->pManFunc, "2\n1\n" );
+//    pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, "2\n1\n" );
     pNode = Abc_NtkCreateNodeConst1( pNtk );
     Abc_ObjAddFanin( Abc_ObjFanin0(Abc_ObjFanin0(pLatch)), pNode );
     return pLatch;
@@ -657,7 +727,7 @@ Abc_Obj_t * Io_ReadCreateNode( Abc_Ntk_t * pNtk, char * pNameOut, char * pNamesI
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, bool fConst1 )
+Abc_Obj_t * Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, int fConst1 )
 {
     Abc_Obj_t * pNet, * pTerm;
     pTerm = fConst1? Abc_NtkCreateNodeConst1(pNtk) : Abc_NtkCreateNodeConst0(pNtk);
@@ -725,7 +795,6 @@ Abc_Obj_t * Io_ReadCreateBuf( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut 
 FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mode, int fVerbose )
 {
     char * t = 0, * c = 0, * i;
-    extern char * Abc_FrameReadFlag( char * pFlag ); 
 
     if ( PathVar == 0 )
     {
@@ -767,4 +836,6 @@ FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mo
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

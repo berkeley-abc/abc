@@ -38,6 +38,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -686,4 +689,6 @@ bddCheckPositiveCube(
     return(0);
 
 } /* end of bddCheckPositiveCube */
+
+ABC_NAMESPACE_IMPL_END
 

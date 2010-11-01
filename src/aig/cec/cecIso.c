@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -348,13 +351,13 @@ int * Cec_ManDetectIsomorphism( Gia_Man_t * p )
         {
             if ( (Gia_ObjIsHead(p,pIso[i]) && Gia_ObjRepr(p,i)==pIso[i]) || 
                  (Gia_ObjIsClass(p,pIso[i]) && Gia_ObjRepr(p,i)==Gia_ObjRepr(p,pIso[i])) )
-                 printf( "1" );
+                 Abc_Print( 1, "1" );
             else
-                printf( "0" );
+                Abc_Print( 1, "0" );
         }
 */
     }
-    printf( "Computed %d pairs of structurally equivalent nodes.\n", Counter );
+    Abc_Print( 1, "Computed %d pairs of structurally equivalent nodes.\n", Counter );
 //    p->pIso = pIso;
 //    Cec_ManTransformClasses( p );
 
@@ -367,4 +370,6 @@ int * Cec_ManDetectIsomorphism( Gia_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -22,6 +22,9 @@
 #include "main.h"
 #include "mio.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -66,7 +69,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsSopLogic(pNtk) );
 
     // check that the library is available
-    pGenlib = Abc_FrameReadLibGen();
+    pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
     if ( pGenlib == NULL )
     {
         printf( "The current library is not available.\n" );
@@ -94,14 +97,14 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
         nFanins = Abc_ObjFaninNum(pNode);
         if ( nFanins == 0 )
         {
-            if ( Abc_SopIsConst1(pNode->pData) )
+            if ( Abc_SopIsConst1((char *)pNode->pData) )
                 pNode->pCopy = (Abc_Obj_t *)Mio_LibraryReadConst1(pGenlib);
             else
                 pNode->pCopy = (Abc_Obj_t *)Mio_LibraryReadConst0(pGenlib);
         }
         else if ( nFanins == 1 )
         {
-            if ( Abc_SopIsBuf(pNode->pData) )
+            if ( Abc_SopIsBuf((char *)pNode->pData) )
                 pNode->pCopy = (Abc_Obj_t *)Mio_LibraryReadBuf(pGenlib);
             else
                 pNode->pCopy = (Abc_Obj_t *)Mio_LibraryReadInv(pGenlib);
@@ -142,7 +145,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         pNode->pData = pNode->pCopy, pNode->pCopy = NULL;
     pNtk->ntkFunc = ABC_FUNC_MAP;
-    Extra_MmFlexStop( pNtk->pManFunc );
+    Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
     pNtk->pManFunc = pGenlib;
 
     printf( "Library gates are successfully attached to the nodes.\n" );
@@ -177,7 +180,7 @@ int Abc_NodeAttach( Abc_Obj_t * pNode, Mio_Gate_t ** ppGates, unsigned ** puTrut
     int nFanins, i;
 
     // compute the node's truth table
-    Abc_AttachComputeTruth( pNode->pData, uTruths, uTruthNode );
+    Abc_AttachComputeTruth( (char *)pNode->pData, uTruths, uTruthNode );
     // find the matching gate and permutation
     pGate = Abc_AttachFind( ppGates, puTruthGates, nGates, uTruthNode, Perm );
     if ( pGate == NULL )
@@ -401,4 +404,6 @@ void Abc_TruthPermute( char * pPerm, int nVars, unsigned * uTruthNode, unsigned 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

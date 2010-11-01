@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -76,28 +79,28 @@ static inline Rtm_Obj_t * Rtm_ObjFanout( Rtm_Obj_t * pObj, int i )       { retur
 static inline Rtm_Edg_t * Rtm_ObjEdge( Rtm_Obj_t * pObj, int i )         { return (Rtm_Edg_t *)(pObj->pFanio + 2*i + 1);              }
 static inline Rtm_Edg_t * Rtm_ObjFanoutEdge( Rtm_Obj_t * pObj, int i )   { return (Rtm_Edg_t *)pObj->pFanio[2*(pObj->nFanins+i) + 1]; }
 
-static inline Rtm_Init_t  Rtm_InitNot( Rtm_Init_t Val )                  { if ( Val == RTM_VAL_ZERO ) return RTM_VAL_ONE; if ( Val == RTM_VAL_ONE ) return RTM_VAL_ZERO; assert( 0 ); return -1; }
+static inline Rtm_Init_t  Rtm_InitNot( Rtm_Init_t Val )                  { if ( Val == RTM_VAL_ZERO ) return (Rtm_Init_t)RTM_VAL_ONE; if ( Val == RTM_VAL_ONE ) return (Rtm_Init_t)RTM_VAL_ZERO; assert( 0 ); return (Rtm_Init_t)-1; }
 static inline Rtm_Init_t  Rtm_InitNotCond( Rtm_Init_t Val, int c )       { return c ? Rtm_InitNot(Val) : Val;                         }
-static inline Rtm_Init_t  Rtm_InitAnd(Rtm_Init_t ValA, Rtm_Init_t ValB ) { if ( ValA == RTM_VAL_ONE && ValB == RTM_VAL_ONE ) return RTM_VAL_ONE;  if ( ValA == RTM_VAL_ZERO || ValB == RTM_VAL_ZERO ) return RTM_VAL_ZERO; assert( 0 ); return -1;   }
+static inline Rtm_Init_t  Rtm_InitAnd(Rtm_Init_t ValA, Rtm_Init_t ValB ) { if ( ValA == RTM_VAL_ONE && ValB == RTM_VAL_ONE ) return (Rtm_Init_t)RTM_VAL_ONE;  if ( ValA == RTM_VAL_ZERO || ValB == RTM_VAL_ZERO ) return (Rtm_Init_t)RTM_VAL_ZERO; assert( 0 ); return (Rtm_Init_t)-1;   }
 
 static inline int         Rtm_InitWordsNum( int nLats )                  { return (nLats >> 4) + ((nLats & 15) > 0); }
 static inline int         Rtm_InitGetTwo( unsigned * p, int i )          { return (p[i>>4] >> ((i & 15)<<1)) & 3;    }
 static inline void        Rtm_InitSetTwo( unsigned * p, int i, int val ) { p[i>>4] |= (val << ((i & 15)<<1));        }
 static inline void        Rtm_InitXorTwo( unsigned * p, int i, int val ) { p[i>>4] ^= (val << ((i & 15)<<1));        }
 
-static inline Rtm_Init_t  Rtm_ObjGetFirst1( Rtm_Edg_t * pEdge )          { return pEdge->LData & 3;                                    }
-static inline Rtm_Init_t  Rtm_ObjGetLast1( Rtm_Edg_t * pEdge )           { return (pEdge->LData >> ((pEdge->nLats-1)<<1)) & 3;         }
-static inline Rtm_Init_t  Rtm_ObjGetOne1( Rtm_Edg_t * pEdge, int i )     { assert( i < (int)pEdge->nLats ); return (pEdge->LData >> (i << 1)) & 3;  }
-static inline Rtm_Init_t  Rtm_ObjRemFirst1( Rtm_Edg_t * pEdge )          { int Val = pEdge->LData & 3; pEdge->LData >>= 2; assert(pEdge->nLats > 0); pEdge->nLats--; return Val;  }
-static inline Rtm_Init_t  Rtm_ObjRemLast1( Rtm_Edg_t * pEdge )           { int Val = (pEdge->LData >> ((pEdge->nLats-1)<<1)) & 3; pEdge->LData ^= Val << ((pEdge->nLats-1)<<1); assert(pEdge->nLats > 0); pEdge->nLats--; return Val;  }
+static inline Rtm_Init_t  Rtm_ObjGetFirst1( Rtm_Edg_t * pEdge )          { return (Rtm_Init_t)(pEdge->LData & 3);                                    }
+static inline Rtm_Init_t  Rtm_ObjGetLast1( Rtm_Edg_t * pEdge )           { return (Rtm_Init_t)((pEdge->LData >> ((pEdge->nLats-1)<<1)) & 3);         }
+static inline Rtm_Init_t  Rtm_ObjGetOne1( Rtm_Edg_t * pEdge, int i )     { assert( i < (int)pEdge->nLats ); return (Rtm_Init_t)((pEdge->LData >> (i << 1)) & 3);  }
+static inline Rtm_Init_t  Rtm_ObjRemFirst1( Rtm_Edg_t * pEdge )          { int Val = pEdge->LData & 3; pEdge->LData >>= 2; assert(pEdge->nLats > 0); pEdge->nLats--; return (Rtm_Init_t)Val;  }
+static inline Rtm_Init_t  Rtm_ObjRemLast1( Rtm_Edg_t * pEdge )           { int Val = (pEdge->LData >> ((pEdge->nLats-1)<<1)) & 3; pEdge->LData ^= Val << ((pEdge->nLats-1)<<1); assert(pEdge->nLats > 0); pEdge->nLats--; return (Rtm_Init_t)Val;  }
 static inline void        Rtm_ObjAddFirst1( Rtm_Edg_t * pEdge, Rtm_Init_t Val ) { assert( Val > 0 && Val < 4 ); pEdge->LData = (pEdge->LData << 2) | Val;  pEdge->nLats++;   }
 static inline void        Rtm_ObjAddLast1( Rtm_Edg_t * pEdge, Rtm_Init_t Val )  { assert( Val > 0 && Val < 4 ); pEdge->LData |= Val << (pEdge->nLats<<1);  pEdge->nLats++;   }
 
-static inline Rtm_Init_t  Rtm_ObjGetFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                 { return Rtm_InitGetTwo( p->pExtra + pEdge->LData, 0 );                }
-static inline Rtm_Init_t  Rtm_ObjGetLast2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                  { return Rtm_InitGetTwo( p->pExtra + pEdge->LData, pEdge->nLats - 1 ); }
-static inline Rtm_Init_t  Rtm_ObjGetOne2( Rtm_Man_t * p, Rtm_Edg_t * pEdge, int i )            { return Rtm_InitGetTwo( p->pExtra + pEdge->LData, i );                }
+static inline Rtm_Init_t  Rtm_ObjGetFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                 { return (Rtm_Init_t)Rtm_InitGetTwo( p->pExtra + pEdge->LData, 0 );                }
+static inline Rtm_Init_t  Rtm_ObjGetLast2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                  { return (Rtm_Init_t)Rtm_InitGetTwo( p->pExtra + pEdge->LData, pEdge->nLats - 1 ); }
+static inline Rtm_Init_t  Rtm_ObjGetOne2( Rtm_Man_t * p, Rtm_Edg_t * pEdge, int i )            { return (Rtm_Init_t)Rtm_InitGetTwo( p->pExtra + pEdge->LData, i );                }
 static        Rtm_Init_t  Rtm_ObjRemFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge );
-static inline Rtm_Init_t  Rtm_ObjRemLast2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                  { Rtm_Init_t Val = Rtm_ObjGetLast2( p, pEdge );    Rtm_InitXorTwo( p->pExtra + pEdge->LData, pEdge->nLats - 1, Val ); pEdge->nLats--; return Val; }
+static inline Rtm_Init_t  Rtm_ObjRemLast2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                  { Rtm_Init_t Val = Rtm_ObjGetLast2( p, pEdge );    Rtm_InitXorTwo( p->pExtra + pEdge->LData, pEdge->nLats - 1, Val ); pEdge->nLats--; return (Rtm_Init_t)Val; }
 static        void        Rtm_ObjAddFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge, Rtm_Init_t Val );
 static inline void        Rtm_ObjAddLast2( Rtm_Man_t * p, Rtm_Edg_t * pEdge, Rtm_Init_t Val )  { Rtm_InitSetTwo( p->pExtra + pEdge->LData, pEdge->nLats, Val );  pEdge->nLats++;  }
 
@@ -116,13 +119,13 @@ static        void        Rtm_ObjAddLast( Rtm_Man_t * p, Rtm_Edg_t * pEdge, Rtm_
 
 // iterator over the primary inputs
 #define Rtm_ManForEachPi( p, pObj, i )                                          \
-    Vec_PtrForEachEntry( p->vPis, pObj, i )
+    Vec_PtrForEachEntry( Rtm_Obj_t *, p->vPis, pObj, i )
 // iterator over the primary outputs
 #define Rtm_ManForEachPo( p, pObj, i )                                          \
-    Vec_PtrForEachEntry( p->vPos, pObj, i )
+    Vec_PtrForEachEntry( Rtm_Obj_t *, p->vPos, pObj, i )
 // iterator over all objects, including those currently not used
 #define Rtm_ManForEachObj( p, pObj, i )                                         \
-    Vec_PtrForEachEntry( p->vObjs, pObj, i ) 
+    Vec_PtrForEachEntry( Rtm_Obj_t *, p->vObjs, pObj, i ) 
 // iterate through the fanins
 #define Rtm_ObjForEachFanin( pObj, pFanin, i )                                  \
     for ( i = 0; i < (int)(pObj)->nFanins && ((pFanin = Rtm_ObjFanin(pObj, i)), 1); i++ )
@@ -222,11 +225,11 @@ void Rtm_ObjTransferToBigger( Rtm_Man_t * p, Rtm_Edg_t * pEdge )
 ***********************************************************************/
 Rtm_Init_t  Rtm_ObjRemFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge )                 
 { 
-    Rtm_Init_t Val = 0, Temp;   
+    Rtm_Init_t Val = (Rtm_Init_t)0, Temp;   
     unsigned * pB = p->pExtra + pEdge->LData, * pE = pB + Rtm_InitWordsNum( pEdge->nLats-- ) - 1;  
     while ( pE >= pB ) 
     {
-        Temp = *pE & 3;
+        Temp = (Rtm_Init_t)(*pE & 3);
         *pE = (*pE >> 2) | (Val << 30);
         Val = Temp;
         pE--;
@@ -253,7 +256,7 @@ void Rtm_ObjAddFirst2( Rtm_Man_t * p, Rtm_Edg_t * pEdge, Rtm_Init_t Val )
     assert( Val != 0 );
     while ( pB < pE ) 
     {
-        Temp = *pB >> 30;
+        Temp = (Rtm_Init_t)(*pB >> 30);
         *pB = (*pB << 2) | Val;
         Val = Temp;
         pB++;
@@ -590,7 +593,7 @@ int Rtm_ManMarkAutoFwd( Rtm_Man_t * pRtm )
     Rtm_Obj_t * pObjRtm;
     int i, Counter = 0;
     // mark nodes reachable from the PIs
-    pObjRtm = Vec_PtrEntry( pRtm->vObjs, 0 );
+    pObjRtm = (Rtm_Obj_t *)Vec_PtrEntry( pRtm->vObjs, 0 );
     Rtm_ObjMarkAutoFwd_rec( pObjRtm );
     Rtm_ManForEachPi( pRtm, pObjRtm, i )
         Rtm_ObjMarkAutoFwd_rec( pObjRtm );
@@ -642,7 +645,7 @@ int Rtm_ManMarkAutoBwd( Rtm_Man_t * pRtm )
     Rtm_Obj_t * pObjRtm;
     int i, Counter = 0;
     // mark nodes reachable from the PIs
-    pObjRtm = Vec_PtrEntry( pRtm->vObjs, 0 );
+    pObjRtm = (Rtm_Obj_t *)Vec_PtrEntry( pRtm->vObjs, 0 );
     pObjRtm->fAuto = 1;
     Rtm_ManForEachPi( pRtm, pObjRtm, i )
         pObjRtm->fAuto = 1;
@@ -699,15 +702,15 @@ Rtm_Man_t * Rtm_ManFromAig( Aig_Man_t * p )
         pObj->pData = Rtm_ObjAlloc( pRtm, 2, pObj->nRefs );
     // connect objects
     Aig_ManForEachPoSeq( p, pObj, i )
-        Rtm_ObjAddFanin( pObj->pData, Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
+        Rtm_ObjAddFanin( (Rtm_Obj_t *)pObj->pData, (Rtm_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
     Aig_ManForEachLiSeq( p, pObj, i )
-        Rtm_ObjAddFanin( pObj->pData, Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
+        Rtm_ObjAddFanin( (Rtm_Obj_t *)pObj->pData, (Rtm_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
-        Rtm_ObjAddFanin( pObjLo->pData, pObjLi->pData, 0 );
+        Rtm_ObjAddFanin( (Rtm_Obj_t *)pObjLo->pData, (Rtm_Obj_t *)pObjLi->pData, 0 );
     Aig_ManForEachNode( p, pObj, i )
     {
-        Rtm_ObjAddFanin( pObj->pData, Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
-        Rtm_ObjAddFanin( pObj->pData, Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
+        Rtm_ObjAddFanin( (Rtm_Obj_t *)pObj->pData, (Rtm_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
+        Rtm_ObjAddFanin( (Rtm_Obj_t *)pObj->pData, (Rtm_Obj_t *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
     }
     return pRtm;
 }
@@ -729,7 +732,7 @@ Aig_Obj_t * Rtm_ManToAig_rec( Aig_Man_t * pNew, Rtm_Man_t * pRtm, Rtm_Obj_t * pO
     Aig_Obj_t * pRes, * pFanin;
     int k, Val;
     if ( pObjRtm->pCopy )
-        return pObjRtm->pCopy;
+        return (Aig_Obj_t *)pObjRtm->pCopy;
     // get the inputs
     pRes = Aig_ManConst1( pNew );
     Rtm_ObjForEachFaninEdge( pObjRtm, pEdge, k )
@@ -745,7 +748,7 @@ Aig_Obj_t * Rtm_ManToAig_rec( Aig_Man_t * pNew, Rtm_Man_t * pRtm, Rtm_Obj_t * pO
         pFanin = Aig_NotCond( pFanin, k ? pObjRtm->fCompl1 : pObjRtm->fCompl0 );
         pRes = Aig_And( pNew, pRes, pFanin );
     }
-    return pObjRtm->pCopy = pRes;
+    return (Aig_Obj_t *)(pObjRtm->pCopy = pRes);
 }
 
 /**Function*************************************************************
@@ -778,7 +781,7 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
     // create the new manager
     pNew = Aig_ManStart( Vec_PtrSize(pRtm->vObjs) + nLatches );
     // create PIs/POs and latches
-    pObjRtm = Vec_PtrEntry( pRtm->vObjs, 0 );
+    pObjRtm = (Rtm_Obj_t *)Vec_PtrEntry( pRtm->vObjs, 0 );
     pObjRtm->pCopy = Aig_ManConst1(pNew);
     Rtm_ManForEachPi( pRtm, pObjRtm, i )
         pObjRtm->pCopy = Aig_ObjCreatePi(pNew);
@@ -789,14 +792,14 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
         Rtm_ManToAig_rec( pNew, pRtm, pObjRtm, pLatches );
     // create POs
     Rtm_ManForEachPo( pRtm, pObjRtm, i )
-        Aig_ObjCreatePo( pNew, pObjRtm->pCopy );
+        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObjRtm->pCopy );
     // connect latches 
     Rtm_ManForEachObj( pRtm, pObjRtm, i )
     Rtm_ObjForEachFaninEdge( pObjRtm, pEdge, k )
     {
         if ( pEdge->nLats == 0 )
             continue;
-        pObjNew = Rtm_ObjFanin( pObjRtm, k )->pCopy;
+        pObjNew = (Aig_Obj_t *)Rtm_ObjFanin( pObjRtm, k )->pCopy;
         for ( m = 0; m < (int)pEdge->nLats; m++ )
         {
             Val = Rtm_ObjGetOne( pRtm, pEdge, pEdge->nLats - 1 - m );
@@ -843,7 +846,7 @@ clk = clock();
     pRtm = Rtm_ManFromAig( p );
     // set registers
     Aig_ManForEachLoSeq( p, pObjAig, i )
-        Rtm_ObjAddFirst( pRtm, Rtm_ObjEdge(pObjAig->pData, 0), fForward? RTM_VAL_ZERO : RTM_VAL_VOID );
+        Rtm_ObjAddFirst( pRtm, Rtm_ObjEdge((Rtm_Obj_t *)pObjAig->pData, 0), fForward? RTM_VAL_ZERO : RTM_VAL_VOID );
     // detect and mark the autonomous components
     if ( fForward )
         nAutos = Rtm_ManMarkAutoFwd( pRtm );
@@ -870,7 +873,7 @@ clk = clock();
     {
         Aig_ManForEachLoSeq( p, pObjAig, i )
         {
-            pObj = pObjAig->pData;
+            pObj = (Rtm_Obj_t *)pObjAig->pData;
             if ( pObj->fAuto )
                 continue;
             pObj->fMark = 1;
@@ -881,7 +884,7 @@ clk = clock();
     {
         Aig_ManForEachLiSeq( p, pObjAig, i )
         {
-            pObj = pObjAig->pData;
+            pObj = (Rtm_Obj_t *)pObjAig->pData;
             if ( pObj->fAuto )
                 continue;
             pObj->fMark = 1;
@@ -890,7 +893,7 @@ clk = clock();
     }
     // perform retiming 
     DegreeMax = 0;
-    Vec_PtrForEachEntry( vQueue, pObj, i )
+    Vec_PtrForEachEntry( Rtm_Obj_t *, vQueue, pObj, i )
     {
         pObj->fMark = 0;
         // retime the node 
@@ -967,4 +970,6 @@ clk = clock();
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

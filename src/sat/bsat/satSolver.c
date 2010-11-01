@@ -2,7 +2,7 @@
 MiniSat -- Copyright (c) 2005, Niklas Sorensson
 http://www.cs.chalmers.se/Cs/Research/FormalMethods/MiniSat/
 
-Permission is hereby granted, ABC_FREE of charge, to any person obtaining a copy of this software and
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
@@ -25,7 +25,21 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <math.h>
 
 #include "satSolver.h"
+#include "satStore.h"
 
+ABC_NAMESPACE_IMPL_START
+/*
+extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
+extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
+extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
+extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
+extern void * Sto_ManAlloc();
+extern void Sto_ManDumpClauses( void * p, char * pFileName );
+extern void Sto_ManFree( void * p );
+extern int Sto_ManChangeLastClause( void * p );
+extern void Sto_ManMarkRoots( void * p );
+extern void Sto_ManMarkClausesA( void * p );
+*/
 //#define SAT_USE_SYSTEM_MEMORY_MANAGEMENT
 
 //=================================================================================================
@@ -91,7 +105,7 @@ static inline void  clause_setactivity(clause* c, float a) { *((float*)&c->lits[
 // Encode literals in clause pointers:
 
 static inline clause* clause_from_lit (lit l)     { return (clause*)((ABC_PTRUINT_T)l + (ABC_PTRUINT_T)l + 1); }
-static inline bool    clause_is_lit   (clause* c) { return ((ABC_PTRUINT_T)c & 1);                              }
+static inline int     clause_is_lit   (clause* c) { return ((ABC_PTRUINT_T)c & 1);                              }
 static inline lit     clause_read_lit (clause* c) { return (lit)((ABC_PTRUINT_T)c >> 1);                        }
 
 //=================================================================================================
@@ -386,6 +400,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->levels    = ABC_REALLOC(int,    s->levels,   s->cap);
         s->tags      = ABC_REALLOC(lbool,  s->tags,     s->cap);
         s->trail     = ABC_REALLOC(lit,    s->trail,    s->cap);
+        s->polarity  = ABC_REALLOC(char,   s->polarity, s->cap);
     }
 
     for (var = s->size; var < n; var++){
@@ -398,6 +413,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->reasons  [var] = (clause*)0;
         s->levels   [var] = 0;
         s->tags     [var] = l_Undef;
+        s->polarity [var] = 0;
         
         /* does not hold because variables enqueued at top level will not be reinserted in the heap
            assert(veci_size(&s->order) == var); 
@@ -410,7 +426,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
 }
 
 
-static inline bool enqueue(sat_solver* s, lit l, clause* from)
+static inline int enqueue(sat_solver* s, lit l, clause* from)
 {
     lbool* values = s->assigns;
     int    v      = lit_var(l);
@@ -457,6 +473,7 @@ static void sat_solver_canceluntil(sat_solver* s, int level) {
     lbool*   values;  
     clause** reasons; 
     int      bound;
+    int      lastLev;
     int      c;
     
     if (sat_solver_dlevel(s) <= level)
@@ -466,6 +483,7 @@ static void sat_solver_canceluntil(sat_solver* s, int level) {
     values  = s->assigns;
     reasons = s->reasons;
     bound   = (veci_begin(&s->trail_lim))[level];
+    lastLev = (veci_begin(&s->trail_lim))[veci_size(&s->trail_lim)-1];
 
     ////////////////////////////////////////
     // added to cancel all assignments
@@ -477,6 +495,8 @@ static void sat_solver_canceluntil(sat_solver* s, int level) {
         int     x  = lit_var(trail[c]);
         values [x] = l_Undef;
         reasons[x] = (clause*)0;
+        if ( c < lastLev )
+            s->polarity[x] = !lit_sign(trail[c]);
     }
 
     for (c = s->qhead-1; c >= bound; c--)
@@ -497,8 +517,7 @@ static void sat_solver_record(sat_solver* s, veci* cls)
     // add clause to internal storage
     if ( s->pStore )
     {
-        extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
-        int RetValue = Sto_ManAddClause( s->pStore, begin, end );
+        int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, begin, end );
         assert( RetValue );
     }
     ///////////////////////////////////
@@ -531,7 +550,7 @@ static double sat_solver_progress(sat_solver* s)
 //=================================================================================================
 // Major methods:
 
-static bool sat_solver_lit_removable(sat_solver* s, lit l, int minl)
+static int sat_solver_lit_removable(sat_solver* s, lit l, int minl)
 {
     lbool*   tags    = s->tags;
     clause** reasons = s->reasons;
@@ -593,6 +612,92 @@ static bool sat_solver_lit_removable(sat_solver* s, lit l, int minl)
 
     return true;
 }
+
+
+/*_________________________________________________________________________________________________
+|
+|  analyzeFinal : (p : Lit)  ->  [void]
+|  
+|  Description:
+|    Specialized analysis procedure to express the final conflict in terms of assumptions.
+|    Calculates the (possibly empty) set of assumptions that led to the assignment of 'p', and
+|    stores the result in 'out_conflict'.
+|________________________________________________________________________________________________@*/
+/*
+void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
+{
+    out_conflict.clear();
+    out_conflict.push(p);
+
+    if (decisionLevel() == 0)
+        return;
+
+    seen[var(p)] = 1;
+
+    for (int i = trail.size()-1; i >= trail_lim[0]; i--){
+        Var x = var(trail[i]);
+        if (seen[x]){
+            if (reason(x) == GClause_NULL){
+                assert(level(x) > 0);
+                out_conflict.push(~trail[i]);
+            }else{
+                Clause& c = ca.deref(smartReason(x));
+                for (int j = 1; j < c.size(); j++)
+                    if (level(var(c[j])) > 0)
+                        seen[var(c[j])] = 1;
+            }
+            seen[x] = 0;
+        }
+    }
+
+    seen[var(p)] = 0;
+}
+*/
+
+static void sat_solver_analyze_final(sat_solver* s, lit p, veci* out_conflict)
+{
+    int i, j;
+    veci_resize(out_conflict,0);
+//    veci_push(out_conflict,p); // do not write conflict literal
+    if ( sat_solver_dlevel(s) == 0 )
+        return;
+    assert( veci_size(&s->tagged) == 0 );
+    assert( s->tags[lit_var(p)] == l_Undef );
+    s->tags[lit_var(p)] = l_True;
+    for (i = s->qtail-1; i >= (veci_begin(&s->trail_lim))[0]; i--){
+        int x = lit_var(s->trail[i]);
+        if (s->tags[x] == l_True){
+            if (s->reasons[x] == NULL){
+                assert(s->levels[x] > 0);
+                veci_push(out_conflict,lit_neg(s->trail[i]));
+            }else{
+                clause* c = s->reasons[x];
+                if (clause_is_lit(c)){
+                    lit q = clause_read_lit(c);
+                    assert(lit_var(q) >= 0 && lit_var(q) < s->size);
+                    if (s->levels[lit_var(q)] > 0)
+                    {
+                        s->tags[lit_var(q)] = l_True;
+                        veci_push(&s->tagged,lit_var(q));
+                    }
+                }
+                else{
+                    int* lits = clause_begin(c);
+                    for (j = 1; j < clause_size(c); j++)
+                        if (s->levels[lit_var(lits[j])] > 0)
+                        {
+                            s->tags[lit_var(lits[j])] = l_True;
+                            veci_push(&s->tagged,lit_var(lits[j]));
+                        }
+                }
+            }
+        }
+    }
+    for (i = 0; i < veci_size(&s->tagged); i++)
+        s->tags[veci_begin(&s->tagged)[i]] = l_Undef;
+    veci_resize(&s->tagged,0);
+}
+
 
 static void sat_solver_analyze(sat_solver* s, clause* c, veci* learnt)
 {
@@ -871,6 +976,8 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
 #endif
             s->stats.conflicts++; conflictC++;
             if (sat_solver_dlevel(s) == s->root_level){
+//                lit p = clause_is_lit(confl)? clause_read_lit(confl) : clause_begin(confl)[0];
+//                sat_solver_analyze_final(s, lit_neg(p), &s->conf_final);
                 veci_delete(&learnt_clause);
                 return l_False;
             }
@@ -896,7 +1003,8 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
                 return l_Undef; }
 
             if ( (s->nConfLimit && s->stats.conflicts > s->nConfLimit) ||
-                 (s->nInsLimit  && s->stats.inspects  > s->nInsLimit) )
+//                 (s->nInsLimit  && s->stats.inspects  > s->nInsLimit) )
+                 (s->nInsLimit  && s->stats.propagations > s->nInsLimit) )
             {
                 // Reached bound on number of conflicts:
                 s->progress_estimate = sat_solver_progress(s);
@@ -938,7 +1046,10 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
                 return l_True;
             }
 
-            assume(s,lit_neg(toLit(next)));
+            if ( s->polarity[next] ) // positive polarity
+                assume(s,toLit(next));
+            else
+                assume(s,lit_neg(toLit(next)));
         }
     }
 
@@ -963,6 +1074,7 @@ sat_solver* sat_solver_new(void)
     veci_new(&s->model);
     veci_new(&s->act_vars);
     veci_new(&s->temp_clause);
+    veci_new(&s->conf_final);
 
     // initialize arrays
     s->wlists    = 0;
@@ -1038,6 +1150,7 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->model);
     veci_delete(&s->act_vars);
     veci_delete(&s->temp_clause);
+    veci_delete(&s->conf_final);
     ABC_FREE(s->binary);
 
     // delete arrays
@@ -1056,6 +1169,7 @@ void sat_solver_delete(sat_solver* s)
         ABC_FREE(s->levels   );
         ABC_FREE(s->trail    );
         ABC_FREE(s->tags     );
+        ABC_FREE(s->polarity );
     }
 
     sat_solver_store_free(s);
@@ -1063,7 +1177,7 @@ void sat_solver_delete(sat_solver* s)
 }
 
 
-bool sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
+int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
 {
     lit *i,*j;
     int maxvar;
@@ -1096,8 +1210,7 @@ bool sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
     // add clause to internal storage
     if ( s->pStore )
     {
-        extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
-        int RetValue = Sto_ManAddClause( s->pStore, begin, end );
+        int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, begin, end );
         assert( RetValue );
     }
     ///////////////////////////////////
@@ -1135,7 +1248,7 @@ bool sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
 }
 
 
-bool sat_solver_simplify(sat_solver* s)
+int sat_solver_simplify(sat_solver* s)
 {
     clause** reasons;
     int type;
@@ -1171,10 +1284,30 @@ bool sat_solver_simplify(sat_solver* s)
     return true;
 }
 
+double luby(double y, int x)
+{
+    int size, seq;
+    for (size = 1, seq = 0; size < x+1; seq++, size = 2*size + 1);
+    while (size-1 != x){
+        size = (size-1) >> 1;
+        seq--;
+        x = x % size;
+    }
+    return pow(y, (double)seq);
+} 
+
+void luby_test()
+{
+    int i;
+    for ( i = 0; i < 20; i++ )
+        printf( "%d ", (int)luby(2,i) );
+    printf( "\n" );
+}
 
 int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
 {
-    ABC_INT64_T  nof_conflicts = 100;
+    int restart_iter = 0;
+    ABC_INT64_T  nof_conflicts;
     ABC_INT64_T  nof_learnts   = sat_solver_nclauses(s) / 3;
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
@@ -1185,8 +1318,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     {
         if ( s->pStore )
         {
-            extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
-            int RetValue = Sto_ManAddClause( s->pStore, NULL, NULL );
+            int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, NULL, NULL );
             assert( RetValue );
         }
         return l_False;
@@ -1201,7 +1333,8 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     if ( nConfLimit )
         s->nConfLimit = s->stats.conflicts + nConfLimit;
     if ( nInsLimit )
-        s->nInsLimit = s->stats.inspects + nInsLimit;
+//        s->nInsLimit = s->stats.inspects + nInsLimit;
+        s->nInsLimit = s->stats.propagations + nInsLimit;
     if ( nConfLimitGlobal && (s->nConfLimit == 0 || s->nConfLimit > nConfLimitGlobal) )
         s->nConfLimit = nConfLimitGlobal;
     if ( nInsLimitGlobal && (s->nInsLimit == 0 || s->nInsLimit > nInsLimitGlobal) )
@@ -1250,9 +1383,11 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
                 s->progress_estimate*100);
             fflush(stdout);
         }
+        nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
+//printf( "%d ", (int)nof_conflicts );
         status = sat_solver_search(s, nof_conflicts, nof_learnts);
-        nof_conflicts = nof_conflicts * 3 / 2; //*= 1.5;
-        nof_learnts   = nof_learnts * 11 / 10; //*= 1.1;
+//        nof_conflicts = nof_conflicts * 3 / 2; //*= 1.5;
+        nof_learnts    = nof_learnts * 11 / 10; //*= 1.1;
 
         // quit the loop if reached an external limit
         if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit )
@@ -1260,7 +1395,8 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
 //            printf( "Reached the limit on the number of conflicts (%d).\n", s->nConfLimit );
             break;
         }
-        if ( s->nInsLimit  && s->stats.inspects > s->nInsLimit )
+//        if ( s->nInsLimit  && s->stats.inspects > s->nInsLimit )
+        if ( s->nInsLimit  && s->stats.propagations > s->nInsLimit )
         {
 //            printf( "Reached the limit on the number of implications (%d).\n", s->nInsLimit );
             break;
@@ -1274,8 +1410,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     ////////////////////////////////////////////////
     if ( status == l_False && s->pStore )
     {
-        extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
-        int RetValue = Sto_ManAddClause( s->pStore, NULL, NULL );
+        int RetValue = Sto_ManAddClause( (Sto_Man_t *)s->pStore, NULL, NULL );
         assert( RetValue );
     }
     ////////////////////////////////////////////////
@@ -1305,41 +1440,35 @@ int sat_solver_nconflicts(sat_solver* s)
 
 void sat_solver_store_alloc( sat_solver * s )
 {
-    extern void * Sto_ManAlloc();
     assert( s->pStore == NULL );
     s->pStore = Sto_ManAlloc();
 }
 
 void sat_solver_store_write( sat_solver * s, char * pFileName )
 {
-    extern void Sto_ManDumpClauses( void * p, char * pFileName );
-    if ( s->pStore ) Sto_ManDumpClauses( s->pStore, pFileName );
+    if ( s->pStore ) Sto_ManDumpClauses( (Sto_Man_t *)s->pStore, pFileName );
 }
 
 void sat_solver_store_free( sat_solver * s )
 {
-    extern void Sto_ManFree( void * p );
-    if ( s->pStore ) Sto_ManFree( s->pStore );
+    if ( s->pStore ) Sto_ManFree( (Sto_Man_t *)s->pStore );
     s->pStore = NULL;
 }
 
 int sat_solver_store_change_last( sat_solver * s )
 {
-    extern int Sto_ManChangeLastClause( void * p );
-    if ( s->pStore ) return Sto_ManChangeLastClause( s->pStore );
+    if ( s->pStore ) return Sto_ManChangeLastClause( (Sto_Man_t *)s->pStore );
     return -1;
 }
  
 void sat_solver_store_mark_roots( sat_solver * s )
 {
-    extern void Sto_ManMarkRoots( void * p );
-    if ( s->pStore ) Sto_ManMarkRoots( s->pStore );
+    if ( s->pStore ) Sto_ManMarkRoots( (Sto_Man_t *)s->pStore );
 }
 
 void sat_solver_store_mark_clauses_a( sat_solver * s )
 {
-    extern void Sto_ManMarkClausesA( void * p );
-    if ( s->pStore ) Sto_ManMarkClausesA( s->pStore );
+    if ( s->pStore ) Sto_ManMarkClausesA( (Sto_Man_t *)s->pStore );
 }
 
 void * sat_solver_store_release( sat_solver * s )
@@ -1404,3 +1533,5 @@ void sat_solver_sort(void** array, int size, int(*comp)(const void *, const void
 //    for ( i = 1; i < size; i++ )
 //        assert(comp(array[i-1], array[i])<0);
 }
+ABC_NAMESPACE_IMPL_END
+

@@ -21,6 +21,9 @@
 #include "amapInt.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -210,7 +213,7 @@ unsigned * Amap_LibVerifyPerm_rec( Amap_Lib_t * pLib, Amap_Nod_t * pNod,
     int i;
     assert( pNod->Type != AMAP_OBJ_MUX );
     if ( pNod->Id == 0 )
-        return Vec_PtrEntry( vTtElems, (*piInput)++ );
+        return (unsigned *)Vec_PtrEntry( vTtElems, (*piInput)++ );
     pFan0 = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan0) );
     pTruth0 = Amap_LibVerifyPerm_rec( pLib, pFan0, vTtElems, vTruth, nWords, piInput );
     pFan1 = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan1) );
@@ -262,7 +265,7 @@ void Amap_LibVerifyPerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t * p
     vTtElemsPol = Vec_PtrAlloc( pGate->nPins );
     for ( i = 0; i < (int)pGate->nPins; i++ )
     {
-        pTruth = Vec_PtrEntry( vTtElems, Amap_Lit2Var(pArray[i]) );
+        pTruth = (unsigned *)Vec_PtrEntry( vTtElems, Amap_Lit2Var(pArray[i]) );
         if ( Amap_LitIsCompl( pArray[i] ) )
             Kit_TruthNot( pTruth, pTruth, pGate->nPins );
         Vec_PtrPush( vTtElemsPol, pTruth );
@@ -341,4 +344,6 @@ int Amap_LibDeriveGatePerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t 
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

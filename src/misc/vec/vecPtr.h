@@ -21,11 +21,15 @@
 #ifndef __VEC_PTR_H__
 #define __VEC_PTR_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -48,16 +52,16 @@ struct Vec_Ptr_t_
 ////////////////////////////////////////////////////////////////////////
 
 // iterators through entries
-#define Vec_PtrForEachEntry( vVec, pEntry, i )                                               \
-    for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryStart( vVec, pEntry, i, Start )                                   \
-    for ( i = Start; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryStop( vVec, pEntry, i, Stop )                                     \
-    for ( i = 0; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryStartStop( vVec, pEntry, i, Start, Stop )                         \
-    for ( i = Start; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryReverse( vVec, pEntry, i )                                        \
-    for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i-- )
+#define Vec_PtrForEachEntry( Type, vVec, pEntry, i )                                               \
+    for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryStart( Type, vVec, pEntry, i, Start )                                   \
+    for ( i = Start; (i < Vec_PtrSize(vVec)) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryStop( Type, vVec, pEntry, i, Stop )                                     \
+    for ( i = 0; (i < Stop) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryStartStop( Type, vVec, pEntry, i, Start, Stop )                         \
+    for ( i = Start; (i < Stop) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryReverse( Type, vVec, pEntry, i )                                        \
+    for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = (Type)Vec_PtrEntry(vVec, i)), 1); i-- )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -210,6 +214,25 @@ static inline void Vec_PtrFree( Vec_Ptr_t * p )
 {
     ABC_FREE( p->pArray );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrFreeP( Vec_Ptr_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    ABC_FREE( (*p)->pArray );
+    ABC_FREE( (*p) );
 }
 
 /**Function*************************************************************
@@ -382,17 +405,17 @@ static inline void Vec_PtrFill( Vec_Ptr_t * p, int nSize, void * Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Entry )
+static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Fill )
 {
     int i;
-    if ( p->nSize >= nSize )
+    if ( nSize <= p->nSize )
         return;
-    assert( p->nSize < nSize );
-    if ( nSize < 2 * p->nSize )
-        nSize = 2 * p->nSize;
-    Vec_PtrGrow( p, nSize );
+    if ( nSize > 2 * p->nCap )
+        Vec_PtrGrow( p, nSize );
+    else if ( nSize > p->nCap )
+        Vec_PtrGrow( p, 2 * p->nCap );
     for ( i = p->nSize; i < nSize; i++ )
-        p->pArray[i] = Entry;
+        p->pArray[i] = Fill;
     p->nSize = nSize;
 }
 
@@ -479,7 +502,7 @@ static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
     void * pTemp;
     int i;
     if ( p == NULL ) return;
-    Vec_PtrForEachEntry( p, pTemp, i )
+    Vec_PtrForEachEntry( void *, p, pTemp, i )
         ABC_FREE( pTemp );
     Vec_PtrFree( p );
 }
@@ -524,6 +547,33 @@ static inline void Vec_PtrPush( Vec_Ptr_t * p, void * Entry )
             Vec_PtrGrow( p, 2 * p->nCap );
     }
     p->pArray[p->nSize++] = Entry;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrPushFirst( Vec_Ptr_t * p, void * Entry )
+{
+    int i;
+    if ( p->nSize == p->nCap )
+    {
+        if ( p->nCap < 16 )
+            Vec_PtrGrow( p, 16 );
+        else
+            Vec_PtrGrow( p, 2 * p->nCap );
+    }
+    p->nSize++;
+    for ( i = p->nSize - 1; i >= 1; i-- )
+        p->pArray[i] = p->pArray[i-1];
+    p->pArray[0] = Entry;
 }
 
 /**Function*************************************************************
@@ -617,6 +667,27 @@ static inline void Vec_PtrRemove( Vec_Ptr_t * p, void * Entry )
 
 /**Function*************************************************************
 
+  Synopsis    [Interts entry at the index iHere. Shifts other entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrInsert( Vec_Ptr_t * p, int iHere, void * Entry )
+{
+    int i;
+    assert( iHere >= 0 && iHere < p->nSize );
+    Vec_PtrPush( p, 0 );
+    for ( i = p->nSize - 1; i > iHere; i-- )
+        p->pArray[i] = p->pArray[i-1];
+    p->pArray[i] = Entry;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Moves the first nItems to the end.]
 
   Description []
@@ -659,7 +730,7 @@ static inline void Vec_PtrReverseOrder( Vec_Ptr_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Sorting the entries by their integer value.]
+  Synopsis    [Comparison procedure for two integers.]
 
   Description []
                
@@ -668,12 +739,13 @@ static inline void Vec_PtrReverseOrder( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+static int Vec_PtrSortComparePtr( void ** pp1, void ** pp2 )
 {
-    if ( p->nSize < 2 )
-        return;
-    qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
-            (int (*)(const void *, const void *)) Vec_PtrSortCompare );
+    if ( *pp1 < *pp2 )
+        return -1;
+    if ( *pp1 > *pp2 ) 
+        return 1;
+    return 0; 
 }
 
 /**Function*************************************************************
@@ -687,13 +759,37 @@ static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
   SeeAlso     []
 
 ***********************************************************************/
+static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() ) ___unused;
+static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+{
+    if ( p->nSize < 2 )
+        return;
+    if ( Vec_PtrSortCompare == NULL )
+        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+                (int (*)(const void *, const void *)) Vec_PtrSortComparePtr );
+    else
+        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+                (int (*)(const void *, const void *)) Vec_PtrSortCompare );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sorting the entries by their integer value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() ) ___unused;
 static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
 {
     int i, k;
     if ( p->nSize < 2 )
         return;
-    qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
-            (int (*)(const void *, const void *)) Vec_PtrSortCompare );
+    Vec_PtrSort( p, Vec_PtrSortCompare );
     for ( i = k = 1; i < p->nSize; i++ )
         if ( p->pArray[i] != p->pArray[i-1] )
             p->pArray[k++] = p->pArray[i];
@@ -879,6 +975,10 @@ static inline Vec_Ptr_t * Vec_PtrAllocTruthTables( int nVars )
     }
     return p;
 }
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

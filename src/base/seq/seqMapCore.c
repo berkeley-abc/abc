@@ -23,6 +23,9 @@
 #include "mio.h"
 #include "mapper.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -137,7 +140,7 @@ Abc_Ntk_t * Seq_NtkMapDup( Abc_Ntk_t * pNtk )
     Seq_Resize( pNtkNew->pManFunc, nObjsNew );
 
     // duplicate the nodes in the mapping
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
     {
 //        Abc_NtkDupObj( pNtkNew, pMatch->pAnd );
         if ( !pMatch->fCompl )
@@ -147,13 +150,13 @@ Abc_Ntk_t * Seq_NtkMapDup( Abc_Ntk_t * pNtk )
     }
 
     // compute the real phase assignment
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
     {
         pMatch->uPhaseR = 0;
         // get the leaves of the cut
         vLeaves = Vec_VecEntry( p->vMapCuts, i );
         // convert the leaf nodes
-        Vec_PtrForEachEntry( vLeaves, pLeaf, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, k )
         {
             SeqEdge = (unsigned)pLeaf;
             pLeaf = Abc_NtkObj( pNtk, SeqEdge >> 8 );
@@ -178,7 +181,7 @@ Abc_Ntk_t * Seq_NtkMapDup( Abc_Ntk_t * pNtk )
 
 
     // recursively construct the internals of each node
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
     {
 //        if ( pMatch->pSuper == NULL )
 //        {
@@ -210,12 +213,12 @@ Abc_Ntk_t * Seq_NtkMapDup( Abc_Ntk_t * pNtk )
         Seq_NodeDupLats( pObj->pCopy, pObj, 0 );
 
     // transfer the mapping info to the new manager
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
     {
         // get the leaves of the cut
         vLeaves = Vec_VecEntry( p->vMapCuts, i );
         // convert the leaf nodes
-        Vec_PtrForEachEntry( vLeaves, pLeaf, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, k )
         {
             SeqEdge = (unsigned)pLeaf;
             pLeaf = Abc_NtkObj( pNtk, SeqEdge >> 8 );
@@ -286,7 +289,7 @@ int Seq_NtkMapInitCompatible( Abc_Ntk_t * pNtk, int fVerbose )
 
     vTotalEdges = Vec_VecStart( p->nVarsMax );
     // go through all the nodes (cuts) used in the mapping
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
     {
         pAnd = pMatch->pAnd;
 //        printf( "*** Node %d.\n", pAnd->Id );
@@ -299,7 +302,7 @@ int Seq_NtkMapInitCompatible( Abc_Ntk_t * pNtk, int fVerbose )
         Seq_MapMappingEdges_rec( pNtk, pAnd->Id << 8, NULL, vLeaves, vTotalEdges );
 
         // for each leaf, consider its edges
-        Vec_PtrForEachEntry( vLeaves, pLeaf, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, k )
         {
             SeqEdge = (unsigned)pLeaf;
             pLeaf = Abc_NtkObj( pNtk, SeqEdge >> 8 );
@@ -310,7 +313,7 @@ int Seq_NtkMapInitCompatible( Abc_Ntk_t * pNtk, int fVerbose )
             // go through the edges
             vEdges = Vec_VecEntry( vTotalEdges, k );
             pFanout0 = NULL;
-            Vec_PtrForEachEntry( vEdges, pFanout1, m )
+            Vec_PtrForEachEntry( Abc_Obj_t *, vEdges, pFanout1, m )
             {
                 Edge1    = Abc_ObjIsComplement(pFanout1);
                 pFanout1 = Abc_ObjRegular(pFanout1);
@@ -380,14 +383,14 @@ Abc_Ntk_t * Seq_NtkSeqMapMapped( Abc_Ntk_t * pNtk )
     pNtkMap = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
 
     // duplicate the nodes used in the mapping
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
         pMatch->pAnd->pCopy = Abc_NtkCreateNode( pNtkMap );
 
     // create and share the latches
     Seq_NtkShareLatchesMapping( pNtkMap, pNtk, p->vMapAnds, 0 );
 
     // connect the nodes
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
     {
         pObj = pMatch->pAnd;
         // get the leaves of this gate
@@ -442,7 +445,7 @@ int Seq_MapMappingCount( Abc_Ntk_t * pNtk )
     Vec_Ptr_t * vLeaves;
     Seq_Match_t * pMatch;
     int i, Counter = 0;
-    Vec_PtrForEachEntry( p->vMapAnds, pMatch, i )
+    Vec_PtrForEachEntry( Seq_Match_t *, p->vMapAnds, pMatch, i )
     {
         vLeaves = Vec_VecEntry( p->vMapCuts, i );
         Counter += Seq_MapMappingCount_rec( pNtk, pMatch->pAnd->Id << 8, vLeaves );
@@ -470,7 +473,7 @@ int Seq_MapMappingCount_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Vec_Ptr_t * vLe
     pObj = Abc_NtkObj( pNtk, SeqEdge >> 8 );
     Lag  = SeqEdge & 255;
     // if the node is the fanin of the cut, return
-    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, i )
         if ( SeqEdge == (unsigned)pLeaf )
             return 0;
     // continue unfolding
@@ -505,7 +508,7 @@ Abc_Obj_t * Seq_MapMappingBuild_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, unsi
     pObj = Abc_NtkObj( pNtk, SeqEdge >> 8 );
     Lag  = SeqEdge & 255;
     // if the node is the fanin of the cut, return
-    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, i )
         if ( SeqEdge == (unsigned)pLeaf )
         {
 //            if ( uPhase & (1 << i) ) // negative phase is required
@@ -562,7 +565,7 @@ void Seq_MapMappingEdges_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_Obj_t * pP
     pObj = Abc_NtkObj( pNtk, SeqEdge >> 8 );
     Lag  = SeqEdge & 255;
     // if the node is the fanin of the cut, return
-    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, i )
     {
         if ( SeqEdge == (unsigned)pLeaf )
         {
@@ -606,7 +609,7 @@ DdNode * Seq_MapMappingConnectBdd_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_O
     pObj = Abc_NtkObj( pNtk, SeqEdge >> 8 );
     Lag  = SeqEdge & 255;
     // if the node is the fanin of the cut, add the connection and return
-    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vLeaves, pLeaf, i )
     {
         if ( SeqEdge == (unsigned)pLeaf )
         {
@@ -649,4 +652,6 @@ DdNode * Seq_MapMappingConnectBdd_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_O
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

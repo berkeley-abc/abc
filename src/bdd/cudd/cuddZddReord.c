@@ -49,6 +49,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1413,7 +1416,7 @@ zddReorderPostprocess(
     DdNodePtr *nodelist, *oldnodelist;
     DdNode *node, *next;
     unsigned int slots, oldslots;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
 #ifdef DD_VERBOSE
@@ -1631,4 +1634,6 @@ zddFixTree(
     return;
 
 } /* end of zddFixTree */
+
+ABC_NAMESPACE_IMPL_END
 

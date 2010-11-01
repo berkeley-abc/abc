@@ -1,6 +1,6 @@
 
 CC   := gcc
-CXX  := g++ 
+CXX  := g++
 LD   := g++
 CP   := cp
 
@@ -8,7 +8,7 @@ PROG := abc
 
 MODULES := \
 	src/base/abc src/base/abci src/base/cmd \
-	src/base/io src/base/main src/base/ver \
+	src/base/io src/base/main src/base/ver src/base/dummy src/base/dummy2 \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr \
 	src/bdd/parse src/bdd/reo src/bdd/cas \
 	src/map/fpga src/map/mapper src/map/mio src/map/super \
@@ -26,19 +26,25 @@ MODULES := \
 	src/aig/bdc src/aig/bar src/aig/ntl src/aig/nwk \
 	src/aig/mfx src/aig/tim src/aig/saig src/aig/bbr \
 	src/aig/int src/aig/dch src/aig/ssw src/aig/cgt \
-	src/aig/cec src/aig/gia src/aig/bbl src/aig/live
+	src/aig/cec src/aig/gia src/aig/bbl src/aig/live \
+	src/aig/llb \
+	src/python \
+	src/ext/_sky src/ext/_rti src/ext/_nal src/ext/_bat src/ext/_lxp
 
+all: $(PROG)
 default: $(PROG)
 
 #OPTFLAGS  := -DNDEBUG -O3 -DLIN
 #OPTFLAGS  := -DNDEBUG -O3 -DLIN64
-#OPTFLAGS  := -g -O -DLIN
-OPTFLAGS  := -g -O -DLIN64
+#OPTFLAGS  := -g -O -DLIN -m32
+OPTFLAGS  := -g -O -DLIN64 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -DSIZEOF_INT=4 -DABC_NAMESPACE=xxx
 
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 
 
-LIBS := -ldl -rdynamic -lreadline -ltermcap
+#LIBS := -m32 -ldl -rdynamic -lreadline -ltermcap
+LIBS := -ldl /usr/lib64/libreadline.a /usr/lib64/libncurses.a -rdynamic
+
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG)
 

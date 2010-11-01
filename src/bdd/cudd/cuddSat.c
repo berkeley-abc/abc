@@ -45,6 +45,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -214,7 +217,7 @@ Cudd_ShortestPath(
     sol = getPath(manager,visited,f,weight,cost);
     } while (manager->reordered == 1);
 
-    st_foreach(visited, freePathPair, NULL);
+    st_foreach(visited, (ST_PFSR)freePathPair, NULL);
     st_free_table(visited);
 
     *length = cost;
@@ -284,7 +287,7 @@ Cudd_LargestCube(
     sol = getCube(manager,visited,f,cost);
     } while (manager->reordered == 1);
 
-    st_foreach(visited, freePathPair, NULL);
+    st_foreach(visited, (ST_PFSR)freePathPair, NULL);
     st_free_table(visited);
 
     *length = cost;
@@ -345,7 +348,7 @@ Cudd_ShortestLength(
     cost = my_pair->pos;
     }
 
-    st_foreach(visited, freePathPair, NULL);
+    st_foreach(visited, (ST_PFSR)freePathPair, NULL);
     st_free_table(visited);
 
     return(cost);
@@ -1303,3 +1306,5 @@ getCube(
     return(sol);
 
 } /* end of getCube */
+ABC_NAMESPACE_IMPL_END
+

@@ -21,6 +21,7 @@
 #ifndef __CSW_INT_H__
 #define __CSW_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -40,9 +41,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -145,9 +147,11 @@ extern int            Csw_TableCountCuts( Csw_Man_t * p );
 extern void           Csw_TableCutInsert( Csw_Man_t * p, Csw_Cut_t * pCut );
 extern Aig_Obj_t *    Csw_TableCutLookup( Csw_Man_t * p, Csw_Cut_t * pCut );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

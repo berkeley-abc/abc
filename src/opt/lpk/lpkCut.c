@@ -21,6 +21,9 @@
 #include "lpkInt.h"
 #include "cloud.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ CloudNode * Lpk_CutTruthBdd_rec( CloudManager * dd, Hop_Man_t * pMan, Hop_Obj_t 
     if ( pObj->pData )
     {
         assert( ((unsigned)(ABC_PTRUINT_T)pObj->pData) & 0xffff0000 );
-        return pObj->pData;
+        return (CloudNode *)pObj->pData;
     }
     // get the plan for a new truth table
     if ( Hop_ObjIsConst1(pObj) )
@@ -81,7 +84,7 @@ CloudNode * Lpk_CutTruthBdd_rec( CloudManager * dd, Hop_Man_t * pMan, Hop_Obj_t 
 CloudNode * Lpk_CutTruthBdd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
 {
     CloudManager * dd = p->pDsdMan->dd;
-    Hop_Man_t * pManHop = p->pNtk->pManFunc;
+    Hop_Man_t * pManHop = (Hop_Man_t *)p->pNtk->pManFunc;
     Hop_Obj_t * pObjHop;
     Abc_Obj_t * pObj, * pFanin;
     CloudNode * pTruth = NULL; // Suppress "might be used uninitialized"
@@ -97,7 +100,7 @@ CloudNode * Lpk_CutTruthBdd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
     Lpk_CutForEachNodeReverse( p->pNtk, pCut, pObj, i )
     {
         // get the local AIG
-        pObjHop = Hop_Regular(pObj->pData);
+        pObjHop = Hop_Regular((Hop_Obj_t *)pObj->pData);
         // clean the data field of the nodes in the AIG subgraph
         Hop_ObjCleanData_rec( pObjHop );
         // set the initial truth tables at the fanins
@@ -108,7 +111,7 @@ CloudNode * Lpk_CutTruthBdd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
         }
         // compute the truth table of internal nodes
         pTruth = Lpk_CutTruthBdd_rec( dd, pManHop, pObjHop, pCut->nLeaves );
-        if ( Hop_IsComplement(pObj->pData) )
+        if ( Hop_IsComplement((Hop_Obj_t *)pObj->pData) )
             pTruth = Cloud_Not(pTruth);
         // set the truth table at the node
         pObj->pCopy = (Abc_Obj_t *)pTruth;
@@ -139,10 +142,10 @@ unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_
     if ( pObj->pData )
     {
         assert( ((unsigned)(ABC_PTRUINT_T)pObj->pData) & 0xffff0000 );
-        return pObj->pData;
+        return (unsigned *)pObj->pData;
     }
     // get the plan for a new truth table
-    pTruth = Vec_PtrEntry( vTtNodes, (*piCount)++ );
+    pTruth = (unsigned *)Vec_PtrEntry( vTtNodes, (*piCount)++ );
     if ( Hop_ObjIsConst1(pObj) )
         Kit_TruthFill( pTruth, nVars );
     else
@@ -171,7 +174,7 @@ unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_
 ***********************************************************************/
 unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
 {
-    Hop_Man_t * pManHop = p->pNtk->pManFunc;
+    Hop_Man_t * pManHop = (Hop_Man_t *)p->pNtk->pManFunc;
     Hop_Obj_t * pObjHop;
     Abc_Obj_t * pObj = NULL; // Suppress "might be used uninitialized"
     Abc_Obj_t * pFanin;
@@ -182,13 +185,13 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
 
     // initialize the leaves
     Lpk_CutForEachLeaf( p->pNtk, pCut, pObj, i )
-        pObj->pCopy = Vec_PtrEntry( p->vTtElems, fInv? pCut->nLeaves-1-i : i );
+        pObj->pCopy = (Abc_Obj_t *)Vec_PtrEntry( p->vTtElems, fInv? pCut->nLeaves-1-i : i );
 
     // construct truth table in the topological order
     Lpk_CutForEachNodeReverse( p->pNtk, pCut, pObj, i )
     {
         // get the local AIG
-        pObjHop = Hop_Regular(pObj->pData);
+        pObjHop = Hop_Regular((Hop_Obj_t *)pObj->pData);
         // clean the data field of the nodes in the AIG subgraph
         Hop_ObjCleanData_rec( pObjHop );
         // set the initial truth tables at the fanins
@@ -199,7 +202,7 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
         }
         // compute the truth table of internal nodes
         pTruth = Lpk_CutTruth_rec( pManHop, pObjHop, pCut->nLeaves, p->vTtNodes, &iCount );
-        if ( Hop_IsComplement(pObj->pData) )
+        if ( Hop_IsComplement((Hop_Obj_t *)pObj->pData) )
             Kit_TruthNot( pTruth, pTruth, pCut->nLeaves );
         // set the truth table at the node
         pObj->pCopy = (Abc_Obj_t *)pTruth;
@@ -208,7 +211,7 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
     // make sure direct truth table is stored elsewhere (assuming the first call for direct truth!!!)
     if ( fInv == 0 )
     {
-        pTruth = Vec_PtrEntry( p->vTtNodes, iCount++ );
+        pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, iCount++ );
         Kit_TruthCopy( pTruth, (unsigned *)(ABC_PTRUINT_T)pObj->pCopy, pCut->nLeaves );
     }
     assert( iCount <= Vec_PtrSize(p->vTtNodes) );
@@ -230,7 +233,7 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
 void Lpk_NodeRecordImpact( Lpk_Man_t * p )
 {
     Lpk_Cut_t * pCut;
-    Vec_Ptr_t * vNodes = Vec_VecEntry( p->vVisited, p->pObj->Id );
+    Vec_Ptr_t * vNodes = (Vec_Ptr_t *)Vec_VecEntry( p->vVisited, p->pObj->Id );
     Abc_Obj_t * pNode;
     int i, k;
     // collect the nodes that impact the given node
@@ -249,7 +252,7 @@ void Lpk_NodeRecordImpact( Lpk_Man_t * p )
         }
     }
     // clear the marks
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         pNode = Abc_NtkObj( p->pNtk, (int)(ABC_PTRUINT_T)pNode );
         pNode->fMarkC = 0;
@@ -281,7 +284,7 @@ int Lpk_NodeCutsCheckDsd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
     {
         assert( pObj->fMarkA == 0 );
         pObj->fMarkA = 1;
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)i;
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)i;
     }
     // ref leaves pointed from the internal nodes
     nCands = 0;
@@ -681,4 +684,6 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

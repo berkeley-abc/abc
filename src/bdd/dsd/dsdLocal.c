@@ -18,6 +18,9 @@
 
 #include "dsdInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -97,7 +100,7 @@ DdNode * Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode )
     }
 
     // remap the function
-    pCache = st_init_table(st_ptrcmp,st_ptrhash);
+    pCache = st_init_table(st_ptrcmp, st_ptrhash);;
     bRes = Extra_dsdRemap( dd, bFunc, pCache, pVar2Form, pForm2Var, pbCube0, pbCube1 );  Cudd_Ref( bRes );
     st_free_table( pCache );
 
@@ -335,3 +338,5 @@ DdNode * dsdTreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode, int fRemap
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

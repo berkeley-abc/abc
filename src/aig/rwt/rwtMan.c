@@ -21,6 +21,9 @@
 #include "rwt.h"
 #include "deco.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -149,7 +152,7 @@ void Rwt_ManStop( Rwt_Man_t * p )
     {
         Rwt_Node_t * pNode;
         int i, k;
-        Vec_VecForEachEntry( p->vClasses, pNode, i, k )
+        Vec_VecForEachEntry( Rwt_Node_t *, p->vClasses, pNode, i, k )
             Dec_GraphFree( (Dec_Graph_t *)pNode->pNext );
     }
     if ( p->vClasses )  Vec_VecFree( p->vClasses );
@@ -355,4 +358,6 @@ void Rwt_Precompute()
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

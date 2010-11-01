@@ -20,6 +20,9 @@
 
 #include "sswInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -99,7 +102,7 @@ void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
     {
         if ( pObj0->pData == NULL )
             continue;
-        pObj1 = pObj0->pData;
+        pObj1 = (Aig_Obj_t *)pObj0->pData;
         if ( !Saig_ObjIsLo(p1, pObj1) )
             printf( "Mismatch between LO pairs.\n" );
     }
@@ -107,7 +110,7 @@ void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
     {
         if ( pObj1->pData == NULL )
             continue;
-        pObj0 = pObj1->pData;
+        pObj0 = (Aig_Obj_t *)pObj1->pData;
         if ( !Saig_ObjIsLo(p0, pObj0) )
             printf( "Mismatch between LO pairs.\n" );
     }
@@ -234,9 +237,9 @@ void Ssw_MatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose
     {
         Ssw_MatchingExtendOne( p0, vNodes0 );
         Ssw_MatchingExtendOne( p1, vNodes1 );
-        Vec_PtrForEachEntry( vNodes0, pNext0, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes0, pNext0, k )
         {
-            pNext1 = pNext0->pData;
+            pNext1 = (Aig_Obj_t *)pNext0->pData;
             if ( pNext1 == NULL )
                 continue;
             assert( pNext1->pData == pNext0 );
@@ -245,9 +248,9 @@ void Ssw_MatchingExtend( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose
             pNext0->pData = NULL;
             pNext1->pData = NULL;
         }
-        Vec_PtrForEachEntry( vNodes1, pNext0, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes1, pNext0, k )
         {
-            pNext1 = pNext0->pData;
+            pNext1 = (Aig_Obj_t *)pNext0->pData;
             if ( pNext1 == NULL )
                 continue;
             assert( pNext1->pData == pNext0 );
@@ -307,7 +310,7 @@ void Ssw_MatchingComplete( Aig_Man_t * p0, Aig_Man_t * p1 )
         pObj1->pData = pObj0;
     }
     // create register outputs in p0 that are absent in p1
-    Vec_PtrForEachEntry( vNewLis, pObj0Li, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNewLis, pObj0Li, i )
         Aig_ObjCreatePo( p1, Aig_ObjChild0Copy(pObj0Li) );
     // increment the number of registers
     Aig_ManSetRegNum( p1, Aig_ManRegNum(p1) + Vec_PtrSize(vNewLis) );
@@ -342,7 +345,7 @@ Vec_Int_t * Ssw_MatchingPairs( Aig_Man_t * p0, Aig_Man_t * p1 )
     {
         if ( Aig_ObjIsPo(pObj0) )
             continue;
-        pObj1 = pObj0->pData;
+        pObj1 = (Aig_Obj_t *)pObj0->pData;
         Vec_IntPush( vPairsNew, pObj0->Id );
         Vec_IntPush( vPairsNew, pObj1->Id );
     }
@@ -379,11 +382,11 @@ Vec_Int_t * Ssw_MatchingMiter( Aig_Man_t * pMiter, Aig_Man_t * p0, Aig_Man_t * p
         assert( pObj1->pData != NULL );
         if ( pObj0->pData == pObj1->pData )
             continue;
-        if ( Aig_ObjIsNone(pObj0->pData) || Aig_ObjIsNone(pObj1->pData) )
+        if ( Aig_ObjIsNone((Aig_Obj_t *)pObj0->pData) || Aig_ObjIsNone((Aig_Obj_t *)pObj1->pData) )
             continue;
         // get the miter nodes
-        pObj0 = pObj0->pData;
-        pObj1 = pObj1->pData;
+        pObj0 = (Aig_Obj_t *)pObj0->pData;
+        pObj1 = (Aig_Obj_t *)pObj1->pData;
         assert( !Aig_IsComplement(pObj0) );
         assert( !Aig_IsComplement(pObj1) );
         assert( Aig_ObjType(pObj0) == Aig_ObjType(pObj1) );
@@ -435,7 +438,7 @@ Aig_Man_t * Ssw_SecWithSimilaritySweep( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_
     if ( p->pPars->fPartSigCorr )
         p->ppClasses = Ssw_ClassesPreparePairsSimple( pMiter, vPairsMiter );
     else
-        p->ppClasses = Ssw_ClassesPrepare( pMiter, pPars->nFramesK, pPars->fLatchCorr, pPars->nMaxLevs, pPars->fVerbose );
+        p->ppClasses = Ssw_ClassesPrepare( pMiter, pPars->nFramesK, pPars->fLatchCorr, pPars->fOutputCorr, pPars->nMaxLevs, pPars->fVerbose );
     if ( p->pPars->fDumpSRInit )
     {
         if ( p->pPars->fPartSigCorr )
@@ -449,7 +452,7 @@ Aig_Man_t * Ssw_SecWithSimilaritySweep( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_
             printf( "Dumping speculative miter is possible only for partial signal correspondence (switch \"-c\").\n" );
     }
     p->pSml = Ssw_SmlStart( pMiter, 0, 1 + p->pPars->nFramesAddSim, 1 );
-    Ssw_ClassesSetData( p->ppClasses, p->pSml, Ssw_SmlObjHashWord, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
+    Ssw_ClassesSetData( p->ppClasses, p->pSml, (unsigned(*)(void *,Aig_Obj_t *))Ssw_SmlObjHashWord, (int(*)(void *,Aig_Obj_t *))Ssw_SmlObjIsConstWord, (int(*)(void *,Aig_Obj_t *,Aig_Obj_t *))Ssw_SmlObjsAreEqualWord );
     // perform refinement of classes
     pAigNew = Ssw_SignalCorrespondenceRefine( p );
     // cleanup
@@ -590,4 +593,6 @@ int Ssw_SecWithSimilarity( Aig_Man_t * p0, Aig_Man_t * p1, Ssw_Pars_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 #include "darInt.h"
 #include "tim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -107,13 +110,13 @@ Vec_Ptr_t * Dar_BalanceCone( Aig_Obj_t * pObj, Vec_Vec_t * vStore, int Level )
     if ( Vec_VecSize( vStore ) <= Level )
         Vec_VecPush( vStore, Level, 0 );
     // get the temporary array of nodes
-    vNodes = Vec_VecEntry( vStore, Level );
+    vNodes = (Vec_Ptr_t *)Vec_VecEntry( vStore, Level );
     Vec_PtrClear( vNodes );
     // collect the nodes in the implication supergate
     RetValue = Dar_BalanceCone_rec( pObj, pObj, vNodes );
     assert( vNodes->nSize > 1 );
     // unmark the visited nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_Regular(pObj)->fMarkB = 0;
     // if we found the node and its complement in the same implication supergate, 
     // return empty set of nodes (meaning that we should use constant-0 node)
@@ -146,19 +149,19 @@ int Dar_BalanceFindLeft( Vec_Ptr_t * vSuper )
         return 0;
     // set the pointer to the one before the last
     Current = Vec_PtrSize(vSuper) - 2;
-    pObjRight = Vec_PtrEntry( vSuper, Current );
+    pObjRight = (Aig_Obj_t *)Vec_PtrEntry( vSuper, Current );
     // go through the nodes to the left of this one
     for ( Current--; Current >= 0; Current-- )
     {
         // get the next node on the left
-        pObjLeft = Vec_PtrEntry( vSuper, Current );
+        pObjLeft = (Aig_Obj_t *)Vec_PtrEntry( vSuper, Current );
         // if the level of this node is different, quit the loop
         if ( Aig_ObjLevel(Aig_Regular(pObjLeft)) != Aig_ObjLevel(Aig_Regular(pObjRight)) )
             break;
     }
     Current++;    
     // get the node, for which the equality holds
-    pObjLeft = Vec_PtrEntry( vSuper, Current );
+    pObjLeft = (Aig_Obj_t *)Vec_PtrEntry( vSuper, Current );
     assert( Aig_ObjLevel(Aig_Regular(pObjLeft)) == Aig_ObjLevel(Aig_Regular(pObjRight)) );
     return Current;
 }
@@ -185,14 +188,14 @@ void Dar_BalancePermute( Aig_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, int f
     if ( LeftBound == RightBound )
         return;
     // get the two last nodes
-    pObj1 = Vec_PtrEntry( vSuper, RightBound + 1 );
-    pObj2 = Vec_PtrEntry( vSuper, RightBound     );
+    pObj1 = (Aig_Obj_t *)Vec_PtrEntry( vSuper, RightBound + 1 );
+    pObj2 = (Aig_Obj_t *)Vec_PtrEntry( vSuper, RightBound     );
     if ( Aig_Regular(pObj1) == p->pConst1 || Aig_Regular(pObj2) == p->pConst1 || Aig_Regular(pObj1) == Aig_Regular(pObj2) )
         return;
     // find the first node that can be shared
     for ( i = RightBound; i >= LeftBound; i-- )
     {
-        pObj3 = Vec_PtrEntry( vSuper, i );
+        pObj3 = (Aig_Obj_t *)Vec_PtrEntry( vSuper, i );
         if ( Aig_Regular(pObj3) == p->pConst1 )
         {
             Vec_PtrWriteEntry( vSuper, i,          pObj2 );
@@ -271,8 +274,8 @@ void Dar_BalancePushUniqueOrderByLevel( Vec_Ptr_t * vStore, Aig_Obj_t * pObj )
     // find the p of the node
     for ( i = vStore->nSize-1; i > 0; i-- )
     {
-        pObj1 = vStore->pArray[i  ];
-        pObj2 = vStore->pArray[i-1];
+        pObj1 = (Aig_Obj_t *)vStore->pArray[i  ];
+        pObj2 = (Aig_Obj_t *)vStore->pArray[i-1];
         if ( Aig_ObjLevel(Aig_Regular(pObj1)) <= Aig_ObjLevel(Aig_Regular(pObj2)) )
             break;
         vStore->pArray[i  ] = pObj2;
@@ -297,7 +300,7 @@ Aig_Obj_t * Dar_BalanceBuildSuper( Aig_Man_t * p, Vec_Ptr_t * vSuper, Aig_Type_t
     int LeftBound;
     assert( vSuper->nSize > 1 );
     // sort the new nodes by level in the decreasing order
-    Vec_PtrSort( vSuper, Aig_NodeCompareLevelsDecrease );
+    Vec_PtrSort( vSuper, (int (*)(void))Aig_NodeCompareLevelsDecrease );
     // balance the nodes
     while ( vSuper->nSize > 1 )
     {
@@ -306,11 +309,11 @@ Aig_Obj_t * Dar_BalanceBuildSuper( Aig_Man_t * p, Vec_Ptr_t * vSuper, Aig_Type_t
         // find the node that can be shared (if no such node, randomize choice)
         Dar_BalancePermute( p, vSuper, LeftBound, Type == AIG_OBJ_EXOR );
         // pull out the last two nodes
-        pObj1 = Vec_PtrPop(vSuper);
-        pObj2 = Vec_PtrPop(vSuper);
+        pObj1 = (Aig_Obj_t *)Vec_PtrPop(vSuper);
+        pObj2 = (Aig_Obj_t *)Vec_PtrPop(vSuper);
         Dar_BalancePushUniqueOrderByLevel( vSuper, Aig_Oper(p, pObj1, pObj2, Type) );
     }
-    return Vec_PtrEntry(vSuper, 0);
+    return (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0);
 }
 
 /**Function*************************************************************
@@ -333,20 +336,20 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     assert( !Aig_ObjIsBuf(pObjOld) );
     // return if the result is known
     if ( pObjOld->pData )
-        return pObjOld->pData;
+        return (Aig_Obj_t *)pObjOld->pData;
     assert( Aig_ObjIsNode(pObjOld) );
     // get the implication supergate
     vSuper = Dar_BalanceCone( pObjOld, vStore, Level );
     // check if supergate contains two nodes in the opposite polarity
     if ( vSuper->nSize == 0 )
-        return pObjOld->pData = Aig_ManConst0(pNew);
+        return (Aig_Obj_t *)(pObjOld->pData = Aig_ManConst0(pNew));
     if ( Vec_PtrSize(vSuper) < 2 )
         printf( "Dar_Balance_rec: Internal error!\n" );
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < Vec_PtrSize(vSuper); i++ )
     {
-        pObjNew = Dar_Balance_rec( pNew, Aig_Regular(vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
-        vSuper->pArray[i] = Aig_NotCond( pObjNew, Aig_IsComplement(vSuper->pArray[i]) );
+        pObjNew = Dar_Balance_rec( pNew, Aig_Regular((Aig_Obj_t *)vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
+        vSuper->pArray[i] = Aig_NotCond( pObjNew, Aig_IsComplement((Aig_Obj_t *)vSuper->pArray[i]) );
     }
     // build the supergate
     pObjNew = Dar_BalanceBuildSuper( pNew, vSuper, Aig_ObjType(pObjOld), fUpdateLevel );
@@ -366,7 +369,7 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     }
     else
         Aig_Regular(pObjNew)->pHaig = pObjOld->pHaig;
-    return pObjOld->pData = pObjNew;
+    return (Aig_Obj_t *)(pObjOld->pData = pObjNew);
 }
 
 /**Function*************************************************************
@@ -392,6 +395,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
+    pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // pass the HAIG manager
@@ -407,7 +411,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     if ( p->pManTime != NULL )
     {
         float arrTime;
-        Tim_ManIncrementTravId( p->pManTime );
+        Tim_ManIncrementTravId( (Tim_Man_t *)p->pManTime );
         Aig_ManSetPioNumbers( p );
         Aig_ManForEachObj( p, pObj, i )
         {
@@ -420,7 +424,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 pObj->pData = pObjNew;
                 pObjNew->pHaig = pObj->pHaig;
                 // set the arrival time of the new PI
-                arrTime = Tim_ManGetCiArrival( p->pManTime, Aig_ObjPioNum(pObj) );
+                arrTime = Tim_ManGetCiArrival( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj) );
                 pObjNew->Level = (int)arrTime;
             }
             else if ( Aig_ObjIsPo(pObj) )
@@ -431,7 +435,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
                 // save arrival time of the output
                 arrTime = (float)Aig_Regular(pObjNew)->Level;
-                Tim_ManSetCoArrival( p->pManTime, Aig_ObjPioNum(pObj), arrTime );
+                Tim_ManSetCoArrival( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj), arrTime );
                 // create PO
                 pObjNew = Aig_ObjCreatePo( pNew, pObjNew );
                 pObjNew->pHaig = pObj->pHaig;
@@ -440,7 +444,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 assert( 0 );
         }
         Aig_ManCleanPioNumbers( p );
-        pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
+        pNew->pManTime = Tim_ManDup( (Tim_Man_t *)p->pManTime, 0 );
     }
     else
     {
@@ -534,12 +538,12 @@ void Dar_BalancePrintStats( Aig_Man_t * p )
             continue;
         Vec_PtrClear( vSuper );
         Dar_BalanceCone_rec( pObj, pObj, vSuper );
-        Vec_PtrForEachEntry( vSuper, pTemp, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pTemp, k )
             pTemp->fMarkB = 0;
         if ( Vec_PtrSize(vSuper) < 3 )
             continue;
         printf( "  %d(", Vec_PtrSize(vSuper) );
-        Vec_PtrForEachEntry( vSuper, pTemp, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pTemp, k )
             printf( " %d", pTemp->Level );
         printf( " )" );
     }
@@ -553,4 +557,6 @@ void Dar_BalancePrintStats( Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

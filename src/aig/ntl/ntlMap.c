@@ -22,6 +22,9 @@
 #include "kit.h"
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -80,14 +83,14 @@ Vec_Ptr_t * Ntl_MappingFromAig( Aig_Man_t * p )
     vMapping = Ntl_MappingAlloc( Aig_ManAndNum(p) + (int)(Aig_ManConst1(p)->nRefs > 0), 2 );
     if ( Aig_ManConst1(p)->nRefs > 0 )
     {
-        pLut = Vec_PtrEntry( vMapping, k++ );
+        pLut = (Ntl_Lut_t *)Vec_PtrEntry( vMapping, k++ );
         pLut->Id = 0;
         pLut->nFanins = 0;
         memset( pLut->pTruth, 0xFF, nBytes );
     }
     Aig_ManForEachNode( p, pObj, i )
     {
-        pLut = Vec_PtrEntry( vMapping, k++ );
+        pLut = (Ntl_Lut_t *)Vec_PtrEntry( vMapping, k++ );
         pLut->Id = pObj->Id;
         pLut->nFanins = 2;
         pLut->pFanins[0] = Aig_ObjFaninId0(pObj);
@@ -200,7 +203,7 @@ If_Man_t * Ntl_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
                 pIfMan->nLevelMax = (int)pNode->Level;
         }
         else if ( Aig_ObjIsPo(pNode) )
-            pNode->pData = If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
+            pNode->pData = If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
         else if ( Aig_ObjIsConst1(pNode) )
             Aig_ManConst1(p)->pData = If_ManConst1( pIfMan );
         else // add the node to the mapper
@@ -214,7 +217,7 @@ If_Man_t * Ntl_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
 //            If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pData );
 //        }
         {
-            If_Obj_t * pIfObj = pNode->pData;
+            If_Obj_t * pIfObj = (If_Obj_t *)pNode->pData;
             assert( !If_IsComplement(pIfObj) );
             assert( pIfObj->Id == pNode->Id );
         }
@@ -255,7 +258,7 @@ Vec_Ptr_t * Ntl_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
             continue;
         if ( Aig_ObjIsPi(pObj) && pObj->pData == NULL )
             continue;
-        pNode = pObj->pData;
+        pNode = (If_Obj_t *)pObj->pData;
         assert( pNode != NULL );
         Vec_IntWriteEntry( vIfToAig, pNode->Id, pObj->Id );
     }
@@ -267,19 +270,19 @@ Vec_Ptr_t * Ntl_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
     nLuts    = 0;
     if ( Aig_ManConst1(p)->nRefs > 0 )
     {
-        pLut = Vec_PtrEntry( vMapping, nLuts++ );
+        pLut = (Ntl_Lut_t *)Vec_PtrEntry( vMapping, nLuts++ );
         pLut->Id = 0;
         pLut->nFanins = 0;
         memset( pLut->pTruth, 0xFF, 4 * nWords );
     }
-    Vec_PtrForEachEntry( vIfMap, pNode, i )
+    Vec_PtrForEachEntry( If_Obj_t *, vIfMap, pNode, i )
     {
         // get the best cut
         pCutBest = If_ObjCutBest(pNode);
         nLeaves  = If_CutLeaveNum( pCutBest ); 
         ppLeaves = If_CutLeaves( pCutBest );
         // fill the LUT
-        pLut = Vec_PtrEntry( vMapping, nLuts++ );
+        pLut = (Ntl_Lut_t *)Vec_PtrEntry( vMapping, nLuts++ );
         pLut->Id = Vec_IntEntry( vIfToAig, pNode->Id );
         pLut->nFanins = nLeaves;
         If_CutForEachLeaf( pMan, pCutBest, pLeaf, k )
@@ -338,4 +341,6 @@ Vec_Ptr_t * Ntl_MappingIf( Ntl_Man_t * pMan, Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

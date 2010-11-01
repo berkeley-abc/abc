@@ -21,6 +21,7 @@
 #ifndef __MFX_INT_H__
 #define __MFX_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -37,9 +38,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 #define MFX_FANIN_MAX   12
 
@@ -151,9 +153,11 @@ extern double           Mfx_ConstraintRatio( Mfx_Man_t * p, Nwk_Obj_t * pNode );
 extern Vec_Ptr_t *      Mfx_ComputeRoots( Nwk_Obj_t * pNode, int nWinTfoMax, int nFanoutLimit );
 
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

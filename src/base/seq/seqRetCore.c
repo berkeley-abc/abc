@@ -21,6 +21,9 @@
 #include "seqInt.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -136,7 +139,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
 
     // create one AND for each logic node in the topological order
     vMapAnds = Abc_NtkDfs( pNtk, 0 );
-    Vec_PtrForEachEntry( vMapAnds, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMapAnds, pObj, i )
     {
         if ( pObj->Id == 0 )
         {
@@ -159,7 +162,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
 
     // create internal AND nodes w/o strashing for each logic node (including constants)
     vMapFanins = Vec_VecStart( Vec_PtrSize(vMapAnds) );
-    Vec_PtrForEachEntry( vMapAnds, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMapAnds, pObj, i )
     {
         // get the SOP of the node
         if ( Abc_NtkHasMapping(pNtk) )
@@ -179,7 +182,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     Seq_Resize( p, Abc_NtkObjNumMax(pNtkNew) );
 
     // add the sequential edges
-    Vec_PtrForEachEntry( vMapAnds, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMapAnds, pObj, i )
     {
         vMirrors = Vec_VecEntry( vMapFanins, i );
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -206,7 +209,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     p->vMapFanins = vMapFanins;
     p->vMapCuts   = Vec_VecStart( Vec_PtrSize(p->vMapAnds) );
     p->vMapDelays = Vec_VecStart( Vec_PtrSize(p->vMapAnds) );
-    Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pObj, i )
     {
         // change the node to be the new one
         Vec_PtrWriteEntry( p->vMapAnds, i, pObj->pCopy );
@@ -366,7 +369,7 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
 
     // connect the objects
 //    Abc_NtkForEachNode( pNtkOld, pObj, i )
-    Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vMapAnds, pObj, i )
     {
         // pObj is from pNtkSeq - transform to pNtkOld
         pObj = pObj->pNext;
@@ -490,4 +493,6 @@ Abc_Obj_t * Seq_EdgeReconstructPO( Abc_Obj_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

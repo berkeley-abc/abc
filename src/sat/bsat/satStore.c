@@ -26,6 +26,9 @@
 
 #include "satStore.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -185,6 +188,7 @@ int Sto_ManAddClause( Sto_Man_t * p, lit * pBeg, lit * pEnd )
 
     // get memory for the clause
     nSize = sizeof(Sto_Cls_t) + sizeof(lit) * (pEnd - pBeg);
+    nSize = (nSize / sizeof(char*) + ((nSize % sizeof(char*)) > 0)) * sizeof(char*); // added by Saurabh on Sep 3, 2009
     pClause = (Sto_Cls_t *)Sto_ManMemoryFetch( p, nSize );
     memset( pClause, 0, sizeof(Sto_Cls_t) );
 
@@ -192,6 +196,7 @@ int Sto_ManAddClause( Sto_Man_t * p, lit * pBeg, lit * pEnd )
     pClause->Id = p->nClauses++;
     pClause->nLits = pEnd - pBeg;
     memcpy( pClause->pLits, pBeg, sizeof(lit) * (pEnd - pBeg) );
+//    assert( pClause->pLits[0] >= 0 );
 
     // add the clause to the list
     if ( p->pHead == NULL )
@@ -460,4 +465,6 @@ Sto_Man_t * Sto_ManLoadClauses( char * pFileName )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,11 +21,15 @@
 
 // The code in this file is developed in collaboration with Mark Jarvin of Toronto.
 
+#include "bzlib.h"
 #include "ioAbc.h"
 
 #include <stdarg.h>
-#include "bzlib.h"
 #include "zlib.h"
+
+
+ABC_NAMESPACE_IMPL_START
+
 
 #ifdef _WIN32
 #define vsnprintf _vsnprintf
@@ -137,7 +141,7 @@ Binary Format Definition
 
 static unsigned Io_ObjMakeLit( int Var, int fCompl )                 { return (Var << 1) | fCompl;                   }
 static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)(ABC_PTRINT_T)pObj->pCopy;  }
-static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (void *)(ABC_PTRINT_T)Num;     }
+static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)Num;     }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -451,7 +455,7 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     // write the nodes into the buffer
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ABC_ALLOC( char, nBufferSize );
+    pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
@@ -750,4 +754,6 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

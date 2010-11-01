@@ -15,6 +15,9 @@
 
 #include "avl.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 
 #define HEIGHT(node) (node == NIL(avl_node) ? -1 : (node)->height)
@@ -614,3 +617,5 @@ do_check_tree (node, compar, error)
 
     return comp_height;
 }
+ABC_NAMESPACE_IMPL_END
+

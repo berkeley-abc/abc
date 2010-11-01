@@ -25,6 +25,7 @@
 #define _CUDDINT
 
 
+
 /*---------------------------------------------------------------------------*/
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
@@ -45,6 +46,9 @@
 #include <math.h>
 #include "cudd.h"
 #include "st.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 #if defined(__GNUC__)
 # define DD_INLINE __inline__
@@ -346,7 +350,7 @@ struct DdManager {    /* specialized DD symbol table */
     long *linear;        /* linear transform matrix */
     /* Memory Management */
     DdNode **memoryList;    /* memory manager for symbol table */
-    DdNode *nextFree;        /* list of ABC_FREE nodes */
+    DdNode *nextFree;        /* list of free nodes */
     char *stash;        /* memory reserve */
 #ifndef DD_NO_DEATH_ROW
     DdNode **deathRow;        /* queue for dereferencing */
@@ -410,7 +414,7 @@ struct DdManager {    /* specialized DD symbol table */
     double cacheLastInserts;    /* insertions at the last cache resizing */
     double cachedeletions;    /* number of deletions during garbage coll. */
 #ifdef DD_STATS
-    double nodesFreed;        /* number of nodes returned to the ABC_FREE list */
+    double nodesFreed;        /* number of nodes returned to the free list */
     double nodesDropped;    /* number of nodes killed by dereferencing */
 #endif
     unsigned int peakLiveNodes;    /* maximum number of live nodes */
@@ -435,6 +439,7 @@ struct DdManager {    /* specialized DD symbol table */
     int nvars;            /* variables used so far */
     int threshold;        /* for pseudo var threshold value*/
 #endif
+    DdNode * bReached;
 };
 
 typedef struct Move {
@@ -481,10 +486,10 @@ typedef struct DdLevelQueue {
 
 /**Macro***********************************************************************
 
-  Synopsis    [Adds node to the head of the ABC_FREE list.]
+  Synopsis    [Adds node to the head of the free list.]
 
-  Description [Adds node to the head of the ABC_FREE list.  Does not
-  deallocate memory chunks that become ABC_FREE.  This function is also
+  Description [Adds node to the head of the free list.  Does not
+  deallocate memory chunks that become free.  This function is also
   used by the dynamic reordering functions.]
 
   SideEffects [None]
@@ -1128,6 +1133,12 @@ EXTERN int cuddZddSymmSifting ARGS((DdManager *table, int lower, int upper));
 EXTERN int cuddZddSymmSiftingConv ARGS((DdManager *table, int lower, int upper));
 EXTERN int cuddZddP ARGS((DdManager *zdd, DdNode *f));
 
+EXTERN void (*MMoutOfMemory)(long);
+
 /**AutomaticEnd***************************************************************/
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif /* _CUDDINT */

@@ -20,6 +20,9 @@
 
 #include "retInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -227,7 +230,7 @@ void Abc_NtkRetimeMinAreaPrepare( Abc_Ntk_t * pNtk, int fForward )
                     if ( !pFanin->fMarkA )
                         Vec_PtrPush( vNodes, pFanin );
         // mark these nodes
-        Vec_PtrForEachEntry( vNodes, pObj, i )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
             pObj->fMarkA = 1;
         Vec_PtrFree( vNodes );
     }
@@ -270,7 +273,7 @@ int Abc_NtkRetimeMinAreaInitValues_rec( Abc_Obj_t * pObj )
     if ( Abc_ObjIsBo(pObj) )
     {
         assert( Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) );
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_NtkRetimeMinAreaInitValues_rec( Abc_ObjFanin0(pObj) );
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_NtkRetimeMinAreaInitValues_rec( Abc_ObjFanin0(pObj) );
         return (int)(ABC_PTRUINT_T)pObj->pCopy;
     }
     assert( Abc_ObjIsNode(pObj) );
@@ -278,7 +281,7 @@ int Abc_NtkRetimeMinAreaInitValues_rec( Abc_Obj_t * pObj )
     Abc_ObjForEachFanin( pObj, pFanin, i )
         Abc_NtkRetimeMinAreaInitValues_rec( pFanin );
     // compute the value of the node
-    pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_ObjSopSimulate(pObj);
+    pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_ObjSopSimulate(pObj);
     return (int)(ABC_PTRUINT_T)pObj->pCopy;
 }
 
@@ -301,11 +304,11 @@ void Abc_NtkRetimeMinAreaInitValues( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut )
     Abc_NtkIncrementTravId(pNtk);
     Abc_NtkForEachLatch( pNtk, pObj, i )
     {
-        pObj->pCopy = (void *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
+        pObj->pCopy = (Abc_Obj_t *)(ABC_PTRUINT_T)Abc_LatchIsInit1(pObj);
         Abc_NodeSetTravIdCurrent( pObj );
     }
     // propagate initial values
-    Vec_PtrForEachEntry( vMinCut, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMinCut, pObj, i )
         Abc_NtkRetimeMinAreaInitValues_rec( pObj );
     // unmark the latches
     Abc_NtkForEachLatch( pNtk, pObj, i )
@@ -368,7 +371,7 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMin
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     // map new latches into PIs of the new network
     Abc_NtkIncrementTravId(pNtk);
-    Vec_PtrForEachEntry( vMinCut, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMinCut, pObj, i )
     {
         pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
         Abc_NodeSetTravIdCurrent( pObj );
@@ -380,7 +383,7 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMin
         Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pObjNew );
     }
     // unmark the nodes in the cut
-    Vec_PtrForEachEntry( vMinCut, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMinCut, pObj, i )
         Abc_NodeSetTravIdPrevious( pObj );
     // unmark the latches
     Abc_NtkForEachLatch( pNtk, pObj, i )
@@ -418,13 +421,13 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
     vBoxes = pNtk->vBoxes; pNtk->vBoxes = NULL; 
     // transfer boxes
     vBoxesNew = Vec_PtrAlloc(100);
-    Vec_PtrForEachEntry( vBoxes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vBoxes, pObj, i )
         if ( !Abc_ObjIsLatch(pObj) )
             Vec_PtrPush( vBoxesNew, pObj );
     // create or reuse latches
     vNodes = Vec_PtrAlloc( 100 );
     vBuffers = Vec_PtrAlloc( 100 );
-    Vec_PtrForEachEntry( vMinCut, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMinCut, pObj, i )
     {
         if ( Abc_ObjIsCi(pObj) && fForward )
         {
@@ -448,7 +451,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
                 Vec_PtrPush( vBuffers, pBuffer );
                 // redirect edges to the unvisited fanouts of the node
                 Abc_NodeCollectFanouts( pObj, vNodes );
-                Vec_PtrForEachEntry( vNodes, pNext, k )
+                Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNext, k )
                     if ( pNext->fMarkA )
                         Abc_ObjPatchFanin( pNext, pObj, pBuffer );
             }
@@ -481,7 +484,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
                 pLatch->pData = (void *)(ABC_PTRUINT_T)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
                 // redirect edges to the unvisited fanouts of the node
                 Abc_NodeCollectFanouts( pObj, vNodes );
-                Vec_PtrForEachEntry( vNodes, pNext, k )
+                Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNext, k )
                     if ( !pNext->fMarkA )
                         Abc_ObjPatchFanin( pNext, pObj, pLatchOut );
             }
@@ -489,7 +492,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             {
                 // redirect edges to the visited fanouts of the node
                 Abc_NodeCollectFanouts( pObj, vNodes );
-                Vec_PtrForEachEntry( vNodes, pNext, k )
+                Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNext, k )
                     if ( pNext->fMarkA )
                         Abc_ObjPatchFanin( pNext, pObj, pLatchOut );
             }
@@ -502,14 +505,14 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
     }
     Vec_PtrFree( vNodes );
     // remove buffers
-    Vec_PtrForEachEntry( vBuffers, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vBuffers, pObj, i )
     {
         Abc_ObjTransferFanout( pObj, Abc_ObjFanin0(pObj) );
         Abc_NtkDeleteObj( pObj );
     }
     Vec_PtrFree( vBuffers );
     // remove useless latches
-    Vec_PtrForEachEntry( vBoxes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vBoxes, pObj, i )
     {
         if ( !Abc_ObjIsLatch(pObj) )
             continue;
@@ -536,4 +539,6 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

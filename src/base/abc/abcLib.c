@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -71,12 +74,12 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
     if ( pLib->pName )
         ABC_FREE( pLib->pName );
     if ( pLib->pManFunc )
-        Hop_ManStop( pLib->pManFunc );
+        Hop_ManStop( (Hop_Man_t *)pLib->pManFunc );
     if ( pLib->tModules )
         st_free_table( pLib->tModules );
     if ( pLib->vModules )
     {
-        Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+        Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
         {
             if ( pNtk == pNtkSave )
                 continue;
@@ -115,7 +118,7 @@ Abc_Lib_t * Abc_LibDupBlackboxes( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
 //    pLibNew->pManFunc = pNtkSave->pManFunc;
     Vec_PtrPush( pLibNew->vTops, pNtkSave );
     Vec_PtrPush( pLibNew->vModules, pNtkSave );
-    Vec_PtrForEachEntry( pLib->vModules, pNtkTemp, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtkTemp, i )
         if ( Abc_NtkHasBlackbox( pNtkTemp ) )
             Vec_PtrPush( pLibNew->vModules, Abc_NtkDup(pNtkTemp) );
     return pLibNew;
@@ -139,7 +142,7 @@ void Abc_LibPrint( Abc_Lib_t * pLib )
     Abc_Obj_t * pObj;
     int i, k;
     printf( "Models of design %s:\n", pLib->pName );
-    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
     {
         printf( "%2d : %20s   ", i+1, pNtk->pName );
         printf( "nd = %6d   lat = %6d   whitebox = %3d   blackbox = %3d\n", 
@@ -148,9 +151,9 @@ void Abc_LibPrint( Abc_Lib_t * pLib )
         if ( Abc_NtkBlackboxNum(pNtk) == 0 )
             continue;
         Abc_NtkForEachWhitebox( pNtk, pObj, k )
-            printf( "     %20s (whitebox)\n", Abc_NtkName(pObj->pData) );
+            printf( "     %20s (whitebox)\n", Abc_NtkName((Abc_Ntk_t *)pObj->pData) );
         Abc_NtkForEachBlackbox( pNtk, pObj, k )
-            printf( "     %20s (blackbox)\n", Abc_NtkName(pObj->pData) );
+            printf( "     %20s (blackbox)\n", Abc_NtkName((Abc_Ntk_t *)pObj->pData) );
     }
 }
 
@@ -214,7 +217,7 @@ Abc_Ntk_t * Abc_LibDeriveRoot( Abc_Lib_t * pLib )
         printf( "The design includes more than one module and is currently not used.\n" );
         return NULL;
     }
-    pNtk = Vec_PtrEntry( pLib->vModules, 0 );  Vec_PtrClear( pLib->vModules );
+    pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pLib->vModules, 0 );  Vec_PtrClear( pLib->vModules );
     pNtk->pManFunc = pLib->pManFunc;           pLib->pManFunc = NULL;
     return pNtk;
 }
@@ -237,10 +240,10 @@ int Abc_LibFindTopLevelModels( Abc_Lib_t * pLib )
     int i, k;
     assert( Vec_PtrSize( pLib->vModules ) > 0 );
     // clear the models
-    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
         pNtk->fHieVisited = 0;
     // mark all the models reachable from other models
-    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
     {
         Abc_NtkForEachBox( pNtk, pObj, k )
         {
@@ -248,13 +251,13 @@ int Abc_LibFindTopLevelModels( Abc_Lib_t * pLib )
                 continue;
             if ( pObj->pData == NULL )
                 continue;
-            pNtkBox = pObj->pData;
+            pNtkBox = (Abc_Ntk_t *)pObj->pData;
             pNtkBox->fHieVisited = 1;
         }
     }
     // collect the models that are not marked
     Vec_PtrClear( pLib->vTops );
-    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pNtk, i )
     {
         if ( pNtk->fHieVisited == 0 )
             Vec_PtrPush( pLib->vTops, pNtk );
@@ -364,7 +367,7 @@ void Abc_NodeStrashUsingNetwork( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pBox )
     unsigned * pPolarity;
     int i, fCompl;
     assert( Abc_ObjIsBox(pBox) );
-    pNtkGate = pBox->pData;
+    pNtkGate = (Abc_Ntk_t *)pBox->pData;
     pPolarity = (unsigned *)pBox->pNext;
     assert( Abc_NtkIsNetlist(pNtkGate) );
     assert( Abc_NtkLatchNum(pNtkGate) == 0 );
@@ -416,7 +419,7 @@ Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
     // build the AIG for the remaining logic in the netlist
     vNodes = Abc_NtkDfs( pNtk, 0 );
     pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vNodes) );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( Abc_ObjIsNode(pObj) )
@@ -432,14 +435,14 @@ Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
     // deallocate memory manager, which remembers the phase
     if ( pNtk->pData )
     {
-        Extra_MmFlexStop( pNtk->pData );
+        Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pData );
         pNtk->pData = NULL;
     }
     // set the COs
 //    Abc_NtkFinalize( pNtk, pNtkAig );
     Abc_NtkForEachCo( pNtk, pObj, i )
         Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
-    Abc_AigCleanup( pNtkAig->pManFunc );
+    Abc_AigCleanup( (Abc_Aig_t *)pNtkAig->pManFunc );
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {
@@ -453,4 +456,6 @@ Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

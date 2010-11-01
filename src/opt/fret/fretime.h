@@ -21,7 +21,11 @@
 #if !defined(RETIME_H_)
 #define RETIME_H_
 
+
 #include "abc.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 // #define IGNORE_TIMING
 // #define DEBUG_PRINT_FLOWS
@@ -89,19 +93,19 @@ typedef struct MinRegMan_t_ {
  
   // problem description:
   int         maxDelay;
-  bool        fComputeInitState, fGuaranteeInitState, fBlockConst;
+  int        fComputeInitState, fGuaranteeInitState, fBlockConst;
   int         nNodes, nLatches;
-  bool        fForwardOnly, fBackwardOnly;
-  bool        fConservTimingOnly;
+  int        fForwardOnly, fBackwardOnly;
+  int        fConservTimingOnly;
   int         nMaxIters;
-  bool        fVerbose;
+  int        fVerbose;
   Abc_Ntk_t  *pNtk;
 
   int         nPreRefine;
 
   // problem state
-  bool        fIsForward;
-  bool        fSinkDistTerminate;
+  int        fIsForward;
+  int        fSinkDistTerminate;
   int         nExactConstraints, nConservConstraints;
   int         fSolutionIsDc;
   int         constraintMask;
@@ -145,9 +149,9 @@ void print_node(Abc_Obj_t *pObj);
 
 void Abc_ObjBetterTransferFanout( Abc_Obj_t * pFrom, Abc_Obj_t * pTo, int compl );
 
-int  Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, bool fVerbose );
-bool Abc_FlowRetime_IsAcrossCut( Abc_Obj_t *pCur, Abc_Obj_t *pNext );
-void Abc_FlowRetime_ClearFlows( bool fClearAll );
+int  Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, int fVerbose );
+int Abc_FlowRetime_IsAcrossCut( Abc_Obj_t *pCur, Abc_Obj_t *pNext );
+void Abc_FlowRetime_ClearFlows( int fClearAll );
 
 int  Abc_FlowRetime_GetLag( Abc_Obj_t *pObj );
 void Abc_FlowRetime_SetLag( Abc_Obj_t *pObj, int lag );
@@ -156,7 +160,7 @@ void Abc_FlowRetime_UpdateLags( );
 
 void Abc_ObjPrintNeighborhood( Abc_Obj_t *pObj, int depth );
 
-Abc_Ntk_t * Abc_FlowRetime_NtkSilentRestrash( Abc_Ntk_t * pNtk, bool fCleanup );
+Abc_Ntk_t * Abc_FlowRetime_NtkSilentRestrash( Abc_Ntk_t * pNtk, int fCleanup );
 
 /*=== fretFlow.c ==========================================================*/
 
@@ -188,10 +192,14 @@ void Abc_FlowRetime_RemoveInitBias(  );
 void Abc_FlowRetime_InitTiming( Abc_Ntk_t *pNtk );
 void Abc_FlowRetime_FreeTiming( Abc_Ntk_t *pNtk );
 
-bool Abc_FlowRetime_RefineConstraints( );
+int Abc_FlowRetime_RefineConstraints( );
 
 void Abc_FlowRetime_ConstrainConserv( Abc_Ntk_t * pNtk );
 void Abc_FlowRetime_ConstrainExact( Abc_Obj_t * pObj );
 void Abc_FlowRetime_ConstrainExactAll( Abc_Ntk_t * pNtk );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

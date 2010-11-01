@@ -3,6 +3,10 @@
 #ifndef LIBHMETIS_H_
 #define LIBHMETIS_H_
 
+
+ABC_NAMESPACE_HEADER_START
+
+
 static void HMETIS_PartRecursive(int nvtxs, 
               int nhedges, 
               int *vwgts, 
@@ -27,5 +31,9 @@ static void HMETIS_PartKway(int nvtxs,
              int *options, 
              int *part, 
              int *edgecnt ) {} //;
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

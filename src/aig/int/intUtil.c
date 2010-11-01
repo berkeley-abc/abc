@@ -20,6 +20,9 @@
 
 #include "intInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ int Inter_ManCheckInitialState( Aig_Man_t * p )
     int status;
     int clk = clock();
     pCnf = Cnf_Derive( p, Saig_ManRegNum(p) ); 
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 1 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 1 );
     Cnf_DataFree( pCnf );
     if ( pSat == NULL )
         return 0;
@@ -75,7 +78,7 @@ int Inter_ManCheckAllStates( Aig_Man_t * p )
     int status;
     int clk = clock();
     pCnf = Cnf_Derive( p, Saig_ManRegNum(p) ); 
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     Cnf_DataFree( pCnf );
     if ( pSat == NULL )
         return 1;
@@ -89,4 +92,6 @@ int Inter_ManCheckAllStates( Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -22,6 +22,9 @@
 #include "sim.h"
 #include "fraig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -55,11 +58,11 @@ int Sim_SymmsGetPatternUsingSat( Sym_Man_t * p, unsigned * pPattern )
     // iterate through outputs
     for ( out = p->iOutput; out < p->nOutputs; out++ )
     {
-        pMatSym    = Vec_PtrEntry( p->vMatrSymms,    out );
-        pMatNonSym = Vec_PtrEntry( p->vMatrNonSymms, out );
+        pMatSym    = (Extra_BitMat_t *)Vec_PtrEntry( p->vMatrSymms,    out );
+        pMatNonSym = (Extra_BitMat_t *)Vec_PtrEntry( p->vMatrNonSymms, out );
 
         // go through the remaining variable pairs
-        vSupport = Vec_VecEntry( p->vSupports, out );
+        vSupport = (Vec_Int_t *)Vec_VecEntry( p->vSupports, out );
         Vec_IntForEachEntry( vSupport, v, Index1 )
         Vec_IntForEachEntryStart( vSupport, u, Index2, Index1+1 )
         {
@@ -147,7 +150,7 @@ int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned *
     Params.nSeconds = ABC_INFINITY;
 
 clk = clock();
-    pMan = Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
+    pMan = (Fraig_Man_t *)Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
 p->timeFraig += clock() - clk;
 clk = clock();
     Fraig_ManProveMiter( pMan );
@@ -196,4 +199,6 @@ p->timeSat += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

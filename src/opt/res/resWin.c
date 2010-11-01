@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "resInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -113,7 +116,7 @@ int Res_WinCollectLeavesAndNodes( Res_Win_t * p )
     Vec_PtrClear( p->vLeaves );
     Vec_VecForEachLevelStartStop( p->vMatrix, vFront, i, 0, p->nWinTfiMax )
     {
-        Vec_PtrForEachEntry( vFront, pObj, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pObj, k )
         {
             Abc_ObjForEachFanin( pObj, pTemp, m )
             {
@@ -134,14 +137,14 @@ int Res_WinCollectLeavesAndNodes( Res_Win_t * p )
     Vec_PtrClear( p->vNodes );
     Vec_VecForEachLevelReverseStartStop( p->vMatrix, vFront, i, p->nWinTfiMax, 0 )
     {
-        Vec_PtrForEachEntry( vFront, pObj, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pObj, k )
             Vec_PtrPush( p->vNodes, pObj );
         Vec_PtrClear( vFront );
     }
 
     // get the lowest leaf level
     p->nLevLeafMin = ABC_INFINITY;
-    Vec_PtrForEachEntry( p->vLeaves, pObj, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pObj, k )
         p->nLevLeafMin = ABC_MIN( p->nLevLeafMin, (int)pObj->Level );
 
     // set minimum traversal level
@@ -284,12 +287,12 @@ void Res_WinMarkPaths( Res_Win_t * p )
     // mark the leaves
     Abc_NtkIncrementTravId( p->pNode->pNtk );
     Abc_NtkIncrementTravId( p->pNode->pNtk );
-    Vec_PtrForEachEntry( p->vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pObj, i )
         Abc_NodeSetTravIdCurrent( pObj );
     // traverse from the roots and mark the nodes that can reach leaves
     // the nodes that do not reach leaves have previous trav ID
     // the nodes that reach leaves have current trav ID
-    Vec_PtrForEachEntry( p->vRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vRoots, pObj, i )
         Res_WinMarkPaths_rec( pObj, p->pNode, p->nLevTravMin );
 }
 
@@ -404,14 +407,14 @@ void Res_WinAddMissing( Res_Win_t * p )
     int i;
     // mark the leaves
     Abc_NtkIncrementTravId( p->pNode->pNtk );
-    Vec_PtrForEachEntry( p->vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pObj, i )
         Abc_NodeSetTravIdCurrent( pObj );        
     // mark the already collected nodes
-    Vec_PtrForEachEntry( p->vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vNodes, pObj, i )
         Abc_NodeSetTravIdCurrent( pObj );        
     // explore from the roots
     Vec_PtrClear( p->vBranches );
-    Vec_PtrForEachEntry( p->vRoots, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, p->vRoots, pObj, i )
         Res_WinAddMissing_rec( p, pObj, p->nLevTravMin );
 }
 
@@ -482,4 +485,6 @@ int Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, Res_Win_t
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

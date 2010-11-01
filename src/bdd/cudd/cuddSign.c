@@ -28,6 +28,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -149,7 +152,7 @@ Cudd_CofMinterm(
     table_mem += table->num_bins * sizeof(st_table_entry *);
 #endif
     if (Cudd_Regular(node)->ref == 1) ABC_FREE(values);
-    st_foreach(table, cuddStCountfree, NULL);
+    st_foreach(table, (ST_PFSR)cuddStCountfree, NULL);
     st_free_table(table);
 #ifdef DD_STATS
     (void) fprintf(dd->out,"Number of calls: %d\tTable memory: %d bytes\n",
@@ -289,4 +292,6 @@ ddCofMintermAux(
     return(values);
 
 } /* end of ddCofMintermAux */
+
+ABC_NAMESPACE_IMPL_END
 

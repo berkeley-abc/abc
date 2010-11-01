@@ -43,6 +43,9 @@
 #include "util_hack.h"
 #include "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -1001,4 +1004,6 @@ checkSymmInfo(
     return(1);
 
 } /* end of checkSymmInfo */
+
+ABC_NAMESPACE_IMPL_END
 

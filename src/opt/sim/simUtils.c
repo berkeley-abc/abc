@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "sim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,7 +54,7 @@ static int bit_count[256] = {
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Sim_UtilInfoAlloc( int nSize, int nWords, bool fClean )
+Vec_Ptr_t * Sim_UtilInfoAlloc( int nSize, int nWords, int fClean )
 {
     Vec_Ptr_t * vInfo;
     int i;
@@ -162,8 +165,8 @@ void Sim_UtilInfoFlip( Sim_Man_t * p, Abc_Obj_t * pNode )
 {
     unsigned * pSimInfo1, * pSimInfo2;
     int k;
-    pSimInfo1 = p->vSim0->pArray[pNode->Id];
-    pSimInfo2 = p->vSim1->pArray[pNode->Id];
+    pSimInfo1 = (unsigned *)p->vSim0->pArray[pNode->Id];
+    pSimInfo2 = (unsigned *)p->vSim1->pArray[pNode->Id];
     for ( k = 0; k < p->nSimWords; k++ )
         pSimInfo2[k] = ~pSimInfo1[k];
 }
@@ -179,12 +182,12 @@ void Sim_UtilInfoFlip( Sim_Man_t * p, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode )
+int Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode )
 {
     unsigned * pSimInfo1, * pSimInfo2;
     int k;
-    pSimInfo1 = p->vSim0->pArray[pNode->Id];
-    pSimInfo2 = p->vSim1->pArray[pNode->Id];
+    pSimInfo1 = (unsigned *)p->vSim0->pArray[pNode->Id];
+    pSimInfo2 = (unsigned *)p->vSim1->pArray[pNode->Id];
     for ( k = 0; k < p->nSimWords; k++ )
         if ( pSimInfo2[k] != pSimInfo1[k] )
             return 0;
@@ -202,7 +205,7 @@ bool Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Sim_UtilSimulate( Sim_Man_t * p, bool fType )
+void Sim_UtilSimulate( Sim_Man_t * p, int fType )
 {
     Abc_Obj_t * pNode;
     int i;
@@ -225,7 +228,7 @@ void Sim_UtilSimulate( Sim_Man_t * p, bool fType )
   SeeAlso     []
 
 ***********************************************************************/
-void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fType1, bool fType2 )
+void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, int fType, int fType1, int fType2 )
 {
     unsigned * pSimmNode, * pSimmNode1, * pSimmNode2;
     int k, fComp1, fComp2;
@@ -233,19 +236,19 @@ void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fT
     if ( Abc_ObjIsNode(pNode) )
     {
         if ( fType )
-            pSimmNode  = p->vSim1->pArray[ pNode->Id ];
+            pSimmNode  = (unsigned *)p->vSim1->pArray[ pNode->Id ];
         else
-            pSimmNode  = p->vSim0->pArray[ pNode->Id ];
+            pSimmNode  = (unsigned *)p->vSim0->pArray[ pNode->Id ];
 
         if ( fType1 )
-            pSimmNode1 = p->vSim1->pArray[ Abc_ObjFaninId0(pNode) ];
+            pSimmNode1 = (unsigned *)p->vSim1->pArray[ Abc_ObjFaninId0(pNode) ];
         else
-            pSimmNode1 = p->vSim0->pArray[ Abc_ObjFaninId0(pNode) ];
+            pSimmNode1 = (unsigned *)p->vSim0->pArray[ Abc_ObjFaninId0(pNode) ];
 
         if ( fType2 )
-            pSimmNode2 = p->vSim1->pArray[ Abc_ObjFaninId1(pNode) ];
+            pSimmNode2 = (unsigned *)p->vSim1->pArray[ Abc_ObjFaninId1(pNode) ];
         else
-            pSimmNode2 = p->vSim0->pArray[ Abc_ObjFaninId1(pNode) ];
+            pSimmNode2 = (unsigned *)p->vSim0->pArray[ Abc_ObjFaninId1(pNode) ];
 
         fComp1 = Abc_ObjFaninC0(pNode);
         fComp2 = Abc_ObjFaninC1(pNode);
@@ -266,14 +269,14 @@ void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fT
     {
         assert( Abc_ObjFaninNum(pNode) == 1 );
         if ( fType )
-            pSimmNode  = p->vSim1->pArray[ pNode->Id ];
+            pSimmNode  = (unsigned *)p->vSim1->pArray[ pNode->Id ];
         else
-            pSimmNode  = p->vSim0->pArray[ pNode->Id ];
+            pSimmNode  = (unsigned *)p->vSim0->pArray[ pNode->Id ];
 
         if ( fType1 )
-            pSimmNode1 = p->vSim1->pArray[ Abc_ObjFaninId0(pNode) ];
+            pSimmNode1 = (unsigned *)p->vSim1->pArray[ Abc_ObjFaninId0(pNode) ];
         else
-            pSimmNode1 = p->vSim0->pArray[ Abc_ObjFaninId0(pNode) ];
+            pSimmNode1 = (unsigned *)p->vSim0->pArray[ Abc_ObjFaninId0(pNode) ];
 
         fComp1 = Abc_ObjFaninC0(pNode);
         if ( fComp1 )
@@ -302,9 +305,9 @@ void Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimW
     int k, fComp1, fComp2;
     // simulate the internal nodes
     assert( Abc_ObjIsNode(pNode) );
-    pSimmNode  = Vec_PtrEntry(vSimInfo, pNode->Id);
-    pSimmNode1 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
-    pSimmNode2 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId1(pNode));
+    pSimmNode  = (unsigned *)Vec_PtrEntry(vSimInfo, pNode->Id);
+    pSimmNode1 = (unsigned *)Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
+    pSimmNode2 = (unsigned *)Vec_PtrEntry(vSimInfo, Abc_ObjFaninId1(pNode));
     pSimmNode  += nOffset;
     pSimmNode1 += nOffset;
     pSimmNode2 += nOffset;
@@ -341,8 +344,8 @@ void Sim_UtilTransferNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimW
     int k, fComp1;
     // simulate the internal nodes
     assert( Abc_ObjIsCo(pNode) );
-    pSimmNode  = Vec_PtrEntry(vSimInfo, pNode->Id);
-    pSimmNode1 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
+    pSimmNode  = (unsigned *)Vec_PtrEntry(vSimInfo, pNode->Id);
+    pSimmNode1 = (unsigned *)Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
     pSimmNode  += nOffset + (fShift > 0)*nSimWords;
     pSimmNode1 += nOffset;
     fComp1 = Abc_ObjFaninC0(pNode);
@@ -425,7 +428,7 @@ Vec_Int_t * Sim_UtilCountOnesArray( Vec_Ptr_t * vInfo, int nSimWords )
     unsigned * pSimInfo;
     int i;
     vCounters = Vec_IntStart( Vec_PtrSize(vInfo) );
-    Vec_PtrForEachEntry( vInfo, pSimInfo, i )
+    Vec_PtrForEachEntry( unsigned *, vInfo, pSimInfo, i )
         Vec_IntWriteEntry( vCounters, i, Sim_UtilCountOnes(pSimInfo, nSimWords) );
     return vCounters;
 }
@@ -562,7 +565,7 @@ int Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWords, Vec_Int_t * vCou
     unsigned * pSupp;
     int Counter, nOnes, nPairs, i;
     Counter = 0;
-    Vec_PtrForEachEntry( vSuppFun, pSupp, i )
+    Vec_PtrForEachEntry( unsigned *, vSuppFun, pSupp, i )
     {
         nOnes  = Sim_UtilCountOnes( pSupp, nSimWords );
         nPairs = nOnes * (nOnes - 1) / 2;
@@ -635,7 +638,7 @@ clk = clock();
     for ( i = 0; i < p->nOutputs; i++ )
     {
         printf( "Output %2d :", i );
-        Sim_UtilCountPairsOnePrint( Vec_PtrEntry(p->vMatrSymms, i), Vec_VecEntry(p->vSupports, i) );
+        Sim_UtilCountPairsOnePrint( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms, i), (Vec_Int_t *)Vec_VecEntry(p->vSupports, i) );
         printf( "\n" );
     }
 p->timeCount += clock() - clk;
@@ -670,8 +673,8 @@ clk = clock();
             p->nPairsNonSymm += nPairsNonSym;
             continue;
         }
-        nPairsSym    = Sim_UtilCountPairsOne( Vec_PtrEntry(p->vMatrSymms,   i), Vec_VecEntry(p->vSupports, i) );
-        nPairsNonSym = Sim_UtilCountPairsOne( Vec_PtrEntry(p->vMatrNonSymms,i), Vec_VecEntry(p->vSupports, i) );
+        nPairsSym    = Sim_UtilCountPairsOne( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms,   i), (Vec_Int_t *)Vec_VecEntry(p->vSupports, i) );
+        nPairsNonSym = Sim_UtilCountPairsOne( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrNonSymms,i), (Vec_Int_t *)Vec_VecEntry(p->vSupports, i) );
         assert( nPairsTotal >= nPairsSym + nPairsNonSym ); 
         Vec_IntWriteEntry( p->vPairsSym,    i, nPairsSym );
         Vec_IntWriteEntry( p->vPairsNonSym, i, nPairsNonSym );
@@ -699,7 +702,7 @@ int Sim_UtilMatrsAreDisjoint( Sym_Man_t * p )
 {
     int i;
     for ( i = 0; i < p->nOutputs; i++ )
-        if ( !Extra_BitMatrixIsDisjoint( Vec_PtrEntry(p->vMatrSymms,i), Vec_PtrEntry(p->vMatrNonSymms,i) ) )
+        if ( !Extra_BitMatrixIsDisjoint( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms,i), (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrNonSymms,i) ) )
             return 0;
     return 1;
 }
@@ -708,4 +711,6 @@ int Sim_UtilMatrsAreDisjoint( Sym_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

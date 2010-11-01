@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -188,8 +191,8 @@ static inline Aig_Obj_t * Aig_ObjGetRepr( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pRepr;
     if ( (pRepr = Aig_ObjFindRepr(p, pObj)) )
-        return Aig_NotCond( pRepr->pData, pObj->fPhase ^ pRepr->fPhase );
-    return pObj->pData;
+        return Aig_NotCond( (Aig_Obj_t *)pRepr->pData, pObj->fPhase ^ pRepr->fPhase );
+    return (Aig_Obj_t *)pObj->pData;
 }
 static inline Aig_Obj_t * Aig_ObjChild0Repr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjGetRepr(p, Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) ); }
 static inline Aig_Obj_t * Aig_ObjChild1Repr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjGetRepr(p, Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) ); }
@@ -221,7 +224,7 @@ void Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * pOld )
     // go through the nodes which have representatives
     Aig_ManForEachObj( pOld, pObj, k )
         if ( (pRepr = Aig_ObjFindRepr(pOld, pObj)) )
-            Aig_ObjSetRepr_( pNew, Aig_Regular(pRepr->pData), Aig_Regular(pObj->pData) ); 
+            Aig_ObjSetRepr_( pNew, Aig_Regular((Aig_Obj_t *)pRepr->pData), Aig_Regular((Aig_Obj_t *)pObj->pData) ); 
 }
 
 /**Function*************************************************************
@@ -239,15 +242,15 @@ Aig_Obj_t * Aig_ManDupRepr_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pOb
 {
     Aig_Obj_t * pRepr;
     if ( pObj->pData )
-        return pObj->pData;
+        return (Aig_Obj_t *)pObj->pData;
     if ( (pRepr = Aig_ObjFindRepr(p, pObj)) )
     {
         Aig_ManDupRepr_rec( pNew, p, pRepr );
-        return pObj->pData = Aig_NotCond( pRepr->pData, pRepr->fPhase ^ pObj->fPhase );
+        return (Aig_Obj_t *)(pObj->pData = Aig_NotCond( (Aig_Obj_t *)pRepr->pData, pRepr->fPhase ^ pObj->fPhase ));
     }
     Aig_ManDupRepr_rec( pNew, p, Aig_ObjFanin0(pObj) );
     Aig_ManDupRepr_rec( pNew, p, Aig_ObjFanin1(pObj) );
-    return pObj->pData = Aig_And( pNew, Aig_ObjChild0Repr(p, pObj), Aig_ObjChild1Repr(p, pObj) );
+    return (Aig_Obj_t *)(pObj->pData = Aig_And( pNew, Aig_ObjChild0Repr(p, pObj), Aig_ObjChild1Repr(p, pObj) ));
 }
 
 /**Function*************************************************************
@@ -270,6 +273,7 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // map the const and primary inputs
@@ -327,7 +331,7 @@ Aig_Man_t * Aig_ManDupReprBasic( Aig_Man_t * p )
     Aig_ManSeqCleanupBasic( pNew );
     // remove pointers to the dead nodes
     Aig_ManForEachObj( p, pObj, i )
-        if ( pObj->pData && Aig_ObjIsNone(pObj->pData) )
+        if ( pObj->pData && Aig_ObjIsNone((Aig_Obj_t *)pObj->pData) )
             pObj->pData = NULL;
     return pNew;
 }
@@ -549,4 +553,6 @@ int Aig_TransferMappedClasses( Aig_Man_t * pAig, Aig_Man_t * pPart, int * pMapBa
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 #include "aig.h"
 //#include "fra.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -127,7 +130,7 @@ int Aig_ManRegFindSeed( Aig_ManPre_t * p )
         if ( p->pfUsedRegs[i] )
             continue;
         nRegsCur = 0;
-        vRegs = Vec_PtrEntry( p->vMatrix, i );
+        vRegs = (Vec_Int_t *)Vec_PtrEntry( p->vMatrix, i );
         Vec_IntForEachEntry( vRegs, iReg, k )
             nRegsCur += !p->pfUsedRegs[iReg];
         if ( nRegsMax < nRegsCur )
@@ -155,13 +158,13 @@ int Aig_ManRegFindBestVar( Aig_ManPre_t * p )
     Vec_Int_t * vSupp;
     int nNewVars, nNewVarsBest = ABC_INFINITY;
     int iVarFree, iVarSupp, iVarBest = -1, i, k;
-    // go through the ABC_FREE variables
+    // go through the free variables
     Vec_IntForEachEntry( p->vFreeVars, iVarFree, i )
     {
 //        if ( p->pfUsedRegs[iVarFree] )
 //            continue;
         // get support of this variable
-        vSupp = Vec_PtrEntry( p->vMatrix, iVarFree );
+        vSupp = (Vec_Int_t *)Vec_PtrEntry( p->vMatrix, iVarFree );
         // count the number of new vars
         nNewVars = 0;
         Vec_IntForEachEntry( vSupp, iVarSupp, k )
@@ -205,7 +208,7 @@ void Aig_ManRegPartitionAdd( Aig_ManPre_t * p, int iReg )
         p->pfUsedRegs[iReg] = 1;
         Vec_IntPush( p->vUniques, iReg );
     }
-    // remove it from the ABC_FREE variables
+    // remove it from the free variables
     if ( Vec_IntSize(p->vFreeVars) > 0 )
     {
         assert( p->pfPartVars[iReg] );
@@ -218,7 +221,7 @@ void Aig_ManRegPartitionAdd( Aig_ManPre_t * p, int iReg )
     p->pfPartVars[iReg] = 1;
     Vec_IntPush( p->vRegs, iReg );
     // add new variables
-    vSupp = Vec_PtrEntry( p->vMatrix, iReg );
+    vSupp = (Vec_Int_t *)Vec_PtrEntry( p->vMatrix, iReg );
     Vec_IntForEachEntry( vSupp, iVar, i )
     {
         if ( p->pfPartVars[iVar] )
@@ -253,7 +256,7 @@ Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_P
         pObj->iData = i;
     // go through each group and check if registers are involved in this one
     nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
-    Vec_PtrForEachEntry( vOnehots, vGroup, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vOnehots, vGroup, i )
     {
         vGroupNew = NULL;
         Vec_IntForEachEntry( vGroup, iReg, k )
@@ -263,7 +266,7 @@ Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_P
                 continue;
             if ( vGroupNew == NULL )
                 vGroupNew = Vec_IntAlloc( Vec_IntSize(vGroup) );
-            pObjNew = pObj->pData;
+            pObjNew = (Aig_Obj_t *)pObj->pData;
             Vec_IntPush( vGroupNew, pObjNew->iData );
         }
         if ( vGroupNew == NULL )
@@ -284,7 +287,7 @@ Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_P
     if ( vOnehotsPart && fVerbose )
     {
         printf( "Partition contains %d groups of 1-hot registers: { ", Vec_PtrSize(vOnehotsPart) );
-        Vec_PtrForEachEntry( vOnehotsPart, vGroup, k )
+        Vec_PtrForEachEntry( Vec_Int_t *, vOnehotsPart, vGroup, k )
             printf( "%d ", Vec_IntSize(vGroup) );
         printf( "}\n" );
     }
@@ -335,7 +338,7 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
         nCountPis += Aig_ObjIsTravIdCurrent(pAig, pObj);
     // count outputs of other registers
     Aig_ManForEachLoSeq( pAig, pObj, i )
-        nCountRegs += Aig_ObjIsTravIdCurrent(pAig, pObj);
+        nCountRegs += Aig_ObjIsTravIdCurrent(pAig, pObj); 
     if ( pnCountPis )
         *pnCountPis = nCountPis;
     if ( pnCountRegs )
@@ -354,11 +357,11 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
     {
         pObj = Aig_ManPi(pAig, nOffset+iOut);
         pObj->pData = Aig_ObjCreatePi(pNew);
-        Aig_ObjCreatePo( pNew, pObj->pData );
+        Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObj->pData );
         Aig_ObjSetTravIdCurrent( pAig, pObj ); // added
     }
     // create the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = Aig_And(pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // add real POs for the registers
@@ -377,9 +380,9 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
         // map constant nodes
         pMapBack[0] = 0;
         // logic cones of register outputs
-        Vec_PtrForEachEntry( vNodes, pObj, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         {
-            pObjNew = Aig_Regular(pObj->pData);
+            pObjNew = Aig_Regular((Aig_Obj_t *)pObj->pData);
             pMapBack[pObjNew->Id] = pObj->Id;
         }
         // map register outputs
@@ -387,7 +390,7 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
         Vec_IntForEachEntry( vPart, iOut, i )
         {
             pObj = Aig_ManPi(pAig, nOffset+iOut);
-            pObjNew = pObj->pData;
+            pObjNew = (Aig_Obj_t *)pObj->pData;
             pMapBack[pObjNew->Id] = pObj->Id;
         }
         *ppMapBack = pMapBack;
@@ -441,7 +444,7 @@ Vec_Ptr_t * Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize )
 //printf( "Part %3d  Reg %3d : Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4d.\n", i, k, 
 //                Vec_IntSize(p->vFreeVars), Vec_IntSize(p->vRegs), 
 //                1.0*Vec_IntSize(p->vFreeVars)/Vec_IntSize(p->vRegs), Vec_IntSize(p->vUniques) );
-            // quit if there are not ABC_FREE variables
+            // quit if there are not free variables
             if ( Vec_IntSize(p->vFreeVars) == 0 )
                 break;
         }
@@ -621,4 +624,6 @@ Vec_Ptr_t * Aig_ManRegPartitionLinear( Aig_Man_t * pAig, int nPartSize )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

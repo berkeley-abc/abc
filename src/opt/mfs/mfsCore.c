@@ -20,6 +20,9 @@
 
 #include "mfsInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -148,7 +151,7 @@ int Abc_NtkMfsPowerResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 }
 */
 
-Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
+void Abc_NtkMfsPowerResub( Mfs_Man_t * p, Mfs_Par_t * pPars)
 {
     int i, k;
     Abc_Obj_t *pFanin, *pNode;
@@ -326,7 +329,7 @@ clk = clock();
 p->timeCnf += clock() - clk;
     // create the SAT problem
 clk = clock();
-    p->pSat = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
+    p->pSat = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
     if ( p->pSat && p->pPars->fOneHotness )
         Abc_NtkAddOneHotness( p );
     if ( p->pSat == NULL )
@@ -344,8 +347,8 @@ p->timeSat += clock() - clk;
     // minimize the local function of the node using bi-decomposition
     assert( p->nFanins == Abc_ObjFaninNum(pNode) );
     dProb = p->pPars->fPower? ((float *)p->vProbs->pArray)[pNode->Id] : -1.0;
-    pObj = Abc_NodeIfNodeResyn( p->pManDec, pNode->pNtk->pManFunc, pNode->pData, p->nFanins, p->vTruth, p->uCare, dProb );
-    nGain = Hop_DagSize(pNode->pData) - Hop_DagSize(pObj);
+    pObj = Abc_NodeIfNodeResyn( p->pManDec, (Hop_Man_t *)pNode->pNtk->pManFunc, (Hop_Obj_t *)pNode->pData, p->nFanins, p->vTruth, p->uCare, dProb );
+    nGain = Hop_DagSize((Hop_Obj_t *)pNode->pData) - Hop_DagSize(pObj);
     if ( nGain >= 0 )
     {
         p->nNodesDec++;
@@ -432,12 +435,12 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     if ( pNtk->pExcare )
     {
         Abc_Ntk_t * pTemp;
-        if ( Abc_NtkPiNum(pNtk->pExcare) != Abc_NtkCiNum(pNtk) )
+        if ( Abc_NtkPiNum((Abc_Ntk_t *)pNtk->pExcare) != Abc_NtkCiNum(pNtk) )
             printf( "The PI count of careset (%d) and logic network (%d) differ. Careset is not used.\n",
-                Abc_NtkPiNum(pNtk->pExcare), Abc_NtkCiNum(pNtk) );
+                Abc_NtkPiNum((Abc_Ntk_t *)pNtk->pExcare), Abc_NtkCiNum(pNtk) );
         else
         {
-            pTemp = Abc_NtkStrash( pNtk->pExcare, 0, 0, 0 );
+            pTemp = Abc_NtkStrash( (Abc_Ntk_t *)pNtk->pExcare, 0, 0, 0 );
             p->pCare = Abc_NtkToDar( pTemp, 0, 0 );
             Abc_NtkDelete( pTemp );
             p->vSuppsInv = Aig_ManSupportsInverse( p->pCare );
@@ -513,7 +516,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
             p->nTotConfLevel = 0;
             p->nTimeOutsLevel = 0;
             clk2 = clock();
-            Vec_PtrForEachEntry( vNodes, pObj, i )
+            Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
             {
                 if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
                     break;
@@ -583,4 +586,6 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

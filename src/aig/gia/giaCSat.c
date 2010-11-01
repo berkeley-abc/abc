@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 //#define gia_assert(exp)     ((void)0)
 //#define gia_assert(exp)     (assert(exp))
 
@@ -627,7 +630,7 @@ static inline void Cbs_ManDeriveReason( Cbs_Man_t * p, int Level )
     assert( pQue->pData[pQue->iHead] != NULL );
     pQue->iTail = k;
     // clear the marks
-    Vec_PtrForEachEntry( p->vTemp, pObj, i )
+    Vec_PtrForEachEntry( Gia_Obj_t *, p->vTemp, pObj, i )
         pObj->fMark0 = 1;
 }
 
@@ -1093,4 +1096,6 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -81,13 +84,13 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo
     pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD, 1 );
     pNtk->pName = Extra_UtilStrsav(pNamePo);
     // make sure the new manager has enough inputs
-    Cudd_bddIthVar( pNtk->pManFunc, Vec_PtrSize(vNamesPi) );
+    Cudd_bddIthVar( (DdManager *)pNtk->pManFunc, Vec_PtrSize(vNamesPi) );
     // add the PIs corresponding to the names
-    Vec_PtrForEachEntry( vNamesPi, pName, i )
+    Vec_PtrForEachEntry( char *, vNamesPi, pName, i )
         Abc_ObjAssignName( Abc_NtkCreatePi(pNtk), pName, NULL );
     // create the node
     pNode = Abc_NtkCreateNode( pNtk );
-    pNode->pData = Cudd_bddTransfer( dd, pNtk->pManFunc, bFunc ); Cudd_Ref(pNode->pData);
+    pNode->pData = (DdNode *)Cudd_bddTransfer( dd, (DdManager *)pNtk->pManFunc, bFunc ); Cudd_Ref((DdNode *)pNode->pData);
     Abc_NtkForEachPi( pNtk, pNodePi, i )
         Abc_ObjAddFanin( pNode, pNodePi );
     // create the only PO
@@ -154,7 +157,7 @@ void Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     // perform conversion in the topological order
     vNodes = Abc_NtkDfs( pNtk, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // convert one node
@@ -181,8 +184,8 @@ void Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 ***********************************************************************/
 Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
 {
-    DdManager * dd = pNodeOld->pNtk->pManFunc;
-    DdNode * bFunc = pNodeOld->pData;
+    DdManager * dd = (DdManager *)pNodeOld->pNtk->pManFunc;
+    DdNode * bFunc = (DdNode *)pNodeOld->pData;
     Abc_Obj_t * pFaninOld, * pNodeNew;
     st_table * tBdd2Node;
     int i;
@@ -253,7 +256,7 @@ DdManager * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDrop
     int i, k, Counter;
 
     // remove dangling nodes
-    Abc_AigCleanup( pNtk->pManFunc );
+    Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
 
     // start the manager
     assert( Abc_NtkGlobalBdd(pNtk) == NULL );
@@ -305,7 +308,7 @@ DdManager * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDrop
                         pFanin->vFanouts.nSize++;
             return NULL;
         }
-        bFunc = Cudd_NotCond( bFunc, Abc_ObjFaninC0(pObj) );  Cudd_Ref( bFunc ); 
+        bFunc = Cudd_NotCond( bFunc, (int)Abc_ObjFaninC0(pObj) );  Cudd_Ref( bFunc ); 
         Abc_ObjSetGlobalBdd( pObj, bFunc );
     }
     Extra_ProgressBarStop( pProgress );
@@ -409,8 +412,8 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
             Cudd_Ref( bFunc1 );
 
             // complement the branch BDDs
-            bFunc0 = Cudd_NotCond( bFunc0, Abc_ObjIsComplement(pNode0) );
-            bFunc1 = Cudd_NotCond( bFunc1, Abc_ObjIsComplement(pNode1) );
+            bFunc0 = Cudd_NotCond( bFunc0, (int)Abc_ObjIsComplement(pNode0) );
+            bFunc1 = Cudd_NotCond( bFunc1, (int)Abc_ObjIsComplement(pNode1) );
             // get the final result
             bFunc = Cudd_bddIte( dd, bFuncC, bFunc1, bFunc0 );   Cudd_Ref( bFunc );
             Cudd_RecursiveDeref( dd, bFunc0 );
@@ -430,8 +433,8 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
             if ( bFunc1 == NULL )
                 return NULL;
             Cudd_Ref( bFunc1 );
-            bFunc0 = Cudd_NotCond( bFunc0, Abc_ObjFaninC0(pNode) );
-            bFunc1 = Cudd_NotCond( bFunc1, Abc_ObjFaninC1(pNode) );
+            bFunc0 = Cudd_NotCond( bFunc0, (int)Abc_ObjFaninC0(pNode) );
+            bFunc1 = Cudd_NotCond( bFunc1, (int)Abc_ObjFaninC1(pNode) );
             // get the final result
             bFunc = Cudd_bddAnd( dd, bFunc0, bFunc1 );   Cudd_Ref( bFunc );
             Cudd_RecursiveDeref( dd, bFunc0 );
@@ -470,7 +473,7 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
 ***********************************************************************/
 DdManager * Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk, int fFreeMan ) 
 { 
-    return Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, fFreeMan ); 
+    return (DdManager *)Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, fFreeMan ); 
 }
 
 /**Function*************************************************************
@@ -527,7 +530,7 @@ double Abc_NtkSpacePercentage( Abc_Obj_t * pNode )
     dd = Cudd_Init( Vec_PtrSize(vNodes), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );
     // assign elementary BDDs for the CIs
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)dd->vars[i];
     // build the BDD of the cone
     bFunc = Abc_NodeGlobalBdds_rec( dd, pNodeR, 10000000, 1, NULL, NULL, 1 );  Cudd_Ref( bFunc );
@@ -591,4 +594,6 @@ ABC_PRT( "Time", clock() - clk );
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

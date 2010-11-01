@@ -24,9 +24,11 @@
 #include <unistd.h>
 #endif
 
+#include "abc.h"
 #include "mainInt.h"
 #include "cmdInt.h"
-#include "abc.h"
+
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -46,7 +48,7 @@ static int CmdCommandUnsetVariable ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandUndo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandRecall        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-#ifdef WIN32
+#if defined(WIN32) && !defined(__cplusplus)
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandScrGen        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
@@ -54,6 +56,8 @@ static int CmdCommandVersion       ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -75,28 +79,30 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     pAbc->tFlags    = st_init_table(strcmp, st_strhash);
     pAbc->aHistory  = Vec_PtrAlloc( 100 );
 
-    Cmd_CommandAdd( pAbc, "Basic", "time",      CmdCommandTime,           0);
-    Cmd_CommandAdd( pAbc, "Basic", "echo",      CmdCommandEcho,           0);
-    Cmd_CommandAdd( pAbc, "Basic", "quit",      CmdCommandQuit,           0);
-    Cmd_CommandAdd( pAbc, "Basic", "history",   CmdCommandHistory,        0);
-    Cmd_CommandAdd( pAbc, "Basic", "alias",     CmdCommandAlias,          0);
-    Cmd_CommandAdd( pAbc, "Basic", "unalias",   CmdCommandUnalias,        0);
-    Cmd_CommandAdd( pAbc, "Basic", "help",      CmdCommandHelp,           0);
-    Cmd_CommandAdd( pAbc, "Basic", "source",    CmdCommandSource,         0);
-    Cmd_CommandAdd( pAbc, "Basic", "set",       CmdCommandSetVariable,    0);
-    Cmd_CommandAdd( pAbc, "Basic", "unset",     CmdCommandUnsetVariable,  0);
-    Cmd_CommandAdd( pAbc, "Basic", "undo",      CmdCommandUndo,           0); 
-    Cmd_CommandAdd( pAbc, "Basic", "recall",    CmdCommandRecall,         0); 
-    Cmd_CommandAdd( pAbc, "Basic", "empty",     CmdCommandEmpty,          0); 
-#ifdef WIN32
-    Cmd_CommandAdd( pAbc, "Basic", "ls",        CmdCommandLs,             0 );
-    Cmd_CommandAdd( pAbc, "Basic", "scrgen",    CmdCommandScrGen,         0 );
+    Cmd_CommandAdd( pAbc, "Basic", "time",          CmdCommandTime,            0 );
+    Cmd_CommandAdd( pAbc, "Basic", "echo",          CmdCommandEcho,            0 );
+    Cmd_CommandAdd( pAbc, "Basic", "quit",          CmdCommandQuit,            0 );
+    Cmd_CommandAdd( pAbc, "Basic", "history",       CmdCommandHistory,         0 );
+    Cmd_CommandAdd( pAbc, "Basic", "alias",         CmdCommandAlias,           0 );
+    Cmd_CommandAdd( pAbc, "Basic", "unalias",       CmdCommandUnalias,         0 );
+    Cmd_CommandAdd( pAbc, "Basic", "help",          CmdCommandHelp,            0 );
+    Cmd_CommandAdd( pAbc, "Basic", "source",        CmdCommandSource,          0 );
+    Cmd_CommandAdd( pAbc, "Basic", "set",           CmdCommandSetVariable,     0 );
+    Cmd_CommandAdd( pAbc, "Basic", "unset",         CmdCommandUnsetVariable,   0 );
+    Cmd_CommandAdd( pAbc, "Basic", "undo",          CmdCommandUndo,            0 ); 
+    Cmd_CommandAdd( pAbc, "Basic", "recall",        CmdCommandRecall,          0 ); 
+    Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 ); 
+#if defined(WIN32) && !defined(__cplusplus)
+    Cmd_CommandAdd( pAbc, "Basic", "ls",            CmdCommandLs,              0 );
+    Cmd_CommandAdd( pAbc, "Basic", "scrgen",        CmdCommandScrGen,          0 );
 #endif
-    Cmd_CommandAdd( pAbc, "Basic", "version",   CmdCommandVersion,        0); 
+    Cmd_CommandAdd( pAbc, "Basic", "version",       CmdCommandVersion,         0 ); 
 
-    Cmd_CommandAdd( pAbc, "Various", "sis",     CmdCommandSis,            1); 
-    Cmd_CommandAdd( pAbc, "Various", "mvsis",   CmdCommandMvsis,          1); 
-    Cmd_CommandAdd( pAbc, "Various", "capo",    CmdCommandCapo,           0); 
+    Cmd_CommandAdd( pAbc, "Various", "sis",         CmdCommandSis,             1 ); 
+    Cmd_CommandAdd( pAbc, "Various", "mvsis",       CmdCommandMvsis,           1 ); 
+    Cmd_CommandAdd( pAbc, "Various", "capo",        CmdCommandCapo,            0 ); 
+
+    Cmd_CommandAdd( pAbc, "Various", "load_plugin", Cmd_CommandAbcLoadPlugIn,  0 );
 }
 
 /**Function********************************************************************
@@ -118,17 +124,17 @@ void Cmd_End( Abc_Frame_t * pAbc )
 
 //    st_free_table( pAbc->tCommands, (void (*)()) 0, CmdCommandFree );
 //    st_free_table( pAbc->tAliases,  (void (*)()) 0, CmdCommandAliasFree );
-//    st_free_table( pAbc->tFlags,    ABC_FREE, ABC_FREE );
+//    st_free_table( pAbc->tFlags,    free, free );
 
-    st_foreach_item( pAbc->tCommands, gen, (char **)&pKey, (char **)&pValue )
+    st_foreach_item( pAbc->tCommands, gen, (const char **)&pKey, (char **)&pValue )
         CmdCommandFree( (Abc_Command *)pValue );
     st_free_table( pAbc->tCommands );
 
-    st_foreach_item( pAbc->tAliases, gen, (char **)&pKey, (char **)&pValue )
+    st_foreach_item( pAbc->tAliases, gen, (const char **)&pKey, (char **)&pValue )
         CmdCommandAliasFree( (Abc_Alias *)pValue );
     st_free_table( pAbc->tAliases );
 
-    st_foreach_item( pAbc->tFlags, gen, (char **)&pKey, (char **)&pValue )
+    st_foreach_item( pAbc->tFlags, gen, (const char **)&pKey, (char **)&pValue )
         ABC_FREE( pKey ), ABC_FREE( pValue );
     st_free_table( pAbc->tFlags );
 
@@ -374,7 +380,8 @@ usage:
 ******************************************************************************/
 int CmdCommandAlias( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    char *key, *value;
+    const char *key;
+    char *value;
     int c;
 
     Extra_UtilGetoptReset();
@@ -431,7 +438,8 @@ usage:
 int CmdCommandUnalias( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int i;
-    char *key, *value;
+    const char *key;
+    char *value;
     int c;
 
     Extra_UtilGetoptReset();
@@ -481,7 +489,7 @@ int CmdCommandUnalias( Abc_Frame_t * pAbc, int argc, char **argv )
 ******************************************************************************/
 int CmdCommandHelp( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    bool fPrintAll;
+    int fPrintAll;
     int c;
 
     fPrintAll = 0;
@@ -714,7 +722,8 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
 ******************************************************************************/
 int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    char *flag_value, *key, *value;
+    char *flag_value, *value;
+    const char* key;
     int c;
 
     Extra_UtilGetoptReset();
@@ -814,7 +823,8 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 int CmdCommandUnsetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int i;
-    char *key, *value;
+    const char *key;
+    char *value;
     int c;
 
     Extra_UtilGetoptReset();
@@ -1097,7 +1107,7 @@ usage:
 #endif
 
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(__cplusplus)
 #include <direct.h>
 
 // these structures are defined in <io.h> but are for some reason invisible
@@ -1117,7 +1127,7 @@ extern int  _findnext( long handle, struct _finddata_t *fileinfo );
 extern int  _findclose( long handle );
 
 //extern char * _getcwd( char * buffer, int maxlen );
-extern int    _chdir( const char *dirname );
+//extern int    _chdir( const char *dirname );
 
 /**Function*************************************************************
 
@@ -1529,7 +1539,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
         goto usage;
     }
-    Io_WriteBlif( pNetlist, "_sis_in.blif", 1 );
+    Io_WriteBlif( pNetlist, "_sis_in.blif", 1, 0, 0 );
     Abc_NtkDelete( pNetlist );
 
     // create the file for sis
@@ -1672,7 +1682,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
         goto usage;
     }
-    Io_WriteBlif( pNetlist, "_mvsis_in.blif", 1 );
+    Io_WriteBlif( pNetlist, "_mvsis_in.blif", 1, 0, 0 );
     Abc_NtkDelete( pNetlist );
 
     // create the file for MVSIS
@@ -1767,10 +1777,10 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
     pAbc = Abc_FrameGetGlobalFrame();
 
     // get the names from the plotting software
-    if ( Cmd_FlagReadByName(pAbc, "gnuplotwin") )
-        pProgNameGnuplotWin = Cmd_FlagReadByName(pAbc, "gnuplotwin");
-    if ( Cmd_FlagReadByName(pAbc, "gnuplotunix") )
-        pProgNameGnuplotUnix = Cmd_FlagReadByName(pAbc, "gnuplotunix");
+    if ( Cmd_FlagReadByName((Abc_Frame_t *)pAbc, "gnuplotwin") )
+        pProgNameGnuplotWin = Cmd_FlagReadByName((Abc_Frame_t *)pAbc, "gnuplotwin");
+    if ( Cmd_FlagReadByName((Abc_Frame_t *)pAbc, "gnuplotunix") )
+        pProgNameGnuplotUnix = Cmd_FlagReadByName((Abc_Frame_t *)pAbc, "gnuplotunix");
 
     // check if Gnuplot is available
     if ( (pFile = fopen( pProgNameGnuplotWin, "r" )) )
@@ -1887,7 +1897,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
         goto usage;
     }
-    Io_WriteBlif( pNetlist, "_capo_in.blif", 1 );
+    Io_WriteBlif( pNetlist, "_capo_in.blif", 1, 0, 0 );
     Abc_NtkDelete( pNetlist );
 
     // create the file for Capo
@@ -2010,4 +2020,6 @@ int CmdCommandVersion( Abc_Frame_t * pAbc, int argc, char **argv )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

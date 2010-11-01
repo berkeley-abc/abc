@@ -28,6 +28,9 @@
 
 #include "bzlib_private.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /*---------------------------------------------------*/
 /*--- Bit stream I/O                              ---*/
@@ -670,3 +673,5 @@ void BZ2_compressBlock ( EState* s, Bool is_last_block )
 /*-------------------------------------------------------------*/
 /*--- end                                        compress.c ---*/
 /*-------------------------------------------------------------*/
+ABC_NAMESPACE_IMPL_END
+

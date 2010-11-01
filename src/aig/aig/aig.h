@@ -21,6 +21,7 @@
 #ifndef __AIG_H__
 #define __AIG_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -37,9 +38,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif 
+
+
+ABC_NAMESPACE_HEADER_START
+ 
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -105,6 +107,7 @@ struct Aig_Man_t_
     int              nTruePis;       // the number of true primary inputs
     int              nTruePos;       // the number of true primary outputs
     int              nAsserts;       // the number of asserts among POs (asserts are first POs)
+    int              nConstrs;       // the number of constraints (model checking only)
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
     int              nCreated;       // the number of created objects
@@ -148,7 +151,8 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
     Vec_Int_t *      vFlopReprs;      
-    void *           pSeqModel;
+    Abc_Cex_t *      pSeqModel;
+    Vec_Ptr_t *      pSeqModelVec;   // vector of counter-examples (for sequential miters)
     Aig_Man_t *      pManExdc;
     Vec_Ptr_t *      vOnehots;
     Aig_Man_t *      pManHaig;
@@ -217,10 +221,12 @@ static inline Aig_Cut_t *  Aig_CutNext( Aig_Cut_t * pCut )              { return
 ////////////////////////////////////////////////////////////////////////
 
 static inline int          Aig_IntAbs( int n )                    { return (n < 0)? -n : n;                                }
-static inline int          Aig_Float2Int( float Val )             { return *((int *)&Val);                                 }
-static inline float        Aig_Int2Float( int Num )               { return *((float *)&Num);                               }
-static inline int          Aig_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
-static inline int          Aig_Base10Log( unsigned n )            { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
+//static inline int          Aig_Float2Int( float Val )             { return *((int *)&Val);                                 }
+//static inline float        Aig_Int2Float( int Num )               { return *((float *)&Num);                               }
+static inline int          Aig_Float2Int( float Val )             { union { int x; float y; } v; v.y = Val; return v.x;    }
+static inline float        Aig_Int2Float( int Num )               { union { int x; float y; } v; v.x = Num; return v.y;    }
+static inline int          Aig_Base2Log( unsigned n )             { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
+static inline int          Aig_Base10Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
 static inline char *       Aig_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL; }
 static inline int          Aig_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);                  }
 static inline int          Aig_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));            }
@@ -261,6 +267,7 @@ static inline int          Aig_ManGetCost( Aig_Man_t * p )        { return p->nO
 static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;                }
 static inline int          Aig_ManObjNumMax( Aig_Man_t * p )      { return Vec_PtrSize(p->vObjs);                    }
 static inline int          Aig_ManRegNum( Aig_Man_t * p )         { return p->nRegs;                                 }
+static inline int          Aig_ManConstrNum( Aig_Man_t * p )      { return p->nConstrs;                              }
 
 static inline Aig_Obj_t *  Aig_ManConst0( Aig_Man_t * p )         { return Aig_Not(p->pConst1);                      }
 static inline Aig_Obj_t *  Aig_ManConst1( Aig_Man_t * p )         { return p->pConst1;                               }
@@ -284,6 +291,7 @@ static inline int          Aig_ObjIsNode( Aig_Obj_t * pObj )      { return pObj-
 static inline int          Aig_ObjIsTerm( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_PI  || pObj->Type == AIG_OBJ_PO || pObj->Type == AIG_OBJ_CONST1;   }
 static inline int          Aig_ObjIsHash( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR;                                 }
 static inline int          Aig_ObjIsChoice( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs && p->pEquivs[pObj->Id] && pObj->nRefs > 0;                    }
+static inline int          Aig_ObjIsCand( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_PI || pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR;     }
 
 static inline int          Aig_ObjIsMarkA( Aig_Obj_t * pObj )     { return pObj->fMarkA;  }
 static inline void         Aig_ObjSetMarkA( Aig_Obj_t * pObj )    { pObj->fMarkA = 1;     }
@@ -315,6 +323,9 @@ static inline Aig_Obj_t *  Aig_ObjChild0Next( Aig_Obj_t * pObj )  { assert( !Aig
 static inline Aig_Obj_t *  Aig_ObjChild1Next( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin1(pObj)->pNext, Aig_ObjFaninC1(pObj)) : NULL;  }
 static inline void         Aig_ObjChild0Flip( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); pObj->pFanin0 = Aig_Not(pObj->pFanin0);        }
 static inline void         Aig_ObjChild1Flip( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); pObj->pFanin1 = Aig_Not(pObj->pFanin1);        }
+static inline Aig_Obj_t *  Aig_ObjCopy( Aig_Obj_t * pObj )        { assert( !Aig_IsComplement(pObj) ); return (Aig_Obj_t *)pObj->pData;               } 
+static inline void         Aig_ObjSetCopy( Aig_Obj_t * pObj, Aig_Obj_t * pCopy )     {  assert( !Aig_IsComplement(pObj) ); pObj->pData = pCopy;       } 
+static inline Aig_Obj_t *  Aig_ObjRealCopy( Aig_Obj_t * pObj )    { return Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj));}
 static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { assert( !Aig_IsComplement(pObj) ); return pObj->Level;                            }
 static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + ABC_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
 static inline int          Aig_ObjSetLevel( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return pObj->Level = i;                    }
@@ -388,22 +399,22 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 
 // iterator over the primary inputs
 #define Aig_ManForEachPi( p, pObj, i )                                          \
-    Vec_PtrForEachEntry( p->vPis, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vPis, pObj, i )
 // iterator over the primary outputs
 #define Aig_ManForEachPo( p, pObj, i )                                          \
-    Vec_PtrForEachEntry( p->vPos, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vPos, pObj, i )
 // iterator over the assertions
 #define Aig_ManForEachAssert( p, pObj, i )                                      \
-    Vec_PtrForEachEntryStart( p->vPos, pObj, i, Aig_ManPoNum(p)-p->nAsserts )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->vPos, pObj, i, Aig_ManPoNum(p)-p->nAsserts )
 // iterator over all objects, including those currently not used
 #define Aig_ManForEachObj( p, pObj, i )                                         \
-    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
 // iterator over all nodes
 #define Aig_ManForEachNode( p, pObj, i )                                        \
-    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
 // iterator over all nodes
 #define Aig_ManForEachExor( p, pObj, i )                                        \
-    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsExor(pObj) ) {} else
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsExor(pObj) ) {} else
 // iterator over the nodes whose IDs are stored in the array
 #define Aig_ManForEachNodeVec( p, vIds, pObj, i )                               \
     for ( i = 0; i < Vec_IntSize(vIds) && ((pObj) = Aig_ManObj(p, Vec_IntEntry(vIds,i))); i++ )
@@ -429,16 +440,16 @@ static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iF
 
 // iterator over the primary inputs
 #define Aig_ManForEachPiSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStop( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
+    Vec_PtrForEachEntryStop( Aig_Obj_t *, p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
 // iterator over the latch outputs
 #define Aig_ManForEachLoSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStart( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
 // iterator over the primary outputs
 #define Aig_ManForEachPoSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStop( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManRegNum(p) )
+    Vec_PtrForEachEntryStop( Aig_Obj_t *, p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManRegNum(p) )
 // iterator over the latch inputs
 #define Aig_ManForEachLiSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStart( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManRegNum(p) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManRegNum(p) )
 // iterator over the latch input and outputs
 #define Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, k )                           \
     for ( k = 0; (k < Aig_ManRegNum(p)) && (((pObjLi) = Aig_ManLi(p, k)), 1)    \
@@ -475,10 +486,13 @@ extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t 
 extern void            Aig_ObjCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes );
 extern int             Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper );
 /*=== aigDup.c ==========================================================*/
+extern Aig_Obj_t *     Aig_ManDupSimpleDfs_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj );
 extern Aig_Man_t *     Aig_ManDupSimple( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupSimpleWithHints( Aig_Man_t * p, Vec_Int_t * vHints );
 extern Aig_Man_t *     Aig_ManDupSimpleDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupSimpleDfsPart( Aig_Man_t * p, Vec_Ptr_t * vPis, Vec_Ptr_t * vPos );
 extern Aig_Man_t *     Aig_ManDupOrdered( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupCof( Aig_Man_t * p, int iInput, int Value );
 extern Aig_Man_t *     Aig_ManDupTrim( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );
@@ -503,7 +517,8 @@ extern Aig_Man_t *     Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int 
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
-extern ABC_DLL void    Aig_ManStop( Aig_Man_t * p );
+extern void            Aig_ManStop( Aig_Man_t * p );
+extern void            Aig_ManStopP( Aig_Man_t ** p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
 extern int             Aig_ManAntiCleanup( Aig_Man_t * p );
 extern int             Aig_ManPiCleanup( Aig_Man_t * p );
@@ -512,6 +527,7 @@ extern void            Aig_ManPrintStats( Aig_Man_t * p );
 extern void            Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew );
 extern void            Aig_ManSetRegNum( Aig_Man_t * p, int nRegs );
 extern void            Aig_ManFlipFirstPo( Aig_Man_t * p );
+extern void *          Aig_ManReleaseData( Aig_Man_t * p );
 /*=== aigMem.c ==========================================================*/
 extern void            Aig_ManStartMemory( Aig_Man_t * p );
 extern void            Aig_ManStopMemory( Aig_Man_t * p );
@@ -620,6 +636,7 @@ extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fVerbose );
 /*=== aigUtil.c =========================================================*/
 extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );
+extern char *          Aig_TimeStamp();
 extern int             Aig_ManHasNoGaps( Aig_Man_t * p );
 extern int             Aig_ManLevels( Aig_Man_t * p );
 extern void            Aig_ManResetRefs( Aig_Man_t * p );
@@ -650,6 +667,10 @@ extern unsigned        Aig_ManRandom( int fReset );
 extern void            Aig_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int iWordStop );
 extern void            Aig_NodeUnionLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );
 extern void            Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );
+extern void            Aig_ManSetPhase( Aig_Man_t * pAig );
+extern Vec_Ptr_t *     Aig_ManMuxesCollect( Aig_Man_t * pAig );
+extern void            Aig_ManMuxesDeref( Aig_Man_t * pAig, Vec_Ptr_t * vMuxes );
+extern void            Aig_ManMuxesRef( Aig_Man_t * pAig, Vec_Ptr_t * vMuxes );
 
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );
@@ -676,9 +697,11 @@ extern char *          Aig_MmStepEntryFetch( Aig_MmStep_t * p, int nBytes );
 extern void            Aig_MmStepEntryRecycle( Aig_MmStep_t * p, char * pEntry, int nBytes );
 extern int             Aig_MmStepReadMemUsage( Aig_MmStep_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

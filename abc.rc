@@ -1,10 +1,10 @@
 # global parameters
 set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
-set checkread     # checks new networks after reading from file
+#unset checkread   # does not check new networks after reading from file
 #set backup        # saves backup networks retrived by "undo" and "recall"
 #set savesteps 1   # sets the maximum number of backup networks to save 
-set progressbar   # display the progress bar
+#set progressbar   # display the progress bar
 
 # program names for internal calls
 set dotwin dot.exe
@@ -19,6 +19,9 @@ set capowin MetaPl-Capo10.1-Win32.exe
 set capounix MetaPl-Capo10.1
 set gnuplotwin wgnuplot.exe
 set gnuplotunix gnuplot
+
+# Niklas Een's commands
+load_plugin C:\_projects\abc\_TEST\bip\bip_2010-10-19.exe "BIP"
 
 # standard aliases
 alias b balance

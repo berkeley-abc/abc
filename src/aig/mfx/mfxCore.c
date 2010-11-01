@@ -21,6 +21,9 @@
 #include "mfxInt.h"
 #include "bar.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -158,7 +161,7 @@ clk = clock();
 p->timeCnf += clock() - clk;
     // create the SAT problem
 clk = clock();
-    p->pSat = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
+    p->pSat = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
     if ( p->pSat == NULL )
         return 0;
     // solve the SAT problem
@@ -217,7 +220,7 @@ Vec_Int_t * Nwk_ManPowerEstimate( Nwk_Man_t * pNtk, int fProbOne )
     pSwitching = (float *)vSwitching->pArray;
     Nwk_ManForEachObj( pNtk, pObjAbc, i )
     {
-        if ( (pObjAig = Aig_Regular(pObjAbc->pCopy)) )
+        if ( (pObjAig = Aig_Regular((Aig_Obj_t *)pObjAbc->pCopy)) )
             pProbability[pObjAbc->Id] = pSwitching[pObjAig->Id];
     }
     Vec_IntFree( vSwitching );
@@ -339,7 +342,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
             p->nTotConfLevel = 0;
             p->nTimeOutsLevel = 0;
             clk2 = clock();
-            Vec_PtrForEachEntry( vNodes, pObj, i )
+            Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pObj, i )
             {
                 if ( p->pPars->nDepthMax && pObj->Level > p->pPars->nDepthMax )
                     break;
@@ -385,4 +388,6 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

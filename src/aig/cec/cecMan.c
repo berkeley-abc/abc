@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -70,21 +73,21 @@ Cec_ManSat_t * Cec_ManSatCreate( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 ***********************************************************************/
 void Cec_ManSatPrintStats( Cec_ManSat_t * p )
 {
-    printf( "CO = %8d  ", Gia_ManCoNum(p->pAig) );
-    printf( "AND = %8d  ", Gia_ManAndNum(p->pAig) );
-    printf( "Conf = %5d  ", p->pPars->nBTLimit );
-    printf( "MinVar = %5d  ", p->pPars->nSatVarMax );
-    printf( "MinCalls = %5d\n", p->pPars->nCallsRecycle );
-    printf( "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    Abc_Print( 1, "CO = %8d  ", Gia_ManCoNum(p->pAig) );
+    Abc_Print( 1, "AND = %8d  ", Gia_ManAndNum(p->pAig) );
+    Abc_Print( 1, "Conf = %5d  ", p->pPars->nBTLimit );
+    Abc_Print( 1, "MinVar = %5d  ", p->pPars->nSatVarMax );
+    Abc_Print( 1, "MinCalls = %5d\n", p->pPars->nCallsRecycle );
+    Abc_Print( 1, "Unsat calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUnsat, p->nSatTotal? 100.0*p->nSatUnsat/p->nSatTotal : 0.0, p->nSatUnsat? 1.0*p->nConfUnsat/p->nSatUnsat :0.0 );
-    ABC_PRTP( "Time", p->timeSatUnsat, p->timeTotal );
-    printf( "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    Abc_PrintTimeP( 1, "Time", p->timeSatUnsat, p->timeTotal );
+    Abc_Print( 1, "Sat   calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatSat,   p->nSatTotal? 100.0*p->nSatSat/p->nSatTotal : 0.0,   p->nSatSat? 1.0*p->nConfSat/p->nSatSat : 0.0 );
-    ABC_PRTP( "Time", p->timeSatSat,   p->timeTotal );
-    printf( "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
+    Abc_PrintTimeP( 1, "Time", p->timeSatSat,   p->timeTotal );
+    Abc_Print( 1, "Undef calls %6d  (%6.2f %%)   Ave conf = %8.1f   ", 
         p->nSatUndec, p->nSatTotal? 100.0*p->nSatUndec/p->nSatTotal : 0.0, p->nSatUndec? 1.0*p->nConfUndec/p->nSatUndec : 0.0 );
-    ABC_PRTP( "Time", p->timeSatUndec, p->timeTotal );
-    ABC_PRT( "Total time", p->timeTotal );
+    Abc_PrintTimeP( 1, "Time", p->timeSatUndec, p->timeTotal );
+    Abc_PrintTime( 1, "Total time", p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -146,18 +149,18 @@ Cec_ManPat_t * Cec_ManPatStart()
 ***********************************************************************/
 void Cec_ManPatPrintStats( Cec_ManPat_t * p )  
 { 
-    printf( "Latest: P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
+    Abc_Print( 1, "Latest: P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
         p->nPats, p->nPatLits, p->nPatLitsMin, 1.0 * p->nPatLitsMin/p->nPats, 
         1.0*(Vec_StrSize(p->vStorage)-p->iStart)/(1<<20) );
-    printf( "Total:  P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
+    Abc_Print( 1, "Total:  P = %8d.  L = %10d.  Lm = %10d. Ave = %6.1f. MEM =%6.2f Mb\n", 
         p->nPatsAll, p->nPatLitsAll, p->nPatLitsMinAll, 1.0 * p->nPatLitsMinAll/p->nPatsAll, 
         1.0*Vec_StrSize(p->vStorage)/(1<<20) );
-    ABC_PRTP( "Finding  ", p->timeFind,   p->timeTotal );
-    ABC_PRTP( "Shrinking", p->timeShrink, p->timeTotal );
-    ABC_PRTP( "Verifying", p->timeVerify, p->timeTotal );
-    ABC_PRTP( "Sorting  ", p->timeSort,   p->timeTotal );
-    ABC_PRTP( "Packing  ", p->timePack,   p->timeTotal );
-    ABC_PRT( "TOTAL    ",  p->timeTotal );
+    Abc_PrintTimeP( 1, "Finding  ", p->timeFind,   p->timeTotal );
+    Abc_PrintTimeP( 1, "Shrinking", p->timeShrink, p->timeTotal );
+    Abc_PrintTimeP( 1, "Verifying", p->timeVerify, p->timeTotal );
+    Abc_PrintTimeP( 1, "Sorting  ", p->timeSort,   p->timeTotal );
+    Abc_PrintTimeP( 1, "Packing  ", p->timePack,   p->timeTotal );
+    Abc_PrintTime( 1, "TOTAL    ",  p->timeTotal );
 }
 
 /**Function*************************************************************
@@ -289,4 +292,6 @@ void Cec_ManFraStop( Cec_ManFra_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

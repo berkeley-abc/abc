@@ -35,6 +35,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -351,4 +354,6 @@ zddPortToBddStep(
     return(res);
 
 } /* end of zddPortToBddStep */
+
+ABC_NAMESPACE_IMPL_END
 

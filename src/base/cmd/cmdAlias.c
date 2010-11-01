@@ -18,7 +18,11 @@
 
 ***********************************************************************/
 
+#include "abc.h"
 #include "cmdInt.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -117,4 +121,6 @@ void CmdCommandAliasFree( Abc_Alias * pAlias )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

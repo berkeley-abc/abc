@@ -20,6 +20,9 @@
 
 #include "retInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,7 +44,7 @@ int timeRetime = 0;
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fOneStep, int fVerbose )
+int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int nDelayLim, int fForwardOnly, int fBackwardOnly, int fOneStep, int fVerbose )
 {
     int nLatches = Abc_NtkLatchNum(pNtk);
     int nLevels  = Abc_NtkLevel(pNtk);
@@ -62,26 +65,26 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOn
     switch ( Mode )
     {
     case 1: // forward 
-        RetValue = Abc_NtkRetimeIncremental( pNtk, 1, 0, 0, fVerbose );
+        RetValue = Abc_NtkRetimeIncremental( pNtk, nDelayLim, 1, 0, 0, fVerbose );
         break;
     case 2: // backward 
-        RetValue = Abc_NtkRetimeIncremental( pNtk, 0, 0, 0, fVerbose );
+        RetValue = Abc_NtkRetimeIncremental( pNtk, nDelayLim, 0, 0, 0, fVerbose );
         break;
     case 3: // min-area 
         RetValue = Abc_NtkRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fVerbose );
         break;
     case 4: // min-delay
         if ( !fBackwardOnly )
-            RetValue += Abc_NtkRetimeIncremental( pNtk, 1, 1, fOneStep, fVerbose );
+            RetValue += Abc_NtkRetimeIncremental( pNtk, nDelayLim, 1, 1, fOneStep, fVerbose );
         if ( !fForwardOnly )
-            RetValue += Abc_NtkRetimeIncremental( pNtk, 0, 1, fOneStep, fVerbose );
+            RetValue += Abc_NtkRetimeIncremental( pNtk, nDelayLim, 0, 1, fOneStep, fVerbose );
         break;
     case 5: // min-area + min-delay
         RetValue  = Abc_NtkRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fVerbose );
         if ( !fBackwardOnly )
-            RetValue += Abc_NtkRetimeIncremental( pNtk, 1, 1, 0, fVerbose );
+            RetValue += Abc_NtkRetimeIncremental( pNtk, nDelayLim, 1, 1, 0, fVerbose );
         if ( !fForwardOnly )
-            RetValue += Abc_NtkRetimeIncremental( pNtk, 0, 1, 0, fVerbose );
+            RetValue += Abc_NtkRetimeIncremental( pNtk, nDelayLim, 0, 1, 0, fVerbose );
         break;
     case 6: // Pan's algorithm
         RetValue = Abc_NtkRetimeLValue( pNtk, 500, fVerbose );
@@ -121,7 +124,7 @@ int Abc_NtkRetimeDebug( Abc_Ntk_t * pNtk )
 //        fprintf( stdout, "Abc_NtkRetimeDebug(): Network check has failed.\n" );
 //    Io_WriteBlifLogic( pNtk, "debug_temp.blif", 1 );
     pNtkRet = Abc_NtkDup( pNtk );
-    Abc_NtkRetime( pNtkRet, 3, 0, 1, 0, 0 ); // debugging backward flow
+    Abc_NtkRetime( pNtkRet, 3, 0, 0, 1, 0, 0 ); // debugging backward flow
     return !Abc_NtkSecFraig( pNtk, pNtkRet, 10000, 3, 0 );
 }
 
@@ -129,4 +132,6 @@ int Abc_NtkRetimeDebug( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

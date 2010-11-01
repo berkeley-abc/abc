@@ -19,6 +19,9 @@
 #include "fraigInt.h"
 #include <limits.h>
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -237,7 +240,7 @@ int Fraig_CheckTfi2( Fraig_Man_t * pMan, Fraig_Node_t * pOld, Fraig_Node_t * pNe
   Description [This procedure collects the nodes reachable from
   the POs of the AIG and sets the type of fanout counter (none, one,
   or many) for each node. This procedure is useful to determine
-  fanout-ABC_FREE cones of AND-nodes, which is helpful for rebalancing
+  fanout-free cones of AND-nodes, which is helpful for rebalancing
   the AIG (see procedure Fraig_ManRebalance, or something like that).]
                
   SideEffects []
@@ -1031,4 +1034,6 @@ int Fraig_NodeIsTravIdPrevious( Fraig_Man_t * pMan, Fraig_Node_t * pNode )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

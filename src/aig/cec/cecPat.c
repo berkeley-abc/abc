@@ -20,6 +20,9 @@
 
 #include "cecInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -296,7 +299,7 @@ void Cec_ManPatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vPat 
     Value = Cec_ManPatComputePattern3_rec( p, Gia_ObjFanin0(pObj) );
     Value = Gia_XsimNotCond( Value, Gia_ObjFaninC0(pObj) );
     if ( Value != GIA_ONE )
-        printf( "Cec_ManPatVerifyPattern(): Verification failed.\n" );
+        Abc_Print( 1, "Cec_ManPatVerifyPattern(): Verification failed.\n" );
     assert( Value == GIA_ONE );
 }
 
@@ -412,16 +415,16 @@ int Cec_ManPatCollectTry( Vec_Ptr_t * vInfo, Vec_Ptr_t * vPres, int iBit, int * 
     int i;
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
         if ( Gia_InfoHasBit( pPres, iBit ) && 
              Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
              return 0;
     }
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
         Gia_InfoSetBit( pPres, iBit );
         if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
             Gia_InfoXorBit( pInfo, iBit );
@@ -478,7 +481,7 @@ Vec_Ptr_t * Cec_ManPatCollectPatterns( Cec_ManPat_t *  pMan, int nInputs, int nW
     pMan->iStart = iStartOld;
     if ( pMan->fVerbose )
     {
-        printf( "Total = %5d. Max used = %5d. Full = %5d. Series = %d. ", 
+        Abc_Print( 1, "Total = %5d. Max used = %5d. Full = %5d. Series = %d. ", 
             nPatterns, kMax, nWordsInit*32, pMan->nSeries );
         ABC_PRT( "Time", clock() - clk );
         Cec_ManPatPrintStats( pMan );
@@ -551,7 +554,7 @@ Vec_Ptr_t * Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nReg
             nBits *= 2;
         }
     }
-//    printf( "packed %d patterns into %d vectors (out of %d)\n", nPatterns, kMax, nBits );
+//    Abc_Print( 1, "packed %d patterns into %d vectors (out of %d)\n", nPatterns, kMax, nBits );
     Vec_PtrFree( vPres );
     Vec_IntFree( vPat );
     return vInfo;
@@ -561,4 +564,6 @@ Vec_Ptr_t * Cec_ManPatPackPatterns( Vec_Int_t * vCexStore, int nInputs, int nReg
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,9 @@
 #include "sswInt.h"
 #include "bar.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -153,7 +156,7 @@ void Ssw_ManLoadSolver( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
     Ssw_ManCollectPis_rec( pRepr, p->vNewLos );
     Ssw_ManCollectPis_rec( pObj,  p->vNewLos );
     // add logic cones for register outputs
-    Vec_PtrForEachEntry( p->vNewLos, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vNewLos, pTemp, i )
     {
         pObj0 = Aig_Regular( Ssw_ObjFrame( p, pTemp, p->pPars->nFramesK ) );
         Ssw_CnfNodeAddToSolver( p->pMSat, pObj0 );
@@ -172,7 +175,7 @@ void Ssw_ManLoadSolver( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj )
 
     // collect the related constraint POs
     Vec_IntClear( p->vNewPos );
-    Vec_PtrForEachEntry( p->vNewLos, pTemp, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vNewLos, pTemp, i )
         Ssw_ManCollectPos_rec( p, pTemp, p->vNewPos );
     // check if the corresponding pairs are added
     Vec_IntForEachEntry( p->vNewPos, iConstr, i )
@@ -222,7 +225,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
         }
         assert( !Aig_IsComplement(pObjFraig) );
         assert( Aig_ObjIsPi(pObjFraig) );
-        pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
+        pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
         Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, 0 );
     }
     // set random simulation info for the second frame
@@ -233,7 +236,7 @@ void Ssw_ManSweepTransferDyn( Ssw_Man_t * p )
             pObjFraig = Ssw_ObjFrame( p, pObj, f );
             assert( !Aig_IsComplement(pObjFraig) );
             assert( Aig_ObjIsPi(pObjFraig) );
-            pInfo = Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
+            pInfo = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjPioNum(pObjFraig) );
             Ssw_SmlObjSetWord( p->pSml, pObj, pInfo[0], 0, f );
         }
     }
@@ -327,10 +330,10 @@ int Ssw_ManSweepResimulateDynLocal( Ssw_Man_t * p, int f )
 //    Aig_ManIncrementTravId( p->pAig );
 //    Aig_ObjIsTravIdCurrent( p->pAig, Aig_ManConst1(p->pAig) );
     p->nVisCounter++;
-    Vec_PtrForEachEntry( p->vResimConsts, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vResimConsts, pObj, i )
         Ssw_SmlSimulateOneDyn_rec( p->pSml, pObj, p->nFrames-1, p->pVisited, p->nVisCounter );
     // resimulate the cone of influence of the cand classes
-    Vec_PtrForEachEntry( p->vResimClasses, pRepr, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vResimClasses, pRepr, i )
     {
         ppClass = Ssw_ClassesReadClass( p->ppClasses, pRepr, &nSize );
         for ( k = 0; k < nSize; k++ )
@@ -343,7 +346,7 @@ int Ssw_ManSweepResimulateDynLocal( Ssw_Man_t * p, int f )
     // refine these nodes
     RetValue1 = Ssw_ClassesRefineConst1Group( p->ppClasses, p->vResimConsts, 1 );
     RetValue2 = 0;
-    Vec_PtrForEachEntry( p->vResimClasses, pRepr, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, p->vResimClasses, pRepr, i )
         RetValue2 += Ssw_ClassesRefineOneClass( p->ppClasses, pRepr, 1 );
 
     // prepare simulation info for the next round
@@ -481,4 +484,6 @@ p->timeReduce += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

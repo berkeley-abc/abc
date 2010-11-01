@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -441,7 +444,7 @@ int Aig_ManPropagateBuffers( Aig_Man_t * p, int fUpdateLevel )
     for ( nSteps = 0; Vec_PtrSize(p->vBufs) > 0; nSteps++ )
     {
         // get the node with a buffer fanin
-        for ( pObj = Vec_PtrEntryLast(p->vBufs); Aig_ObjIsBuf(pObj); pObj = Aig_ObjFanout0(p, pObj) );
+        for ( pObj = (Aig_Obj_t *)Vec_PtrEntryLast(p->vBufs); Aig_ObjIsBuf(pObj); pObj = Aig_ObjFanout0(p, pObj) );
         // replace this node by a node without buffer
         Aig_NodeFixBufferFanins( p, pObj, fUpdateLevel );
         // stop if a cycle occured
@@ -548,4 +551,6 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

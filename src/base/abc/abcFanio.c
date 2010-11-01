@@ -20,6 +20,9 @@
 
 #include "abc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -274,14 +277,14 @@ void Abc_ObjTransferFanout( Abc_Obj_t * pNodeFrom, Abc_Obj_t * pNodeTo )
     assert( !Abc_ObjIsPo(pNodeFrom) && !Abc_ObjIsPo(pNodeTo) );
     assert( pNodeFrom->pNtk == pNodeTo->pNtk );
     assert( pNodeFrom != pNodeTo );
-    assert( Abc_ObjFanoutNum(pNodeFrom) > 0 );
+    assert( !Abc_ObjIsNode(pNodeFrom) || Abc_ObjFanoutNum(pNodeFrom) > 0 );
     // get the fanouts of the old node
     nFanoutsOld = Abc_ObjFanoutNum(pNodeTo);
     vFanouts = Vec_PtrAlloc( nFanoutsOld );
     Abc_NodeCollectFanouts( pNodeFrom, vFanouts );
     // patch the fanin of each of them
     for ( i = 0; i < vFanouts->nSize; i++ )
-        Abc_ObjPatchFanin( vFanouts->pArray[i], pNodeFrom, pNodeTo );
+        Abc_ObjPatchFanin( (Abc_Obj_t *)vFanouts->pArray[i], pNodeFrom, pNodeTo );
     assert( Abc_ObjFanoutNum(pNodeFrom) == 0 );
     assert( Abc_ObjFanoutNum(pNodeTo) == nFanoutsOld + vFanouts->nSize );
     Vec_PtrFree( vFanouts );
@@ -337,4 +340,6 @@ int Abc_ObjFanoutFaninNum( Abc_Obj_t * pFanout, Abc_Obj_t * pFanin )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -22,6 +22,9 @@
 #include "aig.h"
 #include "nwkMerge.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -100,7 +103,7 @@ void Abc_NtkCollectCircle( Vec_Ptr_t * vStart, Vec_Ptr_t * vNext, int nFanMax )
     Abc_Obj_t * pObj, * pNext;
     int i, k;
     Vec_PtrClear( vNext );
-    Vec_PtrForEachEntry( vStart, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vStart, pObj, i )
     {
         Abc_ObjForEachFanin( pObj, pNext, k )
         {
@@ -158,7 +161,7 @@ void Abc_NtkCollectNonOverlapCands( Abc_Obj_t * pLut, Vec_Ptr_t * vStart, Vec_Pt
         vStart = vNext;
         vNext  = vTemp;
         // collect the nodes in vStart
-        Vec_PtrForEachEntry( vStart, pObj, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vStart, pObj, k )
             Vec_PtrPush( vCands, pObj );
     }
 
@@ -180,7 +183,7 @@ void Abc_NtkCollectNonOverlapCands( Abc_Obj_t * pLut, Vec_Ptr_t * vStart, Vec_Pt
     // - they have no more than the given number of fanins
     // - they have no more than the given diff in delay
     k = 0;
-    Vec_PtrForEachEntry( vCands, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCands, pObj, i )
     {
         if ( Abc_NodeIsTravIdCurrent(pObj) )
             continue;
@@ -305,9 +308,9 @@ Vec_Int_t * Abc_NtkLutMerge( Abc_Ntk_t * pNtk, Nwk_LMPars_t * pPars )
             continue;
         nCands += Vec_PtrSize(vCands1) + Vec_PtrSize(vCands2);
         // save candidates
-        Vec_PtrForEachEntry( vCands1, pCand, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vCands1, pCand, k )
             Nwk_ManGraphHashEdge( p, Abc_ObjId(pLut), Abc_ObjId(pCand) );
-        Vec_PtrForEachEntry( vCands2, pCand, k )
+        Vec_PtrForEachEntry( Abc_Obj_t *, vCands2, pCand, k )
             Nwk_ManGraphHashEdge( p, Abc_ObjId(pLut), Abc_ObjId(pCand) );
         // print statistics about this node
         if ( pPars->fVeryVerbose )
@@ -349,4 +352,6 @@ Vec_Int_t * Abc_NtkLutMerge( Abc_Ntk_t * pNtk, Nwk_LMPars_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

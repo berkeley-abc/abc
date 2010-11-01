@@ -18,6 +18,9 @@
 
 #include "fraigInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -294,4 +297,6 @@ void Fraig_NodeSetChoice( Fraig_Man_t * pMan, Fraig_Node_t * pNodeOld, Fraig_Nod
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

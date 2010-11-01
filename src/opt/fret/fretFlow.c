@@ -22,6 +22,9 @@
 #include "vec.h"
 #include "fretime.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -60,7 +63,7 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
   // create reverse timing edges for backward traversal
 #if !defined(IGNORE_TIMING)
   if (pManMR->maxDelay) {
-    Abc_NtkForEachObj( pNtk, pObj, i ) {
+    Vec_PtrForEachEntry( Abc_Obj_t *, pNtk, pObj, i ) {
       Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, j ) {
         vTimeIn = FDATA(pNext)->vNodes;
         if (!vTimeIn) {
@@ -77,7 +80,7 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
   memset(Vec_IntArray(pManMR->vSinkDistHist), 0, sizeof(int)*Vec_IntSize(pManMR->vSinkDistHist));
 
   // seed queue : latches, PIOs, and blocks
-  Abc_NtkForEachObj( pNtk, pObj, i )
+  Vec_PtrForEachEntry( Abc_Obj_t *, pNtk, pObj, i )
     if (Abc_ObjIsPo(pObj) ||
         Abc_ObjIsLatch(pObj) || 
         (pManMR->fIsForward && FTEST(pObj, BLOCK_OR_CONS) & pManMR->constraintMask)) {
@@ -180,7 +183,7 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
   // free time edges
 #if !defined(IGNORE_TIMING)
   if (pManMR->maxDelay) {
-    Abc_NtkForEachObj( pNtk, pObj, i ) {
+    Vec_PtrForEachEntry( Abc_Obj_t *, pNtk, pObj, i ) {
       vTimeIn = FDATA(pObj)->vNodes;
       if (vTimeIn) {
         Vec_PtrFree(vTimeIn);
@@ -190,7 +193,7 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
   }
 #endif
 
-  Abc_NtkForEachObj( pNtk, pObj, i ) {
+  Vec_PtrForEachEntry( Abc_Obj_t *, pNtk, pObj, i ) {
     Vec_IntAddToEntry(pManMR->vSinkDistHist, FDATA(pObj)->r_dist, 1);
     Vec_IntAddToEntry(pManMR->vSinkDistHist, FDATA(pObj)->e_dist, 1);
 
@@ -695,3 +698,5 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
 #endif
   return 1;
 }
+ABC_NAMESPACE_IMPL_END
+

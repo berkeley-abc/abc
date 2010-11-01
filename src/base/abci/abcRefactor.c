@@ -21,6 +21,9 @@
 #include "abc.h"
 #include "dec.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -58,9 +61,9 @@ struct Abc_ManRef_t_
 };
  
 static void           Abc_NtkManRefPrintStats( Abc_ManRef_t * p );
-static Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, bool fUseDcs, bool fVerbose );
+static Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, int fUseDcs, int fVerbose );
 static void           Abc_NtkManRefStop( Abc_ManRef_t * p );
-static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
+static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -82,9 +85,9 @@ static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose )
+int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose )
 {
-    extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain );
+    extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Abc_ManRef_t * pManRef;
     Abc_ManCut_t * pManCut;
@@ -96,7 +99,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
 
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
-    Abc_AigCleanup(pNtk->pManFunc);
+    Abc_AigCleanup((Abc_Aig_t *)pNtk->pManFunc);
     // start the managers
     pManCut = Abc_NtkManCutStart( nNodeSizeMax, nConeSizeMax, 2, 1000 );
     pManRef = Abc_NtkManRefStart( nNodeSizeMax, nConeSizeMax, fUseDcs, fVerbose );
@@ -182,7 +185,7 @@ pManRef->timeTotal = clock() - clkStart;
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose )
+Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose )
 {
     extern int            Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax, int LevelMax );
     int fVeryVerbose = 0;
@@ -250,13 +253,13 @@ p->timeFact += clock() - clk;
 
     // mark the fanin boundary 
     // (can mark only essential fanins, belonging to bNodeFunc!)
-    Vec_PtrForEachEntry( vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pFanin, i )
         pFanin->vFanouts.nSize++;
     // label MFFC with current traversal ID
     Abc_NtkIncrementTravId( pNode->pNtk );
     nNodesSaved = Abc_NodeMffcLabelAig( pNode );
     // unmark the fanin boundary and set the fanins as leaves in the form
-    Vec_PtrForEachEntry( vFanins, pFanin, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pFanin, i )
     {
         pFanin->vFanouts.nSize--;
         Dec_GraphNode(pFForm, i)->pFunc = pFanin;
@@ -307,7 +310,7 @@ p->timeEval += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, bool fUseDcs, bool fVerbose )
+Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, int fUseDcs, int fVerbose )
 {
     Abc_ManRef_t * p;
     p = ABC_ALLOC( Abc_ManRef_t, 1 );
@@ -378,4 +381,6 @@ void Abc_NtkManRefPrintStats( Abc_ManRef_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

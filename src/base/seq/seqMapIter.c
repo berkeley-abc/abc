@@ -23,6 +23,9 @@
 #include "mio.h"
 #include "mapperInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 // the internal procedures
 static float Seq_MapRetimeDelayLagsInternal( Abc_Ntk_t * pNtk, int fVerbose );
 static float Seq_MapRetimeSearch_rec( Abc_Ntk_t * pNtk, float FiMin, float FiMax, float Delta, int fVerbose );
@@ -621,3 +624,5 @@ void Seq_MapCanonicizeTruthTables( Abc_Ntk_t * pNtk )
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

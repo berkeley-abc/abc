@@ -19,6 +19,9 @@
 #include <ctype.h>
 #include "mioInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,10 +30,10 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-static Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fExtendedFormat, st_table * tExcludeGate, int fVerbose );
-static int          Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, bool fExtendedFormat, st_table * tExcludeGate, int fVerbose );
-static Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat );
-static Mio_Pin_t *  Mio_LibraryReadPin( char ** ppToken, bool fExtendedFormat );
+static Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
+static int          Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose );
+static Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat );
+static Mio_Pin_t *  Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat );
 static char *       chomp( char *s );
 static void         Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib );
 static void         Io_ReadFileRemoveComments( char * pBuffer, int * pnDots, int * pnLines );
@@ -63,13 +66,13 @@ Mio_Library_t * Mio_LibraryRead( void * pAbc, char * FileName, char * ExcludeFil
             return 0;
         }
        
-        fprintf ( Abc_FrameReadOut( pAbc ), "Read %d gates from exclude file\n", num );
+        fprintf ( Abc_FrameReadOut( (Abc_Frame_t *)pAbc ), "Read %d gates from exclude file\n", num );
     }
 
-    pLib = Mio_LibraryReadOne( pAbc, FileName, 0, tExcludeGate, fVerbose );       // try normal format first ..
+    pLib = Mio_LibraryReadOne( (Abc_Frame_t *)pAbc, FileName, 0, tExcludeGate, fVerbose );       // try normal format first ..
     if ( pLib == NULL )
     {
-        pLib = Mio_LibraryReadOne( pAbc, FileName, 1, tExcludeGate, fVerbose );   // .. otherwise try extended format 
+        pLib = Mio_LibraryReadOne( (Abc_Frame_t *)pAbc, FileName, 1, tExcludeGate, fVerbose );   // .. otherwise try extended format 
         if ( pLib != NULL )
             printf ( "Warning: Read extended GENLIB format but ignoring extensions\n" );
     }
@@ -88,7 +91,7 @@ Mio_Library_t * Mio_LibraryRead( void * pAbc, char * FileName, char * ExcludeFil
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fExtendedFormat, st_table * tExcludeGate, int fVerbose )
+Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, int fExtendedFormat, st_table * tExcludeGate, int fVerbose )
 {
     Mio_Library_t * pLib;
     char * pBuffer = 0;
@@ -167,7 +170,7 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
   SeeAlso     []
 
 ***********************************************************************/
-int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, bool fExtendedFormat, st_table * tExcludeGate, int fVerbose )
+int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st_table * tExcludeGate, int fVerbose )
 {
     Mio_Gate_t * pGate, ** ppGate;
     char * pToken;
@@ -236,7 +239,7 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, bool fExtende
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
+Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat )
 {
     Mio_Gate_t * pGate;
     Mio_Pin_t * pPin, ** ppPin;
@@ -305,7 +308,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, bool fExtendedFormat )
+Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat )
 {
     Mio_Pin_t * pPin;
     char * pToken = *ppToken;
@@ -584,7 +587,7 @@ int Mio_LibraryReadExclude( void * pAbc, char * ExcludeFile, st_table * tExclude
 
         if ( pEx == NULL )
         {
-            fprintf ( Abc_FrameReadErr( pAbc ), "Error: Could not open exclude file %s. Stop.\n", ExcludeFile );
+            fprintf ( Abc_FrameReadErr( (Abc_Frame_t *)pAbc ), "Error: Could not open exclude file %s. Stop.\n", ExcludeFile );
             return -1;
         }
 
@@ -663,4 +666,6 @@ void Io_ReadFileRemoveComments( char * pBuffer, int * pnDots, int * pnLines )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

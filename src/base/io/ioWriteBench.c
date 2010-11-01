@@ -20,6 +20,9 @@
 
 #include "ioAbc.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ static int Io_WriteBenchLutOneNode( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-int Io_WriteBench( Abc_Ntk_t * pNtk, char * pFileName )
+int Io_WriteBench( Abc_Ntk_t * pNtk, const char * pFileName )
 {
     Abc_Ntk_t * pExdc;
     FILE * pFile;
@@ -258,8 +261,8 @@ int Io_WriteBenchLutOneNode( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vTruth
     nFanins = Abc_ObjFaninNum(pNode);
     assert( nFanins <= 8 );
     // compute the truth table
-    pTruth = Hop_ManConvertAigToTruth( pNode->pNtk->pManFunc, Hop_Regular(pNode->pData), nFanins, vTruth, 0 );
-    if ( Hop_IsComplement(pNode->pData) )
+    pTruth = Hop_ManConvertAigToTruth( (Hop_Man_t *)pNode->pNtk->pManFunc, Hop_Regular((Hop_Obj_t *)pNode->pData), nFanins, vTruth, 0 );
+    if ( Hop_IsComplement((Hop_Obj_t *)pNode->pData) )
         Extra_TruthNot( pTruth, pTruth, nFanins );
     // consider simple cases
     if ( Extra_TruthIsConst0(pTruth, nFanins) )
@@ -332,4 +335,6 @@ int Io_WriteBenchCheckNames( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

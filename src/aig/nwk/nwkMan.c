@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -117,7 +120,7 @@ void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
 ***********************************************************************/
 int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
 {
-    extern void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
+//    extern void Ntl_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
     extern void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, Vec_Ptr_t * vPoNames );
     static struct ParStruct {
         char * pName;  // name of the best saved network
@@ -154,7 +157,7 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
         ParsBest.nPis  = ParsNew.nPis; 
         ParsBest.nPos  = ParsNew.nPos;
         // write the network
-//        Ioa_WriteBlifLogic( pNtk, pNtl, "best.blif" );
+//        Ntl_WriteBlifLogic( pNtk, pNtl, "best.blif" );
 //        Nwk_ManDumpBlif( pNtk, "best_map.blif", NULL, NULL );
         return 1;
     }
@@ -209,14 +212,14 @@ float Nwl_ManComputeTotalSwitching( Nwk_Man_t * pNtk )
     pSwitching = (float *)vSwitching->pArray;
     Nwk_ManForEachObj( pNtk, pObjAbc, i )
     {
-        if ( (pObjAig = Aig_Regular(pObjAbc->pCopy)) )
+        if ( (pObjAig = Aig_Regular((Aig_Obj_t *)pObjAbc->pCopy)) )
             Result += Nwk_ObjFanoutNum(pObjAbc) * pSwitching[pObjAig->Id];
     }
     Vec_IntFree( vSwitching );
     Aig_ManStop( pAig );
     return Result;
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Prints stats of the manager.]
@@ -228,18 +231,18 @@ float Nwl_ManComputeTotalSwitching( Nwk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, void * pNtl )
+void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, int fPower, Ntl_Man_t * pNtl )
 {
-    extern int Ntl_ManLatchNum( void * p );
-    extern void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
+//    extern int Ntl_ManLatchNum( Ntl_Man_t * p );
+//    extern void Ntl_ManWriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
     if ( fSaveBest )
         Nwk_ManCompareAndSaveBest( pNtk, pNtl );
     if ( fDumpResult )
     {
         char Buffer[1000] = {0};
-        char * pNameGen = pNtk->pSpec? Nwk_FileNameGeneric( pNtk->pSpec ) : "nameless_";
+        const char * pNameGen = pNtk->pSpec? Nwk_FileNameGeneric( pNtk->pSpec ) : "nameless_";
         sprintf( Buffer, "%s_dump.blif", pNameGen );
-        Ioa_WriteBlifLogic( pNtk, pNtl, Buffer );
+//        Ntl_ManWriteBlifLogic( pNtk, pNtl, Buffer );
 //        sprintf( Buffer, "%s_dump_map.blif", pNameGen );
 //        Nwk_ManDumpBlif( pNtk, Buffer, NULL, NULL );
         if ( pNtk->pSpec ) ABC_FREE( pNameGen );
@@ -251,7 +254,7 @@ void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int
     printf( "po = %5d  ",    Nwk_ManPoNum(pNtk) );
     printf( "ci = %5d  ",    Nwk_ManCiNum(pNtk) );
     printf( "co = %5d  ",    Nwk_ManCoNum(pNtk) );
-    printf( "lat = %5d  ",   Ntl_ManLatchNum(pNtl) );
+//    printf( "lat = %5d  ",   Ntl_ManLatchNum(pNtl) );
     printf( "node = %5d  ",  Nwk_ManNodeNum(pNtk) );
     printf( "edge = %5d  ",  Nwk_ManGetTotalFanins(pNtk) );
     printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(pNtk) );
@@ -270,4 +273,6 @@ void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

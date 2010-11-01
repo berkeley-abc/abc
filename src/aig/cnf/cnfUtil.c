@@ -20,6 +20,9 @@
 
 #include "cnf.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -56,7 +59,7 @@ int Aig_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
         Vec_Ptr_t * vSuper = Vec_PtrAlloc( 100 );
         Aig_ObjCollectSuper( pObj, vSuper );
         aArea = Vec_PtrSize(vSuper) + 1;
-        Vec_PtrForEachEntry( vSuper, pLeaf, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pLeaf, i )
             aArea += Aig_ManScanMapping_rec( p, Aig_Regular(pLeaf), vMapped );
         Vec_PtrFree( vSuper );
         ////////////////////////////
@@ -131,7 +134,7 @@ int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
         Vec_Ptr_t * vSuper = Vec_PtrAlloc( 100 );
         Aig_ObjCollectSuper( pObj, vSuper );
         aArea = Vec_PtrSize(vSuper) + 1;
-        Vec_PtrForEachEntry( vSuper, pLeaf, i )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pLeaf, i )
             aArea += Cnf_ManScanMapping_rec( p, Aig_Regular(pLeaf), vMapped, fPreorder );
         Vec_PtrFree( vSuper );
         ////////////////////////////
@@ -139,7 +142,7 @@ int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
     }
     else
     {
-        pCutBest = pObj->pData;
+        pCutBest = (Cnf_Cut_t *)pObj->pData;
 //        assert( pCutBest->nFanins > 0 );
         assert( pCutBest->Cost < 127 );
         aArea = pCutBest->Cost;
@@ -230,4 +233,6 @@ Vec_Int_t * Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -21,6 +21,7 @@
 #ifndef __SSW_INT_H__
 #define __SSW_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -33,9 +34,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -93,6 +95,7 @@ struct Ssw_Man_t_
     int              iNodeLast;      // the last node considered
     Vec_Ptr_t *      vResimConsts;   // resimulation constants
     Vec_Ptr_t *      vResimClasses;  // resimulation classes
+    Vec_Int_t *      vInits;         // the init values of primary inputs under constraints
     // counter example storage
     int              nPatWords;      // the number of words in the counter example
     unsigned *       pPatWords;      // the counter example
@@ -113,6 +116,15 @@ struct Ssw_Man_t_
     int              nNodesEnd;
     int              nRegsBeg;
     int              nRegsEnd;
+    // equiv statistis
+    int              nConesTotal;
+    int              nConesConstr;
+    int              nEquivsTotal;
+    int              nEquivsConstr;
+    int              nNodesBegC;
+    int              nNodesEndC;
+    int              nRegsBegC;
+    int              nRegsEndC;
     // runtime stats
     int              timeBmc;        // bounded model checking
     int              timeReduce;     // speculative reduction
@@ -172,7 +184,7 @@ static inline void        Ssw_ObjSetFrame( Ssw_Man_t * p, Aig_Obj_t * pObj, int 
 static inline Aig_Obj_t * Ssw_ObjChild0Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Ssw_ObjFrame(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj)) : NULL;  }
 static inline Aig_Obj_t * Ssw_ObjChild1Fra( Ssw_Man_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Ssw_ObjFrame(p, Aig_ObjFanin1(pObj), i), Aig_ObjFaninC1(pObj)) : NULL;  }
 
-static inline Aig_Obj_t * Ssw_ObjFrame_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i )                       { return Vec_PtrGetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id );     }
+static inline Aig_Obj_t * Ssw_ObjFrame_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i )                       { return (Aig_Obj_t *)Vec_PtrGetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id );     }
 static inline void        Ssw_ObjSetFrame_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { Vec_PtrSetEntry( p->vAig2Frm, p->nObjs*i+pObj->Id, pNode );     }
 
 static inline Aig_Obj_t * Ssw_ObjChild0Fra_( Ssw_Frm_t * p, Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Ssw_ObjFrame_(p, Aig_ObjFanin0(pObj), i), Aig_ObjFaninC0(pObj)) : NULL;  }
@@ -206,8 +218,9 @@ extern void          Ssw_ClassesCollectClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, 
 extern void          Ssw_ClassesCheck( Ssw_Cla_t * p );
 extern void          Ssw_ClassesPrint( Ssw_Cla_t * p, int fVeryVerbose );
 extern void          Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj );
-extern Ssw_Cla_t *   Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int nMaxLevs, int fVerbose );
+extern Ssw_Cla_t *   Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int fOutputCorr, int nMaxLevs, int fVerbose );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareSimple( Aig_Man_t * pAig, int fLatchCorr, int nMaxLevs );
+extern Ssw_Cla_t *   Ssw_ClassesPrepareFromReprs( Aig_Man_t * pAig );
 extern Ssw_Cla_t *   Ssw_ClassesPrepareTargets( Aig_Man_t * pAig );
 extern Ssw_Cla_t *   Ssw_ClassesPreparePairs( Aig_Man_t * pAig, Vec_Int_t ** pvClasses );
 extern Ssw_Cla_t *   Ssw_ClassesPreparePairsSimple( Aig_Man_t * pMiter, Vec_Int_t * vPairs );
@@ -220,6 +233,10 @@ extern Ssw_Sat_t *   Ssw_SatStart( int fPolarFlip );
 extern void          Ssw_SatStop( Ssw_Sat_t * p );
 extern void          Ssw_CnfNodeAddToSolver( Ssw_Sat_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_CnfGetNodeValue( Ssw_Sat_t * p, Aig_Obj_t * pObjFraig );
+/*=== sswConstr.c ===================================================*/
+extern int           Ssw_ManSweepBmcConstr( Ssw_Man_t * p );
+extern int           Ssw_ManSweepConstr( Ssw_Man_t * p );
+extern void          Ssw_ManRefineByConstrSim( Ssw_Man_t * p );
 /*=== sswCore.c ===================================================*/
 extern Aig_Man_t *   Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p );
 /*=== sswDyn.c ===================================================*/
@@ -231,10 +248,10 @@ extern int           Ssw_ManSweepLatch( Ssw_Man_t * p );
 extern Ssw_Man_t *   Ssw_ManCreate( Aig_Man_t * pAig, Ssw_Pars_t * pPars );
 extern void          Ssw_ManCleanup( Ssw_Man_t * p );
 extern void          Ssw_ManStop( Ssw_Man_t * p );
-extern void          Ssw_ManStartSolver( Ssw_Man_t * p );
 /*=== sswSat.c ===================================================*/
 extern int           Ssw_NodesAreEquiv( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 extern int           Ssw_NodesAreConstrained( Ssw_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
+extern int           Ssw_NodeIsConstrained( Ssw_Man_t * p, Aig_Obj_t * pPoObj );
 /*=== sswSemi.c ===================================================*/
 extern int           Ssw_FilterUsingSemi( Ssw_Man_t * pMan, int fCheckTargets, int nConfMax, int fVerbose );
 /*=== sswSim.c ===================================================*/
@@ -259,6 +276,7 @@ extern void          Ssw_ManResimulateBit( Ssw_Man_t * p, Aig_Obj_t * pObj, Aig_
 extern void          Ssw_ManResimulateWord( Ssw_Man_t * p, Aig_Obj_t * pCand, Aig_Obj_t * pRepr, int f );
 /*=== sswSweep.c ===================================================*/
 extern int           Ssw_ManGetSatVarValue( Ssw_Man_t * p, Aig_Obj_t * pObj, int f );
+extern void          Ssw_SmlSavePatternAig( Ssw_Man_t * p, int f );
 extern int           Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc );
 extern int           Ssw_ManSweepBmc( Ssw_Man_t * p );
 extern int           Ssw_ManSweep( Ssw_Man_t * p );
@@ -267,9 +285,11 @@ extern void          Ssw_UniqueRegisterPairInfo( Ssw_Man_t * p );
 extern int           Ssw_ManUniqueOne( Ssw_Man_t * p, Aig_Obj_t * pRepr, Aig_Obj_t * pObj, int fVerbose );
 extern int           Ssw_ManUniqueAddConstraint( Ssw_Man_t * p, Vec_Ptr_t * vCommon, int f1, int f2 );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

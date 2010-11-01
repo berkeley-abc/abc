@@ -2,7 +2,7 @@
 MiniSat -- Copyright (c) 2005, Niklas Sorensson
 http://www.cs.chalmers.se/Cs/Research/FormalMethods/MiniSat/
 
-Permission is hereby granted, ABC_FREE of charge, to any person obtaining a copy of this software and
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
 sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
@@ -21,6 +21,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #ifndef satVec_h
 #define satVec_h
+
+#include "abc_global.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 // vector of 32-bit intergers (added for 64-bit portability)
 struct veci_t {
@@ -77,5 +82,9 @@ static inline void   vecp_push   (vecp* v, void* e)
     v->ptr[v->size++] = e;
 }
 
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

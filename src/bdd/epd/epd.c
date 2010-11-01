@@ -28,6 +28,9 @@
 #include "util_hack.h"
 #include "epd.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 
 /**Function********************************************************************
 
@@ -1312,3 +1315,5 @@ IsNanOrInfDouble(double value)
   }
   return(0);
 }
+ABC_NAMESPACE_IMPL_END
+

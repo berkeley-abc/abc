@@ -21,6 +21,9 @@
 #include "nwk.h"
 #include "if.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -126,21 +129,24 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
     Aig_ManForEachObj( p, pNode, i )
     {
         if ( Aig_ObjIsAnd(pNode) )
+        {
             pIfObj = If_ManCreateAnd( pIfMan, 
-                If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ), 
-                If_NotCond( Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
+                If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ), 
+                If_NotCond( (If_Obj_t *)Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
+//            printf( "no%d=%d\n ", If_ObjId(pIfObj), If_ObjLevel(pIfObj) );
+        }
         else if ( Aig_ObjIsPi(pNode) )
         {
             pIfObj = If_ManCreateCi( pIfMan );
             If_ObjSetLevel( pIfObj, Aig_ObjLevel(pNode) );
-//            printf( "pi=%d ", pIfObj->Level );
+//            printf( "pi%d=%d\n ", If_ObjId(pIfObj), If_ObjLevel(pIfObj) );
             if ( pIfMan->nLevelMax < (int)pIfObj->Level )
                 pIfMan->nLevelMax = (int)pIfObj->Level;
         }
         else if ( Aig_ObjIsPo(pNode) )
         {
-            pIfObj = If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
-//            printf( "po=%d ", pIfObj->Level );
+            pIfObj = If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
+//            printf( "po%d=%d\n ", If_ObjId(pIfObj), If_ObjLevel(pIfObj) );
         }
         else if ( Aig_ObjIsConst1(pNode) )
             pIfObj = If_ManConst1( pIfMan );
@@ -157,8 +163,8 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         {
             pIfMan->nChoices++;
             for ( pPrev = pNode, pFanin = Aig_ObjEquiv(p, pNode); pFanin; pPrev = pFanin, pFanin = Aig_ObjEquiv(p, pFanin) )
-                If_ObjSetChoice( pPrev->pData, pFanin->pData );
-            If_ManCreateChoice( pIfMan, pNode->pData );
+                If_ObjSetChoice( (If_Obj_t *)pPrev->pData, (If_Obj_t *)pFanin->pData );
+            If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pData );
         }
 //        assert( If_ObjLevel(pIfObj) == Aig_ObjLevel(pNode) );
     }
@@ -188,14 +194,14 @@ Hop_Obj_t * Nwk_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj
     pCut = If_ObjCutBest(pIfObj);
     // if the cut is visited, return the result
     if ( If_CutData(pCut) )
-        return If_CutData(pCut);
+        return (Hop_Obj_t *)If_CutData(pCut);
     // mark the node as visited
     Vec_PtrPush( vVisited, pCut );
     // insert the worst case
     If_CutSetData( pCut, (void *)1 );
     // skip in case of primary input
     if ( If_ObjIsCi(pIfObj) )
-        return If_CutData(pCut);
+        return (Hop_Obj_t *)If_CutData(pCut);
     // compute the functions of the children
     for ( pTemp = pIfObj; pTemp; pTemp = pTemp->pEquiv )
     {
@@ -212,7 +218,7 @@ Hop_Obj_t * Nwk_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj
         If_CutSetData( pCut, gFunc );
         break;
     }
-    return If_CutData(pCut);
+    return (Hop_Obj_t *)If_CutData(pCut);
 }
 
 /**Function*************************************************************
@@ -250,7 +256,7 @@ Hop_Obj_t * Nwk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
     // clean the cuts
     If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
         If_CutSetData( If_ObjCutBest(pLeaf), NULL );
-    Vec_PtrForEachEntry( pIfMan->vTemp, pCut, i )
+    Vec_PtrForEachEntry( If_Cut_t *, pIfMan->vTemp, pCut, i )
         If_CutSetData( pCut, NULL );
     return gFunc;
 }
@@ -284,7 +290,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
     vIfToAig = Vec_PtrStart( If_ManObjNum(pIfMan) );
     Aig_ManForEachObj( p, pObj, i )
     {
-        pIfObj = Vec_PtrEntry( vAigToIf, i );
+        pIfObj = (If_Obj_t *)Vec_PtrEntry( vAigToIf, i );
         Vec_PtrWriteEntry( vIfToAig, pIfObj->Id, pObj );
     }
     // construct the network
@@ -296,7 +302,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
 //    pNtk->nTruePos = Nwk_ManCoNum(pNtk) - pNtk->nLatches;
     Aig_ManForEachObj( p, pObj, i )
     {
-        pIfObj = Vec_PtrEntry( vAigToIf, i );
+        pIfObj = (If_Obj_t *)Vec_PtrEntry( vAigToIf, i );
         if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
             continue;
         if ( Aig_ObjIsNode(pObj) )
@@ -308,8 +314,8 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
             pObjNew = Nwk_ManCreateNode( pNtk, nLeaves, pIfObj->nRefs );
             for ( k = 0; k < nLeaves; k++ )
             {
-                pObjRepr = Vec_PtrEntry( vIfToAig, ppLeaves[k] );
-                Nwk_ObjAddFanin( pObjNew, pObjRepr->pData );
+                pObjRepr = (Aig_Obj_t *)Vec_PtrEntry( vIfToAig, ppLeaves[k] );
+                Nwk_ObjAddFanin( pObjNew, (Nwk_Obj_t *)pObjRepr->pData );
             }
             // get the functionality
             pObjNew->pFunc = Nwk_NodeIfToHop( pNtk->pManHop, pIfMan, pIfObj );
@@ -320,7 +326,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
         {
             pObjNew = Nwk_ManCreateCo( pNtk );
             pObjNew->fInvert = Aig_ObjFaninC0(pObj);
-            Nwk_ObjAddFanin( pObjNew, Aig_ObjFanin0(pObj)->pData );
+            Nwk_ObjAddFanin( pObjNew, (Nwk_Obj_t *)Aig_ObjFanin0(pObj)->pData );
 //printf( "%d ", pObjNew->Id );
         }
         else if ( Aig_ObjIsConst1(pObj) )
@@ -365,6 +371,7 @@ Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
     if ( pIfMan == NULL )
         return NULL;
     pIfMan->pManTim = Tim_ManDup( pManTime, 0 );
+    pIfMan->pPars->fCutMin = 0; // is not compatible with deriving result
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );
@@ -384,4 +391,6 @@ Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

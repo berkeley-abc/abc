@@ -21,6 +21,7 @@
 #ifndef __CUT_INT_H__
 #define __CUT_INT_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -30,6 +31,9 @@
 #include "vec.h"
 #include "cut.h"
 #include "cutList.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -148,6 +152,10 @@ extern int                 Cut_TableReadTime( Cut_HashTable_t * pTable );
 /*=== cutTruth.c ==========================================================*/
 extern void                Cut_TruthComputeOld( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 );
 extern void                Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 );
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

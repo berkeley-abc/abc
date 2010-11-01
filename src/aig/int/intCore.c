@@ -20,6 +20,9 @@
 
 #include "intInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,6 +47,7 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
     memset( p, 0, sizeof(Inter_ManParams_t) );
     p->nBTLimit     = 10000; // limit on the number of conflicts
     p->nFramesMax   = 40;    // the max number timeframes to unroll
+    p->nSecLimit    = 0;     // time limit in seconds
     p->nFramesK     = 1;     // the number of timeframes to use in induction
     p->fRewrite     = 0;     // use additional rewriting to simplify timeframes
     p->fTransLoop   = 1;     // add transition into the init state under new PI var
@@ -54,7 +58,9 @@ void Inter_ManSetDefaultParams( Inter_ManParams_t * p )
     p->fUseBias     = 0;     // bias decisions to global variables
     p->fUseBackward = 0;     // perform backward interpolation
     p->fUseSeparate = 0;     // solve each output separately
+    p->fDropSatOuts = 0;     // replace by 1 the solved outputs
     p->fVerbose     = 0;     // print verbose statistics
+    p->iFrameMax    =-1;
 }
 
 /**Function*************************************************************
@@ -77,7 +83,9 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     // sanity checks
     assert( Saig_ManRegNum(pAig) > 0 );
     assert( Saig_ManPiNum(pAig) > 0 );
-    assert( Saig_ManPoNum(pAig) == 1 );
+    assert( Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) == 1 );
+    if ( pPars->fVerbose && Saig_ManConstrNum(pAig) )
+        printf( "Performing interpolation with %d constraints...\n", Saig_ManConstrNum(pAig) );
 /*
     if ( Inter_ManCheckInitialState(pAig) )
     {
@@ -179,6 +187,8 @@ p->timeCnf += clock() - clk;
                     i+1, i + 1 + p->nFrames, Aig_ManNodeNum(p->pInter), Aig_ManLevelNum(p->pInter), p->nConfCur );
                 ABC_PRT( "Time", clock() - clk );
             }
+            // remember the number of timeframes completed
+            pPars->iFrameMax = i + 1 + p->nFrames;
             if ( RetValue == 0 ) // found a (spurious?) counter-example
             {
                 if ( i == 0 ) // real counterexample
@@ -187,7 +197,7 @@ p->timeCnf += clock() - clk;
                         printf( "Found a real counterexample in frame %d.\n", p->nFrames );
                     p->timeTotal = clock() - clkTotal;
                     *piFrame = p->nFrames;
-                    pAig->pSeqModel = Inter_ManGetCounterExample( pAig, p->nFrames+1, pPars->fVerbose );
+                    pAig->pSeqModel = (Abc_Cex_t *)Inter_ManGetCounterExample( pAig, p->nFrames+1, pPars->fVerbose );
                     Inter_ManStop( p );
                     return 0;
                 }
@@ -211,6 +221,7 @@ clk = clock();
             if ( p->pInterNew )
             {
                 p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 1, 0 );
+//                p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 0, 0 );
                 Aig_ManStop( pAigTemp );
             }
 p->timeRwr += clock() - clk;
@@ -251,6 +262,13 @@ p->timeEqu += clock() - clk;
                 Inter_ManStop( p );
                 return 1;
             }
+            if ( pPars->nSecLimit && ((float)pPars->nSecLimit <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+            {
+                printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
+                p->timeTotal = clock() - clkTotal;
+                Inter_ManStop( p );
+                return -1;
+            }
             // save interpolant and convert it into CNF
             if ( pPars->fTransLoop )
             {
@@ -285,4 +303,6 @@ p->timeCnf += clock() - clk;
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

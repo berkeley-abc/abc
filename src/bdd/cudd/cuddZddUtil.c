@@ -38,6 +38,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -551,7 +554,7 @@ Cudd_zddDumpDot(
     }
     Cudd_RecursiveDeref(dd,support);
     }
-    support = NULL; /* so that we do not try to ABC_FREE it in case of failure */
+    support = NULL; /* so that we do not try to free it in case of failure */
 
     /* Initialize symbol table for visited nodes. */
     visited = st_init_table(st_ptrcmp, st_ptrhash);
@@ -578,7 +581,7 @@ Cudd_zddDumpDot(
     refAddr = (long) f[0];
     diff = 0;
     gen = st_init_gen(visited);
-    while (st_gen(gen, (char **) &scan, NULL)) {
+    while (st_gen(gen, (const char **) &scan, NULL)) {
     diff |= refAddr ^ (long) scan;
     }
     st_free_gen(gen);
@@ -1019,3 +1022,5 @@ zddPrintCoverAux(
     return;
 
 } /* end of zddPrintCoverAux */
+ABC_NAMESPACE_IMPL_END
+

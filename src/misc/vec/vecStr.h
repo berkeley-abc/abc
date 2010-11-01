@@ -21,11 +21,15 @@
 #ifndef __VEC_STR_H__
 #define __VEC_STR_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -214,6 +218,25 @@ static inline void Vec_StrFree( Vec_Str_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_StrFreeP( Vec_Str_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    ABC_FREE( (*p)->pArray );
+    ABC_FREE( (*p) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline char * Vec_StrReleaseArray( Vec_Str_t * p )
 {
     char * pArray = p->pArray;
@@ -359,11 +382,12 @@ static inline void Vec_StrFill( Vec_Str_t * p, int nSize, char Fill )
 static inline void Vec_StrFillExtra( Vec_Str_t * p, int nSize, char Fill )
 {
     int i;
-    if ( p->nSize >= nSize )
+    if ( nSize <= p->nSize )
         return;
-    if ( nSize < 2 * p->nSize )
-        nSize = 2 * p->nSize;
-    Vec_StrGrow( p, nSize );
+    if ( nSize > 2 * p->nCap )
+        Vec_StrGrow( p, nSize );
+    else if ( nSize > p->nCap )
+        Vec_StrGrow( p, 2 * p->nCap );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -459,26 +483,22 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
     p->pArray[p->nSize++] = Entry;
 }
 
-/**Function********************************************************************
+/**Function*************************************************************
 
-  Synopsis    [Finds the smallest integer larger of equal than the logarithm.]
+  Synopsis    [Returns the last entry and removes it from the list.]
 
-  Description [Returns [Log10(Num)].]
-
+  Description []
+               
   SideEffects []
 
   SeeAlso     []
 
-******************************************************************************/
-static inline int Vec_StrBase10Log( unsigned Num )
+***********************************************************************/
+static inline char Vec_StrPop( Vec_Str_t * p )
 {
-    int Res;
-    assert( Num >= 0 );
-    if ( Num == 0 ) return 0;
-    if ( Num == 1 ) return 1;
-    for ( Res = 0, Num--;  Num;  Num /= 10,  Res++ );
-    return Res;
-} /* end of Extra_Base2Log */
+    assert( p->nSize > 0 );
+    return p->pArray[--p->nSize];
+}
 
 /**Function*************************************************************
 
@@ -493,26 +513,22 @@ static inline int Vec_StrBase10Log( unsigned Num )
 ***********************************************************************/
 static inline void Vec_StrPrintNum( Vec_Str_t * p, int Num )
 {
-    int i, nDigits;
+    int i;
+    char Digits[16];
+    if ( Num == 0 )
+    {
+        Vec_StrPush( p, '0' );
+        return;
+    }
     if ( Num < 0 )
     {
         Vec_StrPush( p, '-' );
         Num = -Num;
     }
-    if ( Num < 10 )
-    {
-        Vec_StrPush( p, (char)('0' + Num) );
-        return;
-    }
-    nDigits = Vec_StrBase10Log( Num );
-    Vec_StrGrow( p, p->nSize + nDigits );
-    for ( i = nDigits - 1; i >= 0; i-- )
-    {
-        Vec_StrWriteEntry( p, p->nSize + i, (char)('0' + Num % 10) );
-        Num /= 10;
-    }
-    assert( Num == 0 );
-    p->nSize += nDigits;
+    for ( i = 0; Num; Num /= 10,  i++ )
+        Digits[i] = (char)('0' + Num % 10);
+    for ( i--; i >= 0; i-- )
+        Vec_StrPush( p, Digits[i] );
 }
 
 /**Function*************************************************************
@@ -526,7 +542,7 @@ static inline void Vec_StrPrintNum( Vec_Str_t * p, int Num )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_StrPrintStr( Vec_Str_t * p, char * pStr )
+static inline void Vec_StrPrintStr( Vec_Str_t * p, const char * pStr )
 {
     int i, Length = strlen(pStr);
     for ( i = 0; i < Length; i++ )
@@ -544,30 +560,9 @@ static inline void Vec_StrPrintStr( Vec_Str_t * p, char * pStr )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_StrAppend( Vec_Str_t * p, char * pString )
+static inline void Vec_StrAppend( Vec_Str_t * p, const char * pString )
 {
-    int i, nLength = strlen(pString);
-    Vec_StrGrow( p, p->nSize + nLength );
-    for ( i = 0; i < nLength; i++ )
-        p->pArray[p->nSize + i] = pString[i];
-    p->nSize += nLength;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the last entry and removes it from the list.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline char Vec_StrPop( Vec_Str_t * p )
-{
-    assert( p->nSize > 0 );
-    return p->pArray[--p->nSize];
+    Vec_StrPrintStr( p, pString );
 }
 
 /**Function*************************************************************
@@ -654,6 +649,10 @@ static inline void Vec_StrSort( Vec_Str_t * p, int fReverse )
         qsort( (void *)p->pArray, p->nSize, sizeof(char), 
                 (int (*)(const void *, const void *)) Vec_StrSortCompare1 );
 }
+
+
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

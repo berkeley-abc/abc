@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "sswInt.h"
+#include "ioa.h"
+
+ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -50,16 +54,20 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     int i, nCountPis, nCountRegs;
     int nClasses, nPartSize, fVerbose;
     int clk = clock();
-
+    if ( pPars->fConstrs )
+    {
+        printf( "Cannot use partitioned computation with constraints.\n" );
+        return NULL;
+    }
     // save parameters
     nPartSize = pPars->nPartSize; pPars->nPartSize = 0;
-    fVerbose  = pPars->fVerbose;  pPars->fVerbose = 0;
+    fVerbose  = pPars->fVerbose;  pPars->fVerbose  = 0;
     // generate partitions
     if ( pAig->vClockDoms )
     {
         // divide large clock domains into separate partitions
         vResult = Vec_PtrAlloc( 100 );
-        Vec_PtrForEachEntry( (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
+        Vec_PtrForEachEntry( Vec_Int_t *, (Vec_Ptr_t *)pAig->vClockDoms, vPart, i )
         {
             if ( nPartSize && Vec_IntSize(vPart) > nPartSize )
                 Aig_ManPartDivide( vResult, vPart, nPartSize, pPars->nOverSize );
@@ -75,9 +83,9 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
     {
         // print partitions
         printf( "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
-        Vec_PtrForEachEntry( vResult, vPart, i )
+        Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i )
         {
-            extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
+//            extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
             sprintf( Buffer, "part%03d.aig", i );
             pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, NULL );
             Ioa_WriteAiger( pTemp, Buffer, 0, 0 );
@@ -89,7 +97,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 
     // perform SSW with partitions
     Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
-    Vec_PtrForEachEntry( vResult, vPart, i )
+    Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i )
     {
         pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, &pMapBack );
         Aig_ManSetRegNum( pTemp, pTemp->nRegs );
@@ -128,4 +136,6 @@ Aig_Man_t * Ssw_SignalCorrespondencePart( Aig_Man_t * pAig, Ssw_Pars_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

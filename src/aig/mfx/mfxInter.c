@@ -21,6 +21,9 @@
 #include "mfxInt.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -94,7 +97,7 @@ sat_solver * Mfx_CreateSolverResub( Mfx_Man_t * p, int * pCands, int nCands, int
 
     // collect the outputs of the divisors
     Vec_IntClear( p->vProjVars );
-    Vec_PtrForEachEntryStart( p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) )
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) )
     {
         assert( p->pCnf->pVarNums[pObjPo->Id] >= 0 );
         Vec_IntPush( p->vProjVars, p->pCnf->pVarNums[pObjPo->Id] );
@@ -229,7 +232,7 @@ unsigned * Mfx_InterplateTruth( Mfx_Man_t * p, int * pCands, int nCands, int fIn
         return NULL;
     }
     // get the learned clauses
-    pCnf = sat_solver_store_release( pSat );
+    pCnf = (Sto_Man_t *)sat_solver_store_release( pSat );
     sat_solver_delete( pSat );
 
     // set the global variables
@@ -329,7 +332,7 @@ Hop_Obj_t * Mfx_Interplate( Mfx_Man_t * p, int * pCands, int nCands )
         return NULL;
     }
     // get the learned clauses
-    pCnf = sat_solver_store_release( pSat );
+    pCnf = (Sto_Man_t *)sat_solver_store_release( pSat );
     sat_solver_delete( pSat );
 
     // set the global variables
@@ -358,4 +361,6 @@ Hop_Obj_t * Mfx_Interplate( Mfx_Man_t * p, int * pCands, int nCands )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

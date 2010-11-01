@@ -1,0 +1,8 @@
+When reporting a problem, please include the following:    
+1. ABC version
+2. Linux distribution and version
+3. 32-bit or 64-bit
+4. The exact error message when trying to run the tool
+5. The output of the 'ldd' command run on the exeutable (e.g. 'ldd abc').
+6. Versions of relevant tools or packages used.
+

@@ -19,6 +19,7 @@
 #ifndef __ABC_APIS_H__
 #define __ABC_APIS_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -27,9 +28,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -211,9 +213,11 @@ extern void                  ABC_TargetResFree( CSAT_Target_ResultT * p );
 
 extern void CSAT_SetCaller(ABC_Manager mng, enum CSAT_CallerT caller);
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

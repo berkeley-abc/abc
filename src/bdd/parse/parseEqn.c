@@ -25,6 +25,9 @@
 #include "vec.h"
 #include "hop.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 // the list of operation symbols to be used in expressions
 #define PARSE_EQN_SYM_OPEN    '('   // opening paranthesis
 #define PARSE_EQN_SYM_CLOSE   ')'   // closing paranthesis
@@ -213,7 +216,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
               }
             // variable name is found
             fFound = 0;
-            Vec_PtrForEachEntry( vVarNames, pName, v )
+            Vec_PtrForEachEntry( char *, vVarNames, pName, v )
                 if ( strncmp(pTemp, pName, i) == 0 && strlen(pName) == (unsigned)i )
                 {
                     pTemp += i-1;
@@ -254,7 +257,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
                 }
                 else
                 {
-                      Parse_StackFnPush( pStackFn, Hop_Not(Parse_StackFnPop(pStackFn)) );
+                      Parse_StackFnPush( pStackFn, Hop_Not((Hop_Obj_t *)Parse_StackFnPop(pStackFn)) );
                 }
             }
         else // if ( Flag == PARSE_EQN_FLAG_OPER )
@@ -291,7 +294,7 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
     {
         if ( !Parse_StackFnIsEmpty(pStackFn) )
         {    
-            gFunc = Parse_StackFnPop(pStackFn);
+            gFunc = (Hop_Obj_t *)Parse_StackFnPop(pStackFn);
             if ( Parse_StackFnIsEmpty(pStackFn) )
                 if ( Parse_StackOpIsEmpty(pStackOp) )
                 {
@@ -328,8 +331,8 @@ Hop_Obj_t * Parse_ParserPerformTopOp( Hop_Man_t * pMan, Parse_StackFn_t * pStack
 {
     Hop_Obj_t * gArg1, * gArg2, * gFunc;
     // perform the given operation
-    gArg2 = Parse_StackFnPop( pStackFn );
-    gArg1 = Parse_StackFnPop( pStackFn );
+    gArg2 = (Hop_Obj_t *)Parse_StackFnPop( pStackFn );
+    gArg1 = (Hop_Obj_t *)Parse_StackFnPop( pStackFn );
     if ( Oper == PARSE_EQN_OPER_AND )
         gFunc = Hop_And( pMan, gArg1, gArg2 );
     else if ( Oper == PARSE_EQN_OPER_OR )
@@ -347,3 +350,5 @@ Hop_Obj_t * Parse_ParserPerformTopOp( Hop_Man_t * pMan, Parse_StackFn_t * pStack
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ABC_NAMESPACE_IMPL_END
+

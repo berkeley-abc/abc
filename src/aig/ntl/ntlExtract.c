@@ -22,6 +22,9 @@
 #include "dec.h"
 #include "kit.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -59,9 +62,9 @@ Aig_Obj_t * Ntl_ConvertSopToAigInternal( Aig_Man_t * pMan, Ntl_Obj_t * pNode, ch
         {
             pNet = Ntl_ObjFanin( pNode, i );
             if ( Value == '1' )
-                pAnd = Aig_And( pMan, pAnd, pNet->pCopy );
+                pAnd = Aig_And( pMan, pAnd, (Aig_Obj_t *)pNet->pCopy );
             else if ( Value == '0' )
-                pAnd = Aig_And( pMan, pAnd, Aig_Not(pNet->pCopy) );
+                pAnd = Aig_And( pMan, pAnd, Aig_Not((Aig_Obj_t *)pNet->pCopy) );
         }
         // add to the sum of cubes
         pSum = Aig_Or( pMan, pSum, pAnd );
@@ -93,16 +96,16 @@ Aig_Obj_t * Ntl_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
         return Aig_NotCond( Aig_ManConst1(pMan), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
-        return Aig_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+        return Aig_NotCond( (Aig_Obj_t *)Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Aig_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Aig_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pAnd0 = Aig_NotCond( (Aig_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Aig_NotCond( (Aig_Obj_t *)Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
         pNode->pFunc = Aig_And( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Aig_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+    return Aig_NotCond( (Aig_Obj_t *)pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -183,16 +186,16 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
         Vec_IntPush( p->vBox1Cios, Aig_ManPoNum(p->pAig) );
         Ntl_ObjForEachFanin( pObj, pNetFanin, i )
         {
-            LevelCur = Aig_ObjLevel( Aig_Regular(pNetFanin->pCopy) );
+            LevelCur = Aig_ObjLevel( Aig_Regular((Aig_Obj_t *)pNetFanin->pCopy) );
             LevelMax = ABC_MAX( LevelMax, LevelCur );
             Vec_PtrPush( p->vCos, pNetFanin );
-            Aig_ObjCreatePo( p->pAig, pNetFanin->pCopy );
+            Aig_ObjCreatePo( p->pAig, (Aig_Obj_t *)pNetFanin->pCopy );
         }
         Ntl_ObjForEachFanout( pObj, pNetFanin, i )
         {
             Vec_PtrPush( p->vCis, pNetFanin );
             pNetFanin->pCopy = Aig_ObjCreatePi( p->pAig );
-            Aig_ObjSetLevel( pNetFanin->pCopy, LevelMax + 1 );
+            Aig_ObjSetLevel( (Aig_Obj_t *)pNetFanin->pCopy, LevelMax + 1 );
         }
     }
     Vec_PtrPush( p->vVisNodes, pObj );
@@ -264,7 +267,7 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
                 return 0;
             }
             Vec_PtrPush( p->vCos, pNet );
-            Aig_ObjCreatePo( p->pAig, pNet->pCopy );
+            Aig_ObjCreatePo( p->pAig, (Aig_Obj_t *)pNet->pCopy );
         }
     }
     // visit dangling boxes
@@ -306,9 +309,9 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManCollapseBoxComb_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
+int Ntl_ManCollapseBoxComb_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox )
 {
-    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq );
+    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet );
     Ntl_Mod_t * pModel = pBox->pImplem;
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet, * pNetBox;
@@ -329,7 +332,7 @@ int Ntl_ManCollapseBoxComb_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
     Ntl_ModelForEachPo( pModel, pObj, i )
     {
         pNet = Ntl_ObjFanin0(pObj);
-        if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+        if ( !Ntl_ManCollapse_rec( p, pNet ) )
             return 0;
         pNetBox = Ntl_ObjFanout( pBox, i );
         pNetBox->pCopy = pNet->pCopy;
@@ -348,9 +351,9 @@ int Ntl_ManCollapseBoxComb_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
+int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox )
 {
-    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq );
+    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet );
     Ntl_Mod_t * pModel = pBox->pImplem;
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet, * pNetBox;
@@ -365,18 +368,18 @@ int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
     {
         pNet = Ntl_ObjFanout0(pObj);
         pNet->pCopy = Aig_ObjCreatePi( p->pAig );
-        if ( fSeq && Ntl_ObjIsInit1( pObj ) )
-            pNet->pCopy = Aig_Not(pNet->pCopy);
+        if ( Ntl_ObjIsInit1( pObj ) )
+            pNet->pCopy = Aig_Not((Aig_Obj_t *)pNet->pCopy);
         pNet->nVisits = 2;
         // remember the class of this register
         Vec_IntPush( p->vRegClasses, p->pNal ? pBox->iTemp : pObj->LatchId.regClass );
-//        Vec_IntPush( p->vRstClasses, p->pNal ? pBox->Reset : -1 );
+        Vec_IntPush( p->vRstClasses, p->pNal ? pBox->Reset : -1 );
     }
     // compute AIG for the internal nodes
     Ntl_ModelForEachPo( pModel, pObj, i )
     {
         pNet = Ntl_ObjFanin0(pObj);
-        if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+        if ( !Ntl_ManCollapse_rec( p, pNet ) )
             return 0;
         pNetBox = Ntl_ObjFanout( pBox, i );
         pNetBox->pCopy = pNet->pCopy;
@@ -395,9 +398,9 @@ int Ntl_ManCollapseBoxSeq1_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManCollapseBoxSeq2_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq, int iFirstPi )
+int Ntl_ManCollapseBoxSeq2_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int iFirstPi )
 {
-    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq );
+    extern int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet );
     Ntl_Mod_t * pModel = pBox->pImplem;
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet, * pNetBox;
@@ -420,20 +423,20 @@ int Ntl_ManCollapseBoxSeq2_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq, int i
     {
         pNet = Ntl_ObjFanout0(pObj);
         pNet->pCopy = Aig_ManPi( p->pAig, iFirstPi++ );
-        if ( fSeq && Ntl_ObjIsInit1( pObj ) )
-            pNet->pCopy = Aig_Not(pNet->pCopy);
+        if ( Ntl_ObjIsInit1( pObj ) )
+            pNet->pCopy = Aig_Not((Aig_Obj_t *)pNet->pCopy);
         pNet->nVisits = 2;
     }
     // compute AIGs for the registers
     Ntl_ModelForEachLatch( pModel, pObj, i )
     {
         pNet = Ntl_ObjFanin0(pObj);
-        if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+        if ( !Ntl_ManCollapse_rec( p, pNet ) )
             return 0;
-        if ( fSeq && Ntl_ObjIsInit1( pObj ) )
-            Aig_ObjCreatePo( p->pAig, Aig_Not(pNet->pCopy) );
+        if ( Ntl_ObjIsInit1( pObj ) )
+            Aig_ObjCreatePo( p->pAig, Aig_Not((Aig_Obj_t *)pNet->pCopy) );
         else
-            Aig_ObjCreatePo( p->pAig, pNet->pCopy );
+            Aig_ObjCreatePo( p->pAig, (Aig_Obj_t *)pNet->pCopy );
     }
     return 1;
 }
@@ -449,7 +452,7 @@ int Ntl_ManCollapseBoxSeq2_rec( Ntl_Man_t * p, Ntl_Obj_t * pBox, int fSeq, int i
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq )
+int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
 {
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNetFanin;
@@ -467,13 +470,13 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, int fSeq )
     assert( Ntl_ObjIsNode(pObj) || Ntl_ObjIsBox(pObj) );
     // visit the input nets of the box
     Ntl_ObjForEachFanin( pObj, pNetFanin, i )
-        if ( !Ntl_ManCollapse_rec( p, pNetFanin, fSeq ) )
+        if ( !Ntl_ManCollapse_rec( p, pNetFanin ) )
             return 0;
     // add box inputs/outputs to COs/CIs
     if ( Ntl_ObjIsBox(pObj) )
     {
         assert( Ntl_BoxIsWhite(pObj) && Ntl_BoxIsComb(pObj) );
-        if ( !Ntl_ManCollapseBoxComb_rec( p, pObj, fSeq ) )
+        if ( !Ntl_ManCollapseBoxComb_rec( p, pObj ) )
             return 0;
     }
     if ( Ntl_ObjIsNode(pObj) )
@@ -533,7 +536,7 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
           if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
               continue;
           Vec_IntPush( p->vBox1Cios, Aig_ManPiNum(p->pAig) );
-          Ntl_ManCollapseBoxSeq1_rec( p, pBox, fSeq );
+          Ntl_ManCollapseBoxSeq1_rec( p, pBox );
           Ntl_ObjForEachFanout( pBox, pNet, k )
               pNet->nVisits = 2;
       }
@@ -541,12 +544,12 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
     // derive the outputs
     Ntl_ManForEachCoNet( p, pNet, i )
     {
-        if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+        if ( !Ntl_ManCollapse_rec( p, pNet ) )
         {
             printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
             return 0;
         }
-        Aig_ObjCreatePo( p->pAig, pNet->pCopy );
+        Aig_ObjCreatePo( p->pAig, (Aig_Obj_t *)pNet->pCopy );
     }
     nTruePos = Aig_ManPoNum(p->pAig);
     // create outputs of seq boxes
@@ -556,12 +559,12 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
           if ( !(Ntl_BoxIsSeq(pBox) && Ntl_BoxIsWhite(pBox)) )
               continue;
           Ntl_ObjForEachFanin( pBox, pNet, k )
-              if ( !Ntl_ManCollapse_rec( p, pNet, fSeq ) )
+              if ( !Ntl_ManCollapse_rec( p, pNet ) )
               {
                   printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
                   return 0;
               }
-          Ntl_ManCollapseBoxSeq2_rec( p, pBox, fSeq, Vec_IntEntry(p->vBox1Cios, iBox++) );
+          Ntl_ManCollapseBoxSeq2_rec( p, pBox, Vec_IntEntry(p->vBox1Cios, iBox++) );
       }
     }
     // make sure registers are added correctly
@@ -700,13 +703,13 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
     Nwk_Obj_t * pNode;
     int i;
     if ( pNet->fMark )
-        return pNet->pCopy2;
+        return (Nwk_Obj_t *)pNet->pCopy2;
     pNet->fMark = 1;
     pNode = Nwk_ManCreateNode( pNtk, Ntl_ObjFaninNum(pNet->pDriver), (int)(long)pNet->pCopy );
     Ntl_ObjForEachFanin( pNet->pDriver, pFaninNet, i )
     {
         Ntl_ManExtractNwk_rec( p, pFaninNet, pNtk, vCover, vMemory );
-        Nwk_ObjAddFanin( pNode, pFaninNet->pCopy2 );
+        Nwk_ObjAddFanin( pNode, (Nwk_Obj_t *)pFaninNet->pCopy2 );
     }
     if ( Ntl_ObjFaninNum(pNet->pDriver) == 0 || Kit_PlaGetVarNum(pNet->pDriver->pSop) == 0 )
         pNode->pFunc = Hop_NotCond( Hop_ManConst1(pNtk->pManHop), Kit_PlaIsConst0(pNet->pDriver->pSop) );
@@ -717,7 +720,7 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
         if ( Kit_PlaIsComplement(pNet->pDriver->pSop) )
             pNode->pFunc = Hop_Not(pNode->pFunc);
     }
-    return pNet->pCopy2 = pNode;
+    return (Nwk_Obj_t *)(pNet->pCopy2 = pNode);
 }
 
 /**Function*************************************************************
@@ -780,24 +783,24 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pMan
     {
         if ( Aig_ObjIsPi(pAnd) )
         {
-            pNet = pAnd->pData;
+            pNet = (Ntl_Net_t *)pAnd->pData;
             pNet->fMark = 1;
             pNet->pCopy2 = Nwk_ManCreateCi( pNtk, (int)(long)pNet->pCopy ); 
         }
         else if ( Aig_ObjIsPo(pAnd) )
         {
-            pNet = pAnd->pData;
+            pNet = (Ntl_Net_t *)pAnd->pData;
             pNode = Nwk_ManCreateCo( pNtk );
             if ( (pNetSimple = Ntl_ModelFindSimpleNet( pNet )) )
             {
                 pNetSimple->pCopy2 = Ntl_ManExtractNwk_rec( p, pNetSimple, pNtk, vCover, vMemory ); 
-                Nwk_ObjAddFanin( pNode, pNetSimple->pCopy2 );
+                Nwk_ObjAddFanin( pNode, (Nwk_Obj_t *)pNetSimple->pCopy2 );
                 pNode->fInvert = Kit_PlaIsInv( pNet->pDriver->pSop );
             }
             else
             {
                 pNet->pCopy2 = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
-                Nwk_ObjAddFanin( pNode, pNet->pCopy2 );
+                Nwk_ObjAddFanin( pNode, (Nwk_Obj_t *)pNet->pCopy2 );
                 pNode->fInvert = (Nwk_ObjFanin0(pNode)->pFunc == Hop_ManConst0(pNtk->pManHop)); // fixed on June 7, 2009
             }
         }
@@ -818,7 +821,7 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pMan
 /**Function*************************************************************
 
   Synopsis    [Extracts logic newtork out of the netlist.]
-
+ 
   Description []
                
   SideEffects []
@@ -831,7 +834,7 @@ Nwk_Man_t * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pMan
     Nwk_Man_t * pNtk;
     Ntl_Man_t * pNtl;
     Ntl_Mod_t * pRoot;
-    pNtl = Ioa_ReadBlif( pFileName, 1 );
+    pNtl = Ntl_ManReadBlif( pFileName, 1 );
     if ( pNtl == NULL )
     {
         printf( "Ntl_ManReadNwk(): Reading BLIF has failed.\n" );
@@ -869,4 +872,6 @@ Nwk_Man_t * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pMan
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

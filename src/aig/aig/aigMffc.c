@@ -20,6 +20,9 @@
 
 #include "aig.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -237,11 +240,11 @@ int Aig_NodeMffcLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves 
     assert( !Aig_IsComplement(pNode) );
     assert( Aig_ObjIsNode(pNode) );
     Aig_ManIncrementTravId( p );
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
         pObj->nRefs++;
     ConeSize1 = Aig_NodeDeref_rec( pNode, 0, NULL, NULL );
     ConeSize2 = Aig_NodeRefLabel_rec( p, pNode, 0 );
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
         pObj->nRefs--;
     assert( ConeSize1 == ConeSize2 );
     assert( ConeSize1 > 0 );
@@ -265,7 +268,7 @@ int Aig_NodeMffcExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     int i, LevelMax, ConeSize1, ConeSize2, ConeCur1, ConeCur2, ConeBest;
     // dereference the current cut
     LevelMax = 0;
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
         LevelMax = ABC_MAX( LevelMax, (int)pObj->Level );
     if ( LevelMax == 0 )
         return 0;
@@ -274,7 +277,7 @@ int Aig_NodeMffcExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     // try expanding each node in the boundary
     ConeBest = ABC_INFINITY;
     pLeafBest = NULL;
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
     {
         if ( (int)pObj->Level != LevelMax )
             continue;
@@ -308,4 +311,6 @@ int Aig_NodeMffcExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

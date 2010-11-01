@@ -12,6 +12,9 @@
 
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
  *  verify -- check that all minterms of F are contained in (Fold u Dold)
  *  and that all minterms of Fold are contained in (F u Dold).
@@ -191,3 +194,5 @@ pPLA PLA;
     (void) fflush(stdout);
     return verify_error;
 }
+ABC_NAMESPACE_IMPL_END
+

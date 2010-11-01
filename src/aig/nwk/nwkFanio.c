@@ -20,6 +20,9 @@
 
 #include "nwk.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -279,7 +282,7 @@ void Nwk_ObjTransferFanout( Nwk_Obj_t * pNodeFrom, Nwk_Obj_t * pNodeTo )
     nFanoutsOld = Nwk_ObjFanoutNum(pNodeTo);
     Nwk_ObjCollectFanouts( pNodeFrom, vFanouts );
     // patch the fanin of each of them
-    Vec_PtrForEachEntry( vFanouts, pTemp, i )
+    Vec_PtrForEachEntry( Nwk_Obj_t *, vFanouts, pTemp, i )
         Nwk_ObjPatchFanin( pTemp, pNodeFrom, pNodeTo );
     assert( Nwk_ObjFanoutNum(pNodeFrom) == 0 );
     assert( Nwk_ObjFanoutNum(pNodeTo) == nFanoutsOld + Vec_PtrSize(vFanouts) );
@@ -312,4 +315,6 @@ void Nwk_ObjReplace( Nwk_Obj_t * pNodeOld, Nwk_Obj_t * pNodeNew )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

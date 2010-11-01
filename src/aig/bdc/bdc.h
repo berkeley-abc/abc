@@ -21,6 +21,7 @@
 #ifndef __BDC_H__
 #define __BDC_H__
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,9 +30,10 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
  
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -72,12 +74,15 @@ extern int         Bdc_ManNodeNum( Bdc_Man_t * p );
 extern Bdc_Fun_t * Bdc_FuncFanin0( Bdc_Fun_t * p );
 extern Bdc_Fun_t * Bdc_FuncFanin1( Bdc_Fun_t * p );
 extern void *      Bdc_FuncCopy( Bdc_Fun_t * p );
+extern int         Bdc_FuncCopyInt( Bdc_Fun_t * p );
 extern void        Bdc_FuncSetCopy( Bdc_Fun_t * p, void * pCopy );
+extern void        Bdc_FuncSetCopyInt( Bdc_Fun_t * p, int iCopy );
 
 
-#ifdef __cplusplus
-}
-#endif
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

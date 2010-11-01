@@ -22,6 +22,9 @@
 #include "cnf.h"
 #include "satSolver.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -818,7 +821,7 @@ clk = clock();
         int * pStart;
         // reset the solver
         if ( p->pSatMain )  sat_solver_delete( p->pSatMain );
-        p->pSatMain = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
+        p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
         if ( p->pSatMain == NULL )
         {
             printf( "Error: Main solver is unsat.\n" );
@@ -1030,8 +1033,8 @@ void Fra_ClausSimInfoRecord( Clu_Man_t * p, int * pModel )
     {
         if ( pModel[i] == l_True )
         {
-            assert( Aig_InfoHasBit( Vec_PtrEntry(p->vCexes, i), p->nCexes ) == 0 );
-            Aig_InfoSetBit( Vec_PtrEntry(p->vCexes, i), p->nCexes );
+            assert( Aig_InfoHasBit( (unsigned *)Vec_PtrEntry(p->vCexes, i), p->nCexes ) == 0 );
+            Aig_InfoSetBit( (unsigned *)Vec_PtrEntry(p->vCexes, i), p->nCexes );
         }
     }
     p->nCexes++;
@@ -1056,7 +1059,7 @@ int Fra_ClausSimInfoCheck( Clu_Man_t * p, int * pLits, int nLits )
     {
         iVar = lit_var(pLits[i]) - p->nFrames * p->pCnf->nVars;
         assert( iVar > 0 && iVar < p->pCnf->nVars );
-        pSims[i] = Vec_PtrEntry( p->vCexes, iVar );
+        pSims[i] = (unsigned *)Vec_PtrEntry( p->vCexes, iVar );
     }
     nWords = p->nCexes / 32;
     for ( w = 0; w < nWords; w++ )
@@ -1098,7 +1101,7 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
 
     // reset the solver
     if ( p->pSatMain )  sat_solver_delete( p->pSatMain );
-    p->pSatMain = Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames+1, 0 );
+    p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames+1, 0 );
     if ( p->pSatMain == NULL )
     {
         printf( "Error: Main solver is unsat.\n" );
@@ -1516,7 +1519,7 @@ Aig_Obj_t * Fra_ClausGetLiteral( Clu_Man_t * p, int * pVar2Id, int Lit )
     Aig_Obj_t * pLiteral;
     int NodeId = pVar2Id[ lit_var(Lit) ];
     assert( NodeId >= 0 );
-    pLiteral = Aig_ManObj( p->pAig, NodeId )->pData;
+    pLiteral = (Aig_Obj_t *)Aig_ManObj( p->pAig, NodeId )->pData;
     return Aig_NotCond( pLiteral, lit_sign(Lit) );
 }
 
@@ -1705,7 +1708,7 @@ if ( fVerbose )
 
     // check BMC
 clk = clock();
-    p->pSatBmc = Cnf_DataWriteIntoSolver( p->pCnf, p->nPref + p->nFrames, 1 );
+    p->pSatBmc = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nPref + p->nFrames, 1 );
     if ( p->pSatBmc == NULL )
     {
         printf( "Error: BMC solver is unsat.\n" );
@@ -1725,7 +1728,7 @@ if ( fVerbose )
 
     // start the SAT solver
 clk = clock();
-    p->pSatMain = Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames+1, 0 );
+    p->pSatMain = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames+1, 0 );
     if ( p->pSatMain == NULL )
     {
         printf( "Error: Main solver is unsat.\n" );
@@ -1866,4 +1869,6 @@ clk = clock();
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

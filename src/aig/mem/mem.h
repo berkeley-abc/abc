@@ -21,9 +21,10 @@
 #ifndef __MEM_H__
 #define __MEM_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "abc_global.h"
+
+ABC_NAMESPACE_HEADER_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -59,9 +60,11 @@ extern char *        Mem_StepEntryFetch( Mem_Step_t * p, int nBytes );
 extern void          Mem_StepEntryRecycle( Mem_Step_t * p, char * pEntry, int nBytes );
 extern int           Mem_StepReadMemUsage( Mem_Step_t * p );
 
-#ifdef __cplusplus
-}
-#endif
+
+
+ABC_NAMESPACE_HEADER_END
+
+
 
 #endif
 

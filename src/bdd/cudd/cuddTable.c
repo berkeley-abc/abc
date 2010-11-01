@@ -57,6 +57,9 @@
 #include    "util_hack.h"
 #include    "cuddInt.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -202,10 +205,10 @@ cuddAllocNode(
     int i;
     DdNodePtr *mem;
     DdNode *list, *node;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
-    if (unique->nextFree == NULL) {    /* ABC_FREE list is empty */
+    if (unique->nextFree == NULL) {    /* free list is empty */
     /* Check for exceeded limits. */
     if ((unique->keys - unique->dead) + (unique->keysZ - unique->deadZ) >
         unique->maxLive) {
@@ -699,7 +702,7 @@ cuddGarbageCollect(
     cuddLocalCacheClearDead(unique);
     }
 
-    /* Now return dead nodes to ABC_FREE list. Count them for sanity check. */
+    /* Now return dead nodes to free list. Count them for sanity check. */
     totalDeleted = 0;
 #ifndef DD_UNSORTED_FREE_LIST
     tree = NULL;
@@ -905,7 +908,7 @@ cuddGarbageCollectZdd(
     }
     }
 
-    /* Now return dead nodes to ABC_FREE list. Count them for sanity check. */
+    /* Now return dead nodes to free list. Count them for sanity check. */
     totalDeleted = 0;
 #ifndef DD_UNSORTED_FREE_LIST
     tree = NULL;
@@ -1501,7 +1504,7 @@ cuddRehash(
     DdNode *node, *next;
     DdNode *sentinel = &(unique->sentinel);
     hack split;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
     if (unique->gcFrac == DD_GC_FRAC_HI && unique->slots > unique->looseUpTo) {
@@ -1673,7 +1676,7 @@ cuddShrinkSubtable(
     DdNode *node, *next;
     DdNode *sentinel = &(unique->sentinel);
     unsigned int slots, oldslots;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
     oldnodelist = unique->subtables[i].nodelist;
@@ -1820,7 +1823,7 @@ cuddInsertSubtables(
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
         }
-        for (j = 0; j < numSlots; j++) {
+        for (j = 0; j < (int)numSlots; j++) {
         newnodelist[j] = sentinel;
         }
     }
@@ -1925,7 +1928,7 @@ cuddInsertSubtables(
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
         }
-        for (j = 0; j < numSlots; j++) {
+        for (j = 0; j < (int)numSlots; j++) {
         newnodelist[j] = sentinel;
         }
     }
@@ -1960,7 +1963,7 @@ cuddInsertSubtables(
         ABC_FREE(unique->map);
         unique->map = newmap;
     }
-    /* Install the new tables and ABC_FREE the old ones. */
+    /* Install the new tables and free the old ones. */
     ABC_FREE(unique->subtables);
     unique->subtables = newsubtables;
     unique->maxSize = newsize;
@@ -2233,7 +2236,7 @@ cuddResizeTableZdd(
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
         }
-        for (j = 0; j < numSlots; j++) {
+        for (j = 0; j < (int)numSlots; j++) {
         newnodelist[j] = NULL;
         }
     }
@@ -2301,7 +2304,7 @@ cuddResizeTableZdd(
         unique->errorCode = CUDD_MEMORY_OUT;
         return(0);
         }
-        for (j = 0; j < numSlots; j++) {
+        for (j = 0; j < (int)numSlots; j++) {
         newnodelist[j] = NULL;
         }
     }
@@ -2356,7 +2359,7 @@ cuddSlowTableGrowth(
     int i;
 
     unique->maxCacheHard = unique->cacheSlots - 1;
-    unique->cacheSlack = -(unique->cacheSlots + 1);
+    unique->cacheSlack = -(int)(unique->cacheSlots + 1);
     for (i = 0; i < unique->size; i++) {
     unique->subtables[i].maxKeys <<= 2;
     }
@@ -2396,7 +2399,7 @@ ddRehashZdd(
     int j, pos;
     DdNodePtr *nodelist, *oldnodelist;
     DdNode *node, *next;
-    extern void (*MMoutOfMemory)(long);
+//    extern void (*MMoutOfMemory)(long);
     void (*saveHandler)(long);
 
     if (unique->slots > unique->looseUpTo) {
@@ -3141,3 +3144,5 @@ See the CUDD Programmer's Guide for additional details.");
     abort();
 
 } /* end of ddReportRefMess */
+ABC_NAMESPACE_IMPL_END
+

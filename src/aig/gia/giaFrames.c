@@ -20,6 +20,9 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -116,7 +119,7 @@ void Gia_ManFraSupports( Gia_ManFra_t * p )
     p->vIns  = Vec_PtrStart( p->pPars->nFrames );
     p->vAnds = Vec_PtrStart( p->pPars->nFrames );
     p->vOuts = Vec_PtrStart( p->pPars->nFrames );
-    Gia_ManResetTravId( p->pAig );
+    Gia_ManIncrementTravId( p->pAig );
     for ( f = p->pPars->nFrames - 1; f >= 0; f-- )
     {
         vOuts = Gia_ManCollectPoIds( p->pAig );
@@ -185,9 +188,9 @@ Gia_Man_t * Gia_ManFramesInit( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )
     {
-        vIns  = Vec_PtrEntry( p->vIns,  f );
-        vAnds = Vec_PtrEntry( p->vAnds, f );
-        vOuts = Vec_PtrEntry( p->vOuts, f );
+        vIns  = (Vec_Int_t *)Vec_PtrEntry( p->vIns,  f );
+        vAnds = (Vec_Int_t *)Vec_PtrEntry( p->vAnds, f );
+        vOuts = (Vec_Int_t *)Vec_PtrEntry( p->vOuts, f );
         if ( pPars->fVerbose )
             printf( "Frame %3d : CI = %6d. AND = %6d. CO = %6d.\n", 
             f, Vec_IntSize(vIns), Vec_IntSize(vAnds), Vec_IntSize(vOuts) );
@@ -343,4 +346,6 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

@@ -9,6 +9,9 @@
  */
 #include "espresso.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 /*
     The cofactor of a cover against a cube "c" is a cover formed by the
     cofactor of each cube in the cover against c.  The cofactor of two
@@ -382,3 +385,5 @@ pcube *T;
     *Tdest++ = NULL;                /* sentinel */
     Tdest[1] = (pcube) Tdest;            /* save pointer to last */
 }
+ABC_NAMESPACE_IMPL_END
+

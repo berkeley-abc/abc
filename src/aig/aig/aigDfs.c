@@ -21,6 +21,9 @@
 #include "aig.h"
 #include "tim.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -76,15 +79,15 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
         {
             if ( p->pManTime )
             {
-                iBox = Tim_ManBoxForCi( p->pManTime, Aig_ObjPioNum(pObj) );
+                iBox = Tim_ManBoxForCi( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj) );
                 if ( iBox >= 0 ) // this is not a true PI
                 {
-                    iTerm1 = Tim_ManBoxInputFirst( p->pManTime, iBox );
-                    nTerms = Tim_ManBoxInputNum( p->pManTime, iBox );
+                    iTerm1 = Tim_ManBoxInputFirst( (Tim_Man_t *)p->pManTime, iBox );
+                    nTerms = Tim_ManBoxInputNum( (Tim_Man_t *)p->pManTime, iBox );
                     for ( k = 0; k < nTerms; k++ )
                     {
                         pNext = Aig_ManPo( p, iTerm1 + k );
-                        assert( Tim_ManBoxForCo( p->pManTime, Aig_ObjPioNum(pNext) ) == iBox ); 
+                        assert( Tim_ManBoxForCo( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pNext) ) == iBox ); 
                         if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
                         {
                             printf( "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
@@ -276,7 +279,10 @@ Vec_Ptr_t * Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
     // go through the nodes
     vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
     for ( i = 0; i < nNodes; i++ )
-        Aig_ManDfs_rec( p, ppNodes[i], vNodes );
+        if ( Aig_ObjIsPo(ppNodes[i]) )
+            Aig_ManDfs_rec( p, Aig_ObjFanin0(ppNodes[i]), vNodes );
+        else
+            Aig_ManDfs_rec( p, ppNodes[i], vNodes );
     return vNodes;
 }
 
@@ -435,11 +441,11 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
     {
         if ( p->pManTime )
         {
-            iBox = Tim_ManBoxForCi( p->pManTime, Aig_ObjPioNum(pObj) );
+            iBox = Tim_ManBoxForCi( (Tim_Man_t *)p->pManTime, Aig_ObjPioNum(pObj) );
             if ( iBox >= 0 ) // this is not a true PI
             {
-                iTerm1 = Tim_ManBoxInputFirst( p->pManTime, iBox );
-                nTerms = Tim_ManBoxInputNum( p->pManTime, iBox );
+                iTerm1 = Tim_ManBoxInputFirst( (Tim_Man_t *)p->pManTime, iBox );
+                nTerms = Tim_ManBoxInputNum( (Tim_Man_t *)p->pManTime, iBox );
                 for ( i = 0; i < nTerms; i++ )
                 {
                     pNext = Aig_ManPo(p, iTerm1 + i);
@@ -815,7 +821,7 @@ Aig_Obj_t * Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pRoo
     Aig_Transfer_rec( pDest, Aig_Regular(pRoot) );
     // clear the markings
     Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
-    return Aig_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
+    return Aig_NotCond( (Aig_Obj_t *)Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
 }
 
 /**Function*************************************************************
@@ -869,7 +875,7 @@ Aig_Obj_t * Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, in
     Aig_Compose_rec( p, Aig_Regular(pRoot), pFunc, Aig_ManPi(p, iVar) );
     // clear the markings
     Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
-    return Aig_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
+    return Aig_NotCond( (Aig_Obj_t *)Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
 }
 
 /**Function*************************************************************
@@ -914,7 +920,7 @@ void Aig_ObjCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNod
     int i;
     // collect and mark the leaves
     Vec_PtrClear( vNodes );
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
     {
         assert( pObj->fMarkA == 0 );
         pObj->fMarkA = 1;
@@ -924,9 +930,9 @@ void Aig_ObjCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNod
     // collect and mark the nodes
     Aig_ObjCollectCut_rec( pRoot, vNodes );
     // clean the nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->fMarkA = 0;
-    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
         pObj->fMarkA = 0;
 }
 
@@ -998,7 +1004,7 @@ int Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
     RetValue = Aig_ObjCollectSuper_rec( pObj, pObj, vSuper );
     assert( Vec_PtrSize(vSuper) > 1 );
     // unmark the visited nodes
-    Vec_PtrForEachEntry( vSuper, pObj, i )
+    Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pObj, i )
         Aig_Regular(pObj)->fMarkA = 0;
     // if we found the node and its complement in the same implication supergate, 
     // return empty set of nodes (meaning that we should use constant-0 node)
@@ -1011,4 +1017,6 @@ int Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

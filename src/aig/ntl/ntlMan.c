@@ -20,6 +20,9 @@
 
 #include "ntl.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -108,7 +111,7 @@ Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
     pNew = Ntl_ManAlloc();
     pNew->pName = Ntl_ManStoreFileName( pNew, pOld->pName );
     pNew->pSpec = Ntl_ManStoreName( pNew, pOld->pName );
-    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+    Vec_PtrForEachEntry( Ntl_Mod_t *, pOld->vModels, pModel, i )
     {
         if ( i == 0 )
         {
@@ -119,10 +122,10 @@ Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
         else
             pModel->pCopy = Ntl_ModelDup( pNew, pModel );
     }
-    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+    Vec_PtrForEachEntry( Ntl_Mod_t *, pOld->vModels, pModel, i )
         Ntl_ModelForEachBox( pModel, pBox, k )
         {
-            ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
+            ((Ntl_Obj_t *)pBox->pCopy)->pImplem = (Ntl_Mod_t *)pBox->pImplem->pCopy;
             ((Ntl_Obj_t *)pBox->pCopy)->iTemp = pBox->iTemp;
 //            ((Ntl_Obj_t *)pBox->pCopy)->Reset = pBox->Reset;
         }
@@ -158,11 +161,11 @@ Ntl_Man_t * Ntl_ManDup( Ntl_Man_t * pOld )
     pNew = Ntl_ManAlloc();
     pNew->pName = Ntl_ManStoreFileName( pNew, pOld->pName );
     pNew->pSpec = Ntl_ManStoreName( pNew, pOld->pName );
-    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+    Vec_PtrForEachEntry( Ntl_Mod_t *, pOld->vModels, pModel, i )
         pModel->pCopy = Ntl_ModelDup( pNew, pModel );
-    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+    Vec_PtrForEachEntry( Ntl_Mod_t *, pOld->vModels, pModel, i )
         Ntl_ModelForEachBox( pModel, pBox, k )
-            ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
+            ((Ntl_Obj_t *)pBox->pCopy)->pImplem = (Ntl_Mod_t *)pBox->pImplem->pCopy;
     Ntl_ManForEachCiNet( pOld, pNet, i )
         Vec_PtrPush( pNew->vCis, pNet->pCopy );
     Ntl_ManForEachCoNet( pOld, pNet, i )
@@ -195,12 +198,12 @@ Ntl_Man_t * Ntl_ManDupCollapseLuts( Ntl_Man_t * pOld )
     pNew = Ntl_ManAlloc();
     pNew->pName = Ntl_ManStoreFileName( pNew, pOld->pName );
     pNew->pSpec = Ntl_ManStoreName( pNew, pOld->pName );
-    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+    Vec_PtrForEachEntry( Ntl_Mod_t *, pOld->vModels, pModel, i )
         pModel->pCopy = Ntl_ModelDupCollapseLuts( pNew, pModel );
-    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+    Vec_PtrForEachEntry( Ntl_Mod_t *, pOld->vModels, pModel, i )
         Ntl_ModelForEachBox( pModel, pBox, k )
             if ( pBox->pCopy )
-                ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
+                ((Ntl_Obj_t *)pBox->pCopy)->pImplem = (Ntl_Mod_t *)pBox->pImplem->pCopy;
 //    Ntl_ManForEachCiNet( pOld, pNet, i )
 //        Vec_PtrPush( pNew->vCis, pNet->pCopy );
 //    Ntl_ManForEachCoNet( pOld, pNet, i )
@@ -301,10 +304,16 @@ void Nwk_ManPrintStatsShort( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk )
     Ntl_ModelForEachBox( pRoot, pObj, i )
         if ( strcmp(pObj->pImplem->pName, "dff") == 0 )
             Counter++;
+    if ( Counter == 0 )
+    {
+        Ntl_ModelForEachBox( pRoot, pObj, i )
+            Counter += (pObj->pImplem->attrWhite && !pObj->pImplem->attrComb);
+    }
     printf( "%-15s : ",  p->pName );
     printf( "pi =%5d  ", Ntl_ModelPiNum(pRoot) );
     printf( "po =%5d  ", Ntl_ModelPoNum(pRoot) );
     printf( "ff =%5d  ", Counter );
+    printf( "box =%6d  ", Ntl_ModelBoxNum(pRoot) );
     if ( pAig != NULL )
     {
         Counter = Aig_ManChoiceNum( pAig );
@@ -314,7 +323,7 @@ void Nwk_ManPrintStatsShort( Ntl_Man_t * p, Aig_Man_t * pAig, Nwk_Man_t * pNtk )
             printf( "aig =%7d  ", Aig_ManNodeNum(pAig) );
     }
     if ( pNtk == NULL )
-        printf( "Mapping is not available.\n" );
+        printf( "No mapping.\n" );
     else
     {
         printf( "lut =%5d  ",  Nwk_ManNodeNum(pNtk) );
@@ -509,7 +518,7 @@ void Ntl_ManPrintTypes( Ntl_Man_t * p )
         printf( "CLOCK STATISTICS:\n" );
         Vec_VecForEachLevel( pModel->vClockFlops, vFlops, i )
         {
-            pNet = Vec_PtrEntry( pModel->vClocks, i );
+            pNet = (Ntl_Net_t *)Vec_PtrEntry( pModel->vClocks, i );
             printf( "Clock %2d :  Name = %30s   Flops = %6d.\n", i+1, pNet->pName, Vec_PtrSize(vFlops) );
         }
     }
@@ -562,7 +571,7 @@ void Ntl_ManPrintClocks( Ntl_Man_t * p )
         printf( "CLOCK STATISTICS:\n" );
         Vec_VecForEachLevel( pModel->vClockFlops, vFlops, i )
         {
-            pNet = Vec_PtrEntry( pModel->vClocks, i );
+            pNet = (Ntl_Net_t *)Vec_PtrEntry( pModel->vClocks, i );
             printf( "Clock %2d :  Name = %30s   Flops = %6d.\n", i+1, pNet->pName, Vec_PtrSize(vFlops) );
             if ( i == 10 )
             {
@@ -599,7 +608,7 @@ void Ntl_ManPrintResets( Ntl_Man_t * p )
         printf( "RESET STATISTICS:\n" );
         Vec_VecForEachLevel( pModel->vResetFlops, vFlops, i )
         {
-            pNet = Vec_PtrEntry( pModel->vResets, i );
+            pNet = (Ntl_Net_t *)Vec_PtrEntry( pModel->vResets, i );
             printf( "Reset %2d :  Name = %30s   Flops = %6d.\n", i+1, pNet->pName, Vec_PtrSize(vFlops) );
             if ( i == 10 )
             {
@@ -690,7 +699,7 @@ Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
         else if ( pNet->fMark )
         {
             pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
-            ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+            ((Ntl_Net_t *)pNet->pCopy)->pDriver = (Ntl_Obj_t *)pNet->pDriver->pCopy;
         }
         else
             pNet->pCopy = NULL;
@@ -703,14 +712,14 @@ Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
             continue;
         Ntl_ObjForEachFanin( pObj, pNet, k )
             if ( pNet->pCopy != NULL )
-                Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
+                Ntl_ObjSetFanin( (Ntl_Obj_t *)pObj->pCopy, (Ntl_Net_t *)pNet->pCopy, k );
         Ntl_ObjForEachFanout( pObj, pNet, k )
             if ( pNet->pCopy != NULL )
-                Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
+                Ntl_ObjSetFanout( (Ntl_Obj_t *)pObj->pCopy, (Ntl_Net_t *)pNet->pCopy, k );
         if ( Ntl_ObjIsLatch(pObj) )
         {
             ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
-            ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock->pCopy;
+            ((Ntl_Obj_t *)pObj->pCopy)->pClock = (Ntl_Net_t *)pObj->pClock->pCopy;
         }
     }
     pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
@@ -753,19 +762,19 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
             assert( !pModelOld->attrWhite );
             continue;
         }
-        ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+        ((Ntl_Net_t *)pNet->pCopy)->pDriver = (Ntl_Obj_t *)pNet->pDriver->pCopy;
         assert( pNet->pDriver->pCopy != NULL );
     }
     Ntl_ModelForEachObj( pModelOld, pObj, i )
     {
         Ntl_ObjForEachFanin( pObj, pNet, k )
-            Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
+            Ntl_ObjSetFanin( (Ntl_Obj_t *)pObj->pCopy, (Ntl_Net_t *)pNet->pCopy, k );
         Ntl_ObjForEachFanout( pObj, pNet, k )
-            Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
+            Ntl_ObjSetFanout( (Ntl_Obj_t *)pObj->pCopy, (Ntl_Net_t *)pNet->pCopy, k );
         if ( Ntl_ObjIsLatch(pObj) )
         {
             ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
-            ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock? pObj->pClock->pCopy : NULL;
+            ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock? (Ntl_Net_t *)pObj->pClock->pCopy : NULL;
         }
         if ( Ntl_ObjIsNode(pObj) )
             ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObj->pSop );
@@ -821,7 +830,7 @@ Ntl_Mod_t * Ntl_ModelDupCollapseLuts( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld
         }
         if ( Ntl_ObjIsLutBox(pNet->pDriver) ) 
             continue;
-        ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+        ((Ntl_Net_t *)pNet->pCopy)->pDriver = (Ntl_Obj_t *)pNet->pDriver->pCopy;
         assert( pNet->pDriver->pCopy != NULL );
     }
     Ntl_ModelForEachObj( pModelOld, pObj, i )
@@ -848,33 +857,33 @@ Ntl_Mod_t * Ntl_ModelDupCollapseLuts( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld
                     continue;
                 sprintf( pNameBuf, "box%d_%s", i, pNet->pName );
                 pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNameBuf ); // change name!!!
-                ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+                ((Ntl_Net_t *)pNet->pCopy)->pDriver = (Ntl_Obj_t *)pNet->pDriver->pCopy;
             }
             // connect nodes
             Ntl_ModelForEachNode( pModelBox, pObjBox, k )
             {
                 Ntl_ObjForEachFanin( pObjBox, pNet, m )
-                    Ntl_ObjSetFanin( pObjBox->pCopy, pNet->pCopy, m );
+                    Ntl_ObjSetFanin( (Ntl_Obj_t *)pObjBox->pCopy, (Ntl_Net_t *)pNet->pCopy, m );
                 Ntl_ObjForEachFanout( pObjBox, pNet, m )
-                    Ntl_ObjSetFanout( pObjBox->pCopy, pNet->pCopy, m );
+                    Ntl_ObjSetFanout( (Ntl_Obj_t *)pObjBox->pCopy, (Ntl_Net_t *)pNet->pCopy, m );
                 ((Ntl_Obj_t *)pObjBox->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObjBox->pSop );
             }
             // connect the PO nets
             Ntl_ModelForEachPo( pModelBox, pObjBox, k )
-                ((Ntl_Net_t *)Ntl_ObjFanin0(pObjBox)->pCopy)->pDriver = Ntl_ObjFanin0(pObjBox)->pDriver->pCopy;
+                ((Ntl_Net_t *)Ntl_ObjFanin0(pObjBox)->pCopy)->pDriver = (Ntl_Obj_t *)Ntl_ObjFanin0(pObjBox)->pDriver->pCopy;
             assert( pObj->pCopy == NULL );
             Counter++;
         }
         else
         {
             Ntl_ObjForEachFanin( pObj, pNet, k )
-                Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
+                Ntl_ObjSetFanin( (Ntl_Obj_t *)pObj->pCopy, (Ntl_Net_t *)pNet->pCopy, k );
             Ntl_ObjForEachFanout( pObj, pNet, k )
-                Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
+                Ntl_ObjSetFanout( (Ntl_Obj_t *)pObj->pCopy, (Ntl_Net_t *)pNet->pCopy, k );
             if ( Ntl_ObjIsLatch(pObj) )
             {
                 ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
-                ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock? pObj->pClock->pCopy : NULL;
+                ((Ntl_Obj_t *)pObj->pCopy)->pClock = pObj->pClock? (Ntl_Net_t *)pObj->pClock->pCopy : NULL;
             }
             if ( Ntl_ObjIsNode(pObj) )
                 ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObj->pSop );
@@ -1054,4 +1063,6 @@ int Ntl_ModelCountInv( Ntl_Mod_t * p )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 

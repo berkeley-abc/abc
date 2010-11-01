@@ -20,6 +20,9 @@
 
 #include "cov.h"
 
+ABC_NAMESPACE_IMPL_START
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -118,14 +121,14 @@ int Abc_NodeDeriveSops( Min_Man_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vSupp, Vec
     int i, nCubes, fCompl0, fCompl1;
 
     // set elementary vars
-    Vec_PtrForEachEntry( vSupp, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, i )
     {
         pObj->pCopy = (Abc_Obj_t *)Min_CubeAllocVar( p, i, 0 );
         pObj->pNext = (Abc_Obj_t *)Min_CubeAllocVar( p, i, 1 );
     }
 
     // get the cover for each node in the array
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         // get the complements
         fCompl0 = Abc_ObjFaninC0(pObj);
@@ -165,9 +168,9 @@ Min_CoverWrite( stdout, pCoverN );
 //    nCubes = Min_CoverCountCubes(pCoverP);
 
     // clean the copy fields
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         pObj->pCopy = pObj->pNext = NULL;
-    Vec_PtrForEachEntry( vSupp, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, i )
         pObj->pCopy = pObj->pNext = NULL;
 
 //    Min_CoverWriteFile( pCoverP, Abc_ObjName(pRoot), 0 );
@@ -313,11 +316,11 @@ int Abc_NodeDeriveEsops( Min_Man_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vSupp, Ve
     int i;
 
     // set elementary vars
-    Vec_PtrForEachEntry( vSupp, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Min_CubeAllocVar( p, i, 0 );
 
     // get the cover for each node in the array
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         pCover = Abc_NodeDeriveCover( p,  
             (Min_Cube_t *)Abc_ObjFanin0(pObj)->pCopy,  
@@ -351,9 +354,9 @@ int Abc_NodeDeriveEsops( Min_Man_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vSupp, Ve
     pCover = Min_CoverCollect( p, p->nVars );
 */
     // clean the copy fields
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         pObj->pCopy = NULL;
-    Vec_PtrForEachEntry( vSupp, pObj, i )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vSupp, pObj, i )
         pObj->pCopy = NULL;
 
 //    Min_CoverWriteFile( pCover, Abc_ObjName(pRoot), 1 );
@@ -414,4 +417,6 @@ void Abc_NtkTestEsop( Abc_Ntk_t * pNtk )
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
+
+ABC_NAMESPACE_IMPL_END
 
