@@ -7,8 +7,9 @@ CP   := cp
 PROG := abc
 
 MODULES := \
+        $(wildcard src/ext) src/misc/ext \
 	src/base/abc src/base/abci src/base/cmd \
-	src/base/io src/base/main src/base/ver src/base/dummy src/base/dummy2 \
+	src/base/io src/base/main src/base/ver \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr \
 	src/bdd/parse src/bdd/reo src/bdd/cas \
 	src/map/fpga src/map/mapper src/map/mio src/map/super \
@@ -28,8 +29,7 @@ MODULES := \
 	src/aig/int src/aig/dch src/aig/ssw src/aig/cgt \
 	src/aig/cec src/aig/gia src/aig/bbl src/aig/live \
 	src/aig/llb \
-	src/python \
-	src/ext/_sky src/ext/_rti src/ext/_nal src/ext/_bat src/ext/_lxp
+	src/python 
 
 all: $(PROG)
 default: $(PROG)

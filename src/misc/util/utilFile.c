@@ -102,7 +102,7 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
         close(fd);
         unlink(*out_name);
         strcat(*out_name, suffix);
-        fd = open(fd);
+        fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
         if (fd == -1){
             free(*out_name);
             *out_name = NULL;
