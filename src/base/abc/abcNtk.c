@@ -1470,6 +1470,36 @@ void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput )
     Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSwapOneOutput( Abc_Ntk_t * pNtk, int iOutput )
+{
+    Abc_Obj_t * pObj1, * pObj2;
+    Abc_Obj_t * pChild1Old, * pChild2Old;
+    Abc_Obj_t * pChild1, * pChild2;
+    if ( iOutput == 0 )
+        return;
+    pObj1      = Abc_NtkPo( pNtk, 0 );
+    pObj2      = Abc_NtkPo( pNtk, iOutput );
+    pChild1Old = Abc_ObjChild0( pObj1 );
+    pChild2Old = Abc_ObjChild0( pObj2 );
+    pChild1    = Abc_ObjNotCond( pChild1Old, Abc_ObjFaninC0(pObj2) );
+    pChild2    = Abc_ObjNotCond( pChild2Old, Abc_ObjFaninC0(pObj1) );
+    Abc_ObjPatchFanin( pObj1, Abc_ObjFanin0(pObj1), pChild2 );
+    Abc_ObjPatchFanin( pObj2, Abc_ObjFanin0(pObj2), pChild1 );
+    assert( Abc_ObjChild0(pObj1) == pChild2Old );
+    assert( Abc_ObjChild0(pObj2) == pChild1Old );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
