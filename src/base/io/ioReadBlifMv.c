@@ -1065,7 +1065,7 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
                 Init = atoi( (char *)Vec_PtrEntryLast(vTokens) );
             else
                 Init = 2;
-            if ( Init < 0 || Init > 2 )
+            if ( Init < 0 || Init > 3 )
             {
                 sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Io_MvGetLine(p->pMan, pToken), (char*)Vec_PtrEntry(vTokens,3) );
                 return 0;
