@@ -91,8 +91,6 @@ struct Abc_Frame_t_
     Nwk_Man_t *     pAbc8Nwk;    // the current mapped network
     Aig_Man_t *     pAbc8Aig;    // the current AIG
     If_Lib_t *      pAbc8Lib;    // the current LUT library
-
-    EXT_ABC_FRAME                // plugin for external functionality
     If_Lib_t *      pAbc85Lib;   // the current LUT library
 
     Gia_Man_t *     pGia;
@@ -114,6 +112,8 @@ struct Abc_Frame_t_
     int             nFrames;            // the number of time frames completed by BMC
 
     Vec_Ptr_t *     vPlugInComBinPairs; // pairs of command and its binary name
+
+    EXT_ABC_FRAME                // plugin for external functionality
 };
 
 ////////////////////////////////////////////////////////////////////////
