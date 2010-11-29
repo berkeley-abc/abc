@@ -34,6 +34,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcMiter.c \
     src/base/abci/abcMulti.c \
     src/base/abci/abcNtbdd.c \
+    src/base/abci/abcNpnSave.c \
     src/base/abci/abcOdc.c \
     src/base/abci/abcOrder.c \
     src/base/abci/abcPart.c \

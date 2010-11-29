@@ -122,7 +122,8 @@ void Abc_NtkCutsAddFanunt( Abc_Ntk_t * pNtk )
 Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 {
     ProgressBar * pProgress;
-    Cut_Man_t *  p;
+    Cut_Man_t * p;
+    Cut_Cut_t * pList;
     Abc_Obj_t * pObj, * pNode;
     Vec_Ptr_t * vNodes;
     Vec_Int_t * vChoices;
@@ -172,7 +173,15 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 //            continue;
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // compute the cuts to the internal node
-        Abc_NodeGetCuts( p, pObj, pParams->fDag, pParams->fTree );  
+        pList = Abc_NodeGetCuts( p, pObj, pParams->fDag, pParams->fTree );
+        if ( pParams->fNpnSave && pList )
+        {
+            extern void Npn_ManSaveOne( unsigned * puTruth, int nVars );
+            Cut_Cut_t * pCut;
+            for ( pCut = pList; pCut; pCut = pCut->pNext )
+                if ( pCut->nLeaves >= 4 )
+                    Npn_ManSaveOne( Cut_CutReadTruth(pCut), pCut->nLeaves );
+        }
         // consider dropping the fanins cuts
         if ( pParams->fDrop )
         {
@@ -193,7 +202,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_IntFree( vChoices );
     Cut_ManPrintStats( p );
 ABC_PRT( "TOTAL", clock() - clk );
-    printf( "Area = %d.\n", Abc_NtkComputeArea( pNtk, p ) );
+//    printf( "Area = %d.\n", Abc_NtkComputeArea( pNtk, p ) );
 //Abc_NtkPrintCuts( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
 
@@ -428,7 +437,6 @@ void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
 //    assert( Abc_NtkIsStrash(pObj->pNtk) );
     assert( Abc_ObjFaninNum(pObj) == 2 );
 
-
     // check if the node is a DAG node
     fDagNode = (Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj));
     // increment the counter of DAG nodes
@@ -443,7 +451,6 @@ void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
         pFanin = Abc_ObjFanin1(pObj);
         TreeCode |= ((Abc_ObjFanoutNum(pFanin) > 1 && !Abc_NodeIsMuxControlType(pFanin)) << 1);
     }
-
 
     // changes due to the global/local cut computation
     {
@@ -567,9 +574,6 @@ void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
     printf( "Node %s:\n", Abc_ObjName(pObj) );
     Cut_CutPrintList( pList, fSeq );
 }
-
-
-
 
 /**Function*************************************************************
 

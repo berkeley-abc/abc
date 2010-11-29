@@ -70,6 +70,7 @@ struct Cut_ParamsStruct_t_
     int                fFancy;            // perform fancy computations
     int                fMap;              // computes delay of FPGA mapping with cuts
     int                fAdjust;           // removed useless fanouts of XORs/MUXes
+    int                fNpnSave;          // enables dumping 6-input truth tables
     int                fVerbose;          // the verbosiness flag
 };
 
