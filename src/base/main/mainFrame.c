@@ -259,6 +259,22 @@ Abc_Ntk_t * Abc_FrameReadNtk( Abc_Frame_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Abc_FrameReadGia( Abc_Frame_t * p )
+{
+    return p->pGia;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 FILE * Abc_FrameReadOut( Abc_Frame_t * p )
 {
     return p->Out;

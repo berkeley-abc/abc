@@ -33,6 +33,7 @@
 
 // core packages
 #include "abc.h"
+#include "gia.h"
 
 ABC_NAMESPACE_HEADER_START
 // the framework containing all data
@@ -74,6 +75,7 @@ extern ABC_DLL void            Abc_Stop();
 
 /*=== mainFrame.c ===========================================================*/
 extern ABC_DLL Abc_Ntk_t *     Abc_FrameReadNtk( Abc_Frame_t * p );
+extern ABC_DLL Gia_Man_t *     Abc_FrameReadGia( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadOut( Abc_Frame_t * p );
 extern ABC_DLL FILE *          Abc_FrameReadErr( Abc_Frame_t * p );
 extern ABC_DLL int             Abc_FrameReadMode( Abc_Frame_t * p );
