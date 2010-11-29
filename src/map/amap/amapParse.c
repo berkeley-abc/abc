@@ -37,6 +37,7 @@ ABC_NAMESPACE_IMPL_START
 #define AMAP_EQN_SYM_NEG     '!'   // negation before the variable
 #define AMAP_EQN_SYM_NEGAFT  '\''  // negation after the variable
 #define AMAP_EQN_SYM_AND     '*'   // logic AND
+#define AMAP_EQN_SYM_AND2    '&'   // logic AND
 #define AMAP_EQN_SYM_XOR     '^'   // logic XOR
 #define AMAP_EQN_SYM_OR      '+'   // logic OR
 #define AMAP_EQN_SYM_OR2     '|'   // logic OR
@@ -184,6 +185,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                 Vec_PtrPush( pStackFn, Hop_Not( (Hop_Obj_t *)Vec_PtrPop(pStackFn) ) );
             break;
         case AMAP_EQN_SYM_AND:
+        case AMAP_EQN_SYM_AND2:
         case AMAP_EQN_SYM_OR:
         case AMAP_EQN_SYM_OR2:
         case AMAP_EQN_SYM_XOR:
@@ -193,7 +195,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                 Flag = AMAP_EQN_FLAG_ERROR; 
                 break;
             }
-            if ( *pTemp == AMAP_EQN_SYM_AND )
+            if ( *pTemp == AMAP_EQN_SYM_AND || *pTemp == AMAP_EQN_SYM_AND2 )
                 Vec_IntPush( pStackOp, AMAP_EQN_OPER_AND );
             else if ( *pTemp == AMAP_EQN_SYM_OR || *pTemp == AMAP_EQN_SYM_OR2 )
                 Vec_IntPush( pStackOp, AMAP_EQN_OPER_OR );
@@ -252,7 +254,7 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             // scan the next name
             for ( i = 0; pTemp[i] && 
                          pTemp[i] != ' ' && pTemp[i] != '\t' && pTemp[i] != '\r' && pTemp[i] != '\n' &&
-                         pTemp[i] != AMAP_EQN_SYM_AND && pTemp[i] != AMAP_EQN_SYM_OR && pTemp[i] != AMAP_EQN_SYM_OR2 && 
+                         pTemp[i] != AMAP_EQN_SYM_AND && pTemp[i] != AMAP_EQN_SYM_AND2 && pTemp[i] != AMAP_EQN_SYM_OR && pTemp[i] != AMAP_EQN_SYM_OR2 && 
                          pTemp[i] != AMAP_EQN_SYM_XOR && pTemp[i] != AMAP_EQN_SYM_NEGAFT && pTemp[i] != AMAP_EQN_SYM_CLOSE; 
                   i++ )
               {
