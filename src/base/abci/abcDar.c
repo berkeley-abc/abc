@@ -1249,7 +1249,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit
     int RetValue;//, clk = clock();
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
-    assert( Abc_NtkPoNum(pNtk) == 1 );
+//    assert( Abc_NtkPoNum(pNtk) == 1 );
     pMan = Abc_NtkToDar( pNtk, 0, 0 );
     RetValue = Fra_FraigSat( pMan, nConfLimit, nInsLimit, fAlignPol, fAndOuts, fVerbose ); 
     pNtk->pModel = (int *)pMan->pData, pMan->pData = NULL;
@@ -3909,6 +3909,10 @@ Aig_ManPrintStats( pMan );
 //    Saig_ManBmcMappingTest( pMan );
     }
 
+    {
+//        void Pdr_ManEquivClasses( Aig_Man_t * pMan );
+//        Pdr_ManEquivClasses( pMan );
+    }
 
 
 //    Saig_MvManSimulate( pMan, 1 );
