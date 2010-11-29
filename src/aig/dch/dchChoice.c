@@ -272,6 +272,165 @@ Aig_Man_t * Dch_DeriveChoiceAig_old( Aig_Man_t * pAig )
 }
 
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Checks for combinational loops in the AIG.]
+
+  Description [Returns 1 if combinational loop is detected.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManCheckAcyclic_rec( Aig_Man_t * p, Aig_Obj_t * pNode, int fVerbose )
+{
+    Aig_Obj_t * pFanin;
+    int fAcyclic;
+    if ( Aig_ObjIsPi(pNode) || Aig_ObjIsConst1(pNode) )
+        return 1;
+    assert( Aig_ObjIsNode(pNode) );
+    // make sure the node is not visited
+    assert( !Aig_ObjIsTravIdPrevious(p, pNode) );
+    // check if the node is part of the combinational loop
+    if ( Aig_ObjIsTravIdCurrent(p, pNode) )
+    {
+        if ( fVerbose )
+            Abc_Print( 1, "Network \"%s\" contains combinational loop!\n", p->pSpec? p->pSpec : NULL );
+        if ( fVerbose )
+        Abc_Print( 1, "Node \"%d\" is encountered twice on the following path to the COs:\n", Aig_ObjId(pNode) );
+        return 0;
+    }
+    // mark this node as a node on the current path
+    Aig_ObjSetTravIdCurrent( p, pNode );
+
+    // visit the transitive fanin
+    pFanin = Aig_ObjFanin0(pNode);
+    // check if the fanin is visited
+    if ( !Aig_ObjIsTravIdPrevious(p, pFanin) ) 
+    {
+        // traverse the fanin's cone searching for the loop
+        if ( !(fAcyclic = Aig_ManCheckAcyclic_rec(p, pFanin, fVerbose)) )
+        {
+            // return as soon as the loop is detected
+            if ( fVerbose )
+            Abc_Print( 1, " %d ->", Aig_ObjId(pFanin) );
+            return 0;
+        }
+    }
+
+    // visit the transitive fanin
+    pFanin = Aig_ObjFanin1(pNode);
+    // check if the fanin is visited
+    if ( !Aig_ObjIsTravIdPrevious(p, pFanin) ) 
+    {
+        // traverse the fanin's cone searching for the loop
+        if ( !(fAcyclic = Aig_ManCheckAcyclic_rec(p, pFanin, fVerbose)) )
+        {
+            // return as soon as the loop is detected
+            if ( fVerbose )
+            Abc_Print( 1, " %d ->", Aig_ObjId(pFanin) );
+            return 0;
+        }
+    }
+
+    // visit choices
+    if ( Aig_ObjRepr(p, pNode) == NULL && Aig_ObjEquiv(p, pNode) != NULL )
+    {
+        for ( pFanin = Aig_ObjEquiv(p, pNode); pFanin; pFanin = Aig_ObjEquiv(p, pFanin) )
+        {
+            // check if the fanin is visited
+            if ( Aig_ObjIsTravIdPrevious(p, pFanin) ) 
+                continue;
+            // traverse the fanin's cone searching for the loop
+            if ( (fAcyclic = Aig_ManCheckAcyclic_rec(p, pFanin, fVerbose)) )
+                continue;
+            // return as soon as the loop is detected
+            if ( fVerbose )
+            Abc_Print( 1, " %d", Aig_ObjId(pFanin) );
+            if ( fVerbose )
+            Abc_Print( 1, " (choice of %d) -> ", Aig_ObjId(pNode) );
+            return 0;
+        }
+    }
+    // mark this node as a visited node
+    Aig_ObjSetTravIdPrevious( p, pNode );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks for combinational loops in the AIG.]
+
+  Description [Returns 1 if there is no combinational loops.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManCheckAcyclic( Aig_Man_t * p, int fVerbose )
+{
+    Aig_Obj_t * pNode;
+    int fAcyclic;
+    int i;
+    // set the traversal ID for this DFS ordering
+    Aig_ManIncrementTravId( p );   
+    Aig_ManIncrementTravId( p );   
+    // pNode->TravId == pNet->nTravIds      means "pNode is on the path"
+    // pNode->TravId == pNet->nTravIds - 1  means "pNode is visited but is not on the path"
+    // pNode->TravId <  pNet->nTravIds - 1  means "pNode is not visited"
+    // traverse the network to detect cycles
+    fAcyclic = 1;
+    Aig_ManForEachPo( p, pNode, i )
+    {
+        pNode = Aig_ObjFanin0(pNode);
+        if ( Aig_ObjIsTravIdPrevious(p, pNode) )
+            continue;
+        // traverse the output logic cone
+        if ( (fAcyclic = Aig_ManCheckAcyclic_rec(p, pNode, fVerbose)) )
+            continue;
+        // stop as soon as the first loop is detected
+        if ( fVerbose )
+        Abc_Print( 1, " CO %d\n", i );
+        break;
+    }
+    return fAcyclic;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes combinational loop.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManFixLoopProblem( Aig_Man_t * p, int fVerbose )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0, Counter2 = 0;
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( !Aig_ObjIsTravIdCurrent(p, pObj) )
+            continue;
+        Counter2++;
+        if ( Aig_ObjRepr(p, pObj) == NULL && Aig_ObjEquiv(p, pObj) != NULL )
+        {
+            Aig_ObjSetEquiv(p, pObj, NULL);
+            Counter++;
+        }
+    }
+    if ( fVerbose )
+    Abc_Print( 1, "Fixed %d choice nodes on the path with %d objects.\n", Counter, Counter2 );
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Derives the AIG with choices from representatives.]
@@ -320,12 +479,20 @@ Aig_Man_t * Dch_DeriveChoiceAigInt( Aig_Man_t * pAig )
 ***********************************************************************/
 Aig_Man_t * Dch_DeriveChoiceAig( Aig_Man_t * pAig )
 {
+    extern int Aig_ManCheckAcyclic( Aig_Man_t * pAig, int fVerbose );
     Aig_Man_t * pChoices, * pTemp;
+    int fVerbose = 0;
     pChoices = Dch_DeriveChoiceAigInt( pAig );
 //    pChoices = Dch_DeriveChoiceAigInt( pTemp = pChoices );
 //    Aig_ManStop( pTemp );
     // there is no need for cleanup
     ABC_FREE( pChoices->pReprs );
+    while ( !Aig_ManCheckAcyclic( pChoices, fVerbose ) )
+    {
+        if ( fVerbose )
+        Abc_Print( 1, "There is a loop!\n" );
+        Aig_ManFixLoopProblem( pChoices, fVerbose );
+    }
     pChoices = Aig_ManDupDfs( pTemp = pChoices );
     Aig_ManStop( pTemp );
     return pChoices;
