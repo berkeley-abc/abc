@@ -89,6 +89,8 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, char *
     fprintf( pFile, " " );
     // write <engine_name>
     fprintf( pFile, "%s", pCommand ? pCommand : "unknown" );
+    if ( Status == 0 )
+        fprintf( pFile, " %d", pCex->iPo );
     fprintf( pFile, "\n" );
     // write <INIT_STATE>
     if ( pCex == NULL )
@@ -127,9 +129,9 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex )
 {
     Abc_Cex_t * pCex;
     Vec_Int_t * vNums;
-    char Buffer[1000];
+    char Buffer[1000], * pToken;
     FILE * pFile;
-    int c, nRegs = -1, nFrames = -1, Status = -1;
+    int c, nRegs = -1, nFrames = -1, iPo = -1, Status = -1;
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
     {
@@ -145,7 +147,12 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex )
     else if ( !strncmp( Buffer, "snl_SAT", strlen("snl_SAT") ) )
     {
         Status = 0;
-        nFrames = atoi( Buffer + strlen("snl_SAT") ); 
+//        nFrames = atoi( Buffer + strlen("snl_SAT") ); 
+        pToken  = strtok( Buffer + strlen("snl_SAT"), " \t\n" );
+        nFrames = atoi( pToken ); 
+        pToken  = strtok( NULL, " \t\n" );
+        pToken  = strtok( NULL, " \t\n" );
+        iPo     = atoi( pToken ); 
     }
     else if ( !strncmp( Buffer, "snl_UNK", strlen("snl_UNK") ) )
     {
@@ -191,7 +198,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex )
             return -1;
         }
         pCex = Gia_ManAllocCounterExample( nRegs, (Vec_IntSize(vNums)-nRegs)/nFrames, nFrames );
-        pCex->iPo    = 0;
+        pCex->iPo    = iPo;
         pCex->iFrame = nFrames - 1;
         assert( Vec_IntSize(vNums) == pCex->nBits );
         for ( c = 0; c < pCex->nBits; c++ )
