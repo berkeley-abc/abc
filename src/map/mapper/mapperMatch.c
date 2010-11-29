@@ -482,7 +482,7 @@ void Map_NodeTryDroppingOnePhase( Map_Man_t * p, Map_Node_t * pNode )
     tWorst1Using0 = Map_TimeMatchWithInverter( p, pMatchBest0 );
 
     // consider the case of mapping for delay
-    if ( p->fMappingMode == 0 )
+    if ( p->fMappingMode == 0 && p->DelayTarget < ABC_INFINITY )
     { 
         // if the arrival time of a phase is larger than the arrival time 
         // of the opposite phase plus the inverter, drop this phase
