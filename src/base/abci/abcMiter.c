@@ -858,6 +858,8 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial, int fVer
 ***********************************************************************/
 void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
 {
+    int fVerbose = 0;
+    int NodeBef = Abc_NtkNodeNum(pNtkFrames);
     char Buffer[10];
     Abc_Obj_t * pNode, * pLatch;
     int i;
@@ -880,6 +882,11 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
         pLatch->pCopy = Abc_ObjChild0Copy(Abc_ObjFanin0(pLatch));
     Abc_NtkForEachLatch( pNtk, pLatch, i )
         Abc_ObjFanout0(pLatch)->pCopy = pLatch->pCopy;
+    // nodes after
+    if ( fVerbose )
+    printf( "F = %4d : Total = %6d. Nodes = %6d. Prop = %s.\n", 
+        iFrame, Abc_NtkNodeNum(pNtk), Abc_NtkNodeNum(pNtkFrames)-NodeBef, 
+        Abc_AigNodeIsConst( Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->pCopy ) ? "proof" : "unknown" );
 }
 
 
