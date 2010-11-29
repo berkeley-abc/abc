@@ -148,6 +148,7 @@ struct Aig_Man_t_
     void *           pManTime;       // the timing manager
     void *           pManCuts;
     int *            pFastSim; 
+    unsigned *       pTerSimData;    // ternary simulation data
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
     Vec_Int_t *      vFlopReprs;      
