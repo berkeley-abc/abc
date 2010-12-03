@@ -1039,6 +1039,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     ABC_FREE( pNtk->pLutTimes );
     if ( pNtk->vOnehots )
         Vec_VecFree( (Vec_Vec_t *)pNtk->vOnehots );
+    Vec_PtrFreeP( &pNtk->vLtlProperties );
     ABC_FREE( pNtk );
 }
 
