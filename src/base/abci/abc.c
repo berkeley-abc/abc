@@ -273,6 +273,7 @@ static int Abc_CommandUnfold                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandFold                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBm                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandTraceStart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -671,6 +672,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "fold",          Abc_CommandFold,             1 );
     Cmd_CommandAdd( pAbc, "Verification", "bm",            Abc_CommandBm,               1 );
     Cmd_CommandAdd( pAbc, "Verification", "testcex",       Abc_CommandTestCex,          0 );
+    Cmd_CommandAdd( pAbc, "Verification", "pdr",           Abc_CommandPdr,              0 );
 
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
@@ -19518,7 +19520,7 @@ int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
             p_equivalence = 1;            
             break;        
         default:
-            Abc_Print( -2, "Unkown switch.\n");
+            Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
     }
@@ -19584,6 +19586,9 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
         case 'h':
             goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
         }
     }
 
@@ -19643,6 +19648,69 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Cex_t * pCex;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -2, "There is no current network.\n");
+        return 0;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        Abc_Print( -2, "The current network is combinational.\n");
+        return 0;
+    }
+    if ( Abc_NtkPoNum(pNtk) != 1 )
+    {
+        Abc_Print( -2, "The number of POs is different from 1.\n");
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
+        return 0;
+    }
+    // run the procedure
+    pAbc->Status  = Abc_NtkDarPdr( pNtk, &pCex );
+    pAbc->nFrames = pCex ? pCex->iFrame : -1;
+    Abc_FrameReplaceCex( pAbc, &pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: pdr -h\n" );
+    Abc_Print( -2, "\t        model checking using property driven reachability (aka ic3)\n" );
+    Abc_Print( -2, "\t        pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
+    Abc_Print( -2, "\t        with improvements by Niklas Een (http://een.se/niklas/)\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 

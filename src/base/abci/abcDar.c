@@ -2245,6 +2245,56 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
     return RetValue;
 }
 
+typedef struct Pdr_Par_t_ Pdr_Par_t;
+struct Pdr_Par_t_
+{
+    int    fAbstract;     // perform abstraction
+    int    fVerbose;      // enable verbose output
+    int    fVeryVerbose;  // enable verbose output
+};
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex )
+{
+//    extern void  Pdr_ManSetDefaultParams( Pdr_Par_t * pPars );
+//    extern int   Pdr_ManSolve( Aig_Man_t * pAig, Abc_Cex_t ** ppCex, Pdr_Par_t * pPars );
+    int RetValue = -1, clk = clock();
+    Pdr_Par_t Pars, * pPars = &Pars;
+    Aig_Man_t * pMan;
+//    Pdr_ManSetDefaultParams( pPars );
+    *ppCex = NULL;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+    {
+        printf( "Converting network into AIG has failed.\n" );
+        return -1;
+    }
+//    RetValue = Pdr_ManSolve( pMan, ppCex, pPars );
+    if ( RetValue == 1 )
+        printf( "Property proved.  " );
+    else if ( RetValue == 0 )
+        printf( "Property DISPROVED in frame %d (use \"write_counter\" to dump a witness).  ", ppCex? (*ppCex)->iFrame : -1 );
+    else if ( RetValue == -1 )
+        printf( "Property UNDECIDED.  " );
+    else
+        assert( 0 );
+ABC_PRT( "Time", clock() - clk );
+
+    if ( *ppCex && !Ssw_SmlRunCounterExample( pMan, *ppCex ) )
+        printf( "Abc_NtkDarPdr(): Counter-example verification has FAILED.\n" );
+    Aig_ManStop( pMan );
+    return RetValue;
+}
 
 /**Function*************************************************************
 
