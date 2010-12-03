@@ -976,7 +976,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
 #endif
             s->stats.conflicts++; conflictC++;
             if (sat_solver_dlevel(s) == s->root_level){
-//                lit p = clause_is_lit(confl)? clause_read_lit(confl) : clause_begin(confl)[0];
+                lit p = clause_is_lit(confl)? clause_read_lit(confl) : clause_begin(confl)[0];
 //                sat_solver_analyze_final(s, lit_neg(p), &s->conf_final);
                 veci_delete(&learnt_clause);
                 return l_False;
