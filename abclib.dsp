@@ -323,6 +323,10 @@ SOURCE=.\src\base\abci\abcMv.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcNpnSave.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcNtbdd.c
 # End Source File
 # Begin Source File
@@ -4037,6 +4041,46 @@ SOURCE=.\src\aig\llb\llbSched.c
 # Begin Group "sky"
 
 # PROP Default_Filter ""
+# End Group
+# Begin Group "pdr"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdrClass.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdrCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdrInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdrMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdrSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdrTsim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\xxx\pdr\pdrUtil.c
+# End Source File
 # End Group
 # End Group
 # End Group
