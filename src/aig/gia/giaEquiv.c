@@ -836,11 +836,13 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
         printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
+/*
     if ( Gia_ManHasNoEquivs(p) )
     {
         printf( "Gia_ManSpecReduce(): There are no equivalences to reduce.\n" );
         return NULL;
     }
+*/
 /*
     if ( !Gia_ManCheckTopoOrder( p ) )
     {
