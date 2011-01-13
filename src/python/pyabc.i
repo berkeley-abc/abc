@@ -25,12 +25,8 @@
 #include <main.h>
 #include <stdlib.h>
 #include <signal.h>
-
-void sigint_signal_handler(int sig)
-{
-    _exit(1);
-}
-
+#include <hash.h>
+#include <hashPtr.h>
     
 int n_ands()
 {
@@ -83,14 +79,6 @@ int n_latches()
     }
 
     return -1;
-}
-
-int run_command(char* cmd)
-{
-    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
-    int fStatus = Cmd_CommandExecute(pAbc, cmd);
-    
-    return fStatus;
 }
 
 bool has_comb_model()
@@ -180,43 +168,99 @@ void pyabc_internal_set_command_callback( PyObject* callback )
     Py_XINCREF(callback);
     Py_XDECREF(pyabc_internal_python_command_callback);
 
-	pyabc_internal_python_command_callback = callback;
+    pyabc_internal_python_command_callback = callback;
 }
 
 static int pyabc_internal_abc_command_callback(Abc_Frame_t * pAbc, int argc, char ** argv)
 {
-	int i;
-	
-	PyObject* args;
-	PyObject* arglist;
-	PyObject* res;
-	long lres;
-	
-	if ( !pyabc_internal_python_command_callback )
-		return 0;
-		
-	args = PyList_New(argc);
-	
-	for( i=0 ; i<argc ; i++ )
-		PyList_SetItem(args, i, PyString_FromString(argv[i]) );
+    int i;
+    
+    PyObject* args;
+    PyObject* arglist;
+    PyObject* res;
 
-	arglist = Py_BuildValue("(O)", args);
-	Py_INCREF(arglist);
+    long lres;
+    
+    if ( !pyabc_internal_python_command_callback )
+            return 0;
+            
+    args = PyList_New(argc);
+    
+    for( i=0 ; i<argc ; i++ )
+            PyList_SetItem(args, i, PyString_FromString(argv[i]) );
 
-	res = PyEval_CallObject( pyabc_internal_python_command_callback, arglist );
-	Py_DECREF(arglist);
+    arglist = Py_BuildValue("(O)", args);
+    Py_INCREF(arglist);
 
-	lres = PyInt_AsLong(res);
-	Py_DECREF(res);
-	
-	return lres;
+    res = PyEval_CallObject( pyabc_internal_python_command_callback, arglist );
+    Py_DECREF(arglist);
+
+    if ( !res )
+    {
+        return -1;
+    }
+    
+    lres = PyInt_AsLong(res);
+    Py_DECREF(res);
+
+    return lres;
+}
+
+int run_command(char* cmd)
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+    return Cmd_CommandExecute(pAbc, cmd);
 }
 
 void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges )
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
 
-	Cmd_CommandAdd( pAbc, sGroup, sName, (void*)pyabc_internal_abc_command_callback, fChanges);
+    Cmd_CommandAdd( pAbc, sGroup, sName, (void*)pyabc_internal_abc_command_callback, fChanges);
+}
+
+static Hash_Ptr_t* active_pid_hash = NULL;
+
+void sigint_handler(int signum)
+{
+    int i;
+    Hash_Ptr_Entry_t* pEntry;
+    
+    assert( signum == SIGINT );
+    
+    Hash_PtrForEachEntry(active_pid_hash, pEntry, i)
+    {
+        int pid = pEntry->key;
+        kill(pid, SIGINT);
+    }
+
+    _exit(1);
+}
+
+void add_child_pid(int pid)
+{
+    Hash_PtrWriteEntry(active_pid_hash, pid, NULL);
+}
+
+void remove_child_pid(int pid)
+{
+    Hash_PtrRemove(active_pid_hash, pid);
+}
+
+static sigset_t old_procmask;
+
+void block_sigint()
+{
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    
+    sigprocmask(SIG_BLOCK, &set, &old_procmask);
+}
+
+void restore_sigint_block()
+{
+    sigprocmask(SIG_SETMASK, &old_procmask, NULL);
 }
 
 %}
@@ -224,7 +268,8 @@ void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges 
 %init 
 %{
     Abc_Start();
-    signal(SIGINT, sigint_signal_handler);
+    active_pid_hash = Hash_PtrAlloc(1);
+    signal(SIGINT, sigint_handler);
 %}
 
 int n_ands();
@@ -252,31 +297,36 @@ int  n_phases();
 void pyabc_internal_set_command_callback( PyObject* callback );
 void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges );
 
+void block_sigint();
+void restore_sigint_block();
+void add_child_pid(int pid);
+void remove_child_pid(int pid);
+
 %pythoncode 
 %{
 
 _registered_commands = {}
 
 def _cmd_callback(args):
-	try:
-	    assert len(args) > 0
-	    
-	    cmd = args[0]
-	    assert cmd in _registered_commands
-	
-	    res = _registered_commands[cmd](args)
-	    
-	    assert type(res) == int, "User-defined Python command must return an integer."
-	    
-	    return res
-	
-	except Exception, e:
-		print "Python error: ", e
+    try:
+        assert len(args) > 0
+        
+        cmd = args[0]
+        assert cmd in _registered_commands
+    
+        res = _registered_commands[cmd](args)
+        
+        assert type(res) == int, "User-defined Python command must return an integer."
+        
+        return res
+    
+    except Exception, e:
+        print "Python error: ", e
 
-	except SystemExit, se:
-		pass
-		
-	return 0
+    except SystemExit, se:
+        pass
+            
+    return 0
     
 pyabc_internal_set_command_callback( _cmd_callback )
     

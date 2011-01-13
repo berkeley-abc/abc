@@ -90,7 +90,14 @@ int Abc_RealMain( int argc, char * argv[] )
         init_pyabc();
 
         pModule = PyImport_ImportModule("pyabc");
-        Py_DECREF(pModule);
+        if (pModule)
+        {
+            Py_DECREF(pModule);
+        }
+        else
+        {
+            fprintf( pAbc->Err, "error: pyabc.py not found. PYTHONPATH may not be set properly.\n");
+        }
     }
 #endif /* ABC_PYTHON_EMBED */
 

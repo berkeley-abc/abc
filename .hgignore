@@ -33,7 +33,7 @@ abcext.dsp
 src/python/build
 src/python/bdist
 src/python/pyabc.py
-src.python/pyabc_wrap.*
+src/python/pyabc_wrap.*
 
 syntax: regexp
 

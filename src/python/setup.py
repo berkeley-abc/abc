@@ -6,6 +6,7 @@ from distutils import util
 
 include_dirs = [
     '../aig/hop',
+    '../aig/gia',
     '../base/abc',
     '../base/cmd',
     '../base/io',
@@ -18,6 +19,7 @@ include_dirs = [
     '../misc/st',
     '../misc/util',
     '../misc/vec',
+    '../misc/hash',
     ]
     
 define_macros = []
