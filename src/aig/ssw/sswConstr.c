@@ -83,8 +83,8 @@ Aig_Man_t * Ssw_FramesWithConstraints( Aig_Man_t * p, int nFrames )
     }
     // remove dangling nodes
     Aig_ManCleanup( pFrames );
-    return pFrames;
-}
+    return pFrames; 
+} 
 
 /**Function*************************************************************
 

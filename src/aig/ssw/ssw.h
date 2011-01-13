@@ -68,6 +68,7 @@ struct Ssw_Pars_t_
     int              fUseCSat;      // new SAT solver using when fScorrGia is selected
     int              fVerbose;      // verbose stats
     int              fFlopVerbose;  // verbose printout of redundant flops
+    int              fEquivDump;    // enables dumping equivalences
     // optimized latch correspondence
     int              fLatchCorrOpt; // perform register correspondence (optimized)
     int              nSatVarMax;    // max number of SAT vars before recycling SAT solver (optimized latch corr only)

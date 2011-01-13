@@ -271,7 +271,7 @@ int Abc_NtkMfsTryResubOnceGia( Mfs_Man_t * p, int * pCands, int nCands )
             assert( Val3 == 1 );
 */
             // store the counter-example
-            Vec_IntForEachEntry( p->vProjVars, iVar, i )
+            Vec_IntForEachEntry( p->vProjVarsSat, iVar, i )
             {
                 pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
                 iOut = iVar - 2 * p->pCnf->nVars;

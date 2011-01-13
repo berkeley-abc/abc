@@ -111,7 +111,7 @@ int Mfx_TryResubOnce( Mfx_Man_t * p, int * pCands, int nCands )
     }
     p->nSatCexes++;
     // store the counter-example
-    Vec_IntForEachEntry( p->vProjVars, iVar, i )
+    Vec_IntForEachEntry( p->vProjVarsSat, iVar, i )
     {
         pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
         if ( !sat_solver_var_value( p->pSat, iVar ) ) // remove 0s!!!
@@ -166,7 +166,7 @@ int Mfx_SolveSatResub( Mfx_Man_t * p, Nwk_Obj_t * pNode, int iFanin, int fOnlyRe
             continue;
         Vec_PtrPush( p->vFanins, pFanin );
         iVar = Vec_PtrSize(p->vDivs) - Nwk_ObjFaninNum(pNode) + i;
-        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVars, iVar ), 1 );
+        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVarsSat, iVar ), 1 );
     }
     RetValue = Mfx_TryResubOnce( p, pCands, nCands );
     if ( RetValue == -1 )
@@ -244,7 +244,7 @@ p->timeInt += clock() - clk;
         if ( iVar == Vec_PtrSize(p->vDivs)-Nwk_ObjFaninNum(pNode) )
             return 0;
 
-        pCands[nCands] = toLitCond( Vec_IntEntry(p->vProjVars, iVar), 1 );
+        pCands[nCands] = toLitCond( Vec_IntEntry(p->vProjVarsSat, iVar), 1 );
         RetValue = Mfx_TryResubOnce( p, pCands, nCands+1 );
         if ( RetValue == -1 )
             return 0;
@@ -316,7 +316,7 @@ int Mfx_SolveSatResub2( Mfx_Man_t * p, Nwk_Obj_t * pNode, int iFanin, int iFanin
             continue;
         Vec_PtrPush( p->vFanins, pFanin );
         iVar = Vec_PtrSize(p->vDivs) - Nwk_ObjFaninNum(pNode) + i;
-        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVars, iVar ), 1 );
+        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVarsSat, iVar ), 1 );
     }
     RetValue = Mfx_TryResubOnce( p, pCands, nCands );
     if ( RetValue == -1 )
@@ -390,8 +390,8 @@ p->timeInt += clock() - clk;
         if ( iVar == Vec_PtrSize(p->vDivs)-Nwk_ObjFaninNum(pNode) )
             return 0;
 
-        pCands[nCands]   = toLitCond( Vec_IntEntry(p->vProjVars, iVar2), 1 );
-        pCands[nCands+1] = toLitCond( Vec_IntEntry(p->vProjVars, iVar), 1 );
+        pCands[nCands]   = toLitCond( Vec_IntEntry(p->vProjVarsSat, iVar2), 1 );
+        pCands[nCands+1] = toLitCond( Vec_IntEntry(p->vProjVarsSat, iVar), 1 );
         RetValue = Mfx_TryResubOnce( p, pCands, nCands+2 );
         if ( RetValue == -1 )
             return 0;

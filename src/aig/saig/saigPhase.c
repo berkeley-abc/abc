@@ -255,15 +255,22 @@ int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nWords, int nPref )
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix )
+void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix, int nLoop )
 {
     unsigned * pState;
     int nRegs = p->pAig->nRegs;
     int Value, i, k, Counter = 0;
-    if ( Vec_PtrSize(p->vStates) > 80 )
-        return;
+    printf( "Ternary traces for each flop:\n" );
+    printf( "      : " );
+    for ( i = 0; i < Vec_PtrSize(p->vStates) - nLoop - 1; i++ )
+        printf( "%d", i%10 );
+    printf( "  " );
+    for ( i = 0; i < nLoop; i++ )
+        printf( "%d", i%10 );
+    printf( "\n" );
     for ( i = 0; i < nRegs; i++ )
     {
+/*
         Vec_PtrForEachEntry( unsigned *, p->vStates, pState, k )
         {
             Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
@@ -274,8 +281,11 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix )
             Counter++;
         else
             continue;
+*/
+
         // print trace
-        printf( "%5d : %5d %5d  ", Counter, i, Saig_ManLo(p->pAig, i)->Id );
+//        printf( "%5d : %5d %5d  ", Counter, i, Saig_ManLo(p->pAig, i)->Id );
+        printf( "%5d : ", Counter++ );
         Vec_PtrForEachEntryStop( unsigned *, p->vStates, pState, k, Vec_PtrSize(p->vStates)-1 )
         {
             Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
@@ -488,7 +498,7 @@ Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits, int f
         Saig_ManForEachLo( p, pObj, i )
             Saig_ObjSetXsim( pObj, Saig_XsimConvertValue(Vec_IntEntry(vInits, i)) );
     }
-    else
+    else 
     {
         Saig_ManForEachLo( p, pObj, i )
             Saig_ObjSetXsim( pObj, SAIG_XVS0 );
@@ -811,6 +821,42 @@ int Saig_ManPhaseFrameNum( Aig_Man_t * p, Vec_Int_t * vInits )
   SeeAlso     []
 
 ***********************************************************************/
+int Saig_ManPhasePrefixLength( Aig_Man_t * p, int fVerbose, int fVeryVerbose )
+{
+    Saig_Tsim_t * pTsi;
+    int nFrames, nPrefix, nNonXRegs;
+    assert( Saig_ManRegNum(p) );
+    assert( Saig_ManPiNum(p) );
+    assert( Saig_ManPoNum(p) );
+    // perform terminary simulation
+    pTsi = Saig_ManReachableTernary( p, NULL, 0 );
+    if ( pTsi == NULL )
+        return 0;
+    // derive information
+    nPrefix   = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
+    nFrames   = Vec_PtrSize(pTsi->vStates) - 1 - nPrefix;
+    nNonXRegs = Saig_TsiCountNonXValuedRegisters( pTsi, pTsi->nWords, nPrefix );
+    // print statistics
+    if ( fVerbose )
+        printf( "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", nPrefix, nFrames, p->nRegs, nNonXRegs );
+    if ( fVeryVerbose )
+        Saig_TsiPrintTraces( pTsi, pTsi->nWords, nPrefix, nFrames );
+    Saig_TsiStop( pTsi );
+    // potentially, may need to reduce nFrames if nPrefix is less than nFrames
+    return nPrefix;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs automated phase abstraction.]
+
+  Description [Takes the AIG manager and the array of initial states.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose )
 {
     Aig_Man_t * pNew = NULL;
@@ -829,10 +875,10 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     // print statistics
     if ( fVerbose )
     {
-        printf( "Prefix = %5d. Cycle = %5d.  Total = %5d. Non-ternary = %5d.\n", 
+        printf( "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", 
             pTsi->nPrefix, pTsi->nCycle, p->nRegs, pTsi->nNonXRegs );
-        if ( pTsi->nNonXRegs < 100 )
-            Saig_TsiPrintTraces( pTsi, pTsi->nWords, pTsi->nPrefix );
+        if ( pTsi->nNonXRegs < 100 && Vec_PtrSize(pTsi->vStates) < 80 )
+            Saig_TsiPrintTraces( pTsi, pTsi->nWords, pTsi->nPrefix, pTsi->nCycle );
     }
     if ( fPrint )
         printf( "Print-out finished. Phase assignment is not performed.\n" );
@@ -885,10 +931,10 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     // print statistics
     if ( fVerbose )
     {
-        printf( "Prefix = %5d. Cycle = %5d.  Total = %5d. Non-ternary = %5d.\n", 
+        printf( "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", 
             pTsi->nPrefix, pTsi->nCycle, p->nRegs, pTsi->nNonXRegs );
-        if ( pTsi->nNonXRegs < 100 )
-            Saig_TsiPrintTraces( pTsi, pTsi->nWords, pTsi->nPrefix );
+        if ( pTsi->nNonXRegs < 100 && Vec_PtrSize(pTsi->vStates) < 80 )
+            Saig_TsiPrintTraces( pTsi, pTsi->nWords, pTsi->nPrefix, pTsi->nCycle );
     }
     nFrames = pTsi->nCycle;
     if ( fPrint )

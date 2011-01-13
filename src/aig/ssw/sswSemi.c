@@ -204,7 +204,7 @@ clk = clock();
         {
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
-            if ( Ssw_ManSweepNode( p, pObj, f, 1 ) )
+            if ( Ssw_ManSweepNode( p, pObj, f, 1, NULL ) )
             {
                 Ssw_ManFilterBmcSavePattern( pBmc );
                 if ( fFirst == 0 )

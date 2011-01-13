@@ -60,7 +60,8 @@ struct Mfx_Man_t_
     Vec_Ptr_t *         vNodes;    // the internal nodes of the window
     Vec_Ptr_t *         vDivs;     // the divisors of the node
     Vec_Int_t *         vDivLits;  // the SAT literals of divisor nodes
-    Vec_Int_t *         vProjVars; // the projection variables
+    Vec_Int_t *         vProjVarsCnf; // the projection variables
+    Vec_Int_t *         vProjVarsSat; // the projection variables
     // intermediate simulation data
     Vec_Ptr_t *         vDivCexes; // the counter-example for dividors
     int                 nDivWords; // the number of words

@@ -304,6 +304,23 @@ int Ssw_SmlNodeIsZero( Ssw_Sml_t * p, Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_SmlNodeIsZeroFrame( Ssw_Sml_t * p, Aig_Obj_t * pObj, int f )
+{
+    unsigned * pSims = Ssw_ObjSim(p, pObj->Id);
+    return pSims[f] == 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of one's in the patten the object.]
 
   Description []
@@ -1308,7 +1325,7 @@ int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p )
     // run random simulation
     Ssw_SmlSimulateOne( pSml );
     // check if the given output has failed
-    RetValue = !Ssw_SmlNodeIsZero( pSml, Aig_ManPo(pAig, p->iPo) );
+    RetValue = !Ssw_SmlNodeIsZeroFrame( pSml, Aig_ManPo(pAig, p->iPo), p->iFrame );
     Ssw_SmlStop( pSml );
     return RetValue;
 }
@@ -1347,7 +1364,7 @@ int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p )
     // check if the given output has failed
     iOut = -1;
     Saig_ManForEachPo( pAig, pObj, k )
-        if ( !Ssw_SmlNodeIsZero( pSml, Aig_ManPo(pAig, k) ) )
+        if ( !Ssw_SmlNodeIsZeroFrame( pSml, Aig_ManPo(pAig, k), p->iFrame ) )
         {
             iOut = k;
             break;
@@ -1540,81 +1557,6 @@ Abc_Cex_t * Ssw_SmlDupCounterExample( Abc_Cex_t * p, int nRegsNew )
             Aig_InfoSetBit( pCex->pData, pCex->nRegs + i - p->nRegs );
     return pCex;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Resimulates the counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ssw_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Abc_Cex_t * p )
-{
-    Ssw_Sml_t * pSml;
-    Aig_Obj_t * pObj;
-    int RetValue, i, k, iBit;
-    unsigned * pSims;
-    assert( Aig_ManRegNum(pAig) > 0 );
-    assert( Aig_ManRegNum(pAig) < Aig_ManPiNum(pAig) );
-    // start a new sequential simulator
-    pSml = Ssw_SmlStart( pAig, 0, p->iFrame+1, 1 );
-    // assign simulation info for the registers
-    iBit = 0;
-    Saig_ManForEachLo( pAig, pObj, i )
-//        Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), 0 );
-        Ssw_SmlObjAssignConst( pSml, pObj, 0, 0 );
-    // assign simulation info for the primary inputs
-    iBit = p->nRegs;
-    for ( i = 0; i <= p->iFrame; i++ )
-        Saig_ManForEachPi( pAig, pObj, k )
-            Ssw_SmlObjAssignConst( pSml, pObj, Aig_InfoHasBit(p->pData, iBit++), i );
-    assert( iBit == p->nBits );
-    // run random simulation
-    Ssw_SmlSimulateOne( pSml );
-    // check if the given output has failed
-    RetValue = !Ssw_SmlNodeIsZero( pSml, Aig_ManPo(pAig, p->iPo) );
-
-    // write the output file
-    for ( i = 0; i <= p->iFrame; i++ )
-    {
-/*
-        Saig_ManForEachLo( pAig, pObj, k )
-        {
-            pSims = Ssw_ObjSim(pSml, pObj->Id);
-            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
-        }
-        fprintf( pFile, " " );
-*/
-        Saig_ManForEachPi( pAig, pObj, k )
-        {
-            pSims = Ssw_ObjSim(pSml, pObj->Id);
-            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
-        }
-/*
-        fprintf( pFile, " " );
-        Saig_ManForEachPo( pAig, pObj, k )
-        {
-            pSims = Ssw_ObjSim(pSml, pObj->Id);
-            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
-        }
-        fprintf( pFile, " " );
-        Saig_ManForEachLi( pAig, pObj, k )
-        {
-            pSims = Ssw_ObjSim(pSml, pObj->Id);
-            fprintf( pFile, "%d", (int)(pSims[i] != 0) );
-        }
-*/
-        fprintf( pFile, "\n" );
-    }
-
-    Ssw_SmlStop( pSml );
-    return RetValue;
-}
-
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -98,6 +98,7 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
         free(*out_name);
         *out_name = NULL;
     }else{
+
         // Kludge:
         close(fd);
         unlink(*out_name);
@@ -107,6 +108,11 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
             free(*out_name);
             *out_name = NULL;
         }
+
+//        assert( 0 );
+        // commented out because had problem with g++ saying that
+        // close() and unlink() are not defined in the namespace 
+
     }
     return fd;
 

@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
+Aig_Man_t * Saig_ManDupOrpos( Aig_Man_t * pAig )
 {
     Aig_Man_t * pAigNew;
     Aig_Obj_t * pObj, * pMiter;
@@ -69,6 +69,56 @@ Aig_Man_t * Said_ManDupOrpos( Aig_Man_t * pAig )
     Saig_ManForEachPo( pAig, pObj, i )
         pMiter = Aig_Or( pAigNew, pMiter, Aig_ObjChild0Copy(pObj) );
     Aig_ObjCreatePo( pAigNew, pMiter );
+    // transfer to register outputs
+    Saig_ManForEachLi( pAig, pObj, i )
+        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+    Aig_ManCleanup( pAigNew );
+    Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
+    return pAigNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates while ORing the POs of sequential circuit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs )
+{
+    Aig_Man_t * pAigNew;
+    Aig_Obj_t * pObj, * pObj2, * pMiter;
+    int i;
+    if ( pAig->nConstrs > 0 )
+    {
+        printf( "The AIG manager should have no constraints.\n" );
+        return NULL;
+    }
+    // start the new manager
+    pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
+    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->nConstrs = pAig->nConstrs;
+    // map the constant node
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
+    // create variables for PIs
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    // add internal nodes of this frame
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create POs
+    assert( Vec_IntSize(vPairs) % 2 == 0 );
+    Aig_ManForEachNodeVec( pAig, vPairs, pObj, i )
+    {
+        pObj2  = Aig_ManObj( pAig, Vec_IntEntry(vPairs, ++i) );
+        pMiter = Aig_Exor( pAigNew, pObj->pData, pObj2->pData );
+        pMiter = Aig_NotCond( pMiter, pObj->fPhase ^ pObj2->fPhase );
+        Aig_ObjCreatePo( pAigNew, pMiter );
+    }
     // transfer to register outputs
     Saig_ManForEachLi( pAig, pObj, i )
         Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );

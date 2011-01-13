@@ -1,6 +1,5 @@
 SRC +=  src/opt/mfs/mfsCore.c \
     src/opt/mfs/mfsDiv.c \
-    src/opt/mfs/mfsGia.c \
     src/opt/mfs/mfsInter.c \
     src/opt/mfs/mfsMan.c \
     src/opt/mfs/mfsResub.c \

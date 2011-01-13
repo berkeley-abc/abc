@@ -184,7 +184,7 @@ void Ssw_SmlAddPatternDyn( Ssw_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc )
+int Ssw_ManSweepNode( Ssw_Man_t * p, Aig_Obj_t * pObj, int f, int fBmc, Vec_Int_t * vPairs )
 { 
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue, clk;
@@ -220,6 +220,11 @@ p->timeMarkCones += clock() - clk;
         pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
         Ssw_ObjSetFrame( p, pObj, f, pObjFraig2 );
         return 0;
+    }
+    if ( vPairs )
+    {
+        Vec_IntPush( vPairs, pObjRepr->Id );
+        Vec_IntPush( vPairs, pObj->Id );
     }
     if ( RetValue == -1 ) // timed out
     {
@@ -287,7 +292,7 @@ clk = clock();
                 Bar_ProgressUpdate( pProgress, Aig_ManObjNumMax(p->pAig) * f + i, NULL );
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
-            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 1 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 1, NULL );
         }
         // quit if this is the last timeframe
         if ( f == p->pPars->nFramesK - 1 )
@@ -312,6 +317,39 @@ p->timeBmc += clock() - clk;
     return p->fRefined;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Generates AIG with the following nodes put into seq miters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_ManDumpEquivMiter( Aig_Man_t * p, Vec_Int_t * vPairs, int Num )
+{
+    extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
+    FILE * pFile;
+    char pBuffer[16];
+    Aig_Man_t * pNew;
+    sprintf( pBuffer, "equiv%03d.aig", Num );
+    pFile = fopen( pBuffer, "w" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file %s for writing.\n", pBuffer );
+        return;
+    }
+    fclose( pFile );
+    pNew = Saig_ManCreateEquivMiter( p, vPairs );
+    Ioa_WriteAiger( pNew, pBuffer, 0, 0 );
+    Aig_ManStop( pNew );
+    printf( "AIG with %4d disproved equivs is dumped into file \"%s\".\n", Vec_IntSize(vPairs)/2, pBuffer );
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Performs fraiging for the internal nodes.]
@@ -325,9 +363,11 @@ p->timeBmc += clock() - clk;
 ***********************************************************************/
 int Ssw_ManSweep( Ssw_Man_t * p )
 { 
+    static int Counter;
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObj2, * pObjNew;
     int nConstrPairs, clk, i, f;
+    Vec_Int_t * vDisproved;
 
     // perform speculative reduction
 clk = clock();
@@ -362,17 +402,18 @@ p->timeReduce += clock() - clk;
     Ssw_ClassesClearRefined( p->ppClasses );
     if ( p->pPars->fVerbose )
         pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pAig) );
+    vDisproved = p->pPars->fEquivDump? Vec_IntAlloc(1000) : NULL;
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
         if ( p->pPars->fVerbose )
             Bar_ProgressUpdate( pProgress, i, NULL );
         if ( Saig_ObjIsLo(p->pAig, pObj) )
-            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, vDisproved );
         else if ( Aig_ObjIsNode(pObj) )
         { 
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
-            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, vDisproved );
         }
     }
     if ( p->pPars->fVerbose )
@@ -380,6 +421,9 @@ p->timeReduce += clock() - clk;
 
     // cleanup
 //    Ssw_ClassesCheck( p->ppClasses );
+    if ( p->pPars->fEquivDump )
+        Ssw_ManDumpEquivMiter( p->pAig, vDisproved, Counter++ );
+    Vec_IntFreeP( &vDisproved );
     return p->fRefined;
 }
 

@@ -1049,6 +1049,11 @@ Gia_Man_t * Gia_ManSpecReduceInitFrames( Gia_Man_t * p, Abc_Cex_t * pInit, int n
             break;
         if ( f == nFramesMax )
             break;
+        if ( Gia_ManAndNum(pFrames) > 500000 )
+        {
+            Gia_ManStop( pFrames );
+            return NULL;
+        }
         Gia_ManStop( pFrames );
         pFrames = NULL;
     }

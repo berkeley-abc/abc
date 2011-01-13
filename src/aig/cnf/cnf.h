@@ -62,6 +62,8 @@ struct Cnf_Dat_t_
     int             nClauses;        // the number of CNF clauses
     int **          pClauses;        // the CNF clauses
     int *           pVarNums;        // the number of CNF variable for each node ID (-1 if unused)
+    int *           pObj2Clause;     // the mapping of objects into clauses
+    int *           pObj2Count;      // the mapping of objects into clause number
 };
 
 // the cut used to represent node in the AIG
@@ -125,6 +127,7 @@ static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut
 /*=== cnfCore.c ========================================================*/
 extern Vec_Int_t *     Cnf_DeriveMappingArray( Aig_Man_t * pAig );
 extern Cnf_Dat_t *     Cnf_Derive( Aig_Man_t * pAig, int nOutputs );
+extern Cnf_Dat_t *     Cnf_DeriveOther( Aig_Man_t * pAig );
 extern Cnf_Man_t *     Cnf_ManRead();
 extern void            Cnf_ClearMemory();
 /*=== cnfCut.c ========================================================*/
@@ -167,6 +170,7 @@ extern Vec_Int_t *     Cnf_DataCollectCoSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p
 extern Vec_Int_t *     Cnf_ManWriteCnfMapping( Cnf_Man_t * p, Vec_Ptr_t * vMapped );
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );
 extern Cnf_Dat_t *     Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs );
+extern Cnf_Dat_t *     Cnf_ManWriteCnfOther( Cnf_Man_t * p, Vec_Ptr_t * vMapped );
 extern Cnf_Dat_t *     Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs );
 extern Cnf_Dat_t *     Cnf_DeriveSimpleForRetiming( Aig_Man_t * p );
 

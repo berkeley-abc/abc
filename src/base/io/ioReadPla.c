@@ -51,6 +51,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fCheck )
 
     // start the file
     p = Extra_FileReaderAlloc( pFileName, "#", "\n\r", " \t|" );
+//    p = Extra_FileReaderAlloc( pFileName, "", "\n\r", " \t|" );
     if ( p == NULL )
         return NULL;
 
@@ -91,7 +92,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
     int nInputs = -1, nOutputs = -1, nProducts = -1;
     char * pCubeIn, * pCubeOut;
     int i, k, iLine, nDigits, nCubes;
- 
+
     // allocate the empty network
     pNtk = Abc_NtkStartRead( Extra_FileReaderGetFileName(p) );
 
@@ -103,8 +104,16 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p), NULL );
 
         // if it is the end of file, quit the loop
-        if ( strcmp( (char *)vTokens->pArray[0], ".e" ) == 0 )
+        if ( strncmp( (char *)vTokens->pArray[0], ".e", 2 ) == 0 )
             break;
+
+        // if it is the model name, get the name
+        if ( strcmp( (char *)vTokens->pArray[0], ".model" ) == 0 )
+        {
+            ABC_FREE( pNtk->pName );
+            pNtk->pName = Extra_UtilStrsav( (char *)vTokens->pArray[1] );
+            continue;
+        }
 
         if ( vTokens->nSize == 1 )
         {

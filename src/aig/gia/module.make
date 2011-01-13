@@ -29,6 +29,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaShrink.c \
     src/aig/gia/giaSim.c \
+    src/aig/gia/giaSim2.c \
     src/aig/gia/giaSort.c \
     src/aig/gia/giaSpeedup.c \
     src/aig/gia/giaSupMin.c \

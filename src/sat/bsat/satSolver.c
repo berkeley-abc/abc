@@ -28,6 +28,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "satStore.h"
 
 ABC_NAMESPACE_IMPL_START
+
+#define SAT_USE_ANALYZE_FINAL
+
 /*
 extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
 extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
@@ -40,7 +43,9 @@ extern int Sto_ManChangeLastClause( void * p );
 extern void Sto_ManMarkRoots( void * p );
 extern void Sto_ManMarkClausesA( void * p );
 */
+
 //#define SAT_USE_SYSTEM_MEMORY_MANAGEMENT
+
 
 //=================================================================================================
 // Debug:
@@ -457,14 +462,14 @@ static inline int enqueue(sat_solver* s, lit l, clause* from)
 }
 
 
-static inline void assume(sat_solver* s, lit l){
+static inline int assume(sat_solver* s, lit l){
     assert(s->qtail == s->qhead);
     assert(s->assigns[lit_var(l)] == l_Undef);
 #ifdef VERBOSEDEBUG
     printf(L_IND"assume("L_LIT")\n", L_ind, L_lit(l));
 #endif
     veci_push(&s->trail_lim,s->qtail);
-    enqueue(s,l,(clause*)0);
+    return enqueue(s,l,(clause*)0);
 }
 
 
@@ -624,52 +629,73 @@ static int sat_solver_lit_removable(sat_solver* s, lit l, int minl)
 |    stores the result in 'out_conflict'.
 |________________________________________________________________________________________________@*/
 /*
-void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
+void Solver::analyzeFinal(Clause* confl, bool skip_first)
 {
-    out_conflict.clear();
-    out_conflict.push(p);
+    // -- NOTE! This code is relatively untested. Please report bugs!
+    conflict.clear();
+    if (root_level == 0) return;
 
-    if (decisionLevel() == 0)
-        return;
+    vec<char>& seen  = analyze_seen;
+    for (int i = skip_first ? 1 : 0; i < confl->size(); i++){
+        Var x = var((*confl)[i]);
+        if (level[x] > 0)
+            seen[x] = 1;
+    }
 
-    seen[var(p)] = 1;
-
-    for (int i = trail.size()-1; i >= trail_lim[0]; i--){
-        Var x = var(trail[i]);
+    int start = (root_level >= trail_lim.size()) ? trail.size()-1 : trail_lim[root_level];
+    for (int i = start; i >= trail_lim[0]; i--){
+        Var     x = var(trail[i]);
         if (seen[x]){
-            if (reason(x) == GClause_NULL){
-                assert(level(x) > 0);
-                out_conflict.push(~trail[i]);
+            GClause r = reason[x];
+            if (r == GClause_NULL){
+                assert(level[x] > 0);
+                conflict.push(~trail[i]);
             }else{
-                Clause& c = ca.deref(smartReason(x));
-                for (int j = 1; j < c.size(); j++)
-                    if (level(var(c[j])) > 0)
-                        seen[var(c[j])] = 1;
+                if (r.isLit()){
+                    Lit p = r.lit();
+                    if (level[var(p)] > 0)
+                        seen[var(p)] = 1;
+                }else{
+                    Clause& c = *r.clause();
+                    for (int j = 1; j < c.size(); j++)
+                        if (level[var(c[j])] > 0)
+                            seen[var(c[j])] = 1;
+                }
             }
             seen[x] = 0;
         }
     }
-
-    seen[var(p)] = 0;
 }
 */
 
-static void sat_solver_analyze_final(sat_solver* s, lit p, veci* out_conflict)
+#ifdef SAT_USE_ANALYZE_FINAL
+
+static void sat_solver_analyze_final(sat_solver* s, clause* conf, int skip_first)
 {
-    int i, j;
-    veci_resize(out_conflict,0);
-//    veci_push(out_conflict,p); // do not write conflict literal
-    if ( sat_solver_dlevel(s) == 0 )
+    int i, j, start;
+    veci_resize(&s->conf_final,0);
+    if ( s->root_level == 0 )
         return;
     assert( veci_size(&s->tagged) == 0 );
-    assert( s->tags[lit_var(p)] == l_Undef );
-    s->tags[lit_var(p)] = l_True;
-    for (i = s->qtail-1; i >= (veci_begin(&s->trail_lim))[0]; i--){
+//    assert( s->tags[lit_var(p)] == l_Undef );
+//    s->tags[lit_var(p)] = l_True;
+    for (i = skip_first ? 1 : 0; i < clause_size(conf); i++)
+    {
+        int x = lit_var(clause_begin(conf)[i]);
+        if (s->levels[x] > 0)
+        {
+            s->tags[x] = l_True;
+            veci_push(&s->tagged,x);
+        }
+    }
+
+    start = (s->root_level >= veci_size(&s->trail_lim))? s->qtail-1 : (veci_begin(&s->trail_lim))[s->root_level];
+    for (i = start; i >= (veci_begin(&s->trail_lim))[0]; i--){
         int x = lit_var(s->trail[i]);
         if (s->tags[x] == l_True){
             if (s->reasons[x] == NULL){
                 assert(s->levels[x] > 0);
-                veci_push(out_conflict,lit_neg(s->trail[i]));
+                veci_push(&s->conf_final,lit_neg(s->trail[i]));
             }else{
                 clause* c = s->reasons[x];
                 if (clause_is_lit(c)){
@@ -697,6 +723,8 @@ static void sat_solver_analyze_final(sat_solver* s, lit p, veci* out_conflict)
         s->tags[veci_begin(&s->tagged)[i]] = l_Undef;
     veci_resize(&s->tagged,0);
 }
+
+#endif
 
 
 static void sat_solver_analyze(sat_solver* s, clause* c, veci* learnt)
@@ -976,8 +1004,9 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
 #endif
             s->stats.conflicts++; conflictC++;
             if (sat_solver_dlevel(s) == s->root_level){
-                lit p = clause_is_lit(confl)? clause_read_lit(confl) : clause_begin(confl)[0];
-//                sat_solver_analyze_final(s, lit_neg(p), &s->conf_final);
+#ifdef SAT_USE_ANALYZE_FINAL
+                sat_solver_analyze_final(s, confl, 0);
+#endif
                 veci_delete(&learnt_clause);
                 return l_False;
             }
@@ -988,6 +1017,10 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
             blevel = s->root_level > blevel ? s->root_level : blevel;
             sat_solver_canceluntil(s,blevel);
             sat_solver_record(s,&learnt_clause);
+#ifdef SAT_USE_ANALYZE_FINAL
+//            if (learnt_clause.size() == 1) level[var(learnt_clause[0])] = 0;    // (this is ugly (but needed for 'analyzeFinal()') -- in future versions, we will backtrack past the 'root_level' and redo the assumptions)
+            if ( learnt_clause.size == 1 ) s->levels[lit_var(learnt_clause.ptr[0])] = 0;
+#endif
             act_var_decay(s);
             act_clause_decay(s);
 
@@ -1340,24 +1373,106 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     if ( nInsLimitGlobal && (s->nInsLimit == 0 || s->nInsLimit > nInsLimitGlobal) )
         s->nInsLimit = nInsLimitGlobal;
 
+#ifndef SAT_USE_ANALYZE_FINAL
+
     //printf("solve: "); printlits(begin, end); printf("\n");
     for (i = begin; i < end; i++){
         switch (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]){
-        case 1: /* l_True: */
+        case 1: // l_True: 
             break;
-        case 0: /* l_Undef */
+        case 0: // l_Undef
             assume(s, *i);
             if (sat_solver_propagate(s) == NULL)
                 break;
             // fallthrough
-        case -1: /* l_False */
+        case -1: // l_False 
             sat_solver_canceluntil(s, 0);
             return l_False;
         }
     }
-    s->nCalls2++;
-
     s->root_level = sat_solver_dlevel(s);
+
+#endif
+
+/*
+    // Perform assumptions:
+    root_level = assumps.size();
+    for (int i = 0; i < assumps.size(); i++){
+        Lit p = assumps[i];
+        assert(var(p) < nVars());
+        if (!assume(p)){
+            GClause r = reason[var(p)];
+            if (r != GClause_NULL){
+                Clause* confl;
+                if (r.isLit()){
+                    confl = propagate_tmpbin;
+                    (*confl)[1] = ~p;
+                    (*confl)[0] = r.lit();
+                }else
+                    confl = r.clause();
+                analyzeFinal(confl, true);
+                conflict.push(~p);
+            }else
+                conflict.clear(),
+                conflict.push(~p);
+            cancelUntil(0);
+            return false; }
+        Clause* confl = propagate();
+        if (confl != NULL){
+            analyzeFinal(confl), assert(conflict.size() > 0);
+            cancelUntil(0);
+            return false; }
+    }
+    assert(root_level == decisionLevel());
+*/
+
+#ifdef SAT_USE_ANALYZE_FINAL
+    // Perform assumptions:
+    s->root_level = end - begin;
+    for ( i = begin; i < end; i++ )
+    {
+        lit p = *i;
+        assert(lit_var(p) < s->size);
+        veci_push(&s->trail_lim,s->qtail);
+        if (!enqueue(s,p,(clause*)0))
+        {
+            clause * r = s->reasons[lit_var(p)];
+            if (r != NULL)
+            {
+                clause* confl;
+                if (clause_is_lit(r))
+                {
+                    confl = s->binary;
+                    (clause_begin(confl))[1] = lit_neg(p);
+                    (clause_begin(confl))[0] = clause_read_lit(r);
+                }
+                else
+                    confl = r;
+                sat_solver_analyze_final(s, confl, 1);
+                veci_push(&s->conf_final, lit_neg(p));
+            }
+            else
+            {
+                veci_resize(&s->conf_final,0);
+                veci_push(&s->conf_final, lit_neg(p));
+            }
+            sat_solver_canceluntil(s, 0);
+            return l_False; 
+        }
+        else
+        {
+            clause* confl = sat_solver_propagate(s);
+            if (confl != NULL){
+                sat_solver_analyze_final(s, confl, 0);
+                assert(s->conf_final.size > 0);
+                sat_solver_canceluntil(s, 0);
+                return l_False; }
+        }
+    }
+    assert(s->root_level == sat_solver_dlevel(s));
+#endif
+
+    s->nCalls2++;
 
     if (s->verbosity >= 1){
         printf("==================================[MINISAT]===================================\n");

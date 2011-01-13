@@ -78,6 +78,7 @@ void Abc_FrameCopyLTLDataBase( Abc_Frame_t *pAbc, Abc_Ntk_t * pNtk )
     if( pAbc->vLTLProperties_global != NULL )
     {
 //        printf("Deleting exisitng LTL database from the frame\n");
+        Vec_PtrFree( pAbc->vLTLProperties_global );
         pAbc->vLTLProperties_global = NULL;
     }
     pAbc->vLTLProperties_global = Vec_PtrAlloc(Vec_PtrSize(pNtk->vLtlProperties));

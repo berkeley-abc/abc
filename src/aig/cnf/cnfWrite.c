@@ -245,8 +245,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
 //printf( "\n" );
 
     // allocate CNF
-    pCnf = ABC_ALLOC( Cnf_Dat_t, 1 );
-    memset( pCnf, 0, sizeof(Cnf_Dat_t) );
+    pCnf = ABC_CALLOC( Cnf_Dat_t, 1 );
     pCnf->pMan = p->pManAig;
     pCnf->nLiterals = nLiterals;
     pCnf->nClauses = nClauses;
@@ -367,6 +366,174 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     // verify that the correct number of literals and clauses was written
     assert( pLits - pCnf->pClauses[0] == nLiterals );
     assert( pClas - pCnf->pClauses == nClauses );
+//Cnf_DataPrint( pCnf, 1 );
+    return pCnf;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derives CNF for the mapping.]
+
+  Description [Derives CNF with obj IDs as SAT vars and mapping of
+  objects into clauses (pObj2Clause and pObj2Count).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cnf_Dat_t * Cnf_ManWriteCnfOther( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
+{
+    Aig_Obj_t * pObj;
+    Cnf_Dat_t * pCnf;
+    Cnf_Cut_t * pCut;
+    Vec_Int_t * vCover, * vSopTemp;
+    int OutVar, PoVar, pVars[32], * pLits, ** pClas;
+    unsigned uTruth;
+    int i, k, nLiterals, nClauses, Cube;
+
+    // count the number of literals and clauses
+    nLiterals = 1 + 4 * Aig_ManPoNum( p->pManAig );
+    nClauses  = 1 + 2 * Aig_ManPoNum( p->pManAig );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
+    {
+        assert( Aig_ObjIsNode(pObj) );
+        pCut = Cnf_ObjBestCut( pObj );
+        // positive polarity of the cut
+        if ( pCut->nFanins < 5 )
+        {
+            uTruth = 0xFFFF & *Cnf_CutTruth(pCut);
+            nLiterals += Cnf_SopCountLiterals( p->pSops[uTruth], p->pSopSizes[uTruth] ) + p->pSopSizes[uTruth];
+            assert( p->pSopSizes[uTruth] >= 0 );
+            nClauses += p->pSopSizes[uTruth];
+        }
+        else
+        {
+            nLiterals += Cnf_IsopCountLiterals( pCut->vIsop[1], pCut->nFanins ) + Vec_IntSize(pCut->vIsop[1]);
+            nClauses += Vec_IntSize(pCut->vIsop[1]);
+        }
+        // negative polarity of the cut
+        if ( pCut->nFanins < 5 )
+        {
+            uTruth = 0xFFFF & ~*Cnf_CutTruth(pCut);
+            nLiterals += Cnf_SopCountLiterals( p->pSops[uTruth], p->pSopSizes[uTruth] ) + p->pSopSizes[uTruth];
+            assert( p->pSopSizes[uTruth] >= 0 );
+            nClauses += p->pSopSizes[uTruth];
+        }
+        else
+        {
+            nLiterals += Cnf_IsopCountLiterals( pCut->vIsop[0], pCut->nFanins ) + Vec_IntSize(pCut->vIsop[0]);
+            nClauses += Vec_IntSize(pCut->vIsop[0]);
+        }
+    }
+
+    // allocate CNF
+    pCnf = ABC_CALLOC( Cnf_Dat_t, 1 );
+    pCnf->pMan = p->pManAig;
+    pCnf->nLiterals = nLiterals;
+    pCnf->nClauses  = nClauses;
+    pCnf->pClauses  = ABC_ALLOC( int *, nClauses + 1 );
+    pCnf->pClauses[0] = ABC_ALLOC( int, nLiterals );
+    pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
+    // create room for variable numbers
+    pCnf->pObj2Clause = ABC_ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
+    pCnf->pObj2Count  = ABC_ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
+    for ( i = 0; i < Aig_ManObjNumMax(p->pManAig); i++ )
+        pCnf->pObj2Clause[i] = pCnf->pObj2Count[i] = -1;
+    pCnf->nVars = Aig_ManObjNumMax(p->pManAig);
+
+    // clear the PI counters
+    Aig_ManForEachPi( p->pManAig, pObj, i )
+        pCnf->pObj2Count[pObj->Id] = 0;
+
+    // assign the clauses
+    vSopTemp = Vec_IntAlloc( 1 << 16 );
+    pLits = pCnf->pClauses[0];
+    pClas = pCnf->pClauses;
+    Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
+    {
+        // remember the starting clause
+        pCnf->pObj2Clause[pObj->Id] = pClas - pCnf->pClauses;
+        pCnf->pObj2Count[pObj->Id] = 0;
+
+        // get the best cut
+        pCut = Cnf_ObjBestCut( pObj );
+        // save variables of this cut
+        OutVar = pObj->Id;
+        for ( k = 0; k < (int)pCut->nFanins; k++ )
+        {
+            pVars[k] = pCut->pFanins[k];
+            assert( pVars[k] <= Aig_ManObjNumMax(p->pManAig) );
+        }
+
+        // positive polarity of the cut
+        if ( pCut->nFanins < 5 )
+        {
+            uTruth = 0xFFFF & *Cnf_CutTruth(pCut);
+            Cnf_SopConvertToVector( p->pSops[uTruth], p->pSopSizes[uTruth], vSopTemp );
+            vCover = vSopTemp;
+        }
+        else
+            vCover = pCut->vIsop[1];
+        Vec_IntForEachEntry( vCover, Cube, k )
+        {
+            *pClas++ = pLits;
+            *pLits++ = 2 * OutVar; 
+            pLits += Cnf_IsopWriteCube( Cube, pCut->nFanins, pVars, pLits );
+        }
+        pCnf->pObj2Count[pObj->Id] += Vec_IntSize(vCover);
+
+        // negative polarity of the cut
+        if ( pCut->nFanins < 5 )
+        {
+            uTruth = 0xFFFF & ~*Cnf_CutTruth(pCut);
+            Cnf_SopConvertToVector( p->pSops[uTruth], p->pSopSizes[uTruth], vSopTemp );
+            vCover = vSopTemp;
+        }
+        else
+            vCover = pCut->vIsop[0];
+        Vec_IntForEachEntry( vCover, Cube, k )
+        {
+            *pClas++ = pLits;
+            *pLits++ = 2 * OutVar + 1; 
+            pLits += Cnf_IsopWriteCube( Cube, pCut->nFanins, pVars, pLits );
+        }
+        pCnf->pObj2Count[pObj->Id] += Vec_IntSize(vCover);
+    }
+    Vec_IntFree( vSopTemp );
+
+    // write the output literals
+    Aig_ManForEachPo( p->pManAig, pObj, i )
+    {
+        // remember the starting clause
+        pCnf->pObj2Clause[pObj->Id] = pClas - pCnf->pClauses;
+        pCnf->pObj2Count[pObj->Id] = 2;
+        // get variables
+        OutVar = Aig_ObjFanin0(pObj)->Id;
+        PoVar = pObj->Id;
+        // first clause
+        *pClas++ = pLits;
+        *pLits++ = 2 * PoVar; 
+        *pLits++ = 2 * OutVar + !Aig_ObjFaninC0(pObj); 
+        // second clause
+        *pClas++ = pLits;
+        *pLits++ = 2 * PoVar + 1; 
+        *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
+    }
+ 
+    // remember the starting clause
+    pCnf->pObj2Clause[Aig_ManConst1(p->pManAig)->Id] = pClas - pCnf->pClauses;
+    pCnf->pObj2Count[Aig_ManConst1(p->pManAig)->Id] = 1;
+    // write the constant literal
+    OutVar = Aig_ManConst1(p->pManAig)->Id;
+    *pClas++ = pLits;
+    *pLits++ = 2 * OutVar; 
+
+    // verify that the correct number of literals and clauses was written
+    assert( pLits - pCnf->pClauses[0] == nLiterals );
+    assert( pClas - pCnf->pClauses == nClauses );
+//Cnf_DataPrint( pCnf, 1 );
     return pCnf;
 }
 

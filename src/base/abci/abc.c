@@ -5,7 +5,7 @@
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Network and node package.]
- 
+  
   Synopsis    [Command file.]
 
   Author      [Alan Mishchenko]
@@ -46,6 +46,7 @@
 #include "cnf.h"
 #include "cec.h"
 #include "giaAbs.h"
+#include "pdr.h" 
 
 #include "tim.h"
 #include "llb.h"
@@ -56,7 +57,6 @@
 
 #include "cmd.h"
 #include "extra.h"
-//#include "magic.h"
 
 #ifdef _WIN32
 //#include <io.h>
@@ -130,6 +130,7 @@ static int Abc_CommandOrPos                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAndPos                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandZeroPo                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSwapPos                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAddPi                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAppend                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDFrames                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -266,6 +267,7 @@ static int Abc_CommandBmc3                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBmcInter               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIndcut                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEnlarge                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTempor                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInduction              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCegar                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandConstr                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -530,6 +532,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "andpos",        Abc_CommandAndPos,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "zeropo",        Abc_CommandZeroPo,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "swappos",       Abc_CommandSwapPos,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "addpi",         Abc_CommandAddPi,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "dframes",       Abc_CommandDFrames,          1 );
@@ -665,6 +668,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "int",           Abc_CommandBmcInter,         1 );
     Cmd_CommandAdd( pAbc, "Verification", "indcut",        Abc_CommandIndcut,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
+    Cmd_CommandAdd( pAbc, "Verification", "tempor",        Abc_CommandTempor,           1 );
     Cmd_CommandAdd( pAbc, "Verification", "ind",           Abc_CommandInduction,        0 );
     Cmd_CommandAdd( pAbc, "Verification", "abs",           Abc_CommandCegar,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "constr",        Abc_CommandConstr,           0 );
@@ -1746,12 +1750,12 @@ int Abc_CommandPrintAuto( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_auto [-O num] [-nvh]\n" );
-    Abc_Print( -2, "\t         computes autosymmetries of the PO functions\n" );
-    Abc_Print( -2, "\t-O num : (optional) the 0-based number of the output [default = all]\n");
-    Abc_Print( -2, "\t-n     : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: print_auto [-O <num>] [-nvh]\n" );
+    Abc_Print( -2, "\t           computes autosymmetries of the PO functions\n" );
+    Abc_Print( -2, "\t-O <num> : (optional) the 0-based number of the output [default = all]\n");
+    Abc_Print( -2, "\t-n       : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
+    Abc_Print( -2, "\t-v       : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -1835,7 +1839,7 @@ usage:
     Abc_Print( -2, "\t        shows the truth table of the node\n" );
     Abc_Print( -2, "\t-n    : toggles real/dummy fanin names [default = %s]\n", fUseRealNames? "real": "dummy" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
-    Abc_Print( -2, "\tnode  : the node to consider (default = the driver of the first PO)\n");
+    Abc_Print( -2, "\t<node>: the node to consider (default = the driver of the first PO)\n");
     return 1;
 }
 
@@ -2099,12 +2103,12 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_dsd [-pch] [-N num]\n" );
-    Abc_Print( -2, "\t         print DSD formula for a single-output function with less than 16 variables\n" );
-    Abc_Print( -2, "\t-p     : toggle printing profile [default = %s]\n", fProfile? "yes": "no" );
-    Abc_Print( -2, "\t-c     : toggle recursive cofactoring [default = %s]\n", fCofactor? "yes": "no" );
-    Abc_Print( -2, "\t-N num : the number of levels to cofactor [default = %d]\n", nCofLevel );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: print_dsd [-pch] [-N <num>]\n" );
+    Abc_Print( -2, "\t           print DSD formula for a single-output function with less than 16 variables\n" );
+    Abc_Print( -2, "\t-p       : toggle printing profile [default = %s]\n", fProfile? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle recursive cofactoring [default = %s]\n", fCofactor? "yes": "no" );
+    Abc_Print( -2, "\t-N <num> : the number of levels to cofactor [default = %d]\n", nCofLevel );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -2414,7 +2418,7 @@ usage:
     Abc_Print( -2, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
     Abc_Print( -2, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
-    Abc_Print( -2, "\tnode  : the node to consider [default = the driver of the first PO]\n");
+    Abc_Print( -2, "\t<node>: the node to consider [default = the driver of the first PO]\n");
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -2503,16 +2507,16 @@ int Abc_CommandShowCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: show_cut [-N num] [-C num] [-h] <node>\n" );
-    Abc_Print( -2, "       visualizes the cut of a node using DOT and GSVIEW\n" );
+    Abc_Print( -2, "usage: show_cut [-N <num>] [-C <num>] [-h] <node>\n" );
+    Abc_Print( -2, "             visualizes the cut of a node using DOT and GSVIEW\n" );
 #ifdef WIN32
-    Abc_Print( -2, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
-    Abc_Print( -2, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
+    Abc_Print( -2, "             \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
+    Abc_Print( -2, "             (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
-    Abc_Print( -2, "\t-N num : the max size of the cut to be computed [default = %d]\n", nNodeSizeMax );  
-    Abc_Print( -2, "\t-C num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
-    Abc_Print( -2, "\tnode   : the node to consider\n");
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-N <num> : the max size of the cut to be computed [default = %d]\n", nNodeSizeMax );  
+    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    Abc_Print( -2, "\t<node>   : the node to consider\n");
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -2606,9 +2610,9 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: collapse [-B num] [-rdvh]\n" );
+    Abc_Print( -2, "usage: collapse [-B <num>] [-rdvh]\n" );
     Abc_Print( -2, "\t          collapses the network by constructing global BDDs\n" );
-    Abc_Print( -2, "\t-B num  : limit on live BDD nodes during collapsing [default = %d]\n", fBddSizeMax );
+    Abc_Print( -2, "\t-B <num>: limit on live BDD nodes during collapsing [default = %d]\n", fBddSizeMax );
     Abc_Print( -2, "\t-r      : toggles dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dual-rail collapsing mode [default = %s]\n", fDualRail? "yes": "no" );
     Abc_Print( -2, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
@@ -2971,10 +2975,10 @@ int Abc_CommandMulti( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: multi [-T num] [-F num] [-msfch]\n" );
+    Abc_Print( -2, "usage: multi [-TF <num>] [-msfch]\n" );
     Abc_Print( -2, "\t          transforms an AIG into a logic network by creating larger nodes\n" );
-    Abc_Print( -2, "\t-F num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
-    Abc_Print( -2, "\t-T num  : the threshold for AIG node duplication [default = %d]\n", nThresh );
+    Abc_Print( -2, "\t-F <num>: the maximum fanin size after renoding [default = %d]\n", nFaninMax );
+    Abc_Print( -2, "\t-T <num>: the threshold for AIG node duplication [default = %d]\n", nThresh );
     Abc_Print( -2, "\t          (an AIG node is the root of a new node after renoding\n" );
     Abc_Print( -2, "\t          if this leads to duplication of no more than %d AIG nodes,\n", nThresh );
     Abc_Print( -2, "\t          that is, if [(numFanouts(Node)-1) * size(MFFC(Node))] <= %d)\n", nThresh );
@@ -3138,13 +3142,13 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: renode [-K num] [-C num] [-F num] [-A num] [-sbciav]\n" );
+    Abc_Print( -2, "usage: renode [-KCFA <num>] [-sbciav]\n" );
     Abc_Print( -2, "\t          transforms the AIG into a logic network with larger nodes\n" );
     Abc_Print( -2, "\t          while minimizing the number of FF literals of the node SOPs\n" );
-    Abc_Print( -2, "\t-K num  : the max cut size for renoding (2 < num < %d) [default = %d]\n", IF_MAX_FUNC_LUTSIZE+1, nLutSize );
-    Abc_Print( -2, "\t-C num  : the max number of cuts used at a node (0 < num < 2^12) [default = %d]\n", nCutsMax );
-    Abc_Print( -2, "\t-F num  : the number of area flow recovery iterations (num >= 0) [default = %d]\n", nFlowIters );
-    Abc_Print( -2, "\t-A num  : the number of exact area recovery iterations (num >= 0) [default = %d]\n", nAreaIters );
+    Abc_Print( -2, "\t-K <num>: the max cut size for renoding (2 < num < %d) [default = %d]\n", IF_MAX_FUNC_LUTSIZE+1, nLutSize );
+    Abc_Print( -2, "\t-C <num>: the max number of cuts used at a node (0 < num < 2^12) [default = %d]\n", nCutsMax );
+    Abc_Print( -2, "\t-F <num>: the number of area flow recovery iterations (num >= 0) [default = %d]\n", nFlowIters );
+    Abc_Print( -2, "\t-A <num>: the number of exact area recovery iterations (num >= 0) [default = %d]\n", nAreaIters );
     Abc_Print( -2, "\t-s      : toggles minimizing SOP cubes instead of FF lits [default = %s]\n", fUseSops? "yes": "no" );
     Abc_Print( -2, "\t-b      : toggles minimizing BDD nodes instead of FF lits [default = %s]\n", fUseBdds? "yes": "no" );
     Abc_Print( -2, "\t-c      : toggles minimizing CNF clauses instead of FF lits [default = %s]\n", fUseCnfs? "yes": "no" );
@@ -3414,17 +3418,17 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fx [-SDN num] [-sdzcvh]\n");
-    Abc_Print( -2, "\t         performs unate fast extract on the current network\n");
-    Abc_Print( -2, "\t-S num : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );  
-    Abc_Print( -2, "\t-D num : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );  
-    Abc_Print( -2, "\t-N num : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
-    Abc_Print( -2, "\t-s     : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );  
-    Abc_Print( -2, "\t-d     : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );  
-    Abc_Print( -2, "\t-z     : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );  
-    Abc_Print( -2, "\t-c     : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" ); 
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: fx [-SDN <num>] [-sdzcvh]\n");
+    Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
+    Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );  
+    Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );  
+    Abc_Print( -2, "\t-N <num> : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
+    Abc_Print( -2, "\t-s       : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );  
+    Abc_Print( -2, "\t-d       : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );  
+    Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );  
+    Abc_Print( -2, "\t-c       : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );  
+    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_NtkFxuFreeInfo( p );
     return 1;       
 }
@@ -3506,12 +3510,12 @@ int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: eliminate [-N num] [-rvh]\n");
-    Abc_Print( -2, "\t         greedily eliminates nodes by collapsing them into fanouts\n");
-    Abc_Print( -2, "\t-N num : the maximum support size after collapsing [default = %d]\n", nMaxSize );  
-    Abc_Print( -2, "\t-r     : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: eliminate [-N <num>] [-rvh]\n");
+    Abc_Print( -2, "\t           greedily eliminates nodes by collapsing them into fanouts\n");
+    Abc_Print( -2, "\t-N <num> : the maximum support size after collapsing [default = %d]\n", nMaxSize );  
+    Abc_Print( -2, "\t-r       : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );  
+    Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;       
 }
 
@@ -3762,7 +3766,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szfovwh]\n" );
+    Abc_Print( -2, "usage: lutpack [-NQSL <num>] [-szfovwh]\n" );
     Abc_Print( -2, "\t           performs \"rewriting\" for LUT network;\n" );
     Abc_Print( -2, "\t           determines LUT size as the max fanin count of a node;\n" );
     Abc_Print( -2, "\t           if the network is not LUT-mapped, packs it into 6-LUTs\n" );
@@ -3964,7 +3968,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: imfs [-W <NM>] [-L <num>] [-C <num>] [-S <num>] [-avwh]\n" );
+    Abc_Print( -2, "usage: imfs [-W <NM>] [-LCS <num>] [-avwh]\n" );
     Abc_Print( -2, "\t           performs resubstitution-based resynthesis with interpolation\n" );
     Abc_Print( -2, "\t           (there is another command for resynthesis after LUT mapping, \"lutpack\")\n" );
     Abc_Print( -2, "\t-W <NM>  : fanin/fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
@@ -4302,7 +4306,7 @@ int Abc_CommandSpeedup( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: speedup [-P num] [-N num] [-lvwh]\n" );
+    Abc_Print( -2, "usage: speedup [-PN <num>] [-lvwh]\n" );
     Abc_Print( -2, "\t           transforms LUT-mapped network into an AIG with choices;\n" );
     Abc_Print( -2, "\t           the choices are added to speedup the next round of mapping\n" );
     Abc_Print( -2, "\t-P <num> : delay delta defining critical path for library model [default = %d%%]\n", Percentage );
@@ -4409,7 +4413,7 @@ int Abc_CommandPowerdown( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: powerdown [-P num] [-N num] [-vwh]\n" );
+    Abc_Print( -2, "usage: powerdown [-PN <num>] [-vwh]\n" );
     Abc_Print( -2, "\t           transforms LUT-mapped network into an AIG with choices;\n" );
     Abc_Print( -2, "\t           the choices are added to power down the next round of mapping\n" );
     Abc_Print( -2, "\t-P <num> : switching propability delta defining power critical edges [default = %d%%]\n", Percentage );
@@ -4540,7 +4544,7 @@ int Abc_CommandMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: merge [-NSDLF num] [-scwvh]\n" );
+    Abc_Print( -2, "usage: merge [-NSDLF <num>] [-scwvh]\n" );
     Abc_Print( -2, "\t           creates pairs of topologically-related LUTs\n" );
     Abc_Print( -2, "\t-N <num> : the max LUT size for merging (1 < num) [default = %d]\n", pPars->nMaxLutSize );
     Abc_Print( -2, "\t-S <num> : the max total support size after merging (1 < num) [default = %d]\n", pPars->nMaxSuppSize );
@@ -4765,15 +4769,15 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: refactor [-N num] [-C num] [-lzdvh]\n" );
-    Abc_Print( -2, "\t         performs technology-independent refactoring of the AIG\n" );
-    Abc_Print( -2, "\t-N num : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
-    Abc_Print( -2, "\t-C num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
-    Abc_Print( -2, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
-    Abc_Print( -2, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggle using don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: refactor [-NC <num>] [-lzdvh]\n" );
+    Abc_Print( -2, "\t           performs technology-independent refactoring of the AIG\n" );
+    Abc_Print( -2, "\t-N <num> : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
+    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
+    Abc_Print( -2, "\t-d       : toggle using don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -4865,13 +4869,13 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: restructure [-K num] [-lzvh]\n" );
-    Abc_Print( -2, "\t         performs technology-independent restructuring of the AIG\n" );
-    Abc_Print( -2, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, nCutsMax );  
-    Abc_Print( -2, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
-    Abc_Print( -2, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: restructure [-K <num>] [-lzvh]\n" );
+    Abc_Print( -2, "\t           performs technology-independent restructuring of the AIG\n" );
+    Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, nCutsMax );  
+    Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -5001,16 +5005,16 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: resub [-K num] [-N num] [-F num] [-lzvwh]\n" );
-    Abc_Print( -2, "\t         performs technology-independent restructuring of the AIG\n" );
-    Abc_Print( -2, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );  
-    Abc_Print( -2, "\t-N num : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );  
-    Abc_Print( -2, "\t-F num : the number of fanout levels for ODC computation [default = %d]\n", nLevelsOdc );  
-    Abc_Print( -2, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
-    Abc_Print( -2, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w     : toggle verbose printout of ODC computation [default = %s]\n", fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: resub [-KN <num>] [-lzvwh]\n" );
+    Abc_Print( -2, "\t           performs technology-independent restructuring of the AIG\n" );
+    Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );  
+    Abc_Print( -2, "\t-N <num> : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );  
+    Abc_Print( -2, "\t-F <num> : the number of fanout levels for ODC computation [default = %d]\n", nLevelsOdc );  
+    Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle verbose printout of ODC computation [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -5190,12 +5194,12 @@ int Abc_CommandCascade( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: cascade [-K <num>] [-cvh]\n" );
-    Abc_Print( -2, "\t         performs LUT cascade synthesis for the current network\n" );
-    Abc_Print( -2, "\t-K num : the number of LUT inputs [default = %d]\n", nLutSize );
-    Abc_Print( -2, "\t-c     : check equivalence after synthesis [default = %s]\n", fCheck? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t         \n");
+    Abc_Print( -2, "\t           performs LUT cascade synthesis for the current network\n" );
+    Abc_Print( -2, "\t-K <num> : the number of LUT inputs [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-c       : check equivalence after synthesis [default = %s]\n", fCheck? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t           \n");
     Abc_Print( -2, "  A lookup-table cascade is a programmable architecture developed by\n");
     Abc_Print( -2, "  Professor Tsutomu Sasao (sasao@cse.kyutech.ac.jp) at Kyushu Institute\n");
     Abc_Print( -2, "  of Technology. This work received Takeda Techno-Entrepreneurship Award:\n");
@@ -5341,11 +5345,11 @@ int Abc_CommandComb( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: comb [-L num] [-lh]\n" );
-    Abc_Print( -2, "\t        converts comb network into seq, and vice versa\n" );
-    Abc_Print( -2, "\t-L    : number of latches to add to comb network (0 = do not add) [default = %d]\n", nLatchesToAdd );
-    Abc_Print( -2, "\t-l    : toggle converting latches to PIs/POs or removing them [default = %s]\n", fRemoveLatches? "remove": "convert" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: comb [-L <num>] [-lh]\n" );
+    Abc_Print( -2, "\t           converts comb network into seq, and vice versa\n" );
+    Abc_Print( -2, "\t-L <num> : number of latches to add to comb network (0 = do not add) [default = %d]\n", nLatchesToAdd );
+    Abc_Print( -2, "\t-l       : toggle converting latches to PIs/POs or removing them [default = %s]\n", fRemoveLatches? "remove": "convert" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -5436,17 +5440,17 @@ usage:
         strcpy( Buffer, "unused" );
     else
         sprintf( Buffer, "%d", nPartSize );
-    Abc_Print( -2, "usage: miter [-P num] [-cimh] <file1> <file2>\n" );
-    Abc_Print( -2, "\t         computes the miter of the two circuits\n" );
-    Abc_Print( -2, "\t-P num : output partition size [default = %s]\n", Buffer );
-    Abc_Print( -2, "\t-c     : toggles deriving combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
-    Abc_Print( -2, "\t-i     : toggles deriving implication miter (file1 => file2) [default = %s]\n", fImplic? "yes": "no" );
-    Abc_Print( -2, "\t-m     : toggles creating multi-output miter [default = %s]\n", fMulti? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\tfile1  : (optional) the file with the first network\n");
-    Abc_Print( -2, "\tfile2  : (optional) the file with the second network\n");
-    Abc_Print( -2, "\t         if no files are given, uses the current network and its spec\n");
-    Abc_Print( -2, "\t         if one file is given, uses the current network and the file\n");
+    Abc_Print( -2, "usage: miter [-P <num>] [-cimh] <file1> <file2>\n" );
+    Abc_Print( -2, "\t           computes the miter of the two circuits\n" );
+    Abc_Print( -2, "\t-P <num> : output partition size [default = %s]\n", Buffer );
+    Abc_Print( -2, "\t-c       : toggles deriving combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    Abc_Print( -2, "\t-i       : toggles deriving implication miter (file1 => file2) [default = %s]\n", fImplic? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggles creating multi-output miter [default = %s]\n", fMulti? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\tfile1    : (optional) the file with the first network\n");
+    Abc_Print( -2, "\tfile2    : (optional) the file with the second network\n");
+    Abc_Print( -2, "\t           if no files are given, uses the current network and its spec\n");
+    Abc_Print( -2, "\t           if one file is given, uses the current network and the file\n");
     return 1;
 }
 
@@ -5482,6 +5486,12 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
     }
 
     if ( !Abc_NtkIsStrash(pNtk) )
@@ -5561,6 +5571,12 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "The network is not strashed.\n" );
@@ -5627,6 +5643,12 @@ int Abc_CommandAndPos( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
     }
 
     if ( !Abc_NtkIsStrash(pNtk) )
@@ -5704,6 +5726,12 @@ int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "The network is not strashed.\n" );
@@ -5727,10 +5755,10 @@ int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: zeropo [-N num] [-h]\n" );
-    Abc_Print( -2, "\t         replaces the PO driver by constant 0\n" );
-    Abc_Print( -2, "\t-N num : the zero-based index of the PO to replace [default = %d]\n", iOutput );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: zeropo [-N <num>] [-h]\n" );
+    Abc_Print( -2, "\t           replaces the PO driver by constant 0\n" );
+    Abc_Print( -2, "\t-N <num> : the zero-based index of the PO to replace [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -5773,6 +5801,12 @@ int Abc_CommandSwapPos( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "The network is not strashed.\n" );
@@ -5796,9 +5830,61 @@ int Abc_CommandSwapPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: swappos [-N num] [-h]\n" );
-    Abc_Print( -2, "\t         swap the 0-th PO with the <num>-th PO\n" );
-    Abc_Print( -2, "\t-N num : the zero-based index of the PO to swap [default = %d]\n", iOutput );
+    Abc_Print( -2, "usage: swappos [-N <num>] [-h]\n" );
+    Abc_Print( -2, "\t           swap the 0-th PO with the <num>-th PO\n" );
+    Abc_Print( -2, "\t-N <num> : the zero-based index of the PO to swap [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAddPi( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h': 
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkDup( pNtk );
+    if ( Abc_NtkPiNum(pNtkRes) == 0 )
+    {
+        Abc_Obj_t * pObj = Abc_NtkCreatePi( pNtkRes );
+        Abc_ObjAssignName( pObj, "dummy_pi", NULL );
+        Abc_NtkOrderCisCos( pNtkRes );
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: addpi [-h]\n" );
+    Abc_Print( -2, "\t         if the network has no PIs, add one dummy PI\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -5963,12 +6049,12 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: frames [-F num] [-ivh]\n" );
-    Abc_Print( -2, "\t         unrolls the network for a number of time frames\n" );
-    Abc_Print( -2, "\t-F num : the number of frames to unroll [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-i     : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );  
-    Abc_Print( -2, "\t-v     : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: frames [-F <num>] [-ivh]\n" );
+    Abc_Print( -2, "\t           unrolls the network for a number of time frames\n" );
+    Abc_Print( -2, "\t-F <num> : the number of frames to unroll [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-i       : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );  
+    Abc_Print( -2, "\t-v       : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -6070,7 +6156,7 @@ int Abc_CommandDFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dframes [-NF num] [-ivh]\n" );
+    Abc_Print( -2, "usage: dframes [-NF <num>] [-ivh]\n" );
     Abc_Print( -2, "\t         unrolls the network with simplification\n" );
     Abc_Print( -2, "\t-N num : the number of frames to use as prefix [default = %d]\n", nPrefix );
     Abc_Print( -2, "\t-F num : the number of frames to unroll [default = %d]\n", nFrames );
@@ -14403,7 +14489,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplofdsvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplofdsevwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14541,6 +14627,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fLocalSim ^= 1;
             break;
+        case 'e':
+            pPars->fEquivDump ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -14607,7 +14696,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplodsvwh]\n" );
+    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplodsevwh]\n" );
     Abc_Print( -2, "\t         performs sequential sweep using K-step induction\n" );
     Abc_Print( -2, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     Abc_Print( -2, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -14628,6 +14717,7 @@ usage:
 //    Abc_Print( -2, "\t-f     : toggle filtering using iterative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle local simulation in the cone of influence [default = %s]\n", pPars->fLocalSim? "yes": "no" );
+    Abc_Print( -2, "\t-e     : toggle dumping disproved internal equivalences [default = %s]\n", pPars->fEquivDump? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printout of flop equivalences [default = %s]\n", pPars->fFlopVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -16631,7 +16721,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Fra_SecSetDefaultParams( pSecPar );
 //    pSecPar->TimeLimit = 300;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGDVBRLarmfijkouwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGDVBRTLarmfijkouwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16718,6 +16808,17 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pSecPar->nBddIterMax < 0 ) 
                 goto usage;
             break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pSecPar->nPdrTimeout = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pSecPar->nPdrTimeout < 0 ) 
+                goto usage;
+            break;
         case 'L':
             if ( globalUtilOptind >= argc )
             {
@@ -16753,6 +16854,9 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'u':
             pSecPar->fReadUnsolved ^= 1;
+            break;
+        case 'p':
+            pSecPar->fUsePdr ^= 1;
             break;
         case 'w':
             pSecPar->fVeryVerbose ^= 1;
@@ -16796,7 +16900,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dprove [-FCGDVBR num] [-L file] [-cbarmfijouwvh]\n" );
+    Abc_Print( -2, "usage: dprove [-FCGDVBRT num] [-L file] [-cbarmfijoupvwh]\n" );
     Abc_Print( -2, "\t         performs SEC on the sequential miter\n" );
     Abc_Print( -2, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
     Abc_Print( -2, "\t-C num : the conflict limit at a node during induction [default = %d]\n", pSecPar->nBTLimit );
@@ -16805,6 +16909,7 @@ usage:
     Abc_Print( -2, "\t-V num : the flop count limit for BDD-based reachablity [default = %d]\n", pSecPar->nBddVarsMax );
     Abc_Print( -2, "\t-B num : the BDD size limit in BDD-based reachablity [default = %d]\n", pSecPar->nBddMax );
     Abc_Print( -2, "\t-R num : the max number of reachability iterations [default = %d]\n", pSecPar->nBddIterMax );
+    Abc_Print( -2, "\t-T num : the timeout for property directed reachability [default = %d]\n", pSecPar->nPdrTimeout );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-c     : toggles using CEC before attempting SEC [default = %s]\n", pSecPar->fTryComb? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggles using BMC before attempting SEC [default = %s]\n", pSecPar->fTryBmc? "yes": "no" );
@@ -16817,6 +16922,7 @@ usage:
     Abc_Print( -2, "\t-k     : toggles applying interpolation to each output [default = %s]\n", pSecPar->fInterSeparate? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggles using BDD variable reordering during image computation [default = %s]\n", pSecPar->fReorderImage? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggles reading back unsolved reduced sequential miter [default = %s]\n", pSecPar->fReadUnsolved? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggles trying property directed reachability in the end [default = %s]\n", pSecPar->fUsePdr? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", pSecPar->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggles additional verbose output [default = %s]\n", pSecPar->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -18855,7 +18961,120 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
- 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fVerbose, int fVeryVerbose );
+     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    int nFrames      =       0;
+    int TimeOut      =     300;
+    int nConfMax     =  100000;
+    int fUseBmc      =       1;
+    int fVerbose     =       0;
+    int fVeryVerbose =       0;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCbvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'b':
+            fUseBmc ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -2, "There is no current network.\n");
+        return 0;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        Abc_Print( -2, "The current network is combinational.\n");
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
+        return 0;
+    }
+    // modify the current network
+    pNtkRes = Abc_NtkDarTempor( pNtk, nFrames, TimeOut, nConfMax, fUseBmc, fVerbose, fVeryVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Temporal decomposition has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: tempor [-FTC <num>] [-bvwh]\n" );
+    Abc_Print( -2, "\t           performs temporal decomposition\n" );
+    Abc_Print( -2, "\t-F <num> : init logic timeframe count (0 = use leading length) [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-T <num> : runtime limit in seconds for BMC (0=unused) [default = %d]\n", TimeOut );
+    Abc_Print( -2, "\t-C <num> : max number of SAT conflicts in BMC (0=unused) [default = %d]\n", nConfMax );
+    Abc_Print( -2, "\t-b       : toggle running BMC2 on the init frames [default = %s]\n", fUseBmc? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle printing ternary state space [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1; 
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -19615,12 +19834,13 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
-        Aig_ManStop( pAig );
         if ( !Gia_ManVerifyCounterExample( pGia, pAbc->pCex, 0 ) )
+//        if ( !Ssw_SmlRunCounterExample( pAig, pAbc->pCex ) )
             Abc_Print( 1, "Main AIG: The cex does not fail any outputs.\n" );
         else
             Abc_Print( 1, "Main AIG: The cex is correct.\n" );
         Gia_ManStop( pGia );
+        Aig_ManStop( pAig );
     }
 
     // check the AND AIG
@@ -19661,19 +19881,92 @@ usage:
 ***********************************************************************/
 int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex );
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    Abc_Cex_t * pCex;
+    extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex );
+    Pdr_Par_t Pars, * pPars = &Pars;
+     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Cex_t * pCex = NULL;
     int c;
+    Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OMFCTrmsdvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->iOutput = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->iOutput < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRecycle = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRecycle < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFrameMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFrameMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'r':
+            pPars->fTwoRounds ^= 1;
+            break;
+        case 'm':
+            pPars->fMonoCnf ^= 1;
+            break;
+        case 's':
+            pPars->fShortest ^= 1;
+            break;
+        case 'd':
+            pPars->fDumpInv ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
         case 'h':
-            goto usage;
         default:
-            Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
     }
@@ -19687,29 +19980,49 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -2, "The current network is combinational.\n");
         return 0;
     }
-    if ( Abc_NtkPoNum(pNtk) != 1 )
-    {
-        Abc_Print( -2, "The number of POs is different from 1.\n");
-        return 0;
-    }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
         return 0;
     }
+    if ( pPars->iOutput != -1 && (pPars->iOutput < 0 || pPars->iOutput >= Abc_NtkPoNum(pNtk)) )
+    {
+        Abc_Print( -2, "Output index (%d) is incorrect (can be 0 through %d).\n", 
+            pPars->iOutput, Abc_NtkPoNum(pNtk)-1 );
+        return 0;
+    }
+    if ( Abc_NtkPoNum(pNtk) != 1 && pPars->fVerbose )
+    {
+        if ( pPars->iOutput == -1 )
+            Abc_Print( -2, "The %d property outputs are ORed together.\n", Abc_NtkPoNum(pNtk) );
+        else 
+            Abc_Print( -2, "Working on the primary output with zero-based number %d (out of %d).\n", 
+                pPars->iOutput, Abc_NtkPoNum(pNtk) );
+    }
     // run the procedure
-    pAbc->Status  = Abc_NtkDarPdr( pNtk, &pCex );
+    pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars, &pCex );
     pAbc->nFrames = pCex ? pCex->iFrame : -1;
     Abc_FrameReplaceCex( pAbc, &pCex );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr -h\n" );
-    Abc_Print( -2, "\t        model checking using property driven reachability (aka ic3)\n" );
-    Abc_Print( -2, "\t        pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
-    Abc_Print( -2, "\t        with improvements by Niklas Een (http://een.se/niklas/)\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
+    Abc_Print( -2, "usage: pdr [-OMFCT<num] [-rmsdvwh]\n" );
+    Abc_Print( -2, "\t         model checking using property directed reachability (aka ic3)\n" );
+    Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
+    Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
+    Abc_Print( -2, "\t-O num : the zero-based number of the primary output to solve [default = all]\n" );
+    Abc_Print( -2, "\t-M num : number of unused vars to trigger SAT solver recycling [default = %d]\n", pPars->nRecycle );
+    Abc_Print( -2, "\t-F num : number of timeframes explored to stop computation [default = %d]\n", pPars->nFrameMax );
+    Abc_Print( -2, "\t-C num : number of conflicts in a SAT call (0 = no limit) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-T num : approximate timeout in seconds (0 = no limit) [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n", pPars->fTwoRounds? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle using monolythic CNF computation [default = %s]\n", pPars->fMonoCnf? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle creating only shortest counter-examples [default = %s]\n", pPars->fShortest? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dumping inductive invariant [default = %s]\n", pPars->fDumpInv? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing detailed stats default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1; 
 }
 
 /**Function*************************************************************
@@ -21267,7 +21580,7 @@ int Abc_CommandAbc8Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: *mfs [-WFDMLC <num>] [-raespvh]\n" );
+    Abc_Print( -2, "usage: *mfs [-WFDMLC num] [-raespvh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
@@ -22475,7 +22788,7 @@ int Abc_CommandAbc8Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: *scorr [-PQFCLSDVM <num>] [-pldsncvh]\n" );
+    Abc_Print( -2, "usage: *scorr [-PQFCLSDVM num] [-pldsncvh]\n" );
     Abc_Print( -2, "\t         performs sequential sweep using K-step induction\n" );
     Abc_Print( -2, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     Abc_Print( -2, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -23786,7 +24099,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_ManSimSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFTmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFRTmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23810,6 +24123,17 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nIters = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nIters < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->RandSeed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->RandSeed < 0 ) 
                 goto usage;
             break;
         case 'T':
@@ -23845,14 +24169,23 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
-    Gia_ManSimSimulate( pAbc->pGia, pPars );
+    pAbc->nFrames = -1;
+    if ( Gia_ManSimSimulate( pAbc->pGia, pPars ) )
+        pAbc->Status =  0;
+    else
+        pAbc->Status = -1;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+//    if ( pLogFileName )
+//        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&sim" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim [-WFT <num>] [-mvh]\n" );
+    Abc_Print( -2, "usage: &sim [-WFRT num] [-mvh]\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
+    Abc_Print( -2, "\t         (if candidate equivalences are defined, performs refinement)\n" );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", pPars->nIters );
+    Abc_Print( -2, "\t-R num : random number seed (1 <= num <= 10000) [default = %d]\n", pPars->RandSeed );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -23916,7 +24249,7 @@ int Abc_CommandAbc9Resim( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &resim [-F <num>] [-mvh]\n" );
+    Abc_Print( -2, "usage: &resim [-F num] [-mvh]\n" );
     Abc_Print( -2, "\t         resimulates equivalence classes using counter-example\n" );
     Abc_Print( -2, "\t-F num : the number of additinal frames to simulate [default = %d]\n", pPars->nFrames );
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
@@ -23996,7 +24329,7 @@ int Abc_CommandAbc9SpecI( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &speci [-FC <num>] [-fmvh]\n" );
+    Abc_Print( -2, "usage: &speci [-FC num] [-fmvh]\n" );
     Abc_Print( -2, "\t         refines equivalence classes using speculative reduction\n" );
     Abc_Print( -2, "\t-F num : the max number of time frames [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
@@ -24112,7 +24445,7 @@ int Abc_CommandAbc9Equiv( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &equiv [-WFRST <num>] [-smdvh]\n" );
+    Abc_Print( -2, "usage: &equiv [-WFRST num] [-smdvh]\n" );
     Abc_Print( -2, "\t         computes candidate equivalence classes\n" );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n", pPars->nFrames );
@@ -24242,7 +24575,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &equiv2 [-FCRTS <num>] [-xvh]\n" );
+    Abc_Print( -2, "usage: &equiv2 [-FCRTS num] [-xvh]\n" );
     Abc_Print( -2, "\t         computes candidate equivalence classes\n" );
     Abc_Print( -2, "\t-F num : the max number of frames for BMC [default = %d]\n", nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfMax );
@@ -24377,7 +24710,7 @@ int Abc_CommandAbc9Semi( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &semi [-WRFSMCT <num>] [-mdvh]\n" );
+    Abc_Print( -2, "usage: &semi [-WRFSMCT num] [-mdvh]\n" );
     Abc_Print( -2, "\t         performs semiformal refinement of equivalence classes\n" );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-R num : the max number of rounds to simulate [default = %d]\n", pPars->nRounds );
@@ -27249,7 +27582,7 @@ int Abc_CommandAbc9Reach( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Reach(): The current AIG has no latches.\n" );
         return 0;
-    }
+    } 
     pAbc->Status  = Llb_ManModelCheckGia( pAbc->pGia, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );

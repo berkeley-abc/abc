@@ -42,14 +42,14 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMfsUpdateNetwork( Mfs_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc )
+void Abc_NtkMfsUpdateNetwork( Mfs_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vMfsFanins, Hop_Obj_t * pFunc )
 {
     Abc_Obj_t * pObjNew, * pFanin;
     int k;
     // create the new node
     pObjNew = Abc_NtkCreateNode( pObj->pNtk );
     pObjNew->pData = pFunc;
-    Vec_PtrForEachEntry( Abc_Obj_t *, vFanins, pFanin, k )
+    Vec_PtrForEachEntry( Abc_Obj_t *, vMfsFanins, pFanin, k )
         Abc_ObjAddFanin( pObjNew, pFanin );
     // replace the old node by the new node
 //printf( "Replacing node " ); Abc_ObjPrint( stdout, pObj );
@@ -103,14 +103,14 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
     int fVeryVerbose = 0;
     unsigned * pData;
     int RetValue, RetValue2 = -1, iVar, i, clk = clock();
-
+/*
     if ( p->pPars->fGiaSat )
     {
         RetValue2 = Abc_NtkMfsTryResubOnceGia( p, pCands, nCands );
 p->timeGia += clock() - clk;
         return RetValue2;
     }
- 
+*/ 
     p->nSatCalls++;
     RetValue = sat_solver_solve( p->pSat, pCands, pCands + nCands, (ABC_INT64_T)p->pPars->nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 //    assert( RetValue == l_False || RetValue == l_True );
@@ -137,7 +137,7 @@ p->timeGia += clock() - clk;
     printf( "S " );
     p->nSatCexes++;
     // store the counter-example
-    Vec_IntForEachEntry( p->vProjVars, iVar, i )
+    Vec_IntForEachEntry( p->vProjVarsSat, iVar, i )
     {
         pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
         if ( !sat_solver_var_value( p->pSat, iVar ) ) // remove 0s!!!
@@ -186,14 +186,14 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
 
     // try fanins without the critical fanin
     nCands = 0;
-    Vec_PtrClear( p->vFanins );
+    Vec_PtrClear( p->vMfsFanins );
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
         if ( i == iFanin )
             continue;
-        Vec_PtrPush( p->vFanins, pFanin );
+        Vec_PtrPush( p->vMfsFanins, pFanin );
         iVar = Vec_PtrSize(p->vDivs) - Abc_ObjFaninNum(pNode) + i;
-        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVars, iVar ), 1 );
+        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVarsSat, iVar ), 1 );
     }
     RetValue = Abc_NtkMfsTryResubOnce( p, pCands, nCands );
     if ( RetValue == -1 )
@@ -212,7 +212,7 @@ clk = clock();
         if ( pFunc == NULL )
             return 0;
         // update the network
-        Abc_NtkMfsUpdateNetwork( p, pNode, p->vFanins, pFunc );
+        Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
 p->timeInt += clock() - clk;
         return 1;
     }
@@ -269,7 +269,7 @@ p->timeInt += clock() - clk;
         if ( iVar == Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode) )
             return 0;
 
-        pCands[nCands] = toLitCond( Vec_IntEntry(p->vProjVars, iVar), 1 );
+        pCands[nCands] = toLitCond( Vec_IntEntry(p->vProjVarsSat, iVar), 1 );
         RetValue = Abc_NtkMfsTryResubOnce( p, pCands, nCands+1 );
         if ( RetValue == -1 )
             return 0;
@@ -287,8 +287,8 @@ clk = clock();
             if ( pFunc == NULL )
                 return 0;
             // update the network
-            Vec_PtrPush( p->vFanins, Vec_PtrEntry(p->vDivs, iVar) );
-            Abc_NtkMfsUpdateNetwork( p, pNode, p->vFanins, pFunc );
+            Vec_PtrPush( p->vMfsFanins, Vec_PtrEntry(p->vDivs, iVar) );
+            Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
 p->timeInt += clock() - clk;
             return 1;
         }
@@ -334,14 +334,14 @@ int Abc_NtkMfsSolveSatResub2( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int 
 
     // try fanins without the critical fanin
     nCands = 0;
-    Vec_PtrClear( p->vFanins );
+    Vec_PtrClear( p->vMfsFanins );
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
         if ( i == iFanin || i == iFanin2 )
             continue;
-        Vec_PtrPush( p->vFanins, pFanin );
+        Vec_PtrPush( p->vMfsFanins, pFanin );
         iVar = Vec_PtrSize(p->vDivs) - Abc_ObjFaninNum(pNode) + i;
-        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVars, iVar ), 1 );
+        pCands[nCands++] = toLitCond( Vec_IntEntry( p->vProjVarsSat, iVar ), 1 );
     }
     RetValue = Abc_NtkMfsTryResubOnce( p, pCands, nCands );
     if ( RetValue == -1 )
@@ -358,7 +358,7 @@ clk = clock();
         if ( pFunc == NULL )
             return 0;
         // update the network
-        Abc_NtkMfsUpdateNetwork( p, pNode, p->vFanins, pFunc );
+        Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
 p->timeInt += clock() - clk;
         return 1;
     }
@@ -435,8 +435,8 @@ p->timeInt += clock() - clk;
         if ( iVar == Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode) )
             return 0;
 
-        pCands[nCands]   = toLitCond( Vec_IntEntry(p->vProjVars, iVar2), 1 );
-        pCands[nCands+1] = toLitCond( Vec_IntEntry(p->vProjVars, iVar), 1 );
+        pCands[nCands]   = toLitCond( Vec_IntEntry(p->vProjVarsSat, iVar2), 1 );
+        pCands[nCands+1] = toLitCond( Vec_IntEntry(p->vProjVarsSat, iVar), 1 );
         RetValue = Abc_NtkMfsTryResubOnce( p, pCands, nCands+2 );
         if ( RetValue == -1 )
             return 0;
@@ -452,10 +452,10 @@ clk = clock();
             if ( pFunc == NULL )
                 return 0;
             // update the network
-            Vec_PtrPush( p->vFanins, Vec_PtrEntry(p->vDivs, iVar2) );
-            Vec_PtrPush( p->vFanins, Vec_PtrEntry(p->vDivs, iVar) );
-            assert( Vec_PtrSize(p->vFanins) == nCands + 2 );
-            Abc_NtkMfsUpdateNetwork( p, pNode, p->vFanins, pFunc );
+            Vec_PtrPush( p->vMfsFanins, Vec_PtrEntry(p->vDivs, iVar2) );
+            Vec_PtrPush( p->vMfsFanins, Vec_PtrEntry(p->vDivs, iVar) );
+            assert( Vec_PtrSize(p->vMfsFanins) == nCands + 2 );
+            Abc_NtkMfsUpdateNetwork( p, pNode, p->vMfsFanins, pFunc );
 p->timeInt += clock() - clk;
             return 1;
         }

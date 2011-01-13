@@ -952,8 +952,12 @@ int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut )
                            (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
         Gia_ManForEachCo( pAig, pObj, k )
             pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
         Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
+        {
             pObjRo->fMark0 = pObjRi->fMark0;
+        }
     }
     assert( iBit == p->nBits );
     if ( fDualOut )

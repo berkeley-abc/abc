@@ -49,14 +49,15 @@ Mfs_Man_t * Mfs_ManAlloc( Mfs_Par_t * pPars )
     p = ABC_ALLOC( Mfs_Man_t, 1 );
     memset( p, 0, sizeof(Mfs_Man_t) );
     p->pPars     = pPars;
-    p->vProjVars = Vec_IntAlloc( 100 );
+    p->vProjVarsCnf = Vec_IntAlloc( 100 );
+    p->vProjVarsSat = Vec_IntAlloc( 100 );
     p->vDivLits  = Vec_IntAlloc( 100 );
     p->nDivWords = Aig_BitWordNum(p->pPars->nDivMax + MFS_FANIN_MAX);
     p->vDivCexes = Vec_PtrAllocSimInfo( p->pPars->nDivMax+MFS_FANIN_MAX+1, p->nDivWords );
     p->pMan      = Int_ManAlloc();
     p->vMem      = Vec_IntAlloc( 0 );
     p->vLevels   = Vec_VecStart( 32 );
-    p->vFanins   = Vec_PtrAlloc( 32 );
+    p->vMfsFanins= Vec_PtrAlloc( 32 );
     return p;
 }
 
@@ -201,8 +202,9 @@ void Mfs_ManStop( Mfs_Man_t * p )
     Int_ManFree( p->pMan );
     Vec_IntFree( p->vMem );
     Vec_VecFree( p->vLevels );
-    Vec_PtrFree( p->vFanins );
-    Vec_IntFree( p->vProjVars );
+    Vec_PtrFree( p->vMfsFanins );
+    Vec_IntFree( p->vProjVarsCnf );
+    Vec_IntFree( p->vProjVarsSat );
     Vec_IntFree( p->vDivLits );
     Vec_PtrFree( p->vDivCexes );
     ABC_FREE( p );
