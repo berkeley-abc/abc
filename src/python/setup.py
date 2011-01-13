@@ -62,5 +62,5 @@ setup(
     name='pyabc',
     version='1.0',
     ext_modules=[ext],
-    py_modules=['pyabc']
+    py_modules=['pyabc','getch','pyabc_split','redirect']
 )
