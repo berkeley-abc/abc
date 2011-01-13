@@ -24,5 +24,6 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigStrSim.c \
     src/aig/saig/saigSwitch.c \
     src/aig/saig/saigSynch.c \
+    src/aig/saig/saigTempor.c \
     src/aig/saig/saigTrans.c \
     src/aig/saig/saigWnd.c

@@ -575,7 +575,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     Cudd_RecursiveDeref( p->dd, bConstrNs ); bConstrNs = NULL;
     if ( bReached == NULL )
         return 0; // reachable
-    assert( bCurrent == NULL );
+//    assert( bCurrent == NULL );
     if ( bCurrent )
         Cudd_RecursiveDeref( p->dd, bCurrent );
     // report the stats

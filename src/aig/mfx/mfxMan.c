@@ -49,7 +49,8 @@ Mfx_Man_t * Mfx_ManAlloc( Mfx_Par_t * pPars )
     p = ABC_ALLOC( Mfx_Man_t, 1 );
     memset( p, 0, sizeof(Mfx_Man_t) );
     p->pPars     = pPars;
-    p->vProjVars = Vec_IntAlloc( 100 );
+    p->vProjVarsCnf = Vec_IntAlloc( 100 );
+    p->vProjVarsSat = Vec_IntAlloc( 100 );
     p->vDivLits  = Vec_IntAlloc( 100 );
     p->nDivWords = Aig_BitWordNum(p->pPars->nDivMax + MFX_FANIN_MAX);
     p->vDivCexes = Vec_PtrAllocSimInfo( p->pPars->nDivMax+MFX_FANIN_MAX+1, p->nDivWords );
@@ -178,7 +179,8 @@ void Mfx_ManStop( Mfx_Man_t * p )
     Vec_IntFree( p->vMem );
     Vec_VecFree( p->vLevels );
     Vec_PtrFree( p->vFanins );
-    Vec_IntFree( p->vProjVars );
+    Vec_IntFree( p->vProjVarsCnf );
+    Vec_IntFree( p->vProjVarsSat );
     Vec_IntFree( p->vDivLits );
     Vec_PtrFree( p->vDivCexes );
     ABC_FREE( p );

@@ -409,12 +409,12 @@ p->timeReduce += clock() - clk;
         if ( p->pPars->fVerbose )
             Bar_ProgressUpdate( pProgress, i, NULL );
         if ( Saig_ObjIsLo(p->pAig, pObj) )
-            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, NULL );
         else if ( Aig_ObjIsNode(pObj) )
         { 
             pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
             Ssw_ObjSetFrame( p, pObj, f, pObjNew );
-            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0 );
+            p->fRefined |= Ssw_ManSweepNode( p, pObj, f, 0, NULL );
         }
         // check if it is time to recycle the solver
         if ( p->pMSat->pSat == NULL || 

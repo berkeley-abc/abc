@@ -138,6 +138,59 @@ p->timeSave = clock() - clk;
 //ABC_PRT( "Saving ", p->timeSave );
     return pCnf;
 }
+ 
+/**Function*************************************************************
+
+  Synopsis    [Converts AIG into the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig )
+{
+    Cnf_Man_t * p;
+    Cnf_Dat_t * pCnf;
+    Vec_Ptr_t * vMapped;
+    Aig_MmFixed_t * pMemCuts;
+    int clk;
+    // allocate the CNF manager
+    if ( s_pManCnf == NULL )
+        s_pManCnf = Cnf_ManStart();
+    // connect the managers
+    p = s_pManCnf;
+    p->pManAig = pAig;
+
+    // generate cuts for all nodes, assign cost, and find best cuts
+clk = clock();
+    pMemCuts = Dar_ManComputeCuts( pAig, 10, 0 );
+p->timeCuts = clock() - clk;
+
+    // find the mapping
+clk = clock();
+    Cnf_DeriveMapping( p );
+p->timeMap = clock() - clk;
+//    Aig_ManScanMapping( p, 1 );
+
+    // convert it into CNF
+clk = clock();
+    Cnf_ManTransferCuts( p );
+    vMapped = Cnf_ManScanMapping( p, 1, 1 );
+    pCnf = Cnf_ManWriteCnfOther( p, vMapped );
+    Vec_PtrFree( vMapped );
+    Aig_MmFixedStop( pMemCuts, 0 );
+p->timeSave = clock() - clk;
+
+   // reset reference counters
+    Aig_ManResetRefs( pAig );
+//ABC_PRT( "Cuts   ", p->timeCuts );
+//ABC_PRT( "Map    ", p->timeMap  );
+//ABC_PRT( "Saving ", p->timeSave );
+    return pCnf;
+}
 
 /**Function*************************************************************
 

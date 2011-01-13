@@ -85,8 +85,6 @@ extern int         sat_solver_nconflicts(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
 
-extern int         sat_solver_final(sat_solver* s, int ** ppArray);
-
 struct stats_t
 {
     ABC_INT64_T   starts, decisions, propagations, inspects, conflicts;

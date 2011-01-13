@@ -232,6 +232,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
 
     Vec_PtrForEachEntry( char *, vGlobalLtlArray, pLtlProp, i )
         Vec_PtrPush( pNtk->vLtlProperties, pLtlProp );
+    Vec_PtrFreeP( &vGlobalLtlArray );
     return pNtk;
 }
 

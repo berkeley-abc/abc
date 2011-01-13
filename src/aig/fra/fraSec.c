@@ -24,6 +24,7 @@
 #include "ssw.h"
 #include "saig.h"
 #include "bbr.h"
+#include "pdr.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -70,6 +71,8 @@ void Fra_SecSetDefaultParams( Fra_Sec_t * p )
     p->fReorderImage     =       1;  // enables variable reordering during image computation
     p->fStopOnFirstFail  =       1;  // enables stopping after first output of a miter has failed to prove
     p->fUseNewProver     =       0;  // enables new prover
+    p->fUsePdr           =       1;  // enables PDR
+    p->nPdrTimeout       =      60;  // enabled PDR timeout
     p->fSilent           =       0;  // disables all output
     p->fVerbose          =       0;  // enables verbose reporting of statistics
     p->fVeryVerbose      =       0;  // enables very verbose reporting  
@@ -539,7 +542,7 @@ clk = clock();
         }
         else
         {
-            Aig_Man_t * pNewOrpos = Said_ManDupOrpos( pNew );
+            Aig_Man_t * pNewOrpos = Saig_ManDupOrpos( pNew );
             RetValue = Inter_ManPerformInterpolation( pNewOrpos, pPars, &Depth );
             if ( pNewOrpos->pSeqModel )
             {
@@ -580,6 +583,24 @@ ABC_PRT( "Time", clock() - clk );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
         RetValue = Aig_ManVerifyUsingBdds( pNew, pPars );
+    }
+
+    // try PDR
+    if ( pParSec->fUsePdr && RetValue == -1 && Aig_ManRegNum(pNew) > 0 )
+    {
+        Abc_Cex_t * pCex = NULL;
+        Aig_Man_t * pNewOrpos = Saig_ManDupOrpos( pNew );
+        Pdr_Par_t Pars, * pPars = &Pars;
+        Pdr_ManSetDefaultParams( pPars );
+        pPars->nTimeOut = pParSec->nPdrTimeout;
+        pPars->fVerbose = pParSec->fVerbose;
+        if ( pParSec->fVerbose )
+            printf( "Running property directed reachability...\n" );
+        RetValue = Pdr_ManSolve( pNewOrpos, pPars, &pCex );
+        if ( pCex )
+            pCex->iPo = Ssw_SmlFindOutputCounterExample( pNew, pCex );
+        Aig_ManStop( pNewOrpos );
+        pNew->pSeqModel = pCex;
     }
 
 finish:

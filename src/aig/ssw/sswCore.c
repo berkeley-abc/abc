@@ -64,6 +64,8 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->fDynamic       =       0;  // dynamic partitioning
     p->fLocalSim      =       0;  // local simulation
     p->fVerbose       =       0;  // verbose stats
+    p->fEquivDump     =       0;  // enables dumping equivalences
+
     // latch correspondence
     p->fLatchCorrOpt  =       0;  // performs optimized register correspondence
     p->nSatVarMax     =    1000;  // the max number of SAT variables

@@ -179,6 +179,7 @@ struct Gia_ParSim_t_
     // user-controlled parameters
     int            nWords;        // the number of machine words
     int            nIters;        // the number of timeframes
+    int            RandSeed;      // seed to generate random numbers
     int            TimeLimit;     // time limit in seconds
     int            fCheckMiter;   // check if miter outputs are non-zero
     int            fVerbose;      // enables verbose output

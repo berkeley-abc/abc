@@ -508,7 +508,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
 //    pParams->fUseBdds = 1;
 //    pParams->fBddReorder = 1;
 //    pParams->nTotalBacktrackLimit = 10000;
-
+ 
     // strash the network if it is not strashed already
     if ( !Abc_NtkIsStrash(pNtk) )
     {

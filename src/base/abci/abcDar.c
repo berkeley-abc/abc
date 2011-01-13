@@ -35,6 +35,7 @@
 #include "cec.h"
 #include "csw.h"
 #include "giaAbs.h"
+#include "pdr.h" 
 
 ABC_NAMESPACE_IMPL_START
 
@@ -2245,14 +2246,6 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
     return RetValue;
 }
 
-typedef struct Pdr_Par_t_ Pdr_Par_t;
-struct Pdr_Par_t_
-{
-    int    fAbstract;     // perform abstraction
-    int    fVerbose;      // enable verbose output
-    int    fVeryVerbose;  // enable verbose output
-};
-
 /**Function*************************************************************
 
   Synopsis    [Gives the current ABC network to AIG manager for processing.]
@@ -2264,14 +2257,10 @@ struct Pdr_Par_t_
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex )
+int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
 {
-//    extern void  Pdr_ManSetDefaultParams( Pdr_Par_t * pPars );
-//    extern int   Pdr_ManSolve( Aig_Man_t * pAig, Abc_Cex_t ** ppCex, Pdr_Par_t * pPars );
     int RetValue = -1, clk = clock();
-    Pdr_Par_t Pars, * pPars = &Pars;
     Aig_Man_t * pMan;
-//    Pdr_ManSetDefaultParams( pPars );
     *ppCex = NULL;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -2279,7 +2268,18 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex )
         printf( "Converting network into AIG has failed.\n" );
         return -1;
     }
-//    RetValue = Pdr_ManSolve( pMan, ppCex, pPars );
+    // perform ORing the primary outputs
+    if ( pPars->iOutput == -1 )
+    {
+        Aig_Man_t * pTemp = Saig_ManDupOrpos( pMan );
+        RetValue = Pdr_ManSolve( pTemp, pPars, ppCex );
+        if ( RetValue == 0 )
+            (*ppCex)->iPo = Ssw_SmlFindOutputCounterExample( pMan, *ppCex );
+        Aig_ManStop( pTemp );
+    }
+    else
+        RetValue = Pdr_ManSolve( pMan, pPars, ppCex );
+    // output the result
     if ( RetValue == 1 )
         printf( "Property proved.  " );
     else if ( RetValue == 0 )
@@ -2926,6 +2926,34 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     Aig_ManStop( pTemp );
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs targe enlargement.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fVerbose, int fVeryVerbose )
+{
+    extern Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fVerbose, int fVeryVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    pTemp = Saig_ManTempor( pMan, nFrames, TimeOut, nConfLimit, fUseBmc, fVerbose, fVeryVerbose );
+    Aig_ManStop( pMan );
+    if ( pTemp == NULL )
+        return Abc_NtkDup( pNtk );
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pTemp );
+    Aig_ManStop( pTemp );
     return pNtkAig;
 }
 

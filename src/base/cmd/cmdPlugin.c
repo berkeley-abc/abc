@@ -136,7 +136,7 @@ char * Abc_GetBinaryName( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         i++;
         if ( strcmp( pTemp, argv[0] ) == 0 )
-            return Vec_PtrEntry( pAbc->vPlugInComBinPairs, i );
+            return (char *)Vec_PtrEntry( pAbc->vPlugInComBinPairs, i );
     }
     assert( 0 );
     return NULL;

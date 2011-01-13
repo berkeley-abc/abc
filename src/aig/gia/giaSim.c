@@ -65,6 +65,7 @@ void Gia_ManSimSetDefaultParams( Gia_ParSim_t * p )
     // user-controlled parameters
     p->nWords       =   8;    // the number of machine words
     p->nIters       =  32;    // the number of timeframes
+    p->RandSeed     =   0;    // the seed to generate random numbers
     p->TimeLimit    =  60;    // time limit in seconds
     p->fCheckMiter  =   0;    // check if miter outputs are non-zero 
     p->fVerbose     =   0;    // enables verbose output
@@ -437,9 +438,8 @@ Abc_Cex_t * Gia_ManGenerateCounter( Gia_Man_t * pAig, int iFrame, int iOut, int 
     int f, i, w, iPioId, Counter;
     p = Gia_ManAllocCounterExample( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), iFrame+1 );
     p->iFrame = iFrame;
-    p->iPo = iOut;
+    p->iPo    = iOut;
     // fill in the binary data
-    Gia_ManRandom( 1 );
     Counter = p->nRegs;
     pData = ABC_ALLOC( unsigned, nWords );
     for ( f = 0; f <= iFrame; f++, Counter += p->nPis )
@@ -468,14 +468,36 @@ Abc_Cex_t * Gia_ManGenerateCounter( Gia_Man_t * pAig, int iFrame, int iOut, int 
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManResetRandom( Gia_ParSim_t * pPars )
+{
+    int i;
+    Gia_ManRandom( 1 );
+    for ( i = 0; i < pPars->RandSeed; i++ )
+        Gia_ManRandom( 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
 {
+    extern int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars );
     Gia_ManSim_t * p;
     int i, clkTotal = clock();
     int iOut, iPat, RetValue = 0;
+    if ( pAig->pReprs && pAig->pNexts )
+        return Gia_ManSimSimulateEquiv( pAig, pPars );
     ABC_FREE( pAig->pCexSeq );
     p = Gia_ManSimCreate( pAig, pPars );
-    Gia_ManRandom( 1 );
+    Gia_ManResetRandom( pPars );
     Gia_ManSimInfoInit( p );
     for ( i = 0; i < pPars->nIters; i++ )
     {
@@ -487,6 +509,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
         }
         if ( pPars->fCheckMiter && Gia_ManCheckPos( p, &iOut, &iPat ) )
         {
+            Gia_ManResetRandom( pPars );
             pPars->iOutFail = iOut;
             pAig->pCexSeq = Gia_ManGenerateCounter( pAig, i, iOut, p->nWords, iPat, p->vCis2Ids );
             Abc_Print( 1, "Networks are NOT EQUIVALENT.   Output %d was asserted in frame %d.  ", iOut, i );

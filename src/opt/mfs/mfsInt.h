@@ -61,19 +61,22 @@ struct Mfs_Man_t_
     Vec_Ptr_t *         vNodes;    // the internal nodes of the window
     Vec_Ptr_t *         vDivs;     // the divisors of the node
     Vec_Int_t *         vDivLits;  // the SAT literals of divisor nodes
-    Vec_Int_t *         vProjVars; // the projection variables
+    Vec_Int_t *         vProjVarsCnf; // the projection variables
+    Vec_Int_t *         vProjVarsSat; // the projection variables
     // intermediate simulation data
     Vec_Ptr_t *         vDivCexes; // the counter-example for dividors
     int                 nDivWords; // the number of words
     int                 nCexes;    // the numbe rof current counter-examples
     int                 nSatCalls; 
     int                 nSatCexes;
+/*
     // intermediate AIG data
     Gia_Man_t *         pGia;      // replica of the AIG in the new package
 //    Gia_Obj_t **        pSat2Gia;  // mapping of PO SAT var into internal GIA nodes
     Tas_Man_t *         pTas;      // the SAT solver
     Vec_Int_t *         vCex;      // the counter-example
     Vec_Ptr_t *         vGiaLits;  // literals given as assumptions
+*/
     // used for bidecomposition
     Vec_Int_t *         vTruth;
     Bdc_Man_t *         pManDec;
@@ -87,7 +90,7 @@ struct Mfs_Man_t_
     Int_Man_t *         pMan;      // interpolation manager;
     Vec_Int_t *         vMem;      // memory for intermediate SOPs
     Vec_Vec_t *         vLevels;   // levelized structure for updating
-    Vec_Ptr_t *         vFanins;   // the new set of fanins
+    Vec_Ptr_t *         vMfsFanins;   // the new set of fanins
     int                 nTotConfLim; // total conflict limit
     int                 nTotConfLevel; // total conflicts on this level
     // switching activity

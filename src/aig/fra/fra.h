@@ -123,6 +123,7 @@ struct Fra_Sec_t_
     int              nBddVarsMax;       // the state space limit for BDD reachability
     int              nBddMax;           // the max number of BDD nodes
     int              nBddIterMax;       // the limit on the number of BDD iterations
+    int              nPdrTimeout;       // the timeout for PDR in the end
     int              fPhaseAbstract;    // enables phase abstraction
     int              fRetimeFirst;      // enables most-forward retiming at the beginning
     int              fRetimeRegs;       // enables min-register retiming at the beginning
@@ -134,6 +135,7 @@ struct Fra_Sec_t_
     int              fReorderImage;     // enables BDD reordering during image computation
     int              fStopOnFirstFail;  // enables stopping after first output of a miter has failed to prove
     int              fUseNewProver;     // the new prover
+    int              fUsePdr;           // the PDR
     int              fSilent;           // disables all output
     int              fVerbose;          // enables verbose reporting of statistics
     int              fVeryVerbose;      // enables very verbose reporting  

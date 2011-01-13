@@ -20,7 +20,7 @@ MODULES := \
 	src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/mfs \
 	src/opt/sim src/opt/ret src/opt/res src/opt/lpk \
 	src/sat/bsat src/sat/csat src/sat/msat src/sat/fraig \
-	src/sat/psat \
+	src/sat/psat src/sat/pdr \
 	src/aig/ivy src/aig/hop src/aig/rwt src/aig/deco \
 	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \
 	src/aig/csw src/aig/ioa src/aig/aig src/aig/kit \

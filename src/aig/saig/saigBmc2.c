@@ -820,7 +820,12 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     {
         printf( "No output was asserted in %d frames.  ", p->iFramePrev-1 );
         if ( piFrames )
-            *piFrames = p->iFramePrev-1;
+        {
+            if ( p->iOutputLast > 0 )
+                *piFrames = p->iFramePrev - 1;
+            else
+                *piFrames = p->iFramePrev;
+        }
     }
     if ( fVerbOverwrite )
     {
@@ -834,7 +839,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     {
         if ( p->iFrameLast >= p->nFramesMax )
             printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
-        else if ( p->pSat->stats.conflicts > p->nConfMaxAll )
+        else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
             printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
         else
             printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );

@@ -2230,7 +2230,7 @@ Aig_Man_t * LivenessToSafetyTransformationWithLTL( int mode, Abc_Ntk_t * pNtk, A
                                     #ifdef ALLOW_SAFETY_PROPERTIES
                                         printf("liveness output is conjoined with safety assertions\n");
                                         pObjSafetyAndLiveToSafety = Aig_Or( pNew, pObjSafetyGate, pNegatedSafetyConjunction );
-                                        pObjSafetyPropertyOutput = Vec_PtrEntry( vPoForLtlProps, iii );
+                                        pObjSafetyPropertyOutput = (Aig_Obj_t *)Vec_PtrEntry( vPoForLtlProps, iii );
                                         Aig_ObjPatchFanin0( pNew, pObjSafetyPropertyOutput, pObjSafetyAndLiveToSafety );
                                     #else
                                         pObjSafetyPropertyOutput = Vec_PtrEntry( vPoForLtlProps, iii );

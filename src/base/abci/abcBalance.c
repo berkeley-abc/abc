@@ -68,7 +68,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, int fDuplicate, int fSelective, in
     // perform balancing
     Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate, fSelective, fUpdateLevel );
     Abc_NtkFinalize( pNtk, pNtkAig );
-    Abc_AigCleanup( pNtkAig->pManFunc );
+    Abc_AigCleanup( (Abc_Aig_t *)pNtkAig->pManFunc );
     // undo the required times
     if ( fSelective )
     {

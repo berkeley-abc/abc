@@ -173,7 +173,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 //            continue;
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // compute the cuts to the internal node
-        pList = Abc_NodeGetCuts( p, pObj, pParams->fDag, pParams->fTree );
+        pList = (Cut_Cut_t *)Abc_NodeGetCuts( p, pObj, pParams->fDag, pParams->fTree );
         if ( pParams->fNpnSave && pList )
         {
             extern void Npn_ManSaveOne( unsigned * puTruth, int nVars );

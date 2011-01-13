@@ -96,13 +96,13 @@ sat_solver * Mfx_CreateSolverResub( Mfx_Man_t * p, int * pCands, int nCands, int
     Lits[0] = toLitCond( p->pCnf->pVarNums[pObjPo->Id], fInvert );
 
     // collect the outputs of the divisors
-    Vec_IntClear( p->vProjVars );
+    Vec_IntClear( p->vProjVarsCnf );
     Vec_PtrForEachEntryStart( Aig_Obj_t *, p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) )
     {
         assert( p->pCnf->pVarNums[pObjPo->Id] >= 0 );
-        Vec_IntPush( p->vProjVars, p->pCnf->pVarNums[pObjPo->Id] );
+        Vec_IntPush( p->vProjVarsCnf, p->pCnf->pVarNums[pObjPo->Id] );
     }
-    assert( Vec_IntSize(p->vProjVars) == Vec_PtrSize(p->vDivs) );
+    assert( Vec_IntSize(p->vProjVarsCnf) == Vec_PtrSize(p->vDivs) );
 
     // start the solver
     pSat = sat_solver_new();
@@ -161,7 +161,7 @@ sat_solver * Mfx_CreateSolverResub( Mfx_Man_t * p, int * pCands, int nCands, int
             // get the variable number of this divisor
             i = lit_var( pCands[c] ) - 2 * p->pCnf->nVars;
             // get the corresponding SAT variable
-            iVar = Vec_IntEntry( p->vProjVars, i );
+            iVar = Vec_IntEntry( p->vProjVarsCnf, i );
             // add the corresponding EXOR gate
             if ( !Mfx_SatAddXor( pSat, iVar, iVar + p->pCnf->nVars, 2 * p->pCnf->nVars + i ) )
             {
@@ -181,15 +181,17 @@ sat_solver * Mfx_CreateSolverResub( Mfx_Man_t * p, int * pCands, int nCands, int
     else
     {
         // add the clauses for the EXOR gates - and remember their outputs
-        Vec_IntForEachEntry( p->vProjVars, iVar, i )
+        Vec_IntClear( p->vProjVarsSat );
+        Vec_IntForEachEntry( p->vProjVarsCnf, iVar, i )
         {
             if ( !Mfx_SatAddXor( pSat, iVar, iVar + p->pCnf->nVars, 2 * p->pCnf->nVars + i ) )
             {
                 sat_solver_delete( pSat );
                 return NULL;
             }
-            Vec_IntWriteEntry( p->vProjVars, i, 2 * p->pCnf->nVars + i );
+            Vec_IntPush( p->vProjVarsSat, 2 * p->pCnf->nVars + i );
         }
+        assert( Vec_IntSize(p->vProjVarsCnf) == Vec_IntSize(p->vProjVarsSat) );
         // simplify the solver
         status = sat_solver_simplify(pSat);
         if ( status == 0 )
@@ -242,7 +244,7 @@ unsigned * Mfx_InterplateTruth( Mfx_Man_t * p, int * pCands, int nCands, int fIn
         // get the variable number of this divisor
         i = lit_var( pCands[c] ) - 2 * p->pCnf->nVars;
         // get the corresponding SAT variable
-        pGloVars[c] = Vec_IntEntry( p->vProjVars, i );
+        pGloVars[c] = Vec_IntEntry( p->vProjVarsCnf, i );
     }
 
     // derive the interpolant
@@ -342,7 +344,7 @@ Hop_Obj_t * Mfx_Interplate( Mfx_Man_t * p, int * pCands, int nCands )
         // get the variable number of this divisor
         i = lit_var( pCands[c] ) - 2 * p->pCnf->nVars;
         // get the corresponding SAT variable
-        pGloVars[c] = Vec_IntEntry( p->vProjVars, i );
+        pGloVars[c] = Vec_IntEntry( p->vProjVarsCnf, i );
     }
 
     // derive the interpolant

@@ -48,7 +48,7 @@ void Llb_ManSetDefaultParams( Gia_ParLlb_t * p )
 {
     memset( p, 0, sizeof(Gia_ParLlb_t) );
     p->nBddMax       =  1000000;
-    p->nIterMax      =     1000;
+    p->nIterMax      = 10000000;
     p->nClusterMax   =       20;
     p->nHintDepth    =        0;
     p->HintFirst     =        0;
