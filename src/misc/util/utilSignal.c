@@ -26,7 +26,8 @@
 #include <signal.h>
 #include <hashGen.h>
 #include <errno.h>
-#include <pthread.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "abc_global.h"
 
