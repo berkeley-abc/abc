@@ -2940,15 +2940,15 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fVerbose, int fVeryVerbose )
+Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fUseTransSigs, int fVerbose, int fVeryVerbose )
 {
-    extern Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fVerbose, int fVeryVerbose );
+    extern Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fUseTransSigs, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return NULL;
-    pTemp = Saig_ManTempor( pMan, nFrames, TimeOut, nConfLimit, fUseBmc, fVerbose, fVeryVerbose );
+    pTemp = Saig_ManTempor( pMan, nFrames, TimeOut, nConfLimit, fUseBmc, fUseTransSigs, fVerbose, fVeryVerbose );
     Aig_ManStop( pMan );
     if ( pTemp == NULL )
         return Abc_NtkDup( pNtk );
@@ -3937,11 +3937,13 @@ void Abc_NtkDarConstrProfile( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDarTest( Abc_Ntk_t * pNtk )
+void Abc_NtkDarTest( Abc_Ntk_t * pNtk, int Num )
 {
 //    extern void Saig_ManDetectConstr( Aig_Man_t * p );
 //    extern void Saig_ManDetectConstrFuncTest( Aig_Man_t * p );
-    extern void Saig_ManFoldConstrTest( Aig_Man_t * pAig );
+//    extern void Saig_ManFoldConstrTest( Aig_Man_t * pAig );
+    extern void Llb_ManComputeDomsTest( Aig_Man_t * pAig, int Num );
+
 
 
 //    extern void Fsim_ManTest( Aig_Man_t * pAig );
@@ -3992,6 +3994,15 @@ Aig_ManPrintStats( pMan );
 //        Pdr_ManEquivClasses( pMan );
     }
 
+//    Llb_ManComputeDomsTest( pMan, Num );
+    {
+        extern void Llb_ManMinCutTest( Aig_Man_t * pMan, int Num );
+        extern void Llb_BddStructAnalysis( Aig_Man_t * pMan );
+        extern void Llb_NonlinExperiment( Aig_Man_t * pAig, int Num );
+//        Llb_BddStructAnalysis( pMan );
+        Llb_ManMinCutTest( pMan, Num );
+//        Llb_NonlinExperiment( pMan, Num );
+    }
 
 //    Saig_MvManSimulate( pMan, 1 );
 //    Saig_ManDetectConstr( pMan );

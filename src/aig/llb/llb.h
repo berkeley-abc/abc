@@ -31,7 +31,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 
-
 ABC_NAMESPACE_HEADER_START
 
 
@@ -50,11 +49,14 @@ struct Gia_ParLlb_t_
     int         fUseFlow;      // use flow computation
     int         nVolumeMax;    // the largest volume
     int         nVolumeMin;    // the smallest volume
+    int         nPartValue;    // partitioning value
+    int         fBackward;     // enable backward reachability
     int         fReorder;      // enable dynamic variable reordering
     int         fIndConstr;    // extract inductive constraints
     int         fUsePivots;    // use internal pivot variables
     int         fCluster;      // use partition clustering
     int         fSchedule;     // use cluster scheduling
+    int         fDumpReached;  // dump reached states into a file
     int         fVerbose;      // print verbose information
     int         fVeryVerbose;  // print dependency matrices
     int         fSilent;       // do not print any infomation

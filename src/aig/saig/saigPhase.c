@@ -222,7 +222,7 @@ int Saig_TsiStateHash( unsigned * pState, int nWords, int nTableSize )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nWords, int nPref )
+int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nPref )
 {
     unsigned * pState;
     int nRegs = p->pAig->nRegs;
@@ -242,6 +242,53 @@ int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nWords, int nPref )
             Vec_IntPush( p->vNonXRegs, i );
     }
     return Vec_IntSize(p->vNonXRegs);
+} 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes flops that are stuck-at constant.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_TsiComputeTransient( Saig_Tsim_t * p, int nPref )
+{
+    Vec_Int_t * vCounters;
+    unsigned * pState;
+    int ValueThis, ValuePrev = -1, StepPrev = -1;
+    int i, k, nRegs = p->pAig->nRegs;
+    vCounters = Vec_IntStart( nPref );
+    for ( i = 0; i < nRegs; i++ )
+    {
+        Vec_PtrForEachEntry( unsigned *, p->vStates, pState, k )
+        {
+            ValueThis = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+//printf( "%s", (ValueThis == 1)? "0" : ((ValueThis == 2)? "1" : "x") );
+            assert( ValueThis != 0 );
+            if ( ValuePrev != ValueThis )
+            {
+                ValuePrev = ValueThis;
+                StepPrev  = k;
+            }
+        }
+//printf( "\n" );
+        if ( ValueThis == SAIG_XVSX )
+            continue;
+        if ( StepPrev >= nPref )
+            continue;
+        Vec_IntAddToEntry( vCounters, StepPrev, 1 );
+    }
+    Vec_IntForEachEntry( vCounters, ValueThis, i )
+    {
+        if ( ValueThis == 0 )
+            continue;
+//        printf( "%3d : %3d\n", i, ValueThis );
+    }
+    return vCounters;
 }
 
 /**Function*************************************************************
@@ -821,7 +868,7 @@ int Saig_ManPhaseFrameNum( Aig_Man_t * p, Vec_Int_t * vInits )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManPhasePrefixLength( Aig_Man_t * p, int fVerbose, int fVeryVerbose )
+int Saig_ManPhasePrefixLength( Aig_Man_t * p, int fVerbose, int fVeryVerbose, Vec_Int_t ** pvTrans )
 {
     Saig_Tsim_t * pTsi;
     int nFrames, nPrefix, nNonXRegs;
@@ -835,7 +882,11 @@ int Saig_ManPhasePrefixLength( Aig_Man_t * p, int fVerbose, int fVeryVerbose )
     // derive information
     nPrefix   = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     nFrames   = Vec_PtrSize(pTsi->vStates) - 1 - nPrefix;
-    nNonXRegs = Saig_TsiCountNonXValuedRegisters( pTsi, pTsi->nWords, nPrefix );
+    nNonXRegs = Saig_TsiCountNonXValuedRegisters( pTsi, nPrefix );
+
+    if ( pvTrans )
+        *pvTrans = Saig_TsiComputeTransient( pTsi, nPrefix );
+
     // print statistics
     if ( fVerbose )
         printf( "Lead = %5d. Loop = %5d.  Total flops = %5d. Binary flops = %5d.\n", nPrefix, nFrames, p->nRegs, nNonXRegs );
@@ -871,7 +922,7 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     // derive information
     pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
-    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords, ABC_MIN(pTsi->nPrefix,nPref));
+    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, ABC_MIN(pTsi->nPrefix,nPref));
     // print statistics
     if ( fVerbose )
     {
@@ -927,7 +978,7 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     // derive information
     pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
-    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords, 0);
+    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, 0);
     // print statistics
     if ( fVerbose )
     {

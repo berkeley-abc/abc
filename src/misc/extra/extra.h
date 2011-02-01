@@ -196,6 +196,8 @@ extern DdNode *     Extra_bddCreateExor( DdManager * dd, int nVars );
 extern DdNode *     Extra_zddPrimes( DdManager * dd, DdNode * F );
 extern void         Extra_bddPermuteArray( DdManager * dd, DdNode ** bNodesIn, DdNode ** bNodesOut, int nNodes, int *permut );
 extern DdNode *     Extra_bddComputeCube( DdManager * dd, DdNode ** bXVars, int nVars );
+extern DdNode *     Extra_bddChangePolarity( DdManager * dd, DdNode * bFunc, DdNode * bVars );
+extern DdNode *     extraBddChangePolarity( DdManager * dd, DdNode * bFunc, DdNode * bVars );
 
 #ifndef ABC_PRB
 #define ABC_PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")

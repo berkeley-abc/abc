@@ -370,6 +370,8 @@ static int Abc_CommandAbc9PbaStart           ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reach              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Reach2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Reach3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -766,6 +768,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reach",        Abc_CommandAbc9Reach,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&reach2",       Abc_CommandAbc9Reach2,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&reach3",       Abc_CommandAbc9Reach3,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
 
@@ -8414,9 +8418,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
 //    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
     extern Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose );
-    extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk, int Num );
 //    extern void Aig_ProcedureTest();
-    extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk );
     extern void Amap_LibertyTest( char * pFileName );
     extern void Bbl_ManTest( Abc_Ntk_t * pNtk );
@@ -8435,7 +8438,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     fVerbose = 1;
     fBmc     = 0;
     nFrames  = 1;
-    nLevels  = 200;
+    nLevels  = 10;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FNbvwh" ) ) != EOF )
     {
@@ -8489,11 +8492,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Only works for sequential networks.\n" );
         return 1;
     }
-    {
-        extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk );
-        Abc_NtkDarTest( pNtk );
-    }
 
+    Abc_NtkDarTest( pNtk, nLevels );
 
 //    Abc_NtkTestEsop( pNtk );
 //    Abc_NtkTestSop( pNtk );
@@ -18975,17 +18975,18 @@ usage:
 ***********************************************************************/
 int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fVerbose, int fVeryVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fUseTransSigs, int fVerbose, int fVeryVerbose );
      Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
-    int nFrames      =       0;
-    int TimeOut      =     300;
-    int nConfMax     =  100000;
-    int fUseBmc      =       1;
-    int fVerbose     =       0;
-    int fVeryVerbose =       0;
+    int nFrames       =       0;
+    int TimeOut       =     300;
+    int nConfMax      =  100000;
+    int fUseBmc       =       1;
+    int fUseTransSigs =       0;
+    int fVerbose      =       0;
+    int fVeryVerbose  =       0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCbvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCbsvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19025,6 +19026,9 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             fUseBmc ^= 1;
             break;
+        case 's':
+            fUseTransSigs ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -19052,7 +19056,7 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // modify the current network
-    pNtkRes = Abc_NtkDarTempor( pNtk, nFrames, TimeOut, nConfMax, fUseBmc, fVerbose, fVeryVerbose );
+    pNtkRes = Abc_NtkDarTempor( pNtk, nFrames, TimeOut, nConfMax, fUseBmc, fUseTransSigs, fVerbose, fVeryVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Temporal decomposition has failed.\n" );
@@ -19063,12 +19067,13 @@ int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: tempor [-FTC <num>] [-bvwh]\n" );
+    Abc_Print( -2, "usage: tempor [-FTC <num>] [-bsvwh]\n" );
     Abc_Print( -2, "\t           performs temporal decomposition\n" );
     Abc_Print( -2, "\t-F <num> : init logic timeframe count (0 = use leading length) [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-T <num> : runtime limit in seconds for BMC (0=unused) [default = %d]\n", TimeOut );
     Abc_Print( -2, "\t-C <num> : max number of SAT conflicts in BMC (0=unused) [default = %d]\n", nConfMax );
     Abc_Print( -2, "\t-b       : toggle running BMC2 on the init frames [default = %s]\n", fUseBmc? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggle using transient signals [default = %s]\n", fUseTransSigs? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing ternary state space [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -19311,7 +19316,8 @@ usage:
     Abc_Print( -2, "\t-R num : the %% of abstracted flops when refinement stops (0<=num<=100) [default = %d]\n", pPars->nRatio );
     Abc_Print( -2, "\t-c     : toggle dynamic addition of constraints [default = %s]\n", pPars->fConstr? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using BDD-based reachability for filtering [default = %s]\n", pPars->fUseBdds? "yes": "no" );
-    Abc_Print( -2, "\t-p     : toggle using \"dprove\" for filtering [default = %s]\n", pPars->fUseDprove? "yes": "no" );
+//    Abc_Print( -2, "\t-p     : toggle using \"dprove\" for filtering [default = %s]\n", pPars->fUseDprove? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle using \"pdr\" for filtering [default = %s]\n", pPars->fUseDprove? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle starting BMC from a later frame [default = %s]\n", pPars->fUseStart? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -26943,7 +26949,8 @@ usage:
     Abc_Print( -2, "\t-C num : the max number of conflicts by SAT solver for BMC [default = %d]\n", pPars->nConfMaxBmc );
     Abc_Print( -2, "\t-R num : the %% of abstracted flops when refinement stops (0<=num<=100) [default = %d]\n", pPars->nRatio );
     Abc_Print( -2, "\t-r     : toggle using BDD-based reachability for filtering [default = %s]\n", pPars->fUseBdds? "yes": "no" );
-    Abc_Print( -2, "\t-p     : toggle using \"dprove\" for filtering [default = %s]\n", pPars->fUseDprove? "yes": "no" );
+//    Abc_Print( -2, "\t-p     : toggle using \"dprove\" for filtering [default = %s]\n", pPars->fUseDprove? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle using \"pdr\" for filtering [default = %s]\n", pPars->fUseDprove? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle starting BMC from a later frame [default = %s]\n", pPars->fUseStart? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -27592,7 +27599,7 @@ int Abc_CommandAbc9Reach( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &reach [-TBFCHS num] [-L file] [-ripcsyzvwh]\n" );
-    Abc_Print( -2, "\t         verifies sequential miter using BDD-based reachability\n" );
+    Abc_Print( -2, "\t         model checking via BDD-based reachability (similar to IWLS'95)\n" );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-B num : max number of nodes in the intermediate BDDs [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
@@ -27609,6 +27616,276 @@ usage:
     Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
     Abc_Print( -2, "\t-w     : prints dependency matrix [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Reach2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_ParLlb_t Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Aig_Man_t * pMan;
+    char * pLogFileName = NULL;
+    int c;
+    extern int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
+
+    // set defaults
+    Llb_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBFTLrbyzdvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPartValue = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPartValue < 0 ) 
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBddMax < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIterMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimeLimit < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'r':
+            pPars->fReorder ^= 1;
+            break;
+        case 'b':
+            pPars->fBackward ^= 1;
+            break;
+        case 'y':
+            pPars->fSkipOutCheck ^= 1;
+            break;
+        case 'z':
+            pPars->fSkipReach ^= 1;
+            break;
+        case 'd':
+            pPars->fDumpReached ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Reach(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Reach(): The current AIG has no latches.\n" );
+        return 0;
+    }
+    pMan          = Gia_ManToAigSimple( pAbc->pGia );
+    pAbc->Status  = Llb_ManReachMinCut( pMan, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
+    if ( pLogFileName )
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reach2" );
+    Aig_ManStop( pMan );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &reach2 [-NFT num] [-L file] [-rbyzdvwh]\n" );
+    Abc_Print( -2, "\t         model checking via BDD-based reachability (min-cut-based)\n" );
+    Abc_Print( -2, "\t-N num : partitioning value (MinVol=nANDs/N/2; MaxVol=nANDs/N) [default = %d]\n", pPars->nPartValue );
+//    Abc_Print( -2, "\t-B num : the BDD node increase when hints kick in [default = %d]\n", pPars->nBddMax );
+    Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
+    Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
+    Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );  
+    Abc_Print( -2, "\t-b     : perform backward reachability analysis [default = %s]\n", pPars->fBackward? "yes": "no" );  
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
+    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
+    Abc_Print( -2, "\t-d     : dump BDD of reached states into file \"reached.blif\" [default = %s]\n", pPars->fDumpReached? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Reach3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_ParLlb_t Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Aig_Man_t * pMan;
+    char * pLogFileName = NULL;
+    int c;
+    extern int Llb_NonlinCoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
+
+    // set defaults
+    Llb_ManSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BFTLryzvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBddMax < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIterMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimeLimit < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'r':
+            pPars->fReorder ^= 1;
+            break;
+        case 'y':
+            pPars->fSkipOutCheck ^= 1;
+            break;
+        case 'z':
+            pPars->fSkipReach ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Reach(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Reach(): The current AIG has no latches.\n" );
+        return 0;
+    }
+    pMan          = Gia_ManToAigSimple( pAbc->pGia );
+    pAbc->Status  = Llb_NonlinCoreReach( pMan, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
+    if ( pLogFileName )
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reach2" );
+    Aig_ManStop( pMan );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &reach3 [-BFT num] [-L file] [-ryzvh]\n" );
+    Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear QS)\n" );
+    Abc_Print( -2, "\t-B num : the BDD node increase when hints kick in [default = %d]\n", pPars->nBddMax );
+    Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
+    Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
+    Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );  
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
+    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
+//    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

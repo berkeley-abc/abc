@@ -22,3 +22,24 @@ Using AIG Package in ABC
 The above process should not produce memory leaks.
 
 
+
+Using GIA Package in ABC
+
+- Add #include "gia.h".
+- Start the AIG package using Gia_ManStart( int nObjMax ).
+(Parameter 'nNodeMax' should approximately reflect the expected number of objects, including PIs, POs, flop inputs, and flop outputs.  If the number of objects is more, memory will be automatically reallocated.)
+- Assign primary inputs using Gia_ManAppendCi().
+- Assign flop outputs using Gia_ManAppendCi().
+(It is important to create all PIs first, before creating flop outputs).
+(Flop control logic, if present, should be elaborated into AND gates.  For example, to represent a flop enable, create the driver of enable signal, which can be a PI or an internal node, and then add logic for <flop_input_new> = MUX( <enable>, <flop_input>, <flop_output> ).  The output of this logic feeds into the flop.
+- Construct AIG in the topological order using Gia_ManHashAnd(), Gia_ManHashOr(), Gia_Not(), etc.
+- If constant-0/1 AIG nodes are needed, use Gia_ManConst0() or Gia_ManConst1()
+- Create primary outputs using Gia_ManAppendCo().
+- Create flop inputs using Gia_ManAppendCo().
+(it is important to create all POs first, before creating register inputs).
+- Set the number of flops by calling Gia_ManSetRegNum().
+- Remove dangling AIG nodes (produced by structural hashing) by running Gia_ManCleanup(), which will return a new AIG.  If object mapping is defined for the original AIG, it should be remapped into the new AIG.
+- Dump AIG into an AIGER file use Gia_DumpAiger().
+- For each object in the design annotated with the constructed AIG node (pNode), remember its AIG node ID by calling Gia_ObjId(pNode).
+- Quit the AIG package using Gia_ManStop().
+The above process should not produce memory leaks.

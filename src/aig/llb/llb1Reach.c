@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [llbReach.c]
+  FileName    [llb1Reach.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: llbReach.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: llb1Reach.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -346,6 +346,22 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Llb_ManDeriveCex( Llb_Man_t * p, DdNode * bInter, int iOutFail, int iIter )
+{
+    return NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Perform reachability with hints and returns reached states in ppGlo.]
 
   Description []
@@ -358,7 +374,6 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
 int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo )
 {
     int fCheckOutputs    = !p->pPars->fSkipOutCheck;  
-    int fInternalReorder = 0;
     int * pNs2Glo = Vec_IntArray( p->vNs2Glo );
     int * pGlo2Cs = Vec_IntArray( p->vGlo2Cs );
     DdNode * bCurrent, * bReached, * bNext, * bTemp, * bCube;
@@ -403,9 +418,9 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
 
     // perform reachability analysis
     // compute the starting set of states
-    if ( p->ddG->bReached )
+    if ( p->ddG->bFunc )
     {
-        bReached = p->ddG->bReached; p->ddG->bReached = NULL;
+        bReached = p->ddG->bFunc; p->ddG->bFunc = NULL;
         bCurrent = Extra_TransferPermute( p->ddG, p->dd, bReached, pGlo2Cs );    Cudd_Ref( bCurrent );
     }
     else
@@ -548,28 +563,22 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
 
         if ( p->pPars->fVerbose )
         {
-            fprintf( stdout, "F =%3d : ",    nIters );
-            fprintf( stdout, "Image =%6d  ", nBddSize );
-            fprintf( stdout, "%8d (%4d %3d)     ", 
-                Cudd_ReadKeys(p->dd),  Cudd_ReadReorderings(p->dd),  Cudd_ReadGarbageCollections(p->dd) );
-            fprintf( stdout, "Reach =%6d  ", Cudd_DagSize(bReached) );
-            fprintf( stdout, "%8d (%4d %3d)  ", 
-                Cudd_ReadKeys(p->ddG), Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
+            fprintf( stdout, "F =%5d : ",    nIters );
+            fprintf( stdout, "Im =%6d  ",    nBddSize );
+            fprintf( stdout, "(%4d %3d)   ", Cudd_ReadReorderings(p->dd),  Cudd_ReadGarbageCollections(p->dd) );
+            fprintf( stdout, "Rea =%6d  ",   Cudd_DagSize(bReached) );
+            fprintf( stdout, "(%4d%4d)   ",  Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
+            Abc_PrintTime( 1, "Time", clock() - clk2 );
         }
-        if ( fInternalReorder && p->pPars->fReorder && nBddSize > nThreshold )
-        {
-            if ( p->pPars->fVerbose )
-                fprintf( stdout, "Reordering... Before = %5d. ", Cudd_DagSize(bReached) );
-            Cudd_ReduceHeap( p->dd, CUDD_REORDER_SYMM_SIFT, 100 );
-//            Cudd_AutodynDisable( p->dd );
-            if ( p->pPars->fVerbose )
-                fprintf( stdout, "After = %5d.\r", Cudd_DagSize(bReached) );
-            nThreshold *= 2;
-        }
+/*
         if ( p->pPars->fVerbose )
-//            fprintf( stdout, "\r" );
-//            fprintf( stdout, "\n" );
-            Abc_PrintTime( 1, "T", clock() - clk2 );
+        {
+            double nMints = Cudd_CountMinterm(p->ddG, bReached, Saig_ManRegNum(p->pAig) );
+//            Extra_bddPrint( p->ddG, bReached );printf( "\n" );
+            fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p->pAig)) );
+            fflush( stdout ); 
+        }
+*/
     }
     Cudd_RecursiveDeref( p->dd, bConstrCs ); bConstrCs = NULL;
     Cudd_RecursiveDeref( p->dd, bConstrNs ); bConstrNs = NULL;
@@ -598,8 +607,8 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     }
     if ( pddGlo ) 
     {
-        assert( p->ddG->bReached == NULL );
-        p->ddG->bReached = bReached; bReached = NULL;
+        assert( p->ddG->bFunc == NULL );
+        p->ddG->bFunc = bReached; bReached = NULL;
         assert( *pddGlo == NULL );
         *pddGlo = p->ddG;  p->ddG = NULL;
     }

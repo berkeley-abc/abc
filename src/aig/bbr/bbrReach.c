@@ -370,6 +370,15 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
         if ( pPars->fVerbose )
 //            fprintf( stdout, "\r" );
             fprintf( stdout, "\n" );
+
+        if ( pPars->fVerbose )
+        {
+            double nMints = Cudd_CountMinterm(dd, bReached, Saig_ManRegNum(p) );
+//            Extra_bddPrint( dd, bReached );printf( "\n" );
+            fprintf( stdout, "Reachable states = %.0f. (Ratio = %.4f %%)\n", nMints, 100.0*nMints/pow(2.0, Saig_ManRegNum(p)) );
+            fflush( stdout ); 
+        }
+
     }
     Cudd_RecursiveDeref( dd, bNext );
     // free the onion rings

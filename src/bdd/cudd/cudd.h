@@ -720,6 +720,7 @@ EXTERN DdNode * Cudd_addRoundOff ARGS((DdManager *dd, DdNode *f, int N));
 EXTERN DdNode * Cudd_addWalsh ARGS((DdManager *dd, DdNode **x, DdNode **y, int n));
 EXTERN DdNode * Cudd_addResidue ARGS((DdManager *dd, int n, int m, int options, int top));
 EXTERN DdNode * Cudd_bddAndAbstract ARGS((DdManager *manager, DdNode *f, DdNode *g, DdNode *cube));
+EXTERN DdNode * Cudd_bddAndAbstractLimit ARGS((DdManager *manager, DdNode *f, DdNode *g, DdNode *cube, unsigned int limit));
 EXTERN int Cudd_ApaNumberOfDigits ARGS((int binaryDigits));
 EXTERN DdApaNumber Cudd_NewApaNumber ARGS((int digits));
 EXTERN void Cudd_ApaCopy ARGS((int digits, DdApaNumber source, DdApaNumber dest));

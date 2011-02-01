@@ -37,10 +37,7 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-
-
 ABC_NAMESPACE_HEADER_START
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -109,8 +106,6 @@ struct Llb_Grp_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== llbCex.c =======================================================*/
-extern Abc_Cex_t *     Llb_ManDeriveCex( Llb_Man_t * p, DdNode * bInter, int iOutFail, int iIter );
 /*=== llbConstr.c ======================================================*/
 extern Vec_Int_t *     Llb_ManDeriveConstraints( Aig_Man_t * p );
 extern void            Llb_ManPrintEntries( Aig_Man_t * p, Vec_Int_t * vCands );
@@ -118,8 +113,10 @@ extern void            Llb_ManPrintEntries( Aig_Man_t * p, Vec_Int_t * vCands );
 extern int             Llb_ManModelCheckAig( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars, Vec_Int_t * vHints, DdManager ** pddGlo );
 /*=== llbCluster.c ======================================================*/
 extern void            Llb_ManCluster( Llb_Mtr_t * p );
+/*=== llbDump.c ======================================================*/
+extern void            Llb_ManDumpReached( DdManager * ddG, DdNode * bReached, char * pModel, char * pFileName );
 /*=== llbFlow.c ======================================================*/
-extern Llb_Man_t *     Llb_ManStartFlow( Aig_Man_t * pAigGlo, Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
+extern Vec_Ptr_t *     Llb_ManFlow( Aig_Man_t * p, Vec_Ptr_t * vSources, int * pnFlow );
 /*=== llbHint.c ======================================================*/
 extern int             Llb_ManReachabilityWithHints( Llb_Man_t * p );
 extern int             Llb_ManModelCheckAigWithHints( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars );
@@ -148,7 +145,30 @@ extern int             Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, D
 /*=== llbSched.c =====================================================*/
 extern void            Llb_MtrSchedule( Llb_Mtr_t * p );
 
+/*=== llb2Bad.c ======================================================*/
+extern DdNode *        Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd );
+extern DdNode *        Llb_BddQuantifyPis( Aig_Man_t * pInit, DdManager * dd, DdNode * bFunc );
+/*=== llb2Core.c ======================================================*/
+extern DdNode *        Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarIndex, char * pValues );
+/*=== llb2Driver.c ======================================================*/
+extern Vec_Int_t *     Llb_DriverCountRefs( Aig_Man_t * p );
+extern Vec_Int_t *     Llb_DriverCollectNs( Aig_Man_t * pAig, Vec_Int_t * vDriRefs );
+extern Vec_Int_t *     Llb_DriverCollectCs( Aig_Man_t * pAig );
+extern DdNode *        Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager * dd );
+extern DdManager *     Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs );
+/*=== llb2Image.c ======================================================*/
+extern Vec_Ptr_t *     Llb_ImgSupports( Aig_Man_t * p, Vec_Ptr_t * vDdMans, Vec_Int_t * vStart, Vec_Int_t * vStop, int fAddPis, int fVerbose );
+extern void            Llb_ImgSchedule( Vec_Ptr_t * vSupps, Vec_Ptr_t ** pvQuant0, Vec_Ptr_t ** pvQuant1, int fVerbose );
+extern DdManager *     Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper );
+extern void            Llb_ImgQuantifyFirst( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, Vec_Ptr_t * vQuant0, int fVerbose );
+extern void            Llb_ImgQuantifyReset( Vec_Ptr_t * vDdMans );
+extern DdNode *        Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager * dd, DdNode * bInit, 
+                           Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQuant1, Vec_Int_t * vDriRefs, 
+                           int TimeTarget, int fBackward, int fReorder, int fVerbose );
 
+/*=== llb3Image.c ======================================================*/
+extern DdNode *        Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
+                           DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit );
 
 ABC_NAMESPACE_HEADER_END
 

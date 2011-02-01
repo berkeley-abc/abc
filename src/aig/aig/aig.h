@@ -470,6 +470,7 @@ extern void            Aig_ManCutStop( Aig_ManCut_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern int             Aig_ManVerifyTopoOrder( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p, int fNodesOnly );
+extern Vec_Ptr_t *     Aig_ManDfsAll( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsPreorder( Aig_Man_t * p, int fNodesOnly );
 extern Vec_Vec_t *     Aig_ManLevelize( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
@@ -501,6 +502,7 @@ extern Vec_Ptr_t *     Aig_ManOrderPios( Aig_Man_t * p, Aig_Man_t * pOrder );
 extern Aig_Man_t *     Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios );
 extern Aig_Man_t *     Aig_ManDupLevelized( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupFlopsOnly( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepres( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepresDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int fImpl );
