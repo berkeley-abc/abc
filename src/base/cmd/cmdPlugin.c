@@ -29,6 +29,7 @@
 #include "mainInt.h"
 #include "cmd.h"
 #include "cmdInt.h"
+#include "utilSignal.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -110,8 +111,6 @@ command, then we add a new object for the new action.
 // N.
 
 */
-
-extern int tmpFile(const char* prefix, const char* suffix, char** out_name);
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -366,7 +365,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // create temp file
-    fd = tmpFile( "__abctmp_", ".aig", &pFileIn );
+    fd = Util_SignalTmpFile( "__abctmp_", ".aig", &pFileIn );
     if ( fd == -1 )
     {
         Abc_Print( -1, "Cannot create a temporary file.\n" );
@@ -379,7 +378,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 #endif
 
     // create temp file
-    fd = tmpFile( "__abctmp_", ".out", &pFileOut );
+    fd = Util_SignalTmpFile( "__abctmp_", ".out", &pFileOut );
     if ( fd == -1 )
     {
         ABC_FREE( pFileIn );
@@ -437,7 +436,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 //printf( "Running command line: %s\n", Vec_StrArray(vCommand) ); 
 
     clk = clock();
-    if ( system( Vec_StrArray(vCommand) ) )
+    if ( Util_SignalSystem( Vec_StrArray(vCommand) ) )
     {
         Abc_Print( -1, "The following command has returned non-zero exit status:\n" );
         Abc_Print( -1, "\"%s\"\n", Vec_StrArray(vCommand) );
@@ -516,11 +515,9 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     
 
     // clean up
-    if ( !fLeaveFiles )
-    {
-        remove( pFileIn );
-        remove( pFileOut );
-    }
+    Util_SignalTmpFileRemove( pFileIn, fLeaveFiles );
+    Util_SignalTmpFileRemove( pFileOut, fLeaveFiles );
+    
     ABC_FREE( pFileIn );
     ABC_FREE( pFileOut );
     return 0;
@@ -565,7 +562,7 @@ int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // create temp file
-    fd = tmpFile( "__abctmp_", ".txt", &pTempFile );
+    fd = Util_SignalTmpFile( "__abctmp_", ".txt", &pTempFile );
     if ( fd == -1 )
     {
         Abc_Print( -1, "Cannot create a temporary file.\n" );
@@ -581,7 +578,7 @@ int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     pCommandLine = ABC_ALLOC( char, 100 + strlen(pStrDirBin) + strlen(pTempFile) );
 //    sprintf( pCommandLine, "%s -abc -list-commands > %s", pStrDirBin, pTempFile );
     sprintf( pCommandLine, "%s -abc -list-commands > %s", pStrDirBin, pTempFile );
-    RetValue = system( pCommandLine );
+    RetValue = Util_SignalSystem( pCommandLine );
     if ( RetValue == -1 )
     {
         Abc_Print( -1, "Command \"%s\" did not succeed.\n", pCommandLine );
@@ -610,7 +607,7 @@ int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Creating command %s with binary %s\n", pBuffer, pStrDirBin );
     }
     fclose( pFile );
-    remove( pTempFile );
+    Util_SignalTmpFileRemove( pTempFile, 0 );
     ABC_FREE( pTempFile );
     return 0;
 usage:

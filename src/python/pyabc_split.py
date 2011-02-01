@@ -83,12 +83,33 @@ Author: Baruch Sterin <sterin@berkeley.edu>
 """
 
 import os
+import errno
 import sys
 import pickle
 import signal
 from contextlib import contextmanager
 
 import pyabc
+
+def _waitpid(pid, flags):
+    while True:
+        try:
+            res =  os.waitpid(pid, flags)
+            return res
+        except OSError as e:
+            if e.errno != errno.EINTR:
+                raise
+
+def _wait():
+    while True:
+        try:
+            pid,rc = os.wait()
+            return pid, rc
+        except OSError as e:
+            if e.errno != errno.EINTR:
+                raise
+        except Exceptions as e:
+            raise
 
 class _sigint_critical_section(object):
     def __init__(self):
@@ -132,7 +153,7 @@ class _splitter(object):
         with _sigint_critical_section() as cs:
             # wait for termination and update result
             for pid, _ in self.fds.iteritems():
-                os.waitpid( pid, 0 )
+                _waitpid( pid, 0 )
                 pyabc.remove_child_pid(pid)
                 self.results[pid] = None
             
@@ -164,6 +185,7 @@ class _splitter(object):
         
                 if pid == 0:
                     # child process:
+                    pyabc.reset_sigint_handler()
                     cs.release()
                     os.close(pr)
                     rc = self.child( pw, f)
@@ -187,8 +209,11 @@ class _splitter(object):
     def get_next_result(self):
     
         # wait for the next child process to terminate
-        pid, rc = os.wait()
+        pid, rc = _wait()
         assert pid in self.fds
+        
+        with _sigint_critical_section() as cs:
+            pyabc.remove_child_pid(pid)
         
         # retrieve the pipe file descriptor1
         i, fd = self.fds[pid]

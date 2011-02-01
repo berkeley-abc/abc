@@ -22,6 +22,7 @@
 #include "mainInt.h"
 #include "cmd.h"
 #include "cmdInt.h"
+#include "utilSignal.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -72,7 +73,7 @@ int CmdCommandLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Vec_StrPush( vCommand, 0 );
     // run the command line
-    if ( system( Vec_StrArray(vCommand) ) )
+    if ( Util_SignalSystem( Vec_StrArray(vCommand) ) )
     {
         Abc_Print( -1, "The following command has returned non-zero exit status:\n" );
         Abc_Print( -1, "\"%s\"\n", Vec_StrArray(vCommand) );

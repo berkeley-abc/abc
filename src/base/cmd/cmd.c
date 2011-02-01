@@ -27,6 +27,7 @@
 #include "abc.h"
 #include "mainInt.h"
 #include "cmdInt.h"
+#include "utilSignal.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1557,7 +1558,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     strcat( Command, "\"" );
 
     // call SIS
-    if ( system( Command ) )
+    if ( Util_SignalSystem( Command ) )
     {
         fprintf( pErr, "The following command has returned non-zero exit status:\n" );
         fprintf( pErr, "\"%s\"\n", Command );
@@ -1700,7 +1701,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     strcat( Command, "\"" );
 
     // call MVSIS
-    if ( system( Command ) )
+    if ( Util_SignalSystem( Command ) )
     {
         fprintf( pErr, "The following command has returned non-zero exit status:\n" );
         fprintf( pErr, "\"%s\"\n", Command );
@@ -1912,7 +1913,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // call Capo
-    if ( system( Command ) )
+    if ( Util_SignalSystem( Command ) )
     {
         fprintf( pErr, "The following command has returned non-zero exit status:\n" );
         fprintf( pErr, "\"%s\"\n", Command );
@@ -1964,7 +1965,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
 #else
     {
         sprintf( Command, "%s %s ", pProgNameGnuplot, pPlotFileName );
-        if ( system( Command ) == -1 )
+        if ( Util_SignalSystem( Command ) == -1 )
         {
             fprintf( stdout, "Cannot execute \"%s\".\n", Command );
             goto usage;

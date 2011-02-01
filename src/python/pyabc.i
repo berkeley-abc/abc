@@ -25,8 +25,7 @@
 #include <main.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <hash.h>
-#include <hashPtr.h>
+#include "utilSignal.h"
     
 int n_ands()
 {
@@ -219,56 +218,44 @@ void pyabc_internal_register_command( char * sGroup, char * sName, int fChanges 
     Cmd_CommandAdd( pAbc, sGroup, sName, (void*)pyabc_internal_abc_command_callback, fChanges);
 }
 
-static Hash_Ptr_t* active_pid_hash = NULL;
-
-void sigint_handler(int signum)
+static void sigint_handler(int signum)
 {
-    int i;
-    Hash_Ptr_Entry_t* pEntry;
-    
-    assert( signum == SIGINT );
-    
-    Hash_PtrForEachEntry(active_pid_hash, pEntry, i)
-    {
-        int pid = pEntry->key;
-        kill(pid, SIGINT);
-    }
-
+    Util_SignalCleanup();
     _exit(1);
 }
 
 void add_child_pid(int pid)
 {
-    Hash_PtrWriteEntry(active_pid_hash, pid, NULL);
+    Util_SignalAddChildPid(pid);
 }
 
 void remove_child_pid(int pid)
 {
-    Hash_PtrRemove(active_pid_hash, pid);
+    Util_SignalRemoveChildPid(pid);
 }
-
-static sigset_t old_procmask;
 
 void block_sigint()
 {
-    sigset_t set;
-    sigemptyset(&set);
-    sigaddset(&set, SIGINT);
-    
-    sigprocmask(SIG_BLOCK, &set, &old_procmask);
+    Util_SignalBlockSignals();
 }
 
 void restore_sigint_block()
 {
-    sigprocmask(SIG_SETMASK, &old_procmask, NULL);
+    Util_SignalUnblockSignals();
 }
+
+void reset_sigint_handler()
+{
+    Util_SignalResetHandler();
+}
+
 
 %}
 
 %init 
 %{
     Abc_Start();
-    active_pid_hash = Hash_PtrAlloc(1);
+    Util_SignalStartHandler();
     signal(SIGINT, sigint_handler);
 %}
 
@@ -301,6 +288,7 @@ void block_sigint();
 void restore_sigint_block();
 void add_child_pid(int pid);
 void remove_child_pid(int pid);
+void reset_sigint_handler();
 
 %pythoncode 
 %{
