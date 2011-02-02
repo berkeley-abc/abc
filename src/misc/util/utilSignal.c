@@ -18,18 +18,18 @@
 
 ***********************************************************************/
 
-#ifndef _MSC_VER
-
 #include <main.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <signal.h>
-#include <hashGen.h>
+#include "abc_global.h"
+#include "hashGen.h"
+
+#ifndef _MSC_VER
+
+#include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-
-#include "abc_global.h"
 
 ABC_NAMESPACE_IMPL_START
 

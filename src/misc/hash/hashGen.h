@@ -87,7 +87,7 @@ struct Hash_Gen_t_
 ***********************************************************************/
 static int Hash_DefaultHashFuncStr( void * key, int nBins )
 {
-    char* p = (const char*)key;
+    const char* p = (const char*)key;
     int h=0;
 
     for( ; *p ; ++p )
@@ -151,7 +151,6 @@ static inline Hash_Gen_t * Hash_GenAlloc(
   int fFreeKey)
 {
   Hash_Gen_t * p;
-  int i;
   assert(nBins > 0);
   p = ABC_CALLOC( Hash_Gen_t, 1 );
   p->nBins  = nBins;

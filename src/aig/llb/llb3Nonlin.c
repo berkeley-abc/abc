@@ -80,74 +80,59 @@ extern int nSuppMax;
 ***********************************************************************/
 int Llb_NonlinFindBestVar( DdManager * dd, DdNode * bFunc, Aig_Man_t * pAig )
 {
+    int fVerbose = 0;
     Aig_Obj_t * pObj;
-//    Vec_Int_t * vVars;
     DdNode * bCof, * bVar, * bTemp;
-    int i, iVar, iVarBest = -1, iValue, iValueBest = ABC_INFINITY;
+    int i, iVar, iVarBest = -1, iValue, iValueBest = ABC_INFINITY, Size0Best = -1;
     int Size, Size0, Size1;
     int clk = clock();
-//    vVars = Vec_IntStartNatural( Cudd_ReadSize(dd) );
-    printf( "Original = %6d.  SuppSize = %3d. Vars = %3d.\n", 
-        Size = Cudd_DagSize(bFunc), Cudd_SupportSize(dd, bFunc), Aig_ManRegNum(pAig) );
-//    Vec_IntForEachEntry( vVars, iVar, i )
-
+    Size = Cudd_DagSize(bFunc);
+//    printf( "Original = %6d.  SuppSize = %3d. Vars = %3d.\n", 
+//        Size = Cudd_DagSize(bFunc), Cudd_SupportSize(dd, bFunc), Aig_ManRegNum(pAig) );
     Saig_ManForEachLo( pAig, pObj, i )
     {
         iVar = Aig_ObjId(pObj);
-/*
+
+        if ( fVerbose )
         printf( "Var =%3d : ", iVar );
-        bVar = Cudd_bddIthVar(dd, iVar);
-
-        bCof = Cudd_Cofactor( dd, bFunc, Cudd_Not(bVar) );        Cudd_Ref( bCof );
-//        bCof = Cudd_bddAnd( dd, bTemp = bCof, Cudd_Not(bVar) );   Cudd_Ref( bCof );
-//        Cudd_RecursiveDeref( dd, bTemp );
-        printf( "Supp0 =%3d  ",    Cudd_SupportSize(dd, bCof) );
-        printf( "Size0 =%6d   ", Size0 = Cudd_DagSize(bCof) );
-        Cudd_RecursiveDeref( dd, bCof );
-
-        bCof = Cudd_Cofactor( dd, bFunc, bVar );                  Cudd_Ref( bCof );
-//        bCof = Cudd_bddAnd( dd, bTemp = bCof, bVar );             Cudd_Ref( bCof );
-//        Cudd_RecursiveDeref( dd, bTemp );
-        printf( "Supp1 =%3d  ",    Cudd_SupportSize(dd, bCof) );
-        printf( "Size1 =%6d   ", Size1 = Cudd_DagSize(bCof) );
-        Cudd_RecursiveDeref( dd, bCof );
-
-        printf( "D =%6d  ", Size0 + Size1 - Size );
-        printf( "B =%6d\n", ABC_MAX(Size0, Size1) - ABC_MIN(Size0, Size1) );
-*/
-
-//        printf( "Var =%3d : ", iVar );
         bVar = Cudd_bddIthVar(dd, iVar);
 
         bCof = Cudd_Cofactor( dd, bFunc, Cudd_Not(bVar) );        Cudd_Ref( bCof );
         bCof = Cudd_bddAnd( dd, bTemp = bCof, Cudd_Not(bVar) );   Cudd_Ref( bCof );
         Cudd_RecursiveDeref( dd, bTemp );
         Size0 = Cudd_DagSize(bCof);
-//        printf( "Supp0 =%3d  ",  Cudd_SupportSize(dd, bCof) );
-//        printf( "Size0 =%6d   ", Size0 );
+        if ( fVerbose )
+        printf( "Supp0 =%3d  ",  Cudd_SupportSize(dd, bCof) );
+        if ( fVerbose )
+        printf( "Size0 =%6d   ", Size0 );
         Cudd_RecursiveDeref( dd, bCof );
 
         bCof = Cudd_Cofactor( dd, bFunc, bVar );                  Cudd_Ref( bCof );
         bCof = Cudd_bddAnd( dd, bTemp = bCof, bVar );             Cudd_Ref( bCof );
         Cudd_RecursiveDeref( dd, bTemp );
         Size1 = Cudd_DagSize(bCof);
-//        printf( "Supp1 =%3d  ",  Cudd_SupportSize(dd, bCof) );
-//        printf( "Size1 =%6d   ", Size1 );
+        if ( fVerbose )
+        printf( "Supp1 =%3d  ",  Cudd_SupportSize(dd, bCof) );
+        if ( fVerbose )
+        printf( "Size1 =%6d   ", Size1 );
         Cudd_RecursiveDeref( dd, bCof );
 
         iValue = ABC_MAX(Size0, Size1) - ABC_MIN(Size0, Size1) + Size0 + Size1 - Size;
-//        printf( "D =%6d  ", Size0 + Size1 - Size );
-//        printf( "B =%6d  ", ABC_MAX(Size0, Size1) - ABC_MIN(Size0, Size1) );
-//        printf( "S =%6d\n", iValue );
+        if ( fVerbose )
+        printf( "D =%6d  ", Size0 + Size1 - Size );
+        if ( fVerbose )
+        printf( "B =%6d  ", ABC_MAX(Size0, Size1) - ABC_MIN(Size0, Size1) );
+        if ( fVerbose )
+        printf( "S =%6d\n", iValue );
 
         if ( iValueBest > iValue )
         {
             iValueBest = iValue;
-            iVarBest   = i;
+            iVarBest   = iVar;
+            Size0Best  = Size0;
         }
     }
-//    Vec_IntFree( vVars );
-    printf( "Best var = %d.  Best value = %d.  ", iVarBest, iValueBest );
+    printf( "BestVar = %4d.  Value =%6d.  Orig =%6d. Size0 =%6d. ", iVarBest, iValueBest, Size, Size0Best );
     Abc_PrintTime( 1, "Time", clock() - clk );
     return iVarBest;
 }
@@ -424,12 +409,14 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         {
             int iVar;
             DdNode * bVar;
+            int nDagSize;
 //          if ( !p->pPars->fSilent )
 //              printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
 //          p->pPars->iFrame = nIters - 1;
 //          return -1;
 
             bCurrent = Extra_TransferPermute( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs) );   Cudd_Ref( bCurrent );
+            nDagSize = Cudd_DagSize(bCurrent);
 
             iVar     = Llb_NonlinFindBestVar( p->dd, bCurrent, p->pAig );
             bVar     = Cudd_bddIthVar(p->dd, iVar);
@@ -438,6 +425,10 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             Cudd_RecursiveDeref( p->dd, bTemp );
             bCurrent = Cudd_bddAnd( p->dd, bTemp = bCurrent, Cudd_Not(bVar) );    Cudd_Ref( bCurrent );
             Cudd_RecursiveDeref( p->dd, bTemp );            
+
+//            printf( "Before = %6d.  After = %6d.\n", nDagSize, Cudd_DagSize(bCurrent) );
+
+            p->pPars->nBddMax = 3 * p->pPars->nBddMax / 2;
             continue;
         }
         Cudd_Ref( bNext );
