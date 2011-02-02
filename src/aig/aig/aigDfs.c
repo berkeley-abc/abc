@@ -178,6 +178,70 @@ Vec_Ptr_t * Aig_ManDfs( Aig_Man_t * p, int fNodesOnly )
   SeeAlso     []
 
 ***********************************************************************/
+void Aig_ManDfsAll_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
+{
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        Vec_PtrPush( vNodes, pObj );
+        return;
+    }
+    if ( Aig_ObjIsPo(pObj) )
+    {
+        Aig_ManDfsAll_rec( p, Aig_ObjFanin0(pObj), vNodes );
+        Vec_PtrPush( vNodes, pObj );
+        return;
+    }
+    assert( Aig_ObjIsNode(pObj) );
+    Aig_ManDfsAll_rec( p, Aig_ObjFanin0(pObj), vNodes );
+    Aig_ManDfsAll_rec( p, Aig_ObjFanin1(pObj), vNodes );
+    Vec_PtrPush( vNodes, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects objects of the AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManDfsAll( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManIncrementTravId( p );
+    vNodes = Vec_PtrAlloc( Aig_ManObjNumMax(p) );
+    // add constant
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    Vec_PtrPush( vNodes, Aig_ManConst1(p) );
+    // collect nodes reachable in the DFS order
+    Aig_ManForEachPo( p, pObj, i )
+        Aig_ManDfsAll_rec( p, pObj, vNodes );
+    Aig_ManForEachPi( p, pObj, i )
+        if ( !Aig_ObjIsTravIdCurrent(p, pObj) )
+            Vec_PtrPush( vNodes, pObj );
+    assert( Vec_PtrSize(vNodes) == Aig_ManObjNum(p) );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects internal nodes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Aig_ManDfsPreorder_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
 {
     if ( pObj == NULL )

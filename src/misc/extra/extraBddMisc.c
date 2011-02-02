@@ -1013,6 +1013,32 @@ DdNode * Extra_bddComputeCube( DdManager * dd, DdNode ** bXVars, int nVars )
     return bRes;
 }
 
+/**Function********************************************************************
+
+  Synopsis    [Changes the polarity of vars listed in the cube.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddChangePolarity( 
+  DdManager * dd,   /* the DD manager */
+  DdNode * bFunc,
+  DdNode * bVars) 
+{
+    DdNode  *res;
+    do {
+        dd->reordered = 0;
+        res = extraBddChangePolarity( dd, bFunc, bVars );
+    } while (dd->reordered == 1);
+    return(res);
+
+} /* end of Extra_bddChangePolarity */
+
+
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
 /*---------------------------------------------------------------------------*/
@@ -1657,6 +1683,121 @@ cuddBddPermuteRecur( DdManager * manager /* DD manager */ ,
     return ( Cudd_NotCond( res, N != node ) );
 
 }                                /* end of cuddBddPermuteRecur */
+
+
+/**Function********************************************************************
+
+  Synopsis    [Performs the reordering-sensitive step of Extra_bddChangePolarity().]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * extraBddChangePolarity( 
+  DdManager * dd,    /* the DD manager */
+  DdNode * bFunc, 
+  DdNode * bVars) 
+{
+    DdNode * bRes;
+
+    if ( bVars == b1 )
+        return bFunc;
+    if ( Cudd_IsConstant(bFunc) )
+        return bFunc;
+
+    if ( bRes = cuddCacheLookup2(dd, extraBddChangePolarity, bFunc, bVars) )
+        return bRes;
+    else
+    {
+        DdNode * bFR = Cudd_Regular(bFunc); 
+        int LevelF   = dd->perm[bFR->index];
+        int LevelV   = dd->perm[bVars->index];
+
+        if ( LevelV < LevelF )
+            bRes = extraBddChangePolarity( dd, bFunc, cuddT(bVars) );
+        else // if ( LevelF <= LevelV )
+        {
+            DdNode * bRes0, * bRes1;             
+            DdNode * bF0, * bF1;             
+            DdNode * bVarsNext;
+
+            // cofactor the functions
+            if ( bFR != bFunc ) // bFunc is complemented 
+            {
+                bF0 = Cudd_Not( cuddE(bFR) );
+                bF1 = Cudd_Not( cuddT(bFR) );
+            }
+            else
+            {
+                bF0 = cuddE(bFR);
+                bF1 = cuddT(bFR);
+            }
+
+            if ( LevelF == LevelV )
+                bVarsNext = cuddT(bVars);
+            else
+                bVarsNext = bVars;
+
+            bRes0 = extraBddChangePolarity( dd, bF0, bVarsNext );
+            if ( bRes0 == NULL ) 
+                return NULL;
+            cuddRef( bRes0 );
+
+            bRes1 = extraBddChangePolarity( dd, bF1, bVarsNext );
+            if ( bRes1 == NULL ) 
+            {
+                Cudd_RecursiveDeref( dd, bRes0 );
+                return NULL;
+            }
+            cuddRef( bRes1 );
+
+            if ( LevelF == LevelV )
+            { // swap the cofactors
+                DdNode * bTemp;
+                bTemp = bRes0;
+                bRes0 = bRes1;
+                bRes1 = bTemp;
+            }
+
+            /* only aRes0 and aRes1 are referenced at this point */
+
+            /* consider the case when Res0 and Res1 are the same node */
+            if ( bRes0 == bRes1 )
+                bRes = bRes1;
+            /* consider the case when Res1 is complemented */
+            else if ( Cudd_IsComplement(bRes1) ) 
+            {
+                bRes = cuddUniqueInter(dd, bFR->index, Cudd_Not(bRes1), Cudd_Not(bRes0));
+                if ( bRes == NULL ) 
+                {
+                    Cudd_RecursiveDeref(dd,bRes0);
+                    Cudd_RecursiveDeref(dd,bRes1);
+                    return NULL;
+                }
+                bRes = Cudd_Not(bRes);
+            } 
+            else 
+            {
+                bRes = cuddUniqueInter( dd, bFR->index, bRes1, bRes0 );
+                if ( bRes == NULL ) 
+                {
+                    Cudd_RecursiveDeref(dd,bRes0);
+                    Cudd_RecursiveDeref(dd,bRes1);
+                    return NULL;
+                }
+            }
+            cuddDeref( bRes0 );
+            cuddDeref( bRes1 );
+        }
+            
+        /* insert the result into cache */
+        cuddCacheInsert2(dd, extraBddChangePolarity, bFunc, bVars, bRes);
+        return bRes;
+    }
+} /* end of extraBddChangePolarity */
 
 
 ////////////////////////////////////////////////////////////////////////

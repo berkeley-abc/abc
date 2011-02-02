@@ -147,6 +147,32 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
 
 /**Function*************************************************************
 
+  Synopsis    [Find index of first non-zero entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Vec_IntLastNonZeroBeforeLimit( Vec_Int_t * vTemp, int Limit )
+{
+    int Entry, i;
+    if ( vTemp == NULL )
+        return -1;
+    Vec_IntForEachEntryReverse( vTemp, Entry, i )
+    {
+        if ( i >= Limit )
+            continue;
+        if ( Entry )
+            return i;
+    }
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -156,18 +182,32 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fVerbose, int fVeryVerbose )
+Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fUseTransSigs, int fVerbose, int fVeryVerbose )
 { 
-    extern int Saig_ManPhasePrefixLength( Aig_Man_t * p, int fVerbose, int fVeryVerbose );
+    extern int Saig_ManPhasePrefixLength( Aig_Man_t * p, int fVerbose, int fVeryVerbose, Vec_Int_t ** pvTrans );
+
+    Vec_Int_t * vTransSigs = NULL;
     int RetValue, nFramesFinished = -1;
     assert( nFrames >= 0 ); 
     if ( nFrames == 0 )
     {
-        nFrames = Saig_ManPhasePrefixLength( pAig, fVerbose, fVeryVerbose );
+        nFrames = Saig_ManPhasePrefixLength( pAig, fVerbose, fVeryVerbose, &vTransSigs );
         if ( nFrames == 1 )
         {
+            Vec_IntFreeP( &vTransSigs );
             printf( "The leading sequence has length 1. Temporal decomposition is not performed.\n" );
             return NULL;
+        }
+        if ( fUseTransSigs )
+        {
+            int Entry, i, iLast = -1;
+            Vec_IntForEachEntry( vTransSigs, Entry, i )
+                iLast = Entry ? i :iLast;
+            if ( iLast > 0 && iLast < nFrames )
+            {
+                Abc_Print( 1, "Reducing frame count from %d to %d to fit the last transient.\n", nFrames, iLast );
+                nFrames = iLast;
+            }
         }
         Abc_Print( 1, "Using computed frame number (%d).\n", nFrames );
     }
@@ -176,18 +216,27 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
     // run BMC2
     if ( fUseBmc )
     {
-        RetValue = Saig_BmcPerform( pAig, 0, nFrames, 5000, TimeOut, nConfLimit, 0, fVerbose, 0, &nFramesFinished );
+        RetValue = Saig_BmcPerform( pAig, 0, nFrames, 2000, TimeOut, nConfLimit, 0, fVerbose, 0, &nFramesFinished );
         if ( RetValue == 0 )
         {
+            Vec_IntFreeP( &vTransSigs );
             printf( "A cex found in the first %d frames.\n", nFrames );
             return NULL;
         }
         if ( nFramesFinished < nFrames )
         {
-            printf( "BMC for %d frames could not be completed. A cex may exist!\n", nFrames );
-            return NULL;
+            int iLastBefore = Vec_IntLastNonZeroBeforeLimit( vTransSigs, nFramesFinished );
+            if ( iLastBefore < 1 || !fUseTransSigs )
+            {
+                Vec_IntFreeP( &vTransSigs );
+                printf( "BMC for %d frames could not be completed. A cex may exist!\n", nFrames );
+                return NULL;
+            }
+            assert( iLastBefore < nFramesFinished );
+            printf( "BMC succeeded to frame %d. Adjusting frame count to be (%d) based on the last transient signal.\n", nFramesFinished, iLastBefore );
         }
     }
+    Vec_IntFreeP( &vTransSigs );
     return Saig_ManTemporDecompose( pAig, nFrames );
 }
 

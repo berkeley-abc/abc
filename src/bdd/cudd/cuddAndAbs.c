@@ -109,6 +109,46 @@ Cudd_bddAndAbstract(
 } /* end of Cudd_bddAndAbstract */
 
 
+/**Function********************************************************************
+
+  Synopsis [Takes the AND of two BDDs and simultaneously abstracts the
+  variables in cube.  Returns NULL if too many nodes are required.]
+
+  Description [Takes the AND of two BDDs and simultaneously abstracts
+  the variables in cube. The variables are existentially abstracted.
+  Returns a pointer to the result is successful; NULL otherwise.
+  In particular, if the number of new nodes created exceeds
+  <code>limit</code>, this function returns NULL.]
+
+  SideEffects [None]
+
+  SeeAlso     [Cudd_bddAndAbstract]
+
+******************************************************************************/
+DdNode *
+Cudd_bddAndAbstractLimit(
+  DdManager * manager,
+  DdNode * f,
+  DdNode * g,
+  DdNode * cube,
+  unsigned int limit)
+{
+    DdNode *res;
+    unsigned int saveLimit = manager->maxLive;
+
+    manager->maxLive = (manager->keys - manager->dead) +
+      (manager->keysZ - manager->deadZ) + limit;
+    do {
+        manager->reordered = 0;
+        res = cuddBddAndAbstractRecur(manager, f, g, cube);
+    } while (manager->reordered == 1);
+    manager->maxLive = saveLimit;
+    return(res);
+
+} /* end of Cudd_bddAndAbstractLimit */
+
+
+
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
 /*---------------------------------------------------------------------------*/

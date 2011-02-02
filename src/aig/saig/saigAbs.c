@@ -22,6 +22,7 @@
 #include "ssw.h"
 #include "fra.h"
 #include "bbr.h"
+#include "pdr.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -173,15 +174,32 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
 { 
     extern int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames );
     Vec_Int_t * vFlopsNew;
-    int i, Entry;
+    int i, Entry, RetValue;
     *piRetValue = -1;
     if ( fUseDprove && Aig_ManRegNum(pAbs) > 0 )
     {
+/*
         Fra_Sec_t SecPar, * pSecPar = &SecPar;
-        int RetValue;
         Fra_SecSetDefaultParams( pSecPar );
         pSecPar->fVerbose       = fVerbose;
         RetValue = Fra_FraigSec( pAbs, pSecPar, NULL );
+*/
+        Abc_Cex_t * pCex = NULL;
+        Aig_Man_t * pAbsOrpos = Saig_ManDupOrpos( pAbs );
+        Pdr_Par_t Pars, * pPars = &Pars;
+        Pdr_ManSetDefaultParams( pPars );
+        pPars->nTimeOut = 10;
+        pPars->fVerbose = fVerbose;
+        if ( pPars->fVerbose )
+            printf( "Running property directed reachability...\n" );
+        RetValue = Pdr_ManSolve( pAbsOrpos, pPars, &pCex );
+        if ( pCex )
+            pCex->iPo = Ssw_SmlFindOutputCounterExample( pAbs, pCex );
+        Aig_ManStop( pAbsOrpos );
+        pAbs->pSeqModel = pCex;
+        if ( RetValue )
+            *piRetValue = 1;
+
     }
     else if ( fUseBdds && (Aig_ManRegNum(pAbs) > 0 && Aig_ManRegNum(pAbs) <= 80) )
     {
@@ -195,7 +213,9 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
         pPars->fReorderImage = 1;
         pPars->fVerbose      = fVerbose;
         pPars->fSilent       = 0;
-        Aig_ManVerifyUsingBdds( pAbs, pPars );
+        RetValue = Aig_ManVerifyUsingBdds( pAbs, pPars );
+        if ( RetValue )
+            *piRetValue = 1;
     }
     else 
     {

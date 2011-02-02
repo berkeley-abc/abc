@@ -913,6 +913,33 @@ Aig_Man_t * Aig_ManDupWithoutPos( Aig_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description [Assumes topological ordering of nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupFlopsOnly( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    pNew = Aig_ManDupWithoutPos( p );
+    Saig_ManForEachLi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    Aig_ManCleanup( pNew );
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupFlopsOnly(): The check has failed.\n" );
+    return pNew;
+
+}
+
 
 /**Function*************************************************************
 

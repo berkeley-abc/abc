@@ -37,7 +37,7 @@ default: $(PROG)
 #OPTFLAGS  := -DNDEBUG -O3 -DLIN
 #OPTFLAGS  := -DNDEBUG -O3 -DLIN64
 #OPTFLAGS  := -g -O -DLIN -m32
-OPTFLAGS  := -g -O -DLIN64 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -DSIZEOF_INT=4 -DABC_NAMESPACE=xxx -fPIC
+OPTFLAGS  := -g -O -DLIN64 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -DSIZEOF_INT=4 -DABC_NAMESPACE=xxx
 
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 
@@ -74,7 +74,7 @@ DEP := $(OBJ:.o=.d)
 depend: $(DEP)
 
 clean: 
-	rm -rf $(PROG) $(OBJ) $(GARBAGE) $(OBJ:.o=.d) 
+	rm -rf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d) 
 
 tags:
 	ctags -R .

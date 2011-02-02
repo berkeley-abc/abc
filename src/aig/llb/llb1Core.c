@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [llbCore.c]
+  FileName    [llb1Core.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: llbCore.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: llb1Core.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -24,11 +24,10 @@
 
 ABC_NAMESPACE_IMPL_START
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +46,7 @@ ABC_NAMESPACE_IMPL_START
 void Llb_ManSetDefaultParams( Gia_ParLlb_t * p )
 {
     memset( p, 0, sizeof(Gia_ParLlb_t) );
-    p->nBddMax       =  1000000;
+    p->nBddMax       = 10000000;
     p->nIterMax      = 10000000;
     p->nClusterMax   =       20;
     p->nHintDepth    =        0;
@@ -55,11 +54,14 @@ void Llb_ManSetDefaultParams( Gia_ParLlb_t * p )
     p->fUseFlow      =        0;  // use flow 
     p->nVolumeMax    =      100;  // max volume
     p->nVolumeMin    =       30;  // min volume
+    p->nPartValue    =        5;  // partitioning value
+    p->fBackward     =        0;  // forward by default
     p->fReorder      =        1;
     p->fIndConstr    =        0;
     p->fUsePivots    =        0;
     p->fCluster      =        0;
     p->fSchedule     =        0;
+    p->fDumpReached  =        0;
     p->fVerbose      =        0;
     p->fVeryVerbose  =        0;
     p->fSilent       =        0;

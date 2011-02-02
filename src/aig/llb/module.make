@@ -1,11 +1,19 @@
-SRC +=    src/aig/llb/llbCex.c \
-    src/aig/llb/llbCluster.c \
-    src/aig/llb/llbConstr.c \
-    src/aig/llb/llbCore.c \
-    src/aig/llb/llbHint.c \
-    src/aig/llb/llbMan.c \
-    src/aig/llb/llbMatrix.c \
-    src/aig/llb/llbPart.c \
-    src/aig/llb/llbPivot.c \
-    src/aig/llb/llbReach.c \
-    src/aig/llb/llbSched.c
+SRC +=    src/aig/llb/llb.c \
+    src/aig/llb/llb1Cluster.c \
+    src/aig/llb/llb1Constr.c \
+    src/aig/llb/llb1Core.c \
+    src/aig/llb/llb1Group.c \
+    src/aig/llb/llb1Hint.c \
+    src/aig/llb/llb1Man.c \
+    src/aig/llb/llb1Matrix.c \
+    src/aig/llb/llb1Pivot.c \
+    src/aig/llb/llb1Reach.c \
+    src/aig/llb/llb1Sched.c \
+    src/aig/llb/llb2Bad.c \
+    src/aig/llb/llb2Core.c \
+    src/aig/llb/llb2Driver.c \
+    src/aig/llb/llb2Dump.c \
+    src/aig/llb/llb2Flow.c \
+    src/aig/llb/llb2Image.c \
+    src/aig/llb/llb3Image.c \
+    src/aig/llb/llb3Nonlin.c

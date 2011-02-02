@@ -115,19 +115,17 @@ static inline Hash_Ptr_t * Hash_PtrAlloc( int nBins )
 static inline int Hash_PtrExists( Hash_Ptr_t *p, int key )
 {
   int bin;
-  Hash_Ptr_Entry_t *pEntry, **pLast;
+  Hash_Ptr_Entry_t *pEntry;
 
   // find the bin where this key would live
   bin = (*(p->fHash))(key, p->nBins);
 
   // search for key
-  pLast = &(p->pArray[bin]);
   pEntry = p->pArray[bin];
   while(pEntry) {
     if (pEntry->key == key) {
       return 1;
     }
-    pLast = &(pEntry->pNext);
     pEntry = pEntry->pNext;
   }
 
@@ -310,16 +308,18 @@ static inline void* Hash_PtrRemove( Hash_Ptr_t *p, int key )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Hash_PtrFree( Hash_Ptr_t *p ) {
+static inline void Hash_PtrFree( Hash_Ptr_t *p ) 
+{
   int bin;
-  Hash_Ptr_Entry_t *pEntry;
+  Hash_Ptr_Entry_t *pEntry, *pTemp;
 
   // free bins
   for(bin = 0; bin < p->nBins; bin++) {
     pEntry = p->pArray[bin];
     while(pEntry) {
+      pTemp = pEntry;
       pEntry = pEntry->pNext;
-      ABC_FREE( pEntry );
+      ABC_FREE( pTemp );
     }
   }
  

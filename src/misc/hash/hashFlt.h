@@ -311,14 +311,15 @@ static inline void Hash_FltRemove( Hash_Flt_t *p, int key )
 ***********************************************************************/
 static inline void Hash_FltFree( Hash_Flt_t *p ) {
   int bin;
-  Hash_Flt_Entry_t *pEntry;
+  Hash_Flt_Entry_t *pEntry, *pTemp;
 
   // free bins
   for(bin = 0; bin < p->nBins; bin++) {
     pEntry = p->pArray[bin];
     while(pEntry) {
+      pTemp = pEntry;
       pEntry = pEntry->pNext;
-      ABC_FREE( pEntry );
+      ABC_FREE( pTemp );
     }
   }
  

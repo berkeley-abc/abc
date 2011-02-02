@@ -1747,10 +1747,6 @@ SOURCE=.\src\opt\mfs\mfsDiv.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\mfs\mfsGia.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\opt\mfs\mfsInt.h
 # End Source File
 # Begin Source File
@@ -3071,6 +3067,10 @@ SOURCE=.\src\aig\aig\aigDfs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigDoms.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigDup.c
 # End Source File
 # Begin Source File
@@ -4035,56 +4035,84 @@ SOURCE=.\src\aig\llb\llb.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\llb\llbCex.c
+SOURCE=.\src\aig\llb\llb1Cluster.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\llb\llbCluster.c
+SOURCE=.\src\aig\llb\llb1Constr.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\llb\llbConstr.c
+SOURCE=.\src\aig\llb\llb1Core.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\llb\llbCore.c
+SOURCE=.\src\aig\llb\llb1Group.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\llb\llbFlow.c
+SOURCE=.\src\aig\llb\llb1Hint.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\llb\llbHint.c
+SOURCE=.\src\aig\llb\llb1Man.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb1Matrix.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb1Pivot.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb1Reach.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb1Sched.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb2Bad.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb2Core.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb2Driver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb2Dump.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb2Flow.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb2Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb3Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb3Nonlin.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\llb\llbInt.h
 # End Source File
-# Begin Source File
+# End Group
+# Begin Group "bll"
 
-SOURCE=.\src\aig\llb\llbMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\llb\llbMatrix.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\llb\llbPart.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\llb\llbPivot.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\llb\llbReach.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\llb\llbSched.c
-# End Source File
+# PROP Default_Filter ""
 # End Group
 # End Group
 # End Group

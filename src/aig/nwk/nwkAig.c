@@ -83,7 +83,7 @@ Nwk_Man_t * Nwk_ManDeriveFromAig( Aig_Man_t * p )
 
 ***********************************************************************/
 Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose )
-{
+{ 
     Vec_Ptr_t * vNodes;
     Nwk_Man_t * pNtk;
     Nwk_Obj_t * pNode;
@@ -99,7 +99,7 @@ Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose 
     Vec_PtrForEachEntry( Nwk_Obj_t *, vNodes, pNode, i )
         Vec_PtrWriteEntry( vNodes, i, pNode->pCopy );
     Nwk_ManFree( pNtk );
-    assert( Vec_PtrSize(vNodes) <= Aig_ManRegNum(p) );
+//    assert( Vec_PtrSize(vNodes) <= Aig_ManRegNum(p) );
     return vNodes;
 }
 

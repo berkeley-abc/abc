@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [llbHint.c]
+  FileName    [llb1Hint.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: llbHint.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: llb1Hint.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -205,8 +205,8 @@ int Llb_ManModelCheckAigWithHints( Aig_Man_t * pAigGlo, Gia_ParLlb_t * pPars )
 Finish:
     if ( ddGlo )
     {
-        if ( ddGlo->bReached )
-            Cudd_RecursiveDeref( ddGlo, ddGlo->bReached ); 
+        if ( ddGlo->bFunc )
+            Cudd_RecursiveDeref( ddGlo, ddGlo->bFunc ); 
         Extra_StopManager( ddGlo );
     }
     Vec_IntFreeP( &vHFCands );

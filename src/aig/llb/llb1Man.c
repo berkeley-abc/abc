@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [llbMan.c]
+  FileName    [llb1Man.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: llbMan.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: llb1Man.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -142,8 +142,8 @@ void Llb_ManStop( Llb_Man_t * p )
     }
     if ( p->ddG )
     {
-        if ( p->ddG->bReached )
-            Cudd_RecursiveDeref( p->ddG, p->ddG->bReached ); 
+        if ( p->ddG->bFunc )
+            Cudd_RecursiveDeref( p->ddG, p->ddG->bFunc ); 
         Extra_StopManager( p->ddG );
     }
     Aig_ManStop( p->pAig );
