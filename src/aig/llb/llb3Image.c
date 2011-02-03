@@ -355,7 +355,7 @@ Llb_NonlinPrint( p );
 printf( "Conjoining partitions %d and %d.\n", pPart1->iPart, pPart2->iPart );
 Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
 }
-
+ 
     // derive new function
 //    bFunc = Cudd_bddAndAbstract( p->dd, pPart1->bFunc, pPart2->bFunc, bCube );  Cudd_Ref( bFunc );
     bFunc = Cudd_bddAndAbstractLimit( p->dd, pPart1->bFunc, pPart2->bFunc, bCube, Limit );  

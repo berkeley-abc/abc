@@ -135,11 +135,10 @@ Cudd_bddAndAbstractLimit(
 {
     DdNode *res;
     unsigned int saveLimit = manager->maxLive;
-
-    manager->maxLive = (manager->keys - manager->dead) +
-      (manager->keysZ - manager->deadZ) + limit;
     do {
         manager->reordered = 0;
+        manager->maxLive = (manager->keys - manager->dead) +
+          (manager->keysZ - manager->deadZ) + limit;
         res = cuddBddAndAbstractRecur(manager, f, g, cube);
     } while (manager->reordered == 1);
     manager->maxLive = saveLimit;
