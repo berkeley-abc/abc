@@ -887,6 +887,22 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     fwrite( pBuffer, 1, Pos, pFile );
     ABC_FREE( pBuffer );
 
+    // write the symbol table
+    if ( p->vNamesIn && p->vNamesOut )
+    {
+        assert( Vec_PtrSize(p->vNamesIn)  == Gia_ManCiNum(p) );
+        assert( Vec_PtrSize(p->vNamesOut) == Gia_ManCoNum(p) );
+        // write PIs
+        Gia_ManForEachPi( p, pObj, i )
+            fprintf( pFile, "i%d %s\n", i, Vec_PtrEntry(p->vNamesIn, i) );
+        // write latches
+        Gia_ManForEachRo( p, pObj, i )
+            fprintf( pFile, "l%d %s\n", i, Vec_PtrEntry(p->vNamesIn, Gia_ManPiNum(p) + i) );
+        // write POs
+        Gia_ManForEachPo( p, pObj, i )
+            fprintf( pFile, "o%d %s\n", i, Vec_PtrEntry(p->vNamesOut, i) );
+    }
+
     // write the comment
     fprintf( pFile, "c" );
     // write equivalences
