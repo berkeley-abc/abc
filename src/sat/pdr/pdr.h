@@ -51,6 +51,7 @@ struct Pdr_Par_t_
     int fShortest;    // forces bug traces to be shortest
     int fVerbose;     // verbose output
     int fVeryVerbose; // very verbose output
+    int iFrame;       // explored up to this frame
 };
 
 ////////////////////////////////////////////////////////////////////////

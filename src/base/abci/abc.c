@@ -369,9 +369,9 @@ static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PbaStart           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Reach              ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Reach2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9Reach3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ReachM             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ReachP             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -767,9 +767,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&pba_start",    Abc_CommandAbc9PbaStart,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&reach",        Abc_CommandAbc9Reach,        0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&reach2",       Abc_CommandAbc9Reach2,       0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&reach3",       Abc_CommandAbc9Reach3,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&reachm",       Abc_CommandAbc9ReachM,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&reachp",       Abc_CommandAbc9ReachP,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&reachn",       Abc_CommandAbc9ReachN,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
 
@@ -20007,7 +20007,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // run the procedure
     pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars, &pCex );
-    pAbc->nFrames = pCex ? pCex->iFrame : -1;
+    pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pCex );
     return 0;
 
@@ -27457,7 +27457,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9Reach( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_ParLlb_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -27582,24 +27582,24 @@ int Abc_CommandAbc9Reach( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Reach(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9ReachM(): There is no AIG.\n" );
         return 1;
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Reach(): The current AIG has no latches.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9ReachM(): The current AIG has no latches.\n" );
         return 0;
     } 
     pAbc->Status  = Llb_ManModelCheckGia( pAbc->pGia, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reach" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reachm" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &reach [-TBFCHS num] [-L file] [-ripcsyzvwh]\n" );
-    Abc_Print( -2, "\t         model checking via BDD-based reachability (similar to IWLS'95)\n" );
+    Abc_Print( -2, "usage: &reachm [-TBFCHS num] [-L file] [-ripcsyzvwh]\n" );
+    Abc_Print( -2, "\t         model checking via BDD-based reachability (dependence-matrix-based)\n" );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-B num : max number of nodes in the intermediate BDDs [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
@@ -27631,7 +27631,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9Reach2( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_ParLlb_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -27729,12 +27729,12 @@ int Abc_CommandAbc9Reach2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Reach(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9ReachP(): There is no AIG.\n" );
         return 1;
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Reach(): The current AIG has no latches.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9ReachP(): The current AIG has no latches.\n" );
         return 0;
     }
     pMan          = Gia_ManToAigSimple( pAbc->pGia );
@@ -27742,13 +27742,13 @@ int Abc_CommandAbc9Reach2( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reach2" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reachp" );
     Aig_ManStop( pMan );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &reach2 [-NFT num] [-L file] [-rbyzdvwh]\n" );
-    Abc_Print( -2, "\t         model checking via BDD-based reachability (min-cut-based)\n" );
+    Abc_Print( -2, "usage: &reachp [-NFT num] [-L file] [-rbyzdvwh]\n" );
+    Abc_Print( -2, "\t         model checking via BDD-based reachability (partitioning-based)\n" );
     Abc_Print( -2, "\t-N num : partitioning value (MinVol=nANDs/N/2; MaxVol=nANDs/N) [default = %d]\n", pPars->nPartValue );
 //    Abc_Print( -2, "\t-B num : the BDD node increase when hints kick in [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
@@ -27776,7 +27776,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9Reach3( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_ParLlb_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -27857,12 +27857,12 @@ int Abc_CommandAbc9Reach3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Reach(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9ReachN(): There is no AIG.\n" );
         return 1;
     }
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Reach(): The current AIG has no latches.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9ReachN(): The current AIG has no latches.\n" );
         return 0;
     }
     pMan          = Gia_ManToAigSimple( pAbc->pGia );
@@ -27870,13 +27870,13 @@ int Abc_CommandAbc9Reach3( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reach2" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reachn" );
     Aig_ManStop( pMan );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &reach3 [-BFT num] [-L file] [-ryzvh]\n" );
-    Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear QS)\n" );
+    Abc_Print( -2, "usage: &reachn [-BFT num] [-L file] [-ryzvh]\n" );
+    Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear-QS-based)\n" );
     Abc_Print( -2, "\t-B num : the BDD node increase when hints kick in [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );

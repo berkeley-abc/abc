@@ -56,6 +56,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->fShortest     =       0;  // forces bug traces to be shortest
     pPars->fVerbose      =       0;  // verbose output
     pPars->fVeryVerbose  =       0;  // very verbose output
+    pPars->iFrame        =      -1;  // explored up to this frame
 }
 
 /**Function*************************************************************
@@ -544,6 +545,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
             printf( "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+            p->pPars->iFrame = k;
             return -1;
         }
         if ( RetValue == 0 )
@@ -554,6 +556,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 if ( p->pPars->fVerbose ) 
                     Pdr_ManPrintProgress( p, 1, clock() - clkStart );
                 printf( "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+                p->pPars->iFrame = k;
                 return -1;
             }
             if ( RetValue == 0 )
@@ -565,6 +568,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 }
                 if ( p->pPars->fVerbose ) 
                     Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                p->pPars->iFrame = k;
                 return 0; // SAT
             }
         }
@@ -590,6 +594,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 Pdr_ManVerifyInvariant( p );
                 if ( p->pPars->fDumpInv )
                     Pdr_ManDumpClauses( p, (char *)"inv.pla" );
+                p->pPars->iFrame = k;
                 return 1; // UNSAT
             }
             if ( p->pPars->fVerbose ) 
@@ -608,6 +613,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
             printf( "Reached timeout (%d seconds).\n",  p->pPars->nTimeOut );
+            p->pPars->iFrame = k;
             return -1;
         }
         if ( p->pPars->nFrameMax && k >= p->pPars->nFrameMax )
@@ -615,6 +621,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
             printf( "Reached limit on the number of timeframes (%d).\n", p->pPars->nFrameMax );
+            p->pPars->iFrame = k;
             return -1;
         } 
     }
