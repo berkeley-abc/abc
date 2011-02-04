@@ -1210,7 +1210,7 @@ int IoCommandReadStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     FILE * pFile;
     int c;
-    extern int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex );
+    extern int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
@@ -1239,9 +1239,7 @@ int IoCommandReadStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set the new network
     Abc_FrameClearVerifStatus( pAbc );
-    pAbc->Status = Abc_NtkReadLogFile( pFileName, &pAbc->pCex );
-    if ( pAbc->pCex )
-        pAbc->nFrames = pAbc->pCex->iFrame;
+    pAbc->Status = Abc_NtkReadLogFile( pFileName, &pAbc->pCex, &pAbc->nFrames );
     return 0;
 
 usage:
@@ -2534,7 +2532,7 @@ int IoCommandWriteStatus( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
     int c;
-    extern void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, char * pCommand );
+    extern void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nFrames, char * pCommand );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
@@ -2551,7 +2549,7 @@ int IoCommandWriteStatus( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
     // get the input file name
     pFileName = argv[globalUtilOptind];
-    Abc_NtkWriteLogFile( pFileName, pAbc->pCex, pAbc->Status, NULL );
+    Abc_NtkWriteLogFile( pFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, NULL );
     return 0;
 
 usage:

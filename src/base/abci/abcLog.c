@@ -64,7 +64,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, char * pCommand )
+void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nFrames, char * pCommand )
 {
     FILE * pFile;
     int i;
@@ -85,7 +85,7 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, char *
         printf( "Abc_NtkWriteLogFile(): Cannot recognize solving status.\n" );
     fprintf( pFile, " " );
     // write <cyc>
-    fprintf( pFile, "%d", pCex ? pCex->iFrame + 1 : -1 );
+    fprintf( pFile, "%d", pCex ? pCex->iFrame + 1 : nFrames );
     fprintf( pFile, " " );
     // write <engine_name>
     fprintf( pFile, "%s", pCommand ? pCommand : "unknown" );
@@ -125,12 +125,12 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, char *
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex )
+int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
 {
+    FILE * pFile;
     Abc_Cex_t * pCex;
     Vec_Int_t * vNums;
     char Buffer[1000], * pToken;
-    FILE * pFile;
     int c, nRegs = -1, nFrames = -1, iPo = -1, Status = -1;
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
@@ -210,6 +210,8 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex )
         else
             ABC_FREE( pCex );
     }
+    if ( pnFrames )
+        *pnFrames = nFrames;
     return Status;
 }
 

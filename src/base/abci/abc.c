@@ -6780,7 +6780,7 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "reach" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "reach" );
     return 0;
 
 usage:
@@ -16884,7 +16884,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->Status = Abc_NtkDarProve( pNtk, pSecPar );
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "dprove" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "dprove" );
 
     // read back the resulting unsolved reduced sequential miter
     if ( pSecPar->fReadUnsolved && pSecPar->nSMnumber >= 0 )
@@ -18132,7 +18132,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = iFrames;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "bmc" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "bmc" );
     return 0;
 
 usage:
@@ -18316,7 +18316,7 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = iFrames;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "bmc2" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "bmc2" );
     return 0;
 
 usage:
@@ -18450,7 +18450,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "bmc3" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "bmc3" );
     if ( pPars->fSolveAll && pPars->fDropSatOuts )
     {
         if ( pNtk->pSeqModelVec == NULL )
@@ -18662,7 +18662,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     }
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "int" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "int" );
     return 0;
 
 usage:
@@ -24182,7 +24182,7 @@ int Abc_CommandAbc9Sim( Abc_Frame_t * pAbc, int argc, char ** argv )
         pAbc->Status = -1;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
 //    if ( pLogFileName )
-//        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&sim" );
+//        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&sim" );
     return 0;
 
 usage:
@@ -27594,7 +27594,7 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reachm" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&reachm" );
     return 0;
 
 usage:
@@ -27742,7 +27742,7 @@ int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reachp" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&reachp" );
     Aig_ManStop( pMan );
     return 0;
 
@@ -27870,7 +27870,7 @@ int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, "&reachn" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&reachn" );
     Aig_ManStop( pMan );
     return 0;
 

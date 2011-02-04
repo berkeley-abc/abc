@@ -646,7 +646,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_LibFindModelByName( Abc_Lib_t * pLib, char
 extern ABC_DLL int                Abc_LibFindTopLevelModels( Abc_Lib_t * pLib );
 extern ABC_DLL Abc_Ntk_t *        Abc_LibDeriveRoot( Abc_Lib_t * pLib );
 /*=== abcLog.c ==========================================================*/
-extern ABC_DLL void               Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pSeqCex, int Status, char * pCommand );
+extern ABC_DLL void               Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pSeqCex, int Status, int nFrames, char * pCommand );
 /*=== abcMiter.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkMinimumBase( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NodeMinimumBase( Abc_Obj_t * pNode );
