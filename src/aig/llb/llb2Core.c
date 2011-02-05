@@ -217,10 +217,17 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     // compute initial states
     if ( p->pPars->fBackward )
     {
+        // create init state in the global manager
+        bTemp = Llb_BddComputeBad( p->pInit, p->ddR, p->pPars->TimeLimit );   
+        if ( bTemp == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+            return -1;
+        }
+        Cudd_Ref( bTemp );
         // create bad state in the ring manager
         p->ddR->bFunc = Llb_CoreComputeCube( p->ddR, p->vVarsCs, 0, NULL );      Cudd_Ref( p->ddR->bFunc );
-        // create init state in the global manager
-        bTemp    = Llb_BddComputeBad( p->pInit, p->ddR );                        Cudd_Ref( bTemp );
         bCurrent = Llb_BddQuantifyPis( p->pInit, p->ddR, bTemp );                Cudd_Ref( bCurrent );
         Cudd_RecursiveDeref( p->ddR, bTemp );
         bReached = Cudd_bddTransfer( p->ddR, p->ddG, bCurrent );                 Cudd_Ref( bReached );
@@ -231,7 +238,16 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     else
     {
         // create bad state in the ring manager
-        p->ddR->bFunc = Llb_BddComputeBad( p->pInit, p->ddR );                   Cudd_Ref( p->ddR->bFunc );
+        p->ddR->bFunc = Llb_BddComputeBad( p->pInit, p->ddR, p->pPars->TimeLimit );  
+        if ( p->ddR->bFunc == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+            return -1;
+        }
+        if ( p->ddR->bFunc == NULL )
+            return -1;
+        Cudd_Ref( p->ddR->bFunc );
         // create init state in the working and global manager
         bCurrent = Llb_CoreComputeCube( p->dd,  p->vVarsCs, 1, NULL );           Cudd_Ref( bCurrent );
         bReached = Llb_CoreComputeCube( p->ddG, p->vVarsCs, 0, NULL );           Cudd_Ref( bReached );

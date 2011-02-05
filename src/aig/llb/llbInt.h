@@ -146,7 +146,7 @@ extern int             Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, D
 extern void            Llb_MtrSchedule( Llb_Mtr_t * p );
 
 /*=== llb2Bad.c ======================================================*/
-extern DdNode *        Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd );
+extern DdNode *        Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut );
 extern DdNode *        Llb_BddQuantifyPis( Aig_Man_t * pInit, DdManager * dd, DdNode * bFunc );
 /*=== llb2Core.c ======================================================*/
 extern DdNode *        Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarIndex, char * pValues );
@@ -168,7 +168,7 @@ extern DdNode *        Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMan
 
 /*=== llb3Image.c ======================================================*/
 extern DdNode *        Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
-                           DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit );
+                           DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeLimit );
 
 ABC_NAMESPACE_HEADER_END
 

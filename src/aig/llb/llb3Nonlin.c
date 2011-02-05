@@ -294,7 +294,7 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
 //Extra_bddPrintSupport( p->dd, bRing );   printf( "\n" );
         // compute the next states
         bImage = Llb_NonlinImage( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->dd, bState, 
-            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, ABC_INFINITY ); // consumed reference
+            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, ABC_INFINITY, ABC_INFINITY ); // consumed reference
         assert( bImage != NULL );
         Cudd_Ref( bImage );
 //Extra_bddPrintSupport( p->dd, bImage );  printf( "\n" );
@@ -340,6 +340,44 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
     return pCex;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Perform reachability with hints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Llb_NonlinReoHook( DdManager * dd, char * Type, void * Method )
+{
+    Aig_Man_t * pAig = (Aig_Man_t *)dd->bFunc;
+    Aig_Obj_t * pObj;
+    int i;
+    printf( "Order: " );
+    for ( i = 0; i < Cudd_ReadSize(dd); i++ )
+    {
+        pObj = Aig_ManObj( pAig, i );
+        if ( pObj == NULL )
+            continue;
+        if ( Saig_ObjIsPi(pAig, pObj) )
+            printf( "pi" );
+        else if ( Saig_ObjIsLo(pAig, pObj) )
+            printf( "lo" );
+        else if ( Saig_ObjIsPo(pAig, pObj) )
+            printf( "po" );
+        else if ( Saig_ObjIsLi(pAig, pObj) )
+            printf( "li" );
+        else continue;
+        printf( "%d=%d ", i, dd->perm[i] );
+    }
+    printf( "\n" );
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Perform reachability with hints.]
@@ -364,8 +402,20 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     else
         p->pPars->TimeTarget = 0;
 
+    // set reordering hooks
+    assert( p->dd->bFunc == NULL );
+//    p->dd->bFunc = (DdNode *)p->pAig;
+//    Cudd_AddHook( p->dd, Llb_NonlinReoHook, CUDD_POST_REORDERING_HOOK );
+
     // create bad state in the ring manager
-    p->ddR->bFunc  = Llb_BddComputeBad( p->pInit, p->ddR );          Cudd_Ref( p->ddR->bFunc );
+    p->ddR->bFunc  = Llb_BddComputeBad( p->pInit, p->ddR, p->pPars->TimeTarget );          
+    if ( p->ddR->bFunc == NULL )
+    {
+        if ( !p->pPars->fSilent )
+            printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+        return -1;
+    }
+    Cudd_Ref( p->ddR->bFunc );
     // compute the starting set of states
     bCurrent       = Llb_NonlinComputeInitState( p->pAig, p->dd );   Cudd_Ref( bCurrent );
     p->ddG->bFunc  = Llb_NonlinComputeInitState( p->pAig, p->ddG );  Cudd_Ref( p->ddG->bFunc );  // reached
@@ -429,8 +479,16 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         nBddSize0 = Cudd_DagSize( bCurrent );
         bNext = Llb_NonlinImage( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->dd, bCurrent, 
 //            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, nIters ? p->pPars->nBddMax : ABC_INFINITY );
-            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, ABC_INFINITY );
+            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, ABC_INFINITY, p->pPars->TimeTarget );
 //        Abc_PrintTime( 1, "Image time", clock() - clk3 );
+        if ( bNext == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
+            return -1;
+        }
         if ( bNext == NULL )  // Llb_NonlimImage() consumes reference of bCurrent!!!
         {
             DdNode * bVar, * bVarG;
@@ -632,6 +690,7 @@ void Llb_MnnStop( Llb_Mnn_t * p )
         ABC_PRTP( "  reo    ", p->timeReo,   p->timeTotal );
         ABC_PRTP( "  reoG   ", p->timeReoG,  p->timeTotal );
     }
+    p->dd->bFunc = NULL;
     if ( p->ddR->bFunc )
         Cudd_RecursiveDeref( p->ddR, p->ddR->bFunc );
     Vec_PtrForEachEntry( DdNode *, p->vRings, bTemp, i )

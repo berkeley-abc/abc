@@ -524,7 +524,7 @@ Vec_Ptr_t * Llb_NonlinCutNodes( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * v
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, DdManager * dd )
+Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, DdManager * dd, int TimeOut )
 {
     Vec_Ptr_t * vNodes, * vResult;
     Aig_Obj_t * pObj;
@@ -541,6 +541,15 @@ Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * 
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
         pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );   Cudd_Ref( (DdNode *)pObj->pData );
+
+        if ( i % 10 == 0 && TimeOut && clock() >= TimeOut )
+        {
+            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+                if ( pObj->pData )
+                    Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
+            Vec_PtrFree( vNodes );
+            return NULL;
+        }
     }
 
     vResult = Vec_PtrAlloc( 100 );
@@ -600,14 +609,16 @@ void Llb_NonlinAddPair( Llb_Mgr_t * p, DdNode * bFunc, int iPart, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-void Llb_NonlinStart( Llb_Mgr_t * p )
+int Llb_NonlinStart( Llb_Mgr_t * p, int TimeOut )
 {
     Vec_Ptr_t * vRootBdds;
     Llb_Prt_t * pPart;
     DdNode * bFunc;
     int i, k, nSuppSize;
     // create and collect BDDs
-    vRootBdds = Llb_NonlinBuildBdds( p->pAig, p->vLeaves, p->vRoots, p->dd ); // come referenced
+    vRootBdds = Llb_NonlinBuildBdds( p->pAig, p->vLeaves, p->vRoots, p->dd, TimeOut ); // come referenced
+    if ( vRootBdds == NULL )
+        return 0;
     Vec_PtrPush( vRootBdds, p->bCurrent );
     // add pairs (refs are consumed inside)
     Vec_PtrForEachEntry( DdNode *, vRootBdds, bFunc, i )
@@ -634,6 +645,7 @@ void Llb_NonlinStart( Llb_Mgr_t * p )
     Llb_MgrForEachPart( p, pPart, i )
         if ( Llb_NonlinHasSingletonVars(p, pPart) )
             Llb_NonlinQuantify1( p, pPart, 0 );
+    return 1;
 }
 
 /**Function*************************************************************
@@ -844,7 +856,7 @@ void Llb_NonlinFree( Llb_Mgr_t * p )
 
 ***********************************************************************/
 DdNode * Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
-    DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit )
+    DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeOut )
 {
     Llb_Prt_t * pPart, * pPart1, * pPart2;
     Llb_Mgr_t * p;
@@ -854,7 +866,11 @@ DdNode * Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRo
     // start the manager
     clk2 = clock();
     p = Llb_NonlinAlloc( pAig, vLeaves, vRoots, pVars2Q, dd, bCurrent );
-    Llb_NonlinStart( p );
+    if ( !Llb_NonlinStart( p, TimeOut ) )
+    {
+        Llb_NonlinFree( p );
+        return NULL;
+    }
     timeBuild += clock() - clk2;
     timeInside = clock() - clk2;
     // compute scores

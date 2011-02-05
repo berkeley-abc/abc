@@ -42,12 +42,12 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd )
+DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut )
 {
     Vec_Ptr_t * vNodes;
     DdNode * bBdd0, * bBdd1, * bTemp, * bResult;
     Aig_Obj_t * pObj;
-    int i;
+    int i, k;
     assert( Cudd_ReadSize(dd) == Aig_ManPiNum(pInit) );
     // initialize elementary variables
     Aig_ManConst1(pInit)->pData = Cudd_ReadOne( dd );
@@ -64,6 +64,14 @@ DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd )
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
         pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );          Cudd_Ref( (DdNode *)pObj->pData );
+
+        if ( i % 10 == 0 && TimeOut && clock() >= TimeOut )
+        {
+            Vec_PtrForEachEntryStop( Aig_Obj_t *, vNodes, pObj, k, i+1 )
+                Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
+            Vec_PtrFree( vNodes );
+            return NULL;
+        }
     }
     // quantify PIs of each PO
     bResult = Cudd_ReadLogicZero( dd );  Cudd_Ref( bResult );
