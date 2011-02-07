@@ -263,6 +263,11 @@ extern DdNode *     extraZddSelectOneSubset( DdManager * dd, DdNode * zS );
 
 /*=== extraBddUnate.c =================================================================*/
 
+extern DdNode *    Extra_bddAndTime( DdManager * dd, DdNode * f, DdNode * g, int TimeOut );
+extern DdNode *    Extra_bddAndAbstractTime( DdManager * manager, DdNode * f, DdNode * g, DdNode * cube, int TimeOut );
+
+/*=== extraBddUnate.c =================================================================*/
+
 typedef struct Extra_UnateVar_t_  Extra_UnateVar_t;
 struct Extra_UnateVar_t_ {
     unsigned    iVar : 30;  // index of the variable

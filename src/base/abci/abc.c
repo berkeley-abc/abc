@@ -27590,6 +27590,11 @@ int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9ReachM(): The current AIG has no latches.\n" );
         return 0;
     } 
+    if ( Gia_ManObjNum(pAbc->pGia) >= (1<<16) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ReachM(): Currently cannot handle AIGs with more than %d objects.\n", (1<<16) );
+        return 0;
+    }
     pAbc->Status  = Llb_ManModelCheckGia( pAbc->pGia, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
@@ -27737,6 +27742,11 @@ int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9ReachP(): The current AIG has no latches.\n" );
         return 0;
     }
+    if ( Gia_ManObjNum(pAbc->pGia) >= (1<<16) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ReachP(): Currently cannot handle AIGs with more than %d objects.\n", (1<<16) );
+        return 0;
+    }
     pMan          = Gia_ManToAigSimple( pAbc->pGia );
     pAbc->Status  = Llb_ManReachMinCut( pMan, pPars );
     pAbc->nFrames = pPars->iFrame;
@@ -27863,6 +27873,11 @@ int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Gia_ManRegNum(pAbc->pGia) == 0 )
     {
         Abc_Print( -1, "Abc_CommandAbc9ReachN(): The current AIG has no latches.\n" );
+        return 0;
+    }
+    if ( Gia_ManObjNum(pAbc->pGia) >= (1<<16) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ReachN(): Currently cannot handle AIGs with more than %d objects.\n", (1<<16) );
         return 0;
     }
     pMan          = Gia_ManToAigSimple( pAbc->pGia );

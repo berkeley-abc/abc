@@ -168,7 +168,7 @@ extern DdNode *        Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMan
 
 /*=== llb3Image.c ======================================================*/
 extern DdNode *        Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
-                           DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeLimit );
+                           DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeTarget );
 
 ABC_NAMESPACE_HEADER_END
 

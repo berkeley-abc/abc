@@ -334,7 +334,7 @@ int Llb_NonlinQuantify1( Llb_Mgr_t * p, Llb_Prt_t * pPart, int fSubset )
   SeeAlso     []
 
 ***********************************************************************/
-int Llb_NonlinQuantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2, int Limit )
+int Llb_NonlinQuantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2, int Limit, int TimeOut )
 {
     int fVerbose = 0;
     Llb_Var_t * pVar;
@@ -358,10 +358,10 @@ Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
  
     // derive new function
 //    bFunc = Cudd_bddAndAbstract( p->dd, pPart1->bFunc, pPart2->bFunc, bCube );  Cudd_Ref( bFunc );
+/*
     bFunc = Cudd_bddAndAbstractLimit( p->dd, pPart1->bFunc, pPart2->bFunc, bCube, Limit );  
     if ( bFunc == NULL )
     {
-/*
         int RetValue;
         Cudd_RecursiveDeref( p->dd, bCube );
         if ( pPart1->nSize < pPart2->nSize )
@@ -370,12 +370,21 @@ Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
             RetValue = Llb_NonlinQuantify1( p, pPart2, 1 );
         if ( RetValue )
             Limit = Limit + 1000;
-        Llb_NonlinQuantify2( p, pPart1, pPart2, Limit );
+        Llb_NonlinQuantify2( p, pPart1, pPart2, Limit, TimeOut );
+        return 0;
+    }
+    Cudd_Ref( bFunc );
 */
-        return 1;
+
+    bFunc = Extra_bddAndAbstractTime( p->dd, pPart1->bFunc, pPart2->bFunc, bCube, TimeOut );  
+    if ( bFunc == NULL )
+    {
+        Cudd_RecursiveDeref( p->dd, bCube );
+        return 0;
     }
     Cudd_Ref( bFunc );
     Cudd_RecursiveDeref( p->dd, bCube );
+
     // create new partition
     pTemp = p->pParts[p->iPartFree] = ABC_CALLOC( Llb_Prt_t, 1 );
     pTemp->iPart = p->iPartFree++;
@@ -454,7 +463,7 @@ printf( "Updating partitiong %d with singlton vars.\n", pTemp->iPart );
 if ( fVerbose )
 Llb_NonlinPrint( p );
     Vec_PtrFree( vSingles );
-    return 0;
+    return 1;
 }
 
 /**Function*************************************************************
@@ -529,7 +538,7 @@ Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * 
     Vec_Ptr_t * vNodes, * vResult;
     Aig_Obj_t * pObj;
     DdNode * bBdd0, * bBdd1, * bProd;
-    int i;
+    int i, k;
 
     Aig_ManConst1(p)->pData = Cudd_ReadOne( dd );
     Vec_PtrForEachEntry( Aig_Obj_t *, vLower, pObj, i )
@@ -540,16 +549,16 @@ Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * 
     {
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
-        pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );   Cudd_Ref( (DdNode *)pObj->pData );
-
-        if ( i % 10 == 0 && TimeOut && clock() >= TimeOut )
+        pObj->pData = Extra_bddAndTime( dd, bBdd0, bBdd1, TimeOut );
+        if ( pObj->pData == NULL )
         {
-            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+            Vec_PtrForEachEntryStop( Aig_Obj_t *, vNodes, pObj, k, i )
                 if ( pObj->pData )
                     Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
             Vec_PtrFree( vNodes );
             return NULL;
         }
+        Cudd_Ref( (DdNode *)pObj->pData );
     }
 
     vResult = Vec_PtrAlloc( 100 );
@@ -882,7 +891,7 @@ DdNode * Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRo
     {
         clk2 = clock();
         nReorders = Cudd_ReadReorderings(dd);
-        if ( Llb_NonlinQuantify2( p, pPart1, pPart2, Limit ) )
+        if ( !Llb_NonlinQuantify2( p, pPart1, pPart2, Limit, TimeOut ) )
         {
             Llb_NonlinFree( p );
             return NULL;

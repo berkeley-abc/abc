@@ -63,15 +63,16 @@ DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut )
             continue;
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
-        pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );          Cudd_Ref( (DdNode *)pObj->pData );
-
-        if ( i % 10 == 0 && TimeOut && clock() >= TimeOut )
+        pObj->pData = Extra_bddAndTime( dd, bBdd0, bBdd1, TimeOut );
+        if ( pObj->pData == NULL )
         {
-            Vec_PtrForEachEntryStop( Aig_Obj_t *, vNodes, pObj, k, i+1 )
-                Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
+            Vec_PtrForEachEntryStop( Aig_Obj_t *, vNodes, pObj, k, i )
+                if ( pObj->pData )
+                    Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
             Vec_PtrFree( vNodes );
             return NULL;
         }
+        Cudd_Ref( (DdNode *)pObj->pData );
     }
     // quantify PIs of each PO
     bResult = Cudd_ReadLogicZero( dd );  Cudd_Ref( bResult );
@@ -112,8 +113,7 @@ DdNode * Llb_BddQuantifyPis( Aig_Man_t * pInit, DdManager * dd, DdNode * bFunc )
     assert( Cudd_ReadSize(dd) == Aig_ManPiNum(pInit) );
     // create PI cube
     bCube = Cudd_ReadOne( dd );  Cudd_Ref( bCube );
-    Saig_ManForEachPi( pInit, pObj, i )
-    {
+    Saig_ManForEachPi( pInit, pObj, i )    {
         bVar  = Cudd_bddIthVar( dd, Aig_ManRegNum(pInit) + i );
         bCube = Cudd_bddAnd( dd, bTemp = bCube, bVar );  Cudd_Ref( bCube );
         Cudd_RecursiveDeref( dd, bTemp );
