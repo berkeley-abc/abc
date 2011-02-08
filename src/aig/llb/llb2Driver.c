@@ -157,7 +157,7 @@ DdNode * Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager 
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs )
+DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, int TimeTarget )
 {
     int fVerbose = 1;
     DdManager * dd;
@@ -166,6 +166,7 @@ DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs )
     int i;
     dd = Cudd_Init( Aig_ManObjNumMax(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );
+    dd->TimeStop = TimeTarget;
     bRes = Cudd_ReadOne(dd);                                   Cudd_Ref( bRes );
 
     // mark the duplicated flop inputs
@@ -179,7 +180,15 @@ DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs )
             bVar2 = Cudd_ReadOne(dd);
         bVar2 = Cudd_NotCond( bVar2, Aig_ObjFaninC0(pObj) );
         bProd = Cudd_bddXnor( dd, bVar1, bVar2 );              Cudd_Ref( bProd );
-        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd );        Cudd_Ref( bRes );
+//        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd );        Cudd_Ref( bRes );
+        bRes  = Extra_bddAndTime( dd, bTemp = bRes, bProd, TimeTarget );  
+        if ( bRes == NULL )
+        {
+            Cudd_RecursiveDeref( dd, bTemp );
+            Cudd_RecursiveDeref( dd, bProd );
+            return NULL;
+        }        
+        Cudd_Ref( bRes );
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bProd );
     }
@@ -196,6 +205,7 @@ DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs )
 //    Cudd_RecursiveDeref( dd, bRes );
 //    Extra_StopManager( dd );
     dd->bFunc = bRes;
+    dd->TimeStop = 0;
     return dd;
 }
 

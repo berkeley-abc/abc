@@ -207,22 +207,35 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     int * pGlo2Loc  = p->pPars->fBackward? Vec_IntArray( p->vGlo2Ns ) : Vec_IntArray( p->vGlo2Cs );
     DdNode * bCurrent, * bReached, * bNext, * bTemp;
     int clk2, clk = clock(), nIters, nBddSize, iOutFail = -1;
-
+/*
     // compute time to stop
     if ( p->pPars->TimeLimit )
         p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
     else
         p->pPars->TimeTarget = 0;
+*/
+
+    if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
+    {
+        if ( !p->pPars->fSilent )
+            printf( "Reached timeout (%d seconds) before image computation.\n", p->pPars->TimeLimit );
+        return -1;
+    }
+
+    // set the stop time parameter
+    p->dd->TimeStop  = p->pPars->TimeTarget;
+    p->ddG->TimeStop = p->pPars->TimeTarget;
+    p->ddR->TimeStop = p->pPars->TimeTarget;
 
     // compute initial states
     if ( p->pPars->fBackward )
     {
         // create init state in the global manager
-        bTemp = Llb_BddComputeBad( p->pInit, p->ddR, p->pPars->TimeLimit );   
+        bTemp = Llb_BddComputeBad( p->pInit, p->ddR, p->pPars->TimeTarget );   
         if ( bTemp == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                printf( "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
             return -1;
         }
         Cudd_Ref( bTemp );
@@ -238,11 +251,11 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     else
     {
         // create bad state in the ring manager
-        p->ddR->bFunc = Llb_BddComputeBad( p->pInit, p->ddR, p->pPars->TimeLimit );  
+        p->ddR->bFunc = Llb_BddComputeBad( p->pInit, p->ddR, p->pPars->TimeTarget );  
         if ( p->ddR->bFunc == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                printf( "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
             return -1;
         }
         if ( p->ddR->bFunc == NULL )
@@ -263,7 +276,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
+                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             Cudd_RecursiveDeref( p->ddG, bReached );  bReached = NULL;
@@ -300,7 +313,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
+                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );   bCurrent = NULL;
             Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
@@ -311,10 +324,23 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
 //Extra_bddPrintSupport( p->dd, bNext ); printf( "\n" );
 
         // remap these states into the global manager
-        bNext = Extra_TransferPermute( p->dd, p->ddG, bTemp = bNext, pLoc2Glo );    Cudd_Ref( bNext );
-        Cudd_RecursiveDeref( p->dd, bTemp );
-        nBddSize = Cudd_DagSize(bNext);
+//        bNext = Extra_TransferPermute( p->dd, p->ddG, bTemp = bNext, pLoc2Glo );    Cudd_Ref( bNext );
+//        Cudd_RecursiveDeref( p->dd, bTemp );
 
+        bNext = Extra_TransferPermuteTime( p->dd, p->ddG, bTemp = bNext, pLoc2Glo, p->pPars->TimeTarget );    
+        if ( bNext == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->dd,  bTemp );  
+            Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
+            return -1;
+        }
+        Cudd_Ref( bNext );
+        Cudd_RecursiveDeref( p->dd, bTemp );  
+
+        nBddSize = Cudd_DagSize(bNext);
         // check if there are any new states
         if ( Cudd_bddLeq( p->ddG, bNext, bReached ) ) // implication = no new states
         {
@@ -324,8 +350,22 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
 
         // get the new states
         bCurrent = Cudd_bddAnd( p->ddG, bNext, Cudd_Not(bReached) );                    Cudd_Ref( bCurrent );
+
         // remap these states into the current state vars
-        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bTemp = bCurrent, pGlo2Loc );   Cudd_Ref( bCurrent );
+//        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bTemp = bCurrent, pGlo2Loc );   Cudd_Ref( bCurrent );
+//        Cudd_RecursiveDeref( p->ddG, bTemp );
+
+        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, bTemp = bCurrent, pGlo2Loc, p->pPars->TimeTarget );    
+        if ( bCurrent == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->ddG, bTemp );  
+            Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
+            return -1;
+        }
+        Cudd_Ref( bCurrent );
         Cudd_RecursiveDeref( p->ddG, bTemp );
 
         // add to the reached states
@@ -449,7 +489,7 @@ int Llb_CoreReachability( Llb_Img_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Llb_CoreConstructAll( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Int_t * vVarsNs )
+Vec_Ptr_t * Llb_CoreConstructAll( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Int_t * vVarsNs, int TimeTarget )
 {
     DdManager * dd;
     Vec_Ptr_t * vDdMans;
@@ -459,9 +499,22 @@ Vec_Ptr_t * Llb_CoreConstructAll( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Int_t 
     Vec_PtrForEachEntryReverse( Vec_Ptr_t *, vResult, vLower, i )
     {
         if ( i < Vec_PtrSize(vResult) - 1 )
-            dd = Llb_ImgPartition( p, vLower, vUpper );
+            dd = Llb_ImgPartition( p, vLower, vUpper, TimeTarget );
         else
-            dd = Llb_DriverLastPartition( p, vVarsNs );
+            dd = Llb_DriverLastPartition( p, vVarsNs, TimeTarget );
+        if ( dd == NULL )
+        {
+            Vec_PtrForEachEntry( DdManager *, vDdMans, dd, i )
+            {
+                if ( dd == NULL )
+                    continue;
+                if ( dd->bFunc )
+                    Cudd_RecursiveDeref( dd, dd->bFunc );
+                Extra_StopManager( dd );
+            }
+            Vec_PtrFree( vDdMans );
+            return NULL;
+        }
         Vec_PtrWriteEntry( vDdMans, i, dd );
         vUpper = vLower;
     }
@@ -557,6 +610,7 @@ void Llb_CoreStop( Llb_Img_t * p )
     DdManager * dd;
     DdNode * bTemp;
     int i;
+    if ( p->vDdMans )
     Vec_PtrForEachEntry( DdManager *, p->vDdMans, dd, i )
     {
         if ( dd->bFunc )
@@ -565,7 +619,7 @@ void Llb_CoreStop( Llb_Img_t * p )
             Cudd_RecursiveDeref( dd, dd->bFunc2 );
         Extra_StopManager( dd );
     }
-    Vec_PtrFree( p->vDdMans );
+    Vec_PtrFreeP( &p->vDdMans );
     if ( p->ddR->bFunc )
         Cudd_RecursiveDeref( p->ddR, p->ddR->bFunc );
     Vec_PtrForEachEntry( DdNode *, p->vRings, bTemp, i )
@@ -595,14 +649,21 @@ void Llb_CoreStop( Llb_Img_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult )
+int Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, int TimeTarget )
 {
     int RetValue;
     Llb_Img_t * p;
 //    printf( "\n" );
 //    pPars->fVerbose = 1;
     p = Llb_CoreStart( pInit, pAig, pPars );
-    p->vDdMans = Llb_CoreConstructAll( pAig, vResult, p->vVarsNs );
+    p->vDdMans = Llb_CoreConstructAll( pAig, vResult, p->vVarsNs, TimeTarget );
+    if ( p->vDdMans == NULL )
+    {
+        if ( !pPars->fSilent )
+            printf( "Reached timeout (%d seconds) while deriving the partitions.\n", pPars->TimeLimit );
+        Llb_CoreStop( p );
+        return -1;
+    }
     RetValue = Llb_CoreReachability( p );
     Llb_CoreStop( p );
     return RetValue;
@@ -625,6 +686,13 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     Vec_Ptr_t * vResult;
     Aig_Man_t * p;
     int RetValue = -1;
+    int clk = clock();
+
+    // compute time to stop
+    if ( pPars->TimeLimit )
+        pPars->TimeTarget = clock() + pPars->TimeLimit * CLOCKS_PER_SEC;
+    else
+        pPars->TimeTarget = 0;
 
     p = Aig_ManDupFlopsOnly( pAig );
 //Aig_ManShow( p, 0, NULL );
@@ -635,13 +703,29 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     Aig_ManFanoutStart( p );
 
     vResult = Llb_ManComputeCuts( p, pPars->nPartValue, pPars->fVerbose, pPars->fVeryVerbose );
-    if ( !pPars->fSkipReach )
-        RetValue = Llb_CoreExperiment( pAig, p, pPars, vResult );
-    Vec_VecFree( (Vec_Vec_t *)vResult );
 
+    if ( pPars->TimeLimit && clock() >= pPars->TimeTarget )
+    {
+        if ( !pPars->fSilent )
+            printf( "Reached timeout (%d seconds) after partitioning.\n", pPars->TimeLimit );
+
+        Vec_VecFree( (Vec_Vec_t *)vResult );
+        Aig_ManFanoutStop( p );
+        Aig_ManCleanMarkAB( p );
+        Aig_ManStop( p );
+        return RetValue;
+    }
+
+    if ( !pPars->fSkipReach )
+        RetValue = Llb_CoreExperiment( pAig, p, pPars, vResult, pPars->TimeTarget );
+
+    Vec_VecFree( (Vec_Vec_t *)vResult );
     Aig_ManFanoutStop( p );
     Aig_ManCleanMarkAB( p );
     Aig_ManStop( p );
+
+    if ( RetValue == -1 )
+        Abc_PrintTime( 1, "Total runtime of the min-cut-based reachability engine", clock() - clk );
     return RetValue;
 }
 

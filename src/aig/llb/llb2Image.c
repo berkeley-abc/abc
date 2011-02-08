@@ -179,7 +179,7 @@ void Llb_ImgSchedule( Vec_Ptr_t * vSupps, Vec_Ptr_t ** pvQuant0, Vec_Ptr_t ** pv
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper )
+DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUpper, int TimeTarget )
 {
     Vec_Ptr_t * vNodes, * vRange;
     Aig_Obj_t * pObj;
@@ -189,6 +189,7 @@ DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUp
 
     dd = Cudd_Init( Aig_ManObjNumMax(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+    dd->TimeStop = TimeTarget;
 
     Vec_PtrForEachEntry( Aig_Obj_t *, vLower, pObj, i )
         pObj->pData = Cudd_bddIthVar( dd, Aig_ObjId(pObj) );
@@ -198,7 +199,15 @@ DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUp
     {
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
-        pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );   Cudd_Ref( (DdNode *)pObj->pData );
+//        pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );   Cudd_Ref( (DdNode *)pObj->pData );
+        pObj->pData = Extra_bddAndTime( dd, bBdd0, bBdd1, TimeTarget );  
+        if ( pObj->pData == NULL )
+        {
+            Cudd_Quit( dd );
+            Vec_PtrFree( vNodes );
+            return NULL;
+        }
+        Cudd_Ref( (DdNode *)pObj->pData );
     }
 
     vRange = Llb_ManCutRange( p, vLower, vUpper );
@@ -207,7 +216,16 @@ DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUp
     {
         assert( Aig_ObjIsNode(pObj) );
         bProd = Cudd_bddXnor( dd, Cudd_bddIthVar(dd, Aig_ObjId(pObj)), (DdNode *)pObj->pData );   Cudd_Ref( bProd );
-        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd ); Cudd_Ref( bRes );
+//        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd ); Cudd_Ref( bRes );
+        bRes  = Extra_bddAndTime( dd, bTemp = bRes, bProd, TimeTarget );  
+        if ( bRes == NULL )
+        {
+            Cudd_Quit( dd );
+            Vec_PtrFree( vRange );
+            Vec_PtrFree( vNodes );
+            return NULL;
+        }        
+        Cudd_Ref( bRes );
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bProd );
     }
@@ -220,6 +238,7 @@ DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUp
 //    Cudd_RecursiveDeref( dd, bRes );
 //    Extra_StopManager( dd );
     dd->bFunc = bRes;
+    dd->TimeStop = 0;
     return dd;
 }
 
@@ -373,7 +392,17 @@ if ( fVerbose )
 printf( "Pt0 =%6d. Pt1 =%6d. ", Cudd_DagSize(ddPart->bFunc), Cudd_DagSize(bGroup) );
         // perform partial product
         bCube  = Llb_ImgComputeCube( pAig, (Vec_Int_t *)Vec_PtrEntry(vQuant1, i+1), dd ); Cudd_Ref( bCube );
-        bImage = Cudd_bddAndAbstract( dd, bTemp = bImage, bGroup, bCube );                Cudd_Ref( bImage );
+//        bImage = Cudd_bddAndAbstract( dd, bTemp = bImage, bGroup, bCube );                
+        bImage = Extra_bddAndAbstractTime( dd, bTemp = bImage, bGroup, bCube, TimeTarget );  
+        if ( bImage == NULL )
+        {
+            Cudd_RecursiveDeref( dd, bTemp );
+            Cudd_RecursiveDeref( dd, bCube );
+            Cudd_RecursiveDeref( dd, bGroup );
+            return NULL;
+        }
+        Cudd_Ref( bImage );
+
 if ( fVerbose )
 printf( "Im0 =%6d. Im1 =%6d. ", Cudd_DagSize(bTemp), Cudd_DagSize(bImage) );
 //printf("\n"); Extra_bddPrintSupport(dd, bImage); printf("\n");
@@ -384,12 +413,6 @@ printf( "Im0 =%6d. Im1 =%6d. ", Cudd_DagSize(bTemp), Cudd_DagSize(bImage) );
 //        Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 100 );
 //        Abc_Print( 1, "Reo =%6d.  ", Cudd_DagSize(bImage) );
 
-        // chech runtime
-        if ( TimeTarget && clock() >= TimeTarget )
-        {
-            Cudd_RecursiveDeref( dd, bImage );
-            return NULL;
-        }
 if ( fVerbose )
 printf( "Supp =%3d. ", Cudd_SupportSize(dd, bImage) );
 if ( fVerbose )
