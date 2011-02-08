@@ -427,7 +427,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
+                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             return -1;
@@ -484,7 +484,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
-                printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
+                printf( "Reached timeout (%d seconds) during image computation in quantification.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             return -1;
@@ -530,7 +530,16 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         // transfer to the state manager
         clk3 = clock();
         Cudd_RecursiveDeref( p->ddG, p->ddG->bFunc2 );
-        p->ddG->bFunc2 = Extra_TransferPermute( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo) );    Cudd_Ref( p->ddG->bFunc2 );
+        p->ddG->bFunc2 = Extra_TransferPermuteTime( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo), p->pPars->TimeTarget );    
+        if ( p->ddG->bFunc2 == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->dd,  bNext );  
+            return -1;
+        }
+        Cudd_Ref( p->ddG->bFunc2 );
         Cudd_RecursiveDeref( p->dd, bNext );
         p->timeTran1 += clock() - clk3;
 
@@ -552,7 +561,15 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
 
         // move new states to the working manager
         clk3 = clock();
-        bCurrent = Extra_TransferPermute( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs) ); Cudd_Ref( bCurrent );
+        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs), p->pPars->TimeTarget ); 
+        if ( bCurrent == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            return -1;
+        }
+        Cudd_Ref( bCurrent );
         p->timeTran2 += clock() - clk3;
 
         // report the results

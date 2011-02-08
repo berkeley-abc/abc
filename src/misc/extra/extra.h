@@ -265,6 +265,7 @@ extern DdNode *     extraZddSelectOneSubset( DdManager * dd, DdNode * zS );
 
 extern DdNode *    Extra_bddAndTime( DdManager * dd, DdNode * f, DdNode * g, int TimeOut );
 extern DdNode *    Extra_bddAndAbstractTime( DdManager * manager, DdNode * f, DdNode * g, DdNode * cube, int TimeOut );
+extern DdNode *    Extra_TransferPermuteTime( DdManager * ddSource, DdManager * ddDestination, DdNode * f, int * Permute, int TimeOut );
 
 /*=== extraBddUnate.c =================================================================*/
 

@@ -25,6 +25,8 @@ ABC_NAMESPACE_IMPL_START
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
 
+#define CHECK_FACTOR 10
+
 /*---------------------------------------------------------------------------*/
 /* Stucture declarations                                                     */
 /*---------------------------------------------------------------------------*/
@@ -53,6 +55,8 @@ ABC_NAMESPACE_IMPL_START
 
 static DdNode * cuddBddAndRecurTime( DdManager * manager, DdNode * f, DdNode * g, int * pRecCalls, int TimeOut );
 static DdNode * cuddBddAndAbstractRecurTime( DdManager * manager, DdNode * f, DdNode * g, DdNode * cube, int * pRecCalls, int TimeOut );
+static DdNode * extraTransferPermuteTime( DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute, int TimeOut );
+static DdNode * extraTransferPermuteRecurTime( DdManager * ddS, DdManager * ddD, DdNode * f, st_table * table, int * Permute, int TimeOut );
 
 /**AutomaticEnd***************************************************************/
 
@@ -91,7 +95,7 @@ Extra_bddAndTime(
     } while (dd->reordered == 1);
     return(res);
 
-} /* end of Cudd_bddAnd */
+} /* end of Extra_bddAndTime */
 
 /**Function********************************************************************
 
@@ -126,8 +130,35 @@ Extra_bddAndAbstractTime(
     } while (manager->reordered == 1);
     return(res);
 
-} /* end of Cudd_bddAndAbstract */
+} /* end of Extra_bddAndAbstractTime */
 
+/**Function********************************************************************
+
+  Synopsis    [Convert a {A,B}DD from a manager to another with variable remapping.]
+
+  Description [Convert a {A,B}DD from a manager to another one. The orders of the
+  variables in the two managers may be different. Returns a
+  pointer to the {A,B}DD in the destination manager if successful; NULL
+  otherwise. The i-th entry in the array Permute tells what is the index
+  of the i-th variable from the old manager in the new manager.]
+
+  SideEffects [None]
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_TransferPermuteTime( DdManager * ddSource, DdManager * ddDestination, DdNode * f, int * Permute, int TimeOut )
+{
+    DdNode * bRes;
+    do
+    {
+        ddDestination->reordered = 0;
+        bRes = extraTransferPermuteTime( ddSource, ddDestination, f, Permute, TimeOut );
+    }
+    while ( ddDestination->reordered == 1 );
+    return ( bRes );
+
+} /* end of Extra_TransferPermuteTime */
 
 
 /*---------------------------------------------------------------------------*/
@@ -193,7 +224,8 @@ cuddBddAndRecurTime(
     if (r != NULL) return(r);
     }
 
-    if ( TimeOut && ((*pRecCalls)++ % 10) == 0 && TimeOut < clock() )
+//    if ( TimeOut && ((*pRecCalls)++ % CHECK_FACTOR) == 0 && TimeOut < clock() )
+    if ( TimeOut && TimeOut < clock() )
         return NULL;
 
     /* Here we can skip the use of cuddI, because the operands are known
@@ -346,7 +378,8 @@ cuddBddAndAbstractRecurTime(
     }
     }
 
-    if ( TimeOut && ((*pRecCalls)++ % 10) == 0 && TimeOut < clock() )
+//    if ( TimeOut && ((*pRecCalls)++ % CHECK_FACTOR) == 0 && TimeOut < clock() )
+    if ( TimeOut && TimeOut < clock() )
         return NULL;
 
     if (topf == top) {
@@ -464,6 +497,161 @@ cuddBddAndAbstractRecurTime(
 /* Definition of static functions                                            */
 /*---------------------------------------------------------------------------*/
 
+/**Function********************************************************************
+
+  Synopsis    [Convert a BDD from a manager to another one.]
+
+  Description [Convert a BDD from a manager to another one. Returns a
+  pointer to the BDD in the destination manager if successful; NULL
+  otherwise.]
+
+  SideEffects [None]
+
+  SeeAlso     [Extra_TransferPermute]
+
+******************************************************************************/
+DdNode * extraTransferPermuteTime( DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute, int TimeOut )
+{
+    DdNode *res;
+    st_table *table = NULL;
+    st_generator *gen = NULL;
+    DdNode *key, *value;
+
+    table = st_init_table( st_ptrcmp, st_ptrhash );
+    if ( table == NULL )
+        goto failure;
+    res = extraTransferPermuteRecurTime( ddS, ddD, f, table, Permute, TimeOut );
+    if ( res != NULL )
+        cuddRef( res );
+
+    /* Dereference all elements in the table and dispose of the table.
+       ** This must be done also if res is NULL to avoid leaks in case of
+       ** reordering. */
+    gen = st_init_gen( table );
+    if ( gen == NULL )
+        goto failure;
+    while ( st_gen( gen, ( const char ** ) &key, ( char ** ) &value ) )
+    {
+        Cudd_RecursiveDeref( ddD, value );
+    }
+    st_free_gen( gen );
+    gen = NULL;
+    st_free_table( table );
+    table = NULL;
+
+    if ( res != NULL )
+        cuddDeref( res );
+    return ( res );
+
+  failure:
+    if ( table != NULL )
+        st_free_table( table );
+    if ( gen != NULL )
+        st_free_gen( gen );
+    return ( NULL );
+
+} /* end of extraTransferPermuteTime */
+
+
+/**Function********************************************************************
+
+  Synopsis    [Performs the recursive step of Extra_TransferPermute.]
+
+  Description [Performs the recursive step of Extra_TransferPermute.
+  Returns a pointer to the result if successful; NULL otherwise.]
+
+  SideEffects [None]
+
+  SeeAlso     [extraTransferPermuteTime]
+
+******************************************************************************/
+static DdNode * 
+extraTransferPermuteRecurTime( 
+  DdManager * ddS, 
+  DdManager * ddD, 
+  DdNode * f, 
+  st_table * table, 
+  int * Permute,
+  int TimeOut )
+{
+    DdNode *ft, *fe, *t, *e, *var, *res;
+    DdNode *one, *zero;
+    int index;
+    int comple = 0;
+
+    statLine( ddD );
+    one = DD_ONE( ddD );
+    comple = Cudd_IsComplement( f );
+
+    /* Trivial cases. */
+    if ( Cudd_IsConstant( f ) )
+        return ( Cudd_NotCond( one, comple ) );
+
+
+    /* Make canonical to increase the utilization of the cache. */
+    f = Cudd_NotCond( f, comple );
+    /* Now f is a regular pointer to a non-constant node. */
+
+    /* Check the cache. */
+    if ( st_lookup( table, ( char * ) f, ( char ** ) &res ) )
+        return ( Cudd_NotCond( res, comple ) );
+
+    if ( TimeOut && TimeOut < clock() )
+        return NULL;
+
+    /* Recursive step. */
+    if ( Permute )
+        index = Permute[f->index];
+    else
+        index = f->index;
+
+    ft = cuddT( f );
+    fe = cuddE( f );
+
+    t = extraTransferPermuteRecurTime( ddS, ddD, ft, table, Permute, TimeOut );
+    if ( t == NULL )
+    {
+        return ( NULL );
+    }
+    cuddRef( t );
+
+    e = extraTransferPermuteRecurTime( ddS, ddD, fe, table, Permute, TimeOut );
+    if ( e == NULL )
+    {
+        Cudd_RecursiveDeref( ddD, t );
+        return ( NULL );
+    }
+    cuddRef( e );
+
+    zero = Cudd_Not(ddD->one);
+    var = cuddUniqueInter( ddD, index, one, zero );
+    if ( var == NULL )
+    {
+        Cudd_RecursiveDeref( ddD, t );
+        Cudd_RecursiveDeref( ddD, e );
+        return ( NULL );
+    }
+    res = cuddBddIteRecur( ddD, var, t, e );
+
+    if ( res == NULL )
+    {
+        Cudd_RecursiveDeref( ddD, t );
+        Cudd_RecursiveDeref( ddD, e );
+        return ( NULL );
+    }
+    cuddRef( res );
+    Cudd_RecursiveDeref( ddD, t );
+    Cudd_RecursiveDeref( ddD, e );
+
+    if ( st_add_direct( table, ( char * ) f, ( char * ) res ) ==
+         ST_OUT_OF_MEM )
+    {
+        Cudd_RecursiveDeref( ddD, res );
+        return ( NULL );
+    }
+    return ( Cudd_NotCond( res, comple ) );
+
+}  /* end of extraTransferPermuteRecurTime */
 
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
