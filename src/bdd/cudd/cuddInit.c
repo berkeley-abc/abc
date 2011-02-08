@@ -176,6 +176,7 @@ Cudd_Init(
 
     unique->bFunc = NULL;
     unique->bFunc2 = NULL;
+    unique->TimeStop = 0;
     return(unique);
 
 } /* end of Cudd_Init */
