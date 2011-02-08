@@ -401,6 +401,10 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
     else
         p->pPars->TimeTarget = 0;
+    // set the stop time parameter
+    p->dd->TimeStop  = p->pPars->TimeTarget;
+    p->ddG->TimeStop = p->pPars->TimeTarget;
+    p->ddR->TimeStop = p->pPars->TimeTarget;
 
     // set reordering hooks
     assert( p->dd->bFunc == NULL );

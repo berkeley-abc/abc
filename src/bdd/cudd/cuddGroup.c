@@ -110,11 +110,11 @@ static int originalLevel;
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static int ddTreeSiftingAux ARGS((DdManager *table, MtrNode *treenode, Cudd_ReorderingType method));
+static int ddTreeSiftingAux ARGS((DdManager *table, MtrNode *treenode, Cudd_ReorderingType method, int TimeStop));
 #ifdef DD_STATS
 static int ddCountInternalMtrNodes ARGS((DdManager *table, MtrNode *treenode));
 #endif
-static int ddReorderChildren ARGS((DdManager *table, MtrNode *treenode, Cudd_ReorderingType method));
+static int ddReorderChildren ARGS((DdManager *table, MtrNode *treenode, Cudd_ReorderingType method, int  TimeStop));
 static void ddFindNodeHiLo ARGS((DdManager *table, MtrNode *treenode, int *lower, int *upper));
 static int ddUniqueCompareGroup ARGS((int *ptrX, int *ptrY));
 static int ddGroupSifting ARGS((DdManager *table, int lower, int upper, int (*checkFunction)(DdManager *, int, int), int lazyFlag));
@@ -231,7 +231,8 @@ Cudd_MakeTreeNode(
 int
 cuddTreeSifting(
   DdManager * table /* DD table */,
-  Cudd_ReorderingType method /* reordering method for the groups of leaves */)
+  Cudd_ReorderingType method /* reordering method for the groups of leaves */,
+  int  TimeStop)
 {
     int i;
     int nvars;
@@ -276,7 +277,7 @@ cuddTreeSifting(
 
 
     /* Reorder. */
-    result = ddTreeSiftingAux(table, table->tree, method);
+    result = ddTreeSiftingAux(table, table->tree, method, TimeStop);
 
 #ifdef DD_STATS        /* print stats */
     if (!tempTree && method == CUDD_REORDER_GROUP_SIFT &&
@@ -319,7 +320,8 @@ static int
 ddTreeSiftingAux(
   DdManager * table,
   MtrNode * treenode,
-  Cudd_ReorderingType method)
+  Cudd_ReorderingType method,
+  int  TimeStop)
 {
     MtrNode  *auxnode;
     int res;
@@ -332,20 +334,20 @@ ddTreeSiftingAux(
     auxnode = treenode;
     while (auxnode != NULL) {
     if (auxnode->child != NULL) {
-        if (!ddTreeSiftingAux(table, auxnode->child, method))
+        if (!ddTreeSiftingAux(table, auxnode->child, method, TimeStop))
         return(0);
         saveCheck = table->groupcheck;
         table->groupcheck = CUDD_NO_CHECK;
         if (method != CUDD_REORDER_LAZY_SIFT)
-          res = ddReorderChildren(table, auxnode, CUDD_REORDER_GROUP_SIFT);
+          res = ddReorderChildren(table, auxnode, CUDD_REORDER_GROUP_SIFT, TimeStop);
         else
-          res = ddReorderChildren(table, auxnode, CUDD_REORDER_LAZY_SIFT);
+          res = ddReorderChildren(table, auxnode, CUDD_REORDER_LAZY_SIFT, TimeStop);
         table->groupcheck = saveCheck;
 
         if (res == 0)
         return(0);
     } else if (auxnode->size > 1) {
-        if (!ddReorderChildren(table, auxnode, method))
+        if (!ddReorderChildren(table, auxnode, method, TimeStop))
         return(0);
     }
     auxnode = auxnode->younger;
@@ -411,7 +413,8 @@ static int
 ddReorderChildren(
   DdManager * table,
   MtrNode * treenode,
-  Cudd_ReorderingType method)
+  Cudd_ReorderingType method,
+  int  TimeStop)
 {
     int lower;
     int upper;
@@ -450,7 +453,7 @@ ddReorderChildren(
         } while (result != 0);
         break;
     case CUDD_REORDER_SYMM_SIFT:
-        result = cuddSymmSifting(table,lower,upper);
+        result = cuddSymmSifting(table,lower,upper,TimeStop);
         break;
     case CUDD_REORDER_SYMM_SIFT_CONV:
         result = cuddSymmSiftingConv(table,lower,upper);

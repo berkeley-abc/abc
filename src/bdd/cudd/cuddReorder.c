@@ -158,6 +158,7 @@ Cudd_ReduceHeap(
     unsigned int finalSize;
 #endif
     long localTime;
+    int TimeStop = table->TimeStop;
 
     /* Don't reorder if there are too many dead nodes. */
     if (table->keys - table->dead < (unsigned) minsize)
@@ -239,10 +240,10 @@ Cudd_ReduceHeap(
     if (table->reordCycle && table->reorderings % table->reordCycle == 0) {
     double saveGrowth = table->maxGrowth;
     table->maxGrowth = table->maxGrowthAlt;
-    result = cuddTreeSifting(table,heuristic);
+    result = cuddTreeSifting(table,heuristic,TimeStop);
     table->maxGrowth = saveGrowth;
     } else {
-    result = cuddTreeSifting(table,heuristic);
+    result = cuddTreeSifting(table,heuristic,TimeStop);
     }
 
 #ifdef DD_STATS

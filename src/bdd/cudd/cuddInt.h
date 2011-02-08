@@ -431,16 +431,17 @@ struct DdManager {    /* specialized DD symbol table */
 #endif
 #ifdef DD_MIS
     /* mis/verif compatibility fields */
-    array_t *iton;        /* maps ids in ddNode to node_t */
-    array_t *order;        /* copy of order_list */
+    array_t *iton;            /* maps ids in ddNode to node_t */
+    array_t *order;             /* copy of order_list */
     lsHandle handle;        /* where it is in network BDD list */
     network_t *network;
-    st_table *local_order;    /* for local BDDs */
-    int nvars;            /* variables used so far */
-    int threshold;        /* for pseudo var threshold value*/
+    st_table *local_order;  /* for local BDDs */
+    int nvars;                /* variables used so far */
+    int threshold;            /* for pseudo var threshold value*/
 #endif
     DdNode * bFunc;
     DdNode * bFunc2;
+    int TimeStop;           /* timeout for reordering */
 };
 
 typedef struct Move {
@@ -1016,7 +1017,7 @@ EXTERN DdNode * cuddAddConstrainRecur ARGS((DdManager *dd, DdNode *f, DdNode *c)
 EXTERN DdNode * cuddAddRestrictRecur ARGS((DdManager *dd, DdNode *f, DdNode *c));
 EXTERN DdNode * cuddBddLICompaction ARGS((DdManager *dd, DdNode *f, DdNode *c));
 EXTERN int cuddGa ARGS((DdManager *table, int lower, int upper));
-EXTERN int cuddTreeSifting ARGS((DdManager *table, Cudd_ReorderingType method));
+EXTERN int cuddTreeSifting ARGS((DdManager *table, Cudd_ReorderingType method, int TimeStop));
 EXTERN int cuddZddInitUniv ARGS((DdManager *zdd));
 EXTERN void cuddZddFreeUniv ARGS((DdManager *zdd));
 EXTERN void cuddSetInteract ARGS((DdManager *table, int x, int y));
@@ -1071,7 +1072,7 @@ EXTERN DdNode* cuddSplitSetRecur ARGS((DdManager *manager, st_table *mtable, int
 EXTERN DdNode * cuddSubsetHeavyBranch ARGS((DdManager *dd, DdNode *f, int numVars, int threshold));
 EXTERN DdNode * cuddSubsetShortPaths ARGS((DdManager *dd, DdNode *f, int numVars, int threshold, int hardlimit));
 EXTERN int cuddSymmCheck ARGS((DdManager *table, int x, int y));
-EXTERN int cuddSymmSifting ARGS((DdManager *table, int lower, int upper));
+EXTERN int cuddSymmSifting ARGS((DdManager *table, int lower, int upper, int TimeStop));
 EXTERN int cuddSymmSiftingConv ARGS((DdManager *table, int lower, int upper));
 EXTERN DdNode * cuddAllocNode ARGS((DdManager *unique));
 EXTERN DdManager * cuddInitTable ARGS((unsigned int numVars, unsigned int numVarsZ, unsigned int numSlots, unsigned int looseUpTo));
