@@ -28,6 +28,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+//#define USE_LUTSIZE_BALANCE
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -114,7 +116,7 @@ Vec_Ptr_t * Dar_BalanceCone( Aig_Obj_t * pObj, Vec_Vec_t * vStore, int Level )
     Vec_PtrClear( vNodes );
     // collect the nodes in the implication supergate
     RetValue = Dar_BalanceCone_rec( pObj, pObj, vNodes );
-    assert( vNodes->nSize > 1 );
+    assert( RetValue != 0 || vNodes->nSize > 1 );
     // unmark the visited nodes
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_Regular(pObj)->fMarkB = 0;
@@ -316,6 +318,76 @@ Aig_Obj_t * Dar_BalanceBuildSuper( Aig_Man_t * p, Vec_Ptr_t * vSuper, Aig_Type_t
     return (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0);
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns affective support size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_BaseSize( Aig_Man_t * p, Aig_Obj_t * pObj, int nLutSize )
+{
+    int nBaseSize;
+    pObj = Aig_Regular(pObj);
+    if ( Aig_ObjIsConst1(pObj) )
+        return 0;
+    if ( Aig_ObjLevel(pObj) >= nLutSize )
+        return 1;
+    nBaseSize = Aig_SupportSize( p, pObj );
+    if ( nBaseSize >= nLutSize )
+        return 1;
+    return nBaseSize;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Builds implication supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Dar_BalanceBuildSuperTop( Aig_Man_t * p, Vec_Ptr_t * vSuper, Aig_Type_t Type, int fUpdateLevel, int nLutSize )
+{
+    Vec_Ptr_t * vSubset;
+    Aig_Obj_t * pObj;
+    int i, nBaseSizeAll, nBaseSize;
+    assert( vSuper->nSize > 1 );
+    // sort the new nodes by level in the decreasing order
+    Vec_PtrSort( vSuper, (int (*)(void))Aig_NodeCompareLevelsDecrease );
+    // add one LUT at a time
+    while ( Vec_PtrSize(vSuper) > 1 )
+    {
+        // isolate the group of nodes with nLutSize inputs
+        nBaseSizeAll = 0;
+        vSubset = Vec_PtrAlloc( nLutSize );
+        Vec_PtrForEachEntryReverse( Aig_Obj_t *, vSuper, pObj, i )
+        {
+            nBaseSize = Aig_BaseSize( p, pObj, nLutSize );
+            if ( nBaseSizeAll + nBaseSize > nLutSize && Vec_PtrSize(vSubset) > 1 )
+                break;
+            nBaseSizeAll += nBaseSize;
+            Vec_PtrPush( vSubset, pObj );
+        }
+        // remove them from vSuper
+        Vec_PtrShrink( vSuper, Vec_PtrSize(vSuper) - Vec_PtrSize(vSubset) );
+        // create the new supergate
+        pObj = Dar_BalanceBuildSuper( p, vSubset, Type, fUpdateLevel );
+        Vec_PtrFree( vSubset );
+        // add the new output
+        Dar_BalancePushUniqueOrderByLevel( vSuper, pObj );
+    }
+    return (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0);
+}
+
 /**Function*************************************************************
 
   Synopsis    [Returns the new node constructed.]
@@ -343,6 +415,8 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     // check if supergate contains two nodes in the opposite polarity
     if ( vSuper->nSize == 0 )
         return (Aig_Obj_t *)(pObjOld->pData = Aig_ManConst0(pNew));
+    if ( vSuper->nSize == 1 )
+        return (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0);
     if ( Vec_PtrSize(vSuper) < 2 )
         printf( "Dar_Balance_rec: Internal error!\n" );
     // for each old node, derive the new well-balanced node
@@ -352,7 +426,11 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
         vSuper->pArray[i] = Aig_NotCond( pObjNew, Aig_IsComplement((Aig_Obj_t *)vSuper->pArray[i]) );
     }
     // build the supergate
+#ifdef USE_LUTSIZE_BALANCE
+    pObjNew = Dar_BalanceBuildSuperTop( pNew, vSuper, Aig_ObjType(pObjOld), fUpdateLevel, 6 );
+#else
     pObjNew = Dar_BalanceBuildSuper( pNew, vSuper, Aig_ObjType(pObjOld), fUpdateLevel );
+#endif
     // make sure the balanced node is not assigned
 //    assert( pObjOld->Level >= Aig_Regular(pObjNew)->Level );
     assert( pObjOld->pData == NULL );
