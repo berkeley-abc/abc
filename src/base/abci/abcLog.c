@@ -85,7 +85,7 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nF
         printf( "Abc_NtkWriteLogFile(): Cannot recognize solving status.\n" );
     fprintf( pFile, " " );
     // write <cyc>
-    fprintf( pFile, "%d", pCex ? pCex->iFrame + 1 : nFrames );
+    fprintf( pFile, "%d", pCex ? pCex->iFrame : nFrames );
     fprintf( pFile, " " );
     // write <engine_name>
     fprintf( pFile, "%s", pCommand ? pCommand : "unknown" );
