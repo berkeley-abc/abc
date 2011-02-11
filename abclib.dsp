@@ -2175,6 +2175,10 @@ SOURCE=.\src\misc\extra\extraBddSymm.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraBddTime.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraBddUnate.c
 # End Source File
 # Begin Source File
