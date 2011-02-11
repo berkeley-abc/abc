@@ -1464,6 +1464,11 @@ void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput )
 {
     Abc_Obj_t * pObj, * pConst0, * pFaninNew;
     pObj = Abc_NtkPo( pNtk, iOutput );
+    if ( Abc_ObjFanin0(pObj) == Abc_AigConst1(pNtk) && !Abc_ObjFaninC0(pObj) )
+    {
+        Abc_ObjXorFaninC( pObj, 0 );
+        return;
+    }
     pConst0 = Abc_ObjNot( Abc_AigConst1(pNtk) );
     pFaninNew = Abc_ObjNotCond( pConst0, Abc_ObjFaninC0(pObj) );
     Abc_ObjPatchFanin( pObj, Abc_ObjFanin0(pObj), pFaninNew );
