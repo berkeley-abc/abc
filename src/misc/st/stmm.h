@@ -17,9 +17,25 @@
 
 #include "extra.h"
 
-
-
 ABC_NAMESPACE_HEADER_START
+
+
+/* These are potential duplicates. */
+#ifndef EXTERN
+#   ifdef __cplusplus
+#       ifdef ABC_NAMESPACE
+#           define EXTERN extern
+#       else
+#           define EXTERN extern "C"
+#       endif
+#   else
+#       define EXTERN extern
+#   endif
+#endif
+
+#ifndef ARGS
+#define ARGS(protos) protos
+#endif
 
 typedef int (*stmm_compare_func_type)(const char*, const char*);
 typedef int (*stmm_hash_func_type)(const char*, int);

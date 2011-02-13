@@ -79,7 +79,7 @@ void
 stmm_free_table (stmm_table *table)
 {
 /*
-    register stmm_table_entry *ptr, *next;
+    stmm_table_entry *ptr, *next;
     int i;
     for ( i = 0; i < table->num_bins; i++ )
     {
@@ -131,10 +131,10 @@ stmm_clean (stmm_table *table)
     }
 
 int
-stmm_lookup (stmm_table *table, register char *key, char **value)
+stmm_lookup (stmm_table *table, char *key, char **value)
 {
     int hash_val;
-    register stmm_table_entry *ptr, **last;
+    stmm_table_entry *ptr, **last;
 
     hash_val = do_hash (key, table);
 
@@ -153,10 +153,10 @@ stmm_lookup (stmm_table *table, register char *key, char **value)
 }
 
 int
-stmm_lookup_int (stmm_table *table, register char *key, int *value)
+stmm_lookup_int (stmm_table *table, char *key, int *value)
 {
     int hash_val;
-    register stmm_table_entry *ptr, **last;
+    stmm_table_entry *ptr, **last;
 
     hash_val = do_hash (key, table);
 
@@ -197,11 +197,11 @@ stmm_lookup_int (stmm_table *table, register char *key, int *value)
 }
 
 int
-stmm_insert (register stmm_table *table, register char *key, char *value)
+stmm_insert (stmm_table *table, char *key, char *value)
 {
     int hash_val;
     stmm_table_entry *newEntry;
-    register stmm_table_entry *ptr, **last;
+    stmm_table_entry *ptr, **last;
 
     hash_val = do_hash (key, table);
 
@@ -325,9 +325,9 @@ stmm_find (stmm_table *table, char *key, char ***slot)
 }
 
 static int
-rehash (register stmm_table *table)
+rehash (stmm_table *table)
 {
-    register stmm_table_entry *ptr, *next, **old_bins;
+    stmm_table_entry *ptr, *next, **old_bins;
     int i, old_num_bins, hash_val, old_num_entries;
 
     /* save old values */
@@ -431,11 +431,11 @@ stmm_copy (stmm_table *old_table)
 }
 
 int
-stmm_delete (register stmm_table *table, register char **keyp, char **value)
+stmm_delete (stmm_table *table, char **keyp, char **value)
 {
     int hash_val;
     char *key = *keyp;
-    register stmm_table_entry *ptr, **last;
+    stmm_table_entry *ptr, **last;
 
     hash_val = do_hash (key, table);
 
@@ -457,11 +457,11 @@ stmm_delete (register stmm_table *table, register char **keyp, char **value)
 }
 
 int
-stmm_delete_int (register stmm_table *table, register long *keyp, char **value)
+stmm_delete_int (stmm_table *table, long *keyp, char **value)
 {
     int hash_val;
     char *key = (char *) *keyp;
-    register stmm_table_entry *ptr, **last;
+    stmm_table_entry *ptr, **last;
 
     hash_val = do_hash (key, table);
 
@@ -515,10 +515,10 @@ stmm_foreach (stmm_table *table, enum stmm_retval (*func) (char *, char *, char 
 }
 
 int
-stmm_strhash (register const char *string, int modulus)
+stmm_strhash (const char *string, int modulus)
 {
-    register int val = 0;
-    register int c;
+    int val = 0;
+    int c;
 
     while ((c = *string++) != '\0') {
     val = val * 997 + c;
@@ -570,7 +570,7 @@ stmm_init_gen (stmm_table *table)
 int
 stmm_gen (stmm_generator *gen, char **key_p, char **value_p)
 {
-    register int i;
+    int i;
 
     if (gen->entry == NULL) {
     /* try to find next entry */
@@ -597,7 +597,7 @@ stmm_gen (stmm_generator *gen, char **key_p, char **value_p)
 int
 stmm_gen_int (stmm_generator *gen, char **key_p, long *value_p)
 {
-    register int i;
+    int i;
 
     if (gen->entry == NULL) {
     /* try to find next entry */

@@ -14,17 +14,35 @@
 #ifndef ST_INCLUDED
 #define ST_INCLUDED
 
-
 #include "abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
+
+
+/* These are potential duplicates. */
+#ifndef EXTERN
+#   ifdef __cplusplus
+#       ifdef ABC_NAMESPACE
+#           define EXTERN extern
+#       else
+#           define EXTERN extern "C"
+#       endif
+#   else
+#       define EXTERN extern
+#   endif
+#endif
+
+#ifndef ARGS
+#define ARGS(protos) protos
+#endif
+
 
 typedef int (*st_compare_func_type)(const char*, const char*);
 typedef int (*st_hash_func_type)(const char*, int);
 
 typedef struct st_table_entry st_table_entry;
 struct st_table_entry {
-    const char *key;
+    char *key;
     char *record;
     st_table_entry *next;
 };
@@ -53,7 +71,7 @@ struct st_generator {
 
 enum st_retval {ST_CONTINUE, ST_STOP, ST_DELETE};
 
-typedef enum st_retval (*ST_PFSR)(const char *, char *, char *);
+typedef enum st_retval (*ST_PFSR)(char *, char *, char *);
 typedef int (*ST_PFI)();
 
 extern st_table *st_init_table_with_params (st_compare_func_type compare, st_hash_func_type hash, int size, int density, double grow_factor, int reorder_flag);

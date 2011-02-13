@@ -79,7 +79,7 @@ st_init_table(st_compare_func_type compare, st_hash_func_type hash)
 void
 st_free_table(st_table *table)
 {
-    register st_table_entry *ptr, *next;
+    st_table_entry *ptr, *next;
     int i;
 
     for(i = 0; i < table->num_bins ; i++) {
@@ -110,10 +110,10 @@ st_free_table(st_table *table)
     }
 
 int
-st_lookup(st_table *table, register const char *key, char **value)
+st_lookup(st_table *table, const char *key, char **value)
 {
     int hash_val;
-    register st_table_entry *ptr, **last;
+    st_table_entry *ptr, **last;
 
     hash_val = do_hash(key, table);
 
@@ -130,10 +130,10 @@ st_lookup(st_table *table, register const char *key, char **value)
 }
 
 int
-st_lookup_int(st_table *table, register char *key, int *value)
+st_lookup_int(st_table *table, char *key, int *value)
 {
     int hash_val;
-    register st_table_entry *ptr, **last;
+    st_table_entry *ptr, **last;
 
     hash_val = do_hash(key, table);
 
@@ -167,11 +167,11 @@ st_lookup_int(st_table *table, register char *key, int *value)
 }
 
 int
-st_insert(register st_table *table, register const char *key, char *value)
+st_insert(st_table *table, const char *key, char *value)
 {
     int hash_val;
     st_table_entry *newEntry;
-    register st_table_entry *ptr, **last;
+    st_table_entry *ptr, **last;
 
     hash_val = do_hash(key, table);
 
@@ -188,7 +188,7 @@ st_insert(register st_table *table, register const char *key, char *value)
     if (newEntry == NULL) {
         return ST_OUT_OF_MEM;
     }
-    newEntry->key = key;
+    newEntry->key = (char *)key;
     newEntry->record = value;
     newEntry->next = table->bins[hash_val];
     table->bins[hash_val] = newEntry;
@@ -280,9 +280,9 @@ st_find(st_table *table, char *key, char ***slot)
 }
 
 static int
-rehash(register st_table *table)
+rehash(st_table *table)
 {
-    register st_table_entry *ptr, *next, **old_bins;
+    st_table_entry *ptr, *next, **old_bins;
     int             i, old_num_bins, hash_val, old_num_entries;
 
     /* save old values */
@@ -371,11 +371,11 @@ st_copy(st_table *old_table)
 }
 
 int
-st_delete(register st_table *table, register const char **keyp, char **value)
+st_delete(st_table *table, const char **keyp, char **value)
 {
     int hash_val;
     const char *key = *keyp;
-    register st_table_entry *ptr, **last;
+    st_table_entry *ptr, **last;
 
     hash_val = do_hash(key, table);
 
@@ -394,11 +394,11 @@ st_delete(register st_table *table, register const char **keyp, char **value)
 }
 
 int
-st_delete_int(register st_table *table, register long *keyp, char **value)
+st_delete_int(st_table *table, long *keyp, char **value)
 {
     int hash_val;
     char *key = (char *) *keyp;
-    register st_table_entry *ptr, **last;
+    st_table_entry *ptr, **last;
 
     hash_val = do_hash(key, table);
 
@@ -417,7 +417,7 @@ st_delete_int(register st_table *table, register long *keyp, char **value)
 }
 
 int
-st_foreach(st_table *table, enum st_retval (*func)(const char *, char *, char *), char *arg)
+st_foreach(st_table *table, enum st_retval (*func)(char *, char *, char *), char *arg)
 {
     st_table_entry *ptr, **last;
     enum st_retval retval;
@@ -447,8 +447,8 @@ st_foreach(st_table *table, enum st_retval (*func)(const char *, char *, char *)
 int
 st_strhash(const char *string, int modulus)
 {
-    register int val = 0;
-    register int c;
+    int val = 0;
+    int c;
     
     while ((c = *string++) != '\0') {
     val = val*997 + c;
@@ -500,7 +500,7 @@ st_init_gen(st_table *table)
 int 
 st_gen(st_generator *gen, const char **key_p, char **value_p)
 {
-    register int i;
+    int i;
 
     if (gen->entry == NULL) {
     /* try to find next entry */
@@ -527,7 +527,7 @@ st_gen(st_generator *gen, const char **key_p, char **value_p)
 int 
 st_gen_int(st_generator *gen, const char **key_p, long *value_p)
 {
-    register int i;
+    int i;
 
     if (gen->entry == NULL) {
     /* try to find next entry */
