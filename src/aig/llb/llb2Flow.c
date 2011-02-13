@@ -144,7 +144,7 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
             continue;
         if ( piFirst[i] == piLast[i] )
         {
-            vMap = Vec_PtrEntry( vMaps, piFirst[i] );
+            vMap = (Vec_Int_t *)Vec_PtrEntry( vMaps, piFirst[i] );
             Vec_IntWriteEntry( vMap, pObj->Id, 2 );
             continue;
         }
@@ -152,7 +152,7 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
         // set support for all in between        
         for ( k = piFirst[i]; k <= piLast[i]; k++ )
         {
-            vMap = Vec_PtrEntry( vMaps, k );
+            vMap = (Vec_Int_t *)Vec_PtrEntry( vMaps, k );
             Vec_IntWriteEntry( vMap, pObj->Id, 1 );
         }
     }
@@ -165,8 +165,8 @@ Vec_Ptr_t * Llb_ManCutMap( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Ptr_t * vSupp
     printf( "%d ", Counter );
     Vec_PtrForEachEntryStart( Vec_Int_t *, vMaps, vMap, i, 1 )
     {
-        vPrev = Vec_PtrEntry( vMaps, i-1 );
-        vNext = (i == Vec_PtrSize(vMaps)-1)? NULL: Vec_PtrEntry( vMaps, i+1 );
+        vPrev = (Vec_Int_t *)Vec_PtrEntry( vMaps, i-1 );
+        vNext = (i == Vec_PtrSize(vMaps)-1)? NULL: (Vec_Int_t *)Vec_PtrEntry( vMaps, i+1 );
 
         CounterPlus = CounterMinus = 0;
         Aig_ManForEachObj( p, pObj, k )
@@ -1134,7 +1134,7 @@ void Llb_ManFlowGetObjSet( Aig_Man_t * p, Vec_Ptr_t * vLower, int iStart, int nS
     Vec_PtrClear( vSet );
     for ( i = 0; i < nSize; i++ )
     {
-        pObj = Vec_PtrEntry( vLower, (iStart + i) % Vec_PtrSize(vLower) );
+        pObj = (Aig_Obj_t *)Vec_PtrEntry( vLower, (iStart + i) % Vec_PtrSize(vLower) );
         Vec_PtrPush( vSet, pObj );
     }
 }
@@ -1334,7 +1334,7 @@ void Llb_ManMinCutTest( Aig_Man_t * pAig, int Num )
 {
     extern void Llb_BddConstructTest( Aig_Man_t * p, Vec_Ptr_t * vResult );
     extern void Llb_BddExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, Vec_Ptr_t * vMaps );
-    extern void Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult );
+ 
 
     int fVerbose = 1;
     Gia_ParLlb_t Pars, * pPars = &Pars;
@@ -1354,7 +1354,7 @@ void Llb_ManMinCutTest( Aig_Man_t * pAig, int Num )
 //    vMaps   = Llb_ManCutMap( p, vResult, vSupps );
 
 //    Llb_BddExperiment( pAig, p, pPars, vResult, vMaps );
-    Llb_CoreExperiment( pAig, p, pPars, vResult );
+    Llb_CoreExperiment( pAig, p, pPars, vResult, 0 );
 
 //    Vec_VecFree( (Vec_Vec_t *)vMaps );
 //    Vec_VecFree( (Vec_Vec_t *)vSupps );

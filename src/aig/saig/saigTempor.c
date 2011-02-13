@@ -69,7 +69,7 @@ Aig_Man_t * Saig_ManTemporFrames( Aig_Man_t * pAig, int nFrames )
     }
     // create POs for the flop inputs
     Saig_ManForEachLi( pAig, pObj, i )
-        Aig_ObjCreatePo( pFrames, pObj->pData );
+        Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObj->pData );
     Aig_ManCleanup( pFrames );
     return pFrames;
 }
@@ -123,7 +123,7 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
 
     // create flop output values
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_Mux( pAigNew, pReset, Aig_ObjCreatePi(pAigNew), Aig_ManPo(pFrames, i)->pData );
+        pObj->pData = Aig_Mux( pAigNew, pReset, Aig_ObjCreatePi(pAigNew), (Aig_Obj_t *)Aig_ManPo(pFrames, i)->pData );
     Aig_ManStop( pFrames );
 
     // add internal nodes of this frame

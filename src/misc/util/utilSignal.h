@@ -4,17 +4,17 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName []
+  PackageName [Signal handling utilities.]
 
-  Synopsis    []
+  Synopsis    [Signal handling utilities.]
 
-  Author      []
+  Author      [Baruch Sterin]
   
   Affiliation [UC Berkeley]
 
-  Date        []
+  Date        [Ver. 1.0. Started - February 1, 2011.]
 
-  Revision    []
+  Revision    [$Id: utilSignal.h,v 1.00 2011/02/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  
@@ -44,23 +44,17 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 /*=== utilSignal.c ==========================================================*/
-
-void Util_SignalCleanup();
-
-void Util_SignalStartHandler();
-void Util_SignalResetHandler();
-void Util_SignalStopHandler();
-
-void Util_SignalBlockSignals();
-void Util_SignalUnblockSignals();
-
-void Util_SignalAddChildPid(int pid);
-void Util_SignalRemoveChildPid(int pid);
-
-int Util_SignalTmpFile(const char* prefix, const char* suffix, char** out_name);
-void Util_SignalTmpFileRemove(const char* fname, int fLeave);
-
-int Util_SignalSystem(const char* cmd);
+extern void      Util_SignalCleanup();
+extern void      Util_SignalStartHandler();
+extern void      Util_SignalResetHandler();
+extern void      Util_SignalStopHandler();
+extern void      Util_SignalBlockSignals();
+extern void      Util_SignalUnblockSignals();
+extern void      Util_SignalAddChildPid(int pid);
+extern void      Util_SignalRemoveChildPid(int pid);
+extern int       Util_SignalTmpFile(const char* prefix, const char* suffix, char** out_name);
+extern void      Util_SignalTmpFileRemove(const char* fname, int fLeave);
+extern int       Util_SignalSystem(const char* cmd);
 
 ABC_NAMESPACE_HEADER_END
 

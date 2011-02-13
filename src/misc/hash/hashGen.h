@@ -229,7 +229,7 @@ static inline void Hash_GenWriteEntry( Hash_Gen_t *p, void * key, void * data )
   p->nSize++;
   (*pLast) = pEntry = ABC_ALLOC( Hash_Gen_Entry_t, 1 );
   pEntry->pNext = NULL;
-  pEntry->key  = key;
+  pEntry->key  = (char *)key;
   pEntry->data = data;
 
   return;
@@ -271,7 +271,7 @@ static inline Hash_Gen_Entry_t * Hash_GenEntry( Hash_Gen_t *p, void * key, int f
     p->nSize++;
     (*pLast) = pEntry = ABC_ALLOC( Hash_Gen_Entry_t, 1 );
     pEntry->pNext = NULL;
-    pEntry->key  = key;
+    pEntry->key  = (char *)key;
     pEntry->data = NULL;
     return pEntry;
   }

@@ -4,17 +4,17 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName []
+  PackageName [Signal handling utilities.]
 
-  Synopsis    []
+  Synopsis    [Signal handling utilities.]
 
-  Author      []
+  Author      [Baruch Sterin]
   
   Affiliation [UC Berkeley]
 
-  Date        []
+  Date        [Ver. 1.0. Started - February 1, 2011.]
 
-  Revision    []
+  Revision    [$Id: utilSignal.c,v 1.00 2011/02/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -23,6 +23,7 @@
 #include <signal.h>
 #include "abc_global.h"
 #include "hashGen.h"
+#include "utilSignal.h"
 
 #ifndef _MSC_VER
 

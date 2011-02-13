@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include "aig.h"
 #include "saig.h"
+#include "ssw.h"
 #include "cuddInt.h"
 #include "extra.h"
 #include "llb.h"
@@ -150,6 +151,7 @@ extern DdNode *        Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int
 extern DdNode *        Llb_BddQuantifyPis( Aig_Man_t * pInit, DdManager * dd, DdNode * bFunc );
 /*=== llb2Core.c ======================================================*/
 extern DdNode *        Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarIndex, char * pValues );
+extern int             Llb_CoreExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, int TimeTarget ); 
 /*=== llb2Driver.c ======================================================*/
 extern Vec_Int_t *     Llb_DriverCountRefs( Aig_Man_t * p );
 extern Vec_Int_t *     Llb_DriverCollectNs( Aig_Man_t * pAig, Vec_Int_t * vDriRefs );

@@ -87,7 +87,7 @@ DdNode * Llb_BddComputeBad( Aig_Man_t * pInit, DdManager * dd, int TimeOut )
     {
         if ( !Aig_ObjIsNode(pObj) )
             continue;
-        Cudd_RecursiveDeref( dd, pObj->pData );
+        Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
     }
     Vec_PtrFree( vNodes );
     Cudd_Deref( bResult );

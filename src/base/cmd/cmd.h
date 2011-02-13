@@ -60,6 +60,8 @@ extern void        Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, const char * key );
 extern void        Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, const char * key, char * value );
 /*=== cmdHist.c ========================================================*/
 extern void          Cmd_HistoryAddCommand( Abc_Frame_t * pAbc, const char * command );
+/*=== cmdLoad.c ========================================================*/
+extern int         CmdCommandLoad( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 
 

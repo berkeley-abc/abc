@@ -29,6 +29,7 @@
 #include "saig.h"
 #include "satSolver.h"
 #include "ssw.h"
+#include "ioa.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

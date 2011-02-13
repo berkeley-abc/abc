@@ -331,7 +331,6 @@ p->timeBmc += clock() - clk;
 ***********************************************************************/
 void Ssw_ManDumpEquivMiter( Aig_Man_t * p, Vec_Int_t * vPairs, int Num )
 {
-    extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
     FILE * pFile;
     char pBuffer[16];
     Aig_Man_t * pNew;

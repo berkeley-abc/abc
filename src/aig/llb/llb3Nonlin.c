@@ -238,7 +238,6 @@ DdNode * Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd )
 Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
 {
     extern Abc_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
-    extern int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     Vec_Int_t * vVarsNs;
@@ -269,7 +268,7 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
     pCex->iPo = -1;
 
     // get the last cube
-    bOneCube = Cudd_bddIntersect( p->ddR, Vec_PtrEntryLast(p->vRings), p->ddR->bFunc );  Cudd_Ref( bOneCube );
+    bOneCube = Cudd_bddIntersect( p->ddR, (DdNode *)Vec_PtrEntryLast(p->vRings), p->ddR->bFunc );  Cudd_Ref( bOneCube );
     RetValue = Cudd_bddPickOneCube( p->ddR, bOneCube, pValues );
     Cudd_RecursiveDeref( p->ddR, bOneCube );
     assert( RetValue );

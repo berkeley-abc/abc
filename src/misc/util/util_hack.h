@@ -21,7 +21,6 @@
 #ifndef __UTIL_HACK_H__
 #define __UTIL_HACK_H__
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,50 +30,18 @@
 
 #include "abc_global.h"
 
-
 ABC_NAMESPACE_HEADER_START
 
+#define NIL(type)           ((type *) 0)
 
-#ifndef EXTERN
-#define EXTERN extern
-#endif
-#define NIL(type)              ((type *) 0)
-#define random                 rand
-#define srandom                srand
+#define util_cpu_time       Extra_CpuTime            
+#define getSoftDataLimit    Extra_GetSoftDataLimit   
+#define MMoutOfMemory       Extra_UtilMMoutOfMemory      
 
-#define util_cpu_time          Extra_CpuTime            
-#define getSoftDataLimit       Extra_GetSoftDataLimit   
-#define util_getopt_reset      Extra_UtilGetoptReset    
-#define util_getopt            Extra_UtilGetopt         
-#define util_print_time        Extra_UtilPrintTime      
-#define util_strsav            Extra_UtilStrsav         
-#define util_tilde_expand      Extra_UtilTildeExpand    
-#define util_file_search       Extra_UtilFileSearch
-#define MMoutOfMemory          Extra_UtilMMoutOfMemory      
-
-#define util_optarg            globalUtilOptarg
-#define util_optind            globalUtilOptind
-
-#ifndef ARGS
-#define ARGS(protos) protos
-#endif
-
-extern long        Extra_CpuTime();
-extern int         Extra_GetSoftDataLimit();
-extern void        Extra_UtilGetoptReset();
-extern int         Extra_UtilGetopt( int argc, char *argv[], const char *optstring );
-extern char *      Extra_UtilPrintTime( long t );
-extern char *      Extra_UtilStrsav( char *s );
-extern char *      Extra_UtilTildeExpand( char *fname );
-extern char *      Extra_UtilFileSearch( char *file, char *path, char *mode );
-
-extern char *      globalUtilOptarg;
-extern int         globalUtilOptind;
-
-
+extern long                 Extra_CpuTime();
+extern int                  Extra_GetSoftDataLimit();
+extern void               (*Extra_UtilMMoutOfMemory)( long size );
 
 ABC_NAMESPACE_HEADER_END
-
-
 
 #endif

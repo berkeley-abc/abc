@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "pdrInt.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -44,7 +45,6 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
 {
-    extern int Extra_Base10Log( unsigned int Num );
     static int PastSize;
     Vec_Ptr_t * vVec;
     int i, ThisSize, Length, LengthStart;

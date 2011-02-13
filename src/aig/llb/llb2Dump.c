@@ -83,7 +83,7 @@ void Llb_ManDumpReached( DdManager * ddG, DdNode * bReached, char * pModel, char
 
     // write the file
     pFile = fopen( pFileName, "wb" );
-    Cudd_DumpBlif( ddG, 1, &bReached, (char **)Vec_PtrArray(vNamesIn), (char **)Vec_PtrArray(vNamesOut), pModel, pFile );
+    Cudd_DumpBlif( ddG, 1, &bReached, (char **)Vec_PtrArray(vNamesIn), (char **)Vec_PtrArray(vNamesOut), pModel, pFile, 0 );
     fclose( pFile );
 
     // cleanup

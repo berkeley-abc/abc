@@ -547,11 +547,11 @@ void Aig_ObjDomCompute( Aig_Sto_t * pSto, Aig_Obj_t * pObj )
             Vec_IntPush( pSto->vFans, iFanout>>1 );
     if ( Vec_IntSize(pSto->vFans) == 0 )
         return;
-    vDoms0 = Vec_PtrEntry( pSto->vDoms, Vec_IntEntry(pSto->vFans, 0) );
+    vDoms0 = (Vec_Ptr_t *)Vec_PtrEntry( pSto->vDoms, Vec_IntEntry(pSto->vFans, 0) );
     vDoms2 = Aig_ObjDomVecDup( pSto, vDoms0, 0 );
     Vec_IntForEachEntryStart( pSto->vFans, iFanout, i, 1 )
     {
-        vDoms1 = Vec_PtrEntry( pSto->vDoms, iFanout );
+        vDoms1 = (Vec_Ptr_t *)Vec_PtrEntry( pSto->vDoms, iFanout );
         vDoms2 = Aig_ObjDomMerge( pSto, vDomsT = vDoms2, vDoms1 );
         Aig_ObjDomVecRecycle( pSto, vDomsT );
     }
@@ -662,11 +662,11 @@ Vec_Ptr_t * Aig_ObjDomCollect( Aig_Sto_t * pSto, Vec_Int_t * vCut )
 {
     Vec_Ptr_t * vDoms0, * vDoms1, * vDoms2;
     int i, ObjId;
-    vDoms0 = Vec_PtrEntry( pSto->vDoms, Vec_IntEntry(vCut, 0) );
+    vDoms0 = (Vec_Ptr_t *)Vec_PtrEntry( pSto->vDoms, Vec_IntEntry(vCut, 0) );
     vDoms2 = Aig_ObjDomVecDup( pSto, vDoms0, 1 );
     Vec_IntForEachEntryStart( vCut, ObjId, i, 1 )
     {
-        vDoms1 = Vec_PtrEntry( pSto->vDoms, ObjId );
+        vDoms1 = (Vec_Ptr_t *)Vec_PtrEntry( pSto->vDoms, ObjId );
         if ( vDoms1 == NULL )
             continue;
         Aig_ObjDomUnion( pSto, vDoms2, vDoms1 );

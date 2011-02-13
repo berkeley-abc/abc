@@ -95,7 +95,6 @@ DdNode * Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarInde
 Abc_Cex_t * Llb_CoreDeriveCex( Llb_Img_t * p )
 {
     extern Abc_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
-    extern int Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vSupps, * vQuant0, * vQuant1;
@@ -118,7 +117,7 @@ Abc_Cex_t * Llb_CoreDeriveCex( Llb_Img_t * p )
     pCex->iPo = -1;
 
     // get the last cube
-    bOneCube = Cudd_bddIntersect( p->ddR, Vec_PtrEntryLast(p->vRings), p->ddR->bFunc );  Cudd_Ref( bOneCube );
+    bOneCube = Cudd_bddIntersect( p->ddR, (DdNode *)Vec_PtrEntryLast(p->vRings), p->ddR->bFunc );  Cudd_Ref( bOneCube );
     RetValue = Cudd_bddPickOneCube( p->ddR, bOneCube, pValues );
     Cudd_RecursiveDeref( p->ddR, bOneCube );
     assert( RetValue );
