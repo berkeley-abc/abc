@@ -7,55 +7,83 @@
   Synopsis    [Functions for local caches.]
 
   Description [Internal procedures included in this module:
-        <ul>
-        <li> cuddLocalCacheInit()
-        <li> cuddLocalCacheQuit()
-        <li> cuddLocalCacheInsert()
-        <li> cuddLocalCacheLookup()
-        <li> cuddLocalCacheClearDead()
-        <li> cuddLocalCacheClearAll()
-        <li> cuddLocalCacheProfile()
-        <li> cuddHashTableInit()
-        <li> cuddHashTableQuit()
-        <li> cuddHashTableInsert()
-        <li> cuddHashTableLookup()
-        <li> cuddHashTableInsert2()
-        <li> cuddHashTableLookup2()
-        <li> cuddHashTableInsert3()
-        <li> cuddHashTableLookup3()
-        </ul>
-        Static procedures included in this module:
-        <ul>
-        <li> cuddLocalCacheResize()
-        <li> ddLCHash()
-        <li> cuddLocalCacheAddToList()
-        <li> cuddLocalCacheRemoveFromList()
-        <li> cuddHashTableResize()
-        <li> cuddHashTableAlloc()
-        </ul> ]
+                <ul>
+                <li> cuddLocalCacheInit()
+                <li> cuddLocalCacheQuit()
+                <li> cuddLocalCacheInsert()
+                <li> cuddLocalCacheLookup()
+                <li> cuddLocalCacheClearDead()
+                <li> cuddLocalCacheClearAll()
+                <li> cuddLocalCacheProfile()
+                <li> cuddHashTableInit()
+                <li> cuddHashTableQuit()
+                <li> cuddHashTableInsert()
+                <li> cuddHashTableLookup()
+                <li> cuddHashTableInsert2()
+                <li> cuddHashTableLookup2()
+                <li> cuddHashTableInsert3()
+                <li> cuddHashTableLookup3()
+                </ul>
+            Static procedures included in this module:
+                <ul>
+                <li> cuddLocalCacheResize()
+                <li> ddLCHash()
+                <li> cuddLocalCacheAddToList()
+                <li> cuddLocalCacheRemoveFromList()
+                <li> cuddHashTableResize()
+                <li> cuddHashTableAlloc()
+                </ul> ]
 
   SeeAlso     []
 
   Author      [Fabio Somenzi]
 
-  Copyright [ This file was created at the University of Colorado at
-  Boulder.  The University of Colorado at Boulder makes no warranty
-  about the suitability of this software for any purpose.  It is
-  presented on an AS IS basis.]
+  Copyright   [Copyright (c) 1995-2004, Regents of the University of Colorado
+
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+  Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+
+  Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+
+  Neither the name of the University of Colorado nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.]
 
 ******************************************************************************/
 
-#include    "util_hack.h"
-#include    "cuddInt.h"
+#include "util_hack.h"
+#include "cuddInt.h"
 
 ABC_NAMESPACE_IMPL_START
+
 
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
 /*---------------------------------------------------------------------------*/
 
-#define DD_MAX_HASHTABLE_DENSITY 2    /* tells when to resize a table */
+#define DD_MAX_HASHTABLE_DENSITY 2      /* tells when to resize a table */
 
 /*---------------------------------------------------------------------------*/
 /* Stucture declarations                                                     */
@@ -72,7 +100,7 @@ ABC_NAMESPACE_IMPL_START
 /*---------------------------------------------------------------------------*/
 
 #ifndef lint
-static char rcsid[] DD_UNUSED = "$Id: cuddLCache.c,v 1.1.1.1 2003/02/24 22:23:52 wjiang Exp $";
+static char rcsid[] DD_UNUSED = "$Id: cuddLCache.c,v 1.24 2009/03/08 02:49:02 fabio Exp $";
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -92,8 +120,8 @@ static char rcsid[] DD_UNUSED = "$Id: cuddLCache.c,v 1.1.1.1 2003/02/24 22:23:52
 ******************************************************************************/
 #if SIZEOF_VOID_P == 8 && SIZEOF_INT == 4
 #define ddLCHash2(f,g,shift) \
-((((unsigned)(unsigned long)(f) * DD_P1 + \
-   (unsigned)(unsigned long)(g)) * DD_P2) >> (shift))
+((((unsigned)(ptruint)(f) * DD_P1 + \
+   (unsigned)(ptruint)(g)) * DD_P2) >> (shift))
 #else
 #define ddLCHash2(f,g,shift) \
 ((((unsigned)(f) * DD_P1 + (unsigned)(g)) * DD_P2) >> (shift))
@@ -120,12 +148,12 @@ static char rcsid[] DD_UNUSED = "$Id: cuddLCache.c,v 1.1.1.1 2003/02/24 22:23:52
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static void cuddLocalCacheResize ARGS((DdLocalCache *cache));
-DD_INLINE static unsigned int ddLCHash ARGS((DdNodePtr *key, unsigned int keysize, int shift));
-static void cuddLocalCacheAddToList ARGS((DdLocalCache *cache));
-static void cuddLocalCacheRemoveFromList ARGS((DdLocalCache *cache));
-static int cuddHashTableResize ARGS((DdHashTable *hash));
-DD_INLINE static DdHashItem * cuddHashTableAlloc ARGS((DdHashTable *hash));
+static void cuddLocalCacheResize (DdLocalCache *cache);
+DD_INLINE static unsigned int ddLCHash (DdNodePtr *key, unsigned int keysize, int shift);
+static void cuddLocalCacheAddToList (DdLocalCache *cache);
+static void cuddLocalCacheRemoveFromList (DdLocalCache *cache);
+static int cuddHashTableResize (DdHashTable *hash);
+DD_INLINE static DdHashItem * cuddHashTableAlloc (DdHashTable *hash);
 
 /**AutomaticEnd***************************************************************/
 
@@ -163,8 +191,8 @@ cuddLocalCacheInit(
 
     cache = ABC_ALLOC(DdLocalCache,1);
     if (cache == NULL) {
-    manager->errorCode = CUDD_MEMORY_OUT;
-    return(NULL);
+        manager->errorCode = CUDD_MEMORY_OUT;
+        return(NULL);
     }
     cache->manager = manager;
     cache->keysize = keySize;
@@ -175,11 +203,11 @@ cuddLocalCacheInit(
     logSize = cuddComputeFloorLog2(ddMax(cacheSize,manager->slots/2));
     cacheSize = 1 << logSize;
     cache->item = (DdLocalCacheItem *)
-    ABC_ALLOC(char, cacheSize * cache->itemsize);
+        ABC_ALLOC(char, cacheSize * cache->itemsize);
     if (cache->item == NULL) {
-    manager->errorCode = CUDD_MEMORY_OUT;
-    ABC_FREE(cache);
-    return(NULL);
+        manager->errorCode = CUDD_MEMORY_OUT;
+        ABC_FREE(cache);
+        return(NULL);
     }
     cache->slots = cacheSize;
     cache->shift = sizeof(int) * 8 - logSize;
@@ -219,7 +247,7 @@ cuddLocalCacheQuit(
   DdLocalCache * cache /* cache to be shut down */)
 {
     cache->manager->memused -=
-    cache->slots * cache->itemsize + sizeof(DdLocalCache);
+        cache->slots * cache->itemsize + sizeof(DdLocalCache);
     cuddLocalCacheRemoveFromList(cache);
     ABC_FREE(cache->item);
     ABC_FREE(cache);
@@ -251,7 +279,7 @@ cuddLocalCacheInsert(
 
     posn = ddLCHash(key,cache->keysize,cache->shift);
     entry = (DdLocalCacheItem *) ((char *) cache->item +
-                  posn * cache->itemsize);
+                                  posn * cache->itemsize);
     memcpy(entry->key,key,cache->keysize * sizeof(DdNode *));
     entry->value = value;
 #ifdef DD_CACHE_PROFILE
@@ -285,22 +313,22 @@ cuddLocalCacheLookup(
     cache->lookUps++;
     posn = ddLCHash(key,cache->keysize,cache->shift);
     entry = (DdLocalCacheItem *) ((char *) cache->item +
-                  posn * cache->itemsize);
+                                  posn * cache->itemsize);
     if (entry->value != NULL &&
-    memcmp(key,entry->key,cache->keysize*sizeof(DdNode *)) == 0) {
-    cache->hits++;
-    value = Cudd_Regular(entry->value);
-    if (value->ref == 0) {
-        cuddReclaim(cache->manager,value);
-    }
-    return(entry->value);
+        memcmp(key,entry->key,cache->keysize*sizeof(DdNode *)) == 0) {
+        cache->hits++;
+        value = Cudd_Regular(entry->value);
+        if (value->ref == 0) {
+            cuddReclaim(cache->manager,value);
+        }
+        return(entry->value);
     }
 
     /* Cache miss: decide whether to resize */
 
     if (cache->slots < cache->maxslots &&
-    cache->hits > cache->lookUps * cache->minHit) {
-    cuddLocalCacheResize(cache);
+        cache->hits > cache->lookUps * cache->minHit) {
+        cuddLocalCacheResize(cache);
     }
 
     return(NULL);
@@ -333,25 +361,27 @@ cuddLocalCacheClearDead(
     unsigned int i, j;
 
     while (cache != NULL) {
-    keysize = cache->keysize;
-    itemsize = cache->itemsize;
-    slots = cache->slots;
-    item = cache->item;
-    for (i = 0; i < slots; i++) {
-        if (item->value != NULL && Cudd_Regular(item->value)->ref == 0) {
-        item->value = NULL;
-        } else {
-        key = item->key;
-        for (j = 0; j < keysize; j++) {
-            if (Cudd_Regular(key[j])->ref == 0) {
-            item->value = NULL;
-            break;
+        keysize = cache->keysize;
+        itemsize = cache->itemsize;
+        slots = cache->slots;
+        item = cache->item;
+        for (i = 0; i < slots; i++) {
+            if (item->value != NULL) {
+                if (Cudd_Regular(item->value)->ref == 0) {
+                    item->value = NULL;
+                } else {
+                    key = item->key;
+                    for (j = 0; j < keysize; j++) {
+                        if (Cudd_Regular(key[j])->ref == 0) {
+                            item->value = NULL;
+                            break;
+                        }
+                    }
+                }
             }
+            item = (DdLocalCacheItem *) ((char *) item + itemsize);
         }
-        }
-        item = (DdLocalCacheItem *) ((char *) item + itemsize);
-    }
-    cache = cache->next;
+        cache = cache->next;
     }
     return;
 
@@ -377,8 +407,8 @@ cuddLocalCacheClearAll(
     DdLocalCache *cache = manager->localCaches;
 
     while (cache != NULL) {
-    memset(cache->item, 0, cache->slots * cache->itemsize);
-    cache = cache->next;
+        memset(cache->item, 0, cache->slots * cache->itemsize);
+        cache = cache->next;
     }
     return;
 
@@ -427,34 +457,34 @@ cuddLocalCacheProfile(
 
     hystogram = ABC_ALLOC(long, nbins);
     if (hystogram == NULL) {
-    return(0);
+        return(0);
     }
     for (i = 0; i < nbins; i++) {
-    hystogram[i] = 0;
+        hystogram[i] = 0;
     }
 
     for (i = 0; i < slots; i++) {
-    entry = (DdLocalCacheItem *) ((char *) cache->item +
-                      i * cache->itemsize);
-    thiscount = (long) entry->count;
-    if (thiscount > max) {
-        max = thiscount;
-        imax = i;
-    }
-    if (thiscount < min) {
-        min = thiscount;
-        imin = i;
-    }
-    if (thiscount == 0) {
-        nzeroes++;
-    }
-    count = (double) thiscount;
-    mean += count;
-    meansq += count * count;
-    totalcount += count;
-    expected += count * (double) i;
-    bin = (i * nbins) / slots;
-    hystogram[bin] += thiscount;
+        entry = (DdLocalCacheItem *) ((char *) cache->item +
+                                      i * cache->itemsize);
+        thiscount = (long) entry->count;
+        if (thiscount > max) {
+            max = thiscount;
+            imax = i;
+        }
+        if (thiscount < min) {
+            min = thiscount;
+            imin = i;
+        }
+        if (thiscount == 0) {
+            nzeroes++;
+        }
+        count = (double) thiscount;
+        mean += count;
+        meansq += count * count;
+        totalcount += count;
+        expected += count * (double) i;
+        bin = (i * nbins) / slots;
+        hystogram[bin] += thiscount;
     }
     mean /= (double) slots;
     meansq /= (double) slots;
@@ -472,17 +502,17 @@ cuddLocalCacheProfile(
     if (retval == EOF) return(0);
 
     if (totalcount) {
-    expected /= totalcount;
-    retval = fprintf(fp,"Cache access hystogram for %d bins", nbins);
-    if (retval == EOF) return(0);
-    retval = fprintf(fp," (expected bin value = %g)\n# ", expected);
-    if (retval == EOF) return(0);
-    for (i = nbins - 1; i>=0; i--) {
-        retval = fprintf(fp,"%ld ", hystogram[i]);
+        expected /= totalcount;
+        retval = fprintf(fp,"Cache access hystogram for %d bins", nbins);
         if (retval == EOF) return(0);
-    }
-    retval = fprintf(fp,"\n");
-    if (retval == EOF) return(0);
+        retval = fprintf(fp," (expected bin value = %g)\n# ", expected);
+        if (retval == EOF) return(0);
+        for (i = nbins - 1; i>=0; i--) {
+            retval = fprintf(fp,"%ld ", hystogram[i]);
+            if (retval == EOF) return(0);
+        }
+        retval = fprintf(fp,"\n");
+        if (retval == EOF) return(0);
     }
 
     ABC_FREE(hystogram);
@@ -519,15 +549,15 @@ cuddHashTableInit(
 #endif
     hash = ABC_ALLOC(DdHashTable, 1);
     if (hash == NULL) {
-    manager->errorCode = CUDD_MEMORY_OUT;
-    return(NULL);
+        manager->errorCode = CUDD_MEMORY_OUT;
+        return(NULL);
     }
     hash->keysize = keySize;
     hash->manager = manager;
     hash->memoryList = NULL;
     hash->nextFree = NULL;
     hash->itemsize = (keySize + 1) * sizeof(DdNode *) +
-    sizeof(ptrint) + sizeof(DdHashItem *);
+        sizeof(ptrint) + sizeof(DdHashItem *);
     /* We have to guarantee that the shift be < 32. */
     if (initSize < 2) initSize = 2;
     logSize = cuddComputeFloorLog2(initSize);
@@ -535,9 +565,9 @@ cuddHashTableInit(
     hash->shift = sizeof(int) * 8 - logSize;
     hash->bucket = ABC_ALLOC(DdHashItem *, hash->numBuckets);
     if (hash->bucket == NULL) {
-    manager->errorCode = CUDD_MEMORY_OUT;
-    ABC_FREE(hash);
-    return(NULL);
+        manager->errorCode = CUDD_MEMORY_OUT;
+        ABC_FREE(hash);
+        return(NULL);
     }
     memset(hash->bucket, 0, hash->numBuckets * sizeof(DdHashItem *));
     hash->size = 0;
@@ -576,18 +606,18 @@ cuddHashTableQuit(
     unsigned int numBuckets = hash->numBuckets;
 
     for (i = 0; i < numBuckets; i++) {
-    bucket = hash->bucket[i];
-    while (bucket != NULL) {
-        Cudd_RecursiveDeref(dd, bucket->value);
-        bucket = bucket->next;
-    }
+        bucket = hash->bucket[i];
+        while (bucket != NULL) {
+            Cudd_RecursiveDeref(dd, bucket->value);
+            bucket = bucket->next;
+        }
     }
 
     memlist = hash->memoryList;
     while (memlist != NULL) {
-    nextmem = (DdHashItem **) memlist[0];
-    ABC_FREE(memlist);
-    memlist = nextmem;
+        nextmem = (DdHashItem **) memlist[0];
+        ABC_FREE(memlist);
+        memlist = nextmem;
     }
 
     ABC_FREE(hash->bucket);
@@ -631,8 +661,8 @@ cuddHashTableInsert(
 #endif
 
     if (hash->size > hash->maxsize) {
-    result = cuddHashTableResize(hash);
-    if (result == 0) return(0);
+        result = cuddHashTableResize(hash);
+        if (result == 0) return(0);
     }
     item = cuddHashTableAlloc(hash);
     if (item == NULL) return(0);
@@ -641,7 +671,7 @@ cuddHashTableInsert(
     cuddRef(value);
     item->count = count;
     for (i = 0; i < hash->keysize; i++) {
-    item->key[i] = key[i];
+        item->key[i] = key[i];
     }
     posn = ddLCHash(key,hash->keysize,hash->shift);
     item->next = hash->bucket[posn];
@@ -688,32 +718,32 @@ cuddHashTableLookup(
 
     keysize = hash->keysize;
     while (item != NULL) {
-    DdNodePtr *key2 = item->key;
-    int equal = 1;
-    for (i = 0; i < keysize; i++) {
-        if (key[i] != key2[i]) {
-        equal = 0;
-        break;
+        DdNodePtr *key2 = item->key;
+        int equal = 1;
+        for (i = 0; i < keysize; i++) {
+            if (key[i] != key2[i]) {
+                equal = 0;
+                break;
+            }
         }
-    }
-    if (equal) {
-        DdNode *value = item->value;
-        cuddSatDec(item->count);
-        if (item->count == 0) {
-        cuddDeref(value);
-        if (prev == NULL) {
-            hash->bucket[posn] = item->next;
-        } else {
-            prev->next = item->next;
+        if (equal) {
+            DdNode *value = item->value;
+            cuddSatDec(item->count);
+            if (item->count == 0) {
+                cuddDeref(value);
+                if (prev == NULL) {
+                    hash->bucket[posn] = item->next;
+                } else {
+                    prev->next = item->next;
+                }
+                item->next = hash->nextFree;
+                hash->nextFree = item;
+                hash->size--;
+            }
+            return(value);
         }
-        item->next = hash->nextFree;
-        hash->nextFree = item;
-        hash->size--;
-        }
-        return(value);
-    }
-    prev = item;
-    item = item->next;
+        prev = item;
+        item = item->next;
     }
     return(NULL);
 
@@ -749,8 +779,8 @@ cuddHashTableInsert1(
 #endif
 
     if (hash->size > hash->maxsize) {
-    result = cuddHashTableResize(hash);
-    if (result == 0) return(0);
+        result = cuddHashTableResize(hash);
+        if (result == 0) return(0);
     }
     item = cuddHashTableAlloc(hash);
     if (item == NULL) return(0);
@@ -776,7 +806,7 @@ cuddHashTableInsert1(
   Returns the value associated to the key if there is an entry for the given
   key in the table; NULL otherwise. If the entry is present, its reference
   counter is decremented if not saturated. If the counter reaches 0, the
-  value of the entry is dereferenced, and the entry is returned to the ABC_FREE
+  value of the entry is dereferenced, and the entry is returned to the free
   list.]
 
   SideEffects [None]
@@ -802,25 +832,25 @@ cuddHashTableLookup1(
     prev = NULL;
 
     while (item != NULL) {
-    DdNodePtr *key = item->key;
-    if (f == key[0]) {
-        DdNode *value = item->value;
-        cuddSatDec(item->count);
-        if (item->count == 0) {
-        cuddDeref(value);
-        if (prev == NULL) {
-            hash->bucket[posn] = item->next;
-        } else {
-            prev->next = item->next;
+        DdNodePtr *key = item->key;
+        if (f == key[0]) {
+            DdNode *value = item->value;
+            cuddSatDec(item->count);
+            if (item->count == 0) {
+                cuddDeref(value);
+                if (prev == NULL) {
+                    hash->bucket[posn] = item->next;
+                } else {
+                    prev->next = item->next;
+                }
+                item->next = hash->nextFree;
+                hash->nextFree = item;
+                hash->size--;
+            }
+            return(value);
         }
-        item->next = hash->nextFree;
-        hash->nextFree = item;
-        hash->size--;
-        }
-        return(value);
-    }
-    prev = item;
-    item = item->next;
+        prev = item;
+        item = item->next;
     }
     return(NULL);
 
@@ -857,8 +887,8 @@ cuddHashTableInsert2(
 #endif
 
     if (hash->size > hash->maxsize) {
-    result = cuddHashTableResize(hash);
-    if (result == 0) return(0);
+        result = cuddHashTableResize(hash);
+        if (result == 0) return(0);
     }
     item = cuddHashTableAlloc(hash);
     if (item == NULL) return(0);
@@ -885,7 +915,7 @@ cuddHashTableInsert2(
   Returns the value associated to the key if there is an entry for the given
   key in the table; NULL otherwise. If the entry is present, its reference
   counter is decremented if not saturated. If the counter reaches 0, the
-  value of the entry is dereferenced, and the entry is returned to the ABC_FREE
+  value of the entry is dereferenced, and the entry is returned to the free
   list.]
 
   SideEffects [None]
@@ -912,25 +942,25 @@ cuddHashTableLookup2(
     prev = NULL;
 
     while (item != NULL) {
-    DdNodePtr *key = item->key;
-    if ((f == key[0]) && (g == key[1])) {
-        DdNode *value = item->value;
-        cuddSatDec(item->count);
-        if (item->count == 0) {
-        cuddDeref(value);
-        if (prev == NULL) {
-            hash->bucket[posn] = item->next;
-        } else {
-            prev->next = item->next;
+        DdNodePtr *key = item->key;
+        if ((f == key[0]) && (g == key[1])) {
+            DdNode *value = item->value;
+            cuddSatDec(item->count);
+            if (item->count == 0) {
+                cuddDeref(value);
+                if (prev == NULL) {
+                    hash->bucket[posn] = item->next;
+                } else {
+                    prev->next = item->next;
+                }
+                item->next = hash->nextFree;
+                hash->nextFree = item;
+                hash->size--;
+            }
+            return(value);
         }
-        item->next = hash->nextFree;
-        hash->nextFree = item;
-        hash->size--;
-        }
-        return(value);
-    }
-    prev = item;
-    item = item->next;
+        prev = item;
+        item = item->next;
     }
     return(NULL);
 
@@ -968,8 +998,8 @@ cuddHashTableInsert3(
 #endif
 
     if (hash->size > hash->maxsize) {
-    result = cuddHashTableResize(hash);
-    if (result == 0) return(0);
+        result = cuddHashTableResize(hash);
+        if (result == 0) return(0);
     }
     item = cuddHashTableAlloc(hash);
     if (item == NULL) return(0);
@@ -997,7 +1027,7 @@ cuddHashTableInsert3(
   Returns the value associated to the key if there is an entry for the given
   key in the table; NULL otherwise. If the entry is present, its reference
   counter is decremented if not saturated. If the counter reaches 0, the
-  value of the entry is dereferenced, and the entry is returned to the ABC_FREE
+  value of the entry is dereferenced, and the entry is returned to the free
   list.]
 
   SideEffects [None]
@@ -1025,25 +1055,25 @@ cuddHashTableLookup3(
     prev = NULL;
 
     while (item != NULL) {
-    DdNodePtr *key = item->key;
-    if ((f == key[0]) && (g == key[1]) && (h == key[2])) {
-        DdNode *value = item->value;
-        cuddSatDec(item->count);
-        if (item->count == 0) {
-        cuddDeref(value);
-        if (prev == NULL) {
-            hash->bucket[posn] = item->next;
-        } else {
-            prev->next = item->next;
+        DdNodePtr *key = item->key;
+        if ((f == key[0]) && (g == key[1]) && (h == key[2])) {
+            DdNode *value = item->value;
+            cuddSatDec(item->count);
+            if (item->count == 0) {
+                cuddDeref(value);
+                if (prev == NULL) {
+                    hash->bucket[posn] = item->next;
+                } else {
+                    prev->next = item->next;
+                }
+                item->next = hash->nextFree;
+                hash->nextFree = item;
+                hash->size--;
+            }
+            return(value);
         }
-        item->next = hash->nextFree;
-        hash->nextFree = item;
-        hash->size--;
-        }
-        return(value);
-    }
-    prev = item;
-    item = item->next;
+        prev = item;
+        item = item->next;
     }
     return(NULL);
 
@@ -1074,8 +1104,8 @@ cuddLocalCacheResize(
     int i, shift;
     unsigned int posn;
     unsigned int slots, oldslots;
-//    extern void (*MMoutOfMemory)(long);
-    void (*saveHandler)(long);
+    extern DD_OOMFP MMoutOfMemory;
+    DD_OOMFP saveHandler;
 
     olditem = cache->item;
     oldslots = cache->slots;
@@ -1083,28 +1113,28 @@ cuddLocalCacheResize(
 
 #ifdef DD_VERBOSE
     (void) fprintf(cache->manager->err,
-           "Resizing local cache from %d to %d entries\n",
-           oldslots, slots);
+                   "Resizing local cache from %d to %d entries\n",
+                   oldslots, slots);
     (void) fprintf(cache->manager->err,
-           "\thits = %.0f\tlookups = %.0f\thit ratio = %5.3f\n",
-           cache->hits, cache->lookUps, cache->hits / cache->lookUps);
+                   "\thits = %.0f\tlookups = %.0f\thit ratio = %5.3f\n",
+                   cache->hits, cache->lookUps, cache->hits / cache->lookUps);
 #endif
 
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
     cache->item = item =
-    (DdLocalCacheItem *) ABC_ALLOC(char, slots * cache->itemsize);
+        (DdLocalCacheItem *) ABC_ALLOC(char, slots * cache->itemsize);
     MMoutOfMemory = saveHandler;
     /* If we fail to allocate the new table we just give up. */
     if (item == NULL) {
 #ifdef DD_VERBOSE
-    (void) fprintf(cache->manager->err,"Resizing failed. Giving up.\n");
+        (void) fprintf(cache->manager->err,"Resizing failed. Giving up.\n");
 #endif
-    cache->slots = oldslots;
-    cache->item = olditem;
-    /* Do not try to resize again. */
-    cache->maxslots = oldslots - 1;
-    return;
+        cache->slots = oldslots;
+        cache->item = olditem;
+        /* Do not try to resize again. */
+        cache->maxslots = oldslots - 1;
+        return;
     }
     shift = --(cache->shift);
     cache->manager->memused += (slots - oldslots) * cache->itemsize;
@@ -1114,14 +1144,14 @@ cuddLocalCacheResize(
 
     /* Copy from old cache to new one. */
     for (i = 0; (unsigned) i < oldslots; i++) {
-    old = (DdLocalCacheItem *) ((char *) olditem + i * cache->itemsize);
-    if (old->value != NULL) {
-        posn = ddLCHash(old->key,cache->keysize,slots);
-        entry = (DdLocalCacheItem *) ((char *) item +
-                      posn * cache->itemsize);
-        memcpy(entry->key,old->key,cache->keysize*sizeof(DdNode *));
-        entry->value = old->value;    
-    }
+        old = (DdLocalCacheItem *) ((char *) olditem + i * cache->itemsize);
+        if (old->value != NULL) {
+            posn = ddLCHash(old->key,cache->keysize,shift);
+            entry = (DdLocalCacheItem *) ((char *) item +
+                                          posn * cache->itemsize);
+            memcpy(entry->key,old->key,cache->keysize*sizeof(DdNode *));
+            entry->value = old->value;
+        }
     }
 
     ABC_FREE(olditem);
@@ -1154,11 +1184,11 @@ ddLCHash(
   unsigned int keysize,
   int shift)
 {
-    unsigned int val = (unsigned int) (ptrint) key[0];
+    unsigned int val = (unsigned int) (ptrint) key[0] * DD_P2;
     unsigned int i;
 
     for (i = 1; i < keysize; i++) {
-    val = val * DD_P1 + (int) (ptrint) key[i];
+        val = val * DD_P1 + (int) (ptrint) key[i];
     }
 
     return(val >> shift);
@@ -1219,14 +1249,14 @@ cuddLocalCacheRemoveFromList(
     nextCache = manager->localCaches;
 
     while (nextCache != NULL) {
-    if (nextCache == cache) {
-        *prevCache = nextCache->next;
-        return;
+        if (nextCache == cache) {
+            *prevCache = nextCache->next;
+            return;
+        }
+        prevCache = &(nextCache->next);
+        nextCache = nextCache->next;
     }
-    prevCache = &(nextCache->next);
-    nextCache = nextCache->next;
-    }
-    return;            /* should never get here */
+    return;                     /* should never get here */
 
 } /* end of cuddLocalCacheRemoveFromList */
 
@@ -1264,8 +1294,8 @@ cuddHashTableResize(
 #endif
     int shift;
     int oldNumBuckets = hash->numBuckets;
-//    extern void (*MMoutOfMemory)(long);
-    void (*saveHandler)(long);
+    extern DD_OOMFP MMoutOfMemory;
+    DD_OOMFP saveHandler;
 
     /* Compute the new size of the table. */
     numBuckets = oldNumBuckets << 1;
@@ -1278,8 +1308,8 @@ cuddHashTableResize(
     buckets = ABC_ALLOC(DdHashItem *, numBuckets);
     MMoutOfMemory = saveHandler;
     if (buckets == NULL) {
-    hash->maxsize <<= 1;
-    return(1);
+        hash->maxsize <<= 1;
+        return(1);
     }
 
     hash->bucket = buckets;
@@ -1291,52 +1321,52 @@ cuddHashTableResize(
 #pragma pointer_size restore
 #endif
     if (hash->keysize == 1) {
-    for (j = 0; j < oldNumBuckets; j++) {
-        item = oldBuckets[j];
-        while (item != NULL) {
-        next = item->next;
-        key = item->key;
-        posn = ddLCHash2(key[0], key[0], shift);
-        item->next = buckets[posn];
-        buckets[posn] = item;
-        item = next;
+        for (j = 0; j < oldNumBuckets; j++) {
+            item = oldBuckets[j];
+            while (item != NULL) {
+                next = item->next;
+                key = item->key;
+                posn = ddLCHash2(key[0], key[0], shift);
+                item->next = buckets[posn];
+                buckets[posn] = item;
+                item = next;
+            }
         }
-    }
     } else if (hash->keysize == 2) {
-    for (j = 0; j < oldNumBuckets; j++) {
-        item = oldBuckets[j];
-        while (item != NULL) {
-        next = item->next;
-        key = item->key;
-        posn = ddLCHash2(key[0], key[1], shift);
-        item->next = buckets[posn];
-        buckets[posn] = item;
-        item = next;
+        for (j = 0; j < oldNumBuckets; j++) {
+            item = oldBuckets[j];
+            while (item != NULL) {
+                next = item->next;
+                key = item->key;
+                posn = ddLCHash2(key[0], key[1], shift);
+                item->next = buckets[posn];
+                buckets[posn] = item;
+                item = next;
+            }
         }
-    }
     } else if (hash->keysize == 3) {
-    for (j = 0; j < oldNumBuckets; j++) {
-        item = oldBuckets[j];
-        while (item != NULL) {
-        next = item->next;
-        key = item->key;
-        posn = ddLCHash3(key[0], key[1], key[2], shift);
-        item->next = buckets[posn];
-        buckets[posn] = item;
-        item = next;
+        for (j = 0; j < oldNumBuckets; j++) {
+            item = oldBuckets[j];
+            while (item != NULL) {
+                next = item->next;
+                key = item->key;
+                posn = ddLCHash3(key[0], key[1], key[2], shift);
+                item->next = buckets[posn];
+                buckets[posn] = item;
+                item = next;
+            }
         }
-    }
     } else {
-    for (j = 0; j < oldNumBuckets; j++) {
-        item = oldBuckets[j];
-        while (item != NULL) {
-        next = item->next;
-        posn = ddLCHash(item->key, hash->keysize, shift);
-        item->next = buckets[posn];
-        buckets[posn] = item;
-        item = next;
+        for (j = 0; j < oldNumBuckets; j++) {
+            item = oldBuckets[j];
+            while (item != NULL) {
+                next = item->next;
+                posn = ddLCHash(item->key, hash->keysize, shift);
+                item->next = buckets[posn];
+                buckets[posn] = item;
+                item = next;
+            }
         }
-    }
     }
     ABC_FREE(oldBuckets);
     return(1);
@@ -1365,8 +1395,8 @@ cuddHashTableAlloc(
 {
     int i;
     unsigned int itemsize = hash->itemsize;
-//    extern void (*MMoutOfMemory)(long);
-    void (*saveHandler)(long);
+    extern DD_OOMFP MMoutOfMemory;
+    DD_OOMFP saveHandler;
 #ifdef __osf__
 #pragma pointer_size save
 #pragma pointer_size short
@@ -1374,54 +1404,54 @@ cuddHashTableAlloc(
     DdHashItem **mem, *thisOne, *next, *item;
 
     if (hash->nextFree == NULL) {
-    saveHandler = MMoutOfMemory;
-    MMoutOfMemory = Cudd_OutOfMem;
-    mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
-    MMoutOfMemory = saveHandler;
+        saveHandler = MMoutOfMemory;
+        MMoutOfMemory = Cudd_OutOfMem;
+        mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
+        MMoutOfMemory = saveHandler;
 #ifdef __osf__
 #pragma pointer_size restore
 #endif
-    if (mem == NULL) {
-        if (hash->manager->stash != NULL) {
-        ABC_FREE(hash->manager->stash);
-        hash->manager->stash = NULL;
-        /* Inhibit resizing of tables. */
-        hash->manager->maxCacheHard = hash->manager->cacheSlots - 1;
-        hash->manager->cacheSlack = -(int)(hash->manager->cacheSlots + 1);
-        for (i = 0; i < hash->manager->size; i++) {
-            hash->manager->subtables[i].maxKeys <<= 2;
-        }
-        hash->manager->gcFrac = 0.2;
-        hash->manager->minDead =
-            (unsigned) (0.2 * (double) hash->manager->slots);
+        if (mem == NULL) {
+            if (hash->manager->stash != NULL) {
+                ABC_FREE(hash->manager->stash);
+                hash->manager->stash = NULL;
+                /* Inhibit resizing of tables. */
+                hash->manager->maxCacheHard = hash->manager->cacheSlots - 1;
+                hash->manager->cacheSlack = - (int) (hash->manager->cacheSlots + 1);
+                for (i = 0; i < hash->manager->size; i++) {
+                    hash->manager->subtables[i].maxKeys <<= 2;
+                }
+                hash->manager->gcFrac = 0.2;
+                hash->manager->minDead =
+                    (unsigned) (0.2 * (double) hash->manager->slots);
 #ifdef __osf__
 #pragma pointer_size save
 #pragma pointer_size short
 #endif
-        mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
+                mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
 #ifdef __osf__
 #pragma pointer_size restore
 #endif
+            }
+            if (mem == NULL) {
+                (*MMoutOfMemory)((long)((DD_MEM_CHUNK + 1) * itemsize));
+                hash->manager->errorCode = CUDD_MEMORY_OUT;
+                return(NULL);
+            }
         }
-        if (mem == NULL) {
-        (*MMoutOfMemory)((DD_MEM_CHUNK + 1) * itemsize);
-        hash->manager->errorCode = CUDD_MEMORY_OUT;
-        return(NULL);
+
+        mem[0] = (DdHashItem *) hash->memoryList;
+        hash->memoryList = mem;
+
+        thisOne = (DdHashItem *) ((char *) mem + itemsize);
+        hash->nextFree = thisOne;
+        for (i = 1; i < DD_MEM_CHUNK; i++) {
+            next = (DdHashItem *) ((char *) thisOne + itemsize);
+            thisOne->next = next;
+            thisOne = next;
         }
-    }
 
-    mem[0] = (DdHashItem *) hash->memoryList;
-    hash->memoryList = mem;
-
-    thisOne = (DdHashItem *) ((char *) mem + itemsize);
-    hash->nextFree = thisOne;
-    for (i = 1; i < DD_MEM_CHUNK; i++) {
-        next = (DdHashItem *) ((char *) thisOne + itemsize);
-        thisOne->next = next;
-        thisOne = next;
-    }
-
-    thisOne->next = NULL;
+        thisOne->next = NULL;
 
     }
     item = hash->nextFree;
@@ -1429,5 +1459,7 @@ cuddHashTableAlloc(
     return(item);
 
 } /* end of cuddHashTableAlloc */
+
+
 ABC_NAMESPACE_IMPL_END
 
