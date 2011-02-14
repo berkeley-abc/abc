@@ -25,6 +25,14 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#if defined(_MSC_VER)
+#include <Windows.h>
+#include <process.h>
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "abc_global.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -32,12 +40,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-#if defined(_MSC_VER)
-
-#include <Windows.h>
-#include <process.h>
-#include <io.h>
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -56,6 +58,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 static ABC_UINT64_T realTimeAbs()  // -- absolute time in nano-seconds
 {
+#if defined(_MSC_VER)
     LARGE_INTEGER f, t;
     double realTime_freq;
     int ok;
@@ -65,20 +68,16 @@ static ABC_UINT64_T realTimeAbs()  // -- absolute time in nano-seconds
 
     ok = QueryPerformanceCounter(&t); assert(ok);
     return (ABC_UINT64_T)(__int64)(((__int64)(((ABC_UINT64_T)t.LowPart | ((ABC_UINT64_T)t.HighPart << 32))) * realTime_freq * 1000000000));
-}
-
 #endif
-
-
-
-// Opens a temporary file with given prefix and returns file descriptor (-1 on failure)
-// and a string containing the name of the file (to be freed by caller).
+}
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Opens a temporary file.]
 
-  Description []
+  Description [Opens a temporary file with given prefix and returns file 
+  descriptor (-1 on failure) and a string containing the name of the file 
+  (to be freed by caller).]
                
   SideEffects []
 
@@ -87,36 +86,7 @@ static ABC_UINT64_T realTimeAbs()  // -- absolute time in nano-seconds
 ***********************************************************************/
 int tmpFile(const char* prefix, const char* suffix, char** out_name)
 {
-#if !defined(_MSC_VER)
-    int fd;
-
-    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 7);
-    assert(*out_name != NULL);
-    sprintf(*out_name, "%sXXXXXX", prefix);
-    fd = mkstemp(*out_name);
-    if (fd == -1){
-        free(*out_name);
-        *out_name = NULL;
-    }else{
-
-        // Kludge:
-        close(fd);
-        unlink(*out_name);
-        strcat(*out_name, suffix);
-        fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
-        if (fd == -1){
-            free(*out_name);
-            *out_name = NULL;
-        }
-
-//        assert( 0 );
-        // commented out because had problem with g++ saying that
-        // close() and unlink() are not defined in the namespace 
-
-    }
-    return fd;
-
-#else
+#if defined(_MSC_VER)
     int i, fd;
     *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 27);
     for (i = 0; i < 10; i++){
@@ -130,12 +100,29 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
     }
     assert(0);  // -- could not open temporary file
     return 0;
+#else
+    int fd;
+    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 7);
+    assert(*out_name != NULL);
+    sprintf(*out_name, "%sXXXXXX", prefix);
+    fd = mkstemp(*out_name);
+    if (fd == -1){
+        free(*out_name);
+        *out_name = NULL;
+    }else{
+        // Kludge:
+        close(fd);
+        unlink(*out_name);
+        strcat(*out_name, suffix);
+        fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
+        if (fd == -1){
+            free(*out_name);
+            *out_name = NULL;
+        }
+    }
+    return fd;
 #endif
 }
-
-
-//mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
-
 
 /**Function*************************************************************
 
@@ -164,8 +151,6 @@ int main(int argc, char** argv)
     return 0;
 }
 */
-
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
