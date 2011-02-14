@@ -17580,7 +17580,7 @@ int Abc_CommandDSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pSimInfo[0] != 1 )
             Abc_Print( 1, "ERROR in Abc_NtkMiterSat(): Generated counter example is invalid.\n" );
         ABC_FREE( pSimInfo );
-        pAbc->pCex = Gia_ManCreateFromComb( 0, Abc_NtkPiNum(pNtk), 0, pNtk->pModel );
+        pAbc->pCex = Abc_CexCreate( 0, Abc_NtkPiNum(pNtk), pNtk->pModel, 0, 0, 0 );
     }
     pAbc->Status = RetValue;
     if ( RetValue == -1 )
@@ -19840,8 +19840,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
-        if ( !Gia_ManVerifyCounterExample( pGia, pAbc->pCex, 0 ) )
-//        if ( !Ssw_SmlRunCounterExample( pAig, pAbc->pCex ) )
+        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
             Abc_Print( 1, "Main AIG: The cex does not fail any outputs.\n" );
         else
             Abc_Print( 1, "Main AIG: The cex is correct.\n" );
@@ -19860,7 +19859,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
     else 
     {
-        if ( !Gia_ManVerifyCounterExample( pAbc->pGia, pAbc->pCex, 0 ) )
+        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
             Abc_Print( 1, "And  AIG: The cex does not fail any outputs.\n" );
         else
             Abc_Print( 1, "And  AIG: The cex is correct.\n" );

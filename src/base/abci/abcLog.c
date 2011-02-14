@@ -197,7 +197,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
             printf( "Incorrect number of bits.\n" );
             return -1;
         }
-        pCex = Gia_ManAllocCounterExample( nRegs, (Vec_IntSize(vNums)-nRegs)/nFrames, nFrames );
+        pCex = Abc_CexAlloc( nRegs, (Vec_IntSize(vNums)-nRegs)/nFrames, nFrames );
         pCex->iPo    = iPo;
         pCex->iFrame = nFrames - 1;
         assert( Vec_IntSize(vNums) == pCex->nBits );

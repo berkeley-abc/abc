@@ -133,7 +133,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     if ( status == l_True )
     {
         int i, * pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
-        pCtrex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(pAig), Saig_ManPiNum(pAig), nFrames );
+        pCtrex = Abc_CexAlloc( Saig_ManRegNum(pAig), Saig_ManPiNum(pAig), nFrames );
         pCtrex->iFrame = nFrames - 1;
         pCtrex->iPo = 0;
         for ( i = 0; i < Vec_IntSize(vCiIds); i++ )
@@ -145,7 +145,7 @@ void * Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose )
     sat_solver_delete( pSat );
     Vec_IntFree( vCiIds );
     // verify counter-example
-    status = Ssw_SmlRunCounterExample( pAig, pCtrex );
+    status = Saig_ManVerifyCex( pAig, pCtrex );
     if ( status == 0 )
         printf( "Inter_ManGetCounterExample(): Counter-example verification has FAILED.\n" );
     // report the results

@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "bbr.h"
-#include "ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -568,7 +567,7 @@ int Aig_ManVerifyUsingBdds( Aig_Man_t * pInit, Saig_ParBbr_t * pPars )
         else
             Vec_IntPush( vInputMap, -1 );
     // create new pattern
-    pCexNew = Ssw_SmlAllocCounterExample( Saig_ManRegNum(pInit), Saig_ManPiNum(pInit), pCexOld->iFrame+1 );
+    pCexNew = Abc_CexAlloc( Saig_ManRegNum(pInit), Saig_ManPiNum(pInit), pCexOld->iFrame+1 );
     pCexNew->iFrame = pCexOld->iFrame;
     pCexNew->iPo    = pCexOld->iPo;
     // copy the bit-data

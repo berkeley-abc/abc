@@ -123,17 +123,8 @@ extern int           Ssw_SmlNumFrames( Ssw_Sml_t * p );
 extern int           Ssw_SmlNumWordsTotal( Ssw_Sml_t * p );
 extern unsigned *    Ssw_SmlSimInfo( Ssw_Sml_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
-extern Abc_Cex_t *   Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
-extern void          Ssw_SmlFreeCounterExample( Abc_Cex_t * pCex );
-extern int           Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
-extern int           Ssw_SmlFindOutputCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
-extern Abc_Cex_t *   Ssw_SmlDupCounterExample( Abc_Cex_t * p, int nRegsNew );
-
-
 
 ABC_NAMESPACE_HEADER_END
-
-
 
 #endif
 

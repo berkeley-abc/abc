@@ -94,7 +94,6 @@ DdNode * Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarInde
 ***********************************************************************/
 Abc_Cex_t * Llb_CoreDeriveCex( Llb_Img_t * p )
 {
-    extern Abc_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vSupps, * vQuant0, * vQuant1;
@@ -112,7 +111,7 @@ Abc_Cex_t * Llb_CoreDeriveCex( Llb_Img_t * p )
 //    Llb_ImgQuantifyFirst( p->pAig, p->vDdMans, vQuant0 );
 
     // allocate room for the counter-example
-    pCex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Vec_PtrSize(p->vRings) );
+    pCex = Abc_CexAlloc( Saig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Vec_PtrSize(p->vRings) );
     pCex->iFrame = Vec_PtrSize(p->vRings) - 1;
     pCex->iPo = -1;
 
@@ -178,7 +177,7 @@ Abc_Cex_t * Llb_CoreDeriveCex( Llb_Img_t * p )
     }
     assert( nPiOffset == Saig_ManRegNum(p->pAig) );
     // update the output number
-    RetValue = Ssw_SmlFindOutputCounterExample( p->pInit, pCex );
+    RetValue = Saig_ManFindFailedPoCex( p->pInit, pCex );
     assert( RetValue >= 0 && RetValue < Saig_ManPoNum(p->pInit) ); // invalid CEX!!!
     pCex->iPo = RetValue;
     // cleanup

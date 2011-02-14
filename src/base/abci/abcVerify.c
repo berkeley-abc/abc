@@ -24,6 +24,7 @@
 #include "fraig.h"
 #include "sim.h"
 #include "aig.h"
+#include "saig.h"
 #include "gia.h"
 #include "ssw.h"
 
@@ -1029,7 +1030,6 @@ void Abc_NtkSimulteBuggyMiter( Abc_Ntk_t * pNtk )
 int Abc_NtkIsTrueCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-//    extern int Ssw_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
     Aig_Man_t * pMan;
     int status, fStrashed = 0;
     if ( !Abc_NtkIsStrash(pNtk) )
@@ -1040,7 +1040,7 @@ int Abc_NtkIsTrueCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex )
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan )
     {
-        status = Ssw_SmlRunCounterExample( pMan, pCex );
+        status = Saig_ManVerifyCex( pMan, pCex );
         Aig_ManStop( pMan );
     }
     if ( fStrashed )

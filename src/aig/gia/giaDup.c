@@ -416,7 +416,7 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     if ( p->pCexSeq )
-        pNew->pCexSeq = Gia_ManDupCounterExample( p->pCexSeq, Gia_ManRegNum(p) );
+        pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
     return pNew;
 }
 
@@ -764,7 +764,7 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     if ( p->pCexSeq )
-        pNew->pCexSeq = Gia_ManDupCounterExample( p->pCexSeq, Gia_ManRegNum(p) );
+        pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
     return pNew;
 }
 

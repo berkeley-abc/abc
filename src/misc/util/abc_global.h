@@ -288,18 +288,6 @@ static inline void Abc_PrintMemoryP( int level, const char * pStr, int time, int
 }
 
 
-// sequential counter-example
-typedef struct Abc_Cex_t_   Abc_Cex_t;
-struct Abc_Cex_t_
-{
-    int              iPo;               // the zero-based number of PO, for which verification failed
-    int              iFrame;            // the zero-based number of the time-frame, for which verificaiton failed
-    int              nRegs;             // the number of registers in the miter 
-    int              nPis;              // the number of primary inputs in the miter
-    int              nBits;             // the number of words of bit data used
-    unsigned         pData[0];          // the cex bit data (the number of bits: nRegs + (iFrame+1) * nPis)
-};
-
 ABC_NAMESPACE_HEADER_END
 
 #endif

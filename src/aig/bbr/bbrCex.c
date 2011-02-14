@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "bbr.h"
-#include "ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -60,7 +59,7 @@ Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
 //printf( "\nDeriving counter-example.\n" );
 
     // allocate room for the counter-example
-    pCex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(p), Saig_ManPiNum(p), Vec_PtrSize(vOnionRings)+1 );
+    pCex = Abc_CexAlloc( Saig_ManRegNum(p), Saig_ManPiNum(p), Vec_PtrSize(vOnionRings)+1 );
     pCex->iFrame = Vec_PtrSize(vOnionRings);
     pCex->iPo = iOutput;
     nPiOffset = Saig_ManRegNum(p) + Saig_ManPiNum(p) * Vec_PtrSize(vOnionRings);
@@ -153,7 +152,7 @@ Abc_Cex_t * Aig_ManVerifyUsingBddsCountExample( Aig_Man_t * p, DdManager * dd,
     // verify the counter example
     if ( Vec_PtrSize(vOnionRings) < 1000 )
     {
-    RetValue = Ssw_SmlRunCounterExample( p, pCex );
+    RetValue = Saig_ManVerifyCex( p, pCex );
     if ( RetValue == 0 && !fSilent )
         printf( "Aig_ManVerifyUsingBdds(): Counter-example verification has FAILED.\n" );
     }

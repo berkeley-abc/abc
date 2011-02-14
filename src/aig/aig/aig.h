@@ -33,6 +33,7 @@
 #include <time.h>
 
 #include "vec.h"
+#include "utilCex.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

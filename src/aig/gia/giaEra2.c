@@ -1758,7 +1758,7 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
     // verify
     if ( pAig->pCexSeq )
     {
-        if ( !Gia_ManVerifyCounterExample( pAig, pAig->pCexSeq, 0 ) )
+        if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
             printf( "Generated counter-example is INVALID.                       \n" );
         else
             printf( "Generated counter-example verified correctly.               \n" );
@@ -1922,7 +1922,7 @@ Abc_Cex_t * Gia_ManAreDeriveCex( Gia_ManAre_t * p, Gia_StaAre_t * pLast )
             Vec_PtrPush( vStates, pSta );
     assert( Vec_PtrSize(vStates) >= 1 );
     // start the counter-example
-    pCex = Gia_ManAllocCounterExample( Gia_ManRegNum(p->pAig), Gia_ManPiNum(p->pAig), Vec_PtrSize(vStates) );
+    pCex = Abc_CexAlloc( Gia_ManRegNum(p->pAig), Gia_ManPiNum(p->pAig), Vec_PtrSize(vStates) );
     pCex->iFrame = Vec_PtrSize(vStates)-1;
     pCex->iPo = p->iOutFail;
     // compute states

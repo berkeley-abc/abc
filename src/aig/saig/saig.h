@@ -149,6 +149,8 @@ extern Aig_Man_t *       Saig_ManDupUnfoldConstrsFunc( Aig_Man_t * pAig, int nFr
 extern Aig_Man_t *       Saig_ManDupOrpos( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs );
 extern Aig_Man_t *       Saig_ManDeriveAbstraction( Aig_Man_t * pAig, Vec_Int_t * vFlops );
+extern int               Saig_ManVerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p );
+extern int               Saig_ManFindFailedPoCex( Aig_Man_t * pAig, Abc_Cex_t * p );
 /*=== saigHaig.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 /*=== saigInd.c ==========================================================*/

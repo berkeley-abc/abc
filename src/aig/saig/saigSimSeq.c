@@ -418,7 +418,7 @@ Abc_Cex_t * Raig_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int
     Abc_Cex_t * p;
     unsigned * pData;
     int f, i, w, iPioId, Counter;
-    p = Ssw_SmlAllocCounterExample( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), iFrame+1 );
+    p = Abc_CexAlloc( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), iFrame+1 );
     p->iFrame = iFrame;
     p->iPo = iOut;
     // fill in the binary data

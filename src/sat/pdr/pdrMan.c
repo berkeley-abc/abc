@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "pdrInt.h"
-#include "ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -165,7 +164,7 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
     for ( pObl = p->pQueue; pObl; pObl = pObl->pNext )
         nFrames++;
     // create the counter-example
-    pCex = Ssw_SmlAllocCounterExample( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), nFrames );
+    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), nFrames );
     pCex->iPo    = (p->pPars->iOutput==-1)? 0 : p->pPars->iOutput;
     pCex->iFrame = nFrames-1;
     for ( pObl = p->pQueue, f = 0; pObl; pObl = pObl->pNext, f++ )

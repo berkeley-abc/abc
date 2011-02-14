@@ -384,7 +384,7 @@ finish:
     // verify counter-example
     if ( pNtk->pSeqModel ) 
     {
-        int status = Ssw_SmlRunCounterExample( pMan, pNtk->pSeqModel );
+        int status = Saig_ManVerifyCex( pMan, pNtk->pSeqModel );
         if ( status == 0 )
             printf( "Abc_NtkDarBmc(): Counter-example verification has FAILED.\n" );
     }

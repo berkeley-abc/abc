@@ -33,6 +33,7 @@
 #include <time.h>
 
 #include "vec.h"
+#include "utilCex.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -788,17 +789,13 @@ extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );
 extern int                 Gia_ObjIsMuxType( Gia_Obj_t * pNode );
 extern int                 Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** ppFan0, Gia_Obj_t ** ppFan1 );
 extern Gia_Obj_t *         Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Obj_t ** ppNodeE );
-extern Abc_Cex_t *         Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames );
-extern Abc_Cex_t *         Gia_ManDeriveCexFromArray( Gia_Man_t * pAig, Vec_Int_t * vValues, int nSkip, int iFrame );
-extern Abc_Cex_t *         Gia_ManCreateFromComb( int nRegs, int nRealPis, int iPo, int * pModel );
-extern Abc_Cex_t *         Gia_ManDupCounterExample( Abc_Cex_t * p, int nRegsNew );
-extern int                 Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut );
-extern void                Gia_ManPrintCounterExample( Abc_Cex_t * p );
 extern int                 Gia_NodeMffcSize( Gia_Man_t * p, Gia_Obj_t * pNode );
 extern int                 Gia_ManHasChoices( Gia_Man_t * p );
 extern int                 Gia_ManHasDangling( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManGetDangling( Gia_Man_t * p );
 extern void                Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern int                 Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut );
+extern int                 Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p );
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
 extern Tas_Man_t *         Tas_ManAlloc( Gia_Man_t * pAig, int nBTLimit );
@@ -807,8 +804,6 @@ extern Vec_Int_t *         Tas_ReadModel( Tas_Man_t * p );
 extern void                Tas_ManSatPrintStats( Tas_Man_t * p );
 extern int                 Tas_ManSolve( Tas_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern int                 Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs );
-
- 
 
 
 ABC_NAMESPACE_HEADER_END

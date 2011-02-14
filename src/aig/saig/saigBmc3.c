@@ -1108,8 +1108,7 @@ clkOther += clock() - clk2;
                 continue;
             if ( Lit == 1 )
             {
-                extern Abc_Cex_t * Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut );
-                Abc_Cex_t * pCex = Fra_SmlTrivCounterExample( pAig, f*Saig_ManPoNum(pAig)+i );
+                Abc_Cex_t * pCex = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), f*Saig_ManPoNum(pAig)+i );
                 printf( "Output %d is trivially SAT in frame %d.\n", i, f );
                 if ( !pPars->fSolveAll )
                 {
@@ -1137,9 +1136,8 @@ clkOther += clock() - clk2;
             }
             else if ( status == l_True )
             {
-//                extern void * Fra_SmlSimpleCounterExample( Aig_Man_t * p, int * pModel, int iFrame, int iPo );
                 int * pModel = Sat_SolverGetModel( p->pSat, Vec_IntArray(p->vPiVars), Vec_IntSize(p->vPiVars) );
-                Abc_Cex_t * pCex = Fra_SmlSimpleCounterExample( pAig, pModel, f, i );
+                Abc_Cex_t * pCex = Abc_CexCreate( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), pModel, f, i, 1 );
                 ABC_FREE( pModel );
                 fFirst = 0;
                 if ( !pPars->fSolveAll )

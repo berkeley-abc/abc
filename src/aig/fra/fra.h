@@ -376,12 +376,6 @@ extern Fra_Sml_t *         Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int 
 extern Fra_Sml_t *         Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
 extern Abc_Cex_t *         Fra_SmlGetCounterExample( Fra_Sml_t * p );
 extern Abc_Cex_t *         Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel );
-extern void                Fra_SmlFreeCounterExample( Abc_Cex_t * p );
-extern Abc_Cex_t *         Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut );
-extern int                 Fra_SmlRunCounterExample( Aig_Man_t * pAig, Abc_Cex_t * p );
-extern int                 Fra_SmlWriteCounterExample( FILE * pFile, Aig_Man_t * pAig, Abc_Cex_t * p );
-extern Abc_Cex_t *         Fra_SmlSimpleCounterExample( Aig_Man_t * pAig, int * pModel, int iFrame, int iPo );
-
 
 ABC_NAMESPACE_HEADER_END
 

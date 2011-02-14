@@ -829,244 +829,6 @@ Gia_Obj_t * Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Ob
 
 /**Function*************************************************************
 
-  Synopsis    [Allocates a counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Cex_t * Gia_ManAllocCounterExample( int nRegs, int nRealPis, int nFrames )
-{
-    Abc_Cex_t * pCex;
-    int nWords = Gia_BitWordNum( nRegs + nRealPis * nFrames );
-    pCex = (Abc_Cex_t *)ABC_ALLOC( char, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
-    memset( pCex, 0, sizeof(Abc_Cex_t) + sizeof(unsigned) * nWords );
-    pCex->nRegs  = nRegs;
-    pCex->nPis   = nRealPis;
-    pCex->nBits  = nRegs + nRealPis * nFrames;
-    return pCex;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Prints the counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManPrintCex( Abc_Cex_t * p )
-{
-    int i, f, k;
-    for ( k = 0; k < p->nRegs; k++ )
-        printf( "%d", Gia_InfoHasBit(p->pData, k) );
-    printf( "\n" );
-    for ( f = 0; f <= p->iFrame; f++ )
-    {
-        for ( i = 0; i < p->nPis; i++ )
-            printf( "%d", Gia_InfoHasBit(p->pData, k++) );
-        printf( "\n" );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derives the counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Cex_t * Gia_ManDeriveCexFromArray( Gia_Man_t * pAig, Vec_Int_t * vValues, int nSkip, int iFrame )
-{
-    Abc_Cex_t * pCex;
-    int i;
-    pCex = Gia_ManAllocCounterExample( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), iFrame+1 );
-    assert( Vec_IntSize(vValues) == nSkip + pCex->nBits );
-    pCex->iPo    = 0;
-    pCex->iFrame = iFrame;
-    for ( i = 0; i < pCex->nBits; i++ )
-        if ( Vec_IntEntry(vValues, nSkip + i) )
-            Gia_InfoSetBit( pCex->pData, i );
-    return pCex;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Allocates a counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Cex_t * Gia_ManCreateFromComb( int nRegs, int nRealPis, int iPo, int * pModel )
-{
-    Abc_Cex_t * pCex;
-    int i;
-    pCex = Gia_ManAllocCounterExample( nRegs, nRealPis, 1 );
-    pCex->iPo    = iPo;
-    pCex->iFrame = 0;
-    for ( i = pCex->nRegs; i < pCex->nBits; i++ )
-        if ( pModel[i-pCex->nRegs] )
-            Gia_InfoSetBit( pCex->pData, i );
-    return pCex;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Resimulates the counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManVerifyCounterExample( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut )
-{
-    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
-    int RetValue, i, k, iBit = 0;
-    Gia_ManCleanMark0(pAig);
-    Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
-    for ( i = 0; i <= p->iFrame; i++ )
-    {
-        Gia_ManForEachPi( pAig, pObj, k )
-            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
-        Gia_ManForEachAnd( pAig, pObj, k )
-            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
-                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
-        Gia_ManForEachCo( pAig, pObj, k )
-            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
-        if ( i == p->iFrame )
-            break;
-        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
-        {
-            pObjRo->fMark0 = pObjRi->fMark0;
-        }
-    }
-    assert( iBit == p->nBits );
-    if ( fDualOut )
-        RetValue = Gia_ManPo(pAig, 2*p->iPo)->fMark0 ^ Gia_ManPo(pAig, 2*p->iPo+1)->fMark0;
-    else
-        RetValue = Gia_ManPo(pAig, p->iPo)->fMark0;
-    Gia_ManCleanMark0(pAig);
-    return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Resimulates the counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManVerifyCounterExampleAllOuts( Gia_Man_t * pAig, Abc_Cex_t * p )
-{
-    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
-    int RetValue, i, k, iBit = 0;
-    Gia_ManCleanMark0(pAig);
-    Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
-    for ( i = 0; i <= p->iFrame; i++ )
-    {
-        Gia_ManForEachPi( pAig, pObj, k )
-            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
-        Gia_ManForEachAnd( pAig, pObj, k )
-            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
-                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
-        Gia_ManForEachCo( pAig, pObj, k )
-            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
-        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
-            pObjRo->fMark0 = pObjRi->fMark0;
-    }
-    assert( iBit == p->nBits );
-    // remember the number of failed output
-    RetValue = -1;
-    Gia_ManForEachPo( pAig, pObj, i )
-        if ( Gia_ManPo(pAig, i)->fMark0 )
-        {
-            RetValue = i;
-            break;
-        }
-    Gia_ManCleanMark0(pAig);
-    return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Make the trivial counter-example for the trivially asserted output.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Cex_t * Gia_ManDupCounterExample( Abc_Cex_t * p, int nRegsNew )
-{
-    Abc_Cex_t * pCex;
-    int i;
-    pCex = Gia_ManAllocCounterExample( nRegsNew, p->nPis, p->iFrame+1 );
-    pCex->iPo    = p->iPo;
-    pCex->iFrame = p->iFrame;
-    for ( i = p->nRegs; i < p->nBits; i++ )
-        if ( Gia_InfoHasBit(p->pData, i) )
-            Gia_InfoSetBit( pCex->pData, pCex->nRegs + i - p->nRegs );
-    return pCex;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prints out the counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Gia_ManPrintCounterExample( Abc_Cex_t * p )
-{
-    int i, f, k;
-    printf( "Counter-example: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits = %d\n", 
-        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits );
-    printf( "State    : " );
-    for ( k = 0; k < p->nRegs; k++ )
-        printf( "%d", Gia_InfoHasBit(p->pData, k) );
-    printf( "\n" );
-    for ( f = 0; f <= p->iFrame; f++ )
-    {
-        printf( "Frame %2d : ", f );
-        for ( i = 0; i < p->nPis; i++ )
-            printf( "%d", Gia_InfoHasBit(p->pData, k++) );
-        printf( "\n" );
-    }
-    assert( k == p->nBits );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Dereferences the node's MFFC.]
 
   Description []
@@ -1371,6 +1133,91 @@ void Gia_ObjPrint( Gia_Man_t * p, Gia_Obj_t * pObj )
 */
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut )
+{
+    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    Gia_ManCleanMark0(pAig);
+    Gia_ManForEachRo( pAig, pObj, i )
+        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Gia_ManForEachPi( pAig, pObj, k )
+            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+        Gia_ManForEachAnd( pAig, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( pAig, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
+        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
+        {
+            pObjRo->fMark0 = pObjRi->fMark0;
+        }
+    }
+    assert( iBit == p->nBits );
+    if ( fDualOut )
+        RetValue = Gia_ManPo(pAig, 2*p->iPo)->fMark0 ^ Gia_ManPo(pAig, 2*p->iPo+1)->fMark0;
+    else
+        RetValue = Gia_ManPo(pAig, p->iPo)->fMark0;
+    Gia_ManCleanMark0(pAig);
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p )
+{
+    Gia_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    Gia_ManCleanMark0(pAig);
+    Gia_ManForEachRo( pAig, pObj, i )
+        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Gia_ManForEachPi( pAig, pObj, k )
+            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+        Gia_ManForEachAnd( pAig, pObj, k )
+            pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
+                           (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
+        Gia_ManForEachCo( pAig, pObj, k )
+            pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
+        Gia_ManForEachRiRo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMark0 = pObjRi->fMark0;
+    }
+    assert( iBit == p->nBits );
+    // remember the number of failed output
+    RetValue = -1;
+    Gia_ManForEachPo( pAig, pObj, i )
+        if ( Gia_ManPo(pAig, i)->fMark0 )
+        {
+            RetValue = i;
+            break;
+        }
+    Gia_ManCleanMark0(pAig);
+    return RetValue;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -417,7 +417,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
     clk = clock();
     iOutput = Fra_FraigMiterAssertedOutput( pBmc->pAigFrames );
     if ( iOutput >= 0 )
-        pAig->pSeqModel = Fra_SmlTrivCounterExample( pAig, iOutput );
+        pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig), iOutput );
     else
     {
         pBmc->pAigFraig = Fra_FraigEquivence( pBmc->pAigFrames, nBTLimit, 1 );
@@ -428,7 +428,7 @@ void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRew
             ABC_FREE( pBmc->pAigFraig->pData );
         }
         else if ( iOutput >= 0 )
-            pAig->pSeqModel = Fra_SmlTrivCounterExample( pAig, iOutput );
+            pAig->pSeqModel = Abc_CexMakeTriv( Aig_ManRegNum(pAig), Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig), Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig), iOutput );
     }
     if ( fVerbose )
     {

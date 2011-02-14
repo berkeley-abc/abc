@@ -131,9 +131,7 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     if ( pNtk->vOnehots )
         pNtkNew->vOnehots = (Vec_Ptr_t *)Vec_VecDupInt( (Vec_Vec_t *)pNtk->vOnehots );
     if ( pNtk->pSeqModel )
-    {
-        pNtkNew->pSeqModel = Gia_ManDupCounterExample( pNtk->pSeqModel, Abc_NtkLatchNum(pNtk) );
-    }
+        pNtkNew->pSeqModel = Abc_CexDup( pNtk->pSeqModel, Abc_NtkLatchNum(pNtk) );
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
     assert( Abc_NtkCoNum(pNtk)    == Abc_NtkCoNum(pNtkNew) );

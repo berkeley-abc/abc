@@ -2359,6 +2359,14 @@ SOURCE=.\src\misc\util\util_hack.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilCex.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilCex.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilFile.c
 # End Source File
 # Begin Source File
@@ -4117,10 +4125,6 @@ SOURCE=.\src\aig\llb\llb3Nonlin.c
 
 SOURCE=.\src\aig\llb\llbInt.h
 # End Source File
-# End Group
-# Begin Group "bll"
-
-# PROP Default_Filter ""
 # End Group
 # End Group
 # End Group

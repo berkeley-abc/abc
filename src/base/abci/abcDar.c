@@ -21,7 +21,6 @@
 #include "abc.h"
 #include "main.h"
 #include "giaAig.h"
-#include "saig.h"
 #include "dar.h"
 #include "cnf.h"
 #include "fra.h"
@@ -1790,7 +1789,7 @@ ABC_PRT( "Time", clock() - clk );
     // verify counter-example
     if ( pNtk->pSeqModel ) 
     {
-        status = Ssw_SmlRunCounterExample( pMan, pNtk->pSeqModel );
+        status = Saig_ManVerifyCex( pMan, pNtk->pSeqModel );
         if ( status == 0 )
             printf( "Abc_NtkDarBmc(): Counter-example verification has FAILED.\n" );
     }
@@ -1857,7 +1856,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
     ABC_PRT( "Time", clock() - clk );
     if ( pNtk->pSeqModel ) 
     {
-        status = Ssw_SmlRunCounterExample( pMan, pNtk->pSeqModel );
+        status = Saig_ManVerifyCex( pMan, pNtk->pSeqModel );
         if ( status == 0 )
             printf( "Abc_NtkDarBmc3(): Counter-example verification has FAILED.\n" );
     }
@@ -1902,7 +1901,7 @@ int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man
                 pTemp->pSeqModel = NULL;
                 RetValue = Fra_FraigSat( pTemp, pPars->nBTLimit, 0, 0, 0, 0 ); 
                 if ( pTemp->pData )
-                    pTemp->pSeqModel = Gia_ManCreateFromComb( Aig_ManRegNum(pMan), Saig_ManPiNum(pMan), i, (int *)pTemp->pData );
+                    pTemp->pSeqModel = Abc_CexCreate( Aig_ManRegNum(pMan), Saig_ManPiNum(pMan), (int *)pTemp->pData, 0, i, 1 );
 //                pNtk->pModel = pTemp->pData, pTemp->pData = NULL;
             }
             else
@@ -2150,7 +2149,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
             printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).\n", pCex->iPo, pCex->iFrame );
-            if ( !Ssw_SmlRunCounterExample( pMan, pNtk->pSeqModel ) )
+            if ( !Saig_ManVerifyCex( pMan, pNtk->pSeqModel ) )
                 printf( "Abc_NtkDarProve(): Counter-example verification has FAILED.\n" );
         }
     }
@@ -2274,7 +2273,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
         Aig_Man_t * pTemp = Saig_ManDupOrpos( pMan );
         RetValue = Pdr_ManSolve( pTemp, pPars, ppCex );
         if ( RetValue == 0 )
-            (*ppCex)->iPo = Ssw_SmlFindOutputCounterExample( pMan, *ppCex );
+            (*ppCex)->iPo = Saig_ManFindFailedPoCex( pMan, *ppCex );
         Aig_ManStop( pTemp );
     }
     else
@@ -2290,7 +2289,7 @@ int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
         assert( 0 );
 ABC_PRT( "Time", clock() - clk );
 
-    if ( *ppCex && !Ssw_SmlRunCounterExample( pMan, *ppCex ) )
+    if ( *ppCex && !Saig_ManVerifyCex( pMan, *ppCex ) )
         printf( "Abc_NtkDarPdr(): Counter-example verification has FAILED.\n" );
     Aig_ManStop( pMan );
     return RetValue;
@@ -2710,7 +2709,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
             {
             printf( "Simulation iterated %d times with %d words asserted output %d in frame %d. ", 
                 nFrames, nWords, pCex->iPo, pCex->iFrame );
-            status = Ssw_SmlRunCounterExample( pMan, pCex );
+            status = Saig_ManVerifyCex( pMan, pCex );
             if ( status == 0 )
                 printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
             }
@@ -2737,7 +2736,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
             {
                 printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                     nFrames, nWords, pCex->iPo, pCex->iFrame );
-                status = Ssw_SmlRunCounterExample( pMan, pCex );
+                status = Saig_ManVerifyCex( pMan, pCex );
                 if ( status == 0 )
                     printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
             }
@@ -2767,7 +2766,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
             {
                 printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                     nFrames, nWords, pCex->iPo, pCex->iFrame );
-                status = Ssw_SmlRunCounterExample( pMan, pCex );
+                status = Saig_ManVerifyCex( pMan, pCex );
                 if ( status == 0 )
                     printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
             }
@@ -2798,7 +2797,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
             {
                 printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                     nFrames, nWords, pGia->pCexSeq->iPo, pGia->pCexSeq->iFrame );
-                status = Ssw_SmlRunCounterExample( pMan, pGia->pCexSeq );
+                status = Saig_ManVerifyCex( pMan, pGia->pCexSeq );
                 if ( status == 0 )
                     printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
             }
@@ -2825,7 +2824,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
             {
                 printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                     nFrames, nWords, pCex->iPo, pCex->iFrame );
-                status = Ssw_SmlRunCounterExample( pMan, pCex );
+                status = Saig_ManVerifyCex( pMan, pCex );
                 if ( status == 0 )
                     printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
             }
@@ -2847,7 +2846,7 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
             {
                 printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
                     nFrames, nWords, pCex->iPo, pCex->iFrame );
-                status = Ssw_SmlRunCounterExample( pMan, pCex );
+                status = Saig_ManVerifyCex( pMan, pCex );
                 if ( status == 0 )
                     printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
             }

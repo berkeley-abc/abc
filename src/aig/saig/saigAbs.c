@@ -101,12 +101,12 @@ Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexA
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     int i, f;
-    if ( !Ssw_SmlRunCounterExample( pAbs, pCexAbs ) )
+    if ( !Saig_ManVerifyCex( pAbs, pCexAbs ) )
         printf( "Saig_ManCexRemap(): The intial counter-example is invalid.\n" );
     else
         printf( "Saig_ManCexRemap(): The intial counter-example is correct.\n" );
     // start the counter-example
-    pCex = Ssw_SmlAllocCounterExample( Aig_ManRegNum(p), Saig_ManPiNum(p), pCexAbs->iFrame+1 );
+    pCex = Abc_CexAlloc( Aig_ManRegNum(p), Saig_ManPiNum(p), pCexAbs->iFrame+1 );
     pCex->iFrame = pCexAbs->iFrame;
     pCex->iPo    = pCexAbs->iPo;
     // copy the bit data
@@ -121,10 +121,10 @@ Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexA
         }
     }
     // verify the counter example
-    if ( !Ssw_SmlRunCounterExample( p, pCex ) )
+    if ( !Saig_ManVerifyCex( p, pCex ) )
     {
         printf( "Saig_ManCexRemap(): Counter-example is invalid.\n" );
-        Ssw_SmlFreeCounterExample( pCex );
+        Abc_CexFree( pCex );
         pCex = NULL;
     }
     else
@@ -194,7 +194,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
             printf( "Running property directed reachability...\n" );
         RetValue = Pdr_ManSolve( pAbsOrpos, pPars, &pCex );
         if ( pCex )
-            pCex->iPo = Ssw_SmlFindOutputCounterExample( pAbs, pCex );
+            pCex->iPo = Saig_ManFindFailedPoCex( pAbs, pCex );
         Aig_ManStop( pAbsOrpos );
         pAbs->pSeqModel = pCex;
         if ( RetValue )

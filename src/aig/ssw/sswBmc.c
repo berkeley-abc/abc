@@ -94,7 +94,7 @@ Abc_Cex_t * Ssw_BmcGetCounterExample( Ssw_Frm_t * pFrm, Ssw_Sat_t * pSat, int iP
     int f, i, nShift;
     assert( Saig_ManRegNum(pFrm->pAig) > 0 );
     // allocate the counter example
-    pCex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(pFrm->pAig), Saig_ManPiNum(pFrm->pAig), iFrame + 1 );
+    pCex = Abc_CexAlloc( Saig_ManRegNum(pFrm->pAig), Saig_ManPiNum(pFrm->pAig), iFrame + 1 );
     pCex->iPo    = iPo;
     pCex->iFrame = iFrame;
     // create data-bits

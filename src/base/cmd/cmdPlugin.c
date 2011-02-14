@@ -484,20 +484,18 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( 1, "Counter example has a wrong length.\n" );
             else
             {
-                extern int Gia_ManVerifyCounterExampleAllOuts( Gia_Man_t * pAig, Abc_Cex_t * p );
-
                 Abc_Print( 1, "Problem is satisfiable. Found counter-example in frame %d.  ", nFrames-1 );
                 Abc_PrintTime( 1, "Time", clk );
                 ABC_FREE( pAbc->pCex );
-                pAbc->pCex = Gia_ManDeriveCexFromArray( pAbc->pGia, vCex, 0, nFrames-1 );
+                pAbc->pCex = Abc_CexCreate( Gia_ManRegNum(pAbc->pGia), Gia_ManPiNum(pAbc->pGia), Vec_IntArray(vCex), nFrames-1, 0, 0 );
 
-//                Gia_ManPrintCex( pAbc->pCex );
+//                Abc_CexPrint( pAbc->pCex );
 
-//                if ( !Gia_ManVerifyCounterExample( pAbc->pGia, pAbc->pCex, 0 ) )
+//                if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
 //                    Abc_Print( 1, "Generated counter-example is INVALID.\n" );
 
                 // remporary work-around to detect the output number - October 18, 2010
-                pAbc->pCex->iPo = Gia_ManVerifyCounterExampleAllOuts( pAbc->pGia, pAbc->pCex );
+                pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex );
                 if ( pAbc->pCex->iPo == -1 )
                 {
                     Abc_Print( 1, "Generated counter-example is INVALID.\n" );

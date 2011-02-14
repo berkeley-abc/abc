@@ -436,7 +436,7 @@ Abc_Cex_t * Gia_ManGenerateCounter( Gia_Man_t * pAig, int iFrame, int iOut, int 
     Abc_Cex_t * p;
     unsigned * pData;
     int f, i, w, iPioId, Counter;
-    p = Gia_ManAllocCounterExample( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), iFrame+1 );
+    p = Abc_CexAlloc( Gia_ManRegNum(pAig), Gia_ManPiNum(pAig), iFrame+1 );
     p->iFrame = iFrame;
     p->iPo    = iOut;
     // fill in the binary data
@@ -513,7 +513,7 @@ int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
             pPars->iOutFail = iOut;
             pAig->pCexSeq = Gia_ManGenerateCounter( pAig, i, iOut, p->nWords, iPat, p->vCis2Ids );
             Abc_Print( 1, "Networks are NOT EQUIVALENT.   Output %d was asserted in frame %d.  ", iOut, i );
-            if ( !Gia_ManVerifyCounterExample( pAig, pAig->pCexSeq, 0 ) )
+            if ( !Gia_ManVerifyCex( pAig, pAig->pCexSeq, 0 ) )
             {
 //                Abc_Print( 1, "\n" );
                 Abc_Print( 1, "\nGenerated counter-example is INVALID.                    " );

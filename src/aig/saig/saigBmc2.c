@@ -637,7 +637,7 @@ Abc_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
     Aig_Obj_t * pObj, * pObjFrm;
     int i, f, iVarNum;
     // start the counter-example
-    pCex = Ssw_SmlAllocCounterExample( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), p->iFrameFail+1 );
+    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), p->iFrameFail+1 );
     pCex->iFrame = p->iFrameFail;
     pCex->iPo    = p->iOutputFail;
     // copy the bit data
@@ -656,10 +656,10 @@ Abc_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
         }
     }
     // verify the counter example
-    if ( !Ssw_SmlRunCounterExample( p->pAig, pCex ) )
+    if ( !Saig_ManVerifyCex( p->pAig, pCex ) )
     {
         printf( "Saig_BmcGenerateCounterExample(): Counter-example is invalid.\n" );
-        Ssw_SmlFreeCounterExample( pCex );
+        Abc_CexFree( pCex );
         pCex = NULL;
     }
     return pCex;

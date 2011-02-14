@@ -530,8 +530,8 @@ void Gia_ManCexAbstractionStartNew( Gia_Man_t * pGia, Gia_ParAbs_t * pPars )
         {
             printf( "Problem is satisfiable. Found counter-example in frame %d.  ", nFrames-1 );
             Abc_PrintTime( 1, "Time", clk );
-            pGia->pCexSeq = Gia_ManDeriveCexFromArray( pGia, vCex, 0, nFrames-1 );
-            if ( !Gia_ManVerifyCounterExample( pGia, pGia->pCexSeq, 0 ) )
+            pGia->pCexSeq = Abc_CexCreate( Gia_ManRegNum(pGia), Gia_ManPiNum(pGia), Vec_IntArray(vCex), nFrames-1, 0, 0 );
+            if ( !Gia_ManVerifyCex( pGia, pGia->pCexSeq, 0 ) )
                 Abc_Print( 1, "Generated counter-example is INVALID.\n" );
             pPars->Status = 0;
         }

@@ -164,7 +164,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     {
         if ( p->pCexComb != NULL )
         {
-            if ( p->pCexComb && !Gia_ManVerifyCounterExample( p, p->pCexComb, 1 ) )
+            if ( p->pCexComb && !Gia_ManVerifyCex( p, p->pCexComb, 1 ) )
                 Abc_Print( 1, "Counter-example simulation has failed.\n" );
             Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
             Abc_PrintTime( 1, "Time", clock() - clk );
@@ -220,7 +220,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     fflush( stdout );
     RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail );
     p->pCexComb = pNew->pCexComb; pNew->pCexComb = NULL;
-    if ( p->pCexComb && !Gia_ManVerifyCounterExample( p, p->pCexComb, 1 ) )
+    if ( p->pCexComb && !Gia_ManVerifyCex( p, p->pCexComb, 1 ) )
         Abc_Print( 1, "Counter-example simulation has failed.\n" );
     Gia_ManStop( pNew );
     return RetValue;

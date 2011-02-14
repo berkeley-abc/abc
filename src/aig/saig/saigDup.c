@@ -265,6 +265,91 @@ Aig_Man_t * Saig_ManDeriveAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManVerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
+{
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    Aig_ManCleanMarkB(pAig);
+    Aig_ManConst1(pAig)->fMarkB = 1;
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Saig_ManForEachPi( pAig, pObj, k )
+            pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        Aig_ManForEachNode( pAig, pObj, k )
+            pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                           (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachPo( pAig, pObj, k )
+            pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMarkB = pObjRi->fMarkB;
+    }
+    assert( iBit == p->nBits );
+    RetValue = Aig_ManPo(pAig, p->iPo)->fMarkB;
+    Aig_ManCleanMarkB(pAig);
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManFindFailedPoCex( Aig_Man_t * pAig, Abc_Cex_t * p )
+{
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    Aig_ManCleanMarkB(pAig);
+    Aig_ManConst1(pAig)->fMarkB = 1;
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Saig_ManForEachPi( pAig, pObj, k )
+            pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        Aig_ManForEachNode( pAig, pObj, k )
+            pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                           (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachPo( pAig, pObj, k )
+            pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMarkB = pObjRi->fMarkB;
+    }
+    assert( iBit == p->nBits );
+    // remember the number of failed output
+    RetValue = -1;
+    Saig_ManForEachPo( pAig, pObj, i )
+        if ( pObj->fMarkB )
+        {
+            RetValue = i;
+            break;
+        }
+    Aig_ManCleanMarkB(pAig);
+    return RetValue;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

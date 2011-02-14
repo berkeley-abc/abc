@@ -203,14 +203,14 @@ clk = clock();
 
     if ( pTemp->pSeqModel )
     {
-        if ( !Ssw_SmlRunCounterExample( pTemp, pTemp->pSeqModel ) )
+        if ( !Saig_ManVerifyCex( pTemp, pTemp->pSeqModel ) )
             printf( "Fra_FraigSec(): Counter-example verification has FAILED.\n" );
         if ( Saig_ManPiNum(p) != Saig_ManPiNum(pTemp) )
             printf( "The counter-example is invalid because of phase abstraction.\n" );
         else
         {
         ABC_FREE( p->pSeqModel );
-        p->pSeqModel = Ssw_SmlDupCounterExample( pTemp->pSeqModel, Aig_ManRegNum(p) );
+        p->pSeqModel = Abc_CexDup( pTemp->pSeqModel, Aig_ManRegNum(p) );
         ABC_FREE( pTemp->pSeqModel );
         }
     }
@@ -443,7 +443,7 @@ ABC_PRT( "Time", clock() - clk );
             else
             {
             ABC_FREE( p->pSeqModel );
-            p->pSeqModel = Ssw_SmlDupCounterExample( pNew->pSeqModel, Aig_ManRegNum(p) );
+            p->pSeqModel = Abc_CexDup( pNew->pSeqModel, Aig_ManRegNum(p) );
             ABC_FREE( pNew->pSeqModel );
             }
 
@@ -505,7 +505,7 @@ clk = clock();
                     RetValue = Inter_ManPerformInterpolation( pTemp, pPars, &Depth );
                     if ( pTemp->pSeqModel )
                     {
-                        pCex = p->pSeqModel = Ssw_SmlDupCounterExample( pTemp->pSeqModel, Aig_ManRegNum(p) );
+                        pCex = p->pSeqModel = Abc_CexDup( pTemp->pSeqModel, Aig_ManRegNum(p) );
                         pCex->iPo = i;
                         Aig_ManStop( pTemp );
                         break;
@@ -548,7 +548,7 @@ clk = clock();
             {
                 Abc_Cex_t * pCex;
                 pCex = pNew->pSeqModel = pNewOrpos->pSeqModel; pNewOrpos->pSeqModel = NULL;
-                pCex->iPo = Ssw_SmlFindOutputCounterExample( pNew, pNew->pSeqModel );
+                pCex->iPo = Saig_ManFindFailedPoCex( pNew, pNew->pSeqModel );
             }
             Aig_ManStop( pNewOrpos );
         }
@@ -598,7 +598,7 @@ ABC_PRT( "Time", clock() - clk );
             printf( "Running property directed reachability...\n" );
         RetValue = Pdr_ManSolve( pNewOrpos, pPars, &pCex );
         if ( pCex )
-            pCex->iPo = Ssw_SmlFindOutputCounterExample( pNew, pCex );
+            pCex->iPo = Saig_ManFindFailedPoCex( pNew, pCex );
         Aig_ManStop( pNewOrpos );
         pNew->pSeqModel = pCex;
     }
@@ -665,7 +665,7 @@ ABC_PRT( "Time", clock() - clkTotal );
         else
         {
         ABC_FREE( p->pSeqModel );
-        p->pSeqModel = Ssw_SmlDupCounterExample( pNew->pSeqModel, Aig_ManRegNum(p) );
+        p->pSeqModel = Abc_CexDup( pNew->pSeqModel, Aig_ManRegNum(p) );
         ABC_FREE( pNew->pSeqModel );
         }
     }

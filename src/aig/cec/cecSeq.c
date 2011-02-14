@@ -338,7 +338,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
     }
     Gia_ManRandom( 1 );
     // prepare starting pattern
-    pState = Gia_ManAllocCounterExample( Gia_ManRegNum(pAig), 0, 0 );
+    pState = Abc_CexAlloc( Gia_ManRegNum(pAig), 0, 0 );
     pState->iFrame = -1;
     pState->iPo = -1;
     // prepare SAT solving
@@ -359,7 +359,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
             Abc_Print( 1, "Cec_ManSeqSemiformal: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
             break;
         }
-//        Gia_ManPrintCounterExample( pState );
+//        Abc_CexPrint( pState );
         // derive speculatively reduced model
 //        pSrm = Gia_ManSpecReduceInit( pAig, pState, pPars->nFrames, pPars->fDualOut );
         pSrm = Gia_ManSpecReduceInitFrames( pAig, pState, pPars->nFrames, &nFramesReal, pPars->fDualOut, pPars->nMinOutputs );

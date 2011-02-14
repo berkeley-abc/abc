@@ -237,7 +237,6 @@ DdNode * Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd )
 ***********************************************************************/
 Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
 {
-    extern Abc_Cex_t * Ssw_SmlAllocCounterExample( int nRegs, int nRealPis, int nFrames );
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     Vec_Int_t * vVarsNs;
@@ -263,7 +262,7 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
     printf( "\n" );
 */
     // allocate room for the counter-example
-    pCex = Ssw_SmlAllocCounterExample( Saig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Vec_PtrSize(p->vRings) );
+    pCex = Abc_CexAlloc( Saig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Vec_PtrSize(p->vRings) );
     pCex->iFrame = Vec_PtrSize(p->vRings) - 1;
     pCex->iPo = -1;
 
@@ -330,7 +329,8 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
     }
     assert( nPiOffset == Saig_ManRegNum(p->pAig) );
     // update the output number
-    RetValue = Ssw_SmlFindOutputCounterExample( p->pInit, pCex );
+//Abc_CexPrint( pCex );
+    RetValue = Saig_ManFindFailedPoCex( p->pInit, pCex );
     assert( RetValue >= 0 && RetValue < Saig_ManPoNum(p->pInit) ); // invalid CEX!!!
     pCex->iPo = RetValue;
     // cleanup
