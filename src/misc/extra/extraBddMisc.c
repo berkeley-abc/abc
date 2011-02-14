@@ -1277,6 +1277,11 @@ extraTransferPermuteRecur(
     if ( st_lookup( table, ( char * ) f, ( char ** ) &res ) )
         return ( Cudd_NotCond( res, comple ) );
 
+    if ( ddS->TimeStop && ddS->TimeStop < clock() )
+        return NULL;
+    if ( ddD->TimeStop && ddD->TimeStop < clock() )
+        return NULL;
+
     /* Recursive step. */
     if ( Permute )
         index = Permute[f->index];

@@ -129,7 +129,8 @@ DdNode * Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager 
 {
     DdNode * bCube, * bVar, * bTemp;
     Aig_Obj_t * pObj;
-    int i;
+    int i, TimeStop;
+    TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bCube = Cudd_ReadOne( dd );  Cudd_Ref( bCube );
     Saig_ManForEachLi( pAig, pObj, i )
     {
@@ -143,6 +144,7 @@ DdNode * Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager 
         Cudd_RecursiveDeref( dd, bTemp );
     }
     Cudd_Deref( bCube );
+    dd->TimeStop = TimeStop;
     return bCube;
 }
 
@@ -181,7 +183,8 @@ DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, int Tim
         bVar2 = Cudd_NotCond( bVar2, Aig_ObjFaninC0(pObj) );
         bProd = Cudd_bddXnor( dd, bVar1, bVar2 );              Cudd_Ref( bProd );
 //        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd );        Cudd_Ref( bRes );
-        bRes  = Extra_bddAndTime( dd, bTemp = bRes, bProd, TimeTarget );  
+//        bRes  = Extra_bddAndTime( dd, bTemp = bRes, bProd, TimeTarget );  
+        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd );  
         if ( bRes == NULL )
         {
             Cudd_RecursiveDeref( dd, bTemp );

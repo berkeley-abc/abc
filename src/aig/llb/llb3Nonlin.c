@@ -210,7 +210,8 @@ DdNode * Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd )
 {
     Aig_Obj_t * pObj;
     DdNode * bRes, * bVar, * bTemp;
-    int i, iVar;
+    int i, iVar, TimeStop;
+    TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLo( pAig, pObj, i )
     {
@@ -220,6 +221,7 @@ DdNode * Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd )
         Cudd_RecursiveDeref( dd, bTemp );
     }
     Cudd_Deref( bRes );
+    dd->TimeStop = TimeStop;
     return bRes;
 }
 
@@ -244,6 +246,9 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
     int i, v, RetValue, nPiOffset;
     char * pValues = ABC_ALLOC( char, Cudd_ReadSize(p->ddR) );
     assert( Vec_PtrSize(p->vRings) > 0 );
+
+    p->dd->TimeStop  = 0;
+    p->ddR->TimeStop = 0;
 
     // update quantifiable vars
     memset( p->pVars2Q, 0, sizeof(int) * Cudd_ReadSize(p->dd) );
@@ -437,7 +442,16 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         }
 
         // save the onion ring
-        bTemp = Extra_TransferPermute( p->dd, p->ddR, bCurrent, Vec_IntArray(p->vCs2Glo) );    Cudd_Ref( bTemp );
+        bTemp = Extra_TransferPermute( p->dd, p->ddR, bCurrent, Vec_IntArray(p->vCs2Glo) );
+        if ( bTemp == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during ring transfer.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
+            return -1;
+        }
+        Cudd_Ref( bTemp );
         Vec_PtrPush( p->vRings, bTemp );
 
         // check it for bad states
@@ -533,7 +547,8 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         // transfer to the state manager
         clk3 = clock();
         Cudd_RecursiveDeref( p->ddG, p->ddG->bFunc2 );
-        p->ddG->bFunc2 = Extra_TransferPermuteTime( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo), p->pPars->TimeTarget );    
+//        p->ddG->bFunc2 = Extra_TransferPermuteTime( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo), p->pPars->TimeTarget );    
+        p->ddG->bFunc2 = Extra_TransferPermute( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo) );    
         if ( p->ddG->bFunc2 == NULL )
         {
             if ( !p->pPars->fSilent )
@@ -548,12 +563,30 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
 
         // derive new states
         clk3 = clock();
-        p->ddG->bFunc2 = Cudd_bddAnd( p->ddG, bTemp = p->ddG->bFunc2, Cudd_Not(p->ddG->bFunc) );     Cudd_Ref( p->ddG->bFunc2 );
+        p->ddG->bFunc2 = Cudd_bddAnd( p->ddG, bTemp = p->ddG->bFunc2, Cudd_Not(p->ddG->bFunc) );     
+        if ( p->ddG->bFunc2 == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->ddG, bTemp );  
+            return -1;
+        }
+        Cudd_Ref( p->ddG->bFunc2 );
         Cudd_RecursiveDeref( p->ddG, bTemp );
         if ( Cudd_IsConstant(p->ddG->bFunc2) )
             break;
         // add to the reached set
-        p->ddG->bFunc = Cudd_bddOr( p->ddG, bTemp = p->ddG->bFunc, p->ddG->bFunc2 );                 Cudd_Ref( p->ddG->bFunc );
+        p->ddG->bFunc = Cudd_bddOr( p->ddG, bTemp = p->ddG->bFunc, p->ddG->bFunc2 );                 
+        if ( p->ddG->bFunc == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->ddG, bTemp );  
+            return -1;
+        }
+        Cudd_Ref( p->ddG->bFunc );
         Cudd_RecursiveDeref( p->ddG, bTemp );
         p->timeGloba += clock() - clk3;
 
@@ -564,7 +597,8 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
 
         // move new states to the working manager
         clk3 = clock();
-        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs), p->pPars->TimeTarget ); 
+//        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs), p->pPars->TimeTarget ); 
+        bCurrent = Extra_TransferPermute( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs) ); 
         if ( bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )

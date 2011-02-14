@@ -975,6 +975,11 @@ cuddBddTransferRecur(
     /* Check the cache. */
     if (st_lookup(table, (const char *)f, (char **)&res))
         return(Cudd_NotCond(res,comple));
+
+    if ( ddS->TimeStop && ddS->TimeStop < clock() )
+        return NULL;
+    if ( ddD->TimeStop && ddD->TimeStop < clock() )
+        return NULL;
     
     /* Recursive step. */
     index = f->index;

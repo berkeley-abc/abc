@@ -141,7 +141,8 @@ DdNode * Llb_NonlinCreateCube1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
 {
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
-    int i;
+    int i, TimeStop;
+    TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart, pVar, i )
     {
@@ -153,6 +154,7 @@ DdNode * Llb_NonlinCreateCube1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
         Cudd_RecursiveDeref( p->dd, bTemp );
     }
     Cudd_Deref( bCube );
+    p->dd->TimeStop = TimeStop;
     return bCube;
 }
 
@@ -171,7 +173,8 @@ DdNode * Llb_NonlinCreateCube2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * p
 {
     DdNode * bCube, * bTemp;
     Llb_Var_t * pVar;
-    int i;
+    int i, TimeStop;
+    TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bCube = Cudd_ReadOne(p->dd);   Cudd_Ref( bCube );
     Llb_PartForEachVar( p, pPart1, pVar, i )
     {
@@ -186,6 +189,7 @@ DdNode * Llb_NonlinCreateCube2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * p
         }
     }
     Cudd_Deref( bCube );
+    p->dd->TimeStop = TimeStop;
     return bCube;
 }
 
@@ -376,7 +380,8 @@ Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
     Cudd_Ref( bFunc );
 */
 
-    bFunc = Extra_bddAndAbstractTime( p->dd, pPart1->bFunc, pPart2->bFunc, bCube, TimeOut );  
+//    bFunc = Extra_bddAndAbstractTime( p->dd, pPart1->bFunc, pPart2->bFunc, bCube, TimeOut );  
+    bFunc = Cudd_bddAndAbstract( p->dd, pPart1->bFunc, pPart2->bFunc, bCube );  
     if ( bFunc == NULL )
     {
         Cudd_RecursiveDeref( p->dd, bCube );
@@ -549,7 +554,8 @@ Vec_Ptr_t * Llb_NonlinBuildBdds( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * 
     {
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
-        pObj->pData = Extra_bddAndTime( dd, bBdd0, bBdd1, TimeOut );
+//        pObj->pData = Extra_bddAndTime( dd, bBdd0, bBdd1, TimeOut );
+        pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );
         if ( pObj->pData == NULL )
         {
             Vec_PtrForEachEntryStop( Aig_Obj_t *, vNodes, pObj, k, i )
@@ -907,7 +913,14 @@ DdNode * Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRo
     bFunc = Cudd_ReadOne(p->dd);   Cudd_Ref( bFunc );
     Llb_MgrForEachPart( p, pPart, i )
     {
-        bFunc = Cudd_bddAnd( p->dd, bTemp = bFunc, pPart->bFunc );   Cudd_Ref( bFunc );
+        bFunc = Cudd_bddAnd( p->dd, bTemp = bFunc, pPart->bFunc );
+        if ( bFunc == NULL )
+        {
+            Cudd_RecursiveDeref( p->dd, bTemp );
+            Llb_NonlinFree( p );
+            return NULL;
+        }
+        Cudd_Ref( bFunc );
         Cudd_RecursiveDeref( p->dd, bTemp );
     }
     nSuppMax = p->nSuppMax;

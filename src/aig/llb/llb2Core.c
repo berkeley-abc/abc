@@ -68,7 +68,8 @@ struct Llb_Img_t_
 DdNode * Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarIndex, char * pValues )
 {
     DdNode * bRes, * bVar, * bTemp;
-    int i, iVar, Index;
+    int i, iVar, Index, TimeStop;
+    TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Vec_IntForEachEntry( vVars, Index, i )
     {
@@ -78,6 +79,7 @@ DdNode * Llb_CoreComputeCube( DdManager * dd, Vec_Int_t * vVars, int fUseVarInde
         Cudd_RecursiveDeref( dd, bTemp );
     }
     Cudd_Deref( bRes );
+    dd->TimeStop = TimeStop;
     return bRes;
 }
 
@@ -101,6 +103,9 @@ Abc_Cex_t * Llb_CoreDeriveCex( Llb_Img_t * p )
     int i, v, RetValue, nPiOffset;
     char * pValues = ABC_ALLOC( char, Cudd_ReadSize(p->ddR) );
     assert( Vec_PtrSize(p->vRings) > 0 );
+
+    p->dd->TimeStop  = 0;
+    p->ddR->TimeStop = 0;
 
     // get supports and quantified variables
     Vec_PtrReverseOrder( p->vDdMans );
@@ -244,7 +249,15 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         bReached = Cudd_bddTransfer( p->ddR, p->ddG, bCurrent );                 Cudd_Ref( bReached );
         Cudd_RecursiveDeref( p->ddR, bCurrent );
         // move init state to the working manager
-        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bReached, pGlo2Loc );   Cudd_Ref( bCurrent );
+        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bReached, pGlo2Loc );   
+        if ( bCurrent == NULL )
+        {
+            Cudd_RecursiveDeref( p->ddG, bReached );
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during transfer 0.\n", p->pPars->TimeLimit );
+            return -1;
+        }
+        Cudd_Ref( bCurrent );
     }
     else
     {
@@ -282,7 +295,17 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         }
 
         // save the onion ring
-        bTemp = Extra_TransferPermute( p->dd, p->ddR, bCurrent, pLoc2GloR );    Cudd_Ref( bTemp );
+        bTemp = Extra_TransferPermute( p->dd, p->ddR, bCurrent, pLoc2GloR );  
+        if ( bTemp == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
+            Cudd_RecursiveDeref( p->ddG, bReached );  bReached = NULL;
+            return -1;
+        }
+        Cudd_Ref( bTemp );
         Vec_PtrPush( p->vRings, bTemp );
 
         // check it for bad states
@@ -325,7 +348,8 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
 //        bNext = Extra_TransferPermute( p->dd, p->ddG, bTemp = bNext, pLoc2Glo );    Cudd_Ref( bNext );
 //        Cudd_RecursiveDeref( p->dd, bTemp );
 
-        bNext = Extra_TransferPermuteTime( p->dd, p->ddG, bTemp = bNext, pLoc2Glo, p->pPars->TimeTarget );    
+//        bNext = Extra_TransferPermuteTime( p->dd, p->ddG, bTemp = bNext, pLoc2Glo, p->pPars->TimeTarget );    
+        bNext = Extra_TransferPermute( p->dd, p->ddG, bTemp = bNext, pLoc2Glo );    
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
@@ -347,13 +371,24 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         }
 
         // get the new states
-        bCurrent = Cudd_bddAnd( p->ddG, bNext, Cudd_Not(bReached) );                    Cudd_Ref( bCurrent );
+        bCurrent = Cudd_bddAnd( p->ddG, bNext, Cudd_Not(bReached) );                    
+        if ( bCurrent == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            Cudd_RecursiveDeref( p->ddG, bNext );  
+            Cudd_RecursiveDeref( p->ddG, bReached );   bReached = NULL;
+            return -1;
+        }
+        Cudd_Ref( bCurrent );
 
         // remap these states into the current state vars
 //        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bTemp = bCurrent, pGlo2Loc );   Cudd_Ref( bCurrent );
 //        Cudd_RecursiveDeref( p->ddG, bTemp );
 
-        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, bTemp = bCurrent, pGlo2Loc, p->pPars->TimeTarget );    
+//        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, bTemp = bCurrent, pGlo2Loc, p->pPars->TimeTarget );    
+        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bTemp = bCurrent, pGlo2Loc );    
         if ( bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )

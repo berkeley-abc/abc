@@ -48,9 +48,10 @@ DdNode * Llb_ManConstructOutBdd( Aig_Man_t * pAig, Aig_Obj_t * pNode, DdManager 
     DdNode * bBdd0, * bBdd1, * bFunc;
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
-    int i;
+    int i, TimeStop;
     if ( Aig_ObjFanin0(pNode) == Aig_ManConst1(pAig) )
         return Cudd_NotCond( Cudd_ReadOne(dd), Aig_ObjFaninC0(pNode) );
+    TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     vNodes = Aig_ManDfsNodes( pAig, &pNode, 1 );
     assert( Vec_PtrSize(vNodes) > 0 );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
@@ -72,6 +73,7 @@ DdNode * Llb_ManConstructOutBdd( Aig_Man_t * pAig, Aig_Obj_t * pNode, DdManager 
     if ( Aig_ObjIsPo(pNode) )
         bFunc = Cudd_NotCond( bFunc, Aig_ObjFaninC0(pNode) );
     Cudd_Deref( bFunc );
+    dd->TimeStop = TimeStop;
     return bFunc;
 }
 
@@ -98,7 +100,8 @@ DdNode * Llb_ManConstructGroupBdd( Llb_Man_t * p, Llb_Grp_t * pGroup )
     {
         bBdd0 = Cudd_NotCond( Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
-        pObj->pData = Extra_bddAndTime( p->dd, bBdd0, bBdd1, p->pPars->TimeTarget );  
+//        pObj->pData = Extra_bddAndTime( p->dd, bBdd0, bBdd1, p->pPars->TimeTarget );  
+        pObj->pData = Cudd_bddAnd( p->dd, bBdd0, bBdd1 );  
         if ( pObj->pData == NULL )
         {
             Vec_PtrForEachEntryStop( Aig_Obj_t *, pGroup->vNodes, pObj, k, i )
@@ -117,7 +120,8 @@ DdNode * Llb_ManConstructGroupBdd( Llb_Man_t * p, Llb_Grp_t * pGroup )
             bBdd0 = (DdNode *)pObj->pData;
         bBdd1 = Cudd_bddIthVar( p->dd, Vec_IntEntry(p->vObj2Var, Aig_ObjId(pObj)) );
         bXor  = Cudd_bddXor( p->dd, bBdd0, bBdd1 );                  Cudd_Ref( bXor );
-        bRes  = Extra_bddAndTime( p->dd, bTemp = bRes, Cudd_Not(bXor), p->pPars->TimeTarget );  
+//        bRes  = Extra_bddAndTime( p->dd, bTemp = bRes, Cudd_Not(bXor), p->pPars->TimeTarget );  
+        bRes  = Cudd_bddAnd( p->dd, bTemp = bRes, Cudd_Not(bXor) );  
         if ( bRes == NULL )
         {
             Cudd_RecursiveDeref( p->dd, bTemp );
@@ -153,6 +157,8 @@ DdNode * Llb_ManConstructQuantCubeIntern( Llb_Man_t * p, Llb_Grp_t * pGroup, int
     Aig_Obj_t * pObj;
     DdNode * bRes, * bTemp, * bVar;
     int i, iGroupFirst, iGroupLast;
+    int TimeStop;
+    TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bRes = Cudd_ReadOne( p->dd );   Cudd_Ref( bRes );
     Vec_PtrForEachEntry( Aig_Obj_t *, pGroup->vIns, pObj, i )
     {
@@ -177,6 +183,7 @@ DdNode * Llb_ManConstructQuantCubeIntern( Llb_Man_t * p, Llb_Grp_t * pGroup, int
         Cudd_RecursiveDeref( p->dd, bTemp );
     }
     Cudd_Deref( bRes );
+    p->dd->TimeStop = TimeStop;
     return bRes;
 }
 
@@ -195,7 +202,8 @@ DdNode * Llb_ManConstructQuantCube( Llb_Man_t * p, Llb_Grp_t * pGroup, int iGrpP
 {
     Aig_Obj_t * pObj;
     DdNode * bRes, * bTemp, * bVar;
-    int i, iGroupLast;
+    int i, iGroupLast, TimeStop;
+    TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     bRes = Cudd_ReadOne( p->dd );   Cudd_Ref( bRes );
     Vec_PtrForEachEntry( Aig_Obj_t *, pGroup->vIns, pObj, i )
     {
@@ -218,6 +226,7 @@ DdNode * Llb_ManConstructQuantCube( Llb_Man_t * p, Llb_Grp_t * pGroup, int iGrpP
         Cudd_RecursiveDeref( p->dd, bTemp );
     }
     Cudd_Deref( bRes );
+    p->dd->TimeStop = TimeStop;
     return bRes;
 }
 
@@ -236,7 +245,8 @@ DdNode * Llb_ManComputeInitState( Llb_Man_t * p, DdManager * dd )
 {
     Aig_Obj_t * pObj;
     DdNode * bRes, * bVar, * bTemp;
-    int i, iVar;
+    int i, iVar, TimeStop;
+    TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLo( p->pAig, pObj, i )
     {
@@ -246,6 +256,7 @@ DdNode * Llb_ManComputeInitState( Llb_Man_t * p, DdManager * dd )
         Cudd_RecursiveDeref( dd, bTemp );
     }
     Cudd_Deref( bRes );
+    dd->TimeStop = TimeStop;
     return bRes;
 }
 
@@ -280,12 +291,20 @@ DdNode * Llb_ManComputeImage( Llb_Man_t * p, DdNode * bInit )
         Cudd_Ref( bGroup );
         // quantify variables appearing only in this group
         bCube  = Llb_ManConstructQuantCubeIntern( p, pGroup, i );               Cudd_Ref( bCube );
-        bGroup = Cudd_bddExistAbstract( p->dd, bTemp = bGroup, bCube );         Cudd_Ref( bGroup );
+        bGroup = Cudd_bddExistAbstract( p->dd, bTemp = bGroup, bCube );         
+        if ( bGroup == NULL )
+        {
+            Cudd_RecursiveDeref( p->dd, bTemp );
+            Cudd_RecursiveDeref( p->dd, bCube );
+            return NULL;
+        }
+        Cudd_Ref( bGroup );
         Cudd_RecursiveDeref( p->dd, bTemp );
         Cudd_RecursiveDeref( p->dd, bCube );
         // perform partial product
         bCube  = Llb_ManConstructQuantCube( p, pGroup, i );                     Cudd_Ref( bCube );
-        bImage = Extra_bddAndAbstractTime( p->dd, bTemp = bImage, bGroup, bCube, p->pPars->TimeTarget );   
+//        bImage = Extra_bddAndAbstractTime( p->dd, bTemp = bImage, bGroup, bCube, p->pPars->TimeTarget );   
+        bImage = Cudd_bddAndAbstract( p->dd, bTemp = bImage, bGroup, bCube );   
         if ( bImage == NULL )
         {
             Cudd_RecursiveDeref( p->dd, bTemp );
@@ -331,9 +350,10 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
 {
     DdNode * bConstr, * bFunc, * bTemp;
     Aig_Obj_t * pObj;
-    int i, Entry;
+    int i, Entry, TimeStop;
     if ( vHints == NULL )
         return Cudd_ReadOne( p->dd );
+    TimeStop = p->dd->TimeStop; p->dd->TimeStop = 0;
     assert( Aig_ManPiNum(p->pAig) == Aig_ManPiNum(p->pAigGlo) );
     // assign const and PI nodes to the original AIG
     Aig_ManCleanData( p->pAig );
@@ -367,6 +387,7 @@ DdNode * Llb_ManCreateConstraints( Llb_Man_t * p, Vec_Int_t * vHints, int fUseNs
         Cudd_RecursiveDeref( p->dd, bFunc );
     }
     Cudd_Deref( bConstr );
+    p->dd->TimeStop = TimeStop;
     return bConstr;
 }
 
@@ -558,7 +579,8 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         // remap these states into the current state vars
 //        bNext = Extra_TransferPermute( p->dd, p->ddG, bTemp = bNext, pNs2Glo );    Cudd_Ref( bNext );
 //        Cudd_RecursiveDeref( p->dd, bTemp );
-        bNext = Extra_TransferPermuteTime( p->dd, p->ddG, bTemp = bNext, pNs2Glo, p->pPars->TimeTarget );    
+//        bNext = Extra_TransferPermuteTime( p->dd, p->ddG, bTemp = bNext, pNs2Glo, p->pPars->TimeTarget );    
+        bNext = Extra_TransferPermute( p->dd, p->ddG, bTemp = bNext, pNs2Glo );    
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
@@ -590,7 +612,14 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         }
 
         // get the new states
-        bCurrent = Cudd_bddAnd( p->ddG, bNext, Cudd_Not(bReached) );                    Cudd_Ref( bCurrent );
+        bCurrent = Cudd_bddAnd( p->ddG, bNext, Cudd_Not(bReached) );
+        if ( bCurrent == NULL )
+        {
+            Cudd_RecursiveDeref( p->ddG,  bNext );        bNext = NULL;
+            Cudd_RecursiveDeref( p->ddG,  bReached );     bReached = NULL;
+            break;
+        }
+        Cudd_Ref( bCurrent );
         // minimize the new states with the reached states
 //        bCurrent = Cudd_bddConstrain( p->ddG, bTemp = bCurrent, Cudd_Not(bReached) ); Cudd_Ref( bCurrent );
 //        bCurrent = Cudd_bddRestrict( p->ddG, bTemp = bCurrent, Cudd_Not(bReached) );  Cudd_Ref( bCurrent );
@@ -600,7 +629,8 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         // remap these states into the current state vars
 //        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bTemp = bCurrent, pGlo2Cs );   Cudd_Ref( bCurrent );
 //        Cudd_RecursiveDeref( p->ddG, bTemp );
-        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, bTemp = bCurrent, pGlo2Cs, p->pPars->TimeTarget );    
+//        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, bTemp = bCurrent, pGlo2Cs, p->pPars->TimeTarget );    
+        bCurrent = Extra_TransferPermute( p->ddG, p->dd, bTemp = bCurrent, pGlo2Cs );    
         if ( bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )
@@ -617,7 +647,14 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
         
 
         // add to the reached states
-        bReached = Cudd_bddOr( p->ddG, bTemp = bReached, bNext );                       Cudd_Ref( bReached );
+        bReached = Cudd_bddOr( p->ddG, bTemp = bReached, bNext );                       
+        if ( bReached == NULL )
+        {
+            Cudd_RecursiveDeref( p->ddG,  bTemp );     bTemp = NULL;
+            Cudd_RecursiveDeref( p->ddG,  bNext );     bNext = NULL;
+            break;
+        }
+        Cudd_Ref( bReached );
         Cudd_RecursiveDeref( p->ddG, bTemp );
         Cudd_RecursiveDeref( p->ddG, bNext );
         bNext = NULL;

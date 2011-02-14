@@ -259,6 +259,9 @@ cuddBddAndAbstractRecur(
         }
     }
 
+    if ( manager->TimeStop && manager->TimeStop < clock() )
+        return NULL;
+
     if (topf == top) {
         index = F->index;
         ft = cuddT(F);

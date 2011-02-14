@@ -200,7 +200,8 @@ DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUp
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
 //        pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );   Cudd_Ref( (DdNode *)pObj->pData );
-        pObj->pData = Extra_bddAndTime( dd, bBdd0, bBdd1, TimeTarget );  
+//        pObj->pData = Extra_bddAndTime( dd, bBdd0, bBdd1, TimeTarget );  
+        pObj->pData = Cudd_bddAnd( dd, bBdd0, bBdd1 );  
         if ( pObj->pData == NULL )
         {
             Cudd_Quit( dd );
@@ -217,7 +218,8 @@ DdManager * Llb_ImgPartition( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t * vUp
         assert( Aig_ObjIsNode(pObj) );
         bProd = Cudd_bddXnor( dd, Cudd_bddIthVar(dd, Aig_ObjId(pObj)), (DdNode *)pObj->pData );   Cudd_Ref( bProd );
 //        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd ); Cudd_Ref( bRes );
-        bRes  = Extra_bddAndTime( dd, bTemp = bRes, bProd, TimeTarget );  
+//        bRes  = Extra_bddAndTime( dd, bTemp = bRes, bProd, TimeTarget );  
+        bRes  = Cudd_bddAnd( dd, bTemp = bRes, bProd );  
         if ( bRes == NULL )
         {
             Cudd_Quit( dd );
@@ -257,7 +259,8 @@ DdNode * Llb_ImgComputeCube( Aig_Man_t * pAig, Vec_Int_t * vNodeIds, DdManager *
 {
     DdNode * bProd, * bTemp;
     Aig_Obj_t * pObj;
-    int i;
+    int i, TimeStop;
+    TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bProd = Cudd_ReadOne(dd);   Cudd_Ref( bProd );
     Aig_ManForEachNodeVec( pAig, vNodeIds, pObj, i )
     {
@@ -265,6 +268,7 @@ DdNode * Llb_ImgComputeCube( Aig_Man_t * pAig, Vec_Int_t * vNodeIds, DdManager *
         Cudd_RecursiveDeref( dd, bTemp );
     }
     Cudd_Deref( bProd );
+    dd->TimeStop = TimeStop;
     return bProd;
 } 
 
@@ -376,7 +380,14 @@ DdNode * Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager *
     {
         // quantify unique vriables
         bCube  = Llb_ImgComputeCube( pAig, (Vec_Int_t *)Vec_PtrEntry(vQuant0, 0), dd ); Cudd_Ref( bCube );
-        bImage = Cudd_bddExistAbstract( dd, bTemp = bImage, bCube );                    Cudd_Ref( bImage );
+        bImage = Cudd_bddExistAbstract( dd, bTemp = bImage, bCube );                    
+        if ( bImage == NULL )
+        {
+            Cudd_RecursiveDeref( dd, bTemp );
+            Cudd_RecursiveDeref( dd, bCube );
+            return NULL;
+        }
+        Cudd_Ref( bImage );
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bCube );
     }
@@ -387,13 +398,17 @@ DdNode * Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager *
 if ( fVerbose )
 printf( "   %2d : ", i );
         // transfer the BDD from the group manager to the main manager
-        bGroup = Cudd_bddTransfer( ddPart, dd, ddPart->bFunc );                           Cudd_Ref( bGroup );
+        bGroup = Cudd_bddTransfer( ddPart, dd, ddPart->bFunc );                           
+        if ( bGroup == NULL )
+            return NULL;
+        Cudd_Ref( bGroup );
 if ( fVerbose )
 printf( "Pt0 =%6d. Pt1 =%6d. ", Cudd_DagSize(ddPart->bFunc), Cudd_DagSize(bGroup) );
         // perform partial product
         bCube  = Llb_ImgComputeCube( pAig, (Vec_Int_t *)Vec_PtrEntry(vQuant1, i+1), dd ); Cudd_Ref( bCube );
 //        bImage = Cudd_bddAndAbstract( dd, bTemp = bImage, bGroup, bCube );                
-        bImage = Extra_bddAndAbstractTime( dd, bTemp = bImage, bGroup, bCube, TimeTarget );  
+//        bImage = Extra_bddAndAbstractTime( dd, bTemp = bImage, bGroup, bCube, TimeTarget );  
+        bImage = Cudd_bddAndAbstract( dd, bTemp = bImage, bGroup, bCube );  
         if ( bImage == NULL )
         {
             Cudd_RecursiveDeref( dd, bTemp );
