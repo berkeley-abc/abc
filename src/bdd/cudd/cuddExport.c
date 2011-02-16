@@ -483,9 +483,7 @@ Cudd_DumpDot(
                 scan = nodelist[j];
                 while (scan != NULL) {
                     if (st_is_member(visited,(char *) scan)) {
-                        retval = fprintf(fp,"\"%p\";\n",
-                            (void *) ((mask & (ptrint) scan) /
-                            sizeof(DdNode)));
+                        retval = fprintf(fp,"\"%lx\";\n", ((mask & (ptrint) scan) / sizeof(DdNode)));
                         if (retval == EOF) goto failure;
                     }
                     scan = scan->next;
@@ -506,8 +504,7 @@ Cudd_DumpDot(
         scan = nodelist[j];
         while (scan != NULL) {
             if (st_is_member(visited,(char *) scan)) {
-                retval = fprintf(fp,"\"%p\";\n",
-                    (void *) ((mask & (ptrint) scan) / sizeof(DdNode)));
+                retval = fprintf(fp,"\"%lx\";\n", ((mask & (ptrint) scan) / sizeof(DdNode)));
                 if (retval == EOF) goto failure;
             }
             scan = scan->next;
@@ -527,11 +524,9 @@ Cudd_DumpDot(
         if (retval == EOF) goto failure;
         /* Account for the possible complement on the root. */
         if (Cudd_IsComplement(f[i])) {
-            retval = fprintf(fp," -> \"%p\" [style = dotted];\n",
-                (void *) ((mask & (ptrint) f[i]) / sizeof(DdNode)));
+            retval = fprintf(fp," -> \"%lx\" [style = dotted];\n", ((mask & (ptrint) f[i]) / sizeof(DdNode)));
         } else {
-            retval = fprintf(fp," -> \"%p\" [style = solid];\n",
-                (void *) ((mask & (ptrint) f[i]) / sizeof(DdNode)));
+            retval = fprintf(fp," -> \"%lx\" [style = solid];\n", ((mask & (ptrint) f[i]) / sizeof(DdNode)));
         }
         if (retval == EOF) goto failure;
     }
@@ -545,27 +540,18 @@ Cudd_DumpDot(
                 scan = nodelist[j];
                 while (scan != NULL) {
                     if (st_is_member(visited,(char *) scan)) {
-                        retval = fprintf(fp,
-                            "\"%p\" -> \"%p\";\n",
-                            (void *) ((mask & (ptrint) scan) /
-                            sizeof(DdNode)),
-                            (void *) ((mask & (ptrint) cuddT(scan)) /
-                            sizeof(DdNode)));
+                        retval = fprintf(fp, "\"%lx\" -> \"%lx\";\n", 
+                            ((mask & (ptrint) scan) / sizeof(DdNode)),
+                            ((mask & (ptrint) cuddT(scan)) / sizeof(DdNode)));
                         if (retval == EOF) goto failure;
                         if (Cudd_IsComplement(cuddE(scan))) {
-                            retval = fprintf(fp,
-                                "\"%p\" -> \"%p\" [style = dotted];\n",
-                                (void *) ((mask & (ptrint) scan) /
-                                sizeof(DdNode)),
-                                (void *) ((mask & (ptrint) cuddE(scan)) /
-                                sizeof(DdNode)));
+                            retval = fprintf(fp,"\"%lx\" -> \"%lx\" [style = dotted];\n", 
+                                ((mask & (ptrint) scan) / sizeof(DdNode)),
+                                ((mask & (ptrint) cuddE(scan)) / sizeof(DdNode)));
                         } else {
-                            retval = fprintf(fp,
-                                "\"%p\" -> \"%p\" [style = dashed];\n",
-                                (void *) ((mask & (ptrint) scan) /
-                                sizeof(DdNode)),
-                                (void *) ((mask & (ptrint) cuddE(scan)) /
-                                sizeof(DdNode)));
+                            retval = fprintf(fp, "\"%lx\" -> \"%lx\" [style = dashed];\n", 
+                                ((mask & (ptrint) scan) / sizeof(DdNode)),
+                                ((mask & (ptrint) cuddE(scan)) / sizeof(DdNode)));
                         }
                         if (retval == EOF) goto failure;
                     }
@@ -582,9 +568,8 @@ Cudd_DumpDot(
         scan = nodelist[j];
         while (scan != NULL) {
             if (st_is_member(visited,(char *) scan)) {
-                retval = fprintf(fp,"\"%p\" [label = \"%g\"];\n",
-                    (void *) ((mask & (ptrint) scan) / sizeof(DdNode)),
-                    cuddV(scan));
+                retval = fprintf(fp,"\"%lx\" [label = \"%g\"];\n", 
+                    ((mask & (ptrint) scan) / sizeof(DdNode)), cuddV(scan));
                 if (retval == EOF) goto failure;
             }
             scan = scan->next;
