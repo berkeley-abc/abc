@@ -50,14 +50,17 @@ struct Hash_Gen_Entry_t_
   struct Hash_Gen_Entry_t_ *     pNext;
 };
 
+typedef int (*Hash_GenHashFunction_t)(void* key, int nBins);
+typedef int (*Hash_GenCompFunction_t)(void* key, void* data);
+
 struct Hash_Gen_t_ 
 {
   int                             nSize;
   int                             nBins;
-  int (* fHash)(void *key, int nBins);
-  int (* fComp)(void *key, void *data);
+  Hash_GenHashFunction_t          fHash;
+  Hash_GenCompFunction_t          fComp;
   int                             fFreeKey;
-  Hash_Gen_Entry_t **            pArray;
+  Hash_Gen_Entry_t **             pArray;
 };
 
 

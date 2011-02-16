@@ -41,7 +41,7 @@ ABC_NAMESPACE_IMPL_START
 static Hash_Gen_t* watched_pid_hash = NULL;
 static Hash_Gen_t* watched_tmp_files_hash = NULL;
 
-static sigset_t* old_procmask;
+static sigset_t old_procmask;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -67,8 +67,8 @@ void Util_SignalCleanup()
     // kill all watched child processes
     Hash_GenForEachEntry(watched_pid_hash, pEntry, i)
     {
-        pid_t pid = (pid_t)pEntry->key;
-        pid_t ppid = (pid_t)pEntry->data;
+        pid_t pid = (pid_t)(ABC_PTRINT_T)pEntry->key;
+        pid_t ppid = (pid_t)(ABC_PTRINT_T)pEntry->data;
         
         if (getpid() == ppid)
         {
@@ -79,8 +79,8 @@ void Util_SignalCleanup()
     // remove watched temporary files
     Hash_GenForEachEntry(watched_tmp_files_hash, pEntry, i)
     {
-        int fname = (const char*)pEntry->key;
-        pid_t ppid = (pid_t)pEntry->data;
+        const char* fname = (const char*)pEntry->key;
+        pid_t ppid = (pid_t)(ABC_PTRINT_T)pEntry->data;
         
         if( getpid() == ppid )
         {
@@ -104,7 +104,7 @@ void Util_SignalCleanup()
 void Util_SignalStartHandler()
 {
     watched_pid_hash = Hash_GenAlloc(100, Hash_DefaultHashFuncInt, Hash_DefaultCmpFuncInt, 0);
-    watched_tmp_files_hash = Hash_GenAlloc(100, Hash_DefaultHashFuncStr, strcmp, 1);
+    watched_tmp_files_hash = Hash_GenAlloc(100, Hash_DefaultHashFuncStr, (Hash_GenCompFunction_t)strcmp, 1);
 }
 
 /**Function*************************************************************
@@ -121,9 +121,6 @@ void Util_SignalStartHandler()
 
 void Util_SignalResetHandler()
 {
-    int i;
-    Hash_Gen_Entry_t* pEntry;
-    
     sigset_t procmask, old_procmask;
     
     sigemptyset(&procmask);
@@ -135,16 +132,13 @@ void Util_SignalResetHandler()
     watched_pid_hash = Hash_GenAlloc(100, Hash_DefaultHashFuncInt, Hash_DefaultCmpFuncInt, 0);
     
     Hash_GenFree(watched_tmp_files_hash);
-    watched_tmp_files_hash = Hash_GenAlloc(100, Hash_DefaultHashFuncStr, strcmp, 1);
+    watched_tmp_files_hash = Hash_GenAlloc(100, Hash_DefaultHashFuncStr, (Hash_GenCompFunction_t)strcmp, 1);
     
     sigprocmask(SIG_SETMASK, &old_procmask, NULL);
 }
 
 void Util_SignalStopHandler()
 {
-    int i;
-    Hash_Gen_Entry_t* pEntry;
-    
     Hash_GenFree(watched_pid_hash);
     watched_pid_hash = NULL;
     
@@ -213,9 +207,9 @@ static void unwatch_tmp_file(const char* fname)
 {
     if ( watched_tmp_files_hash )
     {
-        assert( Hash_GenExists(watched_tmp_files_hash, fname) );
-        Hash_GenRemove(watched_tmp_files_hash, fname);
-        assert( !Hash_GenExists(watched_tmp_files_hash, fname) );
+        assert( Hash_GenExists(watched_tmp_files_hash, (void*)fname) );
+        Hash_GenRemove(watched_tmp_files_hash, (void*)fname);
+        assert( !Hash_GenExists(watched_tmp_files_hash, (void*)fname) );
     }
 }
 
@@ -260,9 +254,8 @@ void Util_SignalRemoveChildPid(int pid)
 }
 
 // a dummy signal hanlder to make sure that SIGCHLD and SIGINT will cause sigsuspend() to return
-static int null_sig_handler(int signum)
+static void null_sig_handler(int signum)
 {
-    return 0;
 }
 
 
@@ -278,7 +271,7 @@ static void replace_sighandler(int signum, struct sigaction* old_sa, int replace
         
         sa.sa_handler = null_sig_handler;
         
-        sigaction(signum, &sa, &old_sa);
+        sigaction(signum, &sa, old_sa);
     }
 }
 
