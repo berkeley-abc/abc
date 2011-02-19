@@ -496,7 +496,6 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
 ***********************************************************************/
 int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
 {
-
     Prove_Params_t * pParams = (Prove_Params_t *)pPars;
     Abc_Ntk_t * pNtk = *ppNtk, * pNtkTemp;
     Abc_Obj_t * pObj, * pFanin;
@@ -563,6 +562,8 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
 
     // solve the CEC problem
     RetValue = Ivy_FraigProve( &pMan, pParams );
+//    RetValue = -1;
+
     // convert IVY network into ABC network    
     pNtk = Abc_NtkIvyAfter( pNtkTemp = pNtk, pMan, 0, 0 );
     Abc_NtkDelete( pNtkTemp );
@@ -570,7 +571,24 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     pNtk->pModel = (int *)pMan->pData; pMan->pData = NULL;
     Ivy_ManStop( pMan );
 
-    // try to prove it using brute force SAT
+    // try to prove it using brute force SAT with good CNF encoding
+    if ( RetValue < 0 )
+    {
+        pMan2 = Abc_NtkToDar( pNtk, 0, 0 );
+        // dump the miter before entering high-effort solving
+        if ( pParams->fVerbose )
+        {
+            char pFileName[100];
+            sprintf( pFileName, "cecmiter.aig" );
+            Ioa_WriteAiger( pMan2, pFileName, 0, 0 );
+            printf( "Intermediate reduced miter is written into file \"%s\".\n", pFileName );
+        }
+        RetValue = Fra_FraigSat( pMan2, pParams->nMiteringLimitLast, 0, 0, 0, pParams->fVerbose ); 
+        pNtk->pModel = (int *)pMan2->pData, pMan2->pData = NULL;
+        Aig_ManStop( pMan2 );
+    }
+
+    // try to prove it using brute force BDDs
     if ( RetValue < 0 && pParams->fUseBdds )
     {
         if ( pParams->fVerbose )

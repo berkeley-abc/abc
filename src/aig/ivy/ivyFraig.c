@@ -356,7 +356,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
             return -1;
         }
     }    
-
+/*
     if ( RetValue < 0 )
     {
         if ( pParams->fVerbose )
@@ -385,7 +385,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
             exit(1);
         }
     }
-
+*/
     // assign the model if it was proved by rewriting (const 1 miter)
     if ( RetValue == 0 && pManAig->pData == NULL )
     {

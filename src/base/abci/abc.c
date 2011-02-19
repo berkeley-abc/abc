@@ -10420,12 +10420,73 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fUseRewriting = 1;
     pParams->fVerbose      = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NCFLIrfbvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nItersMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParams->nItersMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nMiteringLimitStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParams->nMiteringLimitStart < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nFraigingLimitStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParams->nFraigingLimitStart < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nMiteringLimitLast = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParams->nMiteringLimitLast < 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nTotalInspectLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParams->nTotalInspectLimit < 0 ) 
+                goto usage;
+            break;
         case 'r':
             pParams->fUseRewriting ^= 1;
+            break;
+        case 'f':
+            pParams->fUseFraiging ^= 1;
+            break;
+        case 'b':
+            pParams->fUseBdds ^= 1;
             break;
         case 'v':
             pParams->fVerbose ^= 1;
@@ -10488,10 +10549,17 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: iprove [-rvh]\n" );
+    Abc_Print( -2, "usage: iprove [-NCFLI num] [-rfbvh]\n" );
     Abc_Print( -2, "\t         performs CEC using a new method\n" );
-    Abc_Print( -2, "\t-r     : toggle AIG rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pParams->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-N num : max number of iterations [default = %d]\n", pParams->nItersMax );
+    Abc_Print( -2, "\t-C num : max starting number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitStart );
+    Abc_Print( -2, "\t-F num : max starting number of conflicts in fraiging [default = %d]\n", pParams->nFraigingLimitStart );
+    Abc_Print( -2, "\t-L num : max last-gasp number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitLast );
+    Abc_Print( -2, "\t-I num : max number of clause inspections in all SAT calls [default = %d]\n", (int)pParams->nTotalInspectLimit );
+    Abc_Print( -2, "\t-r     : toggle the use of rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );  
+    Abc_Print( -2, "\t-f     : toggle the use of FRAIGing [default = %s]\n", pParams->fUseFraiging? "yes": "no" );  
+    Abc_Print( -2, "\t-b     : toggle the use of BDDs [default = %s]\n", pParams->fUseBdds? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pParams->fVerbose? "yes": "no" );  
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -17910,10 +17978,10 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: prove [-N num] [-C num] [-F num] [-L num] [-I num] [-rfbvh]\n" );
+    Abc_Print( -2, "usage: prove [-NCFLI num] [-rfbvh]\n" );
     Abc_Print( -2, "\t         solves combinational miter by rewriting, FRAIGing, and SAT\n" );
     Abc_Print( -2, "\t         replaces the current network by the cone modified by rewriting\n" );
-    Abc_Print( -2, "\t         (there are also newer CEC commands, \"iprove\" and \"dprove\")\n" );
+    Abc_Print( -2, "\t         (there is also newer CEC command \"iprove\")\n" );
     Abc_Print( -2, "\t-N num : max number of iterations [default = %d]\n", pParams->nItersMax );
     Abc_Print( -2, "\t-C num : max starting number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitStart );
     Abc_Print( -2, "\t-F num : max starting number of conflicts in fraiging [default = %d]\n", pParams->nFraigingLimitStart );
