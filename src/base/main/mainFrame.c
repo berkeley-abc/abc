@@ -60,7 +60,7 @@ char *      Abc_FrameReadFlag( char * pFlag )                { return Cmd_FlagRe
 
 int         Abc_FrameReadBmcFrames( Abc_Frame_t * p )        { return s_GlobalFrame->nFrames;      }               
 int         Abc_FrameReadProbStatus( Abc_Frame_t * p )       { return s_GlobalFrame->Status;       }               
-void *      Abc_FrameReadCex( Abc_Frame_t * p )              { return s_GlobalFrame->pCex;         }        
+Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * p )              { return s_GlobalFrame->pCex;         }        
        
 int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->nPis;      }               
 int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;     }               
@@ -72,7 +72,8 @@ void        Abc_FrameSetLibGen( void * pLib )                { s_GlobalFrame->pL
 void        Abc_FrameSetLibGen2( void * pLib )               { s_GlobalFrame->pLibGen2  = pLib;    } 
 void        Abc_FrameSetLibSuper( void * pLib )              { s_GlobalFrame->pLibSuper = pLib;    } 
 void        Abc_FrameSetLibVer( void * pLib )                { s_GlobalFrame->pLibVer   = pLib;    } 
-void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateValue( s_GlobalFrame, pFlag, pValue ); } 
+void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateValue( s_GlobalFrame, pFlag, pValue );         } 
+void        Abc_FrameSetCex( Abc_Cex_t * pCex )              { ABC_FREE( s_GlobalFrame->pCex ); s_GlobalFrame->pCex = pCex; }
 
 /**Function*************************************************************
 

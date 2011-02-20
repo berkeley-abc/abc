@@ -397,42 +397,6 @@ extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, 
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * pAbc )
-{
-    Abc_Cex_t * pCex;
-    pCex = pAbc->pCex;
-    pAbc->pCex = NULL;
-    return pCex;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_FrameSetCex( Abc_Frame_t * pAbc, Abc_Cex_t * pCex )
-{
-    ABC_FREE( pAbc->pCex );
-    pAbc->pCex = pCex;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Abc_FrameReplaceCex( Abc_Frame_t * pAbc, Abc_Cex_t ** ppCex )
 {
     ABC_FREE( pAbc->pCex );
