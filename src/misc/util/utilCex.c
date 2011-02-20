@@ -139,6 +139,8 @@ Abc_Cex_t * Abc_CexDup( Abc_Cex_t * p, int nRegsNew )
 {
     Abc_Cex_t * pCex;
     int i;
+    if ( nRegsNew == -1 )
+        nRegsNew = p->nRegs;
     pCex = Abc_CexAlloc( nRegsNew, p->nPis, p->iFrame+1 );
     pCex->iPo    = p->iPo;
     pCex->iFrame = p->iFrame;

@@ -354,6 +354,7 @@ static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reduce             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9EquivMark          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Force              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Embed              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -384,6 +385,42 @@ extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * pAbc )
+{
+    Abc_Cex_t * pCex;
+    pCex = pAbc->pCex;
+    pAbc->pCex = NULL;
+    return pCex;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameSetCex( Abc_Frame_t * pAbc, Abc_Cex_t * pCex )
+{
+    ABC_FREE( pAbc->pCex );
+    pAbc->pCex = pCex;
+}
 
 /**Function*************************************************************
 
@@ -752,6 +789,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&fraig",        Abc_CommandAbc9Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm",          Abc_CommandAbc9Srm,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reduce",       Abc_CommandAbc9Reduce,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&equiv_mark",   Abc_CommandAbc9EquivMark,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cec",          Abc_CommandAbc9Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&force",        Abc_CommandAbc9Force,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&embed",        Abc_CommandAbc9Embed,        0 );
@@ -25936,14 +25974,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    char * pFileName  = "gsrm.aig";
-    char * pFileName2 = "gsyn.aig";
+    char pFileName[10], pFileName2[10];
     Gia_Man_t * pTemp, * pAux;
     int c, fVerbose = 0;
+    int fSpeculate = 1;
     int fSynthesis = 0;
     int fDualOut = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dsrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25951,6 +25989,9 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
             fDualOut ^= 1;
             break;
         case 's':
+            fSpeculate ^= 1;
+            break;
+        case 'r':
             fSynthesis ^= 1;
             break;
         case 'v':
@@ -25967,12 +26008,16 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Srm(): There is no AIG.\n" );
         return 1;
     } 
-    pTemp = Gia_ManSpecReduce( pAbc->pGia, fDualOut, fSynthesis, fVerbose );
+    sprintf( pFileName,  "gsrm%s.aig", fSpeculate? "" : "s" );
+    sprintf( pFileName2, "gsyn%s.aig", fSpeculate? "" : "s" );
+    pTemp = Gia_ManSpecReduce( pAbc->pGia, fDualOut, fSynthesis, fSpeculate, fVerbose );
     if ( pTemp )
     {
-        pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
-        Gia_ManStop( pAux );
-
+        if ( fSpeculate )
+        {
+            pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
+            Gia_ManStop( pAux );
+        }
         Gia_WriteAiger( pTemp, pFileName, 0, 0 );
         Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
         Gia_ManPrintStatsShort( pTemp );
@@ -25995,10 +26040,11 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &srm [-dsvh]\n" );
+    Abc_Print( -2, "usage: &srm [-dsrvh]\n" );
     Abc_Print( -2, "\t         writes speculatively reduced model into file \"%s\"\n", pFileName );
     Abc_Print( -2, "\t-d     : toggle creating dual output miter [default = %s]\n", fDualOut? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle writing reduced network for synthesis [default = %s]\n", fSynthesis? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using speculation at the internal nodes [default = %s]\n", fSpeculate? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle writing reduced network for synthesis [default = %s]\n", fSynthesis? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -26046,13 +26092,15 @@ int Abc_CommandAbc9Reduce( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Reduce(): There is no AIG.\n" );
         return 1;
     } 
-    pTemp = Gia_ManEquivReduce( pAbc->pGia, fUseAll, fDualOut, fVerbose );
-    if ( pTemp != NULL )
+    if ( fUseAll )
     {
+        pTemp = Gia_ManEquivReduce( pAbc->pGia, fUseAll, fDualOut, fVerbose );
         pTemp = Gia_ManSeqStructSweep( pTemp2 = pTemp, 1, 1, 0 );
         Gia_ManStop( pTemp2 );
-        Abc_CommandUpdate9( pAbc, pTemp );
     }
+    else
+        pTemp = Gia_ManEquivReduceAndRemap( pAbc->pGia, 1, fDualOut );
+    Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
 
 usage:
@@ -26062,6 +26110,66 @@ usage:
     Abc_Print( -2, "\t-d     : toggle using dual-output merging [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9EquivMark( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fVerbose );
+    char * pFileName;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Reduce(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    // mark equivalences
+    Gia_ManEquivMark( pAbc->pGia, pFileName, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &equiv_mark [-vh] <miter.aig>\n" );
+    Abc_Print( -2, "\t              marks equivalences using an external miter\n" );
+    Abc_Print( -2, "\t-v          : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h          : print the command usage\n");
+    Abc_Print( -2, "\t<miter.aig> : file with the external miter to read\n");
+    Abc_Print( -2, "\t              \n" );
+    Abc_Print( -2, "\t              The external miter should be generated by &srm -m\n" );
+    Abc_Print( -2, "\t              and (partially) solved by any verification engine(s).\n" );
+    Abc_Print( -2, "\t              The external miter should have as many POs as\n" );
+    Abc_Print( -2, "\t              the number of POs in the current AIG plus\n" );
+    Abc_Print( -2, "\t              the number of equivalences in the current AIG.\n" );
+    Abc_Print( -2, "\t              If some POs are proved, the corresponding equivs\n" );
+    Abc_Print( -2, "\t              are marked as proved, to be reduced by &reduce.\n" );
     return 1;
 }
 
