@@ -748,7 +748,7 @@ int Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut )
+static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate )
 {
     Gia_Obj_t * pRepr;
     unsigned iLitNew;
@@ -761,7 +761,8 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
     iLitNew = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     if ( pObj->Value != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
         Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, pObj->Value, iLitNew) );
-    pObj->Value = iLitNew;
+    if ( fSpeculate )
+        pObj->Value = iLitNew;
 }
 
 /**Function*************************************************************
@@ -798,15 +799,15 @@ int Gia_ManHasNoEquivs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut )
+void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate )
 {
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut, fSpeculate );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut );
+    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate );
 }
 
 /**Function*************************************************************
@@ -820,7 +821,7 @@ void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, V
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int fVerbose )
+Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int fSpeculate, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -862,9 +863,9 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut );
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut );
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate );
     if ( !fSynthesis )
     {
         Gia_ManForEachPo( p, pObj, i )
@@ -1123,6 +1124,62 @@ void Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
     printf( "Removed classes = %6d (out of %6d). Removed literals = %6d (out of %6d).\n", 
         nRemovedClas, nTotalClas, nRemovedLits, nTotalLits );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks proved equivalences.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fVerbose )
+{
+    Gia_Man_t * pMiter;
+    Gia_Obj_t * pObj;
+    int i, nLits = 0;
+    int nLitsAll, Counter = 0;
+    nLitsAll = Gia_ManEquivCountLitsAll( p );
+    if ( nLitsAll == 0 )
+    {
+        printf( "Gia_ManEquivMark(): Current AIG does not have equivalences.\n" );
+        return;
+    }
+    // read AIGER file
+    pMiter = Gia_ReadAiger( pFileName, 0 );
+    if ( pMiter == NULL )
+    {
+        printf( "Gia_ManEquivMark(): Input file %s could not be read.\n", pFileName );
+        return;
+    }
+    if ( Gia_ManPoNum(pMiter) != Gia_ManPoNum(p) + nLitsAll )
+    {
+        printf( "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGEquivNum(%d).\n", 
+            Gia_ManPoNum(pMiter), Gia_ManPoNum(p), nLitsAll );
+        Gia_ManStop( pMiter );
+        return;
+    }
+    // mark corresponding POs as solved
+    nLits = 0;
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+    {
+        if ( Gia_ObjRepr(p, i) == GIA_VOID )
+            continue;
+        pObj = Gia_ManPo( pMiter, Gia_ManPoNum(p) + nLits++ );
+        if ( Gia_ObjFaninLit0p(pMiter, pObj) == 0 ) // const 0 - proven
+        {
+            Gia_ObjSetProved(p, i);
+            Counter++;
+        }
+    }
+    if ( fVerbose )
+        printf( "Set %d equivalences as proved.\n", Counter );
+    assert( nLits == nLitsAll );
+    Gia_ManStop( pMiter );
 }
 
 /**Function*************************************************************
@@ -1534,7 +1591,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             printf( "Gia_CommandSpecI: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
             break;
         }
-        pSrm = Gia_ManSpecReduce( pGia, 0, 0, 0 ); 
+        pSrm = Gia_ManSpecReduce( pGia, 0, 0, 1, 0 ); 
         // bmc2 -F 100 -C 25000
         {
             Abc_Cex_t * pCex;
@@ -1571,7 +1628,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
         // write equivalence classes
         Gia_WriteAiger( pGia, "gore.aig", 0, 0 );
         // reduce the model
-        pReduce = Gia_ManSpecReduce( pGia, 0, 0, 0 );
+        pReduce = Gia_ManSpecReduce( pGia, 0, 0, 1, 0 );
         if ( pReduce )
         {
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );

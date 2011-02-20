@@ -393,7 +393,7 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
         // write equivalence classes
         Gia_WriteAiger( pAig, "gore.aig", 0, 0 );
         // reduce the model
-        pReduce = Gia_ManSpecReduce( pAig, 0, 0, 0 );
+        pReduce = Gia_ManSpecReduce( pAig, 0, 0, 1, 0 );
         if ( pReduce )
         {
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );

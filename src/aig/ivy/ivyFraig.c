@@ -200,6 +200,7 @@ static void          Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, int 
 static int *         Ivy_FraigCreateModel( Ivy_FraigMan_t * p );
 
 static int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 );
+static int Ivy_FraigCheckCone( Ivy_FraigMan_t * pGlo, Ivy_Man_t * p, Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2, int nConfLimit );
 
 static ABC_INT64_T s_nBTLimitGlobal = 0;
 static ABC_INT64_T s_nInsLimitGlobal = 0;
@@ -593,10 +594,10 @@ Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParam
     }
     assert( k == Ivy_ManObjNum(pManAig) );
     // allocate storage for sim pattern
-    p->nPatWords = Ivy_BitWordNum( Ivy_ManPiNum(pManAig) );
-    p->pPatWords = ABC_ALLOC( unsigned, p->nPatWords ); 
+    p->nPatWords  = Ivy_BitWordNum( Ivy_ManPiNum(pManAig) );
+    p->pPatWords  = ABC_ALLOC( unsigned, p->nPatWords ); 
     p->pPatScores = ABC_ALLOC( int, 32 * p->nSimWords ); 
-    p->vPiVars   = Vec_PtrAlloc( 100 );
+    p->vPiVars    = Vec_PtrAlloc( 100 );
     // set random number generator
     srand( 0xABCABC );
     return p;
@@ -1992,6 +1993,7 @@ p->nClassesEnd = p->lClasses.nItems;
         if ( Ivy_ObjFaninVec(pObj) )
             Vec_PtrFree( Ivy_ObjFaninVec(pObj) );
         pObj->pNextFan0 = pObj->pNextFan1 = NULL;
+        pObj->pEquiv = NULL;
     }
     // remove dangling nodes 
     Ivy_ManCleanup( p->pManFraig );
@@ -2154,6 +2156,14 @@ p->timeSatSat += clock() - clk;
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatFail += clock() - clk;
+/*
+        if ( nBTLimit > 1000 )
+        {
+            RetValue = Ivy_FraigCheckCone( p, p->pManFraig, pOld, pNew, nBTLimit );
+            if ( RetValue != -1 )
+                return RetValue;
+        }
+*/
         // mark the node as the failed node
         if ( pOld != p->pManFraig->pConst1 ) 
             pOld->fFailTfo = 1;
@@ -2197,6 +2207,14 @@ p->timeSatSat += clock() - clk;
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatFail += clock() - clk;
+/*
+        if ( nBTLimit > 1000 )
+        {
+            RetValue = Ivy_FraigCheckCone( p, p->pManFraig, pOld, pNew, nBTLimit );
+            if ( RetValue != -1 )
+                return RetValue;
+        }
+*/
         // mark the node as the failed node
         pOld->fFailTfo = 1;
         pNew->fFailTfo = 1;
@@ -2286,6 +2304,14 @@ p->timeSatSat += clock() - clk;
     else // if ( RetValue1 == l_Undef )
     {
 p->timeSatFail += clock() - clk;
+/*
+        if ( p->pParams->nBTLimitMiter > 1000 )
+        {
+            RetValue = Ivy_FraigCheckCone( p, p->pManFraig, p->pManFraig->pConst1, pNew, p->pParams->nBTLimitMiter );
+            if ( RetValue != -1 )
+                return RetValue;
+        }
+*/
         // mark the node as the failed node
         pNew->fFailTfo = 1;
         p->nSatFailsReal++;
@@ -2770,6 +2796,150 @@ int Ivy_FraigNodesAreEquivBdd( Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2 )
         RetValue = -1; // spaceout/timeout
     Cudd_RecursiveDeref( dd, bFunc );
     Vec_PtrFree( vFront );
+    return RetValue;
+}
+
+ABC_NAMESPACE_IMPL_END
+
+#include "aig.h"
+
+ABC_NAMESPACE_IMPL_START
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigExtractCone_rec( Ivy_Man_t * p, Ivy_Obj_t * pNode, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
+{
+    if ( pNode->fMarkB )
+        return;
+    pNode->fMarkB = 1;
+    if ( Ivy_ObjIsPi(pNode) )
+    {
+        Vec_IntPush( vLeaves, pNode->Id );
+        return;
+    }
+    assert( Ivy_ObjIsAnd(pNode) );
+    Ivy_FraigExtractCone_rec( p, Ivy_ObjFanin0(pNode), vLeaves, vNodes );
+    Ivy_FraigExtractCone_rec( p, Ivy_ObjFanin1(pNode), vLeaves, vNodes );
+    Vec_IntPush( vNodes, pNode->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks equivalence using BDDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ivy_FraigExtractCone( Ivy_Man_t * p, Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2, Vec_Int_t * vLeaves )
+{
+    Aig_Man_t * pMan;
+    Aig_Obj_t * pMiter;
+    Vec_Int_t * vNodes;
+    Ivy_Obj_t * pObjIvy;
+    int i;
+    // collect nodes
+    vNodes  = Vec_IntAlloc( 100 );
+    Ivy_ManConst1(p)->fMarkB = 1;
+    Ivy_FraigExtractCone_rec( p, pObj1, vLeaves, vNodes );
+    Ivy_FraigExtractCone_rec( p, pObj2, vLeaves, vNodes );
+    Ivy_ManConst1(p)->fMarkB = 0;
+    // create new manager
+    pMan = Aig_ManStart( 1000 );
+    Ivy_ManConst1(p)->pEquiv = (Ivy_Obj_t *)Aig_ManConst1(pMan);
+    Ivy_ManForEachNodeVec( p, vLeaves, pObjIvy, i )
+    {
+        pObjIvy->pEquiv = (Ivy_Obj_t *)Aig_ObjCreatePi( pMan );
+        pObjIvy->fMarkB = 0;
+    }
+    // duplicate internal nodes
+    Ivy_ManForEachNodeVec( p, vNodes, pObjIvy, i )
+    {
+
+        pObjIvy->pEquiv = (Ivy_Obj_t *)Aig_And( pMan, (Aig_Obj_t *)Ivy_ObjChild0Equiv(pObjIvy), (Aig_Obj_t *)Ivy_ObjChild1Equiv(pObjIvy) );
+        pObjIvy->fMarkB = 0;
+
+        pMiter = (Aig_Obj_t *)pObjIvy->pEquiv;
+        assert( pMiter->fPhase == pObjIvy->fPhase );
+    }
+    // create the PO
+    pMiter = Aig_Exor( pMan, (Aig_Obj_t *)pObj1->pEquiv, (Aig_Obj_t *)pObj2->pEquiv );
+    pMiter = Aig_NotCond( pMiter, Aig_Regular(pMiter)->fPhase ^ Aig_IsComplement(pMiter) );
+
+/*
+printf( "Polarity = %d\n", pMiter->fPhase );
+    if ( Ivy_ObjIsConst1(pObj1) || Ivy_ObjIsConst1(pObj2) )
+    {
+        pMiter = Aig_NotCond( pMiter, 1 );
+printf( "***************\n" );
+    }
+*/
+    pMiter = Aig_ObjCreatePo( pMan, pMiter );
+//printf( "Polarity = %d\n", pMiter->fPhase );
+    Aig_ManCleanup( pMan );
+    Vec_IntFree( vNodes );
+    return pMan;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks equivalence using BDDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigCheckCone( Ivy_FraigMan_t * pGlo, Ivy_Man_t * p, Ivy_Obj_t * pObj1, Ivy_Obj_t * pObj2, int nConfLimit )
+{
+    extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
+    Vec_Int_t * vLeaves;
+    Aig_Man_t * pMan;
+    Aig_Obj_t * pObj;
+    int i, RetValue;
+    vLeaves  = Vec_IntAlloc( 100 );
+    pMan     = Ivy_FraigExtractCone( p, pObj1, pObj2, vLeaves );
+    RetValue = Fra_FraigSat( pMan, nConfLimit, 0, 0, 0, 1 ); 
+    if ( RetValue == 0 )
+    {
+        int Counter = 0;
+        memset( pGlo->pPatWords, 0, sizeof(unsigned) * pGlo->nPatWords );
+        Aig_ManForEachPi( pMan, pObj, i )
+            if ( ((int *)pMan->pData)[i] )
+            {
+                int iObjIvy = Vec_IntEntry( vLeaves, i );
+                assert( iObjIvy > 0 && iObjIvy <= Ivy_ManPiNum(p) );
+                Ivy_InfoSetBit( pGlo->pPatWords, iObjIvy-1 );
+//printf( "%d ", iObjIvy );
+Counter++;
+            }
+        assert( Counter > 0 );
+    }
+    Vec_IntFree( vLeaves );
+    if ( RetValue == 1 )
+        printf( "UNSAT\n" );
+    else if ( RetValue == 0 )
+        printf( "SAT\n" );
+    else if ( RetValue == -1 )
+        printf( "UNDEC\n" );
+
+//    p->pModel = (int *)pMan->pData, pMan2->pData = NULL;
+    Aig_ManStop( pMan );
     return RetValue;
 }
 
