@@ -748,7 +748,7 @@ int Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate )
+static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace )
 {
     Gia_Obj_t * pRepr;
     unsigned iLitNew;
@@ -760,7 +760,14 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
         return;
     iLitNew = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     if ( pObj->Value != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
+    {
+        if ( vTrace ) Vec_IntPush( vTrace, 1 );
         Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, pObj->Value, iLitNew) );
+    }
+    else
+    {
+        if ( vTrace ) Vec_IntPush( vTrace, 0 );
+    }
     if ( fSpeculate )
         pObj->Value = iLitNew;
 }
@@ -799,15 +806,15 @@ int Gia_ManHasNoEquivs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate )
+void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace )
 {
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut, fSpeculate );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut, fSpeculate, vTrace );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate );
+    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace );
 }
 
 /**Function*************************************************************
@@ -821,7 +828,62 @@ void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, V
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int fSpeculate, int fVerbose )
+Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
+{
+    Vec_Int_t * vXorLits;
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, iLitNew;
+    if ( !p->pReprs )
+    {
+        printf( "Gia_ManSpecReduce(): Equivalence classes are not available.\n" );
+        return NULL;
+    }
+    Vec_IntClear( vTrace );
+    vXorLits = Vec_IntAlloc( 1000 );
+    Gia_ManSetPhase( p );
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachRo( p, pObj, i )
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, 0, 1, vTrace );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, 0, 1, vTrace );
+    Gia_ManForEachPo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Vec_IntForEachEntry( vXorLits, iLitNew, i )
+        Gia_ManAppendCo( pNew, iLitNew );
+    if ( Vec_IntSize(vXorLits) == 0 )
+    {
+        printf( "Speculatively reduced model has no primary outputs.\n" );
+        Gia_ManAppendCo( pNew, 0 );
+    }
+    Gia_ManForEachRi( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Vec_IntFree( vXorLits );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces AIG using equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int fSpeculate, int fSkipSome, int fVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -837,20 +899,6 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
         printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
     }
-/*
-    if ( Gia_ManHasNoEquivs(p) )
-    {
-        printf( "Gia_ManSpecReduce(): There are no equivalences to reduce.\n" );
-        return NULL;
-    }
-*/
-/*
-    if ( !Gia_ManCheckTopoOrder( p ) )
-    {
-        printf( "Gia_ManSpecReduce(): AIG is not in a correct topological order.\n" );
-        return NULL;
-    }
-*/
     vXorLits = Vec_IntAlloc( 1000 );
     Gia_ManSetPhase( p );
     Gia_ManFillValue( p );
@@ -863,9 +911,9 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate );
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, NULL );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate );
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, NULL );
     if ( !fSynthesis )
     {
         Gia_ManForEachPo( p, pObj, i )
@@ -885,6 +933,29 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
+
+    // update using trace
+    if ( fSkipSome )
+    {
+        Vec_Int_t * vTrace = Vec_IntAlloc( 100 );
+        int iLit, nLitNum = Gia_ManEquivCountLitsAll(p);
+        pTemp = Gia_ManSpecReduceTrace( p, vTrace );
+        Gia_ManStop( pTemp );
+        assert( Vec_IntSize(vTrace) == nLitNum );
+        assert( Gia_ManPoNum(pNew) == Gia_ManPoNum(p) + nLitNum );
+        iLit = Gia_ManPoNum(p);
+        for ( i = 0; i < nLitNum; i++ )
+        {
+            if ( Vec_IntEntry( vTrace, i ) == 0 )
+                continue;
+            pObj = Gia_ManPo( pNew, Gia_ManPoNum(p) + i );
+            pObj->fCompl0 = 0;
+            pObj->iDiff0 = Gia_ObjId( pNew, pObj );
+        }
+        Vec_IntFreeP( &vTrace );
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+    }
     return pNew;
 }
 
@@ -1591,7 +1662,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             printf( "Gia_CommandSpecI: There are only trivial equiv candidates left (PO drivers). Quitting.\n" );
             break;
         }
-        pSrm = Gia_ManSpecReduce( pGia, 0, 0, 1, 0 ); 
+        pSrm = Gia_ManSpecReduce( pGia, 0, 0, 1, 0, 0 ); 
         // bmc2 -F 100 -C 25000
         {
             Abc_Cex_t * pCex;
@@ -1628,7 +1699,7 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
         // write equivalence classes
         Gia_WriteAiger( pGia, "gore.aig", 0, 0 );
         // reduce the model
-        pReduce = Gia_ManSpecReduce( pGia, 0, 0, 1, 0 );
+        pReduce = Gia_ManSpecReduce( pGia, 0, 0, 1, 0, 0 );
         if ( pReduce )
         {
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );
