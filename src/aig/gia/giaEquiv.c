@@ -949,7 +949,7 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
             if ( Vec_IntEntry( vTrace, i ) == 0 )
                 continue;
             pObj = Gia_ManPo( pNew, Gia_ManPoNum(p) + i );
-            pObj->fCompl0 = 0;
+            pObj->fCompl0 = 1;
             pObj->iDiff0 = Gia_ObjId( pNew, pObj );
         }
         Vec_IntFreeP( &vTrace );
