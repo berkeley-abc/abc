@@ -25938,7 +25938,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    char pFileName[10], pFileName2[10];
+    char pFileName[10] = "gsrm.aig", pFileName2[10] = "gsyn.aig";
     Gia_Man_t * pTemp, * pAux;
     int c, fVerbose = 0;
     int fSynthesis = 0;
@@ -26095,14 +26095,18 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9EquivMark( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fVerbose );
+    extern void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerbose );
     char * pFileName;
     int c, fVerbose = 0;
+    int fSkipSome = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            fSkipSome ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -26122,12 +26126,13 @@ int Abc_CommandAbc9EquivMark( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // mark equivalences
-    Gia_ManEquivMark( pAbc->pGia, pFileName, fVerbose );
+    Gia_ManEquivMark( pAbc->pGia, pFileName, fSkipSome, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &equiv_mark [-vh] <miter.aig>\n" );
+    Abc_Print( -2, "usage: &equiv_mark [-fvh] <miter.aig>\n" );
     Abc_Print( -2, "\t              marks equivalences using an external miter\n" );
+    Abc_Print( -2, "\t-f          : toggle the use of filtered equivalences [default = %s]\n", fSkipSome? "yes": "no" );
     Abc_Print( -2, "\t-v          : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h          : print the command usage\n");
     Abc_Print( -2, "\t<miter.aig> : file with the external miter to read\n");

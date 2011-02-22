@@ -748,7 +748,7 @@ int Gia_ManEquivSetColors( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace )
+static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace, Vec_Int_t * vGuide )
 {
     Gia_Obj_t * pRepr;
     unsigned iLitNew;
@@ -761,12 +761,15 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
     iLitNew = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     if ( pObj->Value != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
     {
-        if ( vTrace ) Vec_IntPush( vTrace, 1 );
-        Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, pObj->Value, iLitNew) );
+        if ( vTrace ) 
+            Vec_IntPush( vTrace, 1 );
+        if ( vGuide == NULL || Vec_IntEntry( vGuide, Vec_IntSize(vTrace)-1 ) )
+            Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, pObj->Value, iLitNew) );
     }
     else
     {
-        if ( vTrace ) Vec_IntPush( vTrace, 0 );
+        if ( vTrace ) 
+            Vec_IntPush( vTrace, 0 );
     }
     if ( fSpeculate )
         pObj->Value = iLitNew;
@@ -806,15 +809,15 @@ int Gia_ManHasNoEquivs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace )
+void Gia_ManSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vXorLits, int fDualOut, int fSpeculate, Vec_Int_t * vTrace, Vec_Int_t * vGuide )
 {
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace );
-    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut, fSpeculate, vTrace );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
+    Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin1(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace );
+    Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
 }
 
 /**Function*************************************************************
@@ -850,9 +853,9 @@ Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, 0, 1, vTrace );
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, 0, 1, vTrace, NULL );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, 0, 1, vTrace );
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, 0, 1, vTrace, NULL );
     Gia_ManForEachPo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Vec_IntForEachEntry( vXorLits, iLitNew, i )
@@ -889,6 +892,7 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     Gia_Obj_t * pObj;
     Vec_Int_t * vXorLits;
     int i, iLitNew;
+    Vec_Int_t * vTrace = NULL, * vGuide = NULL;
     if ( !p->pReprs )
     {
         printf( "Gia_ManSpecReduce(): Equivalence classes are not available.\n" );
@@ -898,6 +902,14 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     {
         printf( "Gia_ManSpecReduce(): Dual-output miter should have even number of POs.\n" );
         return NULL;
+    }
+    if ( fSkipSome )
+    {
+        vGuide = Vec_IntAlloc( 100 );
+        pTemp  = Gia_ManSpecReduceTrace( p, vGuide );
+        Gia_ManStop( pTemp );
+        assert( Vec_IntSize(vGuide) == Gia_ManEquivCountLitsAll(p) );
+        vTrace = Vec_IntAlloc( 100 );
     }
     vXorLits = Vec_IntAlloc( 1000 );
     Gia_ManSetPhase( p );
@@ -911,9 +923,9 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, NULL );
+        Gia_ManSpecBuild( pNew, p, pObj, vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
     Gia_ManForEachCo( p, pObj, i )
-        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, NULL );
+        Gia_ManSpecReduce_rec( pNew, p, Gia_ObjFanin0(pObj), vXorLits, fDualOut, fSpeculate, vTrace, vGuide );
     if ( !fSynthesis )
     {
         Gia_ManForEachPo( p, pObj, i )
@@ -937,25 +949,15 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     // update using trace
     if ( fSkipSome )
     {
-        Vec_Int_t * vTrace = Vec_IntAlloc( 100 );
-        int iLit, nLitNum = Gia_ManEquivCountLitsAll(p);
-        pTemp = Gia_ManSpecReduceTrace( p, vTrace );
-        Gia_ManStop( pTemp );
-        assert( Vec_IntSize(vTrace) == nLitNum );
-        assert( Gia_ManPoNum(pNew) == Gia_ManPoNum(p) + nLitNum );
-        iLit = Gia_ManPoNum(p);
-        for ( i = 0; i < nLitNum; i++ )
-        {
-            if ( Vec_IntEntry( vTrace, i ) == 0 )
-                continue;
-            pObj = Gia_ManPo( pNew, Gia_ManPoNum(p) + i );
-            pObj->fCompl0 = 1;
-            pObj->iDiff0 = Gia_ObjId( pNew, pObj );
-        }
-        Vec_IntFreeP( &vTrace );
-        pNew = Gia_ManCleanup( pTemp = pNew );
-        Gia_ManStop( pTemp );
+        // count the number of non-zero entries
+        int iLit, nAddPos = 0;
+        Vec_IntForEachEntry( vGuide, iLit, i )
+            if ( iLit )
+                nAddPos++;
+        assert( Gia_ManPoNum(pNew) == Gia_ManPoNum(p) + nAddPos );
     }
+    Vec_IntFreeP( &vTrace );
+    Vec_IntFreeP( &vGuide );
     return pNew;
 }
 
@@ -1208,11 +1210,11 @@ void Gia_ManEquivTransform( Gia_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fVerbose )
+void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fSkipSome, int fVerbose )
 {
-    Gia_Man_t * pMiter;
+    Gia_Man_t * pMiter, * pTemp;
     Gia_Obj_t * pObj;
-    int i, nLits = 0;
+    int i, iLit, nAddPos, nLits = 0;
     int nLitsAll, Counter = 0;
     nLitsAll = Gia_ManEquivCountLitsAll( p );
     if ( nLitsAll == 0 )
@@ -1227,29 +1229,71 @@ void Gia_ManEquivMark( Gia_Man_t * p, char * pFileName, int fVerbose )
         printf( "Gia_ManEquivMark(): Input file %s could not be read.\n", pFileName );
         return;
     }
-    if ( Gia_ManPoNum(pMiter) != Gia_ManPoNum(p) + nLitsAll )
+    if ( fSkipSome )
     {
-        printf( "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGEquivNum(%d).\n", 
-            Gia_ManPoNum(pMiter), Gia_ManPoNum(p), nLitsAll );
-        Gia_ManStop( pMiter );
-        return;
-    }
-    // mark corresponding POs as solved
-    nLits = 0;
-    for ( i = 0; i < Gia_ManObjNum(p); i++ )
-    {
-        if ( Gia_ObjRepr(p, i) == GIA_VOID )
-            continue;
-        pObj = Gia_ManPo( pMiter, Gia_ManPoNum(p) + nLits++ );
-        if ( Gia_ObjFaninLit0p(pMiter, pObj) == 0 ) // const 0 - proven
+        Vec_Int_t * vTrace = Vec_IntAlloc( 100 );
+        pTemp = Gia_ManSpecReduceTrace( p, vTrace );
+        Gia_ManStop( pTemp );
+        assert( Vec_IntSize(vTrace) == nLitsAll );
+        // count the number of non-zero entries
+        nAddPos = 0;
+        Vec_IntForEachEntry( vTrace, iLit, i )
+            if ( iLit )
+                nAddPos++;
+        // check the number
+        if ( Gia_ManPoNum(pMiter) != Gia_ManPoNum(p) + nAddPos )
         {
-            Gia_ObjSetProved(p, i);
-            Counter++;
+            printf( "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGFilteredEquivNum(%d).\n", 
+                Gia_ManPoNum(pMiter), Gia_ManPoNum(p), nAddPos );
+            Gia_ManStop( pMiter );
+            Vec_IntFreeP( &vTrace );
+            return;
         }
+        // mark corresponding POs as solved
+        nLits = iLit = Counter = 0;
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        {
+            if ( Gia_ObjRepr(p, i) == GIA_VOID )
+                continue;
+            if ( Vec_IntEntry( vTrace, nLits++ ) == 0 )
+                continue;
+            pObj = Gia_ManPo( pMiter, Gia_ManPoNum(p) + iLit++ );
+            if ( Gia_ObjFaninLit0p(pMiter, pObj) == 0 ) // const 0 - proven
+            {
+                Gia_ObjSetProved(p, i);
+                Counter++;
+            }
+        }
+        assert( nLits == nLitsAll );
+        assert( iLit == nAddPos );
+        Vec_IntFreeP( &vTrace );
+    }
+    else
+    {
+        if ( Gia_ManPoNum(pMiter) != Gia_ManPoNum(p) + nLitsAll )
+        {
+            printf( "Gia_ManEquivMark(): The number of POs is not correct: MiterPONum(%d) != AIGPONum(%d) + AIGEquivNum(%d).\n", 
+                Gia_ManPoNum(pMiter), Gia_ManPoNum(p), nLitsAll );
+            Gia_ManStop( pMiter );
+            return;
+        }
+        // mark corresponding POs as solved
+        nLits = 0;
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        {
+            if ( Gia_ObjRepr(p, i) == GIA_VOID )
+                continue;
+            pObj = Gia_ManPo( pMiter, Gia_ManPoNum(p) + nLits++ );
+            if ( Gia_ObjFaninLit0p(pMiter, pObj) == 0 ) // const 0 - proven
+            {
+                Gia_ObjSetProved(p, i);
+                Counter++;
+            }
+        }
+        assert( nLits == nLitsAll );
     }
     if ( fVerbose )
         printf( "Set %d equivalences as proved.\n", Counter );
-    assert( nLits == nLitsAll );
     Gia_ManStop( pMiter );
 }
 
