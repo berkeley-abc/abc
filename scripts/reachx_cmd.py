@@ -12,23 +12,35 @@ from contextlib import contextmanager, nested
 import pyabc
 
 
-def wait_with_timeout(p, timeout):
+def popen_and_wait_with_timeout(timeout,cmd, *args, **kwargs):
     """ Wait for a subprocess.Popen object to terminate, or until timeout (in seconds) expires. """
 
-    if timeout <= 0:
-        timeout = None
-    
-    t = threading.Thread(target=lambda: p.wait())
-    t.start()
-    
-    t.join(timeout)
-    
-    if t.is_alive():
-        p.kill()
-    
-    t.join()
-    
-    return p.returncode
+    p = None
+    t = None
+
+    try:
+        p = subprocess.Popen(cmd, *args, **kwargs)
+
+        if timeout <= 0:
+            timeout = None
+        
+        t = threading.Thread(target=lambda: p.communicate())
+        t.start()
+        
+        t.join(timeout)
+        
+    finally:
+        
+        if p is not None and p.poll() is None:
+            p.kill()
+
+        if t is not None and t.is_alive():
+            t.join()
+        
+        if p is not None:
+            return p.returncode
+            
+        return -1
 
 @contextmanager
 def replace_sys_argv(argv):
@@ -74,13 +86,11 @@ def run_reachx_cmd(effort, timeout):
             'qua_ffix -effort %d -L %s'%(effort, cygpath(tmplog_name)),
             'quit'
             ]
-            
+
         cmd = ["jabc", "-c", " ; ".join(cmdline)]
         
-        p = subprocess.Popen(cmd, shell=False, stdout=sys.stdout, stderr=sys.stderr)
-        
-        rc = wait_with_timeout(p,timeout)
-        
+        rc = popen_and_wait_with_timeout(timeout, cmd, shell=False, stdout=sys.stdout, stderr=sys.stderr)
+
         if rc != 0:
             # jabc failed or stopped. Write a status file to update the status to unknown
             with open(tmplog_name, "w") as f:

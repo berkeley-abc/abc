@@ -15,7 +15,6 @@ Caveats:
 
 1. Global variables in the parent process are not affected by the child processes.
 2. The functions can only return simple types, see the pickle module for details
-3. Signals are currently not handled correctly
 
 Usage:
 
@@ -91,47 +90,6 @@ from contextlib import contextmanager
 
 import pyabc
 
-def _waitpid(pid, flags):
-    while True:
-        try:
-            res =  os.waitpid(pid, flags)
-            return res
-        except OSError as e:
-            if e.errno != errno.EINTR:
-                raise
-
-def _wait():
-    while True:
-        try:
-            pid,rc = os.wait()
-            return pid, rc
-        except OSError as e:
-            if e.errno != errno.EINTR:
-                raise
-        except Exceptions as e:
-            raise
-
-class _sigint_critical_section(object):
-    def __init__(self):
-        self.blocked = False
-        
-    def __enter__(self):
-        self.acquire()
-        return self
-        
-    def __exit__(self, type, value, traceback):
-        self.release()
-        
-    def acquire(self):
-        if not self.blocked:
-            self.blocked = True
-            pyabc.block_sigint()
-
-    def release(self):
-        if self.blocked:
-            self.blocked = False
-            pyabc.restore_sigint_block()
-
 class _splitter(object):
     
     def __init__(self, funcs):
@@ -144,18 +102,19 @@ class _splitter(object):
         return len(self.fds) == 0
     
     def cleanup(self):
-        
         # close pipes and kill child processes
         for pid,(i,fd) in self.fds.iteritems():
             os.close(fd)
-            os.kill( pid, signal.SIGINT )
+            try:
+                os.kill( pid, signal.SIGINT )
+            except Exception as e:
+                print >>sys.stderr, 'exception while trying to kill pid=%d: '%pid, e
+                raise
         
-        with _sigint_critical_section() as cs:
             # wait for termination and update result
-            for pid, _ in self.fds.iteritems():
-                _waitpid( pid, 0 )
-                pyabc.remove_child_pid(pid)
-                self.results[pid] = None
+        for pid, _ in self.fds.iteritems():
+            os.waitpid( pid, 0 )
+            self.results[pid] = None
             
         self.fds = {}
 
@@ -179,22 +138,20 @@ class _splitter(object):
         
         try:
 
-            with _sigint_critical_section() as cs:
-                # create child process
-                pid = os.fork()
-        
-                if pid == 0:
-                    # child process:
-                    pyabc.reset_sigint_handler()
-                    cs.release()
-                    os.close(pr)
-                    rc = self.child( pw, f)
-                    os._exit(rc)
-                else:
-                    # parent process:
-                    pyabc.add_child_pid(pid)
-                    os.close(pw)
-                    return (pid, pr)
+            # create child process
+            pid = os.fork()
+    
+            if pid == 0:
+                # child process:
+                os.close(pr)
+                pyabc.close_on_fork(pw)
+                
+                rc = self.child( pw, f)
+                os._exit(rc)
+            else:
+                # parent process:
+                os.close(pw)
+                return (pid, pr)
                 
         finally:
             if os.getpid() != parentpid:
@@ -209,11 +166,8 @@ class _splitter(object):
     def get_next_result(self):
     
         # wait for the next child process to terminate
-        pid, rc = _wait()
+        pid, rc = os.wait()
         assert pid in self.fds
-        
-        with _sigint_critical_section() as cs:
-            pyabc.remove_child_pid(pid)
         
         # retrieve the pipe file descriptor1
         i, fd = self.fds[pid]

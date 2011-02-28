@@ -44,14 +44,7 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 /*=== utilSignal.c ==========================================================*/
-extern void      Util_SignalCleanup();
-extern void      Util_SignalStartHandler();
-extern void      Util_SignalResetHandler();
-extern void      Util_SignalStopHandler();
-extern void      Util_SignalBlockSignals();
-extern void      Util_SignalUnblockSignals();
-extern void      Util_SignalAddChildPid(int pid);
-extern void      Util_SignalRemoveChildPid(int pid);
+
 extern int       Util_SignalTmpFile(const char* prefix, const char* suffix, char** out_name);
 extern void      Util_SignalTmpFileRemove(const char* fname, int fLeave);
 extern int       Util_SignalSystem(const char* cmd);

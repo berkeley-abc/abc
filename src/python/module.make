@@ -61,4 +61,21 @@ pyabc.tgz : $(PROG) $(ABC_PYTHON_SRC:_wrap.c=.py) $(ABC_PYTHON_FILES_PREFIX)/abc
         --out=$@ \
         $(ABC_PYTHON_OPTIONS)
 
+PYABC_INSTALL_TARGET ?= $(shell date +%Y-%m-%d_%H-%M.%N_${USER})
+PYABC_INSTALL_TARGET := $(PYABC_INSTALL_TARGET)
+
+PYABC_INSTALL_DIR ?= /hd/common/pyabc/builds/pyabc_builds/
+
+.PHONY: zzz
+
+pyabc_install_target: pyabc_extension_bdist
+    mkdir -p "$(PYABC_INSTALL_DIR)/$(PYABC_INSTALL_TARGET)"
+    tar \
+       --directory="$(PYABC_INSTALL_DIR)/$(PYABC_INSTALL_TARGET)" \
+       --show-transformed-names \
+       --transform='s#^.*/##g' \
+       -xvzf "$(ABC_PYTHON_FILES_PREFIX)/dist/pyabc-1.0.linux-x86_64.tar.gz"
+    find "$(PYABC_INSTALL_DIR)/$(PYABC_INSTALL_TARGET)/"* -type d | xargs rmdir
+    echo "Installed at $(PYABC_INSTALL_DIR)/$(PYABC_INSTALL_TARGET)"       
+
 endif
