@@ -29,25 +29,26 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 /*
-    Log file format (Jiang, Mon, 28 Sep 2009)
+    Log file format (Jiang, Mon, 28 Sep 2009;  updated by Alan in Jan 2011)
 
-    <result> <cyc> <engine_name>
-    <TRACE> : default is "NULL"
-    <INIT_STATE> : default is "NULL"
+    <result> <bug_free_depth>  <engine_name> <0-based_output_num> <0-based_frame>
+    <INIT_STATE> : default is empty line.
+    <TRACE> : default is empty line
    
-    <retult> is the following:
-    snl_SAT
-    snl_UNSAT
-    snl_UNK
-    snl_ABORT
-   
-    <cyc> : # of cycles
-   
+    <result> is one of the following: "snl_SAT", "snl_UNSAT", "snl_UNK", "snl_ABORT".
+    <bug_free_depth> is the number of timeframes exhaustively explored without counter-examples
+    <0-based_output_num> only need to be given if the problem is SAT.
+    <0-based_frame> only need to be given if the problem is SAT and <0-based_frame> is different from <bug_free_depth>.   
     <INIT_STATE>  : initial state
     <TRACE> : input vector
-   
+
     <INIT_STATE>and <TRACE> are strings of 0/1/- ( - means don't care). The length is equivalent to #input*#<cyc>.
 */
+
+
+         
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -189,7 +190,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
     if ( Vec_IntSize(vNums) )
     {
         int iFrameCex = (nFrames2 == -1) ? nFrames : nFrames2;
-        if ( nRegs == 0 )
+        if ( nRegs < 0 )
         {
             printf( "Cannot read register number.\n" );
             return -1;
