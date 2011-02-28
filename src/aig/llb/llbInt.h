@@ -55,16 +55,20 @@ struct Llb_Man_t_
     Aig_Man_t *     pAig;           // derived AIG manager (created in this package)
     DdManager *     dd;             // BDD manager
     DdManager *     ddG;            // BDD manager
+    DdManager *     ddR;            // BDD manager
     Vec_Int_t *     vObj2Var;       // mapping AIG ObjId into BDD var index
     Vec_Int_t *     vVar2Obj;       // mapping BDD var index into AIG ObjId
     Vec_Ptr_t *     vGroups;        // group Id into group pointer
     Llb_Mtr_t *     pMatrix;        // dependency matrix
     // image computation
+    Vec_Ptr_t *     vRings;         // onion rings
     Vec_Int_t *     vVarBegs;       // the first group where the var appears  
     Vec_Int_t *     vVarEnds;       // the last group where the var appears 
     // variable mapping
     Vec_Int_t *     vNs2Glo;        // next state variables into global variables
+    Vec_Int_t *     vCs2Glo;        // next state variables into global variables
     Vec_Int_t *     vGlo2Cs;        // global variables into current state variables
+    Vec_Int_t *     vGlo2Ns;        // global variables into current state variables
     // flow computation
 //    Vec_Int_t *     vMem;
 //    Vec_Ptr_t *     vTops;

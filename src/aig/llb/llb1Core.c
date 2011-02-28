@@ -208,6 +208,7 @@ int Llb_ManModelCheckGia( Gia_Man_t * pGia, Gia_ParLlb_t * pPars )
         RetValue = Llb_ManModelCheckAig( pAig, pPars, NULL, NULL );
     else
         RetValue = Llb_ManModelCheckAigWithHints( pAig, pPars );
+    pGia->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
     Aig_ManStop( pAig );
     return RetValue;
 }
