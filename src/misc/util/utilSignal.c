@@ -18,12 +18,13 @@
 
 ***********************************************************************/
 
+#include <stdio.h>
 #include <stdlib.h>
 #include "abc_global.h"
 #include "utilSignal.h"
 
 #ifdef _MSC_VER
-#define remove _remove
+#define unlink _unlink
 #else
 #include <unistd.h>
 #endif
@@ -56,7 +57,7 @@ void Util_SignalTmpFileRemove(const char* fname, int fLeave)
 {
     if (! fLeave)
     {
-        remove(fname);
+        unlink(fname);
     }
 }
 
