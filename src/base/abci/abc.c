@@ -27937,7 +27937,7 @@ usage:
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
     Abc_Print( -2, "\t-b     : perform backward reachability analysis [default = %s]\n", pPars->fBackward? "yes": "no" );  
     Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
     Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
@@ -28069,7 +28069,7 @@ usage:
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", pPars->fReorder? "yes": "no" );  
+    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
     Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
     Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  

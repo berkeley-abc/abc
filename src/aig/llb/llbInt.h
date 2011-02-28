@@ -172,9 +172,15 @@ extern DdNode *        Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMan
                            Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQuant1, Vec_Int_t * vDriRefs, 
                            int TimeTarget, int fBackward, int fReorder, int fVerbose );
 
+extern DdManager *     Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, int * pOrder, int fFirst );
+extern DdNode *        Llb_NonlinImageCompute( DdNode * bCurrent, int fReorder, int fDrop, int fVerbose, int * pOrder );
+extern void            Llb_NonlinImageQuit();
+
 /*=== llb3Image.c ======================================================*/
 extern DdNode *        Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
                            DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeTarget );
+/*=== llb3Nonlin.c ======================================================*/
+extern DdNode *        Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd );
 
 ABC_NAMESPACE_HEADER_END
 

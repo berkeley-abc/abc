@@ -42,12 +42,17 @@ struct Llb_Mnn_t_
     Vec_Ptr_t *     vLeaves;        
     Vec_Ptr_t *     vRoots;
     int *           pVars2Q;
-    int *           pOrder;
+    int *           pOrderL;
+    int *           pOrderL2;
+    int *           pOrderG;
 
     Vec_Int_t *     vCs2Glo;        // cur state variables into global variables
     Vec_Int_t *     vNs2Glo;        // next state variables into global variables
     Vec_Int_t *     vGlo2Cs;        // global variables into cur state variables
     Vec_Int_t *     vGlo2Ns;        // global variables into next state variables
+
+    int             ddLocReos;
+    int             ddLocGrbs;
 
     int             timeImage;
     int             timeTran1;
@@ -297,7 +302,7 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
 //Extra_bddPrintSupport( p->dd, bRing );   printf( "\n" );
         // compute the next states
         bImage = Llb_NonlinImage( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->dd, bState, 
-            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, ABC_INFINITY, ABC_INFINITY ); // consumed reference
+            p->pPars->fReorder, p->pPars->fVeryVerbose, NULL, ABC_INFINITY, ABC_INFINITY ); // consumed reference
         assert( bImage != NULL );
         Cudd_Ref( bImage );
 //Extra_bddPrintSupport( p->dd, bImage );  printf( "\n" );
@@ -393,10 +398,37 @@ int Llb_NonlinReoHook( DdManager * dd, char * Type, void * Method )
   SeeAlso     []
 
 ***********************************************************************/
+int Llb_NonlinCompPerms( DdManager * dd, int * pVar2Lev )
+{
+    DdSubtable * pSubt;
+    int i, Sum = 0, Entry;
+    for ( i = 0; i < dd->size; i++ )
+    {
+        pSubt = &(dd->subtables[dd->perm[i]]);
+        if ( pSubt->keys == pSubt->dead + 1 )
+            continue;
+        Entry = ABC_MAX(dd->perm[i], pVar2Lev[i]) - ABC_MIN(dd->perm[i], pVar2Lev[i]);
+        Sum += Entry;
+//printf( "%d-%d(%d) ", dd->perm[i], pV2L[i], Entry );
+    }
+    return Sum;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Perform reachability with hints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Llb_NonlinReachability( Llb_Mnn_t * p )
 { 
-    DdNode * bCurrent, * bNext, * bTemp;
-    int iVar, nIters, nBddSize0, nBddSize, Limit = p->pPars->nBddMax;
+    DdNode * bTemp, * bNext;
+    int nIters, nBddSize0, nBddSize, NumCmp, Limit = p->pPars->nBddMax;
     int clk2, clk3, clk = clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 
@@ -425,7 +457,9 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     }
     Cudd_Ref( p->ddR->bFunc );
     // compute the starting set of states
-    bCurrent       = Llb_NonlinComputeInitState( p->pAig, p->dd );   Cudd_Ref( bCurrent );
+    Cudd_Quit( p->dd );
+    p->dd = Llb_NonlinImageStart( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->pOrderL, 1 );
+    p->dd->bFunc   = Llb_NonlinComputeInitState( p->pAig, p->dd );   Cudd_Ref( p->dd->bFunc );   // current
     p->ddG->bFunc  = Llb_NonlinComputeInitState( p->pAig, p->ddG );  Cudd_Ref( p->ddG->bFunc );  // reached
     p->ddG->bFunc2 = Llb_NonlinComputeInitState( p->pAig, p->ddG );  Cudd_Ref( p->ddG->bFunc2 ); // frontier 
     for ( nIters = 0; nIters < p->pPars->nIterMax; nIters++ )
@@ -437,18 +471,18 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
-            Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
+            Llb_NonlinImageQuit();
             return -1;
         }
 
         // save the onion ring
-        bTemp = Extra_TransferPermute( p->dd, p->ddR, bCurrent, Vec_IntArray(p->vCs2Glo) );
+        bTemp = Extra_TransferPermute( p->dd, p->ddR, p->dd->bFunc, Vec_IntArray(p->vCs2Glo) );
         if ( bTemp == NULL )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during ring transfer.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
-            Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
+            Llb_NonlinImageQuit();
             return -1;
         }
         Cudd_Ref( bTemp );
@@ -460,7 +494,6 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             assert( p->pInit->pSeqModel == NULL );
             if ( !p->pPars->fBackward )
                 p->pInit->pSeqModel = Llb_NonlinDeriveCex( p ); 
-            Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             if ( !p->pPars->fSilent )
             {
                 if ( !p->pPars->fBackward )
@@ -469,85 +502,32 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
                     printf( "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
+            Llb_NonlinImageQuit();
             return 0;
-        }
-
-        // check the size
-        if ( Cudd_DagSize(bCurrent) > p->pPars->nBddMax )
-        {
-            DdNode * bVar, * bVarG;
-
-            // find the best variable
-            iVar     = Llb_NonlinFindBestVar( p->dd, bCurrent, p->pAig );
-
-            // get cofactor in the working manager
-            bVar     = Cudd_bddIthVar( p->dd, Aig_ObjId(Saig_ManLo(p->pAig,iVar)) );
-            bCurrent = Cudd_bddAnd( p->dd, bTemp = bCurrent, Cudd_Not(bVar) );                  Cudd_Ref( bCurrent );
-            Cudd_RecursiveDeref( p->dd, bTemp );            
- 
-            // get cofactor in the global manager
-            bVarG    = Cudd_bddIthVar(p->ddG, iVar);
-            p->ddG->bFunc2 = Cudd_bddAnd( p->ddG, bTemp = p->ddG->bFunc2, Cudd_Not(bVarG) );    Cudd_Ref( p->ddG->bFunc2 );
-            Cudd_RecursiveDeref( p->ddG, bTemp );            
         }
 
         // compute the next states
         clk3 = clock();
-        nBddSize0 = Cudd_DagSize( bCurrent );
-        bNext = Llb_NonlinImage( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->dd, bCurrent, 
-//            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, nIters ? p->pPars->nBddMax : ABC_INFINITY );
-            p->pPars->fReorder, p->pPars->fVeryVerbose, p->pOrder, ABC_INFINITY, p->pPars->TimeTarget );
-//        Abc_PrintTime( 1, "Image time", clock() - clk3 );
+        nBddSize0 = Cudd_DagSize( p->dd->bFunc );
+        bNext = Llb_NonlinImageCompute( p->dd->bFunc, p->pPars->fReorder, 0, 1, p->pOrderL ); // consumes ref   
+//        bNext = Llb_NonlinImage( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->dd, bCurrent, 
+//            p->pPars->fReorder, p->pPars->fVeryVerbose, NULL, ABC_INFINITY, p->pPars->TimeTarget );
         if ( bNext == NULL )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation in quantification.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
-            Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
+            Llb_NonlinImageQuit();
             return -1;
         }
-        if ( bNext == NULL )  // Llb_NonlimImage() consumes reference of bCurrent!!!
-        {
-            DdNode * bVar, * bVarG;
-//          if ( !p->pPars->fSilent )
-//              printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );
-//          p->pPars->iFrame = nIters - 1;
-//          return -1;
-
-            printf( "Should never happen!\n" );
- 
-            // get the frontier in the working manager
-            bCurrent = Extra_TransferPermute( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs) );   Cudd_Ref( bCurrent );
-
-            // find the best variable
-            iVar     = Llb_NonlinFindBestVar( p->dd, bCurrent, p->pAig );
-
-            // get cofactor in the working manager
-            bVar     = Cudd_bddIthVar( p->dd, Aig_ObjId(Saig_ManLo(p->pAig,iVar)) );
-            bCurrent = Cudd_bddAnd( p->dd, bTemp = bCurrent, Cudd_Not(bVar) );                  Cudd_Ref( bCurrent );
-            Cudd_RecursiveDeref( p->dd, bTemp );            
-
-            // get cofactor in the global manager
-            bVarG    = Cudd_bddIthVar(p->dd, iVar);
-            p->ddG->bFunc2 = Cudd_bddAnd( p->ddG, bTemp = p->ddG->bFunc2, Cudd_Not(bVarG) );    Cudd_Ref( p->ddG->bFunc2 );
-            Cudd_RecursiveDeref( p->ddG, bTemp );            
-
-//            Cudd_ReduceHeap( p->dd, CUDD_REORDER_SIFT, 1 );
-            p->pPars->nBddMax = ABC_INFINITY;
-            nIters--;
-            continue;
-        }
-        else
-            p->pPars->nBddMax = Limit;
-
         Cudd_Ref( bNext );
         nBddSize = Cudd_DagSize( bNext );
         p->timeImage += clock() - clk3;
 
+
         // transfer to the state manager
         clk3 = clock();
         Cudd_RecursiveDeref( p->ddG, p->ddG->bFunc2 );
-//        p->ddG->bFunc2 = Extra_TransferPermuteTime( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo), p->pPars->TimeTarget );    
         p->ddG->bFunc2 = Extra_TransferPermute( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo) );    
         if ( p->ddG->bFunc2 == NULL )
         {
@@ -555,11 +535,23 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
                 printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bNext );  
+            Llb_NonlinImageQuit();
             return -1;
         }
         Cudd_Ref( p->ddG->bFunc2 );
         Cudd_RecursiveDeref( p->dd, bNext );
         p->timeTran1 += clock() - clk3;
+
+        // save permutation
+        NumCmp = Llb_NonlinCompPerms( p->dd, p->pOrderL2 );
+        // save order before image computation
+        memcpy( p->pOrderL2, p->dd->perm, sizeof(int) * p->dd->size );
+        // update the image computation manager
+        p->timeReo   += Cudd_ReadReorderingTime(p->dd);
+        p->ddLocReos += Cudd_ReadReorderings(p->dd);
+        p->ddLocGrbs += Cudd_ReadGarbageCollections(p->dd);
+        Llb_NonlinImageQuit();
+        p->dd = Llb_NonlinImageStart( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->pOrderL, 0 );
 
         // derive new states
         clk3 = clock();
@@ -570,6 +562,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
                 printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->ddG, bTemp );  
+            Llb_NonlinImageQuit();
             return -1;
         }
         Cudd_Ref( p->ddG->bFunc2 );
@@ -584,6 +577,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
                 printf( "Reached timeout (%d seconds) during image computation in transfer 1.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->ddG, bTemp );  
+            Llb_NonlinImageQuit();
             return -1;
         }
         Cudd_Ref( p->ddG->bFunc );
@@ -593,20 +587,20 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         // reset permutation
 //        RetValue = Cudd_CheckZeroRef( dd );
 //        assert( RetValue == 0 );
-//        Cudd_ShuffleHeap( dd, pOrder );
+//        Cudd_ShuffleHeap( dd, pOrderG );
 
         // move new states to the working manager
         clk3 = clock();
-//        bCurrent = Extra_TransferPermuteTime( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs), p->pPars->TimeTarget ); 
-        bCurrent = Extra_TransferPermute( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs) ); 
-        if ( bCurrent == NULL )
+        p->dd->bFunc = Extra_TransferPermute( p->ddG, p->dd, p->ddG->bFunc2, Vec_IntArray(p->vGlo2Cs) ); 
+        if ( p->dd->bFunc == NULL )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation in transfer 2.\n",  p->pPars->TimeLimit );
             p->pPars->iFrame = nIters - 1;
+            Llb_NonlinImageQuit();
             return -1;
         }
-        Cudd_Ref( bCurrent );
+        Cudd_Ref( p->dd->bFunc );
         p->timeTran2 += clock() - clk3;
 
         // report the results
@@ -615,11 +609,14 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             printf( "I =%3d : ",   nIters );
             printf( "Fr =%7d ",    nBddSize0 );
             printf( "Im =%7d  ",   nBddSize );
-            printf( "(%4d %4d)  ", Cudd_ReadReorderings(p->dd),  Cudd_ReadGarbageCollections(p->dd) );
+            printf( "(%4d %4d)  ", p->ddLocReos, p->ddLocGrbs );
             printf( "Rea =%6d  ",  Cudd_DagSize(p->ddG->bFunc) );
             printf( "(%4d %4d)  ", Cudd_ReadReorderings(p->ddG), Cudd_ReadGarbageCollections(p->ddG) );
             printf( "S =%4d ",     nSuppMax );
+            printf( "cL =%5d ",    NumCmp );
+            printf( "cG =%5d ",    Llb_NonlinCompPerms( p->ddG, p->pOrderG ) );
             Abc_PrintTime( 1, "T", clock() - clk2 );
+            memcpy( p->pOrderG, p->ddG->perm, sizeof(int) * p->ddG->size );
         }
 /*
         if ( pPars->fVerbose )
@@ -630,18 +627,16 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
             fflush( stdout ); 
         }
 */
-
         if ( nIters == p->pPars->nIterMax - 1 )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached limit on the number of timeframes (%d).\n",  p->pPars->nIterMax );
             p->pPars->iFrame = nIters;
-            Cudd_RecursiveDeref( p->dd,  bCurrent );       bCurrent = NULL;
+            Llb_NonlinImageQuit();
             return -1;
         }
-//        Llb_NonlinReorder( p->ddG, 1 );
-//        Llb_NonlinFindBestVar( p->ddG, bReached, NULL );
     }
+    Llb_NonlinImageQuit();
     
     // report the stats
     if ( p->pPars->fVerbose )
@@ -704,10 +699,14 @@ Llb_Mnn_t * Llb_MnnStart( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t *  p
     Saig_ManForEachLi( pAig, pObj, i )
         Vec_PtrPush( p->vRoots, pObj );
     // variables to quantify
-    p->pOrder  = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
+    p->pOrderL = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
+    p->pOrderL2= ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
+    p->pOrderG = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
     p->pVars2Q = ABC_CALLOC( int, Aig_ManObjNumMax(pAig) );
     Aig_ManForEachPi( pAig, pObj, i )
         p->pVars2Q[Aig_ObjId(pObj)] = 1;
+    for ( i = 0; i < Aig_ManObjNumMax(pAig); i++ )
+        p->pOrderL[i] = p->pOrderL2[i] = p->pOrderG[i] = i;
     Llb_NonlinPrepareVarMap( p ); 
     return p;
 }
@@ -730,7 +729,6 @@ void Llb_MnnStop( Llb_Mnn_t * p )
     if ( p->pPars->fVerbose ) 
     {
         p->timeOther = p->timeTotal - p->timeImage - p->timeTran1 - p->timeTran2 - p->timeGloba;
-        p->timeReo   = Cudd_ReadReorderingTime(p->dd);
         p->timeReoG  = Cudd_ReadReorderingTime(p->ddG);
         ABC_PRTP( "Image    ", p->timeImage, p->timeTotal );
         ABC_PRTP( "  build  ",    timeBuild, p->timeTotal );
@@ -744,7 +742,6 @@ void Llb_MnnStop( Llb_Mnn_t * p )
         ABC_PRTP( "  reo    ", p->timeReo,   p->timeTotal );
         ABC_PRTP( "  reoG   ", p->timeReoG,  p->timeTotal );
     }
-    p->dd->bFunc = NULL;
     if ( p->ddR->bFunc )
         Cudd_RecursiveDeref( p->ddR, p->ddR->bFunc );
     Vec_PtrForEachEntry( DdNode *, p->vRings, bTemp, i )
@@ -755,7 +752,7 @@ void Llb_MnnStop( Llb_Mnn_t * p )
     if ( p->ddG->bFunc2 )
         Cudd_RecursiveDeref( p->ddG, p->ddG->bFunc2 );
 //    printf( "manager1\n" );
-    Extra_StopManager( p->dd );
+//    Extra_StopManager( p->dd );
 //    printf( "manager2\n" );
     Extra_StopManager( p->ddG );
 //    printf( "manager3\n" );
@@ -767,7 +764,9 @@ void Llb_MnnStop( Llb_Mnn_t * p )
     Vec_PtrFree( p->vLeaves );
     Vec_PtrFree( p->vRoots );
     ABC_FREE( p->pVars2Q );
-    ABC_FREE( p->pOrder );
+    ABC_FREE( p->pOrderL );
+    ABC_FREE( p->pOrderL2 );
+    ABC_FREE( p->pOrderG );
     ABC_FREE( p );
 }
 
