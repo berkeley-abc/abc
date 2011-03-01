@@ -954,7 +954,8 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
         Vec_IntForEachEntry( vGuide, iLit, i )
             if ( iLit )
                 nAddPos++;
-        assert( Gia_ManPoNum(pNew) == Gia_ManPoNum(p) + nAddPos );
+        if ( nAddPos )
+            assert( Gia_ManPoNum(pNew) == Gia_ManPoNum(p) + nAddPos );
     }
     Vec_IntFreeP( &vTrace );
     Vec_IntFreeP( &vGuide );

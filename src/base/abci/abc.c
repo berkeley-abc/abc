@@ -24658,6 +24658,11 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Equiv2(): There is no AIG.\n" );
         return 1;
     } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( 0, "Abc_CommandAbc9Equiv2(): There is no flops. Nothing is done.\n" );
+        return 0;
+    }
     if ( fUseCex )
     {
         if ( pAbc->pCex->nPis != Gia_ManPiNum(pAbc->pGia) )
