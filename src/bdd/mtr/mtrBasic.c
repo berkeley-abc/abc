@@ -7,20 +7,20 @@
   Synopsis    [Basic manipulation of multiway branching trees.]
 
   Description [External procedures included in this module:
-        <ul>
-        <li> Mtr_AllocNode()
-        <li> Mtr_DeallocNode()
-        <li> Mtr_InitTree()
-        <li> Mtr_FreeTree()
-        <li> Mtr_CopyTree()
-        <li> Mtr_MakeFirstChild()
-        <li> Mtr_MakeLastChild()
-        <li> Mtr_CreateFirstChild()
-        <li> Mtr_CreateLastChild()
-        <li> Mtr_MakeNextSibling()
-        <li> Mtr_PrintTree()
-        </ul>
-        ]
+            <ul>
+            <li> Mtr_AllocNode()
+            <li> Mtr_DeallocNode()
+            <li> Mtr_InitTree()
+            <li> Mtr_FreeTree()
+            <li> Mtr_CopyTree()
+            <li> Mtr_MakeFirstChild()
+            <li> Mtr_MakeLastChild()
+            <li> Mtr_CreateFirstChild()
+            <li> Mtr_CreateLastChild()
+            <li> Mtr_MakeNextSibling()
+            <li> Mtr_PrintTree()
+            </ul>
+            ]
 
   SeeAlso     [cudd package]
 
@@ -60,7 +60,7 @@
 
 ******************************************************************************/
 
-#include "util.h"
+#include "util_hack.h"
 #include "mtrInt.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -119,7 +119,7 @@ Mtr_AllocNode(void)
 {
     MtrNode *node;
 
-    node = ALLOC(MtrNode,1);
+    node = ABC_ALLOC(MtrNode,1);
     return node;
 
 } /* Mtr_AllocNode */
@@ -140,7 +140,7 @@ void
 Mtr_DeallocNode(
   MtrNode * node /* node to be deallocated */)
 {
-    FREE(node);
+    ABC_FREE(node);
     return;
 
 } /* end of Mtr_DeallocNode */
@@ -224,18 +224,18 @@ Mtr_CopyTree(
     if (copy == NULL) return(NULL);
     copy->parent = copy->elder = copy->child = copy->younger = NULL;
     if (node->child != NULL) {
-    copy->child = Mtr_CopyTree(node->child, expansion);
-    if (copy->child == NULL) {
-        Mtr_DeallocNode(copy);
-        return(NULL);
-    }
+        copy->child = Mtr_CopyTree(node->child, expansion);
+        if (copy->child == NULL) {
+            Mtr_DeallocNode(copy);
+            return(NULL);
+        }
     }
     if (node->younger != NULL) {
-    copy->younger = Mtr_CopyTree(node->younger, expansion);
-    if (copy->younger == NULL) {
-        Mtr_FreeTree(copy);
-        return(NULL);
-    }
+        copy->younger = Mtr_CopyTree(node->younger, expansion);
+        if (copy->younger == NULL) {
+            Mtr_FreeTree(copy);
+            return(NULL);
+        }
     }
     copy->flags = node->flags;
     copy->low = node->low * expansion;
@@ -243,11 +243,11 @@ Mtr_CopyTree(
     copy->index = node->index * expansion;
     if (copy->younger) copy->younger->elder = copy;
     if (copy->child) {
-    MtrNode *auxnode = copy->child;
-    while (auxnode != NULL) {
-        auxnode->parent = copy;
-        auxnode = auxnode->younger;
-    }
+        MtrNode *auxnode = copy->child;
+        while (auxnode != NULL) {
+            auxnode->parent = copy;
+            auxnode = auxnode->younger;
+        }
     }
     return(copy);
 
@@ -275,9 +275,9 @@ Mtr_MakeFirstChild(
     child->elder = NULL;
     if (parent->child != NULL) {
 #ifdef MTR_DEBUG
-    assert(parent->child->elder == NULL);
+        assert(parent->child->elder == NULL);
 #endif
-    parent->child->elder = child;
+        parent->child->elder = child;
     }
     parent->child = child;
     return;
@@ -306,14 +306,14 @@ Mtr_MakeLastChild(
     child->younger = NULL;
 
     if (parent->child == NULL) {
-    parent->child = child;
-    child->elder = NULL;
+        parent->child = child;
+        child->elder = NULL;
     } else {
-    for (node = parent->child;
-         node->younger != NULL;
-         node = node->younger);
-    node->younger = child;
-    child->elder = node;
+        for (node = parent->child;
+             node->younger != NULL;
+             node = node->younger);
+        node->younger = child;
+        child->elder = node;
     }
     child->parent = parent;
     return;
@@ -398,7 +398,7 @@ Mtr_MakeNextSibling(
 {
     second->younger = first->younger;
     if (first->younger != NULL) {
-    first->younger->elder = second;
+        first->younger->elder = second;
     }
     second->parent = first->parent;
     first->younger = second;

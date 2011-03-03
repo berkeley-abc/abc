@@ -96,20 +96,20 @@ ABC_NAMESPACE_HEADER_START
 #endif
 
 /* Flag definitions */
-#define MTR_DEFAULT    0x00000000
+#define MTR_DEFAULT     0x00000000
 #define MTR_TERMINAL    0x00000001
-#define MTR_SOFT    0x00000002
-#define MTR_FIXED    0x00000004
-#define MTR_NEWNODE    0x00000008
+#define MTR_SOFT        0x00000002
+#define MTR_FIXED       0x00000004
+#define MTR_NEWNODE     0x00000008
 
 /* MTR_MAXHIGH is defined in such a way that on 32-bit and 64-bit
 ** machines one can cast a value to (int) without generating a negative
 ** number.
 */
 #if SIZEOF_VOID_P == 8 && SIZEOF_INT == 4
-#define MTR_MAXHIGH    (((MtrHalfWord) ~0) >> 1)
+#define MTR_MAXHIGH     (((MtrHalfWord) ~0) >> 1)
 #else
-#define MTR_MAXHIGH    ((MtrHalfWord) ~0)
+#define MTR_MAXHIGH     ((MtrHalfWord) ~0)
 #endif
 
 
@@ -150,8 +150,8 @@ typedef struct MtrNode {
 /*---------------------------------------------------------------------------*/
 
 /* Flag manipulation macros */
-#define MTR_SET(node, flag)        (node->flags |= (flag))
-#define MTR_RESET(node, flag)    (node->flags &= ~ (flag))
+#define MTR_SET(node, flag)             (node->flags |= (flag))
+#define MTR_RESET(node, flag)   (node->flags &= ~ (flag))
 #define MTR_TEST(node, flag)    (node->flags & (flag))
 
 
