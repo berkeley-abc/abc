@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -76,14 +77,14 @@ void Abc_NtkPrintUnateBdd( Abc_Ntk_t * pNtk, int fUseNaive, int fVerbose )
     int clkBdd, clkUnate;
 
     // compute the global BDDs
-    dd = Abc_NtkBuildGlobalBdds(pNtk, 10000000, 1, 1, fVerbose);
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds(pNtk, 10000000, 1, 1, fVerbose);
     if ( dd == NULL )
         return;
 clkBdd = clock() - clk;
 
     // get information about the network
 //    dd       = pNtk->pManGlob;
-//    dd       = Abc_NtkGlobalBddMan( pNtk );
+//    dd       = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
 //    pbGlobal = (DdNode **)Vec_PtrArray( pNtk->vFuncsGlob );
 
     // print the size of the BDDs
@@ -95,7 +96,7 @@ clkBdd = clock() - clk;
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
 //            p = Extra_UnateComputeSlow( dd, pbGlobal[i] );
-            p = Extra_UnateComputeSlow( dd, Abc_ObjGlobalBdd(pNode) );
+            p = Extra_UnateComputeSlow( dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
                 Extra_UnateInfoPrint( p );
             TotalSupps += p->nVars;
@@ -111,7 +112,7 @@ clkBdd = clock() - clk;
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
 //            p = Extra_UnateComputeFast( dd, pbGlobal[i] );
-            p = Extra_UnateComputeFast( dd, Abc_ObjGlobalBdd(pNode) );
+            p = Extra_UnateComputeFast( dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
                 Extra_UnateInfoPrint( p );
             TotalSupps += p->nVars;

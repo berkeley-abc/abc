@@ -73,7 +73,7 @@ Abc_Ntk_t * Bbl_ManToAbc( Bbl_Man_t * p )
             pObjNew = Abc_NtkCreateNode( pNtk );
         else assert( 0 );
         if ( Bbl_ObjIsLut(pObj) )
-            pObjNew->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, Bbl_ObjSop(p, pObj) );
+            pObjNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, Bbl_ObjSop(p, pObj) );
         Vec_PtrSetEntry( vCopy, Bbl_ObjId(pObj), pObjNew );
     }
     // connect objects

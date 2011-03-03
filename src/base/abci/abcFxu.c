@@ -144,7 +144,7 @@ void Abc_NtkFxuCollectInfo( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
     Abc_Obj_t * pNode;
     int i;
     // add information to the manager
-    p->pManSop    = (Extra_MmFlex_t *)pNtk->pManFunc;
+    p->pManSop    = (Mem_Flex_t *)pNtk->pManFunc;
     p->vSops      = Vec_PtrAlloc(0);
     p->vFanins    = Vec_PtrAlloc(0);
     p->vSopsNew   = Vec_PtrAlloc(0);

@@ -1146,10 +1146,10 @@ Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t 
         {
             uTruth = 0xFFFF & *Cnf_CutTruth(pCut);
             Cnf_SopConvertToVector( p->pSops[uTruth], p->pSopSizes[uTruth], vCover );
-            pNodeNew->pData = Abc_SopCreateFromIsop( (Extra_MmFlex_t *)pNtkNew->pManFunc, pCut->nFanins, vCover );
+            pNodeNew->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtkNew->pManFunc, pCut->nFanins, vCover );
         }
         else
-            pNodeNew->pData = Abc_SopCreateFromIsop( (Extra_MmFlex_t *)pNtkNew->pManFunc, pCut->nFanins, pCut->vIsop[1] );
+            pNodeNew->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtkNew->pManFunc, pCut->nFanins, pCut->vIsop[1] );
         // save the node
         pObj->pData = pNodeNew;
     }

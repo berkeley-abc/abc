@@ -90,6 +90,7 @@ int Mio_LibraryParseFormulas( Mio_Library_t * pLib )
 ***********************************************************************/
 int Mio_GateParseFormula( Mio_Gate_t * pGate )
 {
+    extern char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, int fAllPrimes, Vec_Str_t * vCube, int fMode );
     DdManager * dd = pGate->pLib->dd;
     char * pPinNames[100];
     char * pPinNamesCopy[100];
@@ -114,13 +115,13 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
         if ( strcmp( pGate->pForm, MIO_STRING_CONST0 ) == 0 )
         {
             pGate->bFunc = b0;
-            pGate->pSop = Abc_SopRegister( (Extra_MmFlex_t *)pGate->pLib->pMmFlex, " 0\n" );
+            pGate->pSop = Abc_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, " 0\n" );
             pGate->pLib->pGate0 = pGate;
         }
         else if ( strcmp( pGate->pForm, MIO_STRING_CONST1 ) == 0 )
         {
             pGate->bFunc = b1;
-            pGate->pSop = Abc_SopRegister( (Extra_MmFlex_t *)pGate->pLib->pMmFlex, " 1\n" );
+            pGate->pSop = Abc_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, " 1\n" );
             pGate->pLib->pGate1 = pGate;
         }
         else

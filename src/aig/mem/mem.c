@@ -72,10 +72,13 @@ struct Mem_Flex_t_
 
 struct Mem_Step_t_
 {
-    int             nMems;    // the number of fixed memory managers employed
-    Mem_Fixed_t **  pMems;    // memory managers: 2^1 words, 2^2 words, etc
-    int             nMapSize; // the size of the memory array
-    Mem_Fixed_t **  pMap;     // maps the number of bytes into its memory manager
+    int             nMems;              // the number of fixed memory managers employed
+    Mem_Fixed_t **  pMems;              // memory managers: 2^1 words, 2^2 words, etc
+    int             nMapSize;           // the size of the memory array
+    Mem_Fixed_t **  pMap;               // maps the number of bytes into its memory manager
+    int             nLargeChunksAlloc;  // the maximum number of large memory chunks
+    int             nLargeChunks;       // the current number of large memory chunks
+    void **         pLargeChunks;       // the allocated large memory chunks
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -316,7 +319,7 @@ Mem_Flex_t * Mem_FlexStart()
     p->pCurrent      = NULL;
     p->pEnd          = NULL;
 
-    p->nChunkSize    = (1 << 14);
+    p->nChunkSize    = (1 << 12);
     p->nChunksAlloc  = 64;
     p->nChunks       = 0;
     p->pChunks       = ABC_ALLOC( char *, p->nChunksAlloc );
@@ -509,12 +512,12 @@ void Mem_StepStop( Mem_Step_t * p, int fVerbose )
     int i;
     for ( i = 0; i < p->nMems; i++ )
         Mem_FixedStop( p->pMems[i], fVerbose );
-//    if ( p->pLargeChunks ) 
-//    {
-//      for ( i = 0; i < p->nLargeChunks; i++ )
-//          ABC_FREE( p->pLargeChunks[i] );
-//      ABC_FREE( p->pLargeChunks );
-//    }
+    if ( p->pLargeChunks ) 
+    {
+        for ( i = 0; i < p->nLargeChunks; i++ )
+            ABC_FREE( p->pLargeChunks[i] );
+        ABC_FREE( p->pLargeChunks );
+    }
     ABC_FREE( p->pMems );
     ABC_FREE( p->pMap );
     ABC_FREE( p );
@@ -538,18 +541,16 @@ char * Mem_StepEntryFetch( Mem_Step_t * p, int nBytes )
     if ( nBytes > p->nMapSize )
     {
 //        printf( "Allocating %d bytes.\n", nBytes );
-/*
+//        return ABC_ALLOC( char, nBytes );
         if ( p->nLargeChunks == p->nLargeChunksAlloc )
         {
             if ( p->nLargeChunksAlloc == 0 )
-                p->nLargeChunksAlloc = 5;
+                p->nLargeChunksAlloc = 32;
             p->nLargeChunksAlloc *= 2;
-            p->pLargeChunks = ABC_REALLOC( char *, p->pLargeChunks, p->nLargeChunksAlloc ); 
+            p->pLargeChunks = (void **)ABC_REALLOC( char *, p->pLargeChunks, p->nLargeChunksAlloc ); 
         }
         p->pLargeChunks[ p->nLargeChunks++ ] = ABC_ALLOC( char, nBytes );
-        return p->pLargeChunks[ p->nLargeChunks - 1 ];
-*/
-        return ABC_ALLOC( char, nBytes );
+        return (char *)p->pLargeChunks[ p->nLargeChunks - 1 ];
     }
     return Mem_FixedEntryFetch( p->pMap[nBytes] );
 }

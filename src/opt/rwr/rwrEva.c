@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include "extra.h"
 #include "rwr.h"
 #include "dec.h"
 #include "ivy.h"

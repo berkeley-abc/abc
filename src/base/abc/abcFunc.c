@@ -35,56 +35,11 @@ static int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, in
 static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot);
 static Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop );
 
+extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Converts the network from SOP to BDD representation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode;
-    DdManager * dd;
-    int nFaninsMax, i;
- 
-    assert( Abc_NtkHasSop(pNtk) ); 
-
-    // start the functionality manager
-    nFaninsMax = Abc_NtkGetFaninMax( pNtk );
-    if ( nFaninsMax == 0 )
-        printf( "Warning: The network has only constant nodes.\n" );
-
-    dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-
-    // convert each node from SOP to BDD
-    Abc_NtkForEachNode( pNtk, pNode, i )
-    {
-        assert( pNode->pData );
-        pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );
-        if ( pNode->pData == NULL )
-        {
-            printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
-            return 0;
-        }
-        Cudd_Ref( (DdNode *)pNode->pData );
-    }
-
-    Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
-    pNtk->pManFunc = dd;
-
-    // update the network type
-    pNtk->ntkFunc = ABC_FUNC_BDD;
-    return 1;
-}
 
 /**Function*************************************************************
 
@@ -145,7 +100,7 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
 
 /**Function*************************************************************
 
-  Synopsis    [Removes complemented SOP covers.]
+  Synopsis    [Converts the network from SOP to BDD representation.]
 
   Description []
                
@@ -154,116 +109,44 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
+int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
 {
-    DdManager * dd;
-    DdNode * bFunc;
-    Vec_Str_t * vCube;
     Abc_Obj_t * pNode;
-    int nFaninsMax, fFound, i;
+    DdManager * dd;
+    int nFaninsMax, i;
+ 
+    assert( Abc_NtkHasSop(pNtk) ); 
 
-    assert( Abc_NtkHasSop(pNtk) );
-
-    // check if there are nodes with complemented SOPs
-    fFound = 0;
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_SopIsComplement((char *)pNode->pData) )
-        {
-            fFound = 1;
-            break;
-        }
-    if ( !fFound )
-        return;
-
-    // start the BDD package
+    // start the functionality manager
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
     if ( nFaninsMax == 0 )
         printf( "Warning: The network has only constant nodes.\n" );
+
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
 
-    // change the cover of negated nodes
-    vCube = Vec_StrAlloc( 100 );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_SopIsComplement((char *)pNode->pData) )
-        {
-            bFunc = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );  Cudd_Ref( bFunc );
-            pNode->pData = Abc_ConvertBddToSop( (Extra_MmFlex_t *)pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, 1 );
-            Cudd_RecursiveDeref( dd, bFunc );
-            assert( !Abc_SopIsComplement((char *)pNode->pData) );
-        }
-    Vec_StrFree( vCube );
-    Extra_StopManager( dd );
-}
-
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Converts the network from BDD to SOP representation.]
-
-  Description [If the flag is set to 1, forces the direct phase of all covers.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
-{
-    Abc_Obj_t * pNode;
-    Extra_MmFlex_t * pManNew;
-    DdManager * dd = (DdManager *)pNtk->pManFunc;
-    DdNode * bFunc;
-    Vec_Str_t * vCube;
-    int i, fMode;
-
-    if ( fDirect )
-        fMode = 1;
-    else
-        fMode = -1;
-
-    assert( Abc_NtkHasBdd(pNtk) );
-    if ( dd->size > 0 )
-    Cudd_zddVarsFromBddVars( dd, 2 );
-    // create the new manager
-    pManNew = Extra_MmFlexStart();
-
-    // go through the objects
-    vCube = Vec_StrAlloc( 100 );
+    // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        bFunc = (DdNode *)pNode->pData;
-        pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, fMode );
-        if ( pNode->pNext == NULL )
+        pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );
+        if ( pNode->pData == NULL )
         {
-            Extra_MmFlexStop( pManNew );
-            Abc_NtkCleanNext( pNtk );
-//            printf( "Converting from BDDs to SOPs has failed.\n" );
-            Vec_StrFree( vCube );
+            printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
             return 0;
         }
+        Cudd_Ref( (DdNode *)pNode->pData );
     }
-    Vec_StrFree( vCube );
+
+    Mem_FlexStop( (Mem_Flex_t *)pNtk->pManFunc, 0 );
+    pNtk->pManFunc = dd;
 
     // update the network type
-    pNtk->ntkFunc = ABC_FUNC_SOP;
-    // set the new manager
-    pNtk->pManFunc = pManNew;
-    // transfer from next to data
-    Abc_NtkForEachNode( pNtk, pNode, i )
-    {
-        Cudd_RecursiveDeref( dd, (DdNode *)pNode->pData );
-        pNode->pData = pNode->pNext;
-        pNode->pNext = NULL;
-    }
-
-    // check for remaining references in the package
-    Extra_StopManager( dd );
+    pNtk->ntkFunc = ABC_FUNC_BDD;
     return 1;
 }
+
+
+
 
 /**Function*************************************************************
 
@@ -276,7 +159,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, int fAllPrimes, Vec_Str_t * vCube, int fMode )
+char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, int fAllPrimes, Vec_Str_t * vCube, int fMode )
 {
     int fVerify = 0;
     char * pSop;
@@ -291,7 +174,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
         Vec_StrFill( vCube, nFanins, '-' );
         Vec_StrPush( vCube, '\0' );
         if ( pMan )
-            pSop = Extra_MmFlexEntryFetch( pMan, nFanins + 4 );
+            pSop = Mem_FlexEntryFetch( pMan, nFanins + 4 );
         else
             pSop = ABC_ALLOC( char, nFanins + 4 );
         if ( bFuncOn == Cudd_ReadOne(dd) )
@@ -386,7 +269,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
 
     // allocate memory for the cover
     if ( pMan )
-        pSop = Extra_MmFlexEntryFetch( pMan, (nFanins + 3) * nCubes + 1 );
+        pSop = Mem_FlexEntryFetch( pMan, (nFanins + 3) * nCubes + 1 );
     else 
         pSop = ABC_ALLOC( char, (nFanins + 3) * nCubes + 1 );
     pSop[(nFanins + 3) * nCubes] = 0;
@@ -414,6 +297,73 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     }
     return pSop;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from BDD to SOP representation.]
+
+  Description [If the flag is set to 1, forces the direct phase of all covers.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
+{
+    Abc_Obj_t * pNode;
+    Mem_Flex_t * pManNew;
+    DdManager * dd = (DdManager *)pNtk->pManFunc;
+    DdNode * bFunc;
+    Vec_Str_t * vCube;
+    int i, fMode;
+
+    if ( fDirect )
+        fMode = 1;
+    else
+        fMode = -1;
+
+    assert( Abc_NtkHasBdd(pNtk) );
+    if ( dd->size > 0 )
+    Cudd_zddVarsFromBddVars( dd, 2 );
+    // create the new manager
+    pManNew = Mem_FlexStart();
+
+    // go through the objects
+    vCube = Vec_StrAlloc( 100 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        assert( pNode->pData );
+        bFunc = (DdNode *)pNode->pData;
+        pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, fMode );
+        if ( pNode->pNext == NULL )
+        {
+            Mem_FlexStop( pManNew, 0 );
+            Abc_NtkCleanNext( pNtk );
+//            printf( "Converting from BDDs to SOPs has failed.\n" );
+            Vec_StrFree( vCube );
+            return 0;
+        }
+    }
+    Vec_StrFree( vCube );
+
+    // update the network type
+    pNtk->ntkFunc = ABC_FUNC_SOP;
+    // set the new manager
+    pNtk->pManFunc = pManNew;
+    // transfer from next to data
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        Cudd_RecursiveDeref( dd, (DdNode *)pNode->pData );
+        pNode->pData = pNode->pNext;
+        pNode->pNext = NULL;
+    }
+
+    // check for remaining references in the package
+    Extra_StopManager( dd );
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -482,11 +432,64 @@ int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFani
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 )
+void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Mem_Flex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 )
 {
     assert( Abc_NtkHasBdd(pNode->pNtk) ); 
     *ppSop0 = Abc_ConvertBddToSop( pMmMan, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, (DdNode *)pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 0 );
     *ppSop1 = Abc_ConvertBddToSop( pMmMan, (DdManager *)pNode->pNtk->pManFunc, (DdNode *)pNode->pData, (DdNode *)pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 1 );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Removes complemented SOP covers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
+{
+    DdManager * dd;
+    DdNode * bFunc;
+    Vec_Str_t * vCube;
+    Abc_Obj_t * pNode;
+    int nFaninsMax, fFound, i;
+
+    assert( Abc_NtkHasSop(pNtk) );
+
+    // check if there are nodes with complemented SOPs
+    fFound = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( Abc_SopIsComplement((char *)pNode->pData) )
+        {
+            fFound = 1;
+            break;
+        }
+    if ( !fFound )
+        return;
+
+    // start the BDD package
+    nFaninsMax = Abc_NtkGetFaninMax( pNtk );
+    if ( nFaninsMax == 0 )
+        printf( "Warning: The network has only constant nodes.\n" );
+    dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+
+    // change the cover of negated nodes
+    vCube = Vec_StrAlloc( 100 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( Abc_SopIsComplement((char *)pNode->pData) )
+        {
+            bFunc = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );  Cudd_Ref( bFunc );
+            pNode->pData = Abc_ConvertBddToSop( (Mem_Flex_t *)pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, 1 );
+            Cudd_RecursiveDeref( dd, bFunc );
+            assert( !Abc_SopIsComplement((char *)pNode->pData) );
+        }
+    Vec_StrFree( vCube );
+    Extra_StopManager( dd );
 }
 
 
@@ -573,7 +576,7 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
             return 0;
         }
     }
-    Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
+    Mem_FlexStop( (Mem_Flex_t *)pNtk->pManFunc, 0 );
     pNtk->pManFunc = pMan;
 
     // update the network type
@@ -876,14 +879,14 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
     assert( Abc_NtkHasMapping(pNtk) );
     // update the functionality manager
     assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
-    pNtk->pManFunc = Extra_MmFlexStart();
+    pNtk->pManFunc = Mem_FlexStart();
     pNtk->ntkFunc  = ABC_FUNC_SOP;
     // update the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         pSop = Mio_GateReadSop((Mio_Gate_t *)pNode->pData);
         assert( Abc_SopGetVarNum(pSop) == Abc_ObjFaninNum(pNode) );
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, pSop );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, pSop );
     }
     return 1;
 }

@@ -248,7 +248,7 @@ void Abc_NtkBddDec( Abc_Ntk_t * pNtk, int fVerbose )
     int i;
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkCoNum(pNtk) <= BDD_FUNC_MAX );
-    dd = Abc_NtkBuildGlobalBdds( pNtk, nBddSizeMax, fDropInternal, fReorder, fVerbose );
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, nBddSizeMax, fDropInternal, fReorder, fVerbose );
     if ( dd == NULL )
     {
         Abc_Print( -1, "Construction of global BDDs has failed.\n" );
@@ -264,7 +264,7 @@ void Abc_NtkBddDec( Abc_Ntk_t * pNtk, int fVerbose )
 //        Cudd_addConst( dd, i );
     // collect global BDDs
     Abc_NtkForEachCo( pNtk, pNode, i )
-        pFuncs[i] = Abc_ObjGlobalBdd(pNode);
+        pFuncs[i] = (DdNode *)Abc_ObjGlobalBdd(pNode);
 
     pReo = Extra_ReorderInit( Abc_NtkCiNum(pNtk), 1000 );
     Extra_ReorderSetMinimizationType( pReo, REO_MINIMIZE_WIDTH );

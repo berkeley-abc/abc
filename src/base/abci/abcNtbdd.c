@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -52,7 +53,7 @@ static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, in
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi )
+Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, void * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi )
 {
     Abc_Ntk_t * pNtk; 
     Vec_Ptr_t * vNamesPiFake = NULL;
@@ -72,7 +73,7 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo
 
     // make sure BDD depends on the variables whose index 
     // does not exceed the size of the array with PI names
-    bSupp = Cudd_Support( dd, bFunc );   Cudd_Ref( bSupp );
+    bSupp = Cudd_Support( dd, (DdNode *)bFunc );   Cudd_Ref( bSupp );
     for ( bTemp = bSupp; bTemp != Cudd_ReadOne(dd); bTemp = cuddT(bTemp) )
         if ( (int)Cudd_NodeReadIndex(bTemp) >= Vec_PtrSize(vNamesPi) )
             break;
@@ -90,7 +91,7 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo
         Abc_ObjAssignName( Abc_NtkCreatePi(pNtk), pName, NULL );
     // create the node
     pNode = Abc_NtkCreateNode( pNtk );
-    pNode->pData = (DdNode *)Cudd_bddTransfer( dd, (DdManager *)pNtk->pManFunc, bFunc ); Cudd_Ref((DdNode *)pNode->pData);
+    pNode->pData = (DdNode *)Cudd_bddTransfer( dd, (DdManager *)pNtk->pManFunc, (DdNode *)bFunc ); Cudd_Ref((DdNode *)pNode->pData);
     Abc_NtkForEachPi( pNtk, pNodePi, i )
         Abc_ObjAddFanin( pNode, pNodePi );
     // create the only PO
@@ -246,7 +247,7 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInternal, int fReorder, int fVerbose )
+void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInternal, int fReorder, int fVerbose )
 {
     ProgressBar * pProgress;
     Abc_Obj_t * pObj, * pFanin;
@@ -450,7 +451,7 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
             Extra_ProgressBarUpdate( pProgress, *pCounter, NULL );
     }
     // prepare the return value
-    bFunc = Abc_ObjGlobalBdd(pNode);
+    bFunc = (DdNode *)Abc_ObjGlobalBdd(pNode);
     // dereference BDD at the node
     if ( --pNode->vFanouts.nSize == 0 && fDropInternal )
     {
@@ -471,9 +472,9 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk, int fFreeMan ) 
+void * Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk, int fFreeMan ) 
 { 
-    return (DdManager *)Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, fFreeMan ); 
+    return Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, fFreeMan ); 
 }
 
 /**Function*************************************************************

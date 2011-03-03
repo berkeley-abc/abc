@@ -49,7 +49,7 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 {
     Abc_Obj_t * pObj;
     if ( pNtk->pMmObj )
-        pObj = (Abc_Obj_t *)Extra_MmFixedEntryFetch( pNtk->pMmObj );
+        pObj = (Abc_Obj_t *)Mem_FixedEntryFetch( pNtk->pMmObj );
     else
         pObj = (Abc_Obj_t *)ABC_ALLOC( Abc_Obj_t, 1 );
     memset( pObj, 0, sizeof(Abc_Obj_t) );
@@ -86,7 +86,7 @@ void Abc_ObjRecycle( Abc_Obj_t * pObj )
     memset( pObj, 0, sizeof(Abc_Obj_t) );
     // recycle the object
     if ( pNtk->pMmObj )
-        Extra_MmFixedEntryRecycle( pNtk->pMmObj, (char *)pObj );
+        Mem_FixedEntryRecycle( pNtk->pMmObj, (char *)pObj );
     else
         ABC_FREE( pObj );
 }
@@ -345,7 +345,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
             if ( Abc_NtkIsStrash(pNtkNew) ) 
             {}
             else if ( Abc_NtkHasSop(pNtkNew) || Abc_NtkHasBlifMv(pNtkNew) )
-                pObjNew->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtkNew->pManFunc, (char *)pObj->pData );
+                pObjNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, (char *)pObj->pData );
             else if ( Abc_NtkHasBdd(pNtkNew) )
                 pObjNew->pData = Cudd_bddTransfer((DdManager *)pObj->pNtk->pManFunc, (DdManager *)pNtkNew->pManFunc, (DdNode *)pObj->pData), Cudd_Ref((DdNode *)pObjNew->pData);
             else if ( Abc_NtkHasAig(pNtkNew) )
@@ -581,7 +581,7 @@ Abc_Obj_t * Abc_NtkCreateNodeConst0( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 0\n" );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 0\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero((DdManager *)pNtk->pManFunc), Cudd_Ref( (DdNode *)pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
@@ -610,7 +610,7 @@ Abc_Obj_t * Abc_NtkCreateNodeConst1( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 1\n" );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadOne((DdManager *)pNtk->pManFunc), Cudd_Ref( (DdNode *)pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
@@ -640,7 +640,7 @@ Abc_Obj_t * Abc_NtkCreateNodeInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     pNode = Abc_NtkCreateNode( pNtk );   
     if ( pFanin ) Abc_ObjAddFanin( pNode, pFanin );
     if ( Abc_NtkHasSop(pNtk) )
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, "0 1\n" );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "0 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_Not(Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0)), Cudd_Ref( (DdNode *)pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
@@ -670,7 +670,7 @@ Abc_Obj_t * Abc_NtkCreateNodeBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     pNode = Abc_NtkCreateNode( pNtk ); 
     if ( pFanin ) Abc_ObjAddFanin( pNode, pFanin );
     if ( Abc_NtkHasSop(pNtk) )
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, "1 1\n" );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "1 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0), Cudd_Ref( (DdNode *)pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
@@ -702,7 +702,7 @@ Abc_Obj_t * Abc_NtkCreateNodeAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, (Abc_Obj_t *)vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
-        pNode->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
+        pNode->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateAnd( (DdManager *)pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref((DdNode *)pNode->pData); 
     else if ( Abc_NtkHasAig(pNtk) )
@@ -732,7 +732,7 @@ Abc_Obj_t * Abc_NtkCreateNodeOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, (Abc_Obj_t *)vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
-        pNode->pData = Abc_SopCreateOr( (Extra_MmFlex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
+        pNode->pData = Abc_SopCreateOr( (Mem_Flex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateOr( (DdManager *)pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref((DdNode *)pNode->pData); 
     else if ( Abc_NtkHasAig(pNtk) )
@@ -762,7 +762,7 @@ Abc_Obj_t * Abc_NtkCreateNodeExor( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, (Abc_Obj_t *)vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
-        pNode->pData = Abc_SopCreateXorSpecial( (Extra_MmFlex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins) );
+        pNode->pData = Abc_SopCreateXorSpecial( (Mem_Flex_t *)pNtk->pManFunc, Vec_PtrSize(vFanins) );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateExor( (DdManager *)pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref((DdNode *)pNode->pData); 
     else if ( Abc_NtkHasAig(pNtk) )
@@ -792,7 +792,7 @@ Abc_Obj_t * Abc_NtkCreateNodeMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_
     Abc_ObjAddFanin( pNode, pNode1 );
     Abc_ObjAddFanin( pNode, pNode0 );
     if ( Abc_NtkHasSop(pNtk) )
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, "11- 1\n0-1 1\n" );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "11- 1\n0-1 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIte((DdManager *)pNtk->pManFunc,Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,1),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,2)), Cudd_Ref( (DdNode *)pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )

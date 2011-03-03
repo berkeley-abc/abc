@@ -101,7 +101,7 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, int fEx
     memset( pLib, 0, sizeof(Mio_Library_t) );
     pLib->pName = Extra_UtilStrsav( FileName );
     pLib->tName2Gate = st_init_table(strcmp, st_strhash);
-    pLib->pMmFlex = Extra_MmFlexStart();
+    pLib->pMmFlex = Mem_FlexStart();
     pLib->vCube = Vec_StrAlloc( 100 );
 
     // read the file and clean comments

@@ -28,6 +28,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 #include "sim.h"
 #include "satSolver.h"
 

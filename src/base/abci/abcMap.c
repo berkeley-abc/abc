@@ -657,7 +657,7 @@ Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * p
         pNodeFanin = Abc_NodeFromMapSuperChoice_rec( pNtkNew, ppFanins[i], pNodePis, nNodePis );
         Abc_ObjAddFanin( pNodeNew, pNodeFanin );
     }
-    pNodeNew->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtkNew->pManFunc, Mio_GateReadSop(pRoot) );
+    pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Mio_GateReadSop(pRoot) );
     return pNodeNew;
 }
 

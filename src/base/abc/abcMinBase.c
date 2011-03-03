@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 

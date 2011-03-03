@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 #include "cut.h" 
 
 ABC_NAMESPACE_IMPL_START
@@ -582,7 +583,7 @@ Abc_Obj_t * Abc_NodeSuperChoiceLut( Abc_ManScl_t * p, Abc_Obj_t * pObj )
     Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pFanin, i )
         Abc_ObjAddFanin( pObjNew, pFanin );
     // create the function
-    pObjNew->pData = Abc_SopCreateFromTruth( (Extra_MmFlex_t *)pObj->pNtk->pManFunc, Vec_PtrSize(p->vLeaves), p->uTruth ); // need ISOP
+    pObjNew->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pObj->pNtk->pManFunc, Vec_PtrSize(p->vLeaves), p->uTruth ); // need ISOP
     pObjNew->Level = Abc_NodeGetLevel( pObjNew );
     return pObjNew;
 }
@@ -763,7 +764,7 @@ int Abc_NodeDecomposeStep( Abc_ManScl_t * p )
             Abc_ObjAddFanin( pObjNew, pFanin );
         }
         // create the function
-        pObjNew->pData = Abc_SopCreateFromTruth( (Extra_MmFlex_t *)pNtk->pManFunc, p->nLutSize, pTruth ); // need ISOP
+        pObjNew->pData = Abc_SopCreateFromTruth( (Mem_Flex_t *)pNtk->pManFunc, p->nLutSize, pTruth ); // need ISOP
         pObjNew->Level = Abc_NodeGetLevel( pObjNew );
         pNodesNew[v] = pObjNew;
     }

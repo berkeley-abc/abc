@@ -254,12 +254,12 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
         if ( ppSops[i]->nSize == 0 )
         {
             Abc_ObjRemoveFanins(pNode);
-            pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 0\n" );
+            pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 0\n" );
             Vec_StrFree( ppSops[i] );
             continue;
         }
         Vec_StrPush( ppSops[i], 0 );
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, ppSops[i]->pArray );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, ppSops[i]->pArray );
         Vec_StrFree( ppSops[i] );
     }
     ABC_FREE( ppSops );

@@ -82,7 +82,7 @@ Abc_Obj_t * Abc_NtkCovDeriveCube( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, Min_Cub
         Vec_IntWriteEntry( vLits, i, Lit==1 );
         Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
     }
-    pNodeNew->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtkNew->pManFunc, vLits->nSize, vLits->pArray );
+    pNodeNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, vLits->nSize, vLits->pArray );
     if ( fCompl )
         Abc_SopComplement( (char *)pNodeNew->pData );
     Vec_IntFree( vLits );
@@ -153,7 +153,7 @@ Abc_Obj_t * Abc_NtkCovDeriveNode_rec( Cov_Man_t * p, Abc_Ntk_t * pNtkNew, Abc_Ob
             pFaninNew = Abc_NtkCovDeriveCube( pNtkNew, pObj, pCube, vSupp, 0 );
             Abc_ObjAddFanin( pNodeNew, pFaninNew );
         }
-        pNodeNew->pData = Abc_SopCreateXorSpecial( (Extra_MmFlex_t *)pNtkNew->pManFunc, nCubes );
+        pNodeNew->pData = Abc_SopCreateXorSpecial( (Mem_Flex_t *)pNtkNew->pManFunc, nCubes );
     }
 /*
     printf( "Created node %d(%d) at level %d: ", pNodeNew->Id, pObj->Id, Level );
@@ -280,8 +280,8 @@ Abc_Obj_t * Abc_NtkCovDeriveCubeInv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, Min_
 //        Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
         Abc_ObjAddFanin( pNodeNew, Abc_NtkCovDeriveInv( pNtkNew, pFanin, Lit==1 ) );
     }
-//    pNodeNew->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtkNew->pManFunc, vLits->nSize, vLits->pArray );
-    pNodeNew->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtkNew->pManFunc, vLits->nSize, NULL );
+//    pNodeNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, vLits->nSize, vLits->pArray );
+    pNodeNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, vLits->nSize, NULL );
     Vec_IntFree( vLits );
     return pNodeNew;
 }
@@ -335,7 +335,7 @@ Abc_Obj_t * Abc_NtkCovDeriveNodeInv_rec( Cov_Man_t * p, Abc_Ntk_t * pNtkNew, Abc
             pFaninNew = Abc_NtkCovDeriveCubeInv( pNtkNew, pObj, pCube, vSupp );
             Abc_ObjAddFanin( pNodeNew, pFaninNew );
         }
-        pNodeNew->pData = Abc_SopCreateXorSpecial( (Extra_MmFlex_t *)pNtkNew->pManFunc, nCubes );
+        pNodeNew->pData = Abc_SopCreateXorSpecial( (Mem_Flex_t *)pNtkNew->pManFunc, nCubes );
     }
 
     pObj->pCopy = pNodeNew;
@@ -472,7 +472,7 @@ Abc_Obj_t * Abc_NtkCovDerive_rec( Cov_Man_t * p, Abc_Ntk_t * pNtkNew, Abc_Obj_t 
         // derive the function
         vCover = Vec_StrAlloc( 100 );
         Min_CoverCreate( vCover, pCover, (char)Type );
-        pNodeNew->pData = Abc_SopRegister((Extra_MmFlex_t *)pNtkNew->pManFunc, Vec_StrArray(vCover) );
+        pNodeNew->pData = Abc_SopRegister((Mem_Flex_t *)pNtkNew->pManFunc, Vec_StrArray(vCover) );
         Vec_StrFree( vCover );
     }
 

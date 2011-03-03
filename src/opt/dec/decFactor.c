@@ -366,7 +366,8 @@ Mvc_Cover_t * Dec_ConvertSopToMvc( char * pSop )
 ***********************************************************************/
 int Dec_FactorVerify( char * pSop, Dec_Graph_t * pFForm )
 {
-    extern DdNode *       Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph );
+    extern DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop );
+    extern DdNode * Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph );
     DdManager * dd = (DdManager *)Abc_FrameReadManDd();
     DdNode * bFunc1, * bFunc2;
     int RetValue;

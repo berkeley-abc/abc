@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -69,16 +70,16 @@ Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVer
 
     if ( fVerbose )
     {
-        DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
+        DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
         printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
         ABC_PRT( "BDD construction time", clock() - clk );
     }
 
     // collect global BDDs
-    dd = Abc_NtkGlobalBddMan( pNtk );
+    dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
     ppOutputs = ABC_ALLOC( DdNode *, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
-        ppOutputs[i] = Abc_ObjGlobalBdd(pNode);
+        ppOutputs[i] = (DdNode *)Abc_ObjGlobalBdd(pNode);
 
     // call the decomposition
     pFileGeneric = Extra_FileNameGeneric( pNtk->pSpec );

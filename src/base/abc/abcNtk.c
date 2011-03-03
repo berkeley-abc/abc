@@ -63,15 +63,15 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     pNtk->vBoxes      = Vec_PtrAlloc( 100 );
     pNtk->vLtlProperties = Vec_PtrAlloc( 100 );
     // start the memory managers
-    pNtk->pMmObj      = fUseMemMan? Extra_MmFixedStart( sizeof(Abc_Obj_t) ) : NULL;
-    pNtk->pMmStep     = fUseMemMan? Extra_MmStepStart( ABC_NUM_STEPS ) : NULL;
+    pNtk->pMmObj      = fUseMemMan? Mem_FixedStart( sizeof(Abc_Obj_t) ) : NULL;
+    pNtk->pMmStep     = fUseMemMan? Mem_StepStart( ABC_NUM_STEPS ) : NULL;
     // get ready to assign the first Obj ID
     pNtk->nTravIds    = 1;
     // start the functionality manager
     if ( Abc_NtkIsStrash(pNtk) )
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
     else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
-        pNtk->pManFunc = Extra_MmFlexStart();
+        pNtk->pManFunc = Mem_FlexStart();
     else if ( Abc_NtkHasBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     else if ( Abc_NtkHasAig(pNtk) )
@@ -906,7 +906,7 @@ Abc_Ntk_t * Abc_NtkCreateWithNode( char * pSop )
     pNode = Abc_NtkCreateNode( pNtkNew );
     Abc_NtkForEachPi( pNtkNew, pFanin, i )
         Abc_ObjAddFanin( pNode, pFanin );
-    pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtkNew->pManFunc, pSop );
+    pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, pSop );
     // create the only PO
     pNodePo = Abc_NtkCreatePo(pNtkNew);
     Abc_ObjAddFanin( pNodePo, pNode );
@@ -990,14 +990,14 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     if ( pNtk->pSeqModelVec )
         Vec_PtrFreeFree( pNtk->pSeqModelVec );
     TotalMemory  = 0;
-    TotalMemory += pNtk->pMmObj? Extra_MmFixedReadMemUsage(pNtk->pMmObj)  : 0;
-    TotalMemory += pNtk->pMmStep? Extra_MmStepReadMemUsage(pNtk->pMmStep) : 0;
+    TotalMemory += pNtk->pMmObj? Mem_FixedReadMemUsage(pNtk->pMmObj)  : 0;
+    TotalMemory += pNtk->pMmStep? Mem_StepReadMemUsage(pNtk->pMmStep) : 0;
 //    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
     // free the storage 
     if ( pNtk->pMmObj )
-        Extra_MmFixedStop( pNtk->pMmObj );
+        Mem_FixedStop( pNtk->pMmObj, 0 );
     if ( pNtk->pMmStep )
-        Extra_MmStepStop ( pNtk->pMmStep );
+        Mem_StepStop ( pNtk->pMmStep, 0 );
     // name manager
     Nm_ManFree( pNtk->pManName );
     // free the timing manager
@@ -1007,7 +1007,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     if ( Abc_NtkIsStrash(pNtk) )
         Abc_AigFree( (Abc_Aig_t *)pNtk->pManFunc );
     else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
-        Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pManFunc );
+        Mem_FlexStop( (Mem_Flex_t *)pNtk->pManFunc, 0 );
     else if ( Abc_NtkHasBdd(pNtk) )
         Extra_StopManager( (DdManager *)pNtk->pManFunc );
     else if ( Abc_NtkHasAig(pNtk) )

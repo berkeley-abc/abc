@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -435,7 +436,7 @@ Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
     // deallocate memory manager, which remembers the phase
     if ( pNtk->pData )
     {
-        Extra_MmFlexStop( (Extra_MmFlex_t *)pNtk->pData );
+        Mem_FlexStop( (Mem_Flex_t *)pNtk->pData, 0 );
         pNtk->pData = NULL;
     }
     // set the COs

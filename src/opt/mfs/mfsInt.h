@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "abc.h"
+#include "extra.h"
 #include "mfs.h"
 #include "aig.h"
 #include "cnf.h"

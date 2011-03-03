@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -109,6 +110,7 @@ static void        Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan );
 static void        Abc_AigRemoveFromLevelStructure( Vec_Vec_t * vStruct, Abc_Obj_t * pNode );
 static void        Abc_AigRemoveFromLevelStructureR( Vec_Vec_t * vStruct, Abc_Obj_t * pNode );
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -131,7 +133,7 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan = ABC_ALLOC( Abc_Aig_t, 1 );
     memset( pMan, 0, sizeof(Abc_Aig_t) );
     // allocate the table
-    pMan->nBins    = Cudd_PrimeCopy( 10000 );
+    pMan->nBins    = Cudd_Prime( 10000 );
     pMan->pBins    = ABC_ALLOC( Abc_Obj_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Abc_Obj_t *) * pMan->nBins );
     pMan->vNodes   = Vec_PtrAlloc( 100 );
@@ -593,7 +595,7 @@ void Abc_AigResize( Abc_Aig_t * pMan )
 
 clk = clock();
     // get the new table size
-    nBinsNew = Cudd_PrimeCopy( 3 * pMan->nBins ); 
+    nBinsNew = Cudd_Prime( 3 * pMan->nBins ); 
     // allocate a new array
     pBinsNew = ABC_ALLOC( Abc_Obj_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Abc_Obj_t *) * nBinsNew );

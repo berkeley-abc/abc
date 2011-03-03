@@ -186,11 +186,11 @@ Abc_Obj_t * Io_ReadDsd_rec( Abc_Ntk_t * pNtk, char * pCur, char * pSop )
             }
         }
         if ( pSop )
-            pObj->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, pSop );
+            pObj->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, pSop );
         else if ( TypeExor )
-            pObj->pData = Abc_SopCreateXorSpecial( (Extra_MmFlex_t *)pNtk->pManFunc, nParts );
+            pObj->pData = Abc_SopCreateXorSpecial( (Mem_Flex_t *)pNtk->pManFunc, nParts );
         else
-            pObj->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtk->pManFunc, nParts, NULL );
+            pObj->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtk->pManFunc, nParts, NULL );
         return pObj;
     }
     if ( *pCur >= 'a' && *pCur <= 'z' )

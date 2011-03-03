@@ -315,6 +315,7 @@ int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkGetClauseNum( Abc_Ntk_t * pNtk )
 {
+    extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
     Abc_Obj_t * pNode;
     DdNode * bCover, * zCover, * bFunc;
     DdManager * dd = (DdManager *)pNtk->pManFunc;

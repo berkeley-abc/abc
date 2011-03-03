@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 #include "dec.h"
 #include "dsd.h"
 #include "cut.h"
@@ -317,6 +318,7 @@ Dec_Graph_t * Abc_NodeRestructure( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_
 ***********************************************************************/
 Dec_Graph_t * Abc_NodeRestructureCut( Abc_ManRst_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut )
 {
+    extern DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, Vec_Ptr_t * vVisited );
     Dec_Graph_t * pGraph;
     Dsd_Node_t * pNodeDsd;
     Abc_Obj_t * pLeaf;

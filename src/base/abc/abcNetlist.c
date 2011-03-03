@@ -255,7 +255,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         Abc_NtkDupObj(pNtkNew, pObj, 0);
-        pObj->pCopy->pData = Abc_SopCreateAnd2( (Extra_MmFlex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+        pObj->pCopy->pData = Abc_SopCreateAnd2( (Mem_Flex_t *)pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     }
     // create the choice nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -272,7 +272,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
         }
         // create the logic function
-        pNodeNew->pData = Abc_SopCreateOrMultiCube( (Extra_MmFlex_t *)pNtkNew->pManFunc, Vec_IntSize(vInts), Vec_IntArray(vInts) );
+        pNodeNew->pData = Abc_SopCreateOrMultiCube( (Mem_Flex_t *)pNtkNew->pManFunc, Vec_IntSize(vInts), Vec_IntArray(vInts) );
         // set the new node
         pObj->pCopy->pCopy = pNodeNew;
         Vec_IntFree( vInts );
@@ -349,7 +349,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
     {
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
-        pObj->pCopy->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtkNew->pManFunc, 2, NULL );
+        pObj->pCopy->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, 2, NULL );
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
             pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
     }

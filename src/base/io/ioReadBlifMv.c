@@ -813,7 +813,7 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
         {
             if ( pMod->pNtk->ntkFunc == ABC_FUNC_SOP )
             {
-                Extra_MmFlexStop( (Extra_MmFlex_t *)pMod->pNtk->pManFunc );
+                Mem_FlexStop( (Mem_Flex_t *)pMod->pNtk->pManFunc, 0 );
                 pMod->pNtk->pManFunc = NULL;
                 pMod->pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
             }
@@ -1248,7 +1248,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
         if ( k == nEquals )
         {
             Abc_Obj_t * pNode = Abc_NtkCreateNode( p->pNtk );
-            pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)p->pNtk->pManFunc, " 0\n" );
+            pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, " 0\n" );
             pNet = Abc_NtkFindOrCreateNet( p->pNtk, Abc_ObjNameSuffix(pNode, "abc") );
             Abc_ObjAddFanin( pNet, pNode );
             pTerm = Abc_NtkCreateBi( p->pNtk );
@@ -1362,7 +1362,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Abc_Obj_t * pObj;
     Io_MvVar_t * pVar = NULL;
-    Extra_MmFlex_t * pFlex;
+    Mem_Flex_t * pFlex;
     char * pName;
     int nCommas, nValues, i, k;
     // count commas and get the tokens
@@ -1393,22 +1393,22 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
         return 0;
     }
     // go through variables
-    pFlex = (Extra_MmFlex_t *)Abc_NtkMvVarMan( p->pNtk );
+    pFlex = (Mem_Flex_t *)Abc_NtkMvVarMan( p->pNtk );
     for ( i = 0; i <= nCommas; i++ )
     {
         pName = (char *)Vec_PtrEntry( vTokens, i+1 );
         pObj = Abc_NtkFindOrCreateNet( p->pNtk, pName );
         // allocate variable
-        pVar = (Io_MvVar_t *)Extra_MmFlexEntryFetch( pFlex, sizeof(Io_MvVar_t) );
+        pVar = (Io_MvVar_t *)Mem_FlexEntryFetch( pFlex, sizeof(Io_MvVar_t) );
         pVar->nValues = nValues;
         pVar->pNames = NULL;
         // create names
         if ( Vec_PtrSize(vTokens) > nCommas + 3 )
         {
-            pVar->pNames = (char **)Extra_MmFlexEntryFetch( pFlex, sizeof(char *) * nValues );
+            pVar->pNames = (char **)Mem_FlexEntryFetch( pFlex, sizeof(char *) * nValues );
             Vec_PtrForEachEntryStart( char *, vTokens, pName, k, nCommas + 3 )
             {
-                pVar->pNames[k-(nCommas + 3)] = (char *)Extra_MmFlexEntryFetch( pFlex, strlen(pName) + 1 );
+                pVar->pNames[k-(nCommas + 3)] = (char *)Mem_FlexEntryFetch( pFlex, strlen(pName) + 1 );
                 strcpy( pVar->pNames[k-(nCommas + 3)], pName );
             }
         }
@@ -1640,10 +1640,10 @@ static Abc_Obj_t * Io_MvParseAddResetCircuit( Io_MvMod_t * p, char * pName )
 //        int nValues = Abc_ObjMvVarNum(pOutNet);
 //        sprintf( Buffer, "2 %d %d %d\n1 - - =1\n0 - - =2\n", nValues, nValues, nValues );
         sprintf( Buffer, "1 - - =1\n0 - - =2\n" );
-        pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)p->pNtk->pManFunc, Buffer );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, Buffer );
     }
     else
-        pNode->pData = Abc_SopCreateMux( (Extra_MmFlex_t *)p->pNtk->pManFunc );
+        pNode->pData = Abc_SopCreateMux( (Mem_Flex_t *)p->pNtk->pManFunc );
     // add nets
     Abc_ObjAddFanin( pNode, pResetLONet );
     Abc_ObjAddFanin( pNode, pData1Net );
@@ -1704,7 +1704,7 @@ static int Io_MvParseLineNamesMvOne( Io_MvMod_t * p, Vec_Ptr_t * vTokens, Vec_Pt
     pNode->pData = Io_MvParseTableMv( p, pNode, vTokens2, nInputs, nOutputs, iOut );
     if ( pNode->pData == NULL )
         return 0;
-    pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)p->pNtk->pManFunc, (char *)pNode->pData );
+    pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, (char *)pNode->pData );
 //printf( "Finished parsing node \"%s\" with table:\n%s\n", pName, pNode->pData );
     return 1;
 }
@@ -1826,7 +1826,7 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
     // get the tokens
     Io_MvSplitIntoTokens( vTokens, pTable, '.' );
     if ( Vec_PtrSize(vTokens) == 0 )
-        return Abc_SopCreateConst0( (Extra_MmFlex_t *)p->pNtk->pManFunc );
+        return Abc_SopCreateConst0( (Mem_Flex_t *)p->pNtk->pManFunc );
     if ( Vec_PtrSize(vTokens) == 1 )
     {
         pOutput = (char *)Vec_PtrEntry( vTokens, 0 );
@@ -1836,7 +1836,7 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
             sprintf( p->pMan->sError, "Line %d: Constant table has wrong output value \"%s\".", Io_MvGetLine(p->pMan, pOutput), pOutput );
             return NULL;
         }
-        return pOutput[0] == '0' ? Abc_SopCreateConst0((Extra_MmFlex_t *)p->pNtk->pManFunc) : Abc_SopCreateConst1((Extra_MmFlex_t *)p->pNtk->pManFunc);
+        return pOutput[0] == '0' ? Abc_SopCreateConst0((Mem_Flex_t *)p->pNtk->pManFunc) : Abc_SopCreateConst1((Mem_Flex_t *)p->pNtk->pManFunc);
     }
     pProduct = (char *)Vec_PtrEntry( vTokens, 0 );
     if ( Vec_PtrSize(vTokens) % 2 == 1 )
@@ -1914,7 +1914,7 @@ static int Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine )
     pNode->pData = Io_MvParseTableBlif( p, pName + strlen(pName), Abc_ObjFaninNum(pNode) );
     if ( pNode->pData == NULL )
         return 0;
-    pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)p->pNtk->pManFunc, (char *)pNode->pData );
+    pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, (char *)pNode->pData );
     return 1;
 }
 
@@ -1953,7 +1953,7 @@ static int Io_MvParseLineShortBlif( Io_MvMod_t * p, char * pLine )
     // create fanins
     pNode = Io_ReadCreateNode( p->pNtk, pName, (char **)(vTokens->pArray + 1), 1 );
     // parse the table of this node
-    pNode->pData = Abc_SopRegister( (Extra_MmFlex_t *)p->pNtk->pManFunc, "1 1\n" );
+    pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, "1 1\n" );
     return 1;
 }
 
@@ -1970,22 +1970,22 @@ static int Io_MvParseLineShortBlif( Io_MvMod_t * p, char * pLine )
 ***********************************************************************/
 Io_MvVar_t * Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar )
 {
-    Extra_MmFlex_t * pFlex;
+    Mem_Flex_t * pFlex;
     Io_MvVar_t * pVarDup;
     int i;
     if ( pVar == NULL )
         return NULL;
-    pFlex = (Extra_MmFlex_t *)Abc_NtkMvVarMan( pNtk );
+    pFlex = (Mem_Flex_t *)Abc_NtkMvVarMan( pNtk );
     assert( pFlex != NULL );
-    pVarDup = (Io_MvVar_t *)Extra_MmFlexEntryFetch( pFlex, sizeof(Io_MvVar_t) );
+    pVarDup = (Io_MvVar_t *)Mem_FlexEntryFetch( pFlex, sizeof(Io_MvVar_t) );
     pVarDup->nValues = pVar->nValues;
     pVarDup->pNames = NULL;
     if ( pVar->pNames == NULL )
         return pVarDup;
-    pVarDup->pNames = (char **)Extra_MmFlexEntryFetch( pFlex, sizeof(char *) * pVar->nValues );
+    pVarDup->pNames = (char **)Mem_FlexEntryFetch( pFlex, sizeof(char *) * pVar->nValues );
     for ( i = 0; i < pVar->nValues; i++ )
     {
-        pVarDup->pNames[i] = (char *)Extra_MmFlexEntryFetch( pFlex, strlen(pVar->pNames[i]) + 1 );
+        pVarDup->pNames[i] = (char *)Mem_FlexEntryFetch( pFlex, strlen(pVar->pNames[i]) + 1 );
         strcpy( pVarDup->pNames[i], pVar->pNames[i] );
     }
     return pVarDup;
@@ -2070,7 +2070,7 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     {
         assert( p->pNtk->ntkFunc == ABC_FUNC_SOP );
         p->pNtk->ntkFunc = ABC_FUNC_MAP;
-        Extra_MmFlexStop( (Extra_MmFlex_t *)p->pNtk->pManFunc );
+        Mem_FlexStop( (Mem_Flex_t *)p->pNtk->pManFunc, 0 );
         p->pNtk->pManFunc = pGenlib;
     }
 

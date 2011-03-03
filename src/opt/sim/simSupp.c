@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 #include "fraig.h"
 #include "sim.h"
 

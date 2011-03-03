@@ -14,8 +14,7 @@
 #ifndef STMM_INCLUDED
 #define STMM_INCLUDED
 
-
-#include "extra.h"
+#include "abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -63,7 +62,7 @@ struct stmm_table
     stmm_table_entry **bins;
     // memory manager to improve runtime and prevent memory fragmentation
     // added by alanmi - January 16, 2003
-    Extra_MmFixed_t *pMemMan;
+    void * pMemMan;
 };
 
 struct stmm_generator

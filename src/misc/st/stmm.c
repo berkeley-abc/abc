@@ -95,7 +95,7 @@ stmm_free_table (stmm_table *table)
     // no need to deallocate entries because they are in the memory manager now
     // added by alanmi
     if ( table->pMemMan )
-        Extra_MmFixedStop (table->pMemMan);
+        Extra_MmFixedStop ((Extra_MmFixed_t *)table->pMemMan);
     ABC_FREE(table->bins);
     ABC_FREE(table);
 }
@@ -111,7 +111,7 @@ stmm_clean (stmm_table *table)
     // reset the parameters
     table->num_entries = 0;
     // restart the memory manager
-    Extra_MmFixedRestart (table->pMemMan);
+    Extra_MmFixedRestart ((Extra_MmFixed_t *)table->pMemMan);
 }
 
 
@@ -187,7 +187,7 @@ stmm_lookup_int (stmm_table *table, char *key, int *value)
     hash_val = do_hash(key,table);\
     }\
     \
-    new = (stmm_table_entry *)Extra_MmFixedEntryFetch( table->pMemMan );\
+    new = (stmm_table_entry *)Extra_MmFixedEntryFetch( (Extra_MmFixed_t *)table->pMemMan );\
     \
     new->key = key;\
     new->record = value;\
@@ -216,7 +216,7 @@ stmm_insert (stmm_table *table, char *key, char *value)
     }
 
 //              newEntry = ABC_ALLOC( stmm_table_entry, 1 );
-    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
+    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch ((Extra_MmFixed_t *)table->pMemMan);
     if (newEntry == NULL) {
         return STMM_OUT_OF_MEM;
     }
@@ -249,7 +249,7 @@ stmm_add_direct (stmm_table *table, char *key, char *value)
     hash_val = do_hash (key, table);
 
 //      newEntry = ABC_ALLOC( stmm_table_entry, 1 );
-    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
+    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch ((Extra_MmFixed_t *)table->pMemMan);
     if (newEntry == NULL) {
     return STMM_OUT_OF_MEM;
     }
@@ -281,7 +281,7 @@ stmm_find_or_add (stmm_table *table, char *key, char ***slot)
     }
 
     // newEntry = ABC_ALLOC( stmm_table_entry, 1 );
-    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
+    newEntry = (stmm_table_entry *) Extra_MmFixedEntryFetch ((Extra_MmFixed_t *)table->pMemMan);
     if (newEntry == NULL) {
         return STMM_OUT_OF_MEM;
     }
@@ -390,18 +390,14 @@ stmm_copy (stmm_table *old_table)
     }
 
     // allocate the memory manager for the newEntry table
-    newEntry_table->pMemMan =
-    Extra_MmFixedStart (sizeof (stmm_table_entry));
+    newEntry_table->pMemMan = Extra_MmFixedStart (sizeof (stmm_table_entry));
 
     for (i = 0; i < num_bins; i++) {
     newEntry_table->bins[i] = NULL;
     ptr = old_table->bins[i];
     while (ptr != NULL) {
 //                      newEntry = ABC_ALLOC( stmm_table_entry, 1 );
-        newEntry =
-        (stmm_table_entry *) Extra_MmFixedEntryFetch (newEntry_table->
-                                pMemMan);
-
+        newEntry = (stmm_table_entry *)Extra_MmFixedEntryFetch ((Extra_MmFixed_t *)newEntry_table->pMemMan);
         if (newEntry == NULL) {
 /*
                 for ( j = 0; j <= i; j++ )
@@ -415,7 +411,7 @@ stmm_copy (stmm_table *old_table)
                     }
                 }
 */
-        Extra_MmFixedStop (newEntry_table->pMemMan);
+        Extra_MmFixedStop ((Extra_MmFixed_t *)newEntry_table->pMemMan);
 
         ABC_FREE(newEntry_table->bins);
         ABC_FREE(newEntry_table);
@@ -450,7 +446,7 @@ stmm_delete (stmm_table *table, char **keyp, char **value)
      *value = ptr->record;
     *keyp = ptr->key;
 //      ABC_FREE( ptr );
-    Extra_MmFixedEntryRecycle (table->pMemMan, (char *) ptr);
+    Extra_MmFixedEntryRecycle ((Extra_MmFixed_t *)table->pMemMan, (char *) ptr);
 
     table->num_entries--;
     return 1;
@@ -476,7 +472,7 @@ stmm_delete_int (stmm_table *table, long *keyp, char **value)
      *value = ptr->record;
     *keyp = (long) ptr->key;
 //      ABC_FREE( ptr );
-    Extra_MmFixedEntryRecycle (table->pMemMan, (char *) ptr);
+    Extra_MmFixedEntryRecycle ((Extra_MmFixed_t *)table->pMemMan, (char *) ptr);
 
     table->num_entries--;
     return 1;
@@ -505,7 +501,7 @@ stmm_foreach (stmm_table *table, enum stmm_retval (*func) (char *, char *, char 
         *last = ptr->next;
         table->num_entries--;    /* cstevens@ic */
 //                              ABC_FREE( ptr );
-        Extra_MmFixedEntryRecycle (table->pMemMan, (char *) ptr);
+        Extra_MmFixedEntryRecycle ((Extra_MmFixed_t *)table->pMemMan, (char *) ptr);
 
         ptr = *last;
         }

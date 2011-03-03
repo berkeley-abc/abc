@@ -41,7 +41,7 @@ struct ABC_ManagerStruct_t
     Abc_Ntk_t *           pNtk;          // the starting ABC network
     Abc_Ntk_t *           pTarget;       // the AIG representing the target
     char *                pDumpFileName; // the name of the file to dump the target network
-    Extra_MmFlex_t *      pMmNames;      // memory manager for signal names
+    Mem_Flex_t *      pMmNames;      // memory manager for signal names
     // solving parameters
     int                   mode;          // 0 = resource-aware integration; 1 = brute-force SAT
     Prove_Params_t        Params;        // integrated CEC parameters
@@ -88,7 +88,7 @@ ABC_Manager ABC_InitManager()
     mng->pNtk->pName = Extra_UtilStrsav("csat_network");
     mng->tName2Node = stmm_init_table(strcmp, stmm_strhash);
     mng->tNode2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
-    mng->pMmNames   = Extra_MmFlexStart();
+    mng->pMmNames   = Mem_FlexStart();
     mng->vNodes     = Vec_PtrAlloc( 100 );
     mng->vValues    = Vec_IntAlloc( 100 );
     mng->mode       = 0; // set "resource-aware integration" as the default mode
@@ -116,7 +116,7 @@ void ABC_ReleaseManager( ABC_Manager mng )
     ABC_TargetResFree(p_res);
     if ( mng->tNode2Name ) stmm_free_table( mng->tNode2Name );
     if ( mng->tName2Node ) stmm_free_table( mng->tName2Node );
-    if ( mng->pMmNames )   Extra_MmFlexStop( mng->pMmNames );
+    if ( mng->pMmNames )   Mem_FlexStop( mng->pMmNames, 0 );
     if ( mng->pNtk )       Abc_NtkDelete( mng->pNtk );
     if ( mng->pTarget )    Abc_NtkDelete( mng->pTarget );
     if ( mng->vNodes )     Vec_PtrFree( mng->vNodes );
@@ -181,7 +181,7 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
     int i;
 
     // save the name in the local memory manager
-    pNewName = Extra_MmFlexEntryFetch( mng->pMmNames, strlen(name) + 1 );
+    pNewName = Mem_FlexEntryFetch( mng->pMmNames, strlen(name) + 1 );
     strcpy( pNewName, name );
     name = pNewName;
 
@@ -220,51 +220,51 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
             case CSAT_CONST:
                 if ( nofi != 0 )
                     { printf( "ABC_AddGate: The constant gate \"%s\" has fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateConst1( (Extra_MmFlex_t *)mng->pNtk->pManFunc );
+                pSop = Abc_SopCreateConst1( (Mem_Flex_t *)mng->pNtk->pManFunc );
                 break;
             case CSAT_BAND:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The AND gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateAnd( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi, NULL );
+                pSop = Abc_SopCreateAnd( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi, NULL );
                 break;
             case CSAT_BNAND:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The NAND gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateNand( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateNand( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The OR gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateOr( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi, NULL );
+                pSop = Abc_SopCreateOr( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi, NULL );
                 break;
             case CSAT_BNOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The NOR gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateNor( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateNor( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BXOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The XOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
                     { printf( "ABC_AddGate: The XOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateXor( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateXor( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BXNOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The XNOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
                     { printf( "ABC_AddGate: The XNOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateNxor( (Extra_MmFlex_t *)mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateNxor( (Mem_Flex_t *)mng->pNtk->pManFunc, nofi );
                 break;
             case CSAT_BINV:
                 if ( nofi != 1 )
                     { printf( "ABC_AddGate: The inverter gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
-                pSop = Abc_SopCreateInv( (Extra_MmFlex_t *)mng->pNtk->pManFunc );
+                pSop = Abc_SopCreateInv( (Mem_Flex_t *)mng->pNtk->pManFunc );
                 break;
             case CSAT_BBUF:
                 if ( nofi != 1 )
                     { printf( "ABC_AddGate: The buffer gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
-                pSop = Abc_SopCreateBuf( (Extra_MmFlex_t *)mng->pNtk->pManFunc );
+                pSop = Abc_SopCreateBuf( (Mem_Flex_t *)mng->pNtk->pManFunc );
                 break;
             default :
                 break;

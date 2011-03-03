@@ -198,21 +198,21 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( strncmp( (char *)pObj->pData, "And", 3 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateAnd((Extra_MmFlex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
+            Abc_ObjSetData( pObj, Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
         else if ( strncmp( (char *)pObj->pData, "Or", 2 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateOr((Extra_MmFlex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
+            Abc_ObjSetData( pObj, Abc_SopCreateOr((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
         else if ( strncmp( (char *)pObj->pData, "Nand", 4 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateNand((Extra_MmFlex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
+            Abc_ObjSetData( pObj, Abc_SopCreateNand((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
         else if ( strncmp( (char *)pObj->pData, "Nor", 3 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateNor((Extra_MmFlex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
+            Abc_ObjSetData( pObj, Abc_SopCreateNor((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
         else if ( strncmp( (char *)pObj->pData, "Exor", 4 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateXor((Extra_MmFlex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
+            Abc_ObjSetData( pObj, Abc_SopCreateXor((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
         else if ( strncmp( (char *)pObj->pData, "Exnor", 5 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateNxor((Extra_MmFlex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
+            Abc_ObjSetData( pObj, Abc_SopCreateNxor((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
         else if ( strncmp( (char *)pObj->pData, "Inv", 3 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateInv((Extra_MmFlex_t *)pNtk->pManFunc) );
+            Abc_ObjSetData( pObj, Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc) );
         else if ( strncmp( (char *)pObj->pData, "Buf", 3 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateBuf((Extra_MmFlex_t *)pNtk->pManFunc) );
+            Abc_ObjSetData( pObj, Abc_SopCreateBuf((Mem_Flex_t *)pNtk->pManFunc) );
         else
         {
             printf( "%s: Unknown gate type \"%s\".\n", Extra_FileReaderGetFileName(p), (char*)pObj->pData );

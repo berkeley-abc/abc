@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "cut.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 

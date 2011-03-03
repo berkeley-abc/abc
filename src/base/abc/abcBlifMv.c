@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -46,7 +47,7 @@ void Abc_NtkStartMvVars( Abc_Ntk_t * pNtk )
 {
     Vec_Att_t * pAttMan;
     assert( Abc_NtkMvVar(pNtk) == NULL );
-    pAttMan = Vec_AttAlloc( Abc_NtkObjNumMax(pNtk) + 1, Extra_MmFlexStart(), (void(*)(void*))Extra_MmFlexStop, NULL, NULL );
+    pAttMan = Vec_AttAlloc( Abc_NtkObjNumMax(pNtk) + 1, Mem_FlexStart(), (void(*)(void*))Mem_FlexStop, NULL, NULL );
     Vec_PtrWriteEntry( pNtk->vAttrs, VEC_ATTR_MVVAR, pAttMan );
 //printf( "allocing attr\n" );
 }
@@ -64,9 +65,9 @@ void Abc_NtkStartMvVars( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk ) 
 { 
-    Extra_MmFlex_t * pUserMan;
-    pUserMan = (Extra_MmFlex_t *)Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, 0 ); 
-    Extra_MmFlexStop( pUserMan );
+    Mem_Flex_t * pUserMan;
+    pUserMan = (Mem_Flex_t *)Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, 0 ); 
+    Mem_FlexStop( pUserMan, 0 );
 }
 
 /**Function*************************************************************
@@ -82,7 +83,7 @@ void Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkSetMvVarValues( Abc_Obj_t * pObj, int nValues )
 {
-    Extra_MmFlex_t * pFlex;
+    Mem_Flex_t * pFlex;
     struct temp 
     { 
         int nValues; 
@@ -96,8 +97,8 @@ void Abc_NtkSetMvVarValues( Abc_Obj_t * pObj, int nValues )
     if ( Abc_ObjMvVar(pObj) != NULL )
         return;
     // create the structure
-    pFlex = (Extra_MmFlex_t *)Abc_NtkMvVarMan( pObj->pNtk );
-    pVarStruct = (struct temp *)Extra_MmFlexEntryFetch( pFlex, sizeof(struct temp) );
+    pFlex = (Mem_Flex_t *)Abc_NtkMvVarMan( pObj->pNtk );
+    pVarStruct = (struct temp *)Mem_FlexEntryFetch( pFlex, sizeof(struct temp) );
     pVarStruct->nValues = nValues;
     pVarStruct->pNames = NULL;
     Abc_ObjSetMvVar( pObj, pVarStruct );
@@ -784,7 +785,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             for ( v = 0; v < nValues; v++ )
             {
                 pNodeNew = Abc_NtkCreateNode( pNtkNew );
-                pNodeNew->pData = Abc_SopEncoderPos( (Extra_MmFlex_t *)pNtkNew->pManFunc, v, nValues );
+                pNodeNew->pData = Abc_SopEncoderPos( (Mem_Flex_t *)pNtkNew->pManFunc, v, nValues );
                 pNetNew = Abc_NtkCreateNet( pNtkNew );
                 pTermNew = Abc_NtkCreateBi( pNtkNew );
                 Abc_ObjAddFanin( pNodeNew, pNet->pCopy );
@@ -806,7 +807,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             for ( k = 0; k < nBits; k++ )
             {
                 pNodeNew = Abc_NtkCreateNode( pNtkNew );
-                pNodeNew->pData = Abc_SopEncoderLog( (Extra_MmFlex_t *)pNtkNew->pManFunc, k, nValues );
+                pNodeNew->pData = Abc_SopEncoderLog( (Mem_Flex_t *)pNtkNew->pManFunc, k, nValues );
                 pNetNew = Abc_NtkCreateNet( pNtkNew );
                 pTermNew = Abc_NtkCreateBi( pNtkNew );
                 Abc_ObjAddFanin( pNodeNew, pNet->pCopy );
@@ -831,7 +832,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             Abc_NodeSetTravIdCurrent( pNet );
             nValues = Abc_ObjMvVarNum(pNet);
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
-            pNodeNew->pData = Abc_SopDecoderPos( (Extra_MmFlex_t *)pNtkNew->pManFunc, nValues );
+            pNodeNew->pData = Abc_SopDecoderPos( (Mem_Flex_t *)pNtkNew->pManFunc, nValues );
             for ( v = 0; v < nValues; v++ )
             {
                 pTermNew = Abc_NtkCreateBo( pNtkNew );
@@ -855,7 +856,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
             nValues = Abc_ObjMvVarNum(pNet);
             nBits = Extra_Base2Log( nValues );
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
-            pNodeNew->pData = Abc_SopDecoderLog( (Extra_MmFlex_t *)pNtkNew->pManFunc, nValues );
+            pNodeNew->pData = Abc_SopDecoderLog( (Mem_Flex_t *)pNtkNew->pManFunc, nValues );
             for ( k = 0; k < nBits; k++ )
             {
                 pTermNew = Abc_NtkCreateBo( pNtkNew );
@@ -950,7 +951,7 @@ Abc_Ntk_t * Abc_NtkInsertBlifMv( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtkLogic )
 ***********************************************************************/
 int Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk )
 {
-    Extra_MmFlex_t * pMmFlex;
+    Mem_Flex_t * pMmFlex;
     Abc_Obj_t * pNode;
     Vec_Str_t * vCube;
     char * pSop0, * pSop1, * pBlifMv, * pCube, * pCur;
@@ -963,7 +964,7 @@ int Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk )
         return 0;
     }
 
-    pMmFlex = Extra_MmFlexStart();
+    pMmFlex = Mem_FlexStart();
     vCube   = Vec_StrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -972,7 +973,7 @@ int Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk )
         // allocate room for the MV-SOP
         nCubes = Abc_SopGetCubeNum(pSop0) + Abc_SopGetCubeNum(pSop1);
         nSize = nCubes*(2*Abc_ObjFaninNum(pNode) + 2)+1;
-        pBlifMv = Extra_MmFlexEntryFetch( pMmFlex, nSize );
+        pBlifMv = Mem_FlexEntryFetch( pMmFlex, nSize );
         // add the cubes
         pCur = pBlifMv;
         Abc_SopForEachCube( pSop0, Abc_ObjFaninNum(pNode), pCube )

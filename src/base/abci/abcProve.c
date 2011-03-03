@@ -21,6 +21,7 @@
 #include "abc.h"
 #include "fraig.h"
 #include "math.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 

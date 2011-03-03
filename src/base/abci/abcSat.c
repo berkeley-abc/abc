@@ -834,7 +834,7 @@ int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVa
 sat_solver * Abc_NtkMiterSatCreateLogic( Abc_Ntk_t * pNtk, int fAllPrimes )
 {
     sat_solver * pSat;
-    Extra_MmFlex_t * pMmFlex;
+    Mem_Flex_t * pMmFlex;
     Abc_Obj_t * pNode;
     Vec_Str_t * vCube;
     Vec_Int_t * vVars;
@@ -850,7 +850,7 @@ sat_solver * Abc_NtkMiterSatCreateLogic( Abc_Ntk_t * pNtk, int fAllPrimes )
     // start the data structures
     pSat    = sat_solver_new();
 sat_solver_store_alloc( pSat );
-    pMmFlex = Extra_MmFlexStart();
+    pMmFlex = Mem_FlexStart();
     vCube   = Vec_StrAlloc( 100 );
     vVars   = Vec_IntAlloc( 100 );
 
@@ -883,7 +883,7 @@ finish:
     // delete
     Vec_StrFree( vCube );
     Vec_IntFree( vVars );
-    Extra_MmFlexStop( pMmFlex );
+    Mem_FlexStop( pMmFlex, 0 );
     return pSat;
 }
 

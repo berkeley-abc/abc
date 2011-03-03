@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -257,7 +258,7 @@ void Abc_NtkNodeConvertToMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * 
     Abc_ObjAddFanin( pMux, pNode1 );
     Abc_ObjAddFanin( pMux, pNode0 );
     if ( Abc_NtkHasSop(pNtk) )
-        pMux->pData = Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, "11- 1\n0-1 1\n" );
+        pMux->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, "11- 1\n0-1 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pMux->pData = Cudd_bddIte((DdManager *)pNtk->pManFunc,Cudd_bddIthVar((DdManager *)pNtk->pManFunc,0),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,1),Cudd_bddIthVar((DdManager *)pNtk->pManFunc,2)), Cudd_Ref( (DdNode *)pMux->pData );
     else if ( Abc_NtkHasAig(pNtk) )
@@ -444,7 +445,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
             if ( (k >> i) & 1 )
                 Abc_ObjAddFanin( pObjNew, Abc_NtkCi(pNtkNew, Abc_NtkPiNum(pNtkNew)+k) );
         assert( Abc_ObjFaninNum(pObjNew) == nStates/2 );
-        pObjNew->pData = Abc_SopCreateOr( (Extra_MmFlex_t *)pNtkNew->pManFunc, nStates/2, NULL );
+        pObjNew->pData = Abc_SopCreateOr( (Mem_Flex_t *)pNtkNew->pManFunc, nStates/2, NULL );
         // save the new flop
         pObj = Abc_NtkCi( pNtk, Abc_NtkPiNum(pNtk) + i );
         pObj->pCopy = pObjNew;
@@ -474,7 +475,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObjNew, Abc_ObjRegular(pObj->pCopy) );
             pfCompl[i] = Abc_ObjIsComplement(pObj->pCopy) ^ !((k >> i) & 1);
         }
-        pObjNew->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtkNew->pManFunc, nFlops, pfCompl );
+        pObjNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, nFlops, pfCompl );
         // connect it to the flop input
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, Abc_NtkPoNum(pNtkNew)+k), pObjNew );
     }
@@ -585,7 +586,7 @@ void Abc_NtkTransformBack( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, Vec_Ptr_t *
         Abc_ObjAddFanin( pNodeNew, pCtrl );
         Abc_ObjAddFanin( pNodeNew, pDriver );
         Abc_ObjAddFanin( pNodeNew, Abc_ObjFanout0(pObj) );
-        Abc_ObjSetData( pNodeNew, Abc_SopRegister((Extra_MmFlex_t *)pNtkNew->pManFunc, "0-1 1\n11- 1\n") );
+        Abc_ObjSetData( pNodeNew, Abc_SopRegister((Mem_Flex_t *)pNtkNew->pManFunc, "0-1 1\n11- 1\n") );
         Abc_ObjPatchFanin( Abc_ObjFanin0(pObj), pDriver, pNodeNew );
     }
     // remove the useless POs

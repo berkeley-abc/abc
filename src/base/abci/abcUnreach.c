@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -61,7 +62,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, int fVerbose )
     }
 
     // compute the global BDDs of the latches
-    dd = Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );    
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );    
     if ( dd == NULL )
         return 0;
     if ( fVerbose )
@@ -141,7 +142,7 @@ DdNode * Abc_NtkTransitionRelation( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
     {
         bVar  = Cudd_bddIthVar( dd, Abc_NtkCiNum(pNtk) + i );
 //        bProd = Cudd_bddXnor( dd, bVar, pNtk->vFuncsGlob->pArray[i] );  Cudd_Ref( bProd );
-        bProd = Cudd_bddXnor( dd, bVar, Abc_ObjGlobalBdd(Abc_ObjFanin0(pNode)) );  Cudd_Ref( bProd );
+        bProd = Cudd_bddXnor( dd, bVar, (DdNode *)Abc_ObjGlobalBdd(Abc_ObjFanin0(pNode)) );  Cudd_Ref( bProd );
         bRel  = Cudd_bddAnd( dd, bTemp = bRel, bProd );                 Cudd_Ref( bRel );
         Cudd_RecursiveDeref( dd, bTemp ); 
         Cudd_RecursiveDeref( dd, bProd ); 

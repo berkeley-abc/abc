@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "fraig.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 

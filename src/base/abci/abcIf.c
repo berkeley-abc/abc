@@ -417,13 +417,13 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0) )
             {
                 assert( RetValue == 0 );
-                pNodeNew->pData = Abc_SopCreateAnd( (Extra_MmFlex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), NULL );
+                pNodeNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), NULL );
                 pNodeNew = (Vec_IntSize(vCover) == 0) ? Abc_NtkCreateNodeConst0(pNtkNew) : Abc_NtkCreateNodeConst1(pNtkNew);
             }
             else
             {
                 // derive the AIG for that tree
-                pNodeNew->pData = Abc_SopCreateFromIsop( (Extra_MmFlex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), vCover );
+                pNodeNew->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), vCover );
                 if ( RetValue )
                     Abc_SopComplement( (char *)pNodeNew->pData );
             }

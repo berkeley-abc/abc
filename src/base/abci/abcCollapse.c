@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-//#include "reo.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -57,7 +57,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
         return NULL;
     if ( fVerbose )
     {
-        DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
+        DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
         printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
         ABC_PRT( "BDD construction time", clock() - clk );
     }
@@ -114,7 +114,7 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pDriver, * pNodeNew;
 //    DdManager * dd = pNtk->pManGlob;
-    DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
+    DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
     int i;
 
 //    pReo = Extra_ReorderInit( Abc_NtkCiNum(pNtk), 1000 );
@@ -136,7 +136,7 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
             continue;
         }
 //        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, Vec_PtrEntry(pNtk->vFuncsGlob, i) );
-        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, Abc_ObjGlobalBdd(pNode) );
+        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
 
 //        Extra_ShuffleTest( pReo, dd, Abc_ObjGlobalBdd(pNode) );

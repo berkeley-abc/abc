@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -63,7 +64,7 @@ void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose )
     nInputs  = Abc_NtkCiNum(pNtk);
     nOutputs = Abc_NtkCoNum(pNtk);
 //    dd       = pNtk->pManGlob;
-    dd = Abc_NtkGlobalBddMan( pNtk );
+    dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
 
     // complement the global functions
     vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );

@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int Entry )
+static inline void Vec_IntPushMem( Mem_Step_t * pMemMan, Vec_Int_t * p, int Entry )
 {
     if ( p->nSize == p->nCap )
     {
@@ -52,7 +52,7 @@ static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int 
         if ( p->nSize == 0 )
             p->nCap = 1;
         if ( pMemMan )
-            pArray = (int *)Extra_MmStepEntryFetch( pMemMan, p->nCap * 8 );
+            pArray = (int *)Mem_StepEntryFetch( pMemMan, p->nCap * 8 );
         else
             pArray = ABC_ALLOC( int, p->nCap * 2 );
         if ( p->pArray )
@@ -60,7 +60,7 @@ static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int 
             for ( i = 0; i < p->nSize; i++ )
                 pArray[i] = p->pArray[i];
             if ( pMemMan )
-                Extra_MmStepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
+                Mem_StepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
             else
                 ABC_FREE( p->pArray );
         }

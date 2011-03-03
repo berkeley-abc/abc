@@ -22,6 +22,7 @@
 #define __COV_INT_H__
 
 #include "abc.h"
+#include "extra.h"
 
 
 ABC_NAMESPACE_HEADER_START

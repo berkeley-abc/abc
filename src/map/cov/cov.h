@@ -22,6 +22,7 @@
 #define __COV_H__
 
 #include "abc.h"
+#include "extra.h"
 #include "covInt.h"
 
 

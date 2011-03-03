@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 #include "dsd.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -61,7 +62,7 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, int fVerbose, int fPrint, int fS
     DdManager * dd;
     Abc_Ntk_t * pNtkNew;
     assert( Abc_NtkIsStrash(pNtk) );
-    dd = Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );
     if ( dd == NULL )
         return NULL;
     if ( fVerbose )
@@ -110,7 +111,7 @@ Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, int fVerbose, int fPrint, int 
         Vec_PtrPush( vFuncsGlob, Cudd_NotCond(Abc_ObjGlobalBdd(pObj), Abc_ObjFaninC0(pObj)) );
 
     // perform the decomposition
-    dd = Abc_NtkGlobalBddMan(pNtk);
+    dd = (DdManager *)Abc_NtkGlobalBddMan(pNtk);
     pManDsd = Dsd_ManagerStart( dd, Abc_NtkCiNum(pNtk), fVerbose );
     Dsd_Decompose( pManDsd, (DdNode **)vFuncsGlob->pArray, Abc_NtkCoNum(pNtk) );
     Vec_PtrFree( vFuncsGlob );

@@ -24,8 +24,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include "abc.h"
 #include "extra.h"
-#include "vec.h"
 
 ABC_NAMESPACE_HEADER_START
 

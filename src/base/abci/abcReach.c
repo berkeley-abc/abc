@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -103,7 +104,7 @@ DdNode ** Abc_NtkCreatePartitions( DdManager * dd, Abc_Ntk_t * pNtk, int fReorde
     Abc_NtkForEachLatch( pNtk, pNode, i )
     {
         bVar  = Cudd_bddIthVar( dd, Abc_NtkCiNum(pNtk) + i );
-        pbParts[i] = Cudd_bddXnor( dd, bVar, Abc_ObjGlobalBdd(Abc_ObjFanin0(pNode)) );  Cudd_Ref( pbParts[i] );
+        pbParts[i] = Cudd_bddXnor( dd, bVar, (DdNode *)Abc_ObjGlobalBdd(Abc_ObjFanin0(pNode)) );  Cudd_Ref( pbParts[i] );
     }
     // free the global BDDs
     Abc_NtkFreeGlobalBdds( pNtk, 0 );
@@ -264,7 +265,7 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
     assert( Abc_ObjFanoutNum(Abc_NtkPo(pNtk,0)) == 0 ); // PO should go first
 
     // compute the global BDDs of the latches
-    dd = Abc_NtkBuildGlobalBdds( pNtk, nBddMax, 1, fReorder, fVerbose );    
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, nBddMax, 1, fReorder, fVerbose );    
     if ( dd == NULL )
     {
         printf( "The number of intermediate BDD nodes exceeded the limit (%d).\n", nBddMax );
@@ -274,7 +275,7 @@ void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fP
         printf( "Shared BDD size is %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // save the output BDD
-    bOutput = Abc_ObjGlobalBdd(Abc_NtkPo(pNtk,0)); Cudd_Ref( bOutput );
+    bOutput = (DdNode *)Abc_ObjGlobalBdd(Abc_NtkPo(pNtk,0)); Cudd_Ref( bOutput );
 
     // create partitions
     pbParts = Abc_NtkCreatePartitions( dd, pNtk, fReorder, fVerbose );

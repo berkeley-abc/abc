@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -53,11 +54,11 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName )
+char * Abc_SopRegister( Mem_Flex_t * pMan, char * pName )
 {
     char * pRegName;
     if ( pName == NULL ) return NULL;
-    pRegName = Extra_MmFlexEntryFetch( pMan, strlen(pName) + 1 );
+    pRegName = Mem_FlexEntryFetch( pMan, strlen(pName) + 1 );
     strcpy( pRegName, pName );
     return pRegName;
 }
@@ -73,13 +74,13 @@ char * Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars )
+char * Abc_SopStart( Mem_Flex_t * pMan, int nCubes, int nVars )
 {
     char * pSopCover, * pCube;
     int i, Length;
 
     Length = nCubes * (nVars + 3);
-    pSopCover = Extra_MmFlexEntryFetch( pMan, Length + 1 );
+    pSopCover = Mem_FlexEntryFetch( pMan, Length + 1 );
     memset( pSopCover, '-', Length );
     pSopCover[Length] = 0;
 
@@ -104,7 +105,7 @@ char * Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateConst1( Extra_MmFlex_t * pMan )
+char * Abc_SopCreateConst1( Mem_Flex_t * pMan )
 {
     return Abc_SopRegister( pMan, " 1\n" );
 }
@@ -120,7 +121,7 @@ char * Abc_SopCreateConst1( Extra_MmFlex_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateConst0( Extra_MmFlex_t * pMan )
+char * Abc_SopCreateConst0( Mem_Flex_t * pMan )
 {
     return Abc_SopRegister( pMan, " 0\n" );
 }
@@ -136,7 +137,7 @@ char * Abc_SopCreateConst0( Extra_MmFlex_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 )
+char * Abc_SopCreateAnd2( Mem_Flex_t * pMan, int fCompl0, int fCompl1 )
 {
     char Buffer[6];
     Buffer[0] = '1' - fCompl0;
@@ -159,7 +160,7 @@ char * Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
+char * Abc_SopCreateAnd( Mem_Flex_t * pMan, int nVars, int * pfCompl )
 {
     char * pSop;
     int i;
@@ -181,7 +182,7 @@ char * Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateNand( Extra_MmFlex_t * pMan, int nVars )
+char * Abc_SopCreateNand( Mem_Flex_t * pMan, int nVars )
 {
     char * pSop;
     int i;
@@ -203,7 +204,7 @@ char * Abc_SopCreateNand( Extra_MmFlex_t * pMan, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateOr( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
+char * Abc_SopCreateOr( Mem_Flex_t * pMan, int nVars, int * pfCompl )
 {
     char * pSop;
     int i;
@@ -225,7 +226,7 @@ char * Abc_SopCreateOr( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateOrMultiCube( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
+char * Abc_SopCreateOrMultiCube( Mem_Flex_t * pMan, int nVars, int * pfCompl )
 {
     char * pSop, * pCube;
     int i;
@@ -250,7 +251,7 @@ char * Abc_SopCreateOrMultiCube( Extra_MmFlex_t * pMan, int nVars, int * pfCompl
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateNor( Extra_MmFlex_t * pMan, int nVars )
+char * Abc_SopCreateNor( Mem_Flex_t * pMan, int nVars )
 {
     char * pSop;
     int i;
@@ -271,7 +272,7 @@ char * Abc_SopCreateNor( Extra_MmFlex_t * pMan, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars )
+char * Abc_SopCreateXor( Mem_Flex_t * pMan, int nVars )
 {
     assert( nVars == 2 );
     return Abc_SopRegister(pMan, "01 1\n10 1\n");
@@ -288,7 +289,7 @@ char * Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateXorSpecial( Extra_MmFlex_t * pMan, int nVars )
+char * Abc_SopCreateXorSpecial( Mem_Flex_t * pMan, int nVars )
 {
     char * pSop;
     pSop = Abc_SopCreateAnd( pMan, nVars, NULL );
@@ -308,7 +309,7 @@ char * Abc_SopCreateXorSpecial( Extra_MmFlex_t * pMan, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars )
+char * Abc_SopCreateNxor( Mem_Flex_t * pMan, int nVars )
 {
     assert( nVars == 2 );
     return Abc_SopRegister(pMan, "11 1\n00 1\n");
@@ -326,7 +327,7 @@ char * Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateMux( Extra_MmFlex_t * pMan )
+char * Abc_SopCreateMux( Mem_Flex_t * pMan )
 {
     return Abc_SopRegister(pMan, "11- 1\n0-1 1\n");
 }
@@ -342,7 +343,7 @@ char * Abc_SopCreateMux( Extra_MmFlex_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateInv( Extra_MmFlex_t * pMan )
+char * Abc_SopCreateInv( Mem_Flex_t * pMan )
 {
     return Abc_SopRegister(pMan, "0 1\n");
 }
@@ -358,7 +359,7 @@ char * Abc_SopCreateInv( Extra_MmFlex_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateBuf( Extra_MmFlex_t * pMan )
+char * Abc_SopCreateBuf( Mem_Flex_t * pMan )
 {
     return Abc_SopRegister(pMan, "1 1\n");
 }
@@ -374,7 +375,7 @@ char * Abc_SopCreateBuf( Extra_MmFlex_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateFromTruth( Extra_MmFlex_t * pMan, int nVars, unsigned * pTruth )
+char * Abc_SopCreateFromTruth( Mem_Flex_t * pMan, int nVars, unsigned * pTruth )
 {
     char * pSop, * pCube;
     int nMints, Counter, i, k;
@@ -413,7 +414,7 @@ char * Abc_SopCreateFromTruth( Extra_MmFlex_t * pMan, int nVars, unsigned * pTru
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateFromIsop( Extra_MmFlex_t * pMan, int nVars, Vec_Int_t * vCover )
+char * Abc_SopCreateFromIsop( Mem_Flex_t * pMan, int nVars, Vec_Int_t * vCover )
 {
     char * pSop, * pCube;
     int i, k, Entry, Literal;
@@ -1001,7 +1002,7 @@ char * Abc_SopFromTruthHex( char * pTruth )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopEncoderPos( Extra_MmFlex_t * pMan, int iValue, int nValues )
+char * Abc_SopEncoderPos( Mem_Flex_t * pMan, int iValue, int nValues )
 {
     char Buffer[32];
     assert( iValue < nValues );
@@ -1020,7 +1021,7 @@ char * Abc_SopEncoderPos( Extra_MmFlex_t * pMan, int iValue, int nValues )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopEncoderLog( Extra_MmFlex_t * pMan, int iBit, int nValues )
+char * Abc_SopEncoderLog( Mem_Flex_t * pMan, int iBit, int nValues )
 {
     char * pResult;
     Vec_Str_t * vSop;
@@ -1064,7 +1065,7 @@ char * Abc_SopEncoderLog( Extra_MmFlex_t * pMan, int iBit, int nValues )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopDecoderPos( Extra_MmFlex_t * pMan, int nValues )
+char * Abc_SopDecoderPos( Mem_Flex_t * pMan, int nValues )
 {
     char * pResult;
     Vec_Str_t * vSop;
@@ -1100,7 +1101,7 @@ char * Abc_SopDecoderPos( Extra_MmFlex_t * pMan, int nValues )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopDecoderLog( Extra_MmFlex_t * pMan, int nValues )
+char * Abc_SopDecoderLog( Mem_Flex_t * pMan, int nValues )
 {
     char * pResult;
     Vec_Str_t * vSop;

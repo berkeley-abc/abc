@@ -60,7 +60,7 @@ struct FxuDataStruct
     Vec_Ptr_t *       vSopsNew;         // the SOPs for each node in the network after extraction
     Vec_Ptr_t *       vFaninsNew;       // the fanins of each node in the network after extraction
     // the SOP manager
-    Extra_MmFlex_t *  pManSop;
+    Mem_Flex_t *      pManSop;
     // statistics   
     int               nNodesOld;        // the old number of nodes
     int               nNodesNew;        // the number of divisors actually extracted

@@ -176,12 +176,12 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 if ( Extra_TruthIsConst0(uTruth, nNames) )
                 {
                     pNode = Io_ReadCreateNode( pNtk, (char *)vTokens->pArray[0], ppNames, 0 );
-                    Abc_ObjSetData( pNode, Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 0\n" ) );
+                    Abc_ObjSetData( pNode, Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 0\n" ) );
                 }
                 else if ( Extra_TruthIsConst1(uTruth, nNames) )
                 {
                     pNode = Io_ReadCreateNode( pNtk, (char *)vTokens->pArray[0], ppNames, 0 );
-                    Abc_ObjSetData( pNode, Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 1\n" ) );
+                    Abc_ObjSetData( pNode, Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" ) );
                 }
                 else
                 {
@@ -189,11 +189,11 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     pNode = Io_ReadCreateNode( pNtk, (char *)vTokens->pArray[0], ppNames, nNames );
                     assert( nNames > 0 );
                     if ( nNames > 1 )
-                        Abc_ObjSetData( pNode, Abc_SopCreateFromTruth((Extra_MmFlex_t *)pNtk->pManFunc, nNames, uTruth) );
+                        Abc_ObjSetData( pNode, Abc_SopCreateFromTruth((Mem_Flex_t *)pNtk->pManFunc, nNames, uTruth) );
                     else if ( pString[0] == '2' )
-                        Abc_ObjSetData( pNode, Abc_SopCreateBuf((Extra_MmFlex_t *)pNtk->pManFunc) );
+                        Abc_ObjSetData( pNode, Abc_SopCreateBuf((Mem_Flex_t *)pNtk->pManFunc) );
                     else if ( pString[0] == '1' )
-                        Abc_ObjSetData( pNode, Abc_SopCreateInv((Extra_MmFlex_t *)pNtk->pManFunc) );
+                        Abc_ObjSetData( pNode, Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc) );
                     else
                     {
                         printf( "%s: Reading truth table (%s) of single-input node has failed.\n", Extra_FileReaderGetFileName(p), pString );
@@ -211,28 +211,28 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 pNode = Io_ReadCreateNode( pNtk, (char *)vTokens->pArray[0], ppNames, nNames );
                 // assign the cover
                 if ( strcmp(pType, "AND") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateAnd((Extra_MmFlex_t *)pNtk->pManFunc, nNames, NULL) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, nNames, NULL) );
                 else if ( strcmp(pType, "OR") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateOr((Extra_MmFlex_t *)pNtk->pManFunc, nNames, NULL) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateOr((Mem_Flex_t *)pNtk->pManFunc, nNames, NULL) );
                 else if ( strcmp(pType, "NAND") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateNand((Extra_MmFlex_t *)pNtk->pManFunc, nNames) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateNand((Mem_Flex_t *)pNtk->pManFunc, nNames) );
                 else if ( strcmp(pType, "NOR") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateNor((Extra_MmFlex_t *)pNtk->pManFunc, nNames) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateNor((Mem_Flex_t *)pNtk->pManFunc, nNames) );
                 else if ( strcmp(pType, "XOR") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateXor((Extra_MmFlex_t *)pNtk->pManFunc, nNames) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateXor((Mem_Flex_t *)pNtk->pManFunc, nNames) );
                 else if ( strcmp(pType, "NXOR") == 0 || strcmp(pType, "XNOR") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateNxor((Extra_MmFlex_t *)pNtk->pManFunc, nNames) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateNxor((Mem_Flex_t *)pNtk->pManFunc, nNames) );
                 else if ( strncmp(pType, "BUF", 3) == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateBuf((Extra_MmFlex_t *)pNtk->pManFunc) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateBuf((Mem_Flex_t *)pNtk->pManFunc) );
                 else if ( strcmp(pType, "NOT") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateInv((Extra_MmFlex_t *)pNtk->pManFunc) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc) );
                 else if ( strncmp(pType, "MUX", 3) == 0 )
 //                    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1-0 1\n-11 1\n") );
-                    Abc_ObjSetData( pNode, Abc_SopRegister((Extra_MmFlex_t *)pNtk->pManFunc, "0-1 1\n11- 1\n") );
+                    Abc_ObjSetData( pNode, Abc_SopRegister((Mem_Flex_t *)pNtk->pManFunc, "0-1 1\n11- 1\n") );
                 else if ( strncmp(pType, "gnd", 3) == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 0\n" ) );
+                    Abc_ObjSetData( pNode, Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 0\n" ) );
                 else if ( strncmp(pType, "vdd", 3) == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopRegister( (Extra_MmFlex_t *)pNtk->pManFunc, " 1\n" ) );
+                    Abc_ObjSetData( pNode, Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" ) );
                 else
                 {
                     printf( "Io_ReadBenchNetwork(): Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
