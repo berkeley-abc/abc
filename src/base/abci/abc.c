@@ -16803,7 +16803,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Fra_SecSetDefaultParams( pSecPar );
 //    pSecPar->TimeLimit = 300;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGDVBRTLarmfijkouwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGDVBRTLarmfijkoupwvh" ) ) != EOF )
     {
         switch ( c )
         {
