@@ -436,9 +436,12 @@ p->timeSat += clock() - clk;
 
         // update the manager
         pSim->pAig = p->pAig = Gia_ManEquivReduceAndRemap( pTemp = p->pAig, 0, pParsSim->fDualOut );
-        Gia_ManStop( pTemp );
         if ( p->pAig == NULL )
+        {
+            p->pAig = pTemp;
             break;
+        }
+        Gia_ManStop( pTemp );
         if ( p->pPars->fVerbose )
         {
             Abc_Print( 1, "%3d : P =%7d. D =%7d. F =%6d. M = %7d. And =%8d. ", 
