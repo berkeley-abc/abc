@@ -242,7 +242,7 @@ int Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex
     Vec_PtrFree( vSimInfo );
     if ( pPars->fVerbose )
         ABC_PRT( "Time", clock() - clkTotal );
-    if ( RetValue )
+    if ( RetValue && pPars->fCheckMiter )
         Abc_Print( 1, "Cec_ManSeqResimulateCounter(): An output of the miter is asserted!\n" );
     return RetValue;
 }
