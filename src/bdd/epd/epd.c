@@ -12,12 +12,39 @@
 
   Author      [In-Ho Moon]
 
-  Copyright [ This file was created at the University of Colorado at
-  Boulder.  The University of Colorado at Boulder makes no warranty
-  about the suitability of this software for any purpose.  It is
-  presented on an AS IS basis.]
+  Copyright   [Copyright (c) 1995-2004, Regents of the University of Colorado
 
-  Revision    [$Id: epd.c,v 1.1.1.1 2003/02/24 22:23:57 wjiang Exp $]
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+  Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+
+  Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+
+  Neither the name of the University of Colorado nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.]
+
+  Revision    [$Id: epd.c,v 1.10 2004/08/13 18:20:30 fabio Exp $]
 
 ******************************************************************************/
 
@@ -25,12 +52,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "util_hack.h"
+#include "util.h"
 #include "epd.h"
 
 ABC_NAMESPACE_IMPL_START
-
-
 
 /**Function********************************************************************
 
@@ -44,11 +69,11 @@ ABC_NAMESPACE_IMPL_START
 
 ******************************************************************************/
 EpDouble *
-EpdAlloc()
+EpdAlloc(void)
 {
   EpDouble    *epd;
 
-  epd = ABC_ALLOC(EpDouble, 1);
+  epd = ALLOC(EpDouble, 1);
   return(epd);
 }
 
@@ -91,15 +116,15 @@ EpdCmp(const char *key1, const char *key2)
 void
 EpdFree(EpDouble *epd)
 {
-  ABC_FREE(epd);
+  FREE(epd);
 }
 
 
 /**Function********************************************************************
 
-  Synopsis    [Multiplies two arbitrary precision double values.]
+  Synopsis    [Converts an arbitrary precision double value to a string.]
 
-  Description [Multiplies two arbitrary precision double values.]
+  Description [Converts an arbitrary precision double value to a string.]
 
   SideEffects []
 
@@ -1250,12 +1275,13 @@ EpdIsNanOrInf(EpDouble *epd)
 int
 IsInfDouble(double value)
 {
-  IeeeDouble    *ptr = (IeeeDouble *)(&value);
+  EpType val;
 
-  if (ptr->exponent == EPD_EXP_INF &&
-      ptr->mantissa0 == 0 &&
-      ptr->mantissa1 == 0) {
-    if (ptr->sign == 0)
+  val.value = value;
+  if (val.bits.exponent == EPD_EXP_INF &&
+      val.bits.mantissa0 == 0 &&
+      val.bits.mantissa1 == 0) {
+    if (val.bits.sign == 0)
       return(1);
     else
       return(-1);
@@ -1278,13 +1304,14 @@ IsInfDouble(double value)
 int
 IsNanDouble(double value)
 {
-  IeeeNan    *ptr = (IeeeNan *)(&value);
-
-  if (ptr->exponent == EPD_EXP_INF &&
-      ptr->sign == 1 &&
-      ptr->quiet_bit == 1 &&
-      ptr->mantissa0 == 0 &&
-      ptr->mantissa1 == 0) {
+  EpType    val;
+  
+  val.value = value;
+  if (val.nan.exponent == EPD_EXP_INF &&
+      val.nan.sign == 1 &&
+      val.nan.quiet_bit == 1 &&
+      val.nan.mantissa0 == 0 &&
+      val.nan.mantissa1 == 0) {
     return(1);
   }
   return(0);
@@ -1305,15 +1332,16 @@ IsNanDouble(double value)
 int
 IsNanOrInfDouble(double value)
 {
-  IeeeNan    *ptr = (IeeeNan *)(&value);
+  EpType    val;
 
-  if (ptr->exponent == EPD_EXP_INF &&
-      ptr->mantissa0 == 0 &&
-      ptr->mantissa1 == 0 &&
-      (ptr->sign == 1 || ptr->quiet_bit == 0)) {
+  val.value = value;
+  if (val.nan.exponent == EPD_EXP_INF &&
+      val.nan.mantissa0 == 0 &&
+      val.nan.mantissa1 == 0 &&
+      (val.nan.sign == 1 || val.nan.quiet_bit == 0)) {
     return(1);
   }
   return(0);
 }
-ABC_NAMESPACE_IMPL_END
 
+ABC_NAMESPACE_IMPL_END

@@ -26,18 +26,44 @@
 
   Author      [Fabio Somenzi]
 
-  Copyright   [This file was created at the University of Colorado at
-  Boulder.  The University of Colorado at Boulder makes no warranty
-  about the suitability of this software for any purpose.  It is
-  presented on an AS IS basis.]
+  Copyright   [Copyright (c) 1995-2004, Regents of the University of Colorado
+
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+  Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+
+  Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+
+  Neither the name of the University of Colorado nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.]
 
 ******************************************************************************/
 
-#include "util_hack.h"
+#include "util.h"
 #include "mtrInt.h"
 
 ABC_NAMESPACE_IMPL_START
-
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -56,7 +82,7 @@ ABC_NAMESPACE_IMPL_START
 /*---------------------------------------------------------------------------*/
 
 #ifndef lint
-static char rcsid[] MTR_UNUSED = "$Id: mtrGroup.c,v 1.1.1.1 2003/02/24 22:24:02 wjiang Exp $";
+static char rcsid[] MTR_UNUSED = "$Id: mtrGroup.c,v 1.18 2009/02/20 02:03:47 fabio Exp $";
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -69,7 +95,7 @@ static char rcsid[] MTR_UNUSED = "$Id: mtrGroup.c,v 1.1.1.1 2003/02/24 22:24:02 
 /* Static function prototypes                                                */
 /*---------------------------------------------------------------------------*/
 
-static int mtrShiftHL ARGS((MtrNode *node, int shift));
+static int mtrShiftHL (MtrNode *node, int shift);
 
 /**AutomaticEnd***************************************************************/
 
@@ -517,7 +543,11 @@ Mtr_PrintGroups(
     assert(root != NULL);
     assert(root->younger == NULL || root->younger->elder == root);
     assert(root->elder == NULL || root->elder->younger == root);
-    if (!silent) (void) printf("(%d",root->low);
+#if SIZEOF_VOID_P == 8
+    if (!silent) (void) printf("(%u",root->low);
+#else
+    if (!silent) (void) printf("(%hu",root->low);
+#endif
     if (MTR_TEST(root,MTR_TERMINAL) || root->child == NULL) {
     if (!silent) (void) printf(",");
     } else {
@@ -530,7 +560,11 @@ Mtr_PrintGroups(
     }
     }
     if (!silent) {
-    (void) printf("%d", root->low + root->size - 1);
+#if SIZEOF_VOID_P == 8
+    (void) printf("%u", root->low + root->size - 1);
+#else
+    (void) printf("%hu", root->low + root->size - 1);
+#endif
     if (root->flags != MTR_DEFAULT) {
         (void) printf("|");
         if (MTR_TEST(root,MTR_FIXED)) (void) printf("F");
@@ -596,12 +630,15 @@ Mtr_ReadGroups(
     if (err == EOF) {
         break;
     } else if (err != 3) {
+        Mtr_FreeTree(root);
         return(NULL);
     } else if (low < 0 || low+size > nleaves || size < 1) {
+        Mtr_FreeTree(root);
         return(NULL);
     } else if (strlen(attrib) > 8 * sizeof(MtrHalfWord)) {
         /* Not enough bits in the flags word to store these many
         ** attributes. */
+        Mtr_FreeTree(root);
         return(NULL);
     }
 
@@ -631,7 +668,10 @@ Mtr_ReadGroups(
     }
     node = Mtr_MakeGroup(root, (MtrHalfWord) low, (MtrHalfWord) size,
                  flags);
-    if (node == NULL) return(NULL);
+    if (node == NULL) {
+        Mtr_FreeTree(root);
+        return(NULL);
+    }
     }
 
     return(root);
@@ -692,4 +732,3 @@ mtrShiftHL(
 } /* end of mtrShiftHL */
 
 ABC_NAMESPACE_IMPL_END
-
