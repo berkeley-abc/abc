@@ -53,8 +53,9 @@ static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, in
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, void * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi )
+Abc_Ntk_t * Abc_NtkDeriveFromBdd( void * dd0, void * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi )
 {
+    DdManager * dd = (DdManager *)dd0;
     Abc_Ntk_t * pNtk; 
     Vec_Ptr_t * vNamesPiFake = NULL;
     Abc_Obj_t * pNode, * pNodePi, * pNodePo;
