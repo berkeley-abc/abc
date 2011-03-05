@@ -280,6 +280,7 @@ void Saig_ManExplorePaths_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int f, int fMax,
 ***********************************************************************/
 Vec_Int_t * Saig_ManProcessCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, int fVerbose )
 {
+    Aig_Obj_t * pObj;
     Vec_Int_t * vRes, * vResInv;
     int i, f, Value;
 //    assert( Aig_ManRegNum(p) > 0 );
@@ -288,6 +289,8 @@ Vec_Int_t * Saig_ManProcessCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCe
     Value = Saig_ManSimDataInit2( p, pCex, vSimInfo );
     assert( Value == SAIG_ONE_NEW );
     // derive implications of constants and primary inputs
+    Saig_ManForEachLo( p, pObj, i )
+        Saig_ManSetAndDriveImplications_rec( p, pObj, 0, pCex->iFrame, vSimInfo );
     for ( f = pCex->iFrame; f >= 0; f-- )
     {
         Saig_ManSetAndDriveImplications_rec( p, Aig_ManConst1(p), f, pCex->iFrame, vSimInfo );
