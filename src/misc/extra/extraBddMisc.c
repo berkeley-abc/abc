@@ -1039,6 +1039,63 @@ DdNode * Extra_bddChangePolarity(
 } /* end of Extra_bddChangePolarity */
 
 
+/**Function*************************************************************
+
+  Synopsis    [Checks if the given variable belongs to the cube.]
+
+  Description [Return -1 if the var does not appear in the cube.
+  Otherwise, returns polarity (0 or 1) of the var in the cube.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Extra_bddVarIsInCube( DdNode * bCube, int iVar )
+{
+    DdNode * bCube0, * bCube1;
+    while ( Cudd_Regular(bCube)->index != CUDD_CONST_INDEX )
+    {
+        bCube0 = Cudd_NotCond( cuddE(Cudd_Regular(bCube)), Cudd_IsComplement(bCube) );
+        bCube1 = Cudd_NotCond( cuddT(Cudd_Regular(bCube)), Cudd_IsComplement(bCube) );
+        // make sure it is a cube
+        assert( (Cudd_IsComplement(bCube0) && Cudd_Regular(bCube0)->index == CUDD_CONST_INDEX) || // bCube0 == 0
+                (Cudd_IsComplement(bCube1) && Cudd_Regular(bCube1)->index == CUDD_CONST_INDEX) ); // bCube1 == 0
+        // quit if it is the last one
+        if ( Cudd_Regular(bCube)->index == iVar )
+            return (int)(Cudd_IsComplement(bCube0) && Cudd_Regular(bCube0)->index == CUDD_CONST_INDEX);
+        // get the next cube
+        if ( (Cudd_IsComplement(bCube0) && Cudd_Regular(bCube0)->index == CUDD_CONST_INDEX) )
+            bCube = bCube1;
+        else
+            bCube = bCube0;
+    }
+    return -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the AND of two BDD with different orders.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+DdNode * Extra_bddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG )
+{
+    DdNode * bRes;
+    do
+    {
+        ddF->reordered = 0;
+        bRes = extraBddAndPerm( ddF, bF, ddG, bG );
+    }
+    while ( ddF->reordered == 1 );
+    return ( bRes );
+}
+
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
 /*---------------------------------------------------------------------------*/
@@ -1803,6 +1860,148 @@ DdNode * extraBddChangePolarity(
         return bRes;
     }
 } /* end of extraBddChangePolarity */
+
+
+
+static int Counter = 0;
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the AND of two BDD with different orders.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+DdNode * extraBddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG )
+{
+    DdNode * bF0, * bF1, * bG0, * bG1, * bRes0, * bRes1, * bRes, * bVar;
+    int LevF, LevG, Lev;
+
+    // if F == 0, return 0 
+    if ( bF == Cudd_Not(ddF->one) )
+        return Cudd_Not(ddF->one);
+    // if G == 0, return 0 
+    if ( bG == Cudd_Not(ddG->one) )
+        return Cudd_Not(ddF->one);
+    // if G == 1, return F
+    if ( bG == ddG->one )
+        return bF;
+    // cannot use F == 1, because the var order of G has to be changed
+
+    // check cache
+    if ( (Cudd_Regular(bF)->ref != 1 || Cudd_Regular(bG)->ref != 1) && 
+         (bRes = cuddCacheLookup2(ddF, (DD_CTFP)extraBddAndPerm, bF, bG)) )
+        return bRes;
+    Counter++;
+
+    // find the topmost variable in F and G using var order of F
+    LevF = cuddI( ddF, Cudd_Regular(bF)->index );
+    LevG = cuddI( ddF, Cudd_Regular(bG)->index );
+    Lev  = ABC_MIN( LevF, LevG );
+    assert( Lev < ddF->size );
+    bVar = ddF->vars[ddF->invperm[Lev]];
+
+    // cofactor
+    bF0 = (Lev < LevF) ? bF : Cudd_NotCond( cuddE(Cudd_Regular(bF)), Cudd_IsComplement(bF) );
+    bF1 = (Lev < LevF) ? bF : Cudd_NotCond( cuddT(Cudd_Regular(bF)), Cudd_IsComplement(bF) );
+    bG0 = (Lev < LevG) ? bG : Cudd_NotCond( cuddE(Cudd_Regular(bG)), Cudd_IsComplement(bG) );
+    bG1 = (Lev < LevG) ? bG : Cudd_NotCond( cuddT(Cudd_Regular(bG)), Cudd_IsComplement(bG) );
+
+    // call for cofactors
+    bRes0 = extraBddAndPerm( ddF, bF0, ddG, bG0 );
+    if ( bRes0 == NULL ) 
+        return NULL;
+    cuddRef( bRes0 );
+    // call for cofactors
+    bRes1 = extraBddAndPerm( ddF, bF1, ddG, bG1 );
+    if ( bRes1 == NULL ) 
+    {
+        Cudd_IterDerefBdd( ddF, bRes0 );
+        return NULL;
+    }
+    cuddRef( bRes1 );
+
+    // compose the result
+    bRes = cuddBddIteRecur( ddF, bVar, bRes1, bRes0 );
+    if ( bRes == NULL )
+    {
+        Cudd_IterDerefBdd( ddF, bRes0 );
+        Cudd_IterDerefBdd( ddF, bRes1 );
+    }
+    cuddRef( bRes );
+    Cudd_IterDerefBdd( ddF, bRes0 );
+    Cudd_IterDerefBdd( ddF, bRes1 );
+
+    // cache the result
+    if ( Cudd_Regular(bF)->ref != 1 || Cudd_Regular(bG)->ref != 1 )
+        cuddCacheInsert2( ddF, (DD_CTFP)extraBddAndPerm, bF, bG, bRes );
+    cuddDeref( bRes );
+    return bRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Testbench.]
+
+  Description [This procedure takes BDD manager ddF and two BDDs
+  in this manager (bF and bG).  It creates a new manager ddG,
+  transfers bG into it and then reorders it, resulting in bG2.
+  Then it tries to compute the product of bF and bG2 in ddF.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_TestAndPerm( DdManager * ddF, DdNode * bF, DdNode * bG )
+{
+    DdManager * ddG;
+    DdNode * bG2, * bRes1, * bRes2;
+    int clk;
+    // disable variable ordering in ddF
+    Cudd_AutodynDisable( ddF );
+
+    // create new BDD manager
+    ddG = Cudd_Init( ddF->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    // transfer BDD into it
+    Cudd_ShuffleHeap( ddG, ddF->invperm );
+    bG2 = Extra_TransferLevelByLevel( ddF, ddG, bG );   Cudd_Ref( bG2 );
+    // reorder the new manager
+    Cudd_ReduceHeap( ddG, CUDD_REORDER_SYMM_SIFT, 1 );
+
+    // compute the result
+clk = clock();
+    bRes1 = Cudd_bddAnd( ddF, bF, bG );                 Cudd_Ref( bRes1 );
+Abc_PrintTime( 1, "Runtime of Cudd_bddAnd  ", clock() - clk );
+
+    // compute the result
+Counter = 0;
+clk = clock();
+    bRes2 = Extra_bddAndPerm( ddF, bF, ddG, bG2 );      Cudd_Ref( bRes2 );
+Abc_PrintTime( 1, "Runtime of new procedure", clock() - clk );
+printf( "Recursive calls = %d\n", Counter );
+printf( "|F| =%6d  |G| =%6d  |H| =%6d  |F|*|G| =%9d  ", 
+       Cudd_DagSize(bF), Cudd_DagSize(bG), Cudd_DagSize(bRes2), 
+       Cudd_DagSize(bF) * Cudd_DagSize(bG) );
+
+    if ( bRes1 == bRes2 )
+        printf( "Result verified.\n\n" );
+    else
+        printf( "Result is incorrect.\n\n" );
+
+    Cudd_RecursiveDeref( ddF, bRes1 );
+    Cudd_RecursiveDeref( ddF, bRes2 );
+    // quit the new manager
+    Cudd_RecursiveDeref( ddG, bG2 );
+    Extra_StopManager( ddG );
+
+    // re-enable variable ordering in ddF
+    Cudd_AutodynEnable( ddF, CUDD_REORDER_SYMM_SIFT );
+}
 
 
 ////////////////////////////////////////////////////////////////////////

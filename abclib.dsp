@@ -3515,6 +3515,10 @@ SOURCE=.\src\aig\saig\saigSimExt.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigSimExt2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigSimFast.c
 # End Source File
 # Begin Source File
