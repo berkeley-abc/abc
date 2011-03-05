@@ -54,6 +54,10 @@ static inline int Saig_ManSimInfo2Not( int Value )
         return SAIG_ONE_NEW;
     if ( Value == SAIG_ONE_NEW )
         return SAIG_ZER_NEW;
+    if ( Value == SAIG_ZER_OLD )
+        return SAIG_ONE_OLD;
+    if ( Value == SAIG_ONE_OLD )
+        return SAIG_ZER_OLD;
     assert( 0 );
     return 0;
 }
@@ -157,6 +161,59 @@ int Saig_ManSimDataInit2( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo 
 
 /**Function*************************************************************
 
+  Synopsis    [Drive implications of the given node towards primary outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManSetAndDriveImplications_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int f, int fMax, Vec_Ptr_t * vSimInfo )
+{
+    Aig_Obj_t * pFanout;
+    int k, iFanout, Value0, Value1;
+    int Value = Saig_ManSimInfo2Get( vSimInfo, pObj, f );
+    assert( !Saig_ManSimInfo2IsOld( Value ) );
+    Saig_ManSimInfo2Set( vSimInfo, pObj, f, Saig_ManSimInfo2SetOld(Value) );
+    if ( (Aig_ObjIsPo(pObj) && f == fMax) || Saig_ObjIsPo(p, pObj) )
+        return;
+    if ( Saig_ObjIsLi( p, pObj ) )
+    {
+        assert( f < fMax );
+        pFanout = Saig_ObjLiToLo(p, pObj);
+        Value = Saig_ManSimInfo2Get( vSimInfo, pFanout, f+1 );
+        if ( !Saig_ManSimInfo2IsOld( Value ) )
+            Saig_ManSetAndDriveImplications_rec( p, pFanout, f+1, fMax, vSimInfo );
+        return;
+    }
+    assert( Aig_ObjIsPi(pObj) || Aig_ObjIsNode(pObj) || Aig_ObjIsConst1(pObj) );
+    Aig_ObjForEachFanout( p, pObj, pFanout, iFanout, k )
+    {
+        Value = Saig_ManSimInfo2Get( vSimInfo, pFanout, f );
+        if ( Saig_ManSimInfo2IsOld( Value ) )
+            continue;
+        if ( Aig_ObjIsPo(pFanout) )
+        {
+            Saig_ManSetAndDriveImplications_rec( p, pFanout, f, fMax, vSimInfo );
+            continue;
+        }
+        assert( Aig_ObjIsNode(pFanout) );
+        Value0 = Saig_ManSimInfo2Get( vSimInfo, Aig_ObjFanin0(pFanout), f );
+        Value1 = Saig_ManSimInfo2Get( vSimInfo, Aig_ObjFanin1(pFanout), f );
+        if ( Aig_ObjFaninC0(pFanout) )
+            Value0 = Saig_ManSimInfo2Not( Value0 );
+        if ( Aig_ObjFaninC1(pFanout) )
+            Value1 = Saig_ManSimInfo2Not( Value1 );
+        if ( Value0 == SAIG_ZER_OLD || Value1 == SAIG_ZER_OLD || 
+            (Value0 == SAIG_ONE_OLD && Value1 == SAIG_ONE_OLD) )
+            Saig_ManSetAndDriveImplications_rec( p, pFanout, f, fMax, vSimInfo );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs recursive sensetization analysis.]
 
   Description []
@@ -166,32 +223,47 @@ int Saig_ManSimDataInit2( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo 
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManExplorePaths_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int f, Vec_Ptr_t * vSimInfo )
+void Saig_ManExplorePaths_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int f, int fMax, Vec_Ptr_t * vSimInfo )
 {
     int Value = Saig_ManSimInfo2Get( vSimInfo, pObj, f );
     if ( Saig_ManSimInfo2IsOld( Value ) )
         return;
-    Saig_ManSimInfo2Set( vSimInfo, pObj, f, Saig_ManSimInfo2SetOld(Value) );
-    if ( (Aig_ObjIsPi(pObj) && f == 0) || Saig_ObjIsPi(p, pObj) || Aig_ObjIsConst1(pObj) )
+    Saig_ManSetAndDriveImplications_rec( p, pObj, f, fMax, vSimInfo );
+    assert( !Aig_ObjIsConst1(pObj) );
+    if ( Saig_ObjIsLo(p, pObj) && f == 0 )
         return;
+    if ( Saig_ObjIsPi(p, pObj) )
+    {
+        // propagate implications of this assignment
+        int i, iPiNum = Aig_ObjPioNum(pObj);
+        for ( i = fMax; i >= 0; i-- )
+            if ( i != f )
+                Saig_ManSetAndDriveImplications_rec( p, Aig_ManPi(p, iPiNum), i, fMax, vSimInfo );
+        return;
+    }
     if ( Saig_ObjIsLo( p, pObj ) )
     {
         assert( f > 0 );
-        Saig_ManExplorePaths_rec( p, Saig_ObjLoToLi(p, pObj), f-1, vSimInfo );
+        Saig_ManExplorePaths_rec( p, Saig_ObjLoToLi(p, pObj), f-1, fMax, vSimInfo );
         return;
     }
     if ( Aig_ObjIsPo(pObj) )
     {
-        Saig_ManExplorePaths_rec( p, Aig_ObjFanin0(pObj), f, vSimInfo );
+        Saig_ManExplorePaths_rec( p, Aig_ObjFanin0(pObj), f, fMax, vSimInfo );
         return;
     }
     assert( Aig_ObjIsNode(pObj) );
     if ( Value == SAIG_ZER_OLD )
-        Saig_ManExplorePaths_rec( p, Aig_ObjFanin0(pObj), f, vSimInfo );
+    {
+//        if ( (Aig_ObjId(pObj) & 1) == 0 )
+            Saig_ManExplorePaths_rec( p, Aig_ObjFanin0(pObj), f, fMax, vSimInfo );
+//        else
+//            Saig_ManExplorePaths_rec( p, Aig_ObjFanin1(pObj), f, fMax, vSimInfo );
+    }
     else
     {
-        Saig_ManExplorePaths_rec( p, Aig_ObjFanin0(pObj), f, vSimInfo );
-        Saig_ManExplorePaths_rec( p, Aig_ObjFanin1(pObj), f, vSimInfo );
+        Saig_ManExplorePaths_rec( p, Aig_ObjFanin0(pObj), f, fMax, vSimInfo );
+        Saig_ManExplorePaths_rec( p, Aig_ObjFanin1(pObj), f, fMax, vSimInfo );
     }
 }
 
@@ -215,8 +287,15 @@ Vec_Int_t * Saig_ManProcessCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCe
     // start simulation data
     Value = Saig_ManSimDataInit2( p, pCex, vSimInfo );
     assert( Value == SAIG_ONE_NEW );
+    // derive implications of constants and primary inputs
+    for ( f = pCex->iFrame; f >= 0; f-- )
+    {
+        Saig_ManSetAndDriveImplications_rec( p, Aig_ManConst1(p), f, pCex->iFrame, vSimInfo );
+        for ( i = 0; i < iFirstFlopPi; i++ )
+            Saig_ManSetAndDriveImplications_rec( p, Aig_ManPi(p, i), f, pCex->iFrame, vSimInfo );
+    }
     // recursively compute justification
-    Saig_ManExplorePaths_rec( p, Aig_ManPo(p, pCex->iPo), pCex->iFrame, vSimInfo );
+    Saig_ManExplorePaths_rec( p, Aig_ManPo(p, pCex->iPo), pCex->iFrame, pCex->iFrame, vSimInfo );
     // select the result
     vRes = Vec_IntAlloc( 1000 );
     vResInv = Vec_IntAlloc( 1000 );
