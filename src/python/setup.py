@@ -7,6 +7,7 @@ from distutils import util
 include_dirs = [
     '../aig/hop',
     '../aig/gia',
+    '../aig/mem',
     '../base/abc',
     '../base/cmd',
     '../base/io',
