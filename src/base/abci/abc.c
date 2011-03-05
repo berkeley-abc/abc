@@ -19009,7 +19009,7 @@ int Abc_CommandEnlarge( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames < 1 ) 
                 goto usage;
             break;
         case 'v':
@@ -19048,11 +19048,11 @@ int Abc_CommandEnlarge( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 usage:
-    Abc_Print( -2, "usage: enlarge [-F num] [-vh]\n" );
-    Abc_Print( -2, "\t         performs structural K-step target enlargement\n" );
-    Abc_Print( -2, "\t-F num : the number of timeframes for enlargement [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: enlarge [-F <num>] [-vh]\n" );
+    Abc_Print( -2, "\t           performs structural K-step target enlargement\n" );
+    Abc_Print( -2, "\t-F <num> : the number of timeframes to unroll (<num> > 0) [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
