@@ -29,14 +29,15 @@
 #include "aig.h"
 #include "giaAbs.h"
 
+ABC_NAMESPACE_HEADER_START
+
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-
-
-ABC_NAMESPACE_HEADER_START
-
+#define SAIG_ZER 1
+#define SAIG_ONE 2
+#define SAIG_UND 3
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -181,7 +182,9 @@ extern int               Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fFo
 extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
 /*=== saigSimExt.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, int fVerbose );
-extern Vec_Int_t *       Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fVerbose );
+extern Vec_Int_t *       Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fTryFour, int fVerbose );
+/*=== saigSimExt.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fVerbose );
 /*=== saigSimMv.c ==========================================================*/
 extern int               Saig_MvManSimulate( Aig_Man_t * pAig, int fVerbose );
 /*=== saigStrSim.c ==========================================================*/

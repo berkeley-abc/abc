@@ -28,10 +28,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define SAIG_ZER 1
-#define SAIG_ONE 2
-#define SAIG_UND 3
-
 static inline int Saig_ManSimInfoNot( int Value )
 {
     if ( Value == SAIG_ZER )
@@ -521,7 +517,7 @@ Vec_Int_t * Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirstFlopPi, Abc_C
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex, int fVerbose )
+Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex, int fTryFour, int fVerbose )
 {
     Vec_Int_t * vRes;
     Vec_Ptr_t * vSimInfo;
@@ -537,8 +533,10 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstFlopPi, A
     Vec_PtrCleanSimInfo( vSimInfo, 0, Aig_BitWordNum(2*(pCex->iFrame+1)) );
 
 clk = clock();
-//    vRes = Saig_ManExtendCounterExample0( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
-    vRes = Saig_ManExtendCounterExample( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
+    if ( fTryFour )
+        vRes = Saig_ManExtendCounterExample( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
+    else
+        vRes = Saig_ManExtendCounterExample0( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
     if ( fVerbose )
     {
         printf( "Total new PIs = %3d. Non-removable PIs = %3d.  ", Saig_ManPiNum(p)-iFirstFlopPi, Vec_IntSize(vRes) );

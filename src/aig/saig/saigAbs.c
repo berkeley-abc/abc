@@ -225,7 +225,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
         return NULL;
     if ( pnUseStart )
         *pnUseStart = pAbs->pSeqModel->iFrame;
-    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pAbs->pSeqModel, fVerbose );
+    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pAbs->pSeqModel, 1, fVerbose );
     if ( vFlopsNew == NULL )
         return NULL;
     if ( Vec_IntSize(vFlopsNew) == 0 )
@@ -267,13 +267,16 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fVerbose )
+int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose )
 {
     Aig_Man_t * pAbs;
     Vec_Int_t * vFlopsNew;
-    int i, Entry;
+    int i, Entry, clk = clock();
     pAbs = Saig_ManDeriveAbstraction( p, vFlops );
-    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );
+    if ( fSensePath )
+        vFlopsNew = Saig_ManExtendCounterExampleTest2( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );
+    else
+        vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fTryFour, fVerbose );
     if ( vFlopsNew == NULL )
     {
         Aig_ManStop( pAbs );
@@ -289,7 +292,10 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, 
         return 0;
     }
     if ( fVerbose )
-        printf( "Adding %d registers to the abstraction.\n", Vec_IntSize(vFlopsNew) );
+    {
+        printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vFlopsNew) );
+        Abc_PrintTime( 0, "Time", clock() - clk );
+    }
     // vFlopsNew contains PI number that should be kept in pAbs
     // add to the abstraction
     Vec_IntForEachEntry( vFlopsNew, Entry, i )

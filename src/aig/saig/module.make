@@ -18,6 +18,7 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigRetStep.c \
     src/aig/saig/saigScl.c \
     src/aig/saig/saigSimExt.c \
+    src/aig/saig/saigSimExt2.c \
     src/aig/saig/saigSimFast.c \
     src/aig/saig/saigSimMv.c \
     src/aig/saig/saigSimSeq.c \

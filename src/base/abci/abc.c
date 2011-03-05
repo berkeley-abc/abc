@@ -27467,13 +27467,23 @@ usage:
 int Abc_CommandAbc9AbsRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
-    int c, fVerbose = 0;
-    extern int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fVerbose );
+    int c;
+    int fTryFour   = 1;
+    int fSensePath = 0;
+    int fVerbose   = 0;
+
+    extern int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "tsvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 't':
+            fTryFour ^= 1;
+            break;
+        case 's':
+            fSensePath ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -27498,13 +27508,15 @@ int Abc_CommandAbc9AbsRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9AbsRefine(): There is no counter-example.\n" );
         return 1;
     } 
-    pAbc->Status = Gia_ManCexAbstractionRefine( pAbc->pGia, pAbc->pCex, fVerbose );
+    pAbc->Status = Gia_ManCexAbstractionRefine( pAbc->pGia, pAbc->pCex, fTryFour, fSensePath, fVerbose );
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &abs_refine [-vh]\n" );
+    Abc_Print( -2, "usage: &abs_refine [-tsvh]\n" );
     Abc_Print( -2, "\t        refines the pre-computed flop map using the counter-example\n" );
+    Abc_Print( -2, "\t-t    : toggle trying four abstractions instead of one [default = %s]\n", fTryFour? "yes": "no" );
+    Abc_Print( -2, "\t-s    : toggle using the path sensitization algorithm [default = %s]\n", fSensePath? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;

@@ -36,7 +36,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern Vec_Int_t * Saig_ManProofAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars );
 extern Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars );
-extern int         Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fVerbose );
+extern int         Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -253,7 +253,7 @@ Gia_Man_t * Gia_ManCexAbstractionDerive( Gia_Man_t * pGia )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fVerbose )
+int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose )
 {
     Aig_Man_t * pNew;
     Vec_Int_t * vFlops;
@@ -264,7 +264,7 @@ int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fVerbos
     }
     pNew = Gia_ManToAig( pGia, 0 );
     vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
-    if ( !Saig_ManCexRefineStep( pNew, vFlops, pCex, fVerbose ) )
+    if ( !Saig_ManCexRefineStep( pNew, vFlops, pCex, fTryFour, fSensePath, fVerbose ) )
     {
         pGia->pCexSeq = pNew->pSeqModel; pNew->pSeqModel = NULL;
         Vec_IntFree( vFlops );
