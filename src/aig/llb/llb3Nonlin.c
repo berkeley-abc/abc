@@ -529,6 +529,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         clk3 = clock();
         Cudd_RecursiveDeref( p->ddG, p->ddG->bFunc2 );
         p->ddG->bFunc2 = Extra_TransferPermute( p->dd, p->ddG, bNext, Vec_IntArray(p->vNs2Glo) );    
+//        p->ddG->bFunc2 = Extra_bddAndPermute( p->ddG, Cudd_Not(p->ddG->bFunc), p->dd, bNext, Vec_IntArray(p->vNs2Glo) );    
         if ( p->ddG->bFunc2 == NULL )
         {
             if ( !p->pPars->fSilent )
@@ -552,6 +553,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         p->ddLocGrbs += Cudd_ReadGarbageCollections(p->dd);
         Llb_NonlinImageQuit();
         p->dd = Llb_NonlinImageStart( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->pOrderL, 0 );
+        //Extra_TestAndPerm( p->ddG, Cudd_Not(p->ddG->bFunc), p->ddG->bFunc2 );    
 
         // derive new states
         clk3 = clock();
@@ -567,9 +569,12 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         }
         Cudd_Ref( p->ddG->bFunc2 );
         Cudd_RecursiveDeref( p->ddG, bTemp );
+        p->timeGloba += clock() - clk3;
+
         if ( Cudd_IsConstant(p->ddG->bFunc2) )
             break;
         // add to the reached set
+        clk3 = clock();
         p->ddG->bFunc = Cudd_bddOr( p->ddG, bTemp = p->ddG->bFunc, p->ddG->bFunc2 );                 
         if ( p->ddG->bFunc == NULL )
         {

@@ -55,6 +55,8 @@ static DdNode * extraTransferPermuteRecur( DdManager * ddS, DdManager * ddD, DdN
 static DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute );
 static DdNode * cuddBddPermuteRecur ARGS( ( DdManager * manager, DdHashTable * table, DdNode * node, int *permut ) );
 
+static DdNode * extraBddAndPermute( DdHashTable * table, DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG, int * pPermute );
+
 // file "cuddUtils.c"
 static void ddSupportStep(DdNode *f, int *support);
 static void ddClearFlag(DdNode *f);
@@ -1072,27 +1074,39 @@ int Extra_bddVarIsInCube( DdNode * bCube, int iVar )
     }
     return -1;
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Computes the AND of two BDD with different orders.]
 
-  Description []
+  Description [Derives the result of Boolean AND of bF and bG in ddF.
+  The array pPermute gives the mapping of variables of ddG into that of ddF.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Extra_bddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG )
+DdNode * Extra_bddAndPermute( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG, int * pPermute )
 {
+    DdHashTable * table;
     DdNode * bRes;
     do
     {
         ddF->reordered = 0;
-        bRes = extraBddAndPerm( ddF, bF, ddG, bG );
+        table = cuddHashTableInit( ddF, 2, 256 );
+        if (table == NULL) return NULL;
+        bRes = extraBddAndPermute( table, ddF, bF, ddG, bG, pPermute );  
+        if ( bRes ) cuddRef( bRes );
+        cuddHashTableQuit( table );
+        if ( bRes ) cuddDeref( bRes );
+//if ( ddF->reordered == 1 )
+//printf( "Reordering happened\n" );
     }
     while ( ddF->reordered == 1 );
+//printf( "|F| =%6d  |G| =%6d  |H| =%6d  |F|*|G| =%9d\n", 
+//       Cudd_DagSize(bF), Cudd_DagSize(bG), Cudd_DagSize(bRes), 
+//       Cudd_DagSize(bF) * Cudd_DagSize(bG) );
     return ( bRes );
 }
 
@@ -1876,7 +1890,7 @@ static int Counter = 0;
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * extraBddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG )
+DdNode * extraBddAndPermute( DdHashTable * table, DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG, int * pPermute )
 {
     DdNode * bF0, * bF1, * bG0, * bG1, * bRes0, * bRes1, * bRes, * bVar;
     int LevF, LevG, Lev;
@@ -1893,14 +1907,19 @@ DdNode * extraBddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode 
     // cannot use F == 1, because the var order of G has to be changed
 
     // check cache
-    if ( (Cudd_Regular(bF)->ref != 1 || Cudd_Regular(bG)->ref != 1) && 
-         (bRes = cuddCacheLookup2(ddF, (DD_CTFP)extraBddAndPerm, bF, bG)) )
+    if ( //(Cudd_Regular(bF)->ref != 1 || Cudd_Regular(bG)->ref != 1) && 
+         (bRes = cuddHashTableLookup2(table, bF, bG)) )
         return bRes;
     Counter++;
 
+    if ( ddF->TimeStop && ddF->TimeStop < clock() )
+        return NULL;
+    if ( ddG->TimeStop && ddG->TimeStop < clock() )
+        return NULL;
+
     // find the topmost variable in F and G using var order of F
     LevF = cuddI( ddF, Cudd_Regular(bF)->index );
-    LevG = cuddI( ddF, Cudd_Regular(bG)->index );
+    LevG = cuddI( ddF, pPermute ? pPermute[Cudd_Regular(bG)->index] : Cudd_Regular(bG)->index );
     Lev  = ABC_MIN( LevF, LevG );
     assert( Lev < ddF->size );
     bVar = ddF->vars[ddF->invperm[Lev]];
@@ -1912,12 +1931,12 @@ DdNode * extraBddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode 
     bG1 = (Lev < LevG) ? bG : Cudd_NotCond( cuddT(Cudd_Regular(bG)), Cudd_IsComplement(bG) );
 
     // call for cofactors
-    bRes0 = extraBddAndPerm( ddF, bF0, ddG, bG0 );
+    bRes0 = extraBddAndPermute( table, ddF, bF0, ddG, bG0, pPermute );
     if ( bRes0 == NULL ) 
         return NULL;
     cuddRef( bRes0 );
     // call for cofactors
-    bRes1 = extraBddAndPerm( ddF, bF1, ddG, bG1 );
+    bRes1 = extraBddAndPermute( table, ddF, bF1, ddG, bG1, pPermute );
     if ( bRes1 == NULL ) 
     {
         Cudd_IterDerefBdd( ddF, bRes0 );
@@ -1931,17 +1950,22 @@ DdNode * extraBddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode 
     {
         Cudd_IterDerefBdd( ddF, bRes0 );
         Cudd_IterDerefBdd( ddF, bRes1 );
+        return NULL;
     }
     cuddRef( bRes );
     Cudd_IterDerefBdd( ddF, bRes0 );
     Cudd_IterDerefBdd( ddF, bRes1 );
 
     // cache the result
-    if ( Cudd_Regular(bF)->ref != 1 || Cudd_Regular(bG)->ref != 1 )
-        cuddCacheInsert2( ddF, (DD_CTFP)extraBddAndPerm, bF, bG, bRes );
+//    if ( Cudd_Regular(bF)->ref != 1 || Cudd_Regular(bG)->ref != 1 )
+    {
+        ptrint fanout = (ptrint)Cudd_Regular(bF)->ref * Cudd_Regular(bG)->ref;
+        cuddSatDec(fanout);
+        cuddHashTableInsert2( table, bF, bG, bRes, fanout );
+    }
     cuddDeref( bRes );
     return bRes;
-}
+} 
 
 /**Function*************************************************************
 
@@ -1981,7 +2005,7 @@ Abc_PrintTime( 1, "Runtime of Cudd_bddAnd  ", clock() - clk );
     // compute the result
 Counter = 0;
 clk = clock();
-    bRes2 = Extra_bddAndPerm( ddF, bF, ddG, bG2 );      Cudd_Ref( bRes2 );
+    bRes2 = Extra_bddAndPermute( ddF, bF, ddG, bG2, NULL );      Cudd_Ref( bRes2 );
 Abc_PrintTime( 1, "Runtime of new procedure", clock() - clk );
 printf( "Recursive calls = %d\n", Counter );
 printf( "|F| =%6d  |G| =%6d  |H| =%6d  |F|*|G| =%9d  ", 

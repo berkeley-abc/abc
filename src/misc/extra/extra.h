@@ -199,8 +199,7 @@ extern DdNode *     Extra_bddComputeCube( DdManager * dd, DdNode ** bXVars, int 
 extern DdNode *     Extra_bddChangePolarity( DdManager * dd, DdNode * bFunc, DdNode * bVars );
 extern DdNode *     extraBddChangePolarity( DdManager * dd, DdNode * bFunc, DdNode * bVars );
 extern int          Extra_bddVarIsInCube( DdNode * bCube, int iVar );
-extern DdNode *     Extra_bddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG );
-extern DdNode *     extraBddAndPerm( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG );
+extern DdNode *     Extra_bddAndPermute( DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG, int * pPermute );
 
 #ifndef ABC_PRB
 #define ABC_PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")
