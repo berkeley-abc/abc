@@ -307,6 +307,10 @@ SOURCE=.\src\base\abci\abcMerge.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcMffc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcMini.c
 # End Source File
 # Begin Source File
@@ -3560,6 +3564,10 @@ SOURCE=.\src\aig\saig\saigWnd.c
 # Begin Source File
 
 SOURCE=.\src\aig\int\int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\int\intCheck.c
 # End Source File
 # Begin Source File
 

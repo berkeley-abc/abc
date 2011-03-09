@@ -200,7 +200,7 @@ void reoProfileWidthStart( reo_man * p )
             p->pPlanes[v].statsWidth = p->pPlanes[v-1].statsWidth + pWidthStart[v] - pWidthStop[v];
         p->pPlanes[v].statsCost = p->pPlanes[v].statsWidth;
         p->nWidthCur += p->pPlanes[v].statsWidth;
-//        printf( "Level %2d: Width = %5d. Correct = %d.\n", v, Temp, p->pPlanes[v].statsWidth );
+        printf( "Level %2d: Width = %5d.\n", v, p->pPlanes[v].statsWidth );
     }
     p->nWidthBeg = p->nWidthCur;
     ABC_FREE( pWidthStart );
@@ -328,13 +328,13 @@ void reoProfileWidthPrint( reo_man * p )
     TotalWidth = 0;
     for ( i = 0; i <= p->nSupp; i++ )
     {
-//        printf( "Level = %2d. Width = %3d.\n", i, p->pProfile[i] );
+        printf( "Level = %2d. Width = %3d.\n", i, p->pPlanes[i].statsWidth );
         if ( WidthMax < p->pPlanes[i].statsWidth )
              WidthMax = p->pPlanes[i].statsWidth;
         TotalWidth += p->pPlanes[i].statsWidth;
     }
     assert( p->nWidthCur == TotalWidth );
-    printf( "WIDTH:  " );
+    printf( "WIDTH: " );
     printf( "Maximum = %5d.  ", WidthMax );
     printf( "Total = %7d.  ", p->nWidthCur );
     printf( "Average = %6.2f.\n", TotalWidth / (float)p->nSupp );

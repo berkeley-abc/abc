@@ -126,9 +126,9 @@ DdNode * Abc_NtkBddToAdd( DdManager * dd, DdNode * bFunc, int nOuts )
     stmm_table * tTable;
     stmm_generator * gen;
     tTable = stmm_init_table( st_ptrcmp, st_ptrhash );
-    aFunc = Abc_NtkBddToAdd_rec( dd, Cudd_Regular(bFunc), nOuts, tTable, Cudd_IsComplement(bFunc) );  Cudd_Ref(aFunc);
+    aFunc = Abc_NtkBddToAdd_rec( dd, Cudd_Regular(bFunc), nOuts, tTable, Cudd_IsComplement(bFunc) );  
     stmm_foreach_item( tTable, gen, (char **)&bTemp, (char **)&aTemp )
-        Cudd_RecursiveDeref( dd, aFunc );
+        Cudd_RecursiveDeref( dd, aTemp );
     stmm_free_table( tTable );
     Cudd_Deref( aFunc );
     return aFunc;
@@ -189,10 +189,12 @@ void Abc_NtkBddDecTry( reo_man * pReo, DdManager * dd, DdNode ** pFuncs, int nOu
 //Abc_NodeShowBddOne( dd, aFunc );
     // perform reordering for BDD width
     aFuncNew = Extra_Reorder( pReo, dd, aFunc, NULL );                  Cudd_Ref( aFuncNew );
+printf( "Before = %d.  After = %d.\n", Cudd_DagSize(aFunc), Cudd_DagSize(aFuncNew) );
+//Abc_NodeShowBddOne( dd, aFuncNew );
     Cudd_RecursiveDeref( dd, aFuncNew );
     Cudd_RecursiveDeref( dd, aFunc );
     // print the result
-    reoProfileWidthPrint( pReo );
+//    reoProfileWidthPrint( pReo );
 }
 
 /**Function*************************************************************
@@ -268,6 +270,8 @@ void Abc_NtkBddDec( Abc_Ntk_t * pNtk, int fVerbose )
 
     pReo = Extra_ReorderInit( Abc_NtkCiNum(pNtk), 1000 );
     Extra_ReorderSetMinimizationType( pReo, REO_MINIMIZE_WIDTH );
+//    Extra_ReorderSetVerification( pReo, 1 );
+    Extra_ReorderSetVerbosity( pReo, 1 );
 
     Abc_NtkBddDecInt( pReo, dd, pFuncs, Abc_NtkCoNum(pNtk) );
     Extra_ReorderQuit( pReo );

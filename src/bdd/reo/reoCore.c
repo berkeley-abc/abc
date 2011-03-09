@@ -122,7 +122,7 @@ void reoReorderArray( reo_man * p, DdManager * dd, DdNode * Funcs[], DdNode * Fu
 
     if ( p->fVerbose )
     {
-        printf( "INITIAL: " );
+        printf( "INITIAL:\n" );
         if ( p->fMinWidth )
             reoProfileWidthPrint(p);
         else if ( p->fMinApl )
@@ -141,7 +141,7 @@ void reoReorderArray( reo_man * p, DdManager * dd, DdNode * Funcs[], DdNode * Fu
         // print statistics after each iteration
         if ( p->fVerbose )
         {
-            printf( "ITER #%d: ", i+1 );
+            printf( "ITER #%d:\n", i+1 );
             if ( p->fMinWidth )
                 reoProfileWidthPrint(p);
             else if ( p->fMinApl )
