@@ -79,6 +79,9 @@ struct Inter_Man_t_
     int              timeTotal;
 };
 
+// containment checking manager
+typedef struct Inter_Check_t_ Inter_Check_t;
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -87,38 +90,43 @@ struct Inter_Man_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== intContain.c ==========================================================*/
-extern int           Inter_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld );
-extern int           Inter_ManCheckEquivalence( Aig_Man_t * pNew, Aig_Man_t * pOld );
-extern int           Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, int nSteps, int fBackward );
+/*=== intCheck.c ============================================================*/
+extern Inter_Check_t * Inter_CheckStart( Aig_Man_t * pTrans, int nFramesK );
+extern void            Inter_CheckStop( Inter_Check_t * p );
+extern int             Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnf );
 
-/*=== intCtrex.c ==========================================================*/
-extern void *        Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose );
+/*=== intContain.c ============================================================*/
+extern int             Inter_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld );
+extern int             Inter_ManCheckEquivalence( Aig_Man_t * pNew, Aig_Man_t * pOld );
+extern int             Inter_ManCheckInductiveContainment( Aig_Man_t * pTrans, Aig_Man_t * pInter, int nSteps, int fBackward );
 
-/*=== intDup.c ==========================================================*/
-extern Aig_Man_t *   Inter_ManStartInitState( int nRegs );
-extern Aig_Man_t *   Inter_ManStartDuplicated( Aig_Man_t * p );
-extern Aig_Man_t *   Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo );
+/*=== intCtrex.c ============================================================*/
+extern void *          Inter_ManGetCounterExample( Aig_Man_t * pAig, int nFrames, int fVerbose );
 
-/*=== intFrames.c ==========================================================*/
-extern Aig_Man_t *   Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts );
+/*=== intDup.c ============================================================*/
+extern Aig_Man_t *     Inter_ManStartInitState( int nRegs );
+extern Aig_Man_t *     Inter_ManStartDuplicated( Aig_Man_t * p );
+extern Aig_Man_t *     Inter_ManStartOneOutput( Aig_Man_t * p, int fAddFirstPo );
 
-/*=== intMan.c ==========================================================*/
-extern Inter_Man_t * Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars );
-extern void          Inter_ManClean( Inter_Man_t * p );
-extern void          Inter_ManStop( Inter_Man_t * p );
+/*=== intFrames.c ============================================================*/
+extern Aig_Man_t *     Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int fAddRegOuts );
 
-/*=== intM114.c ==========================================================*/
-extern int           Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward );
+/*=== intMan.c ============================================================*/
+extern Inter_Man_t *   Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars );
+extern void            Inter_ManClean( Inter_Man_t * p );
+extern void            Inter_ManStop( Inter_Man_t * p );
 
-/*=== intM114p.c ==========================================================*/
+/*=== intM114.c ============================================================*/
+extern int             Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward );
+
+/*=== intM114p.c ============================================================*/
 #ifdef ABC_USE_LIBRARIES
-extern int           Inter_ManPerformOneStepM114p( Inter_Man_t * p, int fUsePudlak, int fUseOther );
+extern int             Inter_ManPerformOneStepM114p( Inter_Man_t * p, int fUsePudlak, int fUseOther );
 #endif
 
-/*=== intUtil.c ==========================================================*/
-extern int           Inter_ManCheckInitialState( Aig_Man_t * p );
-extern int           Inter_ManCheckAllStates( Aig_Man_t * p );
+/*=== intUtil.c ============================================================*/
+extern int             Inter_ManCheckInitialState( Aig_Man_t * p );
+extern int             Inter_ManCheckAllStates( Aig_Man_t * p );
 
 
 

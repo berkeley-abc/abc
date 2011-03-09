@@ -8427,6 +8427,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Bbl_ManTest( Abc_Ntk_t * pNtk );
     extern void Bbl_ManSimpleDemo();
     extern Abc_Ntk_t * Abc_NtkCRetime( Abc_Ntk_t * pNtk, int fVerbose );
+    extern void Abc_NktMffcTest( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
 
@@ -8489,13 +8490,18 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
+/*
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
         Abc_Print( -1, "Only works for sequential networks.\n" );
         return 1;
     }
-
-    Abc_NtkDarTest( pNtk, nLevels );
+*/
+//    if ( fBmc )
+//        Abc_NtkBddDec( pNtk, 1 );
+//    else
+//        Abc_NktMffcTest( pNtk );
+//    Abc_NtkDarTest( pNtk, nLevels );
 
 //    Abc_NtkTestEsop( pNtk );
 //    Abc_NtkTestSop( pNtk );
@@ -18603,7 +18609,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Inter_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTNLrtpomcgbkdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTKLrtpomcgbkdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18640,7 +18646,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nSecLimit < 0 ) 
                 goto usage;
             break;
-        case 'N':
+        case 'K':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
@@ -18760,12 +18766,13 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: int [-CFTN num] [-L file] [-rtpomcgbkdvh]\n" );
+    Abc_Print( -2, "usage: int [-CFTK num] [-L file] [-rtpomcgbkdvh]\n" );
     Abc_Print( -2, "\t         uses interpolation to prove the property\n" );
     Abc_Print( -2, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the limit on number of frames to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-T num : the limit on runtime per output in seconds [default = %d]\n", pPars->nSecLimit );
-    Abc_Print( -2, "\t-N num : the number of steps in inductive checking [default = %d]\n", pPars->nFramesK );
+    Abc_Print( -2, "\t-K num : the number of steps in inductive checking [default = %d]\n", pPars->nFramesK );
+    Abc_Print( -2, "\t         (K = 1 works in all cases; K > 1 works without -t and -b)\n" );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-r     : toggle rewriting of the unrolled timeframes [default = %s]\n", pPars->fRewrite? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle adding transition into the initial state [default = %s]\n", pPars->fTransLoop? "yes": "no" );
@@ -18774,7 +18781,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle using MiniSat-1.14p (now, Windows-only) [default = %s]\n", pPars->fUseMiniSat? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using inductive containment check [default = %s]\n", pPars->fCheckKstep? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle using bias for global variables using SAT [default = %s]\n", pPars->fUseBias? "yes": "no" );
-    Abc_Print( -2, "\t-b     : toggle using backward interpolation [default = %s]\n", pPars->fUseBackward? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle using backward interpolation (works with -t) [default = %s]\n", pPars->fUseBackward? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle solving each output separately [default = %s]\n", pPars->fUseSeparate? "yes": "no" );
     Abc_Print( -2, "\t-d     : drops (replaces by 0) sat outputs (with -k is used) [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );

@@ -1,4 +1,5 @@
-SRC +=    src/aig/int/intContain.c \
+SRC +=    src/aig/int/intCheck.c \
+    src/aig/int/intContain.c \
     src/aig/int/intCore.c \
     src/aig/int/intCtrex.c \
     src/aig/int/intDup.c \
