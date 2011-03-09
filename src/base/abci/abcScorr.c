@@ -67,7 +67,7 @@ Vec_Int_t * Abc_NtkMapGiaIntoNameId( Abc_Ntk_t * pNetlist, Aig_Man_t * pAig, Gia
     Abc_Obj_t * pNet, * pNode, * pAnd;
     Aig_Obj_t * pObjAig;
     int i;
-    vId2Name = Vec_IntStart( 0 );
+    vId2Name = Vec_IntAlloc( 0 );
     Vec_IntFill( vId2Name, pGia ? Gia_ManObjNum(pGia) : Aig_ManObjNumMax(pAig), ~0 );
     // copy all names
     Abc_NtkForEachNet( pNetlist, pNet, i )
