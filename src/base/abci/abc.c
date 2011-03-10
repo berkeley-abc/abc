@@ -8678,6 +8678,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 //    Abc_NtkHelloWorld( pNtk );
+//    Abc_NktMffcTest( pNtk );
     Abc_NktMffcServerTest( pNtk );
     return 0;
 usage:

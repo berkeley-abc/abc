@@ -149,6 +149,26 @@ void Abc_MffcCollectLeaves( Vec_Ptr_t * vNodes, Vec_Ptr_t * vLeaves )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vec_IntPrint( Vec_Int_t * vVec )
+{
+    int i, Entry;
+    Vec_IntForEachEntry( vVec, Entry, i )
+        printf( "%d ", Entry );
+    printf( "\n" );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Collects internal nodes that are roots of MFFCs.]
 
   Description []
@@ -169,7 +189,8 @@ Vec_Ptr_t * Abc_NktMffcMarkRoots( Abc_Ntk_t * pNtk, int fSkipPis )
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         pObj = Abc_ObjFanin0( pObj );
-        if ( Abc_ObjIsCi(pObj) || Abc_ObjFaninNum(pObj) == 0 || pObj->fMarkA )
+//        if ( Abc_ObjIsCi(pObj) || Abc_ObjFaninNum(pObj) == 0 || pObj->fMarkA )
+        if ( Abc_ObjIsCi(pObj) || pObj->fMarkA )
             continue;
         pObj->fMarkA = 1;
         Vec_PtrPush( vRoots, pObj );
@@ -413,6 +434,47 @@ void Abc_NktMffcPrint( char * pFileName, Abc_Obj_t ** pNodes, int nNodes, Vec_Pt
         fprintf( pFile, " %s", Abc_ObjName(pNodes[i]) );
     fprintf( pFile, "\n" );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        fprintf( pFile, ".names" );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            fprintf( pFile, " %s", Abc_ObjName(pFanin) );
+        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+        fprintf( pFile, "\n%s", (char *)pObj->pData );
+    }
+    fprintf( pFile, ".end\n" );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Testbench.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NktMffcPrintInt( char * pFileName, Abc_Ntk_t * pNtk, Vec_Int_t * vRoots, Vec_Int_t * vNodes, Vec_Int_t * vLeaves )
+{
+    FILE * pFile;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    // convert the network
+    Abc_NtkToSop( pNtk, 0 );
+    // write the file
+    pFile = fopen( pFileName, "wb" );
+    fprintf( pFile, ".model %s_part\n", pNtk->pName );
+    fprintf( pFile, ".inputs" );
+    Abc_NtkForEachObjVec( pNtk, vLeaves, pObj, i )
+        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".outputs" );
+    Abc_NtkForEachObjVec( pNtk, vRoots, pObj, i )
+        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+    fprintf( pFile, "\n" );
+    Abc_NtkForEachObjVec( pNtk, vNodes, pObj, i )
     {
         fprintf( pFile, ".names" );
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -947,12 +1009,13 @@ void Abc_NktMffcFree( Vec_Ptr_t * vRoots, Vec_Ptr_t * vFanins, Vec_Ptr_t * vFano
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NktMffcCostTwo( Vec_Int_t * vSupp1, Vec_Int_t * vSupp2, int Limit )
+double Abc_NktMffcCostTwo( Vec_Int_t * vSupp1, Vec_Int_t * vSupp2, int Volume, int Limit )
 {
     int nCommon = Vec_IntTwoCountCommon( vSupp1, vSupp2 );
+//printf( "s1=%2d s2=%2d c=%2d v=%2d   ", Vec_IntSize(vSupp1), Vec_IntSize(vSupp2), nCommon, Volume );
     if ( Vec_IntSize(vSupp1) + Vec_IntSize(vSupp2) - nCommon > Limit )
-        return -ABC_INFINITY;
-    return 3 * nCommon - Vec_IntSize(vSupp1) - Vec_IntSize(vSupp2);
+        return (double)-ABC_INFINITY;
+    return 0.6 * nCommon - 1.2 * Vec_IntSize(vSupp2) + 0.8 * Volume;
 }
 
 /**Function*************************************************************
@@ -971,7 +1034,6 @@ Vec_Int_t * Abc_NktMffcSupport( Vec_Ptr_t * vThis, Vec_Ptr_t * vFanins )
     Vec_Int_t * vIns, * vIns2, * vTemp;
     Abc_Obj_t * pObj;
     int i;
-//    int Entry;
     vIns = Vec_IntAlloc( 100 );
     Vec_PtrForEachEntry( Abc_Obj_t *, vThis, pObj, i )
     {
@@ -979,9 +1041,6 @@ Vec_Int_t * Abc_NktMffcSupport( Vec_Ptr_t * vThis, Vec_Ptr_t * vFanins )
         vIns  = Vec_IntTwoMerge( vTemp = vIns, vIns2 );
         Vec_IntFree( vTemp );
     }
-//Vec_IntForEachEntry( vIns, Entry, i )
-//printf( "%d ", Entry );
-//printf( "\n" );
     return vIns;
 }
 
@@ -996,11 +1055,12 @@ Vec_Int_t * Abc_NktMffcSupport( Vec_Ptr_t * vThis, Vec_Ptr_t * vFanins )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NktMffcFindBest( Abc_Ntk_t * pNtk, Vec_Int_t * vMarks, Vec_Int_t * vIns, Vec_Ptr_t * vFanins, Vec_Ptr_t * vFanouts, int Limit )
+Abc_Obj_t * Abc_NktMffcFindBest( Abc_Ntk_t * pNtk, Vec_Int_t * vMarks, Vec_Int_t * vIns, Vec_Ptr_t * vFanins, Vec_Ptr_t * vFanouts, Vec_Ptr_t * vVolumes, int Limit )
 {
     Vec_Int_t * vIns2, * vOuts, * vOuts2, * vTemp;
     Abc_Obj_t * pPivot2, * pObj, * pObjBest = NULL;
-    int i, Cost, CostBest = -ABC_INFINITY;
+    double Cost, CostBest = (double)-ABC_INFINITY;
+    int i, Volume;
     // collect the fanouts of the fanins
     vOuts = Vec_IntAlloc( 100 );
     Abc_NtkForEachObjVec( pNtk, vIns, pObj, i )
@@ -1016,9 +1076,11 @@ Abc_Obj_t * Abc_NktMffcFindBest( Abc_Ntk_t * pNtk, Vec_Int_t * vMarks, Vec_Int_t
     {       
         if ( Vec_IntEntry(vMarks, Abc_ObjId(pPivot2)) == 0 )
             continue;
-        vIns2 = (Vec_Int_t *)Vec_PtrEntry( vFanins, Abc_ObjId(pPivot2) );
-        Cost  = Abc_NktMffcCostTwo( vIns, vIns2, Limit );
-        if ( Cost == -ABC_INFINITY )
+        vIns2  = (Vec_Int_t *)Vec_PtrEntry( vFanins, Abc_ObjId(pPivot2) );
+        Volume = Vec_IntSize((Vec_Int_t *)Vec_PtrEntry(vVolumes, Abc_ObjId(pPivot2)));
+        Cost   = Abc_NktMffcCostTwo( vIns, vIns2, Volume, Limit );
+//printf( "%5d  %2d\n", Abc_ObjId(pPivot2), Cost  );
+        if ( Cost == (double)-ABC_INFINITY )
             continue;
         if ( pObjBest == NULL || CostBest < Cost )
         {
@@ -1026,6 +1088,7 @@ Abc_Obj_t * Abc_NktMffcFindBest( Abc_Ntk_t * pNtk, Vec_Int_t * vMarks, Vec_Int_t
             CostBest = Cost;
         }
     }    
+//printf( "Choosing %d\n", pObjBest->Id );
     Vec_IntFree( vOuts );
     return pObjBest;
 }
@@ -1051,13 +1114,30 @@ Vec_Int_t * Abc_NktMffcSaveOne( Vec_Ptr_t * vThis, Vec_Ptr_t * vVolumes )
     {
         vVolume = (Vec_Int_t *)Vec_PtrEntry( vVolumes, Abc_ObjId(pObj) );
         Vec_IntForEachEntry( vVolume, Entry, k )
-        {
             Vec_IntPush( vResult, Entry );
-//printf( "%d ", Entry );
-        }
     }
-//printf( "\n" );
     return vResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeCompareVolumeDecrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    int Diff = Abc_ObjRegular(*pp1)->iTemp - Abc_ObjRegular(*pp2)->iTemp;
+    if ( Diff > 0 )
+        return -1;
+    if ( Diff < 0 ) 
+        return 1;
+    return 0; 
 }
 
 /**Function*************************************************************
@@ -1083,15 +1163,21 @@ Vec_Ptr_t * Abc_NktMffcServer( Abc_Ntk_t * pNtk, int nInMax, int nOutMax )
     vResult = Vec_PtrAlloc( 100 );
     // create fanins/fanouts
     vPivots = Abc_NktMffcDerive( pNtk, &vFanins, &vFanouts, &vVolumes );
+    // sort by their MFFC size
+    Vec_PtrForEachEntry( Abc_Obj_t *, vPivots, pObj, i )
+        pObj->iTemp = Vec_IntSize((Vec_Int_t *)Vec_PtrEntry(vVolumes, Abc_ObjId(pObj)));
+    Vec_PtrSort( vPivots, (int (*)(void))Abc_NodeCompareVolumeDecrease ); 
     // create marks
     vMarks = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     Vec_PtrForEachEntry( Abc_Obj_t *, vPivots, pObj, i )
-        if ( Abc_ObjIsNode(pObj) )
+        if ( Abc_ObjIsNode(pObj) && Vec_IntSize((Vec_Int_t *)Vec_PtrEntry(vVolumes, Abc_ObjId(pObj))) > 1 )
             Vec_IntWriteEntry( vMarks, Abc_ObjId(pObj), 1 );
     // consider nodes in the order of the marks
     vThis = Vec_PtrAlloc( 10 );
+//    while ( 1 )
     Vec_PtrForEachEntry( Abc_Obj_t *, vPivots, pObj, i )
     {
+//        pObj = Abc_NtkObj( pNtk, 589 );
         if ( Vec_IntEntry(vMarks, Abc_ObjId(pObj)) == 0 )
             continue;
         // start the set
@@ -1111,7 +1197,7 @@ Vec_Ptr_t * Abc_NktMffcServer( Abc_Ntk_t * pNtk, int nInMax, int nOutMax )
             // quit if exceeded the limit
             vLeaves = Abc_NktMffcSupport( vThis, vFanins );
             assert( Vec_IntSize(vLeaves) <= nInMax );
-            pObj2 = Abc_NktMffcFindBest( pNtk, vMarks, vLeaves, vFanins, vFanouts, nInMax );
+            pObj2 = Abc_NktMffcFindBest( pNtk, vMarks, vLeaves, vFanins, vFanouts, vVolumes, nInMax );
             Vec_IntFree( vLeaves );
             // quit if there is no extension
             if ( pObj2 == NULL )
@@ -1120,6 +1206,7 @@ Vec_Ptr_t * Abc_NktMffcServer( Abc_Ntk_t * pNtk, int nInMax, int nOutMax )
             Vec_IntWriteEntry( vMarks, Abc_ObjId(pObj2), 0 );
         }
         Vec_PtrPush( vResult, Abc_NktMffcSaveOne(vThis, vVolumes) );
+//        break;
     }
     Vec_PtrFree( vThis );
     Vec_IntFree( vMarks );
@@ -1141,10 +1228,11 @@ Vec_Ptr_t * Abc_NktMffcServer( Abc_Ntk_t * pNtk, int nInMax, int nOutMax )
 ***********************************************************************/
 void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
 {
+    char pFileName[1000];
     Vec_Ptr_t * vGlobs;
     Vec_Int_t * vGlob, * vLeaves, * vRoots;
-    double Cost;
-    int i, nNodes = 0, clk = clock();
+    double Cost, CostAll = 0.0;
+    int i, k, Entry, nNodes = 0, clk = clock();
     vGlobs  = Abc_NktMffcServer( pNtk, 18, 3 );
     vLeaves = Vec_IntAlloc( 100 );
     vRoots  = Vec_IntAlloc( 100 );
@@ -1152,12 +1240,22 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
     {
         nNodes += Vec_IntSize(vGlob);
         Abc_NktMffCollectLeafRootInt( pNtk, vGlob, vLeaves, vRoots );
-        Cost = 1.0 * Vec_IntSize(vGlob)/(Vec_IntSize(vLeaves) + Vec_IntSize(vRoots));
-        if ( Cost < 0.3 || Vec_IntSize(vGlob) < 5 )
+        if ( Vec_IntSize(vGlob) <= Vec_IntSize(vRoots) )
             continue;
-        printf( "%4d : Root =%3d. Leaf =%3d. Node =%4d. ", 
+        Cost = 1.0 * Vec_IntSize(vGlob)/(Vec_IntSize(vLeaves) + Vec_IntSize(vRoots));
+        CostAll += Cost;
+        if ( Cost < 0.4 )
+            continue;
+
+        printf( "%6d : Root =%3d. Leaf =%3d. Node =%4d. ", 
             i, Vec_IntSize(vRoots), Vec_IntSize(vLeaves), Vec_IntSize(vGlob) );
-        printf( "Cost =%6.2f\n", Cost );
+        printf( "Cost =%6.2f     ", Cost );
+        Vec_IntForEachEntry( vRoots, Entry, k )
+            printf( "%d ", Entry );
+        printf( "\n" );
+
+        sprintf( pFileName, "%s_mffc%04d_%02d.blif", Abc_NtkName(pNtk), i, Vec_IntSize(vGlob) );
+        Abc_NktMffcPrintInt( pFileName, pNtk, vRoots, vGlob, vLeaves );
     }
     Vec_IntFree( vLeaves );
     Vec_IntFree( vRoots );
@@ -1165,9 +1263,9 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
         Vec_IntFree( vGlob );
     Vec_PtrFree( vGlobs );
     printf( "Total = %6d.  Nodes = %6d.  ", Abc_NtkNodeNum(pNtk), nNodes );
+    printf( "Cost = %6.2f  ", CostAll );
     Abc_PrintTime( 1, "Time", clock() - clk );
 }
-
 
 ABC_NAMESPACE_IMPL_END
 
