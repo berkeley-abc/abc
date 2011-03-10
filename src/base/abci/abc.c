@@ -11096,7 +11096,8 @@ usage:
     sprintf( Buffer, "%d", pParams->nBTLimit );
     Abc_Print( -2, "usage: fraig [-R num] [-D num] [-C num] [-rscpvtah]\n" );
     Abc_Print( -2, "\t         transforms a logic network into a functionally reduced AIG\n" );
-    Abc_Print( -2, "\t         (there are also newer fraiging commands, \"ifraig\" and \"dfraig\")\n" );
+    Abc_Print( -2, "\t         (known bugs: takes an UNSAT miter and returns a SAT one)\n");
+    Abc_Print( -2, "\t         (there are newer fraiging commands, \"ifraig\" and \"dfraig\")\n" );
     Abc_Print( -2, "\t-R num : number of random patterns (127 < num < 32769) [default = %d]\n",     pParams->nPatsRand );
     Abc_Print( -2, "\t-D num : number of systematic patterns (127 < num < 32769) [default = %d]\n", pParams->nPatsDyna );
     Abc_Print( -2, "\t-C num : number of backtracks for one SAT problem [default = %s]\n",    pParams->nBTLimit==-1? "infinity" : Buffer );
