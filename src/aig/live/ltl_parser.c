@@ -22,9 +22,9 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <aig.h>
-#include <abc.h>
-#include <mainInt.h>
+#include "aig.h"
+#include "abc.h"
+#include "mainInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
