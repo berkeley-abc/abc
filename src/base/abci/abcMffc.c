@@ -1244,7 +1244,7 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
             continue;
         Cost = 1.0 * Vec_IntSize(vGlob)/(Vec_IntSize(vLeaves) + Vec_IntSize(vRoots));
         CostAll += Cost;
-        if ( Cost < 0.4 )
+        if ( Cost < 0.5 )
             continue;
 
         printf( "%6d : Root =%3d. Leaf =%3d. Node =%4d. ", 
@@ -1254,7 +1254,7 @@ void Abc_NktMffcServerTest( Abc_Ntk_t * pNtk )
             printf( "%d ", Entry );
         printf( "\n" );
 
-        sprintf( pFileName, "%s_mffc%04d_%02d.blif", Abc_NtkName(pNtk), i, Vec_IntSize(vGlob) );
+        sprintf( pFileName, "%sc%04di%02dn%02d.blif", Abc_NtkName(pNtk), i, Vec_IntSize(vLeaves), Vec_IntSize(vGlob) );
         Abc_NktMffcPrintInt( pFileName, pNtk, vRoots, vGlob, vLeaves );
     }
     Vec_IntFree( vLeaves );

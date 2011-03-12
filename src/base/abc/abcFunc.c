@@ -52,7 +52,7 @@ extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
+DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop, DdNode ** pbVars )
 {
     DdNode * bSum, * bCube, * bTemp, * bVar;
     char * pCube;
@@ -65,7 +65,7 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
     {
         for ( v = 0; v < nVars; v++ )
         {
-            bSum  = Cudd_bddXor( dd, bTemp = bSum, Cudd_bddIthVar(dd, v) );   Cudd_Ref( bSum );
+            bSum  = Cudd_bddXor( dd, bTemp = bSum, pbVars? pbVars[v] : Cudd_bddIthVar(dd, v) );   Cudd_Ref( bSum );
             Cudd_RecursiveDeref( dd, bTemp );
         }
     }
@@ -78,9 +78,9 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
             Abc_CubeForEachVar( pCube, Value, v )
             {
                 if ( Value == '0' )
-                    bVar = Cudd_Not( Cudd_bddIthVar( dd, v ) );
+                    bVar = Cudd_Not( pbVars? pbVars[v] : Cudd_bddIthVar( dd, v ) );
                 else if ( Value == '1' )
-                    bVar = Cudd_bddIthVar( dd, v );
+                    bVar = pbVars? pbVars[v] : Cudd_bddIthVar( dd, v );
                 else
                     continue;
                 bCube  = Cudd_bddAnd( dd, bTemp = bCube, bVar );   Cudd_Ref( bCube );
@@ -128,7 +128,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );
+        pNode->pData = Abc_ConvertSopToBdd( dd, (char *)pNode->pData, NULL );
         if ( pNode->pData == NULL )
         {
             printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
@@ -282,7 +282,7 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
     // verify
     if ( fVerify )
     {
-        bFuncNew = Abc_ConvertSopToBdd( dd, pSop );  Cudd_Ref( bFuncNew );
+        bFuncNew = Abc_ConvertSopToBdd( dd, pSop, NULL );  Cudd_Ref( bFuncNew );
         if ( bFuncOn == bFuncOnDc )
         {
             if ( bFuncNew != bFuncOn )
@@ -483,7 +483,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( Abc_SopIsComplement((char *)pNode->pData) )
         {
-            bFunc = Abc_ConvertSopToBdd( dd, (char *)pNode->pData );  Cudd_Ref( bFunc );
+            bFunc = Abc_ConvertSopToBdd( dd, (char *)pNode->pData, NULL );  Cudd_Ref( bFunc );
             pNode->pData = Abc_ConvertBddToSop( (Mem_Flex_t *)pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, 1 );
             Cudd_RecursiveDeref( dd, bFunc );
             assert( !Abc_SopIsComplement((char *)pNode->pData) );

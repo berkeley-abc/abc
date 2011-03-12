@@ -8665,9 +8665,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 /*
-//    Bbl_ManSimpleDemo();
-//    pNtkRes = Abc_NtkCRetime( pNtk );
-    pNtkRes = NULL;
+{
+    extern Abc_Ntk_t * Abc_NtkBddDec( Abc_Ntk_t * pNtk, int fVerbose );
+    pNtkRes = Abc_NtkBddDec( pNtk, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command has failed.\n" );
@@ -8675,11 +8675,19 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+}
 */
+
+//    Abc_NtkCheckAbsorb( pNtk, 4 );
+
+    if ( fBmc )
+        Abc_NktMffcServerTest( pNtk );
+    else
+        Abc_ResPartitionTest( pNtk );
 
 //    Abc_NtkHelloWorld( pNtk );
 //    Abc_NktMffcTest( pNtk );
-    Abc_NktMffcServerTest( pNtk );
+//    Abc_NktMffcServerTest( pNtk );
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-h] <file_name>\n" );
