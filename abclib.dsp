@@ -4138,6 +4138,50 @@ SOURCE=.\src\aig\llb\llb3Nonlin.c
 SOURCE=.\src\aig\llb\llbInt.h
 # End Source File
 # End Group
+# Begin Group "au"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\au\au.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\au.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auMffc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auNpn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auUtil.c
+# End Source File
+# End Group
 # End Group
 # End Group
 # Begin Group "Header Files"

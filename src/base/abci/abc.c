@@ -855,6 +855,10 @@ void Abc_End( Abc_Frame_t * pAbc )
     Abc_FrameClearDesign(); 
 
     {
+//        extern void Au_TabManPrint();
+//        Au_TabManPrint();
+    }
+    {
         extern void If_LutLibFree( If_Lib_t * pLutLib );
         if ( Abc_FrameGetGlobalFrame()->pAbc8Lib )
             If_LutLibFree( (If_Lib_t *)Abc_FrameGetGlobalFrame()->pAbc8Lib );
@@ -8666,8 +8670,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 /*
 {
-    extern Abc_Ntk_t * Abc_NtkBddDec( Abc_Ntk_t * pNtk, int fVerbose );
-    pNtkRes = Abc_NtkBddDec( pNtk, fVerbose );
+    extern Abc_Ntk_t * Au_ManDeriveFromAig( Abc_Ntk_t * pAig );
+    pNtkRes = Au_ManDeriveFromAig( pNtk );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command has failed.\n" );
@@ -8679,12 +8683,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 //    Abc_NtkCheckAbsorb( pNtk, 4 );
-
+/*
     if ( fBmc )
         Abc_NktMffcServerTest( pNtk );
     else
         Abc_ResPartitionTest( pNtk );
-
+*/
 //    Abc_NtkHelloWorld( pNtk );
 //    Abc_NktMffcTest( pNtk );
 //    Abc_NktMffcServerTest( pNtk );

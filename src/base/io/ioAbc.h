@@ -138,7 +138,6 @@ extern void               Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileT
 extern void               Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName );
 extern Abc_Obj_t *        Io_ReadCreatePi( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Io_ReadCreatePo( Abc_Ntk_t * pNtk, char * pName );
-extern Abc_Obj_t *        Io_ReadCreateAssert( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Io_ReadCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO );
 extern Abc_Obj_t *        Io_ReadCreateResetLatch( Abc_Ntk_t * pNtk, int fBlifMv );
 extern Abc_Obj_t *        Io_ReadCreateResetMux( Abc_Ntk_t * pNtk, char * pResetLO, char * pDataLI, int fBlifMv );

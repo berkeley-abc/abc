@@ -693,7 +693,8 @@ void Abc_NtkPrintMffc( FILE * pFile, Abc_Ntk_t * pNtk )
     int i;
     extern void Abc_NodeMffcConeSuppPrint( Abc_Obj_t * pNode );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Abc_NodeMffcConeSuppPrint( pNode );
+        if ( Abc_ObjFanoutNum(pNode) > 1 )
+            Abc_NodeMffcConeSuppPrint( pNode );
 }
 
 /**Function*************************************************************
@@ -1147,9 +1148,6 @@ void Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj )
         case ABC_OBJ_CONST1: 
             fprintf( pFile, "Const1 " );  
             break;
-        case ABC_OBJ_PIO:    
-            fprintf( pFile, "PIO    " );  
-            break;
         case ABC_OBJ_PI:     
             fprintf( pFile, "PI     " );  
             break;
@@ -1161,9 +1159,6 @@ void Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj )
             break;
         case ABC_OBJ_BO:     
             fprintf( pFile, "BO     " );  
-            break;
-        case ABC_OBJ_ASSERT:     
-            fprintf( pFile, "Assert " );  
             break;
         case ABC_OBJ_NET:  
             fprintf( pFile, "Net    " );  

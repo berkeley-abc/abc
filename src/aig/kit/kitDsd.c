@@ -307,7 +307,8 @@ void Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk )
 void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars )
 {
     Kit_DsdNtk_t * pTemp, * pTemp2;
-    pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 5 );
+//    pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 5 );
+    pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 8 );
 //    Kit_DsdPrintExpanded( pTemp );
     pTemp2 = Kit_DsdExpand( pTemp );
     Kit_DsdPrint( stdout, pTemp2 );
@@ -2090,7 +2091,7 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
 //        Extra_PrintBinary( stdout, pTruth, (1 << pNtk->nVars) ); 
         Extra_PrintHexadecimal( stdout, pTruth, pNtk->nVars ); 
         printf( "\n" );
-        Kit_DsdPrint( stdout, pNtk );
+        Kit_DsdPrint( stdout, pNtk ), printf( "\n" );
     }
     for ( i = 0; i < pNtk->nVars; i++ )
     {
@@ -2102,7 +2103,7 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
         if ( fVerbose )
         {
             printf( "Cof%d0: ", i );
-            Kit_DsdPrint( stdout, pNtk0 );
+            Kit_DsdPrint( stdout, pNtk0 ), printf( "\n" );
         }
 
         Kit_TruthCofactor1New( pCofs2[1], pTruth, pNtk->nVars, i );
@@ -2113,7 +2114,7 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
         if ( fVerbose )
         {
             printf( "Cof%d1: ", i );
-            Kit_DsdPrint( stdout, pNtk1 );
+            Kit_DsdPrint( stdout, pNtk1 ), printf( "\n" );
         }
 
 //        if ( Kit_DsdCheckVar4Dec2( pNtk0, pNtk1 ) )
@@ -2215,7 +2216,7 @@ void Kit_DsdTest( unsigned * pTruth, int nVars )
     pNtk = Kit_DsdExpand( pTemp = pNtk );
     Kit_DsdNtkFree( pTemp );
 
-    Kit_DsdPrint( stdout, pNtk );
+    Kit_DsdPrint( stdout, pNtk ), printf( "\n" );
 
 //    if ( Kit_DsdFindLargeBox(pNtk, Kit_DsdLit2Var(pNtk->Root)) )
 //        Kit_DsdTestCofs( pNtk, pTruth );
@@ -2277,7 +2278,7 @@ void Kit_DsdPrecompute4Vars()
             RetValue = Kit_DsdTestCofs( pNtk, &uTruth );
             printf( "\n" );
             printf( "%3d : Non-DSD function  %s  %s\n", i, Buffer + 2, RetValue? "implementable" : "" );
-            Kit_DsdPrint( stdout, pNtk );
+            Kit_DsdPrint( stdout, pNtk ), printf( "\n" );
 
             Counter1++;
             Counter2 += RetValue;
@@ -2456,9 +2457,9 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
                 Kit_DsdNtkFree( pTemp );
 
                 printf( "Cof%d%d: ", nStep+1, 2*i+0 );
-                Kit_DsdPrint( stdout, ppNtks[nStep+1][2*i+0] );
+                Kit_DsdPrint( stdout, ppNtks[nStep+1][2*i+0] ), printf( "\n" );
                 printf( "Cof%d%d: ", nStep+1, 2*i+1 );
-                Kit_DsdPrint( stdout, ppNtks[nStep+1][2*i+1] );
+                Kit_DsdPrint( stdout, ppNtks[nStep+1][2*i+1] ), printf( "\n" );
             }
         }
     }
@@ -2500,7 +2501,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
     ppNtks[0] = Kit_DsdExpand( pTemp = ppNtks[0] );
     Kit_DsdNtkFree( pTemp );
     if ( fVerbose )
-        Kit_DsdPrint( stdout, ppNtks[0] );
+        Kit_DsdPrint( stdout, ppNtks[0] ), printf( "\n" );
     Kit_DsdNtkFree( ppNtks[0] );
 
     // allocate storage for cofactors
@@ -2551,7 +2552,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             if ( fVerbose )
             {
                 printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] );
+                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
@@ -2600,7 +2601,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             if ( fVerbose )
             {
                 printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] );
+                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
@@ -2651,7 +2652,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             if ( fVerbose )
             {
                 printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] );
+                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
@@ -2704,7 +2705,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
             if ( fVerbose )
             {
                 printf( "Cof%d%d: ", nSteps, i );
-                Kit_DsdPrint( stdout, ppNtks[i] );
+                Kit_DsdPrint( stdout, ppNtks[i] ), printf( "\n" );
             }
             // compute the largest non-decomp block
             nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);

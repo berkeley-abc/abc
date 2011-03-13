@@ -95,23 +95,11 @@ void Abc_MffcRef_rec( Abc_Obj_t * pNode )
 void Abc_MffcCollectNodes( Abc_Obj_t ** pNodes, int nNodes, Vec_Ptr_t * vNodes )
 {
     int i;
-/*
-    for ( i = 0; i < nNodes; i++ )
-    {
-        pNodes[i]->vFanouts.nSize += 100;
-//Abc_ObjPrint( stdout, pNodes[i] );
-    }
-//printf( "\n" );
-*/
-
     Vec_PtrClear( vNodes );
     for ( i = 0; i < nNodes; i++ )
         Abc_MffcDeref_rec( pNodes[i], vNodes );
     for ( i = 0; i < nNodes; i++ )
         Abc_MffcRef_rec( pNodes[i] );
-
-//    for ( i = 0; i < nNodes; i++ )
-//        pNodes[i]->vFanouts.nSize -= 100;
 }
 
 /**Function*************************************************************

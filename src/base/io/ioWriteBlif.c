@@ -362,8 +362,6 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     {
         Abc_NtkForEachCo( pNtk, pTerm, i )
         {
-            if ( Abc_ObjIsAssert(pTerm) )
-                continue;
             pNet = Abc_ObjFanin0(pTerm);
             // get the line length after this name is written
             AddedLength = strlen(Abc_ObjName(pNet)) + 1;

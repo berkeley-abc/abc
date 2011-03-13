@@ -120,9 +120,6 @@ Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
         case ABC_OBJ_CONST1: 
             assert(0); 
             break;
-        case ABC_OBJ_PIO:    
-            assert(0); 
-            break;
         case ABC_OBJ_PI:     
             Vec_PtrPush( pNtk->vPis, pObj );
             Vec_PtrPush( pNtk->vCis, pObj );
@@ -194,9 +191,6 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             assert(0); 
             break;
         case ABC_OBJ_CONST1: 
-            assert(0); 
-            break;
-        case ABC_OBJ_PIO:    
             assert(0); 
             break;
         case ABC_OBJ_PI:     

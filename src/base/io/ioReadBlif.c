@@ -59,7 +59,6 @@ static Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p );
 static Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p );
 static int Io_ReadBlifNetworkInputs( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkOutputs( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
-static int Io_ReadBlifNetworkAsserts( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens );
 static int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
@@ -266,8 +265,6 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
             fStatus = Io_ReadBlifNetworkInputs( p, p->vTokens );
         else if ( !strcmp( pDirective, ".outputs" ) )
             fStatus = Io_ReadBlifNetworkOutputs( p, p->vTokens );
-        else if ( !strcmp( pDirective, ".asserts" ) )
-            fStatus = Io_ReadBlifNetworkAsserts( p, p->vTokens );
         else if ( !strcmp( pDirective, ".input_arrival" ) )
             fStatus = Io_ReadBlifNetworkInputArrival( p, p->vTokens );
         else if ( !strcmp( pDirective, ".default_input_arrival" ) )
@@ -340,25 +337,6 @@ int Io_ReadBlifNetworkOutputs( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     int i;
     for ( i = 1; i < vTokens->nSize; i++ )
         Io_ReadCreatePo( p->pNtkCur, (char *)vTokens->pArray[i] );
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Io_ReadBlifNetworkAsserts( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
-{
-    int i;
-    for ( i = 1; i < vTokens->nSize; i++ )
-        Io_ReadCreateAssert( p->pNtkCur, (char *)vTokens->pArray[i] );
     return 0;
 }
 

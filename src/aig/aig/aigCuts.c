@@ -56,9 +56,7 @@ Aig_ManCut_t * Aig_ManCutStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, in
     p->fTruth   = fTruth;
     p->fVerbose = fVerbose;
     p->pAig     = pMan;
-    // allocate room for cuts and equivalent nodes
-    p->pCuts    = ABC_ALLOC( Aig_Cut_t *, Aig_ManObjNumMax(pMan) );
-    memset( p->pCuts, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pMan) );
+    p->pCuts    = ABC_CALLOC( Aig_Cut_t *, Aig_ManObjNumMax(pMan) );
     // allocate memory manager
     p->nTruthWords = Aig_TruthWordNum(nLeafMax);
     p->nCutSize = sizeof(Aig_Cut_t) + sizeof(int) * nLeafMax + fTruth * sizeof(unsigned) * p->nTruthWords;

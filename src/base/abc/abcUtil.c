@@ -617,7 +617,7 @@ void Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies )
 void Abc_NtkCleanNext( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    int i = 0;
+    int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pNext = NULL;
 }
@@ -636,9 +636,85 @@ void Abc_NtkCleanNext( Abc_Ntk_t * pNtk )
 void Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    int i = 0;
+    int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->fMarkA = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanMarkB( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->fMarkB = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanMarkC( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->fMarkC = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanMarkAB( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->fMarkA = pObj->fMarkB = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanMarkABC( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->fMarkA = pObj->fMarkB = pObj->fMarkC = 0;
 }
 
 /**Function*************************************************************
@@ -928,9 +1004,18 @@ int Abc_NodeIsExorType( Abc_Obj_t * pNode )
     // if the children are not ANDs, this is not EXOR
     if ( Abc_ObjFaninNum(pNode0) != 2 || Abc_ObjFaninNum(pNode1) != 2 )
         return 0;
-    // otherwise, the node is EXOR iff its grand-children are the same
-    return (Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId0(pNode1) || Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId1(pNode1)) &&
-           (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId0(pNode1) || Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId1(pNode1));
+    // this is AIG, which means the fanins should be ordered
+    assert( Abc_ObjFaninId0(pNode0) != Abc_ObjFaninId1(pNode1) || 
+            Abc_ObjFaninId0(pNode1) != Abc_ObjFaninId1(pNode0) );
+    // if grand children are not the same, this is not EXOR
+    if ( Abc_ObjFaninId0(pNode0) != Abc_ObjFaninId0(pNode1) ||
+         Abc_ObjFaninId1(pNode0) != Abc_ObjFaninId1(pNode1) )
+         return 0;
+    // finally, if the complemented edges are matched, this is not EXOR
+    if ( Abc_ObjFaninC0(pNode0) == Abc_ObjFaninC0(pNode1) || 
+         Abc_ObjFaninC1(pNode0) == Abc_ObjFaninC1(pNode1) )
+         return 0;
+    return 1;
 }
 
 /**Function*************************************************************

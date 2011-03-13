@@ -599,31 +599,6 @@ Abc_Obj_t * Io_ReadCreatePo( Abc_Ntk_t * pNtk, char * pName )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates PO terminal and net.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Io_ReadCreateAssert( Abc_Ntk_t * pNtk, char * pName )
-{
-    Abc_Obj_t * pNet, * pTerm;
-    // get the PO net
-    pNet  = Abc_NtkFindNet( pNtk, pName );
-    if ( pNet && Abc_ObjFaninNum(pNet) == 0 )
-        printf( "Warning: Assert \"%s\" appears twice in the list.\n", pName );
-    pNet  = Abc_NtkFindOrCreateNet( pNtk, pName );
-    // add the PO node
-    pTerm = Abc_NtkCreateAssert( pNtk );
-    Abc_ObjAddFanin( pTerm, pNet );
-    return pTerm;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Create a latch with the given input/output.]
 
   Description [By default, the latch value is unknown (ABC_INIT_NONE).]

@@ -231,7 +231,6 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 {
     Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObjNew;
     Aig_Obj_t * pObj;
     int i;
     assert( pMan->nAsserts == 0 );
@@ -259,13 +258,6 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
     }
     // if there are assertions, add them
-    if ( pMan->nAsserts > 0 )
-        Aig_ManForEachAssert( pMan, pObj, i )
-        {
-            pObjNew = Abc_NtkCreateAssert(pNtkNew);
-            Abc_ObjAssignName( pObjNew, "assert_", Abc_ObjName(pObjNew) );
-            Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
-        }
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkFromDar(): Network check has failed.\n" );
     return pNtkNew;
@@ -386,13 +378,6 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         }
     }
     // if there are assertions, add them
-    if ( pMan->nAsserts > 0 )
-        Aig_ManForEachAssert( pMan, pObj, i )
-        {
-            pObjNew = Abc_NtkCreateAssert(pNtkNew);
-            Abc_ObjAssignName( pObjNew, "assert_", Abc_ObjName(pObjNew) );
-            Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
-        }
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkFromDar(): Network check has failed.\n" );
     return pNtkNew;

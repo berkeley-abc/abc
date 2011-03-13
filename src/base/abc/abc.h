@@ -85,18 +85,16 @@ typedef enum {
 typedef enum { 
     ABC_OBJ_NONE = 0,   //  0:  unknown
     ABC_OBJ_CONST1,     //  1:  constant 1 node (AIG only)
-    ABC_OBJ_PIO,        //  2:  inout terminal
-    ABC_OBJ_PI,         //  3:  primary input terminal
-    ABC_OBJ_PO,         //  4:  primary output terminal
-    ABC_OBJ_BI,         //  5:  box input terminal
-    ABC_OBJ_BO,         //  6:  box output terminal
-    ABC_OBJ_ASSERT,     //  7:  assertion terminal
-    ABC_OBJ_NET,        //  8:  net
-    ABC_OBJ_NODE,       //  9:  node
-    ABC_OBJ_LATCH,      // 10:  latch
-    ABC_OBJ_WHITEBOX,   // 11:  box with known contents
-    ABC_OBJ_BLACKBOX,   // 12:  box with unknown contents
-    ABC_OBJ_NUMBER      // 13:  unused
+    ABC_OBJ_PI,         //  2:  primary input terminal
+    ABC_OBJ_PO,         //  3:  primary output terminal
+    ABC_OBJ_BI,         //  4:  box input terminal
+    ABC_OBJ_BO,         //  5:  box output terminal
+    ABC_OBJ_NET,        //  6:  net
+    ABC_OBJ_NODE,       //  7:  node
+    ABC_OBJ_LATCH,      //  8:  latch
+    ABC_OBJ_WHITEBOX,   //  9:  box with known contents
+    ABC_OBJ_BLACKBOX,   // 10:  box with unknown contents
+    ABC_OBJ_NUMBER      // 11:  unused
 } Abc_ObjType_t;
 
 // latch initial values
@@ -150,8 +148,8 @@ struct Abc_Obj_t_ // 12 words
     Vec_Int_t         vFanouts;      // the array of fanouts
     // miscellaneous
     union {
-    void *            pData;         // the network specific data (SOP, BDD, gate, equiv class, etc)
-    int iData;
+        void *        pData;         // the network specific data (SOP, BDD, gate, equiv class, etc)
+        int           iData;
     };
     Abc_Obj_t *       pNext;         // the next pointer in the hash table
     union {                          // temporary store for user's data
@@ -315,7 +313,6 @@ static inline Abc_Obj_t * Abc_NtkCreatePi( Abc_Ntk_t * pNtk )        { return Ab
 static inline Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_PO );         }
 static inline Abc_Obj_t * Abc_NtkCreateBi( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BI );         }
 static inline Abc_Obj_t * Abc_NtkCreateBo( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BO );         }
-static inline Abc_Obj_t * Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )    { return Abc_NtkCreateObj( pNtk, ABC_OBJ_ASSERT );     }
 static inline Abc_Obj_t * Abc_NtkCreateNet( Abc_Ntk_t * pNtk )       { return Abc_NtkCreateObj( pNtk, ABC_OBJ_NET );        }
 static inline Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )      { return Abc_NtkCreateObj( pNtk, ABC_OBJ_NODE );       }
 static inline Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )     { return Abc_NtkCreateObj( pNtk, ABC_OBJ_LATCH );      }
@@ -355,14 +352,13 @@ static inline void        Abc_ObjSetCopy( Abc_Obj_t * pObj, Abc_Obj_t * pCopy ) 
 static inline void        Abc_ObjSetData( Abc_Obj_t * pObj, void * pData )       { pObj->pData =  pData;    } 
 
 // checking the object type
-static inline int         Abc_ObjIsPio( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_PIO;     }
+static inline int         Abc_ObjIsNone( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_NONE;    }
 static inline int         Abc_ObjIsPi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI;      }
 static inline int         Abc_ObjIsPo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO;      }
 static inline int         Abc_ObjIsBi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BI;      }
 static inline int         Abc_ObjIsBo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BO;      }
-static inline int         Abc_ObjIsAssert( Abc_Obj_t * pObj )        { return pObj->Type == ABC_OBJ_ASSERT;  }
 static inline int         Abc_ObjIsCi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI || pObj->Type == ABC_OBJ_BO; }
-static inline int         Abc_ObjIsCo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO || pObj->Type == ABC_OBJ_BI || pObj->Type == ABC_OBJ_ASSERT; }
+static inline int         Abc_ObjIsCo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO || pObj->Type == ABC_OBJ_BI; }
 static inline int         Abc_ObjIsTerm( Abc_Obj_t * pObj )          { return Abc_ObjIsCi(pObj) || Abc_ObjIsCo(pObj); }
 static inline int         Abc_ObjIsNet( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_NET;     }
 static inline int         Abc_ObjIsNode( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_NODE;    }
@@ -824,6 +820,7 @@ extern ABC_DLL int                Abc_SopGetVarNum( char * pSop );
 extern ABC_DLL int                Abc_SopGetPhase( char * pSop );
 extern ABC_DLL int                Abc_SopGetIthCareLit( char * pSop, int i );
 extern ABC_DLL void               Abc_SopComplement( char * pSop );
+extern ABC_DLL void               Abc_SopComplementVar( char * pSop, int iVar );
 extern ABC_DLL int                Abc_SopIsComplement( char * pSop );
 extern ABC_DLL int                Abc_SopIsConst0( char * pSop );
 extern ABC_DLL int                Abc_SopIsConst1( char * pSop );
@@ -899,6 +896,10 @@ extern ABC_DLL Vec_Ptr_t *        Abc_NtkSaveCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies );
 extern ABC_DLL void               Abc_NtkCleanNext( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCleanMarkB( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCleanMarkC( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCleanMarkAB( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCleanMarkABC( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeFindCoFanout( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeFindNonCoFanout( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode );

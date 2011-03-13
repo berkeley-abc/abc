@@ -628,6 +628,31 @@ void Abc_SopComplement( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_SopComplementVar( char * pSop, int iVar )
+{
+    char * pCube;
+    int nVars = Abc_SopGetVarNum(pSop);
+    assert( iVar < nVars );
+    Abc_SopForEachCube( pSop, nVars, pCube )
+    {
+        if ( pCube[iVar] == '0' )
+            pCube[iVar] = '1';
+        else if ( pCube[iVar] == '1' )
+            pCube[iVar] = '0';
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_SopIsComplement( char * pSop )
 {
     char * pCur;
