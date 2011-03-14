@@ -475,6 +475,18 @@ void Abc_CommandUpdate9( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
 ***********************************************************************/
 void Abc_Init( Abc_Frame_t * pAbc )
 {
+/*
+    char * pBuff = ABC_ALLOC( char, (1<<29) );
+    int i, clk = clock();
+    for ( i = 0; i < (1<<29); i++ )
+        pBuff[i] = i % 53;
+    if ( pBuff == NULL )
+        printf( "Not allocated. " );
+    else
+        printf( "Allocated %d bytes. ", (1<<29) );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+*/
+
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 ); 
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
@@ -8657,16 +8669,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_NtkDarTest( pNtk );
 
 //    Bbl_ManTest( pNtk );
-/*
+
     {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    extern void Aig_ManFactorAlgebraicTest( Aig_Man_t * p );
+    extern void Aig_ManComputeDomsForCofactoring( Aig_Man_t * p );
     Aig_Man_t * pAig;
     pAig = Abc_NtkToDar( pNtk, 0, 0 );
-    Aig_ManFactorAlgebraicTest( pAig );
+    Aig_ManComputeDomsForCofactoring( pAig );
     Aig_ManStop( pAig );
     }
-*/
+
 
 /*
 {

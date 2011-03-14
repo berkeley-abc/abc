@@ -44,6 +44,7 @@ struct Aig_Sto_t_
     Aig_MmFixed_t * pMem;          // memory manager for dominators
     Vec_Ptr_t *     vDoms;         // dominators
     Vec_Int_t *     vFans;         // temporary fanouts
+    Vec_Int_t *     vTimes;        // the number of times each appears
     int             nDomNodes;     // nodes with dominators
     int             nDomsTotal;    // total dominators
     int             nDomsFilter1;  // filtered dominators
@@ -71,13 +72,13 @@ struct Aig_Sto_t_
 Aig_Sto_t * Aig_ManDomStart( Aig_Man_t * pAig, int Limit )
 {
     Aig_Sto_t * pSto;
-    assert( Aig_ManRegNum(pAig) > 0 );
     pSto = ABC_CALLOC( Aig_Sto_t, 1 );
     pSto->pAig     = pAig;
     pSto->Limit    = Limit;
     pSto->pMem     = Aig_MmFixedStart( sizeof(Aig_Dom_t) + sizeof(int) * Limit, 10000 );
     pSto->vDoms    = Vec_PtrStart( Aig_ManObjNumMax(pAig) );
     pSto->vFans    = Vec_IntAlloc( 100 );
+    pSto->vTimes   = Vec_IntStart( Aig_ManObjNumMax(pAig) );
     return pSto;
 }
 
@@ -233,6 +234,7 @@ void Aig_ManDomStop( Aig_Sto_t * pSto )
             Aig_ObjDomVecRecycle( pSto, vDoms );
     Vec_PtrFree( pSto->vDoms );
     Vec_IntFree( pSto->vFans );
+    Vec_IntFree( pSto->vTimes );
     Aig_MmFixedStop( pSto->pMem, 0 );
     ABC_FREE( pSto );
 }
@@ -616,7 +618,7 @@ void Aig_ManMarkFlopTfi( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Sto_t * Aig_ManComputeDoms( Aig_Man_t * pAig, int Limit )
+Aig_Sto_t * Aig_ManComputeDomsFlops( Aig_Man_t * pAig, int Limit )
 {
     Aig_Sto_t * pSto;
     Vec_Ptr_t * vNodes;
@@ -636,7 +638,6 @@ Aig_Sto_t * Aig_ManComputeDoms( Aig_Man_t * pAig, int Limit )
     // compute combinational inputs
     Aig_ManForEachPi( pAig, pObj, i )
         Aig_ObjDomCompute( pSto, pObj );
-
     // print statistics
     printf( "Nodes =%4d. Flops =%4d. Doms =%9d. Ave =%8.2f.   ", 
         pSto->nDomNodes, Aig_ManRegNum(pSto->pAig), pSto->nDomsTotal, 
@@ -646,6 +647,44 @@ Aig_Sto_t * Aig_ManComputeDoms( Aig_Man_t * pAig, int Limit )
     return pSto;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes multi-node dominators.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Sto_t * Aig_ManComputeDomsNodes( Aig_Man_t * pAig, int Limit )
+{
+    Aig_Sto_t * pSto;
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj;
+    int i, clk = clock();
+    pSto = Aig_ManDomStart( pAig, Limit );
+    // initialize flop inputs
+    Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjAddTriv( pSto, pObj->Id, Vec_PtrAlloc(1) );
+    // compute internal nodes
+    vNodes = Aig_ManDfsReverse( pAig );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+        Aig_ObjDomCompute( pSto, pObj );
+    Vec_PtrFree( vNodes );
+    // compute combinational inputs
+    Aig_ManForEachPi( pAig, pObj, i )
+        Aig_ObjDomCompute( pSto, pObj );
+    // print statistics
+    printf( "Nodes =%6d. Doms =%9d. Ave =%8.2f.   ", 
+        pSto->nDomNodes, pSto->nDomsTotal, 
+//        pSto->nDomsFilter1, pSto->nDomsFilter2,
+        1.0 * pSto->nDomsTotal / pSto->nDomNodes );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    return pSto;
+}
 
 /**Function*************************************************************
 
@@ -941,13 +980,106 @@ void Aig_ManComputeDomsTest( Aig_Man_t * pAig, int Num )
 //    for ( i = 1; i < 9; i++ )
     {
         printf( "ITERATION %d:\n", Num );
-        pSto = Aig_ManComputeDoms( pAig, Num );
+        pSto = Aig_ManComputeDomsFlops( pAig, Num );
         Aig_ObjDomFindGood( pSto );
 //        Aig_ManDomPrint( pSto );
         Aig_ManDomStop( pSto );
     }
     Aig_ManFanoutStop( pAig );
 }
+
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects dominators from the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ObjDomCount( Aig_Sto_t * pSto, Aig_Obj_t * pObj )
+{
+    Aig_Dom_t * pDom;
+    Aig_Obj_t * pFanout;
+    Vec_Int_t * vSingles;
+    Vec_Ptr_t * vDoms;
+    int i, k, Entry, iFanout, fPrint = 0;
+    vSingles = Vec_IntAlloc( 100 );
+    // for each dominator of a fanout, count how many fanouts have it as a dominator
+    Aig_ObjForEachFanout( pSto->pAig, pObj, pFanout, iFanout, i )
+    {
+        vDoms = (Vec_Ptr_t *)Vec_PtrEntry( pSto->vDoms, Aig_ObjId(pFanout) );
+        Vec_PtrForEachEntryStart( Aig_Dom_t *, vDoms, pDom, k, 1 )
+        {
+//            printf( "Fanout %d  Dominator %d\n", Aig_ObjId(pFanout), pDom->pNodes[0] );
+            Vec_IntAddToEntry( pSto->vTimes, pDom->pNodes[0], 1 );
+            Vec_IntPushUnique( vSingles, pDom->pNodes[0] );
+        }
+    }
+    // clear storage
+    Vec_IntForEachEntry( vSingles, Entry, i )
+    {
+        if ( Vec_IntEntry(pSto->vTimes, Entry) > 5 )
+        {
+            if ( fPrint == 0 )
+            {
+                printf( "%6d : Level =%4d. Fanout =%6d.\n", 
+                    Aig_ObjId(pObj), Aig_ObjLevel(pObj), Aig_ObjRefs(pObj) );
+            }
+            fPrint = 1;
+            printf( "%d(%d) ", Entry, Vec_IntEntry(pSto->vTimes, Entry) );
+        }
+        Vec_IntWriteEntry( pSto->vTimes, Entry, 0);
+    }
+    if ( fPrint )
+        printf( "\n" );
+    Vec_IntFree( vSingles );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes multi-node dominators.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManComputeDomsForCofactoring( Aig_Man_t * pAig )
+{
+    Vec_Ptr_t * vDoms;
+    Aig_Sto_t * pSto;
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManFanoutStart( pAig );
+    pSto = Aig_ManComputeDomsNodes( pAig, 1 );
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        if ( !Aig_ObjIsPi(pObj) && !Aig_ObjIsNode(pObj) )
+            continue;
+        if ( Aig_ObjRefs(pObj) < 10 )
+            continue;
+        vDoms = (Vec_Ptr_t *)Vec_PtrEntry( pSto->vDoms, Aig_ObjId(pObj) );
+//        printf( "%6d : Level =%4d. Fanout =%6d.\n", 
+//            Aig_ObjId(pObj), Aig_ObjLevel(pObj), Aig_ObjRefs(pObj) );
+
+        Aig_ObjDomCount( pSto, pObj );
+    }
+    Aig_ManDomStop( pSto );
+    Aig_ManFanoutStop( pAig );
+}
+
+
+
 
 
 ////////////////////////////////////////////////////////////////////////
