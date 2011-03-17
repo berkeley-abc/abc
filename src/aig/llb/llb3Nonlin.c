@@ -453,12 +453,20 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     {
         if ( !p->pPars->fSilent )
             printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+        p->pPars->iFrame = -1;
         return -1;
     }
     Cudd_Ref( p->ddR->bFunc );
     // compute the starting set of states
     Cudd_Quit( p->dd );
-    p->dd = Llb_NonlinImageStart( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->pOrderL, 1 );
+    p->dd = Llb_NonlinImageStart( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->pOrderL, 1, p->pPars->TimeTarget );
+    if ( p->dd == NULL )
+    {
+        if ( !p->pPars->fSilent )
+            printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+        p->pPars->iFrame = -1;
+        return -1;
+    }
     p->dd->bFunc   = Llb_NonlinComputeInitState( p->pAig, p->dd );   Cudd_Ref( p->dd->bFunc );   // current
     p->ddG->bFunc  = Llb_NonlinComputeInitState( p->pAig, p->ddG );  Cudd_Ref( p->ddG->bFunc );  // reached
     p->ddG->bFunc2 = Llb_NonlinComputeInitState( p->pAig, p->ddG );  Cudd_Ref( p->ddG->bFunc2 ); // frontier 
@@ -502,6 +510,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
                     printf( "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
+            p->pPars->iFrame = nIters - 1;
             Llb_NonlinImageQuit();
             return 0;
         }
@@ -552,7 +561,14 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
         p->ddLocReos += Cudd_ReadReorderings(p->dd);
         p->ddLocGrbs += Cudd_ReadGarbageCollections(p->dd);
         Llb_NonlinImageQuit();
-        p->dd = Llb_NonlinImageStart( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->pOrderL, 0 );
+        p->dd = Llb_NonlinImageStart( p->pAig, p->vLeaves, p->vRoots, p->pVars2Q, p->pOrderL, 0, p->pPars->TimeTarget );
+        if ( p->dd == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+            p->pPars->iFrame = nIters - 1;
+            return -1;
+        }
         //Extra_TestAndPerm( p->ddG, Cudd_Not(p->ddG->bFunc), p->ddG->bFunc2 );    
 
         // derive new states
@@ -658,6 +674,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     {
         if ( !p->pPars->fSilent )
             printf( "Verified only for states reachable in %d frames.  ", nIters );
+        p->pPars->iFrame = p->pPars->nIterMax;
         return -1; // undecided
     }
     // report

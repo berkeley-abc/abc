@@ -958,13 +958,14 @@ static Llb_Mgr_t * p = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, int * pOrder, int fFirst )
+DdManager * Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, int * pOrder, int fFirst, int TimeTarget )
 {
     DdManager * dd;
     int clk = clock();
     assert( p == NULL );
     // start a new manager (disable reordering)
     dd = Cudd_Init( Aig_ManObjNumMax(pAig), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    dd->TimeStop = TimeTarget;
     Cudd_ShuffleHeap( dd, pOrder );
 //    if ( fFirst )
         Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
@@ -973,6 +974,7 @@ DdManager * Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr
     if ( !Llb_NonlinStart( p, 0 ) )
     {
         Llb_NonlinFree( p );
+        p = NULL;
         return NULL;
     }
     timeBuild += clock() - clk;

@@ -629,6 +629,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     {
         if ( !p->pPars->fSilent )
             printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+        p->pPars->iFrame = -1;
         return -1;
     }
     Cudd_Ref( p->ddR->bFunc );
@@ -701,6 +702,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
                     printf( "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
+            p->pPars->iFrame = nIters - 1;
             Cudd_RecursiveDeref( p->dd,  bCurrent );  bCurrent = NULL;
             Cudd_RecursiveDeref( p->dd,  bConstrCs ); bConstrCs = NULL;
             Cudd_RecursiveDeref( p->dd,  bConstrNs ); bConstrNs = NULL;
@@ -850,7 +852,10 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     Cudd_RecursiveDeref( p->dd, bConstrCs ); bConstrCs = NULL;
     Cudd_RecursiveDeref( p->dd, bConstrNs ); bConstrNs = NULL;
     if ( bReached == NULL )
+    {
+        p->pPars->iFrame = nIters - 1;
         return 0; // reachable
+    }
 //    assert( bCurrent == NULL );
     if ( bCurrent )
         Cudd_RecursiveDeref( p->dd, bCurrent );
@@ -869,6 +874,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     {
         if ( !p->pPars->fSilent )
             printf( "Verified only for states reachable in %d frames.  ", nIters );
+        p->pPars->iFrame = p->pPars->nIterMax;
         Cudd_RecursiveDeref( p->ddG, bReached );
         return -1; // undecided
     }

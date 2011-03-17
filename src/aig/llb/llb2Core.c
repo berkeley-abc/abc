@@ -222,6 +222,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     {
         if ( !p->pPars->fSilent )
             printf( "Reached timeout (%d seconds) before image computation.\n", p->pPars->TimeLimit );
+        p->pPars->iFrame = -1;
         return -1;
     }
 
@@ -239,6 +240,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
+            p->pPars->iFrame = -1;
             return -1;
         }
         Cudd_Ref( bTemp );
@@ -255,6 +257,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
             Cudd_RecursiveDeref( p->ddG, bReached );
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during transfer 0.\n", p->pPars->TimeLimit );
+            p->pPars->iFrame = -1;
             return -1;
         }
         Cudd_Ref( bCurrent );
@@ -267,10 +270,9 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) while computing bad states.\n", p->pPars->TimeLimit );
+            p->pPars->iFrame = -1;
             return -1;
         }
-        if ( p->ddR->bFunc == NULL )
-            return -1;
         Cudd_Ref( p->ddR->bFunc );
         // create init state in the working and global manager
         bCurrent = Llb_CoreComputeCube( p->dd,  p->vVarsCs, 1, NULL );           Cudd_Ref( bCurrent );
@@ -324,6 +326,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
                     printf( "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
+            p->pPars->iFrame = nIters - 1;
             return 0;
         }
 
@@ -438,7 +441,10 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         }
     }
     if ( bReached == NULL )
+    {
+        p->pPars->iFrame = nIters - 1;
         return 0; // reachable
+    }
     if ( bCurrent )
         Cudd_RecursiveDeref( p->dd, bCurrent );
     // report the stats
@@ -465,6 +471,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
             printf( "Verified only for states reachable in %d frames.  ", nIters );
             Abc_PrintTime( 1, "Time", clock() - clk );
         }
+        p->pPars->iFrame = p->pPars->nIterMax;
         return -1; // undecided
     }
     if ( !p->pPars->fSilent )
