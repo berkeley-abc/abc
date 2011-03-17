@@ -199,6 +199,32 @@ void Kit_DsdPrintHex( FILE * pFile, unsigned * pTruth, int nFans )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints the hex unsigned into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Kit_DsdWriteHex( char * pBuff, unsigned * pTruth, int nFans )
+{
+    int nDigits, Digit, k;
+    nDigits = (1 << nFans) / 4;
+    for ( k = nDigits - 1; k >= 0; k-- )
+    {
+        Digit = ((pTruth[k/8] >> ((k%8) * 4)) & 15);
+        if ( Digit < 10 )
+            *pBuff++ = '0' + Digit;
+        else
+            *pBuff++ = 'A' + Digit-10;
+    }
+    return pBuff;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Recursively print the DSD formula.]
 
   Description []
@@ -276,6 +302,83 @@ void Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Recursively print the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Kit_DsdWrite_rec( char * pBuff, Kit_DsdNtk_t * pNtk, int Id )
+{
+    Kit_DsdObj_t * pObj;
+    unsigned iLit, i;
+    char Symbol;
+
+    pObj = Kit_DsdNtkObj( pNtk, Id );
+    if ( pObj == NULL )
+    {
+        assert( Id < pNtk->nVars );
+        *pBuff++ = 'a' + Id;
+        return pBuff;
+    }
+
+    if ( pObj->Type == KIT_DSD_CONST1 )
+    {
+        assert( pObj->nFans == 0 );
+        sprintf( pBuff, "%s", "Const1" );
+        return pBuff + strlen("Const1");
+    }
+
+    if ( pObj->Type == KIT_DSD_VAR )
+        assert( pObj->nFans == 1 );
+
+    if ( pObj->Type == KIT_DSD_AND )
+        Symbol = '*';
+    else if ( pObj->Type == KIT_DSD_XOR )
+        Symbol = '+';
+    else 
+        Symbol = ',';
+
+    if ( pObj->Type == KIT_DSD_PRIME )
+        pBuff = Kit_DsdWriteHex( pBuff, Kit_DsdObjTruth(pObj), pObj->nFans );
+
+    *pBuff++ = '(';
+    Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+    {
+        if ( Kit_DsdLitIsCompl(iLit) ) 
+            *pBuff++ = '!';
+        pBuff = Kit_DsdWrite_rec( pBuff, pNtk, Kit_DsdLit2Var(iLit) );
+        if ( i < pObj->nFans - 1 )
+            *pBuff++ = Symbol;
+    }
+    *pBuff++ = ')';
+    return pBuff;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdWrite( char * pBuff, Kit_DsdNtk_t * pNtk )
+{
+    if ( Kit_DsdLitIsCompl(pNtk->Root) )
+        *pBuff++ = '!';
+    pBuff = Kit_DsdWrite_rec( pBuff, pNtk, Kit_DsdLit2Var(pNtk->Root) );
+    *pBuff = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Print the DSD formula.]
 
   Description []
@@ -312,6 +415,30 @@ void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars )
 //    Kit_DsdPrintExpanded( pTemp );
     pTemp2 = Kit_DsdExpand( pTemp );
     Kit_DsdPrint( stdout, pTemp2 );
+    Kit_DsdVerify( pTemp2, pTruth, nVars ); 
+    Kit_DsdNtkFree( pTemp2 );
+    Kit_DsdNtkFree( pTemp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdWriteFromTruth( char * pBuffer, unsigned * pTruth, int nVars )
+{
+    Kit_DsdNtk_t * pTemp, * pTemp2;
+//    pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 5 );
+    pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 8 );
+//    Kit_DsdPrintExpanded( pTemp );
+    pTemp2 = Kit_DsdExpand( pTemp );
+    Kit_DsdWrite( pBuffer, pTemp2 );
     Kit_DsdVerify( pTemp2, pTruth, nVars ); 
     Kit_DsdNtkFree( pTemp2 );
     Kit_DsdNtkFree( pTemp );

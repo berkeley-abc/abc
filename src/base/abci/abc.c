@@ -8669,7 +8669,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_NtkDarTest( pNtk );
 
 //    Bbl_ManTest( pNtk );
-
+/*
     {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern void Aig_ManComputeDomsForCofactoring( Aig_Man_t * p );
@@ -8678,12 +8678,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_ManComputeDomsForCofactoring( pAig );
     Aig_ManStop( pAig );
     }
-
+*/
 
 /*
 {
-    extern Abc_Ntk_t * Au_ManDeriveFromAig( Abc_Ntk_t * pAig );
-    pNtkRes = Au_ManDeriveFromAig( pNtk );
+    extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
+    pNtkRes = Au_ManTransformTest( pNtk );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command has failed.\n" );
@@ -8691,6 +8691,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+}
+*/
+/*
+{
+    extern void Au_DsdVecTest( int nVars );
+    Au_DsdVecTest( 6 );
 }
 */
 
