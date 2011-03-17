@@ -384,6 +384,87 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Converts the AIG into the logic network with SOPs for bench writing.]
+
+  Description [This procedure does not copy the choices.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkAigToLogicSopNand( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin;
+    Vec_Ptr_t * vNodes;
+    int i, k;
+    assert( Abc_NtkIsStrash(pNtk) );
+    if ( Abc_NtkGetChoiceNum(pNtk) )
+        printf( "Warning: Choice nodes are skipped.\n" );
+    // convert complemented edges
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            if ( Abc_ObjIsNode(pFanin) )
+                Abc_ObjXorFaninC( pObj, k );
+    // start the network
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    // collect the nodes to be used (marks all nodes with current TravId)
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    // create inverters for the constant node
+    pObj = Abc_AigConst1(pNtk);
+    if ( Abc_ObjFanoutNum(pObj) > 0 )
+        pObj->pCopy = Abc_NtkCreateNodeConst1(pNtkNew);
+    if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
+        pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
+    // create inverters for the CIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
+            pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
+    // duplicate the nodes, create node functions, and inverters
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+        pObj->pCopy->pData = Abc_SopCreateNand( (Mem_Flex_t *)pNtkNew->pManFunc, 2 );
+        if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
+            pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
+    }
+    // connect the objects
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            if ( Abc_ObjFaninC( pObj, k ) )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
+            else
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+        }
+    Vec_PtrFree( vNodes );
+    // connect the COs
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        pFanin = Abc_ObjFanin0(pObj);
+        if ( Abc_ObjFaninC0( pObj ) )
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
+        else
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    // fix the problem with complemented and duplicated CO edges
+    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
+    // convert complemented edges
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            if ( Abc_ObjIsNode(pFanin) )
+                Abc_ObjXorFaninC( pObj, k );
+    // duplicate the EXDC Ntk
+    if ( pNtk->pExdc )
+        printf( "Warning: The EXDc network is skipped.\n" );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Adds buffers for each PO.]
 
   Description []
