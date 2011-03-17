@@ -596,7 +596,7 @@ static inline int Amap_LibertySkipEntry( char ** ppPos, char * pEnd )
     else
     {
         for ( ; pPos < pEnd; pPos++ )
-            if ( *pPos == ' ' || *pPos == '\r' || *pPos == '\n' ||
+            if ( *pPos == ' ' || *pPos == '\r' || *pPos == '\n' || *pPos == '\t' ||
                  *pPos == ':' || *pPos == ';'  || 
                  *pPos == '(' || *pPos == ')'  || 
                  *pPos == '{' || *pPos == '}' )
