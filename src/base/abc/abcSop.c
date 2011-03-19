@@ -1149,6 +1149,58 @@ char * Abc_SopDecoderLog( Mem_Flex_t * pMan, int nValues )
     return pResult;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of the node.]
+ 
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word Abc_SopToTruth( char * pSop, int nInputs )
+{
+    static word Truth[8] = {
+        0xAAAAAAAAAAAAAAAA,
+        0xCCCCCCCCCCCCCCCC,
+        0xF0F0F0F0F0F0F0F0,
+        0xFF00FF00FF00FF00,
+        0xFFFF0000FFFF0000,
+        0xFFFFFFFF00000000,
+        0x0000000000000000,
+        0xFFFFFFFFFFFFFFFF
+    };
+    word Cube, Result = 0;
+    int v, lit = 0;
+    int nVars = Abc_SopGetVarNum(pSop);
+    assert( nVars >= 0 && nVars <= 6 );
+    assert( nVars == nInputs );
+    do {
+        Cube = Truth[7];
+        for ( v = 0; v < nVars; v++, lit++ )
+        {
+            if ( pSop[lit] == '1' )
+                Cube &=  Truth[v];
+            else if ( pSop[lit] == '0' )
+                Cube &= ~Truth[v];
+            else if ( pSop[lit] != '-' )
+                assert( 0 );
+        }
+        Result |= Cube;
+        assert( pSop[lit] == ' ' );
+        lit++;
+        lit++;
+        assert( pSop[lit] == '\n' );
+        lit++;
+    } while ( pSop[lit] );
+    if ( Abc_SopIsComplement(pSop) )
+        Result = ~Result;
+    return Result;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

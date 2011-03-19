@@ -1231,15 +1231,20 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
+    int fMffc;
     int fVerbose;
 
     // set defaults
+    fMffc    = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'm':
+            fMffc ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -1260,12 +1265,13 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fVerbose )
         Abc_NtkPrintFanio( stdout, pNtk );
     else
-        Abc_NtkPrintFanioNew( stdout, pNtk );
+        Abc_NtkPrintFanioNew( stdout, pNtk, fMffc );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_fanio [-vh]\n" );
+    Abc_Print( -2, "usage: print_fanio [-mvh]\n" );
     Abc_Print( -2, "\t        prints the statistics about fanins/fanouts of all nodes\n" );
+    Abc_Print( -2, "\t-m    : toggles printing MFFC sizes instead of fanouts [default = %s]\n", fMffc? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggles verbose way of printing the stats [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
@@ -8682,8 +8688,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 /*
 {
-    extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
-    pNtkRes = Au_ManTransformTest( pNtk );
+//    extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
+    extern Abc_Ntk_t * Au_ManResubTest( Abc_Ntk_t * pAig );
+//    pNtkRes = Au_ManTransformTest( pNtk );
+    pNtkRes = Au_ManResubTest( pNtk );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command has failed.\n" );
@@ -8693,12 +8701,20 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 }
 */
+
 /*
 {
     extern void Au_DsdVecTest( int nVars );
     Au_DsdVecTest( 6 );
 }
 */
+{
+//    extern void Au_NtkReadFour( Abc_Ntk_t * pNtk );
+//    extern void Au_Data4VerifyFour();
+//    Au_NtkReadFour( pNtk );
+//    Au_Data4VerifyFour();
+}
+
 
 //    Abc_NtkCheckAbsorb( pNtk, 4 );
 /*

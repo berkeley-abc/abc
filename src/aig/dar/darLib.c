@@ -915,7 +915,7 @@ int Dar_LibEval_rec( Dar_LibObj_t * pObj, int Out, int nNodesSaved, int Required
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Required )
+void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Required, int * pnMffcSize )
 {
     int fTraining = 0;
     float PowerSaved, PowerAdded;
@@ -961,6 +961,7 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
         p->GainBest   = nNodesGained;
         p->ClassBest  = Class;
         assert( p->LevelBest <= Required );
+        *pnMffcSize   = nNodesSaved;
     }
 clk = clock() - clk;
 p->ClassTimes[Class] += clk;

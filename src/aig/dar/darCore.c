@@ -56,6 +56,8 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
     pPars->fVeryVerbose =  0;
 }
 
+#define MAX_VAL 10
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -76,6 +78,7 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     Aig_Obj_t * pObj, * pObjNew;
     int i, k, nNodesOld, nNodeBefore, nNodeAfter, Required;
     int clk = 0, clkStart, Counter = 0;
+    int nMffcSize, nMffcGains[MAX_VAL+1][MAX_VAL+1] = {{0}};
     // prepare the library
     Dar_LibPrepare( pPars->nSubgMax ); 
     // create rewriting manager
@@ -154,13 +157,14 @@ p->timeCuts += clock() - clk;
 
         // evaluate the cuts
         p->GainBest = -1;
-        Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : ABC_INFINITY;
+        nMffcSize   = -1;
+        Required    = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : ABC_INFINITY;
         Dar_ObjForEachCut( pObj, pCut, k )
         {
             int nLeavesOld = pCut->nLeaves;
             if ( pCut->nLeaves == 3 )
                 pCut->pLeaves[pCut->nLeaves++] = 0;
-            Dar_LibEval( p, pObj, pCut, Required );
+            Dar_LibEval( p, pObj, pCut, Required, &nMffcSize );
             pCut->nLeaves = nLeavesOld; 
         }
         // check the best gain
@@ -169,6 +173,7 @@ p->timeCuts += clock() - clk;
 //            Aig_ObjOrderAdvance( pAig );
             continue;
         }
+//        nMffcGains[p->GainBest < MAX_VAL ? p->GainBest : MAX_VAL][nMffcSize < MAX_VAL ? nMffcSize : MAX_VAL]++;
         // remove the old cuts
         Dar_ObjSetCuts( pObj, NULL );
         // if we end up here, a rewriting step is accepted
@@ -185,6 +190,18 @@ p->timeCuts += clock() - clk;
         p->ClassGains[p->ClassBest] += nNodeBefore - nNodeAfter;
     }
 //    Aig_ManOrderStop( pAig );
+/*
+    printf( "Distribution of gain (row) by MFFC size (column) %s 0-costs:\n", p->pPars->fUseZeros? "with":"without" );
+    for ( k = 0; k <= MAX_VAL; k++ )
+        printf( "<%4d> ", k );
+    printf( "\n" );
+    for ( i = 0; i <= MAX_VAL; i++ )
+    {
+        for ( k = 0; k <= MAX_VAL; k++ )
+            printf( "%6d ", nMffcGains[i][k] );
+        printf( "\n" );
+    }
+*/
 
 p->timeTotal = clock() - clkStart;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;

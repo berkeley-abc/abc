@@ -535,7 +535,7 @@ void Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk )
+void Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk, int fMffc )
 {
     char Buffer[100];
     Abc_Obj_t * pNode;
@@ -548,9 +548,13 @@ void Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk )
     nFaninsAll = nFanoutsAll = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( fMffc && Abc_ObjFanoutNum(pNode) == 1 )
+            continue;
         nFanins  = Abc_ObjFaninNum(pNode);
         if ( Abc_NtkIsNetlist(pNtk) )
             nFanouts = Abc_ObjFanoutNum( Abc_ObjFanout0(pNode) );
+        else if ( fMffc )
+            nFanouts = Abc_NodeMffcSize(pNode);
         else
             nFanouts = Abc_ObjFanoutNum(pNode);
         nFaninsAll  += nFanins;
@@ -567,12 +571,15 @@ void Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk )
     // count the number of fanins and fanouts
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( fMffc && Abc_ObjFanoutNum(pNode) == 1 )
+            continue;
         nFanins  = Abc_ObjFaninNum(pNode);
         if ( Abc_NtkIsNetlist(pNtk) )
             nFanouts = Abc_ObjFanoutNum( Abc_ObjFanout0(pNode) );
+        else if ( fMffc )
+            nFanouts = Abc_NodeMffcSize(pNode);
         else
             nFanouts = Abc_ObjFanoutNum(pNode);
-//            nFanouts = Abc_NodeMffcSize(pNode);
 
         if ( nFanins < 10 )
             Vec_IntAddToEntry( vFanins, nFanins, 1 );

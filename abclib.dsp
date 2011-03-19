@@ -4155,6 +4155,10 @@ SOURCE=.\src\aig\au\auBridge.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\au\auCone.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\au\auCore.c
 # End Source File
 # Begin Source File
@@ -4167,7 +4171,19 @@ SOURCE=.\src\aig\au\auCut.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\au\auData.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\au\auDec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auDecomp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auDiv.c
 # End Source File
 # Begin Source File
 
@@ -4176,6 +4192,10 @@ SOURCE=.\src\aig\au\auDsd.c
 # Begin Source File
 
 SOURCE=.\src\aig\au\auFanout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auFour.c
 # End Source File
 # Begin Source File
 
@@ -4195,11 +4215,23 @@ SOURCE=.\src\aig\au\auNtk.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\au\auResub.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\au\auSweep.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\au\auTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auTruth.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auTruth.h
 # End Source File
 # Begin Source File
 

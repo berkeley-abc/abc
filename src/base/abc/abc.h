@@ -748,7 +748,7 @@ extern ABC_DLL void               Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFact
 extern ABC_DLL void               Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk );
-extern ABC_DLL void               Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk, int fMffc );
 extern ABC_DLL void               Abc_NodePrintFanio( FILE * pFile, Abc_Obj_t * pNode );
 extern ABC_DLL void               Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames );
 extern ABC_DLL void               Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames );
@@ -836,6 +836,7 @@ extern ABC_DLL char *             Abc_SopEncoderPos( Mem_Flex_t * pMan, int iVal
 extern ABC_DLL char *             Abc_SopEncoderLog( Mem_Flex_t * pMan, int iBit, int nValues );
 extern ABC_DLL char *             Abc_SopDecoderPos( Mem_Flex_t * pMan, int nValues );
 extern ABC_DLL char *             Abc_SopDecoderLog( Mem_Flex_t * pMan, int nValues );
+extern ABC_DLL word               Abc_SopToTruth( char * pSop, int nInputs );
 /*=== abcStrash.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fRecord );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int fRecord );
