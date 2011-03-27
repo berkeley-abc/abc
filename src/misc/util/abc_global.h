@@ -236,6 +236,17 @@ ABC_NAMESPACE_HEADER_START
          ((type *) Util_MemRecAlloc(malloc(sizeof(type) * (num)))))
 #endif
 
+static inline int    Abc_AbsInt( int a        )          { return a < 0 ? -a : a; }
+static inline int    Abc_MaxInt( int a, int b )          { return a > b ?  a : b; }
+static inline int    Abc_MinInt( int a, int b )          { return a < b ?  a : b; }
+static inline word   Abc_MaxWord( word a, word b )       { return a > b ?  a : b; }
+static inline word   Abc_MinWord( word a, word b )       { return a < b ?  a : b; }
+static inline float  Abc_AbsFloat( float a          )    { return a < 0 ? -a : a; }
+static inline float  Abc_MaxFloat( float a, float b )    { return a > b ?  a : b; }
+static inline float  Abc_MinFloat( float a, float b )    { return a < b ?  a : b; }
+static inline double Abc_AbsDouble( double a           ) { return a < 0 ? -a : a; }
+static inline double Abc_MaxDouble( double a, double b ) { return a > b ?  a : b; }
+static inline double Abc_MinDouble( double a, double b ) { return a < b ?  a : b; }
 
 enum Abc_VerbLevel 
 {
