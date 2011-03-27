@@ -444,6 +444,7 @@ static char * Io_BlifLoadFile( char * pFileName )
     nFileSize = ftell( pFile ); 
     if ( nFileSize == 0 )
     {
+        fclose( pFile );
         printf( "Io_BlifLoadFile(): The file is empty.\n" );
         return NULL;
     }

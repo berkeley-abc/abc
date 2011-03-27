@@ -751,7 +751,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     Aig_Man_t * pNew;
     Cnf_Dat_t * pCnf;
     int nOutsSolved = 0;
-    int Iter, RetValue, clk = clock(), clk2, clkTotal = clock();
+    int Iter, RetValue = -1, clk = clock(), clk2, clkTotal = clock();
     int Status = -1;
 /*
     Vec_Ptr_t * vSimInfo;
@@ -801,9 +801,9 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         if ( nTimeOut && ((float)nTimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
         {
             printf( "Reached timeout (%d seconds).\n",  nTimeOut );
-            Saig_BmcManStop( p );
             if ( piFrames )
                 *piFrames = p->iFrameLast-1;
+            Saig_BmcManStop( p );
             return Status;
         }
     }

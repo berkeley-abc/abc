@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 Gia_Man_t * Cec_ManFraSpecReduction( Cec_ManFra_t * p )
 {
     Gia_Man_t * pNew, * pTemp;
-    Gia_Obj_t * pObj, * pRepr;
+    Gia_Obj_t * pObj, * pRepr = NULL;
     int iRes0, iRes1, iRepr, iNode, iMiter;
     int i, fCompl, * piCopies, * pDepths;
     Gia_ManSetPhase( p->pAig );

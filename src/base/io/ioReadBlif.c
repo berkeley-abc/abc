@@ -149,9 +149,9 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
         if ( p->vTokens && strcmp((char *)p->vTokens->pArray[0], ".exdc") == 0 )
         {
             pNtk->pExdc = Io_ReadBlifNetworkOne( p );
-            Abc_NtkFinalizeRead( pNtk->pExdc );
             if ( pNtk->pExdc == NULL )
                 break;
+            Abc_NtkFinalizeRead( pNtk->pExdc );
         }
         // add this network as part of the hierarchy
         if ( pNtkMaster == NULL ) // no master network so far

@@ -109,7 +109,10 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
     p->pFileName = pFileName;
     p->pReader   = Ver_StreamAlloc( pFileName );
     if ( p->pReader == NULL )
+    {
+        ABC_FREE( p );
         return NULL;
+    }
     p->Output    = stdout;
     p->vNames    = Vec_PtrAlloc( 100 );
     p->vStackFn  = Vec_PtrAlloc( 100 );
@@ -2537,7 +2540,7 @@ int Ver_ParseDriveFormal( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_Bundle_t * pBu
             Abc_ObjAddFanin( pNetAct, pTermNew );
         }
         // remove the bundle
-        Ver_ParseFreeBundle( pBundle );
+        Ver_ParseFreeBundle( pBundle ); pBundle = NULL;
         Vec_PtrWriteEntry( (Vec_Ptr_t *)pBox->pCopy, j, NULL );
     }
     ABC_FREE( pName );

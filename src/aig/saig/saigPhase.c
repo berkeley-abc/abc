@@ -665,7 +665,7 @@ void Saig_ManAnalizeControl( Aig_Man_t * p, int Reg )
 ***********************************************************************/
 int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVerbose )
 {
-    int Values[257];
+    int Values[257] = {0};
     unsigned * pState;
     int r, i, k, Reg, Value;
     int nTests = pTsi->nPrefix + 2 * pTsi->nCycle;

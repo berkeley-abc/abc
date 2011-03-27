@@ -365,8 +365,8 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     // check if the input file format is correct
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
     {
+        ABC_FREE( pContents );
         fprintf( stdout, "Wrong input file format.\n" );
-        free( pContents );
         return NULL;
     }
 
@@ -385,6 +385,7 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     // check the parameters
     if ( nTotal != nInputs + nLatches + nAnds )
     {
+        ABC_FREE( pContents );
         fprintf( stdout, "The paramters are wrong.\n" );
         return NULL;
     }

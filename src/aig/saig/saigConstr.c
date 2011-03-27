@@ -57,7 +57,11 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     int i, RetValue;
     RetValue = Saig_ManDetectConstr( pAig, &vOuts, &vCons );
     if ( RetValue == 0 )
+    {
+        Vec_PtrFreeP( &vOuts );
+        Vec_PtrFreeP( &vCons );
         return Aig_ManDupDfs( pAig );
+    }
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
     pAigNew->pName = Aig_UtilStrsav( pAig->pName );

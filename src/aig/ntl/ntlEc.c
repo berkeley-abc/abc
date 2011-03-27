@@ -243,8 +243,6 @@ void Ntl_ManPrepareCecMans( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, Aig_Man_t ** p
     Ntl_ManCreateMissingInputs( pModel1, pModel2, 0 );
     if ( Ntl_ModelCombLeafNum(pModel1) != Ntl_ModelCombLeafNum(pModel2) )
     {
-        if ( pMan1 )  Ntl_ManFree( pMan1 );
-        if ( pMan2 )  Ntl_ManFree( pMan2 );
         printf( "Ntl_ManPrepareCec(): Cannot verify designs with too many different CIs.\n" );
         return;
     }
@@ -253,8 +251,6 @@ void Ntl_ManPrepareCecMans( Ntl_Man_t * pMan1, Ntl_Man_t * pMan2, Aig_Man_t ** p
     if ( Vec_PtrSize(pMan1->vCos) == 0 )
     {
         printf( "Ntl_ManPrepareCec(): There is no identically-named primary outputs to compare.\n" );
-        if ( pMan1 )  Ntl_ManFree( pMan1 );
-        if ( pMan2 )  Ntl_ManFree( pMan2 );
         return;
     }
     // derive AIGs

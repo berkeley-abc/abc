@@ -262,10 +262,14 @@ int Gia_MappingIf( Gia_Man_t * p, If_Par_t * pPars )
     vAigToIf = Vec_PtrStart( Gia_ManObjNum(p) );
     pIfMan = Gia_ManToIf( p, pPars, vAigToIf );    
     if ( pIfMan == NULL )
+    {
+        Vec_PtrFree( vAigToIf );
         return 0;
+    }
 //    pIfMan->pManTim = Tim_ManDup( pManTime, 0 );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
+        Vec_PtrFree( vAigToIf );
         If_ManStop( pIfMan );
         return 0;
     }

@@ -331,6 +331,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
     {
         if ( strcmp( pToken, AMAP_STRING_GATE ) )
         {
+            Amap_LibFree( p );
             printf( "The first line should begin with %s.\n", AMAP_STRING_GATE );
             return NULL;
         }
@@ -358,6 +359,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
             if ( strcmp( pToken, AMAP_STRING_PIN ) )
             {
+                Amap_LibFree( p );
                 printf( "Cannot parse gate %s.\n", pGate->pName );
                 return NULL;
             }
@@ -373,6 +375,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
                 pPin->Phase = AMAP_PHASE_NONINV;
             else 
             {
+                Amap_LibFree( p );
                 printf( "Cannot read phase of pin %s of gate %s\n", pPin->pName, pGate->pName );
                 return NULL;
             }
@@ -429,7 +432,10 @@ Amap_Lib_t * Amap_LibReadFile( char * pFileName, int fVerbose )
     vTokens = Amap_DeriveTokens( pBuffer );
     pLib = Amap_ParseTokens( vTokens, fVerbose );
     if ( pLib == NULL )
+    {
+        Vec_PtrFree( vTokens );
         return NULL;
+    }
     pLib->pName = Amap_ParseStrsav( pLib->pMemGates, pFileName );
     Vec_PtrFree( vTokens );
     ABC_FREE( pBuffer );

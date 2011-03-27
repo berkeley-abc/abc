@@ -2103,7 +2103,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     // convert it to truth table
     {
         Abc_Obj_t * pObj = Abc_ObjFanin0( Abc_NtkPo(pNtk, 0) );
-        Vec_Int_t * vMemory = Vec_IntAlloc(0);
+        Vec_Int_t * vMemory;
         unsigned * pTruth;
         if ( !Abc_ObjIsNode(pObj) )
         {
@@ -2115,6 +2115,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Currently works only for up to 16 inputs.\n" );
             return 1;
         }
+        vMemory = Vec_IntAlloc(0);
         pTruth = Hop_ManConvertAigToTruth( (Hop_Man_t *)pNtk->pManFunc, Hop_Regular((Hop_Obj_t *)pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 0 );
         if ( Hop_IsComplement((Hop_Obj_t *)pObj->pData) )
             Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
@@ -5581,7 +5582,7 @@ usage:
 int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes;
-    int fComb;
+    int fComb = 0;
     int c;
     extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
 
@@ -5656,7 +5657,7 @@ usage:
 int Abc_CommandAndPos( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes;
-    int fComb;
+    int fComb = 0;
     int c;
 
     // set defaults
@@ -5932,7 +5933,7 @@ int Abc_CommandAppend( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtk2;
     char * FileName;
-    int fComb;
+    int fComb = 0;
     int c;
     pNtk = Abc_FrameReadNtk(pAbc);
 
@@ -5972,6 +5973,7 @@ int Abc_CommandAppend( Abc_Frame_t * pAbc, int argc, char ** argv )
     // check if the second network is combinational
     if ( Abc_NtkLatchNum(pNtk2) )
     {
+        Abc_NtkDelete( pNtk2 );
         Abc_Print( -1, "The second network has latches. Appending does not work for such networks.\n" );
         return 0;
     }

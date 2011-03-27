@@ -104,6 +104,7 @@ Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose
     vLatches = Abc_ManCollectLatches( pNtk );
     if ( !Abc_NtkRetimeForPeriod( pNtk, vNodes, vLatches, FiMax, nIterLimit, fVerbose ) )
     {
+        Vec_PtrFree( vLatches );
         Vec_PtrFree( vNodes );
         printf( "Abc_NtkRetimeGetLags() error: The upper bound on the clock period cannot be computed.\n" );
         return Vec_IntStart( Abc_NtkObjNumMax(pNtk) + 1 );

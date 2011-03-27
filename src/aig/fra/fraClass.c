@@ -281,8 +281,8 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
 
     // allocate the hash table hashing simulation info into nodes
     nTableSize = Aig_PrimeCudd( Aig_ManObjNumMax(p->pAig) );
-    ppTable = ABC_ALLOC( Aig_Obj_t *, nTableSize ); 
-    ppNexts = ABC_ALLOC( Aig_Obj_t *, nTableSize ); 
+    ppTable = ABC_FALLOC( Aig_Obj_t *, nTableSize ); 
+    ppNexts = ABC_FALLOC( Aig_Obj_t *, nTableSize ); 
     memset( ppTable, 0, sizeof(Aig_Obj_t *) * nTableSize );
 
     // add all the nodes to the hash table

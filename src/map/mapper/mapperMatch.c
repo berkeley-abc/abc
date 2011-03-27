@@ -93,16 +93,23 @@ int Map_MappingMatches( Map_Man_t * p )
         // make sure that at least one non-trival cut is present
         if ( pNode->pCuts->pNext == NULL )
         {
+            Extra_ProgressBarStop( pProgress );
             printf( "\nError: A node in the mapping graph does not have feasible cuts.\n" );
             return 0;
         }
 
         // match negative phase
         if ( !Map_MatchNodePhase( p, pNode, 0 ) )
+        {
+            Extra_ProgressBarStop( pProgress );
             return 0;
+        }
         // match positive phase
         if ( !Map_MatchNodePhase( p, pNode, 1 ) )
+        {
+            Extra_ProgressBarStop( pProgress );
             return 0;
+        }
 
         // make sure that at least one phase is mapped
         if ( pNode->pCutBest[0] == NULL && pNode->pCutBest[1] == NULL )
@@ -110,6 +117,7 @@ int Map_MappingMatches( Map_Man_t * p )
             printf( "\nError: Could not match both phases of AIG node %d.\n", pNode->Num );
             printf( "Please make sure that the supergate library has equivalents of AND2 or NAND2.\n" );
             printf( "If such supergates exist in the library, report a bug.\n" );
+            Extra_ProgressBarStop( pProgress );
             return 0;
         }
 

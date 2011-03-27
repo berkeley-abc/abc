@@ -89,7 +89,7 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     unsigned uCanon[2];
 
     // skip empty and comment lines
-    while ( fgets( pBuffer, 5000, pFile ) != NULL )
+    while ( fgets( pBuffer, 2000, pFile ) != NULL )
     {
         // skip leading spaces
         for ( pTemp = pBuffer; *pTemp == ' ' || *pTemp == '\r' || *pTemp == '\n'; pTemp++ );

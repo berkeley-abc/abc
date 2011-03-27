@@ -668,6 +668,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
                 fprintf( stdout, "Io_WriteAiger(): I/O error writing to compressed stream.\n" );
                 fclose( b.f );
                 ABC_FREE(b.buf);
+                Vec_StrFree( vBinary );
                 return;
             }
         }
@@ -694,6 +695,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
             printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
+            Extra_ProgressBarStop( pProgress );
             return;
         }
     }

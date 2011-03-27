@@ -444,6 +444,7 @@ static char * Ntl_ReadLoadFile( char * pFileName )
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
+        fclose( pFile );
         printf( "Ntl_ReadLoadFile(): The file is unavailable (absent or open).\n" );
         return NULL;
     }
@@ -451,6 +452,7 @@ static char * Ntl_ReadLoadFile( char * pFileName )
     nFileSize = ftell( pFile ); 
     if ( nFileSize == 0 )
     {
+        fclose( pFile );
         printf( "Ntl_ReadLoadFile(): The file is empty.\n" );
         return NULL;
     }

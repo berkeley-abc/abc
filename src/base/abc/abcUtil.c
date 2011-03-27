@@ -1851,13 +1851,20 @@ void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
         printf( "%4d CO %5d :  Supp = %5d.  Lev = %3d.  Cone = %5d.  Rev = %5d.  COs = %3d (%3d).\n",
             Iter, pPerms[i], Vec_PtrSize(vSupp), Abc_ObjLevel(Abc_ObjFanin0(pObj)), Vec_PtrSize(vNodes), Counter, CounterCos, CounterCosNew );
 
+        if ( Vec_PtrSize(vSupp) < 10 )
+        {
+            // free arrays
+            Vec_PtrFree( vSupp );
+            Vec_PtrFree( vNodes );
+            Vec_PtrFree( vReverse );
+            break;
+        }
+
         // free arrays
         Vec_PtrFree( vSupp );
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vReverse );
 
-        if ( Vec_PtrSize(vSupp) < 10 )
-            break;
     }
     Abc_NtkForEachCo( pNtk, pObj, i )
         pObj->fMarkA = 0;

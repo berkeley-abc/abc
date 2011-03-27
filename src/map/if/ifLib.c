@@ -73,6 +73,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
         if ( i != atoi(pToken) )
         {
             Abc_Print( 1, "Error in the LUT library file \"%s\".\n", FileName );
+            ABC_FREE( p->pName );
             ABC_FREE( p );
             return NULL;
         }
@@ -89,6 +90,8 @@ If_Lib_t * If_LutLibRead( char * FileName )
         // check for out-of-bound
         if ( k > i )
         {
+            ABC_FREE( p->pName );
+            ABC_FREE( p );
             Abc_Print( 1, "LUT %d has too many pins (%d). Max allowed is %d.\n", i, k, i );
             return NULL;
         }
@@ -99,6 +102,8 @@ If_Lib_t * If_LutLibRead( char * FileName )
 
         if ( i == IF_MAX_LUTSIZE )
         {
+            ABC_FREE( p->pName );
+            ABC_FREE( p );
             Abc_Print( 1, "Skipping LUTs of size more than %d.\n", i );
             return NULL;
         }

@@ -67,7 +67,7 @@ void Gia_ManFrontTransform( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i, * pFrontToId; // mapping of nodes into frontier variables
     assert( p->nFront > 0 );
-    pFrontToId = ABC_ALLOC( int, p->nFront );
+    pFrontToId = ABC_FALLOC( int, p->nFront );
     Gia_ManForEachObj( p, pObj, i )
     {
         if ( Gia_ObjIsCo(pObj) )

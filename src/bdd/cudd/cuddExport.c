@@ -780,6 +780,7 @@ Cudd_DumpDDcal(
         if (diff <= mask) break;
     }
     st_free_table(visited);
+    visited = NULL;
 
     /* Build a bit array with the support of f. */
     sorted = ABC_ALLOC(int,nvars);
@@ -851,7 +852,8 @@ Cudd_DumpDDcal(
     retval = fprintf(fp, "]\n");
     if (retval == EOF) goto failure;
 
-    st_free_table(visited);
+    if ( visited )
+        st_free_table(visited);
     return(1);
 
 failure:

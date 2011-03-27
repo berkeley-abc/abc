@@ -572,6 +572,7 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
         pNode->pData = Abc_ConvertSopToAig( pMan, (char *)pNode->pData );
         if ( pNode->pData == NULL )
         {
+            Hop_ManStop( pMan );
             printf( "Abc_NtkSopToAig: Error while converting SOP into AIG.\n" );
             return 0;
         }

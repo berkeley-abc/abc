@@ -400,7 +400,7 @@ Vec_Ptr_t * Aig_ManReduceLachesOnce( Aig_Man_t * p )
     Aig_ManForEachPiSeq( p, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // create mapping of fanin nodes into the corresponding latch outputs
-    pMapping = ABC_ALLOC( int, 2 * Aig_ManObjNumMax(p) );
+    pMapping = ABC_FALLOC( int, 2 * Aig_ManObjNumMax(p) );
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
     {
         pFanin = Aig_ObjFanin0(pObjLi);

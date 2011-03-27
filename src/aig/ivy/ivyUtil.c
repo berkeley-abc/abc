@@ -732,6 +732,7 @@ void Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig )
     Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
         Ivy_ObjPrintVerbose( p, pObj, fHaig ), printf( "\n" );
     printf( "\n" );
+    Vec_IntFree( vNodes );
 }
 
 /**Function*************************************************************

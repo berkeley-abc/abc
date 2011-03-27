@@ -802,6 +802,8 @@ Aig_Man_t * Saig_ManWindowExtractMiter( Aig_Man_t * p0, Aig_Man_t * p1 )
     }
     Aig_ManSetRegNum( pNew, nRegCount );
     Aig_ManCleanup( pNew );
+    Vec_PtrFree( vNodes0 );
+    Vec_PtrFree( vNodes1 );
     return pNew;
 }
 

@@ -65,7 +65,6 @@ Mio_Library_t * Mio_LibraryRead( void * pAbc, char * FileName, char * ExcludeFil
             tExcludeGate = 0;
             return 0;
         }
-       
         fprintf ( Abc_FrameReadOut( (Abc_Frame_t *)pAbc ), "Read %d gates from exclude file\n", num );
     }
 
@@ -76,6 +75,8 @@ Mio_Library_t * Mio_LibraryRead( void * pAbc, char * FileName, char * ExcludeFil
         if ( pLib != NULL )
             printf ( "Warning: Read extended GENLIB format but ignoring extensions\n" );
     }
+    if ( tExcludeGate )
+        st_free_table( tExcludeGate );
 
     return pLib;
 }

@@ -57,12 +57,12 @@ void Fxu_MatrixGetDoubleVars( Fxu_Matrix * p, Fxu_Double * pDouble,
 int Fxu_Select( Fxu_Matrix * p, Fxu_Single ** ppSingle, Fxu_Double ** ppDouble )
 {
     // the top entries
-    Fxu_Single * pSingles[MAX_SIZE_LOOKAHEAD];
-    Fxu_Double * pDoubles[MAX_SIZE_LOOKAHEAD];
+    Fxu_Single * pSingles[MAX_SIZE_LOOKAHEAD] = {0};
+    Fxu_Double * pDoubles[MAX_SIZE_LOOKAHEAD] = {0};
     // the complements
-    Fxu_Double * pSCompl[MAX_SIZE_LOOKAHEAD];
-    Fxu_Single * pDComplS[MAX_SIZE_LOOKAHEAD];
-    Fxu_Double * pDComplD[MAX_SIZE_LOOKAHEAD];
+    Fxu_Double * pSCompl[MAX_SIZE_LOOKAHEAD] = {0};
+    Fxu_Single * pDComplS[MAX_SIZE_LOOKAHEAD] = {0};
+    Fxu_Double * pDComplD[MAX_SIZE_LOOKAHEAD] = {0};
     Fxu_Pair * pPair;
     int nSingles;
     int nDoubles;

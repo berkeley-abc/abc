@@ -234,7 +234,7 @@ Aig_Man_t * Ssw_SignalCorrespondenceRefine( Ssw_Man_t * p )
 {
     int nSatProof, nSatCallsSat, nRecycles, nSatFailsReal, nUniques;
     Aig_Man_t * pAigNew;
-    int RetValue, nIter;
+    int RetValue, nIter = -1;
     int clk, clkTotal = clock();
     // get the starting stats
     p->nLitsBeg  = Ssw_ClassesLitNum( p->ppClasses );

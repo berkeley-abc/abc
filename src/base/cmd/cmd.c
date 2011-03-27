@@ -671,7 +671,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             if ( interactive && *line != '\0' )
             {
-                Cmd_HistoryAddCommand( pAbc, Extra_UtilStrsav(line) );
+                Cmd_HistoryAddCommand( pAbc, line );
                 if ( pAbc->Hst != NULL )
                 {
                     fprintf( pAbc->Hst, "%s\n", line );

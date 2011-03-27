@@ -117,6 +117,7 @@ void Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName )
         // write the aux file
     if ( (pFileNodes == NULL) || (pFileNets == NULL) || (pFileAux == NULL) )
     {
+        fclose( pFileAux );
         fprintf( stdout, "Io_WriteBook(): Cannot open the output files.\n" );
         return;
     }

@@ -492,6 +492,7 @@ void Hop_ManPrintVerbose( Hop_Man_t * p, int fHaig )
     Vec_PtrForEachEntry( Hop_Obj_t *, vNodes, pObj, i )
         Hop_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
     printf( "\n" );
+    Vec_PtrFree( vNodes );
 }
 
 /**Function*************************************************************

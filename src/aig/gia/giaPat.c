@@ -113,6 +113,7 @@ void Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, V
         Value = Gia_XsimAndCond( Value0, Gia_ObjFaninC0(pObj), Value1, Gia_ObjFaninC1(pObj) );
         Sat_ObjSetXValue( pObj, Value );
     }
+    Value = Sat_ObjXValue( Gia_ObjFanin0(pRoot) );
     Value = Gia_XsimNotCond( Value, Gia_ObjFaninC0(pRoot) );
     if ( Value != GIA_ONE )
         printf( "Gia_SatVerifyPattern(): Verification FAILED.\n" );

@@ -1031,7 +1031,7 @@ int Abc_NtkIsTrueCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     Aig_Man_t * pMan;
-    int status, fStrashed = 0;
+    int status = 0, fStrashed = 0;
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         pNtk = Abc_NtkStrash(pNtk, 0, 0, 0);

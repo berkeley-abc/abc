@@ -228,11 +228,13 @@ int Abc_NodeStrashBlifMv( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
             }
             if ( *pSop == '!' )
             {
+                ABC_FREE( pValues );
                 printf( "Abc_NodeStrashBlifMv(): Cannot handle complement in the MV function of node %s.\n", Abc_ObjName(Abc_ObjFanout0(pObj)) );
                 return 0;
             }
             if ( *pSop == '{' )
             {
+                ABC_FREE( pValues );
                 printf( "Abc_NodeStrashBlifMv(): Cannot handle braces in the MV function of node %s.\n", Abc_ObjName(Abc_ObjFanout0(pObj)) );
                 return 0;
             }

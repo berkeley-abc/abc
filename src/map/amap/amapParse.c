@@ -235,6 +235,8 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                     {
                         fprintf( pOutput, "Amap_ParseFormula(): Unknown operation\n" );
                         ABC_FREE( pFormula );
+                        Vec_PtrFreeP( &pStackFn );
+                        Vec_IntFreeP( &pStackOp );
                         return NULL;
                     }
                 }
@@ -333,6 +335,8 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
                     {
                         fprintf( pOutput, "Amap_ParseFormula(): Unknown operation\n" );
                         ABC_FREE( pFormula );
+                        Vec_PtrFreeP( &pStackFn );
+                        Vec_IntFreeP( &pStackOp );
                         return NULL;
                     }
                     Vec_IntPush( pStackOp,  Oper1 );     // push the last operation back
@@ -354,10 +358,10 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             if ( Vec_PtrSize(pStackFn) == 0 )
                 if ( Vec_IntSize( pStackOp ) == 0 )
                 {
-                    Vec_PtrFree(pStackFn);
-                    Vec_IntFree(pStackOp);
 //                    Cudd_Deref( gFunc );
                     ABC_FREE( pFormula );
+                    Vec_PtrFreeP( &pStackFn );
+                    Vec_IntFreeP( &pStackOp );
                     return gFunc;
                 }
                 else
@@ -369,6 +373,8 @@ Hop_Obj_t * Amap_ParseFormula( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVa
             fprintf( pOutput, "Amap_ParseFormula(): The input string is empty\n" );
     }
     ABC_FREE( pFormula );
+    Vec_PtrFreeP( &pStackFn );
+    Vec_IntFreeP( &pStackOp );
     return NULL;
 }
 

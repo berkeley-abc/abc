@@ -368,10 +368,9 @@ struct FxuSingle // 7 words
 // iterator through the cube pairs belonging to the given cube 
 #define Fxu_CubeForEachPair( pCube, pPair, i )\
   for ( i = 0;\
-        i < pCube->pVar->nCubes &&\
-        (((unsigned)(ABC_PTRUINT_T)(pPair = pCube->pVar->ppPairs[pCube->iCube][i])) >= 0);\
+        i < pCube->pVar->nCubes && (((pPair) = (pCube)->pVar->ppPairs[(pCube)->iCube][i]), 1);\
         i++ )\
-        if ( pPair )
+        if ( pPair == NULL ) {} else
 
 // iterator through all the items in the heap
 #define Fxu_HeapDoubleForEachItem( Heap, Div )\

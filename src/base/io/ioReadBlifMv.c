@@ -538,6 +538,7 @@ static char * Io_MvLoadFile( char * pFileName )
     nFileSize = ftell( pFile ); 
     if ( nFileSize == 0 )
     {
+        fclose( pFile );
         printf( "Io_MvLoadFile(): The file is empty.\n" );
         return NULL;
     }

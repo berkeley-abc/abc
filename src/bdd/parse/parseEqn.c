@@ -184,6 +184,8 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
                     // perform the given operation
                     if ( Parse_ParserPerformTopOp( pMan, pStackFn, Oper ) == NULL )
                     {
+                        Parse_StackFnFree( pStackFn );
+                        Parse_StackOpFree( pStackOp );
                         fprintf( pOutput, "Parse_FormulaParserEqn(): Unknown operation\n" );
                         ABC_FREE( pFormula );
                         return NULL;
@@ -277,6 +279,8 @@ Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t 
                     {
                         fprintf( pOutput, "Parse_FormulaParserEqn(): Unknown operation\n" );
                         ABC_FREE( pFormula );
+                        Parse_StackFnFree( pStackFn );
+                        Parse_StackOpFree( pStackOp );
                         return NULL;
                     }
                     Parse_StackOpPush( pStackOp,  Oper1 );     // push the last operation back

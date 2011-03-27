@@ -731,6 +731,7 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
     printf( "\n" );
+    Vec_PtrFree( vNodes );
 }
 
 /**Function*************************************************************

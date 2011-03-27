@@ -126,17 +126,12 @@ Cut_Oracle_t * Cut_OracleStart( Cut_Man_t * pMan )
 ***********************************************************************/
 void Cut_OracleStop( Cut_Oracle_t * p )
 {
-    Cut_Cut_t * pCut;
-    int i;
-
 //    if ( p->pParams->fVerbose )
     {
         printf( "Cut computation statistics with oracle:\n" );
         printf( "Current cuts      = %8d. (Trivial = %d.)\n", p->nCuts-p->nCutsTriv, p->nCutsTriv );
         ABC_PRT( "Total time ", p->timeTotal );
     }
-
-    Vec_PtrForEachEntry( Cut_Cut_t *, p->vCutsNew, pCut, i )
 
     if ( p->vCuts0 )      Vec_PtrFree( p->vCuts0 );
     if ( p->vCuts1 )      Vec_PtrFree( p->vCuts1 );

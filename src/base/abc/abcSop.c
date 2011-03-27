@@ -900,6 +900,7 @@ char * Abc_SopFromTruthBin( char * pTruth )
             Digit = pTruth[i] - '0';
         else
         {
+            Vec_IntFree( vMints );
             printf( "String %s does not look like a binary representation of the truth table.\n", pTruth );
             return NULL;
         }

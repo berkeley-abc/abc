@@ -245,7 +245,7 @@ int Aig_ManComputeReachable( DdManager * dd, Aig_Man_t * p, DdNode ** pbParts, D
     DdNode * bNext = NULL; // Suppress "might be used uninitialized"
     DdNode * bTemp;
     Cudd_ReorderingType method;
-    int i, nIters, nBddSize, status;
+    int i, nIters, nBddSize = 0, status;
     int nThreshold = 10000, clk = clock();
     Vec_Ptr_t * vOnionRings;
 

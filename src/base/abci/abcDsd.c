@@ -113,14 +113,15 @@ Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, int fVerbose, int fPrint, int 
     // perform the decomposition
     dd = (DdManager *)Abc_NtkGlobalBddMan(pNtk);
     pManDsd = Dsd_ManagerStart( dd, Abc_NtkCiNum(pNtk), fVerbose );
-    Dsd_Decompose( pManDsd, (DdNode **)vFuncsGlob->pArray, Abc_NtkCoNum(pNtk) );
-    Vec_PtrFree( vFuncsGlob );
-    Abc_NtkFreeGlobalBdds( pNtk, 0 );
     if ( pManDsd == NULL )
     {
+        Vec_PtrFree( vFuncsGlob );
         Cudd_Quit( dd );
         return NULL;
     }
+    Dsd_Decompose( pManDsd, (DdNode **)vFuncsGlob->pArray, Abc_NtkCoNum(pNtk) );
+    Vec_PtrFree( vFuncsGlob );
+    Abc_NtkFreeGlobalBdds( pNtk, 0 );
 
     // start the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );

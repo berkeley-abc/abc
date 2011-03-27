@@ -331,7 +331,7 @@ Aig_Man_t * Gia_ManToAigSimple( Gia_Man_t * p )
     Aig_Obj_t ** ppNodes;
     Gia_Obj_t * pObj;
     int i;
-    ppNodes = ABC_ALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
+    ppNodes = ABC_FALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
     // create the new manager
     pNew = Aig_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Gia_UtilStrsav( p->pName );

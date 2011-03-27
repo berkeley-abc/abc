@@ -86,6 +86,7 @@ clk = clock();
     {
         if ( pExcludeFile != 0 )
         {
+            Map_SuperLibFree( p );
             printf ("Error: Exclude file support not present for old format. Stop.\n");
             return NULL;
         }

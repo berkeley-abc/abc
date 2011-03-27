@@ -120,6 +120,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
             printf( "%s (line %d): Wrong number of token.\n", 
                 Extra_FileReaderGetFileName(p), iLine+1 );
             Abc_NtkDelete( pNtk );
+            Extra_ProgressBarStop( pProgress );
+            ABC_FREE( ppSops );
             return NULL;
         }
 
@@ -152,6 +154,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 {
                     printf( "%s: The number of inputs is not specified.\n", Extra_FileReaderGetFileName(p) );
                     Abc_NtkDelete( pNtk );
+                    Extra_ProgressBarStop( pProgress );
+                    ABC_FREE( ppSops );
                     return NULL;
                 }
                 nDigits = Extra_Base10Log( nInputs );
@@ -167,6 +171,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 {
                     printf( "%s: The number of outputs is not specified.\n", Extra_FileReaderGetFileName(p) );
                     Abc_NtkDelete( pNtk );
+                    Extra_ProgressBarStop( pProgress );
+                    ABC_FREE( ppSops );
                     return NULL;
                 }
                 nDigits = Extra_Base10Log( nOutputs );
@@ -199,6 +205,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 printf( "%s (line %d): Input and output cubes are not specified.\n", 
                     Extra_FileReaderGetFileName(p), iLine+1 );
                 Abc_NtkDelete( pNtk );
+                Extra_ProgressBarStop( pProgress );
+                ABC_FREE( ppSops );
                 return NULL;
             }
             pCubeIn  = (char *)vTokens->pArray[0];
@@ -215,6 +223,8 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                 printf( "%s (line %d): Output cube length (%zu) differs from the number of outputs (%d).\n",
                     Extra_FileReaderGetFileName(p), iLine+1, strlen(pCubeOut), nOutputs );
                 Abc_NtkDelete( pNtk );
+                Extra_ProgressBarStop( pProgress );
+                ABC_FREE( ppSops );
                 return NULL;
             }
             if ( fZeros )

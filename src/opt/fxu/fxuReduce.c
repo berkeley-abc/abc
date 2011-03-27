@@ -67,7 +67,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     assert( nPairsMax < nPairsTotal );
 
     // allocate storage for counter of diffs
-    pnLitsDiff = ABC_ALLOC( unsigned char, nPairsTotal );
+    pnLitsDiff = ABC_FALLOC( unsigned char, nPairsTotal );
     // go through the covers and precompute the distances between the pairs
     iPair    =  0;
     nBitsMax = -1;
@@ -86,7 +86,7 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     assert( iPair == nPairsTotal );
 
     // allocate storage for counters of cube pairs by difference
-    pnPairCounters = ABC_ALLOC( int, 2 * nBitsMax );
+    pnPairCounters = ABC_FALLOC( int, 2 * nBitsMax );
     memset( pnPairCounters, 0, sizeof(int) * 2 * nBitsMax );
     // count the number of different pairs
     for ( k = 0; k < nPairsTotal; k++ )
@@ -95,11 +95,15 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
     // so that there would be exactly pPairsMax pairs
     if ( pnPairCounters[0] != 0 )
     {
+        ABC_FREE( pnLitsDiff );
+        ABC_FREE( pnPairCounters );
         printf( "The SOPs of the nodes are not cube-ABC_FREE. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
     if ( pnPairCounters[1] != 0 )
     {
+        ABC_FREE( pnLitsDiff );
+        ABC_FREE( pnPairCounters );
         printf( "The SOPs of the nodes are not SCC-ABC_FREE. Run \"bdd; sop\" before \"fx\".\n" );
         return 0;
     }
