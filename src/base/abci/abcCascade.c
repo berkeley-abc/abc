@@ -969,7 +969,7 @@ Abc_Ntk_t * Abc_NtkCreateFromCharFunc( Abc_Ntk_t * pNtk, DdManager * dd, DdNode 
         Abc_ObjAssignName( pNode->pCopy, Abc_ObjName(pNode), NULL );
     }
     // transfer BDD
-    pNodeNew->pData = Extra_TransferLevelByLevel( dd, (DdManager *)pNtkNew->pManFunc, bFunc ); Cudd_Ref( pNodeNew->pData );
+    pNodeNew->pData = Extra_TransferLevelByLevel( dd, (DdManager *)pNtkNew->pManFunc, bFunc ); Cudd_Ref( (DdNode *)pNodeNew->pData );
     // transfer BDD into to be the local function
     pNodePo = Abc_NtkCreatePo( pNtkNew );
     Abc_ObjAddFanin( pNodePo, pNodeNew );

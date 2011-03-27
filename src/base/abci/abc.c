@@ -8686,7 +8686,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
-
+/*
     if ( Abc_NtkIsStrash(pNtk) )
     {
         extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
@@ -8704,7 +8704,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-
+*/
 
 
 {

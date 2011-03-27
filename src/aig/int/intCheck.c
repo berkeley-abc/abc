@@ -84,7 +84,7 @@ Aig_Man_t * Inter_ManUnrollFrames( Aig_Man_t * pAig, int nFrames )
         Saig_ManForEachLiLo(  pAig, pObjLi, pObjLo, i )
         {
             pObjLo->pData = pObjLi->pData;
-            Aig_ObjCreatePo( pFrames, pObjLo->pData );
+            Aig_ObjCreatePo( pFrames, (Aig_Obj_t *)pObjLo->pData );
         }
     }
     Aig_ManCleanup( pFrames );
