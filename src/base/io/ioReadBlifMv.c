@@ -339,6 +339,7 @@ static void Io_MvModFree( Io_MvMod_t * p )
 {
 //    if ( p->pNtk )
 //        Abc_NtkDelete( p->pNtk );
+    Vec_PtrFree( p->vLtlProperties );
     Vec_PtrFree( p->vInputs );
     Vec_PtrFree( p->vOutputs );
     Vec_PtrFree( p->vLatches );
