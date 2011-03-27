@@ -4155,7 +4155,7 @@ SOURCE=.\src\aig\au\auBridge.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auCone.c
+SOURCE=.\src\aig\au\auCec.c
 # End Source File
 # Begin Source File
 
@@ -4163,11 +4163,19 @@ SOURCE=.\src\aig\au\auCore.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auCut.c
+SOURCE=.\src\aig\au\auCut.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auCut.h
+SOURCE=.\src\aig\au\auCutDiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auCutEnum.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auCutExp.c
 # End Source File
 # Begin Source File
 
@@ -4175,15 +4183,7 @@ SOURCE=.\src\aig\au\auData.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auDec.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\au\auDecomp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\au\auDiv.c
+SOURCE=.\src\aig\au\auDec6.c
 # End Source File
 # Begin Source File
 
@@ -4199,11 +4199,23 @@ SOURCE=.\src\aig\au\auFour.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\au\auHash.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\au\auInt.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auNpn.c
+SOURCE=.\src\aig\au\auMffc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auNpn6.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auNpnTab.c
 # End Source File
 # Begin Source File
 
@@ -4215,15 +4227,35 @@ SOURCE=.\src\aig\au\auNtk.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auResub.c
+SOURCE=.\src\aig\au\auResCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auResDec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auResDiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auSat.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auSatData.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auSatSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auSupp.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\au\auSweep.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\au\auTable.c
 # End Source File
 # Begin Source File
 

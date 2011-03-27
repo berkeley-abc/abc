@@ -8686,12 +8686,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
-/*
-{
-//    extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
-    extern Abc_Ntk_t * Au_ManResubTest( Abc_Ntk_t * pAig );
-//    pNtkRes = Au_ManTransformTest( pNtk );
-    pNtkRes = Au_ManResubTest( pNtk );
+
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
+        pNtkRes = Au_ManTransformTest( pNtk );
+    }
+    else
+    {
+        extern Abc_Ntk_t * Au_ManResubTest( Abc_Ntk_t * pAig );
+        pNtkRes = Au_ManResubTest( pNtk );
+    }
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Command has failed.\n" );
@@ -8699,15 +8704,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-}
-*/
 
-/*
+
+
 {
-    extern void Au_DsdVecTest( int nVars );
-    Au_DsdVecTest( 6 );
+//    extern void Au_Sat3DeriveImpls();
+//    Au_Sat3DeriveImpls();
+//    extern void Au_Sat3DeriveJusts();
+//    Au_Sat3DeriveJusts();
 }
-*/
+
 {
 //    extern void Au_NtkReadFour( Abc_Ntk_t * pNtk );
 //    extern void Au_Data4VerifyFour();

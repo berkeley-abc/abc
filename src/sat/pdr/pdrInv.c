@@ -130,7 +130,7 @@ int Pdr_ManFindInvariantStart( Pdr_Man_t * p )
 {
     Vec_Ptr_t * vArrayK;
     int k, kMax = Vec_PtrSize(p->vSolvers)-1;
-    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
+    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax+1 )
         if ( Vec_PtrSize(vArrayK) == 0 )
             return k;
     return -1;

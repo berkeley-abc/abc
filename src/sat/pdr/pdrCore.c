@@ -130,7 +130,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     int i, j, k, m, RetValue = 0, kMax = Vec_PtrSize(p->vSolvers)-1;
     int Counter = 0;
     int clk = clock();
-    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax-1 )
+    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
     {
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
         vArrayK1 = (Vec_Ptr_t *)Vec_VecEntry( p->vClauses, k+1 );
@@ -229,7 +229,7 @@ int Pdr_ManCheckContainment( Pdr_Man_t * p, int k, Pdr_Set_t * pSet )
     Pdr_Set_t * pThis;
     Vec_Ptr_t * vArrayK;
     int i, j, kMax = Vec_PtrSize(p->vSolvers)-1;
-    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, i, k, kMax )
+    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, i, k, kMax+1 )
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pThis, j )
             if ( Pdr_SetContains( pSet, pThis ) )
                 return 1;

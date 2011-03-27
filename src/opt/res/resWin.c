@@ -114,7 +114,7 @@ int Res_WinCollectLeavesAndNodes( Res_Win_t * p )
 
     // collect the leaves (nodes pTemp such that "p->pNode->Level - pTemp->Level > p->nWinTfiMax")
     Vec_PtrClear( p->vLeaves );
-    Vec_VecForEachLevelStartStop( p->vMatrix, vFront, i, 0, p->nWinTfiMax )
+    Vec_VecForEachLevelStartStop( p->vMatrix, vFront, i, 0, p->nWinTfiMax+1 )
     {
         Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pObj, k )
         {
@@ -135,7 +135,7 @@ int Res_WinCollectLeavesAndNodes( Res_Win_t * p )
 
     // collect the nodes in the reverse order
     Vec_PtrClear( p->vNodes );
-    Vec_VecForEachLevelReverseStartStop( p->vMatrix, vFront, i, p->nWinTfiMax, 0 )
+    Vec_VecForEachLevelReverseStartStop( p->vMatrix, vFront, i, p->nWinTfiMax+1, 0 )
     {
         Vec_PtrForEachEntry( Abc_Obj_t *, vFront, pObj, k )
             Vec_PtrPush( p->vNodes, pObj );
