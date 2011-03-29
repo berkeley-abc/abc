@@ -63,7 +63,9 @@ struct Abc_Frame_t_
     st_table *      tFlags;      // the flag table
     Vec_Ptr_t *     aHistory;    // the command history
     // the functionality
-    Abc_Ntk_t *     pNtkCur;     // the current network
+    Abc_Ntk_t *     pNtkCur;       // the current network
+    Abc_Ntk_t *     pNtkBestDelay; // the current network
+    Abc_Ntk_t *     pNtkBestArea;  // the current network
     int             nSteps;      // the counter of different network processed
     int             fAutoexac;   // marks the autoexec mode
     int                fBatchMode;     // are we invoked in batch mode?

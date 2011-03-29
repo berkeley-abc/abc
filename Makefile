@@ -9,7 +9,7 @@ PROG := abc
 MODULES := \
         $(wildcard src/ext) src/misc/ext \
 	src/base/abc src/base/abci src/base/cmd \
-	src/base/io src/base/main src/base/ver \
+	src/base/io src/base/main src/base/ver src/base/test \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr \
 	src/bdd/parse src/bdd/reo src/bdd/cas \
 	src/map/fpga src/map/mapper src/map/mio src/map/super \

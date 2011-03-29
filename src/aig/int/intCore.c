@@ -243,6 +243,7 @@ p->timeCnf += clock() - clk;
 clk = clock();
             if ( p->pInterNew )
             {
+//                Ioa_WriteAiger( p->pInterNew, "interpol.aig", 0, 0 );
                 p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 1, 0 );
 //                p->pInterNew = Dar_ManRwsat( pAigTemp = p->pInterNew, 0, 0 );
                 Aig_ManStop( pAigTemp );

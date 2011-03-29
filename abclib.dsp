@@ -4187,6 +4187,10 @@ SOURCE=.\src\aig\au\auDec6.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\au\auDiv.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\au\auDsd.c
 # End Source File
 # Begin Source File
@@ -4236,6 +4240,10 @@ SOURCE=.\src\aig\au\auResDec.c
 # Begin Source File
 
 SOURCE=.\src\aig\au\auResDiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auResTruth.c
 # End Source File
 # Begin Source File
 
