@@ -674,6 +674,14 @@ SOURCE=.\src\base\ver\verParse.c
 SOURCE=.\src\base\ver\verStream.c
 # End Source File
 # End Group
+# Begin Group "test"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\test\test.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "bdd"
 

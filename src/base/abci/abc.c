@@ -8706,8 +8706,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-
 */
+
 
 {
 //    extern void Au_Sat3DeriveImpls();

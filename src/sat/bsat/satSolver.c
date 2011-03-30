@@ -1482,6 +1482,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
     }
 
     while (status == l_Undef){
+//        int nConfs = 0;
         double Ratio = (s->stats.learnts == 0)? 0.0 :
             s->stats.learnts_literals / (double)s->stats.learnts;
 
@@ -1500,7 +1501,11 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
         }
         nof_conflicts = (ABC_INT64_T)( 100 * luby(2, restart_iter++) );
 //printf( "%d ", (int)nof_conflicts );
+//        nConfs = s->stats.conflicts;
         status = sat_solver_search(s, nof_conflicts, nof_learnts);
+//        if ( status == l_True )
+//            printf( "%d ", s->stats.conflicts - nConfs );
+
 //        nof_conflicts = nof_conflicts * 3 / 2; //*= 1.5;
         nof_learnts    = nof_learnts * 11 / 10; //*= 1.1;
 
