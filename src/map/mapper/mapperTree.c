@@ -76,7 +76,7 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
         pAbc = Abc_FrameGetGlobalFrame();
         
         tExcludeGate = st_init_table(strcmp, st_strhash);
-        if ( (num = Mio_LibraryReadExclude( pAbc, pExcludeFile, tExcludeGate )) == -1 )
+        if ( (num = Mio_LibraryReadExclude( pExcludeFile, tExcludeGate )) == -1 )
         {
             st_free_table( tExcludeGate );
             tExcludeGate = 0;
@@ -169,7 +169,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     fclose( pFileGen );
 
     // read the genlib library
-    pLib->pGenlib = Mio_LibraryRead( Abc_FrameGetGlobalFrame(), pLibFile, 0, 0 );
+    pLib->pGenlib = Mio_LibraryRead( pLibFile, 0, 0 );
     if ( pLib->pGenlib == NULL )
     {
         printf( "Cannot read GENLIB file \"%s\".\n", pLibFile );

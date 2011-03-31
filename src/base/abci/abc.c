@@ -8687,8 +8687,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_ManStop( pAig );
     }
 */
-/*
 
+/*
     if ( Abc_NtkIsStrash(pNtk) )
     {
         extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
@@ -8708,6 +8708,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 
+/*
+{
+    extern int Au_DsdVecTest( int nVars );
+    Au_DsdVecTest( 6 );
+}
+*/
 
 {
 //    extern void Au_Sat3DeriveImpls();

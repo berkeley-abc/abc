@@ -74,6 +74,7 @@ alias rvl read_verlib
 alias rsup read_super mcnc5_old.super
 alias rlib read_library
 alias rlibc read_library cadence.genlib
+alias rty read_liberty
 alias rlut read_lut
 alias rw rewrite
 alias rwz rewrite -z

@@ -1943,6 +1943,10 @@ SOURCE=.\src\map\mapper\mapperVec.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\map\mio\exp.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\mio\mio.c
 # End Source File
 # Begin Source File
@@ -1963,7 +1967,15 @@ SOURCE=.\src\map\mio\mioInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\mio\mioParse.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\mio\mioRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mio\mioSop.c
 # End Source File
 # Begin Source File
 
@@ -4199,7 +4211,15 @@ SOURCE=.\src\aig\au\auDiv.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auDsd.c
+SOURCE=.\src\aig\au\auDsdData.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auDsdForm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\au\auDsdTab.c
 # End Source File
 # Begin Source File
 
@@ -4220,14 +4240,6 @@ SOURCE=.\src\aig\au\auInt.h
 # Begin Source File
 
 SOURCE=.\src\aig\au\auMffc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\au\auNpn6.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\au\auNpnTab.c
 # End Source File
 # Begin Source File
 

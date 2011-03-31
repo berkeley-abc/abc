@@ -17,6 +17,8 @@
 ***********************************************************************/
 
 #include "mioInt.h"
+#include "main.h"
+#include "exp.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -28,7 +30,6 @@ ABC_NAMESPACE_IMPL_START
 static void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int fPrintSops );
 static void Mio_WritePin( FILE * pFile, Mio_Pin_t * pPin );
 static int  Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 );
-static void Mio_DeriveTruthTable_rec( DdNode * bFunc, unsigned uTruthsIn[][2], unsigned uTruthRes[] );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -60,8 +61,8 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     Vec_StrFree( pLib->vCube );
     if ( pLib->tName2Gate )
         st_free_table( pLib->tName2Gate );
-    if ( pLib->dd )
-        Cudd_Quit( pLib->dd );
+//    if ( pLib->dd )
+//        Cudd_Quit( pLib->dd );
     ABC_FREE( pLib->ppGates0 );
     ABC_FREE( pLib->ppGatesName );
     ABC_FREE( pLib );
@@ -81,11 +82,14 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
 void Mio_GateDelete( Mio_Gate_t * pGate )
 {
     Mio_Pin_t * pPin, * pPin2;
+    if ( pGate->nInputs > 6 )
+        ABC_FREE( pGate->pTruth );
+    Vec_IntFreeP( &pGate->vExpr );
     ABC_FREE( pGate->pOutName );
     ABC_FREE( pGate->pName );
     ABC_FREE( pGate->pForm );
-    if ( pGate->bFunc )
-        Cudd_RecursiveDeref( pGate->pLib->dd, pGate->bFunc );
+//    if ( pGate->bFunc )
+//        Cudd_RecursiveDeref( pGate->pLib->dd, pGate->bFunc );
     Mio_GateForEachPinSafe( pGate, pPin, pPin2 )
         Mio_PinDelete( pPin );   
     ABC_FREE( pGate );
@@ -125,7 +129,7 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 
     pPinNew = ABC_ALLOC( Mio_Pin_t, 1 );
     *pPinNew = *pPin;
-    pPinNew->pName = (pPinNew->pName ? Extra_UtilStrsav(pPinNew->pName) : NULL);
+    pPinNew->pName = (pPinNew->pName ? Mio_UtilStrsav(pPinNew->pName) : NULL);
     pPinNew->pNext = NULL;
 
     return pPinNew;
@@ -229,11 +233,11 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     Mio_Gate_t ** ppGates;
     /* st_table * tFuncs; */
     /* st_generator * gen; */
-    DdNode * bFunc;
-    DdManager * dd;
+//    DdNode * bFunc;
+//    DdManager * dd;
     int nGates, iGate;
 
-    dd     = Mio_LibraryReadDd( pLib );
+//    dd     = Mio_LibraryReadDd( pLib );
     nGates = Mio_LibraryReadGateNum( pLib );
 
     /*
@@ -272,16 +276,19 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     iGate = 0;
     Mio_LibraryForEachGate( pLib, pGate )
     {
-        bFunc = Mio_GateReadFunc(pGate);
+//        bFunc = Mio_GateReadFunc(pGate);
         if ( pGate->nInputs > nInputs )
             continue;
         if ( pGate->dDelayMax > (double)tDelay )
             continue;
-        if ( bFunc == b0 || bFunc == b1 )
+//        if ( bFunc == b0 || bFunc == b1 )
+        if ( pGate->uTruth == 0 || pGate->uTruth == ~0 )
             continue;
-        if ( bFunc == dd->vars[0] )
+//        if ( bFunc == dd->vars[0] )
+        if ( pGate->uTruth == 0xAAAAAAAAAAAAAAAA )
             continue;
-        if ( bFunc == Cudd_Not(dd->vars[0]) && fSkipInv )
+//        if ( bFunc == Cudd_Not(dd->vars[0]) && fSkipInv )
+        if ( pGate->uTruth == ~0xAAAAAAAAAAAAAAAA && fSkipInv )
             continue;
 
         assert( iGate < nGates );
@@ -332,10 +339,23 @@ int Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 )
   SeeAlso     []
 
 ***********************************************************************/
-void Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] )
+word Mio_DeriveTruthTable6( Mio_Gate_t * pGate )
 {
-    Mio_DeriveTruthTable_rec( pGate->bFunc, uTruthsIn, uTruthRes );
+    static unsigned uTruths6[6][2] = {
+        { 0xAAAAAAAA, 0xAAAAAAAA },
+        { 0xCCCCCCCC, 0xCCCCCCCC },
+        { 0xF0F0F0F0, 0xF0F0F0F0 },
+        { 0xFF00FF00, 0xFF00FF00 },
+        { 0xFFFF0000, 0xFFFF0000 },
+        { 0x00000000, 0xFFFFFFFF }
+    };
+    unsigned uTruthRes[2];
+    assert( pGate->nInputs <= 6 );
+    Mio_DeriveTruthTable( pGate, uTruths6, pGate->nInputs, 6, uTruthRes );
+    return *((word *)uTruthRes);
 }
+
+#if 0
 
 /**Function*************************************************************
 
@@ -383,6 +403,67 @@ void Mio_DeriveTruthTable_rec( DdNode * bFunc, unsigned uTruthsIn[][2], unsigned
 
 /**Function*************************************************************
 
+  Synopsis    [Derives the truth table of the gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] )
+{
+    Mio_DeriveTruthTable_rec( pGate->bFunc, uTruthsIn, uTruthRes );
+}
+
+#endif
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the truth table of the gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] )
+{
+    word uRes, uFanins[6];
+    int i;
+    assert( pGate->nInputs == nSigns );
+    for ( i = 0; i < nSigns; i++ )
+        uFanins[i] = (((word)uTruthsIn[i][1]) << 32) | (word)uTruthsIn[i][0];
+    uRes = Exp_Truth6( nSigns, pGate->vExpr, (word *)uFanins );
+    uTruthRes[0] = uRes & 0xFFFFFFFF;
+    uTruthRes[1] = uRes >> 32;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the number of variables in the cover.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_SopGetVarNum( char * pSop )
+{
+    char * pCur;
+    for ( pCur = pSop; *pCur != '\n'; pCur++ )
+        if ( *pCur == 0 )
+            return -1;
+    return pCur - pSop - 2;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives the truth table of the root of the gate.]
 
   Description [Given the truth tables of the leaves of the gate,
@@ -403,7 +484,7 @@ void Mio_DeriveTruthTable2( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nTr
     assert( pGate->nInputs == nTruths );
     assert( nInputs < 7 );
 
-    nFanins = Abc_SopGetVarNum( pGate->pSop );
+    nFanins = Mio_SopGetVarNum( pGate->pSop );
     assert( nFanins == nInputs );
 
     // clean the resulting truth table
@@ -411,8 +492,8 @@ void Mio_DeriveTruthTable2( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nTr
     uTruthRes[1] = 0;
     if ( nInputs < 6 )
     {
-//        for ( c = 0; *(pCube = pGate->pSop + c * (nFanins + 3)); c++ )
-        Abc_SopForEachCube( pGate->pSop, nFanins, pCube )
+//        Abc_SopForEachCube( pGate->pSop, nFanins, pCube )
+        for ( pCube = pGate->pSop; *pCube; pCube += (nFanins) + 3 )
         {
             // add the clause
             uSignCube[0] = MIO_FULL;
@@ -430,8 +511,8 @@ void Mio_DeriveTruthTable2( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nTr
     else
     {
         // consider the case when two unsigneds should be used
-//        for ( c = 0; *(pCube = pGate->pSop + c * (nFanins + 3)); c++ )
-        Abc_SopForEachCube( pGate->pSop, nFanins, pCube )
+//        Abc_SopForEachCube( pGate->pSop, nFanins, pCube )
+        for ( pCube = pGate->pSop; *pCube; pCube += (nFanins) + 3 )
         {
             uSignCube[0] = MIO_FULL;
             uSignCube[1] = MIO_FULL;

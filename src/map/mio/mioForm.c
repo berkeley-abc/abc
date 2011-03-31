@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [mioFunc.c]
+  FileName    [mioForm.c]
 
   PackageName [MVSIS 1.3: Multi-valued logic synthesis system.]
 
-  Synopsis    [File reading/writing for technology mapping.]
+  Synopsis    [Parsing equestion formula.]
 
   Author      [MVSIS Group]
   
@@ -12,13 +12,12 @@
 
   Date        [Ver. 1.0. Started - September 8, 2003.]
 
-  Revision    [$Id: mioFunc.c,v 1.4 2004/06/28 14:20:25 alanmi Exp $]
+  Revision    [$Id: mioForm.c,v 1.4 2004/06/28 14:20:25 alanmi Exp $]
 
 ***********************************************************************/
 
 #include "mioInt.h"
-//#include "parse.h"
-#include "exp.h"
+#include "parse.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -38,9 +37,45 @@ ABC_NAMESPACE_IMPL_START
 #define MIO_SYMB_OPEN   '('
 #define MIO_SYMB_CLOSE  ')'
 
+static int Mio_GateParseFormula( Mio_Gate_t * pGate );
+static int Mio_GateCollectNames( char * pFormula, char * pPinNames[] );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Deriving the functionality of the gates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_LibraryParseFormulas( Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;
+
+    // count the gates
+    pLib->nGates = 0;
+    Mio_LibraryForEachGate( pLib, pGate )
+        pLib->nGates++;        
+
+    // start a temporary BDD manager
+    pLib->dd = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    // introduce ZDD variables
+    Cudd_zddVarsFromBddVars( pLib->dd, 2 );
+
+    // for each gate, derive its function
+    Mio_LibraryForEachGate( pLib, pGate )
+        if ( Mio_GateParseFormula( pGate ) )
+            return 1;
+    return 0;
+}
+
 
 /**Function*************************************************************
 
@@ -64,53 +99,6 @@ char * Mio_SopRegister( Mem_Flex_t * pMan, char * pName )
 
 /**Function*************************************************************
 
-  Synopsis    [Collect the pin names in the formula.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
-{
-    char Buffer[1000];
-    char * pTemp;
-    int nPins, i;
-
-    // save the formula as it was
-    strcpy( Buffer, pFormula );
-
-    // remove the non-name symbols
-    for ( pTemp = Buffer; *pTemp; pTemp++ )
-        if ( *pTemp == MIO_SYMB_AND  || *pTemp == MIO_SYMB_AND2   || 
-             *pTemp == MIO_SYMB_OR   || *pTemp == MIO_SYMB_OR2    || 
-             *pTemp == MIO_SYMB_XOR  || 
-             *pTemp == MIO_SYMB_NOT  || *pTemp == MIO_SYMB_AFTNOT ||
-             *pTemp == MIO_SYMB_OPEN || *pTemp == MIO_SYMB_CLOSE )
-             *pTemp = ' ';
-
-    // save the names
-    nPins = 0;
-    pTemp = strtok( Buffer, " " );
-    while ( pTemp )
-    {
-        for ( i = 0; i < nPins; i++ )
-            if ( strcmp( pTemp, pPinNames[i] ) == 0 )
-                break;
-        if ( i == nPins )
-        { // cannot find this name; save it
-            pPinNames[nPins++] = Mio_UtilStrsav(pTemp);
-        }
-        // get the next name
-        pTemp = strtok( NULL, " " );
-    }
-    return nPins;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Deriving the functionality of the gates.]
 
   Description []
@@ -122,6 +110,8 @@ int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
 ***********************************************************************/
 int Mio_GateParseFormula( Mio_Gate_t * pGate )
 {
+    extern char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, int fAllPrimes, Vec_Str_t * vCube, int fMode );
+    DdManager * dd = pGate->pLib->dd;
     char * pPinNames[100];
     char * pPinNamesCopy[100];
     Mio_Pin_t * pPin, ** ppPin;
@@ -144,15 +134,13 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
     {
         if ( strcmp( pGate->pForm, MIO_STRING_CONST0 ) == 0 )
         {
-//            pGate->bFunc = b0;
-            pGate->vExpr = Exp_Const0();
+            pGate->bFunc = b0;
             pGate->pSop = Mio_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, " 0\n" );
             pGate->pLib->pGate0 = pGate;
         }
         else if ( strcmp( pGate->pForm, MIO_STRING_CONST1 ) == 0 )
         {
-//            pGate->bFunc = b1;
-            pGate->vExpr = Exp_Const1();
+            pGate->bFunc = b1;
             pGate->pSop = Mio_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, " 1\n" );
             pGate->pLib->pGate1 = pGate;
         }
@@ -161,7 +149,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
             printf( "Cannot parse formula \"%s\" of gate \"%s\".\n", pGate->pForm, pGate->pName );
             return 1;
         }
-//        Cudd_Ref( pGate->bFunc );
+        Cudd_Ref( pGate->bFunc );
         return 0;
     }
 
@@ -238,7 +226,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
         // copy the names back
         memcpy( pPinNames, pPinNamesCopy, nPins * sizeof(char *) );
     }
-/*
+
     // expand the manager if necessary
     if ( dd->size < nPins )
     {
@@ -246,43 +234,26 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
         dd = Cudd_Init( nPins + 10, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
         Cudd_zddVarsFromBddVars( dd, 2 );
     }
-    // derive formula as the BDD
+
+    // derive the formula as the BDD
     pGate->bFunc = Parse_FormulaParser( stdout, pGate->pForm, nPins, 0, pPinNames, dd, dd->vars );
     if ( pGate->bFunc == NULL )
         return 1;
     Cudd_Ref( pGate->bFunc );
-    // derive cover
-    pGate->pSop = Abc_ConvertBddToSop( pGate->pLib->pMmFlex, dd, pGate->bFunc, pGate->bFunc, nPins, 0, pGate->pLib->vCube, -1 );
-*/
 
-    // derive expression 
-    pGate->vExpr = Mio_ParseFormula( pGate->pForm, (char **)pPinNames, nPins );
-    // derive cover
-    pGate->pSop = Mio_LibDeriveSop( nPins, pGate->vExpr, pGate->pLib->vCube );
-    pGate->pSop = Mio_SopRegister( (Mem_Flex_t *)pGate->pLib->pMmFlex, pGate->pSop );
-    // derive truth table
-    if ( nPins <= 6 )
-        pGate->uTruth = Exp_Truth6( nPins, pGate->vExpr, NULL );
-/*
-    // verify
+    // derive the cover (SOP)
+    pGate->pSop = Abc_ConvertBddToSop( pGate->pLib->pMmFlex, dd, pGate->bFunc, pGate->bFunc, nPins, 0, pGate->pLib->vCube, -1 );
+
+    // derive the truth table
     if ( pGate->nInputs <= 6 )
-    {
-        extern word Abc_SopToTruth( char * pSop, int nInputs );
-        word t2 = Abc_SopToTruth( pGate->pSop, nPins );
-        if ( pGate->uTruth != t2 )
-        {
-            printf( "%s\n", pGate->pForm );
-            Exp_Print( nPins, pGate->vExpr );
-            printf( "Verification failed!\n" );
-        }
-    }
-*/
+        pGate->uTruth = Mio_DeriveTruthTable6( pGate );
+
     return 0;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Deriving the functionality of the gates.]
+  Synopsis    [Collect the pin names in the formula.]
 
   Description []
                
@@ -291,20 +262,40 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
   SeeAlso     []
 
 ***********************************************************************/
-int Mio_LibraryParseFormulas( Mio_Library_t * pLib )
+int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
 {
-    Mio_Gate_t * pGate;
+    char Buffer[1000];
+    char * pTemp;
+    int nPins, i;
 
-    // count the gates
-    pLib->nGates = 0;
-    Mio_LibraryForEachGate( pLib, pGate )
-        pLib->nGates++;        
+    // save the formula as it was
+    strcpy( Buffer, pFormula );
 
-    // for each gate, derive its function
-    Mio_LibraryForEachGate( pLib, pGate )
-        if ( Mio_GateParseFormula( pGate ) )
-            return 1;
-    return 0;
+    // remove the non-name symbols
+    for ( pTemp = Buffer; *pTemp; pTemp++ )
+        if ( *pTemp == MIO_SYMB_AND  || *pTemp == MIO_SYMB_AND2   || 
+             *pTemp == MIO_SYMB_OR   || *pTemp == MIO_SYMB_OR2    || 
+             *pTemp == MIO_SYMB_XOR  || 
+             *pTemp == MIO_SYMB_NOT  || *pTemp == MIO_SYMB_AFTNOT ||
+             *pTemp == MIO_SYMB_OPEN || *pTemp == MIO_SYMB_CLOSE )
+             *pTemp = ' ';
+
+    // save the names
+    nPins = 0;
+    pTemp = strtok( Buffer, " " );
+    while ( pTemp )
+    {
+        for ( i = 0; i < nPins; i++ )
+            if ( strcmp( pTemp, pPinNames[i] ) == 0 )
+                break;
+        if ( i == nPins )
+        { // cannot find this name; save it
+            pPinNames[nPins++] = Mio_UtilStrsav(pTemp);
+        }
+        // get the next name
+        pTemp = strtok( NULL, " " );
+    }
+    return nPins;
 }
 
 ////////////////////////////////////////////////////////////////////////

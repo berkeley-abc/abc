@@ -306,10 +306,11 @@ void Amap_LibPrintSelectedGates( Amap_Lib_t * p, int fAllGates )
     vArray = fAllGates? p->vGates : p->vSelect;
     Vec_PtrForEachEntry( Amap_Gat_t *, vArray, pGate, i )
     {
-        printf( "Gate %4d : %15s   Area = %9.2f\n", pGate->Id, pGate->pName, pGate->dArea );
-        printf( "    Formula: %s=%s\n", pGate->pOutName, pGate->pForm );
-        printf( "    DSD:     " );
+        printf( "%3d :%12s %d %9.2f  ", i, pGate->pName, pGate->nPins, pGate->dArea );
+        printf( "%4s=%40s  ", pGate->pOutName, pGate->pForm );
+        printf( "DSD: " );
         Kit_DsdPrintFromTruth( pGate->pFunc, pGate->nPins );
+        printf( "\n" );
     }
 }
 
@@ -345,6 +346,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVe
         printf( "Selected %d functionally unique gates. ",
             Vec_PtrSize(p->vSelect), Vec_PtrSize(p->vSorted) );
         ABC_PRT( "Time", clock() - clk );
+//       Amap_LibPrintSelectedGates( p, 0 );
     }
     clk = clock();
     Amap_LibCreateRules( p, fVeryVerbose );

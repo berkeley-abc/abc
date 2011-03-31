@@ -22,10 +22,8 @@
 #include <unistd.h>
 #endif
 
-#include "abc.h"
-#include "mvc.h"
-#include "mainInt.h"
-#include "mioInt.h"
+#include "main.h"
+#include "mio.h"
 #include "mapper.h"
 #include "amap.h"
 
@@ -276,7 +274,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pLib = Mio_LibraryRead( pAbc, FileName, 0, fVerbose );  
+    pLib = Mio_LibraryRead( FileName, 0, fVerbose );  
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading GENLIB library has failed.\n" );

@@ -503,7 +503,8 @@ static inline void Cbs_ManAssign( Cbs_Man_t * p, Gia_Obj_t * pObj, int Level, Gi
     Vec_IntPush( p->vLevReas, pRes0 ? pRes0-pObjR : 0 );
     Vec_IntPush( p->vLevReas, pRes1 ? pRes1-pObjR : 0 );
     assert( Vec_IntSize(p->vLevReas) == 3 * p->pProp.iTail );
-    s_Counter++;
+//    s_Counter++;
+//    s_Counter = Abc_MaxInt( s_Counter, Vec_IntSize(p->vLevReas)/3 );
 }
 
 

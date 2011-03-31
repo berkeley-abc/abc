@@ -24,13 +24,15 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "vec.h"
 #include "mem.h"
-#include "mvc.h"
-#include "main.h"
+#include "st.h"
 #include "mio.h"
-#include "extra.h"
-
+ 
 ABC_NAMESPACE_HEADER_START
 
 
@@ -69,7 +71,7 @@ struct  Mio_LibraryStruct_t_
     Mio_Gate_t *       pGateNand2;  // the NAND2 gate
     Mio_Gate_t *       pGateAnd2;   // the AND2 gate
     st_table *         tName2Gate;  // the mapping of gate names into their pointer
-    DdManager *        dd;          // the nanager storing functions of gates
+//    DdManager *        dd;          // the nanager storing functions of gates
     Mem_Flex_t *       pMmFlex;     // the memory manaqer for SOPs
     Vec_Str_t *        vCube;       // temporary cube
 }; 
@@ -90,8 +92,11 @@ struct  Mio_GateStruct_t_
     // the derived information
     int                nInputs;     // the number of inputs
     double             dDelayMax;   // the maximum delay
-    DdNode *           bFunc;       // the functionality
+//    DdNode *           bFunc;       // the functionality
     char *             pSop;        // sum-of-products
+    Vec_Int_t *        vExpr;       // boolean expression
+    union { word       uTruth;      // truth table
+    word *             pTruth; };   // pointer to the truth table
     int                Value;       // user's information
 };
 
@@ -125,7 +130,6 @@ struct  Mio_PinStruct_t_
 /*=== mio.c =============================================================*/
 /*=== mioRead.c =============================================================*/
 /*=== mioUtils.c =============================================================*/
-
 
 
 ABC_NAMESPACE_HEADER_END

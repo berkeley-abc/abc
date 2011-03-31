@@ -260,7 +260,7 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pLib = Mio_LibraryRead( pAbc, FileName, ExcludeFile, fVerbose );
+    pLib = Mio_LibraryRead( FileName, ExcludeFile, fVerbose );
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading library has failed.\n" );

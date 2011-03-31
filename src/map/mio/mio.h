@@ -43,6 +43,8 @@ typedef struct  Mio_LibraryStruct_t_      Mio_Library_t;
 typedef struct  Mio_GateStruct_t_         Mio_Gate_t;
 typedef struct  Mio_PinStruct_t_          Mio_Pin_t;
 
+static inline char *    Mio_UtilStrsav( char * s )     { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;   }
+
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -82,7 +84,7 @@ extern char *            Mio_LibraryReadName       ( Mio_Library_t * pLib );
 extern int               Mio_LibraryReadGateNum    ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadGates      ( Mio_Library_t * pLib );
 extern Mio_Gate_t **     Mio_LibraryReadGatesByName( Mio_Library_t * pLib );
-extern DdManager *       Mio_LibraryReadDd         ( Mio_Library_t * pLib );
+//extern DdManager *       Mio_LibraryReadDd         ( Mio_Library_t * pLib );
 extern Mio_Gate_t *      Mio_LibraryReadGateByName ( Mio_Library_t * pLib, char * pName );
 extern char *            Mio_LibraryReadSopByName  ( Mio_Library_t * pLib, char * pName );    
 extern Mio_Gate_t *      Mio_LibraryReadConst0     ( Mio_Library_t * pLib );
@@ -112,7 +114,8 @@ extern Mio_Gate_t *      Mio_GateReadNext          ( Mio_Gate_t * pGate );
 extern int               Mio_GateReadInputs        ( Mio_Gate_t * pGate );      
 extern double            Mio_GateReadDelayMax      ( Mio_Gate_t * pGate );      
 extern char *            Mio_GateReadSop           ( Mio_Gate_t * pGate );      
-extern DdNode *          Mio_GateReadFunc          ( Mio_Gate_t * pGate );
+//extern DdNode *          Mio_GateReadFunc          ( Mio_Gate_t * pGate );
+extern word              Mio_GateReadTruth         ( Mio_Gate_t * pGate );
 extern int               Mio_GateReadValue         ( Mio_Gate_t * pGate );
 extern void              Mio_GateSetValue          ( Mio_Gate_t * pGate, int Value );
 extern char *            Mio_PinReadName           ( Mio_Pin_t * pPin );  
@@ -126,10 +129,14 @@ extern double            Mio_PinReadDelayFanoutFall( Mio_Pin_t * pPin );
 extern double            Mio_PinReadDelayBlockMax  ( Mio_Pin_t * pPin );  
 extern Mio_Pin_t *       Mio_PinReadNext           ( Mio_Pin_t * pPin );  
 /*=== mioRead.c =============================================================*/
-extern Mio_Library_t *   Mio_LibraryRead( void * pAbc, char * FileName, char * ExcludeFile, int fVerbose );
-extern int               Mio_LibraryReadExclude( void * pAbc, char * ExcludeFile, st_table * tExcludeGate );
+extern Mio_Library_t *   Mio_LibraryRead( char * FileName, char * ExcludeFile, int fVerbose );
+extern int               Mio_LibraryReadExclude( char * ExcludeFile, st_table * tExcludeGate );
 /*=== mioFunc.c =============================================================*/
 extern int               Mio_LibraryParseFormulas( Mio_Library_t * pLib );
+/*=== mioParse.c =============================================================*/
+extern Vec_Int_t *       Mio_ParseFormula( char * pFormInit, char ** ppVarNames, int nVars );
+/*=== mioSop.c =============================================================*/
+extern char *            Mio_LibDeriveSop( int nVars, Vec_Int_t * vExpr, Vec_Str_t * vStr );
 /*=== mioUtils.c =============================================================*/
 extern void              Mio_LibraryDelete( Mio_Library_t * pLib );
 extern void              Mio_GateDelete( Mio_Gate_t * pGate );
@@ -137,6 +144,7 @@ extern void              Mio_PinDelete( Mio_Pin_t * pPin );
 extern Mio_Pin_t *       Mio_PinDup( Mio_Pin_t * pPin );
 extern void              Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops );
 extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay, int fSkipInv, int * pnGates );
+extern word              Mio_DeriveTruthTable6( Mio_Gate_t * pGate );
 extern void              Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] );
 extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate, 
                             float ** ptPinDelays, int nPins, int nInputs, float tDelayZero, 
