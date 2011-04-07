@@ -6,12 +6,14 @@ SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigFanout.c \
     src/aig/aig/aigFrames.c \
     src/aig/aig/aigInter.c \
+    src/aig/aig/aigJust.c \
     src/aig/aig/aigMan.c \
     src/aig/aig/aigMem.c \
     src/aig/aig/aigMffc.c \
     src/aig/aig/aigObj.c \
     src/aig/aig/aigOper.c \
     src/aig/aig/aigOrder.c \
+    src/aig/aig/aigPack.c \
     src/aig/aig/aigPart.c \
     src/aig/aig/aigPartReg.c \
     src/aig/aig/aigPartSat.c \

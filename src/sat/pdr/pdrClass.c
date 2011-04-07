@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Property driven reachability.]
 
   Synopsis    [Equivalence classes of register outputs.]
 

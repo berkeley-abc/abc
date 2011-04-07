@@ -3131,6 +3131,10 @@ SOURCE=.\src\aig\aig\aigInter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigJust.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigMan.c
 # End Source File
 # Begin Source File
@@ -3152,6 +3156,10 @@ SOURCE=.\src\aig\aig\aigOper.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigOrder.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigPack.c
 # End Source File
 # Begin Source File
 
@@ -4179,10 +4187,6 @@ SOURCE=.\src\aig\au\auCec.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\au\auCore.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\au\auCut.h
 # End Source File
 # Begin Source File
@@ -4204,10 +4208,6 @@ SOURCE=.\src\aig\au\auData.c
 # Begin Source File
 
 SOURCE=.\src\aig\au\auDec6.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\au\auDiv.c
 # End Source File
 # Begin Source File
 
@@ -4255,6 +4255,10 @@ SOURCE=.\src\aig\au\auResCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\au\auResCut.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\au\auResDec.c
 # End Source File
 # Begin Source File
@@ -4297,6 +4301,10 @@ SOURCE=.\src\aig\au\auTruth.h
 
 SOURCE=.\src\aig\au\auUtil.c
 # End Source File
+# End Group
+# Begin Group "ssm"
+
+# PROP Default_Filter ""
 # End Group
 # End Group
 # End Group

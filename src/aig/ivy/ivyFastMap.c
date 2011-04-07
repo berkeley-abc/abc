@@ -344,32 +344,6 @@ static inline int Ivy_ObjIsNodeInt2( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntSelectSort( int * pArray, int nSize )
-{
-    int temp, i, j, best_i;
-    for ( i = 0; i < nSize-1; i++ )
-    {
-        best_i = i;
-        for ( j = i+1; j < nSize; j++ )
-            if ( pArray[j] < pArray[best_i] )
-                best_i = j;
-        temp = pArray[i]; 
-        pArray[i] = pArray[best_i]; 
-        pArray[best_i] = temp;
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs fast mapping for one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline int Vec_IntRemoveDup( int * pArray, int nSize )
 {
     int i, k;

@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [pdr.c]
+  FileName    [pdrMan.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Property driven reachability.]
 
   Synopsis    [Manager procedures.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - November 20, 2010.]
 
-  Revision    [$Id: pdr.c,v 1.00 2010/11/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: pdrMan.c,v 1.00 2010/11/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -65,6 +65,8 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
     p->vVisits  = Vec_IntAlloc( 100 );  // intermediate
     p->vCi2Rem  = Vec_IntAlloc( 100 );  // CIs to be removed
     p->vRes     = Vec_IntAlloc( 100 );  // final result
+    p->vSuppLits= Vec_IntAlloc( 100 );  // support literals
+    p->pCubeJust= Pdr_SetAlloc( Saig_ManRegNum(pAig) );
     // additional AIG data-members
     if ( pAig->pFanData == NULL )
         Aig_ManFanoutStart( pAig );
@@ -90,6 +92,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
     Pdr_Set_t * pCla;
     sat_solver * pSat;
     int i, k;
+    Aig_ManCleanMarkAB( p->pAig );
     if ( p->pPars->fVerbose ) 
     {
         printf( "Block =%5d  Oblig =%6d  Clause =%6d  Call =%6d (sat=%.1f%%)  Start =%4d\n", 
@@ -104,7 +107,7 @@ void Pdr_ManStop( Pdr_Man_t * p )
         ABC_PRTP( "CNF compute", p->tCnf,       p->tTotal );
         ABC_PRTP( "TOTAL      ", p->tTotal,     p->tTotal );
     }
-
+//    printf( "SS =%6d. SU =%6d. US =%6d. UU =%6d.\n", p->nCasesSS, p->nCasesSU, p->nCasesUS, p->nCasesUU );
     Vec_PtrForEachEntry( sat_solver *, p->vSolvers, pSat, i )
         sat_solver_delete( pSat );
     Vec_PtrFree( p->vSolvers );
@@ -125,17 +128,19 @@ void Pdr_ManStop( Pdr_Man_t * p )
     ABC_FREE( p->pvId2Vars );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vVar2Ids );
     // internal use
-    Vec_IntFreeP( &p->vPrio );  // priority flops
-    Vec_IntFree( p->vLits   );  // array of literals
-    Vec_IntFree( p->vCiObjs );  // cone leaves
-    Vec_IntFree( p->vCoObjs );  // cone roots
-    Vec_IntFree( p->vCiVals );  // cone leaf values
-    Vec_IntFree( p->vCoVals );  // cone root values
-    Vec_IntFree( p->vNodes  );  // cone nodes
-    Vec_IntFree( p->vUndo   );  // cone undos
-    Vec_IntFree( p->vVisits );  // intermediate
-    Vec_IntFree( p->vCi2Rem );  // CIs to be removed
-    Vec_IntFree( p->vRes    );  // final result
+    Vec_IntFreeP( &p->vPrio   );  // priority flops
+    Vec_IntFree( p->vLits     );  // array of literals
+    Vec_IntFree( p->vCiObjs   );  // cone leaves
+    Vec_IntFree( p->vCoObjs   );  // cone roots
+    Vec_IntFree( p->vCiVals   );  // cone leaf values
+    Vec_IntFree( p->vCoVals   );  // cone root values
+    Vec_IntFree( p->vNodes    );  // cone nodes
+    Vec_IntFree( p->vUndo     );  // cone undos
+    Vec_IntFree( p->vVisits   );  // intermediate
+    Vec_IntFree( p->vCi2Rem   );  // CIs to be removed
+    Vec_IntFree( p->vRes      );  // final result
+    Vec_IntFree( p->vSuppLits );  // support literals
+    ABC_FREE( p->pCubeJust );
     // additional AIG data-members
     if ( p->pAig->pFanData != NULL )
         Aig_ManFanoutStop( p->pAig );

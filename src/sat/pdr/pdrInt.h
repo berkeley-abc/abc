@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Property driven reachability.]
 
   Synopsis    [Internal declarations.]
 
@@ -92,6 +92,8 @@ struct Pdr_Man_t_
     Vec_Int_t * vVisits;   // intermediate
     Vec_Int_t * vCi2Rem;   // CIs to be removed
     Vec_Int_t * vRes;      // final result
+    Vec_Int_t * vSuppLits; // support literals
+    Pdr_Set_t * pCubeJust; // justification
     // statistics
     int         nBlocks;   // the number of times blockState was called
     int         nObligs;   // the number of proof obligations derived
@@ -101,6 +103,10 @@ struct Pdr_Man_t_
     int         nCallsU;   // the number of SAT calls (unsat)
     int         nStarts;   // the number of SAT solver restarts
     int         nFrames;   // frames explored
+    int         nCasesSS;
+    int         nCasesSU;
+    int         nCasesUS;
+    int         nCasesUU;
     // runtime
     int         timeStart;
     int         timeToStop;
@@ -133,6 +139,8 @@ extern int             Pdr_ObjSatVar( Pdr_Man_t * p, int k, Aig_Obj_t * pObj );
 extern int             Pdr_ObjRegNum( Pdr_Man_t * p, int k, int iSatVar );
 extern int             Pdr_ManFreeVar( Pdr_Man_t * p, int k );
 extern sat_solver *    Pdr_ManNewSolver( Pdr_Man_t * p, int k, int fInit );
+/*=== pdrCore.c ==========================================================*/
+extern int             Pdr_ManCheckContainment( Pdr_Man_t * p, int k, Pdr_Set_t * pSet );
 /*=== pdrInv.c ==========================================================*/
 extern void            Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time );
 extern void            Pdr_ManPrintClauses( Pdr_Man_t * p, int kStart );
@@ -156,6 +164,7 @@ extern int             Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube
 /*=== pdrTsim.c ==========================================================*/
 extern Pdr_Set_t *     Pdr_ManTernarySim( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 /*=== pdrUtil.c ==========================================================*/
+extern Pdr_Set_t *     Pdr_SetAlloc( int nSize );
 extern Pdr_Set_t *     Pdr_SetCreate( Vec_Int_t * vLits, Vec_Int_t * vPiLits );
 extern Pdr_Set_t *     Pdr_SetCreateFrom( Pdr_Set_t * pSet, int iRemove );
 extern Pdr_Set_t *     Pdr_SetCreateSubset( Pdr_Set_t * pSet, int * pLits, int nLits );
@@ -163,6 +172,7 @@ extern Pdr_Set_t *     Pdr_SetDup( Pdr_Set_t * pSet );
 extern Pdr_Set_t *     Pdr_SetRef( Pdr_Set_t * p );
 extern void            Pdr_SetDeref( Pdr_Set_t * p );
 extern int             Pdr_SetContains( Pdr_Set_t * pOld, Pdr_Set_t * pNew );
+extern int             Pdr_SetContainsSimple( Pdr_Set_t * pOld, Pdr_Set_t * pNew );
 extern int             Pdr_SetIsInit( Pdr_Set_t * p, int iRemove );
 extern void            Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts );
 extern int             Pdr_SetCompare( Pdr_Set_t ** pp1, Pdr_Set_t ** pp2 );
@@ -175,6 +185,7 @@ extern Pdr_Obl_t *     Pdr_QueuePop( Pdr_Man_t * p );
 extern void            Pdr_QueuePush( Pdr_Man_t * p, Pdr_Obl_t * pObl );
 extern void            Pdr_QueuePrint( Pdr_Man_t * p );
 extern void            Pdr_QueueStop( Pdr_Man_t * p );
+extern int             Pdr_ManCubeJust( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 
 ABC_NAMESPACE_HEADER_END
 

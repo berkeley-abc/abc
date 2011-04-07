@@ -102,26 +102,26 @@ struct Vec_Vec_t_
         Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
 
 // iteratores through entries
-#define Vec_VecForEachEntryInt( Type, vGlob, Entry, i, k )                                    \
+#define Vec_VecForEachEntryInt( vGlob, Entry, i, k )                                          \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_IntForEachEntry( Type, (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
-#define Vec_VecForEachEntryIntLevel( Type, vGlob, Entry, i, Level )                           \
-        Vec_IntForEachEntry( Type, (Vec_Int_t *)Vec_VecEntry(vGlob, Level), Entry, i ) 
-#define Vec_VecForEachEntryIntStart( Type, vGlob, Entry, i, k, LevelStart )                   \
+        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+#define Vec_VecForEachEntryIntLevel( vGlob, Entry, i, Level )                                 \
+        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, Level), Entry, i ) 
+#define Vec_VecForEachEntryIntStart( vGlob, Entry, i, k, LevelStart )                         \
     for ( i = LevelStart; i < Vec_VecSize(vGlob); i++ )                                       \
-        Vec_IntForEachEntry( Type, (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
-#define Vec_VecForEachEntryIntStartStop( Type, vGlob, Entry, i, k, LevelStart, LevelStop )    \
+        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+#define Vec_VecForEachEntryIntStartStop( vGlob, Entry, i, k, LevelStart, LevelStop )          \
     for ( i = LevelStart; i < LevelStop; i++ )                                                \
-        Vec_IntForEachEntry( Type, (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
-#define Vec_VecForEachEntryIntReverse( Type, vGlob, Entry, i, k )                             \
+        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+#define Vec_VecForEachEntryIntReverse( vGlob, Entry, i, k )                                   \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_IntForEachEntryReverse( Type, (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
-#define Vec_VecForEachEntryIntReverseReverse( Type, vGlob, Entry, i, k )                      \
+        Vec_IntForEachEntryReverse( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+#define Vec_VecForEachEntryIntReverseReverse( vGlob, Entry, i, k )                            \
     for ( i = Vec_VecSize(vGlob) - 1; i >= 0; i-- )                                           \
-        Vec_IntForEachEntryReverse( Type, (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
-#define Vec_VecForEachEntryIntReverseStart( Type, vGlob, Entry, i, k, LevelStart )            \
+        Vec_IntForEachEntryReverse( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+#define Vec_VecForEachEntryIntReverseStart( vGlob, Entry, i, k, LevelStart )                  \
     for ( i = LevelStart-1; i >= 0; i-- )                                                     \
-        Vec_IntForEachEntry( Type, (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

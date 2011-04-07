@@ -1123,6 +1123,32 @@ static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Performs fast mapping for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntSelectSort( int * pArray, int nSize )
+{
+    int temp, i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( pArray[j] < pArray[best_i] )
+                best_i = j;
+        temp = pArray[i]; 
+        pArray[i] = pArray[best_i]; 
+        pArray[best_i] = temp;
+    }
+}
+
 
 ABC_NAMESPACE_HEADER_END
 

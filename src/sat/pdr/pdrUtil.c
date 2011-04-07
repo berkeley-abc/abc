@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Property driven reachability.]
 
   Synopsis    [Various utilities.]
 
@@ -34,7 +34,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fast mapping for one node.]
+  Synopsis    []
 
   Description []
                
@@ -43,19 +43,12 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntSelectSort( int * pArray, int nSize )
+Pdr_Set_t * Pdr_SetAlloc( int nSize )
 {
-    int temp, i, j, best_i;
-    for ( i = 0; i < nSize-1; i++ )
-    {
-        best_i = i;
-        for ( j = i+1; j < nSize; j++ )
-            if ( pArray[j] < pArray[best_i] )
-                best_i = j;
-        temp = pArray[i]; 
-        pArray[i] = pArray[best_i]; 
-        pArray[best_i] = temp;
-    }
+    Pdr_Set_t * p;
+    assert( nSize < (1<<15) );
+    p = (Pdr_Set_t *)ABC_CALLOC( char, sizeof(Pdr_Set_t) + nSize * sizeof(int) );
+    return p;
 }
 
 /**Function*************************************************************
@@ -285,6 +278,46 @@ int Pdr_SetContains( Pdr_Set_t * pOld, Pdr_Set_t * pNew )
     pNewInt = pNew->Lits + pNew->nLits - 1;
     while ( pNew->Lits <= pNewInt )
     {
+        if ( pOld->Lits > pOldInt )
+            return 0;
+        assert( *pNewInt != -1 );
+        assert( *pOldInt != -1 );
+        if ( *pNewInt == *pOldInt )
+            pNewInt--, pOldInt--;
+        else if ( *pNewInt < *pOldInt )
+            pOldInt--;
+        else
+            return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Return 1 if pOld set-theoretically contains pNew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Pdr_SetContainsSimple( Pdr_Set_t * pOld, Pdr_Set_t * pNew )
+{
+    int * pOldInt, * pNewInt;
+    assert( pOld->nLits > 0 );
+    assert( pNew->nLits > 0 );
+    pOldInt = pOld->Lits + pOld->nLits - 1;
+    pNewInt = pNew->Lits + pNew->nLits - 1;
+    while ( pNew->Lits <= pNewInt )
+    {
+        assert( *pOldInt != -1 );
+        if ( *pNewInt == -1 )
+        {
+            pNewInt--;
+            continue;
+        }
         if ( pOld->Lits > pOldInt )
             return 0;
         assert( *pNewInt != -1 );
@@ -537,6 +570,145 @@ void Pdr_QueueStop( Pdr_Man_t * p )
     }
     p->pQueue = NULL;
 }
+
+
+#define PDR_VAL0  1
+#define PDR_VAL1  2
+#define PDR_VALX  3
+
+/**Function*************************************************************
+
+  Synopsis    [Returns value (0 or 1) or X if unassigned.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Pdr_ObjSatValue( Aig_Man_t * pAig, Aig_Obj_t * pNode, int fCompl )
+{
+    if ( Aig_ObjIsTravIdCurrent(pAig, pNode) )
+        return (pNode->fMarkA ^ fCompl) ? PDR_VAL1 : PDR_VAL0;
+    return PDR_VALX;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively searched for a satisfying assignment.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Pdr_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Pdr_Set_t * pCube, int Heur )
+{
+    int Value0, Value1;
+    if ( Aig_ObjIsConst1(pNode) )
+        return 1;
+    if ( Aig_ObjIsTravIdCurrent(pAig, pNode) )
+        return ((int)pNode->fMarkA == Value);
+    Aig_ObjSetTravIdCurrent(pAig, pNode);
+    pNode->fMarkA = Value;
+    if ( Aig_ObjIsPi(pNode) )
+    {
+//        if ( vSuppLits )
+//            Vec_IntPush( vSuppLits, Aig_Var2Lit( Aig_ObjPioNum(pNode), !Value ) );
+        if ( Saig_ObjIsLo(pAig, pNode) )
+        {
+//            pCube->Lits[pCube->nLits++] = Aig_Var2Lit( Aig_ObjPioNum(pNode) - Saig_ManPiNum(pAig), !Value );
+            pCube->Lits[pCube->nLits++] = Aig_Var2Lit( Aig_ObjPioNum(pNode) - Saig_ManPiNum(pAig), Value );
+            pCube->Sign |= ((word)1 << (pCube->Lits[pCube->nLits-1] % 63));
+        }
+        return 1;
+    }
+    assert( Aig_ObjIsNode(pNode) );
+    // propagation
+    if ( Value ) 
+    {
+        if ( !Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin0(pNode), !Aig_ObjFaninC0(pNode), pCube, Heur) )
+            return 0;
+        return Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin1(pNode), !Aig_ObjFaninC1(pNode), pCube, Heur);
+    }
+    // justification
+    Value0 = Pdr_ObjSatValue( pAig, Aig_ObjFanin0(pNode), Aig_ObjFaninC0(pNode) );
+    if ( Value0 == PDR_VAL0 )
+        return 1;
+    Value1 = Pdr_ObjSatValue( pAig, Aig_ObjFanin1(pNode), Aig_ObjFaninC1(pNode) );
+    if ( Value1 == PDR_VAL0 )
+        return 1;
+    if ( Value0 == PDR_VAL1 && Value1 == PDR_VAL1 )
+        return 0;
+    if ( Value0 == PDR_VAL1 )
+        return Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin1(pNode), Aig_ObjFaninC1(pNode), pCube, Heur);
+    if ( Value1 == PDR_VAL1 )
+        return Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin0(pNode), Aig_ObjFaninC0(pNode), pCube, Heur);
+    assert( Value0 == PDR_VALX && Value1 == PDR_VALX );
+    // decision making
+//    if ( rand() % 10 == Heur )
+    if ( Aig_ObjId(pNode) % 4 == Heur )
+        return Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin1(pNode), Aig_ObjFaninC1(pNode), pCube, Heur);
+    else
+        return Pdr_NtkFindSatAssign_rec(pAig, Aig_ObjFanin0(pNode), Aig_ObjFaninC0(pNode), pCube, Heur);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if SAT assignment is found; 0 otherwise.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Pdr_ManCubeJust( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
+{
+    Aig_Obj_t * pNode;
+    int i, v, fCompl;
+//    return 0;
+    for ( i = 0; i < 4; i++ )
+    {
+        // derive new assignment
+        p->pCubeJust->nLits = 0;
+        p->pCubeJust->Sign  = 0;
+        Aig_ManIncrementTravId( p->pAig );
+        for ( v = 0; v < pCube->nLits; v++ )
+        {
+            if ( pCube->Lits[v] == -1 )
+                continue;
+            pNode  = Saig_ManLi( p->pAig, lit_var(pCube->Lits[v]) );
+            fCompl = lit_sign(pCube->Lits[v]) ^ Aig_ObjFaninC0(pNode);
+            if ( !Pdr_NtkFindSatAssign_rec( p->pAig, Aig_ObjFanin0(pNode), !fCompl, p->pCubeJust, i ) )
+                break;
+        }
+        if ( v < pCube->nLits )
+            continue;
+        // figure this out!!!
+        if ( p->pCubeJust->nLits == 0 )
+            continue;
+        // successfully derived new assignment
+        Vec_IntSelectSort( p->pCubeJust->Lits, p->pCubeJust->nLits );
+        // check assignment against this cube
+        if ( Pdr_SetContainsSimple( p->pCubeJust, pCube ) )
+            continue;
+//printf( "\n" );
+//Pdr_SetPrint( stdout, pCube,        Saig_ManRegNum(p->pAig), NULL ); printf( "\n" );
+//Pdr_SetPrint( stdout, p->pCubeJust, Saig_ManRegNum(p->pAig), NULL ); printf( "\n" );
+        // check assignment against the clauses
+        if ( Pdr_ManCheckContainment( p, k, p->pCubeJust ) )
+            continue;
+        // find good assignment
+        return 1;
+    }
+    return 0;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

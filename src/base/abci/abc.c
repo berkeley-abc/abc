@@ -8418,68 +8418,49 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    Abc_Ntk_t * pNtkRes = NULL;
+    int nCutMax      =  1;
+    int nLeafMax     = 10;
+    int nDivMax      = 50;
+    int nDecMax      =  3;
+    int fVerbose     =  0;
+    int fVeryVerbose =  0;
     int c;
-    int fBmc;
-    int nFrames;
-    int nLevels;
-    int fVerbose;
-    int fVeryVerbose;
-//    char * pFileName;
-
-//    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
-//    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
-//    extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
-//    extern int Pr_ManProofTest( char * pFileName );
-    extern void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk );
-    extern void Abc_NtkCompareCones( Abc_Ntk_t * pNtk );
-    extern Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk );
-    extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
-    extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
-//    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-//    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
-//    extern void Abc_NtkDarTestBlif( char * pFileName );
-//    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
-//    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
-//    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
-    extern Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose );
-    extern void Abc_NtkDarTest( Abc_Ntk_t * pNtk, int Num );
-//    extern void Aig_ProcedureTest();
-    extern Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk );
-    extern void Amap_LibertyTest( char * pFileName );
-    extern void Bbl_ManTest( Abc_Ntk_t * pNtk );
-    extern void Bbl_ManSimpleDemo();
-    extern Abc_Ntk_t * Abc_NtkCRetime( Abc_Ntk_t * pNtk, int fVerbose );
-    extern void Abc_NktMffcTest( Abc_Ntk_t * pNtk );
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-
-
-
-//    Abc_Print( -1, "This command is temporarily disabled.\n" );
-//    return 0;
-
-    // set defaults
-    fVeryVerbose = 0;
-    fVerbose = 1;
-    fBmc     = 0;
-    nFrames  = 1;
-    nLevels  = 10;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FNbvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CKDNvwh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'F':
+        case 'C':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFrames = atoi(argv[globalUtilOptind]);
+            nCutMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames < 0 ) 
+            if ( nCutMax < 0 ) 
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLeafMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLeafMax < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nDivMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDivMax < 0 ) 
                 goto usage;
             break;
         case 'N':
@@ -8488,13 +8469,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nLevels = atoi(argv[globalUtilOptind]);
+            nDecMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevels < 0 ) 
+            if ( nDecMax < 0 ) 
                 goto usage;
-            break;
-        case 'b':
-            fBmc ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -8508,12 +8486,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
+/*
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
+*/
 /*
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
@@ -8521,79 +8500,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 */
-//    if ( fBmc )
-//        Abc_NtkBddDec( pNtk, 1 );
-//    else
-//        Abc_NktMffcTest( pNtk );
-//    Abc_NtkDarTest( pNtk, nLevels );
-
-//    Abc_NtkTestEsop( pNtk );
-//    Abc_NtkTestSop( pNtk );
-//    Abc_Print( -1, "This command is currently not used.\n" );
-    // run the command
-//    pNtkRes = Abc_NtkMiterForCofactors( pNtk, 0, 0, -1 );
-//    pNtkRes = Abc_NtkNewAig( pNtk );
-
-/*
-    pNtkRes = NULL;
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
-
-//    if ( Cut_CellIsRunning() )
-//        Cut_CellDumpToFile();
-//    else
-//        Cut_CellPrecompute();
-//        Cut_CellLoad();
-/*
-        {
-            Abc_Ntk_t * pNtkRes;
-            extern Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels );
-            pNtkRes = Abc_NtkTopmost( pNtk, nLevels );
-            Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-        }
-*/
-//    Abc_NtkSimulteBuggyMiter( pNtk );
-
-//    Rwr_Temp();
-//    Abc_MvExperiment();
-//    Ivy_TruthTest();
-
-
-//    Ivy_TruthEstimateNodesTest();
-/*
-    pNtkRes = Abc_NtkIvy( pNtk );
-//    pNtkRes = Abc_NtkPlayer( pNtk, nLevels, 0 );
-//    pNtkRes = NULL;
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
-//    Abc_NtkMaxFlowTest( pNtk );
-//    Pr_ManProofTest( "trace.cnf" );
-
-//    Abc_NtkCompareSupports( pNtk );
-//    Abc_NtkCompareCones( pNtk );
-/*
-    {
-        extern Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int fVerbose );
-        Vec_Vec_t * vParts;
-        vParts = Abc_NtkPartitionSmart( pNtk, 1 );
-        Vec_VecFree( vParts );
-    }
-*/
-//    Abc_Ntk4VarTable( pNtk );
-//    Dar_NtkGenerateArrays( pNtk );
-//    Dar_ManDeriveCnfTest2();
 /*
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -8602,150 +8508,37 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 /*
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( pNtk )
     {
-        Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
-        return 0;
+        extern Abc_Ntk_t * Au_ManPerformTest( Abc_Ntk_t * p, int nCutMax, int nLeafMax, int nDivMax, int nDecMax, int fVerbose, int fVeryVerbose );
+        Abc_Ntk_t * pNtkRes = Au_ManPerformTest( pNtk, nCutMax, nLeafMax, nDivMax, nDecMax, fVerbose, fVeryVerbose );
+        if ( pNtkRes == NULL )
+        {
+            Abc_Print( -1, "Command has failed.\n" );
+            return 1;
+        }
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
 */
 /*
-    if ( Abc_NtkIsStrash(pNtk) )
     {
-        Abc_Print( -1, "Currently only works for logic circuits.\n" );
-        return 0;
+        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
+        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
+        Aig_ManTerSimulate( pAig );
+        Aig_ManStop( pAig );
     }
 */
-
-
-/*
-//    pNtkRes = Abc_NtkDar( pNtk );
-//    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 ); 
-//    pNtkRes = Abc_NtkPcmTestAig( pNtk, fVerbose );
-    pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
-//    pNtkRes = NULL;
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    return 0;
-*/
-
-
-//    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
-/*
-    if ( globalUtilOptind != 1 )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 1;
-    }
-    Abc_NtkDarTestBlif( argv[globalUtilOptind] );
-*/
-
-//    Abc_NtkDarPartition( pNtk );
-//Abc_NtkDarTest( pNtk );
-//Abc_NtkWriteAig( pNtk, NULL );
-
-
-/*
-//    pNtkRes = Abc_NtkDarRetimeStep( pNtk, 0 );
-    pNtkRes = Abc_NtkDarHaigRecord( pNtk, 3, 3000, 0, 0, 0, 0 );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
-
-/*
-    pNtkRes = Abc_NtkDarTestNtk( pNtk );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
-
-//Amap_LibertyTest( "bwrc.lib" );
-
-//    Abc_NtkDarTest( pNtk );
-
-//    Bbl_ManTest( pNtk );
-/*
-    {
-    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    extern void Aig_ManComputeDomsForCofactoring( Aig_Man_t * p );
-    Aig_Man_t * pAig;
-    pAig = Abc_NtkToDar( pNtk, 0, 0 );
-    Aig_ManComputeDomsForCofactoring( pAig );
-    Aig_ManStop( pAig );
-    }
-*/
-
-/*
-    if ( Abc_NtkIsStrash(pNtk) )
-    {
-        extern Abc_Ntk_t * Au_ManTransformTest( Abc_Ntk_t * pAig );
-        pNtkRes = Au_ManTransformTest( pNtk );
-    }
-    else
-    {
-        extern Abc_Ntk_t * Au_ManResubTest( Abc_Ntk_t * pAig );
-        pNtkRes = Au_ManResubTest( pNtk );
-    }
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command has failed.\n" );
-        return 1;
-    }
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
-
-/*
-{
-    extern int Au_DsdVecTest( int nVars );
-    Au_DsdVecTest( 6 );
-}
-*/
-
-{
-//    extern void Au_Sat3DeriveImpls();
-//    Au_Sat3DeriveImpls();
-//    extern void Au_Sat3DeriveJusts();
-//    Au_Sat3DeriveJusts();
-}
-
-{
-//    extern void Au_NtkReadFour( Abc_Ntk_t * pNtk );
-//    extern void Au_Data4VerifyFour();
-//    Au_NtkReadFour( pNtk );
-//    Au_Data4VerifyFour();
-}
-
-
-//    Abc_NtkCheckAbsorb( pNtk, 4 );
-/*
-    if ( fBmc )
-        Abc_NktMffcServerTest( pNtk );
-    else
-        Abc_ResPartitionTest( pNtk );
-*/
-//    Abc_NtkHelloWorld( pNtk );
-//    Abc_NktMffcTest( pNtk );
-//    Abc_NktMffcServerTest( pNtk );
     return 0;
 usage:
-    Abc_Print( -2, "usage: test [-h] <file_name>\n" );
+    Abc_Print( -2, "usage: test [-CKDN] [-vwh] <file_name>\n" );
     Abc_Print( -2, "\t         testbench for new procedures\n" );
-//    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-//    Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-C num : the max number of cuts [default = %d]\n", nCutMax );
+    Abc_Print( -2, "\t-K num : the max number of leaves [default = %d]\n", nLeafMax );
+    Abc_Print( -2, "\t-D num : the max number of divisors [default = %d]\n", nDivMax );
+    Abc_Print( -2, "\t-N num : the max number of node inputs [default = %d]\n", nDecMax );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

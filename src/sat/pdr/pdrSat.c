@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Property driven reachability.]
 
   Synopsis    [SAT solver procedures.]
 
@@ -307,6 +307,24 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
         RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), nConfLimit, 0, 0, 0 );
         if ( RetValue == l_Undef )
             return -1;
+/*
+        if ( RetValue == l_True )
+        {
+            int RetValue2 = Pdr_ManCubeJust( p, k, pCube );
+            if ( RetValue2 )
+                p->nCasesSS++;
+            else
+                p->nCasesSU++;
+        }
+        else
+        {
+            int RetValue2 = Pdr_ManCubeJust( p, k, pCube );
+            if ( RetValue2 )
+                p->nCasesUS++;
+            else
+                p->nCasesUU++;
+        }
+*/
     }
     clk = clock() - clk;
     p->tSat += clk;
