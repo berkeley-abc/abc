@@ -404,7 +404,7 @@ Aig_Obj_t * Ssw_ManSweepBmcConstr_rec( Ssw_Man_t * p, Aig_Obj_t * pObj, int f )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ManSweepBmcConstr( Ssw_Man_t * p )
+int Ssw_ManSweepBmcConstr_old( Ssw_Man_t * p )
 {
     Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
@@ -476,6 +476,85 @@ clk = clock();
     }
     if ( p->pPars->fVerbose )
         Bar_ProgressStop( pProgress );
+
+    // cleanup
+//    Ssw_ClassesCheck( p->ppClasses );
+p->timeBmc += clock() - clk;
+    return p->fRefined;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging for the internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ManSweepBmcConstr( Ssw_Man_t * p )
+{
+    Aig_Obj_t * pObj, * pObjNew, * pObjLi, * pObjLo;
+    int i, f, iLits, clk;
+clk = clock();
+
+    // start initialized timeframes
+    p->pFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->pPars->nFramesK );
+    Saig_ManForEachLo( p->pAig, pObj, i )
+        Ssw_ObjSetFrame( p, pObj, 0, Aig_ManConst0(p->pFrames) );
+
+    // build the constraint outputs
+    iLits = 0;
+    p->fRefined = 0;
+    for ( f = 0; f < p->pPars->nFramesK; f++ )
+    {
+        // map constants and PIs
+        Ssw_ObjSetFrame( p, Aig_ManConst1(p->pAig), f, Aig_ManConst1(p->pFrames) );
+        Saig_ManForEachPi( p->pAig, pObj, i )
+        {
+            pObjNew = Aig_ObjCreatePi(p->pFrames);
+            pObjNew->fPhase = Vec_IntEntry( p->vInits, iLits++ );
+            Ssw_ObjSetFrame( p, pObj, f, pObjNew );
+        }
+        // build the constraint cones
+        Saig_ManForEachPo( p->pAig, pObj, i )
+        {
+            if ( i < Saig_ManPoNum(p->pAig) - Saig_ManConstrNum(p->pAig) )
+                continue;
+            pObjNew = Ssw_ManSweepBmcConstr_rec( p, Aig_ObjFanin0(pObj), f );
+            pObjNew = Aig_NotCond( pObjNew, Aig_ObjFaninC0(pObj) );
+            if ( Aig_Regular(pObjNew) == Aig_ManConst1(p->pFrames) )
+            {
+                assert( Aig_IsComplement(pObjNew) );
+                continue;
+            }
+            Ssw_NodesAreConstrained( p, pObjNew, Aig_ManConst0(p->pFrames) );
+        }
+
+        // sweep internal nodes
+        Aig_ManForEachNode( p->pAig, pObj, i )
+        {
+            pObjNew = Aig_And( p->pFrames, Ssw_ObjChild0Fra(p, pObj, f), Ssw_ObjChild1Fra(p, pObj, f) );
+            Ssw_ObjSetFrame( p, pObj, f, pObjNew );
+            p->fRefined |= Ssw_ManSweepNodeConstr( p, pObj, f, 1 );
+        }
+        // quit if this is the last timeframe
+        if ( f == p->pPars->nFramesK - 1 )
+            break;
+        // transfer latch input to the latch outputs 
+        Aig_ManForEachPo( p->pAig, pObj, i )
+            Ssw_ObjSetFrame( p, pObj, f, Ssw_ObjChild0Fra(p, pObj, f) );
+        // build logic cones for register outputs
+        Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
+        {
+            pObjNew = Ssw_ObjFrame( p, pObjLi, f );
+            Ssw_ObjSetFrame( p, pObjLo, f+1, pObjNew );
+            Ssw_CnfNodeAddToSolver( p->pMSat, Aig_Regular(pObjNew) );//
+        }
+    }
+    assert( Vec_IntSize(p->vInits) == iLits + Saig_ManPiNum(p->pAig) );
 
     // cleanup
 //    Ssw_ClassesCheck( p->ppClasses );
