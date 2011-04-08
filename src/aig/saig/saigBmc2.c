@@ -767,7 +767,9 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         printf( "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 
             nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll );
     } 
-
+    // set runtime limit
+    if ( nTimeOut )
+        sat_solver_set_runtime_limit( p->pSat, clock() + nTimeOut * CLOCKS_PER_SEC );
     for ( Iter = 0; ; Iter++ )
     {
         clk2 = clock();
@@ -841,8 +843,10 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
             printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
         else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
             printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
-        else
+        else if ( nTimeOut == 0 || nTimeOut > clock() )
             printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+        else
+            printf( "Reached timeout (%d sec).\n", nTimeOut );
     }
     Saig_BmcManStop( p );
     return Status;

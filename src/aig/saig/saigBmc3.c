@@ -1054,6 +1054,10 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         printf( "Params: Start = %d. FramesMax = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
             pPars->nStart, pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->fSolveAll );
     } 
+    // set runtime limit
+    if ( p->pPars->nTimeOut )
+        sat_solver_set_runtime_limit( p->pSat, clock() + p->pPars->nTimeOut * CLOCKS_PER_SEC );
+    // perform frames
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
         pPars->iFrame = f;

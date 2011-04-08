@@ -1521,6 +1521,8 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
 //            printf( "Reached the limit on the number of implications (%d).\n", s->nInsLimit );
             break;
         }
+        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
+            break;
     }
     if (s->verbosity >= 1)
         printf("==============================================================================\n");

@@ -1682,18 +1682,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1, clk = clock();
-
-/*
-    s_fInterrupt = 0;
-    if ( signal(SIGINT,sigfunc) == SIG_ERR ) 
-    {
-        printf("Could not setup signal handler for SIGINT!\n");
-        return RetValue;
-    }
-    printf("Waiting for SIGINT. Press Ctrl+C to exit.\n");
-//    while ( !s_fInterrupt );
-//    return RetValue;
-*/
+    int nTimeLimit = nTimeOut ? clock() + nTimeOut * CLOCKS_PER_SEC : 0;
 
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
@@ -1715,17 +1704,23 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( RetValue == 1 )
         {
-//            printf( "No output was asserted in %d frames. ", iFrame );
+//            printf( "No output asserted in %d frames. ", iFrame );
             printf( "Incorrect return value.  " );
         }
         else if ( RetValue == -1 )
-            printf( "No output was asserted in %d frames. Reached conflict limit (%d). ", iFrame, nBTLimit );
+        {
+            printf( "No output asserted in %d frames. Resource limit reached ", iFrame );
+            if ( nTimeLimit < clock() )
+                printf( "(timeout %d sec). ", nTimeLimit );
+            else
+                printf( "(conf limit %d). ", nBTLimit );
+        }
         else // if ( RetValue == 0 )
         {
 //            extern void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Abc_Cex_t * pCex );
 
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
+            printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
 
 //            Aig_ManCounterExampleValueTest( pMan, pCex );
         }
@@ -1741,12 +1736,12 @@ ABC_PRT( "Time", clock() - clk );
         if ( pNtk->pSeqModel )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
+            printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
             RetValue = 0;
         }
         else
         {
-            printf( "No output was asserted in %d frames. ", nFrames );
+            printf( "No output asserted in %d frames. ", nFrames );
             RetValue = 1;
         }
 */
@@ -1757,13 +1752,13 @@ ABC_PRT( "Time", clock() - clk );
         ABC_FREE( pNtk->pSeqModel );
         pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
         if ( RetValue == 1 )
-            printf( "No output was asserted in %d frames. ", iFrame );
+            printf( "No output asserted in %d frames. ", iFrame );
         else if ( RetValue == -1 )
-            printf( "No output was asserted in %d frames. Reached conflict limit (%d). ", iFrame, nBTLimit );
+            printf( "No output asserted in %d frames. Reached conflict limit (%d). ", iFrame, nBTLimit );
         else // if ( RetValue == 0 )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
+            printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
         }
 */
         RetValue = Saig_BmcPerform( pMan, nStart, nFrames, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fVerbose, 0, piFrames );
@@ -1797,6 +1792,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1, clk = clock();
+    int nTimeOut = pPars->nTimeOut ? clock() + pPars->nTimeOut * CLOCKS_PER_SEC : 0;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
     {
@@ -1810,16 +1806,26 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
     pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
     if ( RetValue == 1 )
     {
-//        printf( "No output was asserted in %d frames. ", pPars->iFrame );
+//        printf( "No output asserted in %d frames. ", pPars->iFrame );
         printf( "Incorrect return value.  " );
     }
     else if ( RetValue == -1 )
     {
         if ( pPars->nFailOuts == 0 )
-            printf( "No output was asserted in %d frames. Reached conflict limit (%d). ", pPars->iFrame, pPars->nConfLimit );
+        {
+            printf( "No output asserted in %d frames. Resource limit reached ", pPars->iFrame );
+            if ( nTimeOut < clock() )
+                printf( "(timeout %d sec). ", pPars->nTimeOut );
+            else
+                printf( "(conf limit %d). ", pPars->nConfLimit );
+        }
         else
         {
-            printf( "The total of %d outputs was asserted in %d frames. Reached conflict limit (%d). ", pPars->nFailOuts, pPars->iFrame, pPars->nConfLimit );
+            printf( "The total of %d outputs asserted in %d frames. Resource limit reached ", pPars->nFailOuts, pPars->iFrame );
+            if ( nTimeOut < clock() )
+                printf( "(timeout %d sec). ", pPars->nTimeOut );
+            else
+                printf( "(conf limit %d). ", pPars->nConfLimit );
             if ( pNtk->pSeqModelVec )
                 Vec_PtrFreeFree( pNtk->pSeqModelVec );
             pNtk->pSeqModelVec = pMan->pSeqModelVec;  pMan->pSeqModelVec = NULL;
@@ -1830,12 +1836,12 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
         if ( !pPars->fSolveAll )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
+            printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness). ", pCex->iPo, pCex->iFrame );
         }
         else
         {
             printf( "Incorrect return value.  " );
-//            printf( "At least one output was asserted (out=%d, frame=%d). ", pCex->iPo, pCex->iFrame );
+//            printf( "At least one output asserted (out=%d, frame=%d). ", pCex->iPo, pCex->iFrame );
         }
     }
     ABC_PRT( "Time", clock() - clk );
@@ -2133,7 +2139,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
         if ( pNtk->pSeqModel )
         {
             Abc_Cex_t * pCex = pNtk->pSeqModel;
-            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).\n", pCex->iPo, pCex->iFrame );
+            printf( "Output %d asserted in frame %d (use \"write_counter\" to dump a witness).\n", pCex->iPo, pCex->iFrame );
             if ( !Saig_ManVerifyCex( pMan, pNtk->pSeqModel ) )
                 printf( "Abc_NtkDarProve(): Counter-example verification has FAILED.\n" );
         }
