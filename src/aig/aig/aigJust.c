@@ -230,6 +230,13 @@ int Aig_ObjTerSimulate( Aig_Man_t * pAig, Aig_Obj_t * pNode, Vec_Int_t * vSuppLi
     return Aig_ObjTerSimulate_rec( pAig, pNode );
 }
 
+
+typedef struct Aig_ManPack_t_ Aig_ManPack_t;
+extern Aig_ManPack_t *        Aig_ManPackStart( Aig_Man_t * pAig );
+extern void                   Aig_ManPackStop( Aig_ManPack_t * p );
+extern void                   Aig_ManPackAddPattern( Aig_ManPack_t * p, Vec_Int_t * vLits );
+extern Vec_Int_t *            Aig_ManPackConstNodes( Aig_ManPack_t * p );
+
 /**Function*************************************************************
 
   Synopsis    [Testing of the framework.]
@@ -241,24 +248,29 @@ int Aig_ObjTerSimulate( Aig_Man_t * pAig, Aig_Obj_t * pNode, Vec_Int_t * vSuppLi
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManTerSimulate( Aig_Man_t * pAig )
+void Aig_ManJustExperiment( Aig_Man_t * pAig )
 {
-    Vec_Int_t * vSuppLits;
+    Aig_ManPack_t * pPack;
+    Vec_Int_t * vSuppLits, * vNodes;
     Aig_Obj_t * pObj;
     int i, clk = clock(), Count0 = 0, Count0f = 0, Count1 = 0, Count1f = 0;
     int nTotalLits = 0;
     vSuppLits = Vec_IntAlloc( 100 );
-    Aig_ManForEachPo( pAig, pObj, i )
+    pPack = Aig_ManPackStart( pAig );
+    vNodes = Aig_ManPackConstNodes( pPack );
+//    Aig_ManForEachPo( pAig, pObj, i )
+    Aig_ManForEachNodeVec( pAig, vNodes, pObj, i )
     {
         if ( pObj->fPhase ) // const 1
         {
             if ( Aig_ObjFindSatAssign(pAig, pObj, 0, vSuppLits) )
             {
 //                assert( Aig_ObjTerSimulate(pAig, pObj, vSuppLits) == AIG_VAL0 );
-                if ( Aig_ObjTerSimulate(pAig, pObj, vSuppLits) != AIG_VAL0 )
-                    printf( "Justification error!\n" );
+//                if ( Aig_ObjTerSimulate(pAig, pObj, vSuppLits) != AIG_VAL0 )
+//                    printf( "Justification error!\n" );
                 Count0++;
                 nTotalLits += Vec_IntSize(vSuppLits);
+                Aig_ManPackAddPattern( pPack, vSuppLits );
             }
             else
                 Count0f++;
@@ -268,10 +280,11 @@ void Aig_ManTerSimulate( Aig_Man_t * pAig )
             if ( Aig_ObjFindSatAssign(pAig, pObj, 1, vSuppLits) )
             {
 //                assert( Aig_ObjTerSimulate(pAig, pObj, vSuppLits) == AIG_VAL1 );
-                if ( Aig_ObjTerSimulate(pAig, pObj, vSuppLits) != AIG_VAL1 )
-                    printf( "Justification error!\n" );
+//                if ( Aig_ObjTerSimulate(pAig, pObj, vSuppLits) != AIG_VAL1 )
+//                    printf( "Justification error!\n" );
                 Count1++;
                 nTotalLits += Vec_IntSize(vSuppLits);
+                Aig_ManPackAddPattern( pPack, vSuppLits );
             }
             else
                 Count1f++;
@@ -282,6 +295,8 @@ void Aig_ManTerSimulate( Aig_Man_t * pAig )
         Aig_ManPoNum(pAig), Count0, Count0f, Count1, Count1f, 100.0*(Count0+Count1)/Aig_ManPoNum(pAig), 1.0*nTotalLits/(Count0+Count1) );
     Abc_PrintTime( 1, "T", clock() - clk );
     Aig_ManCleanMarkAB( pAig );
+    Aig_ManPackStop( pPack );
+    Vec_IntFree( vNodes );
 }
 
 
