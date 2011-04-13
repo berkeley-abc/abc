@@ -24,6 +24,7 @@
 #include "main.h"
 #include "mio.h"
 #include "aig.h"
+#include "if.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -152,6 +153,34 @@ float Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Compute area using LUT library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NtkGetArea( Abc_Ntk_t * pNtk )
+{
+    If_Lib_t * pLutLib;
+    Abc_Obj_t * pObj;
+    float Counter = 0.0;
+    int i;
+    assert( Abc_NtkIsLogic(pNtk) );
+    // get the library
+    pLutLib = (If_Lib_t *)Abc_FrameReadLibLut();
+    if ( pLutLib && pLutLib->LutMax >= Abc_NtkGetFaninMax(pNtk) )
+    {
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            Counter += pLutLib->pLutAreas[Abc_ObjFaninNum(pObj)];
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Print the vital stats of the network.]
 
   Description []
@@ -229,7 +258,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     else if ( Abc_NtkHasMapping(pNtk) )
     {
         fprintf( pFile, "  area =%5.2f", Abc_NtkGetMappedArea(pNtk) );
-        fprintf( pFile, "  delay =%5.2f", Abc_NtkDelayTrace(pNtk) );
+        fprintf( pFile, "  delay =%5.2f", Abc_NtkGetArea(pNtk) );
     }
     else if ( !Abc_NtkHasBlackbox(pNtk) )
     {
@@ -247,6 +276,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         fprintf( pFile, "  lev =%3d", Abc_NtkLevel(pNtk) );
     if ( fUseLutLib && Abc_FrameReadLibLut() )
         fprintf( pFile, "  delay =%5.2f", Abc_NtkDelayTraceLut(pNtk, 1) );
+    if ( fUseLutLib && Abc_FrameReadLibLut() )
+        fprintf( pFile, "  area =%5.2f", Abc_NtkGetArea(pNtk) );
     if ( fPower )
         fprintf( pFile, "  power =%7.2f", Abc_NtkMfsTotalSwitching(pNtk) );
     if ( fGlitch )
