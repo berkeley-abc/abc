@@ -80,7 +80,7 @@ unsigned Ssw_SmlObjHashWord( Ssw_Sml_t * p, Aig_Obj_t * pObj )
     unsigned * pSims;
     unsigned uHash;
     int i;
-    assert( p->nWordsTotal <= 128 );
+//    assert( p->nWordsTotal <= 128 );
     uHash = 0;
     pSims = Ssw_ObjSim(p, pObj->Id);
     for ( i = p->nWordsPref; i < p->nWordsTotal; i++ )
