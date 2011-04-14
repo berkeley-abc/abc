@@ -207,9 +207,9 @@ void Aig_ManDomPrint( Aig_Sto_t * pSto )
 {
     Aig_Obj_t * pObj;
     int i;
-    Saig_ManForEachLo( pSto->pAig, pObj, i )
+    Saig_ManForEachPi( pSto->pAig, pObj, i )
     {
-        printf( "*** LO %4d %4d :\n", i, pObj->Id );
+        printf( "*** PI %4d %4d :\n", i, pObj->Id );
         Aig_ObjDomVecPrint( pSto, (Vec_Ptr_t *)Vec_PtrEntry(pSto->vDoms, pObj->Id) );
     }
 }
@@ -647,6 +647,45 @@ Aig_Sto_t * Aig_ManComputeDomsFlops( Aig_Man_t * pAig, int Limit )
     return pSto;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes multi-node dominators.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Sto_t * Aig_ManComputeDomsPis( Aig_Man_t * pAig, int Limit )
+{
+    Aig_Sto_t * pSto;
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj;
+    int i, clk = clock();
+    pSto = Aig_ManDomStart( pAig, Limit );
+    // initialize flop inputs
+    Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjAddTriv( pSto, pObj->Id, Vec_PtrAlloc(1) );
+    // compute internal nodes
+    vNodes = Aig_ManDfsReverse( pAig );
+    Aig_ManMarkFlopTfi( pAig );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+        if ( Aig_ObjIsTravIdCurrent(pSto->pAig, pObj) )
+            Aig_ObjDomCompute( pSto, pObj );
+    Vec_PtrFree( vNodes );
+    // compute combinational inputs
+    Saig_ManForEachPi( pAig, pObj, i )
+        Aig_ObjDomCompute( pSto, pObj );
+    // print statistics
+    printf( "Nodes =%4d. PIs =%4d. Doms =%9d. Ave =%8.2f.   ", 
+        pSto->nDomNodes, Saig_ManPiNum(pSto->pAig), pSto->nDomsTotal, 
+//        pSto->nDomsFilter1, pSto->nDomsFilter2,
+        1.0 * pSto->nDomsTotal / (pSto->nDomNodes + Saig_ManPiNum(pSto->pAig)) );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    return pSto;
+}
 
 /**Function*************************************************************
 
@@ -971,7 +1010,7 @@ void Aig_ObjDomFindGood( Aig_Sto_t * pSto )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManComputeDomsTest( Aig_Man_t * pAig, int Num )
+void Aig_ManComputeDomsTest2( Aig_Man_t * pAig, int Num )
 {
     Aig_Sto_t * pSto;
 //    int i;
@@ -985,6 +1024,27 @@ void Aig_ManComputeDomsTest( Aig_Man_t * pAig, int Num )
 //        Aig_ManDomPrint( pSto );
         Aig_ManDomStop( pSto );
     }
+    Aig_ManFanoutStop( pAig );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes multi-node dominators.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManComputeDomsTest( Aig_Man_t * pAig )
+{
+    Aig_Sto_t * pSto;
+    Aig_ManFanoutStart( pAig );
+    pSto = Aig_ManComputeDomsPis( pAig, 1 );
+    Aig_ManDomPrint( pSto );
+    Aig_ManDomStop( pSto );
     Aig_ManFanoutStop( pAig );
 }
 

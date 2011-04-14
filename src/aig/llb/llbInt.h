@@ -176,11 +176,19 @@ extern DdManager *     Llb_NonlinImageStart( Aig_Man_t * pAig, Vec_Ptr_t * vLeav
 extern DdNode *        Llb_NonlinImageCompute( DdNode * bCurrent, int fReorder, int fDrop, int fVerbose, int * pOrder );
 extern void            Llb_NonlinImageQuit();
 
-/*=== llb3Image.c ======================================================*/
+/*=== llb3Image.c =======================================================*/
 extern DdNode *        Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, int * pVars2Q, 
                            DdManager * dd, DdNode * bCurrent, int fReorder, int fVerbose, int * pOrder, int Limit, int TimeTarget );
 /*=== llb3Nonlin.c ======================================================*/
 extern DdNode *        Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd );
+
+/*=== llb4Image.c =======================================================*/
+extern DdNode *        Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent, Vec_Int_t * vVars2Q );
+/*=== llb4Map.c =========================================================*/
+//extern Vec_Int_t *     Llb_AigMap( Aig_Man_t * pAig, int nLutSize, int nLutMin );
+/*=== llb4Nonlin.c ======================================================*/
+extern int             Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
+
 
 ABC_NAMESPACE_HEADER_END
 

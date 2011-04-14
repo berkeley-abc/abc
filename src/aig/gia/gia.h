@@ -316,6 +316,10 @@ static inline void         Gia_ObjSetValue( Gia_Obj_t * pObj, int i )          {
 static inline int          Gia_ObjPhase( Gia_Obj_t * pObj )                    { return pObj->fPhase;                                        }
 static inline int          Gia_ObjPhaseReal( Gia_Obj_t * pObj )                { return Gia_Regular(pObj)->fPhase ^ Gia_IsComplement(pObj);  }
 
+static inline int          Gia_ManIdToCioId( Gia_Man_t * p, int Id )           { return Gia_ObjCioId( Gia_ManObj(p, Id) );                   }
+static inline int          Gia_ManCiIdToId( Gia_Man_t * p, int CiId )          { return Gia_ObjId( p, Gia_ManCi(p, CiId) );                  }
+static inline int          Gia_ManCoIdToId( Gia_Man_t * p, int CoId )          { return Gia_ObjId( p, Gia_ManCo(p, CoId) );                  }
+
 static inline int          Gia_ObjIsPi( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Gia_ObjIsCi(pObj) && Gia_ObjCioId(pObj) < Gia_ManPiNum(p);   } 
 static inline int          Gia_ObjIsPo( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Gia_ObjIsCo(pObj) && Gia_ObjCioId(pObj) < Gia_ManPoNum(p);   } 
 static inline int          Gia_ObjIsRo( Gia_Man_t * p, Gia_Obj_t * pObj )      { return Gia_ObjIsCi(pObj) && Gia_ObjCioId(pObj) >= Gia_ManPiNum(p);  } 

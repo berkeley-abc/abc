@@ -64,6 +64,8 @@ struct Vec_Vec_t_
     for ( i = Vec_VecSize(vGlob)-1; (i >= 0) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
 #define Vec_VecForEachLevelReverseStartStop( vGlob, vVec, i, LevelStart, LevelStop )          \
     for ( i = LevelStart-1; (i >= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+#define Vec_VecForEachLevelTwo( vGlob1, vGlob2, vVec1, vVec2, i )                                                 \
+    for ( i = 0; (i < Vec_VecSize(vGlob1)) && (((vVec1) = (Vec_Ptr_t*)Vec_VecEntry(vGlob1, i)), 1) && (((vVec2) = (Vec_Ptr_t*)Vec_VecEntry(vGlob2, i)), 1); i++ )
 
 // iterators through levels 
 #define Vec_VecForEachLevelInt( vGlob, vVec, i )                                              \
@@ -78,6 +80,8 @@ struct Vec_Vec_t_
     for ( i = Vec_VecSize(vGlob)-1; (i >= 0) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
 #define Vec_VecForEachLevelIntReverseStartStop( vGlob, vVec, i, LevelStart, LevelStop )       \
     for ( i = LevelStart-1; (i >= LevelStop) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+#define Vec_VecForEachLevelIntTwo( vGlob1, vGlob2, vVec1, vVec2, i )                          \
+    for ( i = 0; (i < Vec_VecSize(vGlob1)) && (((vVec1) = (Vec_Int_t*)Vec_VecEntry(vGlob1, i)), 1) && (((vVec2) = (Vec_Int_t*)Vec_VecEntry(vGlob2, i)), 1); i++ )
 
 // iteratores through entries
 #define Vec_VecForEachEntry( Type, vGlob, pEntry, i, k )                                      \

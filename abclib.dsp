@@ -4163,6 +4163,18 @@ SOURCE=.\src\aig\llb\llb3Nonlin.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\llb\llb4Image.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb4Map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\llb\llb4Nonlin.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\llb\llbInt.h
 # End Source File
 # End Group
@@ -4305,6 +4317,54 @@ SOURCE=.\src\aig\au\auUtil.c
 # Begin Group "ssm"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmApi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmClock.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmRandom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmRead.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmReset.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmSchedule.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmSimple.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmSimulate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssm\ssmWrite.c
+# End Source File
 # End Group
 # End Group
 # End Group

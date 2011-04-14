@@ -373,6 +373,7 @@ static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReachM             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachP             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachN             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ReachY             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Undo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -784,6 +785,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachm",       Abc_CommandAbc9ReachM,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachp",       Abc_CommandAbc9ReachP,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachn",       Abc_CommandAbc9ReachN,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&reachy",       Abc_CommandAbc9ReachY,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&undo",         Abc_CommandAbc9Undo,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
 
@@ -8528,6 +8530,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Aig_ManTerSimulate( pAig );
         Aig_ManStop( pAig );
     }
+*/
+/*
+{
+    extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
+    Ssm_ManExperiment( "m\\big1.ssim", "m\\big1_.ssim" );
+}
 */
     return 0;
 usage:
@@ -27943,6 +27951,137 @@ int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &reachn [-BFT num] [-L file] [-ryzvh]\n" );
+    Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear-QS-based)\n" );
+    Abc_Print( -2, "\t-B num : the BDD node increase when hints kick in [default = %d]\n", pPars->nBddMax );
+    Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
+    Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
+    Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
+    Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
+    Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );  
+//    Abc_Print( -2, "\t-w     : prints additional information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );  
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_ParLlb_t Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Aig_Man_t * pMan;
+    char * pLogFileName = NULL;
+    int c;
+    extern int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
+
+    // set defaults
+    Llb_ManSetDefaultParams( pPars );
+    pPars->fReorder = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BFTLryzvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBddMax < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nIterMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->TimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->TimeLimit < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'r':
+            pPars->fReorder ^= 1;
+            break;
+        case 'y':
+            pPars->fSkipOutCheck ^= 1;
+            break;
+        case 'z':
+            pPars->fSkipReach ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ReachN(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ReachN(): The current AIG has no latches.\n" );
+        return 0;
+    }
+    if ( Gia_ManObjNum(pAbc->pGia) >= (1<<16) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9ReachN(): Currently cannot handle AIGs with more than %d objects.\n", (1<<16) );
+        return 0;
+    }
+    pMan          = Gia_ManToAigSimple( pAbc->pGia );
+    pAbc->Status  = Llb_Nonlin4CoreReach( pMan, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
+    if ( pLogFileName )
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&reachn" );
+    Aig_ManStop( pMan );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &reachy [-BFT num] [-L file] [-ryzvh]\n" );
     Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear-QS-based)\n" );
     Abc_Print( -2, "\t-B num : the BDD node increase when hints kick in [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );

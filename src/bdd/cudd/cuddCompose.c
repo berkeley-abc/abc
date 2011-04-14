@@ -1251,6 +1251,9 @@ cuddBddVarMapRecur(
         return(Cudd_NotCond(res,F != f));
     }
 
+    if ( manager->TimeStop && manager->TimeStop < clock() )
+        return NULL;
+
     /* Split and recur on children of this node. */
     T = cuddBddVarMapRecur(manager,cuddT(F));
     if (T == NULL) return(NULL);

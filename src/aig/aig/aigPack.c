@@ -113,10 +113,10 @@ void Aig_ManPackPrintCare( Aig_ManPack_t * p )
     Aig_ManForEachPi( p->pAig, pObj, i )
     {
         Sign = Vec_WrdEntry( p->vPiCare, i );
-        Extra_PrintBinary( stdout, (unsigned *)&Sign, 64 );
-        printf( "\n" );
+//        Extra_PrintBinary( stdout, (unsigned *)&Sign, 64 );
+//        printf( "\n" );
     }
-    printf( "\n" );
+//    printf( "\n" );
 }
 
 
