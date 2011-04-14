@@ -340,8 +340,8 @@ printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
     Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
     Saig_ManForEachLi( pAig, pObj, i )
     {
-        Llb_Nonlin4CreateOrderSmart_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
+        Llb_Nonlin4CreateOrderSmart_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
     }
     Aig_ManForEachPi( pAig, pObj, i )
         if ( Llb_MnxBddVar(vOrder, pObj) < 0 )
