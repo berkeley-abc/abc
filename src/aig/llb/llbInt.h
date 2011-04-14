@@ -184,6 +184,7 @@ extern DdNode *        Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager *
 
 /*=== llb4Image.c =======================================================*/
 extern DdNode *        Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent, Vec_Int_t * vVars2Q );
+extern Vec_Ptr_t *     Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vVars2Q, int nSizeMax );
 /*=== llb4Map.c =========================================================*/
 //extern Vec_Int_t *     Llb_AigMap( Aig_Man_t * pAig, int nLutSize, int nLutMin );
 /*=== llb4Nonlin.c ======================================================*/

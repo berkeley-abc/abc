@@ -48,6 +48,7 @@ struct Llb_Mgr_t_
 {
     DdManager *   dd;        // working BDD manager
     Vec_Int_t *   vVars2Q;   // variables to quantify
+    int           nSizeMax;  // maximum size of the cluster
     // internal
     Llb_Prt_t **  pParts;    // partitions
     Llb_Var_t **  pVars;     // variables
@@ -263,7 +264,7 @@ int Llb_Nonlin4Quantify1( Llb_Mgr_t * p, Llb_Prt_t * pPart )
     int i, RetValue, nSizeNew;
     // create cube to be quantified
     bCube = Llb_Nonlin4CreateCube1( p, pPart );   Cudd_Ref( bCube );
-    assert( !Cudd_IsConstant(bCube) );
+//    assert( !Cudd_IsConstant(bCube) );
     // derive new function
     pPart->bFunc = Cudd_bddExistAbstract( p->dd, bTemp = pPart->bFunc, bCube );  Cudd_Ref( pPart->bFunc );
     Cudd_RecursiveDeref( p->dd, bTemp );
@@ -323,9 +324,13 @@ int Llb_Nonlin4Quantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2 
     int i, RetValue, nSuppSize;
     int iPart1 = pPart1->iPart;
     int iPart2 = pPart2->iPart;
+    int liveBeg, liveEnd;
 
     // create cube to be quantified
     bCube = Llb_Nonlin4CreateCube2( p, pPart1, pPart2 );   Cudd_Ref( bCube );
+
+printf( "Quantifying  " ); Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
+
 if ( fVerbose )
 {
 printf( "\n" );
@@ -334,7 +339,11 @@ Llb_Nonlin4Print( p );
 printf( "Conjoining partitions %d and %d.\n", pPart1->iPart, pPart2->iPart );
 Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
 }
+liveBeg = p->dd->keys - p->dd->dead;
     bFunc = Cudd_bddAndAbstract( p->dd, pPart1->bFunc, pPart2->bFunc, bCube );  
+liveEnd = p->dd->keys - p->dd->dead;
+//printf( "%d ", liveEnd-liveBeg );
+
     if ( bFunc == NULL )
     {
         Cudd_RecursiveDeref( p->dd, bCube );
@@ -342,6 +351,8 @@ Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
     }
     Cudd_Ref( bFunc );
     Cudd_RecursiveDeref( p->dd, bCube );
+
+printf( "Createing part %d ", p->iPartFree ); Extra_bddPrintSupport( p->dd, bFunc );  printf( "\n" );
 
     // create new partition
     pTemp = p->pParts[p->iPartFree] = ABC_CALLOC( Llb_Prt_t, 1 );
@@ -573,8 +584,15 @@ int Llb_Nonlin4NextPartitions( Llb_Mgr_t * p, Llb_Prt_t ** ppPart1, Llb_Prt_t **
     Llb_Nonlin4CheckVars( p );
     // find variable with minimum score
     Llb_MgrForEachVar( p, pVar, i )
+    {
+        if ( p->nSizeMax && pVar->nScore > p->nSizeMax )
+            continue;
+//        if ( pVarBest == NULL || Vec_IntSize(pVarBest->vParts) * pVarBest->nScore > Vec_IntSize(pVar->vParts) * pVar->nScore )
         if ( pVarBest == NULL || pVarBest->nScore > pVar->nScore )
             pVarBest = pVar;
+//        printf( "%d ", pVar->nScore );
+    }
+//printf( "\n" );
     if ( pVarBest == NULL )
         return 0;
     // find two partitions with minimum size
@@ -592,6 +610,10 @@ int Llb_Nonlin4NextPartitions( Llb_Mgr_t * p, Llb_Prt_t ** ppPart1, Llb_Prt_t **
                 pPart2Best = pPart;
         }
     }
+printf( "Selecting %d and parts %d and %d\n", pVarBest->iVar, pPart1Best->nSize, pPart2Best->nSize );
+Extra_bddPrintSupport( p->dd, pPart1Best->bFunc ); printf( "\n" );
+Extra_bddPrintSupport( p->dd, pPart2Best->bFunc ); printf( "\n" );
+
     *ppPart1 = pPart1Best;
     *ppPart2 = pPart2Best;
     return 1; 
@@ -661,13 +683,14 @@ void Llb_Nonlin4VerifyScores( Llb_Mgr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Llb_Mgr_t * Llb_Nonlin4Alloc( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent, Vec_Int_t * vVars2Q )
+Llb_Mgr_t * Llb_Nonlin4Alloc( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent, Vec_Int_t * vVars2Q, int nSizeMax )
 {
     Llb_Mgr_t * p;
     DdNode * bFunc;
     int i;
     p = ABC_CALLOC( Llb_Mgr_t, 1 );
     p->dd        = dd;
+    p->nSizeMax  = nSizeMax;
     p->vVars2Q   = vVars2Q;
     p->nVars     = Cudd_ReadSize(dd);
     p->iPartFree = Vec_PtrSize(vParts);
@@ -678,7 +701,8 @@ Llb_Mgr_t * Llb_Nonlin4Alloc( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurr
     Vec_PtrForEachEntry( DdNode *, vParts, bFunc, i )
         Llb_Nonlin4AddPartition( p, i, bFunc );
     // add partition
-    Llb_Nonlin4AddPartition( p, p->iPartFree++, bCurrent );
+    if ( bCurrent )
+        Llb_Nonlin4AddPartition( p, p->iPartFree++, bCurrent );
     return p;
 }
 
@@ -710,11 +734,11 @@ void Llb_Nonlin4Free( Llb_Mgr_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs image computation.]
+  Synopsis    []
 
-  Description [Computes image of BDDs (vFuncs).]
+  Description []
                
-  SideEffects [BDDs in vFuncs are derefed inside. The result is refed.]
+  SideEffects []
 
   SeeAlso     []
 
@@ -726,7 +750,61 @@ DdNode * Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent
     DdNode * bFunc, * bTemp;
     int i, nReorders;
     // start the manager
-    p = Llb_Nonlin4Alloc( dd, vParts, bCurrent, vVars2Q );
+    p = Llb_Nonlin4Alloc( dd, vParts, bCurrent, vVars2Q, 0 );
+    // remove singles
+    Llb_MgrForEachPart( p, pPart, i )
+        if ( Llb_Nonlin4HasSingletonVars(p, pPart) )
+            Llb_Nonlin4Quantify1( p, pPart );
+    // compute scores
+    Llb_Nonlin4RecomputeScores( p );
+    // iteratively quantify variables
+    while ( Llb_Nonlin4NextPartitions(p, &pPart1, &pPart2) )
+    {
+        nReorders = Cudd_ReadReorderings(dd);
+        if ( !Llb_Nonlin4Quantify2( p, pPart1, pPart2 ) )
+        {
+            Llb_Nonlin4Free( p );
+            return NULL;
+        }
+        if ( nReorders < Cudd_ReadReorderings(dd) )
+            Llb_Nonlin4RecomputeScores( p );
+//        else
+//            Llb_Nonlin4VerifyScores( p );
+    }
+    // load partitions
+    bFunc = Cudd_ReadOne(p->dd);   Cudd_Ref( bFunc );
+    Llb_MgrForEachPart( p, pPart, i )
+    {
+        bFunc = Cudd_bddAnd( p->dd, bTemp = bFunc, pPart->bFunc );   Cudd_Ref( bFunc );
+        Cudd_RecursiveDeref( p->dd, bTemp );
+    }
+//    nSuppMax = p->nSuppMax;
+    Llb_Nonlin4Free( p );
+//printf( "\n" );
+    // return
+    Cudd_Deref( bFunc );
+    return bFunc;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vVars2Q, int nSizeMax )
+{
+    Vec_Ptr_t * vGroups;
+    Llb_Prt_t * pPart, * pPart1, * pPart2;
+    Llb_Mgr_t * p;
+    int i, nReorders;
+    // start the manager
+    p = Llb_Nonlin4Alloc( dd, vParts, NULL, vVars2Q, nSizeMax );
     // remove singles
     Llb_MgrForEachPart( p, pPart, i )
         if ( Llb_Nonlin4HasSingletonVars(p, pPart) )
@@ -748,18 +826,23 @@ DdNode * Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent
             Llb_Nonlin4VerifyScores( p );
     }
     // load partitions
-    bFunc = Cudd_ReadOne(p->dd);   Cudd_Ref( bFunc );
+    vGroups = Vec_PtrAlloc( 1000 );
     Llb_MgrForEachPart( p, pPart, i )
     {
-        bFunc = Cudd_bddAnd( p->dd, bTemp = bFunc, pPart->bFunc );   Cudd_Ref( bFunc );
-        Cudd_RecursiveDeref( p->dd, bTemp );
+        if ( Cudd_IsConstant(pPart->bFunc) )
+        {
+            assert( !Cudd_IsComplement(pPart->bFunc) );
+            continue;
+        }
+        Vec_PtrPush( vGroups, pPart->bFunc );
+        Cudd_Ref( pPart->bFunc );
+printf( "Part %d  ", pPart->iPart );
+Extra_bddPrintSupport( p->dd, pPart->bFunc ); printf( "\n" );
     }
-//    nSuppMax = p->nSuppMax;
     Llb_Nonlin4Free( p );
-    // return
-    Cudd_Deref( bFunc );
-    return bFunc;
+    return vGroups;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

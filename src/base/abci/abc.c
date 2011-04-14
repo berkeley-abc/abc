@@ -8522,21 +8522,24 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
 */
+
 /*
     {
-        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
+        extern void Llb_Nonlin4Cluster( Aig_Man_t * pAig );
+//        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
-        Aig_ManTerSimulate( pAig );
+//        Aig_ManTerSimulate( pAig );
+        Llb_Nonlin4Cluster( pAig );
         Aig_ManStop( pAig );
     }
 */
-/*
+
 {
-    extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
-    Ssm_ManExperiment( "m\\big1.ssim", "m\\big1_.ssim" );
+//    extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
+//    Ssm_ManExperiment( "m\\big1.ssim", "m\\big1_.ssim" );
 }
-*/
+
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-vwh] <file_name>\n" );

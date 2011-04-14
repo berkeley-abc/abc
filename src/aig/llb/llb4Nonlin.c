@@ -255,6 +255,8 @@ void Llb_Nonlin4CreateOrderSmart_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_In
     assert( Llb_MnxBddVar(vOrder, pObj) < 0 );
     if ( Aig_ObjIsPi(pObj) )
     {
+//        if ( Saig_ObjIsLo(pAig, pObj) )
+//            Vec_IntWriteEntry( vOrder, Aig_ObjId(Saig_ObjLoToLi(pAig, pObj)), (*pCounter)++ );
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), (*pCounter)++ );
         return;
     }
@@ -345,7 +347,11 @@ printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
     }
     Aig_ManForEachPi( pAig, pObj, i )
         if ( Llb_MnxBddVar(vOrder, pObj) < 0 )
+        {
+//            if ( Saig_ObjIsLo(pAig, pObj) )
+//                Vec_IntWriteEntry( vOrder, Aig_ObjId(Saig_ObjLoToLi(pAig, pObj)), Counter++ );
             Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
+        }
     assert( Counter <= Aig_ManPiNum(pAig) + Aig_ManRegNum(pAig) + (vNodes?Vec_IntSize(vNodes):0) );
     Aig_ManCleanMarkA( pAig );
     Vec_IntFreeP( &vNodes );
@@ -701,6 +707,13 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         Cudd_RecursiveDeref( p->dd, p->bNext ); p->bNext = NULL;
         if ( Cudd_IsConstant(p->bCurrent) )
             break;
+/*
+        // reduce BDD size using constrain // Cudd_bddRestrict
+        p->bCurrent = Cudd_bddRestrict( p->dd, bAux = p->bCurrent, Cudd_Not(p->bReached) );   
+        Cudd_Ref( p->bCurrent );
+printf( "Before = %d.  After = %d.\n", Cudd_DagSize(bAux), Cudd_DagSize(p->bCurrent) );
+        Cudd_RecursiveDeref( p->dd, bAux );
+*/
 
         // add to the reached set
         p->bReached = Cudd_bddOr( p->dd, bAux = p->bReached, p->bCurrent );                 
@@ -715,14 +728,15 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         Cudd_Ref( p->bReached );
         Cudd_RecursiveDeref( p->dd, bAux );  
 
+
         // report the results
         if ( p->pPars->fVerbose )
         {
             printf( "I =%5d : ",   nIters );
-            printf( "Fr =%7d  ",    nBddSizeFr );
-            printf( "ImNs =%7d  ",  nBddSizeTo );
-            printf( "ImCs =%7d  ",  nBddSizeTo2 );
-            printf( "Rea =%7d   ",  Cudd_DagSize(p->bReached) );
+            printf( "Fr =%7d  ",   nBddSizeFr );
+            printf( "ImNs =%7d  ", nBddSizeTo );
+            printf( "ImCs =%7d  ", nBddSizeTo2 );
+            printf( "Rea =%7d   ", Cudd_DagSize(p->bReached) );
             printf( "(%4d %4d)  ", Cudd_ReadReorderings(p->dd), Cudd_ReadGarbageCollections(p->dd) );
             Abc_PrintTime( 1, "T", clock() - clkIter );
         }
