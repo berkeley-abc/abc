@@ -217,13 +217,17 @@ void Inter_CheckAddEqual( Inter_Check_t * p, int iVarA, int iVarB )
   SeeAlso     []
 
 ***********************************************************************/
-int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt )
+int Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnfInt, int nTimeNewOut )
 {
     Aig_Obj_t * pObj, * pObj2;
     int i, f, VarA, VarB, RetValue, Entry, status;
     int nRegs = Aig_ManPiNum(pCnfInt->pMan);
     assert( Aig_ManPoNum(p->pCnf->pMan) == p->nFramesK * nRegs );
     assert( Aig_ManPoNum(pCnfInt->pMan) == 1 );
+
+    // set runtime limit
+    if ( nTimeNewOut )
+        sat_solver_set_runtime_limit( p->pSat, nTimeNewOut );
 
     // add clauses to the SAT solver
     Cnf_DataLift( pCnfInt, p->nVars );

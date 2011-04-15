@@ -93,7 +93,7 @@ typedef struct Inter_Check_t_ Inter_Check_t;
 /*=== intCheck.c ============================================================*/
 extern Inter_Check_t * Inter_CheckStart( Aig_Man_t * pTrans, int nFramesK );
 extern void            Inter_CheckStop( Inter_Check_t * p );
-extern int             Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnf );
+extern int             Inter_CheckPerform( Inter_Check_t * p, Cnf_Dat_t * pCnf, int nTimeNewOut );
 
 /*=== intContain.c ============================================================*/
 extern int             Inter_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld );
@@ -117,7 +117,7 @@ extern void            Inter_ManClean( Inter_Man_t * p );
 extern void            Inter_ManStop( Inter_Man_t * p );
 
 /*=== intM114.c ============================================================*/
-extern int             Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward );
+extern int             Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, int nTimeNewOut );
 
 /*=== intM114p.c ============================================================*/
 #ifdef ABC_USE_LIBRARIES

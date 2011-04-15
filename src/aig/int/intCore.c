@@ -80,7 +80,13 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     Inter_Man_t * p;
     Inter_Check_t * pCheck = NULL;
     Aig_Man_t * pAigTemp;
-    int s, i, RetValue, Status, clk, clk2, clkTotal = clock();
+    int s, i, RetValue, Status, clk, clk2, clkTotal = clock(), timeTemp;
+    int nTimeNewOut = 0;
+
+    // set runtime limit
+    if ( pPars->nSecLimit )
+        nTimeNewOut = clock() + pPars->nSecLimit * CLOCKS_PER_SEC;
+
     // sanity checks
     assert( Saig_ManRegNum(pAig) > 0 );
     assert( Saig_ManPiNum(pAig) > 0 );
@@ -171,7 +177,7 @@ p->timeCnf += clock() - clk;
 clk = clock();
             pCnfInter2 = Cnf_Derive( p->pInter, 1 );  
 p->timeCnf += clock() - clk;    
-            RetValue = Inter_CheckPerform( pCheck, pCnfInter2 );
+            RetValue = Inter_CheckPerform( pCheck, pCnfInter2, nTimeNewOut );
 //            assert( RetValue == 0 );
             Cnf_DataFree( pCnfInter2 );
         }
@@ -200,7 +206,7 @@ p->timeCnf += clock() - clk;
             }
             else 
 #endif
-                RetValue = Inter_ManPerformOneStep( p, pPars->fUseBias, pPars->fUseBackward );
+                RetValue = Inter_ManPerformOneStep( p, pPars->fUseBias, pPars->fUseBackward, nTimeNewOut );
 
             if ( pPars->fVerbose )
             {
@@ -228,11 +234,19 @@ p->timeCnf += clock() - clk;
                 Inter_ManClean( p ); 
                 break;
             }
-            else if ( RetValue == -1 ) // timed out
+            else if ( RetValue == -1 ) 
             {
-                if ( pPars->fVerbose )
-                    printf( "Reached limit (%d) on the number of conflicts.\n", p->nConfLimit );
-                assert( p->nConfCur >= p->nConfLimit );
+                if ( pPars->nSecLimit && clock() > nTimeNewOut ) // timed out
+                {
+                    if ( pPars->fVerbose )
+                        printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
+                }
+                else
+                {
+                    assert( p->nConfCur >= p->nConfLimit );
+                    if ( pPars->fVerbose )
+                        printf( "Reached limit (%d) on the number of conflicts.\n", p->nConfLimit );
+                }
                 p->timeTotal = clock() - clkTotal;
                 Inter_ManStop( p );
                 Inter_CheckStop( pCheck );
@@ -275,7 +289,9 @@ clk = clock();
 clk2 = clock();
                         pCnfInter2 = Cnf_Derive( p->pInterNew, 1 );  
 p->timeCnf += clock() - clk2;
-                        Status = Inter_CheckPerform( pCheck, pCnfInter2 );
+timeTemp = clock() - clk2;
+            
+                        Status = Inter_CheckPerform( pCheck, pCnfInter2, nTimeNewOut );
                         Cnf_DataFree( pCnfInter2 );
                     }
                 }
@@ -289,7 +305,7 @@ p->timeCnf += clock() - clk2;
                 else
                     Status = 0;
             }
-p->timeEqu += clock() - clk;
+p->timeEqu += clock() - clk - timeTemp;
             if ( Status ) // contained
             {
                 if ( pPars->fVerbose )
@@ -299,7 +315,7 @@ p->timeEqu += clock() - clk;
                 Inter_CheckStop( pCheck );
                 return 1;
             }
-            if ( pPars->nSecLimit && ((float)pPars->nSecLimit <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+            if ( pPars->nSecLimit && clock() > nTimeNewOut )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
                 p->timeTotal = clock() - clkTotal;

@@ -200,7 +200,7 @@ sat_solver * Inter_ManDeriveSatSolver(
   SeeAlso     []
 
 ***********************************************************************/
-int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward )
+int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, int nTimeNewOut )
 {
     sat_solver * pSat;
     void * pSatCnf = NULL;
@@ -218,6 +218,10 @@ int Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward )
         p->pInterNew = NULL;
         return 1;
     }
+
+    // set runtime limit
+    if ( nTimeNewOut )
+        sat_solver_set_runtime_limit( pSat, nTimeNewOut );
 
     // collect global variables
     pGlobalVars = ABC_CALLOC( int, sat_solver_nvars(pSat) );
