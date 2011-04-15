@@ -8525,19 +8525,19 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 /*
     {
-        extern void Llb_Nonlin4Cluster( Aig_Man_t * pAig );
+//        extern void Llb_Nonlin4Cluster( Aig_Man_t * pAig );
 //        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
 //        Aig_ManTerSimulate( pAig );
-        Llb_Nonlin4Cluster( pAig );
+//        Llb_Nonlin4Cluster( pAig );
         Aig_ManStop( pAig );
     }
 */
 
 {
 //    extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
-//    Ssm_ManExperiment( "m\\big1.ssim", "m\\big1_.ssim" );
+//    Ssm_ManExperiment( "m\\big2.ssim", "m\\big2_.ssim" );
 }
 
     return 0;
@@ -27990,9 +27990,11 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     Llb_ManSetDefaultParams( pPars );
+    pPars->fCluster = 0;
     pPars->fReorder = 0;
+    pPars->nBddMax  = 1000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "BFTLryzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BFTLcryzvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28038,6 +28040,9 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
             pLogFileName = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'c':
+            pPars->fCluster ^= 1;
+            break;
         case 'r':
             pPars->fReorder ^= 1;
             break;
@@ -28079,17 +28084,18 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pMan->pSeqModel );
     if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&reachn" );
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&reachy" );
     Aig_ManStop( pMan );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &reachy [-BFT num] [-L file] [-ryzvh]\n" );
+    Abc_Print( -2, "usage: &reachy [-BFT num] [-L file] [-cryzvh]\n" );
     Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear-QS-based)\n" );
-    Abc_Print( -2, "\t-B num : the BDD node increase when hints kick in [default = %d]\n", pPars->nBddMax );
+    Abc_Print( -2, "\t-B num : the BDD node threshold for clustering [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-c     : enable reparametrization clustering [default = %s]\n", pPars->fCluster? "yes": "no" );  
     Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
     Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  
     Abc_Print( -2, "\t-z     : skip reachability (run preparation phase only) [default = %s]\n", pPars->fSkipReach? "yes": "no" );  

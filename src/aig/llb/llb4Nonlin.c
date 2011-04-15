@@ -246,7 +246,7 @@ Vec_Int_t * Llb_Nonlin4CreateOrderSimple( Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-void Llb_Nonlin4CreateOrderSmart_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vOrder, int * pCounter )
+void Llb_Nonlin4CreateOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vOrder, int * pCounter )
 {
     Aig_Obj_t * pFanin0, * pFanin1;
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
@@ -266,13 +266,13 @@ void Llb_Nonlin4CreateOrderSmart_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_In
 //    if ( pFanin0->Level > pFanin1->Level || (pFanin0->Level == pFanin1->Level && pFanin0->Id < pFanin1->Id) )
     if ( pFanin0->Level > pFanin1->Level )
     {
-        Llb_Nonlin4CreateOrderSmart_rec( pAig, pFanin0, vOrder, pCounter );
-        Llb_Nonlin4CreateOrderSmart_rec( pAig, pFanin1, vOrder, pCounter );
+        Llb_Nonlin4CreateOrder_rec( pAig, pFanin0, vOrder, pCounter );
+        Llb_Nonlin4CreateOrder_rec( pAig, pFanin1, vOrder, pCounter );
     }
     else
     {
-        Llb_Nonlin4CreateOrderSmart_rec( pAig, pFanin1, vOrder, pCounter );
-        Llb_Nonlin4CreateOrderSmart_rec( pAig, pFanin0, vOrder, pCounter );
+        Llb_Nonlin4CreateOrder_rec( pAig, pFanin1, vOrder, pCounter );
+        Llb_Nonlin4CreateOrder_rec( pAig, pFanin0, vOrder, pCounter );
     }
     if ( pObj->fMarkA )
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), (*pCounter)++ );
@@ -321,7 +321,7 @@ Vec_Int_t * Llb_Nonlin4CollectHighRefNodes( Aig_Man_t * pAig, int nFans )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Llb_Nonlin4CreateOrderSmart( Aig_Man_t * pAig )
+Vec_Int_t * Llb_Nonlin4CreateOrder( Aig_Man_t * pAig )
 {
     Vec_Int_t * vNodes = NULL;
     Vec_Int_t * vOrder;
@@ -335,7 +335,6 @@ Vec_Int_t * Llb_Nonlin4CreateOrderSmart( Aig_Man_t * pAig )
         pObj->fMarkA = 1;
 printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
 */
-
     // collect nodes in the order
     vOrder = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
     Aig_ManIncrementTravId( pAig );
@@ -343,7 +342,7 @@ printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
     Saig_ManForEachLi( pAig, pObj, i )
     {
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
-        Llb_Nonlin4CreateOrderSmart_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
+        Llb_Nonlin4CreateOrder_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
     }
     Aig_ManForEachPi( pAig, pObj, i )
         if ( Llb_MnxBddVar(vOrder, pObj) < 0 )
@@ -410,6 +409,8 @@ void Llb_Nonlin4SetupVarMap( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
     pVarsY = ABC_ALLOC( DdNode *, Cudd_ReadSize(dd) );
     Saig_ManForEachLiLo( pAig, pObjLo, pObjLi, i )
     {
+        assert( Llb_MnxBddVar(vOrder, pObjLo) >= 0 );
+        assert( Llb_MnxBddVar(vOrder, pObjLi) >= 0 );
         pVarsX[i] = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObjLo) );
         pVarsY[i] = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObjLi) );
     }
@@ -830,14 +831,25 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     p = ABC_CALLOC( Llb_Mnx_t, 1 );
     p->pAig    = pAig;
     p->pPars   = pPars;
+
+    if ( pPars->fCluster )
+    {
+        Llb_Nonlin4Cluster( p->pAig, &p->dd, &p->vOrder, &p->vRoots, pPars->nBddMax, pPars->fVerbose );
+        Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
+    }
+    else
+    {
 //    p->vOrder  = Llb_Nonlin4CreateOrderSimple( pAig );
-    p->vOrder  = Llb_Nonlin4CreateOrderSmart( pAig );
-    p->dd      = Cudd_Init( Vec_IntSize(p->vOrder), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+        p->vOrder  = Llb_Nonlin4CreateOrder( pAig );
+        p->dd      = Cudd_Init( Vec_IntSize(p->vOrder), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+        Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
+        p->vRoots  = Llb_Nonlin4DerivePartitions( p->dd, pAig, p->vOrder );
+    }
+
     Llb_Nonlin4SetupVarMap( p->dd, pAig, p->vOrder );
-    Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
     p->vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, pAig, p->vOrder, 1 );
-    p->vRoots  = Llb_Nonlin4DerivePartitions( p->dd, pAig, p->vOrder );
     p->vRings  = Vec_PtrAlloc( 100 );
+
     if ( pPars->fReorder )
         Llb_Nonlin4Reorder( p->dd, 0, 1 );
     return p;

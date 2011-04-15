@@ -70,7 +70,8 @@ void Llb_Nonlin4FindOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * v
         Llb_Nonlin4FindOrder_rec( pAig, pFanin1, vOrder, pCounter );
         Llb_Nonlin4FindOrder_rec( pAig, pFanin0, vOrder, pCounter );
     }
-    Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), (*pCounter)++ );
+    if ( pObj->fMarkA )
+        Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), (*pCounter)++ );
 }
 
 /**Function*************************************************************
@@ -84,19 +85,27 @@ void Llb_Nonlin4FindOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Llb_Nonlin4FindOrder( Aig_Man_t * pAig )
+Vec_Int_t * Llb_Nonlin4FindOrder( Aig_Man_t * pAig, int * pCounter )
 {
     Vec_Int_t * vNodes = NULL;
     Vec_Int_t * vOrder;
     Aig_Obj_t * pObj;
     int i, Counter = 0;
+    // mark nodes to exclude:  AND with low level and CO drivers
+    Aig_ManCleanMarkA( pAig );
+    Aig_ManForEachNode( pAig, pObj, i )
+        if ( Aig_ObjLevel(pObj) > 3 )
+            pObj->fMarkA = 1;
+    Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjFanin0(pObj)->fMarkA = 0;
+
     // collect nodes in the order
     vOrder = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
     Aig_ManIncrementTravId( pAig );
     Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
-    Aig_ManForEachPo( pAig, pObj, i )
+//    Aig_ManForEachPo( pAig, pObj, i )
+    Saig_ManForEachLi( pAig, pObj, i )
     {
-printf( "PO %d Var %d\n", i, Counter );
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
         Llb_Nonlin4FindOrder_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
     }
@@ -105,7 +114,27 @@ printf( "PO %d Var %d\n", i, Counter );
             Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
     Aig_ManCleanMarkA( pAig );
     Vec_IntFreeP( &vNodes );
-    assert( Counter == Aig_ManObjNum(pAig) - 1 );
+//    assert( Counter == Aig_ManObjNum(pAig) - 1 );
+
+/*
+    Saig_ManForEachPi( pAig, pObj, i )
+        printf( "pi%d ", Llb_MnxBddVar(vOrder, pObj) );
+    printf( "\n" );
+    Saig_ManForEachLo( pAig, pObj, i )
+        printf( "lo%d ", Llb_MnxBddVar(vOrder, pObj) );
+    printf( "\n" );
+    Saig_ManForEachPo( pAig, pObj, i )
+        printf( "po%d ", Llb_MnxBddVar(vOrder, pObj) );
+    printf( "\n" );
+    Saig_ManForEachLi( pAig, pObj, i )
+        printf( "li%d ", Llb_MnxBddVar(vOrder, pObj) );
+    printf( "\n" );
+    Aig_ManForEachNode( pAig, pObj, i )
+        printf( "n%d ", Llb_MnxBddVar(vOrder, pObj) );
+    printf( "\n" );
+*/
+    if ( pCounter )
+        *pCounter = Counter;
     return vOrder;
 }
 
@@ -137,7 +166,8 @@ Vec_Ptr_t * Llb_Nonlin4FindPartitions( DdManager * dd, Aig_Man_t * pAig, Vec_Int
             pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
             Cudd_Ref( (DdNode *)pObj->pData );
         }
-    Aig_ManForEachPo( pAig, pObj, i )
+//    Aig_ManForEachPo( pAig, pObj, i )
+    Saig_ManForEachLi( pAig, pObj, i )
         pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
     // compute intermediate BDDs
     vRoots = Vec_PtrAlloc( 100 );
@@ -161,7 +191,8 @@ Vec_Ptr_t * Llb_Nonlin4FindPartitions( DdManager * dd, Aig_Man_t * pAig, Vec_Int
         Vec_PtrPush( vRoots, bPart );
     }
     // compute register output BDDs
-    Aig_ManForEachPo( pAig, pObj, i )
+//    Aig_ManForEachPo( pAig, pObj, i )
+    Saig_ManForEachLi( pAig, pObj, i )
     {
         bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
         bPart = Cudd_bddXnor( dd, (DdNode *)pObj->pData, bBdd0 );  
@@ -206,7 +237,8 @@ Vec_Int_t * Llb_Nonlin4FindVars2Q( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t *
     Vec_IntFill( vVars2Q, Cudd_ReadSize(dd), 1 );
     Saig_ManForEachLo( pAig, pObj, i )
         Vec_IntWriteEntry( vVars2Q, Llb_MnxBddVar(vOrder, pObj), 0 );
-    Aig_ManForEachPo( pAig, pObj, i )
+//    Aig_ManForEachPo( pAig, pObj, i )
+    Saig_ManForEachLi( pAig, pObj, i )
         Vec_IntWriteEntry( vVars2Q, Llb_MnxBddVar(vOrder, pObj), 0 );
     return vVars2Q;
 }
@@ -227,28 +259,32 @@ int Llb_Nonlin4CountTerms( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder,
     DdNode * bSupp;
     Aig_Obj_t * pObj;
     int i, Counter = 0;
-    bSupp = Cudd_Support( dd, bFunc );  Cudd_Ref( bFunc );
+    bSupp = Cudd_Support( dd, bFunc );  Cudd_Ref( bSupp );
     if ( !fCo && !fFlop )
     {
         Saig_ManForEachPi( pAig, pObj, i )
-            Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
     }
     else if ( fCo && !fFlop )
     {
         Saig_ManForEachPo( pAig, pObj, i )
-            Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
     }
     else if ( !fCo && fFlop )
     {
         Saig_ManForEachLo( pAig, pObj, i )
-            Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
     }
     else if ( fCo && fFlop )
     {
         Saig_ManForEachLi( pAig, pObj, i )
-            Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
     }
-    Cudd_RecursiveDeref( dd, bFunc );
+    Cudd_RecursiveDeref( dd, bSupp );
     return Counter;
 }
 
@@ -269,12 +305,16 @@ void Llb_Nonlin4PrintGroups( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
     int i, nSuppAll, nSuppPi, nSuppPo, nSuppLi, nSuppLo, nSuppAnd;
     Vec_PtrForEachEntry( DdNode *, vGroups, bTemp, i )
     {
+//Extra_bddPrintSupport(dd, bTemp);  printf("\n" );
         nSuppAll = Cudd_SupportSize(dd,bTemp);
         nSuppPi  = Llb_Nonlin4CountTerms(dd, pAig, vOrder, bTemp, 0, 0);
         nSuppPo  = Llb_Nonlin4CountTerms(dd, pAig, vOrder, bTemp, 1, 0);
         nSuppLi  = Llb_Nonlin4CountTerms(dd, pAig, vOrder, bTemp, 0, 1);
         nSuppLo  = Llb_Nonlin4CountTerms(dd, pAig, vOrder, bTemp, 1, 1);
         nSuppAnd = nSuppAll - (nSuppPi+nSuppPo+nSuppLi+nSuppLo);
+
+        if ( Cudd_DagSize(bTemp) <= 10 )
+            continue;
 
         printf( "%4d : bdd =%6d  supp =%3d  ", i, Cudd_DagSize(bTemp), nSuppAll );
         printf( "pi =%3d ",  nSuppPi );
@@ -288,6 +328,60 @@ void Llb_Nonlin4PrintGroups( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
 
 /**Function*************************************************************
 
+  Synopsis    [Creates quantifiable varaibles for both types of traversal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Llb_Nonlin4PrintSuppProfile( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder, Vec_Ptr_t * vGroups )
+{
+    Aig_Obj_t * pObj;
+    int i, * pSupp;
+    int nSuppAll = 0, nSuppPi = 0, nSuppPo = 0, nSuppLi = 0, nSuppLo = 0, nSuppAnd = 0;
+
+    pSupp = ABC_CALLOC( int, Cudd_ReadSize(dd) );
+    Extra_VectorSupportArray( dd, (DdNode **)Vec_PtrArray(vGroups), Vec_PtrSize(vGroups), pSupp );
+
+    Aig_ManForEachObj( pAig, pObj, i )
+    {
+        if ( Llb_MnxBddVar(vOrder, pObj) < 0 )
+            continue;
+        // remove variables that do not participate
+        if ( pSupp[Llb_MnxBddVar(vOrder, pObj)] == 0 )
+        {
+            if ( Aig_ObjIsNode(pObj) )
+                Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), -1 );
+            continue;
+        }
+        nSuppAll++;
+        if ( Saig_ObjIsPi(pAig, pObj) )
+            nSuppPi++;
+        else if ( Saig_ObjIsLo(pAig, pObj) )
+            nSuppLo++;
+        else if ( Saig_ObjIsPo(pAig, pObj) )
+            nSuppPo++;
+        else if ( Saig_ObjIsLi(pAig, pObj) )
+            nSuppLi++;
+        else
+            nSuppAnd++;
+    }
+    ABC_FREE( pSupp );
+
+    printf( "Variable counts: all =%4d ",  nSuppAll );
+    printf( "pi =%4d ",  nSuppPi );
+    printf( "po =%4d ",  nSuppPo );
+    printf( "lo =%4d ",  nSuppLo );
+    printf( "li =%4d ",  nSuppLi );
+    printf( "and =%4d",  nSuppAnd );
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -297,37 +391,60 @@ void Llb_Nonlin4PrintGroups( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
   SeeAlso     []
 
 ***********************************************************************/
-void Llb_Nonlin4Cluster( Aig_Man_t * pAig )
+void Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrder, Vec_Ptr_t ** pvGroups, int nBddMax, int fVerbose )
 {
     DdManager * dd;
     Vec_Int_t * vOrder, * vVars2Q;
     Vec_Ptr_t * vParts, * vGroups;
     DdNode * bTemp;
-    int i;
+    int i, nVarNum;
 
     // create the BDD manager
-    dd      = Cudd_Init( Aig_ManObjNumMax(pAig), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-//    Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
-    vOrder  = Llb_Nonlin4FindOrder( pAig );
+    vOrder  = Llb_Nonlin4FindOrder( pAig, &nVarNum );
+    dd      = Cudd_Init( nVarNum, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+//    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+
     vVars2Q = Llb_Nonlin4FindVars2Q( dd, pAig, vOrder );
     vParts  = Llb_Nonlin4FindPartitions( dd, pAig, vOrder );
 
-    vGroups = Llb_Nonlin4Group( dd, vParts, vVars2Q, 500 );
-
-    Llb_Nonlin4PrintGroups( dd, pAig, vOrder, vGroups );
-
-    Vec_PtrForEachEntry( DdNode *, vGroups, bTemp, i )
-        Cudd_RecursiveDeref( dd, bTemp );
+    vGroups = Llb_Nonlin4Group( dd, vParts, vVars2Q, nBddMax );
+    Vec_IntFree( vVars2Q );
 
     Vec_PtrForEachEntry( DdNode *, vParts, bTemp, i )
         Cudd_RecursiveDeref( dd, bTemp );
-    Extra_StopManager( dd );
-//    Cudd_Quit( dd );
-
-    Vec_IntFree( vOrder );
-    Vec_IntFree( vVars2Q );
     Vec_PtrFree( vParts );
-    Vec_PtrFree( vGroups );
+
+
+//    if ( fVerbose )
+    Llb_Nonlin4PrintSuppProfile( dd, pAig, vOrder, vGroups );
+    if ( fVerbose )
+    printf( "Before reordering\n" );
+    if ( fVerbose )
+    Llb_Nonlin4PrintGroups( dd, pAig, vOrder, vGroups );
+
+//    Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 1 );
+//    printf( "After reordering\n" );
+//    Llb_Nonlin4PrintGroups( dd, pAig, vOrder, vGroups );
+
+    if ( pvOrder )
+        *pvOrder = vOrder;
+    else
+        Vec_IntFree( vOrder );
+
+    if ( pvGroups )
+        *pvGroups = vGroups;
+    else
+    {
+        Vec_PtrForEachEntry( DdNode *, vGroups, bTemp, i )
+            Cudd_RecursiveDeref( dd, bTemp );
+        Vec_PtrFree( vGroups );
+    }
+
+    if ( pdd )
+        *pdd = dd;
+    else
+        Extra_StopManager( dd );
+//    Cudd_Quit( dd );
 }
 
 ////////////////////////////////////////////////////////////////////////

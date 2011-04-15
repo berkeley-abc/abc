@@ -116,6 +116,7 @@ void Llb_Nonlin4RemoveVar( Llb_Mgr_t * p, Llb_Var_t * pVar )
 ***********************************************************************/
 void Llb_Nonlin4RemovePart( Llb_Mgr_t * p, Llb_Prt_t * pPart )
 {
+//printf( "Removing %d\n", pPart->iPart );
     assert( p->pParts[pPart->iPart] == pPart );
     p->pParts[pPart->iPart] = NULL;
     Vec_IntFree( pPart->vVars );
@@ -329,7 +330,7 @@ int Llb_Nonlin4Quantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2 
     // create cube to be quantified
     bCube = Llb_Nonlin4CreateCube2( p, pPart1, pPart2 );   Cudd_Ref( bCube );
 
-printf( "Quantifying  " ); Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
+//printf( "Quantifying  " ); Extra_bddPrintSupport( p->dd, bCube );  printf( "\n" );
 
 if ( fVerbose )
 {
@@ -352,7 +353,9 @@ liveEnd = p->dd->keys - p->dd->dead;
     Cudd_Ref( bFunc );
     Cudd_RecursiveDeref( p->dd, bCube );
 
-printf( "Createing part %d ", p->iPartFree ); Extra_bddPrintSupport( p->dd, bFunc );  printf( "\n" );
+//printf( "Creating part %d ", p->iPartFree ); Extra_bddPrintSupport( p->dd, bFunc );  printf( "\n" );
+
+//printf( "Creating %d\n", p->iPartFree );
 
     // create new partition
     pTemp = p->pParts[p->iPartFree] = ABC_CALLOC( Llb_Prt_t, 1 );
@@ -530,6 +533,7 @@ void Llb_Nonlin4AddPartition( Llb_Mgr_t * p, int i, DdNode * bFunc )
 {
     int k, nSuppSize;
     assert( !Cudd_IsConstant(bFunc) );
+//printf( "Creating init %d\n", i );
     // create partition
     p->pParts[i] = ABC_CALLOC( Llb_Prt_t, 1 );
     p->pParts[i]->iPart = i;
@@ -610,9 +614,9 @@ int Llb_Nonlin4NextPartitions( Llb_Mgr_t * p, Llb_Prt_t ** ppPart1, Llb_Prt_t **
                 pPart2Best = pPart;
         }
     }
-printf( "Selecting %d and parts %d and %d\n", pVarBest->iVar, pPart1Best->nSize, pPart2Best->nSize );
-Extra_bddPrintSupport( p->dd, pPart1Best->bFunc ); printf( "\n" );
-Extra_bddPrintSupport( p->dd, pPart2Best->bFunc ); printf( "\n" );
+//printf( "Selecting %d and parts %d and %d\n", pVarBest->iVar, pPart1Best->nSize, pPart2Best->nSize );
+//Extra_bddPrintSupport( p->dd, pPart1Best->bFunc ); printf( "\n" );
+//Extra_bddPrintSupport( p->dd, pPart2Best->bFunc ); printf( "\n" );
 
     *ppPart1 = pPart1Best;
     *ppPart2 = pPart2Best;
@@ -802,7 +806,7 @@ Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vV
     Vec_Ptr_t * vGroups;
     Llb_Prt_t * pPart, * pPart1, * pPart2;
     Llb_Mgr_t * p;
-    int i, nReorders;
+    int i, nReorders, clk = clock();
     // start the manager
     p = Llb_Nonlin4Alloc( dd, vParts, NULL, vVars2Q, nSizeMax );
     // remove singles
@@ -822,24 +826,28 @@ Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vV
         }
         if ( nReorders < Cudd_ReadReorderings(dd) )
             Llb_Nonlin4RecomputeScores( p );
-        else
-            Llb_Nonlin4VerifyScores( p );
+//        else
+//            Llb_Nonlin4VerifyScores( p );
     }
     // load partitions
     vGroups = Vec_PtrAlloc( 1000 );
     Llb_MgrForEachPart( p, pPart, i )
     {
+//printf( "Iteration %d ", pPart->iPart );
         if ( Cudd_IsConstant(pPart->bFunc) )
         {
+//printf( "Constant\n" );
             assert( !Cudd_IsComplement(pPart->bFunc) );
             continue;
         }
+//printf( "\n" );
         Vec_PtrPush( vGroups, pPart->bFunc );
         Cudd_Ref( pPart->bFunc );
-printf( "Part %d  ", pPart->iPart );
-Extra_bddPrintSupport( p->dd, pPart->bFunc ); printf( "\n" );
+//printf( "Part %d  ", pPart->iPart );
+//Extra_bddPrintSupport( p->dd, pPart->bFunc ); printf( "\n" );
     }
     Llb_Nonlin4Free( p );
+Abc_PrintTime( 1, "Reparametrization time", clock() - clk );
     return vGroups;
 }
 

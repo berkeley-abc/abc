@@ -182,6 +182,8 @@ extern DdNode *        Llb_NonlinImage( Aig_Man_t * pAig, Vec_Ptr_t * vLeaves, V
 /*=== llb3Nonlin.c ======================================================*/
 extern DdNode *        Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager * dd );
 
+/*=== llb4Cluster.c =======================================================*/
+extern void            Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrder, Vec_Ptr_t ** pvGroups, int nBddMax, int fVerbose );
 /*=== llb4Image.c =======================================================*/
 extern DdNode *        Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent, Vec_Int_t * vVars2Q );
 extern Vec_Ptr_t *     Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vVars2Q, int nSizeMax );
