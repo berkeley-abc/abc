@@ -384,6 +384,7 @@ Vec_Int_t * Llb_Nonlin4CreateVars2Q( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t
     else
     {
         Aig_ManForEachPi( pAig, pObj, i )
+//        Saig_ManForEachLo( pAig, pObj, i )
             Vec_IntWriteEntry( vVars2Q, Llb_MnxBddVar(vOrder, pObj), 0 );
     }
     return vVars2Q;
@@ -468,12 +469,10 @@ DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * v
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
     Saig_ManForEachLo( pAig, pObj, i )
     {
-        if ( pValues[Llb_MnxBddVar(vOrder, pObj)] == 2 )
-            continue;
         // get the correspoding flop input variable
         pObjLi = Saig_ObjLoToLi(pAig, pObj);
         bVar = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObjLi) );
-        if ( pValues[Llb_MnxBddVar(vOrder, pObj)] == 0 )
+        if ( pValues[Llb_MnxBddVar(vOrder, pObj)] != 1 )
             bVar = Cudd_Not(bVar);
         // create cube
         bRes = Cudd_bddAnd( dd, bTemp = bRes, bVar );  Cudd_Ref( bRes );
@@ -496,37 +495,47 @@ DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p )
+Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, Vec_Ptr_t * vStates, int fVerbose )
 {
-    Abc_Cex_t * pCex;
+    Abc_Cex_t * pCex = NULL;
     Aig_Obj_t * pObj;
     DdNode * bState, * bImage, * bOneCube, * bRing;
-    int i, v, RetValue, nPiOffset;
-    char * pValues = ABC_ALLOC( char, Cudd_ReadSize(p->dd) );
+    int i, v, RetValue, nPiOffset = -1, clk = clock();
+    char * pValues;
     assert( Vec_PtrSize(p->vRings) > 0 );
     // disable the timeout
     p->dd->TimeStop  = 0;
 
-    // update quantifiable vars
-    Vec_IntFreeP( &p->vVars2Q );
-    p->vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, p->pAig, p->vOrder, 0 );
-
-    // allocate room for the counter-example
-    pCex = Abc_CexAlloc( Saig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Vec_PtrSize(p->vRings) );
-    pCex->iFrame = Vec_PtrSize(p->vRings) - 1;
-    pCex->iPo = -1;
-
     // get the last cube
+    pValues = ABC_ALLOC( char, Cudd_ReadSize(p->dd) );
     bOneCube = Cudd_bddIntersect( p->dd, (DdNode *)Vec_PtrEntryLast(p->vRings), p->bBad );  Cudd_Ref( bOneCube );
     RetValue = Cudd_bddPickOneCube( p->dd, bOneCube, pValues );
     Cudd_RecursiveDeref( p->dd, bOneCube );
     assert( RetValue );
 
-    // write PIs of counter-example
-    nPiOffset = Saig_ManRegNum(p->pAig) + Saig_ManPiNum(p->pAig) * (Vec_PtrSize(p->vRings) - 1);
-    Saig_ManForEachPi( p->pAig, pObj, i )
-        if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
-            Aig_InfoSetBit( pCex->pData, nPiOffset + i );
+    // record the cube
+    if ( vStates == NULL )
+    {
+        // allocate room for the counter-example
+        pCex = Abc_CexAlloc( Saig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Vec_PtrSize(p->vRings) );
+        pCex->iFrame = Vec_PtrSize(p->vRings) - 1;
+        pCex->iPo = -1;
+        // write PIs of the counter-example
+        nPiOffset = Saig_ManRegNum(p->pAig) + Saig_ManPiNum(p->pAig) * (Vec_PtrSize(p->vRings) - 1);
+        Saig_ManForEachPi( p->pAig, pObj, i )
+            if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
+                Aig_InfoSetBit( pCex->pData, nPiOffset + i );
+    }
+    else
+    {
+        Saig_ManForEachLo( p->pAig, pObj, i )
+            if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
+                Aig_InfoSetBit( (unsigned *)Vec_PtrEntryLast(vStates), i );
+    }
+
+    // update quantifiable vars
+    Vec_IntFreeP( &p->vVars2Q );
+    p->vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, p->pAig, p->vOrder, 0 );
 
     // write state in terms of NS variables
     if ( Vec_PtrSize(p->vRings) > 1 )
@@ -545,7 +554,7 @@ Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p )
         Cudd_RecursiveDeref( p->dd, bState );
 
         // intersect with the previous set
-        bOneCube = Cudd_bddIntersect( p->dd, bImage, bRing );                Cudd_Ref( bOneCube );
+        bOneCube = Cudd_bddIntersect( p->dd, bImage, bRing );  Cudd_Ref( bOneCube );
         Cudd_RecursiveDeref( p->dd, bImage );
 
         // find any assignment of the BDD
@@ -553,11 +562,21 @@ Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p )
         Cudd_RecursiveDeref( p->dd, bOneCube );
         assert( RetValue );
 
-        // write PIs of counter-example
-        nPiOffset -= Saig_ManPiNum(p->pAig);
-        Saig_ManForEachPi( p->pAig, pObj, i )
-            if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
-                Aig_InfoSetBit( pCex->pData, nPiOffset + i );
+        // record the cube
+        if ( vStates == NULL )
+        {
+            // write PIs of counter-example
+            nPiOffset -= Saig_ManPiNum(p->pAig);
+            Saig_ManForEachPi( p->pAig, pObj, i )
+                if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
+                    Aig_InfoSetBit( pCex->pData, nPiOffset + i );
+        }
+        else
+        {
+            Saig_ManForEachLo( p->pAig, pObj, i )
+                if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
+                    Aig_InfoSetBit( (unsigned *)Vec_PtrEntry(vStates, v), i );
+        }
 
         // check that we get the init state
         if ( v == 0 )
@@ -565,19 +584,24 @@ Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p )
             Saig_ManForEachLo( p->pAig, pObj, i )
                 assert( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 0 );
             break;
-        }
+        } 
 
         // write state in terms of NS variables
         bState = Llb_Nonlin4ComputeCube( p->dd, p->pAig, p->vOrder, pValues );   Cudd_Ref( bState );
     }
-    assert( nPiOffset == Saig_ManRegNum(p->pAig) );
+    assert( vStates != NULL || nPiOffset == Saig_ManRegNum(p->pAig) );
     // update the output number
-//Abc_CexPrint( pCex );
-    RetValue = Saig_ManFindFailedPoCex( p->pAig, pCex );
-    assert( RetValue >= 0 && RetValue < Saig_ManPoNum(p->pAig) ); // invalid CEX!!!
-    pCex->iPo = RetValue;
+    if ( pCex )
+    {
+    //Abc_CexPrint( pCex );
+        RetValue = Saig_ManFindFailedPoCex( p->pAig, pCex );
+        assert( RetValue >= 0 && RetValue < Saig_ManPoNum(p->pAig) ); // invalid CEX!!!
+        pCex->iPo = RetValue;
+    }
     // cleanup
     ABC_FREE( pValues );
+//    if ( fVerbose )
+//        Abc_PrintTime( 1, "BDD-based cex generation time", clock() - clk );
     return pCex;
 }
 
@@ -644,9 +668,18 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         if ( !p->pPars->fSkipOutCheck && !Cudd_bddLeq( p->dd, p->bCurrent, Cudd_Not(p->bBad) ) ) 
         {
             assert( p->pAig->pSeqModel == NULL );
-            if ( !p->pPars->fBackward )
-                p->pAig->pSeqModel = Llb_Nonlin4DeriveCex( p ); 
-            if ( !p->pPars->fSilent )
+            if ( p->pPars->fCluster )
+            {
+                Vec_Ptr_t * vStates = Vec_PtrAllocSimInfo( Vec_PtrSize(p->vRings), Aig_BitWordNum(Aig_ManRegNum(p->pAig)) );
+                Vec_PtrCleanSimInfo( vStates, 0, Aig_BitWordNum(Aig_ManRegNum(p->pAig)) );
+                p->pAig->pSeqModel = Llb_Nonlin4DeriveCex( p, p->pPars->fBackward, vStates, p->pPars->fVerbose ); 
+                ABC_FREE( p->pAig->pSeqModel );
+                p->pAig->pSeqModel = Llb4_Nonlin4TransformCex( p->pAig, vStates, p->pPars->fVerbose );
+                Vec_PtrFreeP( &vStates );
+            }
+            else
+                p->pAig->pSeqModel = Llb_Nonlin4DeriveCex( p, p->pPars->fBackward, NULL, p->pPars->fVerbose ); 
+            if ( !p->pPars->fSilent && p->pAig->pSeqModel )
             {
                 if ( !p->pPars->fBackward )
                     printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).  ", p->pAig->pSeqModel->iPo, nIters );
@@ -905,6 +938,32 @@ void Llb_MnxStop( Llb_Mnx_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Llb_MnxCheckNextStateVars( Llb_Mnx_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter0 = 0, Counter1 = 0;
+    Saig_ManForEachLi( p->pAig, pObj, i )
+        if ( Saig_ObjIsLo(p->pAig, Aig_ObjFanin0(pObj)) )
+        {
+            if ( Aig_ObjFaninC0(pObj) )
+                Counter0++;
+            else
+                Counter1++;
+        }
+    printf( "Total = %d.  Direct LO = %d. Compl LO = %d.\n", Aig_ManRegNum(p->pAig), Counter1, Counter0 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Finds balanced cut.]
 
   Description []
@@ -924,6 +983,7 @@ int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     {
         int clk = clock();
         pMnn = Llb_MnxStart( pAig, pPars );
+//Llb_MnxCheckNextStateVars( pMnn );
         RetValue = Llb_Nonlin4Reachability( pMnn );
         pMnn->timeTotal = clock() - clk;
         Llb_MnxStop( pMnn );

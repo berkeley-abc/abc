@@ -402,7 +402,7 @@ void Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrde
     // create the BDD manager
     vOrder  = Llb_Nonlin4FindOrder( pAig, &nVarNum );
     dd      = Cudd_Init( nVarNum, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-//    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
 
     vVars2Q = Llb_Nonlin4FindVars2Q( dd, pAig, vOrder );
     vParts  = Llb_Nonlin4FindPartitions( dd, pAig, vOrder );
