@@ -171,16 +171,121 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
         pCex->iPo = status;
     else
     {
-        printf( "Inter_ManGetCounterExample(): Counter-example verification has FAILED.\n" );
+        printf( "Llb4_Nonlin4TransformCex(): Counter-example verification has FAILED.\n" );
         ABC_FREE( pCex );
         return NULL;
     }
     // report the results
 //    if ( fVerbose )
-//        Abc_PrintTime( 1, "SAT-based cex generation time", clock() - clk );
+//       Abc_PrintTime( 1, "SAT-based cex generation time", clock() - clk );
     return pCex;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Llb4_Nonlin4VerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
+{
+    Vec_Ptr_t * vStates;
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int i, k, iBit = 0;
+    // create storage for states
+    vStates = Vec_PtrAllocSimInfo( p->iFrame+1, Aig_BitWordNum(Aig_ManRegNum(pAig)) );
+    Vec_PtrCleanSimInfo( vStates, 0, Aig_BitWordNum(Aig_ManRegNum(pAig)) );
+    // verify counter-example
+    Aig_ManCleanMarkB(pAig);
+    Aig_ManConst1(pAig)->fMarkB = 1;
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        // save current state
+        Saig_ManForEachLo( pAig, pObj, k )
+            if ( pObj->fMarkB )
+                Aig_InfoSetBit( (unsigned *)Vec_PtrEntry(vStates, i), k );
+        // compute new state
+        Saig_ManForEachPi( pAig, pObj, k )
+            pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        Aig_ManForEachNode( pAig, pObj, k )
+            pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                           (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachPo( pAig, pObj, k )
+            pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMarkB = pObjRi->fMarkB;
+    }
+/*
+    {
+        unsigned * pNext;
+        Vec_PtrForEachEntry( unsigned *, vStates, pNext, i )
+        {
+            printf( "%4d : ", i );
+            Extra_PrintBinary( stdout, pNext, Aig_ManRegNum(pAig) );
+            printf( "\n" );
+        }
+    }
+*/
+    assert( iBit == p->nBits );
+    if ( Aig_ManPo(pAig, p->iPo)->fMarkB == 0 )
+        Vec_PtrFreeP( &vStates );
+    Aig_ManCleanMarkB(pAig);
+    return vStates;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Translates a sequence of states into a counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, Abc_Cex_t * pCexRpm )
+{
+    Abc_Cex_t * pCexOrg;
+    Vec_Ptr_t * vStates;
+    // check parameters of the AIG
+    if ( Saig_ManRegNum(pAigOrg) != Saig_ManRegNum(pAigRpm) )
+    {
+        printf( "Llb4_Nonlin4NormalizeCex(): The number of flops in the original and reparametrized AIGs do not agree.\n" );
+        return NULL;
+    }
+    if ( Saig_ManRegNum(pAigRpm) != pCexRpm->nRegs )
+    {
+        printf( "Llb4_Nonlin4NormalizeCex(): The number of flops in the reparametrized AIG and in the CEX do not agree.\n" );
+        return NULL;
+    }
+    if ( Saig_ManPiNum(pAigRpm) != pCexRpm->nPis )
+    {
+        printf( "Llb4_Nonlin4NormalizeCex(): The number of PIs in the reparametrized AIG and in the CEX do not agree.\n" );
+        return NULL;
+    }
+    // get the sequence of states
+    vStates = Llb4_Nonlin4VerifyCex( pAigRpm, pCexRpm );
+    if ( vStates == NULL )
+    {
+        Abc_Print( 1, "Llb4_Nonlin4NormalizeCex(): The given CEX does not fail outputs of pAigRpm.\n" );
+        return NULL;
+    }
+    // derive updated counter-example
+    pCexOrg = Llb4_Nonlin4TransformCex( pAigOrg, vStates, 0 );
+    Vec_PtrFree( vStates );
+    return pCexOrg;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -276,6 +276,7 @@ static int Abc_CommandFold                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBm                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandReconcile              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandTraceStart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -693,6 +694,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "bm",            Abc_CommandBm,               1 );
     Cmd_CommandAdd( pAbc, "Verification", "testcex",       Abc_CommandTestCex,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "pdr",           Abc_CommandPdr,              0 );
+    Cmd_CommandAdd( pAbc, "Verification", "reconcile",     Abc_CommandReconcile,        1 );
 
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
@@ -8527,13 +8529,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
 //        extern void Llb_Nonlin4Cluster( Aig_Man_t * pAig );
 //        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
+        extern void Llb4_Nonlin4Sweep( Aig_Man_t * pAig, int nBddLimit );
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
 //        Aig_ManTerSimulate( pAig );
 //        Llb_Nonlin4Cluster( pAig );
+        Llb4_Nonlin4Sweep( pAig, 100 );
         Aig_ManStop( pAig );
     }
 */
+
 /*
 {
     extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
@@ -20009,6 +20014,94 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
+{    
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, Abc_Cex_t * pCexRpm );
+    Abc_Cex_t * pCex;
+    Abc_Ntk_t * pNtk1, * pNtk2;
+    Aig_Man_t * pAig1, * pAig2;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 2 ) 
+    {
+        printf( "Does not seen to have two files names as arguments.\n" );
+        return 1;
+    }
+    if ( pAbc->pCex == NULL )
+    {
+        printf( "There is no current counter-example.\n" );
+        return 1;
+    }
+
+    // derive networks
+    pNtk1 = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+    if ( pNtk1 == NULL )
+        return 1;
+    pNtk2 = Io_Read( argv[globalUtilOptind+1], Io_ReadFileType(argv[globalUtilOptind+1]), 1 );
+    if ( pNtk2 == NULL )
+    {
+        Abc_NtkDelete( pNtk1 );
+        return 1;
+    }
+    // create counter-examples
+    pAig1 = Abc_NtkToDar( pNtk1, 0, 0 );
+    pAig2 = Abc_NtkToDar( pNtk2, 0, 0 );
+    pCex = Llb4_Nonlin4NormalizeCex( pAig1, pAig2, pAbc->pCex );
+    Aig_ManStop( pAig1 );
+    Aig_ManStop( pAig2 );
+    Abc_NtkDelete( pNtk2 );
+    if ( pCex == NULL )
+    {
+        printf( "Counter-example computation has failed.\n" );
+        Abc_NtkDelete( pNtk1 );
+        return 1;
+    }
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk1 );
+    // update the counter-example
+    pAbc->nFrames = pCex->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: reconcile [-h] <fileOrigin> <fileReparam>\n" );
+    Abc_Print( -2, "\t        reconciles current CEX with <fileOrigin>\n" );
+    Abc_Print( -2, "\t        More specifically:\n" );
+    Abc_Print( -2, "\t        (i) assumes that <fileReparam> is an AIG derived by input\n" );
+    Abc_Print( -2, "\t        reparametrization of <fileOrigin> without seq synthesis;\n" );
+    Abc_Print( -2, "\t        (ii) assumes that current CEX is valid for <fileReparam>;\n" );
+    Abc_Print( -2, "\t        (iii) derives new CEX for <fileOrigin> and sets this CEX\n" );
+    Abc_Print( -2, "\t        and <fileOrigin> to be current CEX and current network\n" );
+    Abc_Print( -2, "\t<fileOrigin>   : file name with the original AIG\n");
+    Abc_Print( -2, "\t<fileReparam>  : file name with the reparametrized AIG\n");
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandTraceStart( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -27995,7 +28088,7 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fReorder = 0;
     pPars->nBddMax  = 1000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "BFTLcryzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BFTLbcryzvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28040,6 +28133,9 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pLogFileName = argv[globalUtilOptind];
             globalUtilOptind++;
+            break;
+        case 'b':
+            pPars->fBackward ^= 1;
             break;
         case 'c':
             pPars->fCluster ^= 1;
@@ -28090,12 +28186,13 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &reachy [-BFT num] [-L file] [-cryzvh]\n" );
+    Abc_Print( -2, "usage: &reachy [-BFT num] [-L file] [-bcryzvh]\n" );
     Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear-QS-based)\n" );
     Abc_Print( -2, "\t-B num : the BDD node threshold for clustering [default = %d]\n", pPars->nBddMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-b     : enable using backward enumeration [default = %s]\n", pPars->fBackward? "yes": "no" );  
     Abc_Print( -2, "\t-c     : enable reparametrization clustering [default = %s]\n", pPars->fCluster? "yes": "no" );  
     Abc_Print( -2, "\t-r     : enable additional BDD var reordering before image [default = %s]\n", pPars->fReorder? "yes": "no" );  
     Abc_Print( -2, "\t-y     : skip checking property outputs [default = %s]\n", pPars->fSkipOutCheck? "yes": "no" );  

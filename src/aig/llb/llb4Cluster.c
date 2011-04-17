@@ -27,8 +27,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int Llb_MnxBddVar( Vec_Int_t * vOrder, Aig_Obj_t * pObj ) { return Vec_IntEntry(vOrder, Aig_ObjId(pObj)); }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -50,7 +48,7 @@ void Llb_Nonlin4FindOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * v
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent( pAig, pObj );
-    assert( Llb_MnxBddVar(vOrder, pObj) < 0 );
+    assert( Llb_ObjBddVar(vOrder, pObj) < 0 );
     if ( Aig_ObjIsPi(pObj) )
     {
         Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), (*pCounter)++ );
@@ -110,7 +108,7 @@ Vec_Int_t * Llb_Nonlin4FindOrder( Aig_Man_t * pAig, int * pCounter )
         Llb_Nonlin4FindOrder_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
     }
     Aig_ManForEachPi( pAig, pObj, i )
-        if ( Llb_MnxBddVar(vOrder, pObj) < 0 )
+        if ( Llb_ObjBddVar(vOrder, pObj) < 0 )
             Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), Counter++ );
     Aig_ManCleanMarkA( pAig );
     Vec_IntFreeP( &vNodes );
@@ -118,19 +116,19 @@ Vec_Int_t * Llb_Nonlin4FindOrder( Aig_Man_t * pAig, int * pCounter )
 
 /*
     Saig_ManForEachPi( pAig, pObj, i )
-        printf( "pi%d ", Llb_MnxBddVar(vOrder, pObj) );
+        printf( "pi%d ", Llb_ObjBddVar(vOrder, pObj) );
     printf( "\n" );
     Saig_ManForEachLo( pAig, pObj, i )
-        printf( "lo%d ", Llb_MnxBddVar(vOrder, pObj) );
+        printf( "lo%d ", Llb_ObjBddVar(vOrder, pObj) );
     printf( "\n" );
     Saig_ManForEachPo( pAig, pObj, i )
-        printf( "po%d ", Llb_MnxBddVar(vOrder, pObj) );
+        printf( "po%d ", Llb_ObjBddVar(vOrder, pObj) );
     printf( "\n" );
     Saig_ManForEachLi( pAig, pObj, i )
-        printf( "li%d ", Llb_MnxBddVar(vOrder, pObj) );
+        printf( "li%d ", Llb_ObjBddVar(vOrder, pObj) );
     printf( "\n" );
     Aig_ManForEachNode( pAig, pObj, i )
-        printf( "n%d ", Llb_MnxBddVar(vOrder, pObj) );
+        printf( "n%d ", Llb_ObjBddVar(vOrder, pObj) );
     printf( "\n" );
 */
     if ( pCounter )
@@ -149,77 +147,74 @@ Vec_Int_t * Llb_Nonlin4FindOrder( Aig_Man_t * pAig, int * pCounter )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Llb_Nonlin4FindPartitions( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder )
+DdNode * Llb_Nonlin4FindPartitions_rec( DdManager * dd, Aig_Obj_t * pObj, Vec_Int_t * vOrder, Vec_Ptr_t * vRoots )
 {
-    Vec_Ptr_t * vRoots;
-    Aig_Obj_t * pObj;
-    DdNode * bBdd, * bBdd0, * bBdd1, * bPart;
-    int i;
-    Aig_ManCleanData( pAig );
-    // assign elementary variables
-    Aig_ManConst1(pAig)->pData = Cudd_ReadOne(dd); 
-    Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
-    Aig_ManForEachNode( pAig, pObj, i )
-        if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
-        {
-            pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
-            Cudd_Ref( (DdNode *)pObj->pData );
-        }
-//    Aig_ManForEachPo( pAig, pObj, i )
-    Saig_ManForEachLi( pAig, pObj, i )
-        pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
-    // compute intermediate BDDs
-    vRoots = Vec_PtrAlloc( 100 );
-    Aig_ManForEachNode( pAig, pObj, i )
+    DdNode * bBdd, * bBdd0, * bBdd1, * bPart, * vVar;
+    if ( Aig_ObjIsConst1(pObj) )
+        return Cudd_ReadOne(dd); 
+    if ( Aig_ObjIsPi(pObj) )
+        return Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
+    if ( pObj->pData )
+        return (DdNode *)pObj->pData;
+    if ( Aig_ObjIsPo(pObj) )
     {
-        bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
-        bBdd1 = Cudd_NotCond( (DdNode *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj) );
-        bBdd  = Cudd_bddAnd( dd, bBdd0, bBdd1 );
-        Cudd_Ref( bBdd );
-        if ( pObj->pData == NULL )
-        {
-            pObj->pData = bBdd;
-            continue;
-        }
-        // create new partition
-        bPart = Cudd_bddXnor( dd, (DdNode *)pObj->pData, bBdd );  
-        if ( bPart == NULL )
-            goto finish;
-        Cudd_Ref( bPart );
+        bBdd0 = Cudd_NotCond( Llb_Nonlin4FindPartitions_rec(dd, Aig_ObjFanin0(pObj), vOrder, vRoots), Aig_ObjFaninC0(pObj) );
+        bPart = Cudd_bddXnor( dd, Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) ), bBdd0 );  Cudd_Ref( bPart );
+        Vec_PtrPush( vRoots, bPart );
+        return NULL;
+    }
+    bBdd0 = Cudd_NotCond( Llb_Nonlin4FindPartitions_rec(dd, Aig_ObjFanin0(pObj), vOrder, vRoots), Aig_ObjFaninC0(pObj) );
+    bBdd1 = Cudd_NotCond( Llb_Nonlin4FindPartitions_rec(dd, Aig_ObjFanin1(pObj), vOrder, vRoots), Aig_ObjFaninC1(pObj) );
+    bBdd  = Cudd_bddAnd( dd, bBdd0, bBdd1 );   Cudd_Ref( bBdd );
+    if ( Llb_ObjBddVar(vOrder, pObj) >= 0 )
+    {
+        vVar  = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
+        bPart = Cudd_bddXnor( dd, vVar, bBdd );  Cudd_Ref( bPart );
+        Vec_PtrPush( vRoots, bPart );
         Cudd_RecursiveDeref( dd, bBdd );
-        Vec_PtrPush( vRoots, bPart );
+        bBdd = vVar;  Cudd_Ref( vVar );
     }
-    // compute register output BDDs
-//    Aig_ManForEachPo( pAig, pObj, i )
-    Saig_ManForEachLi( pAig, pObj, i )
-    {
-        bBdd0 = Cudd_NotCond( (DdNode *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj) );
-        bPart = Cudd_bddXnor( dd, (DdNode *)pObj->pData, bBdd0 );  
-        if ( bPart == NULL )
-            goto finish;
-        Cudd_Ref( bPart );
-        Vec_PtrPush( vRoots, bPart );
-//printf( "%d ", Cudd_DagSize(bPart) );
-    }
-//printf( "\n" );
-    Aig_ManForEachNode( pAig, pObj, i )
-        Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
-    return vRoots;
-    // early termination
-finish:
-    Aig_ManForEachNode( pAig, pObj, i )
-        if ( pObj->pData )
-            Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
-    Vec_PtrForEachEntry( DdNode *, vRoots, bPart, i )
-        Cudd_RecursiveDeref( dd, bPart );
-    Vec_PtrFree( vRoots );
-    return NULL;
+    pObj->pData = bBdd;
+    return bBdd;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Creates quantifiable varaibles for both types of traversal.]
+  Synopsis    [Derives BDDs for the partitions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Llb_Nonlin4FindPartitions( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder, int fOutputs )
+{
+    Vec_Ptr_t * vRoots;
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManCleanData( pAig );
+    vRoots = Vec_PtrAlloc( 100 );
+    if ( fOutputs )
+    {
+        Saig_ManForEachPo( pAig, pObj, i )
+            Llb_Nonlin4FindPartitions_rec( dd, pObj, vOrder, vRoots );
+    }
+    else
+    {
+        Saig_ManForEachLi( pAig, pObj, i )
+            Llb_Nonlin4FindPartitions_rec( dd, pObj, vOrder, vRoots );
+    }
+    Aig_ManForEachNode( pAig, pObj, i )
+        if ( pObj->pData )
+            Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
+    return vRoots;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates quantifiable variables for both types of traversal.]
 
   Description []
                
@@ -236,16 +231,16 @@ Vec_Int_t * Llb_Nonlin4FindVars2Q( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t *
     vVars2Q = Vec_IntAlloc( 0 );
     Vec_IntFill( vVars2Q, Cudd_ReadSize(dd), 1 );
     Saig_ManForEachLo( pAig, pObj, i )
-        Vec_IntWriteEntry( vVars2Q, Llb_MnxBddVar(vOrder, pObj), 0 );
+        Vec_IntWriteEntry( vVars2Q, Llb_ObjBddVar(vOrder, pObj), 0 );
 //    Aig_ManForEachPo( pAig, pObj, i )
     Saig_ManForEachLi( pAig, pObj, i )
-        Vec_IntWriteEntry( vVars2Q, Llb_MnxBddVar(vOrder, pObj), 0 );
+        Vec_IntWriteEntry( vVars2Q, Llb_ObjBddVar(vOrder, pObj), 0 );
     return vVars2Q;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Creates quantifiable varaibles for both types of traversal.]
+  Synopsis    [Creates quantifiable variables for both types of traversal.]
 
   Description []
                
@@ -263,26 +258,26 @@ int Llb_Nonlin4CountTerms( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder,
     if ( !fCo && !fFlop )
     {
         Saig_ManForEachPi( pAig, pObj, i )
-            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
-                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_ObjBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_ObjBddVar(vOrder, pObj)) );
     }
     else if ( fCo && !fFlop )
     {
         Saig_ManForEachPo( pAig, pObj, i )
-            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
-                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_ObjBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_ObjBddVar(vOrder, pObj)) );
     }
     else if ( !fCo && fFlop )
     {
         Saig_ManForEachLo( pAig, pObj, i )
-            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
-                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_ObjBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_ObjBddVar(vOrder, pObj)) );
     }
     else if ( fCo && fFlop )
     {
         Saig_ManForEachLi( pAig, pObj, i )
-            if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
-                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_MnxBddVar(vOrder, pObj)) );
+            if ( Llb_ObjBddVar(vOrder, pObj) >= 0 )
+                Counter += Cudd_bddLeq( dd, bSupp, Cudd_bddIthVar(dd, Llb_ObjBddVar(vOrder, pObj)) );
     }
     Cudd_RecursiveDeref( dd, bSupp );
     return Counter;
@@ -290,7 +285,7 @@ int Llb_Nonlin4CountTerms( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder,
 
 /**Function*************************************************************
 
-  Synopsis    [Creates quantifiable varaibles for both types of traversal.]
+  Synopsis    [Creates quantifiable variables for both types of traversal.]
 
   Description []
                
@@ -328,7 +323,7 @@ void Llb_Nonlin4PrintGroups( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
 
 /**Function*************************************************************
 
-  Synopsis    [Creates quantifiable varaibles for both types of traversal.]
+  Synopsis    [Creates quantifiable variables for both types of traversal.]
 
   Description []
                
@@ -348,10 +343,10 @@ void Llb_Nonlin4PrintSuppProfile( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * 
 
     Aig_ManForEachObj( pAig, pObj, i )
     {
-        if ( Llb_MnxBddVar(vOrder, pObj) < 0 )
+        if ( Llb_ObjBddVar(vOrder, pObj) < 0 )
             continue;
         // remove variables that do not participate
-        if ( pSupp[Llb_MnxBddVar(vOrder, pObj)] == 0 )
+        if ( pSupp[Llb_ObjBddVar(vOrder, pObj)] == 0 )
         {
             if ( Aig_ObjIsNode(pObj) )
                 Vec_IntWriteEntry( vOrder, Aig_ObjId(pObj), -1 );
@@ -371,7 +366,8 @@ void Llb_Nonlin4PrintSuppProfile( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * 
     }
     ABC_FREE( pSupp );
 
-    printf( "Variable counts: all =%4d ",  nSuppAll );
+    printf( "Groups =%3d  ", Vec_PtrSize(vGroups) );
+    printf( "Variables: all =%4d ",  nSuppAll );
     printf( "pi =%4d ",  nSuppPi );
     printf( "po =%4d ",  nSuppPo );
     printf( "lo =%4d ",  nSuppLo );
@@ -402,10 +398,10 @@ void Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrde
     // create the BDD manager
     vOrder  = Llb_Nonlin4FindOrder( pAig, &nVarNum );
     dd      = Cudd_Init( nVarNum, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+//    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
 
     vVars2Q = Llb_Nonlin4FindVars2Q( dd, pAig, vOrder );
-    vParts  = Llb_Nonlin4FindPartitions( dd, pAig, vOrder );
+    vParts  = Llb_Nonlin4FindPartitions( dd, pAig, vOrder, 0 );
 
     vGroups = Llb_Nonlin4Group( dd, vParts, vVars2Q, nBddMax );
     Vec_IntFree( vVars2Q );

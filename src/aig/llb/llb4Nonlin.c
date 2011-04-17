@@ -54,8 +54,6 @@ struct Llb_Mnx_t_
     int             timeTotal;
 };
 
-static inline int Llb_MnxBddVar( Vec_Int_t * vOrder, Aig_Obj_t * pObj ) { return Vec_IntEntry(vOrder, Aig_ObjId(pObj)); }
-
 //extern int timeBuild, timeAndEx, timeOther;
 //extern int nSuppMax;
 
@@ -77,14 +75,14 @@ static inline int Llb_MnxBddVar( Vec_Int_t * vOrder, Aig_Obj_t * pObj ) { return
 DdNode * Llb_Nonlin4ComputeBad( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder )
 {
     Vec_Ptr_t * vNodes;
-    DdNode * bBdd, * bBdd0, * bBdd1, * bTemp, * bResult;
+    DdNode * bBdd, * bBdd0, * bBdd1, * bTemp, * bResult, * bCube;
     Aig_Obj_t * pObj;
     int i;
     Aig_ManCleanData( pAig );
     // assign elementary variables
     Aig_ManConst1(pAig)->pData = Cudd_ReadOne(dd); 
     Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
+        pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     // compute internal nodes
     vNodes = Aig_ManDfsNodes( pAig, (Aig_Obj_t **)Vec_PtrArray(pAig->vPos), Saig_ManPoNum(pAig) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
@@ -125,7 +123,18 @@ DdNode * Llb_Nonlin4ComputeBad( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vO
             Cudd_RecursiveDeref( dd, (DdNode *)pObj->pData );
     Vec_PtrFree( vNodes );
     if ( bResult )
+    {
+        bCube = Cudd_ReadOne(dd);  Cudd_Ref( bCube );
+        Saig_ManForEachPi( pAig, pObj, i )
+        {
+            bCube = Cudd_bddAnd( dd, bTemp = bCube, (DdNode *)pObj->pData );  Cudd_Ref( bCube );
+            Cudd_RecursiveDeref( dd, bTemp );
+        }
+        bResult = Cudd_bddExistAbstract( dd, bTemp = bResult, bCube );  Cudd_Ref( bResult );
+        Cudd_RecursiveDeref( dd, bTemp );
+        Cudd_RecursiveDeref( dd, bCube );
         Cudd_Deref( bResult );
+    }
 //if ( bResult )
 //printf( "Bad state = %d.\n", Cudd_DagSize(bResult) );
     return bResult;
@@ -152,15 +161,15 @@ Vec_Ptr_t * Llb_Nonlin4DerivePartitions( DdManager * dd, Aig_Man_t * pAig, Vec_I
     // assign elementary variables
     Aig_ManConst1(pAig)->pData = Cudd_ReadOne(dd); 
     Aig_ManForEachPi( pAig, pObj, i )
-        pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
+        pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     Aig_ManForEachNode( pAig, pObj, i )
-        if ( Llb_MnxBddVar(vOrder, pObj) >= 0 )
+        if ( Llb_ObjBddVar(vOrder, pObj) >= 0 )
         {
-            pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
+            pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
             Cudd_Ref( (DdNode *)pObj->pData );
         }
     Saig_ManForEachLi( pAig, pObj, i )
-        pObj->pData = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
+        pObj->pData = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObj) );
     // compute intermediate BDDs
     vRoots = Vec_PtrAlloc( 100 );
     Aig_ManForEachNode( pAig, pObj, i )
@@ -252,7 +261,7 @@ void Llb_Nonlin4CreateOrder_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t *
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent( pAig, pObj );
-    assert( Llb_MnxBddVar(vOrder, pObj) < 0 );
+    assert( Llb_ObjBddVar(vOrder, pObj) < 0 );
     if ( Aig_ObjIsPi(pObj) )
     {
 //        if ( Saig_ObjIsLo(pAig, pObj) )
@@ -345,7 +354,7 @@ printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
         Llb_Nonlin4CreateOrder_rec( pAig, Aig_ObjFanin0(pObj), vOrder, &Counter );
     }
     Aig_ManForEachPi( pAig, pObj, i )
-        if ( Llb_MnxBddVar(vOrder, pObj) < 0 )
+        if ( Llb_ObjBddVar(vOrder, pObj) < 0 )
         {
 //            if ( Saig_ObjIsLo(pAig, pObj) )
 //                Vec_IntWriteEntry( vOrder, Aig_ObjId(Saig_ObjLoToLi(pAig, pObj)), Counter++ );
@@ -369,24 +378,15 @@ printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Llb_Nonlin4CreateVars2Q( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder, int fForward )
+Vec_Int_t * Llb_Nonlin4CreateVars2Q( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder, int fBackward )
 {
     Vec_Int_t * vVars2Q;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObjLi, * pObjLo;
     int i;
     vVars2Q = Vec_IntAlloc( 0 );
     Vec_IntFill( vVars2Q, Cudd_ReadSize(dd), 1 );
-    if ( fForward )
-    {
-        Saig_ManForEachLi( pAig, pObj, i )
-            Vec_IntWriteEntry( vVars2Q, Llb_MnxBddVar(vOrder, pObj), 0 );
-    }
-    else
-    {
-        Aig_ManForEachPi( pAig, pObj, i )
-//        Saig_ManForEachLo( pAig, pObj, i )
-            Vec_IntWriteEntry( vVars2Q, Llb_MnxBddVar(vOrder, pObj), 0 );
-    }
+    Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
+        Vec_IntWriteEntry( vVars2Q, Llb_ObjBddVar(vOrder, fBackward ? pObjLo : pObjLi), 0 );
     return vVars2Q;
 }
 
@@ -410,10 +410,10 @@ void Llb_Nonlin4SetupVarMap( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
     pVarsY = ABC_ALLOC( DdNode *, Cudd_ReadSize(dd) );
     Saig_ManForEachLiLo( pAig, pObjLo, pObjLi, i )
     {
-        assert( Llb_MnxBddVar(vOrder, pObjLo) >= 0 );
-        assert( Llb_MnxBddVar(vOrder, pObjLi) >= 0 );
-        pVarsX[i] = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObjLo) );
-        pVarsY[i] = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObjLi) );
+        assert( Llb_ObjBddVar(vOrder, pObjLo) >= 0 );
+        assert( Llb_ObjBddVar(vOrder, pObjLi) >= 0 );
+        pVarsX[i] = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObjLo) );
+        pVarsY[i] = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObjLi) );
     }
     Cudd_SetVarMap( dd, pVarsX, pVarsY, Aig_ManRegNum(pAig) );
     ABC_FREE( pVarsX );
@@ -431,16 +431,16 @@ void Llb_Nonlin4SetupVarMap( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrde
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Llb_Nonlin4ComputeInitState( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder )
+DdNode * Llb_Nonlin4ComputeInitState( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder, int fBackward )
 {
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObjLi, * pObjLo;
     DdNode * bRes, * bVar, * bTemp;
     int i, TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
-    Saig_ManForEachLo( pAig, pObj, i )
+    Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
-        bVar = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObj) );
+        bVar = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, fBackward? pObjLi : pObjLo) );
         bRes = Cudd_bddAnd( dd, bTemp = bRes, Cudd_Not(bVar) );  Cudd_Ref( bRes );
         Cudd_RecursiveDeref( dd, bTemp );
     }
@@ -460,19 +460,20 @@ DdNode * Llb_Nonlin4ComputeInitState( DdManager * dd, Aig_Man_t * pAig, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder, char * pValues )
+DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vOrder, char * pValues, int Flag )
 {
-    Aig_Obj_t * pObj, * pObjLi;
+    Aig_Obj_t * pObjLo, * pObjLi, * pObjTemp;
     DdNode * bRes, * bVar, * bTemp;
     int i, TimeStop;
     TimeStop = dd->TimeStop;  dd->TimeStop = 0;
     bRes = Cudd_ReadOne( dd );   Cudd_Ref( bRes );
-    Saig_ManForEachLo( pAig, pObj, i )
+    Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
+        if ( Flag )
+            pObjTemp = pObjLo, pObjLo = pObjLi, pObjLi = pObjTemp;
         // get the correspoding flop input variable
-        pObjLi = Saig_ObjLoToLi(pAig, pObj);
-        bVar = Cudd_bddIthVar( dd, Llb_MnxBddVar(vOrder, pObjLi) );
-        if ( pValues[Llb_MnxBddVar(vOrder, pObj)] != 1 )
+        bVar = Cudd_bddIthVar( dd, Llb_ObjBddVar(vOrder, pObjLi) );
+        if ( pValues[Llb_ObjBddVar(vOrder, pObjLo)] != 1 )
             bVar = Cudd_Not(bVar);
         // create cube
         bRes = Cudd_bddAnd( dd, bTemp = bRes, bVar );  Cudd_Ref( bRes );
@@ -483,6 +484,70 @@ DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * v
     return bRes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Compute initial state in terms of current state variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Llb_Nonlin4RecordState( Aig_Man_t * pAig, Vec_Int_t * vOrder, unsigned * pState, char * pValues, int fBackward )
+{
+    Aig_Obj_t * pObjLo, * pObjLi;
+    int i;
+    Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
+        if ( pValues[Llb_ObjBddVar(vOrder, fBackward? pObjLi : pObjLo)] == 1 )
+            Aig_InfoSetBit( pState, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Multiply every partition by the cube.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Llb_Nonlin4Multiply( DdManager * dd, DdNode * bCube, Vec_Ptr_t * vParts )
+{
+    Vec_Ptr_t * vNew;
+    DdNode * bTemp, * bFunc;
+    int i;
+    vNew = Vec_PtrAlloc( Vec_PtrSize(vParts) );
+    Vec_PtrForEachEntry( DdNode *, vParts, bFunc, i )
+    {
+        bTemp = Cudd_bddAnd( dd, bFunc, bCube );  Cudd_Ref( bTemp );
+        Vec_PtrPush( vNew, bTemp );
+    }
+    return vNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Multiply every partition by the cube.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Llb_Nonlin4Deref( DdManager * dd, Vec_Ptr_t * vParts )
+{
+    DdNode * bFunc;
+    int i;
+    Vec_PtrForEachEntry( DdNode *, vParts, bFunc, i )
+        Cudd_RecursiveDeref( dd, bFunc );
+    Vec_PtrFree( vParts );
+}
 
 /**Function*************************************************************
 
@@ -495,16 +560,23 @@ DdNode * Llb_Nonlin4ComputeCube( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, Vec_Ptr_t * vStates, int fVerbose )
+Vec_Ptr_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, int fVerbose )
 {
-    Abc_Cex_t * pCex = NULL;
+    Vec_Int_t * vVars2Q;
+    Vec_Ptr_t * vStates, * vRootsNew;
     Aig_Obj_t * pObj;
     DdNode * bState, * bImage, * bOneCube, * bRing;
-    int i, v, RetValue, nPiOffset = -1, clk = clock();
+    int i, v, RetValue, clk = clock();
     char * pValues;
     assert( Vec_PtrSize(p->vRings) > 0 );
     // disable the timeout
     p->dd->TimeStop  = 0;
+
+    // start the state set
+    vStates = Vec_PtrAllocSimInfo( Vec_PtrSize(p->vRings), Aig_BitWordNum(Aig_ManRegNum(p->pAig)) );
+    Vec_PtrCleanSimInfo( vStates, 0, Aig_BitWordNum(Aig_ManRegNum(p->pAig)) );
+    if ( fBackward )
+        Vec_PtrReverseOrder( vStates );
 
     // get the last cube
     pValues = ABC_ALLOC( char, Cudd_ReadSize(p->dd) );
@@ -514,44 +586,27 @@ Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, Vec_Ptr_t * vSta
     assert( RetValue );
 
     // record the cube
-    if ( vStates == NULL )
-    {
-        // allocate room for the counter-example
-        pCex = Abc_CexAlloc( Saig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Vec_PtrSize(p->vRings) );
-        pCex->iFrame = Vec_PtrSize(p->vRings) - 1;
-        pCex->iPo = -1;
-        // write PIs of the counter-example
-        nPiOffset = Saig_ManRegNum(p->pAig) + Saig_ManPiNum(p->pAig) * (Vec_PtrSize(p->vRings) - 1);
-        Saig_ManForEachPi( p->pAig, pObj, i )
-            if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
-                Aig_InfoSetBit( pCex->pData, nPiOffset + i );
-    }
-    else
-    {
-        Saig_ManForEachLo( p->pAig, pObj, i )
-            if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
-                Aig_InfoSetBit( (unsigned *)Vec_PtrEntryLast(vStates), i );
-    }
-
-    // update quantifiable vars
-    Vec_IntFreeP( &p->vVars2Q );
-    p->vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, p->pAig, p->vOrder, 0 );
+    Llb_Nonlin4RecordState( p->pAig, p->vOrder, (unsigned *)Vec_PtrEntryLast(vStates), pValues, fBackward );
 
     // write state in terms of NS variables
     if ( Vec_PtrSize(p->vRings) > 1 )
     {
-        bState = Llb_Nonlin4ComputeCube( p->dd, p->pAig, p->vOrder, pValues );   Cudd_Ref( bState );
+        bState = Llb_Nonlin4ComputeCube( p->dd, p->pAig, p->vOrder, pValues, fBackward );   Cudd_Ref( bState );
     }
     // perform backward analysis
+    vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, p->pAig, p->vOrder, !fBackward );
     Vec_PtrForEachEntryReverse( DdNode *, p->vRings, bRing, v )
     { 
         if ( v == Vec_PtrSize(p->vRings) - 1 )
             continue;
-        // compute the next states
-        bImage = Llb_Nonlin4Image( p->dd, p->vRoots, bState, p->vVars2Q );
-        assert( bImage != NULL );
-        Cudd_Ref( bImage );
+
+        // preprocess partitions
+        vRootsNew = Llb_Nonlin4Multiply( p->dd, bState, p->vRoots );
         Cudd_RecursiveDeref( p->dd, bState );
+
+        // compute the next states
+        bImage = Llb_Nonlin4Image( p->dd, vRootsNew, NULL, vVars2Q ); Cudd_Ref( bImage );
+        Llb_Nonlin4Deref( p->dd, vRootsNew );
 
         // intersect with the previous set
         bOneCube = Cudd_bddIntersect( p->dd, bImage, bRing );  Cudd_Ref( bOneCube );
@@ -563,46 +618,26 @@ Abc_Cex_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, Vec_Ptr_t * vSta
         assert( RetValue );
 
         // record the cube
-        if ( vStates == NULL )
-        {
-            // write PIs of counter-example
-            nPiOffset -= Saig_ManPiNum(p->pAig);
-            Saig_ManForEachPi( p->pAig, pObj, i )
-                if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
-                    Aig_InfoSetBit( pCex->pData, nPiOffset + i );
-        }
-        else
-        {
-            Saig_ManForEachLo( p->pAig, pObj, i )
-                if ( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 1 )
-                    Aig_InfoSetBit( (unsigned *)Vec_PtrEntry(vStates, v), i );
-        }
+        Llb_Nonlin4RecordState( p->pAig, p->vOrder, (unsigned *)Vec_PtrEntry(vStates, v), pValues, fBackward );
 
         // check that we get the init state
         if ( v == 0 )
         {
             Saig_ManForEachLo( p->pAig, pObj, i )
-                assert( pValues[Llb_MnxBddVar(p->vOrder, pObj)] == 0 );
+                assert( fBackward || pValues[Llb_ObjBddVar(p->vOrder, pObj)] == 0 );
             break;
         } 
 
         // write state in terms of NS variables
-        bState = Llb_Nonlin4ComputeCube( p->dd, p->pAig, p->vOrder, pValues );   Cudd_Ref( bState );
+        bState = Llb_Nonlin4ComputeCube( p->dd, p->pAig, p->vOrder, pValues, fBackward );   Cudd_Ref( bState );
     }
-    assert( vStates != NULL || nPiOffset == Saig_ManRegNum(p->pAig) );
-    // update the output number
-    if ( pCex )
-    {
-    //Abc_CexPrint( pCex );
-        RetValue = Saig_ManFindFailedPoCex( p->pAig, pCex );
-        assert( RetValue >= 0 && RetValue < Saig_ManPoNum(p->pAig) ); // invalid CEX!!!
-        pCex->iPo = RetValue;
-    }
-    // cleanup
+    Vec_IntFree( vVars2Q );
     ABC_FREE( pValues );
+    if ( fBackward )
+        Vec_PtrReverseOrder( vStates );
 //    if ( fVerbose )
 //        Abc_PrintTime( 1, "BDD-based cex generation time", clock() - clk );
-    return pCex;
+    return vStates;
 }
 
 
@@ -632,23 +667,56 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
     // set the stop time parameter
     p->dd->TimeStop  = p->pPars->TimeTarget;
 
-    // create bad state in the ring manager
-    if ( !p->pPars->fSkipOutCheck )
+    if ( p->pPars->fBackward )
     {
-        p->bBad = Llb_Nonlin4ComputeBad( p->dd, p->pAig, p->vOrder );          
-        if ( p->bBad == NULL )
+        // create bad state in the ring manager
+        if ( !p->pPars->fSkipOutCheck )
+        {
+            p->bBad = Llb_Nonlin4ComputeInitState( p->dd, p->pAig, p->vOrder, p->pPars->fBackward );  Cudd_Ref( p->bBad );
+        }
+        // create init state
+        p->bCurrent = Llb_Nonlin4ComputeBad( p->dd, p->pAig, p->vOrder );          
+        if ( p->bCurrent == NULL )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
             p->pPars->iFrame = -1;
             return -1;
         }
-        Cudd_Ref( p->bBad );
+        Cudd_Ref( p->bCurrent );
+        // remap into the next states
+        p->bCurrent = Cudd_bddVarMap( p->dd, bAux = p->bCurrent );
+        if ( p->bCurrent == NULL )
+        {
+            if ( !p->pPars->fSilent )
+                printf( "Reached timeout (%d seconds) during remapping bad states.\n",  p->pPars->TimeLimit );
+            Cudd_RecursiveDeref( p->dd, bAux );
+            p->pPars->iFrame = -1;
+            return -1;
+        }
+        Cudd_Ref( p->bCurrent );
+        Cudd_RecursiveDeref( p->dd, bAux );
     }
-
-    // compute the starting set of states
-    p->bCurrent = Llb_Nonlin4ComputeInitState( p->dd, p->pAig, p->vOrder );  Cudd_Ref( p->bCurrent );
-    p->bReached = p->bCurrent;                                               Cudd_Ref( p->bCurrent );
+    else
+    {
+        // create bad state in the ring manager
+        if ( !p->pPars->fSkipOutCheck )
+        {
+            p->bBad = Llb_Nonlin4ComputeBad( p->dd, p->pAig, p->vOrder );          
+            if ( p->bBad == NULL )
+            {
+                if ( !p->pPars->fSilent )
+                    printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                p->pPars->iFrame = -1;
+                return -1;
+            }
+            Cudd_Ref( p->bBad );
+        }
+        // compute the starting set of states
+        p->bCurrent = Llb_Nonlin4ComputeInitState( p->dd, p->pAig, p->vOrder, p->pPars->fBackward );  Cudd_Ref( p->bCurrent );
+    }
+    // perform iterations
+    p->bReached = p->bCurrent; Cudd_Ref( p->bReached );
     for ( nIters = 0; nIters < p->pPars->nIterMax; nIters++ )
     { 
         clkIter = clock();
@@ -667,24 +735,14 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         // check it for bad states
         if ( !p->pPars->fSkipOutCheck && !Cudd_bddLeq( p->dd, p->bCurrent, Cudd_Not(p->bBad) ) ) 
         {
+            Vec_Ptr_t * vStates;
             assert( p->pAig->pSeqModel == NULL );
-            if ( p->pPars->fCluster )
+            vStates = Llb_Nonlin4DeriveCex( p, p->pPars->fBackward, p->pPars->fVerbose ); 
+            p->pAig->pSeqModel = Llb4_Nonlin4TransformCex( p->pAig, vStates, p->pPars->fVerbose );
+            Vec_PtrFreeP( &vStates );
+            if ( !p->pPars->fSilent )
             {
-                Vec_Ptr_t * vStates = Vec_PtrAllocSimInfo( Vec_PtrSize(p->vRings), Aig_BitWordNum(Aig_ManRegNum(p->pAig)) );
-                Vec_PtrCleanSimInfo( vStates, 0, Aig_BitWordNum(Aig_ManRegNum(p->pAig)) );
-                p->pAig->pSeqModel = Llb_Nonlin4DeriveCex( p, p->pPars->fBackward, vStates, p->pPars->fVerbose ); 
-                ABC_FREE( p->pAig->pSeqModel );
-                p->pAig->pSeqModel = Llb4_Nonlin4TransformCex( p->pAig, vStates, p->pPars->fVerbose );
-                Vec_PtrFreeP( &vStates );
-            }
-            else
-                p->pAig->pSeqModel = Llb_Nonlin4DeriveCex( p, p->pPars->fBackward, NULL, p->pPars->fVerbose ); 
-            if ( !p->pPars->fSilent && p->pAig->pSeqModel )
-            {
-                if ( !p->pPars->fBackward )
-                    printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).  ", p->pAig->pSeqModel->iPo, nIters );
-                else
-                    printf( "Output ??? was asserted in frame %d (counter-example is not produced).  ", nIters );
+                printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness).  ", p->pAig->pSeqModel->iPo, nIters );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
             p->pPars->iFrame = nIters - 1;
@@ -880,7 +938,7 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     }
 
     Llb_Nonlin4SetupVarMap( p->dd, pAig, p->vOrder );
-    p->vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, pAig, p->vOrder, 1 );
+    p->vVars2Q = Llb_Nonlin4CreateVars2Q( p->dd, pAig, p->vOrder, p->pPars->fBackward );
     p->vRings  = Vec_PtrAlloc( 100 );
 
     if ( pPars->fReorder )
