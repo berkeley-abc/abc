@@ -539,10 +539,9 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
             pNew->pName = Gia_UtilStrsav( (char *)pCur );
         }
     }
+    Vec_IntFree( vNodes );
 
     // skipping the comments
-    ABC_FREE( pContents );
-    Vec_IntFree( vNodes );
 /*
     // check the result
     if ( fCheck && !Gia_ManCheck( pNew ) )
@@ -800,7 +799,6 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
 
 
     // skipping the comments
-    ABC_FREE( pContents );
     Vec_IntFree( vNodes );
 /*
     // check the result
