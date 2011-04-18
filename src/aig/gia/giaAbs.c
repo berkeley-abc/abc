@@ -138,8 +138,8 @@ Gia_Man_t * Gia_ManCexAbstraction( Gia_Man_t * p, Vec_Int_t * vFlops )
     pNew = Saig_ManDeriveAbstraction( pTemp = pNew, vFlops );
     Aig_ManStop( pTemp );
     pGia = Gia_ManFromAig( pNew );
-    pGia->vCiNumsOrig = pNew->vCiNumsOrig; 
-    pNew->vCiNumsOrig = NULL;
+//    pGia->vCiNumsOrig = pNew->vCiNumsOrig; 
+//    pNew->vCiNumsOrig = NULL;
     Aig_ManStop( pNew );
     return pGia;
 

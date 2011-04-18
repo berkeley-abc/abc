@@ -77,8 +77,9 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_FltFreeP( &p->vTiming );
     Vec_VecFreeP( &p->vClockDoms );
     Vec_IntFreeP( &p->vLutConfigs );
-    Vec_IntFreeP( &p->vCiNumsOrig );
-    Vec_IntFreeP( &p->vCoNumsOrig );
+    Vec_IntFreeP( &p->vUserPiIds );
+    Vec_IntFreeP( &p->vUserPoIds );
+    Vec_IntFreeP( &p->vUserFfIds );
     Vec_IntFreeP( &p->vFlopClasses );
     Vec_IntFreeP( &p->vLevels );
     Vec_IntFreeP( &p->vTruths );

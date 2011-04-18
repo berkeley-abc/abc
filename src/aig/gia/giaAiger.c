@@ -342,7 +342,7 @@ Gia_Plc_t * Gia_ReadPlacement( unsigned char ** ppPos, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
+Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
 {
     FILE * pFile;
     Gia_Man_t * pNew;
@@ -554,6 +554,304 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
 */
     return pNew;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vLits = NULL;
+    Vec_Int_t * vNodes, * vDrivers;//, * vTerms;
+    int iObj, iNode0, iNode1;
+    int nTotal, nInputs, nOutputs, nLatches, nAnds, i;//, iTerm, nDigits;
+    unsigned char * pDrivers, * pSymbols, * pCur;//, * pType;
+    unsigned uLit0, uLit1, uLit;
+
+    // read the file type
+    pCur = (unsigned char *)pContents;  while ( *pCur++ != ' ' );
+    // read the number of objects
+    nTotal = atoi( (char *)pCur );    while ( *pCur++ != ' ' );
+    // read the number of inputs
+    nInputs = atoi( (char *)pCur );   while ( *pCur++ != ' ' );
+    // read the number of latches
+    nLatches = atoi( (char *)pCur );  while ( *pCur++ != ' ' );
+    // read the number of outputs
+    nOutputs = atoi( (char *)pCur );  while ( *pCur++ != ' ' );
+    // read the number of nodes
+    nAnds = atoi( (char *)pCur );     while ( *pCur++ != '\n' );  
+    // check the parameters
+    if ( nTotal != nInputs + nLatches + nAnds )
+    {
+        ABC_FREE( pContents );
+        fprintf( stdout, "The paramters are wrong.\n" );
+        return NULL;
+    }
+
+    // allocate the empty AIG
+    pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
+
+    // prepare the array of nodes
+    vNodes = Vec_IntAlloc( 1 + nTotal );
+    Vec_IntPush( vNodes, 0 );
+
+    // create the PIs
+    for ( i = 0; i < nInputs + nLatches; i++ )
+    {
+        iObj = Gia_ManAppendCi(pNew);    
+        Vec_IntPush( vNodes, iObj );
+    }
+
+    // remember the beginning of latch/PO literals
+    pDrivers = pCur;
+    if ( pContents[3] == ' ' ) // standard AIGER
+    {
+        // scroll to the beginning of the binary data
+        for ( i = 0; i < nLatches + nOutputs; )
+            if ( *pCur++ == '\n' )
+                i++;
+    }
+    else // modified AIGER
+    {
+        vLits = Gia_WriteDecodeLiterals( &pCur, nLatches + nOutputs );
+    }
+
+    // create the AND gates
+    for ( i = 0; i < nAnds; i++ )
+    {
+        uLit = ((i + 1 + nInputs + nLatches) << 1);
+        uLit1 = uLit  - Gia_ReadAigerDecode( &pCur );
+        uLit0 = uLit1 - Gia_ReadAigerDecode( &pCur );
+//        assert( uLit1 > uLit0 );
+        iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
+        iNode1 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
+        assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
+//        Vec_IntPush( vNodes, Gia_And(pNew, iNode0, iNode1) );
+        Vec_IntPush( vNodes, Gia_ManAppendAnd(pNew, iNode0, iNode1) );
+    }
+
+    // remember the place where symbols begin
+    pSymbols = pCur;
+
+    // read the latch driver literals
+    vDrivers = Vec_IntAlloc( nLatches + nOutputs );
+    if ( pContents[3] == ' ' ) // standard AIGER
+    {
+        pCur = pDrivers;
+        for ( i = 0; i < nLatches; i++ )
+        {
+            uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
+            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            Vec_IntPush( vDrivers, iNode0 );
+        }
+        // read the PO driver literals
+        for ( i = 0; i < nOutputs; i++ )
+        {
+            uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
+            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            Vec_IntPush( vDrivers, iNode0 );
+        }
+
+    }
+    else
+    {
+        // read the latch driver literals
+        for ( i = 0; i < nLatches; i++ )
+        {
+            uLit0 = Vec_IntEntry( vLits, i );
+            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            Vec_IntPush( vDrivers, iNode0 );
+        }
+        // read the PO driver literals
+        for ( i = 0; i < nOutputs; i++ )
+        {
+            uLit0 = Vec_IntEntry( vLits, i+nLatches );
+            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            Vec_IntPush( vDrivers, iNode0 );
+        }
+        Vec_IntFree( vLits );
+    }
+
+    // create the POs
+    for ( i = 0; i < nOutputs; i++ )
+        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, nLatches + i) );
+    for ( i = 0; i < nLatches; i++ )
+        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, i) );
+    Vec_IntFree( vDrivers );
+
+    // create the latches
+    Gia_ManSetRegNum( pNew, nLatches );
+
+    // check if there are other types of information to read
+    pCur = pSymbols;
+    if ( (char *)pCur + 1 < pContents + nFileSize && *pCur == 'c' )
+    {
+        pCur++;
+        if ( *pCur == 'e' )
+        {
+            pCur++;
+            // read equivalence classes
+            pNew->pReprs = Gia_ReadEquivClasses( &pCur, Gia_ManObjNum(pNew) );
+            pNew->pNexts = Gia_ManDeriveNexts( pNew );
+        }
+        if ( *pCur == 'f' )
+        {
+            pCur++;
+            // read flop classes
+            pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
+            Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
+        }
+        if ( *pCur == 'm' )
+        {
+            pCur++;
+            // read mapping
+            pNew->pMapping = Gia_ReadMapping( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 'p' )
+        {
+            pCur++;
+            // read placement
+            pNew->pPlacement = Gia_ReadPlacement( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 's' )
+        { 
+            pCur++;
+            // read switching activity
+            pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
+        }
+        if ( *pCur == 'c' )
+        {
+            pCur++;
+            // read number of constraints
+            pNew->nConstrs = Gia_ReadInt( pCur ); pCur += 4;
+        }
+        if ( *pCur == 'n' )
+        {
+            pCur++;
+            // read model name
+            ABC_FREE( pNew->pName );
+            pNew->pName = Gia_UtilStrsav( (char *)pCur );
+        }
+    }
+
+    // read signal names if they are of the special type
+    if ( *pCur != 'c' )
+    {
+        int fBreakUsed = 0;
+        pNew->vUserPiIds = Vec_IntStartFull( Gia_ManPiNum(pNew) );
+        pNew->vUserPoIds = Vec_IntStartFull( Gia_ManPoNum(pNew) );
+        pNew->vUserFfIds = Vec_IntStartFull( Gia_ManRegNum(pNew) );
+        while ( pCur < pContents + nFileSize && *pCur != 'c' )
+        {
+            int iTerm;
+            char * pType = pCur;
+            // check terminal type
+            if ( *pCur != 'i' && *pCur != 'o' && *pCur != 'l'  )
+            {
+                fprintf( stdout, "Wrong terminal type.\n" );
+                fBreakUsed = 1;
+                break;
+            }
+            // get terminal number
+            iTerm = atoi( ++pCur );  while ( *pCur++ != ' ' );
+            // skip spaces
+            while ( *pCur++ == ' ' );
+            // decode the user numbers:
+            // flops are named: @l<num>
+            // PIs are named: @i<num>
+            // POs are named: @o<num>
+            if ( *pCur++ != '@' )
+            {
+                fBreakUsed = 1;
+                break;
+            }
+            if ( *pCur == 'i' && *pType == 'i' )
+                Vec_IntWriteEntry( pNew->vUserPiIds, iTerm, atoi(pCur+1) );
+            else if ( *pCur == 'o' && *pType == 'o' )
+                Vec_IntWriteEntry( pNew->vUserPoIds, iTerm, atoi(pCur+1) );
+            else if ( *pCur == 'l' && *pType == 'l' )
+                Vec_IntWriteEntry( pNew->vUserFfIds, iTerm, atoi(pCur+1) );
+            else
+            {
+                fprintf( stdout, "Wrong name format.\n" );
+                fBreakUsed = 1;
+                break;
+            }
+            // skip digits
+            while ( *pCur++ != '\n' );
+        }
+        // in case of abnormal termination, remove the arrays
+        if ( fBreakUsed )
+        {
+            Vec_IntFreeP( &pNew->vUserPiIds );
+            Vec_IntFreeP( &pNew->vUserPoIds );
+            Vec_IntFreeP( &pNew->vUserFfIds );
+        }
+    }
+
+
+    // skipping the comments
+    ABC_FREE( pContents );
+    Vec_IntFree( vNodes );
+/*
+    // check the result
+    if ( fCheck && !Gia_ManCheck( pNew ) )
+    {
+        printf( "Gia_ReadAiger: The network check has failed.\n" );
+        Gia_ManStop( pNew );
+        return NULL;
+    }
+*/
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
+{
+    FILE * pFile;
+    Gia_Man_t * pNew;
+    char * pName, * pContents;
+    int nFileSize;
+
+    // read the file into the buffer
+    Gia_FixFileName( pFileName );
+    nFileSize = Gia_FileSize( pFileName );
+    pFile = fopen( pFileName, "rb" );
+    pContents = ABC_ALLOC( char, nFileSize );
+    fread( pContents, nFileSize, 1, pFile );
+    fclose( pFile );
+
+    pNew = Gia_ReadAigerFromMemory( pContents, nFileSize, fCheck );
+    ABC_FREE( pContents );
+    if ( pNew )
+    {
+        pName = Gia_FileNameGeneric( pFileName );
+        pNew->pName = Gia_UtilStrsav( pName );
+//        pNew->pSpec = Ioa_UtilStrsav( pFileName );
+        ABC_FREE( pName );
+    }
+    return pNew;
+}
+
 
 
 /**Function*************************************************************

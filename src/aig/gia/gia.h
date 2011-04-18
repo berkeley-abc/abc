@@ -138,8 +138,9 @@ struct Gia_Man_t_
     int            nTravIdsAlloc; // the number of trav IDs allocated
     Vec_Ptr_t *    vNamesIn;      // the input names 
     Vec_Ptr_t *    vNamesOut;     // the output names
-    Vec_Int_t *    vCiNumsOrig;   // original names of the CIs
-    Vec_Int_t *    vCoNumsOrig;   // original names of the COs
+    Vec_Int_t *    vUserPiIds;    // numbers assigned to PIs by the user
+    Vec_Int_t *    vUserPoIds;    // numbers assigned to POs by the user
+    Vec_Int_t *    vUserFfIds;    // numbers assigned to FFs by the user
     Vec_Vec_t *    vClockDoms;    // clock domains
     Vec_Flt_t *    vTiming;       // arrival/required/slack
     void *         pManTime;      // the timing manager
@@ -596,6 +597,7 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
 
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
+extern Gia_Man_t *         Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck );
 extern Gia_Man_t *         Gia_ReadAiger( char * pFileName, int fCheck );
 extern void                Gia_WriteAiger( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact );
 extern void                Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNumDigits );

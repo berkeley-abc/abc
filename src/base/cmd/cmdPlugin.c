@@ -318,6 +318,69 @@ Vec_Int_t * Abc_ManExpandCex( Gia_Man_t * pGia, Vec_Int_t * vCex )
 
 /**Function*************************************************************
 
+  Synopsis    [Procedure to convert the AIG from text into binary form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static unsigned textToBin(char* text, unsigned long text_sz)
+{
+    char*       dst = text;
+    const char* src = text;
+    unsigned sz, i;
+    sscanf(src, "%lu ", &sz);
+    while(*src++ != ' ');
+
+    for ( i = 0; i < sz; i += 3 )
+    {
+        dst[0] = (char)( (unsigned)src[0] - '0')       | (((unsigned)src[1] - '0') << 6);
+        dst[1] = (char)(((unsigned)src[1] - '0') >> 2) | (((unsigned)src[2] - '0') << 4);
+        dst[2] = (char)(((unsigned)src[2] - '0') >> 4) | (((unsigned)src[3] - '0') << 2);
+        src += 4;
+        dst += 3;
+    }
+    return sz;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives AIG from the text string in the file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Abc_ManReadAig( char * pFileName, char * pToken )
+{
+    Gia_Man_t * pGia = NULL;
+    unsigned nBinaryPart;
+    Vec_Str_t * vStr;
+    char * pStr;
+    vStr = Abc_ManReadFile( pFileName );
+    if ( vStr == NULL )
+        return NULL;
+    pStr = Vec_StrArray( vStr );
+    pStr = strstr( pStr, pToken );
+    if ( pStr != NULL )
+    {
+        pStr += strlen(pToken);
+        nBinaryPart = textToBin( pStr, strlen(pStr) );
+        pGia = Gia_ReadAigerFromMemory( pStr, nBinaryPart, 0 ); 
+    }
+    Vec_StrFree( vStr );
+    return pGia;
+
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -349,9 +412,26 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 */
+
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Current AIG does not exist (try command &ps).\n" );
+        if (argc == 2 && strcmp(argv[1], "-h") == 0)
+        {
+            // Run command to produce help string:
+            vCommand = Vec_StrAlloc( 100 );
+            pFileNameBinary = Abc_GetBinaryName( pAbc, argc, argv );
+            Vec_StrAppend( vCommand, pFileNameBinary );
+            Vec_StrAppend( vCommand, " -abc " );
+            Vec_StrAppend( vCommand, argv[0] );
+            Vec_StrAppend( vCommand, " -h" );
+            Vec_StrPush( vCommand, 0 );
+            Util_SignalSystem( Vec_StrArray(vCommand) );
+            Vec_StrFree( vCommand );
+        }
+        else
+        {
+            Abc_Print( -1, "Current AIG does not exist (try command &ps).\n" );
+        }
         return 1;
     }
 
@@ -508,6 +588,8 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Vec_IntFreeP( &vCex );
         }
+        // derive AIG if present
+
     }
 
     
