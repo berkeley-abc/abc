@@ -8525,25 +8525,25 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
-/*
+
     {
 //        extern void Llb_Nonlin4Cluster( Aig_Man_t * pAig );
 //        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
-        extern void Llb4_Nonlin4Sweep( Aig_Man_t * pAig, int nBddLimit );
+//        extern Llb4_Nonlin4SweepExperiment( Aig_Man_t * pAig );
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
 //        Aig_ManTerSimulate( pAig );
 //        Llb_Nonlin4Cluster( pAig );
-        Llb4_Nonlin4Sweep( pAig, 100 );
+//        Llb4_Nonlin4SweepExperiment( pAig );
         Aig_ManStop( pAig );
     }
-*/
+
 
 /*
 {
     extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
 //    Ssm_ManExperiment( "m\\big2.ssim", "m\\big2_.ssim" );
-    Ssm_ManExperiment( "m\\manyclocks2.ssim", "m\\manyclocks2_.ssim" );
+    Ssm_ManExperiment( "m\\big3.ssim", "m\\big3_.ssim" );
 }
 */
     return 0;
@@ -14449,7 +14449,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplofdsevwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplkofdsevwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14575,6 +14575,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'l':
             pPars->fLatchCorr ^= 1;
             break;
+        case 'k':
+            pPars->fConstCorr ^= 1;
+            break;
         case 'o':
             pPars->fOutputCorr ^= 1;
             break;
@@ -14656,7 +14659,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplodsevwh]\n" );
+    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplkodsevwh]\n" );
     Abc_Print( -2, "\t         performs sequential sweep using K-step induction\n" );
     Abc_Print( -2, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     Abc_Print( -2, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -14673,6 +14676,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle full merge if constraints are present [default = %s]\n", pPars->fMergeFull? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle alighning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );
     Abc_Print( -2, "\t-l     : toggle doing latch correspondence [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
+    Abc_Print( -2, "\t-k     : toggle doing constant correspondence [default = %s]\n", pPars->fConstCorr? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle doing \'PO correspondence\' [default = %s]\n", pPars->fOutputCorr? "yes": "no" );
 //    Abc_Print( -2, "\t-f     : toggle filtering using iterative BMC [default = %s]\n", pPars->fSemiFormal? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
@@ -25500,7 +25504,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_ManCorSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPrecwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPkrecwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25537,6 +25541,9 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nPrefix < 0 ) 
                 goto usage;
             break;
+        case 'k':
+            pPars->fConstCorr ^= 1;
+            break;
         case 'r':
             pPars->fUseRings ^= 1;
             break;
@@ -25571,11 +25578,12 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &scorr [-FCP num] [-recwvh]\n" );
+    Abc_Print( -2, "usage: &scorr [-FCP num] [-krecwvh]\n" );
     Abc_Print( -2, "\t         performs signal correpondence computation\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
     Abc_Print( -2, "\t-P num : the number of timeframes in the prefix [default = %d]\n", pPars->nPrefix );
+    Abc_Print( -2, "\t-k     : toggle using constant correspondence [default = %s]\n", pPars->fConstCorr? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", pPars->fUseCSat? "yes": "no" );
@@ -28086,9 +28094,10 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
     Llb_ManSetDefaultParams( pPars );
     pPars->fCluster = 0;
     pPars->fReorder = 0;
-    pPars->nBddMax  = 1000;
+    pPars->nBddMax     = 100;
+    pPars->nClusterMax = 500;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "BFTLbcryzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BCFTLbcryzvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28101,6 +28110,17 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nBddMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nBddMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nClusterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nClusterMax < 0 ) 
                 goto usage;
             break;
         case 'F':
@@ -28186,9 +28206,10 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &reachy [-BFT num] [-L file] [-bcryzvh]\n" );
+    Abc_Print( -2, "usage: &reachy [-BCFT num] [-L file] [-bcryzvh]\n" );
     Abc_Print( -2, "\t         model checking via BDD-based reachability (non-linear-QS-based)\n" );
-    Abc_Print( -2, "\t-B num : the BDD node threshold for clustering [default = %d]\n", pPars->nBddMax );
+    Abc_Print( -2, "\t-B num : the max BDD size to introduce cut points [default = %d]\n", pPars->nBddMax );
+    Abc_Print( -2, "\t-C num : the max BDD size to reparameterize/cluster [default = %d]\n", pPars->nClusterMax );
     Abc_Print( -2, "\t-F num : max number of reachability iterations [default = %d]\n", pPars->nIterMax );
     Abc_Print( -2, "\t-T num : approximate time limit in seconds (0=infinite) [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );

@@ -39,6 +39,7 @@ struct Ssw_Cla_t_
     Aig_Man_t *      pAig;             // original AIG manager
     Aig_Obj_t ***    pId2Class;        // non-const classes by ID of repr node
     int *            pClassSizes;      // sizes of each equivalence class
+    int              fConstCorr;
     // statistics
     int              nClasses;         // the total number of non-const classes
     int              nCands1;          // the total number of const candidates
@@ -496,7 +497,7 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
+int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands, int fConstCorr )
 {
     Aig_Man_t * pAig = p->pAig;
     Aig_Obj_t ** ppTable, ** ppNexts, ** ppClassNew;
@@ -522,6 +523,8 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
             p->nCands1++;
             continue;
         }
+        if ( fConstCorr )
+            continue;
         // hash the node by its simulation info
         iEntry = p->pFuncNodeHash( p->pManData, pObj ) % nTableSize;
         // add the node to the class
@@ -590,7 +593,7 @@ int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int fOutputCorr, int nMaxLevs, int fVerbose )
+Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, int fConstCorr, int fOutputCorr, int nMaxLevs, int fVerbose )
 {
 //    int nFrames =  4;
 //    int nWords  =  1;
@@ -611,6 +614,7 @@ Ssw_Cla_t * Ssw_ClassesPrepare( Aig_Man_t * pAig, int nFramesK, int fLatchCorr, 
 
     // start the classes
     p = Ssw_ClassesStart( pAig );
+    p->fConstCorr = fConstCorr;
 
     // perform sequential simulation
 clk = clock();
@@ -668,7 +672,7 @@ clk = clock();
     p->pMemClassesFree = p->pMemClasses;
 
     // now it is time to refine the classes
-    Ssw_ClassesPrepareRehash( p, vCands );
+    Ssw_ClassesPrepareRehash( p, vCands, fConstCorr );
 if ( fVerbose )
 {
     printf( "Collecting candidate equivalence classes.        " );
@@ -688,7 +692,7 @@ clk = clock();
         // perform new round of simulation
         Ssw_SmlResimulateSeq( pSml );
         // check equivalence classes
-        RetValue = Ssw_ClassesPrepareRehash( p, vCands );
+        RetValue = Ssw_ClassesPrepareRehash( p, vCands, fConstCorr );
         if ( RetValue == 0 )
             break;
     }
@@ -1110,6 +1114,12 @@ int Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive )
     // check if there is a new class
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
+    if ( p->fConstCorr )
+    {
+        Vec_PtrForEachEntry( Aig_Obj_t *, p->vClassNew, pObj, i )
+            Aig_ObjSetRepr( p->pAig, pObj, NULL );
+        return 1;
+    }
     p->nCands1 -= Vec_PtrSize(p->vClassNew);
     pReprNew = (Aig_Obj_t *)Vec_PtrEntry( p->vClassNew, 0 );
     Aig_ObjSetRepr( p->pAig, pReprNew, NULL );

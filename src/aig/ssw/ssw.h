@@ -57,6 +57,7 @@ struct Ssw_Pars_t_
     int              TimeLimit;     // time out in seconds
     int              fPolarFlip;    // uses polarity adjustment
     int              fLatchCorr;    // perform register correspondence
+    int              fConstCorr;    // perform constant correspondence
     int              fOutputCorr;   // perform 'PO correspondence'
     int              fSemiFormal;   // enable semiformal filtering
 //    int              fUniqueness;   // enable uniqueness constraints

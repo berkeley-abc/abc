@@ -759,6 +759,17 @@ references:
                 Cec_ManSimSimDeref( p, Ent );
         }
     }
+
+    if ( p->pPars->fConstCorr )
+    {
+        Vec_IntForEachEntry( p->vRefinedC, i, k )
+        {
+            Gia_ObjSetRepr( p->pAig, i, GIA_VOID );
+            Cec_ManSimSimDeref( p, i );
+        }
+        Vec_IntClear( p->vRefinedC );
+    }
+
     if ( Vec_IntSize(p->vRefinedC) > 0 )
         Cec_ManSimProcessRefined( p, p->vRefinedC );
     assert( vInfoCis == NULL || iCiId == Gia_ManCiNum(p->pAig) );

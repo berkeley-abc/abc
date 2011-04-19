@@ -438,7 +438,7 @@ Aig_Man_t * Ssw_SecWithSimilaritySweep( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_
     if ( p->pPars->fPartSigCorr )
         p->ppClasses = Ssw_ClassesPreparePairsSimple( pMiter, vPairsMiter );
     else
-        p->ppClasses = Ssw_ClassesPrepare( pMiter, pPars->nFramesK, pPars->fLatchCorr, pPars->fOutputCorr, pPars->nMaxLevs, pPars->fVerbose );
+        p->ppClasses = Ssw_ClassesPrepare( pMiter, pPars->nFramesK, pPars->fLatchCorr, pPars->fConstCorr, pPars->fOutputCorr, pPars->nMaxLevs, pPars->fVerbose );
     if ( p->pPars->fDumpSRInit )
     {
         if ( p->pPars->fPartSigCorr )

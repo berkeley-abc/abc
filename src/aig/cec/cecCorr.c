@@ -859,6 +859,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     pParsSim->nFrames    = pPars->nFrames;
     pParsSim->fVerbose   = pPars->fVerbose;
     pParsSim->fLatchCorr = pPars->fLatchCorr;
+    pParsSim->fConstCorr = pPars->fConstCorr;
     pParsSim->fSeqSimulate = 1;
     // create equivalence classes of registers
     pSim = Cec_ManSimStart( pAig, pParsSim );

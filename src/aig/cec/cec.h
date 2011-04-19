@@ -68,6 +68,7 @@ struct Cec_ParSim_t_
 //    int              fFirstStop;    // stop on the first sat output
     int              fSeqSimulate;  // performs sequential simulation
     int              fLatchCorr;    // consider only latch outputs
+    int              fConstCorr;    // consider only constants
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
 };
@@ -137,6 +138,7 @@ struct Cec_ParCor_t_
     int              nLevelMax;     // (scorr only) the max number of levels
     int              nStepsMax;     // (scorr only) the max number of induction steps
     int              fLatchCorr;    // consider only latch outputs
+    int              fConstCorr;    // consider only constants
     int              fUseRings;     // use rings
     int              fMakeChoices;  // use equilvaences as choices
     int              fUseCSat;      // use circuit-based solver

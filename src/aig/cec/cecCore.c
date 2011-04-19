@@ -78,6 +78,7 @@ void Cec_ManSimSetDefaultParams( Cec_ParSim_t * p )
     p->fCheckMiter    =       0;  // the circuit is the miter
 //    p->fFirstStop     =       0;  // stop on the first sat output
     p->fDualOut       =       0;  // miter with separate outputs
+    p->fConstCorr     =       0;  // consider only constants
     p->fSeqSimulate   =       0;  // performs sequential simulation
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
@@ -187,6 +188,7 @@ void Cec_ManCorSetDefaultParams( Cec_ParCor_t * p )
     p->nLevelMax      =      -1;  // (scorr only) the max number of levels
     p->nStepsMax      =      -1;  // (scorr only) the max number of induction steps
     p->fLatchCorr     =       0;  // consider only latch outputs
+    p->fConstCorr     =       0;  // consider only constants
     p->fUseRings      =       1;  // combine classes into rings
     p->fUseCSat       =       1;  // use circuit-based solver
 //    p->fFirstStop     =       0;  // stop on the first sat output
@@ -359,7 +361,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     pParsSim->nWords      = pPars->nWords;
     pParsSim->nFrames     = pPars->nRounds;
     pParsSim->fCheckMiter = pPars->fCheckMiter;
-    pParsSim->fDualOut = pPars->fDualOut;
+    pParsSim->fDualOut    = pPars->fDualOut;
     pParsSim->fVerbose    = pPars->fVerbose;
     pSim = Cec_ManSimStart( p->pAig, pParsSim );
     // SAT solving
