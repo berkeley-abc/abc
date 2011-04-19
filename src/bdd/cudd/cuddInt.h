@@ -147,7 +147,7 @@ ABC_NAMESPACE_HEADER_START
 #define DD_SIFT_MAX_VAR         1000
 #define DD_SIFT_MAX_SWAPS       2000000
 #define DD_DEFAULT_RECOMB       0
-#define DD_MAX_REORDER_GROWTH   1.2
+#define DD_MAX_REORDER_GROWTH   1.1
 #define DD_FIRST_REORDER        4004    /* 4 for the constants */
 #define DD_DYN_RATIO            2       /* when to dynamically reorder */
 
