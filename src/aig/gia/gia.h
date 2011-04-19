@@ -141,6 +141,8 @@ struct Gia_Man_t_
     Vec_Int_t *    vUserPiIds;    // numbers assigned to PIs by the user
     Vec_Int_t *    vUserPoIds;    // numbers assigned to POs by the user
     Vec_Int_t *    vUserFfIds;    // numbers assigned to FFs by the user
+    Vec_Int_t *    vCiNumsOrig;   // original CI names
+    Vec_Int_t *    vCoNumsOrig;   // original CO names
     Vec_Vec_t *    vClockDoms;    // clock domains
     Vec_Flt_t *    vTiming;       // arrival/required/slack
     void *         pManTime;      // the timing manager
