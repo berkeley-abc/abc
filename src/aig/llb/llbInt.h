@@ -136,7 +136,7 @@ extern void            Llb_MtrVerifyMatrix( Llb_Mtr_t * p );
 extern Llb_Mtr_t *     Llb_MtrCreate( Llb_Man_t * p );
 extern void            Llb_MtrFree( Llb_Mtr_t * p );
 extern void            Llb_MtrPrint( Llb_Mtr_t * p, int fOrder );
-extern void            Llb_MtrPrintMatrixStats( Llb_Mtr_t * p );
+extern void            Llb_MtrPrintMatrixStats( Llb_Mtr_t * p ); 
 /*=== llbPart.c ======================================================*/
 extern Llb_Grp_t *     Llb_ManGroupAlloc( Llb_Man_t * pMan );
 extern void            Llb_ManGroupStop( Llb_Grp_t * p );
@@ -188,7 +188,7 @@ extern DdNode *        Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager *
 /*=== llb4Cex.c =======================================================*/
 extern Abc_Cex_t *     Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int fVerbose );
 /*=== llb4Cluster.c =======================================================*/
-extern void            Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrder, Vec_Ptr_t ** pvGroups, int nBddMax, int fVerbose );
+//extern void            Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrder, Vec_Ptr_t ** pvGroups, int nBddMax, int fVerbose );
 /*=== llb4Image.c =======================================================*/
 extern DdNode *        Llb_Nonlin4Image( DdManager * dd, Vec_Ptr_t * vParts, DdNode * bCurrent, Vec_Int_t * vVars2Q );
 extern Vec_Ptr_t *     Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vVars2Q, int nSizeMax );
@@ -196,7 +196,9 @@ extern Vec_Ptr_t *     Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec
 //extern Vec_Int_t *     Llb_AigMap( Aig_Man_t * pAig, int nLutSize, int nLutMin );
 /*=== llb4Nonlin.c ======================================================*/
 extern int             Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
-
+/*=== llb4Sweep.c ======================================================*/
+extern void            Llb4_Nonlin4Sweep( Aig_Man_t * pAig, int nSweepMax, int nClusterMax, DdManager ** pdd, Vec_Int_t ** pvOrder, Vec_Ptr_t ** pvGroups, int fVerbose );
+ 
 
 ABC_NAMESPACE_HEADER_END
 

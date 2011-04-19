@@ -18,6 +18,6 @@ SRC +=    src/aig/llb/llb.c \
     src/aig/llb/llb3Image.c \
     src/aig/llb/llb3Nonlin.c \
     src/aig/llb/llb4Cex.c \
-    src/aig/llb/llb4Cluster.c \
     src/aig/llb/llb4Image.c \
-    src/aig/llb/llb4Nonlin.c
+    src/aig/llb/llb4Nonlin.c \
+    src/aig/llb/llb4Sweep.c

@@ -675,15 +675,20 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
             p->bBad = Llb_Nonlin4ComputeInitState( p->dd, p->pAig, p->vOrder, p->pPars->fBackward );  Cudd_Ref( p->bBad );
         }
         // create init state
-        p->bCurrent = Llb_Nonlin4ComputeBad( p->dd, p->pAig, p->vOrder );          
-        if ( p->bCurrent == NULL )
+        if ( p->pPars->fCluster )
+            p->bCurrent = p->dd->bFunc, p->dd->bFunc = NULL; 
+        else
         {
-            if ( !p->pPars->fSilent )
-                printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
-            p->pPars->iFrame = -1;
-            return -1;
+            p->bCurrent = Llb_Nonlin4ComputeBad( p->dd, p->pAig, p->vOrder );          
+            if ( p->bCurrent == NULL )
+            {
+                if ( !p->pPars->fSilent )
+                    printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                p->pPars->iFrame = -1;
+                return -1;
+            }
+            Cudd_Ref( p->bCurrent );
         }
-        Cudd_Ref( p->bCurrent );
         // remap into the next states
         p->bCurrent = Cudd_bddVarMap( p->dd, bAux = p->bCurrent );
         if ( p->bCurrent == NULL )
@@ -702,16 +707,23 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
         // create bad state in the ring manager
         if ( !p->pPars->fSkipOutCheck )
         {
-            p->bBad = Llb_Nonlin4ComputeBad( p->dd, p->pAig, p->vOrder );          
-            if ( p->bBad == NULL )
+            if ( p->pPars->fCluster )
+                p->bBad = p->dd->bFunc, p->dd->bFunc = NULL; 
+            else
             {
-                if ( !p->pPars->fSilent )
-                    printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
-                p->pPars->iFrame = -1;
-                return -1;
+                p->bBad = Llb_Nonlin4ComputeBad( p->dd, p->pAig, p->vOrder );          
+                if ( p->bBad == NULL )
+                {
+                    if ( !p->pPars->fSilent )
+                        printf( "Reached timeout (%d seconds) during constructing the bad states.\n", p->pPars->TimeLimit );
+                    p->pPars->iFrame = -1;
+                    return -1;
+                }
+                Cudd_Ref( p->bBad );
             }
-            Cudd_Ref( p->bBad );
         }
+        else if ( p->dd->bFunc )
+            Cudd_RecursiveDeref( p->dd, p->dd->bFunc ), p->dd->bFunc = NULL;
         // compute the starting set of states
         p->bCurrent = Llb_Nonlin4ComputeInitState( p->dd, p->pAig, p->vOrder, p->pPars->fBackward );  Cudd_Ref( p->bCurrent );
     }
@@ -925,8 +937,9 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
 
     if ( pPars->fCluster )
     {
-        Llb_Nonlin4Cluster( p->pAig, &p->dd, &p->vOrder, &p->vRoots, pPars->nBddMax, pPars->fVerbose );
-        Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
+//        Llb_Nonlin4Cluster( p->pAig, &p->dd, &p->vOrder, &p->vRoots, pPars->nBddMax, pPars->fVerbose );
+//        Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
+        Llb4_Nonlin4Sweep( p->pAig, pPars->nBddMax, pPars->nClusterMax, &p->dd, &p->vOrder, &p->vRoots, pPars->fVerbose );
     }
     else
     {

@@ -847,7 +847,7 @@ Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vV
 //Extra_bddPrintSupport( p->dd, pPart->bFunc ); printf( "\n" );
     }
     Llb_Nonlin4Free( p );
-Abc_PrintTime( 1, "Reparametrization time", clock() - clk );
+//Abc_PrintTime( 1, "Reparametrization time", clock() - clk );
     return vGroups;
 }
 
