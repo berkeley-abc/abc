@@ -59,11 +59,11 @@ static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
 int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
-    char sCommandUsr[500], sCommandTmp[100], sReadCmd[20], sWriteCmd[20], c;
+    char sCommandUsr[500], sCommandTmp[100], sReadCmd[20], sWriteCmd[20];
     const char * sOutFile, * sInFile;
     char * sCommand;
     int  fStatus = 0;
-    int fBatch, fInitSource, fInitRead, fFinalWrite;
+    int c, fBatch, fInitSource, fInitRead, fFinalWrite;
 
     // added to detect memory leaks:
 #if defined(_DEBUG) && defined(_MSC_VER) 
