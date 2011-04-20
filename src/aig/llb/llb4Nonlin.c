@@ -1001,7 +1001,7 @@ void Llb_MnxStop( Llb_Mnx_t * p )
     // remove arrays
     Vec_PtrFree( p->vRings );
     Vec_PtrFree( p->vRoots );
-Cudd_PrintInfo( p->dd, stdout );
+//Cudd_PrintInfo( p->dd, stdout );
     Extra_StopManager( p->dd );
     Vec_IntFreeP( &p->vOrder );
     Vec_IntFreeP( &p->vVars2Q );
