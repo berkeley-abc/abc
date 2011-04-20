@@ -195,7 +195,7 @@ extern Vec_Ptr_t *     Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec
 /*=== llb4Map.c =========================================================*/
 //extern Vec_Int_t *     Llb_AigMap( Aig_Man_t * pAig, int nLutSize, int nLutMin );
 /*=== llb4Nonlin.c ======================================================*/
-extern int             Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
+//extern int             Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
 /*=== llb4Sweep.c ======================================================*/
 extern void            Llb4_Nonlin4Sweep( Aig_Man_t * pAig, int nSweepMax, int nClusterMax, DdManager ** pdd, Vec_Int_t ** pvOrder, Vec_Ptr_t ** pvGroups, int fVerbose );
  

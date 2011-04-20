@@ -8525,7 +8525,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
-
+/*
     {
 //        extern void Llb_Nonlin4Cluster( Aig_Man_t * pAig );
 //        extern void Aig_ManTerSimulate( Aig_Man_t * pAig );
@@ -8537,15 +8537,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Llb4_Nonlin4SweepExperiment( pAig );
         Aig_ManStop( pAig );
     }
-
-
-/*
-{
-    extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
-//    Ssm_ManExperiment( "m\\big2.ssim", "m\\big2_.ssim" );
-    Ssm_ManExperiment( "m\\big3.ssim", "m\\big3_.ssim" );
-}
 */
+
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-vwh] <file_name>\n" );
@@ -28088,7 +28081,6 @@ int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pMan;
     char * pLogFileName = NULL;
     int c;
-    extern int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
 
     // set defaults
     Llb_ManSetDefaultParams( pPars );

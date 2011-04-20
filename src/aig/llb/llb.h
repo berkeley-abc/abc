@@ -79,6 +79,8 @@ struct Gia_ParLlb_t_
 
 /*=== llbCore.c ==========================================================*/
 extern void     Llb_ManSetDefaultParams( Gia_ParLlb_t * pPars );
+/*=== llb4Nonlin.c ==========================================================*/
+extern int      Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars );
 
 
 

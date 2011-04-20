@@ -90,7 +90,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
 
     // solve each time frame
     iBit = Saig_ManRegNum(pAig);
-    pThis = Vec_PtrEntry( vStates, 0 );
+    pThis = (unsigned *)Vec_PtrEntry( vStates, 0 );
     vAssumps = Vec_IntAlloc( 2 * Aig_ManRegNum(pAig) );
     Vec_PtrForEachEntryStart( unsigned *, vStates, pNext, i, 1 )
     {

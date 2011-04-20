@@ -916,7 +916,7 @@ void Llb_Nonlin4Reorder( DdManager * dd, int fTwice, int fVerbose )
     if ( fVerbose )
         Abc_PrintTime( 1, "Time", clock() - clk );
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    []
@@ -947,6 +947,7 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
         p->vOrder  = Llb_Nonlin4CreateOrder( pAig );
         p->dd      = Cudd_Init( Vec_IntSize(p->vOrder), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
         Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
+        Cudd_SetMaxGrowth( p->dd, 1.05 );
         p->vRoots  = Llb_Nonlin4DerivePartitions( p->dd, pAig, p->vOrder );
     }
 
@@ -958,7 +959,7 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
         Llb_Nonlin4Reorder( p->dd, 0, 1 );
     return p;
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    []
@@ -1000,6 +1001,7 @@ void Llb_MnxStop( Llb_Mnx_t * p )
     // remove arrays
     Vec_PtrFree( p->vRings );
     Vec_PtrFree( p->vRoots );
+Cudd_PrintInfo( p->dd, stdout );
     Extra_StopManager( p->dd );
     Vec_IntFreeP( &p->vOrder );
     Vec_IntFreeP( &p->vVars2Q );

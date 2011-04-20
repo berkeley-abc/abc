@@ -749,10 +749,10 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         pNew->vUserPiIds = Vec_IntStartFull( Gia_ManPiNum(pNew) );
         pNew->vUserPoIds = Vec_IntStartFull( Gia_ManPoNum(pNew) );
         pNew->vUserFfIds = Vec_IntStartFull( Gia_ManRegNum(pNew) );
-        while ( pCur < pContents + nFileSize && *pCur != 'c' )
+        while ( (char *)pCur < pContents + nFileSize && *pCur != 'c' )
         {
             int iTerm;
-            char * pType = pCur;
+            char * pType = (char *)pCur;
             // check terminal type
             if ( *pCur != 'i' && *pCur != 'o' && *pCur != 'l'  )
             {
@@ -761,7 +761,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
                 break;
             }
             // get terminal number
-            iTerm = atoi( ++pCur );  while ( *pCur++ != ' ' );
+            iTerm = atoi( (char *)++pCur );  while ( *pCur++ != ' ' );
             // skip spaces
             while ( *pCur++ == ' ' );
             // decode the user numbers:
@@ -774,11 +774,11 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
                 break;
             }
             if ( *pCur == 'i' && *pType == 'i' )
-                Vec_IntWriteEntry( pNew->vUserPiIds, iTerm, atoi(pCur+1) );
+                Vec_IntWriteEntry( pNew->vUserPiIds, iTerm, atoi((char *)pCur+1) );
             else if ( *pCur == 'o' && *pType == 'o' )
-                Vec_IntWriteEntry( pNew->vUserPoIds, iTerm, atoi(pCur+1) );
+                Vec_IntWriteEntry( pNew->vUserPoIds, iTerm, atoi((char *)pCur+1) );
             else if ( *pCur == 'l' && *pType == 'l' )
-                Vec_IntWriteEntry( pNew->vUserFfIds, iTerm, atoi(pCur+1) );
+                Vec_IntWriteEntry( pNew->vUserFfIds, iTerm, atoi((char *)pCur+1) );
             else
             {
                 fprintf( stdout, "Wrong name format.\n" );
