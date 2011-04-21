@@ -28,6 +28,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define IF_BIG_CHAR 120
+
 static void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float * pPinDelays );
 
 ////////////////////////////////////////////////////////////////////////
@@ -307,11 +309,11 @@ int If_CutDelayLeafDepth_rec( Vec_Wrd_t * vAnds, If_And_t And, int iLeaf )
     if ( (int)And.Id == iLeaf )
         return 0;
     if ( And.iFan0 == And.iFan1 )
-        return -100;
+        return -IF_BIG_CHAR;
     Depth0 = If_CutDelayLeafDepth_rec( vAnds, If_WrdToAnd(Vec_WrdEntry(vAnds, And.iFan0)), iLeaf );
     Depth1 = If_CutDelayLeafDepth_rec( vAnds, If_WrdToAnd(Vec_WrdEntry(vAnds, And.iFan1)), iLeaf );
     Depth  = ABC_MAX( Depth0, Depth1 );
-    Depth  = (Depth == -100) ? -100 : Depth + 1;
+    Depth  = (Depth == -IF_BIG_CHAR) ? -IF_BIG_CHAR : Depth + 1;
     return Depth;
 }
 
@@ -330,15 +332,15 @@ int If_CutDelayLeafDepth( Vec_Wrd_t * vAnds, int iLeaf )
 {
     If_And_t Leaf;
     if ( Vec_WrdSize(vAnds) == 0 ) // const 0
-        return -100;
+        return -IF_BIG_CHAR;
     if ( Vec_WrdSize(vAnds) == 1 && Vec_WrdEntry(vAnds, 0) == 0 ) // const 1
-        return -100;
+        return -IF_BIG_CHAR;
     Leaf = If_WrdToAnd(Vec_WrdEntryLast(vAnds));
     if ( Leaf.iFan0 == Leaf.iFan1 )
     {
         if ( (int)Leaf.iFan0 == iLeaf )
             return 0;
-        return -100;
+        return -IF_BIG_CHAR;
     }
     return If_CutDelayLeafDepth_rec( vAnds, Leaf, iLeaf );
 }
@@ -359,7 +361,7 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
 {
     If_And_t Leaf;
     Vec_Wrd_t * vAnds;
-    int i;//, Delay;
+    int i, Delay;
     // mark cut as a user cut
     pCut->fUser = 1;
     vAnds = If_CutDelaySopArray( p, pCut );
@@ -378,8 +380,11 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
         pCut->Cost = 1;
     // get the permutation
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        pCut->pPerm[i] = If_CutDelayLeafDepth( vAnds, i );
-    Vec_WrdFree( vAnds );
+    {
+        Delay = If_CutDelayLeafDepth( vAnds, i );
+        pCut->pPerm[i] = (char)(Delay == -IF_BIG_CHAR ? IF_BIG_CHAR : Delay);
+    }
+//    Vec_WrdFree( vAnds );
     // verify the delay
 //    Delay = If_CutDelay( p, pCut );
 //    assert( (int)Leaf.Delay == Delay );
@@ -409,7 +414,7 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Delay, DelayCur;
     float * pLutDelays;
-    int i, Shift;
+    int i, Shift, Pin2PinDelay;
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Delay = -IF_FLOAT_LARGE;
     if ( p->pPars->pLutLib )
@@ -442,7 +447,8 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
             assert( !p->pPars->fLiftLeaves );
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
-                DelayCur = If_ObjCutBest(pLeaf)->Delay + (float)(pCut->pPerm ? pCut->pPerm[i] : 1.0);
+                Pin2PinDelay = pCut->pPerm ? (pCut->pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pCut->pPerm[i]) : 1;
+                DelayCur = If_ObjCutBest(pLeaf)->Delay + (float)Pin2PinDelay;
                 Delay = IF_MAX( Delay, DelayCur );
             }
         }
@@ -488,7 +494,7 @@ void If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float ObjRequired )
     If_Obj_t * pLeaf;
     float * pLutDelays;
     float Required;
-    int i;
+    int i, Pin2PinDelay;
     assert( !p->pPars->fLiftLeaves );
     // compute the pins
     if ( p->pPars->pLutLib )
@@ -518,7 +524,8 @@ void If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float ObjRequired )
         {
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
-                Required = ObjRequired - (float)(pCut->pPerm ? pCut->pPerm[i] : 1.0);
+                Pin2PinDelay = pCut->pPerm ? (pCut->pPerm[i] == IF_BIG_CHAR ? -IF_BIG_CHAR : pCut->pPerm[i]) : 1;
+                Required = ObjRequired - (float)Pin2PinDelay;
                 pLeaf->Required = IF_MIN( pLeaf->Required, Required );
             }
         }

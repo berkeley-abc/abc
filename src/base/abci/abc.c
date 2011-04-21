@@ -8539,6 +8539,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 
+/*
+{
+    extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
+//    Ssm_ManExperiment( "m\\big2.ssim", "m\\big2_.ssim" );
+//    Ssm_ManExperiment( "m\\big3.ssim", "m\\big3_.ssim" );
+    Ssm_ManExperiment( "m\\tb.ssim", "m\\tb_.ssim" );
+}
+*/
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-vwh] <file_name>\n" );

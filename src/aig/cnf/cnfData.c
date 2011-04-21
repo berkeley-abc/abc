@@ -4548,9 +4548,9 @@ void Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops )
 
     // map chars into their numbers
     for ( i = 0; i < 256; i++ )
-        Map[i] = -1;
+        Map[i] = (char)(-1);
     for ( i = 0; i < 81; i++ )
-        Map[(int)s_Data3[i]] = i;
+        Map[(int)s_Data3[i]] = (char)i;
 
     // count the number of strings
     for ( Size = 0; s_Data4[Size] && Size < 100000; Size++ );
@@ -4562,7 +4562,7 @@ void Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops )
     for ( i = 0; i < Size; i++ )
         for ( k = 0; k < 75; k++ )
             if ( s_Data4[i][k] == ' ' )
-                pMemory[i*75+k] = -1;
+                pMemory[i*75+k] = (char)(-1);
             else
                 pMemory[i*75+k] = Map[(int)s_Data4[i][k]];
 
@@ -4573,7 +4573,7 @@ void Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops )
     pSops[0] = NULL;
     pPrev = pMemory;
     for ( k = 0, i = 1; i < 65536; k++ )
-        if ( pMemory[k] == -1 )
+        if ( pMemory[k] == (char)(-1) )
         {
             pSopSizes[i] = pMemory + k - pPrev; 
             pSops[i++] = pPrev;
