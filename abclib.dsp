@@ -4370,6 +4370,42 @@ SOURCE=.\src\aig\ssm\ssmSimulate.c
 SOURCE=.\src\aig\ssm\ssmWrite.c
 # End Source File
 # End Group
+# Begin Group "ddb"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddb.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddb.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddbGarb.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddbInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddbMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddbOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddbReo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ddb\ddbTable.c
+# End Source File
+# End Group
 # End Group
 # End Group
 # Begin Group "Header Files"

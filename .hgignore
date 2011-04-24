@@ -16,6 +16,7 @@ src/ext/
 src/xxx/
 src/aig/au/
 src/aig/ssm/
+src/aig/ddb/
 
 *~
 *.orig

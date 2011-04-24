@@ -95,6 +95,7 @@ struct If_Par_t_
     int                fSeqMap;       // sequential mapping
     int                fBidec;        // use bi-decomposition
     int                fUseBat;       // use one specialized feature
+    int                fUseBuffs;     // use buffers to decouple outputs
     int                fVerbose;      // the verbosity flag
     // internal parameters
     int                fDelayOpt;     // special delay optimization

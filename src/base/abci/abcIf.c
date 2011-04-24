@@ -282,7 +282,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     if ( pIfMan->pPars->fUseBdds )
         Abc_NtkBddReorder( pNtkNew, 0 );
     // decouple the PO driver nodes to reduce the number of levels
-    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, !pIfMan->pPars->fUseBuffs );
     if ( nDupGates && pIfMan->pPars->fVerbose )
         printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
     return pNtkNew;
