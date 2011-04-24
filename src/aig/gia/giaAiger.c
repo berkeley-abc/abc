@@ -763,7 +763,8 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             // get terminal number
             iTerm = atoi( (char *)++pCur );  while ( *pCur++ != ' ' );
             // skip spaces
-            while ( *pCur++ == ' ' );
+            while ( *pCur == ' ' )
+                pCur++;
             // decode the user numbers:
             // flops are named: @l<num>
             // PIs are named: @i<num>

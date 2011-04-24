@@ -334,7 +334,6 @@ static unsigned textToBin(char* text, unsigned long text_sz)
     unsigned sz, i;
     sscanf(src, "%lu ", &sz);
     while(*src++ != ' ');
-
     for ( i = 0; i < sz; i += 3 )
     {
         dst[0] = (char)( (unsigned)src[0] - '0')       | (((unsigned)src[1] - '0') << 6);
@@ -362,7 +361,7 @@ Gia_Man_t * Abc_ManReadAig( char * pFileName, char * pToken )
     Gia_Man_t * pGia = NULL;
     unsigned nBinaryPart;
     Vec_Str_t * vStr;
-    char * pStr;
+    char * pStr, * pEnd;
     vStr = Abc_ManReadFile( pFileName );
     if ( vStr == NULL )
         return NULL;
@@ -370,8 +369,28 @@ Gia_Man_t * Abc_ManReadAig( char * pFileName, char * pToken )
     pStr = strstr( pStr, pToken );
     if ( pStr != NULL )
     {
+        // skip token
         pStr += strlen(pToken);
+        // skip spaces
+        while ( *pStr == ' ' )
+            pStr++;
+        // set the end at newline
+        for ( pEnd = pStr; *pEnd; pEnd++ )
+            if ( *pEnd == '\r' || *pEnd == '\n' )
+            {
+                *pEnd = 0;
+                break;
+            }
+        // convert into binary AIGER
         nBinaryPart = textToBin( pStr, strlen(pStr) );
+        // dump it into file
+        if ( 0 )
+        {
+            FILE * pFile = fopen( "test.aig", "wb" );
+            fwrite( pStr, 1, nBinaryPart, pFile );
+            fclose( pFile );
+        }
+        // derive AIG
         pGia = Gia_ReadAigerFromMemory( pStr, nBinaryPart, 0 ); 
     }
     Vec_StrFree( vStr );
@@ -397,6 +416,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     Vec_Str_t * vCommand;
     Vec_Int_t * vCex;
     FILE * pFile;
+    Gia_Man_t * pGia;
     int i, fd, clk;
     int fLeaveFiles;
 /*
@@ -536,12 +556,15 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
     // process the output
     if ( Extra_FileSize(pFileOut) > 0 )
     {
-        // read program arguments
+        // get status
         pAbc->Status  = Abc_ManReadStatus( pFileOut, "result:" );
+        // get bug-free depth
         pAbc->nFrames = Abc_ManReadInteger( pFileOut, "bug-free-depth:" );
         if ( pAbc->nFrames == -1 )
             printf( "Gia_ManCexAbstractionStartNew(): Cannot read the number of frames covered by BMC.\n" );
+        // get abstraction
         pAbc->pGia->vFlopClasses = Abc_ManReadBinary( pFileOut, "abstraction:" );
+        // get counter-example
         vCex = Abc_ManReadBinary( pFileOut, "counter-example:" );
         if ( vCex ) 
         {
@@ -588,11 +611,14 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             Vec_IntFreeP( &vCex );
         }
-        // derive AIG if present
-
-    }
-
-    
+        // get AIG if present
+        pGia = Abc_ManReadAig( pFileOut, "aig:" );
+        if ( pGia != NULL )
+        {
+            Gia_ManStopP( &pAbc->pGia );
+            pAbc->pGia = pGia;                
+        }
+    }    
 
     // clean up
     Util_SignalTmpFileRemove( pFileIn, fLeaveFiles );
