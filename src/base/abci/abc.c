@@ -19822,9 +19822,14 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
-        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
+//        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
+        int iPoOld = pAbc->pCex->iPo;
+        pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pGia, pAbc->pCex );
+        if ( pAbc->pCex->iPo == -1 )
             Abc_Print( 1, "Main AIG: The cex does not fail any outputs.\n" );
-        else
+        else if ( iPoOld != pAbc->pCex->iPo )
+            Abc_Print( 1, "Main AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
+        else 
             Abc_Print( 1, "Main AIG: The cex is correct.\n" );
         Gia_ManStop( pGia );
         Aig_ManStop( pAig );
@@ -19841,9 +19846,14 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
     else 
     {
-        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
+//        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
+        int iPoOld = pAbc->pCex->iPo;
+        pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex );
+        if ( pAbc->pCex->iPo == -1 )
             Abc_Print( 1, "And  AIG: The cex does not fail any outputs.\n" );
-        else
+        else if ( iPoOld != pAbc->pCex->iPo )
+            Abc_Print( 1, "And  AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
+        else 
             Abc_Print( 1, "And  AIG: The cex is correct.\n" );
     }
     return 0;
