@@ -756,7 +756,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             // check terminal type
             if ( *pCur != 'i' && *pCur != 'o' && *pCur != 'l'  )
             {
-                fprintf( stdout, "Wrong terminal type.\n" );
+//                fprintf( stdout, "Wrong terminal type.\n" );
                 fBreakUsed = 1;
                 break;
             }

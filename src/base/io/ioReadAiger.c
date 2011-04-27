@@ -407,7 +407,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
                 vTerms = pNtkNew->vPos;
             else
             {
-                fprintf( stdout, "Wrong terminal type.\n" );
+//                fprintf( stdout, "Wrong terminal type.\n" );
                 return NULL;
             }
             // get the terminal number
