@@ -19786,11 +19786,27 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 {    
     Abc_Ntk_t * pNtk;
     int c;
+    int nOutputs = 0;
+    int fCheckAnd = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Oah" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOutputs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOutputs < 0 ) 
+                goto usage;
+            break;
+        case 'a':
+            fCheckAnd ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -19805,63 +19821,70 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    // check the main AIG
-    pNtk = Abc_FrameReadNtk(pAbc);
-    if ( pNtk == NULL )
-        Abc_Print( 1, "Main AIG: There is no current network.\n");
-    else if ( !Abc_NtkIsStrash(pNtk) )
-        Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
-    else if ( Abc_NtkPiNum(pNtk) != pAbc->pCex->nPis )
-        Abc_Print( 1, "Main AIG: The number of PIs (%d) is different from cex (%d).\n", Abc_NtkPiNum(pNtk), pAbc->pCex->nPis );
-    else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
-        Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
-    else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
-        Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
-    else 
+    if ( !fCheckAnd )
     {
-        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
-//        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
-        int iPoOld = pAbc->pCex->iPo;
-        pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pGia, pAbc->pCex );
-        if ( pAbc->pCex->iPo == -1 )
-            Abc_Print( 1, "Main AIG: The cex does not fail any outputs.\n" );
-        else if ( iPoOld != pAbc->pCex->iPo )
-            Abc_Print( 1, "Main AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
+        // check the main AIG
+        pNtk = Abc_FrameReadNtk(pAbc);
+        if ( pNtk == NULL )
+            Abc_Print( 1, "Main AIG: There is no current network.\n");
+        else if ( !Abc_NtkIsStrash(pNtk) )
+            Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
+        else if ( Abc_NtkPiNum(pNtk) != pAbc->pCex->nPis )
+            Abc_Print( 1, "Main AIG: The number of PIs (%d) is different from cex (%d).\n", Abc_NtkPiNum(pNtk), pAbc->pCex->nPis );
+        else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
+            Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
+        else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
+            Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
         else 
-            Abc_Print( 1, "Main AIG: The cex is correct.\n" );
-        Gia_ManStop( pGia );
-        Aig_ManStop( pAig );
+        {
+            extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+            Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+            Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
+    //        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
+            int iPoOld = pAbc->pCex->iPo;
+            pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pGia, pAbc->pCex, nOutputs );
+            if ( pAbc->pCex->iPo == -1 )
+                Abc_Print( 1, "Main AIG: The cex does not fail any outputs.\n" );
+            else if ( iPoOld != pAbc->pCex->iPo )
+                Abc_Print( 1, "Main AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
+            else 
+                Abc_Print( 1, "Main AIG: The cex is correct.\n" );
+            Gia_ManStop( pGia );
+            Aig_ManStop( pAig );
+        }
     }
-
-    // check the AND AIG
-    if ( pAbc->pGia == NULL )
-        Abc_Print( 1, "And  AIG: There is no current network.\n");
-    else if ( Gia_ManPiNum(pAbc->pGia) != pAbc->pCex->nPis )
-        Abc_Print( 1, "And  AIG: The number of PIs (%d) is different from cex (%d).\n", Gia_ManPiNum(pAbc->pGia), pAbc->pCex->nPis );
-    else if ( Gia_ManRegNum(pAbc->pGia) != pAbc->pCex->nRegs )
-        Abc_Print( 1, "And  AIG: The number of registers (%d) is different from cex (%d).\n", Gia_ManRegNum(pAbc->pGia), pAbc->pCex->nRegs );
-    else if ( Gia_ManPoNum(pAbc->pGia) <= pAbc->pCex->iPo )
-        Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
-    else 
+    else
     {
-//        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
-        int iPoOld = pAbc->pCex->iPo;
-        pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex );
-        if ( pAbc->pCex->iPo == -1 )
-            Abc_Print( 1, "And  AIG: The cex does not fail any outputs.\n" );
-        else if ( iPoOld != pAbc->pCex->iPo )
-            Abc_Print( 1, "And  AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
+        // check the AND AIG
+        if ( pAbc->pGia == NULL )
+            Abc_Print( 1, "And  AIG: There is no current network.\n");
+        else if ( Gia_ManPiNum(pAbc->pGia) != pAbc->pCex->nPis )
+            Abc_Print( 1, "And  AIG: The number of PIs (%d) is different from cex (%d).\n", Gia_ManPiNum(pAbc->pGia), pAbc->pCex->nPis );
+        else if ( Gia_ManRegNum(pAbc->pGia) != pAbc->pCex->nRegs )
+            Abc_Print( 1, "And  AIG: The number of registers (%d) is different from cex (%d).\n", Gia_ManRegNum(pAbc->pGia), pAbc->pCex->nRegs );
+        else if ( Gia_ManPoNum(pAbc->pGia) <= pAbc->pCex->iPo )
+            Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
         else 
-            Abc_Print( 1, "And  AIG: The cex is correct.\n" );
+        {
+    //        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
+            int iPoOld = pAbc->pCex->iPo;
+            pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex, nOutputs );
+            if ( pAbc->pCex->iPo == -1 )
+                Abc_Print( 1, "And  AIG: The cex does not fail any outputs.\n" );
+            else if ( iPoOld != pAbc->pCex->iPo )
+                Abc_Print( 1, "And  AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
+            else 
+                Abc_Print( 1, "And  AIG: The cex is correct.\n" );
+        }
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: testcex -h\n" );
-    Abc_Print( -2, "\t        tests the current cex against the current AIG and &-AIG\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: testcex [-O num] [-ah]\n" );
+    Abc_Print( -2, "\t         tests the current cex against the current AIG or the &-AIG\n" );
+    Abc_Print( -2, "\t-O num : the number of real POs in the PO list [default = %d]\n", nOutputs );
+    Abc_Print( -2, "\t-a     : toggle checking the current AIG or the &-AIG [default = %s]\n", fCheckAnd ? "&-AIG": "current AIG" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

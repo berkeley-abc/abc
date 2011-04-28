@@ -598,7 +598,7 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
 //                    Abc_Print( 1, "Generated counter-example is INVALID.\n" );
 
                 // remporary work-around to detect the output number - October 18, 2010
-                pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex );
+                pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex, 0 );
                 if ( pAbc->pCex->iPo == -1 )
                 {
                     Abc_Print( 1, "Generated counter-example is INVALID.\n" );

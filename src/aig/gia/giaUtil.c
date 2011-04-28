@@ -1187,7 +1187,7 @@ int Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p )
+int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs )
 {
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int RetValue, i, k, iBit = 0;
@@ -1209,12 +1209,14 @@ int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p )
     assert( iBit == p->nBits );
     // remember the number of failed output
     RetValue = -1;
-    Gia_ManForEachPo( pAig, pObj, i )
+    for ( i = Gia_ManPoNum(pAig) - 1; i >= nOutputs; i-- )
+    {
         if ( Gia_ManPo(pAig, i)->fMark0 )
         {
             RetValue = i;
             break;
         }
+    }
     Gia_ManCleanMark0(pAig);
     return RetValue;
 }
