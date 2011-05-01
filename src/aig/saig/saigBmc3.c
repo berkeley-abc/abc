@@ -1008,12 +1008,12 @@ int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_NodeCompareRefsDecrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
+int Aig_NodeCompareRefsIncrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
 {
     int Diff = Aig_ObjRefs(*pp1) - Aig_ObjRefs(*pp2);
-    if ( Diff > 0 )
+    if ( Diff < 0 )
         return -1;
-    if ( Diff < 0 ) 
+    if ( Diff > 0 ) 
         return 1;
     return 0; 
 }
@@ -1037,16 +1037,23 @@ void Saig_ManBmcMarkPis( Aig_Man_t * pAig, int nPisAbstract )
     if ( nPisAbstract < 1 )
         return;
     // sort PIs by the number of their fanouts
-//    Saig_ManForEachPi( pAig, pObj, i )
-//        printf( "%d=%d ", i, Aig_ObjRefs(pObj) );
-//    printf( "\n" );
     vPis = Vec_PtrAlloc( 100 );
     Saig_ManForEachPi( pAig, pObj, i )
         Vec_PtrPush( vPis, pObj );
-    Vec_PtrSort( vPis, (int (*)(void))Aig_NodeCompareRefsDecrease );
+    Vec_PtrSort( vPis, (int (*)(void))Aig_NodeCompareRefsIncrease );
     Vec_PtrForEachEntry( Aig_Obj_t *, vPis, pObj, i )
-        if ( i > Saig_ManPiNum(pAig) - nPisAbstract )
+    {
+        if ( i < nPisAbstract )
+        {
             pObj->fMarkA = 1;
+//            printf( "%d=%d ", Aig_ObjPioNum(pObj), Aig_ObjRefs(pObj) );
+        }
+    }
+//    printf( "\n" );
+    // print primary inputs
+//    Saig_ManForEachPi( pAig, pObj, i )
+//        printf( "%d=%d ", i, Aig_ObjRefs(pObj) );
+//    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -1108,7 +1115,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     if ( p->pPars->nTimeOut )
         sat_solver_set_runtime_limit( p->pSat, clock() + p->pPars->nTimeOut * CLOCKS_PER_SEC );
     // perform frames
-//    Saig_ManBmcMarkPis( pAig, pPars->nPisAbstract );
+    Aig_ManRandom( 1 );
+    Saig_ManBmcMarkPis( pAig, pPars->nPisAbstract );
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
         pPars->iFrame = f;
@@ -1129,6 +1137,10 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         if ( f == 0 )
             Saig_ManForEachLo( p->pAig, pObj, i )
                 Saig_ManBmcSetLiteral( p, pObj, 0, 0 );
+        // set PIs to zero if they are marked
+        Saig_ManForEachPi( p->pAig, pObj, i )
+            if ( pObj->fMarkA )
+                Saig_ManBmcSetLiteral( p, pObj, f, Aig_ManRandom(0) & 1 );
         // add the constraints for this frame
         Saig_ManForEachPo( pAig, pObj, i )
         {
