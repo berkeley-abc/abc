@@ -8544,7 +8544,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Ssm_ManExperiment( char * pFileIn, char * pFileOut );
 //    Ssm_ManExperiment( "m\\big2.ssim", "m\\big2_.ssim" );
 //    Ssm_ManExperiment( "m\\big3.ssim", "m\\big3_.ssim" );
-    Ssm_ManExperiment( "m\\tb.ssim", "m\\tb_.ssim" );
+//    Ssm_ManExperiment( "m\\tb.ssim", "m\\tb_.ssim" );
+    Ssm_ManExperiment( "m\\simp.ssim", "m\\simp_.ssim" );
+}
+*/
+/*
+{
+    Gia_Man_t * pGia = Abc_ManReadAig( "bug\\61\\tmp.out", "aig:" );
+    Gia_ManStop( pGia );
 }
 */
     return 0;
@@ -18340,7 +18347,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCLsdrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCILsdrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -18386,6 +18393,17 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPisAbstract = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPisAbstract < 0 ) 
                 goto usage;
             break;
         case 'L':
@@ -18454,12 +18472,13 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTC num] [-L file] [-sdvh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTCI num] [-L file] [-sdvh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n", pPars->nPisAbstract );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-s     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-d     : drops (replaces by 0) satisfiable outputs [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
@@ -19831,10 +19850,10 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
         else if ( Abc_NtkPiNum(pNtk) != pAbc->pCex->nPis )
             Abc_Print( 1, "Main AIG: The number of PIs (%d) is different from cex (%d).\n", Abc_NtkPiNum(pNtk), pAbc->pCex->nPis );
-        else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
-            Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
-        else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
-            Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
+//        else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
+//            Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
+//        else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
+//            Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
         else 
         {
             extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
@@ -19860,10 +19879,10 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "And  AIG: There is no current network.\n");
         else if ( Gia_ManPiNum(pAbc->pGia) != pAbc->pCex->nPis )
             Abc_Print( 1, "And  AIG: The number of PIs (%d) is different from cex (%d).\n", Gia_ManPiNum(pAbc->pGia), pAbc->pCex->nPis );
-        else if ( Gia_ManRegNum(pAbc->pGia) != pAbc->pCex->nRegs )
-            Abc_Print( 1, "And  AIG: The number of registers (%d) is different from cex (%d).\n", Gia_ManRegNum(pAbc->pGia), pAbc->pCex->nRegs );
-        else if ( Gia_ManPoNum(pAbc->pGia) <= pAbc->pCex->iPo )
-            Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
+//        else if ( Gia_ManRegNum(pAbc->pGia) != pAbc->pCex->nRegs )
+//            Abc_Print( 1, "And  AIG: The number of registers (%d) is different from cex (%d).\n", Gia_ManRegNum(pAbc->pGia), pAbc->pCex->nRegs );
+//        else if ( Gia_ManPoNum(pAbc->pGia) <= pAbc->pCex->iPo )
+//            Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
         else 
         {
     //        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )

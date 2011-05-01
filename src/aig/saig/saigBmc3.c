@@ -551,10 +551,6 @@ void Saig_ManBmcMappingTest( Aig_Man_t * p )
 
 
 
-
-
-
-
 /**Function*************************************************************
 
   Synopsis    [Create manager.]
@@ -613,6 +609,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
 ***********************************************************************/
 void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
 {
+    Aig_ManCleanMarkA( p->pAig );
     if ( p->vCexes )
     {
         assert( p->pAig->pSeqModelVec == NULL );
@@ -1002,6 +999,58 @@ int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
 
 /**Function*************************************************************
 
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_NodeCompareRefsDecrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
+{
+    int Diff = Aig_ObjRefs(*pp1) - Aig_ObjRefs(*pp2);
+    if ( Diff > 0 )
+        return -1;
+    if ( Diff < 0 ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Mark PIs to be skipped based on nPisAbstract.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManBmcMarkPis( Aig_Man_t * pAig, int nPisAbstract )
+{
+    Vec_Ptr_t * vPis;
+    Aig_Obj_t * pObj;
+    int i;
+    if ( nPisAbstract < 1 )
+        return;
+    // sort PIs by the number of their fanouts
+//    Saig_ManForEachPi( pAig, pObj, i )
+//        printf( "%d=%d ", i, Aig_ObjRefs(pObj) );
+//    printf( "\n" );
+    vPis = Vec_PtrAlloc( 100 );
+    Saig_ManForEachPi( pAig, pObj, i )
+        Vec_PtrPush( vPis, pObj );
+    Vec_PtrSort( vPis, (int (*)(void))Aig_NodeCompareRefsDecrease );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vPis, pObj, i )
+        if ( i > Saig_ManPiNum(pAig) - nPisAbstract )
+            pObj->fMarkA = 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [This procedure sets default parameters.]
 
   Description []
@@ -1018,6 +1067,7 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->nFramesMax     =  2000;    // maximum number of timeframes 
     p->nConfLimit     =  2000;    // maximum number of conflicts at a node
     p->nTimeOut       =     0;    // approximate timeout in seconds
+    p->nPisAbstract   =     0;    // the number of PIs to abstract
     p->fSolveAll      =     0;    // stops on the first SAT instance
     p->fDropSatOuts   =     0;    // replace sat outputs by constant 0
     p->fVerbose       =     0;    // verbose 
@@ -1058,6 +1108,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     if ( p->pPars->nTimeOut )
         sat_solver_set_runtime_limit( p->pSat, clock() + p->pPars->nTimeOut * CLOCKS_PER_SEC );
     // perform frames
+//    Saig_ManBmcMarkPis( pAig, pPars->nPisAbstract );
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
         pPars->iFrame = f;

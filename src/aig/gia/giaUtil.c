@@ -1191,9 +1191,11 @@ int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs )
 {
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int RetValue, i, k, iBit = 0;
+    assert( Gia_ManPiNum(pAig) == p->nPis );
     Gia_ManCleanMark0(pAig);
-    Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+//    Gia_ManForEachRo( pAig, pObj, i )
+//       pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+    iBit = p->nRegs;
     for ( i = 0; i <= p->iFrame; i++ )
     {
         Gia_ManForEachPi( pAig, pObj, k )
@@ -1207,7 +1209,7 @@ int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs )
             pObjRo->fMark0 = pObjRi->fMark0;
     }
     assert( iBit == p->nBits );
-    // remember the number of failed output
+    // figure out the number of failed output
     RetValue = -1;
     for ( i = Gia_ManPoNum(pAig) - 1; i >= nOutputs; i-- )
     {

@@ -62,6 +62,7 @@ struct Saig_ParBmc_t_
     int         nFramesMax;   // maximum number of timeframes 
     int         nConfLimit;   // maximum number of conflicts at a node
     int         nTimeOut;     // approximate timeout in seconds
+    int         nPisAbstract; // the number of PIs to abstract
     int         fSolveAll;    // does not stop at the first SAT output
     int         fDropSatOuts; // replace sat outputs by constant 0
     int         fVerbose;     // verbose 
