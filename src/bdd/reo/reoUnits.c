@@ -97,8 +97,8 @@ void reoUnitsRecycleUnitList( reo_man * p, reo_plane * pPlane )
         pTail = pUnit;
     pTail->Next = p->pUnitFreeList;
     p->pUnitFreeList    = pPlane->pHead;
-//    memset( pPlane, 0, sizeof(reo_plane) );
-    pPlane->pHead = NULL;
+    memset( pPlane, 0, sizeof(reo_plane) );
+//    pPlane->pHead = NULL;
 }
 
 /**Function*************************************************************
