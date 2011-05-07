@@ -67,8 +67,8 @@ Abc_Ntk_t * Seq_MapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose )
     // derive the supergate library
     if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
     {
-        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
+//        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
+//            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
         Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen() );
     }
     p->pSuperLib   = Abc_FrameReadLibSuper();

@@ -78,8 +78,8 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     // derive the supergate library
     if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
     {
-        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
+//        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
+//            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
         Map_SuperLibDeriveFromGenlib( (Mio_Library_t *)Abc_FrameReadLibGen() );
     }
 
@@ -432,8 +432,8 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     // derive the supergate library
     if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
     {
-        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
+//        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
+//            Mio_LibraryReadName((Mio_Library_t *)Abc_FrameReadLibGen()) );
         Map_SuperLibDeriveFromGenlib( (Mio_Library_t *)Abc_FrameReadLibGen() );
     }
 

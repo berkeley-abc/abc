@@ -202,7 +202,7 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
     pNameGeneric = Extra_FileNameGeneric( Mio_LibraryReadName(pLib) );
     sprintf( FileNameSuper, "%s.super", pNameGeneric );
     ABC_FREE( pNameGeneric );
-
+ 
     sprintf( CommandSuper,  "super -l 1 -i 5 -d 10000000 -a 10000000 -t 100 %s", FileNameGenlib ); 
     if ( Cmd_CommandExecute( pAbc, CommandSuper ) )
     {
@@ -218,15 +218,17 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
 //#else
 //        unlink( FileNameGenlib );
 //#endif
+    printf( "A simple supergate library is derived from gate library \"%s\".\n", Mio_LibraryReadName(pLib) );
+    fflush( stdout );
 
     sprintf( CommandRead,  "read_super %s", FileNameSuper ); 
     if ( Cmd_CommandExecute( pAbc, CommandRead ) )
     {
-#ifdef WIN32
-        _unlink( FileNameSuper );
-#else
-        unlink( FileNameSuper );
-#endif
+//#ifdef WIN32
+//        _unlink( FileNameSuper );
+//#else
+//       unlink( FileNameSuper );
+//#endif
         fprintf( stdout, "Cannot execute command \"%s\".\n", CommandRead );
         ABC_FREE( FileNameGenlib );
         ABC_FREE( FileNameSuper );
@@ -234,19 +236,16 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
         ABC_FREE( CommandRead );
         return 0;
     }
-
-/* // don't remove the intermediate file
-#ifdef WIN32
-    _unlink( FileNameSuper );
-#else
-    unlink( FileNameSuper );
-#endif
-*/
+//#ifdef WIN32
+//    _unlink( FileNameSuper );
+//#else
+//    unlink( FileNameSuper );
+//#endif
     ABC_FREE( FileNameGenlib );
     ABC_FREE( FileNameSuper );
     ABC_FREE( CommandSuper );
     ABC_FREE( CommandRead );
-     return 1;
+    return 1;
 }
 
 
