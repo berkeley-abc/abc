@@ -870,8 +870,11 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
     int iOut, nOuts;
     Aig_Man_t * pMiterCec;
     int RetValue, clkTotal = clock();
-    Aig_ManPrintStats( pPart0 );
-    Aig_ManPrintStats( pPart1 );
+    if ( fVerbose )
+    {
+        Aig_ManPrintStats( pPart0 );
+        Aig_ManPrintStats( pPart1 );
+    }
 //    Aig_ManDumpBlif( pPart0, "file0.blif", NULL, NULL );
 //    Aig_ManDumpBlif( pPart1, "file1.blif", NULL, NULL );
 //    assert( Aig_ManNodeNum(pPart0) <= Aig_ManNodeNum(pPart1) );
@@ -879,8 +882,8 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
     {
         printf( "Warning: The design after synthesis is smaller!\n" );
         printf( "This warning may indicate that the order of designs is changed.\n" );
-        printf( "The solver expects the original disign as first argument and\n" );
-        printf( "the modified design as the second argument in Ssw_SecSpecial().\n" );
+        printf( "The solver expects the original design as first argument and\n" );
+        printf( "the modified design as the second argument in \"absec\".\n" );
     }
     // create two-level miter
     pMiterCec = Saig_ManCreateMiterTwo( pPart0, pPart1, nFrames );
@@ -950,7 +953,7 @@ int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbo
     Aig_Man_t * pPart0, * pPart1;
     int RetValue;
     if ( fVerbose )
-        printf( "Performing sequential verification combinational A/B miter.\n" );
+        printf( "Performing sequential verification using combinational A/B miter.\n" );
     // consider the case when a miter is given
     if ( p1 == NULL )
     {
@@ -962,6 +965,13 @@ int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbo
         if ( !Saig_ManDemiterSimpleDiff( p0, &pPart0, &pPart1 ) )
         {
             printf( "Demitering has failed.\n" );
+            return -1;
+        }
+        if ( Aig_ManRegNum(pPart0) != Aig_ManRegNum(pPart1) )
+        {
+            Aig_ManStop( pPart0 );
+            Aig_ManStop( pPart1 );
+            printf( "After demitering AIGs have different number of flops. Quitting.\n" );
             return -1;
         }
     }

@@ -17011,12 +17011,12 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMiter, nFrames, fVerbose, c;
 
     extern int Abc_NtkDarAbSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fVerbose );
-
+ 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     fMiter   = 1;
     nFrames  = 2;
-    fVerbose = 1;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fmvh" ) ) != EOF )
     {
@@ -17033,7 +17033,7 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nFrames < 0 ) 
                 goto usage;
             break;
-        case 'm':
+        case 'm': 
             fMiter ^= 1;
             break;
         case 'v':
@@ -17044,14 +17044,26 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( fMiter )
+    if ( fMiter ) 
     {
+        if ( argc == globalUtilOptind + 1 ) 
+        {
+            pNtk = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+            if ( pNtk == NULL )
+            {
+                Abc_Print( -1, "Cannot read network from file \"%s\".\n", argv[globalUtilOptind] );
+                return 0;
+            }
+        }
+        else
+            pNtk = Abc_NtkDup( pNtk );
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            Abc_Print( -1, "This command works only for structrally hashed networks. Run \"st\".\n" );
-            return 0;
+            pNtk = Abc_NtkStrash( pNtk2 = pNtk, 0, 1, 0 );
+            Abc_NtkDelete( pNtk2 );
         }
         Abc_NtkDarAbSec( pNtk, NULL, nFrames, fVerbose );
+        Abc_NtkDelete( pNtk );
     }
     else
     {

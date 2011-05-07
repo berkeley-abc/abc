@@ -2017,6 +2017,7 @@ int Abc_NtkDarBmcInter( Abc_Ntk_t * pNtk, Inter_ManParams_t * pPars, Abc_Ntk_t *
 ***********************************************************************/
 int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
 { 
+    char * pFileNameGeneric, pFileName0[1000], pFileName1[1000];
     Aig_Man_t * pMan, * pPart0, * pPart1;//, * pMiter;
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
@@ -2031,15 +2032,20 @@ int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
         printf( "Demitering has failed.\n" );
         return 0;
     }
-    Aig_ManDumpBlif( pPart0, "part0.blif", NULL, NULL );
-    Aig_ManDumpBlif( pPart1, "part1.blif", NULL, NULL );
-    printf( "The result of demitering is written into files \"%s\" and \"%s\".\n", "part0.blif", "part1.blif" );
+    // create file names
+    pFileNameGeneric = Extra_FileNameGeneric( pNtk->pSpec );
+    sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
+    sprintf( pFileName1,  "%s%s",  pFileNameGeneric, "_part1.aig" ); 
+    ABC_FREE( pFileNameGeneric );
+    // dump files
+    Ioa_WriteAiger( pPart0, pFileName0, 0, 0 );
+    Ioa_WriteAiger( pPart1, pFileName1, 0, 0 );
+    printf( "Demitering produced two files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
     // create two-level miter
 //    pMiter = Saig_ManCreateMiterTwo( pPart0, pPart1, 2 );
 //    Aig_ManDumpBlif( pMiter, "miter01.blif", NULL, NULL );
 //    Aig_ManStop( pMiter );
 //    printf( "The new miter is written into file \"%s\".\n", "miter01.blif" );
-
     Aig_ManStop( pPart0 );
     Aig_ManStop( pPart1 );
     Aig_ManStop( pMan );
@@ -2315,12 +2321,33 @@ int Abc_NtkDarAbSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fVer
         pMan2 = Abc_NtkToDar( pNtk2, 0, 1 );
         if ( pMan2 == NULL )
         {
+            Aig_ManStop( pMan1 );
             printf( "Converting miter into AIG has failed.\n" );
             return -1;
         }
         assert( Aig_ManRegNum(pMan2) > 0 );
+        if ( Saig_ManPiNum(pMan1) != Saig_ManPiNum(pMan2) )
+        {
+            Aig_ManStop( pMan1 );
+            Aig_ManStop( pMan2 );
+            printf( "The networks have different number of PIs.\n" );
+            return -1;
+        }
+        if ( Saig_ManPoNum(pMan1) != Saig_ManPoNum(pMan2) )
+        {
+            Aig_ManStop( pMan1 );
+            Aig_ManStop( pMan2 );
+            printf( "The networks have different number of POs.\n" );
+            return -1;
+        }
+        if ( Aig_ManRegNum(pMan1) != Aig_ManRegNum(pMan2) )
+        {
+            Aig_ManStop( pMan1 );
+            Aig_ManStop( pMan2 );
+            printf( "The networks have different number of flops.\n" );
+            return -1;
+        }
     }
-
     // perform verification
     RetValue = Ssw_SecSpecialMiter( pMan1, pMan2, nFrames, fVerbose );
     Aig_ManStop( pMan1 );
