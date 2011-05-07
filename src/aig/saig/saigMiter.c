@@ -325,7 +325,7 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
     Aig_Man_t * p, * pAig;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, f;
-    assert( nFrames > 1 );
+//    assert( nFrames > 1 );
     assert( Saig_ManPiNum(pBot) == Saig_ManPiNum(pTop) );
     assert( Saig_ManPoNum(pBot) == Saig_ManPoNum(pTop) );
     assert( Saig_ManRegNum(pBot) == Saig_ManRegNum(pTop) );
@@ -347,16 +347,11 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( p, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        if ( f == nFrames - 1 )
-        {
-            // create POs for this frame
-            Aig_ManForEachPo( pAig, pObj, i )
-                Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
-            break;
-        }
         // create POs for this frame
-        Saig_ManForEachPo( pAig, pObj, i )
+        Aig_ManForEachPo( pAig, pObj, i )
             Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
+        if ( f == nFrames - 1 )
+            break;
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
