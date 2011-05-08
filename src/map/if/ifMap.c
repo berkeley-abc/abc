@@ -135,14 +135,16 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fTruth )
         {
 //            int clk = clock();
-            If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+            int RetValue = If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
 //            p->timeTruth += clock() - clk;
-            if ( p->pPars->pFuncCell )
+            pCut->fUseless = 0;
+            if ( p->pPars->pFuncCell && RetValue < 2 )
             {
-                assert( pCut->nLimit >= 4 && pCut->nLimit <= 6 );
+                assert( pCut->nLimit >= 4 && pCut->nLimit <= 7 );
                 pCut->fUseless = !p->pPars->pFuncCell( If_CutTruth(pCut), pCut->nLimit, pCut->nLeaves );
                 p->nCutsUseless += pCut->fUseless;
             }
+
         }
         // compute the application-specific cost and depth
         pCut->fUser = (p->pPars->pFuncCost != NULL);

@@ -355,7 +355,7 @@ static inline unsigned If_CutTruthPhase( If_Cut_t * pCut, If_Cut_t * pCut1 )
   SeeAlso     []
 
 ***********************************************************************/
-void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
+int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     extern void If_CutFactorTest( unsigned * pTruth, int nVars );
 
@@ -380,11 +380,12 @@ void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut
 
     // minimize the support of the cut
     if ( p->pPars->fCutMin )
-        If_CutTruthMinimize( p, pCut );
+        return If_CutTruthMinimize( p, pCut );
 
     // perform 
 //    If_CutFactorTest( If_CutTruth(pCut), pCut->nLimit );
 //    printf( "%d ", If_CutLeaveNum(pCut) - If_CutTruthSupportSize(If_CutTruth(pCut), If_CutLeaveNum(pCut)) );
+    return 0;
 }
 
 
@@ -412,7 +413,7 @@ int If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut )
     if ( nSuppSize < 2 )
     {
         p->nSmallSupp++;
-        return 0;
+        return 2;
     }
 //    if ( If_CutLeaveNum(pCut) - nSuppSize > 1 )
 //        return 0;
