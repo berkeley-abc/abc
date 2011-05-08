@@ -23,7 +23,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-
+ 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -347,11 +347,16 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
         // add internal nodes of this frame
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->pData = Aig_And( p, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        // create POs for this frame
-        Aig_ManForEachPo( pAig, pObj, i )
-            Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
         if ( f == nFrames - 1 )
+        {
+            // create POs for this frame
+            Aig_ManForEachPo( pAig, pObj, i )
+                Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
             break;
+        }
+        // create POs for this frame
+        Saig_ManForEachPo( pAig, pObj, i )
+            Aig_ObjCreatePo( p, Aig_ObjChild0Copy(pObj) );
         // save register inputs
         Saig_ManForEachLi( pAig, pObj, i )
             pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -447,7 +452,10 @@ Aig_Man_t * Aig_ManDupNodesHalf( Aig_Man_t * p, Vec_Ptr_t * vSet, int iPart )
 //    Saig_ManForEachPo( p, pObj, i )
 //        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSet, pObj, i )
+    {
+        assert( Aig_Regular(pObj)->pData != NULL );
         Aig_ObjCreatePo( pNew, Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj)) );
+    }
     if ( iPart == 0 )
     {
         Saig_ManForEachLi( p, pObj, i )
@@ -541,7 +549,106 @@ int Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAi
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates the AIG to have constant-0 initial state.]
+  Synopsis    [Returns 1 if PO can be demitered.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManDemiterMarkPos( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManCleanMarkAB( p );
+    Saig_ManForEachLo( p, pObj, i )
+        if ( i < Saig_ManRegNum(p)/2 )
+            pObj->fMarkA = 1;
+        else
+            pObj->fMarkB = 1;
+    Aig_ManForEachNode( p, pObj, i )
+    {
+        pObj->fMarkA = Aig_ObjFanin0(pObj)->fMarkA | Aig_ObjFanin1(pObj)->fMarkA;
+        pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB | Aig_ObjFanin1(pObj)->fMarkB;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if PO can be demitered.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManDemiterCheckPo( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t ** ppPo0, Aig_Obj_t ** ppPo1 )
+{
+    Aig_Obj_t * pFanin, * pObj0, * pObj1, * pObjR0, * pObjR1;
+    assert( Saig_ObjIsPo(p, pObj) );
+    pFanin = Aig_ObjFanin0( pObj );
+    if ( Aig_ObjIsConst1(pFanin) )
+    {
+        if ( !Aig_ObjFaninC0(pObj) )
+            return 0;
+        *ppPo0 = Aig_ManConst0(p);
+        *ppPo1 = Aig_ManConst0(p);
+        return 1;
+    }
+    if ( !Aig_ObjIsNode(pFanin) )
+        return 0;
+    if ( !Aig_ObjRecognizeExor( pFanin, &pObj0, &pObj1 ) )
+        return 0;
+    if ( Aig_ObjFaninC0(pObj) )
+        pObj0 = Aig_Not(pObj0);
+    // make sure they can reach only one
+    pObjR0 = Aig_Regular(pObj0);
+    pObjR1 = Aig_Regular(pObj1);
+    if ( pObjR0->fMarkA && pObjR0->fMarkB || pObjR1->fMarkA && pObjR1->fMarkB || 
+         pObjR0->fMarkA && pObjR1->fMarkA || pObjR0->fMarkB && pObjR1->fMarkB )
+         return 0;
+
+    if ( pObjR1->fMarkA && !pObjR0->fMarkA )
+    {
+        *ppPo0 = pObj1;
+        *ppPo1 = pObj0;
+    }
+    else if ( pObjR0->fMarkA && !pObjR1->fMarkA )
+    {
+        *ppPo0 = pObj0;
+        *ppPo1 = pObj1;
+    }
+    else
+    {
+/*
+printf( "%d", pObjR0->fMarkA );
+printf( "%d", pObjR0->fMarkB );
+printf( ":" );
+printf( "%d", pObjR1->fMarkA );
+printf( "%d", pObjR1->fMarkB );
+printf( "   " );
+*/
+        if ( Aig_Regular(pObj0)->Id < Aig_Regular(pObj1)->Id )
+        {
+            *ppPo0 = pObj0;
+            *ppPo1 = pObj1;
+        }
+        else
+        {
+            *ppPo0 = pObj1;
+            *ppPo1 = pObj0;
+        }
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if AIG can be demitered.]
 
   Description []
                
@@ -551,6 +658,54 @@ int Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAi
 
 ***********************************************************************/
 int Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
+{
+    Vec_Ptr_t * vSet0, * vSet1;
+    Aig_Obj_t * pObj, * pObj0, * pObj1;
+    int i;
+    if ( Aig_ManRegNum(p) == 0 || (Aig_ManRegNum(p) & 1) )
+        return 0;
+    Saig_ManDemiterMarkPos( p );
+    vSet0 = Vec_PtrAlloc( Saig_ManPoNum(p) );
+    vSet1 = Vec_PtrAlloc( Saig_ManPoNum(p) );
+    Saig_ManForEachPo( p, pObj, i )
+    {
+        if ( !Saig_ManDemiterCheckPo( p, pObj, &pObj0, &pObj1 ) )
+        {
+            Vec_PtrFree( vSet0 );
+            Vec_PtrFree( vSet1 );
+            Aig_ManCleanMarkAB( p );
+            return 0;
+        }
+        Vec_PtrPush( vSet0, pObj0 );
+        Vec_PtrPush( vSet1, pObj1 );
+    }
+    // create new AIG
+    *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 );
+    ABC_FREE( (*ppAig0)->pName );
+    (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
+    // create new AIGs
+    *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 );
+    ABC_FREE( (*ppAig1)->pName );
+    (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
+    // cleanup
+    Vec_PtrFree( vSet0 );
+    Vec_PtrFree( vSet1 );
+    Aig_ManCleanMarkAB( p );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG to have constant-0 initial state.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManDemiterSimpleDiff_old( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
 {
     Vec_Ptr_t * vSet0, * vSet1;
     Aig_Obj_t * pObj, * pFanin, * pObj0, * pObj1;
@@ -873,6 +1028,7 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
 //    Aig_ManDumpBlif( pPart0, "file0.blif", NULL, NULL );
 //    Aig_ManDumpBlif( pPart1, "file1.blif", NULL, NULL );
 //    assert( Aig_ManNodeNum(pPart0) <= Aig_ManNodeNum(pPart1) );
+/*
     if ( Aig_ManNodeNum(pPart0) >= Aig_ManNodeNum(pPart1) )
     {
         printf( "Warning: The design after synthesis is smaller!\n" );
@@ -880,6 +1036,7 @@ int Ssw_SecSpecial( Aig_Man_t * pPart0, Aig_Man_t * pPart1, int nFrames, int fVe
         printf( "The solver expects the original design as first argument and\n" );
         printf( "the modified design as the second argument in \"absec\".\n" );
     }
+*/
     // create two-level miter
     pMiterCec = Saig_ManCreateMiterTwo( pPart0, pPart1, nFrames );
     if ( fVerbose )
@@ -992,6 +1149,8 @@ int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbo
     assert( Saig_ManPoNum(pPart0) == Saig_ManPoNum(pPart1) );
     assert( Aig_ManRegNum(pPart0) == Aig_ManRegNum(pPart1) );
     RetValue = Ssw_SecSpecial( pPart0, pPart1, nFrames, fVerbose );
+    if ( RetValue != 1 && Aig_ManNodeNum(pPart0) >= Aig_ManNodeNum(pPart1) )
+        RetValue = Ssw_SecSpecial( pPart1, pPart0, nFrames, fVerbose );
     Aig_ManStop( pPart0 );
     Aig_ManStop( pPart1 );
     return RetValue;

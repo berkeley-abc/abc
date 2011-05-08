@@ -17046,26 +17046,23 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fMiter ) 
     {
-        if ( argc == globalUtilOptind + 1 ) 
+//        pNtk = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
+        if ( argc == globalUtilOptind + 1 )
         {
-            pNtk = Io_Read( argv[globalUtilOptind], Io_ReadFileType(argv[globalUtilOptind]), 1 );
-            if ( pNtk == NULL )
-            {
-                Abc_Print( -1, "Cannot read network from file \"%s\".\n", argv[globalUtilOptind] );
-                return 0;
-            }
+            Abc_Print( -1, "The miter cannot be given on the command line. Use \"read\".\n" );
+            return 0;
         }
-        else
-            pNtk = Abc_NtkDup( pNtk );
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            pNtk = Abc_NtkStrash( pNtk2 = pNtk, 0, 1, 0 );
-            Abc_NtkDelete( pNtk2 );
+            Abc_Print( -1, "The miter should be structurally hashed. Use \"st\"\n" );
+            return 0;
         }
-        Abc_NtkDarAbSec( pNtk, NULL, nFrames, fVerbose );
-        Abc_NtkDelete( pNtk );
+        if ( Abc_NtkDarAbSec( pNtk, NULL, nFrames, fVerbose ) == 1 )
+            pAbc->Status = 1;
+        else
+            pAbc->Status = -1;
     }
-    else
+    else 
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
@@ -17079,7 +17076,10 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         // perform verification
-        Abc_NtkDarAbSec( pNtk1, pNtk2, nFrames, fVerbose );
+        if ( Abc_NtkDarAbSec( pNtk1, pNtk2, nFrames, fVerbose ) == 1 )
+            pAbc->Status = 1;
+        else
+            pAbc->Status = -1;
         if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
         if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     }
