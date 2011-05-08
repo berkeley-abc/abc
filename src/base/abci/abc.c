@@ -12884,10 +12884,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         pPars->fCutMin = 1;            
     }
-/*
+
     if ( pPars->fEnableCheck )
     {
-        extern int If_CutPerformCheck( unsigned * pTruth, int nVars, int nLeaves );
         if ( pPars->nLutSize < 6 || pPars->nLutSize > 7 )
         {
             Abc_Print( -1, "This feature only works for {6,7}-LUTs.\n" );
@@ -12896,7 +12895,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pFuncCell = If_CutPerformCheck;
         pPars->fCutMin = 1;            
     }
-*/
+
     // enable truth table computation if cut minimization is selected
     if ( pPars->fCutMin )
     {

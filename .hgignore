@@ -18,8 +18,6 @@ src/aig/au/
 src/aig/ssm/
 src/aig/ddb/
 
-src/map/if/ifDec.c
-
 *~
 *.orig
 
