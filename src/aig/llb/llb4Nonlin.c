@@ -659,14 +659,6 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
     int clkTemp, clkIter, clk = clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 
-    // compute time to stop
-    if ( p->pPars->TimeLimit )
-        p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
-    else
-        p->pPars->TimeTarget = 0;
-    // set the stop time parameter
-    p->dd->TimeStop  = p->pPars->TimeTarget;
-
     if ( p->pPars->fBackward )
     {
         // create bad state in the ring manager
@@ -935,11 +927,18 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     p->pAig    = pAig;
     p->pPars   = pPars;
 
+    // compute time to stop
+    if ( p->pPars->TimeLimit )
+        p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
+    else
+        p->pPars->TimeTarget = 0;
     if ( pPars->fCluster )
     {
 //        Llb_Nonlin4Cluster( p->pAig, &p->dd, &p->vOrder, &p->vRoots, pPars->nBddMax, pPars->fVerbose );
 //        Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
         Llb4_Nonlin4Sweep( p->pAig, pPars->nBddMax, pPars->nClusterMax, &p->dd, &p->vOrder, &p->vRoots, pPars->fVerbose );
+        // set the stop time parameter
+        p->dd->TimeStop  = p->pPars->TimeTarget;
     }
     else
     {
@@ -948,6 +947,8 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
         p->dd      = Cudd_Init( Vec_IntSize(p->vOrder), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
         Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
         Cudd_SetMaxGrowth( p->dd, 1.05 );
+        // set the stop time parameter
+        p->dd->TimeStop  = p->pPars->TimeTarget;
         p->vRoots  = Llb_Nonlin4DerivePartitions( p->dd, pAig, p->vOrder );
     }
 
@@ -994,13 +995,15 @@ void Llb_MnxStop( Llb_Mnx_t * p )
         Cudd_RecursiveDeref( p->dd, p->bCurrent );
     if ( p->bNext )
         Cudd_RecursiveDeref( p->dd, p->bNext );
+    if ( p->vRings );
     Vec_PtrForEachEntry( DdNode *, p->vRings, bTemp, i )
         Cudd_RecursiveDeref( p->dd, bTemp );
+    if ( p->vRoots )
     Vec_PtrForEachEntry( DdNode *, p->vRoots, bTemp, i )
         Cudd_RecursiveDeref( p->dd, bTemp );
     // remove arrays
-    Vec_PtrFree( p->vRings );
-    Vec_PtrFree( p->vRoots );
+    Vec_PtrFreeP( &p->vRings );
+    Vec_PtrFreeP( &p->vRoots );
 //Cudd_PrintInfo( p->dd, stdout );
     Extra_StopManager( p->dd );
     Vec_IntFreeP( &p->vOrder );

@@ -62,14 +62,40 @@ static word Truth7[7][2] = {
     0xFF00FF00FF00FF00,0xFF00FF00FF00FF00,
     0xFFFF0000FFFF0000,0xFFFF0000FFFF0000,
     0xFFFFFFFF00000000,0xFFFFFFFF00000000,
-    0xFFFFFFFFFFFFFFFF,0x0000000000000000
+    0x0000000000000000,0xFFFFFFFFFFFFFFFF
 };
 
 extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
+extern void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+static void If_DecPrintConfig( word z )
+{
+   unsigned S[1];
+   S[0] = (z & 0xffff) | ((z & 0xffff) << 16);
+   Extra_PrintBinary( stdout, S, 16 ); 
+   printf( " " );
+   Kit_DsdPrintFromTruth( S, 4 );
+   printf( " " );
+   printf( " %d", (z >> 16) & 7 );
+   printf( " %d", (z >> 20) & 7 );
+   printf( " %d", (z >> 24) & 7 );
+   printf( " %d", (z >> 28) & 7 );
+   printf( "   " );
+   S[0] = ((z >> 32) & 0xffff) | (((z >> 32) & 0xffff) << 16);
+   Extra_PrintBinary( stdout, S, 16 );
+   printf( " " );
+   Kit_DsdPrintFromTruth( S, 4 );
+   printf( " " );
+   printf( " %d", (z >> 48) & 7 );
+   printf( " %d", (z >> 52) & 7 );
+   printf( " %d", (z >> 56) & 7 );
+   printf( " %d", (z >> 60) & 7 );
+   printf( "\n" );
+}
 
 // verification for 6-input function
 static word If_Dec6ComposeLut4( int t, word f[4] )
@@ -78,6 +104,8 @@ static word If_Dec6ComposeLut4( int t, word f[4] )
     word c, r = 0;
     for ( m = 0; m < 16; m++ )
     {
+        if ( !((t >> m) & 1) )
+            continue;
         c = ~0;
         for ( v = 0; v < 4; v++ )
             c &= ((m >> v) & 1) ? f[v] : ~f[v];
@@ -87,22 +115,30 @@ static word If_Dec6ComposeLut4( int t, word f[4] )
 }
 static void If_Dec6Verify( word t, word z )
 {
-    word f[4];
+    word r, q, f[4];
     int i, v;
+    assert( z );
     for ( i = 0; i < 4; i++ )
     {
         v = (z >> (16+(i<<2))) & 7;
-        f[i] = (v == 7) ? 0 : Truth6[v];
+        assert( v != 7 );
+        f[i] = Truth6[v];
     }
-    f[0] = If_Dec6ComposeLut4( (int)(z & 0xffff), f );
-    for ( i = 0; i < 3; i++ )
+    q = If_Dec6ComposeLut4( (int)(z & 0xffff), f );
+    for ( i = 0; i < 4; i++ )
     {
         v = (z >> (48+(i<<2))) & 7;
-        f[i+1] = (v == 7) ? 0 : Truth6[v];
+        f[i] = (v == 7) ? q : Truth6[v];
     }
-    f[0] = If_Dec6ComposeLut4( (int)((z >> 32) & 0xffff), f );
-    if ( f[0] != t )
+    r = If_Dec6ComposeLut4( (int)((z >> 32) & 0xffff), f );
+    if ( r != t )
+    {
+        If_DecPrintConfig( z );
+        Kit_DsdPrintFromTruth( (unsigned*)&t, 6 ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&q, 6 ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&r, 6 ); printf( "\n" );
         printf( "Verification failed!\n" );
+    }
 }
 // verification for 7-input function
 static void If_Dec7ComposeLut4( int t, word f[4][2], word r[2] )
@@ -112,6 +148,8 @@ static void If_Dec7ComposeLut4( int t, word f[4][2], word r[2] )
     r[0] = r[1] = 0;
     for ( m = 0; m < 16; m++ )
     {
+        if ( !((t >> m) & 1) )
+            continue;
         c[0] = c[1] = ~0;
         for ( v = 0; v < 4; v++ )
         {
@@ -126,6 +164,7 @@ static void If_Dec7Verify( word t[2], word z )
 {
     word f[4][2], r[2];
     int i, v;
+    assert( z );
     for ( i = 0; i < 4; i++ )
     {
         v = (z >> (16+(i<<2))) & 7;
@@ -133,18 +172,24 @@ static void If_Dec7Verify( word t[2], word z )
         f[i][1] = Truth7[v][1];
     }
     If_Dec7ComposeLut4( (int)(z & 0xffff), f, r );
-    f[0][0] = r[0];
-    f[0][1] = r[1];
+    f[3][0] = r[0];
+    f[3][1] = r[1];
     for ( i = 0; i < 3; i++ )
     {
         v = (z >> (48+(i<<2))) & 7;
-        f[i+1][0] = Truth7[v][0];
-        f[i+1][1] = Truth7[v][1];
+        f[i][0] = Truth7[v][0];
+        f[i][1] = Truth7[v][1];
     }
     If_Dec7ComposeLut4( (int)((z >> 32) & 0xffff), f, r );
     if ( r[0] != t[0] || r[1] != t[1] )
+    {
+        If_DecPrintConfig( z );
+        Kit_DsdPrintFromTruth( (unsigned*)t, 7 ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)r, 7 ); printf( "\n" );
         printf( "Verification failed!\n" );
+    }
 }
+
 
 // count the number of unique cofactors
 static inline int If_Dec6CofCount2( word t )
@@ -229,24 +274,106 @@ static inline void If_Dec7MoveTo( word t[2], int v, int p, int Pla2Var[7], int V
     assert( Pla2Var[p] == v );
 }
 
+// derive binary function
+static inline int If_Dec6DeriveCount2( word t, int * pCof0, int * pCof1 )
+{
+    int i, Mask = 0;
+    *pCof0 = (t & 15);
+    *pCof1 = (t & 15);
+    for ( i = 1; i < 16; i++ )
+        if ( *pCof0 != ((t >> (i<<2)) & 15) )
+        {
+            *pCof1 = ((t >> (i<<2)) & 15);
+            Mask |= (1 << i);
+        }
+    return Mask;
+}
+static inline int If_Dec7DeriveCount3( word t[2], int * pCof0, int * pCof1 )
+{
+    unsigned char * pTruth = (unsigned char *)t;
+    int i, Mask = 0;
+    *pCof0 = pTruth[0];
+    *pCof1 = pTruth[0];
+    for ( i = 1; i < 16; i++ )
+        if ( *pCof0 != pTruth[i] )
+        {
+            *pCof1 = pTruth[i];
+            Mask |= (1 << i);
+        }
+    return Mask;
+}
 
 // derives decomposition
+static inline word If_Dec6Cofactor( word t, int iVar, int fCof1 )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    if ( fCof1 )
+        return (t & Truth6[iVar]) | ((t & Truth6[iVar]) >> (1<<iVar));
+    else
+        return (t &~Truth6[iVar]) | ((t &~Truth6[iVar]) << (1<<iVar));
+}
 static word If_Dec6DeriveDisjoint( word t, int Pla2Var[6], int Var2Pla[6] )
 {
-    word z = 1;
-//    If_Dec6Verify( t, z );
+    int i, Cof0, Cof1;
+    word z = If_Dec6DeriveCount2( t, &Cof0, &Cof1 );
+    for ( i = 0; i < 4; i++ )
+        z |= (((word)Pla2Var[i+2]) << (16 + 4*i));
+    z |= ((word)((Cof1 << 4) | Cof0) << 32);
+    z |= ((word)((Cof1 << 4) | Cof0) << 40);
+    for ( i = 0; i < 2; i++ )
+        z |= (((word)Pla2Var[i]) << (48 + 4*i));
+    z |= (((word)7) << (48 + 4*i++));
+    assert( i == 3 );
     return z;
 }
-static word If_Dec6DeriveNonDisjoint( word t, word c0, word c1, int s, int Pla2Var[6], int Var2Pla[6] )
+static word If_Dec6DeriveNonDisjoint( word t, int s, int Pla2Var0[6], int Var2Pla0[6] )
 {
-    word z = 1;
-//    If_Dec6Verify( t, z );
+    word z, c0, c1;
+    int Cof0[2], Cof1[2];
+    int Truth0, Truth1, i;
+    int Pla2Var[6], Var2Pla[6];
+    assert( s >= 2 && s <= 5 );
+    for ( i = 0; i < 6; i++ )
+    {
+        Pla2Var[i] = Pla2Var0[i];
+        Var2Pla[i] = Var2Pla0[i];
+    }
+    for ( i = s; i < 5; i++ )
+    {
+        t = If_Dec6SwapAdjacent( t, i );
+        Var2Pla[Pla2Var[i]]++;
+        Var2Pla[Pla2Var[i+1]]--;
+        Pla2Var[i] ^= Pla2Var[i+1];
+        Pla2Var[i+1] ^= Pla2Var[i];
+        Pla2Var[i] ^= Pla2Var[i+1];
+    }
+    c0 = If_Dec6Cofactor( t, 5, 0 );
+    c1 = If_Dec6Cofactor( t, 5, 1 );
+    assert( 2 >= If_Dec6CofCount2(c0) );
+    assert( 2 >= If_Dec6CofCount2(c1) );
+    Truth0 = If_Dec6DeriveCount2( c0, &Cof0[0], &Cof0[1] );
+    Truth1 = If_Dec6DeriveCount2( c1, &Cof1[0], &Cof1[1] );
+    z = ((Truth1 & 0xFF) << 8) | (Truth0 & 0xFF);
+    for ( i = 0; i < 4; i++ )
+        z |= (((word)Pla2Var[i+2]) << (16 + 4*i));
+    z |= ((word)((Cof0[1] << 4) | Cof0[0]) << 32);
+    z |= ((word)((Cof1[1] << 4) | Cof1[0]) << 40);
+    for ( i = 0; i < 2; i++ )
+        z |= (((word)Pla2Var[i]) << (48 + 4*i));
+    z |= (((word)7) << (48 + 4*i++));
+    z |= (((word)Pla2Var[5]) << (48 + 4*i++));
+    assert( i == 4 );
     return z;
 }
 static word If_Dec7DeriveDisjoint( word t[2], int Pla2Var[7], int Var2Pla[7] )
 {
-    word z = 1;
-//    If_Dec7Verify( t, z );
+    int i, Cof0, Cof1;
+    word z = If_Dec7DeriveCount3( t, &Cof0, &Cof1 );
+    for ( i = 0; i < 4; i++ )
+        z |= (((word)Pla2Var[i+3]) << (16 + 4*i));
+    z |= ((word)((Cof1 << 8) | Cof0) << 32);
+    for ( i = 0; i < 3; i++ )
+        z |= (((word)Pla2Var[i]) << (48 + 4*i));
     return z;
 }
 
@@ -269,21 +396,11 @@ static inline void If_DecVerifyPerm( int Pla2Var[6], int Var2Pla[6] )
     int i;
     for ( i = 0; i < 6; i++ )
         assert( Pla2Var[Var2Pla[i]] == i );
-}
-static inline word If_Dec6Cofactor( word t, int iVar, int fCof1 )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    if ( fCof1 )
-        return (t & Truth6[iVar]) | ((t & Truth6[iVar]) >> (1<<iVar));
-    else
-        return (t &~Truth6[iVar]) | ((t &~Truth6[iVar]) << (1<<iVar));
-}
-static word If_Dec6Perform( word t )
+} 
+static word If_Dec6Perform( word t, int fDerive )
 { 
+    word r = 0;
     int i, v, u, x, Count, Pla2Var[6], Var2Pla[6];
-    int fFound = 0;
-//    if ( If_Dec6CountOnes(t) == 1 )
-//        return 1;
     // start arrays
     for ( i = 0; i < 6; i++ )
     {
@@ -301,27 +418,26 @@ static word If_Dec6Perform( word t )
         Count = If_Dec6CofCount2( t );
         assert( Count > 1 );
         if ( Count == 2 )
-            return If_Dec6DeriveDisjoint( t, Pla2Var, Var2Pla );
+            return !fDerive ? 1 : If_Dec6DeriveDisjoint( t, Pla2Var, Var2Pla );
         // check non-disjoint decomposition
-        if ( !fFound && (Count == 3 || Count == 4) )
+        if ( !r && (Count == 3 || Count == 4) )
         {
             for ( x = 0; x < 4; x++ )
             {
-                word c0 = If_Dec6Cofactor( t, Pla2Var[x+2], 0 );
-                word c1 = If_Dec6Cofactor( t, Pla2Var[x+2], 1 );
+                word c0 = If_Dec6Cofactor( t, x+2, 0 );
+                word c1 = If_Dec6Cofactor( t, x+2, 1 );
                 if ( If_Dec6CofCount2( c0 ) <= 2 && If_Dec6CofCount2( c1 ) <= 2 )
                 {
-                    fFound = 1;
+                    r = !fDerive ? 1 : If_Dec6DeriveNonDisjoint( t, x+2, Pla2Var, Var2Pla );
                     break;
-                 //   return If_Dec6DeriveNonDisjoint( t, c0, c1, x+2, Pla2Var, Var2Pla );
                 }
             }
         }
     }
     assert( i == 15 );
-    return fFound;
+    return r;
 }
-static word If_Dec7Perform( word t0[2] )
+static word If_Dec7Perform( word t0[2], int fDerive )
 {
     word t[2] = {t0[0], t0[1]}; 
     int i, v, u, y, Pla2Var[7], Var2Pla[7];
@@ -344,7 +460,9 @@ static word If_Dec7Perform( word t0[2] )
         If_Dec7MoveTo( t, y, 2, Pla2Var, Var2Pla );
 //        If_DecVerifyPerm( Pla2Var, Var2Pla );
         if ( If_Dec7CofCount3( t ) == 2 )
-            return If_Dec7DeriveDisjoint( t, Pla2Var, Var2Pla );
+        {
+            return !fDerive ? 1 : If_Dec7DeriveDisjoint( t, Pla2Var, Var2Pla );
+        }
     }
     return 0;
 }
@@ -363,19 +481,26 @@ static word If_Dec7Perform( word t0[2] )
 ***********************************************************************/
 int If_CutPerformCheckInt( unsigned * pTruth, int nVars, int nLeaves )
 {
+    int fDerive = 0;
     if ( nLeaves < 6 )
         return 1;
     if ( nLeaves == 6 )
     {
         word t = ((word *)pTruth)[0];
-        return If_Dec6Perform( t ) != 0;
+        word z = If_Dec6Perform( t, fDerive );
+        if ( fDerive && z )
+            If_Dec6Verify( t, z );
+        return z != 0;
     }
     if ( nLeaves == 7 )
     {
-        word t[2];
+        word t[2], z;
         t[0] = ((word *)pTruth)[0];
         t[1] = ((word *)pTruth)[1];
-        return If_Dec7Perform( t ) != 0;
+        z = If_Dec7Perform( t, fDerive );
+        if ( fDerive && z )
+            If_Dec7Verify( t, z );
+        return z != 0;
     }
     assert( 0 );
     return 0;

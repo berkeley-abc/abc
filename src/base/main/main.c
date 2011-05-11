@@ -64,8 +64,10 @@ int Abc_RealMain( int argc, char * argv[] )
     char * sCommand;
     int  fStatus = 0;
     int c, fBatch, fInitSource, fInitRead, fFinalWrite;
-
-    // added to detect memory leaks:
+ 
+    // added to detect memory leaks
+    // watch for {,,msvcrtd.dll}*__p__crtBreakAlloc()
+    // (http://support.microsoft.com/kb/151585)
 #if defined(_DEBUG) && defined(_MSC_VER) 
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
