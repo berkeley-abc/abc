@@ -237,7 +237,17 @@ Vec_Ptr_t * Llb4_Nonlin4VerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     }
 */
     assert( iBit == p->nBits );
-    if ( Aig_ManPo(pAig, p->iPo)->fMarkB == 0 )
+//    if ( Aig_ManPo(pAig, p->iPo)->fMarkB == 0 )
+//        Vec_PtrFreeP( &vStates );
+    for ( i = Saig_ManPoNum(pAig) - 1; i >= 0; i-- )
+    {
+        if ( Aig_ManPo(pAig, i)->fMarkB )
+        {
+            p->iPo = i;
+            break;
+        }
+    }
+    if ( i == -1 )
         Vec_PtrFreeP( &vStates );
     Aig_ManCleanMarkB(pAig);
     return vStates;
