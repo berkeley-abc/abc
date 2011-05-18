@@ -1559,9 +1559,9 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-//    if ( fSpecial )
-//        Io_WriteBlifSpecial( pAbc->pNtkCur, pFileName );
-//    else
+    if ( fSpecial )
+        Io_WriteBlifSpecial( pAbc->pNtkCur, pFileName );
+    else
         Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BLIF );
     return 0;
 

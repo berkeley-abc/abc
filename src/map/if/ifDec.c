@@ -72,7 +72,7 @@ extern void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-static void If_DecPrintConfig( word z )
+void If_DecPrintConfig( word z )
 {
    unsigned S[1];
    S[0] = (z & 0xffff) | ((z & 0xffff) << 16);
@@ -113,7 +113,7 @@ static word If_Dec6ComposeLut4( int t, word f[4] )
     }
     return r;
 }
-static void If_Dec6Verify( word t, word z )
+void If_Dec6Verify( word t, word z )
 {
     word r, q, f[4];
     int i, v;
@@ -160,7 +160,7 @@ static void If_Dec7ComposeLut4( int t, word f[4][2], word r[2] )
         r[1] |= c[1];
     }
 }
-static void If_Dec7Verify( word t[2], word z )
+void If_Dec7Verify( word t[2], word z )
 {
     word f[4][2], r[2];
     int i, v;
@@ -374,6 +374,7 @@ static word If_Dec7DeriveDisjoint( word t[2], int Pla2Var[7], int Var2Pla[7] )
     z |= ((word)((Cof1 << 8) | Cof0) << 32);
     for ( i = 0; i < 3; i++ )
         z |= (((word)Pla2Var[i]) << (48 + 4*i));
+    z |= (((word)7) << (48 + 4*i));
     return z;
 }
 
@@ -641,7 +642,7 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
 {
     word c0[2], c1[2];
     int v, vBest = -1, Count0, Count1, CountBest = 1000;
-    for ( v = 0; v < 6; v++ )
+    for ( v = 0; v < 7; v++ )
     {
         If_Dec7Cofactor( t, v, 0, c0 );
         If_Dec7Cofactor( t, v, 1, c1 );
@@ -659,7 +660,6 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
 }
 
 
-
 /**Function*************************************************************
 
   Synopsis    [Performs additional check.]
@@ -671,9 +671,9 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutPerformCheckInt( unsigned * pTruth, int nVars, int nLeaves )
+int If_CutPerformCheck( unsigned * pTruth, int nVars, int nLeaves )
 {
-    int fDerive = 0;
+    int fDerive = 1;
     if ( nLeaves < 6 )
         return 1;
     if ( nLeaves == 6 )
@@ -696,30 +696,13 @@ int If_CutPerformCheckInt( unsigned * pTruth, int nVars, int nLeaves )
         z = If_Dec7Perform( t, fDerive );
         if ( fDerive && z )
             If_Dec7Verify( t, z );
+
+
         return z != 0;
     }
     assert( 0 );
     return 0;
 }
-int If_CutPerformCheck( unsigned * pTruth, int nVars, int nLeaves )
-{
-    int RetValue = If_CutPerformCheckInt( pTruth, nVars, nLeaves );
-/*
-//    if ( nLeaves == 6 || nLeaves == 7 )
-    if ( nLeaves == 7 )
-    {
-        if ( RetValue == 0 )
-        {
-            printf( "%d ", RetValue );
-            Kit_DsdPrintFromTruth( pTruth, nLeaves );
-            printf( "\n" );
-            If_CutPerformCheckInt( pTruth, nVars, nLeaves );
-        }
-    }
-*/
-    return RetValue;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

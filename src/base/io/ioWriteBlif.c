@@ -641,19 +641,21 @@ void Abc_NtkConvertBb2Wb( char * pFileNameIn, char * pFileNameOut, int fSeq, int
   SeeAlso     []
 
 ***********************************************************************/
-char * Io_NtkDeriveSop( Mem_Flex_t * pMem, unsigned uTruth, int nVars )
+char * Io_NtkDeriveSop( Mem_Flex_t * pMem, unsigned uTruth, int nVars, Vec_Int_t * vCover )
 {
     char * pSop;
-    Vec_Int_t * vCover = Vec_IntAlloc( 100 );
     int RetValue = Kit_TruthIsop( &uTruth, nVars, vCover, 1 );
     assert( RetValue == 0 || RetValue == 1 );
     // check the case of constant cover
-    assert( !(Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0)) );
+    if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0) )
+    {
+        assert( RetValue == 0 );
+        return Vec_IntSize(vCover) == 0 ? " 0\n" : " 1\n";
+    }
     // derive the AIG for that tree
     pSop = Abc_SopCreateFromIsop( pMem, nVars, vCover );
     if ( RetValue )
         Abc_SopComplement( pSop );
-    Vec_IntFree( vCover );
     return pSop;
 }
 
@@ -668,7 +670,7 @@ char * Io_NtkDeriveSop( Mem_Flex_t * pMem, unsigned uTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
+void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCover )
 {
     Abc_Obj_t * pNet;
     int i, nVars = Abc_ObjFaninNum(pNode);
@@ -677,6 +679,8 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
         printf( "Node \"%s\" has more than 7 inputs. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         return;
     }
+
+    fprintf( pFile, "\n" );
     if ( nVars <= 4 )
     {
         // write the .names line
@@ -716,6 +720,7 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
             uTruth6 = Abc_SopToTruth( (char*)Abc_ObjData(pNode), nVars );
             iVar = If_Dec6PickBestMux( uTruth6, Cofs6 );
         }
+
         // perform MUX decomposition
         if ( iVar >= 0 )
         {
@@ -731,17 +736,6 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
             }
             assert( nVarsMin[0] < 5 );
             assert( nVarsMin[1] < 5 );
-            // write cofactors
-            for ( c = 0; c < 2; c++ )
-            {
-                pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, 
-                    (unsigned)(nVars == 7 ? Cofs7[c][0] : Cofs6[c]), nVarsMin[c] );
-                fprintf( pFile, ".names" );
-                for ( i = 0; i < nVarsMin[c]; i++ )
-                    fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pVars[c][i])) );
-                fprintf( pFile, " %s_cascade%d\n", Abc_ObjName(Abc_ObjFanout0(pNode)), c );
-                fprintf( pFile, "%s", pSop );
-            }
             // write MUX
             fprintf( pFile, ".names" );
             fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,iVar)) );
@@ -749,23 +743,42 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
             fprintf( pFile, " %s_cascade1", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             fprintf( pFile, " %s\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             fprintf( pFile, "1-1 1\n01- 1\n" );
+            // write cofactors
+            for ( c = 0; c < 2; c++ )
+            {
+                pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, 
+                    (unsigned)(nVars == 7 ? Cofs7[c][0] : Cofs6[c]), nVarsMin[c], vCover );
+                fprintf( pFile, ".names" );
+                for ( i = 0; i < nVarsMin[c]; i++ )
+                    fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pVars[c][i])) );
+                fprintf( pFile, " %s_cascade%d\n", Abc_ObjName(Abc_ObjFanout0(pNode)), c );
+                fprintf( pFile, "%s", pSop );
+            }
             return;
         }
+        assert( nVars == 6 || nVars == 7 );
 
         // try cascade decomposition
         if ( nVars == 7 )
+        {
             z = If_Dec7Perform( uTruth7, 1 );
+            //If_Dec7Verify( uTruth7, z );
+        }
         else
+        {
             z = If_Dec6Perform( uTruth6, 1 );
+            //If_Dec6Verify( uTruth6, z );
+        }
         if ( z == 0 )
         {
             printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             return;
         }
 
-        // collect the nodes
-        for ( c = 0; c < 2; i++ )
+        // derive nodes
+        for ( c = 1; c >= 0; c-- )
         {
+            // collect fanins
             uTruth7[c]  = ((c ? z >> 32 : z) & 0xffff);
             uTruth7[c] |= (uTruth7[c] << 16);
             uTruth7[c] |= (uTruth7[c] << 32);
@@ -773,18 +786,20 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
                 pVars[c][i] = (z >> (c*32+16+4*i)) & 7;
 
             // minimize truth table
-            Cofs6[i] = If_Dec6MinimumBase( uTruth7[i], pVars[i], 4, &nVarsMin[i] );
-            assert( c ? nVarsMin[0] == 4 : nVarsMin[1] <= 4 );
+            Cofs6[c] = If_Dec6MinimumBase( uTruth7[c], pVars[c], 4, &nVarsMin[c] );
 
             // write the nodes
-            pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, (unsigned)Cofs6[c], nVarsMin[c] );
             fprintf( pFile, ".names" );
             for ( i = 0; i < nVarsMin[c]; i++ )
                 if ( pVars[c][i] == 7 )
                     fprintf( pFile, " %s_cascade", Abc_ObjName(Abc_ObjFanout0(pNode)) );
                 else
                     fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pVars[c][i])) );
-            fprintf( pFile, " %s%s\n", Abc_ObjName(Abc_ObjFanout0(pNode)), c? "_cascade" : "" );
+                fprintf( pFile, " %s%s\n", Abc_ObjName(Abc_ObjFanout0(pNode)), c? "" : "_cascade" );
+
+            // write SOP
+            pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, 
+                (unsigned)Cofs6[c], nVarsMin[c], vCover );
             fprintf( pFile, "%s", pSop );
         }
     }
@@ -804,6 +819,7 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
 void Io_WriteBlifInt( Abc_Ntk_t * pNtk, char * FileName )
 {
     FILE * pFile;
+    Vec_Int_t * vCover;
     Abc_Obj_t * pNode, * pLatch;
     int i;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -833,8 +849,10 @@ void Io_WriteBlifInt( Abc_Ntk_t * pNtk, char * FileName )
     if ( Abc_NtkLatchNum(pNtk) )
         fprintf( pFile, "\n" );
     // write each internal node
+    vCover = Vec_IntAlloc( (1<<16) );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Io_NtkWriteNodeInt( pFile, pNode );
+        Io_NtkWriteNodeInt( pFile, pNode, vCover );
+    Vec_IntFree( vCover );
     // write the end
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
