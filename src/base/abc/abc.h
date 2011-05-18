@@ -837,6 +837,7 @@ extern ABC_DLL char *             Abc_SopEncoderLog( Mem_Flex_t * pMan, int iBit
 extern ABC_DLL char *             Abc_SopDecoderPos( Mem_Flex_t * pMan, int nValues );
 extern ABC_DLL char *             Abc_SopDecoderLog( Mem_Flex_t * pMan, int nValues );
 extern ABC_DLL word               Abc_SopToTruth( char * pSop, int nInputs );
+extern ABC_DLL void               Abc_SopToTruth7( char * pSop, int nInputs, word r[2] );
 /*=== abcStrash.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fRecord );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int fRecord );

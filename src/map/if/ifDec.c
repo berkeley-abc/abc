@@ -390,6 +390,14 @@ static inline int If_Dec6HasVar( word t, int v )
 {
     return ((t & Truth6[v]) >> (1<<v)) != (t & ~Truth6[v]);
 }
+static inline int If_Dec7HasVar( word t[2], int v )
+{
+    assert( v >= 0 && v < 7 );
+    if ( v == 6 )
+        return t[0] != t[1]; 
+    return ((t[0] & Truth6[v]) >> (1<<v)) != (t[0] & ~Truth6[v])
+        || ((t[1] & Truth6[v]) >> (1<<v)) != (t[1] & ~Truth6[v]);
+}
 
 static inline void If_DecVerifyPerm( int Pla2Var[6], int Var2Pla[6] )
 {
@@ -397,7 +405,7 @@ static inline void If_DecVerifyPerm( int Pla2Var[6], int Var2Pla[6] )
     for ( i = 0; i < 6; i++ )
         assert( Pla2Var[Var2Pla[i]] == i );
 } 
-static word If_Dec6Perform( word t, int fDerive )
+word If_Dec6Perform( word t, int fDerive )
 { 
     word r = 0;
     int i, v, u, x, Count, Pla2Var[6], Var2Pla[6];
@@ -437,7 +445,7 @@ static word If_Dec6Perform( word t, int fDerive )
     assert( i == 15 );
     return r;
 }
-static word If_Dec7Perform( word t0[2], int fDerive )
+word If_Dec7Perform( word t0[2], int fDerive )
 {
     word t[2] = {t0[0], t0[1]}; 
     int i, v, u, y, Pla2Var[7], Var2Pla[7];
@@ -468,6 +476,190 @@ static word If_Dec7Perform( word t0[2], int fDerive )
 }
 
 
+// support minimization
+static inline int If_DecSuppIsMinBase( int Supp )
+{
+    return (Supp & (Supp+1)) == 0;
+}
+static inline word If_Dec6TruthShrink( word uTruth, int nVars, int nVarsAll, unsigned Phase )
+{
+    int i, k, Var = 0;
+    assert( nVarsAll <= 6 );
+    for ( i = 0; i < nVarsAll; i++ )
+        if ( Phase & (1 << i) )
+        {
+            for ( k = i-1; k >= Var; k-- )
+                uTruth = If_Dec6SwapAdjacent( uTruth, k );
+            Var++;
+        }
+    assert( Var == nVars );
+    return uTruth;
+}
+word If_Dec6MinimumBase( word uTruth, int * pSupp, int nVarsAll, int * pnVars )
+{
+    int v, iVar = 0, uSupp = 0;
+    assert( nVarsAll <= 6 );
+    for ( v = 0; v < nVarsAll; v++ )
+        if ( If_Dec6HasVar( uTruth, v ) )
+        {
+            uSupp |= (1 << v);
+            if ( pSupp )
+                pSupp[iVar] = pSupp[v];
+            iVar++;
+        }
+    if ( pnVars )
+        *pnVars = iVar;
+    if ( If_DecSuppIsMinBase( uSupp ) )
+        return uTruth;
+    return If_Dec6TruthShrink( uTruth, iVar, nVarsAll, uSupp );
+}
+
+static inline void If_Dec7TruthShrink( word uTruth[2], int nVars, int nVarsAll, unsigned Phase )
+{
+    int i, k, Var = 0;
+    assert( nVarsAll <= 7 );
+    for ( i = 0; i < nVarsAll; i++ )
+        if ( Phase & (1 << i) )
+        {
+            for ( k = i-1; k >= Var; k-- )
+                If_Dec7SwapAdjacent( uTruth, k );
+            Var++;
+        }
+    assert( Var == nVars );
+}
+void If_Dec7MinimumBase( word uTruth[2], int * pSupp, int nVarsAll, int * pnVars )
+{
+    int v, iVar = 0, uSupp = 0;
+    assert( nVarsAll <= 7 );
+    for ( v = 0; v < nVarsAll; v++ )
+        if ( If_Dec7HasVar( uTruth, v ) )
+        {
+            uSupp |= (1 << v);
+            if ( pSupp )
+                pSupp[iVar] = pSupp[v];
+            iVar++;
+        }
+    if ( pnVars )
+        *pnVars = iVar;
+    if ( If_DecSuppIsMinBase( uSupp ) )
+        return;
+    If_Dec7TruthShrink( uTruth, iVar, nVarsAll, uSupp );
+}
+
+
+
+// check for MUX decomposition
+static inline int If_Dec6SuppSize( word t )
+{
+    int v, Count = 0;
+    for ( v = 0; v < 6; v++ )
+        if ( If_Dec6Cofactor(t, v, 0) != If_Dec6Cofactor(t, v, 1) )
+            Count++;
+    return Count;
+}
+static inline int If_Dec6CheckMux( word t )
+{
+    int v;
+    for ( v = 0; v < 6; v++ )
+        if ( If_Dec6SuppSize(If_Dec6Cofactor(t, v, 0)) < 5 &&
+             If_Dec6SuppSize(If_Dec6Cofactor(t, v, 1)) < 5 )
+             return v;
+    return -1;
+}
+
+// check for MUX decomposition
+static inline void If_Dec7Cofactor( word t[2], int iVar, int fCof1, word r[2] )
+{
+    assert( iVar >= 0 && iVar < 7 );
+    if ( iVar == 6 )
+    {
+        if ( fCof1 )
+            r[0] = r[1] = t[1];
+        else
+            r[0] = r[1] = t[0];
+    }
+    else
+    {
+        if ( fCof1 )
+        {
+            r[0] = (t[0] & Truth6[iVar]) | ((t[0] & Truth6[iVar]) >> (1<<iVar));
+            r[1] = (t[1] & Truth6[iVar]) | ((t[1] & Truth6[iVar]) >> (1<<iVar));
+        }
+        else
+        {
+            r[0] = (t[0] &~Truth6[iVar]) | ((t[0] &~Truth6[iVar]) << (1<<iVar));
+            r[1] = (t[1] &~Truth6[iVar]) | ((t[1] &~Truth6[iVar]) << (1<<iVar));
+        }
+    }
+}
+static inline int If_Dec7SuppSize( word t[2] )
+{
+    word c0[2], c1[2];
+    int v, Count = 0;
+    for ( v = 0; v < 7; v++ )
+    {
+        If_Dec7Cofactor( t, v, 0, c0 );
+        If_Dec7Cofactor( t, v, 1, c1 );
+        if ( c0[0] != c1[0] || c0[1] != c1[1] )
+            Count++;
+    }
+    return Count;
+}
+static inline int If_Dec7CheckMux( word t[2] )
+{
+    word c0[2], c1[2];
+    int v;
+    for ( v = 0; v < 7; v++ )
+    {
+        If_Dec7Cofactor( t, v, 0, c0 );
+        If_Dec7Cofactor( t, v, 1, c1 );
+        if ( If_Dec7SuppSize(c0) < 5 && If_Dec7SuppSize(c1) < 5 )
+            return v;
+    }
+    return -1;
+}
+
+// find the best MUX decomposition
+int If_Dec6PickBestMux( word t, word Cofs[2] )
+{
+    int v, vBest = -1, Count0, Count1, CountBest = 1000;
+    for ( v = 0; v < 6; v++ )
+    {
+        Count0 = If_Dec6SuppSize( If_Dec6Cofactor(t, v, 0) );
+        Count1 = If_Dec6SuppSize( If_Dec6Cofactor(t, v, 1) );
+        if ( Count0 < 5 && Count1 < 5 && CountBest > Count0 + Count1 )
+        {
+            CountBest = Count0 + Count1;
+            vBest = v;
+            Cofs[0] = If_Dec6Cofactor(t, v, 0);
+            Cofs[1] = If_Dec6Cofactor(t, v, 1);
+        }
+    }
+    return vBest;
+}
+int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
+{
+    word c0[2], c1[2];
+    int v, vBest = -1, Count0, Count1, CountBest = 1000;
+    for ( v = 0; v < 6; v++ )
+    {
+        If_Dec7Cofactor( t, v, 0, c0 );
+        If_Dec7Cofactor( t, v, 1, c1 );
+        Count0 = If_Dec7SuppSize(c0);
+        Count1 = If_Dec7SuppSize(c1);
+        if ( Count0 < 5 && Count1 < 5 && CountBest > Count0 + Count1 )
+        {
+            CountBest = Count0 + Count1;
+            vBest = v;
+            c0r[0] = c0[0]; c0r[1] = c0[1];
+            c1r[0] = c1[0]; c1r[1] = c1[1];
+        }
+    }
+    return vBest;
+}
+
+
+
 /**Function*************************************************************
 
   Synopsis    [Performs additional check.]
@@ -486,17 +678,21 @@ int If_CutPerformCheckInt( unsigned * pTruth, int nVars, int nLeaves )
         return 1;
     if ( nLeaves == 6 )
     {
-        word t = ((word *)pTruth)[0];
-        word z = If_Dec6Perform( t, fDerive );
+        word z, t = ((word *)pTruth)[0];
+        if ( If_Dec6CheckMux(t) >= 0 )
+            return 1;
+        z = If_Dec6Perform( t, fDerive );
         if ( fDerive && z )
             If_Dec6Verify( t, z );
         return z != 0;
     }
     if ( nLeaves == 7 )
     {
-        word t[2], z;
+        word z, t[2];
         t[0] = ((word *)pTruth)[0];
         t[1] = ((word *)pTruth)[1];
+        if ( If_Dec7CheckMux(t) >= 0 )
+            return 1;
         z = If_Dec7Perform( t, fDerive );
         if ( fDerive && z )
             If_Dec7Verify( t, z );

@@ -1201,6 +1201,66 @@ word Abc_SopToTruth( char * pSop, int nInputs )
     return Result;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of the node.]
+ 
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SopToTruth7( char * pSop, int nInputs, word r[2] )
+{
+    static word Truth[7][2] = {
+        {0xAAAAAAAAAAAAAAAA,0xAAAAAAAAAAAAAAAA},
+        {0xCCCCCCCCCCCCCCCC,0xCCCCCCCCCCCCCCCC},
+        {0xF0F0F0F0F0F0F0F0,0xF0F0F0F0F0F0F0F0},
+        {0xFF00FF00FF00FF00,0xFF00FF00FF00FF00},
+        {0xFFFF0000FFFF0000,0xFFFF0000FFFF0000},
+        {0xFFFFFFFF00000000,0xFFFFFFFF00000000},
+        {0x0000000000000000,0xFFFFFFFFFFFFFFFF},
+    };
+    word Cube[2];
+    int v, lit = 0;
+    int nVars = Abc_SopGetVarNum(pSop);
+    assert( nVars >= 0 && nVars <= 7 );
+    assert( nVars == nInputs );
+    r[0] = r[1] = 0;
+    do {
+        Cube[0] = Cube[1] = ~0;
+        for ( v = 0; v < nVars; v++, lit++ )
+        {
+            if ( pSop[lit] == '1' )
+            {
+                Cube[0] &=  Truth[v][0];
+                Cube[1] &=  Truth[v][1];
+            }
+            else if ( pSop[lit] == '0' )
+            {
+                Cube[0] &= ~Truth[v][0];
+                Cube[1] &= ~Truth[v][1];
+            }
+            else if ( pSop[lit] != '-' )
+                assert( 0 );
+        }
+        r[0] |= Cube[0];
+        r[1] |= Cube[1];
+        assert( pSop[lit] == ' ' );
+        lit++;
+        lit++;
+        assert( pSop[lit] == '\n' );
+        lit++;
+    } while ( pSop[lit] );
+    if ( Abc_SopIsComplement(pSop) )
+    {
+        r[0] = ~r[0];
+        r[1] = ~r[1];
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

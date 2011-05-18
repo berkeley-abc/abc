@@ -8554,6 +8554,29 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ManStop( pGia );
 }
 */
+/*
+{
+    extern void Abc_BddTest( Aig_Man_t * pAig, int fNew );
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 0 );
+    Abc_BddTest( pAig, fVeryVerbose );
+    Aig_ManStop( pAig );
+}
+*/
+/*
+{
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Abc_Cex_t * Saig_PhaseTranslateCex( Aig_Man_t * p, Abc_Cex_t * pCex );
+    if ( pAbc->pCex && pNtk )
+    {
+        Abc_Cex_t * pNew;
+        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+        pNew = Saig_PhaseTranslateCex( pAig, pAbc->pCex );
+        Aig_ManStop( pAig );
+        Abc_FrameReplaceCex( pAbc, &pNew );
+    }
+}
+*/
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-vwh] <file_name>\n" );

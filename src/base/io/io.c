@@ -1533,13 +1533,16 @@ usage:
 int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
-    int c;
+    int c, fSpecial = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "jh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'j':
+                fSpecial ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -1556,12 +1559,16 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BLIF );
+//    if ( fSpecial )
+//        Io_WriteBlifSpecial( pAbc->pNtkCur, pFileName );
+//    else
+        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BLIF );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_blif [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_blif [-jh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the network into a BLIF file\n" );
+    fprintf( pAbc->Err, "\t-j     : enables special BLIF writing [default = %s]\n", fSpecial? "yes" : "no" );;
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .blif)\n" );
     return 1;

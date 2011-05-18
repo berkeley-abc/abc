@@ -21,6 +21,7 @@
 #include "ioAbc.h"
 #include "main.h"
 #include "mio.h"
+#include "kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -622,6 +623,248 @@ void Abc_NtkConvertBb2Wb( char * pFileNameIn, char * pFileNameOut, int fSeq, int
     }
     Io_WriteBlif( pNetlist, pFileNameOut, 1, 1, fSeq );
     Abc_NtkDelete( pNetlist );
+}
+
+
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms truth table into an SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Io_NtkDeriveSop( Mem_Flex_t * pMem, unsigned uTruth, int nVars )
+{
+    char * pSop;
+    Vec_Int_t * vCover = Vec_IntAlloc( 100 );
+    int RetValue = Kit_TruthIsop( &uTruth, nVars, vCover, 1 );
+    assert( RetValue == 0 || RetValue == 1 );
+    // check the case of constant cover
+    assert( !(Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0)) );
+    // derive the AIG for that tree
+    pSop = Abc_SopCreateFromIsop( pMem, nVars, vCover );
+    if ( RetValue )
+        Abc_SopComplement( pSop );
+    Vec_IntFree( vCover );
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the node into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pNet;
+    int i, nVars = Abc_ObjFaninNum(pNode);
+    if ( nVars > 7 )
+    {
+        printf( "Node \"%s\" has more than 7 inputs. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        return;
+    }
+    if ( nVars <= 4 )
+    {
+        // write the .names line
+        fprintf( pFile, ".names" );
+        Abc_ObjForEachFanin( pNode, pNet, i )
+            fprintf( pFile, " %s", Abc_ObjName(pNet) );
+        // get the output name
+        fprintf( pFile, " %s\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        // write the cubes
+        fprintf( pFile, "%s", (char*)Abc_ObjData(pNode) );
+    }
+    else
+    {
+        extern int  If_Dec6PickBestMux( word t, word Cofs[2] );
+        extern int  If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] );
+        extern word If_Dec6MinimumBase( word uTruth, int * pSupp, int nVarsAll, int * pnVars );
+        extern void If_Dec7MinimumBase( word uTruth[2], int * pSupp, int nVarsAll, int * pnVars );
+        extern word If_Dec6Perform( word t, int fDerive );
+        extern word If_Dec7Perform( word t[2], int fDerive );
+
+        char * pSop;
+        word z, uTruth6, uTruth7[2], Cofs6[2], Cofs7[2][2];
+        int c, iVar, nVarsMin[2], pVars[2][10];
+
+        // collect variables
+        Abc_ObjForEachFanin( pNode, pNet, i )
+            pVars[0][i] = pVars[1][i] = i;
+
+        // derive truth table
+        if ( nVars == 7 )
+        {
+            Abc_SopToTruth7( (char*)Abc_ObjData(pNode), nVars, uTruth7 );
+            iVar = If_Dec7PickBestMux( uTruth7, Cofs7[0], Cofs7[1] );
+        }
+        else
+        {
+            uTruth6 = Abc_SopToTruth( (char*)Abc_ObjData(pNode), nVars );
+            iVar = If_Dec6PickBestMux( uTruth6, Cofs6 );
+        }
+        // perform MUX decomposition
+        if ( iVar >= 0 )
+        {
+            if ( nVars == 7 )
+            {
+                If_Dec7MinimumBase( Cofs7[0], pVars[0], nVars, &nVarsMin[0] );
+                If_Dec7MinimumBase( Cofs7[1], pVars[1], nVars, &nVarsMin[1] );
+            }
+            else
+            {
+                Cofs6[0] = If_Dec6MinimumBase( Cofs6[0], pVars[0], nVars, &nVarsMin[0] );
+                Cofs6[1] = If_Dec6MinimumBase( Cofs6[1], pVars[1], nVars, &nVarsMin[1] );
+            }
+            assert( nVarsMin[0] < 5 );
+            assert( nVarsMin[1] < 5 );
+            // write cofactors
+            for ( c = 0; c < 2; c++ )
+            {
+                pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, 
+                    (unsigned)(nVars == 7 ? Cofs7[c][0] : Cofs6[c]), nVarsMin[c] );
+                fprintf( pFile, ".names" );
+                for ( i = 0; i < nVarsMin[c]; i++ )
+                    fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pVars[c][i])) );
+                fprintf( pFile, " %s_cascade%d\n", Abc_ObjName(Abc_ObjFanout0(pNode)), c );
+                fprintf( pFile, "%s", pSop );
+            }
+            // write MUX
+            fprintf( pFile, ".names" );
+            fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,iVar)) );
+            fprintf( pFile, " %s_cascade0", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( pFile, " %s_cascade1", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( pFile, " %s\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( pFile, "1-1 1\n01- 1\n" );
+            return;
+        }
+
+        // try cascade decomposition
+        if ( nVars == 7 )
+            z = If_Dec7Perform( uTruth7, 1 );
+        else
+            z = If_Dec6Perform( uTruth6, 1 );
+        if ( z == 0 )
+        {
+            printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            return;
+        }
+
+        // collect the nodes
+        for ( c = 0; c < 2; i++ )
+        {
+            uTruth7[c]  = ((c ? z >> 32 : z) & 0xffff);
+            uTruth7[c] |= (uTruth7[c] << 16);
+            uTruth7[c] |= (uTruth7[c] << 32);
+            for ( i = 0; i < 4; i++ )
+                pVars[c][i] = (z >> (c*32+16+4*i)) & 7;
+
+            // minimize truth table
+            Cofs6[i] = If_Dec6MinimumBase( uTruth7[i], pVars[i], 4, &nVarsMin[i] );
+            assert( c ? nVarsMin[0] == 4 : nVarsMin[1] <= 4 );
+
+            // write the nodes
+            pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, (unsigned)Cofs6[c], nVarsMin[c] );
+            fprintf( pFile, ".names" );
+            for ( i = 0; i < nVarsMin[c]; i++ )
+                if ( pVars[c][i] == 7 )
+                    fprintf( pFile, " %s_cascade", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                else
+                    fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pVars[c][i])) );
+            fprintf( pFile, " %s%s\n", Abc_ObjName(Abc_ObjFanout0(pNode)), c? "_cascade" : "" );
+            fprintf( pFile, "%s", pSop );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the network into a BLIF file with the given name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteBlifInt( Abc_Ntk_t * pNtk, char * FileName )
+{
+    FILE * pFile;
+    Abc_Obj_t * pNode, * pLatch;
+    int i;
+    assert( Abc_NtkIsNetlist(pNtk) );
+    // start writing the file
+    pFile = fopen( FileName, "w" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Io_WriteBlifInt(): Cannot open the output file.\n" );
+        return;
+    }
+    fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
+    // write the model name
+    fprintf( pFile, ".model %s\n", Abc_NtkName(pNtk) );
+    // write the PIs
+    fprintf( pFile, ".inputs" );
+    Io_NtkWritePis( pFile, pNtk, 1 );
+    fprintf( pFile, "\n" );
+    // write the POs
+    fprintf( pFile, ".outputs" );
+    Io_NtkWritePos( pFile, pNtk, 1 );
+    fprintf( pFile, "\n" );
+    // write the latches
+    if ( Abc_NtkLatchNum(pNtk) )
+        fprintf( pFile, "\n" );
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        Io_NtkWriteLatch( pFile, pLatch );
+    if ( Abc_NtkLatchNum(pNtk) )
+        fprintf( pFile, "\n" );
+    // write each internal node
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Io_NtkWriteNodeInt( pFile, pNode );
+    // write the end
+    fprintf( pFile, ".end\n\n" );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the network into a BLIF file with the given name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteBlifSpecial( Abc_Ntk_t * pNtk, char * FileName )
+{
+    Abc_Ntk_t * pNtkTemp;
+    assert( Abc_NtkIsLogic(pNtk) );
+    Abc_NtkToSop( pNtk, 0 );
+    // derive the netlist
+    pNtkTemp = Abc_NtkToNetlist(pNtk);
+    if ( pNtkTemp == NULL )
+    {
+        fprintf( stdout, "Writing BLIF has failed.\n" );
+        return;
+    }
+    Io_WriteBlifInt( pNtkTemp, FileName );
+    Abc_NtkDelete( pNtkTemp );
 }
 
 ////////////////////////////////////////////////////////////////////////
