@@ -1029,6 +1029,49 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Derives CEX for the original AIG from CEX of the unrolled AIG.]
+
+  Description [The number of PIs of the given CEX should divide by the number 
+  of PIs of the original AIG without a remainder.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Saig_PhaseTranslateCex( Aig_Man_t * p, Abc_Cex_t * pCex )
+{
+    Abc_Cex_t * pNew;
+    int i, k, iFrame, nFrames;
+    // make sure the PI count of the AIG is a multiple of the PI count of the CEX
+    // if this is not true, the CEX is not derived as the result of unrolling of pAig
+    // or the unrolled CEX went through transformations that change the PI count
+    if ( pCex->nPis % Saig_ManPiNum(p) != 0 )
+    {
+        printf( "The PI count in the AIG and in the CEX do not match.\n" );
+        return NULL;
+    }
+    // get the number of unrolled frames
+    nFrames = pCex->nPis / Saig_ManPiNum(p);
+    // get the frame where it fails
+    iFrame = pCex->iFrame * nFrames + pCex->iPo / Saig_ManPoNum(p);
+    // start a new CEX (assigns: p->nRegs, p->nPis, p->nBits)
+    pNew = Abc_CexAlloc( Saig_ManRegNum(p), Saig_ManPiNum(p), iFrame+1 );
+    assert( pNew->nBits == pNew->nPis * (iFrame + 1) + pNew->nRegs );
+    // now assign the failed frame and the failed PO (p->iFrame and p->iPo)
+    pNew->iFrame = iFrame;
+    pNew->iPo    = pCex->iPo % Saig_ManPoNum(p);
+    // copy the bit data
+    for ( i = pCex->nRegs, k = pNew->nRegs; k < pNew->nBits; k++, i++ )
+        if ( Aig_InfoHasBit( pCex->pData, i ) )
+            Aig_InfoSetBit( pNew->pData, k );
+    assert( i <= pCex->nBits );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
