@@ -3523,6 +3523,10 @@ SOURCE=.\src\aig\saig\saigMiter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigOutDec.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigPba.c
 # End Source File
 # Begin Source File

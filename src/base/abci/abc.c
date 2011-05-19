@@ -160,6 +160,7 @@ static int Abc_CommandCover                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandDouble                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBb2Wb                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOutdec                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandQuaVar                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -579,6 +580,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "double",        Abc_CommandDouble,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "inter",         Abc_CommandInter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "bb2wb",         Abc_CommandBb2Wb,            0 );
+    Cmd_CommandAdd( pAbc, "Various",      "outdec",        Abc_CommandOutdec,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 //    Cmd_CommandAdd( pAbc, "Various",      "qbf_solve",     Abc_CommandTest,               0 );
 
@@ -8419,6 +8421,82 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandOutdec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkDarOutdec( Abc_Ntk_t * pNtk, int nLits, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtkRes;
+    int c, nLits = 1;
+    int fVerbose = 0;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Lvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLits = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLits < 1 || nLits > 2 ) 
+            {
+                printf( "Currently, command \"outdec\" works for 1-lit and 2-lit primes only.\n" );
+                goto usage;
+            }
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "Only works for strashed networks.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkDarOutdec( pNtk, nLits, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Command has failed.\n" );
+        return 0;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: outdec [-Lvh]\n" );
+    Abc_Print( -2, "\t         performs prime decomposition of the first output\n" );
+    Abc_Print( -2, "\t-L num : the number of literals in the primes [default = %d]\n", nLits );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -8577,6 +8655,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 }
 */
+
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-vwh] <file_name>\n" );

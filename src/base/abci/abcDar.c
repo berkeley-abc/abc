@@ -3843,6 +3843,36 @@ void Abc_NtkDarConstr( Abc_Ntk_t * pNtk, int nFrames, int nConfs, int nProps, in
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarOutdec( Abc_Ntk_t * pNtk, int nLits, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Saig_ManDecPropertyOutput( pTemp = pMan, nLits, fVerbose );
+    Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav(pMan->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pMan->pSpec);
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs BDD-based reachability analysis.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarUnfold( Abc_Ntk_t * pNtk, int nFrames, int nConfs, int nProps, int fStruct, int fOldAlgo, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
