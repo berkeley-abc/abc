@@ -1495,6 +1495,15 @@ void Abc_NtkSwapOneOutput( Abc_Ntk_t * pNtk, int iOutput )
         return;
     pObj1      = Abc_NtkPo( pNtk, 0 );
     pObj2      = Abc_NtkPo( pNtk, iOutput );
+    if ( Abc_ObjFanin0(pObj1) == Abc_ObjFanin0(pObj2) )
+    {
+        if ( Abc_ObjFaninC0(pObj1) ^ Abc_ObjFaninC0(pObj2) )
+        {
+            Abc_ObjXorFaninC( pObj1, 0 );
+            Abc_ObjXorFaninC( pObj2, 0 );
+        }
+        return;
+    }
     pChild1Old = Abc_ObjChild0( pObj1 );
     pChild2Old = Abc_ObjChild0( pObj2 );
     pChild1    = Abc_ObjNotCond( pChild1Old, Abc_ObjFaninC0(pObj2) );
