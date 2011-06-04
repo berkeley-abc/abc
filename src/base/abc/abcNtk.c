@@ -1514,6 +1514,24 @@ void Abc_NtkSwapOneOutput( Abc_Ntk_t * pNtk, int iOutput )
     assert( Abc_ObjChild0(pObj2) == pChild1Old );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput )
+{
+    Abc_Obj_t * pObj = Abc_NtkPo(pNtk, iOutput);
+    if ( Abc_ObjFanin0(pObj) == Abc_AigConst1(pNtk) && Abc_ObjFaninC0(pObj) )
+        Abc_NtkDeleteObj( pObj );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

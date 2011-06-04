@@ -130,6 +130,7 @@ static int Abc_CommandOrPos                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAndPos                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandZeroPo                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSwapPos                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRemovePo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAddPi                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAppend                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -550,6 +551,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "andpos",        Abc_CommandAndPos,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "zeropo",        Abc_CommandZeroPo,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "swappos",       Abc_CommandSwapPos,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "removepo",      Abc_CommandRemovePo,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "addpi",         Abc_CommandAddPi,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
@@ -5868,6 +5870,81 @@ usage:
     Abc_Print( -2, "usage: swappos [-N <num>] [-h]\n" );
     Abc_Print( -2, "\t           swap the 0-th PO with the <num>-th PO\n" );
     Abc_Print( -2, "\t-N <num> : the zero-based index of the PO to swap [default = %d]\n", iOutput );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRemovePo( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
+    int c, iOutput = -1;
+    extern void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iOutput = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iOutput < 0 ) 
+                goto usage;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "The network is not strashed.\n" );
+        return 1;
+    }
+    if ( iOutput < 0 )
+    {
+        Abc_Print( -1, "The output index is not specified.\n" );
+        return 1;
+    }
+    if ( iOutput >= Abc_NtkPoNum(pNtk) )
+    {
+        Abc_Print( -1, "The output index is larger than the allowed POs.\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkDup( pNtk );
+    Abc_NtkRemovePo( pNtkRes, iOutput );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: removepo [-N <num>] [-h]\n" );
+    Abc_Print( -2, "\t           remove PO with number <num> if it is const0\n" );
+    Abc_Print( -2, "\t-N <num> : the zero-based index of the PO to remove [default = %d]\n", iOutput );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
