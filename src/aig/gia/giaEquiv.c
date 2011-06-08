@@ -887,7 +887,7 @@ Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2 )
+int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2, int fLatchA, int fLatchB )
 {
     Gia_Man_t * pGia1, * pGia2, * pMiter;
     Gia_Obj_t * pObj1, * pObj2, * pObjM, * pObj;
@@ -969,9 +969,17 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
         {
             pObj = Gia_ManObj( pGia, iObj );
             if ( ClassA == -1 && pObj->fMark0 && !pObj->fMark1 )
+            {
+                if ( fLatchA && !Gia_ObjIsRo(pGia, pObj) )
+                    continue;
                 ClassA = iObj;
+            }
             if ( ClassB == -1 && pObj->fMark1 && !pObj->fMark0 )
+            {
+                if ( fLatchB && !Gia_ObjIsRo(pGia, pObj) )
+                    continue;
                 ClassB = iObj;
+            }
         }
         // undo equivalence classes
         for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj; 

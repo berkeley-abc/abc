@@ -26278,15 +26278,22 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2 );
+    extern int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2, int fLatchA, int fLatchB );
     char pFileName[10], * pFileName1, * pFileName2;
     Gia_Man_t * pTemp, * pAux;
+    int fLatchA = 0, fLatchB = 0;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "abvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'a':
+            fLatchA ^= 1;
+            break;
+        case 'b':
+            fLatchB ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -26324,7 +26331,7 @@ int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
     memcpy( pTemp->pNexts, pAbc->pGia->pNexts, sizeof(int) * Gia_ManObjNum(pTemp) );
 //Gia_ManPrintStats( pTemp, 0 );
     // filter the classes
-    if ( !Gia_ManFilterEquivsForSpeculation( pTemp, pFileName1, pFileName2 ) )
+    if ( !Gia_ManFilterEquivsForSpeculation( pTemp, pFileName1, pFileName2, fLatchA, fLatchB ) )
     {
         Gia_ManStop( pTemp );
         Abc_Print( -1, "Filtering equivalences has failed.\n" );
@@ -26346,9 +26353,11 @@ int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &srm2 [-vh] <PartA_FileName> <PartB_FileName>\n" );
+    Abc_Print( -2, "usage: &srm2 [-abvh] <PartA_FileName> <PartB_FileName>\n" );
     Abc_Print( -2, "\t         writes speculatively reduced model into file \"%s\"\n", pFileName );
     Abc_Print( -2, "\t         only preserves equivalences across PartA and PartB\n" );
+    Abc_Print( -2, "\t-a     : toggle using latches only in PartA [default = %s]\n", fLatchA? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle using latches only in PartB [default = %s]\n", fLatchB? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
