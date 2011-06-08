@@ -348,7 +348,7 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     if ( fVerbose )
     {
         int Ent;
-/*
+
         printf( "Const0 = " );
         Gia_ManForEachConst( p, i )
             printf( "%d ", i );
@@ -356,7 +356,7 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
         Counter = 0;
         Gia_ManForEachClass( p, i )
             Gia_ManEquivPrintOne( p, i, ++Counter );
-*/
+
         Gia_ManLevelNum( p );
         Gia_ManForEachClass( p, i )
             if ( i % 100 == 0 )
@@ -873,6 +873,135 @@ Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces AIG using equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2 )
+{
+    Gia_Man_t * pGia1, * pGia2, * pMiter;
+    Gia_Obj_t * pObj1, * pObj2, * pObjM, * pObj;
+    int i, iObj, iNext, Counter = 0;
+    if ( pGia->pReprs == NULL || pGia->pNexts == NULL )
+    {
+        printf( "Equivalences are not defined.\n" );
+        return 0;
+    }
+    pGia1 = Gia_ReadAiger( pName1, 0 );
+    if ( pGia1 == NULL )
+    {
+        printf( "Cannot read first file %s.\n", pName1 );
+        return 0;
+    }
+    pGia2 = Gia_ReadAiger( pName2, 0 );
+    if ( pGia2 == NULL )
+    {
+        Gia_ManStop( pGia2 );
+        printf( "Cannot read second file %s.\n", pName2 );
+        return 0;
+    }
+    pMiter = Gia_ManMiter( pGia1, pGia2, 0, 1, 0 );
+    if ( pMiter == NULL )
+    {
+        Gia_ManStop( pGia1 );
+        Gia_ManStop( pGia2 );
+        printf( "Cannot create sequential miter.\n" );
+        return 0;
+    }
+    // make sure the miter is isomorphic
+    if ( Gia_ManObjNum(pGia) != Gia_ManObjNum(pMiter) )
+    {
+        Gia_ManStop( pGia1 );
+        Gia_ManStop( pGia2 );
+        Gia_ManStop( pMiter );
+        printf( "The number of objects in different.\n" );
+        return 0;
+    }
+    if ( memcmp( pGia->pObjs, pMiter->pObjs, sizeof(Gia_Obj_t) *  Gia_ManObjNum(pGia) ) )
+    {
+        Gia_ManStop( pGia1 );
+        Gia_ManStop( pGia2 );
+        Gia_ManStop( pMiter );
+        printf( "The AIG structure of the miter does not match.\n" );
+        return 0;
+    }
+    // transfer copies
+    Gia_ManCleanMark0( pGia );
+    Gia_ManForEachObj( pGia1, pObj1, i )
+    {
+        if ( pObj1->Value == ~0 )
+            continue;
+        pObjM = Gia_ManObj( pMiter, Gia_Lit2Var(pObj1->Value) );
+        pObj = Gia_ManObj( pGia, Gia_ObjId(pMiter, pObjM) );
+        pObj->fMark0 = 1;
+    }
+    Gia_ManCleanMark1( pGia );
+    Gia_ManForEachObj( pGia2, pObj2, i )
+    {
+        if ( pObj2->Value == ~0 )
+            continue;
+        pObjM = Gia_ManObj( pMiter, Gia_Lit2Var(pObj2->Value) );
+        pObj = Gia_ManObj( pGia, Gia_ObjId(pMiter, pObjM) );
+        pObj->fMark1 = 1;
+    }
+
+    // filter equivalences
+    Gia_ManForEachConst( pGia, i )
+    {
+        Gia_ObjUnsetRepr( pGia, i );
+        assert( pGia->pNexts[i] == 0 );
+    }
+    Gia_ManForEachClass( pGia, i )
+    {
+        // find the first colorA and colorB
+        int ClassA = -1, ClassB = -1;
+        Gia_ClassForEachObj( pGia, i, iObj )
+        {
+            pObj = Gia_ManObj( pGia, iObj );
+            if ( ClassA == -1 && pObj->fMark0 && !pObj->fMark1 )
+                ClassA = iObj;
+            if ( ClassB == -1 && pObj->fMark1 && !pObj->fMark0 )
+                ClassB = iObj;
+        }
+        // undo equivalence classes
+        for ( iObj = i, iNext = Gia_ObjNext(pGia, iObj); iObj; 
+              iObj = iNext, iNext = Gia_ObjNext(pGia, iObj) )
+        {
+            Gia_ObjUnsetRepr( pGia, iObj );
+            Gia_ObjSetNext( pGia, iObj, 0 );
+        }
+        assert( !Gia_ObjIsHead(pGia, i) );
+        if ( ClassA > 0 && ClassB > 0 )
+        {
+            if ( ClassA > ClassB )
+            {
+                ClassA ^= ClassB;
+                ClassB ^= ClassA;
+                ClassA ^= ClassB;
+            }
+            assert( ClassA < ClassB );
+            Gia_ObjSetNext( pGia, ClassA, ClassB );
+            Gia_ObjSetRepr( pGia, ClassB, ClassA );
+            Counter++;
+            assert( Gia_ObjIsHead(pGia, ClassA) );
+        }
+    }
+    printf( "The number of two-node classes after filtering = %d.\n", Counter );
+//Gia_ManEquivPrintClasses( pGia, 1, 0 );
+
+    Gia_ManCleanMark0( pGia );
+    Gia_ManCleanMark1( pGia );
+    return 1;
 }
 
 /**Function*************************************************************

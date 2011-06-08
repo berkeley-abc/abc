@@ -356,6 +356,7 @@ static int Abc_CommandAbc9Choice             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Srm2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reduce             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9EquivMark          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -771,6 +772,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fraig",        Abc_CommandAbc9Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm",          Abc_CommandAbc9Srm,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&srm2",         Abc_CommandAbc9Srm2,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reduce",       Abc_CommandAbc9Reduce,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&equiv_mark",   Abc_CommandAbc9EquivMark,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cec",          Abc_CommandAbc9Cec,          0 );
@@ -26257,6 +26259,95 @@ usage:
     Abc_Print( -2, "\t-r     : toggle writing reduced network for synthesis [default = %s]\n", fSynthesis? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle using speculation at the internal nodes [default = %s]\n", fSpeculate? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle filtering to remove redundant equivalences [default = %s]\n", fSkipSome? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2 );
+    char pFileName[10], * pFileName1, * pFileName2;
+    Gia_Man_t * pTemp, * pAux;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Srm2(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( pAbc->pGia->pReprs == NULL || pAbc->pGia->pNexts == NULL )
+    {
+        Abc_Print( -1, "Equivalences are not defined.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 2 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Srm2(): Expecting two file names on the command line.\n" );
+        return 1;
+    }
+    // get the input file name
+    pFileName1 = argv[globalUtilOptind];
+    pFileName2 = argv[globalUtilOptind+1];
+    // create file name 
+    sprintf( pFileName,  "gsrm.aig" );
+    pTemp = Gia_ManDup( pAbc->pGia );
+    // copy equivalences
+    pTemp->pReprs = ABC_ALLOC( Gia_Rpr_t, Gia_ManObjNum(pTemp) );
+    memcpy( pTemp->pReprs, pAbc->pGia->pReprs, sizeof(Gia_Rpr_t) * Gia_ManObjNum(pTemp) );
+    pTemp->pNexts = ABC_ALLOC( int, Gia_ManObjNum(pTemp) );
+    memcpy( pTemp->pNexts, pAbc->pGia->pNexts, sizeof(int) * Gia_ManObjNum(pTemp) );
+//Gia_ManPrintStats( pTemp, 0 );
+    // filter the classes
+    if ( !Gia_ManFilterEquivsForSpeculation( pTemp, pFileName1, pFileName2 ) )
+    {
+        Gia_ManStop( pTemp );
+        Abc_Print( -1, "Filtering equivalences has failed.\n" );
+        return 1;
+    }
+//Gia_ManPrintStats( pTemp, 0 );
+    pTemp = Gia_ManSpecReduce( pAux = pTemp, 0, 0, 1, 0, 0 );
+    Gia_ManStop( pAux );
+    if ( pTemp )
+    {
+        pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
+        Gia_ManStop( pAux );
+
+        Gia_WriteAiger( pTemp, pFileName, 0, 0 );
+        Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
+        Gia_ManPrintStatsShort( pTemp );
+        Gia_ManStop( pTemp );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &srm2 [-vh]\n" );
+    Abc_Print( -2, "\t         writes speculatively reduced model into file \"%s\"\n", pFileName );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
