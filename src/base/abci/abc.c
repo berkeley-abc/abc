@@ -26346,8 +26346,9 @@ int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &srm2 [-vh]\n" );
+    Abc_Print( -2, "usage: &srm2 [-vh] <PartA_FileName> <PartB_FileName>\n" );
     Abc_Print( -2, "\t         writes speculatively reduced model into file \"%s\"\n", pFileName );
+    Abc_Print( -2, "\t         only preserves equivalences across PartA and PartB\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
