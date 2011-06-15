@@ -357,6 +357,7 @@ static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm2               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Filter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reduce             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9EquivMark          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -773,6 +774,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&fraig",        Abc_CommandAbc9Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm",          Abc_CommandAbc9Srm,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm2",         Abc_CommandAbc9Srm2,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&filter",       Abc_CommandAbc9Filter,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reduce",       Abc_CommandAbc9Reduce,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&equiv_mark",   Abc_CommandAbc9EquivMark,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cec",          Abc_CommandAbc9Cec,          0 );
@@ -26279,7 +26281,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2, int fLatchA, int fLatchB );
     char pFileName[10], * pFileName1, * pFileName2;
     Gia_Man_t * pTemp, * pAux;
     int fLatchA = 0, fLatchB = 0;
@@ -26359,6 +26360,84 @@ usage:
     Abc_Print( -2, "\t         only preserves equivalences across PartA and PartB\n" );
     Abc_Print( -2, "\t-a     : toggle using latches only in PartA [default = %s]\n", fLatchA? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggle using latches only in PartB [default = %s]\n", fLatchB? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Filter( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * pFileName1 = NULL, * pFileName2 = NULL;
+    int fFlopsOnly = 0, fFlopsWith = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fgvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'f':
+            fFlopsOnly ^= 1;
+            break;
+        case 'g':
+            fFlopsWith ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Srm2(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( pAbc->pGia->pReprs == NULL || pAbc->pGia->pNexts == NULL )
+    {
+        Abc_Print( -1, "Equivalences are not defined.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind && argc != globalUtilOptind + 2 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Srm2(): Expecting two file names on the command line.\n" );
+        return 1;
+    }
+    // filter using one of the choices
+    if ( fFlopsOnly ^ fFlopsWith )
+        Gia_ManFilterEquivsUsingLatches( pAbc->pGia, fFlopsOnly, fFlopsWith );
+    // get the input file name
+    if ( argc == globalUtilOptind + 2 )
+    {
+        pFileName1 = argv[globalUtilOptind];
+        pFileName2 = argv[globalUtilOptind+1];
+        if ( !Gia_ManFilterEquivsUsingParts( pAbc->pGia, pFileName1, pFileName2 ) )
+        {
+            Abc_Print( -1, "Filtering equivalences using PartA and PartB has failed.\n" );
+            return 1;
+        }
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &filter [-fgvh] <PartA_FileName> <PartB_FileName>\n" );
+    Abc_Print( -2, "\t         performs filtering of equivalence classes\n" );
+    Abc_Print( -2, "\t         (if Parts A/B are given, removes classes composed of one part)\n" );
+    Abc_Print( -2, "\t-f     : toggle removing all elements except flops [default = %s]\n", fFlopsOnly? "yes": "no" );
+    Abc_Print( -2, "\t-g     : toggle removing removing classes without flops [default = %s]\n", fFlopsWith? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
