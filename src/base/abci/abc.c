@@ -5741,7 +5741,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes = NULL;
     int c, iOutput = -1;
     extern void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput );
 
@@ -5790,9 +5790,10 @@ int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDup( pNtk );
-    Abc_NtkDropOneOutput( pNtkRes, iOutput );
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+//    pNtkRes = Abc_NtkDup( pNtk );
+//    Abc_NtkDropOneOutput( pNtkRes, iOutput );
+//    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    Abc_NtkDropOneOutput( pNtk, iOutput );
     return 0;
 
 usage:
