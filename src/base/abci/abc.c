@@ -20425,8 +20425,8 @@ usage:
     Abc_Print( -2, "usage: permute [-iofh]\n" );
     Abc_Print( -2, "\t        performs random permutation of inputs/outputs/flops\n" );
     Abc_Print( -2, "\t-i    : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
-    Abc_Print( -2, "\t-o    : toggle permuting primary inputs [default = %s]\n", fOutputs? "yes": "no" );
-    Abc_Print( -2, "\t-f    : toggle permuting primary inputs [default = %s]\n", fFlops? "yes": "no" );
+    Abc_Print( -2, "\t-o    : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
