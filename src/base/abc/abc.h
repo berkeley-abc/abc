@@ -210,6 +210,7 @@ struct Abc_Ntk_t_
     void *            pHaig;         // history AIG
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
+    Vec_Int_t *       vObjPerm;      // permutation saved
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
@@ -707,6 +708,8 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateWithNode( char * pSop );
 extern ABC_DLL void               Abc_NtkDelete( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches );
+extern ABC_DLL void               Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops );
+extern ABC_DLL void               Abc_NtkUnpermute( Abc_Ntk_t * pNtk );
 /*=== abcObj.c ==========================================================*/
 extern ABC_DLL Abc_Obj_t *        Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 extern ABC_DLL void               Abc_ObjRecycle( Abc_Obj_t * pObj );
