@@ -2031,6 +2031,10 @@ SOURCE=.\src\map\if\ifDec.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifDec10.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifLib.c
 # End Source File
 # Begin Source File

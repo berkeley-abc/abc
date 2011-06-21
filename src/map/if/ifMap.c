@@ -140,7 +140,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell && RetValue < 2 )
             {
-                assert( pCut->nLimit >= 4 && pCut->nLimit <= 7 );
+                assert( pCut->nLimit >= 4 && pCut->nLimit <= 10 );
                 pCut->fUseless = !p->pPars->pFuncCell( If_CutTruth(pCut), pCut->nLimit, pCut->nLeaves );
                 p->nCutsUseless += pCut->fUseless;
             }
