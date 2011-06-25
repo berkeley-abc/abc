@@ -752,6 +752,91 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     ABC_FREE(b.buf);
 }
 
+
+#include "giaAig.h"
+#include "saig.h"
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteAigerCex( Abc_Cex_t * pCex, Abc_Ntk_t * pNtk, void * pG, char * pFileName )
+{
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    FILE * pFile;
+    Aig_Man_t * pAig;
+    Aig_Obj_t * pObj, * pObj2;
+    Gia_Man_t * pGia = (Gia_Man_t *)pG;
+    int k, f, b;
+    assert( pCex != NULL );
+
+    // derive AIG
+    if ( pNtk != NULL && 
+         Abc_NtkPiNum(pNtk)    == pCex->nPis && 
+         Abc_NtkLatchNum(pNtk) == pCex->nRegs )
+    {
+        pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    }
+    else if ( pGia != NULL && 
+         Gia_ManPiNum(pGia)  == pCex->nPis && 
+         Gia_ManRegNum(pGia) == pCex->nRegs )
+    {
+        pAig = Gia_ManToAigSimple( pGia );
+    }
+    else
+    {
+        printf( "AIG parameters do not match those of the CEX.\n" );
+        return;
+    }
+
+    // create output file
+    pFile = fopen( pFileName, "wb" );
+    fprintf( pFile, "1\n" );
+    b = pCex->nRegs;
+    for ( k = 0; k < pCex->nRegs; k++ )
+        fprintf( pFile, "0" );
+    fprintf( pFile, " " );
+    Aig_ManCleanMarkA( pAig );
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        for ( k = 0; k < pCex->nPis; k++ )
+        {
+            fprintf( pFile, "%d", Aig_InfoHasBit(pCex->pData, b) );
+            Aig_ManPi( pAig, k )->fMarkA = Aig_InfoHasBit(pCex->pData, b++);
+        }
+        fprintf( pFile, " " );
+        Aig_ManForEachNode( pAig, pObj, k )
+            pObj->fMarkA = (Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj)) &
+                           (Aig_ObjFanin1(pObj)->fMarkA ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachPo( pAig, pObj, k )
+            pObj->fMarkA = (Aig_ObjFanin0(pObj)->fMarkA ^ Aig_ObjFaninC0(pObj));
+        Saig_ManForEachPo( pAig, pObj, k )
+            fprintf( pFile, "%d", pObj->fMarkA );
+        fprintf( pFile, " " );
+        Saig_ManForEachLi( pAig, pObj, k )
+            fprintf( pFile, "%d", pObj->fMarkA );
+        fprintf( pFile, "\n" );
+        if ( f == pCex->iFrame )
+            break;
+        Saig_ManForEachLi( pAig, pObj, k )
+            fprintf( pFile, "%d", pObj->fMarkA );
+        fprintf( pFile, " " );
+        Saig_ManForEachLiLo( pAig, pObj, pObj2, k )
+            pObj2->fMarkA = pObj->fMarkA;
+    }  
+    assert( b == pCex->nBits );
+    fclose( pFile );
+    Aig_ManCleanMarkA( pAig );
+    Aig_ManStop( pAig );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
