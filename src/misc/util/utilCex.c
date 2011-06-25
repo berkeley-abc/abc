@@ -152,6 +152,30 @@ Abc_Cex_t * Abc_CexDup( Abc_Cex_t * p, int nRegsNew )
 
 /**Function*************************************************************
 
+  Synopsis    [Derives CEX from comb model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Abc_CexDeriveFromCombModel( int * pModel, int nPis, int nRegs, int iPo )
+{
+    Abc_Cex_t * pCex;
+    int i;
+    pCex = Abc_CexAlloc( nRegs, nPis, 1 );
+    pCex->iPo = iPo;
+    pCex->iFrame = 0;
+    for ( i = 0; i < nPis; i++ )
+        if ( pModel[i] )
+            pCex->pData[i>>5] |= (1<<(i & 31));     
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints out the counter-example.]
 
   Description []
@@ -195,6 +219,7 @@ void Abc_CexFree( Abc_Cex_t * p )
 {
     ABC_FREE( p );
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

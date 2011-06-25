@@ -10633,6 +10633,13 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_PrintTime( 1, "Time", clock() - clk );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkTemp );
+    // update counter example
+    if ( RetValue == 0 && Abc_NtkLatchNum(pNtkTemp) == 0 )
+    {
+        Abc_Cex_t * pCex = Abc_CexDeriveFromCombModel( pNtkTemp->pModel, Abc_NtkPiNum(pNtkTemp), 0, iOut );
+        Abc_FrameReplaceCex( pAbc, &pCex );
+
+    }
     return 0;
 
 usage:
