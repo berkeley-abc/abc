@@ -10638,7 +10638,6 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Cex_t * pCex = Abc_CexDeriveFromCombModel( pNtkTemp->pModel, Abc_NtkPiNum(pNtkTemp), 0, iOut );
         Abc_FrameReplaceCex( pAbc, &pCex );
-
     }
     return 0;
 
