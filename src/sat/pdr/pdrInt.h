@@ -45,8 +45,8 @@ struct Pdr_Set_t_
 {
     word        Sign;      // signature
     int         nRefs;     // ref counter
-    short       nTotal;    // total literals
-    short       nLits;     // num flop literals
+    int         nTotal;    // total literals
+    int         nLits;     // num flop literals
     int         Lits[0];
 };
 
