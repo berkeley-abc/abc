@@ -175,20 +175,20 @@ static inline int If_Dec10CofCount( word * pF, int nVars )
     int nShift = (1 << (nVars - 4));
     word Mask  = (((word)1) << nShift) - 1;
     word iCofs[16], iCof;
-    int i, k, c, nCofs = 1;
+    int i, c, nCofs = 1;
     if ( nVars == 10 )
         Mask = ~0;
     iCofs[0] = pF[0] & Mask;
-    for ( i = k = 1; i < 16; i++ )
+    for ( i = 1; i < 16; i++ )
     {
         iCof = (pF[(i * nShift) / 64] >> ((i * nShift) & 63)) & Mask;
         for ( c = 0; c < nCofs; c++ )
             if ( iCof == iCofs[c] )
                 break;
         if ( c == nCofs )
-            iCofs[k++] = iCof;
+            iCofs[nCofs++] = iCof;
     }
-    return k;
+    return nCofs;
 }
 
 
@@ -239,11 +239,11 @@ static inline void If_Dec10MoveTo( word * pF, int nVars, int v, int p, int Pla2V
 {
     word pG[16], * pIn = pF, * pOut = pG, * pTemp;
     int iPlace0, iPlace1, Count = 0;
-    assert( Var2Pla[v] >= p );
+    assert( Var2Pla[v] <= p );
     while ( Var2Pla[v] != p )
     {
-        iPlace0 = Var2Pla[v]-1;
-        iPlace1 = Var2Pla[v];
+        iPlace0 = Var2Pla[v];
+        iPlace1 = Var2Pla[v]+1;
         If_Dec10SwapAdjacent( pOut, pIn, iPlace0, nVars );
         pTemp = pIn; pIn = pOut, pOut = pTemp;
         Var2Pla[Pla2Var[iPlace0]]++;
@@ -382,6 +382,7 @@ static inline void If_DecVerifyPerm( int Pla2Var[10], int Var2Pla[10], int nVars
 } 
 int If_Dec10Perform( word * pF, int nVars, int fDerive )
 { 
+//    static int Cnt = 0;
     word pCof0[16], pCof1[16];
     int Pla2Var[10], Var2Pla[10], Count[210], Masks[210];
     int i, i0,i1,i2,i3, v, x;
@@ -392,7 +393,18 @@ int If_Dec10Perform( word * pF, int nVars, int fDerive )
         assert( If_Dec10HasVar( pF, nVars, i ) );
         Pla2Var[i] = Var2Pla[i] = i;
     }
-    x = If_Dec10CofCount( pF, nVars );
+/*
+    Cnt++;
+//if ( Cnt == 108 )
+{
+printf( "%d\n", Cnt );
+//Extra_PrintHex( stdout, (unsigned *)pF, nVars );
+//printf( "\n" ); 
+Kit_DsdPrintFromTruth( (unsigned *)pF, nVars );
+printf( "\n" );
+printf( "\n" );
+}
+*/
     // generate permutations
     v = 0;
     for ( i0 = 0;    i0 < nVars; i0++ )
@@ -400,23 +412,20 @@ int If_Dec10Perform( word * pF, int nVars, int fDerive )
     for ( i2 = i1+1; i2 < nVars; i2++ )
     for ( i3 = i2+1; i3 < nVars; i3++, v++ )
     {
-        If_Dec10MoveTo( pF, nVars, i0, 0, Pla2Var, Var2Pla );
-        If_Dec10MoveTo( pF, nVars, i1, 1, Pla2Var, Var2Pla );
-        If_Dec10MoveTo( pF, nVars, i2, 2, Pla2Var, Var2Pla );
-        If_Dec10MoveTo( pF, nVars, i3, 3, Pla2Var, Var2Pla );
+        If_Dec10MoveTo( pF, nVars, i0, nVars-1, Pla2Var, Var2Pla );
+        If_Dec10MoveTo( pF, nVars, i1, nVars-2, Pla2Var, Var2Pla );
+        If_Dec10MoveTo( pF, nVars, i2, nVars-3, Pla2Var, Var2Pla );
+        If_Dec10MoveTo( pF, nVars, i3, nVars-4, Pla2Var, Var2Pla );
         If_DecVerifyPerm( Pla2Var, Var2Pla, nVars );
         Count[v] = If_Dec10CofCount( pF, nVars );
         Masks[v] = (1 << i0) | (1 << i1) | (1 << i2) | (1 << i3);
-//        if ( Count[v] <= 1 )
-//        {
-//            Count[v] = If_Dec10CofCount( pF, nVars );
-//        }
         assert( Count[v] > 1 );
+//printf( "%d ", Count[v] );
         if ( Count[v] == 2 || Count[v] > 5 )
             continue;
         for ( x = 0; x < 4; x++ )
         {
-            If_Dec10Cofactors( pF, nVars, x, pCof0, pCof1 );
+            If_Dec10Cofactors( pF, nVars, nVars-1-x, pCof0, pCof1 );
             if ( If_Dec10CofCount2(pCof0, nVars) <= 2 && If_Dec10CofCount2(pCof1, nVars) <= 2 )
             {
                 Count[v] = -Count[v];
@@ -424,6 +433,7 @@ int If_Dec10Perform( word * pF, int nVars, int fDerive )
             }
         }
     }
+//printf( "\n" );
     assert( v <= 210 );
     // check if there are compatible bound sets
     for ( i0 = 0; i0 < v; i0++ )
@@ -452,6 +462,7 @@ int If_Dec10Perform( word * pF, int nVars, int fDerive )
                 return 1;
         }
     }
+//    printf( "not found\n" );
     return 0;
 }
 

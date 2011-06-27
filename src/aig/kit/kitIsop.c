@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 // ISOP computation fails if intermediate memory usage exceed this limit
-#define KIT_ISOP_MEM_LIMIT  (1<<16)
+#define KIT_ISOP_MEM_LIMIT  (1<<20)
 
 // static procedures to compute ISOP
 static unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit_Sop_t * pcRes, Vec_Int_t * vStore );
