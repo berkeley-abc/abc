@@ -1,6 +1,7 @@
 SRC +=  src/map/if/ifCore.c \
     src/map/if/ifCut.c \
-    src/map/if/ifDec.c \
+    src/map/if/ifDec07.c \
+    src/map/if/ifDec08.c \
     src/map/if/ifDec10.c \
     src/map/if/ifLib.c \
     src/map/if/ifMan.c \

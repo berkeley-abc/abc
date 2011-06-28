@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [ifDec.c]
+  FileName    [ifDec07.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - November 21, 2006.]
 
-  Revision    [$Id: ifDec.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
+  Revision    [$Id: ifDec07.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -671,7 +671,7 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutPerformCheck( unsigned * pTruth, int nVars, int nLeaves )
+int If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves )
 {
     int fDerive = 1;
     if ( nLeaves < 6 )

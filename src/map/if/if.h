@@ -96,8 +96,9 @@ struct If_Par_t_
     int                fBidec;        // use bi-decomposition
     int                fUseBat;       // use one specialized feature
     int                fUseBuffs;     // use buffers to decouple outputs
-    int                fEnableCheck;  // enable additional checking
-    int                fEnableCheck2; // enable additional checking
+    int                fEnableCheck07;// enable additional checking
+    int                fEnableCheck08;// enable additional checking
+    int                fEnableCheck10;// enable additional checking
     int                fVerbose;      // the verbosity flag
     // internal parameters
     int                fDelayOpt;     // special delay optimization
@@ -406,7 +407,8 @@ extern float           If_CutPowerRef( If_Man_t * p, If_Cut_t * pCut, If_Obj_t *
 extern float           If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
 extern float           If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
 /*=== ifDec.c =============================================================*/
-extern int             If_CutPerformCheck( unsigned * pTruth, int nVars, int nLeaves );
+extern int             If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves );
+extern int             If_CutPerformCheck08( unsigned * pTruth, int nVars, int nLeaves );
 extern int             If_CutPerformCheck10( unsigned * pTruth, int nVars, int nLeaves );
 /*=== ifLib.c =============================================================*/
 extern If_Lib_t *      If_LutLibRead( char * FileName );
