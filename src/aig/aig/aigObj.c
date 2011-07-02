@@ -268,6 +268,27 @@ void Aig_ObjDelete_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fFreeTop )
 
 /**Function*************************************************************
 
+  Synopsis    [Deletes the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ObjDeletePo( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    assert( Aig_ObjIsPo(pObj) );
+    Aig_ObjDeref(Aig_ObjFanin0(pObj));
+    pObj->pFanin0 = NULL;
+    p->nObjs[pObj->Type]--;
+    Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+    Aig_ManRecycleMemory( p, pObj );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Replaces the first fanin of the node by the new fanin.]
 
   Description []

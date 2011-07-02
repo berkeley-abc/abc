@@ -696,6 +696,63 @@ int Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** 
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if AIG can be demitered.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManDemiterDual( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
+{
+    Aig_Man_t * pTemp;
+    Aig_Obj_t * pObj;
+    int i, k;
+
+    if ( p->pFanData )
+        Aig_ManFanoutStop( p );
+
+    k = 0;
+    pTemp = Aig_ManDupSimple( p );
+    Saig_ManForEachPo( pTemp, pObj, i )
+    {
+        if ( i & 1 )
+            Aig_ObjDeletePo( pTemp, pObj );
+        else
+            Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
+    }
+    Saig_ManForEachLi( pTemp, pObj, i )
+        Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
+    Vec_PtrShrink( pTemp->vPos, k );
+    pTemp->nTruePos = k - Saig_ManRegNum(pTemp);
+    Aig_ManSeqCleanup( pTemp );
+    *ppAig0 = Aig_ManDupSimple( pTemp );
+    Aig_ManStop( pTemp );
+
+    k = 0;
+    pTemp = Aig_ManDupSimple( p );
+    Saig_ManForEachPo( pTemp, pObj, i )
+    {
+        if ( i & 1 )
+            Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
+        else
+            Aig_ObjDeletePo( pTemp, pObj );
+    }
+    Saig_ManForEachLi( pTemp, pObj, i )
+        Vec_PtrWriteEntry( pTemp->vPos, k++, pObj );
+    Vec_PtrShrink( pTemp->vPos, k );
+    pTemp->nTruePos = k - Saig_ManRegNum(pTemp);
+    Aig_ManSeqCleanup( pTemp );
+    *ppAig1 = Aig_ManDupSimple( pTemp );
+    Aig_ManStop( pTemp );
+
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG to have constant-0 initial state.]
 
   Description []

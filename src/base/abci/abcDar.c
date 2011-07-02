@@ -2051,6 +2051,74 @@ int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk )
     Aig_ManStop( pMan );
     return 1;
 } 
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose )
+{ 
+    char * pFileNameGeneric, pFileName0[1000], pFileName1[1000];
+    Aig_Man_t * pMan, * pPart0, * pPart1;//, * pMiter;
+    if ( (Abc_NtkPoNum(pNtk) & 1) )
+    {
+        printf( "The number of POs should be even.\n" );
+        return 0;
+    }
+    // derive the AIG manager
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+    {
+        printf( "Converting network into AIG has failed.\n" );
+        return 0;
+    }
+//    if ( !Saig_ManDemiterSimple( pMan, &pPart0, &pPart1 ) )
+    if ( !Saig_ManDemiterDual( pMan, &pPart0, &pPart1 ) )
+    {
+        printf( "Demitering has failed.\n" );
+        return 0;
+    }
+    // create new AIG
+    ABC_FREE( pPart0->pName );
+    pPart0->pName = Aig_UtilStrsav( "part0" );
+    // create new AIGs
+    ABC_FREE( pPart1->pName );
+    pPart1->pName = Aig_UtilStrsav( "part1" );
+    // create file names
+    pFileNameGeneric = Extra_FileNameGeneric( pNtk->pSpec );
+    sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
+    sprintf( pFileName1,  "%s%s",  pFileNameGeneric, "_part1.aig" ); 
+    ABC_FREE( pFileNameGeneric );
+    Ioa_WriteAiger( pPart0, pFileName0, 0, 0 );
+    Ioa_WriteAiger( pPart1, pFileName1, 0, 0 );
+    printf( "Demitering produced two files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
+    // dump files
+    if ( fVerbose )
+    {
+//        printf( "Init:  " );
+        Aig_ManPrintStats( pMan );
+//        printf( "Part1: " );
+        Aig_ManPrintStats( pPart0 );
+//        printf( "Part2: " );
+        Aig_ManPrintStats( pPart1 );
+    }
+    // create two-level miter
+//    pMiter = Saig_ManCreateMiterTwo( pPart0, pPart1, 2 );
+//    Aig_ManDumpBlif( pMiter, "miter01.blif", NULL, NULL );
+//    Aig_ManStop( pMiter );
+//    printf( "The new miter is written into file \"%s\".\n", "miter01.blif" );
+    Aig_ManStop( pPart0 );
+    Aig_ManStop( pPart1 );
+    Aig_ManStop( pMan );
+    return 1;
+} 
  
 /**Function*************************************************************
 

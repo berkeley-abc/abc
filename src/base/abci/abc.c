@@ -5513,20 +5513,29 @@ usage:
 int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes;
-    int fSeq;
+    int fDual, fSeq, fVerbose;
     int c;
     extern int Abc_NtkDemiter( Abc_Ntk_t * pNtk );
     extern int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk );
+    extern int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose );
 
     // set defaults
+    fDual = 0;
     fSeq = 1;
+    fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dsvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'd':
+            fDual ^= 1;
+            break;
         case 's':
             fSeq ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         default:
             goto usage;
@@ -5543,6 +5552,22 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "The network is not strashed.\n" );
         return 1;
+    }
+
+    if ( (Abc_NtkPoNum(pNtk) & 1) )
+    {
+        Abc_Print( -1, "The number of POs should be even.\n" );
+        return 0;
+    }
+
+    if ( fDual )
+    {
+        if ( !Abc_NtkDarDemiterDual( pNtk, fVerbose ) )
+        {
+            Abc_Print( -1, "Demitering has failed.\n" );
+            return 1;
+        }
+        return 0;
     }
 
     // get the new network
@@ -5577,9 +5602,11 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: demiter [-sh]\n" );
-    Abc_Print( -2, "\t        removes topmost EXOR from the miter to create two POs\n" );
-    Abc_Print( -2, "\t-s    : applied multi-output algorithm [default = %s]\n", fSeq? "yes": "no" );
+    Abc_Print( -2, "usage: demiter [-dsvh]\n" );
+    Abc_Print( -2, "\t        removes topmost XOR from the miter to create two POs\n" );
+    Abc_Print( -2, "\t-d    : demiters a dual-output miter (without XORs) [default = %s]\n", fSeq? "yes": "no" );
+    Abc_Print( -2, "\t-s    : applies a multi-output algorithm [default = %s]\n", fSeq? "yes": "no" );
+    Abc_Print( -2, "\t-v    : toggles outputting verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
