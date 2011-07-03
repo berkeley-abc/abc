@@ -258,7 +258,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     else if ( Abc_NtkHasMapping(pNtk) )
     {
         fprintf( pFile, "  area =%5.2f", Abc_NtkGetMappedArea(pNtk) );
-        fprintf( pFile, "  delay =%5.2f", Abc_NtkGetArea(pNtk) );
+        fprintf( pFile, "  delay =%5.2f", Abc_NtkDelayTrace(pNtk) );
     }
     else if ( !Abc_NtkHasBlackbox(pNtk) )
     {
