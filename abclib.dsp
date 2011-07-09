@@ -2027,7 +2027,11 @@ SOURCE=.\src\map\if\ifCut.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifDec.c
+SOURCE=.\src\map\if\ifDec07.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\if\ifDec08.c
 # End Source File
 # Begin Source File
 

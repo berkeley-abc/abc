@@ -53,6 +53,32 @@ static inline int If_WordCountOnes( unsigned uWord )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of 1s in the signature.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutDelaySpecial( If_Man_t * p, If_Cut_t * pCut, int fCarry )
+{
+    static float Pin2Pin[2][3] = { {1.0, 1.0, 1.0}, {1.0, 1.0, 0.0} };
+    If_Obj_t * pLeaf;
+    float DelayCur, Delay = -IF_FLOAT_LARGE;
+    int i;
+    assert( pCut->nLeaves <= 3 );
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        DelayCur = If_ObjCutBest(pLeaf)->Delay;
+        Delay = IF_MAX( Delay, Pin2Pin[fCarry][i] + DelayCur );
+    }
+    return Delay;
+ }
+
+/**Function*************************************************************
+
   Synopsis    [Finds the best cut for the given node.]
 
   Description [Mapping modes: delay (0), area flow (1), area (2).]
@@ -79,6 +105,40 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         else if ( Mode == 1 )
             pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
     }
+
+    // process special cut
+    if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] )
+    {
+        pCut = If_ObjCutBest(pObj);
+        if ( pCut->nLeaves == 0 )
+        {
+            pCut->nLeaves = Vec_IntSize( p->pDriverCuts[pObj->Id] );
+            Vec_IntForEachEntry( p->pDriverCuts[pObj->Id], k, i )
+                pCut->pLeaves[i] = k;
+            assert( pCut->pLeaves[0] <= pCut->pLeaves[1] );
+//            if ( pObj->nRefs > 0 )
+//                If_CutAreaRef( p, pCut );
+        }
+        pCut->Delay = If_CutDelaySpecial( p, pCut, pObj->fDriver );
+        pCut->Area  = (Mode == 2)? 1 : If_CutAreaFlow( p, pCut );
+        if ( p->pPars->fEdge )
+            pCut->Edge = (Mode == 2)? 3 : If_CutEdgeFlow( p, pCut );
+        if ( p->pPars->fPower )
+            pCut->Power  = (Mode == 2)? 0 : If_CutPowerFlow( p, pCut, pObj );
+
+        // prepare the cutset
+        pCutSet = If_ManSetupNodeCutSet( p, pObj );
+        // copy best cut
+        If_CutCopy( p, pCutSet->ppCuts[pCutSet->nCuts++], If_ObjCutBest(pObj) );
+        // add the trivial cut to the set
+        If_ManSetupCutTriv( p, pCutSet->ppCuts[pCutSet->nCuts++], pObj->Id );
+        // free the cuts
+        If_ManDerefNodeCutSet( p, pObj );
+        assert( pCutSet->nCuts == 2 );
+        return;
+    }
+
+    // deref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaDeref( p, If_ObjCutBest(pObj) );
 

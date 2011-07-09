@@ -110,6 +110,7 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     // start the network
     pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
     pNtkNew->nConstrs = pNtk->nConstrs;
+    pNtkNew->nRealPos = pNtk->nRealPos;
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -163,6 +164,7 @@ Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc
     // start the network
     pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
     pNtkNew->nConstrs = pNtk->nConstrs;
+    pNtkNew->nRealPos = pNtk->nRealPos;
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);

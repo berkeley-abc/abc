@@ -161,6 +161,7 @@ struct If_Man_t_
     int                fNextRound;    // set to 1 after the first round
     int                nChoices;      // the number of choice nodes
     Vec_Int_t *        vSwitching;    // switching activity of each node
+    Vec_Int_t **       pDriverCuts;   // temporary driver cuts
     // sequential mapping
     Vec_Ptr_t *        vLatchOrder;   // topological ordering of latches
     Vec_Int_t *        vLags;         // sequentail lags of all nodes
@@ -228,7 +229,8 @@ struct If_Obj_t_
     unsigned           fMark   :  1;  // multipurpose mark
     unsigned           fVisit  :  1;  // multipurpose mark
     unsigned           fSpec   :  1;  // multipurpose mark
-    unsigned           Level   : 21;  // logic level of the node
+    unsigned           fDriver :  1;  // multipurpose mark
+    unsigned           Level   : 20;  // logic level of the node
     int                Id;            // integer ID
     int                IdPio;         // integer ID of PIs/POs
     int                nRefs;         // the number of references

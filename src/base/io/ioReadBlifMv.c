@@ -952,6 +952,7 @@ static int Io_MvParseLineOutputs( Io_MvMod_t * p, char * pLine )
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     char * pToken;
     int i;
+    p->pNtk->nRealPos = Abc_NtkPoNum(p->pNtk);
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );
     pToken = (char *)Vec_PtrEntry(vTokens, 0);
     assert( !strcmp(pToken, "outputs") );

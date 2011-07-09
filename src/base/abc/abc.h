@@ -179,9 +179,10 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vBoxes;        // the array of boxes
     Vec_Ptr_t *       vLtlProperties;
     // the number of living objects
-    int               nConstrs;      // the number of constraints (model checking only)
-    int               nObjs;         // the number of live objs
     int nObjCounts[ABC_OBJ_NUMBER];  // the number of objects by type
+    int               nObjs;         // the number of live objs
+    int               nConstrs;      // the number of constraints
+    int               nRealPos;      // the number of real POs
     // the backup network and the step number
     Abc_Ntk_t *       pNetBackup;    // the pointer to the previous backup network
     int               iStep;         // the generation number for the given network
