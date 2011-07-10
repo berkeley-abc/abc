@@ -105,7 +105,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         else if ( Mode == 1 )
             pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
     }
-
+/*
     // process special cut
     if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] )
     {
@@ -137,7 +137,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         assert( pCutSet->nCuts == 2 );
         return;
     }
-
+*/
     // deref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaDeref( p, If_ObjCutBest(pObj) );
@@ -153,7 +153,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutDelaySopCost( p, pCut );
         else
-            pCut->Delay = If_CutDelay( p, pCut );
+            pCut->Delay = If_CutDelay( p, pObj, pCut );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
         if ( pCut->Delay > pObj->Required + 2*p->fEpsilon )
             Abc_Print( 1, "If_ObjPerformMappingAnd(): Warning! Delay of node %d (%f) exceeds the required times (%f).\n", 
@@ -215,7 +215,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutDelaySopCost( p, pCut );
         else
-            pCut->Delay = If_CutDelay( p, pCut );
+            pCut->Delay = If_CutDelay( p, pObj, pCut );
 //        Abc_Print( 1, "%.2f ", pCut->Delay );
         if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
             continue;
@@ -305,7 +305,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
             if ( If_CutFilter( pCutSet, pCut ) )
                 continue;
             // check if the cut satisfies the required times
-            assert( pCut->Delay == If_CutDelay( p, pCut ) );
+            assert( pCut->Delay == If_CutDelay( p, pObj, pCut ) );
             if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
                 continue;
             // set the phase attribute

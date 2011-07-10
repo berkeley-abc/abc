@@ -30,6 +30,8 @@ ABC_NAMESPACE_IMPL_START
 
 #define IF_BIG_CHAR 120
 
+static float s_ExtraDel[2][3] = { {1.0, 1.0, 1.0}, {1.0, 1.0, 0.0} };
+
 static void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float * pPinDelays );
 
 ////////////////////////////////////////////////////////////////////////
@@ -386,7 +388,7 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
     }
 //    Vec_WrdFree( vAnds );
     // verify the delay
-//    Delay = If_CutDelay( p, pCut );
+//    Delay = If_CutDelay( p, pObj, pCut );
 //    assert( (int)Leaf.Delay == Delay );
     return Leaf.Delay;
 }
@@ -407,14 +409,14 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
+float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
 {
     static int pPinPerm[IF_MAX_LUTSIZE];
     static float pPinDelays[IF_MAX_LUTSIZE];
     If_Obj_t * pLeaf;
     float Delay, DelayCur;
     float * pLutDelays;
-    int i, Shift, Pin2PinDelay;
+    int i, Shift, Pin2PinDelay, iLeaf;
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Delay = -IF_FLOAT_LARGE;
     if ( p->pPars->pLutLib )
@@ -435,7 +437,10 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
         {
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
-                DelayCur = If_ObjCutBest(pLeaf)->Delay + pLutDelays[0];
+                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+                    DelayCur = If_ObjCutBest(pLeaf)->Delay + s_ExtraDel[pObj->fDriver][iLeaf];
+                else
+                    DelayCur = If_ObjCutBest(pLeaf)->Delay + pLutDelays[0];
                 Delay = IF_MAX( Delay, DelayCur );
             }
         }
@@ -459,18 +464,20 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
                 If_CutForEachLeafSeq( p, pCut, pLeaf, Shift, i )
                 {
                     DelayCur = If_ObjCutBest(pLeaf)->Delay - Shift * p->Period;
-                    Delay = IF_MAX( Delay, DelayCur );
+                    Delay = IF_MAX( Delay, DelayCur + 1.0 );
                 }
             }
             else
             {
                 If_CutForEachLeaf( p, pCut, pLeaf, i )
                 {
-                    DelayCur = If_ObjCutBest(pLeaf)->Delay;
+                    if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+                        DelayCur = If_ObjCutBest(pLeaf)->Delay + ((pObj->fDriver && iLeaf == 2) ? 0.0 : 1.0);
+                    else
+                        DelayCur = If_ObjCutBest(pLeaf)->Delay + 1.0;
                     Delay = IF_MAX( Delay, DelayCur );
                 }
             }
-            Delay += 1.0;
         }
     }
     return Delay;
@@ -487,14 +494,14 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-void If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float ObjRequired )
+void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float ObjRequired )
 {
     static int pPinPerm[IF_MAX_LUTSIZE];
     static float pPinDelays[IF_MAX_LUTSIZE];
     If_Obj_t * pLeaf;
     float * pLutDelays;
     float Required;
-    int i, Pin2PinDelay;
+    int i, Pin2PinDelay, iLeaf;
     assert( !p->pPars->fLiftLeaves );
     // compute the pins
     if ( p->pPars->pLutLib )
@@ -513,9 +520,14 @@ void If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float ObjRequired )
         }
         else
         {
-            Required = ObjRequired - pLutDelays[0];
+            Required = ObjRequired;
             If_CutForEachLeaf( p, pCut, pLeaf, i )
-                pLeaf->Required = IF_MIN( pLeaf->Required, Required );
+            {
+                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - s_ExtraDel[pObj->fDriver][iLeaf] );
+                else
+                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - pLutDelays[0] );
+            }
         }
     }
     else
@@ -531,9 +543,14 @@ void If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float ObjRequired )
         }
         else
         {
-            Required = ObjRequired - (float)1.0;
+            Required = ObjRequired;
             If_CutForEachLeaf( p, pCut, pLeaf, i )
-                pLeaf->Required = IF_MIN( pLeaf->Required, Required );
+            {
+                if ( p->pDriverCuts && p->pDriverCuts[pObj->Id] && (iLeaf = Vec_IntFind(p->pDriverCuts[pObj->Id], pLeaf->Id)) >= 0 )
+                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - (float)((pObj->fDriver && iLeaf == 2) ? 0.0 : 1.0) );
+                else
+                    pLeaf->Required = IF_MIN( pLeaf->Required, Required - (float)1.0 );
+            }
         }
     }
 }

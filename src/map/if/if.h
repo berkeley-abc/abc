@@ -99,6 +99,7 @@ struct If_Par_t_
     int                fEnableCheck07;// enable additional checking
     int                fEnableCheck08;// enable additional checking
     int                fEnableCheck10;// enable additional checking
+    int                fEnableRealPos;// enable additional feature
     int                fVerbose;      // the verbosity flag
     // internal parameters
     int                fDelayOpt;     // special delay optimization
@@ -449,8 +450,8 @@ extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/
 extern int             If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut );
 extern Vec_Wrd_t *     If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut );
-extern float           If_CutDelay( If_Man_t * p, If_Cut_t * pCut );
-extern void            If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float Required );
+extern float           If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut );
+extern void            If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float Required );
 extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 /*=== ifTruth.c ===========================================================*/
 extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );

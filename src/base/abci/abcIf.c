@@ -40,7 +40,7 @@ extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
 extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
 
 extern void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk );
-extern void Abc_NtkFreePoDrivers( If_Man_t * p );
+extern void Abc_NtkFreePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk );
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -137,14 +137,15 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
         Abc_NtkIfComputeSwitching( pNtk, pIfMan );
 
     // perform FPGA mapping
-//    Abc_NtkCollectPoDrivers( pIfMan, pNtk );
+    if ( pPars->fEnableRealPos )
+        Abc_NtkCollectPoDrivers( pIfMan, pNtk );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
-        Abc_NtkFreePoDrivers( pIfMan );
+        Abc_NtkFreePoDrivers( pIfMan, pNtk );
         If_ManStop( pIfMan );
         return NULL;
     }
-    Abc_NtkFreePoDrivers( pIfMan );
+    Abc_NtkFreePoDrivers( pIfMan, pNtk );
 
     // transform the result of mapping into the new network
     pNtkNew = Abc_NtkFromIf( pIfMan, pNtk );
@@ -712,7 +713,6 @@ Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
 {
-    // 1 a     2 b     3 c     4 a+b+c     5 ab+ac+bc
     Vec_Int_t * vTemp;
     Abc_Obj_t * pObj;
     If_Obj_t * pIfObj;
@@ -729,7 +729,7 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
     }
     nGroups = (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) / 5;
     printf( "Processing %d groups of PO drivers.\n", nGroups );
-    // mark the drivers
+    // mark the drivers (0 a   1 b   2 c   3 s   4 c)
     assert( p->pDriverCuts == NULL );
     p->pDriverCuts = ABC_CALLOC( Vec_Int_t *, If_ManObjNum(p) );
     for ( g = 0; g < nGroups; g++ )
@@ -742,7 +742,7 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
             pIfObj = If_Regular( ((If_Obj_t *)pObj->pCopy)->pFanin0 );
             Vec_IntPush( vTemp, pIfObj->Id );
         }
-        Vec_IntSort( vTemp, 0 );
+//        Vec_IntSort( vTemp, 0 );
         // find output node
         pObj   = Abc_NtkPo( pNtk, pNtk->nRealPos + g * 5 + 3 );
         pIfObj = If_Regular( ((If_Obj_t *)pObj->pCopy)->pFanin0 );
@@ -755,9 +755,11 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
         {
             p->pDriverCuts[pIfObj->Id] = Vec_IntDup( vTemp );
             pIfObj->fDriver = 1;
+//            printf( "%d ", pIfObj->Id );
         }
         Vec_IntFree( vTemp );
     }
+//    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -771,11 +773,26 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkFreePoDrivers( If_Man_t * p )
+void Abc_NtkFreePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
 {
+    If_Obj_t * pObj;
+    If_Cut_t * pCut;
     int i;
     if ( p->pDriverCuts == NULL )
         return;
+    printf( "Actual delay after mapping = %.2f\n", p->RequiredGlo );
+    assert( Abc_NtkPoNum(pNtk) == If_ManCoNum(p) - Abc_NtkLatchNum(pNtk) );
+    // print the cut sizes of the drivers
+    for ( i = pNtk->nRealPos; i <  Abc_NtkPoNum(pNtk); i += 5 )
+    {
+        pObj = If_ManCo( p, i + 4 );
+        pObj = If_Regular(pObj->pFanin0);
+        if ( !pObj->fDriver )
+            continue;
+        pCut = If_ObjCutBest(pObj);
+//        printf( "%d(%d) ", pObj->Id, pCut->nLeaves );
+    }
+//    printf( "\n" );
     for ( i = 0; i < If_ManObjNum(p); i++ )
         Vec_IntFreeP( &p->pDriverCuts[i] );
     ABC_FREE( p->pDriverCuts );

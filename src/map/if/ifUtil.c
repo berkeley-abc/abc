@@ -223,12 +223,12 @@ void If_ManComputeRequired( If_Man_t * p )
         }
         // go through the nodes in the reverse topological order
     //    Vec_PtrForEachEntry( If_Obj_t *, p->vMapped, pObj, i )
-    //        If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+    //        If_CutPropagateRequired( p, pObj, If_ObjCutBest(pObj), pObj->Required );
         If_ManForEachObjReverse( p, pObj, i )
         {
             if ( pObj->nRefs == 0 )
                 continue;
-            If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+            If_CutPropagateRequired( p, pObj, If_ObjCutBest(pObj), pObj->Required );
         }
     }
     else
@@ -298,7 +298,7 @@ void If_ManComputeRequired( If_Man_t * p )
             {
                 if ( pObj->nRefs == 0 )
                     continue;
-                If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+                If_CutPropagateRequired( p, pObj, If_ObjCutBest(pObj), pObj->Required );
             }
             else if ( If_ObjIsCi(pObj) )
             {

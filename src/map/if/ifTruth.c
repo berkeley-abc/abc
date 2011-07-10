@@ -344,6 +344,8 @@ static inline unsigned If_CutTruthPhase( If_Cut_t * pCut, If_Cut_t * pCut1 )
     return uPhase;
 }
 
+//static FILE * pTruths;
+
 /**Function*************************************************************
 
   Synopsis    [Performs truth table computation.]
@@ -377,7 +379,15 @@ int If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_
         If_TruthNand( If_CutTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nLimit );
     else
         If_TruthAnd( If_CutTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nLimit );
-
+/*
+    if ( pCut->nLeaves == 5 )
+    {
+        if ( pTruths == NULL )
+            pTruths = fopen( "fun5var.txt", "w" );
+        Extra_PrintHex( pTruths, If_CutTruth(pCut), pCut->nLeaves );
+        fprintf( pTruths, "\n" );
+    }
+*/
     // minimize the support of the cut
     if ( p->pPars->fCutMin )
         return If_CutTruthMinimize( p, pCut );
