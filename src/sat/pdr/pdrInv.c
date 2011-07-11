@@ -18,6 +18,9 @@
 
 ***********************************************************************/
 
+#include "abc.h"  // for Abc_NtkCollectCioNames()
+#include "main.h" // for Abc_FrameReadGlobalFrame()
+
 #include "pdrInt.h"
 #include "extra.h"
 
@@ -231,6 +234,7 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName )
     Vec_Int_t * vFlopCounts;
     Vec_Ptr_t * vCubes;
     Pdr_Set_t * pCube;
+    char ** pNamesCi;
     int i, kStart;
     // create file
     pFile = fopen( pFileName, "w" );
@@ -251,6 +255,18 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName )
     fprintf( pFile, ".i %d\n", fUseSupp ? Pdr_ManCountVariables(p, kStart) : Aig_ManRegNum(p->pAig) );
     fprintf( pFile, ".o 1\n" );
     fprintf( pFile, ".p %d\n", Vec_PtrSize(vCubes) );
+    // output flop names
+    pNamesCi = Abc_NtkCollectCioNames( Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() ), 0 );
+    if ( pNamesCi )
+    {
+        fprintf( pFile, ".ilb" );
+        for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
+            if ( !fUseSupp || Vec_IntEntry( vFlopCounts, i ) )
+                fprintf( pFile, " %s", pNamesCi[Saig_ManPiNum(p->pAig) + i] );
+        fprintf( pFile, "\n" );
+        ABC_FREE( pNamesCi );
+        fprintf( pFile, ".ob inv\n" );
+    }
     // output cubes
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
