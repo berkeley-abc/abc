@@ -574,6 +574,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         }
         else
         {
+            if ( p->pPars->fVerbose ) 
+                Pdr_ManPrintProgress( p, 1, clock() - clkStart );
             // open a new timeframe
             assert( pCube == NULL );
             Pdr_ManSetPropertyOutput( p, k );
@@ -583,8 +585,6 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 printf( "*** Clauses after frame %d:\n", k );
                 Pdr_ManPrintClauses( p, 0 );
             }
-            if ( p->pPars->fVerbose ) 
-                Pdr_ManPrintProgress( p, 0, clock() - clkStart );
             // push clauses into this timeframe
             if ( Pdr_ManPushClauses( p ) )
             {
@@ -598,7 +598,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 return 1; // UNSAT
             }
             if ( p->pPars->fVerbose ) 
-                Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                Pdr_ManPrintProgress( p, 0, clock() - clkStart );
             clkStart = clock();
         }
 
