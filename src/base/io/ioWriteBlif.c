@@ -344,6 +344,12 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     {
         Abc_NtkForEachPo( pNtk, pTerm, i )
         {
+            if ( i && i == pNtk->nRealPos )
+            {
+                fprintf( pFile, "\n.outputs" );
+                LineLength  = 8;
+                NameCounter = 0;
+            }
             pNet = Abc_ObjFanin0(pTerm);
             // get the line length after this name is written
             AddedLength = strlen(Abc_ObjName(pNet)) + 1;

@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 #define IF_BIG_CHAR 120
 
-static float s_ExtraDel[2][3] = { {1.0, 1.0, 1.0}, {1.0, 1.0, 0.0} };
+static float s_ExtraDel[2][3] = { {1.0, 1.0, (float)0.1}, {1.0, 1.0, (float)0.1} };
 
 static void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float * pPinDelays );
 
