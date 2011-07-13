@@ -24998,17 +24998,18 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Ssw_SignalFilterGia( Gia_Man_t * p, int nFramesMax, int nConfMax, int nRounds, int TimeLimit, int TimeLimit2, Abc_Cex_t * pCex, int fVerbose );
+    extern void Ssw_SignalFilterGia( Gia_Man_t * p, int nFramesMax, int nConfMax, int nRounds, int TimeLimit, int TimeLimit2, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
     int nFramesMax =   20;
     int nConfMax   =  500;
     int nRounds    =   10;
     int TimeLimit  =    0;
     int TimeLimit2 =    0;
     int fUseCex    =    0;
+    int fLatchOnly =    0;
     int fVerbose   =    0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCRTSxvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCRTSxlvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25070,6 +25071,9 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'x':
             fUseCex ^= 1;
             break;
+        case 'l':
+            fLatchOnly ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -25098,14 +25102,14 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
     }
-    Ssw_SignalFilterGia( pAbc->pGia, nFramesMax, nConfMax, nRounds, TimeLimit, TimeLimit2, fUseCex? pAbc->pCex: NULL, fVerbose );
+    Ssw_SignalFilterGia( pAbc->pGia, nFramesMax, nConfMax, nRounds, TimeLimit, TimeLimit2, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
     pAbc->Status  = -1;
 //    pAbc->nFrames = pAbc->pCex->iFrame;
 //    Abc_FrameReplaceCex( pAbc, &pAbc->pCex );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &equiv2 [-FCRTS num] [-xvh]\n" );
+    Abc_Print( -2, "usage: &equiv2 [-FCRTS num] [-xlvh]\n" );
     Abc_Print( -2, "\t         computes candidate equivalence classes\n" );
     Abc_Print( -2, "\t-F num : the max number of frames for BMC [default = %d]\n", nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfMax );
@@ -25113,6 +25117,7 @@ usage:
     Abc_Print( -2, "\t-T num : runtime limit in seconds for all rounds [default = %d]\n", TimeLimit );
     Abc_Print( -2, "\t-S num : runtime limit in seconds for one round [default = %d]\n", TimeLimit2 );
     Abc_Print( -2, "\t-x     : toggle using the current cex to perform refinement [default = %s]\n", fUseCex? "yes": "no" );
+    Abc_Print( -2, "\t-l     : toggle considering only latch output equivalences [default = %s]\n", fLatchOnly? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

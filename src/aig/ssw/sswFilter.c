@@ -378,7 +378,7 @@ int Ssw_ManSweepBmcFilter( Ssw_Man_t * p, int TimeLimit )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRounds, int TimeLimit, int TimeLimit2, Abc_Cex_t * pCex, int fVerbose )
+void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRounds, int TimeLimit, int TimeLimit2, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 {
     Ssw_Pars_t Pars, * pPars = &Pars;
     Ssw_Man_t * p;
@@ -401,7 +401,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
     pPars->nFramesK  = nFramesMax;
     // create trivial equivalence classes with all nodes being candidates for constant 1
     if ( pAig->pReprs == NULL )
-        p->ppClasses = Ssw_ClassesPrepareSimple( pAig, 0, 0 );
+        p->ppClasses = Ssw_ClassesPrepareSimple( pAig, fLatchOnly, 0 );
     else
         p->ppClasses = Ssw_ClassesPrepareFromReprs( pAig );
     Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_SmlObjIsConstBit, Ssw_SmlObjsAreEqualBit );
@@ -468,7 +468,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_SignalFilterGia( Gia_Man_t * p, int nFramesMax, int nConfMax, int nRounds, int TimeLimit, int TimeLimit2, Abc_Cex_t * pCex, int fVerbose )
+void Ssw_SignalFilterGia( Gia_Man_t * p, int nFramesMax, int nConfMax, int nRounds, int TimeLimit, int TimeLimit2, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 { 
     Aig_Man_t * pAig;
     pAig = Gia_ManToAigSimple( p );
@@ -478,7 +478,7 @@ void Ssw_SignalFilterGia( Gia_Man_t * p, int nFramesMax, int nConfMax, int nRoun
         ABC_FREE( p->pReprs );
         ABC_FREE( p->pNexts );
     }
-    Ssw_SignalFilter( pAig, nFramesMax, nConfMax, nRounds, TimeLimit, TimeLimit2, pCex, fVerbose );
+    Ssw_SignalFilter( pAig, nFramesMax, nConfMax, nRounds, TimeLimit, TimeLimit2, pCex, fLatchOnly, fVerbose );
     Gia_ManReprFromAigRepr( pAig, p );
     Aig_ManStop( pAig );
 }
