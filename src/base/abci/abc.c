@@ -20213,7 +20213,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OMFCTrmsdvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OMFCTrmsdgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20284,6 +20284,9 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fDumpInv ^= 1;
             break;
+        case 'g':
+            pPars->fSkipGeneral ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -20331,7 +20334,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-OMFCT<num] [-rmsdvwh]\n" );
+    Abc_Print( -2, "usage: pdr [-OMFCT<num] [-rmsdgvwh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka ic3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -20344,6 +20347,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle using monolythic CNF computation [default = %s]\n", pPars->fMonoCnf? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating only shortest counter-examples [default = %s]\n", pPars->fShortest? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping inductive invariant [default = %s]\n", pPars->fDumpInv? "yes": "no" );
+    Abc_Print( -2, "\t-g     : toggle skipping expensive generalization step [default = %s]\n", pPars->fSkipGeneral? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing detailed stats default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

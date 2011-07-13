@@ -302,89 +302,93 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
         p->tGeneral += clock() - clk;
         return 0;
     }
+
     // reduce clause using assumptions
 //    pCubeMin = Pdr_SetDup( pCube );
     pCubeMin = Pdr_ManReduceClause( p, k, pCube );
     if ( pCubeMin == NULL )
         pCubeMin = Pdr_SetDup( pCube );
 
-    // sort literals by their occurences
-    pOrder = Pdr_ManSortByPriority( p, pCubeMin );
-
-    // try removing literals
-    for ( j = 0; j < pCubeMin->nLits; j++ )
+    // perform generalization
+    if ( !p->pPars->fSkipGeneral )
     {
-        // use ordering
-//        i = j;
-        i = pOrder[j];
-
-        // check init state
-        assert( pCubeMin->Lits[i] != -1 );
-        if ( Pdr_SetIsInit(pCubeMin, i) )
-            continue;
-        // try removing this literal
-        Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
-        RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
-        if ( RetValue == -1 )
-        {
-            Pdr_SetDeref( pCubeMin );
-            return -1;
-        }
-        pCubeMin->Lits[i] = Lit;
-        if ( RetValue == 0 )
-            continue;
-
-        // remove j-th entry
-        for ( n = j; n < pCubeMin->nLits-1; n++ )
-            pOrder[n] = pOrder[n+1];
-        j--;
-
-        // success - update the cube
-        pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
-        Pdr_SetDeref( pCubeTmp );
-        assert( pCubeMin->nLits > 0 );
-        i--;
-
-        // get the ordering by decreasing priorit
+        // sort literals by their occurences
         pOrder = Pdr_ManSortByPriority( p, pCubeMin );
-    }
-
-    if ( p->pPars->fTwoRounds )
-    for ( j = 0; j < pCubeMin->nLits; j++ )
-    {
-        // use ordering
-//        i = j;
-        i = pOrder[j];
-
-        // check init state
-        assert( pCubeMin->Lits[i] != -1 );
-        if ( Pdr_SetIsInit(pCubeMin, i) )
-            continue;
-        // try removing this literal
-        Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
-        RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
-        if ( RetValue == -1 )
+        // try removing literals
+        for ( j = 0; j < pCubeMin->nLits; j++ )
         {
-            Pdr_SetDeref( pCubeMin );
-            return -1;
+            // use ordering
+    //        i = j;
+            i = pOrder[j];
+
+            // check init state
+            assert( pCubeMin->Lits[i] != -1 );
+            if ( Pdr_SetIsInit(pCubeMin, i) )
+                continue;
+            // try removing this literal
+            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
+            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
+            if ( RetValue == -1 )
+            {
+                Pdr_SetDeref( pCubeMin );
+                return -1;
+            }
+            pCubeMin->Lits[i] = Lit;
+            if ( RetValue == 0 )
+                continue;
+
+            // remove j-th entry
+            for ( n = j; n < pCubeMin->nLits-1; n++ )
+                pOrder[n] = pOrder[n+1];
+            j--;
+
+            // success - update the cube
+            pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
+            Pdr_SetDeref( pCubeTmp );
+            assert( pCubeMin->nLits > 0 );
+            i--;
+
+            // get the ordering by decreasing priorit
+            pOrder = Pdr_ManSortByPriority( p, pCubeMin );
         }
-        pCubeMin->Lits[i] = Lit;
-        if ( RetValue == 0 )
-            continue;
 
-        // remove j-th entry
-        for ( n = j; n < pCubeMin->nLits-1; n++ )
-            pOrder[n] = pOrder[n+1];
-        j--;
+        if ( p->pPars->fTwoRounds )
+        for ( j = 0; j < pCubeMin->nLits; j++ )
+        {
+            // use ordering
+    //        i = j;
+            i = pOrder[j];
 
-        // success - update the cube
-        pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
-        Pdr_SetDeref( pCubeTmp );
-        assert( pCubeMin->nLits > 0 );
-        i--;
+            // check init state
+            assert( pCubeMin->Lits[i] != -1 );
+            if ( Pdr_SetIsInit(pCubeMin, i) )
+                continue;
+            // try removing this literal
+            Lit = pCubeMin->Lits[i]; pCubeMin->Lits[i] = -1; 
+            RetValue = Pdr_ManCheckCube( p, k, pCubeMin, NULL, p->pPars->nConfLimit );
+            if ( RetValue == -1 )
+            {
+                Pdr_SetDeref( pCubeMin );
+                return -1;
+            }
+            pCubeMin->Lits[i] = Lit;
+            if ( RetValue == 0 )
+                continue;
 
-        // get the ordering by decreasing priorit
-        pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+            // remove j-th entry
+            for ( n = j; n < pCubeMin->nLits-1; n++ )
+                pOrder[n] = pOrder[n+1];
+            j--;
+
+            // success - update the cube
+            pCubeMin = Pdr_SetCreateFrom( pCubeTmp = pCubeMin, i );
+            Pdr_SetDeref( pCubeTmp );
+            assert( pCubeMin->nLits > 0 );
+            i--;
+
+            // get the ordering by decreasing priorit
+            pOrder = Pdr_ManSortByPriority( p, pCubeMin );
+        }
     }
 
     assert( ppCubeMin != NULL );
