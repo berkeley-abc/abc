@@ -40,6 +40,7 @@ extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
 extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
 
 extern void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk );
+extern void Abc_NtkCreateChoiceDrivers( If_Man_t * p );
 extern void Abc_NtkFreePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk );
  
 ////////////////////////////////////////////////////////////////////////
@@ -139,6 +140,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     // perform FPGA mapping
     if ( pPars->fEnableRealPos )
         Abc_NtkCollectPoDrivers( pIfMan, pNtk );
+    Abc_NtkCreateChoiceDrivers( pIfMan );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         Abc_NtkFreePoDrivers( pIfMan, pNtk );
@@ -760,6 +762,52 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
         Vec_IntFree( vTemp );
     }
 //    printf( "\n" );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Frees PO drivers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCreateChoiceDrivers( If_Man_t * p )
+{
+    Vec_Int_t * vVec;
+    If_Obj_t * pObj, * pTemp;
+    int i, Counter = 0;
+    if ( p->pDriverCuts == NULL )
+        return;
+    If_ManForEachNode( p, pObj, i )
+    {
+        // skip non-choice nodes
+        if ( pObj->pEquiv == NULL || pObj->nRefs == 0 )
+            continue;
+        // find driver cut
+        vVec = NULL;
+        for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
+            if ( p->pDriverCuts[pTemp->Id] != NULL )
+            {
+                vVec = Vec_IntDup( p->pDriverCuts[pTemp->Id] );
+                break;
+            }
+        if ( vVec == NULL )
+            continue;
+        // transfer driver cut to the root node
+        for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
+        {
+            Vec_IntFreeP( &p->pDriverCuts[pTemp->Id] );
+            p->pDriverCuts[pTemp->Id] = Vec_IntDup( vVec );
+        }
+        Vec_IntFree( vVec );
+        Counter++;
+    }
+//    printf( "Choice driver cut updates = %d.\n", Counter );
 }
 
 /**Function*************************************************************
