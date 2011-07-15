@@ -254,7 +254,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
 {
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pNode, * pNodeNew;
+    Abc_Obj_t * pNode, * pNodeNew, * pExor;
     Vec_Int_t * vCover;
     int i, nDupGates;
     // create the new network
@@ -274,12 +274,62 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     // process the nodes in topological order
     vCover = Vec_IntAlloc( 1 << 16 );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pNode, i )
+    if ( pIfMan->pPars->fEnableRealPos )
     {
-        Extra_ProgressBarUpdate( pProgress, i, "Final" );
-        pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
-        pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
-        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+        // collect drivers
+        Vec_Ptr_t * vDrivers, * vFanins;
+        vDrivers = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            Extra_ProgressBarUpdate( pProgress, i, "Final" );
+            pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
+            pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
+//            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+            if ( Abc_ObjIsComplement(pNodeNew) )
+                pNodeNew = Abc_NtkCreateNodeInv( pNtkNew, Abc_ObjRegular(pNodeNew) );
+            else
+                pNodeNew = Abc_NtkCreateNodeBuf( pNtkNew, pNodeNew );
+            Vec_PtrPush( vDrivers, pNodeNew );
+        }
+        // update drivers
+        vFanins = Vec_PtrAlloc( 2 );
+        for ( i = pNtk->nRealPos; i <  Abc_NtkPoNum(pNtk); i += 5 )
+        {
+            // create first XOR
+            Vec_PtrClear( vFanins );
+            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+0) );
+            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+1) );
+            pExor = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
+            // create second XOR
+            Vec_PtrClear( vFanins );
+            Vec_PtrPush( vFanins, pExor );
+            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+2) );
+            pNode = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
+            Vec_PtrWriteEntry( vDrivers, i+3, pNode );
+            // create MUX
+            pNode = Abc_NtkCreateNodeMux( pNtkNew, pExor, 
+                (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+2), 
+                (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+1) );
+            Vec_PtrWriteEntry( vDrivers, i+4, pNode );
+        }
+        Vec_PtrFree( vFanins );
+        // connect drivers
+        Abc_NtkForEachCo( pNtk, pNode, i )
+            Abc_ObjAddFanin( pNode->pCopy, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i) );
+        Vec_PtrFree( vDrivers );
+        // sweep
+        nDupGates = Abc_NtkCleanup( pNtkNew, 0 );
+        printf( "The number of removed nodes = %d.\n", nDupGates );
+    }
+    else
+    {
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            Extra_ProgressBarUpdate( pProgress, i, "Final" );
+            pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
+            pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
+            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+        }
     }
     Extra_ProgressBarStop( pProgress );
     Vec_IntFree( vCover );
