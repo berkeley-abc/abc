@@ -34,6 +34,7 @@ struct Gia_ManSim_t_
     Gia_ParSim_t * pPars; 
     int            nWords;
     Vec_Int_t *    vCis2Ids;
+    Vec_Int_t *    vConsts;
     // simulation information
     unsigned *     pDataSim;     // simulation data
     unsigned *     pDataSimCis;  // simulation data for CIs
@@ -47,6 +48,117 @@ static inline unsigned * Gia_SimDataCo( Gia_ManSim_t * p, int i )  { return p->p
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSimCollect_rec( Gia_Man_t * pGia, Gia_Obj_t * pObj, Vec_Int_t * vVec )
+{
+    Vec_IntPush( vVec, Gia_ObjToLit(pGia, pObj) );
+    if ( Gia_IsComplement(pObj) || Gia_ObjIsCi(pObj) )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManSimCollect_rec( pGia, Gia_ObjChild0(pObj), vVec );
+    Gia_ManSimCollect_rec( pGia, Gia_ObjChild1(pObj), vVec );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives signal implications.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSimCollect( Gia_Man_t * pGia, Gia_Obj_t * pObj, Vec_Int_t * vVec )
+{
+    Vec_IntClear( vVec );
+    Gia_ManSimCollect_rec( pGia, pObj, vVec );
+    Vec_IntUniqify( vVec );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds signals, which reset flops to have constant values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManSimDeriveResets( Gia_Man_t * pGia )
+{
+    int nImpLimit = 5;
+    Vec_Int_t * vResult;
+    Vec_Int_t * vCountLits, * vSuperGate;
+    Gia_Obj_t * pObj;
+    int i, k, Lit, Count;
+    int Counter0 = 0, Counter1 = 0;
+    int CounterPi0 = 0, CounterPi1 = 0;
+    int clk = clock();
+
+    // create reset counters for each literal
+    vCountLits = Vec_IntStart( 2 * Gia_ManObjNum(pGia) );
+
+    // collect implications for each flop input driver
+    vSuperGate = Vec_IntAlloc( 1000 );
+    Gia_ManForEachRi( pGia, pObj, i )
+    {
+        if ( Gia_ObjFaninId0p(pGia, pObj) == 0 )
+            continue;
+        Vec_IntAddToEntry( vCountLits, Gia_ObjToLit(pGia, Gia_ObjChild0(pObj)), 1 );
+        Gia_ManSimCollect( pGia, Gia_ObjFanin0(pObj), vSuperGate );
+        Vec_IntForEachEntry( vSuperGate, Lit, k )
+            Vec_IntAddToEntry( vCountLits, Lit, 1 );
+    }
+    Vec_IntFree( vSuperGate );
+
+    // label signals whose counter if more than the limit
+    vResult = Vec_IntStartFull( Gia_ManObjNum(pGia) );
+    Vec_IntForEachEntry( vCountLits, Count, Lit )
+    {
+        if ( Count < nImpLimit )
+            continue;
+        pObj = Gia_ManObj( pGia, Gia_Lit2Var(Lit) );
+        if ( Gia_LitIsCompl(Lit) ) // const 0
+        {
+//            Ssm_ObjSetLogic0( pObj );
+            Vec_IntWriteEntry( vResult, Gia_Lit2Var(Lit), 0 );
+            CounterPi0 += Gia_ObjIsPi(pGia, pObj);
+            Counter0++;
+        }
+        else
+        {
+//            Ssm_ObjSetLogic1( pObj );
+            Vec_IntWriteEntry( vResult, Gia_Lit2Var(Lit), 1 );
+            CounterPi1 += Gia_ObjIsPi(pGia, pObj);
+            Counter1++;
+        }
+//        if ( Gia_ObjIsPi(pGia, pObj) )
+//            printf( "%d ", Count );
+    }
+//    printf( "\n" );
+    Vec_IntFree( vCountLits );
+
+    printf( "Logic0 = %d (%d). Logic1 = %d (%d). ", Counter0, CounterPi0, Counter1, CounterPi1 );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    return vResult;
+}
+
 
 /**Function*************************************************************
 
@@ -85,6 +197,7 @@ void Gia_ManSimSetDefaultParams( Gia_ParSim_t * p )
 ***********************************************************************/
 void Gia_ManSimDelete( Gia_ManSim_t * p )
 {
+    Vec_IntFreeP( &p->vConsts );
     Vec_IntFreeP( &p->vCis2Ids );
     Gia_ManStopP( &p->pAig );
     ABC_FREE( p->pDataSim );
@@ -110,6 +223,10 @@ Gia_ManSim_t * Gia_ManSimCreate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     int Entry, i;
     p = ABC_ALLOC( Gia_ManSim_t, 1 );
     memset( p, 0, sizeof(Gia_ManSim_t) );
+    // look for reset signals
+    if ( pPars->fVerbose )
+        p->vConsts = Gia_ManSimDeriveResets( pAig );
+    // derive the frontier
     p->pAig   = Gia_ManFront( pAig );
     p->pPars  = pPars;
     p->nWords = pPars->nWords;
@@ -131,6 +248,7 @@ Gia_ManSim_t * Gia_ManSimCreate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
         12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
         4.0*p->nWords*p->pAig->nFront/(1<<20), 
         4.0*p->nWords*(Gia_ManCiNum(p->pAig) + Gia_ManCoNum(p->pAig))/(1<<20) );
+
     return p;
 }
 
