@@ -278,6 +278,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     {
         // collect drivers
         Vec_Ptr_t * vDrivers, * vFanins;
+        int nRealLuts, nStopPoint;
         vDrivers = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
@@ -291,6 +292,8 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
                 pNodeNew = Abc_NtkCreateNodeBuf( pNtkNew, pNodeNew );
             Vec_PtrPush( vDrivers, pNodeNew );
         }
+        nStopPoint = Abc_NtkObjNumMax( pNtkNew );
+
         // update drivers
         vFanins = Vec_PtrAlloc( 2 );
         for ( i = pNtk->nRealPos; i <  Abc_NtkPoNum(pNtk); i += 5 )
@@ -300,6 +303,9 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
             Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+0) );
             Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+1) );
             pExor = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
+            // update polarity
+            if ( strstr( Abc_ObjName(Abc_NtkPo(pNtk, i)), "SUB" ) != NULL )
+                pExor->pData = Hop_Not( (Hop_Obj_t *) pExor->pData );
             // create second XOR
             Vec_PtrClear( vFanins );
             Vec_PtrPush( vFanins, pExor );
@@ -319,7 +325,17 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
         Vec_PtrFree( vDrivers );
         // sweep
         nDupGates = Abc_NtkCleanup( pNtkNew, 0 );
-        printf( "The number of removed nodes = %d.\n", nDupGates );
+//        printf( "The number of removed nodes = %d.\n", nDupGates );
+        // count non-trivial LUTs nodes
+        nRealLuts = 0;
+        Abc_NtkForEachNode( pNtkNew, pNode, i )
+        {
+            if ( (int)Abc_ObjId(pNode) > nStopPoint )
+                break;
+            if ( Abc_ObjFaninNum(pNode) > 1 )
+                nRealLuts++;
+        }
+        printf( "The number of real LUTs = %d.\n", nRealLuts );
     }
     else
     {
