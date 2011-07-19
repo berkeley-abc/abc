@@ -318,7 +318,9 @@ nextrun:
     }
     if ( fVerbose )
     {
-        if ( fUnique || fUniqueAll )
+        if ( status == l_Undef )
+            printf( "Conflict limit (%d) was reached during iteration %d.\n", nConfMax, f+1 );
+        else if ( fUnique || fUniqueAll )
             printf( "Completed %d interations and added %d uniqueness constraints.\n", f+1, nConstrs );
         else
             printf( "Completed %d interations.\n", f+1 );
