@@ -170,6 +170,7 @@ extern int               Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAi
 extern int               Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 );
 extern int               Saig_ManDemiterDual( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 );
 extern int               Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbose );
+extern int               Saig_ManDemiterNew( Aig_Man_t * pMan );
 /*=== saigOutdec.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits, int fVerbose );
 /*=== saigPhase.c ==========================================================*/

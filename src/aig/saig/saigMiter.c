@@ -1213,6 +1213,100 @@ int Ssw_SecSpecialMiter( Aig_Man_t * p0, Aig_Man_t * p1, int nFrames, int fVerbo
     return RetValue;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs demitering of the network.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManDemiterNew( Aig_Man_t * pMan )
+{
+    Vec_Ptr_t * vSuper, * vSupp0, * vSupp1;
+    Aig_Obj_t * pObj, * pTemp, * pFan0, * pFan1;
+    int i, k;
+    vSuper = Vec_PtrAlloc( 100 );
+    Saig_ManForEachPo( pMan, pObj, i )
+    {
+        if ( pMan->nConstrs && i >= pMan->nConstrs )
+            break;
+        printf( "Output %3d : ", i );
+        if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
+        {
+            if ( !Aig_ObjFaninC0(pObj) )
+                printf( "Const1\n" );
+            else
+                printf( "Const0\n" );
+            continue;
+        }
+        if ( !Aig_ObjIsNode(Aig_ObjFanin0(pObj)) )
+        {
+            printf( "Terminal\n" );
+            continue;
+        }
+        // check AND
+        if ( !Aig_ObjFaninC0(pObj) )
+        { 
+            printf( "AND  " );
+            if ( Aig_ObjRecognizeExor(Aig_ObjFanin0(pObj), &pFan0, &pFan1) )
+                printf( " Yes" );
+            else
+                printf( " No" );
+            printf( "\n" );
+            continue;
+        }
+        // check OR
+        Aig_ObjCollectSuper( Aig_ObjFanin0(pObj), vSuper );
+        printf( "OR with %d inputs    ", Vec_PtrSize(vSuper) );
+        if ( Vec_PtrSize(vSuper) == 2 )
+        {
+            if ( Aig_ObjRecognizeExor(Aig_ObjFanin0(pObj), &pFan0, &pFan1) )
+            {
+                printf( " Yes" );
+                printf( "\n" );
+
+                vSupp0 = Aig_Support( pMan, Aig_Regular(pFan0) );
+                Vec_PtrForEachEntry( Aig_Obj_t *, vSupp0, pTemp, k )
+                    if ( Saig_ObjIsLo(pMan, pTemp) )
+                        printf( " %d", Aig_ObjPioNum(pTemp) );
+                printf( "\n" );
+                Vec_PtrFree( vSupp0 );
+
+                vSupp1 = Aig_Support( pMan, Aig_Regular(pFan1) );
+                Vec_PtrForEachEntry( Aig_Obj_t *, vSupp1, pTemp, k )
+                    if ( Saig_ObjIsLo(pMan, pTemp) )
+                        printf( " %d", Aig_ObjPioNum(pTemp) );
+                printf( "\n" );
+                Vec_PtrFree( vSupp1 );
+            }
+            else
+                printf( " No" );
+            printf( "\n" );
+            continue;
+        }
+/*
+        Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pTemp, k )
+            if ( Aig_ObjRecognizeExor(Aig_Regular(pTemp), &pFan0, &pFan1) )
+            {
+                printf( " Yes" );
+                if ( Aig_IsComplement(pTemp) )
+                    pFan0 = Aig_Not(pFan0);
+            }
+            else
+                printf( " No" );
+*/
+        printf( "\n" );
+    }
+    Vec_PtrFree( vSuper );
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

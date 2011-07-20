@@ -5519,6 +5519,8 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Abc_NtkDarDemiter( Abc_Ntk_t * pNtk );
     extern int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose );
 
+    extern int Abc_NtkDarDemiterNew( Abc_Ntk_t * pNtk );
+
     // set defaults
     fDual = 0;
     fSeq = 1;
@@ -5540,7 +5542,7 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
-    }
+    } 
 
     if ( pNtk == NULL )
     {
@@ -5554,14 +5556,16 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( (Abc_NtkPoNum(pNtk) & 1) )
-    {
-        Abc_Print( -1, "The number of POs should be even.\n" );
-        return 0;
-    }
+//    Abc_NtkDarDemiterNew( pNtk );
+//    return 0;
 
     if ( fDual )
     {
+        if ( (Abc_NtkPoNum(pNtk) & 1) )
+        {
+            Abc_Print( -1, "The number of POs should be even.\n" );
+            return 0;
+        }
         if ( !Abc_NtkDarDemiterDual( pNtk, fVerbose ) )
         {
             Abc_Print( -1, "Demitering has failed.\n" );
