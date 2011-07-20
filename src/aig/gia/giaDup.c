@@ -521,6 +521,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     int i, nRos = 0, nRis = 0;
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->nConstrs = p->nConstrs;
     pNew->pName = Gia_UtilStrsav( p->pName );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
