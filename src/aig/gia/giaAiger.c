@@ -799,7 +799,12 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             {
                 // get the terminal type
                 if ( *pCur == 'i' || *pCur == 'l' )
+                {
+                    // skip till the end of the line
+                    while ( *pCur++ != '\n' );
+                    *(pCur-1) = 0;
                     continue;
+                }
                 if ( *pCur != 'o' )
                 {
                     fprintf( stdout, "Wrong terminal type.\n" );
