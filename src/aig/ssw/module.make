@@ -11,6 +11,7 @@ SRC +=    src/aig/ssw/sswAig.c \
     src/aig/ssw/sswMan.c \
     src/aig/ssw/sswPart.c \
     src/aig/ssw/sswPairs.c \
+    src/aig/ssw/sswRarity.c \
     src/aig/ssw/sswSat.c \
     src/aig/ssw/sswSemi.c \
     src/aig/ssw/sswSim.c \

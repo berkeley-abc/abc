@@ -3779,6 +3779,10 @@ SOURCE=.\src\aig\ssw\sswPart.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ssw\sswRarity.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ssw\sswSat.c
 # End Source File
 # Begin Source File

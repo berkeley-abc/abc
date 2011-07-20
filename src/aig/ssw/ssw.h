@@ -124,6 +124,9 @@ extern int           Ssw_SmlNumFrames( Ssw_Sml_t * p );
 extern int           Ssw_SmlNumWordsTotal( Ssw_Sml_t * p );
 extern unsigned *    Ssw_SmlSimInfo( Ssw_Sml_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
+extern void          Ssw_SmlInitializeSpecial( Ssw_Sml_t * p, Vec_Int_t * vInit );
+extern Vec_Ptr_t *   Ssw_SmlSimDataPointers( Ssw_Sml_t * p );
+
 
 ABC_NAMESPACE_HEADER_END
 
