@@ -737,9 +737,9 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     {
         int fBreakUsed = 0;
         char * pCurOld = pCur;
-        pNew->vUserPiIds = Vec_IntStartFull( Gia_ManPiNum(pNew) );
-        pNew->vUserPoIds = Vec_IntStartFull( Gia_ManPoNum(pNew) );
-        pNew->vUserFfIds = Vec_IntStartFull( Gia_ManRegNum(pNew) );
+        pNew->vUserPiIds = Vec_IntStartFull( nInputs );
+        pNew->vUserPoIds = Vec_IntStartFull( nOutputs );
+        pNew->vUserFfIds = Vec_IntStartFull( nLatches );
         while ( (char *)pCur < pContents + nFileSize && *pCur != 'c' )
         {
             int iTerm;
