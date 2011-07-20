@@ -212,6 +212,7 @@ struct Abc_Ntk_t_
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     Vec_Int_t *       vObjPerm;      // permutation saved
+    Vec_Vec_t *       vRealPos;      // additional PO info
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };

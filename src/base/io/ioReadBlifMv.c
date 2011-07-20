@@ -120,6 +120,8 @@ static Io_MvVar_t *      Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar );
 static int               Io_MvCharIsSpace( char s )  { return s == ' ' || s == '\t' || s == '\r' || s == '\n';  }
 static int               Io_MvCharIsMvSymb( char s ) { return s == '(' || s == ')' || s == '{' || s == '}' || s == '-' || s == ',' || s == '!';  }
 
+static Vec_Vec_t *       Io_MvExtractBoxInfo( Abc_Ntk_t * pNtk );
+
 extern void              Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
@@ -233,6 +235,8 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     Vec_PtrForEachEntry( char *, vGlobalLtlArray, pLtlProp, i )
         Vec_PtrPush( pNtk->vLtlProperties, pLtlProp );
     Vec_PtrFreeP( &vGlobalLtlArray );
+
+    pNtk->vRealPos = Io_MvExtractBoxInfo( pNtk );
     return pNtk;
 }
 
@@ -2104,6 +2108,106 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     Abc_ObjSetData( pNode, pGate );
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Box mapping procedures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_MapBoxSetPrevNext( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec_Int_t * vMapOut, int Id )
+{
+    Abc_Obj_t * pNode;
+    pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+2);
+    Vec_IntWriteEntry( vMapIn, Abc_ObjId(Abc_ObjFanin0(Abc_ObjFanin0(pNode))), Id );
+    pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+4);
+    Vec_IntWriteEntry( vMapOut, Abc_ObjId(Abc_ObjFanin0(Abc_ObjFanin0(pNode))), Id );
+}
+static inline int Abc_MapBox2Next( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec_Int_t * vMapOut, int Id )
+{
+    Abc_Obj_t * pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+4);
+    return Vec_IntEntry( vMapIn, Abc_ObjId(Abc_ObjFanin0(Abc_ObjFanin0(pNode))) );
+}
+static inline int Abc_MapBox2Prev( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec_Int_t * vMapOut, int Id )
+{
+    Abc_Obj_t * pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+2);
+    return Vec_IntEntry( vMapOut, Abc_ObjId(Abc_ObjFanin0(Abc_ObjFanin0(pNode))) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Vec_Vec_t * Io_MvExtractBoxInfo( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vMapIn, * vMapOut, * vList;
+    Vec_Ptr_t * vBoxInfo, * vDrivers;
+    Abc_Obj_t * pObj;
+    int i, boxId;
+
+    // quit if there is no boxes
+    if ( pNtk->nRealPos == 0 || (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) % 5 != 0 )
+        return NULL;
+
+    // allocate
+    vBoxInfo = Vec_PtrAlloc( 10 );
+    vDrivers = Vec_PtrAlloc( Abc_NtkPoNum(pNtk) );
+    vMapIn   = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
+    vMapOut  = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
+
+    // collect drivers
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Vec_PtrPush( vDrivers, Abc_ObjFanin0(Abc_ObjFanin0(pObj)) );
+
+    // map box signals into box numbers            
+    for ( i = pNtk->nRealPos; i < Abc_NtkPoNum(pNtk); i += 5 )
+    {
+//        int k;
+//        for ( k = 0; k < 5; k++ )
+//            printf( "%d ", Abc_ObjFanin0(Abc_ObjFanin0(Abc_ObjFanin0(Abc_NtkPo(pNtk,i+k))))->Id );
+//        printf( "\n" );
+        Abc_MapBoxSetPrevNext( vDrivers, vMapIn, vMapOut, i );
+    }
+
+    // find those that do not have input mapped
+    for ( i = pNtk->nRealPos; i < Abc_NtkPoNum(pNtk); i += 5 )
+    {
+        if ( Abc_MapBox2Prev( vDrivers, vMapIn, vMapOut, i ) != ~0 )
+            continue;
+        // create new list
+        vList = Vec_IntAlloc( 32 );
+        boxId = i;
+        while ( boxId != ~0 )
+        {
+            Vec_IntPush( vList, boxId );
+            boxId = Abc_MapBox2Next( vDrivers, vMapIn, vMapOut, boxId );
+        }
+        Vec_PtrPush( vBoxInfo, vList );
+//printf( " %d", Vec_IntSize(vList) );
+    }
+//printf( "\n" );
+    if ( 5 * Vec_VecSizeSize((Vec_Vec_t *)vBoxInfo) != (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) )
+        printf( "Mismatch in the number of boxes!!!\n" );
+
+    // clean up
+    Vec_IntFree( vMapIn );
+    Vec_IntFree( vMapOut );
+    Vec_PtrFree( vDrivers );
+    return (Vec_Vec_t *)vBoxInfo;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

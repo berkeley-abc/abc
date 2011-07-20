@@ -231,7 +231,8 @@ struct If_Obj_t_
     unsigned           fVisit  :  1;  // multipurpose mark
     unsigned           fSpec   :  1;  // multipurpose mark
     unsigned           fDriver :  1;  // multipurpose mark
-    unsigned           Level   : 20;  // logic level of the node
+    unsigned           fSkipCut:  1;  // multipurpose mark
+    unsigned           Level   : 19;  // logic level of the node
     int                Id;            // integer ID
     int                IdPio;         // integer ID of PIs/POs
     int                nRefs;         // the number of references

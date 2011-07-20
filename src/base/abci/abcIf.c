@@ -42,6 +42,7 @@ extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
 extern void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk );
 extern void Abc_NtkCreateChoiceDrivers( If_Man_t * p );
 extern void Abc_NtkFreePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk );
+extern void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew );
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -239,6 +240,37 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     return pIfMan;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Box mapping procedures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_MapBoxSetPrevNext( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec_Int_t * vMapOut, int Id )
+{
+    Abc_Obj_t * pNode;
+    pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+2);
+    Vec_IntWriteEntry( vMapIn, Abc_ObjId(Abc_ObjFanin0(pNode)), Id );
+    pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+4);
+    Vec_IntWriteEntry( vMapOut, Abc_ObjId(Abc_ObjFanin0(pNode)), Id );
+}
+static inline int Abc_MapBox2Next( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec_Int_t * vMapOut, int Id )
+{
+    Abc_Obj_t * pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+4);
+    return Vec_IntEntry( vMapIn, Abc_ObjId(Abc_ObjFanin0(pNode)) );
+}
+static inline int Abc_MapBox2Prev( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec_Int_t * vMapOut, int Id )
+{
+    Abc_Obj_t * pNode = (Abc_Obj_t *)Vec_PtrEntry(vDrivers, Id+2);
+    return Vec_IntEntry( vMapOut, Abc_ObjId(Abc_ObjFanin0(pNode)) );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Creates the mapped network.]
@@ -254,7 +286,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
 {
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pNode, * pNodeNew, * pExor;
+    Abc_Obj_t * pNode, * pNodeNew;
     Vec_Int_t * vCover;
     int i, nDupGates;
     // create the new network
@@ -271,84 +303,24 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     If_ObjSetCopy( If_ManConst1(pIfMan), Abc_NtkCreateNodeConst1(pNtkNew) );
     Abc_NtkForEachCi( pNtk, pNode, i )
         If_ObjSetCopy( If_ManCi(pIfMan, i), pNode->pCopy );
+
     // process the nodes in topological order
     vCover = Vec_IntAlloc( 1 << 16 );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
-    if ( pIfMan->pPars->fEnableRealPos )
+    Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        // collect drivers
-        Vec_Ptr_t * vDrivers, * vFanins;
-        int nRealLuts, nStopPoint;
-        vDrivers = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
-        Abc_NtkForEachCo( pNtk, pNode, i )
-        {
-            Extra_ProgressBarUpdate( pProgress, i, "Final" );
-            pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
-            pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
-//            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
-            if ( Abc_ObjIsComplement(pNodeNew) )
-                pNodeNew = Abc_NtkCreateNodeInv( pNtkNew, Abc_ObjRegular(pNodeNew) );
-            else
-                pNodeNew = Abc_NtkCreateNodeBuf( pNtkNew, pNodeNew );
-            Vec_PtrPush( vDrivers, pNodeNew );
-        }
-        nStopPoint = Abc_NtkObjNumMax( pNtkNew );
-
-        // update drivers
-        vFanins = Vec_PtrAlloc( 2 );
-        for ( i = pNtk->nRealPos; i <  Abc_NtkPoNum(pNtk); i += 5 )
-        {
-            // create first XOR
-            Vec_PtrClear( vFanins );
-            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+0) );
-            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+1) );
-            pExor = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
-            // update polarity
-            if ( strstr( Abc_ObjName(Abc_NtkPo(pNtk, i)), "SUB" ) != NULL )
-                pExor->pData = Hop_Not( (Hop_Obj_t *) pExor->pData );
-            // create second XOR
-            Vec_PtrClear( vFanins );
-            Vec_PtrPush( vFanins, pExor );
-            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+2) );
-            pNode = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
-            Vec_PtrWriteEntry( vDrivers, i+3, pNode );
-            // create MUX
-            pNode = Abc_NtkCreateNodeMux( pNtkNew, pExor, 
-                (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+2), 
-                (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i+1) );
-            Vec_PtrWriteEntry( vDrivers, i+4, pNode );
-        }
-        Vec_PtrFree( vFanins );
-        // connect drivers
-        Abc_NtkForEachCo( pNtk, pNode, i )
-            Abc_ObjAddFanin( pNode->pCopy, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, i) );
-        Vec_PtrFree( vDrivers );
-        // sweep
-        nDupGates = Abc_NtkCleanup( pNtkNew, 0 );
-//        printf( "The number of removed nodes = %d.\n", nDupGates );
-        // count non-trivial LUTs nodes
-        nRealLuts = 0;
-        Abc_NtkForEachNode( pNtkNew, pNode, i )
-        {
-            if ( (int)Abc_ObjId(pNode) > nStopPoint )
-                break;
-            if ( Abc_ObjFaninNum(pNode) > 1 )
-                nRealLuts++;
-        }
-        printf( "The number of real LUTs = %d.\n", nRealLuts );
-    }
-    else
-    {
-        Abc_NtkForEachCo( pNtk, pNode, i )
-        {
-            Extra_ProgressBarUpdate( pProgress, i, "Final" );
-            pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
-            pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
-            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
-        }
+        Extra_ProgressBarUpdate( pProgress, i, "Final" );
+        pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
+        pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
+        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );
     Vec_IntFree( vCover );
+
+    // update PO drivers
+    if ( pIfMan->pPars->fEnableRealPos )
+        Abc_NtkRecreatePoDrivers( pIfMan, pNtkNew );
+
     // remove the constant node if not used
     pNodeNew = (Abc_Obj_t *)If_ObjCopy( If_ManConst1(pIfMan) );
     if ( Abc_ObjFanoutNum(pNodeNew) == 0 )
@@ -361,7 +333,12 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     // decouple the PO driver nodes to reduce the number of levels
     nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, !pIfMan->pPars->fUseBuffs );
     if ( nDupGates && pIfMan->pPars->fVerbose )
-        printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+    {
+        if ( pIfMan->pPars->fUseBuffs )
+            printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+        else
+            printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+    }
     return pNtkNew;
 }
 
@@ -779,10 +756,56 @@ Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NtkMarkMux( Abc_Obj_t * pDriver, Abc_Obj_t ** ppNode1, Abc_Obj_t ** ppNode2 )
+{
+    Abc_Obj_t * pNodeC, * pNodeT, * pNodeE;
+    If_Obj_t * pIfObj;
+
+    *ppNode1 = NULL;
+    *ppNode2 = NULL;
+    if ( pDriver == NULL )
+        return;
+    if ( !Abc_NodeIsMuxType(pDriver) )
+        return;
+
+    pNodeC = Abc_NodeRecognizeMux( pDriver, &pNodeT, &pNodeE );
+
+    pIfObj = If_Regular( (If_Obj_t *)Abc_ObjFanin0(pDriver)->pCopy );
+    if ( If_ObjIsAnd(pIfObj) )
+        pIfObj->fSkipCut = 1;
+    pIfObj = If_Regular( (If_Obj_t *)Abc_ObjFanin1(pDriver)->pCopy );
+    if ( If_ObjIsAnd(pIfObj) )
+        pIfObj->fSkipCut = 1;
+/*
+    pIfObj = If_Regular( (If_Obj_t *)Abc_ObjRegular(pNodeC)->pCopy );
+    if ( If_ObjIsAnd(pIfObj) )
+        pIfObj->fSkipCut = 1;
+    pIfObj = If_Regular( (If_Obj_t *)Abc_ObjRegular(pNodeT)->pCopy );
+    if ( If_ObjIsAnd(pIfObj) )
+        pIfObj->fSkipCut = 1;
+    pIfObj = If_Regular( (If_Obj_t *)Abc_ObjRegular(pNodeE)->pCopy );
+    if ( If_ObjIsAnd(pIfObj) )
+        pIfObj->fSkipCut = 1;
+*/
+    *ppNode1 = Abc_ObjRegular(pNodeC);
+    *ppNode2 = Abc_ObjRegular(pNodeT);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets PO drivers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
 {
     Vec_Int_t * vTemp;
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pObj, * pDriver;
     If_Obj_t * pIfObj;
     int i, g, nGroups;
     if ( pNtk->nRealPos == 0 )
@@ -828,6 +851,72 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
         Vec_IntFree( vTemp );
     }
 //    printf( "\n" );
+    return;
+
+    // highlight inner logic
+    for ( i = pNtk->nRealPos; i <  Abc_NtkPoNum(pNtk); i += 5 )
+    {
+        Abc_Obj_t * pNode1, * pNode2;
+
+        pObj = Abc_NtkPo( pNtk, i + 4 );
+        pDriver = Abc_ObjFanin0( pObj );
+        Abc_NtkMarkMux( pDriver, &pNode1, &pNode2 );
+
+        pObj = Abc_NtkPo( pNtk, i + 3 );
+        pDriver = Abc_ObjFanin0( pObj );
+        Abc_NtkMarkMux( pDriver, &pNode1, &pNode2 );
+
+        if ( pNode1 == NULL )
+            continue;
+
+        assert( Abc_ObjRegular(pNode1) != Abc_ObjRegular(pNode2) );
+//        Abc_NtkMarkMux( pNode1, &pNode1, &pNode2 );
+//        Abc_NtkMarkMux( pNode2, &pNode1, &pNode2 );
+    }
+
+    {
+        Vec_Int_t * vInfo;
+        int i, k, numPo;
+
+        Vec_VecForEachLevelInt( pNtk->vRealPos, vInfo, i )
+        {
+            numPo = Vec_IntEntry( vInfo, 0 );
+            pObj = Abc_NtkPo( pNtk, numPo+2 );
+            pDriver = Abc_ObjFanin0( pObj );
+            pIfObj = If_Regular( (If_Obj_t *)pDriver->pCopy );
+            pIfObj->fSkipCut = 0;
+
+            numPo = Vec_IntEntryLast( vInfo );
+            pObj = Abc_NtkPo( pNtk, numPo+4 );
+            pDriver = Abc_ObjFanin0( pObj );
+            pIfObj = If_Regular( (If_Obj_t *)pDriver->pCopy );
+            pIfObj->fSkipCut = 0;
+
+            Vec_IntForEachEntry( vInfo, numPo, k )
+            {
+                pObj = Abc_NtkPo( pNtk, numPo+0 );
+                pDriver = Abc_ObjFanin0( pObj );
+                pIfObj = If_Regular( (If_Obj_t *)pDriver->pCopy );
+                pIfObj->fSkipCut = 0;
+
+                pObj = Abc_NtkPo( pNtk, numPo+1 );
+                pDriver = Abc_ObjFanin0( pObj );
+                pIfObj = If_Regular( (If_Obj_t *)pDriver->pCopy );
+                pIfObj->fSkipCut = 0;
+
+                pObj = Abc_NtkPo( pNtk, numPo+2 );
+                pDriver = Abc_ObjFanin0( pObj );
+                pIfObj = If_Regular( (If_Obj_t *)pDriver->pCopy );
+                pIfObj->fSkipCut = 0;
+
+                pObj = Abc_NtkPo( pNtk, numPo+3 );
+                pDriver = Abc_ObjFanin0( pObj );
+                pIfObj = If_Regular( (If_Obj_t *)pDriver->pCopy );
+                pIfObj->fSkipCut = 0;
+            }
+        }
+    }
+
 }
 
 
@@ -910,6 +999,182 @@ void Abc_NtkFreePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
     for ( i = 0; i < If_ManObjNum(p); i++ )
         Vec_IntFreeP( &p->pDriverCuts[i] );
     ABC_FREE( p->pDriverCuts );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pOld is in the TFI of pNew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkIfCheckTfi_rec( Abc_Obj_t * pNode, Abc_Obj_t * pOld )
+{
+    Abc_Obj_t * pFanin;
+    int k;
+    if ( pNode == NULL )
+        return 0;
+    if ( pNode == pOld )
+        return 1;
+    // check the trivial cases
+    if ( Abc_ObjIsCi(pNode) )
+        return 0; 
+    assert( Abc_ObjIsNode(pNode) );
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return 0;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // check the children
+    Abc_ObjForEachFanin( pNode, pFanin, k )
+        if ( Abc_NtkIfCheckTfi_rec( pFanin, pOld ) )
+            return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pOld is in the TFI of pNew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkIfCheckTfi( Abc_Ntk_t * pNtk, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
+{
+    assert( !Abc_ObjIsComplement(pOld) );
+    assert( !Abc_ObjIsComplement(pNew) );
+    Abc_NtkIncrementTravId(pNtk);
+    return Abc_NtkIfCheckTfi_rec( pNew, pOld );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Restores the structure.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
+{
+    Abc_Obj_t * pNode, * pExor, * pObj, * pFanin, * pFaninNew;
+    Vec_Ptr_t * vDrivers, * vDriversNew, * vFanins;
+    Vec_Int_t * vInfo, * vNodeMap, * vDriverInvs;
+    int i, k, numPo, nRealLuts, fCompl;
+    if ( pNtkNew->vRealPos == NULL )
+    {
+        printf( "Missing key information.\n" );
+        return;
+    }
+
+    // create drivers
+    vDrivers = Vec_PtrStart( pNtkNew->nRealPos );
+    vDriverInvs = Vec_IntStart( pNtkNew->nRealPos );
+    for ( i = pNtkNew->nRealPos; i < Abc_NtkPoNum(pNtkNew); i++ )
+    {
+        pObj = Abc_NtkPo( pNtkNew, i );
+        if ( Abc_ObjFaninC0(pObj) )
+            pNode = Abc_NtkCreateNodeInv( pNtkNew, Abc_ObjFanin0(pObj) );
+        else
+            pNode = Abc_NtkCreateNodeBuf( pNtkNew, Abc_ObjFanin0(pObj) );
+//        if ( i % 5 == 4 )
+//            printf( "%d", Abc_ObjFaninC0(pObj) );
+        Vec_PtrPush( vDrivers, pNode );
+        Vec_IntPush( vDriverInvs, Abc_ObjFaninC0(pObj) );
+    }
+    assert( Vec_PtrSize( vDrivers ) == Abc_NtkPoNum( pNtkNew ) );
+
+    // create new logic
+    vFanins = Vec_PtrAlloc( 2 );
+    vDriversNew = Vec_PtrStart( Abc_NtkPoNum(pNtkNew) );
+    Vec_VecForEachLevelInt( pNtkNew->vRealPos, vInfo, i )
+    {
+        // find complemented attribute
+        numPo  = Vec_IntEntry( vInfo, 0 );
+        fCompl = (strstr( Abc_ObjName(Abc_NtkPo(pNtkNew, numPo)), "SUB" ) != NULL);
+        // consider parts
+        Vec_IntForEachEntry( vInfo, numPo, k )
+        {
+            // update input
+            if ( k > 0 )
+                Vec_PtrWriteEntry( vDriversNew, numPo+2, pNode );
+            // create first XOR
+            Vec_PtrClear( vFanins );
+            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+0) );
+            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+1) );
+            pExor = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
+            // update polarity
+            pExor->pData = Hop_NotCond( (Hop_Obj_t *)pExor->pData, fCompl );
+            // create second XOR
+            Vec_PtrClear( vFanins );
+            Vec_PtrPush( vFanins, pExor );
+            Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+2) ); 
+            pNode = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
+            Vec_PtrWriteEntry( vDriversNew, numPo+3, pNode );
+            // create MUX
+            pNode = Abc_NtkCreateNodeMux( pNtkNew, pExor, 
+                (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+2), 
+                (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+(fCompl ? 0 : 1)) );
+            Vec_PtrWriteEntry( vDriversNew, numPo+4, pNode );
+        }
+    }
+    Vec_PtrFree( vFanins );
+
+    // map internal nodes into PO numbers
+    vNodeMap = Vec_IntStartFull( Abc_NtkObjNumMax(pNtkNew) );
+    Vec_VecForEachLevelInt( pNtkNew->vRealPos, vInfo, i )
+    Vec_IntForEachEntryReverse( vInfo, numPo, k )
+    {
+        pObj = Abc_NtkPo( pNtkNew, numPo+3 );
+        Vec_IntWriteEntry( vNodeMap, Abc_ObjId( Abc_ObjFanin0(pObj) ), numPo+3 );
+        pObj = Abc_NtkPo( pNtkNew, numPo+4 );
+        Vec_IntWriteEntry( vNodeMap, Abc_ObjId( Abc_ObjFanin0(pObj) ), numPo+4 );
+    }
+
+    // replace logic
+    Abc_NtkForEachObj( pNtkNew, pObj, i )
+    {
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            numPo = Vec_IntEntry( vNodeMap, Abc_ObjId(pFanin) );
+            if ( numPo == ~0 )
+                continue;
+            // get the node and the complemented bit
+            pFaninNew = Vec_PtrEntry( vDriversNew, numPo );
+            fCompl    = Vec_IntEntry( vDriverInvs, numPo );
+            if ( fCompl )
+                pFaninNew = Abc_NtkCreateNodeInv( pNtkNew, pFaninNew );
+
+            if ( !Abc_NtkIfCheckTfi( pNtkNew, pObj, pFaninNew ) )
+                Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
+        }
+    }    
+    Vec_PtrFree( vDrivers );
+    Vec_PtrFree( vDriversNew );
+    Vec_IntFree( vNodeMap );
+    Vec_IntFree( vDriverInvs );
+
+    // sweep
+    Abc_NtkCleanup( pNtkNew, 0 );
+
+    // count non-trivial LUTs nodes
+    nRealLuts = -2 * Vec_VecSizeSize(pNtkNew->vRealPos);
+    Abc_NtkForEachNode( pNtkNew, pNode, i )
+        if ( Abc_ObjFaninNum(pNode) > 1 )
+            nRealLuts++;
+    printf( "The number of real LUTs = %d.\n", nRealLuts );
 }
 
 ////////////////////////////////////////////////////////////////////////
