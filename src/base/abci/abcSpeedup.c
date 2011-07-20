@@ -444,7 +444,7 @@ void Abc_NtkSpeedupNode( Abc_Ntk_t * pNtk, Abc_Ntk_t * pAig, Abc_Obj_t * pNode, 
     // create choice node
     pAnd = Abc_ObjRegular(pNode->pCopy); // repr
     pObj = Abc_ObjRegular(ppCofs[0]);    // new
-    if ( pAnd->pData == NULL && pObj->pData == NULL && !Abc_AigCheckTfi(pObj, pAnd) )
+    if ( pAnd->pData == NULL && pObj->pData == NULL && !Abc_AigNodeIsConst(pObj) && !Abc_AigCheckTfi(pObj, pAnd) )
     {
         pObj->pData = pAnd->pData;
         pAnd->pData = pObj;
