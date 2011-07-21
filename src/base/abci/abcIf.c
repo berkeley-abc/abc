@@ -776,10 +776,12 @@ void Abc_NtkMarkMux( Abc_Obj_t * pDriver, Abc_Obj_t ** ppNode1, Abc_Obj_t ** ppN
     pIfObj = If_Regular( (If_Obj_t *)Abc_ObjFanin1(pDriver)->pCopy );
     if ( If_ObjIsAnd(pIfObj) )
         pIfObj->fSkipCut = 1;
-/*
+
     pIfObj = If_Regular( (If_Obj_t *)Abc_ObjRegular(pNodeC)->pCopy );
     if ( If_ObjIsAnd(pIfObj) )
         pIfObj->fSkipCut = 1;
+
+/*
     pIfObj = If_Regular( (If_Obj_t *)Abc_ObjRegular(pNodeT)->pCopy );
     if ( If_ObjIsAnd(pIfObj) )
         pIfObj->fSkipCut = 1;
@@ -862,18 +864,20 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
         pDriver = Abc_ObjFanin0( pObj );
         Abc_NtkMarkMux( pDriver, &pNode1, &pNode2 );
 
+/*
         pObj = Abc_NtkPo( pNtk, i + 3 );
         pDriver = Abc_ObjFanin0( pObj );
         Abc_NtkMarkMux( pDriver, &pNode1, &pNode2 );
-
         if ( pNode1 == NULL )
             continue;
 
         assert( Abc_ObjRegular(pNode1) != Abc_ObjRegular(pNode2) );
 //        Abc_NtkMarkMux( pNode1, &pNode1, &pNode2 );
 //        Abc_NtkMarkMux( pNode2, &pNode1, &pNode2 );
+*/
     }
 
+/*
     {
         Vec_Int_t * vInfo;
         int i, k, numPo;
@@ -916,7 +920,7 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
             }
         }
     }
-
+*/
 }
 
 
@@ -1073,6 +1077,7 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
     Vec_Ptr_t * vDrivers, * vDriversNew, * vFanins;
     Vec_Int_t * vInfo, * vNodeMap, * vDriverInvs;
     int i, k, numPo, nRealLuts, fCompl;
+    float RealLutArea;
     if ( pNtkNew->vRealPos == NULL )
     {
         printf( "Missing key information.\n" );
@@ -1170,11 +1175,15 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
     Abc_NtkCleanup( pNtkNew, 0 );
 
     // count non-trivial LUTs nodes
-    nRealLuts = -2 * Vec_VecSizeSize(pNtkNew->vRealPos);
+    nRealLuts   = -2 * Vec_VecSizeSize(pNtkNew->vRealPos);
+    RealLutArea = -(p->pPars->pLutLib ? p->pPars->pLutLib->pLutAreas[2] + p->pPars->pLutLib->pLutAreas[3] : 2.0) * Vec_VecSizeSize(pNtkNew->vRealPos);
     Abc_NtkForEachNode( pNtkNew, pNode, i )
         if ( Abc_ObjFaninNum(pNode) > 1 )
+        {
             nRealLuts++;
-    printf( "The number of real LUTs = %d.\n", nRealLuts );
+            RealLutArea += p->pPars->pLutLib->pLutAreas[Abc_ObjFaninNum(pNode)];
+        }
+    printf( "The number of real LUTs = %d.  Real LUT area = %.2f.\n", nRealLuts, RealLutArea );
 }
 
 ////////////////////////////////////////////////////////////////////////
