@@ -525,7 +525,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
             // read switching activity
             pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
         }
-        if ( *pCur == 'c' )
+        if ( *pCur == 't' )
         {
             pCur++;
             // read number of constraints
@@ -730,7 +730,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             // read switching activity
             pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
         }
-        if ( *pCur == 'c' )
+        if ( *pCur == 't' )
         {
             pCur++;
             // read number of constraints
@@ -820,7 +820,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
                 }
                 if ( *pCur != 'o' )
                 {
-                    fprintf( stdout, "Wrong terminal type.\n" );
+//                    fprintf( stdout, "Wrong terminal type.\n" );
                     fBreakUsed = 1;
                     break;
                 }
@@ -897,8 +897,8 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         Vec_IntFreeP( &vPoTypes );
     }
 
-    pNew = Gia_ManCleanup( pTemp = pNew );
-    Gia_ManStop( pTemp );
+//    pNew = Gia_ManCleanup( pTemp = pNew );
+//    Gia_ManStop( pTemp );
     return pNew;
 }
 
@@ -1346,7 +1346,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
         unsigned char Buffer[10];
         Gia_WriteInt( Buffer, p->nConstrs );
-        fprintf( pFile, "c" );
+        fprintf( pFile, "t" );
         fwrite( Buffer, 1, 4, pFile );
     }
     // write name
