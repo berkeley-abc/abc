@@ -1234,7 +1234,7 @@ int Saig_ManDemiterNew( Aig_Man_t * pMan )
     vSuper = Vec_PtrAlloc( 100 );
     Saig_ManForEachPo( pMan, pObj, i )
     {
-        if ( pMan->nConstrs && i >= pMan->nConstrs )
+        if ( pMan->nConstrs && i >= Saig_ManPoNum(pMan) - pMan->nConstrs )
             break;
         printf( "Output %3d : ", i );
         if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )

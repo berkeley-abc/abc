@@ -94,11 +94,12 @@ Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames, int n
     p->nFrames = nFrames;
     p->nBinSize = nBinSize;
     p->fVerbose = fVerbose;
-    p->nGroups = Aig_ManRegNum(pAig) / nBinSize;
-    p->pRarity = ABC_CALLOC( int, (1 << nBinSize) * p->nGroups );
-    p->pGroupValues = ABC_CALLOC( int, (Aig_ManRegNum(pAig) / nBinSize) );
+    p->nGroups  = Aig_ManRegNum(pAig) / nBinSize;
+    p->pRarity  = ABC_CALLOC( int, (1 << nBinSize) * p->nGroups );
+    p->pGroupValues = ABC_CALLOC( int, p->nGroups );
     p->pPatCosts = ABC_CALLOC( double, p->nWords * 32 );
     p->pSml = Ssw_SmlStart( pAig, 0, nFrames, nWords );
+    p->vSimInfo = Ssw_SmlSimDataPointers( p->pSml );
     return p;
 }
 
@@ -115,8 +116,8 @@ Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames, int n
 ***********************************************************************/
 void Ssw_RarManStop( Ssw_RarMan_t * p )
 {
-    Ssw_SmlStop( p->pSml );
-    Ssw_ClassesStop( p->ppClasses );
+    if ( p->pSml ) Ssw_SmlStop( p->pSml );
+    if ( p->ppClasses ) Ssw_ClassesStop( p->ppClasses );
     Vec_PtrFreeP( &p->vSimInfo );
     Vec_IntFreeP( &p->vInits );
     ABC_FREE( p->pGroupValues );
@@ -142,19 +143,34 @@ void Ssw_RarUpdateCounters( Ssw_RarMan_t * p )
     Aig_Obj_t * pObj;
     unsigned * pData;
     int i, k;
+/*
+    Saig_ManForEachLi( p->pAig, pObj, i )
+    {
+        pData = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) ) + p->nWords * (p->nFrames - 1);
+        Extra_PrintBinary( stdout, pData, 32 );  printf( "\n" );
+    }
+*/
     for ( k = 0; k < p->nWords * 32; k++ )
     {
         for ( i = 0; i < p->nGroups; i++ )
             p->pGroupValues[i] = 0;
         Saig_ManForEachLi( p->pAig, pObj, i )
         {
-            pData = Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) );
-            if ( Aig_InfoHasBit(pData, k) )
+            pData = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) ) + p->nWords * (p->nFrames - 1);
+            if ( Aig_InfoHasBit(pData, k) && i / p->nBinSize < p->nGroups )
                 p->pGroupValues[i / p->nBinSize] |= (1 << (i % p->nBinSize));
         }
         for ( i = 0; i < p->nGroups; i++ )
             Ssw_RarAddToBinPat( p, i, p->pGroupValues[i] );
     }
+/*
+    for ( i = 0; i < p->nGroups; i++ )
+    {
+        for ( k = 0; k < (1 << p->nBinSize); k++ )
+            printf( "%d ", Ssw_RarGetBinPat(p, i, k) );
+        printf( "\n" );
+    }
+*/
 }
 
 /**Function*************************************************************
@@ -173,21 +189,36 @@ void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
     Aig_Obj_t * pObj;
     unsigned * pData;
     int i, k, Value;
-    for ( i = 0; i < p->nWords * 32; i++ )
-        p->pPatCosts[i] = 0.0;
-    for ( i = 0; i < p->nGroups; i++ )
+
+    // for each pattern
+    for ( k = 0; k < p->nWords * 32; k++ )
     {
-        for ( k = 0; k < p->nWords * 32; k++ )
+        for ( i = 0; i < p->nGroups; i++ )
+            p->pGroupValues[i] = 0;
+        // compute its group values
+        Saig_ManForEachLi( p->pAig, pObj, i )
         {
-            Value = Ssw_RarGetBinPat( p, i, k );
-            if ( Value == 0 )
-                continue;
-            p->pPatCosts[k] += 1.0/(Value*Value);
+            pData = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) ) + p->nWords * (p->nFrames - 1);
+            if ( Aig_InfoHasBit(pData, k) && i / p->nBinSize < p->nGroups )
+                p->pGroupValues[i / p->nBinSize] |= (1 << (i % p->nBinSize));
         }
+        // find the cost of its values
+        p->pPatCosts[k] = 0.0;
+        for ( i = 0; i < p->nGroups; i++ )
+        {
+            Value = Ssw_RarGetBinPat( p, i, p->pGroupValues[i] );
+            assert( Value > 0 );
+            p->pPatCosts[k] += 1.0/(Value*Value);
+//            printf( "%d ", Value );
+        }
+//        printf( "\n" );
+        // print the result
+//        printf( "%3d : %9.6f\n", k, p->pPatCosts[k] );
     }
+
     // choose as many as there are words
     Vec_IntClear( vInits );
-    for ( i = 0; i < p->nFrames; i++ )
+    for ( i = 0; i < p->nWords; i++ )
     {
         // select the best
         int iPatBest = -1;
@@ -202,13 +233,15 @@ void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
         assert( iPatBest >= 0 );
         p->pPatCosts[iPatBest] = -ABC_INFINITY;
         // set the flops
-        Saig_ManForEachLo( p->pAig, pObj, k )
+        Saig_ManForEachLi( p->pAig, pObj, k )
         {
-            pData = Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) );
+            pData = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) ) + p->nWords * (p->nFrames - 1);
             Vec_IntPush( vInits, Aig_InfoHasBit(pData, iPatBest) );
         }
+//printf( "Best pattern %5d\n", iPatBest );
+
     }
-    assert( Vec_IntSize(vInits) == Aig_ManRegNum(p->pAig) * p->nFrames );
+    assert( Vec_IntSize(vInits) == Aig_ManRegNum(p->pAig) * p->nWords );
 }
 
 
@@ -265,15 +298,14 @@ Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 
   Synopsis    [Filter equivalence classes of nodes.]
 
-  Description [Unrolls at most nFramesMax frames. Works with nConfMax 
-  conflicts until the first undefined SAT call. Verbose prints the message.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize, int nRounds, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
+int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize, int nRounds, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 {
     Ssw_RarMan_t * p;
     int r, i, k, clkTotal = clock();
@@ -281,7 +313,7 @@ void Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSiz
     assert( Aig_ManConstrNum(pAig) == 0 );
     // consider the case of empty AIG
     if ( Aig_ManNodeNum(pAig) == 0 )
-        return;
+        return -1;
     // reset random numbers
     Aig_ManRandom( 1 );
     // create manager
@@ -299,13 +331,11 @@ void Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSiz
     else
         p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) );
     // duplicate the array
-    for ( i = 1; i < nFrames; i++ )
+    for ( i = 1; i < nWords; i++ )
         for ( k = 0; k < Aig_ManRegNum(pAig); k++ )
             Vec_IntPush( p->vInits, Vec_IntEntry(p->vInits, k) );
-    assert( Vec_IntSize(p->vInits) == Aig_ManRegNum(pAig) * nFrames );
+    assert( Vec_IntSize(p->vInits) == Aig_ManRegNum(pAig) * nWords );
     // initialize simulation manager
-    p->pSml = Ssw_SmlStart( pAig, 0, nFrames, nWords );
-    p->vSimInfo = Ssw_SmlSimDataPointers( p->pSml );
     Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
     // print the stats
     if ( fVerbose )
@@ -349,6 +379,83 @@ void Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSiz
     }
     // cleanup
     Ssw_RarManStop( p );
+    return -1;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Perform sequential simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, int fVerbose )
+{
+    int fMiter = 1;
+    Ssw_RarMan_t * p;
+    int r, clk, clkTotal = clock();
+    int RetValue = -1;
+    assert( Aig_ManRegNum(pAig) > 0 );
+    assert( Aig_ManConstrNum(pAig) == 0 );
+    // consider the case of empty AIG
+    if ( Aig_ManNodeNum(pAig) == 0 )
+        return -1;
+    if ( fVerbose )
+        printf( "Simulating %d words through %d frames with %d binsize, %d rounds, and %d timeout.\n", 
+            nWords, nFrames, nBinSize, nRounds, TimeOut );
+    // reset random numbers
+    Aig_ManRandom( 1 );
+    // create manager
+    p = Ssw_RarManStart( pAig, nWords, nFrames, nBinSize, fVerbose );
+    p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * nWords );
+    Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
+    // perform simulation rounds
+    for ( r = 0; r < nRounds; r++ )
+    {
+        clk = clock();
+        // simulate
+        Ssw_SmlSimulateOne( p->pSml );
+        if ( fMiter && Ssw_SmlCheckNonConstOutputs(p->pSml) )
+        {
+            if ( fVerbose ) printf( "\n" );
+            printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
+            RetValue = 0;
+            break;
+        }
+        // get initialization patterns
+        Ssw_RarUpdateCounters( p );
+        Ssw_RarTransferPatterns( p, p->vInits );
+        Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
+        // printout
+        if ( fVerbose )
+        {
+//            printf( "Round %3d:  ", r );
+//            Abc_PrintTime( 1, "Time", clock() - clk );
+            printf( "." );
+        }
+        // check timeout
+        if ( TimeOut && ((float)TimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+        {
+            if ( fVerbose ) printf( "\n" );
+            printf( "Reached timeout (%d seconds).\n",  TimeOut );
+            break;
+        }
+    }
+    if ( r == nRounds )
+    {
+        if ( fVerbose ) printf( "\n" );
+        printf( "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
+        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+    }
+    // cleanup
+    Ssw_RarManStop( p );
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

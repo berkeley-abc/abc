@@ -928,11 +928,11 @@ void Ssw_SmlInitialize( Ssw_Sml_t * p, int fInit )
 void Ssw_SmlInitializeSpecial( Ssw_Sml_t * p, Vec_Int_t * vInit )
 {
     Aig_Obj_t * pObj;
-    int Entry, i, k, nRegs;
+    int Entry, i, nRegs;
     nRegs = Aig_ManRegNum(p->pAig);
     assert( nRegs > 0 );
     assert( nRegs <= Aig_ManPiNum(p->pAig) );
-    assert( Vec_IntSize(vInit) == nRegs * p->nFrames );
+    assert( Vec_IntSize(vInit) == nRegs * p->nWordsFrame );
     // assign random info for primary inputs
     Saig_ManForEachPi( p->pAig, pObj, i )
         Ssw_SmlAssignRandom( p, pObj );
@@ -982,8 +982,12 @@ int Ssw_SmlCheckNonConstOutputs( Ssw_Sml_t * p )
     Aig_Obj_t * pObj;
     int i;
     Saig_ManForEachPo( p->pAig, pObj, i )
+    {
+        if ( p->pAig->nConstrs && i >= Saig_ManPoNum(p->pAig) - p->pAig->nConstrs )
+            return 0;
         if ( !Ssw_SmlNodeIsZero(p, pObj) )
             return 1;
+    }
     return 0;
 }
 

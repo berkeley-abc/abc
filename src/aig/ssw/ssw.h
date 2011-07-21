@@ -115,6 +115,8 @@ extern int           Ssw_MiterStatus( Aig_Man_t * p, int fVerbose );
 extern int           Ssw_SecWithPairs( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vIds1, Vec_Int_t * vIds2, Ssw_Pars_t * pPars );
 extern int           Ssw_SecGeneral( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Ssw_Pars_t * pPars );
 extern int           Ssw_SecGeneralMiter( Aig_Man_t * pMiter, Ssw_Pars_t * pPars );
+/*=== sswRarity.c ===================================================*/
+extern int           Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, int fVerbose );
 /*=== sswSim.c ===================================================*/
 extern Ssw_Sml_t *   Ssw_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
 extern Ssw_Sml_t *   Ssw_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
@@ -125,6 +127,7 @@ extern int           Ssw_SmlNumWordsTotal( Ssw_Sml_t * p );
 extern unsigned *    Ssw_SmlSimInfo( Ssw_Sml_t * p, Aig_Obj_t * pObj );
 extern int           Ssw_SmlObjsAreEqualWord( Ssw_Sml_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 extern void          Ssw_SmlInitializeSpecial( Ssw_Sml_t * p, Vec_Int_t * vInit );
+extern int           Ssw_SmlCheckNonConstOutputs( Ssw_Sml_t * p );
 extern Vec_Ptr_t *   Ssw_SmlSimDataPointers( Ssw_Sml_t * p );
 
 
