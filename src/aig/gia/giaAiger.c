@@ -569,7 +569,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
 Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck )
 {
     Gia_Man_t * pNew, * pTemp;
-    Vec_Int_t * vLits = NULL;
+    Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
     Vec_Int_t * vNodes, * vDrivers;//, * vTerms;
     int iObj, iNode0, iNode1;
     int nTotal, nInputs, nOutputs, nLatches, nAnds, i;//, iTerm, nDigits;
@@ -625,6 +625,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     }
 
     // create the AND gates
+    Gia_ManHashAlloc( pNew );
     for ( i = 0; i < nAnds; i++ )
     {
         uLit = ((i + 1 + nInputs + nLatches) << 1);
@@ -635,8 +636,9 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         iNode1 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
 //        Vec_IntPush( vNodes, Gia_And(pNew, iNode0, iNode1) );
-        Vec_IntPush( vNodes, Gia_ManAppendAnd(pNew, iNode0, iNode1) );
+        Vec_IntPush( vNodes, Gia_ManHashAnd(pNew, iNode0, iNode1) );
     }
+    Gia_ManHashStop( pNew );
 
     // remember the place where symbols begin
     pSymbols = pCur;
@@ -679,6 +681,17 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         }
         Vec_IntFree( vLits );
     }
+
+    // create the POs
+    for ( i = 0; i < nOutputs; i++ )
+        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, nLatches + i) );
+    for ( i = 0; i < nLatches; i++ )
+        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, i) );
+    Vec_IntFree( vDrivers );
+
+    // create the latches
+    Gia_ManSetRegNum( pNew, nLatches );
+
 
     // check if there are other types of information to read
     pCur = pSymbols;
@@ -838,53 +851,32 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             if ( !fBreakUsed )
             {
                 nInvars = nConstr = 0;
+                vPoTypes = Vec_IntStart( Gia_ManPoNum(pNew) );
                 Vec_IntForEachEntry( vPoNames, Entry, i )
                 {
                     if ( Entry == ~0 )
                         continue;
                     if ( strncmp( pContents+Entry, "constraint:", 11 ) == 0 )
+                    {
+                        Vec_IntWriteEntry( vPoTypes, i, 1 );
                         nConstr++;
+                    }
                     if ( strncmp( pContents+Entry, "invariant:", 10 ) == 0 )
+                    {
+                        Vec_IntWriteEntry( vPoTypes, i, 2 );
                         nInvars++;
+                    }
                 }
-
-                // move constraints forward in the PO list
-                if ( nConstr || nInvars )
-                {
-                    int k = nLatches;
-                    Vec_Int_t * vDriversCopy = Vec_IntDup( vDrivers );
-                    Vec_IntForEachEntry( vPoNames, Entry, i )
-                        if ( Entry == ~0 || (strncmp( pContents+Entry, "constraint:", 11 ) != 0 && strncmp( pContents+Entry, "invariant:", 10 ) != 0) )
-                            Vec_IntWriteEntry( vDrivers, k++, Vec_IntEntry(vDriversCopy, nLatches + i) );
-                    Vec_IntForEachEntry( vPoNames, Entry, i )
-                        if ( Entry != ~0 && strncmp( pContents+Entry, "constraint:", 11 ) == 0 )
-                            Vec_IntWriteEntry( vDrivers, k++, Vec_IntEntry(vDriversCopy, nLatches + i) ^ 1 ); // flip polarity!!!
-                    // update the PO count
-                    nOutputs -= nInvars;
-                    assert( k == nLatches + nOutputs );
-                    Vec_IntFree( vDriversCopy );
-                    // mark constraints
-                    pNew->nConstrs = nConstr;
-                }
-
                 if ( nConstr )
                     fprintf( stdout, "Recognized and added %d constraints.\n", nConstr );
                 if ( nInvars )
                     fprintf( stdout, "Recognized and skipped %d invariants.\n", nInvars );
+                if ( nConstr == 0 && nInvars == 0 )
+                    Vec_IntFreeP( &vPoTypes );
             }
             Vec_IntFree( vPoNames );
         }
     }
-
-    // create the POs
-    for ( i = 0; i < nOutputs; i++ )
-        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, nLatches + i) );
-    for ( i = 0; i < nLatches; i++ )
-        Gia_ManAppendCo( pNew, Vec_IntEntry(vDrivers, i) );
-    Vec_IntFree( vDrivers );
-
-    // create the latches
-    Gia_ManSetRegNum( pNew, nLatches );
 
     // skipping the comments
     Vec_IntFree( vNodes );
@@ -897,6 +889,13 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         return NULL;
     }
 */
+    // clean the PO drivers
+    if ( vPoTypes )
+    {
+        pNew = Gia_ManDupWithConstraints( pTemp = pNew, vPoTypes );
+        Gia_ManStop( pTemp );
+        Vec_IntFreeP( &vPoTypes );
+    }
 
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );

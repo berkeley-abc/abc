@@ -948,13 +948,13 @@ Gia_Man_t * Gia_ManDupOntop( Gia_Man_t * p, Gia_Man_t * p2 )
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachAnd( p, pObj, i )
-        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     // dup second AIG
     Gia_ManConst0(p2)->Value = 0;
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManPi(p2, i)->Value = Gia_ObjFanin0Copy(pObj);
     Gia_ManForEachAnd( p2, pObj, i )
-        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachCo( p2, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
@@ -1463,6 +1463,44 @@ Gia_Man_t * Gia_ManChoiceMiter( Vec_Ptr_t * vGias )
     assert( nNodes == 0 );
     // finalize
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia0) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG while putting first PIs, then nodes, then POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, nConstr = 0;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        if ( Vec_IntEntry(vPoTypes, i) == 0 ) // regular PO
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        if ( Vec_IntEntry(vPoTypes, i) == 1 ) // constraint (should be complemented!)
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) ^ 1 ), nConstr++;
+    Gia_ManForEachRi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+//    Gia_ManDupRemapEquiv( pNew, p );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew->nConstrs = nConstr;
+    assert( Gia_ManIsNormalized(pNew) );
     return pNew;
 }
 
