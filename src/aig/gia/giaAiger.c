@@ -525,7 +525,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
             // read switching activity
             pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
         }
-        if ( *pCur == 't' )
+        if ( *pCur == 'c' )
         {
             pCur++;
             // read number of constraints
@@ -730,7 +730,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             // read switching activity
             pNew->pSwitching = Gia_ReadSwitching( &pCur, Gia_ManObjNum(pNew) );
         }
-        if ( *pCur == 't' )
+        if ( *pCur == 'c' )
         {
             pCur++;
             // read number of constraints
@@ -1346,7 +1346,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     {
         unsigned char Buffer[10];
         Gia_WriteInt( Buffer, p->nConstrs );
-        fprintf( pFile, "t" );
+        fprintf( pFile, "c" );
         fwrite( Buffer, 1, 4, pFile );
     }
     // write name
