@@ -343,6 +343,7 @@ static int Abc_CommandAbc9Resim              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9SpecI              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Equiv              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Equiv2             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Equiv3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Semi               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Times              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Frames             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -763,6 +764,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&speci",        Abc_CommandAbc9SpecI,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&equiv",        Abc_CommandAbc9Equiv,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&equiv2",       Abc_CommandAbc9Equiv2,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&equiv3",       Abc_CommandAbc9Equiv3,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&semi",         Abc_CommandAbc9Semi,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&times",        Abc_CommandAbc9Times,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&frames",       Abc_CommandAbc9Frames,       0 );
@@ -25221,7 +25223,7 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
-    } 
+    }
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Equiv2(): There is no AIG.\n" );
@@ -25261,6 +25263,146 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+//    extern int Abc_NtkDarSeqEquiv2( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
+    extern int Ssw_RarSignalFilterGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
+    int c;
+    int nFrames    =   20;
+    int nWords     =   50;
+    int nBinSize   =    8;
+    int nRounds    =   80;
+    int TimeOut    =    0;
+    int fUseCex    =    0;
+    int fLatchOnly =    0;
+    int fVerbose   =    1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRTxlvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 ) 
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBinSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBinSize < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRounds < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'x':
+            fUseCex ^= 1;
+            break;
+        case 'l':
+            fLatchOnly ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    } 
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Equiv3(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( 0, "Abc_CommandAbc9Equiv3(): There is no flops. Nothing is done.\n" );
+        return 0;
+    }
+    if ( fUseCex )
+    {
+        if ( pAbc->pCex->nPis != Gia_ManPiNum(pAbc->pGia) )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Equiv3(): The number of PIs differs in cex (%d) and in AIG (%d).\n", 
+                pAbc->pCex->nPis, Gia_ManPiNum(pAbc->pGia) );
+            return 1;
+        }
+    }
+//    pAbc->Status = Abc_NtkDarSeqEquiv2( pNtk, nFrames, nWords, nBinSize, nRounds, TimeOut, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
+    pAbc->Status = Ssw_RarSignalFilterGia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, TimeOut, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
+//    pAbc->nFrames = pAbc->pCex->iFrame;
+//    Abc_FrameReplaceCex( pAbc, &pAbc->pCex );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &equiv3 [-FWBRT num] [-xlvh]\n" );
+    Abc_Print( -2, "\t         computes candidate equivalence classes\n" );
+    Abc_Print( -2, "\t-F num : the max number of frames for BMC [default = %d]\n", nFrames );
+    Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",  nWords );
+    Abc_Print( -2, "\t-B num : the number of flops in one bin [default = %d]\n",   nBinSize );
+    Abc_Print( -2, "\t-R num : the max number of simulation rounds [default = %d]\n", nRounds );
+    Abc_Print( -2, "\t-T num : runtime limit in seconds for all rounds [default = %d]\n", TimeOut );
+    Abc_Print( -2, "\t-x     : toggle using the current cex to perform refinement [default = %s]\n", fUseCex? "yes": "no" );
+    Abc_Print( -2, "\t-l     : toggle considering only latch output equivalences [default = %s]\n", fLatchOnly? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 

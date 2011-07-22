@@ -3028,7 +3028,53 @@ int Abc_NtkDarSeqSim2( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, 
         Abc_AigCleanup((Abc_Aig_t *)pNtk->pManFunc);
     }
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
-    if ( Ssw_RarSimulate( pMan, nFrames, nWords, nBinSize, nRounds, TimeOut, fVerbose ) )
+    if ( Ssw_RarSimulate( pMan, nFrames, nWords, nBinSize, nRounds, TimeOut, fVerbose ) == 0 )
+    { 
+        if ( pMan->pSeqModel )
+        {
+            printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
+                nFrames, nWords, pMan->pSeqModel->iPo, pMan->pSeqModel->iFrame );
+            status = Saig_ManVerifyCex( pMan, pMan->pSeqModel );
+            if ( status == 0 )
+                printf( "Abc_NtkDarSeqSim(): Counter-example verification has FAILED.\n" );
+        }
+        ABC_FREE( pNtk->pModel );
+        ABC_FREE( pNtk->pSeqModel );
+        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+        RetValue = 0;
+    }
+    else
+    {
+        printf( "Simulation of %d frames with %d words did not assert the outputs.    ", 
+            nFrames, nWords );
+    }
+    ABC_PRT( "Time", clock() - clk );
+    Aig_ManStop( pMan );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs random simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarSeqEquiv2( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
+{
+    Aig_Man_t * pMan;
+    int status, RetValue = -1, clk = clock();
+    if ( Abc_NtkGetChoiceNum(pNtk) )
+    {
+        printf( "Removing %d choices from the AIG.\n", Abc_NtkGetChoiceNum(pNtk) );
+        Abc_AigCleanup((Abc_Aig_t *)pNtk->pManFunc);
+    }
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( Ssw_RarSignalFilter( pMan, nFrames, nWords, nBinSize, nRounds, TimeOut, pCex, fLatchOnly, fVerbose ) == 0 )
     { 
         if ( pMan->pSeqModel )
         {

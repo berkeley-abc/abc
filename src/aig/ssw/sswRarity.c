@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "sswInt.h"
+#include "giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -305,25 +306,25 @@ Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize, int nRounds, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
+int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 {
+    int fMiter = 0;
     Ssw_RarMan_t * p;
     int r, i, k, clkTotal = clock();
+    int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
     // consider the case of empty AIG
     if ( Aig_ManNodeNum(pAig) == 0 )
         return -1;
+    if ( fVerbose )
+        printf( "Filtering equivs with %d words through %d frames with %d binsize, %d rounds, and %d sec timeout.\n", 
+            nWords, nFrames, nBinSize, nRounds, TimeOut );
     // reset random numbers
     Aig_ManRandom( 1 );
+
     // create manager
     p = Ssw_RarManStart( pAig, nWords, nFrames, nBinSize, fVerbose );
-    // create trivial equivalence classes with all nodes being candidates for constant 1
-    if ( pAig->pReprs == NULL )
-        p->ppClasses = Ssw_ClassesPrepareSimple( pAig, fLatchOnly, 0 );
-    else
-        p->ppClasses = Ssw_ClassesPrepareFromReprs( pAig );
-    Ssw_ClassesSetData( p->ppClasses, NULL, NULL, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
     // compute starting state if needed
     assert( p->vInits == NULL );
     if ( pCex )
@@ -337,6 +338,13 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize
     assert( Vec_IntSize(p->vInits) == Aig_ManRegNum(pAig) * nWords );
     // initialize simulation manager
     Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
+
+    // create trivial equivalence classes with all nodes being candidates for constant 1
+    if ( pAig->pReprs == NULL )
+        p->ppClasses = Ssw_ClassesPrepareSimple( pAig, fLatchOnly, 0 );
+    else
+        p->ppClasses = Ssw_ClassesPrepareFromReprs( pAig );
+    Ssw_ClassesSetData( p->ppClasses, p->pSml, NULL, Ssw_SmlObjIsConstWord, Ssw_SmlObjsAreEqualWord );
     // print the stats
     if ( fVerbose )
     {
@@ -354,6 +362,13 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize
         }
         // simulate
         Ssw_SmlSimulateOne( p->pSml );
+        if ( fMiter && Ssw_SmlCheckNonConstOutputs(p->pSml) )
+        {
+            if ( fVerbose ) printf( "\n" );
+            printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
+            RetValue = 0;
+            break;
+        }
         // check equivalence classes
         Ssw_ClassesRefineConst1( p->ppClasses, 1 );
         Ssw_ClassesRefine( p->ppClasses, 1 );
@@ -367,19 +382,50 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize
         Ssw_RarUpdateCounters( p );
         Ssw_RarTransferPatterns( p, p->vInits );
         Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
-
-/*
         // check timeout
-        if ( TimeLimit && ((float)TimeLimit <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+        if ( TimeOut && ((float)TimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
         {
-            printf( "Reached timeout (%d seconds).\n",  TimeLimit );
+            if ( fVerbose ) printf( "\n" );
+            printf( "Reached timeout (%d seconds).\n",  TimeOut );
             break;
         }
-*/
+    }
+    if ( r == nRounds )
+    {
+        printf( "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
+        Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     // cleanup
     Ssw_RarManStop( p );
     return -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Filter equivalence classes of nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_RarSignalFilterGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
+{ 
+    Aig_Man_t * pAig;
+    int RetValue;
+    pAig = Gia_ManToAigSimple( p );
+    if ( p->pReprs != NULL )
+    {
+        Gia_ManReprToAigRepr2( pAig, p );
+        ABC_FREE( p->pReprs );
+        ABC_FREE( p->pNexts );
+    }
+    RetValue = Ssw_RarSignalFilter( pAig, nFrames, nWords, nBinSize, nRounds, TimeOut, pCex, fLatchOnly, fVerbose );
+    Gia_ManReprFromAigRepr( pAig, p );
+    Aig_ManStop( pAig );
+    return RetValue;
 }
 
 
@@ -407,14 +453,16 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     if ( Aig_ManNodeNum(pAig) == 0 )
         return -1;
     if ( fVerbose )
-        printf( "Simulating %d words through %d frames with %d binsize, %d rounds, and %d timeout.\n", 
+        printf( "Simulating %d words through %d frames with %d binsize, %d rounds, and %d sec timeout.\n", 
             nWords, nFrames, nBinSize, nRounds, TimeOut );
     // reset random numbers
     Aig_ManRandom( 1 );
+
     // create manager
     p = Ssw_RarManStart( pAig, nWords, nFrames, nBinSize, fVerbose );
     p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * nWords );
     Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
+
     // perform simulation rounds
     for ( r = 0; r < nRounds; r++ )
     {
