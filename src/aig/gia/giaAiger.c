@@ -897,8 +897,13 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         Vec_IntFreeP( &vPoTypes );
     }
 
-//    pNew = Gia_ManCleanup( pTemp = pNew );
-//    Gia_ManStop( pTemp );
+    {
+        Vec_Int_t * vFlopMap;
+        vFlopMap = pNew->vFlopClasses; pNew->vFlopClasses = NULL;
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+        pNew->vFlopClasses = vFlopMap;
+    }
     return pNew;
 }
 
