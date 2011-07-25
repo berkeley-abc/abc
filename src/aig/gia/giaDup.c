@@ -558,7 +558,9 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
             pRepr = Gia_ObjReprObj( p, i );
             if ( pRepr == NULL )
                 continue;
-            assert( ~pRepr->Value );
+//            assert( ~pRepr->Value );
+            if ( !~pRepr->Value )
+                continue;
             if ( Gia_Lit2Var(pObj->Value) != Gia_Lit2Var(pRepr->Value) )
                 Gia_ObjSetRepr( pNew, Gia_Lit2Var(pObj->Value), Gia_Lit2Var(pRepr->Value) ); 
         }
