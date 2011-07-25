@@ -393,7 +393,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Saig_ManRefineCexSat( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose )
+Abc_Cex_t * Saig_ManFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose )
 {
     Abc_Cex_t * pCare = NULL;
     int clk = clock();
