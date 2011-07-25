@@ -185,18 +185,47 @@ Abc_Cex_t * Abc_CexDeriveFromCombModel( int * pModel, int nPis, int nRegs, int i
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_CexPrintStats( Abc_Cex_t * p )
+{
+    int k, Counter = 0;
+    if ( p == NULL )
+    {
+        printf( "The counter example is NULL.\n" );
+        return;
+    }
+    for ( k = 0; k < p->nBits; k++ )
+        Counter += Abc_InfoHasBit(p->pData, k);
+    printf( "CEX: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits = %d  nOnes = %5d (%5.2f %%)\n", 
+        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, Counter, 100.0 * Counter / p->nBits );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints out the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_CexPrint( Abc_Cex_t * p )
 {
     int i, f, k;
-    printf( "Counter-example: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits = %d\n", 
-        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits );
+    if ( p == NULL )
+    {
+        printf( "The counter example is NULL.\n" );
+        return;
+    }
+    Abc_CexPrintStats( p );
     printf( "State    : " );
     for ( k = 0; k < p->nRegs; k++ )
         printf( "%d", Abc_InfoHasBit(p->pData, k) );
     printf( "\n" );
     for ( f = 0; f <= p->iFrame; f++ )
     {
-        printf( "Frame %2d : ", f );
+        printf( "Frame %3d : ", f );
         for ( i = 0; i < p->nPis; i++ )
             printf( "%d", Abc_InfoHasBit(p->pData, k++) );
         printf( "\n" );
