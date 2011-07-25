@@ -3547,6 +3547,10 @@ SOURCE=.\src\aig\saig\saigPhase.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigRefSat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigRetFwd.c
 # End Source File
 # Begin Source File

@@ -8763,20 +8763,19 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_ManStop( pAig );
 }
 */
-/*
+
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-    extern Abc_Cex_t * Saig_PhaseTranslateCex( Aig_Man_t * p, Abc_Cex_t * pCex );
     if ( pAbc->pCex && pNtk )
     {
         Abc_Cex_t * pNew;
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        pNew = Saig_PhaseTranslateCex( pAig, pAbc->pCex );
+        pNew = Saig_ManRefineCexSat( pAig, pAbc->pCex, 0, 0 );
         Aig_ManStop( pAig );
         Abc_FrameReplaceCex( pAbc, &pNew );
     }
 }
-*/
+
 
     return 0;
 usage:

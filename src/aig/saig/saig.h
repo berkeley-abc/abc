@@ -175,6 +175,8 @@ extern int               Saig_ManDemiterNew( Aig_Man_t * pMan );
 extern Aig_Man_t *       Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits, int fVerbose );
 /*=== saigPhase.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose );
+/*=== saigRefSat.c ==========================================================*/
+extern Abc_Cex_t *       Saig_ManRefineCexSat( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
 /*=== saigRetFwd.c ==========================================================*/
 extern void              Saig_ManMarkAutonomous( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose );

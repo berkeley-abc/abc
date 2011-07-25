@@ -14,6 +14,7 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigOutDec.c \
     src/aig/saig/saigPba.c \
     src/aig/saig/saigPhase.c \
+    src/aig/saig/saigRefSat.c \
     src/aig/saig/saigRetFwd.c \
     src/aig/saig/saigRetMin.c \
     src/aig/saig/saigRetStep.c \
