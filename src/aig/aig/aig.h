@@ -676,6 +676,7 @@ extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
 extern int             Aig_ManChoiceNum( Aig_Man_t * p );
 extern char *          Aig_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern unsigned        Aig_ManRandom( int fReset );
+extern word            Aig_ManRandom64( int fReset );
 extern void            Aig_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int iWordStop );
 extern void            Aig_NodeUnionLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );
 extern void            Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * vArr );

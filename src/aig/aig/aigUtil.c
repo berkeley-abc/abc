@@ -1118,7 +1118,7 @@ char * Aig_FileNameGenericAppend( char * pBase, char * pSuffix )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates a sequence or random numbers.]
+  Synopsis    [Creates a sequence of random numbers.]
 
   Description []
                
@@ -1148,7 +1148,7 @@ void Aig_ManRandomTest2()
 
 /**Function*************************************************************
 
-  Synopsis    [Creates a sequence or random numbers.]
+  Synopsis    [Creates a sequence of random numbers.]
 
   Description []
                
@@ -1181,7 +1181,7 @@ void Aig_ManRandomTest1()
 
 /**Function*************************************************************
 
-  Synopsis    [Creates a sequence or random numbers.]
+  Synopsis    [Creates a sequence of random numbers.]
 
   Description []
                
@@ -1202,6 +1202,23 @@ unsigned Aig_ManRandom( int fReset )
     m_z = 36969 * (m_z & 65535) + (m_z >> 16);
     m_w = 18000 * (m_w & 65535) + (m_w >> 16);
     return (m_z << 16) + m_w;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a sequence of random numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word Aig_ManRandom64( int fReset )
+{
+    word Res = ((word)Aig_ManRandom(fReset)) << 32;
+    return Res | (word)Aig_ManRandom(0);
 }
 
 
