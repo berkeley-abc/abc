@@ -20,6 +20,7 @@
  
 #include "lpkInt.h"
 #include "cloud.h"
+#include "main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -516,7 +517,10 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     Abc_NtkSweep( pNtk, 0 );
 
     // get the number of inputs
-    pPars->nLutSize = Abc_NtkGetFaninMax( pNtk );
+    if ( Abc_FrameReadLibLut() )
+        pPars->nLutSize = ((If_Lib_t *)Abc_FrameReadLibLut())->LutMax;
+    else
+        pPars->nLutSize = Abc_NtkGetFaninMax( pNtk );
     if ( pPars->nLutSize > 6 )
         pPars->nLutSize = 6;
     if ( pPars->nLutSize < 3 )
