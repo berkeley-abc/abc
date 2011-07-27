@@ -225,7 +225,8 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
         return NULL;
     if ( pnUseStart )
         *pnUseStart = pAbs->pSeqModel->iFrame;
-    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pAbs->pSeqModel, 1, fVerbose );
+//    vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pAbs->pSeqModel, 1, fVerbose );
+    vFlopsNew = Saig_ManExtendCounterExampleTest3( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pAbs->pSeqModel, fVerbose );
     if ( vFlopsNew == NULL )
         return NULL;
     if ( Vec_IntSize(vFlopsNew) == 0 )
@@ -238,7 +239,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
     }
     // vFlopsNew contains PI numbers that should be kept in pAbs
     if ( fVerbose )
-        printf( "Adding %d registers to the abstraction.\n", Vec_IntSize(vFlopsNew) );
+        printf( "Adding %d registers to the abstraction.\n\n", Vec_IntSize(vFlopsNew) );
     // add to the abstraction
     Vec_IntForEachEntry( vFlopsNew, Entry, i )
     {
@@ -276,7 +277,8 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, 
     if ( fSensePath )
         vFlopsNew = Saig_ManExtendCounterExampleTest2( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );
     else
-        vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fTryFour, fVerbose );
+//        vFlopsNew = Saig_ManExtendCounterExampleTest( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fTryFour, fVerbose );
+        vFlopsNew = Saig_ManExtendCounterExampleTest3( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );
     if ( vFlopsNew == NULL )
     {
         Aig_ManStop( pAbs );

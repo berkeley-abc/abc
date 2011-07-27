@@ -176,7 +176,8 @@ extern Aig_Man_t *       Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits,
 /*=== saigPhase.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int nPref, int fIgnore, int fPrint, int fVerbose );
 /*=== saigRefSat.c ==========================================================*/
-extern Abc_Cex_t *       Saig_ManFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
+extern Vec_Int_t *       Saig_ManExtendCounterExampleTest3( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex, int fVerbose );
+extern Abc_Cex_t *       Saig_ManFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fNewOrder, int fVerbose );
 /*=== saigRetFwd.c ==========================================================*/
 extern void              Saig_ManMarkAutonomous( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose );
@@ -192,6 +193,7 @@ extern Vec_Int_t *       Saig_ManExtendCounterExample( Aig_Man_t * p, int iFirst
 extern Vec_Int_t *       Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fTryFour, int fVerbose );
 /*=== saigSimExt.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fVerbose );
+extern Abc_Cex_t *       Saig_ManFindCexCareBitsSense( Aig_Man_t * p, Abc_Cex_t * pCex, int iFirstFlopPi, int fVerbose );
 /*=== saigSimMv.c ==========================================================*/
 extern int               Saig_MvManSimulate( Aig_Man_t * pAig, int fVerbose );
 /*=== saigStrSim.c ==========================================================*/

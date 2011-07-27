@@ -360,6 +360,118 @@ ABC_PRT( "Time", clock() - clk );
     return vRes;
 }
 
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of PIs for flops that should not be absracted.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Saig_ManDeriveCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, int fVerbose )
+{
+    Abc_Cex_t * pCare;
+    Aig_Obj_t * pObj;
+    Vec_Int_t * vRes, * vResInv;
+    int i, f, Value;
+//    assert( Aig_ManRegNum(p) > 0 );
+    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    // start simulation data
+    Value = Saig_ManSimDataInit2( p, pCex, vSimInfo );
+    assert( Value == SAIG_ONE_NEW );
+    // derive implications of constants and primary inputs
+    Saig_ManForEachLo( p, pObj, i )
+        Saig_ManSetAndDriveImplications_rec( p, pObj, 0, pCex->iFrame, vSimInfo );
+    for ( f = pCex->iFrame; f >= 0; f-- )
+    {
+        Saig_ManSetAndDriveImplications_rec( p, Aig_ManConst1(p), f, pCex->iFrame, vSimInfo );
+        for ( i = 0; i < iFirstFlopPi; i++ )
+            Saig_ManSetAndDriveImplications_rec( p, Aig_ManPi(p, i), f, pCex->iFrame, vSimInfo );
+    }
+    // recursively compute justification
+    Saig_ManExplorePaths_rec( p, Aig_ManPo(p, pCex->iPo), pCex->iFrame, pCex->iFrame, vSimInfo );
+
+    // create CEX
+    pCare = Abc_CexDup( pCex, pCex->nRegs );
+    memset( pCare->pData, 0, sizeof(unsigned) * Aig_BitWordNum(pCare->nBits) );
+
+    // select the result
+    vRes = Vec_IntAlloc( 1000 );
+    vResInv = Vec_IntAlloc( 1000 );
+    for ( i = iFirstFlopPi; i < Saig_ManPiNum(p); i++ )
+    {
+        int fFound = 0;
+        for ( f = pCex->iFrame; f >= 0; f-- )
+        {
+            Value = Saig_ManSimInfo2Get( vSimInfo, Aig_ManPi(p, i), f );
+            if ( Saig_ManSimInfo2IsOld( Value ) )
+            {
+                fFound = 1;
+                Aig_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * f + i );
+            }
+        }
+        if ( fFound )
+            Vec_IntPush( vRes, i );
+        else
+            Vec_IntPush( vResInv, i );
+    }
+    // resimulate to make sure it is valid
+    Value = Saig_ManSimDataInit( p, pCex, vSimInfo, vResInv );
+    assert( Value == SAIG_ONE );
+    Vec_IntFree( vResInv );
+    Vec_IntFree( vRes );
+
+    return pCare;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of PIs for flops that should not be absracted.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Saig_ManFindCexCareBitsSense( Aig_Man_t * p, Abc_Cex_t * pCex, int iFirstFlopPi, int fVerbose )
+{
+    Abc_Cex_t * pCare;
+    Vec_Ptr_t * vSimInfo;
+    int clk;
+    if ( Saig_ManPiNum(p) != pCex->nPis )
+    {
+        printf( "Saig_ManExtendCounterExampleTest2(): The PI count of AIG (%d) does not match that of cex (%d).\n", 
+            Aig_ManPiNum(p), pCex->nPis );
+        return NULL;
+    }
+    Aig_ManFanoutStart( p );
+    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    Vec_PtrCleanSimInfo( vSimInfo, 0, Aig_BitWordNum(2*(pCex->iFrame+1)) );
+
+clk = clock();
+    pCare = Saig_ManDeriveCex( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
+    if ( fVerbose )
+    {
+//        printf( "Total new PIs = %3d. Non-removable PIs = %3d.  ", Saig_ManPiNum(p)-iFirstFlopPi, Vec_IntSize(vRes) );
+Abc_CexPrintStats( pCex );
+Abc_CexPrintStats( pCare );
+ABC_PRT( "Time", clock() - clk );
+    }
+
+    Vec_PtrFree( vSimInfo );
+    Aig_ManFanoutStop( p );
+    return pCare;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

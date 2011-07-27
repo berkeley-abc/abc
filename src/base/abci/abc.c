@@ -8626,11 +8626,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLeafMax     = 10;
     int nDivMax      = 50;
     int nDecMax      =  3;
+    int fNewAlgo     =  0;
+    int fNewOrder    =  0;
     int fVerbose     =  0;
     int fVeryVerbose =  0;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CKDNvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CKDNaovwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8677,6 +8679,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nDecMax < 0 ) 
                 goto usage;
+            break;
+        case 'a':
+            fNewAlgo ^= 1;
+            break;
+        case 'o':
+            fNewOrder ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -8770,7 +8778,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Cex_t * pNew;
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        pNew = Saig_ManFindCexCareBits( pAig, pAbc->pCex, 0, 0 );
+        if ( fNewAlgo )
+            pNew = Saig_ManFindCexCareBitsSense( pAig, pAbc->pCex, 0, fVerbose );
+        else
+            pNew = Saig_ManFindCexCareBits( pAig, pAbc->pCex, 0, fNewOrder, fVerbose );
         Aig_ManStop( pAig );
         Abc_FrameReplaceCex( pAbc, &pNew );
     }
@@ -8779,12 +8790,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     return 0;
 usage:
-    Abc_Print( -2, "usage: test [-CKDN] [-vwh] <file_name>\n" );
+    Abc_Print( -2, "usage: test [-CKDN] [-aovwh] <file_name>\n" );
     Abc_Print( -2, "\t         testbench for new procedures\n" );
     Abc_Print( -2, "\t-C num : the max number of cuts [default = %d]\n", nCutMax );
     Abc_Print( -2, "\t-K num : the max number of leaves [default = %d]\n", nLeafMax );
     Abc_Print( -2, "\t-D num : the max number of divisors [default = %d]\n", nDivMax );
     Abc_Print( -2, "\t-N num : the max number of node inputs [default = %d]\n", nDecMax );
+    Abc_Print( -2, "\t-a     : toggle using new algorithm [default = %s]\n", fNewAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle using new ordering [default = %s]\n", fNewOrder? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
