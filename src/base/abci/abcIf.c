@@ -323,7 +323,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
 
     // remove the constant node if not used
     pNodeNew = (Abc_Obj_t *)If_ObjCopy( If_ManConst1(pIfMan) );
-    if ( Abc_ObjFanoutNum(pNodeNew) == 0 )
+    if ( Abc_ObjFanoutNum(pNodeNew) == 0 && !Abc_ObjIsNone(pNodeNew) )
         Abc_NtkDeleteObj( pNodeNew );
     // minimize the node
     if ( pIfMan->pPars->fUseBdds || pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
