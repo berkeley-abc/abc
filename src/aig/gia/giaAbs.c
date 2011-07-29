@@ -120,12 +120,12 @@ Vec_Int_t * Gia_ManClasses2Flops( Vec_Int_t * vFlopClasses )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManCexAbstraction( Gia_Man_t * p, Vec_Int_t * vFlops )
+Gia_Man_t * Gia_ManDupAbstractionAig( Gia_Man_t * p, Vec_Int_t * vFlops )
 {
     Gia_Man_t * pGia;
     Aig_Man_t * pNew, * pTemp;
     pNew = Gia_ManToAig( p, 0 );
-    pNew = Saig_ManDeriveAbstraction( pTemp = pNew, vFlops );
+    pNew = Saig_ManDupAbstraction( pTemp = pNew, vFlops );
     Aig_ManStop( pTemp );
     pGia = Gia_ManFromAig( pNew );
 //    pGia->vCiNumsOrig = pNew->vCiNumsOrig; 
@@ -164,32 +164,6 @@ void Gia_ManCexAbstractionStart( Gia_Man_t * pGia, Gia_ParAbs_t * pPars )
         pGia->vFlopClasses = Gia_ManFlops2Classes( pGia, vFlops );
         Vec_IntFree( vFlops );
     }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derives abstraction using the latch map.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Gia_ManCexAbstractionDerive( Gia_Man_t * pGia )
-{
-    Vec_Int_t * vFlops;
-    Gia_Man_t * pAbs = NULL;
-    if ( pGia->vFlopClasses == NULL )
-    {
-        printf( "Gia_ManCexAbstractionDerive(): Abstraction latch map is missing.\n" );
-        return NULL;
-    }
-    vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
-    pAbs = Gia_ManCexAbstraction( pGia, vFlops );
-    Vec_IntFree( vFlops );
-    return pAbs;
 }
 
 /**Function*************************************************************
@@ -273,8 +247,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
         return 0;
     }
     // derive abstraction
-    vFlops = Saig_ManClasses2Flops( pGia->vFlopClasses );
-    pAbs = Gia_ManCexAbstraction( pGia, vFlops );
+    pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
     // refine abstraction using PBA
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
@@ -283,6 +256,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
     // derive new classes
     if ( vFlopsNew != NULL )
     {
+        vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
         vSelected = Gia_ManFlopsSelect( vFlops, vFlopsNew );
         Vec_IntFree( pGia->vFlopClasses );
         pGia->vFlopClasses = Saig_ManFlops2Classes( Gia_ManRegNum(pGia), vSelected );
@@ -292,7 +266,6 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
         Vec_IntFree( vFlops );
         return 1;
     }
-    Vec_IntFree( vFlops );
     // found counter-eample for the abstracted model
     // or exceeded conflict limit
     return 0;
@@ -321,8 +294,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
         pGia->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pGia) );
     }
     // derive abstraction
-    vFlops = Saig_ManClasses2Flops( pGia->vFlopClasses );
-    pAbs = Gia_ManCexAbstraction( pGia, vFlops );
+    pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
     // refine abstraction using PBA
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
@@ -331,6 +303,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
     // derive new classes
     if ( vFlopsNew != NULL )
     {
+        vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
 //        vSelected = Saig_ManFlopsSelect( vFlops, vFlopsNew );
         vSelected = NULL;
         Vec_IntFree( pGia->vFlopClasses );
@@ -341,7 +314,6 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
         Vec_IntFree( vFlops );
         return 1;
     }
-    Vec_IntFree( vFlops );
     // found counter-eample for the abstracted model
     // or exceeded conflict limit
     return 0;

@@ -129,26 +129,6 @@ Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs )
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates the AIG manager recursively.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Obj_t * Saig_ManAbstractionDfs_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
-{
-    if ( pObj->pData )
-        return (Aig_Obj_t *)pObj->pData;
-    Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin0(pObj) );
-    Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin1(pObj) );
-    return (Aig_Obj_t *)(pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) ));
-}
-
-/**Function*************************************************************
-
   Synopsis    [Trims the model by removing PIs without fanout.]
 
   Description []
@@ -193,6 +173,26 @@ Aig_Man_t * Saig_ManTrimPis( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Saig_ManAbstractionDfs_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
+{
+    if ( pObj->pData )
+        return (Aig_Obj_t *)pObj->pData;
+    Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin0(pObj) );
+    Saig_ManAbstractionDfs_rec( pNew, Aig_ObjFanin1(pObj) );
+    return (Aig_Obj_t *)(pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) ));
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs abstraction of the AIG to preserve the included flops.]
 
   Description []
@@ -202,14 +202,14 @@ Aig_Man_t * Saig_ManTrimPis( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManDeriveAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
+Aig_Man_t * Saig_ManDupAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
 { 
     Aig_Man_t * pNew;//, * pTemp;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, Entry;
     Aig_ManCleanData( p );
     // start the new manager
-    pNew = Aig_ManStart( Aig_ManNodeNum(p) );
+    pNew = Aig_ManStart( 5000 );
     pNew->pName = Aig_UtilStrsav( p->pName );
     // map the constant node
     Aig_ManConst1(p)->pData = Aig_ManConst1( pNew );

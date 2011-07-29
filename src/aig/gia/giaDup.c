@@ -1506,6 +1506,81 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupAbstraction_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return;
+    Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin0(pObj) );
+    Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs abstraction of the AIG to preserve the included flops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupAbstraction( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
+{ 
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, nFlops = 0;
+    Gia_ManFillValue( p );
+    // start the new manager
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    // create PIs
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    // create additional PIs
+    Gia_ManForEachRo( p, pObj, i )
+        if ( !Vec_IntEntry(vFlopClasses, i) )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    // create ROs
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Vec_IntEntry(vFlopClasses, i) )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    // create POs
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin0(pObj) );
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    // create RIs
+    Gia_ManForEachRi( p, pObj, i )
+        if ( Vec_IntEntry(vFlopClasses, i) )
+        {
+            Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin0(pObj) );
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+            nFlops++;
+        }
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, nFlops );
+    // clean up
+    pNew = Gia_ManSeqCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -27955,13 +27955,18 @@ int Abc_CommandAbc9AbsDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
-    pTemp = Gia_ManCexAbstractionDerive( pAbc->pGia );
+    if ( pAbc->pGia->vFlopClasses == NULL )
+    {
+        Abc_Print( -1, "Abstraction flop map is missing.\n" );
+        return 0;
+    }
+    pTemp = Gia_ManDupAbstraction( pAbc->pGia, pAbc->pGia->vFlopClasses );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &abs_derive [-vh]\n" );
-    Abc_Print( -2, "\t        performs abstraction using the pre-computed flop map\n" );
+    Abc_Print( -2, "\t        derives abstracted model using the pre-computed flop map\n" );
     Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;

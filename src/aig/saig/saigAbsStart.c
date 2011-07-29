@@ -204,7 +204,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
     Vec_IntForEachEntryStart( vFlops, Entry, i, 1 )
         assert( Vec_IntEntry(vFlops, i-1) != Entry );
 
-    return Saig_ManDeriveAbstraction( p, vFlops );
+    return Saig_ManDupAbstraction( p, vFlops );
 }
  
 /**Function*************************************************************
@@ -223,7 +223,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, 
     Aig_Man_t * pAbs;
     Vec_Int_t * vFlopsNew;
     int i, Entry, clk = clock();
-    pAbs = Saig_ManDeriveAbstraction( p, vFlops );
+    pAbs = Saig_ManDupAbstraction( p, vFlops );
     if ( fSensePath )
         vFlopsNew = Saig_ManExtendCounterExampleTest2( pAbs, Saig_ManCexFirstFlopPi(p, pAbs), pCex, fVerbose );
     else
@@ -291,7 +291,7 @@ Vec_Int_t * Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars )
     Vec_IntPush( vFlops, iFlop );
 */
     // create the resulting AIG
-    pAbs = Saig_ManDeriveAbstraction( p, vFlops );
+    pAbs = Saig_ManDupAbstraction( p, vFlops );
     if ( !pPars->fVerbose )
     {
         printf( "Init : " );
