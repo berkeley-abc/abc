@@ -1041,6 +1041,26 @@ int Ssw_ClassesRefine( Ssw_Cla_t * p, int fRecursive )
 
 /**Function*************************************************************
 
+  Synopsis    [Refines the classes after simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_ClassesRefineGroup( Ssw_Cla_t * p, Vec_Ptr_t * vReprs, int fRecursive )
+{
+    Aig_Obj_t * pObj;
+    int i, nRefis = 0;
+    Vec_PtrForEachEntry( Aig_Obj_t *, vReprs, pObj, i )
+        nRefis += Ssw_ClassesRefineOneClass( p, pObj, fRecursive );
+    return nRefis;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Refine the group of constant 1 nodes.]
 
   Description []

@@ -1217,8 +1217,8 @@ unsigned Aig_ManRandom( int fReset )
 ***********************************************************************/
 word Aig_ManRandom64( int fReset )
 {
-    word Res = ((word)Aig_ManRandom(fReset)) << 32;
-    return Res | (word)Aig_ManRandom(0);
+    word Res = (word)Aig_ManRandom(fReset);
+    return Res | ((word)Aig_ManRandom(0) << 32);
 }
 
 

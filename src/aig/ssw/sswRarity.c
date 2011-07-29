@@ -84,7 +84,7 @@ static inline void Ssw_RarAddToBinPat( Ssw_RarMan_t * p, int iBin, int iPat )
   SeeAlso     []
 
 ***********************************************************************/
-Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize, int fVerbose )
+static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize, int fVerbose )
 {
     Ssw_RarMan_t * p;
     if ( Aig_ManRegNum(pAig) < nBinSize || nBinSize <= 0 )
@@ -115,7 +115,7 @@ Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames, int n
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_RarManStop( Ssw_RarMan_t * p )
+static void Ssw_RarManStop( Ssw_RarMan_t * p )
 {
     if ( p->pSml ) Ssw_SmlStop( p->pSml );
     if ( p->ppClasses ) Ssw_ClassesStop( p->ppClasses );
@@ -139,7 +139,7 @@ void Ssw_RarManStop( Ssw_RarMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_RarUpdateCounters( Ssw_RarMan_t * p )
+static void Ssw_RarUpdateCounters( Ssw_RarMan_t * p )
 {
     Aig_Obj_t * pObj;
     unsigned * pData;
@@ -185,7 +185,7 @@ void Ssw_RarUpdateCounters( Ssw_RarMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
+static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
 {
     Aig_Obj_t * pObj;
     unsigned * pData;
@@ -214,7 +214,7 @@ void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
         }
 //        printf( "\n" );
         // print the result
-//        printf( "%3d : %9.6f\n", k, p->pPatCosts[k] );
+        printf( "%3d : %9.6f\n", k, p->pPatCosts[k] );
     }
 
     // choose as many as there are words
@@ -239,8 +239,7 @@ void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
             pData = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) ) + p->nWords * (p->nFrames - 1);
             Vec_IntPush( vInits, Aig_InfoHasBit(pData, iPatBest) );
         }
-//printf( "Best pattern %5d\n", iPatBest );
-
+printf( "Best pattern %5d\n", iPatBest );
     }
     assert( Vec_IntSize(vInits) == Aig_ManRegNum(p->pAig) * p->nWords );
 }
@@ -257,7 +256,7 @@ void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex )
+static Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 { 
     Vec_Int_t * vInit;
     Aig_Obj_t * pObj, * pObjLi;
@@ -294,6 +293,84 @@ Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex )
         Vec_IntPush( vInit, pObj->fMarkB );
     return vInit;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Perform sequential simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, int fVerbose )
+{
+    int fMiter = 1;
+    Ssw_RarMan_t * p;
+    int r, clk, clkTotal = clock();
+    int RetValue = -1;
+    assert( Aig_ManRegNum(pAig) > 0 );
+    assert( Aig_ManConstrNum(pAig) == 0 );
+    // consider the case of empty AIG
+    if ( Aig_ManNodeNum(pAig) == 0 )
+        return -1;
+    if ( fVerbose )
+        printf( "Simulating %d words through %d frames with %d binsize, %d rounds, and %d sec timeout.\n", 
+            nWords, nFrames, nBinSize, nRounds, TimeOut );
+    // reset random numbers
+    Aig_ManRandom( 1 );
+
+    // create manager
+    p = Ssw_RarManStart( pAig, nWords, nFrames, nBinSize, fVerbose );
+    p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * nWords );
+    Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
+
+    // perform simulation rounds
+    for ( r = 0; r < nRounds; r++ )
+    {
+        clk = clock();
+        // simulate
+        Ssw_SmlSimulateOne( p->pSml );
+        if ( fMiter && Ssw_SmlCheckNonConstOutputs(p->pSml) )
+        {
+            if ( fVerbose ) printf( "\n" );
+            printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
+            RetValue = 0;
+            break;
+        }
+        // get initialization patterns
+        Ssw_RarUpdateCounters( p );
+        Ssw_RarTransferPatterns( p, p->vInits );
+        Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
+        // printout
+        if ( fVerbose )
+        {
+//            printf( "Round %3d:  ", r );
+//            Abc_PrintTime( 1, "Time", clock() - clk );
+            printf( "." );
+        }
+        // check timeout
+        if ( TimeOut && ((float)TimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+        {
+            if ( fVerbose ) printf( "\n" );
+            printf( "Reached timeout (%d seconds).\n",  TimeOut );
+            break;
+        }
+    }
+    if ( r == nRounds )
+    {
+        if ( fVerbose ) printf( "\n" );
+        printf( "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
+        Abc_PrintTime( 1, "Time", clock() - clkTotal );
+    }
+    // cleanup
+    Ssw_RarManStop( p );
+    return RetValue;
+}
+
 
 /**Function*************************************************************
 
@@ -430,81 +507,6 @@ int Ssw_RarSignalFilterGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize
 
 
 
-/**Function*************************************************************
-
-  Synopsis    [Perform sequential simulation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, int fVerbose )
-{
-    int fMiter = 1;
-    Ssw_RarMan_t * p;
-    int r, clk, clkTotal = clock();
-    int RetValue = -1;
-    assert( Aig_ManRegNum(pAig) > 0 );
-    assert( Aig_ManConstrNum(pAig) == 0 );
-    // consider the case of empty AIG
-    if ( Aig_ManNodeNum(pAig) == 0 )
-        return -1;
-    if ( fVerbose )
-        printf( "Simulating %d words through %d frames with %d binsize, %d rounds, and %d sec timeout.\n", 
-            nWords, nFrames, nBinSize, nRounds, TimeOut );
-    // reset random numbers
-    Aig_ManRandom( 1 );
-
-    // create manager
-    p = Ssw_RarManStart( pAig, nWords, nFrames, nBinSize, fVerbose );
-    p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) * nWords );
-    Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
-
-    // perform simulation rounds
-    for ( r = 0; r < nRounds; r++ )
-    {
-        clk = clock();
-        // simulate
-        Ssw_SmlSimulateOne( p->pSml );
-        if ( fMiter && Ssw_SmlCheckNonConstOutputs(p->pSml) )
-        {
-            if ( fVerbose ) printf( "\n" );
-            printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
-            RetValue = 0;
-            break;
-        }
-        // get initialization patterns
-        Ssw_RarUpdateCounters( p );
-        Ssw_RarTransferPatterns( p, p->vInits );
-        Ssw_SmlInitializeSpecial( p->pSml, p->vInits );
-        // printout
-        if ( fVerbose )
-        {
-//            printf( "Round %3d:  ", r );
-//            Abc_PrintTime( 1, "Time", clock() - clk );
-            printf( "." );
-        }
-        // check timeout
-        if ( TimeOut && ((float)TimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
-        {
-            if ( fVerbose ) printf( "\n" );
-            printf( "Reached timeout (%d seconds).\n",  TimeOut );
-            break;
-        }
-    }
-    if ( r == nRounds )
-    {
-        if ( fVerbose ) printf( "\n" );
-        printf( "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
-        Abc_PrintTime( 1, "Time", clock() - clkTotal );
-    }
-    // cleanup
-    Ssw_RarManStop( p );
-    return RetValue;
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
