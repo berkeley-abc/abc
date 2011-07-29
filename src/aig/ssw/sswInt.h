@@ -230,6 +230,7 @@ extern int           Ssw_ClassesRefineGroup( Ssw_Cla_t * p, Vec_Ptr_t * vReprs, 
 extern int           Ssw_ClassesRefineOneClass( Ssw_Cla_t * p, Aig_Obj_t * pRepr, int fRecursive );
 extern int           Ssw_ClassesRefineConst1Group( Ssw_Cla_t * p, Vec_Ptr_t * vRoots, int fRecursive );
 extern int           Ssw_ClassesRefineConst1( Ssw_Cla_t * p, int fRecursive );
+extern int           Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands, int fConstCorr );
 /*=== sswCnf.c ===================================================*/
 extern Ssw_Sat_t *   Ssw_SatStart( int fPolarFlip );
 extern void          Ssw_SatStop( Ssw_Sat_t * p );

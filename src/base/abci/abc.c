@@ -25167,8 +25167,8 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int TimeOut    =    0;
     int fUseCex    =    0;
     int fLatchOnly =    0;
-    int fNewAlgo   =    0;
-    int fVerbose   =    1;
+    int fNewAlgo   =    1;
+    int fVerbose   =    0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRTxlavh" ) ) != EOF )
     {
@@ -25266,7 +25266,6 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
     }
-//    pAbc->Status = Abc_NtkDarSeqEquiv2( pNtk, nFrames, nWords, nBinSize, nRounds, TimeOut, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
     if ( fNewAlgo )
         pAbc->Status = Ssw_RarSignalFilterGia2( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, TimeOut, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
     else
@@ -25276,14 +25275,14 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &equiv3 [-FWBRT num] [-xlvh]\n" );
+    Abc_Print( -2, "usage: &equiv3 [-FWRT num] [-xlvh]\n" );
     Abc_Print( -2, "\t         computes candidate equivalence classes\n" );
     Abc_Print( -2, "\t-F num : the max number of frames for BMC [default = %d]\n",    nFrames );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",     nWords );
-    Abc_Print( -2, "\t-B num : the number of flops in one bin [default = %d]\n",      nBinSize );
+//    Abc_Print( -2, "\t-B num : the number of flops in one bin [default = %d]\n",      nBinSize );
     Abc_Print( -2, "\t-R num : the max number of simulation rounds [default = %d]\n", nRounds );
     Abc_Print( -2, "\t-T num : runtime limit in seconds for all rounds [default = %d]\n", TimeOut );
-    Abc_Print( -2, "\t-x     : toggle using the current cex to perform refinement [default = %s]\n", fUseCex? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle using the current CEX to perform refinement [default = %s]\n", fUseCex? "yes": "no" );
     Abc_Print( -2, "\t-l     : toggle considering only latch output equivalences [default = %s]\n", fLatchOnly? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle using a new algorithm [default = %s]\n",        fNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

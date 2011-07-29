@@ -53,6 +53,8 @@ struct Ssw_RarMan_t_
     double *       pPatCosts;    // pattern costs
     // best patterns
     Vec_Int_t *    vPatBests;    // best patterns
+    int            iFailPo;      // failed primary output
+    int            iFailPat;     // failed pattern
 };
 
 
@@ -84,6 +86,81 @@ static inline word * Ssw_RarPatSim( Ssw_RarMan_t * p, int Id )  { assert( Id < 6
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Initializes random primary inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ssw_RarManAssingRandomPis( Ssw_RarMan_t * p )
+{
+    word * pSim;
+    Aig_Obj_t * pObj;
+    int w, i;
+    Saig_ManForEachPi( p->pAig, pObj, i )
+    {
+        pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
+        for ( w = 0; w < p->nWords; w++ )
+            pSim[w] = Aig_ManRandom64(0);
+        pSim[0] <<= 1;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Ssw_RarDeriveCex( Ssw_RarMan_t * p, int iFrame, int iPo, int iPatFinal )
+{
+    Abc_Cex_t * pCex;
+    Aig_Obj_t * pObj;
+    Vec_Int_t * vTrace;
+    word * pSim;
+    int i, r, f, iBit, iPatThis;
+    // compute the pattern sequence
+    iPatThis = iPatFinal;
+    vTrace = Vec_IntStartFull( iFrame / p->nFrames + 1 );
+    Vec_IntWriteEntry( vTrace, iFrame / p->nFrames, iPatFinal );
+    for ( r = iFrame / p->nFrames - 1; r >= 0; r-- )
+    {
+        iPatThis = Vec_IntEntry( p->vPatBests, r * p->nWords + iPatThis / 64 );
+        Vec_IntWriteEntry( vTrace, r, iPatThis );
+    }
+    // create counter-example
+    pCex = Abc_CexAlloc( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), iFrame+1 );
+    pCex->iFrame = iFrame;
+    pCex->iPo = iPo;
+    // insert the bits
+    iBit = Aig_ManRegNum(p->pAig);
+    for ( f = 0; f < iFrame; f++ )
+    {
+        Ssw_RarManAssingRandomPis( p );
+        iPatThis = Vec_IntEntry( vTrace, f / p->nFrames );
+        Saig_ManForEachPi( p->pAig, pObj, i )
+        {
+            pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
+            if ( Aig_InfoHasBit( (unsigned *)pSim, iPatThis ) )
+                Aig_InfoSetBit( pCex->pData, iBit );
+            iBit++;
+        }
+    }
+    Vec_IntFree( vTrace );
+    return pCex;
+}
+
 
 /**Function*************************************************************
 
@@ -282,12 +359,7 @@ void Ssw_RarManInitialize( Ssw_RarMan_t * p, Vec_Int_t * vInit )
     for ( w = 0; w < p->nWords; w++ )
         pSim[w] = ~(word)0;
     // primary inputs
-    Saig_ManForEachPi( p->pAig, pObj, i )
-    {
-        pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
-        for ( w = 0; w < p->nWords; w++ )
-            pSim[w] = Aig_ManRandom64(0);
-    }
+    Ssw_RarManAssingRandomPis( p );
     // flop outputs
     if ( vInit )
     {
@@ -296,7 +368,7 @@ void Ssw_RarManInitialize( Ssw_RarMan_t * p, Vec_Int_t * vInit )
         {
             pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
             for ( w = 0; w < p->nWords; w++ )
-                pSim[w] = Vec_IntEntry( vInit, w * Saig_ManRegNum(p->pAig) + i );
+                pSim[w] = Vec_IntEntry(vInit, w * Saig_ManRegNum(p->pAig) + i) ? ~(word)0 : (word)0;
         }
     }
     else
@@ -309,6 +381,34 @@ void Ssw_RarManInitialize( Ssw_RarMan_t * p, Vec_Int_t * vInit )
                 pSim[w] = pSimLi[w];
         }
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_RarManObjWhichOne( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
+{
+    word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
+    word Flip = pObj->fPhase ? ~0 : 0;
+    int w, i;
+    for ( w = 0; w < p->nWords; w++ )
+        if ( pSim[w] ^ Flip )
+        {
+            for ( i = 0; i < 64; i++ )
+                if ( ((pSim[w] ^ Flip) >> i) & 1 )
+                    break;
+            assert( i < 64 );
+            return w * 64 + i;
+        }
+    return -1;
 }
 
 /**Function*************************************************************
@@ -358,6 +458,44 @@ int Ssw_RarManObjsAreEqual( Ssw_RarMan_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pOb
 
 /**Function*************************************************************
 
+  Synopsis    [Computes hash value of the node using its simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Ssw_RarManObjHashWord( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
+{
+    static int s_SPrimes[128] = { 
+        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
+        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
+        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543, 
+        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089, 
+        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671, 
+        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243, 
+        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871, 
+        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471, 
+        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073, 
+        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689, 
+        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309, 
+        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
+        8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
+    };
+    unsigned * pSims;
+    unsigned uHash;
+    int i;
+    uHash = 0;
+    pSims = (unsigned *)Ssw_RarObjSim( p, pObj->Id );
+    for ( i = 0; i < 2 * p->nWords; i++ )
+        uHash ^= pSims[i] * s_SPrimes[i & 0x7F];
+    return uHash;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Check if any of the POs becomes non-constant.]
 
   Description []
@@ -371,12 +509,18 @@ int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
+    p->iFailPo = -1;
+    p->iFailPat = -1;
     Saig_ManForEachPo( p->pAig, pObj, i )
     {
         if ( p->pAig->nConstrs && i >= Saig_ManPoNum(p->pAig) - p->pAig->nConstrs )
             return 0;
         if ( !Ssw_RarManObjIsConst(p, pObj) )
+        {
+            p->iFailPo  = i;
+            p->iFailPat = Ssw_RarManObjWhichOne( p, pObj );
             return 1;
+        }
     }
     return 0;
 }
@@ -392,7 +536,7 @@ int Ssw_RarManCheckNonConstOutputs( Ssw_RarMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate )
+void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int fFirst )
 {
     Aig_Obj_t * pObj, * pRepr;
     word * pSim, * pSim0, * pSim1;
@@ -460,8 +604,21 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate )
     // refine classes
     if ( fUpdate )
     {
-        Ssw_ClassesRefineConst1Group( p->ppClasses, p->vUpdConst, 1 );
-        Ssw_ClassesRefineGroup( p->ppClasses, p->vUpdClass, 1 );
+        if ( fFirst )
+        {
+            Vec_Ptr_t * vCands = Vec_PtrAlloc( 1000 );
+            Aig_ManForEachObj( p->pAig, pObj, i )
+                if ( Ssw_ObjIsConst1Cand( p->pAig, pObj ) )
+                    Vec_PtrPush( vCands, pObj );
+            assert( Vec_PtrSize(vCands) == Ssw_ClassesCand1Num(p->ppClasses) );
+            Ssw_ClassesPrepareRehash( p->ppClasses, vCands, 0 );
+            Vec_PtrFree( vCands );
+        }
+        else
+        {
+            Ssw_ClassesRefineConst1Group( p->ppClasses, p->vUpdConst, 1 );
+            Ssw_ClassesRefineGroup( p->ppClasses, p->vUpdClass, 1 );
+        }
     }
 }
 
@@ -565,11 +722,9 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
             Value = Ssw_RarGetBinPat( p, i, pData[i] );
             assert( Value > 0 );
             p->pPatCosts[k] += 1.0/(Value*Value);
-//            printf( "%d ", Value );
         }
-//        printf( "\n" );
         // print the result
-        printf( "%3d : %9.6f\n", k, p->pPatCosts[k] );
+//printf( "%3d : %9.6f\n", k, p->pPatCosts[k] );
     }
 
     // choose as many as there are words
@@ -592,7 +747,7 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
         pPattern = (unsigned *)Ssw_RarPatSim( p, iPatBest );
         for ( k = 0; k < Aig_ManRegNum(p->pAig); k++ )
             Vec_IntPush( vInits, Aig_InfoHasBit(pPattern, k) );
-printf( "Best pattern %5d\n", iPatBest );
+//printf( "Best pattern %5d\n", iPatBest );
         Vec_IntPush( p->vPatBests, iPatBest );
     }
     assert( Vec_IntSize(vInits) == Aig_ManRegNum(p->pAig) * p->nWords );
@@ -688,11 +843,13 @@ int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, i
         // simulate
         for ( f = 0; f < nFrames; f++ )
         {
-            Ssw_RarManSimulate( p, f ? NULL : p->vInits, 0 );
+            Ssw_RarManSimulate( p, f ? NULL : p->vInits, 0, 0 );
             if ( fMiter && Ssw_RarManCheckNonConstOutputs(p) )
             {
                 if ( fVerbose ) printf( "\n" );
                 printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
+                ABC_FREE( pAig->pSeqModel );
+                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat );
                 RetValue = 0;
                 goto finish;
             }
@@ -774,7 +931,7 @@ int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSiz
         p->ppClasses = Ssw_ClassesPrepareSimple( pAig, fLatchOnly, 0 );
     else
         p->ppClasses = Ssw_ClassesPrepareFromReprs( pAig );
-    Ssw_ClassesSetData( p->ppClasses, p, NULL, Ssw_RarManObjIsConst, Ssw_RarManObjsAreEqual );
+    Ssw_ClassesSetData( p->ppClasses, p, Ssw_RarManObjHashWord, Ssw_RarManObjIsConst, Ssw_RarManObjsAreEqual );
     // print the stats
     if ( fVerbose )
     {
@@ -793,11 +950,13 @@ int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSiz
         // simulate
         for ( f = 0; f < nFrames; f++ )
         {
-            Ssw_RarManSimulate( p, f ? NULL : p->vInits, 1 );
+            Ssw_RarManSimulate( p, f ? NULL : p->vInits, 1, !r && !f );
             if ( fMiter && Ssw_RarManCheckNonConstOutputs(p) )
             {
                 if ( fVerbose ) printf( "\n" );
                 printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
+                ABC_FREE( pAig->pSeqModel );
+                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat );
                 RetValue = 0;
                 goto finish;
             }
@@ -857,9 +1016,6 @@ int Ssw_RarSignalFilterGia2( Gia_Man_t * p, int nFrames, int nWords, int nBinSiz
     Aig_ManStop( pAig );
     return RetValue;
 }
-
-
-
 
 
 ////////////////////////////////////////////////////////////////////////

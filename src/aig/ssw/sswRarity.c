@@ -210,11 +210,9 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
             Value = Ssw_RarGetBinPat( p, i, p->pGroupValues[i] );
             assert( Value > 0 );
             p->pPatCosts[k] += 1.0/(Value*Value);
-//            printf( "%d ", Value );
         }
-//        printf( "\n" );
         // print the result
-        printf( "%3d : %9.6f\n", k, p->pPatCosts[k] );
+//        printf( "%3d : %9.6f\n", k, p->pPatCosts[k] );
     }
 
     // choose as many as there are words
@@ -239,7 +237,7 @@ static void Ssw_RarTransferPatterns( Ssw_RarMan_t * p, Vec_Int_t * vInits )
             pData = (unsigned *)Vec_PtrEntry( p->vSimInfo, Aig_ObjId(pObj) ) + p->nWords * (p->nFrames - 1);
             Vec_IntPush( vInits, Aig_InfoHasBit(pData, iPatBest) );
         }
-printf( "Best pattern %5d\n", iPatBest );
+//printf( "Best pattern %5d\n", iPatBest );
     }
     assert( Vec_IntSize(vInits) == Aig_ManRegNum(p->pAig) * p->nWords );
 }
