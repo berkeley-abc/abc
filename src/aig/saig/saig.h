@@ -124,13 +124,17 @@ static inline Aig_Obj_t *  Saig_ObjLiToLo( Aig_Man_t * p, Aig_Obj_t * pObj )  { 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
- 
+
 /*=== sswAbs.c ==========================================================*/
-extern Aig_Man_t *       Saig_ManCexAbstraction( Aig_Man_t * p, Gia_ParAbs_t * pPars );
-/*=== sswAbs2.c ==========================================================*/
-extern Aig_Man_t *       Saig_ManConCexAbstraction( Aig_Man_t * p, Gia_ParAbs_t * pPars );
-/*=== sswPba.c ==========================================================*/
-extern Aig_Man_t *       Saig_ManProofAbstraction( Aig_Man_t * p, Gia_ParAbs_t * pPars );
+extern Vec_Int_t *       Saig_ManClasses2Flops( Vec_Int_t * vFlopClasses );
+extern Vec_Int_t *       Saig_ManFlops2Classes( int nRegs, Vec_Int_t * vFlops );
+/*=== sswAbsCba.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManCbaPerform( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
+/*=== sswAbsPba.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManPbaDerive( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fVerbose );
+/*=== sswAbsStart.c ==========================================================*/
+extern int               Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose );
+extern Vec_Int_t *       Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars );
 /*=== saigBmc.c ==========================================================*/
 extern int               Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nBTLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit );
 extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames );

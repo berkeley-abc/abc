@@ -3487,7 +3487,15 @@ SOURCE=.\src\aig\saig\saigAbs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\saig\saigAbs2.c
+SOURCE=.\src\aig\saig\saigAbsCba.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigAbsPba.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigAbsStart.c
 # End Source File
 # Begin Source File
 
@@ -3536,10 +3544,6 @@ SOURCE=.\src\aig\saig\saigMiter.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigOutDec.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\saig\saigPba.c
 # End Source File
 # Begin Source File
 
@@ -3784,6 +3788,10 @@ SOURCE=.\src\aig\ssw\sswPart.c
 # Begin Source File
 
 SOURCE=.\src\aig\ssw\sswRarity.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ssw\sswRarity2.c
 # End Source File
 # Begin Source File
 

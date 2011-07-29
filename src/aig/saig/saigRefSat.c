@@ -294,10 +294,10 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
     }
 
     // derive unrolled timeframes
-    pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * (pCex->iFrame+1) );
+    pFrames = Aig_ManStart( 10000 );
     pFrames->pName = Aig_UtilStrsav( pAig->pName );
     pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
-    // initialize the flops of
+    // initialize the flops 
     Saig_ManForEachLo( pAig, pObj, i )
         pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Aig_InfoHasBit(pCex->pData, i) );
     // iterate through the frames

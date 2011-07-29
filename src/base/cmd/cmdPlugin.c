@@ -560,8 +560,6 @@ int Cmd_CommandAbcPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
         pAbc->Status  = Abc_ManReadStatus( pFileOut, "result:" );
         // get bug-free depth
         pAbc->nFrames = Abc_ManReadInteger( pFileOut, "bug-free-depth:" );
-//        if ( pAbc->nFrames == -1 )
-//            printf( "Gia_ManCexAbstractionStartNew(): Cannot read the number of frames covered by BMC.\n" );
         // get abstraction
         pAbc->pGia->vFlopClasses = Abc_ManReadBinary( pFileOut, "abstraction:" );
         // get counter-example

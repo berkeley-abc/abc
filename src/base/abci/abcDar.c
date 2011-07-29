@@ -33,7 +33,6 @@
 #include "gia.h"
 #include "cec.h"
 #include "csw.h"
-#include "giaAbs.h"
 #include "pdr.h" 
 
 ABC_NAMESPACE_IMPL_START
@@ -3229,66 +3228,6 @@ ABC_PRT( "Time", clock() - clkTotal );
 
 /**Function*************************************************************
 
-  Synopsis    [Performs proof-based abstraction.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarCegar( Abc_Ntk_t * pNtk, Gia_ParAbs_t * pPars )
-{
-    Abc_Ntk_t * pNtkAig;
-    Aig_Man_t * pMan, * pTemp;
-    assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk, 0, 1 );
-    if ( pMan == NULL )
-        return NULL;
-
-    if ( pPars->fConstr )
-    {
-        printf( "This option is currently not implemented.\n" );
-        Aig_ManStop( pMan );
-        return NULL;
-    }
-    if ( pPars->fConstr )
-    {
-        if ( Saig_ManDetectConstrTest(pMan) )
-        {
-            printf( "Performing abstraction while dynamically adding constraints...\n" );
-            pMan = Saig_ManDupUnfoldConstrs( pTemp = pMan );
-            Aig_ManStop( pTemp );
-            pMan = Saig_ManConCexAbstraction( pTemp = pMan, pPars );
-        }
-        else
-        {
-            printf( "Constraints are not available. Performing abstraction w/o constraints.\n" );
-            pMan = Saig_ManCexAbstraction( pTemp = pMan, pPars );
-        }
-    }
-    else
-        pMan = Saig_ManCexAbstraction( pTemp = pMan, pPars );
-    if ( pTemp->pSeqModel )
-    {
-        ABC_FREE( pNtk->pModel );
-        ABC_FREE( pNtk->pSeqModel );
-        pNtk->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
-    }
-    Aig_ManStop( pTemp );
-    if ( pMan == NULL )
-        return NULL;
-
-    pNtkAig = Abc_NtkAfterTrim( pMan, pNtk );
-//    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
-//    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
-    Aig_ManStop( pMan );
-    return pNtkAig;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Interplates two networks.]
 
   Description []
@@ -4316,13 +4255,7 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return NULL;
-/*
-    Aig_ManSetRegNum( pMan, pMan->nRegs );
-    pMan = Saig_ManCexAbstraction( pTemp = pMan, 5, 10000, 0, 0, 0, -1, -1, 99, fUseBdds, fUseDprove, 0, 1 );
-    Aig_ManStop( pTemp );
-    if ( pMan == NULL )
-        return NULL;
-*/
+
 /*
     Aig_ManSetRegNum( pMan, pMan->nRegs );
     pMan = Saig_ManDualRail( pTemp = pMan, 1 );
