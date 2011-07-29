@@ -8776,10 +8776,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Cex_t * pNew;
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        if ( fNewAlgo )
-            pNew = Saig_ManFindCexCareBitsSense( pAig, pAbc->pCex, 0, fVerbose );
-        else
-            pNew = Saig_ManFindCexCareBits( pAig, pAbc->pCex, 0, fNewOrder, fVerbose );
+        pNew = Saig_ManCbaFindCexCareBits( pAig, pAbc->pCex, 0, fNewOrder, fVerbose );
         Aig_ManStop( pAig );
         Abc_FrameReplaceCex( pAbc, &pNew );
     }

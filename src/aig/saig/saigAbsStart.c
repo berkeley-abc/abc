@@ -61,56 +61,6 @@ int Saig_ManCexFirstFlopPi( Aig_Man_t * p, Aig_Man_t * pAbs )
 
 /**Function*************************************************************
 
-  Synopsis    [Derive a new counter-example.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexAbs )
-{
-    Abc_Cex_t * pCex;
-    Aig_Obj_t * pObj;
-    int i, f;
-    if ( !Saig_ManVerifyCex( pAbs, pCexAbs ) )
-        printf( "Saig_ManCexRemap(): The intial counter-example is invalid.\n" );
-    else
-        printf( "Saig_ManCexRemap(): The intial counter-example is correct.\n" );
-    // start the counter-example
-    pCex = Abc_CexAlloc( Aig_ManRegNum(p), Saig_ManPiNum(p), pCexAbs->iFrame+1 );
-    pCex->iFrame = pCexAbs->iFrame;
-    pCex->iPo    = pCexAbs->iPo;
-    // copy the bit data
-    for ( f = 0; f <= pCexAbs->iFrame; f++ )
-    {
-        Saig_ManForEachPi( pAbs, pObj, i )
-        {
-            if ( i == Saig_ManPiNum(p) )
-                break;
-            if ( Aig_InfoHasBit( pCexAbs->pData, pCexAbs->nRegs + pCexAbs->nPis * f + i ) )
-                Aig_InfoSetBit( pCex->pData, pCex->nRegs + pCex->nPis * f + i );
-        }
-    }
-    // verify the counter example
-    if ( !Saig_ManVerifyCex( p, pCex ) )
-    {
-        printf( "Saig_ManCexRemap(): Counter-example is invalid.\n" );
-        Abc_CexFree( pCex );
-        pCex = NULL;
-    }
-    else
-    {
-        printf( "Counter-example verification is successful.\n" );
-        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
-    }
-    return pCex;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Refines abstraction using one step.]
 
   Description []

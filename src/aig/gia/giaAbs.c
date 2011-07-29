@@ -273,6 +273,38 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
 
 /**Function*************************************************************
 
+  Synopsis    [Adds flops that should be present in the abstraction.]
+
+  Description [The second argument (vAbsFfsToAdd) is the array of numbers
+  of previously abstrated flops (flops replaced by PIs in the abstracted model)
+  that should be present in the abstraction as real flops.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManFlopsAddToClasses( Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd )
+{
+    Vec_Int_t * vMapEntries;
+    int i, Entry, iFlopNum;
+    // map previously abstracted flops into their original numbers
+    vMapEntries = Vec_IntAlloc( Vec_IntSize(vFlopClasses) );
+    Vec_IntForEachEntry( vFlopClasses, Entry, i )
+        if ( Entry == 0 )
+            Vec_IntPush( vMapEntries, i );
+    // add these flops as real flops
+    Vec_IntForEachEntry( vAbsFfsToAdd, Entry, i )
+    {
+        iFlopNum = Vec_IntEntry( vMapEntries, Entry );
+        assert( Vec_IntEntry( vFlopClasses, iFlopNum ) == 0 );
+        Vec_IntWriteEntry( vFlopClasses, iFlopNum, 1 );
+    }
+    Vec_IntFree( vMapEntries );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derive unrolled timeframes.]
 
   Description []
@@ -284,39 +316,39 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
 ***********************************************************************/
 int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
 {
-    Saig_ParBmc_t * pPars = (Saig_ParBmc_t *)p;
     Gia_Man_t * pAbs;
-    Aig_Man_t * pAig;
-    Vec_Int_t * vFlops, * vFlopsNew, * vSelected;
+    Aig_Man_t * pAig, * pOrig;
+    Vec_Int_t * vAbsFfsToAdd;
+    // check if flop classes are given
     if ( pGia->vFlopClasses == NULL )
     {
         printf( "Gia_ManCbaPerform(): Empty abstraction is started.\n" );
         pGia->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pGia) );
+        Vec_IntWriteEntry( pGia->vFlopClasses, 0, 1 );
     }
     // derive abstraction
     pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
-    // refine abstraction using PBA
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
-    vFlopsNew = Saig_ManCbaPerform( pAig, pPars );
-    Aig_ManStop( pAig );
-    // derive new classes
-    if ( vFlopsNew != NULL )
+    // refine abstraction using CBA
+    vAbsFfsToAdd = Saig_ManCbaPerform( pAig, Gia_ManPiNum(pGia), p );
+    if ( vAbsFfsToAdd == NULL ) // found true CEX
     {
-        vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
-//        vSelected = Saig_ManFlopsSelect( vFlops, vFlopsNew );
-        vSelected = NULL;
-        Vec_IntFree( pGia->vFlopClasses );
-        pGia->vFlopClasses = Saig_ManFlops2Classes( Gia_ManRegNum(pGia), vSelected );
-        Vec_IntFree( vSelected );
-
-        Vec_IntFree( vFlopsNew );
-        Vec_IntFree( vFlops );
-        return 1;
+        assert( pAig->pSeqModel != NULL );
+        printf( "Refinement did not happen. Discovered a true counter-example.\n" );
+        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManPiNum(pAig), Gia_ManPiNum(pGia) );
+        // derive new counter-example
+        pOrig = Gia_ManToAigSimple( pGia );
+        pGia->pCexSeq = Saig_ManCexRemap( pOrig, pAig, pAig->pSeqModel );
+        Aig_ManStop( pOrig );
+        Aig_ManStop( pAig );
+        return 0;
     }
-    // found counter-eample for the abstracted model
-    // or exceeded conflict limit
-    return 0;
+    Aig_ManStop( pAig );
+    // update flop classes
+    Gia_ManFlopsAddToClasses( pGia->vFlopClasses, vAbsFfsToAdd );
+    Vec_IntFree( vAbsFfsToAdd );
+    return -1;
 }
 
 
