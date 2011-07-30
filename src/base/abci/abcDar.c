@@ -3151,16 +3151,15 @@ Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nC
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
 { 
-    Aig_Man_t * pMan, * pTemp;
+    Aig_Man_t * pMan;
     int clkTotal = clock();
     int RetValue;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return -1;
-    RetValue = Saig_ManInduction( pTemp = pMan, nFramesMax, nConfMax, fUnique, fUniqueAll, fVerbose, fVeryVerbose );
-    Aig_ManStop( pTemp );
+    RetValue = Saig_ManInduction( pMan, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose );
     if ( RetValue == 1 )
     {
         printf( "Networks are equivalent.   " );
@@ -3176,6 +3175,13 @@ ABC_PRT( "Time", clock() - clkTotal );
         printf( "Networks are UNDECIDED.   " );
 ABC_PRT( "Time", clock() - clkTotal );
     }
+    if ( fGetCex )
+    {
+        ABC_FREE( pNtk->pModel );
+        ABC_FREE( pNtk->pSeqModel );
+        pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+    }
+    Aig_ManStop( pMan );
     return RetValue;
 }
 

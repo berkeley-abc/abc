@@ -163,7 +163,7 @@ extern int               Saig_ManFindFailedPoCex( Aig_Man_t * pAig, Abc_Cex_t * 
 /*=== saigHaig.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManHaigRecord( Aig_Man_t * p, int nIters, int nSteps, int fRetimingOnly, int fAddBugs, int fUseCnf, int fVerbose );
 /*=== saigInd.c ==========================================================*/
-extern int               Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fVerbose, int fVeryVerbose );
+extern int               Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose );
 /*=== saigIoa.c ==========================================================*/
 extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );

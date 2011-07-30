@@ -49,21 +49,20 @@ void Cec_ManSeqDeriveInfoFromCex( Vec_Ptr_t * vInfo, Gia_Man_t * pAig, Abc_Cex_t
     assert( pCex->nBits == pCex->nRegs + pCex->nPis * (pCex->iFrame + 1) );
     assert( pCex->nBits - pCex->nRegs + Gia_ManRegNum(pAig) <= Vec_PtrSize(vInfo) );
     nWords = Vec_PtrReadWordsSimInfo( vInfo );
-/*
     for ( k = 0; k < pCex->nRegs; k++ )
     {
-        pInfo = Vec_PtrEntry( vInfo, k );
+        pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = Gia_InfoHasBit( pCex->pData, k )? ~0 : 0;
     }
-*/
+/*
     for ( k = 0; k < Gia_ManRegNum(pAig); k++ )
     {
         pInfo = (unsigned *)Vec_PtrEntry( vInfo, k );
         for ( w = 0; w < nWords; w++ )
             pInfo[w] = 0;
     }
-
+*/
     for ( i = pCex->nRegs; i < pCex->nBits; i++ )
     {
         pInfo = (unsigned *)Vec_PtrEntry( vInfo, k++ );

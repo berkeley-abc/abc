@@ -19546,19 +19546,21 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfMax;
     int fUnique;
     int fUniqueAll;
+    int fGetCex;
     int fVerbose;
     int fVeryVerbose;
     int c;
-    extern int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarInduction( Abc_Ntk_t * pNtk, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose );
     // set defaults
     nFramesMax   =   100;
     nConfMax     =  1000;
     fUnique      =     0;
     fUniqueAll   =     0;
+    fGetCex      =     0;
     fVerbose     =     0;
     fVeryVerbose =     0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCuavwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCuaxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19589,6 +19591,9 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'a':
             fUniqueAll ^= 1;
+            break;
+        case 'x':
+            fGetCex ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -19629,15 +19634,21 @@ int Abc_CommandInduction( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    pAbc->Status = Abc_NtkDarInduction( pNtk, nFramesMax, nConfMax, fUnique, fUniqueAll, fVerbose, fVeryVerbose );
+    pAbc->Status = Abc_NtkDarInduction( pNtk, nFramesMax, nConfMax, fUnique, fUniqueAll, fGetCex, fVerbose, fVeryVerbose );
+    if ( fGetCex )
+    {
+        Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+        printf( "The current CEX in ABC is set to be the CEX to induction.\n" );
+    }
     return 0;
 usage:
-    Abc_Print( -2, "usage: ind [-FC num] [-uavwh]\n" );
+    Abc_Print( -2, "usage: ind [-FC num] [-uaxvwh]\n" );
     Abc_Print( -2, "\t         runs the inductive case of the K-step induction\n" );
     Abc_Print( -2, "\t-F num : the max number of timeframes [default = %d]\n", nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of conflicts by SAT solver [default = %d]\n", nConfMax );
     Abc_Print( -2, "\t-u     : toggle adding uniqueness constraints on demand [default = %s]\n", fUnique? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle adding uniqueness constraints always [default = %s]\n", fUniqueAll? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle returning CEX to induction for the top frame [default = %s]\n", fGetCex? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing additional verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

@@ -142,12 +142,12 @@ void Saig_ManAddUniqueness( sat_solver * pSat, Vec_Int_t * vState, int nRegs, in
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fVerbose, int fVeryVerbose )
+int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique, int fUniqueAll, int fGetCex, int fVerbose, int fVeryVerbose )
 {
     sat_solver * pSat;
     Aig_Man_t * pAigPart;
     Cnf_Dat_t * pCnfPart;
-    Vec_Int_t * vTopVarNums, * vState;
+    Vec_Int_t * vTopVarNums, * vState, * vTopVarIds = NULL;
     Vec_Ptr_t * vTop, * vBot;
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;
     int i, k, f, clk, Lits[2], status, RetValue, nSatVarNum, nConfPrev;
@@ -189,6 +189,24 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
         Cnf_DataLift( pCnfPart, nSatVarNum );
         nSatVarNum += pCnfPart->nVars;
         nClauses   += pCnfPart->nClauses;
+
+        // remember top frame var IDs
+        if ( fGetCex && vTopVarIds == NULL )
+        {
+            vTopVarIds = Vec_IntStartFull( Aig_ManPiNum(p) );
+            Aig_ManForEachPi( p, pObjPi, i )
+            {
+                if ( pObjPi->pData == NULL )
+                    continue;
+                pObjPiCopy = (Aig_Obj_t *)pObjPi->pData;
+                assert( Aig_ObjIsPi(pObjPiCopy) );
+                if ( Saig_ObjIsPi(p, pObjPi) )
+                    Vec_IntWriteEntry( vTopVarIds, Aig_ObjPioNum(pObjPi) + Saig_ManRegNum(p), pCnfPart->pVarNums[Aig_ObjId(pObjPiCopy)] );
+                else if ( Saig_ObjIsLo(p, pObjPi) )
+                    Vec_IntWriteEntry( vTopVarIds, Aig_ObjPioNum(pObjPi) - Saig_ManPiNum(p), pCnfPart->pVarNums[Aig_ObjId(pObjPiCopy)] );
+                else assert( 0 );
+            }
+        }
 
         // stitch variables of top and bot
         assert( Aig_ManPoNum(pAigPart)-1 == Vec_IntSize(vTopVarNums) );
@@ -294,7 +312,27 @@ nextrun:
             printf( "\n" );
         }
         if ( f == nFramesMax - 1 )
+        {
+            // derive counter-example
+            assert( status == l_True );
+            if ( fGetCex )
+            {
+                int VarNum, iBit = 0;
+                Abc_Cex_t * pCex = Abc_CexAlloc( Aig_ManRegNum(p)-1, Saig_ManPiNum(p), 1 );
+                pCex->iFrame = 0;
+                pCex->iPo = 0;
+                Vec_IntForEachEntryStart( vTopVarIds, VarNum, i, 1 )
+                {
+                    if ( VarNum >= 0 && sat_solver_var_value( pSat, VarNum ) )
+                        Aig_InfoSetBit( pCex->pData, iBit );
+                    iBit++;
+                }
+                assert( iBit == pCex->nBits );
+                Abc_CexFree( p->pSeqModel );
+                p->pSeqModel = pCex;
+            }
             break;
+        }
         if ( fUnique )
         {
             for ( i = 1; i < iLast; i++ )
@@ -333,6 +371,7 @@ nextrun:
     Vec_PtrFree( vTop );
     Vec_PtrFree( vBot );
     Vec_IntFree( vState );
+    Vec_IntFreeP( &vTopVarIds );
     return RetValue;
 }
 
