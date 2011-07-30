@@ -24776,7 +24776,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nRandSeed;
     int TimeOut;
     int fVerbose;
-    extern int Ssw_RarSimulate2Gia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fVerbose );
+    extern int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fVerbose );
     // set defaults
     nFrames    =  20;
     nWords     =  50;
@@ -24871,7 +24871,7 @@ int Abc_CommandAbc9Sim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Sim3(): There is no AIG.\n" );
         return 1;
     }
-    pAbc->Status = Ssw_RarSimulate2Gia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRandSeed, TimeOut, fVerbose );  
+    pAbc->Status = Ssw_RarSimulateGia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRandSeed, TimeOut, fVerbose );  
 //    pAbc->nFrames = pAbc->pGia->pCexSeq->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
@@ -25310,7 +25310,7 @@ usage:
 int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
 //    extern int Ssw_RarSignalFilterGia2( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
-    extern int Ssw_RarSignalFilterGia2( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fMiter, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
+    extern int Ssw_RarSignalFilterGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fMiter, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose );
     int c;
     int nFrames    =   20;
     int nWords     =   50;
@@ -25435,7 +25435,7 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 //    if ( fNewAlgo )
-        pAbc->Status = Ssw_RarSignalFilterGia2( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRandSeed, TimeOut, fMiter, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
+        pAbc->Status = Ssw_RarSignalFilterGia( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, nRandSeed, TimeOut, fMiter, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
 //    else
 //        pAbc->Status = Ssw_RarSignalFilterGia2( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, TimeOut, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
 //    pAbc->nFrames = pAbc->pGia->pCexSeq->iFrame;
