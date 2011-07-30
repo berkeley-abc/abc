@@ -833,7 +833,12 @@ static Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex 
     // record the new pattern
     vInit = Vec_IntAlloc( Saig_ManRegNum(pAig) );
     Saig_ManForEachLo( pAig, pObj, i )
+    {
+//printf( "%d", pObj->fMarkB );
         Vec_IntPush( vInit, pObj->fMarkB );
+    }
+//printf( "\n" );
+    Aig_ManCleanMarkB( pAig );
     return vInit;
 }
 
@@ -975,7 +980,10 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
     // compute starting state if needed
     assert( p->vInits == NULL );
     if ( pCex )
+    {
         p->vInits = Ssw_RarFindStartingState( pAig, pCex );
+        printf( "Beginning simulation from the state derived using the counter-example.\n" );
+    }
     else
         p->vInits = Vec_IntStart( Aig_ManRegNum(pAig) );
     // duplicate the array

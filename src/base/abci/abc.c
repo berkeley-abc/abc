@@ -25438,6 +25438,11 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fUseCex )
     {
+        if ( pAbc->pCex == NULL )
+        {
+            Abc_Print( 0, "Abc_CommandAbc9Equiv3(): Counter-example is not available.\n" );
+            return 0;
+        }
         if ( pAbc->pCex->nPis != Gia_ManPiNum(pAbc->pGia) )
         {
             Abc_Print( -1, "Abc_CommandAbc9Equiv3(): The number of PIs differs in cex (%d) and in AIG (%d).\n", 
@@ -25450,7 +25455,8 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    else
 //        pAbc->Status = Ssw_RarSignalFilterGia2( pAbc->pGia, nFrames, nWords, nBinSize, nRounds, TimeOut, fUseCex? pAbc->pCex: NULL, fLatchOnly, fVerbose );
 //    pAbc->nFrames = pAbc->pGia->pCexSeq->iFrame;
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    if ( pAbc->pGia->pCexSeq )
+        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
