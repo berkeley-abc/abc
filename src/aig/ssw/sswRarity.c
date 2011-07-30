@@ -127,7 +127,9 @@ void Ssw_RarManAssingRandomPis( Ssw_RarMan_t * p )
         pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
         for ( w = 0; w < p->nWords; w++ )
             pSim[w] = Aig_ManRandom64(0);
-        pSim[0] <<= 1;
+//        pSim[0] <<= 1;
+//        pSim[0] = (pSim[0] << 2) | 2;
+        pSim[0] = (pSim[0] << 4) | ((i & 1) ? 0xA : 0xC);
     }
 }
 
@@ -908,7 +910,7 @@ finish:
     if ( r == nRounds && f == nFrames )
     {
         if ( fVerbose ) printf( "\n" );
-        printf( "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
+        printf( "Simulation did not assert POs in the first %d frames.         ", nRounds * nFrames );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     // cleanup
@@ -1045,7 +1047,7 @@ finish:
     {
         if ( !fVerbose ) 
             printf( "\r" );
-        printf( "Simulation did not assert POs in the first %d frames.  ", nRounds * nFrames );
+        printf( "Simulation did not assert POs in the first %d frames.         ", nRounds * nFrames );
         Abc_PrintTime( 1, "Time", clock() - clkTotal );
     }
     // cleanup
