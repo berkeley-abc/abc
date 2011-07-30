@@ -261,7 +261,7 @@ static Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex 
     int f, i, iBit;
     // assign register outputs
     Saig_ManForEachLi( pAig, pObj, i )
-        pObj->fMarkB = 0;
+        pObj->fMarkB = Aig_InfoHasBit( pCex->pData, i );
     // simulate the timeframes
     iBit = pCex->nRegs;
     for ( f = 0; f <= pCex->iFrame; f++ )
@@ -304,7 +304,7 @@ static Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex 
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, int fVerbose )
+int Ssw_RarSimulate2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, int fVerbose )
 {
     int fMiter = 1;
     Ssw_RarMan_t * p;
@@ -381,7 +381,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
+int Ssw_RarSignalFilter2( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 {
     int fMiter = 0;
     Ssw_RarMan_t * p;
@@ -486,7 +486,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarSignalFilterGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
+int Ssw_RarSignalFilterGia2( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, int nRounds, int TimeOut, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 { 
     Aig_Man_t * pAig;
     int RetValue;
@@ -497,7 +497,7 @@ int Ssw_RarSignalFilterGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize
         ABC_FREE( p->pReprs );
         ABC_FREE( p->pNexts );
     }
-    RetValue = Ssw_RarSignalFilter( pAig, nFrames, nWords, nBinSize, nRounds, TimeOut, pCex, fLatchOnly, fVerbose );
+    RetValue = Ssw_RarSignalFilter2( pAig, nFrames, nWords, nBinSize, nRounds, TimeOut, pCex, fLatchOnly, fVerbose );
     Gia_ManReprFromAigRepr( pAig, p );
     Aig_ManStop( pAig );
     return RetValue;
