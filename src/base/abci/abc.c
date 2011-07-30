@@ -25279,6 +25279,11 @@ int Abc_CommandAbc9Equiv2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fUseCex )
     {
+        if ( pAbc->pCex == NULL )
+        {
+            Abc_Print( 0, "Abc_CommandAbc9Equiv2(): Counter-example is not available.\n" );
+            return 0;
+        }
         if ( pAbc->pCex->nPis != Gia_ManPiNum(pAbc->pGia) )
         {
             Abc_Print( -1, "Abc_CommandAbc9Equiv2(): The number of PIs differs in cex (%d) and in AIG (%d).\n", 
@@ -25438,6 +25443,11 @@ int Abc_CommandAbc9Equiv3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fUseCex )
     {
+        if ( fMiter )
+        {
+            Abc_Print( 0, "Abc_CommandAbc9Equiv3(): Considering the miter as a circuit because the CEX is given.\n" );
+            fMiter = 0;
+        }
         if ( pAbc->pCex == NULL )
         {
             Abc_Print( 0, "Abc_CommandAbc9Equiv3(): Counter-example is not available.\n" );
