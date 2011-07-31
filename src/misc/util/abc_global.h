@@ -298,6 +298,9 @@ static inline void Abc_PrintMemoryP( int level, const char * pStr, int time, int
     ABC_PRMP( pStr, time, Time );
 }
 
+extern void   Abc_Sort( int * pInput, int nSize );
+extern int *  Abc_SortCost( int * pCosts, int nSize );
+
 
 ABC_NAMESPACE_HEADER_END
 
