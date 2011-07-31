@@ -1805,8 +1805,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
     pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
     if ( RetValue == 1 )
     {
-//        printf( "No output asserted in %d frames. ", pPars->iFrame );
-        printf( "Incorrect return value.  " );
+        printf( "Explored all reachable states after completing %d frames.  ", 1<<Aig_ManRegNum(pMan) );
     }
     else if ( RetValue == -1 )
     {
@@ -1839,8 +1838,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
         }
         else
         {
-            printf( "Incorrect return value.  " );
-//            printf( "At least one output asserted (out=%d, frame=%d). ", pCex->iPo, pCex->iFrame );
+            printf( "All %d outputs are proved SAT.    ", Saig_ManPoNum(pMan) - pMan->nConstrs );
         }
     }
     ABC_PRT( "Time", clock() - clk );
@@ -3044,8 +3042,8 @@ int Abc_NtkDarSeqSim3( Abc_Ntk_t * pNtk, int nFrames, int nWords, int nBinSize, 
     }
     else
     {
-        printf( "Simulation of %d frames with %d words did not assert the outputs.    ", 
-            nFrames, nWords );
+//        printf( "Simulation of %d frames with %d words did not assert the outputs.    ", 
+//            nFrames, nWords );
     }
     ABC_PRT( "Time", clock() - clk );
     Aig_ManStop( pMan );
