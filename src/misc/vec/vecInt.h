@@ -63,6 +63,8 @@ struct Vec_Int_t_
     for ( i = Vec_IntSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_IntEntry(vVec, i)), 1); i-- )
 #define Vec_IntForEachEntryTwo( vVec1, vVec2, Entry1, Entry2, i )                                               \
     for ( i = 0; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1); i++ )
+#define Vec_IntForEachEntryDouble( vVec, Entry1, Entry2, i )                                               \
+    for ( i = 0; (2*i+1 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, 2*i)), 1) && (((Entry2) = Vec_IntEntry(vVec, 2*i+1)), 1); i += 2 )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -901,6 +903,44 @@ static inline int Vec_IntSum( Vec_Int_t * p )
     int i, Counter = 0;
     for ( i = 0; i < p->nSize; i++ )
         Counter += p->pArray[i];
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntCountZero( Vec_Int_t * p ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] == 0);
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntCountPositive( Vec_Int_t * p ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        Counter += (p->pArray[i] > 0);
     return Counter;
 }
 
