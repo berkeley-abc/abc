@@ -20193,7 +20193,10 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             int iPoOld = pAbc->pCex->iPo;
             pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pGia, pAbc->pCex, nOutputs );
             if ( pAbc->pCex->iPo == -1 )
+            {
+                pAbc->pCex->iPo = iPoOld;
                 Abc_Print( 1, "Main AIG: The cex does not fail any outputs.\n" );
+            }
             else if ( iPoOld != pAbc->pCex->iPo )
                 Abc_Print( 1, "Main AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
             else 
@@ -20219,7 +20222,10 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             int iPoOld = pAbc->pCex->iPo;
             pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex, nOutputs );
             if ( pAbc->pCex->iPo == -1 )
+            {
+                pAbc->pCex->iPo = iPoOld;
                 Abc_Print( 1, "And  AIG: The cex does not fail any outputs.\n" );
+            }
             else if ( iPoOld != pAbc->pCex->iPo )
                 Abc_Print( 1, "And  AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
             else 
