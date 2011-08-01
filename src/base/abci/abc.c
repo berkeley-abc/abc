@@ -410,9 +410,38 @@ extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, 
 ***********************************************************************/
 void Abc_FrameReplaceCex( Abc_Frame_t * pAbc, Abc_Cex_t ** ppCex )
 {
+    // update CEX
     ABC_FREE( pAbc->pCex );
     pAbc->pCex = *ppCex;
     *ppCex = NULL;
+    // remove CEX vector
+    if ( pAbc->vCexVec )
+    {
+        Vec_PtrFreeFree( pAbc->vCexVec );
+        pAbc->vCexVec = NULL;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameReplaceCexVec( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvCexVec )
+{
+    // update CEX vector
+    if ( pAbc->vCexVec )
+        Vec_PtrFreeFree( pAbc->vCexVec );
+    pAbc->vCexVec = *pvCexVec;
+    *pvCexVec = NULL;
+    // remove CEX
+    ABC_FREE( pAbc->pCex );
 }
 
 /**Function*************************************************************
@@ -19015,14 +19044,14 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "bmc3" );
     if ( pPars->fSolveAll && pPars->fDropSatOuts )
     {
-        if ( pNtk->pSeqModelVec == NULL )
+        if ( pNtk->vSeqModelVec == NULL )
             printf( "The array of counter-examples is not available.\n" );
-        else if ( Vec_PtrSize(pNtk->pSeqModelVec) != Abc_NtkPoNum(pNtk) )
+        else if ( Vec_PtrSize(pNtk->vSeqModelVec) != Abc_NtkPoNum(pNtk) )
             printf( "The array size does not match the number of outputs.\n" );
         else
         {
             extern void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose );
-            Abc_NtkDropSatOutputs( pNtk, pNtk->pSeqModelVec, pPars->fVerbose );
+            Abc_NtkDropSatOutputs( pNtk, pNtk->vSeqModelVec, pPars->fVerbose );
             pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0 );
             if ( pNtkRes == NULL )
             {
@@ -19032,6 +19061,8 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         }
     }
+    if ( pNtk->vSeqModelVec )
+        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
     return 0;
 
 usage:

@@ -612,8 +612,8 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     Aig_ManCleanMarkA( p->pAig );
     if ( p->vCexes )
     {
-        assert( p->pAig->pSeqModelVec == NULL );
-        p->pAig->pSeqModelVec = p->vCexes;
+        assert( p->pAig->vSeqModelVec == NULL );
+        p->pAig->vSeqModelVec = p->vCexes;
         p->vCexes = NULL;
     }
 //    Vec_PtrFreeFree( p->vCexes );
@@ -1133,7 +1133,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             return 0;
         }
         // consider the next timeframe
-        pPars->iFrame = f;
+        if ( RetValue == -1 && pPars->nStart == 0 )
+            pPars->iFrame = f;
         // resize the array
         Vec_IntFillExtra( p->vPiVars, (f+1)*Saig_ManPiNum(p->pAig), 0 );
         // map nodes of this section
@@ -1206,6 +1207,7 @@ clkOther += clock() - clk2;
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );
+                RetValue = 0;
                 continue;
             }
             // solve this output
@@ -1254,6 +1256,7 @@ clkOther += clock() - clk2;
                 if ( p->vCexes == NULL )
                     p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
                 Vec_PtrWriteEntry( p->vCexes, i, pCex );
+                RetValue = 0;
             }
             else 
             {

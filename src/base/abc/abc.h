@@ -203,7 +203,7 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vSupps;        // CO support information
     int *             pModel;        // counter-example (for miters)
     Abc_Cex_t *       pSeqModel;     // counter-example (for sequential miters)
-    Vec_Ptr_t *       pSeqModelVec;  // vector of counter-examples (for sequential miters)
+    Vec_Ptr_t *       vSeqModelVec;  // vector of counter-examples (for sequential miters)
     Abc_Ntk_t *       pExdc;         // the EXDC network (if given)
     void *            pExcare;       // the EXDC network (if given)
     void *            pData;         // misc

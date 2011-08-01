@@ -154,7 +154,7 @@ struct Aig_Man_t_
     Vec_Int_t *      vFlopNums;      
     Vec_Int_t *      vFlopReprs;      
     Abc_Cex_t *      pSeqModel;
-    Vec_Ptr_t *      pSeqModelVec;   // vector of counter-examples (for sequential miters)
+    Vec_Ptr_t *      vSeqModelVec;   // vector of counter-examples (for sequential miters)
     Aig_Man_t *      pManExdc;
     Vec_Ptr_t *      vOnehots;
     Aig_Man_t *      pManHaig;

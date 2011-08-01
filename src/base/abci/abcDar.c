@@ -1824,9 +1824,9 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
                 printf( "(timeout %d sec). ", pPars->nTimeOut );
             else
                 printf( "(conf limit %d). ", pPars->nConfLimit );
-            if ( pNtk->pSeqModelVec )
-                Vec_PtrFreeFree( pNtk->pSeqModelVec );
-            pNtk->pSeqModelVec = pMan->pSeqModelVec;  pMan->pSeqModelVec = NULL;
+            if ( pNtk->vSeqModelVec )
+                Vec_PtrFreeFree( pNtk->vSeqModelVec );
+            pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
         }
     }
     else // if ( RetValue == 0 )

@@ -98,6 +98,7 @@ struct Abc_Frame_t_
     Gia_Man_t *     pGia;
     Gia_Man_t *     pGia2;
     Abc_Cex_t *     pCex; 
+    Vec_Ptr_t *     vCexVec;
 
     void *          pSave1; 
     void *          pSave2; 

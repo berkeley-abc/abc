@@ -252,7 +252,7 @@ void Saig_ManCexMinDerivePhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_
   SeeAlso     []
  
 ***********************************************************************/
-Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis )
+Vec_Vec_t * Saig_ManCexMinCollectPhasePriority_( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis )
 {
     Vec_Vec_t * vFramePPs;
     Vec_Int_t * vRoots, * vFramePPsOne, * vFrameCisOne;
@@ -283,6 +283,67 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
                 Vec_IntPush( vFramePPsOne, Aig_Var2Lit( (f+1) * pCex->nPis - nPiCount++, Aig_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
             else if ( f == 0 )
                 Vec_IntPush( vFramePPsOne, Aig_Var2Lit( nPrioOffset + Saig_ObjRegId(pAig, pObj), 0 ) );
+            else
+            {
+                Aig_Obj_t * pObj0 = Saig_ObjLoToLi(pAig, pObj);
+                int Value = Saig_ObjLoToLi(pAig, pObj)->iData;
+                Vec_IntPush( vFramePPsOne, Saig_ObjLoToLi(pAig, pObj)->iData );
+            }
+//printf( "%d ", Vec_IntEntryLast(vFramePPsOne) );
+        }
+//printf( "\n" );
+        // compute the PP info
+        Saig_ManCexMinDerivePhasePriority( pAig, pCex, vFrameCis, vFramePPs, f, vRoots );
+    }
+    Vec_IntFree( vRoots );
+    // check the output
+    pObj = Aig_ManPo( pAig, pCex->iPo );
+    assert( Aig_LitIsCompl(pObj->iData) );
+    return vFramePPs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects phase and priority of all timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis )
+{
+    Vec_Vec_t * vFramePPs;
+    Vec_Int_t * vRoots, * vFramePPsOne, * vFrameCisOne;
+    Aig_Obj_t * pObj;
+    int i, f, nPrioOffset;
+
+    // initialize phase and priority
+    Aig_ManForEachObj( pAig, pObj, i )
+        pObj->iData = -1;
+
+    // set the constant node to higher priority than the flops
+    vFramePPs = Vec_VecStart( pCex->iFrame+1 );
+    nPrioOffset = pCex->nRegs;
+    Aig_ManConst1(pAig)->iData = Aig_Var2Lit( nPrioOffset + (pCex->iFrame + 1) * pCex->nPis, 1 );
+    vRoots = Vec_IntAlloc( 1000 );
+//printf( "Const1 = %d  Offset = %d\n", Aig_ManConst1(pAig)->iData, nPrioOffset ); 
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        int nPiCount = 0;
+        // fill in PP for the CIs
+        vFrameCisOne = Vec_VecEntryInt( vFrameCis, f );
+        vFramePPsOne = Vec_VecEntryInt( vFramePPs, f );
+        assert( Vec_IntSize(vFramePPsOne) == 0 );
+        Aig_ManForEachObjVec( vFrameCisOne, pAig, pObj, i )
+        {
+            assert( Aig_ObjIsPi(pObj) );
+            if ( Saig_ObjIsPi(pAig, pObj) )
+                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( nPrioOffset + (f+1) * pCex->nPis - 1 - nPiCount++, Aig_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
+            else if ( f == 0 )
+                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( Saig_ObjRegId(pAig, pObj), 0 ) );
             else
             {
                 Aig_Obj_t * pObj0 = Saig_ObjLoToLi(pAig, pObj);
