@@ -567,7 +567,7 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig )
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManRegNum(pAig) > 0 );
+//    assert( Aig_ManRegNum(pAig) > 0 );
     p = ABC_CALLOC( Gia_ManBmc_t, 1 );
     p->pAig = pAig;
     // create mapping
@@ -1236,11 +1236,11 @@ clkOther += clock() - clk2;
                         printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
                         printf( "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
                         ABC_PRT( "Time", clock() - clk );
-                        ABC_PRM( "Id2Var", (f+1)*p->nObjNums*4 );
-                        ABC_PRM( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-                        printf( "Simples = %6d. ", p->nBufNum );
+//                        ABC_PRM( "Id2Var", (f+1)*p->nObjNums*4 );
+//                        ABC_PRM( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
+//                        printf( "Simples = %6d. ", p->nBufNum );
 //                        printf( "Dups = %6d. ", p->nDupNum );
-                        printf( "\n" );
+//                        printf( "\n" );
                         fflush( stdout );
                     }
                     ABC_FREE( pAig->pSeqModel );
@@ -1292,11 +1292,11 @@ clkOther += clock() - clk2;
 //ABC_PRT( "CNF generation runtime", clkOther );
     if ( pPars->fVerbose )
     {
-    ABC_PRM( "Id2Var", (f+1)*p->nObjNums*4 );
-    ABC_PRM( "SAT", 48 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
-    printf( "Simples = %6d. ", p->nBufNum );
+//    ABC_PRM( "Id2Var", (f+1)*p->nObjNums*4 );
+//    ABC_PRM( "SAT", 48 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );
+//    printf( "Simples = %6d. ", p->nBufNum );
 //    printf( "Dups = %6d. ", p->nDupNum );
-    printf( "\n" );
+//    printf( "\n" );
     }
     Saig_Bmc3ManStop( p );
     return RetValue;
