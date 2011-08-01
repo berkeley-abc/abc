@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
+#include "ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -33,7 +34,7 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
-  Synopsis    [Returns reasons for the property to fail.]
+  Synopsis    [Find the roots to begin traversal.]
 
   Description []
                
@@ -42,47 +43,84 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManCexMinFindReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vPrios, Vec_Int_t * vReasonPis, Vec_Int_t * vReasonLis )
+void Saig_ManCexMinGetCos( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Int_t * vLeaves, Vec_Int_t * vRoots )
 {
-    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
-        return;
-    Aig_ObjSetTravIdCurrent(p, pObj);
-    if ( Saig_ObjIsPi(p, pObj) )
+    Aig_Obj_t * pObj;
+    int i;
+    Vec_IntClear( vRoots );
+    if ( vLeaves == NULL )
     {
-        Vec_IntPush( vReasonPis, Aig_ObjPioNum(pObj) );
-        return;
-    }
-    if ( Saig_ObjIsLo(p, pObj) )
-    {
-        Vec_IntPush( vReasonLis, Aig_ObjPioNum(pObj) - Aig_ManRegNum(p) );
+        pObj = Aig_ManPo( pAig, pCex->iPo );
+        Vec_IntPush( vRoots, Aig_ObjId(pObj) );
         return;
     }
-    assert( Aig_ObjIsNode(pObj) );
-    if ( pObj->fPhase )
-    {
-        Saig_ManCexMinFindReason_rec( p, Aig_ObjFanin0(pObj), vPrios, vReasonPis, vReasonLis );
-        Saig_ManCexMinFindReason_rec( p, Aig_ObjFanin1(pObj), vPrios, vReasonPis, vReasonLis );
-    }
-    else
-    {
-        int fPhase0 = Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase;
-        int fPhase1 = Aig_ObjFaninC1(pObj) ^ Aig_ObjFanin1(pObj)->fPhase;
-        assert( !fPhase0 || !fPhase1 );
-        if ( !fPhase0 && fPhase1 )
-            Saig_ManCexMinFindReason_rec( p, Aig_ObjFanin0(pObj), vPrios, vReasonPis, vReasonLis );
-        else if ( fPhase0 && !fPhase1 )
-            Saig_ManCexMinFindReason_rec( p, Aig_ObjFanin1(pObj), vPrios, vReasonPis, vReasonLis );
-        else 
-        {
-            int iPrio0 = Vec_IntEntry( vPrios, Aig_ObjFaninId0(pObj) );
-            int iPrio1 = Vec_IntEntry( vPrios, Aig_ObjFaninId1(pObj) );
-            if ( iPrio0 >= iPrio1 )
-                Saig_ManCexMinFindReason_rec( p, Aig_ObjFanin0(pObj), vPrios, vReasonPis, vReasonLis );
-            else
-                Saig_ManCexMinFindReason_rec( p, Aig_ObjFanin1(pObj), vPrios, vReasonPis, vReasonLis );
-        }
-    }
+    Aig_ManForEachObjVec( vLeaves, pAig, pObj, i )
+        if ( Saig_ObjIsLo(pAig, pObj) )
+            Vec_IntPush( vRoots, Aig_ObjId( Saig_ObjLoToLi(pAig, pObj) ) );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Collects CI of the given timeframe.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManCexMinCollectFrameTerms_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vFrameCisOne )
+{
+    if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(pAig, pObj);
+    if ( Aig_ObjIsPo(pObj) )
+        Saig_ManCexMinCollectFrameTerms_rec( pAig, Aig_ObjFanin0(pObj), vFrameCisOne );
+    else if ( Aig_ObjIsNode(pObj) )
+    {
+        Saig_ManCexMinCollectFrameTerms_rec( pAig, Aig_ObjFanin0(pObj), vFrameCisOne );
+        Saig_ManCexMinCollectFrameTerms_rec( pAig, Aig_ObjFanin1(pObj), vFrameCisOne );
+    }
+    else if ( Aig_ObjIsPi(pObj) )
+        Vec_IntPush( vFrameCisOne, Aig_ObjId(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects CIs of all timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Vec_t * Saig_ManCexMinCollectFrameTerms( Aig_Man_t * pAig, Abc_Cex_t * pCex )
+{
+    Vec_Vec_t * vFrameCis;
+    Vec_Int_t * vRoots, * vLeaves;
+    Aig_Obj_t * pObj;
+    int i, f;
+    // create terminals
+    vRoots = Vec_IntAlloc( 1000 );
+    vFrameCis = Vec_VecStart( pCex->iFrame+1 );
+    for ( f = pCex->iFrame; f >= 0; f-- )
+    {
+        // create roots
+        vLeaves = (f == pCex->iFrame) ? NULL : Vec_VecEntryInt(vFrameCis, f+1);
+        Saig_ManCexMinGetCos( pAig, pCex, vLeaves, vRoots );
+        // collect nodes starting from the roots
+        Aig_ManIncrementTravId( pAig );
+        Aig_ManForEachObjVec( vRoots, pAig, pObj, i )
+            Saig_ManCexMinCollectFrameTerms_rec( pAig, pObj, Vec_VecEntryInt(vFrameCis, f) );
+    }
+    Vec_IntFree( vRoots );
+    return vFrameCis;
+}
+
+
 
 /**Function*************************************************************
 
@@ -95,41 +133,42 @@ void Saig_ManCexMinFindReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * 
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManCexMinComputePrio_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vPrios )
+void Saig_ManCexMinDerivePhasePriority_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj )
 {
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);
     if ( Aig_ObjIsPo(pObj) )
     {
-        Saig_ManCexMinComputePrio_rec( pAig, Aig_ObjFanin0(pObj), vPrios );
-        pObj->fPhase = Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase;
-        Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), Vec_IntEntry( vPrios, Aig_ObjFaninId0(pObj) ) );
+        Saig_ManCexMinDerivePhasePriority_rec( pAig, Aig_ObjFanin0(pObj) );
+        assert( Aig_ObjFanin0(pObj)->iData >= 0 );
+        pObj->iData = Aig_ObjFanin0(pObj)->iData ^ Aig_ObjFaninC0(pObj);
     }
     else if ( Aig_ObjIsNode(pObj) )
     {
         int fPhase0, fPhase1, iPrio0, iPrio1;
-        Saig_ManCexMinComputePrio_rec( pAig, Aig_ObjFanin0(pObj), vPrios );
-        Saig_ManCexMinComputePrio_rec( pAig, Aig_ObjFanin1(pObj), vPrios );
-        fPhase0 = Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase;
-        fPhase1 = Aig_ObjFaninC1(pObj) ^ Aig_ObjFanin1(pObj)->fPhase;
-        iPrio0  = Vec_IntEntry( vPrios, Aig_ObjFaninId0(pObj) );
-        iPrio1  = Vec_IntEntry( vPrios, Aig_ObjFaninId1(pObj) );
-        pObj->fPhase = fPhase0 && fPhase1;
+        Saig_ManCexMinDerivePhasePriority_rec( pAig, Aig_ObjFanin0(pObj) );
+        Saig_ManCexMinDerivePhasePriority_rec( pAig, Aig_ObjFanin1(pObj) );
+        assert( Aig_ObjFanin0(pObj)->iData >= 0 );
+        assert( Aig_ObjFanin1(pObj)->iData >= 0 );
+        fPhase0 = Aig_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
+        fPhase1 = Aig_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
+        iPrio0  = Aig_Lit2Var( Aig_ObjFanin0(pObj)->iData );
+        iPrio1  = Aig_Lit2Var( Aig_ObjFanin1(pObj)->iData );
         if ( fPhase0 && fPhase1 ) // both are one
-            Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), Abc_MinInt(iPrio0, iPrio1) );
+            pObj->iData = Aig_Var2Lit( Abc_MinInt(iPrio0, iPrio1), 1 );
         else if ( !fPhase0 && fPhase1 ) 
-            Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), iPrio0 );
+            pObj->iData = Aig_Var2Lit( iPrio0, 0 );
         else if ( fPhase0 && !fPhase1 )
-            Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), iPrio1 );
+            pObj->iData = Aig_Var2Lit( iPrio1, 0 );
         else // both are zero
-            Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), Abc_MaxInt(iPrio0, iPrio1) );
+            pObj->iData = Aig_Var2Lit( Abc_MaxInt(iPrio0, iPrio1), 0 );
     }
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Collect nodes in the unrolled timeframes.]
+  Synopsis    [Verify phase.]
 
   Description []
                
@@ -138,55 +177,230 @@ void Saig_ManCexMinComputePrio_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManCollectFrameTerms_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vFramePis, Vec_Int_t * vFrameLis )
-{
-    if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
-        return;
-    Aig_ObjSetTravIdCurrent(pAig, pObj);
-    if ( Aig_ObjIsPo(pObj) )
-        Saig_ManCollectFrameTerms_rec( pAig, Aig_ObjFanin0(pObj), vFramePis, vFrameLis );
-    else if ( Aig_ObjIsNode(pObj) )
-    {
-        Saig_ManCollectFrameTerms_rec( pAig, Aig_ObjFanin0(pObj), vFramePis, vFrameLis );
-        Saig_ManCollectFrameTerms_rec( pAig, Aig_ObjFanin1(pObj), vFramePis, vFrameLis );
-    }
-    if ( Saig_ObjIsPi( pAig, pObj ) )
-        Vec_IntPush( vFramePis, Aig_ObjId(pObj) );
-    if ( vFrameLis && Saig_ObjIsLo( pAig, pObj ) )
-        Vec_IntPush( vFrameLis, Aig_ObjId( Saig_ObjLoToLi(pAig, pObj) ) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derive unrolled timeframes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Saig_ManCollectFrameTerms( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFramePis, Vec_Vec_t * vFrameLis )
+void Saig_ManCexMinVerifyPhase( Aig_Man_t * pAig, Abc_Cex_t * pCex, int f )
 {
     Aig_Obj_t * pObj;
-    int i, f, Entry;
-    // sanity checks
-    assert( Saig_ManPiNum(pAig) == pCex->nPis );
-    assert( Saig_ManRegNum(pAig) == pCex->nRegs );
-    assert( pCex->iPo >= 0 && pCex->iPo < Saig_ManPoNum(pAig) );
-    // initialized the topmost frame
+    int i;
+    Aig_ManConst1(pAig)->fPhase = 1;
+    Saig_ManForEachPi( pAig, pObj, i )
+        pObj->fPhase = Aig_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + i);
+    if ( f == 0 )
+    {
+        Saig_ManForEachLo( pAig, pObj, i )
+            pObj->fPhase = 0;
+    }
+    else
+    {
+        Saig_ManForEachLo( pAig, pObj, i )
+            pObj->fPhase = Saig_ObjLoToLi(pAig, pObj)->fPhase;
+    }
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->fPhase = (Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase) & 
+                       (Aig_ObjFaninC1(pObj) ^ Aig_ObjFanin1(pObj)->fPhase);
+    Aig_ManForEachPo( pAig, pObj, i )
+        pObj->fPhase = (Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects phase and priority of all timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManCexMinDerivePhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis, Vec_Vec_t * vFramePPs, int f, Vec_Int_t * vRoots )
+{
+    Vec_Int_t * vFramePPsOne, * vFrameCisOne, * vLeaves;
+    Aig_Obj_t * pObj;
+    int i;
+    // set PP for the CIs
+    vFrameCisOne = Vec_VecEntryInt( vFrameCis, f );
+    vFramePPsOne = Vec_VecEntryInt( vFramePPs, f );
+    Aig_ManForEachObjVec( vFrameCisOne, pAig, pObj, i )
+    {
+        pObj->iData = Vec_IntEntry( vFramePPsOne, i );
+        assert( pObj->iData >= 0 );
+    }
+//    if ( f == 0 )
+//        Saig_ManCexMinVerifyPhase( pAig, pCex, f );
+
+    // create roots
+    vLeaves = (f == pCex->iFrame) ? NULL : Vec_VecEntryInt(vFrameCis, f+1);
+    Saig_ManCexMinGetCos( pAig, pCex, vLeaves, vRoots );
+    // derive for the nodes starting from the roots
+    Aig_ManIncrementTravId( pAig );
+    Aig_ManForEachObjVec( vRoots, pAig, pObj, i )
+    {
+        Saig_ManCexMinDerivePhasePriority_rec( pAig, pObj );
+//        if ( f == 0 )
+//            assert( (pObj->iData & 1) == pObj->fPhase );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects phase and priority of all timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis )
+{
+    Vec_Vec_t * vFramePPs;
+    Vec_Int_t * vRoots, * vFramePPsOne, * vFrameCisOne;
+    Aig_Obj_t * pObj;
+    int i, f, nPrioOffset;
+
+    // initialize phase and priority
+    Aig_ManForEachObj( pAig, pObj, i )
+        pObj->iData = -1;
+
+    // set the constant node to higher priority than the flops
+    vFramePPs = Vec_VecStart( pCex->iFrame+1 );
+    nPrioOffset = (pCex->iFrame + 1) * pCex->nPis;
+    Aig_ManConst1(pAig)->iData = Aig_Var2Lit( nPrioOffset + pCex->nRegs, 1 );
+    vRoots = Vec_IntAlloc( 1000 );
+//printf( "Const1 = %d  Offset = %d\n", Aig_ManConst1(pAig)->iData, nPrioOffset ); 
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        int nPiCount = 0;
+        // fill in PP for the CIs
+        vFrameCisOne = Vec_VecEntryInt( vFrameCis, f );
+        vFramePPsOne = Vec_VecEntryInt( vFramePPs, f );
+        assert( Vec_IntSize(vFramePPsOne) == 0 );
+        Aig_ManForEachObjVec( vFrameCisOne, pAig, pObj, i )
+        {
+            assert( Aig_ObjIsPi(pObj) );
+            if ( Saig_ObjIsPi(pAig, pObj) )
+                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( (f+1) * pCex->nPis - nPiCount++, Aig_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
+            else if ( f == 0 )
+                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( nPrioOffset + Saig_ObjRegId(pAig, pObj), 0 ) );
+            else
+            {
+                Aig_Obj_t * pObj0 = Saig_ObjLoToLi(pAig, pObj);
+                int Value = Saig_ObjLoToLi(pAig, pObj)->iData;
+                Vec_IntPush( vFramePPsOne, Saig_ObjLoToLi(pAig, pObj)->iData );
+            }
+//printf( "%d ", Vec_IntEntryLast(vFramePPsOne) );
+        }
+//printf( "\n" );
+        // compute the PP info
+        Saig_ManCexMinDerivePhasePriority( pAig, pCex, vFrameCis, vFramePPs, f, vRoots );
+    }
+    Vec_IntFree( vRoots );
+    // check the output
     pObj = Aig_ManPo( pAig, pCex->iPo );
-    Vec_VecPushInt( vFrameLis, pCex->iFrame, Aig_ObjId(pObj) );
+    assert( Aig_LitIsCompl(pObj->iData) );
+    return vFramePPs;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns reasons for the property to fail.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vReason, int fPiReason )
+{
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        if ( fPiReason && Saig_ObjIsPi(p, pObj) )
+            Vec_IntPush( vReason, Aig_Var2Lit( Aig_ObjPioNum(pObj), !Aig_LitIsCompl(pObj->iData) ) );
+        else if ( !fPiReason && Saig_ObjIsLo(p, pObj) )
+            Vec_IntPush( vReason, Aig_Var2Lit( Saig_ObjRegId(p, pObj), !Aig_LitIsCompl(pObj->iData) ) );
+        return;
+    }
+    if ( Aig_ObjIsPo(pObj) )
+    {
+        Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
+        return;
+    }
+    if ( Aig_ObjIsConst1(pObj) )
+        return;
+    assert( Aig_ObjIsNode(pObj) );
+    if ( Aig_LitIsCompl(pObj->iData) ) // value 1
+    {
+        int fPhase0 = Aig_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
+        int fPhase1 = Aig_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
+        assert( fPhase0 && fPhase1 );
+        Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
+        Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin1(pObj), vReason, fPiReason );
+    }
+    else
+    {
+        int fPhase0 = Aig_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
+        int fPhase1 = Aig_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
+        assert( !fPhase0 || !fPhase1 );
+        if ( !fPhase0 && fPhase1 )
+            Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
+        else if ( fPhase0 && !fPhase1 )
+            Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin1(pObj), vReason, fPiReason );
+        else 
+        {
+            int iPrio0 = Aig_Lit2Var( Aig_ObjFanin0(pObj)->iData );
+            int iPrio1 = Aig_Lit2Var( Aig_ObjFanin1(pObj)->iData );
+            if ( iPrio0 >= iPrio1 )
+                Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
+            else
+                Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin1(pObj), vReason, fPiReason );
+        }
+    }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects phase and priority of all timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Vec_t * Saig_ManCexMinCollectReason( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis, Vec_Vec_t * vFramePPs, int fPiReason )
+{
+    Vec_Vec_t * vFrameReas;
+    Vec_Int_t * vRoots, * vLeaves;
+    Aig_Obj_t * pObj;
+    int i, f;
+    // select reason for the property to fail
+    vFrameReas = Vec_VecStart( pCex->iFrame+1 );
+    vRoots = Vec_IntAlloc( 1000 );
     for ( f = pCex->iFrame; f >= 0; f-- )
     {
+        // set phase and polarity
+        Saig_ManCexMinDerivePhasePriority( pAig, pCex, vFrameCis, vFramePPs, f, vRoots );
+        // create roots
+        vLeaves = (f == pCex->iFrame) ? NULL : Vec_VecEntryInt(vFrameCis, f+1);
+        Saig_ManCexMinGetCos( pAig, pCex, vLeaves, vRoots );
         // collect nodes starting from the roots
         Aig_ManIncrementTravId( pAig );
-        Vec_VecForEachEntryIntLevel( vFrameLis, Entry, i, f )
-            Saig_ManCollectFrameTerms_rec( pAig, Aig_ManObj(pAig, Entry),
-                Vec_VecEntryInt( vFramePis, f ),
-                (Vec_Int_t *)(f ? Vec_VecEntry( vFrameLis, f-1 ) : NULL) );
+        Aig_ManForEachObjVec( vRoots, pAig, pObj, i )
+            Saig_ManCexMinCollectReason_rec( pAig, pObj, Vec_VecEntryInt(vFrameReas, f), fPiReason );
+//printf( "%d(%d) ", Vec_VecLevelSize(vFrameCis, f), Vec_VecLevelSize(vFrameReas, f) ); 
     }
+//printf( "\n" );
+    Vec_IntFree( vRoots );
+    return vFrameReas;
 }
 
 /**Function*************************************************************
@@ -200,40 +414,75 @@ void Saig_ManCollectFrameTerms( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * 
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_ManCexMinPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pCex, int f, 
-    Vec_Vec_t * vFramePis, Vec_Vec_t * vFrameLis, Vec_Vec_t * vPrioPis, Vec_Vec_t * vPrioLis, Vec_Vec_t * vPhaseLis, Vec_Int_t * vPrios )
+Vec_Vec_t * Saig_ManCexMinComputeReason( Aig_Man_t * pAig, Abc_Cex_t * pCex, int fPiReason )
 {
-    Aig_Obj_t * pObj;
-    int i, Entry;
-    // set PI priority for this frame
-    Vec_VecForEachEntryIntLevel( vFramePis, Entry, i, f )
+    Vec_Vec_t * vFrameCis, * vFramePPs, * vFrameReas;
+    // sanity checks
+    assert( pCex->nPis == Saig_ManPiNum(pAig) );
+    assert( pCex->nRegs == Saig_ManRegNum(pAig) );
+    assert( pCex->iPo >= 0 && pCex->iPo < Saig_ManPoNum(pAig) );
+    // derive frame terms
+    vFrameCis = Saig_ManCexMinCollectFrameTerms( pAig, pCex );
+    // derive phase and priority
+    vFramePPs = Saig_ManCexMinCollectPhasePriority( pAig, pCex, vFrameCis );
+    // derive reasons for property failure
+    vFrameReas = Saig_ManCexMinCollectReason( pAig, pCex, vFrameCis, vFramePPs, fPiReason );
+    Vec_VecFree( vFramePPs );
+    Vec_VecFree( vFrameCis );
+    return vFrameReas;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicate with literals.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManCexMinDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value )
+{
+    Vec_Int_t * vLevel;
+    Aig_Man_t * pAigNew;
+    Aig_Obj_t * pObj, * pMiter;
+    int i, k, Lit;
+    assert( pAig->nConstrs == 0 );
+    // start the new manager
+    pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) + Vec_VecSizeSize(vReg2Value) + Vec_VecSize(vReg2Value) );
+    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    // map the constant node
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
+    // create variables for PIs
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    // add internal nodes of this frame
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create POs for cubes
+    Vec_VecForEachLevelInt( vReg2Value, vLevel, i )
     {
-        pObj = Aig_ManObj( pAig, Entry );
-        pObj->fPhase = Aig_InfoHasBit( pCex->pData, pCex->nRegs + pCex->nPis * f + i );
-        Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), Vec_VecEntryEntryInt(vPrioPis, f, i) );
-    }
-    // set LO priority for this frame
-    if ( f == 0 ) 
-    {
-        int nPiPrioStart = Vec_VecSizeSize(vFramePis);
-        Saig_ManForEachLo( pAig, pObj, i )
-            Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), nPiPrioStart + i );
-    }
-    else
-    {
-        Vec_Int_t * vPrioLiOne  = Vec_VecEntryInt( vPrioLis, f-1 );
-        Vec_Int_t * vPhaseLiOne = Vec_VecEntryInt( vPhaseLis, f-1 );
-        Vec_VecForEachEntryIntLevel( vFrameLis, Entry, i, f-1 )
+        if ( i == 0 )
+            continue;
+        pMiter = Aig_ManConst1( pAigNew );
+        Vec_IntForEachEntry( vLevel, Lit, k )
         {
-            pObj = Saig_ObjLiToLo( pAig, Aig_ManObj(pAig, Entry) );
-            pObj->fPhase = Vec_IntEntry( vPhaseLiOne, i );
-            Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), Vec_IntEntry(vPrioLiOne, i) );
+            assert( Lit >= 0 && Lit < 2 * Aig_ManRegNum(pAig) );
+            pObj = Saig_ManLi( pAig, Aig_Lit2Var(Lit) );
+            pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Aig_LitIsCompl(Lit)) );
         }
+        Aig_ObjCreatePo( pAigNew, pMiter );
     }
-    // traverse, set phase and priority for internal nodes
-    Aig_ManIncrementTravId( pAig );
-    Vec_VecForEachEntryIntLevel( vFrameLis, Entry, i, f )
-        Saig_ManCexMinComputePrio_rec( pAig, Aig_ManObj(pAig, Entry), vPrios );
+    // transfer to register outputs
+    Saig_ManForEachLi( pAig, pObj, i )
+        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+    // finalize
+    Aig_ManCleanup( pAigNew );
+    Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
+    return pAigNew;
 }
 
 
@@ -250,106 +499,28 @@ void Saig_ManCexMinPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pCex, int f,
 ***********************************************************************/
 Abc_Cex_t * Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 {
+    int fReasonPi = 0;
+
     Abc_Cex_t * pCexMin = NULL;
-    Aig_Obj_t * pObj;
-    Vec_Vec_t * vFramePis, * vFrameLis, * vPrioPis, * vPrioLis, * vPhaseLis, * vReasonPis, * vReasonLis;
-    Vec_Int_t * vPrios;
-    int f, i, Entry, nPiPrioStart;
+    Aig_Man_t * pManNew = NULL;
+    Vec_Vec_t * vFrameReas;
+    vFrameReas = Saig_ManCexMinComputeReason( pAig, pCex, fReasonPi );
+    printf( "Reason size = %d.  Ave = %d.\n", Vec_VecSizeSize(vFrameReas), Vec_VecSizeSize(vFrameReas)/(pCex->iFrame + 1) );
 
-    // collect PIs and LOs visited in each frame
-    vFramePis = Vec_VecStart( pCex->iFrame+1 );
-    vFrameLis = Vec_VecStart( pCex->iFrame+1 );
-    Saig_ManCollectFrameTerms( pAig, pCex, vFramePis, vFrameLis );
-
-    // set priority for the PIs
-    nPiPrioStart = 0;
-    vPrioPis  = Vec_VecStart( pCex->iFrame+1 );
-    Vec_VecForEachEntryInt( vFramePis, Entry, f, i )
-        Vec_VecPushInt( vPrioPis, f, nPiPrioStart++ );
-    assert( nPiPrioStart == Vec_VecSizeSize(vFramePis) );
-
-    // storage for priorities
-    vPrios = Vec_IntStartFull( Aig_ManObjNumMax(pAig) );
-    Vec_IntWriteEntry( vPrios, Aig_ObjId(Aig_ManConst1(pAig)), Vec_VecSizeSize(vFramePis) + Aig_ManRegNum(pAig) );
-
-    // compute LO priority and phase
-    vPrioLis  = Vec_VecStart( pCex->iFrame+1 );
-    vPhaseLis = Vec_VecStart( pCex->iFrame+1 );
-    for ( f = 0; f <= pCex->iFrame; f++ )
+    // try reducing the frames
+    if ( !fReasonPi )
     {
-        // set phase and polarity
-        Saig_ManCexMinPhasePriority( pAig, pCex, f, vFramePis, vFrameLis, vPrioPis, vPrioLis, vPhaseLis, vPrios );
-        // save phase and priority
-        Vec_VecForEachEntryIntLevel( vFrameLis, Entry, i, f )
-        {
-            pObj = Aig_ManObj( pAig, Entry );
-            Vec_VecPushInt( vPrioLis, f, Vec_IntEntry(vPrios, Aig_ObjId(pObj)) );
-            Vec_VecPushInt( vPhaseLis, f, pObj->fPhase );
-        }
-    }
-    // check the property output
-    pObj = Aig_ManPo( pAig, pCex->iPo );
-    assert( pObj->fPhase );
-
-    // select reason for the property to fail
-    vReasonPis = Vec_VecStart( pCex->iFrame+1 );
-    vReasonLis = Vec_VecStart( pCex->iFrame+1 );
-    for ( f = pCex->iFrame; f >= 0; f-- )
-    {
-        // set phase and polarity
-        Saig_ManCexMinPhasePriority( pAig, pCex, f, vFramePis, vFrameLis, vPrioPis, vPrioLis, vPhaseLis, vPrios );
-        // select reasons
-        Aig_ManIncrementTravId( pAig );
-        Vec_VecForEachEntryIntLevel( vFrameLis, Entry, i, f )
-            Saig_ManCexMinFindReason_rec( pAig, Aig_ManObj(pAig, Entry), vPrios, 
-                Vec_VecEntryInt( vReasonPis, f ),
-                (Vec_Int_t *)(f ? Vec_VecEntry( vReasonLis, f-1 ) : NULL) );
+        char * pFileName = "aigcube.aig";
+        pManNew = Saig_ManCexMinDupWithCubes( pAig, vFrameReas );
+        Ioa_WriteAiger( pManNew, pFileName, 0, 0 );
+        Aig_ManStop( pManNew );
+        printf( "Intermediate AIG is written into file \"%s\".\n", pFileName );
     }
 
-    // here are computes the reasons
-    printf( "Total number of reason PIs = %d.\n", Vec_VecSizeSize(vReasonPis) );
-
-    // clean up
-    Vec_VecFree( vFramePis );
-    Vec_VecFree( vFrameLis );
-    Vec_VecFree( vPrioPis );
-    Vec_VecFree( vPrioLis );
-    Vec_VecFree( vPhaseLis );
-    Vec_VecFree( vReasonPis );
-    Vec_VecFree( vReasonLis );
-    Vec_IntFree( vPrios );
+    // find reduced counter-example
+    Vec_VecFree( vFrameReas );
     return pCexMin;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Saig_ManCexMinGetCos( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis, int f, Vec_Int_t * vTemp )
-{
-    Vec_Int_t * vFrameCisOne;
-    Aig_Obj_t * pObj;
-    int i;
-    Vec_IntClear( vTemp );
-    if ( f == Vec_VecSize(vFrameCis) - 1 )
-    {
-        pObj = Aig_ManPo( pAig, pCex->iPo );
-        Vec_IntPush( vTemp, Aig_ObjId(pObj) );
-        return;
-    }
-    vFrameCisOne = Vec_VecEntryInt( vFrameCis, f+1 );
-    Aig_ManForEachObjVec( vFrameCisOne, pAig, pObj, i )
-        if ( Saig_ObjIsLo(pAig, pObj) )
-            Vec_IntPush( vTemp, Aig_ObjId( Saig_ObjLoToLi(pAig, pObj) ) );
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

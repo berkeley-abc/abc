@@ -151,6 +151,16 @@ Abc_Cex_t * Saig_ManCbaReason2Cex( Saig_ManCba_t * p, Vec_Int_t * vReasons )
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*Entry+1 );
         Aig_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
     }
+/*
+    for ( iFrame = 0; iFrame <= pCare->iFrame; iFrame++ )
+    {
+        int Count = 0;
+        for ( i = 0; i < pCare->nPis; i++ )
+            Count +=  Aig_InfoHasBit(pCare->pData, pCare->nRegs + pCare->nPis * iFrame + i);
+        printf( "%d ", Count );
+    }
+printf( "\n" );
+*/
     return pCare;
 }
 
@@ -216,28 +226,19 @@ void Saig_ManCbaFindReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vPr
 Vec_Int_t * Saig_ManCbaFindReason( Saig_ManCba_t * p )
 {
     Aig_Obj_t * pObj;
-    Vec_Int_t * vPrios, * vPi2Prio, * vReasons;
-    int i, CountPrios;
-
-    vPi2Prio = Vec_IntStartFull( Saig_ManPiNum(p->pAig) );
-    vPrios   = Vec_IntStartFull( Aig_ManObjNumMax(p->pFrames) );
+    Vec_Int_t * vPrios, * vReasons;
+    int i;
 
     // set PI values according to CEX
-    CountPrios = 0;
+    vPrios = Vec_IntStartFull( Aig_ManObjNumMax(p->pFrames) );
     Aig_ManConst1(p->pFrames)->fPhase = 1;
     Aig_ManForEachPi( p->pFrames, pObj, i )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
         pObj->fPhase = Aig_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
-        // assign priority
-        if ( Vec_IntEntry(vPi2Prio, iInput) == ~0 )
-            Vec_IntWriteEntry( vPi2Prio, iInput, CountPrios++ );
-//        Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), Vec_IntEntry(vPi2Prio, iInput) );
         Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), i );
     }
-//    printf( "Priority numbers = %d.\n", CountPrios );
-    Vec_IntFree( vPi2Prio );
 
     // traverse and set the priority
     Aig_ManForEachNode( p->pFrames, pObj, i )
@@ -341,7 +342,9 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
             Saig_ManCbaUnrollCollect_rec( pAig, pObj, 
                 Vec_VecEntryInt(vFrameObjs, f),
                 (Vec_Int_t *)(f ? Vec_VecEntry(vFrameCos, f-1) : NULL) );
+//printf( "%d ", Vec_VecLevelSize(vFrameCos, f) );
     }
+//printf( "\n" );
 
     // derive unrolled timeframes
     pFrames = Aig_ManStart( 10000 );

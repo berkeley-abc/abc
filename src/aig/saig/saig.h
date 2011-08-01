@@ -105,6 +105,7 @@ static inline int          Saig_ObjIsLo( Aig_Man_t * p, Aig_Obj_t * pObj )    { 
 static inline int          Saig_ObjIsLi( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPo(pObj) && Aig_ObjPioNum(pObj) >= Saig_ManPoNum(p); }
 static inline Aig_Obj_t *  Saig_ObjLoToLi( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(Saig_ObjIsLo(p, pObj)); return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, Saig_ManPoNum(p)+Aig_ObjPioNum(pObj)-Saig_ManPiNum(p));   }
 static inline Aig_Obj_t *  Saig_ObjLiToLo( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(Saig_ObjIsLi(p, pObj)); return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, Saig_ManPiNum(p)+Aig_ObjPioNum(pObj)-Saig_ManPoNum(p));   }
+static inline int          Saig_ObjRegId( Aig_Man_t * p, Aig_Obj_t * pObj )   { if ( Saig_ObjIsLo(p, pObj) ) return Aig_ObjPioNum(pObj)-Saig_ManPiNum(p); if ( Saig_ObjIsLi(p, pObj) ) return Aig_ObjPioNum(pObj)-Saig_ManPoNum(p); else assert(0);  return -1; }
 
 // iterator over the primary inputs/outputs
 #define Saig_ManForEachPi( p, pObj, i )                                           \

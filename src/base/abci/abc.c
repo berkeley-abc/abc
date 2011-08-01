@@ -20701,11 +20701,12 @@ int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
         else if ( iPoOld != pAbc->pCex->iPo )
             Abc_Print( 0, "Main AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
         // perform minimization
-//        vCexNew = Saig_ManCexMinPerform( pAig, pAbc->pCex );
+        vCexNew = Saig_ManCexMinPerform( pAig, pAbc->pCex );
         Aig_ManStop( pAig );
+        Abc_CexFree( vCexNew );
 //        Abc_FrameReplaceCex( pAbc, &vCexNew );
 
-        printf( "Implementation of this command is not finished.\n" );
+//        printf( "Implementation of this command is not finished.\n" );
     }
     return 0;
 
