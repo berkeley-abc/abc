@@ -20,6 +20,7 @@
 
 #include "saig.h"
 #include "giaAig.h"
+#include "ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -39,11 +40,63 @@ struct Saig_ManCba_t_
     // unrolling
     Aig_Man_t * pFrames;    // unrolled timeframes
     Vec_Int_t * vMapPiF2A;  // mapping of frame PIs into real PIs
+    // additional information
+    Vec_Vec_t * vReg2Frame; // register to frame mapping
+    Vec_Vec_t * vReg2Value; // register to value mapping
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicate with literals.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value )
+{
+    Vec_Int_t * vLevel;
+    Aig_Man_t * pAigNew;
+    Aig_Obj_t * pObj, * pMiter;
+    int i, k, Lit;
+    assert( pAig->nConstrs == 0 );
+    // start the new manager
+    pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) + Vec_VecSizeSize(vReg2Value) );
+    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    // map the constant node
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
+    // create variables for PIs
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    // add internal nodes of this frame
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create POs for cubes
+    Vec_VecForEachLevelInt( vReg2Value, vLevel, i )
+    {
+        pMiter = Aig_ManConst1( pAigNew );
+        Vec_IntForEachEntry( vLevel, Lit, k )
+        {
+            pObj = Saig_ManLi( pAig, Aig_Lit2Var(Lit) );
+            pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Aig_LitIsCompl(Lit)) );
+        }
+        Aig_ObjCreatePo( pAigNew, pMiter );
+    }
+    // transfer to register outputs
+    Saig_ManForEachLi( pAig, pObj, i )
+        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+    // finalize
+    Aig_ManCleanup( pAigNew );
+    Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
+    return pAigNew;
+}
 
 /**Function*************************************************************
 
@@ -205,13 +258,15 @@ Vec_Int_t * Saig_ManCbaFindReason( Saig_ManCba_t * p )
     }
     // check the property output
     pObj = Aig_ManPo( p->pFrames, 0 );
-    assert( (int)Aig_ObjFanin0(pObj)->fPhase == Aig_ObjFaninC0(pObj) );
+    pObj->fPhase = Aig_ObjFaninC0(pObj) ^ Aig_ObjFanin0(pObj)->fPhase;
+    assert( !pObj->fPhase );
 
     // select the reason
     vReasons = Vec_IntAlloc( 100 );
     Aig_ManIncrementTravId( p->pFrames );
     Saig_ManCbaFindReason_rec( p->pFrames, Aig_ObjFanin0(pObj), vPrios, vReasons );
     Vec_IntFree( vPrios );
+    assert( !Aig_ObjIsTravIdCurrent(p->pFrames, Aig_ManConst1(p->pFrames)) );
     return vReasons;
 }
 
@@ -255,7 +310,7 @@ void Saig_ManCbaUnrollCollect_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, Vec_Int_t ** pvMapPiF2A )
+Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, Vec_Int_t ** pvMapPiF2A, Vec_Vec_t ** pvReg2Frame )
 {
     Aig_Man_t * pFrames;     // unrolled timeframes
     Vec_Vec_t * vFrameCos;   // the list of COs per frame
@@ -328,7 +383,14 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
         // transfer
         vRoots = (Vec_Int_t *)Vec_VecEntry( vFrameCos, f );
         Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
+        {
             Saig_ObjLiToLo( pAig, pObj )->pData = pObj->pData;
+            if ( *pvReg2Frame )
+            {
+                Vec_VecPushInt( *pvReg2Frame, f, Aig_ObjId(pObj) );             // record LO
+                Vec_VecPushInt( *pvReg2Frame, f, Aig_ObjRealLit((Aig_Obj_t *)pObj->pData) ); // record its literal
+            }
+        }
     }
     // create output
     pObj = Aig_ManPo( pAig, pCex->iPo );
@@ -362,7 +424,6 @@ Saig_ManCba_t * Saig_ManCbaStart( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInput
     p->pCex = pCex;
     p->nInputs = nInputs;
     p->fVerbose = fVerbose;
-    p->pFrames = Saig_ManCbaUnrollWithCex( pAig, pCex, nInputs, &p->vMapPiF2A );
     return p;
 }
 
@@ -379,9 +440,55 @@ Saig_ManCba_t * Saig_ManCbaStart( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInput
 ***********************************************************************/
 void Saig_ManCbaStop( Saig_ManCba_t * p )
 {
+    Vec_VecFreeP( &p->vReg2Frame );
+    Vec_VecFreeP( &p->vReg2Value );
     Aig_ManStopP( &p->pFrames );
     Vec_IntFreeP( &p->vMapPiF2A );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Destroys refinement manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManCbaShrink( Saig_ManCba_t * p )
+{
+    Aig_Man_t * pManNew;
+    Aig_Obj_t * pObjLi, * pObjFrame;
+    Vec_Int_t * vLevel, * vLevel2;
+    int f, k, ObjId, Lit;
+    // assuming that important objects are labeled in Saig_ManCbaFindReason()
+    Vec_VecForEachLevelInt( p->vReg2Frame, vLevel, f )
+    {
+        Vec_IntForEachEntryDouble( vLevel, ObjId, Lit, k )
+        {
+            pObjFrame = Aig_ManObj( p->pFrames, Aig_Lit2Var(Lit) );
+            if ( pObjFrame == NULL || (!Aig_ObjIsConst1(pObjFrame) && !Aig_ObjIsTravIdCurrent(p->pFrames, pObjFrame)) )
+                continue;
+            pObjLi = Aig_ManObj( p->pAig, ObjId );
+            assert( Saig_ObjIsLi(p->pAig, pObjLi) );
+            Vec_VecPushInt( p->vReg2Value, f, Aig_Var2Lit( Aig_ObjPioNum(pObjLi) - Saig_ManPoNum(p->pAig), Aig_LitIsCompl(Lit) ^ !pObjFrame->fPhase ) );
+        }
+    }
+    // print statistics
+    Vec_VecForEachLevelInt( p->vReg2Frame, vLevel, k )
+    {
+        vLevel2 = (Vec_Int_t *)Vec_VecEntry( p->vReg2Value, k );
+        printf( "Level = %4d   StateBits = %4d (%6.2f %%)  CareBits = %4d (%6.2f %%)\n", k, 
+            Vec_IntSize(vLevel)/2, 100.0 * (Vec_IntSize(vLevel)/2) / Aig_ManRegNum(p->pAig),
+            Vec_IntSize(vLevel2),  100.0 * Vec_IntSize(vLevel2) / Aig_ManRegNum(p->pAig) );
+    }
+    // try reducing the frames
+    pManNew = Saig_ManDupWithCubes( p->pAig, p->vReg2Value );
+    Ioa_WriteAiger( pManNew, "aigcube.aig", 0, 0 );
+    Aig_ManStop( pManNew );
 }
 
 /**Function*************************************************************
@@ -406,7 +513,14 @@ Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int 
 
     clk = clock();
     p = Saig_ManCbaStart( pAig, pCex, nInputs, fVerbose );
+
+//    p->vReg2Frame = Vec_VecStart( pCex->iFrame );
+//    p->vReg2Value = Vec_VecStart( pCex->iFrame );
+    p->pFrames = Saig_ManCbaUnrollWithCex( pAig, pCex, nInputs, &p->vMapPiF2A, &p->vReg2Frame );
     vReasons = Saig_ManCbaFindReason( p );
+    if ( p->vReg2Frame )
+        Saig_ManCbaShrink( p );
+
 
 if ( fVerbose )
 Aig_ManPrintStats( p->pFrames );
@@ -458,6 +572,7 @@ Vec_Int_t * Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex
 
 clk = clock();
     p = Saig_ManCbaStart( pAig, pCex, iFirstFlopPi, fVerbose );
+    p->pFrames = Saig_ManCbaUnrollWithCex( pAig, pCex, iFirstFlopPi, &p->vMapPiF2A, &p->vReg2Frame );
     vReasons = Saig_ManCbaFindReason( p );
     vRes = Saig_ManCbaReason2Inputs( p, vReasons );
     if ( fVerbose )
@@ -492,7 +607,7 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
 {    
     Vec_Int_t * vAbsFfsToAdd;
     int RetValue, clk = clock();
-    assert( pAbs->nRegs > 0 );
+//    assert( pAbs->nRegs > 0 );
     // perform BMC
     RetValue = Saig_ManBmcScalable( pAbs, pPars );
     if ( RetValue == -1 ) // time out - nothing to add
@@ -500,6 +615,8 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
         assert( pAbs->pSeqModel == NULL );
         return Vec_IntAlloc( 0 );
     }
+    if ( pPars->fVerbose )
+        Abc_CexPrintStats( pAbs->pSeqModel );
     // CEX is detected - refine the flops
     vAbsFfsToAdd = Saig_ManCbaFilterInputs( pAbs, nInputs, pAbs->pSeqModel, pPars->fVerbose );
     if ( Vec_IntSize(vAbsFfsToAdd) == 0 )

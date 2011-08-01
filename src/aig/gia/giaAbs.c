@@ -322,9 +322,8 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
     // check if flop classes are given
     if ( pGia->vFlopClasses == NULL )
     {
-        printf( "Gia_ManCbaPerform(): Empty abstraction is started.\n" );
+        Abc_Print( 0, "Initial flop map is not given. Trivial abstraction is assumed.\n" );
         pGia->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pGia) );
-        Vec_IntWriteEntry( pGia->vFlopClasses, 0, 1 );
     }
     // derive abstraction
     pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
