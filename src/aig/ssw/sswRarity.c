@@ -144,7 +144,7 @@ void Ssw_RarManAssingRandomPis( Ssw_RarMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Ssw_RarDeriveCex( Ssw_RarMan_t * p, int iFrame, int iPo, int iPatFinal )
+Abc_Cex_t * Ssw_RarDeriveCex( Ssw_RarMan_t * p, int iFrame, int iPo, int iPatFinal, int fVerbose )
 {
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
@@ -184,13 +184,14 @@ Abc_Cex_t * Ssw_RarDeriveCex( Ssw_RarMan_t * p, int iFrame, int iPo, int iPatFin
     if ( !Saig_ManVerifyCex( p->pAig, pCex ) )
     {
         printf( "Ssw_RarDeriveCex(): Counter-example is invalid.\n" );
-        Abc_CexFree( pCex );
-        pCex = NULL;
+//        Abc_CexFree( pCex );
+//        pCex = NULL;
     }
     else
     {
 //      printf( "Counter-example verification is successful.\n" );
-        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
+        if ( fVerbose )
+            printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump a witness). \n", pCex->iPo, pCex->iFrame );
     }
     return pCex;
 }
@@ -653,7 +654,7 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
             Ssw_ClassesRefineConst1Group( p->ppClasses, p->vUpdConst, 1 );
             Ssw_ClassesRefineGroup( p->ppClasses, p->vUpdClass, 1 );
         }
-    }
+    } 
 }
 
 
@@ -671,8 +672,8 @@ void Ssw_RarManSimulate( Ssw_RarMan_t * p, Vec_Int_t * vInit, int fUpdate, int f
 static Ssw_RarMan_t * Ssw_RarManStart( Aig_Man_t * pAig, int nWords, int nFrames, int nBinSize, int fVerbose )
 {
     Ssw_RarMan_t * p;
-    if ( Aig_ManRegNum(pAig) < nBinSize || nBinSize <= 0 )
-        return NULL;
+//    if ( Aig_ManRegNum(pAig) < nBinSize || nBinSize <= 0 )
+//        return NULL;
     p = ABC_CALLOC( Ssw_RarMan_t, 1 );
     p->pAig      = pAig;
     p->nWords    = nWords;
@@ -845,6 +846,38 @@ static Vec_Int_t * Ssw_RarFindStartingState( Aig_Man_t * pAig, Abc_Cex_t * pCex 
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ssw_RarCheckTrivial( Aig_Man_t * pAig, int fVerbose )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Saig_ManForEachPo( pAig, pObj, i )
+    {
+        if ( pAig->nConstrs && i >= Saig_ManPoNum(pAig) - pAig->nConstrs )
+            return 0;
+        if ( pObj->fPhase )
+        {
+            ABC_FREE( pAig->pSeqModel );
+            pAig->pSeqModel = Abc_CexAlloc( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), 1 );
+            pAig->pSeqModel->iPo = i;
+            if ( fVerbose )
+                printf( "Output %d is trivally SAT in frame 0. \n", i );
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Perform sequential simulation.]
 
   Description []
@@ -865,6 +898,9 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     // consider the case of empty AIG
     if ( Aig_ManNodeNum(pAig) == 0 )
         return -1;
+    // check trivially SAT miters
+    if ( Ssw_RarCheckTrivial( pAig, fVerbose ) )
+        return 0;
     if ( fVerbose )
         printf( "Rarity simulation with %d words, %d frames, %d rounds, %d seed, and %d sec timeout.\n", 
             nWords, nFrames, nRounds, nRandSeed, TimeOut );
@@ -889,7 +925,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
 //                printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
                 Ssw_RarManPrepareRandom( nRandSeed );
                 ABC_FREE( pAig->pSeqModel );
-                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat );
+                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat, fVerbose );
                 RetValue = 0;
                 goto finish;
             }
@@ -969,6 +1005,9 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
     // consider the case of empty AIG
     if ( Aig_ManNodeNum(pAig) == 0 )
         return -1;
+    // check trivially SAT miters
+    if ( Ssw_RarCheckTrivial( pAig, 1 ) )
+        return 0;
     if ( fVerbose )
         printf( "Rarity equiv filtering with %d words, %d frames, %d rounds, %d seed, and %d sec timeout.\n", 
             nWords, nFrames, nRounds, nRandSeed, TimeOut );
@@ -1024,7 +1063,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
 //                printf( "Simulation asserted a PO in frame f: %d <= f < %d.\n", r * nFrames, (r+1) * nFrames );
                 Ssw_RarManPrepareRandom( nRandSeed );
                 Abc_CexFree( pAig->pSeqModel );
-                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat );
+                pAig->pSeqModel = Ssw_RarDeriveCex( p, r * p->nFrames + f, p->iFailPo, p->iFailPat, 1 );
                 RetValue = 0;
                 goto finish;
             }
