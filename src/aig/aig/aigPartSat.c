@@ -559,12 +559,12 @@ int Aig_ManPartitionedSat( Aig_Man_t * p, int nAlgo, int nPartSize,
 clk = clock();
         // transform polarity of the AIG
         if ( fAlignPol )
-            Aig_ManPartSetNodePolarity( p, pAig, (Vec_Int_t *)Vec_VecEntry(vPio2Id,i) );
+            Aig_ManPartSetNodePolarity( p, pAig, Vec_VecEntryInt(vPio2Id,i) );
         else
             Aig_ManPartResetNodePolarity( pAig );
         // add CNF of this partition to the SAT solver
         if ( Aig_ManAddNewCnfToSolver( pSat, pAig, vNode2Var, 
-            (Vec_Int_t *)Vec_VecEntry(vPio2Id,i), (Vec_Ptr_t *)Vec_VecEntry(vPart2Pos,i), fAlignPol ) )
+            Vec_VecEntryInt(vPio2Id,i), Vec_VecEntry(vPart2Pos,i), fAlignPol ) )
         {
             RetValue = 1;
             break;

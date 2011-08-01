@@ -137,7 +137,7 @@ void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNode, Vec
     int i, w, Index;
     // get the matrix, the support, and the simulation info
     pMat = (Extra_BitMat_t *)Vec_PtrEntry( vMatrsNonSym, Output );
-    vSupport = (Vec_Int_t *)Vec_VecEntry( p->vSupports, Output );
+    vSupport = Vec_VecEntryInt( p->vSupports, Output );
     pSupport = (unsigned *)Vec_PtrEntry( p->vSuppFun, Output );
     pSimInfo = (unsigned *)Vec_PtrEntry( p->vSim, pNode->Id );
     // generate vectors A1 and A2

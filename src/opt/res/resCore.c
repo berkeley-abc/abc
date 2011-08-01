@@ -320,7 +320,7 @@ p->timeSim += clock() - clk;
             p->nConstsUsed++;
 
             pFunc = p->pSim->fConst1? Hop_ManConst1((Hop_Man_t *)pNtk->pManFunc) : Hop_ManConst0((Hop_Man_t *)pNtk->pManFunc);
-            vFanins = (Vec_Ptr_t *)Vec_VecEntry( p->vResubsW, 0 );
+            vFanins = Vec_VecEntry( p->vResubsW, 0 );
             Vec_PtrClear( vFanins );
             Res_UpdateNetwork( pObj, vFanins, pFunc, p->vLevels );
             continue;
@@ -389,7 +389,7 @@ p->timeInt += clock() - clk;
 
             // update the network
 clk = clock();
-            Res_UpdateNetwork( pObj, (Vec_Ptr_t *)Vec_VecEntry(p->vResubsW, k), pFunc, p->vLevels );
+            Res_UpdateNetwork( pObj, Vec_VecEntry(p->vResubsW, k), pFunc, p->vLevels );
 p->timeUpd += clock() - clk;
             break;
         }

@@ -233,7 +233,7 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
 void Lpk_NodeRecordImpact( Lpk_Man_t * p )
 {
     Lpk_Cut_t * pCut;
-    Vec_Ptr_t * vNodes = (Vec_Ptr_t *)Vec_VecEntry( p->vVisited, p->pObj->Id );
+    Vec_Ptr_t * vNodes = Vec_VecEntry( p->vVisited, p->pObj->Id );
     Abc_Obj_t * pNode;
     int i, k;
     // collect the nodes that impact the given node

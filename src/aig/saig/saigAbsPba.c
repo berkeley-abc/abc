@@ -86,14 +86,14 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
     for ( f = nFrames-1; f >= 0; f-- )
     {
         // add POs of this frame
-        vRoots = (Vec_Int_t *)Vec_VecEntry( vFrameCos, f );
+        vRoots = Vec_VecEntryInt( vFrameCos, f );
         Saig_ManForEachPo( pAig, pObj, i )
             Vec_IntPush( vRoots, Aig_ObjId(pObj) );
         // collect nodes starting from the roots
         Aig_ManIncrementTravId( pAig );
         Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
             Saig_ManUnrollForPba_rec( pAig, pObj, 
-                (Vec_Int_t *)Vec_VecEntry( vFrameObjs, f ),
+                Vec_VecEntryInt( vFrameObjs, f ),
                 (Vec_Int_t *)(f ? Vec_VecEntry(vFrameCos, f-1) : NULL) );
     }
     // derive unrolled timeframes
@@ -111,7 +111,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
     for ( f = 0; f < nFrames; f++ )
     {
         // construct
-        vObjs = (Vec_Int_t *)Vec_VecEntry( vFrameObjs, f );
+        vObjs = Vec_VecEntryInt( vFrameObjs, f );
         Aig_ManForEachNodeVec( pAig, vObjs, pObj, i )
         {
             if ( Aig_ObjIsNode(pObj) )
@@ -131,7 +131,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
         // transfer
         if ( f == nFrames - 1 )
             break;
-        vRoots = (Vec_Int_t *)Vec_VecEntry( vFrameCos, f );
+        vRoots = Vec_VecEntryInt( vFrameCos, f );
         Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
         {
             if ( Saig_ObjIsLi(pAig, pObj) )

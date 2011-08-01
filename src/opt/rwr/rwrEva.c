@@ -263,7 +263,7 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
     float CostBest;//, CostCur;
     // find the matching class of subgraphs
     uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
-    vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
+    vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
     p->nSubgraphs += vSubgraphs->nSize;
     // determine the best subgraph
     GainBest = -1;
@@ -509,7 +509,7 @@ void Rwr_ScoresClean( Rwr_Man_t * p )
     int i, k;
     for ( i = 0; i < p->vClasses->nSize; i++ )
     {
-        vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, i );
+        vSubgraphs = Vec_VecEntry( p->vClasses, i );
         Vec_PtrForEachEntry( Rwr_Node_t *, vSubgraphs, pNode, k )
             pNode->nScore = pNode->nGain = pNode->nAdded = 0;
     }
@@ -562,7 +562,7 @@ void Rwr_ScoresReport( Rwr_Man_t * p )
     {
         Perm[i] = i;
         Gains[i] = 0;
-        vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, i );
+        vSubgraphs = Vec_VecEntry( p->vClasses, i );
         Vec_PtrForEachEntry( Rwr_Node_t *, vSubgraphs, pNode, k )
             Gains[i] += pNode->nGain;
     }
@@ -575,7 +575,7 @@ void Rwr_ScoresReport( Rwr_Man_t * p )
         iNew = Perm[i];
         if ( Gains[iNew] == 0 )
             break;
-        vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, iNew );
+        vSubgraphs = Vec_VecEntry( p->vClasses, iNew );
         printf( "CLASS %3d: Subgr = %3d. Total gain = %6d.  ", iNew, Vec_PtrSize(vSubgraphs), Gains[iNew] );
         uTruth = (unsigned)p->pMapInv[iNew];
         Extra_PrintBinary( stdout, &uTruth, 16 );

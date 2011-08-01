@@ -574,7 +574,7 @@ void Aig_ObjPrintEqn( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int L
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
+    vSuper = Vec_VecEntry(vLevels, Level);
     Aig_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
@@ -623,7 +623,7 @@ void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, i
     if ( Aig_ObjIsExor(pObj) )
     {
         Vec_VecExpand( vLevels, Level );
-        vSuper = (Vec_Ptr_t *)Vec_VecEntry( vLevels, Level );
+        vSuper = Vec_VecEntry( vLevels, Level );
         Aig_ObjCollectMulti( pObj, vSuper );
         fprintf( pFile, "%s", (Level==0? "" : "(") );
         Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )
@@ -661,7 +661,7 @@ void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, i
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
+    vSuper = Vec_VecEntry(vLevels, Level);
     Aig_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSuper, pFanin, i )

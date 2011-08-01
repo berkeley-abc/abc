@@ -286,10 +286,10 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
     {
         // collect nodes starting from the roots
         Aig_ManIncrementTravId( pAig );
-        vRoots = (Vec_Int_t *)Vec_VecEntry( vFrameCos, f );
+        vRoots = Vec_VecEntryInt( vFrameCos, f );
         Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
             Saig_ManUnrollCollect_rec( pAig, pObj, 
-                (Vec_Int_t *)Vec_VecEntry(vFrameObjs, f),
+                Vec_VecEntryInt(vFrameObjs, f),
                 (Vec_Int_t *)(f ? Vec_VecEntry(vFrameCos, f-1) : NULL) );
     }
 
@@ -304,7 +304,7 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
         // construct
-        vObjs = (Vec_Int_t *)Vec_VecEntry( vFrameObjs, f );
+        vObjs = Vec_VecEntryInt( vFrameObjs, f );
         Aig_ManForEachNodeVec( pAig, vObjs, pObj, i )
         {
             if ( Aig_ObjIsNode(pObj) )
@@ -331,7 +331,7 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
         if ( f == pCex->iFrame )
             break;
         // transfer
-        vRoots = (Vec_Int_t *)Vec_VecEntry( vFrameCos, f );
+        vRoots = Vec_VecEntryInt( vFrameCos, f );
         Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
             Saig_ObjLiToLo( pAig, pObj )->pData = pObj->pData;
     }
@@ -574,7 +574,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
             Vec_IntPush( vAssumps, Entry );
 
         for ( i = 0; i < Vec_VecSize(vLits); i++ )
-            printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vLits, i) ) );
+            printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
         printf( "\n" );
 
         if ( p->fVerbose )
@@ -624,7 +624,7 @@ clk = clock();
         Vec_IntPush( vAssumps, Entry );
 
 //    for ( i = 0; i < Vec_VecSize(vLits); i++ )
-//        printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vLits, i) ) );
+//        printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
 //    printf( "\n" );
 
     if ( p->fVerbose )
@@ -655,12 +655,12 @@ clk = clock();
             continue;
 
         // UNSAT - remove literals
-        Vec_IntClear( (Vec_Int_t *)Vec_VecEntry(vLits, f) );
+        Vec_IntClear( Vec_VecEntryInt(vLits, f) );
         Counter--;
     }
 
     for ( i = 0; i < Vec_VecSize(vLits); i++ )
-        printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vLits, i) ) );
+        printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
     printf( "\n" );
 
     if ( p->fVerbose )
@@ -787,7 +787,7 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
     // derive literals
     vLits = Saig_RefManOrderLiterals( p, vVar2PiId, vAssumps );
     for ( i = 0; i < Vec_VecSize(vLits); i++ )
-        printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vLits, i) ) );
+        printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
     printf( "\n" );
 
     // create different sets of assumptions
@@ -808,12 +808,12 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
             continue;
 
         // UNSAT - remove literals
-        Vec_IntClear( (Vec_Int_t *)Vec_VecEntry(vLits, f) );
+        Vec_IntClear( Vec_VecEntryInt(vLits, f) );
         Counter--;
     }
 
     for ( i = 0; i < Vec_VecSize(vLits); i++ )
-        printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vLits, i) ) );
+        printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vLits, i) ) );
     printf( "\n" );
 
     // create assumptions

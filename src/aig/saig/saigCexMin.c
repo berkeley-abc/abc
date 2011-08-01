@@ -184,7 +184,7 @@ void Saig_ManCollectFrameTerms( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * 
         Aig_ManIncrementTravId( pAig );
         Vec_VecForEachEntryIntLevel( vFrameLis, Entry, i, f )
             Saig_ManCollectFrameTerms_rec( pAig, Aig_ManObj(pAig, Entry),
-                (Vec_Int_t *)Vec_VecEntry( vFramePis, f ),
+                Vec_VecEntryInt( vFramePis, f ),
                 (Vec_Int_t *)(f ? Vec_VecEntry( vFrameLis, f-1 ) : NULL) );
     }
 }
@@ -302,7 +302,7 @@ Abc_Cex_t * Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex )
         Aig_ManIncrementTravId( pAig );
         Vec_VecForEachEntryIntLevel( vFrameLis, Entry, i, f )
             Saig_ManCexMinFindReason_rec( pAig, Aig_ManObj(pAig, Entry), vPrios, 
-                (Vec_Int_t *)Vec_VecEntry( vReasonPis, f ),
+                Vec_VecEntryInt( vReasonPis, f ),
                 (Vec_Int_t *)(f ? Vec_VecEntry( vReasonLis, f-1 ) : NULL) );
     }
 

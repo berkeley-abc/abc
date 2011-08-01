@@ -341,7 +341,7 @@ void Hop_ObjPrintEqn( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, int L
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
+    vSuper = Vec_VecEntry(vLevels, Level);
     Hop_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
     Vec_PtrForEachEntry( Hop_Obj_t *, vSuper, pFanin, i )
@@ -390,7 +390,7 @@ void Hop_ObjPrintVerilog( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, i
     if ( Hop_ObjIsExor(pObj) )
     {
         Vec_VecExpand( vLevels, Level );
-        vSuper = (Vec_Ptr_t *)Vec_VecEntry( vLevels, Level );
+        vSuper = Vec_VecEntry( vLevels, Level );
         Hop_ObjCollectMulti( pObj, vSuper );
         fprintf( pFile, "%s", (Level==0? "" : "(") );
         Vec_PtrForEachEntry( Hop_Obj_t *, vSuper, pFanin, i )
@@ -428,7 +428,7 @@ void Hop_ObjPrintVerilog( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, i
     }
     // AND case
     Vec_VecExpand( vLevels, Level );
-    vSuper = (Vec_Ptr_t *)Vec_VecEntry(vLevels, Level);
+    vSuper = Vec_VecEntry(vLevels, Level);
     Hop_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
     Vec_PtrForEachEntry( Hop_Obj_t *, vSuper, pFanin, i )

@@ -343,7 +343,7 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
         pObj->pNext = NULL;
 /*
     Aig_ManForEachPo( pMan, pObj, i )
-        printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vSupports, i) ) );
+        printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vSupports, i) ) );
     printf( "\n" );
 */
     return vSupports;

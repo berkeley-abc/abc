@@ -188,7 +188,7 @@ Vec_Ptr_t * Hop_NodeBalanceCone( Hop_Obj_t * pObj, Vec_Vec_t * vStore, int Level
     if ( Vec_VecSize( vStore ) <= Level )
         Vec_VecPush( vStore, Level, 0 );
     // get the temporary array of nodes
-    vNodes = (Vec_Ptr_t *)Vec_VecEntry( vStore, Level );
+    vNodes = Vec_VecEntry( vStore, Level );
     Vec_PtrClear( vNodes );
     // collect the nodes in the implication supergate
     RetValue = Hop_NodeBalanceCone_rec( pObj, pObj, vNodes );

@@ -63,7 +63,7 @@ int Sim_SymmsGetPatternUsingSat( Sym_Man_t * p, unsigned * pPattern )
         pMatNonSym = (Extra_BitMat_t *)Vec_PtrEntry( p->vMatrNonSymms, out );
 
         // go through the remaining variable pairs
-        vSupport = (Vec_Int_t *)Vec_VecEntry( p->vSupports, out );
+        vSupport = Vec_VecEntryInt( p->vSupports, out );
         Vec_IntForEachEntry( vSupport, v, Index1 )
         Vec_IntForEachEntryStart( vSupport, u, Index2, Index1+1 )
         {

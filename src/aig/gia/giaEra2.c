@@ -1557,8 +1557,8 @@ int Gia_ManAreDeriveNexts_rec( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
         return p->fStopped;
     }
     // remember values in the cone and perform update
-    vTfos = (Vec_Int_t *)Vec_VecEntry( p->vCiTfos, Gia_ObjCioId(pPivot) );
-    vLits = (Vec_Int_t *)Vec_VecEntry( p->vCiLits, Gia_ObjCioId(pPivot) );
+    vTfos = Vec_VecEntryInt( p->vCiTfos, Gia_ObjCioId(pPivot) );
+    vLits = Vec_VecEntryInt( p->vCiLits, Gia_ObjCioId(pPivot) );
     assert( Vec_IntSize(vTfos) == Vec_IntSize(vLits) );
     Gia_ManForEachObjVec( vTfos, p->pAig, pObj, i )
     {

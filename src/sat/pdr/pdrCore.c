@@ -133,7 +133,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
     {
         Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
-        vArrayK1 = (Vec_Ptr_t *)Vec_VecEntry( p->vClauses, k+1 );
+        vArrayK1 = Vec_VecEntry( p->vClauses, k+1 );
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
         {
             Counter++;
@@ -187,7 +187,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     }
 
     // clean up the last one
-    vArrayK = (Vec_Ptr_t *)Vec_VecEntry( p->vClauses, kMax );
+    vArrayK = Vec_VecEntry( p->vClauses, kMax );
     Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
     Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
     {

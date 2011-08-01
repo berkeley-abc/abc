@@ -784,7 +784,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
                     pObjNew = Aig_NotCond(pObj, !Aig_IsComplement(pRepr));
 
                     for ( j = 0; j < k; j++ )
-                        if ( Vec_PtrFind( (Vec_Ptr_t *)Vec_VecEntry(vCands, j), pObjNew ) >= 0 )
+                        if ( Vec_PtrFind( Vec_VecEntry(vCands, j), pObjNew ) >= 0 )
                             break;
                     if ( j == k )
                         Vec_VecPush( vCands, k, pObjNew );
@@ -795,7 +795,7 @@ Vec_Vec_t * Saig_ManDetectConstrFunc( Aig_Man_t * p, int nFrames, int nConfs, in
                     pObjNew = Aig_NotCond(pObj,  Aig_IsComplement(pRepr));
 
                     for ( j = 0; j < k; j++ )
-                        if ( Vec_PtrFind( (Vec_Ptr_t *)Vec_VecEntry(vCands, j), pObjNew ) >= 0  )
+                        if ( Vec_PtrFind( Vec_VecEntry(vCands, j), pObjNew ) >= 0  )
                             break;
                     if ( j == k )
                         Vec_VecPush( vCands, k, pObjNew );

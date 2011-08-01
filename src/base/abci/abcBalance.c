@@ -303,7 +303,7 @@ Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Le
     if ( Vec_VecSize( vStorage ) <= Level )
         Vec_VecPush( vStorage, Level, 0 );
     // get the temporary array of nodes
-    vNodes = (Vec_Ptr_t *)Vec_VecEntry( vStorage, Level );
+    vNodes = Vec_VecEntry( vStorage, Level );
     Vec_PtrClear( vNodes );
     // collect the nodes in the implication supergate
     RetValue = Abc_NodeBalanceCone_rec( pNode, vNodes, 1, fDuplicate, fSelective );

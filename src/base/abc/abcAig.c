@@ -1172,7 +1172,7 @@ void Abc_AigRemoveFromLevelStructure( Vec_Vec_t * vStruct, Abc_Obj_t * pNode )
     Abc_Obj_t * pTemp;
     int m;
     assert( pNode->fMarkA );
-    vVecTemp = (Vec_Ptr_t *)Vec_VecEntry( vStruct, pNode->Level );
+    vVecTemp = Vec_VecEntry( vStruct, pNode->Level );
     Vec_PtrForEachEntry( Abc_Obj_t *, vVecTemp, pTemp, m )
     {
         if ( pTemp != pNode )
@@ -1201,7 +1201,7 @@ void Abc_AigRemoveFromLevelStructureR( Vec_Vec_t * vStruct, Abc_Obj_t * pNode )
     Abc_Obj_t * pTemp;
     int m;
     assert( pNode->fMarkB );
-    vVecTemp = (Vec_Ptr_t *)Vec_VecEntry( vStruct, Abc_ObjReverseLevel(pNode) );
+    vVecTemp = Vec_VecEntry( vStruct, Abc_ObjReverseLevel(pNode) );
     Vec_PtrForEachEntry( Abc_Obj_t *, vVecTemp, pTemp, m )
     {
         if ( pTemp != pNode )

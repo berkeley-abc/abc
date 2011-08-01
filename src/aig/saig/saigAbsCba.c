@@ -336,10 +336,10 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
     {
         // collect nodes starting from the roots
         Aig_ManIncrementTravId( pAig );
-        vRoots = (Vec_Int_t *)Vec_VecEntry( vFrameCos, f );
+        vRoots = Vec_VecEntryInt( vFrameCos, f );
         Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
             Saig_ManCbaUnrollCollect_rec( pAig, pObj, 
-                (Vec_Int_t *)Vec_VecEntry(vFrameObjs, f),
+                Vec_VecEntryInt(vFrameObjs, f),
                 (Vec_Int_t *)(f ? Vec_VecEntry(vFrameCos, f-1) : NULL) );
     }
 
@@ -354,7 +354,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
         // construct
-        vObjs = (Vec_Int_t *)Vec_VecEntry( vFrameObjs, f );
+        vObjs = Vec_VecEntryInt( vFrameObjs, f );
         Aig_ManForEachNodeVec( pAig, vObjs, pObj, i )
         {
             if ( Aig_ObjIsNode(pObj) )
@@ -381,7 +381,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
         if ( f == pCex->iFrame )
             break;
         // transfer
-        vRoots = (Vec_Int_t *)Vec_VecEntry( vFrameCos, f );
+        vRoots = Vec_VecEntryInt( vFrameCos, f );
         Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
         {
             Saig_ObjLiToLo( pAig, pObj )->pData = pObj->pData;
@@ -480,7 +480,7 @@ void Saig_ManCbaShrink( Saig_ManCba_t * p )
     // print statistics
     Vec_VecForEachLevelInt( p->vReg2Frame, vLevel, k )
     {
-        vLevel2 = (Vec_Int_t *)Vec_VecEntry( p->vReg2Value, k );
+        vLevel2 = Vec_VecEntryInt( p->vReg2Value, k );
         printf( "Level = %4d   StateBits = %4d (%6.2f %%)  CareBits = %4d (%6.2f %%)\n", k, 
             Vec_IntSize(vLevel)/2, 100.0 * (Vec_IntSize(vLevel)/2) / Aig_ManRegNum(p->pAig),
             Vec_IntSize(vLevel2),  100.0 * Vec_IntSize(vLevel2) / Aig_ManRegNum(p->pAig) );

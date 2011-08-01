@@ -382,7 +382,7 @@ void Cgt_ManConstructCare( Aig_Man_t * pNew, Aig_Man_t * pCare, Vec_Vec_t * vSup
     // construct the constraints
     Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, i )
     {
-        vOuts = (Vec_Int_t *)Vec_VecEntry( vSuppsInv, Aig_ObjPioNum(pLeaf) );
+        vOuts = Vec_VecEntryInt( vSuppsInv, Aig_ObjPioNum(pLeaf) );
         Vec_IntForEachEntry( vOuts, iOut, k )
         {
             pPo = Aig_ManPo( pCare, iOut );
@@ -573,7 +573,7 @@ Aig_Man_t * Cgt_ManDeriveGatedAig( Aig_Man_t * pAig, Vec_Vec_t * vGates, int fRe
         pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     Saig_ManForEachLiLo( pAig, pObjLi, pObjLo, i )
     {
-        vOne = (Vec_Ptr_t *)Vec_VecEntry( vGates, i );
+        vOne = Vec_VecEntry( vGates, i );
         if ( Vec_PtrSize(vOne) == 0 )
             pObjNew = Aig_ObjChild0Copy(pObjLi);
         else

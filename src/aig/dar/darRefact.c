@@ -513,8 +513,8 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 
     // resynthesize each node once
     clkStart = clock();
-    vCut = (Vec_Ptr_t *)Vec_VecEntry( p->vCuts, 0 );
-    vCut2 = (Vec_Ptr_t *)Vec_VecEntry( p->vCuts, 1 );
+    vCut = Vec_VecEntry( p->vCuts, 0 );
+    vCut2 = Vec_VecEntry( p->vCuts, 1 );
     p->nNodesInit = Aig_ManNodeNum(pAig);
     nNodesOld = Vec_PtrSize( pAig->vObjs );
 //    pProgress = Bar_ProgressStart( stdout, nNodesOld );

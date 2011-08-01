@@ -639,7 +639,7 @@ clk = clock();
     for ( i = 0; i < p->nOutputs; i++ )
     {
         printf( "Output %2d :", i );
-        Sim_UtilCountPairsOnePrint( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms, i), (Vec_Int_t *)Vec_VecEntry(p->vSupports, i) );
+        Sim_UtilCountPairsOnePrint( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms, i), Vec_VecEntryInt(p->vSupports, i) );
         printf( "\n" );
     }
 p->timeCount += clock() - clk;
@@ -674,8 +674,8 @@ clk = clock();
             p->nPairsNonSymm += nPairsNonSym;
             continue;
         }
-        nPairsSym    = Sim_UtilCountPairsOne( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms,   i), (Vec_Int_t *)Vec_VecEntry(p->vSupports, i) );
-        nPairsNonSym = Sim_UtilCountPairsOne( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrNonSymms,i), (Vec_Int_t *)Vec_VecEntry(p->vSupports, i) );
+        nPairsSym    = Sim_UtilCountPairsOne( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrSymms,   i), Vec_VecEntryInt(p->vSupports, i) );
+        nPairsNonSym = Sim_UtilCountPairsOne( (Extra_BitMat_t *)Vec_PtrEntry(p->vMatrNonSymms,i), Vec_VecEntryInt(p->vSupports, i) );
         assert( nPairsTotal >= nPairsSym + nPairsNonSym ); 
         Vec_IntWriteEntry( p->vPairsSym,    i, nPairsSym );
         Vec_IntWriteEntry( p->vPairsNonSym, i, nPairsNonSym );

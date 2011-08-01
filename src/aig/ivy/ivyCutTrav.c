@@ -86,7 +86,7 @@ Ivy_Store_t * Ivy_NodeFindCutsTravAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLea
     Vec_PtrForEachEntry( Ivy_Obj_t *, vNodes, pLeaf, i )
     {
         // skip the leaves
-        vCuts = (Vec_Ptr_t *)Vec_VecEntry( vBitCuts, Ivy_ObjTravId(pLeaf) );
+        vCuts = Vec_VecEntry( vBitCuts, Ivy_ObjTravId(pLeaf) );
         if ( Vec_PtrSize(vCuts) > 0 )
             continue;
         // add elementary cut
@@ -94,8 +94,8 @@ Ivy_Store_t * Ivy_NodeFindCutsTravAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLea
         // set it as the cut of this leaf
         Vec_VecPush( vBitCuts, Ivy_ObjTravId(pLeaf), pBitCut );
         // get the fanin cuts
-        vCuts0 = (Vec_Ptr_t *)Vec_VecEntry( vBitCuts, Ivy_ObjTravId( Ivy_ObjFanin0(pLeaf) ) );
-        vCuts1 = (Vec_Ptr_t *)Vec_VecEntry( vBitCuts, Ivy_ObjTravId( Ivy_ObjFanin1(pLeaf) ) );
+        vCuts0 = Vec_VecEntry( vBitCuts, Ivy_ObjTravId( Ivy_ObjFanin0(pLeaf) ) );
+        vCuts1 = Vec_VecEntry( vBitCuts, Ivy_ObjTravId( Ivy_ObjFanin1(pLeaf) ) );
         assert( Vec_PtrSize(vCuts0) > 0 );
         assert( Vec_PtrSize(vCuts1) > 0 );
         // merge the cuts
@@ -106,7 +106,7 @@ Ivy_Store_t * Ivy_NodeFindCutsTravAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLea
     pCutStore->nCuts = 0;
     pCutStore->nCutsMax = IVY_CUT_LIMIT;
     // collect the cuts of the root node
-    vCuts = (Vec_Ptr_t *)Vec_VecEntry( vBitCuts, Ivy_ObjTravId(pObj) );
+    vCuts = Vec_VecEntry( vBitCuts, Ivy_ObjTravId(pObj) );
     Vec_PtrForEachEntry( unsigned *, vCuts, pBitCut, i )
     {
         pCut = pCutStore->pCuts + pCutStore->nCuts++;

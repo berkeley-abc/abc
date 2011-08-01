@@ -103,7 +103,7 @@ int Cgt_ManCheckGateComplete( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, Aig_Obj_t
     {
         if ( Saig_ObjIsPo(pAig, pObj) )
             return 0;
-        vGates = (Vec_Ptr_t *)Vec_VecEntry( vGatesAll, Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig) );
+        vGates = Vec_VecEntry( vGatesAll, Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig) );
         if ( Vec_PtrFind( vGates, pGate ) == -1 )
             return 0;            
     }
@@ -200,7 +200,7 @@ Vec_Vec_t * Cgt_ManDecideSimple( Aig_Man_t * pAig, Vec_Vec_t * vGatesAll, int nO
     {
         nHitsMax = 0;
         pCandBest = NULL;
-        vCands = (Vec_Ptr_t *)Vec_VecEntry( vGatesAll, i );
+        vCands = Vec_VecEntry( vGatesAll, i );
         Vec_PtrForEachEntry( Aig_Obj_t *, vCands, pCand, k )
         {
             // check if this is indeed a clock-gate

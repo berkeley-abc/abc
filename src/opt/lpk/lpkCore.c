@@ -98,7 +98,7 @@ int Lpk_NodeHasChanged( Lpk_Man_t * p, int iNode )
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pTemp;
     int i;
-    vNodes = (Vec_Ptr_t *)Vec_VecEntry( p->vVisited, iNode );
+    vNodes = Vec_VecEntry( p->vVisited, iNode );
     if ( Vec_PtrSize(vNodes) == 0 )
         return 1;
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pTemp, i )

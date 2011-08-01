@@ -316,7 +316,7 @@ Dec_Graph_t * Rwt_CutEvaluateSeq( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * p
     Rwt_Node_t * pNode;
     int nNodesAdded, GainBest, i;
     // find the matching class of subgraphs
-    vSubgraphs = (Vec_Ptr_t *)Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
+    vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
     p->nSubgraphs += vSubgraphs->nSize;
     // determine the best subgraph
     GainBest = -1;
