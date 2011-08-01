@@ -144,6 +144,8 @@ extern int               Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFra
 /*=== saigBmc3.c ==========================================================*/
 extern void              Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p );
 extern int               Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars );
+/*=== saigCexMin.c ==========================================================*/
+extern Abc_Cex_t *       Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex );
 /*=== saigCone.c ==========================================================*/
 extern void              Saig_ManPrintCones( Aig_Man_t * p );
 /*=== saigConstr.c ==========================================================*/

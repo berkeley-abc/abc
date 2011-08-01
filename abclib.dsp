@@ -2421,6 +2421,10 @@ SOURCE=.\src\misc\util\utilMem.h
 
 SOURCE=.\src\misc\util\utilSignal.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilSort.c
+# End Source File
 # End Group
 # Begin Group "nm"
 
@@ -3508,6 +3512,10 @@ SOURCE=.\src\aig\saig\saigBmc2.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigBmc3.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigCexMin.c
 # End Source File
 # Begin Source File
 

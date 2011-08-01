@@ -252,6 +252,8 @@ static int Abc_CommandSynch                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandClockGate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtWin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInsWin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPermute                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnpermute              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -278,8 +280,7 @@ static int Abc_CommandBm                     ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestCex                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReconcile              ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPermute                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUnpermute              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCexMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandTraceStart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -674,6 +675,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "clockgate",     Abc_CommandClockGate,        1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "extwin",        Abc_CommandExtWin,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "inswin",        Abc_CommandInsWin,           1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "permute",       Abc_CommandPermute,          1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "unpermute",     Abc_CommandUnpermute,        1 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
@@ -705,8 +708,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "testcex",       Abc_CommandTestCex,          0 );
     Cmd_CommandAdd( pAbc, "Verification", "pdr",           Abc_CommandPdr,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "reconcile",     Abc_CommandReconcile,        1 );
-    Cmd_CommandAdd( pAbc, "Verification", "permute",       Abc_CommandPermute,          1 );
-    Cmd_CommandAdd( pAbc, "Verification", "unpermute",     Abc_CommandUnpermute,        1 );
+    Cmd_CommandAdd( pAbc, "Verification", "cexmin",        Abc_CommandCexMin,           0 );
 
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
@@ -16520,6 +16522,120 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
+{    
+    Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
+    int fInputs = 1;
+    int fOutputs = 1;
+    int c, fFlops = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "iofh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'i':
+            fInputs ^= 1;
+            break;
+        case 'o':
+            fOutputs ^= 1;
+            break;
+        case 'f':
+            fFlops ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkDup( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Command \"permute\" has failed.\n" );
+        return 1;
+    }
+    Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: permute [-iofh]\n" );
+    Abc_Print( -2, "\t        performs random permutation of inputs/outputs/flops\n" );
+    Abc_Print( -2, "\t-i    : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
+    Abc_Print( -2, "\t-o    : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandUnpermute( Abc_Frame_t * pAbc, int argc, char ** argv )
+{    
+    Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkDup( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Command \"unpermute\" has failed.\n" );
+        return 1;
+    }
+    Abc_NtkUnpermute( pNtkRes );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: unpermute [-h]\n" );
+    Abc_Print( -2, "\t        restores inputs/outputs/flops before the last permutation\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -20503,78 +20619,44 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
 {    
-    Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
-    int fInputs = 1;
-    int fOutputs = 1;
-    int c, fFlops = 1;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "iofh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'i':
-            fInputs ^= 1;
-            break;
-        case 'o':
-            fOutputs ^= 1;
-            break;
-        case 'f':
-            fFlops ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            Abc_Print( -2, "Unknown switch.\n");
-            goto usage;
-        }
-    }
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-    pNtkRes = Abc_NtkDup( pNtk );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command \"permute\" has failed.\n" );
-        return 1;
-    }
-    Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops );
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: permute [-iofh]\n" );
-    Abc_Print( -2, "\t        performs random permutation of inputs/outputs/flops\n" );
-    Abc_Print( -2, "\t-i    : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
-    Abc_Print( -2, "\t-o    : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
-    Abc_Print( -2, "\t-f    : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandUnpermute( Abc_Frame_t * pAbc, int argc, char ** argv )
-{    
-    Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
+     Abc_Ntk_t * pNtk;
+    Abc_Cex_t * vCexNew = NULL;
     int c;
+    int nConfLimit = 1000;
+    int nRounds    =    1;
+    int fVerbose   =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CRvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRounds < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -20582,25 +20664,58 @@ int Abc_CommandUnpermute( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+
+    if ( pAbc->pCex == NULL )
+    {
+        Abc_Print( 1, "There is no current cex.\n");
+        return 0;
+    }
+
+    // check the main AIG
+    pNtk = Abc_FrameReadNtk(pAbc);
     if ( pNtk == NULL )
+        Abc_Print( 1, "Main AIG: There is no current network.\n");
+    else if ( !Abc_NtkIsStrash(pNtk) )
+        Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
+    else if ( Abc_NtkPiNum(pNtk) != pAbc->pCex->nPis )
+        Abc_Print( 1, "Main AIG: The number of PIs (%d) is different from cex (%d).\n", Abc_NtkPiNum(pNtk), pAbc->pCex->nPis );
+//        else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
+//            Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
+//        else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
+//            Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
+    else 
     {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
+        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+        Gia_Man_t * pGia = Gia_ManFromAigSimple( pAig );
+//        if ( !Gia_ManVerifyCex( pGia, pAbc->pCex, 0 ) )
+        int iPoOld = pAbc->pCex->iPo;
+        pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pGia, pAbc->pCex, 0 );
+        Gia_ManStop( pGia );
+        if ( pAbc->pCex->iPo == -1 )
+        {
+            pAbc->pCex->iPo = iPoOld;
+            Abc_Print( -1, "Main AIG: The cex does not fail any outputs.\n" );
+            return 0;
+        }
+        else if ( iPoOld != pAbc->pCex->iPo )
+            Abc_Print( 0, "Main AIG: The cex refined PO %d instead of PO %d.\n", pAbc->pCex->iPo, iPoOld );
+        // perform minimization
+//        vCexNew = Saig_ManCexMinPerform( pAig, pAbc->pCex );
+        Aig_ManStop( pAig );
+//        Abc_FrameReplaceCex( pAbc, &vCexNew );
+
+        printf( "Implementation of this command is not finished.\n" );
     }
-    pNtkRes = Abc_NtkDup( pNtk );
-    if ( pNtkRes == NULL )
-    {
-        Abc_Print( -1, "Command \"unpermute\" has failed.\n" );
-        return 1;
-    }
-    Abc_NtkUnpermute( pNtkRes );
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: unpermute [-h]\n" );
-    Abc_Print( -2, "\t        restores inputs/outputs/flops before the last permutation\n" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: cexmin [-CR num] [-vh]\n" );
+    Abc_Print( -2, "\t         reduces the length of the counter-example\n" );
+    Abc_Print( -2, "\t-C num : the maximum number of conflicts [default = %d]\n", nConfLimit );
+    Abc_Print( -2, "\t-R num : the number of minimization rounds [default = %d]\n", nRounds );
+    Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
