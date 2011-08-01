@@ -112,7 +112,7 @@ Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     // create POs
     assert( Vec_IntSize(vPairs) % 2 == 0 );
-    Aig_ManForEachNodeVec( pAig, vPairs, pObj, i )
+    Aig_ManForEachObjVec( vPairs, pAig, pObj, i )
     {
         pObj2  = Aig_ManObj( pAig, Vec_IntEntry(vPairs, ++i) );
         pMiter = Aig_Exor( pAigNew, (Aig_Obj_t *)pObj->pData, (Aig_Obj_t *)pObj2->pData );

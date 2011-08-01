@@ -318,19 +318,19 @@ Llb_Grp_t * Llb_ManGroupCreateFromCuts( Llb_Man_t * pMan, Vec_Int_t * vCut1, Vec
 
     // mark Cut1
     Aig_ManIncrementTravId( pMan->pAig );
-    Aig_ManForEachNodeVec( pMan->pAig, vCut1, pObj, i )
+    Aig_ManForEachObjVec( vCut1, pMan->pAig, pObj, i )
         Aig_ObjSetTravIdCurrent( pMan->pAig, pObj );
     // collect unmarked Cut2
-    Aig_ManForEachNodeVec( pMan->pAig, vCut2, pObj, i )
+    Aig_ManForEachObjVec( vCut2, pMan->pAig, pObj, i )
         if ( !Aig_ObjIsTravIdCurrent( pMan->pAig, pObj ) )
             Vec_PtrPush( p->vOuts, pObj );
 
     // mark nodes reachable from Cut2
     Aig_ManIncrementTravId( pMan->pAig );
-    Aig_ManForEachNodeVec( pMan->pAig, vCut2, pObj, i )
+    Aig_ManForEachObjVec( vCut2, pMan->pAig, pObj, i )
         Llb_ManGroupMarkNodes_rec( pMan->pAig, pObj );
     // collect marked Cut1
-    Aig_ManForEachNodeVec( pMan->pAig, vCut1, pObj, i )
+    Aig_ManForEachObjVec( vCut1, pMan->pAig, pObj, i )
         if ( Aig_ObjIsTravIdCurrent( pMan->pAig, pObj ) )
             Vec_PtrPush( p->vIns, pObj );
 

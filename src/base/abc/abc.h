@@ -451,7 +451,7 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_NtkForEachObj( pNtk, pObj, i )                                                         \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pObj) = Abc_NtkObj(pNtk, i)), 1); i++ )    \
         if ( (pObj) == NULL ) {} else
-#define Abc_NtkForEachObjVec( pNtk, vIds, pObj, i )                                                \
+#define Abc_NtkForEachObjVec( vIds, pNtk, pObj, i )                                                \
     for ( i = 0; i < Vec_IntSize(vIds) && (((pObj) = Abc_NtkObj(pNtk, Vec_IntEntry(vIds,i))), 1); i++ ) \
         if ( (pObj) == NULL ) {} else
 #define Abc_NtkForEachNet( pNtk, pNet, i )                                                         \

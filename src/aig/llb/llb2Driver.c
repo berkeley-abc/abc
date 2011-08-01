@@ -172,7 +172,7 @@ DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, int Tim
     bRes = Cudd_ReadOne(dd);                                   Cudd_Ref( bRes );
 
     // mark the duplicated flop inputs
-    Aig_ManForEachNodeVec( p, vVarsNs, pObj, i )
+    Aig_ManForEachObjVec( vVarsNs, p, pObj, i )
     {
         if ( !Saig_ObjIsLi(p, pObj) )
             continue;

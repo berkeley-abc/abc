@@ -262,7 +262,7 @@ DdNode * Llb_ImgComputeCube( Aig_Man_t * pAig, Vec_Int_t * vNodeIds, DdManager *
     int i, TimeStop;
     TimeStop = dd->TimeStop; dd->TimeStop = 0;
     bProd = Cudd_ReadOne(dd);   Cudd_Ref( bProd );
-    Aig_ManForEachNodeVec( pAig, vNodeIds, pObj, i )
+    Aig_ManForEachObjVec( vNodeIds, pAig, pObj, i )
     {
         bProd  = Cudd_bddAnd( dd, bTemp = bProd, Cudd_bddIthVar(dd, Aig_ObjId(pObj)) ); Cudd_Ref( bProd );
         Cudd_RecursiveDeref( dd, bTemp );

@@ -91,7 +91,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
             Vec_IntPush( vRoots, Aig_ObjId(pObj) );
         // collect nodes starting from the roots
         Aig_ManIncrementTravId( pAig );
-        Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
+        Aig_ManForEachObjVec( vRoots, pAig, pObj, i )
             Saig_ManUnrollForPba_rec( pAig, pObj, 
                 Vec_VecEntryInt( vFrameObjs, f ),
                 (Vec_Int_t *)(f ? Vec_VecEntry(vFrameCos, f-1) : NULL) );
@@ -112,7 +112,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
     {
         // construct
         vObjs = Vec_VecEntryInt( vFrameObjs, f );
-        Aig_ManForEachNodeVec( pAig, vObjs, pObj, i )
+        Aig_ManForEachObjVec( vObjs, pAig, pObj, i )
         {
             if ( Aig_ObjIsNode(pObj) )
                 pObj->pData = Aig_And( pFrames, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
@@ -132,7 +132,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
         if ( f == nFrames - 1 )
             break;
         vRoots = Vec_VecEntryInt( vFrameCos, f );
-        Aig_ManForEachNodeVec( pAig, vRoots, pObj, i )
+        Aig_ManForEachObjVec( vRoots, pAig, pObj, i )
         {
             if ( Saig_ObjIsLi(pAig, pObj) )
             {

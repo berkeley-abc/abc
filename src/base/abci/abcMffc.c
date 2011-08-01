@@ -455,14 +455,14 @@ void Abc_NktMffcPrintInt( char * pFileName, Abc_Ntk_t * pNtk, Vec_Int_t * vRoots
     pFile = fopen( pFileName, "wb" );
     fprintf( pFile, ".model %s_part\n", pNtk->pName );
     fprintf( pFile, ".inputs" );
-    Abc_NtkForEachObjVec( pNtk, vLeaves, pObj, i )
+    Abc_NtkForEachObjVec( vLeaves, pNtk, pObj, i )
         fprintf( pFile, " %s", Abc_ObjName(pObj) );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".outputs" );
-    Abc_NtkForEachObjVec( pNtk, vRoots, pObj, i )
+    Abc_NtkForEachObjVec( vRoots, pNtk, pObj, i )
         fprintf( pFile, " %s", Abc_ObjName(pObj) );
     fprintf( pFile, "\n" );
-    Abc_NtkForEachObjVec( pNtk, vNodes, pObj, i )
+    Abc_NtkForEachObjVec( vNodes, pNtk, pObj, i )
     {
         fprintf( pFile, ".names" );
         Abc_ObjForEachFanin( pObj, pFanin, k )
@@ -757,12 +757,12 @@ void Abc_NktMffCollectLeafRootInt( Abc_Ntk_t * pNtk, Vec_Int_t * vNodes, Vec_Int
     Abc_Obj_t * pObj, * pNext;
     int i, k;
     // mark
-    Abc_NtkForEachObjVec( pNtk, vNodes, pObj, i )
+    Abc_NtkForEachObjVec( vNodes, pNtk, pObj, i )
         pObj->fMarkA = 1;
     // collect leaves
     Vec_IntClear( vLeaves );
     Abc_NtkIncrementTravId( pNtk );
-    Abc_NtkForEachObjVec( pNtk, vNodes, pObj, i )
+    Abc_NtkForEachObjVec( vNodes, pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pNext, k )
         {
             if ( pNext->fMarkA || Abc_NodeIsTravIdCurrent(pNext) )
@@ -774,7 +774,7 @@ void Abc_NktMffCollectLeafRootInt( Abc_Ntk_t * pNtk, Vec_Int_t * vNodes, Vec_Int
     if ( vRoots )
     {
         Vec_IntClear( vRoots );
-        Abc_NtkForEachObjVec( pNtk, vNodes, pObj, i )
+        Abc_NtkForEachObjVec( vNodes, pNtk, pObj, i )
         {
             Abc_ObjForEachFanout( pObj, pNext, k )
                 if ( !pNext->fMarkA )
@@ -785,7 +785,7 @@ void Abc_NktMffCollectLeafRootInt( Abc_Ntk_t * pNtk, Vec_Int_t * vNodes, Vec_Int
         }
     }
     // unmark
-    Abc_NtkForEachObjVec( pNtk, vNodes, pObj, i )
+    Abc_NtkForEachObjVec( vNodes, pNtk, pObj, i )
         pObj->fMarkA = 0;
 }
 
@@ -1051,7 +1051,7 @@ Abc_Obj_t * Abc_NktMffcFindBest( Abc_Ntk_t * pNtk, Vec_Int_t * vMarks, Vec_Int_t
     int i, Volume;
     // collect the fanouts of the fanins
     vOuts = Vec_IntAlloc( 100 );
-    Abc_NtkForEachObjVec( pNtk, vIns, pObj, i )
+    Abc_NtkForEachObjVec( vIns, pNtk, pObj, i )
     {
         vOuts2 = (Vec_Int_t *)Vec_PtrEntry( vFanouts, Abc_ObjId(pObj) );
         if ( Vec_IntSize(vOuts2) > 16 )
@@ -1060,7 +1060,7 @@ Abc_Obj_t * Abc_NktMffcFindBest( Abc_Ntk_t * pNtk, Vec_Int_t * vMarks, Vec_Int_t
         Vec_IntFree( vTemp );
     }
     // check the pairs
-    Abc_NtkForEachObjVec( pNtk, vOuts, pPivot2, i )
+    Abc_NtkForEachObjVec( vOuts, pNtk, pPivot2, i )
     {       
         if ( Vec_IntEntry(vMarks, Abc_ObjId(pPivot2)) == 0 )
             continue;

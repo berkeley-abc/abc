@@ -340,7 +340,7 @@ Vec_Int_t * Llb_Nonlin4CreateOrder( Aig_Man_t * pAig )
     // mark internal nodes to be used
     Aig_ManCleanMarkA( pAig );
     vNodes = Llb_Nonlin4CollectHighRefNodes( pAig, 4 );
-    Aig_ManForEachNodeVec( pAig, vNodes, pObj, i )
+    Aig_ManForEachObjVec( vNodes, pAig, pObj, i )
         pObj->fMarkA = 1;
 printf( "Techmapping added %d pivots.\n", Vec_IntSize(vNodes) );
 */

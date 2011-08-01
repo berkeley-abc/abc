@@ -112,7 +112,7 @@ void Pdr_ManCollectCone( Aig_Man_t * pAig, Vec_Int_t * vCoObjs, Vec_Int_t * vCiO
     Vec_IntClear( vNodes );
     Aig_ManIncrementTravId( pAig );
     Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
-    Aig_ManForEachNodeVec( pAig, vCoObjs, pObj, i )
+    Aig_ManForEachObjVec( vCoObjs, pAig, pObj, i )
         Pdr_ManCollectCone_rec( pAig, pObj, vCiObjs, vNodes );
 }
 
@@ -166,20 +166,20 @@ int Pdr_ManSimDataInit( Aig_Man_t * pAig,
     int i;
     // set the CI values
     Pdr_ManSimInfoSet( pAig, Aig_ManConst1(pAig), PDR_ONE );
-    Aig_ManForEachNodeVec( pAig, vCiObjs, pObj, i )
+    Aig_ManForEachObjVec( vCiObjs, pAig, pObj, i )
         Pdr_ManSimInfoSet( pAig, pObj, (Vec_IntEntry(vCiVals, i)?PDR_ONE:PDR_ZER) );
     // set the FOs to remove
     if ( vCi2Rem != NULL )
-    Aig_ManForEachNodeVec( pAig, vCi2Rem, pObj, i )
+    Aig_ManForEachObjVec( vCi2Rem, pAig, pObj, i )
         Pdr_ManSimInfoSet( pAig, pObj, PDR_UND );
     // perform ternary simulation
-    Aig_ManForEachNodeVec( pAig, vNodes, pObj, i )
+    Aig_ManForEachObjVec( vNodes, pAig, pObj, i )
         Pdr_ManExtendOneEval( pAig, pObj );
     // transfer results to the output
-    Aig_ManForEachNodeVec( pAig, vCoObjs, pObj, i )
+    Aig_ManForEachObjVec( vCoObjs, pAig, pObj, i )
         Pdr_ManExtendOneEval( pAig, pObj );
     // check the results
-    Aig_ManForEachNodeVec( pAig, vCoObjs, pObj, i )
+    Aig_ManForEachObjVec( vCoObjs, pAig, pObj, i )
         if ( Pdr_ManSimInfoGet( pAig, pObj ) != (Vec_IntEntry(vCoVals, i)?PDR_ONE:PDR_ZER) )
             return 0;
     return 1;
@@ -212,7 +212,7 @@ int Pdr_ManExtendOne( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vUndo, Vec
     // traverse
     Vec_IntClear( vVis );
     Vec_IntPush( vVis, Aig_ObjId(pObj) );
-    Aig_ManForEachNodeVec( pAig, vVis, pObj, i )
+    Aig_ManForEachObjVec( vVis, pAig, pObj, i )
     {
         Aig_ObjForEachFanout( pAig, pObj, pFanout, iFanout, k )
         {
@@ -252,7 +252,7 @@ void Pdr_ManExtendUndo( Aig_Man_t * pAig, Vec_Int_t * vUndo )
 {
     Aig_Obj_t * pObj;
     int i, Value;
-    Aig_ManForEachNodeVec( pAig, vUndo, pObj, i )
+    Aig_ManForEachObjVec( vUndo, pAig, pObj, i )
     {
         Value  = Vec_IntEntry(vUndo, ++i);
         assert( Pdr_ManSimInfoGet(pAig, pObj) == PDR_UND );
@@ -277,7 +277,7 @@ void Pdr_ManDeriveResult( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCi
     int i, Lit;
     // mark removed flop outputs
     Aig_ManIncrementTravId( pAig );
-    Aig_ManForEachNodeVec( pAig, vCi2Rem, pObj, i )
+    Aig_ManForEachObjVec( vCi2Rem, pAig, pObj, i )
     {
         assert( Saig_ObjIsLo( pAig, pObj ) );
         Aig_ObjSetTravIdCurrent(pAig, pObj);
@@ -285,7 +285,7 @@ void Pdr_ManDeriveResult( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCi
     // collect flop outputs that are not marked
     Vec_IntClear( vRes );
     Vec_IntClear( vPiLits );
-    Aig_ManForEachNodeVec( pAig, vCiObjs, pObj, i )
+    Aig_ManForEachObjVec( vCiObjs, pAig, pObj, i )
     {
         if ( Saig_ObjIsPi(pAig, pObj) )
         {
@@ -322,10 +322,10 @@ void Pdr_ManPrintCex( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCiVals
     for ( i = 0; i < Aig_ManPiNum(pAig); i++ )
         pBuff[i] = '-';
     pBuff[i] = 0;
-    Aig_ManForEachNodeVec( pAig, vCiObjs, pObj, i )
+    Aig_ManForEachObjVec( vCiObjs, pAig, pObj, i )
         pBuff[Aig_ObjPioNum(pObj)] = (Vec_IntEntry(vCiVals, i)? '1':'0');
     if ( vCi2Rem )
-    Aig_ManForEachNodeVec( pAig, vCi2Rem, pObj, i )
+    Aig_ManForEachObjVec( vCi2Rem, pAig, pObj, i )
         pBuff[Aig_ObjPioNum(pObj)] = 'x';
     printf( "%s\n", pBuff );
     ABC_FREE( pBuff );
@@ -402,7 +402,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
 
     // try removing high-priority flops
     Vec_IntClear( vCi2Rem );
-    Aig_ManForEachNodeVec( p->pAig, vCiObjs, pObj, i )
+    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
     {
         if ( !Saig_ObjIsLo( p->pAig, pObj ) )
             continue;
@@ -416,7 +416,7 @@ Pdr_ManPrintCex( p->pAig, vCiObjs, vCiVals, NULL );
             Pdr_ManExtendUndo( p->pAig, vUndo );
     }
     // try removing low-priority flops
-    Aig_ManForEachNodeVec( p->pAig, vCiObjs, pObj, i )
+    Aig_ManForEachObjVec( vCiObjs, p->pAig, pObj, i )
     {
         if ( !Saig_ObjIsLo( p->pAig, pObj ) )
             continue;

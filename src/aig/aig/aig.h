@@ -419,20 +419,15 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 // iterator over all objects, including those currently not used
 #define Aig_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
+// iterator over the objects whose IDs are stored in an array
+#define Aig_ManForEachObjVec( vIds, p, pObj, i )                               \
+    for ( i = 0; i < Vec_IntSize(vIds) && (((pObj) = Aig_ManObj(p, Vec_IntEntry(vIds,i))), 1); i++ )
 // iterator over all nodes
 #define Aig_ManForEachNode( p, pObj, i )                                        \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
 // iterator over all nodes
 #define Aig_ManForEachExor( p, pObj, i )                                        \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsExor(pObj) ) {} else
-// iterator over the nodes whose IDs are stored in the array
-#define Aig_ManForEachNodeVec( p, vIds, pObj, i )                               \
-    for ( i = 0; i < Vec_IntSize(vIds) && ((pObj) = Aig_ManObj(p, Vec_IntEntry(vIds,i))); i++ )
-// iterator over the nodes in the topological order
-#define Aig_ManForEachNodeInOrder( p, pObj )                                    \
-    for ( assert(p->pOrderData), p->iPrev = 0, p->iNext = p->pOrderData[1];     \
-          p->iNext && (((pObj) = Aig_ManObj(p, p->iNext)), 1);                  \
-          p->iNext = p->pOrderData[2*p->iPrev+1] )
 
 // these two procedures are only here for the use inside the iterator
 static inline int     Aig_ObjFanout0Int( Aig_Man_t * p, int ObjId )  { assert(ObjId < p->nFansAlloc);  return p->pFanData[5*ObjId];                         }

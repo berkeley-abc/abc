@@ -219,7 +219,7 @@ void Pdr_ManCollectValues( Pdr_Man_t * p, int k, Vec_Int_t * vObjIds, Vec_Int_t 
     int iVar, i;
     Vec_IntClear( vValues );
     pSat = Pdr_ManSolver(p, k);
-    Aig_ManForEachNodeVec( p->pAig, vObjIds, pObj, i )
+    Aig_ManForEachObjVec( vObjIds, p->pAig, pObj, i )
     {
         iVar = Pdr_ObjSatVar( p, k, pObj ); assert( iVar >= 0 );
         Vec_IntPush( vValues, sat_solver_var_value(pSat, iVar) );

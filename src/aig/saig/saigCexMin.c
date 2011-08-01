@@ -321,6 +321,36 @@ Abc_Cex_t * Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pCex )
     return pCexMin;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManCexMinGetCos( Aig_Man_t * pAig, Abc_Cex_t * pCex, Vec_Vec_t * vFrameCis, int f, Vec_Int_t * vTemp )
+{
+    Vec_Int_t * vFrameCisOne;
+    Aig_Obj_t * pObj;
+    int i;
+    Vec_IntClear( vTemp );
+    if ( f == Vec_VecSize(vFrameCis) - 1 )
+    {
+        pObj = Aig_ManPo( pAig, pCex->iPo );
+        Vec_IntPush( vTemp, Aig_ObjId(pObj) );
+        return;
+    }
+    vFrameCisOne = Vec_VecEntryInt( vFrameCis, f+1 );
+    Aig_ManForEachObjVec( vFrameCisOne, pAig, pObj, i )
+        if ( Saig_ObjIsLo(pAig, pObj) )
+            Vec_IntPush( vTemp, Aig_ObjId( Saig_ObjLoToLi(pAig, pObj) ) );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

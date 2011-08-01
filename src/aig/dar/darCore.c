@@ -27,6 +27,12 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// iterator over the nodes in the topological order
+#define Aig_ManForEachNodeInOrder( p, pObj )                                    \
+    for ( assert(p->pOrderData), p->iPrev = 0, p->iNext = p->pOrderData[1];     \
+          p->iNext && (((pObj) = Aig_ManObj(p, p->iNext)), 1);                  \
+          p->iNext = p->pOrderData[2*p->iPrev+1] )
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
