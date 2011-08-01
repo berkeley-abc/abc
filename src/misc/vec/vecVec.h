@@ -53,79 +53,79 @@ struct Vec_Vec_t_
 
 // iterators through levels 
 #define Vec_VecForEachLevel( vGlob, vVec, i )                                                 \
-    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStart( vGlob, vVec, i, LevelStart )                                \
-    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStop( vGlob, vVec, i, LevelStop )                                  \
-    for ( i = 0; (i < LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = 0; (i < LevelStop) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStartStop( vGlob, vVec, i, LevelStart, LevelStop )                 \
-    for ( i = LevelStart; (i < LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i < LevelStop) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelReverse( vGlob, vVec, i )                                          \
-    for ( i = Vec_VecSize(vGlob)-1; (i >= 0) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+    for ( i = Vec_VecSize(vGlob)-1; (i >= 0) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i-- )
 #define Vec_VecForEachLevelReverseStartStop( vGlob, vVec, i, LevelStart, LevelStop )          \
-    for ( i = LevelStart-1; (i >= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+    for ( i = LevelStart-1; (i >= LevelStop) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i-- )
 #define Vec_VecForEachLevelTwo( vGlob1, vGlob2, vVec1, vVec2, i )                                                 \
-    for ( i = 0; (i < Vec_VecSize(vGlob1)) && (((vVec1) = (Vec_Ptr_t*)Vec_VecEntry(vGlob1, i)), 1) && (((vVec2) = (Vec_Ptr_t*)Vec_VecEntry(vGlob2, i)), 1); i++ )
+    for ( i = 0; (i < Vec_VecSize(vGlob1)) && (((vVec1) = Vec_VecEntry(vGlob1, i)), 1) && (((vVec2) = Vec_VecEntry(vGlob2, i)), 1); i++ )
 
 // iterators through levels 
 #define Vec_VecForEachLevelInt( vGlob, vVec, i )                                              \
-    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntryInt(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelIntStart( vGlob, vVec, i, LevelStart )                             \
-    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntryInt(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelIntStop( vGlob, vVec, i, LevelStop )                               \
-    for ( i = 0; (i < LevelStop) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = 0; (i < LevelStop) && (((vVec) = Vec_VecEntryInt(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelIntStartStop( vGlob, vVec, i, LevelStart, LevelStop )              \
-    for ( i = LevelStart; (i < LevelStop) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i < LevelStop) && (((vVec) = Vec_VecEntryInt(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelIntReverse( vGlob, vVec, i )                                       \
-    for ( i = Vec_VecSize(vGlob)-1; (i >= 0) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+    for ( i = Vec_VecSize(vGlob)-1; (i >= 0) && (((vVec) = Vec_VecEntryInt(vGlob, i)), 1); i-- )
 #define Vec_VecForEachLevelIntReverseStartStop( vGlob, vVec, i, LevelStart, LevelStop )       \
-    for ( i = LevelStart-1; (i >= LevelStop) && (((vVec) = (Vec_Int_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+    for ( i = LevelStart-1; (i >= LevelStop) && (((vVec) = Vec_VecEntryInt(vGlob, i)), 1); i-- )
 #define Vec_VecForEachLevelIntTwo( vGlob1, vGlob2, vVec1, vVec2, i )                          \
-    for ( i = 0; (i < Vec_VecSize(vGlob1)) && (((vVec1) = (Vec_Int_t*)Vec_VecEntry(vGlob1, i)), 1) && (((vVec2) = (Vec_Int_t*)Vec_VecEntry(vGlob2, i)), 1); i++ )
+    for ( i = 0; (i < Vec_VecSize(vGlob1)) && (((vVec1) = Vec_VecEntryInt(vGlob1, i)), 1) && (((vVec2) = Vec_VecEntryInt(vGlob2, i)), 1); i++ )
 
 // iteratores through entries
 #define Vec_VecForEachEntry( Type, vGlob, pEntry, i, k )                                      \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+        Vec_PtrForEachEntry( Type, Vec_VecEntry(vGlob, i), pEntry, k ) 
 #define Vec_VecForEachEntryLevel( Type, vGlob, pEntry, i, Level )                             \
-        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, Level), pEntry, i ) 
+        Vec_PtrForEachEntry( Type, Vec_VecEntry(vGlob, Level), pEntry, i ) 
 #define Vec_VecForEachEntryStart( Type, vGlob, pEntry, i, k, LevelStart )                     \
     for ( i = LevelStart; i < Vec_VecSize(vGlob); i++ )                                       \
-        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+        Vec_PtrForEachEntry( Type, Vec_VecEntry(vGlob, i), pEntry, k ) 
 #define Vec_VecForEachEntryStartStop( Type, vGlob, pEntry, i, k, LevelStart, LevelStop )      \
     for ( i = LevelStart; i < LevelStop; i++ )                                                \
-        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+        Vec_PtrForEachEntry( Type, Vec_VecEntry(vGlob, i), pEntry, k ) 
 #define Vec_VecForEachEntryReverse( Type, vGlob, pEntry, i, k )                               \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_PtrForEachEntryReverse( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+        Vec_PtrForEachEntryReverse( Type, Vec_VecEntry(vGlob, i), pEntry, k ) 
 #define Vec_VecForEachEntryReverseReverse( Type, vGlob, pEntry, i, k )                        \
     for ( i = Vec_VecSize(vGlob) - 1; i >= 0; i-- )                                           \
-        Vec_PtrForEachEntryReverse( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+        Vec_PtrForEachEntryReverse( Type, Vec_VecEntry(vGlob, i), pEntry, k ) 
 #define Vec_VecForEachEntryReverseStart( Type, vGlob, pEntry, i, k, LevelStart )              \
     for ( i = LevelStart-1; i >= 0; i-- )                                                     \
-        Vec_PtrForEachEntry( Type, (Vec_Ptr_t *)Vec_VecEntry(vGlob, i), pEntry, k ) 
+        Vec_PtrForEachEntry( Type, Vec_VecEntry(vGlob, i), pEntry, k ) 
 
 // iteratores through entries
 #define Vec_VecForEachEntryInt( vGlob, Entry, i, k )                                          \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+        Vec_IntForEachEntry( Vec_VecEntryInt(vGlob, i), Entry, k ) 
 #define Vec_VecForEachEntryIntLevel( vGlob, Entry, i, Level )                                 \
-        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, Level), Entry, i ) 
+        Vec_IntForEachEntry( Vec_VecEntryInt(vGlob, Level), Entry, i ) 
 #define Vec_VecForEachEntryIntStart( vGlob, Entry, i, k, LevelStart )                         \
     for ( i = LevelStart; i < Vec_VecSize(vGlob); i++ )                                       \
-        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+        Vec_IntForEachEntry( Vec_VecEntryInt(vGlob, i), Entry, k ) 
 #define Vec_VecForEachEntryIntStartStop( vGlob, Entry, i, k, LevelStart, LevelStop )          \
     for ( i = LevelStart; i < LevelStop; i++ )                                                \
-        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+        Vec_IntForEachEntry( Vec_VecEntryInt(vGlob, i), Entry, k ) 
 #define Vec_VecForEachEntryIntReverse( vGlob, Entry, i, k )                                   \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
-        Vec_IntForEachEntryReverse( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+        Vec_IntForEachEntryReverse( Vec_VecEntryInt(vGlob, i), Entry, k ) 
 #define Vec_VecForEachEntryIntReverseReverse( vGlob, Entry, i, k )                            \
     for ( i = Vec_VecSize(vGlob) - 1; i >= 0; i-- )                                           \
-        Vec_IntForEachEntryReverse( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+        Vec_IntForEachEntryReverse( Vec_VecEntryInt(vGlob, i), Entry, k ) 
 #define Vec_VecForEachEntryIntReverseStart( vGlob, Entry, i, k, LevelStart )                  \
     for ( i = LevelStart-1; i >= 0; i-- )                                                     \
-        Vec_IntForEachEntry( (Vec_Int_t *)Vec_VecEntry(vGlob, i), Entry, k ) 
+        Vec_IntForEachEntry( Vec_VecEntryInt(vGlob, i), Entry, k ) 
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -263,10 +263,59 @@ static inline int Vec_VecLevelSize( Vec_Vec_t * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void * Vec_VecEntry( Vec_Vec_t * p, int i )
+static inline Vec_Ptr_t * Vec_VecEntry( Vec_Vec_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );
     return p->pArray[i];
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Int_t * Vec_VecEntryInt( Vec_Vec_t * p, int i )
+{
+    assert( i >= 0 && i < p->nSize );
+    return p->pArray[i];
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void * Vec_VecEntryEntry( Vec_Vec_t * p, int i, int k )
+{
+    return Vec_PtrEntry( Vec_VecEntry(p, i), k );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_VecEntryEntryInt( Vec_Vec_t * p, int i, int k )
+{
+    return Vec_IntEntry( Vec_VecEntryInt(p, i), k );
 }
 
 /**Function*************************************************************
@@ -411,7 +460,7 @@ static inline void Vec_VecPush( Vec_Vec_t * p, int Level, void * Entry )
             p->pArray[i] = Vec_PtrAlloc( 0 );
         p->nSize = Level + 1;
     }
-    Vec_PtrPush( (Vec_Ptr_t*)p->pArray[Level], Entry );
+    Vec_PtrPush( Vec_VecEntry(p, Level), Entry );
 }
 
 /**Function*************************************************************
@@ -432,10 +481,10 @@ static inline void Vec_VecPushInt( Vec_Vec_t * p, int Level, int Entry )
         int i;
         Vec_PtrGrow( (Vec_Ptr_t *)p, Level + 1 );
         for ( i = p->nSize; i < Level + 1; i++ )
-            p->pArray[i] = Vec_PtrAlloc( 0 );
+            p->pArray[i] = Vec_IntAlloc( 0 );
         p->nSize = Level + 1;
     }
-    Vec_IntPush( (Vec_Int_t*)p->pArray[Level], Entry );
+    Vec_IntPush( Vec_VecEntryInt(p, Level), Entry );
 }
 
 /**Function*************************************************************
@@ -454,7 +503,7 @@ static inline void Vec_VecPushUnique( Vec_Vec_t * p, int Level, void * Entry )
     if ( p->nSize < Level + 1 )
         Vec_VecPush( p, Level, Entry );
     else
-        Vec_PtrPushUnique( (Vec_Ptr_t*)p->pArray[Level], Entry );
+        Vec_PtrPushUnique( Vec_VecEntry(p, Level), Entry );
 }
 
 /**Function*************************************************************
@@ -473,7 +522,7 @@ static inline void Vec_VecPushUniqueInt( Vec_Vec_t * p, int Level, int Entry )
     if ( p->nSize < Level + 1 )
         Vec_VecPushInt( p, Level, Entry );
     else
-        Vec_IntPushUnique( (Vec_Int_t*)p->pArray[Level], Entry );
+        Vec_IntPushUnique( Vec_VecEntryInt(p, Level), Entry );
 }
 
 /**Function*************************************************************
