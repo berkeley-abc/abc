@@ -5,6 +5,7 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigBmc.c \
     src/aig/saig/saigBmc2.c \
     src/aig/saig/saigBmc3.c \
+    src/aig/saig/saigCexMin.c \
     src/aig/saig/saigCone.c \
     src/aig/saig/saigConstr.c \
     src/aig/saig/saigConstr2.c \
