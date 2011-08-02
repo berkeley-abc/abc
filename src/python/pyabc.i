@@ -182,6 +182,39 @@ Abc_Cex_t* _cex_get()
     return Abc_CexDup( pCex, -1 ); 
 }
 
+int _cex_get_vec_len()
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+	Vec_Ptr_t* vCexVec = Abc_FrameReadCexVec(pAbc);
+	
+	if( ! vCexVec )
+	{
+		return 0;
+	}
+	
+	return Vec_PtrSize(vCexVec);
+}
+
+Abc_Cex_t* _cex_get_vec(int i)
+{
+    Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+	Vec_Ptr_t* vCexVec = Abc_FrameReadCexVec(pAbc);
+    
+	if( ! vCexVec )
+	{
+		return NULL;
+	}
+
+	Abc_Cex_t* pCex = Vec_PtrEntry( vCexVec, i );
+
+	if ( ! pCex )
+	{
+		return NULL;
+	}
+
+    return Abc_CexDup( pCex, -1 ); 
+}
+
 void _cex_put(Abc_Cex_t* pCex)
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
@@ -523,6 +556,8 @@ int  cex_frame();
 int  n_phases();
 
 Abc_Cex_t* _cex_get();
+int _cex_get_vec_len();
+Abc_Cex_t* _cex_get_vec(int i);
 void _cex_put(Abc_Cex_t* pCex);
 void _cex_free(Abc_Cex_t* pCex);
 int _cex_n_regs(Abc_Cex_t* pCex);
@@ -571,6 +606,20 @@ class _Cex(object):
     def get_frame(self):
         return _cex_get_frame(self.pCex)
        
+def cex_get_vector():
+	
+	res = []
+	
+	for i in xrange(_cex_get_vec_len()):
+		cex = _cex_get_vec(i)
+	
+		if cex is None:
+			res.append(None)
+		else:
+			res.append(_Cex(cex)) 		
+	
+	return res
+       
 def cex_get():
 
     cex = _cex_get()
@@ -578,7 +627,7 @@ def cex_get():
     if cex is None:
         return None
         
-    return _Cex(_cex_get())
+    return _Cex(cex)
 
 def cex_put(cex):
 
