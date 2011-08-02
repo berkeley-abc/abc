@@ -1824,9 +1824,9 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
                 printf( "(timeout %d sec). ", pPars->nTimeOut );
             else
                 printf( "(conf limit %d). ", pPars->nConfLimit );
-            if ( pNtk->vSeqModelVec )
-                Vec_PtrFreeFree( pNtk->vSeqModelVec );
-            pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
+//            if ( pNtk->vSeqModelVec )
+//                Vec_PtrFreeFree( pNtk->vSeqModelVec );
+//            pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
         }
     }
     else // if ( RetValue == 0 )
@@ -1838,7 +1838,17 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
         }
         else
         {
-            printf( "All %d outputs are proved SAT.    ", Saig_ManPoNum(pMan) - pMan->nConstrs );
+            int nOutputs = Saig_ManPoNum(pMan) - Saig_ManConstrNum(pMan);
+            if ( Vec_PtrCountZero(pMan->vSeqModelVec) == 0 )
+                printf( "All %d outputs are found to be SAT.   ", nOutputs );
+            else if ( Vec_PtrCountZero(pMan->vSeqModelVec) == nOutputs )
+                printf( "None of the %d outputs is found to be SAT.   ", nOutputs );
+            else
+                printf( "Some outputs (%d out of %d) are proved SAT.   ", 
+                    nOutputs - Vec_PtrCountZero(pMan->vSeqModelVec), nOutputs );
+            if ( pNtk->vSeqModelVec )
+                Vec_PtrFreeFree( pNtk->vSeqModelVec );
+            pNtk->vSeqModelVec = pMan->vSeqModelVec;  pMan->vSeqModelVec = NULL;
         }
     }
     ABC_PRT( "Time", clock() - clk );

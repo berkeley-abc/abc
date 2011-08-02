@@ -72,7 +72,7 @@ void Saig_ManUnrollForPba_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * v
   SeeAlso     []
  
 ***********************************************************************/
-Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
+Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames, Vec_Int_t ** pvPiVarMap )
 {
     Aig_Man_t * pFrames;     // unrolled timeframes
     Vec_Vec_t * vFrameCos;   // the list of COs per frame
@@ -107,6 +107,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
     Saig_ManForEachLo( pAig, pObj, i )
         pObj->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,i), Aig_ObjCreatePi(pFrames), Aig_ManConst0(pFrames) );
     // iterate through the frames
+    *pvPiVarMap = Vec_IntStartFull( nFrames * Saig_ManPiNum(pAig) );
     pObjNew = Aig_ManConst0(pFrames);
     for ( f = 0; f < nFrames; f++ )
     {
@@ -119,7 +120,10 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
             else if ( Aig_ObjIsPo(pObj) )
                 pObj->pData = Aig_ObjChild0Copy(pObj);
             else if ( Saig_ObjIsPi(pAig, pObj) )
+            {
+                Vec_IntWriteEntry( *pvPiVarMap, f * Saig_ManPiNum(pAig) + Aig_ObjPioNum(pObj), Aig_ManPiNum(pFrames) );
                 pObj->pData = Aig_ObjCreatePi( pFrames );
+            }
             else if ( Aig_ObjIsConst1(pObj) )
                 pObj->pData = Aig_ManConst1(pFrames);
             else if ( !Saig_ObjIsLo(pAig, pObj) )
@@ -155,6 +159,37 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
 
 /**Function*************************************************************
 
+  Synopsis    [Derives the counter-example from the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t * pCnf, int nFrames, Vec_Int_t * vPiVarMap )
+{
+    Abc_Cex_t * pCex;
+    int i, f, Entry;
+    pCex = Abc_CexAlloc( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), nFrames );   
+    Vec_IntForEachEntry( vPiVarMap, Entry, i )
+        if ( Entry >= 0 )
+        {
+            int iSatVar = pCnf->pVarNums[ Aig_ObjId(Aig_ManPi(pCnf->pMan, Entry)) ];
+            if ( sat_solver_var_value( pSat, iSatVar ) )
+                Aig_InfoSetBit( pCex->pData, Aig_ManRegNum(pAig) + i );
+        }
+    // check what frame has failed
+    for ( f = 0; f < nFrames; f++ )
+    {
+//        Aig_ManForEach
+    }
+    return pCex;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derive unrolled timeframes.]
 
   Description []
@@ -164,9 +199,9 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fVerbose )
+Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nFrames, int nConfLimit, int fVerbose )
 {
-    Vec_Int_t * vFlops, * vMapVar2FF, * vAssumps;
+    Vec_Int_t * vFlops, * vMapVar2FF, * vAssumps, * vPiVarMap;
     Aig_Man_t * pFrames;
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
@@ -176,7 +211,7 @@ Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nFrames, int nConfLimit, in
 
     // create SAT solver
 clk = clock();
-    pFrames = Saig_ManUnrollForPba( pAig, nFrames );
+    pFrames = Saig_ManUnrollForPba( pAig, nFrames, &vPiVarMap );
 if ( fVerbose )
 Aig_ManPrintStats( pFrames );
 //    pCnf = Cnf_DeriveSimple( pFrames, 0 );
@@ -212,9 +247,29 @@ Abc_PrintTime( 1, "Solving", clock() - clk );
     if ( RetValue != l_False )
     {
         if ( RetValue == l_True )
-            printf( "Saig_ManPerformPba(): Internal Error!!! The resulting problem is SAT.\n" );
+        {
+            Vec_Int_t * vAbsFfsToAdd;
+            ABC_FREE( pAig->pSeqModel );
+            pAig->pSeqModel = Saig_ManPbaDeriveCex( pAig, pSat, pCnf, nFrames, vPiVarMap );
+            // CEX is detected - refine the flops
+            vAbsFfsToAdd = Saig_ManCbaFilterInputs( pAig, nInputs, pAig->pSeqModel, fVerbose );
+            if ( Vec_IntSize(vAbsFfsToAdd) == 0 )
+            {
+                Vec_IntFree( vAbsFfsToAdd );
+                return NULL;
+            }
+            if ( fVerbose )
+            {
+                printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vAbsFfsToAdd) );
+                Abc_PrintTime( 0, "Time", clock() - clk );
+            }
+            return vAbsFfsToAdd;
+        }
         else
-            printf( "Saig_ManPerformPba(): SAT solver timed out.\n" );
+        {
+            printf( "Saig_ManPerformPba(): SAT solver timed out. Abstraction is not changed.\n" );
+        }
+        Vec_IntFree( vPiVarMap );
         Vec_IntFree( vAssumps );
         Vec_IntFree( vMapVar2FF );
         sat_solver_delete( pSat );
@@ -242,6 +297,7 @@ Abc_PrintTime( 1, "Solving", clock() - clk );
     Vec_IntSort( vFlops, 0 );
 
     // cleanup
+    Vec_IntFree( vPiVarMap );
     Vec_IntFree( vAssumps );
     Vec_IntFree( vMapVar2FF );
     sat_solver_delete( pSat );

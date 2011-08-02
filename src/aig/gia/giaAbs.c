@@ -227,52 +227,6 @@ Vec_Int_t * Gia_ManFlopsSelect( Vec_Int_t * vFlops, Vec_Int_t * vFlopsNew )
 
 /**Function*************************************************************
 
-  Synopsis    [Derive unrolled timeframes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbose )
-{
-    Gia_Man_t * pAbs;
-    Aig_Man_t * pAig;
-    Vec_Int_t * vFlops, * vFlopsNew, * vSelected;
-    if ( pGia->vFlopClasses == NULL )
-    {
-        printf( "Gia_ManPbaPerform(): Abstraction flop map is missing.\n" );
-        return 0;
-    }
-    // derive abstraction
-    pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
-    // refine abstraction using PBA
-    pAig = Gia_ManToAigSimple( pAbs );
-    Gia_ManStop( pAbs );
-    vFlopsNew = Saig_ManPbaDerive( pAig, nFrames, nConfLimit, fVerbose );
-    Aig_ManStop( pAig );
-    // derive new classes
-    if ( vFlopsNew != NULL )
-    {
-        vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
-        vSelected = Gia_ManFlopsSelect( vFlops, vFlopsNew );
-        Vec_IntFree( pGia->vFlopClasses );
-        pGia->vFlopClasses = Saig_ManFlops2Classes( Gia_ManRegNum(pGia), vSelected );
-        Vec_IntFree( vSelected );
-
-        Vec_IntFree( vFlopsNew );
-        Vec_IntFree( vFlops );
-        return 1;
-    }
-    // found counter-eample for the abstracted model
-    // or exceeded conflict limit
-    return 0;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Adds flops that should be present in the abstraction.]
 
   Description [The second argument (vAbsFfsToAdd) is the array of numbers
@@ -350,6 +304,71 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
     return -1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Derive unrolled timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbose )
+{
+    Gia_Man_t * pAbs;
+    Aig_Man_t * pAig, * pOrig;
+    Vec_Int_t * vFlops, * vFlopsNew, * vSelected;
+    if ( pGia->vFlopClasses == NULL )
+    {
+        printf( "Gia_ManPbaPerform(): Abstraction flop map is missing.\n" );
+        return 0;
+    }
+    // derive abstraction
+    pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
+    // refine abstraction using PBA
+    pAig = Gia_ManToAigSimple( pAbs );
+    Gia_ManStop( pAbs );
+    vFlopsNew = Saig_ManPbaDerive( pAig, Gia_ManPiNum(pGia), nFrames, nConfLimit, fVerbose );
+    Aig_ManStop( pAig );
+    // derive new classes
+    if ( pAig->pSeqModel == NULL )
+    {
+        // the problem is UNSAT
+        vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
+        vSelected = Gia_ManFlopsSelect( vFlops, vFlopsNew );
+        Vec_IntFree( pGia->vFlopClasses );
+        pGia->vFlopClasses = Saig_ManFlops2Classes( Gia_ManRegNum(pGia), vSelected );
+        Vec_IntFree( vSelected );
+
+        Vec_IntFree( vFlopsNew );
+        Vec_IntFree( vFlops );
+        return -1;
+    }
+    else if ( vFlopsNew == NULL )
+    {
+        // found real counter-example
+        assert( pAig->pSeqModel != NULL );
+        printf( "Refinement did not happen. Discovered a true counter-example.\n" );
+        printf( "Remapping counter-example from %d to %d primary inputs.\n", Aig_ManPiNum(pAig), Gia_ManPiNum(pGia) );
+        // derive new counter-example
+        pOrig = Gia_ManToAigSimple( pGia );
+        pGia->pCexSeq = Saig_ManCexRemap( pOrig, pAig, pAig->pSeqModel );
+        Aig_ManStop( pOrig );
+        Aig_ManStop( pAig );
+        return 0;
+    }
+    else
+    {
+        // found counter-eample for the abstracted model
+        // update flop classes
+        Vec_Int_t * vAbsFfsToAdd = vFlopsNew;
+        Gia_ManFlopsAddToClasses( pGia->vFlopClasses, vAbsFfsToAdd );
+        Vec_IntFree( vAbsFfsToAdd );
+        return -1;
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////

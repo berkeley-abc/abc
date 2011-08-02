@@ -899,7 +899,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     if ( Aig_ManNodeNum(pAig) == 0 )
         return -1;
     // check trivially SAT miters
-    if ( Ssw_RarCheckTrivial( pAig, fVerbose ) )
+    if ( fMiter && Ssw_RarCheckTrivial( pAig, fVerbose ) )
         return 0;
     if ( fVerbose )
         printf( "Rarity simulation with %d words, %d frames, %d rounds, %d seed, and %d sec timeout.\n", 
@@ -1006,7 +1006,7 @@ int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize
     if ( Aig_ManNodeNum(pAig) == 0 )
         return -1;
     // check trivially SAT miters
-    if ( Ssw_RarCheckTrivial( pAig, 1 ) )
+    if ( fMiter && Ssw_RarCheckTrivial( pAig, 1 ) )
         return 0;
     if ( fVerbose )
         printf( "Rarity equiv filtering with %d words, %d frames, %d rounds, %d seed, and %d sec timeout.\n", 
