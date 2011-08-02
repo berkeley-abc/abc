@@ -61,6 +61,7 @@ char *      Abc_FrameReadFlag( char * pFlag )                { return Cmd_FlagRe
 int         Abc_FrameReadBmcFrames( Abc_Frame_t * p )        { return s_GlobalFrame->nFrames;      }               
 int         Abc_FrameReadProbStatus( Abc_Frame_t * p )       { return s_GlobalFrame->Status;       }               
 Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * p )              { return s_GlobalFrame->pCex;         }        
+Vec_Ptr_t * Abc_FrameReadCexVec( Abc_Frame_t * p )           { return s_GlobalFrame->vCexVec;      }        
        
 int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->nPis;      }               
 int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;     }               
