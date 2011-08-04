@@ -320,6 +320,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
     Gia_Man_t * pAbs;
     Aig_Man_t * pAig, * pOrig;
     Vec_Int_t * vFlops, * vFlopsNew, * vSelected;
+    int RetValue;
     if ( pGia->vFlopClasses == NULL )
     {
         printf( "Gia_ManPbaPerform(): Abstraction flop map is missing.\n" );
@@ -331,20 +332,23 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
     vFlopsNew = Saig_ManPbaDerive( pAig, Gia_ManPiNum(pGia), nFrames, nConfLimit, fVerbose );
-    Aig_ManStop( pAig );
     // derive new classes
     if ( pAig->pSeqModel == NULL )
     {
-        // the problem is UNSAT
-        vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
-        vSelected = Gia_ManFlopsSelect( vFlops, vFlopsNew );
-        Vec_IntFree( pGia->vFlopClasses );
-        pGia->vFlopClasses = Saig_ManFlops2Classes( Gia_ManRegNum(pGia), vSelected );
-        Vec_IntFree( vSelected );
+        // check if there is no timeout
+        if ( vFlopsNew != NULL )
+        {
+            // the problem is UNSAT
+            vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
+            vSelected = Gia_ManFlopsSelect( vFlops, vFlopsNew );
+            Vec_IntFree( pGia->vFlopClasses );
+            pGia->vFlopClasses = Saig_ManFlops2Classes( Gia_ManRegNum(pGia), vSelected );
+            Vec_IntFree( vSelected );
 
-        Vec_IntFree( vFlopsNew );
-        Vec_IntFree( vFlops );
-        return -1;
+            Vec_IntFree( vFlopsNew );
+            Vec_IntFree( vFlops );
+        }
+        RetValue = -1;
     }
     else if ( vFlopsNew == NULL )
     {
@@ -356,8 +360,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
         pOrig = Gia_ManToAigSimple( pGia );
         pGia->pCexSeq = Saig_ManCexRemap( pOrig, pAig, pAig->pSeqModel );
         Aig_ManStop( pOrig );
-        Aig_ManStop( pAig );
-        return 0;
+        RetValue = 0;
     }
     else
     {
@@ -366,8 +369,10 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
         Vec_Int_t * vAbsFfsToAdd = vFlopsNew;
         Gia_ManFlopsAddToClasses( pGia->vFlopClasses, vAbsFfsToAdd );
         Vec_IntFree( vAbsFfsToAdd );
-        return -1;
+        RetValue = -1;
     }
+    Aig_ManStop( pAig );
+    return RetValue;
 }
 
 

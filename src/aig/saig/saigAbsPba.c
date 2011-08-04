@@ -201,7 +201,7 @@ Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t
 ***********************************************************************/
 Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nFrames, int nConfLimit, int fVerbose )
 {
-    Vec_Int_t * vFlops, * vMapVar2FF, * vAssumps, * vPiVarMap;
+    Vec_Int_t * vFlops = NULL, * vMapVar2FF, * vAssumps, * vPiVarMap;
     Aig_Man_t * pFrames;
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
@@ -248,6 +248,8 @@ Abc_PrintTime( 1, "Solving", clock() - clk );
     {
         if ( RetValue == l_True )
         {
+            printf( "Saig_ManPerformPba(): The eproblem is SAT. Abstraction refinement is still not enabled.\n" );
+/*
             Vec_Int_t * vAbsFfsToAdd;
             ABC_FREE( pAig->pSeqModel );
             pAig->pSeqModel = Saig_ManPbaDeriveCex( pAig, pSat, pCnf, nFrames, vPiVarMap );
@@ -263,7 +265,8 @@ Abc_PrintTime( 1, "Solving", clock() - clk );
                 printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vAbsFfsToAdd) );
                 Abc_PrintTime( 0, "Time", clock() - clk );
             }
-            return vAbsFfsToAdd;
+            vFlops = vAbsFfsToAdd;
+*/
         }
         else
         {
