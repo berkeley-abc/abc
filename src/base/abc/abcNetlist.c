@@ -219,6 +219,15 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
+    // remap the real nodess
+    if ( pNtk->vRealNodes )
+    {
+        assert( pNtkNew->vRealNodes == NULL );
+        pNtkNew->vRealNodes = Vec_IntAlloc( Vec_IntSize(pNtk->vRealNodes) );
+        Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
+            Vec_IntPush( pNtkNew->vRealNodes, Abc_ObjId(pObj->pCopy) );
+    }
+
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc );

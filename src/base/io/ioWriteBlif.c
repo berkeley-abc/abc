@@ -384,6 +384,18 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
             NameCounter++;
         }
     }
+    if ( pNtk->vRealNodes )
+    {
+        Abc_Obj_t * pObj;
+        fprintf( pFile, "\n\n" );
+        assert( pNtk->nRealPos >= 0 );
+        Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
+            fprintf( pFile, "#INFO %s %s\n", 
+                Abc_ObjName(Abc_ObjFanin0(Abc_NtkPo(pNtk, pNtk->nRealPos+i))), 
+                Abc_ObjName(Abc_ObjFanout0(pObj)) );
+        fprintf( pFile, "\n" );
+    }
+
 }
 
 /**Function*************************************************************

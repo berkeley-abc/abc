@@ -1084,9 +1084,11 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
         return;
     }
 
+    assert( pNtkNew->vRealNodes == NULL );
     // create drivers
     vDrivers = Vec_PtrStart( pNtkNew->nRealPos );
     vDriverInvs = Vec_IntStart( pNtkNew->nRealPos );
+    pNtkNew->vRealNodes = Vec_IntAlloc( pNtkNew->nRealPos );
     for ( i = pNtkNew->nRealPos; i < Abc_NtkPoNum(pNtkNew); i++ )
     {
         pObj = Abc_NtkPo( pNtkNew, i );
@@ -1098,6 +1100,7 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
 //            printf( "%d", Abc_ObjFaninC0(pObj) );
         Vec_PtrPush( vDrivers, pNode );
         Vec_IntPush( vDriverInvs, Abc_ObjFaninC0(pObj) );
+        Vec_IntPush( pNtkNew->vRealNodes, Abc_ObjId(pNode) );
     }
     assert( Vec_PtrSize( vDrivers ) == Abc_NtkPoNum( pNtkNew ) );
 
@@ -1161,6 +1164,8 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
             fCompl    = Vec_IntEntry( vDriverInvs, numPo );
             if ( fCompl )
                 pFaninNew = Abc_NtkCreateNodeInv( pNtkNew, pFaninNew );
+//            else
+//                pFaninNew = Abc_NtkCreateNodeBuf( pNtkNew, pFaninNew );
 
             if ( !Abc_NtkIfCheckTfi( pNtkNew, pObj, pFaninNew ) )
                 Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );

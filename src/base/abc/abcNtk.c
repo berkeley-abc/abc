@@ -1048,6 +1048,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFreeP( &pNtk->vLtlProperties );
     Vec_IntFreeP( &pNtk->vObjPerm );
     Vec_VecFreeP( &pNtk->vRealPos );
+    Vec_IntFreeP( &pNtk->vRealNodes );
     ABC_FREE( pNtk );
 }
 

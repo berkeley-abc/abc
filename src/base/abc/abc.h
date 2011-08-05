@@ -213,6 +213,7 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     Vec_Int_t *       vObjPerm;      // permutation saved
     Vec_Vec_t *       vRealPos;      // additional PO info
+    Vec_Int_t *       vRealNodes;    // additional PO info
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
