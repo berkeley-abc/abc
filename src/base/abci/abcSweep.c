@@ -490,6 +490,40 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Removes dangling nodes.]
+
+  Description [Returns the number of nodes removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCleanupNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fVerbose )
+{
+    Vec_Ptr_t * vNodes, * vStarts;
+    Abc_Obj_t * pObj;
+    int i, Counter;
+    assert( Abc_NtkIsLogic(pNtk) );
+    // collect starting nodes into one array
+    vStarts = Vec_PtrAlloc( 1000 );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_PtrPush( vStarts, pObj );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vRoots, pObj, i )
+        if ( pObj )
+            Vec_PtrPush( vStarts, pObj );
+    // mark the nodes reachable from the POs
+    vNodes = Abc_NtkDfsNodes( pNtk, (Abc_Obj_t **)Vec_PtrArray(vStarts), Vec_PtrSize(vStarts) );
+    Vec_PtrFree( vStarts );
+    Counter = Abc_NtkReduceNodes( pNtk, vNodes );
+    if ( fVerbose )
+        printf( "Cleanup removed %d dangling nodes.\n", Counter );
+    Vec_PtrFree( vNodes );
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Preserves the nodes collected in the array.]
 
   Description [Returns the number of nodes removed.]
@@ -944,6 +978,80 @@ int Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fV
         printf( "Abc_NtkCleanupSeq: The network check has failed.\n" );
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Sweep to remove buffers and inverters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Hop_Man_t * pMan;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, fChanges = 1, Counter = 0;
+    assert( Abc_NtkIsLogic(pNtk) ); 
+    // convert network to BDD representation
+    if ( !Abc_NtkToAig(pNtk) )
+    {
+        fprintf( stdout, "Converting to SOP has failed.\n" );
+        return 1;
+    }
+    // get AIG manager
+    pMan = (Hop_Man_t *)pNtk->pManFunc;
+    // label selected nodes
+    Abc_NtkIncrementTravId( pNtk );
+    if ( pNtk->vRealNodes )
+    {
+        Abc_Obj_t * pObj;
+        assert( Vec_IntSize(pNtk->vRealNodes) == Abc_NtkPoNum(pNtk) - pNtk->nRealPos );
+        Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
+            Abc_NodeSetTravIdCurrent( pObj );
+    }
+    // iterate till no improvement
+    while ( fChanges )
+    {
+        fChanges = 0;
+        Abc_NtkForEachObj( pNtk, pObj, i )
+        {
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+            {
+                // do not eliminate marked fanins
+                if ( Abc_NodeIsTravIdCurrent(pFanin) )
+                    continue;
+                // do not eliminate constant nodes
+                if ( !Abc_ObjIsNode(pFanin) || Abc_ObjFaninNum(pFanin) != 1 )
+                    continue;
+                // do not eliminate inverters into COs
+                if ( Abc_ObjIsCo(pObj) && Abc_NodeIsInv(pFanin) )
+                    continue;
+                // do not eliminate buffers connecting PIs and POs 
+//                if ( Abc_ObjIsCo(pObj) && Abc_ObjIsCi(Abc_ObjFanin0(pFanin)) )
+//                    continue;
+                fChanges = 1;
+                Counter++;
+                // update function of the node
+                if ( Abc_NodeIsInv(pFanin) )
+                    pObj->pData = Hop_Compose( pMan, (Hop_Obj_t *)pObj->pData, Hop_Not(Hop_IthVar(pMan, k)), k );
+                // update the fanin
+                Abc_ObjPatchFanin( pObj, pFanin, Abc_ObjFanin0(pFanin) );
+                if ( Abc_ObjFanoutNum(pFanin) == 0 )
+                    Abc_NtkDeleteObj(pFanin);            
+            }
+        }
+    }
+    if ( fVerbose )
+        printf( "Removed %d single input nodes.\n", Counter );
+    return Counter;
+}
+
+
+
 
 
 ////////////////////////////////////////////////////////////////////////

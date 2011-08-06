@@ -3342,13 +3342,21 @@ int Abc_CommandSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
+    int fSingle = 0;
+    int fVerbose = 0;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fSingle ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -3367,12 +3375,17 @@ int Abc_CommandSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // modify the current network
-    Abc_NtkSweep( pNtk, 0 );
+    if ( fSingle )
+        Abc_NtkSweepBufsInvs( pNtk, fVerbose );
+    else
+        Abc_NtkSweep( pNtk, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sweep [-h]\n" );
+    Abc_Print( -2, "usage: sweep [-svh]\n" );
     Abc_Print( -2, "\t        removes dangling nodes; propagates constant, buffers, inverters\n" );
+    Abc_Print( -2, "\t-s    : toggle sweeping buffers/inverters only [default = %s]\n", fSingle? "yes": "no" );  
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -13150,7 +13163,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     // enable truth table computation if choices are selected
     if ( (c = Abc_NtkGetChoiceNum( pNtk )) )
     {
-        Abc_Print( 0, "Performing LUT mapping with %d choices.\n", c );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            Abc_Print( 0, "Performing LUT mapping with %d choices.\n", c );
         pPars->fExpRed = 0;
     }
 
@@ -13243,7 +13257,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Balancing before FPGA mapping has failed.\n" );
             return 1;
         }
-        Abc_Print( 1, "The network was strashed and balanced before FPGA mapping.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            Abc_Print( 1, "The network was strashed and balanced before FPGA mapping.\n" );
         // get the new network
         pNtkRes = Abc_NtkIf( pNtk, pPars );
         if ( pNtkRes == NULL )

@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "main.h"
 #include "if.h"
 #include "kit.h"
 #include "aig.h"
@@ -332,7 +333,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
         Abc_NtkBddReorder( pNtkNew, 0 );
     // decouple the PO driver nodes to reduce the number of levels
     nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, !pIfMan->pPars->fUseBuffs );
-    if ( nDupGates && pIfMan->pPars->fVerbose )
+    if ( nDupGates && pIfMan->pPars->fVerbose && !Abc_FrameReadFlag("silentmode") )
     {
         if ( pIfMan->pPars->fUseBuffs )
             printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
@@ -812,16 +813,19 @@ void Abc_NtkCollectPoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
     int i, g, nGroups;
     if ( pNtk->nRealPos == 0 )
     {
-        printf( "PO drivers are not defined.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "PO drivers are not defined.\n" );
         return;
     }
     if ( (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) % 5 != 0 )
     {
-        printf( "PO drivers are not divisible by 5.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "PO drivers are not divisible by 5.\n" );
         return;
     }
     nGroups = (Abc_NtkPoNum(pNtk) - pNtk->nRealPos) / 5;
-    printf( "Processing %d groups of PO drivers.\n", nGroups );
+    if ( !Abc_FrameReadFlag("silentmode") )
+        printf( "Processing %d groups of PO drivers.\n", nGroups );
     // mark the drivers (0 a   1 b   2 c   3 s   4 c)
     assert( p->pDriverCuts == NULL );
     p->pDriverCuts = ABC_CALLOC( Vec_Int_t *, If_ManObjNum(p) );
@@ -987,7 +991,9 @@ void Abc_NtkFreePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtk )
     int i;
     if ( p->pDriverCuts == NULL )
         return;
-    printf( "Actual delay after mapping = %.2f\n", p->RequiredGlo );
+    pNtk->nRealDelay = p->RequiredGlo;
+    if ( !Abc_FrameReadFlag("silentmode") )
+        printf( "Actual delay after mapping = %.2f\n", p->RequiredGlo );
     assert( Abc_NtkPoNum(pNtk) == If_ManCoNum(p) - Abc_NtkLatchNum(pNtk) );
     // print the cut sizes of the drivers
     for ( i = pNtk->nRealPos; i <  Abc_NtkPoNum(pNtk); i += 5 )
@@ -1080,7 +1086,8 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
     float RealLutArea;
     if ( pNtkNew->vRealPos == NULL )
     {
-        printf( "Missing key information.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "Missing key information.\n" );
         return;
     }
 
@@ -1088,7 +1095,7 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
     // create drivers
     vDrivers = Vec_PtrStart( pNtkNew->nRealPos );
     vDriverInvs = Vec_IntStart( pNtkNew->nRealPos );
-    pNtkNew->vRealNodes = Vec_IntAlloc( pNtkNew->nRealPos );
+    pNtkNew->vRealNodes = Vec_IntAlloc( Abc_NtkPoNum(pNtkNew) - pNtkNew->nRealPos );
     for ( i = pNtkNew->nRealPos; i < Abc_NtkPoNum(pNtkNew); i++ )
     {
         pObj = Abc_NtkPo( pNtkNew, i );
@@ -1130,12 +1137,16 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
             Vec_PtrPush( vFanins, pExor );
             Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+2) ); 
             pNode = Abc_NtkCreateNodeExor( pNtkNew, vFanins );
+            // update pointers
             Vec_PtrWriteEntry( vDriversNew, numPo+3, pNode );
+            Vec_IntWriteEntry( pNtkNew->vRealNodes, numPo+3 - pNtkNew->nRealPos, Abc_ObjId(pNode) );
             // create MUX
             pNode = Abc_NtkCreateNodeMux( pNtkNew, pExor, 
                 (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+2), 
                 (Abc_Obj_t *)Vec_PtrEntry(vDrivers, numPo+(fCompl ? 0 : 1)) );
+            // update pointers
             Vec_PtrWriteEntry( vDriversNew, numPo+4, pNode );
+            Vec_IntWriteEntry( pNtkNew->vRealNodes, numPo+4 - pNtkNew->nRealPos, Abc_ObjId(pNode) );
         }
     }
     Vec_PtrFree( vFanins );
@@ -1147,15 +1158,31 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
     {
         pObj = Abc_NtkPo( pNtkNew, numPo+3 );
         Vec_IntWriteEntry( vNodeMap, Abc_ObjId( Abc_ObjFanin0(pObj) ), numPo+3 );
+
+        // update the PO pointer
+//        if ( Abc_ObjFaninC0(pObj) )
+//            Abc_ObjXorFaninC( pObj, 0 );
+//       Abc_ObjPatchFanin( pObj, Abc_ObjFanin0(pObj), Vec_PtrEntry(vDriversNew, numPo+3) );
+
         pObj = Abc_NtkPo( pNtkNew, numPo+4 );
         Vec_IntWriteEntry( vNodeMap, Abc_ObjId( Abc_ObjFanin0(pObj) ), numPo+4 );
+
+        // update the PO pointer
+//        if ( Abc_ObjFaninC0(pObj) )
+//            Abc_ObjXorFaninC( pObj, 0 );
+//        Abc_ObjPatchFanin( pObj, Abc_ObjFanin0(pObj), Vec_PtrEntry(vDriversNew, numPo+4) );
+
     }
 
     // replace logic
     Abc_NtkForEachObj( pNtkNew, pObj, i )
     {
+//        if ( Abc_ObjIsPo(pObj) )
+//            continue;
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
+            if ( !Abc_ObjIsNode(pFanin) || Abc_ObjFaninNum(pFanin) == 0 )
+                continue;
             numPo = Vec_IntEntry( vNodeMap, Abc_ObjId(pFanin) );
             if ( numPo == ~0 )
                 continue;
@@ -1171,13 +1198,23 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
                 Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
         }
     }    
+
+    // sweep
+    Abc_NtkCleanupNodes( pNtkNew, vDriversNew, 0 );
+
+    // make sure that all vDriversNew are still present
+    {
+        Abc_Obj_t * pObj;
+        int i;
+        Vec_PtrForEachEntry( Abc_Obj_t *, vDriversNew, pObj, i )
+            if ( pObj && Abc_ObjIsNone(pObj) )
+                assert( 0 );
+    }
+
     Vec_PtrFree( vDrivers );
     Vec_PtrFree( vDriversNew );
     Vec_IntFree( vNodeMap );
     Vec_IntFree( vDriverInvs );
-
-    // sweep
-    Abc_NtkCleanup( pNtkNew, 0 );
 
     // count non-trivial LUTs nodes
     nRealLuts   = -2 * Vec_VecSizeSize(pNtkNew->vRealPos);
@@ -1188,7 +1225,10 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
             nRealLuts++;
             RealLutArea += p->pPars->pLutLib->pLutAreas[Abc_ObjFaninNum(pNode)];
         }
-    printf( "The number of real LUTs = %d.  Real LUT area = %.2f.\n", nRealLuts, RealLutArea );
+    if ( !Abc_FrameReadFlag("silentmode") )
+        printf( "The number of real LUTs = %d.  Real LUT area = %.2f.\n", nRealLuts, RealLutArea );
+    pNtkNew->nRealLuts = nRealLuts;
+    pNtkNew->nRealArea = RealLutArea;
 }
 
 ////////////////////////////////////////////////////////////////////////

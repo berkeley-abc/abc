@@ -183,6 +183,9 @@ struct Abc_Ntk_t_
     int               nObjs;         // the number of live objs
     int               nConstrs;      // the number of constraints
     int               nRealPos;      // the number of real POs
+    float             nRealDelay;    // temporary mapping data
+    float             nRealLuts;     // temporary mapping data
+    float             nRealArea;     // temporary mapping data
     // the backup network and the step number
     Abc_Ntk_t *       pNetBackup;    // the pointer to the previous backup network
     int               iStep;         // the generation number for the given network
@@ -852,7 +855,9 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels 
 /*=== abcSweep.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose );
 extern ABC_DLL int                Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
+extern ABC_DLL int                Abc_NtkCleanupNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int fVerbose );
 extern ABC_DLL int                Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fVerbose );
+extern ABC_DLL int                Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== abcTiming.c ==========================================================*/
 extern ABC_DLL Abc_Time_t *       Abc_NodeReadArrival( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Time_t *       Abc_NodeReadRequired( Abc_Obj_t * pNode );

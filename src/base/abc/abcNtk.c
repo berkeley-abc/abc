@@ -109,9 +109,12 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     fCopyNames = ( Type != ABC_NTK_NETLIST );
     // start the network
     pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
-    pNtkNew->nConstrs = pNtk->nConstrs;
-    pNtkNew->nRealPos = pNtk->nRealPos;
-    pNtkNew->vRealPos = pNtk->vRealPos ? Vec_VecDup( pNtk->vRealPos ) : NULL;
+    pNtkNew->nConstrs   = pNtk->nConstrs;
+    pNtkNew->nRealPos   = pNtk->nRealPos;
+    pNtkNew->nRealDelay = pNtk->nRealDelay;
+    pNtkNew->nRealLuts  = pNtk->nRealLuts;
+    pNtkNew->nRealArea  = pNtk->nRealArea;
+    pNtkNew->vRealPos   = pNtk->vRealPos ? Vec_VecDup( pNtk->vRealPos ) : NULL;
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -164,9 +167,12 @@ Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc
     assert( Type != ABC_NTK_NETLIST );
     // start the network
     pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
-    pNtkNew->nConstrs = pNtk->nConstrs;
-    pNtkNew->nRealPos = pNtk->nRealPos;
-    pNtkNew->vRealPos = pNtk->vRealPos ? Vec_VecDup( pNtk->vRealPos ) : NULL;
+    pNtkNew->nConstrs   = pNtk->nConstrs;
+    pNtkNew->nRealPos   = pNtk->nRealPos;
+    pNtkNew->nRealDelay = pNtk->nRealDelay;
+    pNtkNew->nRealLuts  = pNtk->nRealLuts;
+    pNtkNew->nRealArea  = pNtk->nRealArea;
+    pNtkNew->vRealPos   = pNtk->vRealPos ? Vec_VecDup( pNtk->vRealPos ) : NULL;
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -356,6 +362,15 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
             if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
                 Abc_ObjForEachFanin( pObj, pFanin, k )
                     Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    // remap the real nodess
+    if ( pNtk->vRealNodes )
+    {
+        assert( pNtkNew->vRealNodes == NULL );
+        pNtkNew->vRealNodes = Vec_IntAlloc( Vec_IntSize(pNtk->vRealNodes) );
+        Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
+            Vec_IntPush( pNtkNew->vRealNodes, Abc_ObjId(pObj->pCopy) );
+        assert( Vec_IntSize(pNtk->vRealNodes) == Vec_IntSize(pNtkNew->vRealNodes) );
     }
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )

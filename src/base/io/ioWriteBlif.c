@@ -387,8 +387,10 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     if ( pNtk->vRealNodes )
     {
         Abc_Obj_t * pObj;
+        int Num1 = Vec_IntSize(pNtk->vRealNodes);
+        int Num2 = Abc_NtkPoNum(pNtk)-pNtk->nRealPos;
         fprintf( pFile, "\n\n" );
-        assert( pNtk->nRealPos >= 0 );
+        assert( Vec_IntSize(pNtk->vRealNodes) == Abc_NtkPoNum(pNtk)-pNtk->nRealPos );
         Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
             fprintf( pFile, "#INFO %s %s\n", 
                 Abc_ObjName(Abc_ObjFanin0(Abc_NtkPo(pNtk, pNtk->nRealPos+i))), 

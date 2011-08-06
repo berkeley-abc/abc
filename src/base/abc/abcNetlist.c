@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "main.h"
 //#include "seq.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -152,7 +153,8 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsLogic(pNtk) );
 
     // remove dangling nodes
-    Abc_NtkCleanup( pNtk, 0 );
+    if ( pNtk->vRealNodes == NULL )
+        Abc_NtkCleanup( pNtk, 0 );
 
     // make sure the CO names are unique
     Abc_NtkCheckUniqueCiNames( pNtk );
@@ -162,7 +164,8 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 //    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     if ( !Abc_NtkLogicHasSimpleCos(pNtk) )
     {
-        printf( "Abc_NtkLogicToNetlist() warning: The network is converted to have simple COs.\n" );
+        if ( !Abc_FrameReadFlag("silentmode") )
+            printf( "Abc_NtkLogicToNetlist() warning: The network is converted to have simple COs.\n" );
         Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     }
 
@@ -226,6 +229,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
         pNtkNew->vRealNodes = Vec_IntAlloc( Vec_IntSize(pNtk->vRealNodes) );
         Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
             Vec_IntPush( pNtkNew->vRealNodes, Abc_ObjId(pObj->pCopy) );
+        assert( Vec_IntSize(pNtk->vRealNodes) == Vec_IntSize(pNtkNew->vRealNodes) );
     }
 
     // duplicate EXDC 
