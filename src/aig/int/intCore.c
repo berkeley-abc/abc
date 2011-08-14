@@ -93,12 +93,14 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     assert( Saig_ManPoNum(pAig)-Saig_ManConstrNum(pAig) == 1 );
     if ( pPars->fVerbose && Saig_ManConstrNum(pAig) )
         printf( "Performing interpolation with %d constraints...\n", Saig_ManConstrNum(pAig) );
-/*
+
     if ( Inter_ManCheckInitialState(pAig) )
     {
+        *piFrame = 0;
         printf( "Property trivially fails in the initial state.\n" );
         return 0;
     }
+/*
     if ( Inter_ManCheckAllStates(pAig) )
     {
         printf( "Property trivially holds in all states.\n" );
