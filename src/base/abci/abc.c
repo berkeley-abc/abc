@@ -5470,6 +5470,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fImplic;
     int fMulti;
     int nPartSize;
+    int fTrans;
 
     pNtk = Abc_FrameReadNtk(pAbc);
 
@@ -5479,8 +5480,9 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     fImplic = 0;
     fMulti = 0;
     nPartSize = 0;
+    fTrans = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Pcmih" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Pcmith" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5504,9 +5506,26 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'i':
             fImplic ^= 1;
             break;
+        case 't':
+            fTrans ^= 1;
+            break;
         default:
             goto usage;
         }
+    }
+
+    if ( fTrans )
+    {
+        if ( (Abc_NtkPoNum(pNtk) & 1) == 1 )
+        {
+            Abc_Print( -1, "Abc_CommandMiter(): The number of outputs should be even.\n" );
+            return 0;
+        }
+        // replace the current network
+        pNtkRes = Abc_NtkDupTransformMiter( pNtk );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+        Abc_Print( 1, "The miter (current network) is transformed by XORing POs pair-wise.\n" );
+        return 0;
     }
 
     pArgvNew = argv + globalUtilOptind;
@@ -5533,12 +5552,13 @@ usage:
         strcpy( Buffer, "unused" );
     else
         sprintf( Buffer, "%d", nPartSize );
-    Abc_Print( -2, "usage: miter [-P <num>] [-cimh] <file1> <file2>\n" );
+    Abc_Print( -2, "usage: miter [-P <num>] [-cimth] <file1> <file2>\n" );
     Abc_Print( -2, "\t           computes the miter of the two circuits\n" );
     Abc_Print( -2, "\t-P <num> : output partition size [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-c       : toggles deriving combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles deriving implication miter (file1 => file2) [default = %s]\n", fImplic? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles creating multi-output miter [default = %s]\n", fMulti? "yes": "no" );
+    Abc_Print( -2, "\t-t       : toggle XORing pair-wise POs of the miter [default = %s]\n", fTrans? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\tfile1    : (optional) the file with the first network\n");
     Abc_Print( -2, "\tfile2    : (optional) the file with the second network\n");
@@ -26277,7 +26297,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         pAbc->pGia = Gia_ManTransformMiter( pAux = pAbc->pGia );
         Gia_ManStop( pAux );
-        Abc_Print( -1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
+        Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
         return 0;
     }
 

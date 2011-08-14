@@ -394,6 +394,61 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkDupTransformMiter( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pObj2, * pMiter;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    pNtkNew->nConstrs   = pNtk->nConstrs;
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    // map the constant nodes
+     Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
+    // clone CIs/CIs/boxes
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 1 );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 1 ), i++;
+    Abc_NtkForEachBox( pNtk, pObj, i )
+        Abc_NtkDupBox( pNtkNew, pObj, 1 );
+    // copy the AND gates
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    // create new miters
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        pObj2 = Abc_NtkPo( pNtk, ++i );
+        pMiter = Abc_AigXor( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild0Copy(pObj2) );
+        Abc_ObjAddFanin( pObj->pCopy, pMiter );
+    }
+    Abc_NtkForEachLatchInput( pNtk, pObj, i )
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
+    // cleanup
+    Abc_AigCleanup( (Abc_Aig_t *)pNtkNew->pManFunc );
+    // check that the CI/CO/latches are copied correctly
+    assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
+    assert( Abc_NtkPoNum(pNtk) == 2*Abc_NtkPoNum(pNtkNew) );
+    assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicate the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
 {
     char Buffer[500];
