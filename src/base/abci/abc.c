@@ -881,6 +881,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
         void For_ManFileExperiment();
 //        For_ManFileExperiment();
     }
+    {
+        void Bdc_SpfdDecomposeTest();
+        Bdc_SpfdDecomposeTest();
+    }
 /*
     {
         int i1, i2, i3, i4, i5, i6, N, Counter = 0;
@@ -28437,6 +28441,7 @@ int Abc_CommandAbc9AbsPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFramesMax = (pAbc->nFrames >= 0) ? pAbc->nFrames : 20;
     int nConfMax   = 100000;
     int fVerbose   =      0;
+    int iFrame     =     -1;
     int c;
 
     Extra_UtilGetoptReset();
@@ -28490,8 +28495,10 @@ int Abc_CommandAbc9AbsPba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The flop map is not given.\n" );
         return 0;
     }
-    Gia_ManPbaPerform( pAbc->pGia, nFramesMax, nConfMax, fVerbose );
-//    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    Gia_ManPbaPerform( pAbc->pGia, nFramesMax, nConfMax, fVerbose, &iFrame );
+    if ( iFrame >= 0 )
+        pAbc->nFrames = iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
@@ -28591,7 +28598,8 @@ int Abc_CommandAbc9AbsCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pAbc->Status = Gia_ManCbaPerform( pAbc->pGia, pPars );
-    pAbc->nFrames = pPars->iFrame;
+    if ( pPars->nStart == 0 )
+        pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 

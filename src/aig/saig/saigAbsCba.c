@@ -180,6 +180,8 @@ void Saig_ManCbaFindReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vPr
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsConst1(pObj) )
+        return;
     if ( Aig_ObjIsPi(pObj) )
     {
         Vec_IntPush( vReasons, Aig_ObjPioNum(pObj) );
@@ -267,7 +269,7 @@ Vec_Int_t * Saig_ManCbaFindReason( Saig_ManCba_t * p )
     Aig_ManIncrementTravId( p->pFrames );
     Saig_ManCbaFindReason_rec( p->pFrames, Aig_ObjFanin0(pObj), vPrios, vReasons );
     Vec_IntFree( vPrios );
-    assert( !Aig_ObjIsTravIdCurrent(p->pFrames, Aig_ManConst1(p->pFrames)) );
+//    assert( !Aig_ObjIsTravIdCurrent(p->pFrames, Aig_ManConst1(p->pFrames)) );
     return vReasons;
 }
 
@@ -630,7 +632,7 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
     if ( pPars->fVerbose )
     {
         printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vAbsFfsToAdd) );
-        Abc_PrintTime( 0, "Time", clock() - clk );
+        Abc_PrintTime( 1, "Time", clock() - clk );
     }
     return vAbsFfsToAdd;
 }

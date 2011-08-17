@@ -268,8 +268,9 @@ void Gia_ManFlopsAddToClasses( Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAd
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
+int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
 {
+    Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Gia_Man_t * pAbs;
     Aig_Man_t * pAig, * pOrig;
     Vec_Int_t * vAbsFfsToAdd;
@@ -315,7 +316,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbose )
+int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbose, int * piFrame )
 {
     Gia_Man_t * pAbs;
     Aig_Man_t * pAig, * pOrig;
@@ -331,7 +332,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
     // refine abstraction using PBA
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
-    vFlopsNew = Saig_ManPbaDerive( pAig, Gia_ManPiNum(pGia), nFrames, nConfLimit, fVerbose );
+    vFlopsNew = Saig_ManPbaDerive( pAig, Gia_ManPiNum(pGia), nFrames, nConfLimit, fVerbose, piFrame );
     // derive new classes
     if ( pAig->pSeqModel == NULL )
     {

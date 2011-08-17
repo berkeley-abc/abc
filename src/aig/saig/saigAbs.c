@@ -91,9 +91,9 @@ Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexA
     Aig_Obj_t * pObj;
     int i, f;
     if ( !Saig_ManVerifyCex( pAbs, pCexAbs ) )
-        printf( "Saig_ManCexRemap(): The intial counter-example is invalid.\n" );
-    else
-        printf( "Saig_ManCexRemap(): The intial counter-example is correct.\n" );
+        printf( "Saig_ManCexRemap(): The initial counter-example is invalid.\n" );
+//    else
+//        printf( "Saig_ManCexRemap(): The initial counter-example is correct.\n" );
     // start the counter-example
     pCex = Abc_CexAlloc( Aig_ManRegNum(p), Saig_ManPiNum(p), pCexAbs->iFrame+1 );
     pCex->iFrame = pCexAbs->iFrame;

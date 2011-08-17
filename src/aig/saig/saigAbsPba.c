@@ -171,19 +171,63 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames, Vec_Int_t ** pv
 Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t * pCnf, int nFrames, Vec_Int_t * vPiVarMap )
 {
     Abc_Cex_t * pCex;
-    int i, f, Entry;
-    pCex = Abc_CexAlloc( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), nFrames );   
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int i, f, Entry, iBit = 0;
+    pCex = Abc_CexAlloc( Aig_ManRegNum(pAig), Saig_ManPiNum(pAig), nFrames );
+    pCex->iPo = -1;
+    pCex->iFrame = -1;
     Vec_IntForEachEntry( vPiVarMap, Entry, i )
+    {
         if ( Entry >= 0 )
         {
             int iSatVar = pCnf->pVarNums[ Aig_ObjId(Aig_ManPi(pCnf->pMan, Entry)) ];
             if ( sat_solver_var_value( pSat, iSatVar ) )
                 Aig_InfoSetBit( pCex->pData, Aig_ManRegNum(pAig) + i );
         }
+    }
     // check what frame has failed
+    Aig_ManCleanMarkB(pAig);
+    Aig_ManConst1(pAig)->fMarkB = 1;
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->fMarkB = Aig_InfoHasBit(pCex->pData, iBit++);
     for ( f = 0; f < nFrames; f++ )
     {
-//        Aig_ManForEach
+        // compute new state
+        Saig_ManForEachPi( pAig, pObj, i )
+            pObj->fMarkB = Aig_InfoHasBit(pCex->pData, iBit++);
+        Aig_ManForEachNode( pAig, pObj, i )
+            pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                           (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachPo( pAig, pObj, i )
+            pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, i )
+            pObjRo->fMarkB = pObjRi->fMarkB;
+        // check the outputs
+        Saig_ManForEachPo( pAig, pObj, i )
+        {
+            if ( pObj->fMarkB )
+            {
+                pCex->iPo = i;
+                pCex->iFrame = f;
+                pCex->nBits = pCex->nRegs + pCex->nPis * (f+1);
+                break;
+            }
+        }
+        if ( i < Saig_ManPoNum(pAig) )
+            break;        
+    }
+    Aig_ManCleanMarkB(pAig);
+    if ( f == nFrames )
+    {
+        Abc_Print( -1, "Saig_ManPbaDeriveCex(): Internal error! Cannot find a failed primary outputs.\n" );
+        Abc_CexFree( pCex );
+        pCex = NULL;
+    }
+    if ( !Saig_ManVerifyCex( pAig, pCex ) )
+    {
+        Abc_Print( -1, "Saig_ManPbaDeriveCex(): Internal error! Counter-example is invalid.\n" );
+        Abc_CexFree( pCex );
+        pCex = NULL;
     }
     return pCex;
 }
@@ -199,7 +243,7 @@ Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nFrames, int nConfLimit, int fVerbose )
+Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nFrames, int nConfLimit, int fVerbose, int * piFrame )
 {
     Vec_Int_t * vFlops = NULL, * vMapVar2FF, * vAssumps, * vPiVarMap;
     Aig_Man_t * pFrames;
@@ -248,46 +292,40 @@ Abc_PrintTime( 1, "Solving", clock() - clk );
     {
         if ( RetValue == l_True )
         {
-            printf( "Saig_ManPerformPba(): The eproblem is SAT. Abstraction refinement is still not enabled.\n" );
-/*
             Vec_Int_t * vAbsFfsToAdd;
             ABC_FREE( pAig->pSeqModel );
             pAig->pSeqModel = Saig_ManPbaDeriveCex( pAig, pSat, pCnf, nFrames, vPiVarMap );
+            printf( "The problem is SAT in frame %d. Performing CEX-based refinement.\n", pAig->pSeqModel->iFrame );
+            *piFrame = pAig->pSeqModel->iFrame;
             // CEX is detected - refine the flops
             vAbsFfsToAdd = Saig_ManCbaFilterInputs( pAig, nInputs, pAig->pSeqModel, fVerbose );
             if ( Vec_IntSize(vAbsFfsToAdd) == 0 )
             {
                 Vec_IntFree( vAbsFfsToAdd );
-                return NULL;
+                goto finish;
             }
             if ( fVerbose )
             {
                 printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vAbsFfsToAdd) );
-                Abc_PrintTime( 0, "Time", clock() - clk );
+                Abc_PrintTime( 1, "Time", clock() - clk );
             }
             vFlops = vAbsFfsToAdd;
-*/
         }
         else
         {
-            printf( "Saig_ManPerformPba(): SAT solver timed out. Abstraction is not changed.\n" );
+            printf( "Saig_ManPerformPba(): SAT solver timed out. Current abstraction is not changed.\n" );
         }
-        Vec_IntFree( vPiVarMap );
-        Vec_IntFree( vAssumps );
-        Vec_IntFree( vMapVar2FF );
-        sat_solver_delete( pSat );
-        Aig_ManStop( pFrames );
-        Cnf_DataFree( pCnf );
-        return NULL;
+        goto finish;
     }
     assert( RetValue == l_False ); // UNSAT
+    *piFrame = nFrames;
 
     // get relevant SAT literals
     nCoreLits = sat_solver_final( pSat, &pCoreLits );
     assert( nCoreLits > 0 );
     if ( fVerbose )
-        printf( "AnalizeFinal selected %d assumptions (out of %d). Conflicts = %d.\n", 
-            nCoreLits, Vec_IntSize(vAssumps), (int)pSat->stats.conflicts );
+        printf( "AnalizeFinal after %d frames selected %d assumptions (out of %d). Conflicts = %d.\n", 
+            nFrames, nCoreLits, Vec_IntSize(vAssumps), (int)pSat->stats.conflicts );
 
     // collect flops
     vFlops = Vec_IntAlloc( nCoreLits );
@@ -300,6 +338,7 @@ Abc_PrintTime( 1, "Solving", clock() - clk );
     Vec_IntSort( vFlops, 0 );
 
     // cleanup
+finish:
     Vec_IntFree( vPiVarMap );
     Vec_IntFree( vAssumps );
     Vec_IntFree( vMapVar2FF );

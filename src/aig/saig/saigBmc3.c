@@ -1292,6 +1292,9 @@ clkOther += clock() - clk2;
             fflush( stdout );
         }
     }
+    // consider the next timeframe
+    if ( RetValue == -1 && pPars->nStart == 0 )
+        pPars->iFrame = f;
 //ABC_PRT( "CNF generation runtime", clkOther );
     if ( pPars->fVerbose )
     {
