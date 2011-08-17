@@ -3099,6 +3099,10 @@ SOURCE=.\src\aig\bdc\bdcInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\bdc\bdcSpfd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\bdc\bdcTable.c
 # End Source File
 # End Group
