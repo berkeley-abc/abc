@@ -139,7 +139,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
     }
     // vFlopsNew contains PI numbers that should be kept in pAbs
     if ( fVerbose )
-        printf( "Adding %d registers to the abstraction.\n\n", Vec_IntSize(vFlopsNew) );
+        printf( "Adding %d registers to the abstraction (total = %d).\n\n", Vec_IntSize(vFlopsNew), Aig_ManRegNum(pAbs)+Vec_IntSize(vFlopsNew) );
     // add to the abstraction
     Vec_IntForEachEntry( vFlopsNew, Entry, i )
     {
@@ -195,7 +195,7 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, 
     }
     if ( fVerbose )
     {
-        printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vFlopsNew) );
+        printf( "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vFlopsNew), Aig_ManRegNum(p)+Vec_IntSize(vFlopsNew) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     // vFlopsNew contains PI number that should be kept in pAbs

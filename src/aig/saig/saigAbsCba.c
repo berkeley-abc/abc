@@ -609,7 +609,7 @@ ABC_PRT( "Time", clock() - clk );
 
 ***********************************************************************/
 Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * pPars )
-{    
+{
     Vec_Int_t * vAbsFfsToAdd;
     int RetValue, clk = clock();
 //    assert( pAbs->nRegs > 0 );
@@ -617,6 +617,7 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
     RetValue = Saig_ManBmcScalable( pAbs, pPars );
     if ( RetValue == -1 ) // time out - nothing to add
     {
+        printf( "Resource limit is reached during BMC.\n" );
         assert( pAbs->pSeqModel == NULL );
         return Vec_IntAlloc( 0 );
     }
@@ -631,7 +632,7 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
     }
     if ( pPars->fVerbose )
     {
-        printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vAbsFfsToAdd) );
+        printf( "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vAbsFfsToAdd), Aig_ManRegNum(pAbs)+Vec_IntSize(vAbsFfsToAdd) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     return vAbsFfsToAdd;

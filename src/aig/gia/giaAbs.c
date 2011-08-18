@@ -316,7 +316,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbose, int * piFrame )
+int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit, int fVerbose, int * piFrame )
 {
     Gia_Man_t * pAbs;
     Aig_Man_t * pAig, * pOrig;
@@ -332,7 +332,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nFrames, int nConfLimit, int fVerbo
     // refine abstraction using PBA
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
-    vFlopsNew = Saig_ManPbaDerive( pAig, Gia_ManPiNum(pGia), nFrames, nConfLimit, fVerbose, piFrame );
+    vFlopsNew = Saig_ManPbaDerive( pAig, Gia_ManPiNum(pGia), nStart, nFrames, nConfLimit, fVerbose, piFrame );
     // derive new classes
     if ( pAig->pSeqModel == NULL )
     {

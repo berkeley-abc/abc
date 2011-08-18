@@ -72,7 +72,7 @@ void Saig_ManUnrollForPba_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * v
   SeeAlso     []
  
 ***********************************************************************/
-Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames, Vec_Int_t ** pvPiVarMap )
+Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec_Int_t ** pvPiVarMap )
 {
     Aig_Man_t * pFrames;     // unrolled timeframes
     Vec_Vec_t * vFrameCos;   // the list of COs per frame
@@ -80,6 +80,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames, Vec_Int_t ** pv
     Vec_Int_t * vRoots, * vObjs;
     Aig_Obj_t * pObj, * pObjNew;
     int i, f;
+    assert( nStart <= nFrames );
     // collect COs and Objs visited in each frame
     vFrameCos  = Vec_VecStart( nFrames );
     vFrameObjs = Vec_VecStart( nFrames );
@@ -130,8 +131,11 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nFrames, Vec_Int_t ** pv
                 assert( 0 );
         }
         // create output
-        Saig_ManForEachPo( pAig, pObj, i )
-            pObjNew = Aig_Or( pFrames, pObjNew, pObj->pData );
+        if ( f >= nStart )
+        {
+            Saig_ManForEachPo( pAig, pObj, i )
+                pObjNew = Aig_Or( pFrames, pObjNew, pObj->pData );
+        }
         // transfer
         if ( f == nFrames - 1 )
             break;
@@ -243,7 +247,7 @@ Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nFrames, int nConfLimit, int fVerbose, int * piFrame )
+Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nFrames, int nConfLimit, int fVerbose, int * piFrame )
 {
     Vec_Int_t * vFlops = NULL, * vMapVar2FF, * vAssumps, * vPiVarMap;
     Aig_Man_t * pFrames;
@@ -252,10 +256,11 @@ Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nFrames, int n
     Aig_Obj_t * pObj;
     int nCoreLits, * pCoreLits;
     int i, iVar, RetValue, clk;
-
+if ( fVerbose )
+printf( "Performing abstraction with starting frame %d and total number of frames %d.\n", nStart, nFrames );
     // create SAT solver
 clk = clock();
-    pFrames = Saig_ManUnrollForPba( pAig, nFrames, &vPiVarMap );
+    pFrames = Saig_ManUnrollForPba( pAig, nStart, nFrames, &vPiVarMap );
 if ( fVerbose )
 Aig_ManPrintStats( pFrames );
 //    pCnf = Cnf_DeriveSimple( pFrames, 0 );
@@ -306,7 +311,7 @@ Abc_PrintTime( 1, "Solving", clock() - clk );
             }
             if ( fVerbose )
             {
-                printf( "Adding %d registers to the abstraction.  ", Vec_IntSize(vAbsFfsToAdd) );
+                printf( "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vAbsFfsToAdd), Aig_ManRegNum(pAig)+Vec_IntSize(vAbsFfsToAdd) );
                 Abc_PrintTime( 1, "Time", clock() - clk );
             }
             vFlops = vAbsFfsToAdd;
