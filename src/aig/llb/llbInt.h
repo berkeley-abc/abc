@@ -186,7 +186,7 @@ extern DdNode *        Llb_NonlinComputeInitState( Aig_Man_t * pAig, DdManager *
 
 
 /*=== llb4Cex.c =======================================================*/
-extern Abc_Cex_t *     Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int fVerbose );
+extern Abc_Cex_t *     Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int iCexPo, int fVerbose );
 /*=== llb4Cluster.c =======================================================*/
 //extern void            Llb_Nonlin4Cluster( Aig_Man_t * pAig, DdManager ** pdd, Vec_Int_t ** pvOrder, Vec_Ptr_t ** pvGroups, int nBddMax, int fVerbose );
 /*=== llb4Image.c =======================================================*/

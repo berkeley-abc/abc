@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int fVerbose )
+Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int iCexPo, int fVerbose )
 {
     Abc_Cex_t * pCex;
     Cnf_Dat_t * pCnf;
@@ -124,8 +124,18 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
 
     // add the last frame when the property fails
     Vec_IntClear( vAssumps );
-    Saig_ManForEachPo( pAig, pObj, k )
-        Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], 0 ) );
+    if ( iCexPo >= 0 )
+    {
+        Saig_ManForEachPo( pAig, pObj, k )
+            if ( k == iCexPo )
+                Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], 0 ) );
+    }
+    else
+    {
+        Saig_ManForEachPo( pAig, pObj, k )
+            Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], 0 ) );
+    }
+
     // add clause
     status = sat_solver_addclause( pSat, Vec_IntArray(vAssumps), Vec_IntArray(vAssumps) + Vec_IntSize(vAssumps) );
     if ( status == 0 )
@@ -292,7 +302,7 @@ Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, 
         return NULL;
     }
     // derive updated counter-example
-    pCexOrg = Llb4_Nonlin4TransformCex( pAigOrg, vStates, 0 );
+    pCexOrg = Llb4_Nonlin4TransformCex( pAigOrg, vStates, pCexRpm->iPo, 0 );
     Vec_PtrFree( vStates );
     return pCexOrg;
 }

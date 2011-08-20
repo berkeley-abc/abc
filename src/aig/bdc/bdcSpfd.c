@@ -811,21 +811,20 @@ int Bdc_SpfdDecomposeTestOne( word t, Vec_Wrd_t * vDivs, Vec_Int_t * vWeights )
 void Bdc_SpfdDecomposeTest()
 {
 //    word t = 0x5052585a0002080a;
-
     word t = 0x9ef7a8d9c7193a0f;
 //    word t = 0x6BFDA276C7193A0F;
 //    word t = 0xA3756AFE0B1DF60B;
 
-    int clk = clock();
-//    Vec_Int_t * vWeights;
-//    Vec_Wrd_t * vDivs = Bdc_SpfdDecomposeTest__( &vWeights );
     Vec_Int_t * vWeights;
-    Vec_Wrd_t * vDivs = Bdc_SpfdReadFiles( &vWeights );
-
+    Vec_Wrd_t * vDivs;
     word c0, c1, s, tt, ttt, tbest;
     int i, j, k, n, Cost, CostBest = 100000;
+    int clk = clock();
 
     return;
+
+    // vDivs = Bdc_SpfdDecomposeTest__( &vWeights );
+    vDivs = Bdc_SpfdReadFiles( &vWeights );
 
     Abc_Show6VarFunc( ~t, t );  
 /*

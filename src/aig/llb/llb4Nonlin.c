@@ -742,7 +742,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
             Vec_Ptr_t * vStates;
             assert( p->pAig->pSeqModel == NULL );
             vStates = Llb_Nonlin4DeriveCex( p, p->pPars->fBackward, p->pPars->fVerbose ); 
-            p->pAig->pSeqModel = Llb4_Nonlin4TransformCex( p->pAig, vStates, p->pPars->fVerbose );
+            p->pAig->pSeqModel = Llb4_Nonlin4TransformCex( p->pAig, vStates, -1, p->pPars->fVerbose );
             Vec_PtrFreeP( &vStates );
             if ( !p->pPars->fSilent )
             {
