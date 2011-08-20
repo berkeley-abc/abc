@@ -78,6 +78,9 @@ static inline word Bdc_Cof6( word t, int iVar, int fCof1 )
         return (t &~Truths[iVar]) | ((t &~Truths[iVar]) << (1<<iVar));
 }
 
+
+extern void Abc_Show6VarFunc( word F0, word F1 );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -778,7 +781,6 @@ word Bdc_SpfdFindBest( Vec_Wrd_t * vDivs, Vec_Int_t * vWeights, word F0, word F1
 ***********************************************************************/
 int Bdc_SpfdDecomposeTestOne( word t, Vec_Wrd_t * vDivs, Vec_Int_t * vWeights )
 {
-    extern void Abc_Show6VarFunc( word F0, word F1 );
     word F1 = t;
     word F0 = ~F1;
     word Func;
@@ -826,7 +828,8 @@ void Bdc_SpfdDecomposeTest()
     // vDivs = Bdc_SpfdDecomposeTest__( &vWeights );
     vDivs = Bdc_SpfdReadFiles( &vWeights );
 
-    Abc_Show6VarFunc( ~t, t );  
+//    Abc_Show6VarFunc( ~t, t );  
+
 /*
     for ( i = 0; i < 6; i++ )
     for ( j = 0; j < 6; j++ )
