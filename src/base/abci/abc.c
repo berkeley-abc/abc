@@ -1878,13 +1878,17 @@ int Abc_CommandPrintKMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( argc == globalUtilOptind + 2 )
+    {
+        Abc_NtkShow6VarFunc( argv[globalUtilOptind], argv[globalUtilOptind+1] );
+        return 0;
+    }
 
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-
     if ( !Abc_NtkIsLogic(pNtk) )
     {
         Abc_Print( -1, "Visualization of Karnaugh maps works for logic networks.\n" );

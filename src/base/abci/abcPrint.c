@@ -1384,6 +1384,118 @@ float Abc_NtkMfsTotalGlitching( Abc_Ntk_t * pNtk )
     return nSwitches ? 100.0*(nGlitches-nSwitches)/nSwitches : 0.0;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints K-map of 6-var function represented by truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_Show6VarFunc( word F0, word F1 )
+{
+    // order of cells in the Karnaugh map
+//    int Cells[8] = { 0, 1, 3, 2, 6, 7, 5, 4 };
+    int Cells[8] = { 0, 4, 6, 2, 3, 7, 5, 1 };
+    // intermediate variables
+    int s; // symbol counter
+    int h; // horizontal coordinate;
+    int v; // vertical coordinate;
+    assert( (F0 & F1) == 0 );
+
+    // output minterms above
+    for ( s = 0; s < 4; s++ )
+        printf( " " );
+    printf( " " );
+    for ( h = 0; h < 8; h++ )
+    {
+        for ( s = 0; s < 3; s++ )
+            printf( "%d",  ((Cells[h] >> (2-s)) & 1) );
+        printf( " " );
+    }
+    printf( "\n" );
+
+    // output horizontal line above
+    for ( s = 0; s < 4; s++ )
+        printf( " " );
+    printf( "+" );
+    for ( h = 0; h < 8; h++ )
+    {
+        for ( s = 0; s < 3; s++ )
+            printf( "-" );
+        printf( "+" );
+    }
+    printf( "\n" );
+
+    // output lines with function values
+    for ( v = 0; v < 8; v++ )
+    {
+        for ( s = 0; s < 3; s++ )
+            printf( "%d",  ((Cells[v] >> (2-s)) & 1) );
+        printf( " |" );
+
+        for ( h = 0; h < 8; h++ )
+        {
+            printf( " " );
+            if ( ((F0 >> ((Cells[v]*8)+Cells[h])) & 1) )
+                printf( "0" );
+            else if ( ((F1 >> ((Cells[v]*8)+Cells[h])) & 1) )
+                printf( "1" );
+            else
+                printf( " " );
+            printf( " |" );
+        }
+        printf( "\n" );
+
+        // output horizontal line above
+        for ( s = 0; s < 4; s++ )
+            printf( " " );
+//        printf( "%c", v == 7 ? '+' : '|' );
+        printf( "+" );
+        for ( h = 0; h < 8; h++ )
+        {
+            for ( s = 0; s < 3; s++ )
+                printf( "-" );
+//            printf( "%c", v == 7 ? '+' : '|' );
+            printf( "%c", (v == 7 || h == 7) ? '+' : '|' );
+        }
+        printf( "\n" );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints K-map of 6-var function represented by truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkShow6VarFunc( char * pF0, char * pF1 )
+{
+    word F0, F1;
+    if ( strlen(pF0) != 16 )
+    {
+        printf( "Wrong length (%d) of 6-var truth table (%s).\n", strlen(pF0), pF0 );
+        return;
+    }
+    if ( strlen(pF1) != 16 )
+    {
+        printf( "Wrong length (%d) of 6-var truth table (%s).\n", strlen(pF1), pF1 );
+        return;
+    }
+    Extra_ReadHexadecimal( (unsigned *)&F0, pF0, 6 );
+    Extra_ReadHexadecimal( (unsigned *)&F1, pF1, 6 );
+    Abc_Show6VarFunc( F0, F1 );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

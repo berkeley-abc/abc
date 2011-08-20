@@ -766,6 +766,7 @@ extern ABC_DLL void               Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * p
 extern ABC_DLL void               Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode );
 extern ABC_DLL void               Abc_NtkPrintSkews( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintAll );
 extern ABC_DLL void               Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj );
+extern ABC_DLL void               Abc_NtkShow6VarFunc( char * pF0, char * pF1 );
 /*=== abcProve.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pParams );
 extern ABC_DLL int                Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
