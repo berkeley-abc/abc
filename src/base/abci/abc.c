@@ -860,7 +860,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
         Dar_LibStart();
     }
     {
-        extern void Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
+//        extern void Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
 //        Bdc_ManDecomposeTest( 0x0f0f0f0f, 3 );
     }
 
@@ -880,10 +880,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
     {
         void For_ManFileExperiment();
 //        For_ManFileExperiment();
-    }
-    {
-        void Bdc_SpfdDecomposeTest();
-        Bdc_SpfdDecomposeTest();
     }
 /*
     {
@@ -8843,7 +8839,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_ManStop( pAig );
 }
 */
-
+/*
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     if ( pAbc->pCex && pNtk )
@@ -8855,8 +8851,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameReplaceCex( pAbc, &pNew );
     }
 }
-
-
+*/
+    {
+        void Bdc_SpfdDecomposeTest();
+        Bdc_SpfdDecomposeTest();
+    }
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDN] [-aovwh] <file_name>\n" );

@@ -78,8 +78,22 @@ static inline word Bdc_Cof6( word t, int iVar, int fCof1 )
         return (t &~Truths[iVar]) | ((t &~Truths[iVar]) << (1<<iVar));
 }
 
+int Bdc_SpfdAdjCost( word t )
+{
+    word c0, c1;
+    int v, Cost = 0;
+    for ( v = 0; v < 6; v++ )
+    {
+        c0 = Bdc_Cof6( t, v, 0 );
+        c1 = Bdc_Cof6( t, v, 1 );
+        Cost += Bdc_CountOnes( c0 ^ c1 );
+    }
+    return Cost;
+}
 
-extern void Abc_Show6VarFunc( word F0, word F1 );
+
+extern void  Abc_Show6VarFunc( word F0, word F1 );
+extern word  Aig_ManRandom64( int fReset );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -383,18 +397,94 @@ void Bdc_SpfdDecomposeTest_()
 typedef struct Bdc_Ent_t_ Bdc_Ent_t; // 24 bytes
 struct Bdc_Ent_t_
 {
-    unsigned         iFan0   : 30;
+    unsigned         iFan0   : 29;
     unsigned         fCompl0 :  1;
     unsigned         fCompl  :  1;
-    unsigned         iFan1   : 30;
+    unsigned         fMark0  :  1;
+    unsigned         iFan1   : 29;
     unsigned         fCompl1 :  1;
     unsigned         fExor   :  1;
+    unsigned         fMark1  :  1;
     int              iNext;
     int              iList;
     word             Truth;
 };
 
-#define BDC_TERM 0x3FFFFFFF
+#define BDC_TERM 0x1FFFFFFF
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bdc_SpfdMark0( Bdc_Ent_t * p, Bdc_Ent_t * pEnt )
+{
+    if ( pEnt->iFan0 == BDC_TERM )
+        return 0;
+    if ( pEnt->fMark0 )
+        return 0;
+    pEnt->fMark0 = 1;
+    return pEnt->fMark1 + 
+        Bdc_SpfdMark0(p, p + pEnt->iFan0) + 
+        Bdc_SpfdMark0(p, p + pEnt->iFan1);
+}
+int Bdc_SpfdMark1( Bdc_Ent_t * p, Bdc_Ent_t * pEnt )
+{
+    if ( pEnt->iFan0 == BDC_TERM )
+        return 0;
+    if ( pEnt->fMark1 )
+        return 0;
+    pEnt->fMark1 = 1;
+    return pEnt->fMark0 + 
+        Bdc_SpfdMark1(p, p + pEnt->iFan0) + 
+        Bdc_SpfdMark1(p, p + pEnt->iFan1);
+}
+void Bdc_SpfdUnmark0( Bdc_Ent_t * p, Bdc_Ent_t * pEnt )
+{
+    if ( pEnt->iFan0 == BDC_TERM )
+        return;
+    pEnt->fMark0 = 0;
+    Bdc_SpfdUnmark0( p, p + pEnt->iFan0 );
+    Bdc_SpfdUnmark0( p, p + pEnt->iFan1 );
+}
+void Bdc_SpfdUnmark1( Bdc_Ent_t * p, Bdc_Ent_t * pEnt )
+{
+    if ( pEnt->iFan0 == BDC_TERM )
+        return;
+    pEnt->fMark1 = 0;
+    Bdc_SpfdUnmark1( p, p + pEnt->iFan0 );
+    Bdc_SpfdUnmark1( p, p + pEnt->iFan1 );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bdc_SpfdCheckOverlap( Bdc_Ent_t * p, Bdc_Ent_t * pEnt0, Bdc_Ent_t * pEnt1 )
+{
+    int RetValue;
+    RetValue = Bdc_SpfdMark0( p, pEnt0 );
+    assert( RetValue == 0 );
+    RetValue = Bdc_SpfdMark1( p, pEnt1 );
+    Bdc_SpfdUnmark0( p, pEnt0 );
+    Bdc_SpfdUnmark1( p, pEnt1 );
+    return RetValue;
+}
 
 /**Function*************************************************************
 
@@ -484,20 +574,15 @@ int * Bdc_SpfdHashLookup( Bdc_Ent_t * p, int Size, word t )
 ***********************************************************************/
 Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
 {
-    int nFuncs = 3000000; // the number of functions to compute
-    int nSize  = 2777111; // the hash table size to use
-    int Limit  = 5;
-
+//    int nFuncs = 8000000; // the number of functions to compute
+//    int nSize  = 2777111; // the hash table size to use
+//    int Limit  = 6;
     
-//    int nFuncs = 13000000; // the number of functions to compute
-//    int nSize  = 12582917; // the hash table size to use
-//    int Limit  = 6;
+    int nFuncs = 51000000; // the number of functions to compute
+    int nSize  = 50331653; // the hash table size to use
+    int Limit  = 6;
 
-//    int nFuncs =  60000000; // the number of functions to compute
-//    int nSize  =  50331653; // the hash table size to use
-//    int Limit  = 6;
-
-    int * pPlace, i, n, m, s, fCompl, clk = clock(), clk2;
+    int * pPlace, i, n, m, k, s, fCompl, clk = clock(), clk2;
     Vec_Int_t * vStops;
     Vec_Wrd_t * vTruths;
     Vec_Int_t * vWeights;
@@ -510,11 +595,15 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     p = (Bdc_Ent_t *)calloc( nFuncs, sizeof(Bdc_Ent_t) );
     memset( p, 255, sizeof(Bdc_Ent_t) );
     p->iList = 0;
+    for ( q = p; q < p+nFuncs; q++ )
+       q->iList = 0;
     q = p + 1;
     printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, q-p );
 
-    vTruths = Vec_WrdAlloc( 100 );
-    vWeights = Vec_IntAlloc( 100 );
+    vTruths  = Vec_WrdStart( nFuncs );
+    vWeights = Vec_IntStart( nFuncs );
+    Vec_WrdClear( vTruths );
+    Vec_IntClear( vWeights );
 
     // create elementary vars
     vStops = Vec_IntAlloc( 10 );
@@ -534,22 +623,27 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, q-p );
 
     // create gates
-    for ( n = 0; n < 10; n++ )
+    for ( n = 0; n < Limit; n++ )
     {
-        // set the start and stop
-        pBeg1 = p + Vec_IntEntry( vStops, n );
-        pEnd1 = p + Vec_IntEntry( vStops, n+1 );
-
         // try previous
-        for ( m = 0; m < n; m++ )
-        if ( m+n+1 <= Limit )
+        for ( k = 0; k < Limit; k++ )
+        for ( m = 0; m < Limit; m++ )
         {
+            if ( k + m != n || k > m )
+                continue;
+            // set the start and stop
+            pBeg0 = p + Vec_IntEntry( vStops, k );
+            pEnd0 = p + Vec_IntEntry( vStops, k+1 );
+            // set the start and stop
+            pBeg1 = p + Vec_IntEntry( vStops, m );
+            pEnd1 = p + Vec_IntEntry( vStops, m+1 );
+
             clk2 = clock();
-            pBeg0 = p + Vec_IntEntry( vStops, m );
-            pEnd0 = p + Vec_IntEntry( vStops, m+1 );
-            printf( "Trying %6d x %6d.  ", pEnd0-pBeg0, pEnd1-pBeg1 );
+            printf( "Trying %7d  x %7d.  ", pEnd0-pBeg0, pEnd1-pBeg1 );
             for ( pThis0 = pBeg0; pThis0 < pEnd0; pThis0++ )
             for ( pThis1 = pBeg1; pThis1 < pEnd1; pThis1++ )
+            if ( k < m || pThis1 > pThis0 )
+//            if ( n < 5 || Bdc_SpfdCheckOverlap(p, pThis0, pThis1) )
             for ( s = 0; s < 5; s++ )
             {
                 t0 = (s&1)      ? ~pThis0->Truth : pThis0->Truth;
@@ -573,84 +667,40 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
                 *pPlace = q-p;
                 q++;
                 Vec_WrdPush( vTruths, t );
-                Vec_IntPush( vWeights, m+n+1 );
+//                Vec_IntPush( vWeights, n == 5 ? n : n+1 );
+                Vec_IntPush( vWeights, n+1 );
                 if ( q-p == nFuncs )
+                {
+                    printf( "Reached limit of %d functions.\n", nFuncs );
                     goto finish;
+                }
             }
-            Vec_IntPush( vStops, q-p );
-            printf( "Added %d + %d + 1 = %d. Total = %8d.   ", m, n, m+n+1, q-p );
+            printf( "Added %d + %d + 1 = %d. Total = %8d.   ", k, m, n+1, q-p );
             Abc_PrintTime( 1, "Time", clock() - clk2 );
         }
-        if ( n+n+1 > Limit )
-            continue;
-
-        // try current
-        clk2 = clock();
-        printf( "Trying %6d x %6d.  ", pEnd1-pBeg1, pEnd1-pBeg1 );
-        for ( pThis0 = pBeg1; pThis0 < pEnd1; pThis0++ )
-        for ( pThis1 = pThis0+1; pThis1 < pEnd1; pThis1++ )
-        for ( s = 0; s < 5; s++ )
-        {
-            t0 = (s&1)      ? ~pThis0->Truth : pThis0->Truth;
-            t1 = ((s>>1)&1) ? ~pThis1->Truth : pThis1->Truth;
-            t  = ((s>>2)&1) ? t0 ^ t1 : t0 & t1;
-            fCompl = t & 1;
-            if ( fCompl )
-                t = ~t;
-            if ( t == 0 )
-                continue;
-            pPlace = Bdc_SpfdHashLookup( p, nSize, t );
-            if ( pPlace == NULL )
-                continue;
-            q->iFan0   = pThis0-p;
-            q->fCompl0 = s&1;
-            q->iFan1   = pThis1-p;
-            q->fCompl1 = (s>>1)&1;
-            q->fExor   = (s>>2)&1;
-            q->Truth   = t;
-            q->fCompl  = fCompl;
-            *pPlace = q-p;
-            q++;
-            Vec_WrdPush( vTruths, t );
-            Vec_IntPush( vWeights, n+n+1 );
-            if ( q-p == nFuncs )
-                goto finish;
-        }
         Vec_IntPush( vStops, q-p );
-        assert( n || q-p == 82 );
-        printf( "Added %d + %d + 1 = %d. Total = %8d.   ", n, n, n+n+1, q-p );
-        Abc_PrintTime( 1, "Time", clock() - clk2 );
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
 
-/*
+
     {
-        FILE * pFile = fopen( "func6var5node.txt", "w" );
-        word t;
-        Vec_WrdSortUnsigned( vTruths );
-        Vec_WrdForEachEntry( vTruths, t, i )
-            Extra_PrintHex( pFile, (unsigned *)&t, 6 ), fprintf( pFile, "\n" );
-        fclose( pFile );
-    }
-*/
-    {
-        FILE * pFile = fopen( "func6v5n_bin.txt", "wb" );
-//        Vec_WrdSortUnsigned( vTruths );
+        FILE * pFile = fopen( "func6v6n_bin.txt", "wb" );
         fwrite( Vec_WrdArray(vTruths), sizeof(word), Vec_WrdSize(vTruths), pFile );
         fclose( pFile );
     }
     {
-        FILE * pFile = fopen( "func6v5nW_bin.txt", "wb" );
+        FILE * pFile = fopen( "func6v6nW_bin.txt", "wb" );
         fwrite( Vec_IntArray(vWeights), sizeof(int), Vec_IntSize(vWeights), pFile );
         fclose( pFile );
     }
 
+
 finish:
     Vec_IntFree( vStops );
-//    Vec_WrdFree( vTruths );
     free( p );
 
     *pvWeights = vWeights;
+//    Vec_WrdFree( vTruths );
     return vTruths;
 }
 
@@ -666,7 +716,38 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Wrd_t * Bdc_SpfdReadFiles( Vec_Int_t ** pvWeights )
+Vec_Wrd_t * Bdc_SpfdReadFiles5( Vec_Int_t ** pvWeights )
+{
+    Vec_Int_t * vWeights;
+    Vec_Wrd_t * vDivs;
+    FILE * pFile;
+    
+    vDivs = Vec_WrdStart( 3863759 );
+    pFile = fopen( "func6v5n_bin.txt", "rb" );
+    fread( Vec_WrdArray(vDivs), sizeof(word), Vec_WrdSize(vDivs), pFile );
+    fclose( pFile );
+
+    vWeights = Vec_IntStart( 3863759 );
+    pFile = fopen( "func6v5nW_bin.txt", "rb" );
+    fread( Vec_IntArray(vWeights), sizeof(int), Vec_IntSize(vWeights), pFile );
+    fclose( pFile );
+
+    *pvWeights = vWeights;
+    return vDivs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Bdc_SpfdReadFiles6( Vec_Int_t ** pvWeights )
 {
     Vec_Int_t * vWeights;
     Vec_Wrd_t * vDivs = Vec_WrdStart( 12776759 );
@@ -785,6 +866,8 @@ int Bdc_SpfdDecomposeTestOne( word t, Vec_Wrd_t * vDivs, Vec_Int_t * vWeights )
     word F0 = ~F1;
     word Func;
     int i, Cost = 0;
+    printf( "Trying: " );
+    Extra_PrintHex( stdout, (unsigned *)&t, 6 ); printf( "\n" );
 //    Abc_Show6VarFunc( F0, F1 );   
     for ( i = 0; F0 && F1; i++ )
     {
@@ -795,7 +878,7 @@ int Bdc_SpfdDecomposeTestOne( word t, Vec_Wrd_t * vDivs, Vec_Int_t * vWeights )
 //        Abc_Show6VarFunc( F0, F1 );    
     }
     Cost += (i-1);
-    printf( "Produce solution with cost %d.\n", Cost );
+    printf( "Produce solution with cost %2d (with adj cost %4d).\n", Cost, Bdc_SpfdAdjCost(t) );
     return Cost;
 }
 
@@ -813,9 +896,18 @@ int Bdc_SpfdDecomposeTestOne( word t, Vec_Wrd_t * vDivs, Vec_Int_t * vWeights )
 void Bdc_SpfdDecomposeTest()
 {
 //    word t = 0x5052585a0002080a;
+
     word t = 0x9ef7a8d9c7193a0f;
 //    word t = 0x6BFDA276C7193A0F;
 //    word t = 0xA3756AFE0B1DF60B;
+
+//    word t = 0xFEF7AEBFCE80AA0F;
+//    word t = 0x9EF7FDBFC77F6F0F;
+//    word t = 0xDEF7FDFF377F6FFF;
+
+//    word t = 0x345D02736DB390A5; // xor with var 0
+
+//    word t = 0x3EFDA2736D139A0F; // best solution after changes
 
     Vec_Int_t * vWeights;
     Vec_Wrd_t * vDivs;
@@ -823,14 +915,37 @@ void Bdc_SpfdDecomposeTest()
     int i, j, k, n, Cost, CostBest = 100000;
     int clk = clock();
 
-    return;
+//    return;
 
-    // vDivs = Bdc_SpfdDecomposeTest__( &vWeights );
-    vDivs = Bdc_SpfdReadFiles( &vWeights );
+    vDivs = Bdc_SpfdDecomposeTest__( &vWeights );
+//    vDivs = Bdc_SpfdReadFiles5( &vWeights );
 
 //    Abc_Show6VarFunc( ~t, t );  
 
-/*
+    // try function
+    tt = t;
+    Cost = Bdc_SpfdDecomposeTestOne( tt, vDivs, vWeights );
+    if ( CostBest > Cost )
+    {
+        CostBest = Cost;
+        tbest = tt;
+    }
+    printf( "\n" );
+
+    // try complemented output
+    for ( i = 0; i < 6; i++ )
+    {
+        tt = t ^ Truths[i];
+        Cost = Bdc_SpfdDecomposeTestOne( tt, vDivs, vWeights );
+        if ( CostBest > Cost )
+        {
+            CostBest = Cost;
+            tbest = tt;
+        }
+    }
+    printf( "\n" );
+
+    // try complemented input
     for ( i = 0; i < 6; i++ )
     for ( j = 0; j < 6; j++ )
     {
@@ -848,8 +963,8 @@ void Bdc_SpfdDecomposeTest()
             tbest = tt;
         }
     }
-*/
 
+/*
     for ( i = 0; i < 6; i++ )
     for ( j = 0; j < 6; j++ )
     {
@@ -878,7 +993,7 @@ void Bdc_SpfdDecomposeTest()
             }
         }
     }
-
+*/
 
     printf( "Best solution found with cost %d.  ", CostBest );
     Extra_PrintHex( stdout, (unsigned *)&tbest, 6 ); //printf( "\n" );
@@ -886,6 +1001,111 @@ void Bdc_SpfdDecomposeTest()
 
     Vec_WrdFree( vDivs );
     Vec_IntFree( vWeights );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bdc_SpfdDecomposeTest3()
+{
+    int nSizeM = (1 << 26);
+    int nSizeK = (1 << 3);
+    Vec_Wrd_t * v1M;
+    Vec_Wrd_t * v1K;
+    int i, k, Counter, clk;
+//    int EntryM, EntryK;
+    Aig_ManRandom64( 1 );
+
+    v1M = Vec_WrdAlloc( nSizeM );
+    for ( i = 0; i < nSizeM; i++ )
+        Vec_WrdPush( v1M, Aig_ManRandom64(0) );
+
+    v1K = Vec_WrdAlloc( nSizeK );
+    for ( i = 0; i < nSizeK; i++ )
+        Vec_WrdPush( v1K, Aig_ManRandom64(0) );
+
+    clk = clock();
+    Counter = 0;
+    for ( i = 0; i < nSizeM; i++ )
+    for ( k = 0; k < nSizeK; k++ )
+        Counter += ((v1M->pArray[i] & v1K->pArray[k]) == v1K->pArray[k]);
+//    Vec_WrdForEachEntry( v1M, EntryM, i )
+//    Vec_WrdForEachEntry( v1K, EntryK, k )
+//        Counter += ((EntryM & EntryK) == EntryK);
+
+    printf( "Total = %8d.  ", Counter );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+
+    clk = clock();
+    Counter = 0;
+    for ( k = 0; k < nSizeK; k++ )
+    for ( i = 0; i < nSizeM; i++ )
+        Counter += ((v1M->pArray[i] & v1K->pArray[k]) == v1K->pArray[k]);
+    printf( "Total = %8d.  ", Counter );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bdc_SpfdDecomposeTest8()
+{
+//    word t = 0x9ef7a8d9c7193a0f;
+//    word t = 0x9EF7FDBFC77F6F0F;
+    word t = 0x513B57150819050F;
+
+    Vec_Int_t * vWeights;
+    Vec_Wrd_t * vDivs;
+    word Func, FuncBest;
+    int Cost, CostBest = ABC_INFINITY;
+    int i, clk = clock();
+
+//    return;
+
+    vDivs = Bdc_SpfdReadFiles5( &vWeights );
+
+    printf( "Best init = %4d.  ", Bdc_SpfdAdjCost(t) );
+    Extra_PrintHex( stdout, (unsigned *)&t, 6 ); //printf( "\n" );
+    Abc_PrintTime( 1, "  Time", clock() - clk );
+
+    Vec_WrdForEachEntry( vDivs, Func, i )
+    {
+        Cost = Bdc_SpfdAdjCost( t ^ Func );
+        if ( CostBest > Cost )
+        {
+            CostBest = Cost;
+            FuncBest = Func;
+        }
+    }
+
+    printf( "Best cost = %4d.  ", CostBest );
+    Extra_PrintHex( stdout, (unsigned *)&FuncBest, 6 ); //printf( "\n" );
+    Abc_PrintTime( 1, "  Time", clock() - clk );
+
+Abc_Show6VarFunc( 0, t );
+Abc_Show6VarFunc( 0, FuncBest );
+Abc_Show6VarFunc( 0, (FuncBest ^ t) );
+
+    FuncBest ^= t;
+    Extra_PrintHex( stdout, (unsigned *)&FuncBest, 6 ); printf( "\n" );
+
 }
 
 ////////////////////////////////////////////////////////////////////////
