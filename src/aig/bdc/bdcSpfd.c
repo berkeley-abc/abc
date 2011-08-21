@@ -578,8 +578,12 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
 //    int nSize  = 2777111; // the hash table size to use
 //    int Limit  = 6;
     
-    int nFuncs = 51000000; // the number of functions to compute
-    int nSize  = 50331653; // the hash table size to use
+//    int nFuncs = 51000000; // the number of functions to compute
+//    int nSize  = 50331653; // the hash table size to use
+//    int Limit  = 6;
+    
+    int nFuncs = 250000000; // the number of functions to compute
+    int nSize  = 201326611; // the hash table size to use
     int Limit  = 6;
 
     int * pPlace, i, n, m, k, s, fCompl, clk = clock(), clk2;
