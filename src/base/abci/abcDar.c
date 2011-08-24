@@ -1892,7 +1892,7 @@ int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man
             if ( pPars->fVerbose )
                 printf( "Solving output %2d (out of %2d):\n", i, Saig_ManPoNum(pMan) );
             pTemp = Aig_ManDupOneOutput( pMan, i, 1 );
-            pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0 );
+            pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0, -1, -1, 0, 0 );
             Aig_ManStop( pAux );
             if ( Aig_ManRegNum(pTemp) == 0 )
             {
@@ -1948,7 +1948,7 @@ int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man
         if ( ppNtkRes )
         {
             pTemp = Aig_ManDupUnsolvedOutputs( pMan, 1 );
-            *ppNtkRes = Aig_ManScl( pTemp, 1, 1, 0 );
+            *ppNtkRes = Aig_ManScl( pTemp, 1, 1, 0, -1, -1, 0, 0 );
             Aig_ManStop( pTemp );
         }
     }
@@ -2591,7 +2591,7 @@ Abc_Ntk_t * Abc_NtkDarMatch( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nDist, in
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose )
 {
     extern void Aig_ManPrintControlFanouts( Aig_Man_t * p );
     Abc_Ntk_t * pNtkAig;
@@ -2603,7 +2603,7 @@ Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchE
     {
         Aig_ManSeqCleanup( pMan );
         if ( fLatchConst && pMan->nRegs )
-            pMan = Aig_ManConstReduce( pMan, fVerbose );
+            pMan = Aig_ManConstReduce( pMan, 0, -1, -1, fVerbose, fVeryVerbose );
         if ( fLatchEqual && pMan->nRegs )
             pMan = Aig_ManReduceLaches( pMan, fVerbose );
     }
@@ -2612,7 +2612,7 @@ Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchE
         if ( pMan->vFlopNums )
             Vec_IntFree( pMan->vFlopNums );
         pMan->vFlopNums = NULL;
-        pMan = Aig_ManScl( pTemp = pMan, fLatchConst, fLatchEqual, fVerbose );
+        pMan = Aig_ManScl( pTemp = pMan, fLatchConst, fLatchEqual, fUseMvSweep, nFramesSymb, nFramesSatur, fVerbose, fVeryVerbose );
         Aig_ManStop( pTemp );
     }
 
@@ -2649,7 +2649,7 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
     Aig_ManStop( pTemp );
 
 //    pMan = Aig_ManReduceLaches( pMan, 1 );
-//    pMan = Aig_ManConstReduce( pMan, 1 );
+//    pMan = Aig_ManConstReduce( pMan, 1, 0 );
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
@@ -2683,7 +2683,7 @@ Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
     Aig_ManStop( pTemp );
 
 //    pMan = Aig_ManReduceLaches( pMan, 1 );
-//    pMan = Aig_ManConstReduce( pMan, 1 );
+//    pMan = Aig_ManConstReduce( pMan, 1, 0 );
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
@@ -2719,7 +2719,7 @@ Abc_Ntk_t * Abc_NtkDarRetimeMostFwd( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbo
     Aig_ManStop( pTemp );
 
 //    pMan = Aig_ManReduceLaches( pMan, 1 );
-//    pMan = Aig_ManConstReduce( pMan, 1 );
+//    pMan = Aig_ManConstReduce( pMan, 1, 0 );
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );

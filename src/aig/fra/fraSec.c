@@ -126,7 +126,7 @@ clk = clock();
     if ( pNew->nRegs )
     pNew = Aig_ManReduceLaches( pNew, 0 );
     if ( pNew->nRegs )
-    pNew = Aig_ManConstReduce( pNew, 0 );
+    pNew = Aig_ManConstReduce( pNew, 0, -1, -1, 0, 0 );
     if ( pParSec->fVerbose )
     {
         printf( "Sequential cleanup:   Latches = %5d. Nodes = %6d. ", 
@@ -407,7 +407,7 @@ ABC_PRT( "Time", clock() - clk );
         }  
 
         if ( pNew->nRegs )
-            pNew = Aig_ManConstReduce( pNew, 0 );
+            pNew = Aig_ManConstReduce( pNew, 0, -1, -1, 0, 0 );
 
         // perform rewriting
 clk = clock();
@@ -498,7 +498,7 @@ clk = clock();
                 if ( pPars->fVerbose )
                     printf( "Solving output %2d (out of %2d):\n", i, Saig_ManPoNum(pNew) );
                 pTemp = Aig_ManDupOneOutput( pNew, i, 1 );
-                pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0 );
+                pTemp = Aig_ManScl( pAux = pTemp, 1, 1, 0, -1, -1, 0, 0 );
                 Aig_ManStop( pAux );
                 if ( Saig_ManRegNum(pTemp) > 0 )
                 {
@@ -537,7 +537,7 @@ clk = clock();
             }
             pNew = Aig_ManDupUnsolvedOutputs( pTemp = pNew, 1 );
             Aig_ManStop( pTemp );
-            pNew = Aig_ManScl( pTemp = pNew, 1, 1, 0 );
+            pNew = Aig_ManScl( pTemp = pNew, 1, 1, 0, -1, -1, 0, 0 );
             Aig_ManStop( pTemp );
         }
         else

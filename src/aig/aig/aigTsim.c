@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
+#include "saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -344,7 +345,7 @@ void Aig_TsiStateOrAll( Aig_Tsi_t * pTsi, unsigned * pState )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
+Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose, int fVeryVerbose )
 {
     Aig_Tsi_t * pTsi;
     Vec_Ptr_t * vMap;
@@ -374,7 +375,11 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
         }
 
 //        printf( "%d ", Aig_TsiStateCount(pTsi, pState) );
-//Aig_TsiStatePrint( pTsi, pState );
+if ( fVeryVerbose )
+{
+printf( "%3d : ", f );
+Aig_TsiStatePrint( pTsi, pState );
+}
         // check if this state exists
         if ( Aig_TsiStateLookup( pTsi, pState, pTsi->nWords ) )
             break;
@@ -446,6 +451,8 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
     }
     if ( fConstants == 0 )
     {
+        if ( fVerbose )
+        printf( "Detected 0 constants after %d iterations of ternary simulation.\n", f );
         Aig_TsiStop( pTsi );
         return NULL;
     }
@@ -488,12 +495,18 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManConstReduce( Aig_Man_t * p, int fVerbose )
+Aig_Man_t * Aig_ManConstReduce( Aig_Man_t * p, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose )
 {
     Aig_Man_t * pTemp;
     Vec_Ptr_t * vMap;
-    while ( (vMap = Aig_ManTernarySimulate( p, fVerbose )) )
+    while ( 1 )
     {
+        if ( fUseMvSweep )
+            vMap = Saig_MvManSimulate( p, nFramesSymb, nFramesSatur, fVerbose, fVeryVerbose );
+        else
+            vMap = Aig_ManTernarySimulate( p, fVerbose, fVeryVerbose );
+        if ( vMap == NULL )
+            break;
         p = Aig_ManRemap( pTemp = p, vMap );
         Vec_PtrFree( vMap );
         Aig_ManSeqCleanup( p );

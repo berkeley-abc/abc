@@ -548,7 +548,7 @@ void Gia_ManSeqCleanupClasses( Gia_Man_t * p, int fConst, int fEquiv, int fVerbo
 {
     Aig_Man_t * pNew, * pTemp;
     pNew  = Gia_ManToAigSimple( p );
-    pTemp = Aig_ManScl( pNew, fConst, fEquiv, fVerbose );
+    pTemp = Aig_ManScl( pNew, fConst, fEquiv, 0, -1, -1, fVerbose, 0 );
     Gia_ManReprFromAigRepr( pNew, p );
     Aig_ManStop( pTemp );
     Aig_ManStop( pNew );

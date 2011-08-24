@@ -8852,9 +8852,10 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 }
 */
+
     {
-        void Bdc_SpfdDecomposeTest();
-        Bdc_SpfdDecomposeTest();
+//        void Bdc_SpfdDecomposeTest();
+//        Bdc_SpfdDecomposeTest();
     }
     return 0;
 usage:
@@ -15481,21 +15482,21 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
-    int fLatchConst;
-    int fLatchEqual;
-    int fSaveNames;
-    int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fVerbose );
+    int fLatchConst  =  1;
+    int fLatchEqual  =  1;
+    int fSaveNames   =  0;
+    int fUseMvSweep  =  0;
+    int nFramesSymb  =  1;
+    int nFramesSatur = 32;
+    int fVerbose     =  0;
+    int fVeryVerbose =  0;
+    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
-    fLatchConst = 1;
-    fLatchEqual = 1;
-    fSaveNames  = 0;
-    fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cenvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cenmFSvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15508,8 +15509,36 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             fSaveNames ^= 1;
             break;
+        case 'm':
+            fUseMvSweep ^= 1;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesSymb = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesSymb < 0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesSatur = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesSatur < 0 ) 
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -15533,7 +15562,7 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // modify the current network
-    pNtkRes = Abc_NtkDarLatchSweep( pNtk, fLatchConst, fLatchEqual, fSaveNames, fVerbose );
+    pNtkRes = Abc_NtkDarLatchSweep( pNtk, fLatchConst, fLatchEqual, fSaveNames, fUseMvSweep, nFramesSymb, nFramesSatur, fVerbose, fVeryVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Sequential cleanup has failed.\n" );
@@ -15544,13 +15573,17 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scleanup [-cenvh]\n" );
+    Abc_Print( -2, "usage: scleanup [-cenmFSvwh]\n" );
     Abc_Print( -2, "\t         performs sequential cleanup of the current network\n" );
     Abc_Print( -2, "\t         by removing nodes and latches that do not feed into POs\n" );
     Abc_Print( -2, "\t-c     : sweep stuck-at latches detected by ternary simulation [default = %s]\n", fLatchConst? "yes": "no" );
     Abc_Print( -2, "\t-e     : merge equal latches (same data inputs and init states) [default = %s]\n", fLatchEqual? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggle preserving latch names [default = %s]\n", fSaveNames? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle using hybrid ternary/symbolic simulation [default = %s]\n", fUseMvSweep? "yes": "no" );
+    Abc_Print( -2, "\t-F num : the number of first frames simulated symbolically [default = %d]\n", nFramesSymb );
+    Abc_Print( -2, "\t-S num : the number of frames when symbolic saturation begins [default = %d]\n", nFramesSatur );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle very verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -18973,7 +19006,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
     extern int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars );
     Saig_ParBmc_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
@@ -19094,7 +19127,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             extern void Abc_NtkDropSatOutputs( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCexes, int fVerbose );
             Abc_NtkDropSatOutputs( pNtk, pNtk->vSeqModelVec, pPars->fVerbose );
-            pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0 );
+            pNtkRes = Abc_NtkDarLatchSweep( pNtk, 1, 1, 1, 0, -1, -1, 0, 0 );
             if ( pNtkRes == NULL )
             {
                 Abc_Print( -1, "Removing SAT outputs has failed.\n" );

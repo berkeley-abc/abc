@@ -203,7 +203,7 @@ extern Vec_Int_t *       Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iF
 /*=== saigSimExt.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstPi, Abc_Cex_t * pCex, int fVerbose );
 /*=== saigSimMv.c ==========================================================*/
-extern int               Saig_MvManSimulate( Aig_Man_t * pAig, int fVerbose );
+extern Vec_Ptr_t *       Saig_MvManSimulate( Aig_Man_t * pAig, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 /*=== saigStrSim.c ==========================================================*/
 extern Vec_Int_t *       Saig_StrSimPerformMatching( Aig_Man_t * p0, Aig_Man_t * p1, int nDist, int fVerbose, Aig_Man_t ** ppMiter );
 /*=== saigSwitch.c ==========================================================*/

@@ -63,6 +63,7 @@ struct Saig_MvMan_t_
     // compacted AIG
     Saig_MvObj_t *   pAigOld;      // AIG objects
     Vec_Ptr_t *      vFlops;       // collected flops
+    Vec_Int_t *      vXFlops;      // flops that had at least one X-value
     Vec_Ptr_t *      vTired;       // collected flops
     unsigned *       pTStates;     // hash table for states
     int              nTStatesSize; // hash table size
@@ -83,29 +84,29 @@ struct Saig_MvMan_t_
     unsigned char *  pLevels;      // levels of AIG nodes
 };
 
-static inline int    Saig_MvObjFaninC0( Saig_MvObj_t * pObj )  { return pObj->iFan0 & 1;          }
-static inline int    Saig_MvObjFaninC1( Saig_MvObj_t * pObj )  { return pObj->iFan1 & 1;          }
-static inline int    Saig_MvObjFanin0( Saig_MvObj_t * pObj )   { return pObj->iFan0 >> 1;         }
-static inline int    Saig_MvObjFanin1( Saig_MvObj_t * pObj )   { return pObj->iFan1 >> 1;         }
+static inline int    Saig_MvObjFaninC0( Saig_MvObj_t * pObj )  { return pObj->iFan0 & 1;           }
+static inline int    Saig_MvObjFaninC1( Saig_MvObj_t * pObj )  { return pObj->iFan1 & 1;           }
+static inline int    Saig_MvObjFanin0( Saig_MvObj_t * pObj )   { return pObj->iFan0 >> 1;          }
+static inline int    Saig_MvObjFanin1( Saig_MvObj_t * pObj )   { return pObj->iFan1 >> 1;          }
 
-static inline int    Saig_MvConst0()                           { return 1;                        }
-static inline int    Saig_MvConst1()                           { return 0;                        }
-static inline int    Saig_MvConst( int c )                     { return !c;                       }
-static inline int    Saig_MvUndef()                            { return SAIG_UNDEF_VALUE;         }
+static inline int    Saig_MvConst0()                           { return 1;                         }
+static inline int    Saig_MvConst1()                           { return 0;                         }
+static inline int    Saig_MvConst( int c )                     { return !c;                        }
+static inline int    Saig_MvUndef()                            { return SAIG_UNDEF_VALUE;          }
 
-static inline int    Saig_MvIsConst0( int iNode )              { return iNode == 1;               }
-static inline int    Saig_MvIsConst1( int iNode )              { return iNode == 0;               }
-static inline int    Saig_MvIsConst( int iNode )               { return iNode  < 2;               }
-static inline int    Saig_MvIsUndef( int iNode )               { return iNode == SAIG_UNDEF_VALUE;}
+static inline int    Saig_MvIsConst0( int iNode )              { return iNode == 1;                }
+static inline int    Saig_MvIsConst1( int iNode )              { return iNode == 0;                }
+static inline int    Saig_MvIsConst( int iNode )               { return iNode  < 2;                }
+static inline int    Saig_MvIsUndef( int iNode )               { return iNode == SAIG_UNDEF_VALUE; }
 
-static inline int    Saig_MvRegular( int iNode )               { return (iNode & ~01);            }
-static inline int    Saig_MvNot( int iNode )                   { return (iNode ^  01);            }
-static inline int    Saig_MvNotCond( int iNode, int c )        { return (iNode ^ (c));            }
-static inline int    Saig_MvIsComplement( int iNode )          { return (int)(iNode & 01);        }
+static inline int    Saig_MvRegular( int iNode )               { return (iNode & ~01);             }
+static inline int    Saig_MvNot( int iNode )                   { return (iNode ^  01);             }
+static inline int    Saig_MvNotCond( int iNode, int c )        { return (iNode ^ (c));             }
+static inline int    Saig_MvIsComplement( int iNode )          { return (int)(iNode & 01);         }
 
-static inline int    Saig_MvLit2Var( int iNode )               { return (iNode >> 1);             }
-static inline int    Saig_MvVar2Lit( int iVar )                { return (iVar << 1);              }
-static inline int    Saig_MvLev( Saig_MvMan_t * p, int iNode ) { return p->pLevels[iNode >> 1];   }
+static inline int    Saig_MvLit2Var( int iNode )               { return (iNode >> 1);              }
+static inline int    Saig_MvVar2Lit( int iVar )                { return (iVar << 1);               }
+static inline int    Saig_MvLev( Saig_MvMan_t * p, int iNode ) { return p->pLevels[iNode >> 1];    }
 
 // iterator over compacted objects
 #define Saig_MvManForEachObj( pAig, pEntry ) \
@@ -200,7 +201,7 @@ static inline int Saig_MvCreateObj( Saig_MvMan_t * p, int iFan0, int iFan1 )
   SeeAlso     []
 
 ***********************************************************************/
-Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig )
+Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig, int nFramesSatur )
 {
     Saig_MvMan_t * p;
     int i;
@@ -209,7 +210,7 @@ Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig )
     memset( p, 0, sizeof(Saig_MvMan_t) );
     // set parameters
     p->pAig         = pAig;
-    p->nStatesMax   = 200;
+    p->nStatesMax   = 2 * nFramesSatur + 100;
     p->nLevelsMax   = 4;
     p->nValuesMax   = SAIG_DIFF_VALUES;
     p->nFlops       = Aig_ManRegNum(pAig);
@@ -252,6 +253,7 @@ void Saig_MvManStop( Saig_MvMan_t * p )
 {
     Aig_MmFixedStop( p->pMemStates, 0 );
     Vec_PtrFree( p->vStates );
+    Vec_IntFreeP( &p->vXFlops );
     Vec_PtrFree( p->vFlops );
     Vec_PtrFree( p->vTired );
     ABC_FREE( p->pRegsValues[0] );
@@ -321,7 +323,7 @@ static inline int * Saig_MvTableFind( Saig_MvMan_t * p, int iFan0, int iFan1 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Saig_MvAnd( Saig_MvMan_t * p, int iFan0, int iFan1 )
+static inline int Saig_MvAnd( Saig_MvMan_t * p, int iFan0, int iFan1, int fFirst )
 {
     if ( iFan0 == iFan1 )
         return iFan0;
@@ -333,10 +335,12 @@ static inline int Saig_MvAnd( Saig_MvMan_t * p, int iFan0, int iFan1 )
         return Saig_MvIsConst1(iFan1) ? iFan0 : Saig_MvConst0();
     if ( Saig_MvIsUndef(iFan0) || Saig_MvIsUndef(iFan1) )
         return Saig_MvUndef();
-    if ( Saig_MvLev(p, iFan0) >= p->nLevelsMax || Saig_MvLev(p, iFan1) >= p->nLevelsMax )
-        return Saig_MvUndef();
+//    if ( Saig_MvLev(p, iFan0) >= p->nLevelsMax || Saig_MvLev(p, iFan1) >= p->nLevelsMax )
+//        return Saig_MvUndef();
 
-//    return Saig_MvUndef();
+    // go undef after the first frame
+    if ( !fFirst )
+        return Saig_MvUndef();
 
     if ( iFan0 > iFan1 )
     {
@@ -381,6 +385,32 @@ static inline int Saig_MvSimulateValue1( Saig_MvObj_t * pAig, Saig_MvObj_t * pOb
 
 /**Function*************************************************************
 
+  Synopsis    [Prints MV state.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_MvPrintState( int Iter, Saig_MvMan_t * p )
+{
+    Saig_MvObj_t * pEntry;
+    int i;
+    printf( "%3d : ", Iter );
+    Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
+    {
+        if ( pEntry->Value == SAIG_UNDEF_VALUE )
+            printf( "    *" );
+        else
+            printf( "%5d", pEntry->Value );
+    }
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs one iteration of simulation.]
 
   Description []
@@ -390,30 +420,29 @@ static inline int Saig_MvSimulateValue1( Saig_MvObj_t * pAig, Saig_MvObj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-void Saig_MvSimulateFrame( Saig_MvMan_t * p, int fFirst )
+void Saig_MvSimulateFrame( Saig_MvMan_t * p, int fFirst, int fVerbose )
 {
-    int fPrintState = 0;
     Saig_MvObj_t * pEntry;
-    int i, NewValue;
+    int i;
     Saig_MvManForEachObj( p->pAigOld, pEntry )
     {
         if ( pEntry->Type == AIG_OBJ_AND )
         {
             pEntry->Value = Saig_MvAnd( p, 
                 Saig_MvSimulateValue0(p->pAigOld, pEntry),
-                Saig_MvSimulateValue1(p->pAigOld, pEntry) );
-/*
-printf( "%d = %d%s * %d%s  --> %d\n", pEntry - p->pAigOld,
-       Saig_MvObjFanin0(pEntry), Saig_MvObjFaninC0(pEntry)? "-":"+",
-       Saig_MvObjFanin1(pEntry), Saig_MvObjFaninC1(pEntry)? "-":"+", pEntry->Value );
-*/
+                Saig_MvSimulateValue1(p->pAigOld, pEntry), fFirst );
         }
         else if ( pEntry->Type == AIG_OBJ_PO )
             pEntry->Value = Saig_MvSimulateValue0(p->pAigOld, pEntry);
         else if ( pEntry->Type == AIG_OBJ_PI )
         {
             if ( pEntry->iFan1 == 0 ) // true PI
-                pEntry->Value = Saig_MvVar2Lit( Saig_MvCreateObj( p, 0, 0 ) );
+            {
+                if ( fFirst )
+                    pEntry->Value = Saig_MvVar2Lit( Saig_MvCreateObj( p, 0, 0 ) );
+                else
+                    pEntry->Value = SAIG_UNDEF_VALUE;
+            }
 //            else if ( fFirst ) // register output
 //                pEntry->Value = Saig_MvConst0();
 //            else
@@ -424,22 +453,9 @@ printf( "%d = %d%s * %d%s  --> %d\n", pEntry - p->pAigOld,
         else if ( pEntry->Type != AIG_OBJ_NONE )
             assert( 0 );
     }
-    Vec_PtrClear( p->vTired );
+    // transfer to registers
     Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
-    {
-        NewValue = Saig_MvSimulateValue0(p->pAigOld, pEntry);
-        if ( NewValue != (int)pEntry->Value )
-            Vec_PtrPush( p->vTired, pEntry );
-        pEntry->Value = NewValue;
-        if ( !fPrintState )
-            continue;
-        if ( pEntry->Value == 536870910 )
-            printf( "* " );
-        else
-            printf( "%d ", pEntry->Value );
-    }
-if ( fPrintState )
-printf( "\n" );
+        pEntry->Value = Saig_MvSimulateValue0( p->pAigOld, pEntry );
 }
 
 
@@ -456,25 +472,28 @@ printf( "\n" );
 ***********************************************************************/
 int Saig_MvSimHash( unsigned * pState, int nFlops, int TableSize )
 {
-    static int s_SPrimes[128] = { 
-        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
-        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
-        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543, 
-        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089, 
-        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671, 
-        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243, 
-        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871, 
-        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471, 
-        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073, 
-        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689, 
-        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309, 
-        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
-        8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
+    static int s_SPrimes[16] = { 
+     1610612741,
+     805306457,
+     402653189,
+     201326611,
+     100663319,
+     50331653,
+     25165843,
+     12582917,
+     6291469,
+     3145739,
+     1572869,
+     786433,
+     393241,
+     196613,
+     98317,
+     49157
     };
     unsigned uHash = 0;
     int i;
     for ( i = 0; i < nFlops; i++ )
-        uHash ^= pState[i] * s_SPrimes[i & 0x7F];
+        uHash ^= pState[i] * s_SPrimes[i & 0xF];
     return (int)(uHash % TableSize);
 }
 
@@ -511,62 +530,15 @@ static inline unsigned * Saig_MvSimTableFind( Saig_MvMan_t * p, unsigned * pStat
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_MvSaveState( Saig_MvMan_t * p, int * piReg )
+int Saig_MvSaveState( Saig_MvMan_t * p )
 {
     Saig_MvObj_t * pEntry;
     unsigned * pState, * pPlace;
-    int i, k, nMaxUndefs = 0;
-    int iTimesOld, iTimesNew;
-    *piReg = -1;
+    int i;
     pState = (unsigned *)Aig_MmFixedEntryFetch( p->pMemStates );
     pState[0] = 0;
     Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
-    {
-        iTimesOld = p->nRegsValues[i];
-        // count the number of different def values
-        if ( !Saig_MvIsUndef( pEntry->Value ) && p->nRegsValues[i] < p->nValuesMax )
-        {
-            for ( k = 0; k < p->nRegsValues[i]; k++ )
-                if ( p->pRegsValues[i][k] == (int)pEntry->Value )
-                    break;
-            if ( k == p->nRegsValues[i] )
-                p->pRegsValues[i][ p->nRegsValues[i]++ ] = pEntry->Value;
-        }
-        else // retire this register (consider moving this up!)
-        {
-            pEntry->Value = Saig_MvUndef();
-            p->nRegsValues[i] = SAIG_DIFF_VALUES+1;
-        }
-        iTimesNew = p->nRegsValues[i];
-        // count the number of times
-        if ( iTimesOld != iTimesNew )
-        {
-            if ( iTimesOld > 0 )
-                p->nRValues[iTimesOld]--;
-            if ( iTimesNew <= SAIG_DIFF_VALUES )
-                p->nRValues[iTimesNew]++;
-        }
-        // count the number of undef values
-        if ( Saig_MvIsUndef( pEntry->Value ) )
-        {
-            if ( p->pRegsUndef[i]++ == 0 )
-                p->nRUndefs++;
-        }
-        // find def reg with the max number of undef values
-        if ( nMaxUndefs < p->pRegsUndef[i] )
-        {
-             nMaxUndefs = p->pRegsUndef[i];
-            *piReg = i;
-        }
-        // remember state
         pState[i+1] = pEntry->Value;
-
-//        if ( pEntry->Value == 536870910 )
-//            printf( "* " );
-//        else
-//            printf( "%d ", pEntry->Value );
-    }
-//printf( "\n" );
     pPlace = Saig_MvSimTableFind( p, pState );
     if ( *pPlace )
         return *pPlace;
@@ -624,7 +596,7 @@ void Saig_MvManPostProcess( Saig_MvMan_t * p, int iState )
         printf( "FLOP %5d : (%3d) ", iFlop, Vec_IntEntry(vCounter,i) );
 /*
         for ( k = 0; k < p->nRegsValues[iFlop]; k++ )
-            if ( p->pRegsValues[iFlop][k] == 536870910 )
+            if ( p->pRegsValues[iFlop][k] == SAIG_UNDEF_VALUE )
                 printf( "* " );
             else
                 printf( "%d ", p->pRegsValues[iFlop][k] );
@@ -634,7 +606,7 @@ void Saig_MvManPostProcess( Saig_MvMan_t * p, int iState )
         {
             if ( k == iState+1 )
                 printf( " # " );
-            if ( pState[iFlop+1] == 536870910 )
+            if ( pState[iFlop+1] == SAIG_UNDEF_VALUE )
                 printf( "*" );
             else
                 printf( "%d", pState[iFlop+1] );
@@ -659,69 +631,151 @@ void Saig_MvManPostProcess( Saig_MvMan_t * p, int iState )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_MvManSimulate( Aig_Man_t * pAig, int fVerbose )
+Vec_Int_t * Saig_MvManFindXFlops( Saig_MvMan_t * p )
 {
+    Vec_Int_t * vXFlops;
+    unsigned * pState;
+    int i, k;
+    vXFlops = Vec_IntStart( p->nFlops );
+    Vec_PtrForEachEntry( unsigned *, p->vStates, pState, i )
+    {
+        for ( k = 1; k <= p->nFlops; k++ )
+            if ( Saig_MvIsUndef(pState[k]) )
+                Vec_IntWriteEntry( vXFlops, k-1, 1 );
+    }
+    return vXFlops;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds equivalent flops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p )
+{
+    Vec_Int_t * vBinValued;
+    Vec_Ptr_t * vMap = NULL;
+    Aig_Obj_t * pObj;
+    unsigned * pState;
+    int i, k, j, fConst0, Counter1 = 0, Counter2 = 0;
+    // prepare CI map
+    vMap = Vec_PtrAlloc( Aig_ManPiNum(p->pAig) );
+    Aig_ManForEachPi( p->pAig, pObj, i )
+        Vec_PtrPush( vMap, pObj );
+    // detect constant flops
+    vBinValued = Vec_IntStart( p->nFlops );
+    for ( k = 0; k < p->nFlops; k++ )
+    {
+        // check if this flop is constant 0 in all states
+        fConst0 = 1;
+        Vec_PtrForEachEntry( unsigned *, p->vStates, pState, i )
+        {
+            if ( !Saig_MvIsConst0(pState[k+1]) )
+                fConst0 = 0;
+            if ( Saig_MvIsUndef(pState[k+1]) )
+                break;
+        }
+        if ( i < Vec_PtrSize(p->vStates) )
+            continue;
+        // mark binary values
+        Vec_IntWriteEntry( vBinValued, k, 1 );
+        // set the constant
+        if ( fConst0 )
+            Vec_PtrWriteEntry( vMap, k, Aig_ManConst0(p->pAig) );
+        Counter1++;
+    }
+    // detect equivalent (non-ternary flops)
+    for ( k = 0; k < p->nFlops; k++ )
+    if ( Vec_IntEntry(vBinValued, k) )
+    for ( j = k+1; j < p->nFlops; j++ )
+    if ( Vec_IntEntry(vBinValued, j) )
+    {
+        // check if they are equal
+        Vec_PtrForEachEntry( unsigned *, p->vStates, pState, i )
+            if ( pState[k+1] != pState[j+1] )
+                break;
+        if ( i < Vec_PtrSize(p->vStates) )
+            continue;
+        // set the equivalence
+        Vec_PtrWriteEntry( vMap, j, Aig_ManPi(p->pAig, k) );
+    }
+    printf( "Detected %d const0 flop and %d equivalent non-ternary flops.\n", Counter1, Counter2 );
+    Vec_IntFree( vBinValued );
+    return vMap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs multi-valued simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Saig_MvManSimulate( Aig_Man_t * pAig, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose )
+{
+    Vec_Ptr_t * vMap;
     Saig_MvMan_t * p;
     Saig_MvObj_t * pEntry;
-    int f, i, k, iRegMax, iState, clk = clock();
-    // start the manager
-    p = Saig_MvManStart( pAig );
-ABC_PRT( "Constructing the problem", clock() - clk );
-    clk = clock();
-    // initiliaze registers
-    Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
-    {
-        pEntry->Value = Saig_MvConst0();
-        if ( pEntry->iFan0 == 1 )
-            printf( "Constant value %d\n", i );
-    }
+    int f, i, iState, clk = clock();
+    assert( nFramesSymb >= 1 && nFramesSymb <= nFramesSatur );
 
-    Saig_MvSaveState( p, &iRegMax );
+    // start manager
+    p = Saig_MvManStart( pAig, nFramesSatur );
+if ( fVerbose )
+ABC_PRT( "Constructing the problem", clock() - clk );
+
+    // initialize registers
+    Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
+        pEntry->Value = Saig_MvConst0();
+    Saig_MvSaveState( p );
+    if ( fVeryVerbose )
+        Saig_MvPrintState( 0, p );
     // simulate until convergence
+    clk = clock();
     for ( f = 0; ; f++ )
     {
-/*
-        if ( fVerbose )
-        {
-            printf( "%3d :  ", f+1 );
-            printf( "*=%6d  ", p->nRUndefs );
-            for ( k = 1; k < SAIG_DIFF_VALUES; k++ )
-                if ( p->nRValues[k] == 0 )
-                    printf( "          " );
-                else
-                    printf( "%d=%6d  ", k, p->nRValues[k] );
-            printf( "aig=%6d", p->nObjs );
-            printf( "\n" );
-        }
-*/
-        Saig_MvSimulateFrame( p, f==0 );
-        iState = Saig_MvSaveState( p, &iRegMax );
+        // retired some flops
+        if ( p->vXFlops )
+            Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
+                pEntry->Value = SAIG_UNDEF_VALUE;
+        // simulate timeframe
+        Saig_MvSimulateFrame( p, (int)(f < nFramesSymb), fVerbose );
+        // save and print state
+        iState = Saig_MvSaveState( p );
+        if ( fVeryVerbose )
+            Saig_MvPrintState( f+1, p );
         if ( iState >= 0 )
         {
             printf( "Converged after %d frames with lasso in state %d. Cycle = %d.\n", f+1, iState-1, f+2-iState );
             printf( "Total number of PIs = %d. AND nodes = %d.\n", p->nPis, p->nObjs - p->nPis );
             break;
         }
-        if ( f >= p->nStatesMax && iRegMax >= 0 )
+        if ( f == nFramesSatur )
         {
-/*
-            pEntry = Vec_PtrEntry( p->vFlops, iRegMax );
-            assert( pEntry->Value != (unsigned)Saig_MvUndef() );
-            pEntry->Value = Saig_MvUndef();
-            printf( "Retiring flop %d.\n", iRegMax );
-*/
-//            printf( "Retiring %d flops.\n", Vec_PtrSize(p->vTired) );
-            Vec_PtrForEachEntry( Saig_MvObj_t *, p->vTired, pEntry, k )
-                pEntry->Value = Saig_MvUndef();
+            printf( "Begining to saturate simulation after %d frames\n", f+1 );
+            // find all flops that have at least one X value in the past and set them to X forever
+            p->vXFlops = Saig_MvManFindXFlops( p );            
         }
     }
-ABC_PRT( "Multi-value simulation", clock() - clk );
+if ( fVerbose )
+ABC_PRT( "Multi-valued simulation", clock() - clk );
     // implement equivalences
-    Saig_MvManPostProcess( p, iState-1 );
+//    Saig_MvManPostProcess( p, iState-1 );
+    vMap = Saig_MvManDeriveMap( p );
     Saig_MvManStop( p );
-    return 1;
+//    return Aig_ManDupSimple( pAig );
+    return vMap;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -648,14 +648,14 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     {
         Aig_Man_t * pAigRst;
         pAigRst = Ntl_ManAigToRst( pNew, pAigCol );
-        pTemp = Aig_ManScl( pAigRst, fLatchConst, fLatchEqual, fVerbose );
+        pTemp = Aig_ManScl( pAigRst, fLatchConst, fLatchEqual, 0, -1, -1, fVerbose, 0 );
         Aig_ManStop( pTemp );
         Ntl_ManRemapClassesLcorr( pNew, pAigCol, pAigRst );
         Aig_ManStop( pAigRst );
     }
     else
     {
-        pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
+        pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, 0, -1, -1, fVerbose, 0 );
         Aig_ManStop( pTemp );
     }
 

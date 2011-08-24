@@ -617,7 +617,7 @@ extern int             Aig_ManSeqCleanupBasic( Aig_Man_t * p );
 extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
 extern void            Aig_ManComputeSccs( Aig_Man_t * p ); 
-extern Aig_Man_t *     Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose );
+extern Aig_Man_t *     Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 /*=== aigShow.c ========================================================*/
 extern void            Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold );
 /*=== aigTable.c ========================================================*/
@@ -640,7 +640,7 @@ extern void            Aig_ManVerifyReverseLevel( Aig_Man_t * p );
 /*=== aigTruth.c ========================================================*/
 extern unsigned *      Aig_ManCutTruth( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Ptr_t * vTruthElem, Vec_Ptr_t * vTruthStore );
 /*=== aigTsim.c ========================================================*/
-extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fVerbose );
+extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 /*=== aigUtil.c =========================================================*/
 extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );

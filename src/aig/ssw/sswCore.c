@@ -111,10 +111,10 @@ void Ssw_ReportConeReductions( Ssw_Man_t * p, Aig_Man_t * pAigInit, Aig_Man_t * 
 {
     Aig_Man_t * pAig1, * pAig2, * pAux;
     pAig1 = Aig_ManDupOneOutput( pAigInit, 0, 1 );
-    pAig1 = Aig_ManScl( pAux = pAig1, 1, 1, 0 );
+    pAig1 = Aig_ManScl( pAux = pAig1, 1, 1, 0, -1, -1, 0, 0 );
     Aig_ManStop( pAux );
     pAig2 = Aig_ManDupOneOutput( pAigStop, 0, 1 );
-    pAig2 = Aig_ManScl( pAux = pAig2, 1, 1, 0 );
+    pAig2 = Aig_ManScl( pAux = pAig2, 1, 1, 0, -1, -1, 0, 0 );
     Aig_ManStop( pAux );
    
     p->nNodesBegC = Aig_ManNodeNum(pAig1);

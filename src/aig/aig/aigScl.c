@@ -619,7 +619,7 @@ Aig_Man_t * Aig_ManSclPart( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, 
         Aig_ManSetRegNum( pTemp, pTemp->nRegs );
         if (nCountPis>0) 
         {
-            pNew = Aig_ManScl( pTemp, fLatchConst, fLatchEqual, fVerbose );
+            pNew = Aig_ManScl( pTemp, fLatchConst, fLatchEqual, 0, -1, -1, fVerbose, 0 );
             nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
             if ( fVerbose )
                 printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d\n",
@@ -646,7 +646,7 @@ Aig_Man_t * Aig_ManSclPart( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose )
+Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose )
 {
     extern void Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
     extern int Saig_ManReportComplements( Aig_Man_t * p );
@@ -667,7 +667,7 @@ Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int 
     pAig->vFlopReprs = Vec_IntAlloc( 100 );
     Aig_ManSeqCleanup( pAig );
     if ( fLatchConst && pAig->nRegs )
-        pAig = Aig_ManConstReduce( pAig, fVerbose );
+        pAig = Aig_ManConstReduce( pAig, fUseMvSweep, nFramesSymb, nFramesSatur, fVerbose, fVeryVerbose );
     if ( fLatchEqual && pAig->nRegs )
         pAig = Aig_ManReduceLaches( pAig, fVerbose );
     // translate pairs into reprs
