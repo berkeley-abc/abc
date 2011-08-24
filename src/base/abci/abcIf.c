@@ -1066,6 +1066,34 @@ int Abc_NtkIfCheckTfi( Abc_Ntk_t * pNtk, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
     return Abc_NtkIfCheckTfi_rec( pNew, pOld );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkIfCheckRealNodes( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i, iNode;
+    for ( i = pNtk->nRealPos; i < Abc_NtkPoNum(pNtk); i += 5 )
+    {
+        iNode = Vec_IntEntry( pNtk->vRealNodes, i+3 - pNtk->nRealPos );
+        pObj = Abc_NtkObj( pNtk, iNode );
+        assert( Abc_ObjFaninNum(pObj) == 2 );
+
+        iNode = Vec_IntEntry( pNtk->vRealNodes, i+4 - pNtk->nRealPos );
+        pObj = Abc_NtkObj( pNtk, iNode );
+        assert( Abc_ObjFaninNum(pObj) == 3 );
+    }
+}
+
 /**Function*************************************************************
 
   Synopsis    [Restores the structure.]
@@ -1151,6 +1179,8 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
     }
     Vec_PtrFree( vFanins );
 
+    Abc_NtkIfCheckRealNodes( pNtkNew );
+
     // map internal nodes into PO numbers
     vNodeMap = Vec_IntStartFull( Abc_NtkObjNumMax(pNtkNew) );
     Vec_VecForEachLevelInt( pNtkNew->vRealPos, vInfo, i )
@@ -1229,6 +1259,9 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
         printf( "The number of real LUTs = %d.  Real LUT area = %.2f.\n", nRealLuts, RealLutArea );
     pNtkNew->nRealLuts = nRealLuts;
     pNtkNew->nRealArea = RealLutArea;
+
+    Abc_NtkIfCheckRealNodes( pNtkNew );
+
 }
 
 ////////////////////////////////////////////////////////////////////////
