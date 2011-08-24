@@ -919,7 +919,9 @@ void Bdc_SpfdDecomposeTest()
     int i, j, k, n, Cost, CostBest = 100000;
     int clk = clock();
 
-//    return;
+    return;
+
+//    printf( "%d\n", RAND_MAX );
 
     vDivs = Bdc_SpfdDecomposeTest__( &vWeights );
 //    vDivs = Bdc_SpfdReadFiles5( &vWeights );
