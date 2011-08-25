@@ -349,11 +349,21 @@ static inline int Saig_MvAnd( Saig_MvMan_t * p, int iFan0, int iFan1, int fFirst
         iFan1 = Temp;
     }
     {
-    int * pPlace;
-    pPlace = Saig_MvTableFind( p, iFan0, iFan1 );
-    if ( *pPlace == 0 )
-        *pPlace = Saig_MvCreateObj( p, iFan0, iFan1 );
-    return Saig_MvVar2Lit( *pPlace );
+        int * pPlace;
+        pPlace = Saig_MvTableFind( p, iFan0, iFan1 );
+        if ( *pPlace == 0 )
+        {
+            if ( pPlace >= (int*)p->pAigNew && pPlace < (int*)(p->pAigNew + p->nObjsAlloc) )
+            {
+                int iPlace = pPlace - (int*)p->pAigNew;
+                int iNode  = Saig_MvCreateObj( p, iFan0, iFan1 );
+                ((int*)p->pAigNew)[iPlace] = iNode;
+                return Saig_MvVar2Lit( iNode );
+            }
+            else
+                *pPlace = Saig_MvCreateObj( p, iFan0, iFan1 );
+        }
+        return Saig_MvVar2Lit( *pPlace );
     }
 }
 
@@ -637,11 +647,11 @@ Vec_Int_t * Saig_MvManFindXFlops( Saig_MvMan_t * p )
     unsigned * pState;
     int i, k;
     vXFlops = Vec_IntStart( p->nFlops );
-    Vec_PtrForEachEntry( unsigned *, p->vStates, pState, i )
+    Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, i, 1 )
     {
-        for ( k = 1; k <= p->nFlops; k++ )
-            if ( Saig_MvIsUndef(pState[k]) )
-                Vec_IntWriteEntry( vXFlops, k-1, 1 );
+        for ( k = 0; k < p->nFlops; k++ )
+            if ( Saig_MvIsUndef(pState[k+1]) )
+                Vec_IntWriteEntry( vXFlops, k, 1 );
     }
     return vXFlops;
 }
@@ -657,24 +667,24 @@ Vec_Int_t * Saig_MvManFindXFlops( Saig_MvMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p )
+Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
 {
     Vec_Int_t * vBinValued;
     Vec_Ptr_t * vMap = NULL;
     Aig_Obj_t * pObj;
     unsigned * pState;
-    int i, k, j, fConst0, Counter1 = 0, Counter2 = 0;
+    int i, k, j, FlopK, FlopJ, fConst0, Counter1 = 0, Counter2 = 0;
     // prepare CI map
     vMap = Vec_PtrAlloc( Aig_ManPiNum(p->pAig) );
     Aig_ManForEachPi( p->pAig, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // detect constant flops
-    vBinValued = Vec_IntStart( p->nFlops );
+    vBinValued = Vec_IntAlloc( p->nFlops );
     for ( k = 0; k < p->nFlops; k++ )
     {
         // check if this flop is constant 0 in all states
         fConst0 = 1;
-        Vec_PtrForEachEntry( unsigned *, p->vStates, pState, i )
+        Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, i, 1 )
         {
             if ( !Saig_MvIsConst0(pState[k+1]) )
                 fConst0 = 0;
@@ -683,30 +693,34 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p )
         }
         if ( i < Vec_PtrSize(p->vStates) )
             continue;
-        // mark binary values
-        Vec_IntWriteEntry( vBinValued, k, 1 );
-        // set the constant
-        if ( fConst0 )
-            Vec_PtrWriteEntry( vMap, k, Aig_ManConst0(p->pAig) );
-        Counter1++;
+        // the flop is binary-valued        
+        if ( fConst0 ) 
+        { 
+            Vec_PtrWriteEntry( vMap, Saig_ManPiNum(p->pAig) + k, Aig_ManConst0(p->pAig) );
+            Counter1++;
+        }
+        else
+            Vec_IntPush( vBinValued, k );
     }
     // detect equivalent (non-ternary flops)
-    for ( k = 0; k < p->nFlops; k++ )
-    if ( Vec_IntEntry(vBinValued, k) )
-    for ( j = k+1; j < p->nFlops; j++ )
-    if ( Vec_IntEntry(vBinValued, j) )
+    Vec_IntForEachEntry( vBinValued, FlopK, k )
+    Vec_IntForEachEntryStart( vBinValued, FlopJ, j, k+1 )
     {
         // check if they are equal
-        Vec_PtrForEachEntry( unsigned *, p->vStates, pState, i )
-            if ( pState[k+1] != pState[j+1] )
+        Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, i, 1 )
+            if ( pState[FlopK+1] != pState[FlopJ+1] )
                 break;
         if ( i < Vec_PtrSize(p->vStates) )
             continue;
         // set the equivalence
-        Vec_PtrWriteEntry( vMap, j, Aig_ManPi(p->pAig, k) );
+        Vec_PtrWriteEntry( vMap, Saig_ManPiNum(p->pAig) + FlopJ, Saig_ManLo(p->pAig, FlopK) );
+        Counter2++;
     }
-    printf( "Detected %d const0 flop and %d equivalent non-ternary flops.\n", Counter1, Counter2 );
+    if ( fVerbose )
+    printf( "Detected %d const0 flops and %d pairs of equiv binary flops.\n", Counter1, Counter2 );
     Vec_IntFree( vBinValued );
+    if ( Counter1 == 0 && Counter2 == 0 )
+        Vec_PtrFreeP( &vMap );
     return vMap;
 }
 
@@ -743,11 +757,14 @@ ABC_PRT( "Constructing the problem", clock() - clk );
     // simulate until convergence
     clk = clock();
     for ( f = 0; ; f++ )
-    {
-        // retired some flops
+    { 
+        // retire some flops
         if ( p->vXFlops )
+        {
             Vec_PtrForEachEntry( Saig_MvObj_t *, p->vFlops, pEntry, i )
-                pEntry->Value = SAIG_UNDEF_VALUE;
+                if ( Vec_IntEntry( p->vXFlops, i ) )
+                    pEntry->Value = SAIG_UNDEF_VALUE;
+        }
         // simulate timeframe
         Saig_MvSimulateFrame( p, (int)(f < nFramesSymb), fVerbose );
         // save and print state
@@ -756,22 +773,25 @@ ABC_PRT( "Constructing the problem", clock() - clk );
             Saig_MvPrintState( f+1, p );
         if ( iState >= 0 )
         {
+            if ( fVerbose )
             printf( "Converged after %d frames with lasso in state %d. Cycle = %d.\n", f+1, iState-1, f+2-iState );
-            printf( "Total number of PIs = %d. AND nodes = %d.\n", p->nPis, p->nObjs - p->nPis );
+//            printf( "Total number of PIs = %d. AND nodes = %d.\n", p->nPis, p->nObjs - p->nPis );
             break;
         }
         if ( f == nFramesSatur )
         {
+            if ( fVerbose )
             printf( "Begining to saturate simulation after %d frames\n", f+1 );
             // find all flops that have at least one X value in the past and set them to X forever
             p->vXFlops = Saig_MvManFindXFlops( p );            
         }
     }
+//    printf( "Coverged after %d frames.\n", f );
 if ( fVerbose )
 ABC_PRT( "Multi-valued simulation", clock() - clk );
     // implement equivalences
 //    Saig_MvManPostProcess( p, iState-1 );
-    vMap = Saig_MvManDeriveMap( p );
+    vMap = Saig_MvManDeriveMap( p, fVerbose );
     Saig_MvManStop( p );
 //    return Aig_ManDupSimple( pAig );
     return vMap;

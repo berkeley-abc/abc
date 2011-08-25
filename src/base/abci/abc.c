@@ -15482,14 +15482,14 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
-    int fLatchConst  =  1;
-    int fLatchEqual  =  1;
-    int fSaveNames   =  0;
-    int fUseMvSweep  =  0;
-    int nFramesSymb  =  1;
-    int nFramesSatur = 32;
-    int fVerbose     =  0;
-    int fVeryVerbose =  0;
+    int fLatchConst  =   1;
+    int fLatchEqual  =   1;
+    int fSaveNames   =   1;
+    int fUseMvSweep  =   0;
+    int nFramesSymb  =   1;
+    int nFramesSatur = 512;
+    int fVerbose     =   0;
+    int fVeryVerbose =   0;
     extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fSaveNames, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);

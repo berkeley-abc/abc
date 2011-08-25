@@ -2603,7 +2603,7 @@ Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchE
     {
         Aig_ManSeqCleanup( pMan );
         if ( fLatchConst && pMan->nRegs )
-            pMan = Aig_ManConstReduce( pMan, 0, -1, -1, fVerbose, fVeryVerbose );
+            pMan = Aig_ManConstReduce( pMan, fUseMvSweep, nFramesSymb, nFramesSatur, fVerbose, fVeryVerbose );
         if ( fLatchEqual && pMan->nRegs )
             pMan = Aig_ManReduceLaches( pMan, fVerbose );
     }
