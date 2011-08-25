@@ -8854,8 +8854,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
     {
-//        void Bdc_SpfdDecomposeTest();
-//        Bdc_SpfdDecomposeTest();
+        void Bdc_SpfdDecomposeTest();
+        Bdc_SpfdDecomposeTest();
     }
     return 0;
 usage:

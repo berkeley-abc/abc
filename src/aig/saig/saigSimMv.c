@@ -658,7 +658,7 @@ Vec_Int_t * Saig_MvManFindXFlops( Saig_MvMan_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Finds equivalent flops.]
+  Synopsis    [Checks if the flop is an oscilator.]
 
   Description []
                
@@ -667,19 +667,69 @@ Vec_Int_t * Saig_MvManFindXFlops( Saig_MvMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
+int Saig_MvManCheckOscilator( Saig_MvMan_t * p, int iFlop )
 {
-    Vec_Int_t * vBinValued;
-    Vec_Ptr_t * vMap = NULL;
-    Aig_Obj_t * pObj;
+    Vec_Int_t * vValues;
     unsigned * pState;
-    int i, k, j, FlopK, FlopJ, fConst0, Counter1 = 0, Counter2 = 0;
-    // prepare CI map
-    vMap = Vec_PtrAlloc( Aig_ManPiNum(p->pAig) );
-    Aig_ManForEachPi( p->pAig, pObj, i )
-        Vec_PtrPush( vMap, pObj );
+    int k, Per, Entry;
+    // collect values of this flop
+    vValues = Vec_IntAlloc( 100 );
+    Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, k, 1 )
+    {
+        Vec_IntPush( vValues, pState[iFlop+1] );
+//printf( "%d ", pState[iFlop+1] );
+    }
+//printf( "\n" );
+    assert( Saig_MvIsConst0( Vec_IntEntry(vValues,0) ) );
+    // look for constants
+    for ( Per = 0; Per < Vec_IntSize(vValues)/2; Per++ )
+    {
+        // find the first non-const0
+        Vec_IntForEachEntryStart( vValues, Entry, Per, Per )
+            if ( !Saig_MvIsConst0(Entry) )
+                break;
+        if ( Per == Vec_IntSize(vValues) )
+            break;
+        // find the first const0
+        Vec_IntForEachEntryStart( vValues, Entry, Per, Per )
+            if ( Saig_MvIsConst0(Entry) )
+                break;
+        if ( Per == Vec_IntSize(vValues) )
+            break;
+        // try to determine period
+        assert( Saig_MvIsConst0( Vec_IntEntry(vValues,Per) ) );
+        for ( k = Per; k < Vec_IntSize(vValues); k++ )
+            if ( Vec_IntEntry(vValues, k-Per) != Vec_IntEntry(vValues, k) )
+                break;
+        if ( k < Vec_IntSize(vValues) )
+            continue;
+        Vec_IntFree( vValues );
+//printf( "Period = %d\n", Per );
+        return Per;
+    }
+    Vec_IntFree( vValues );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns const0 and binary flops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_MvManFindConstBinaryFlops( Saig_MvMan_t * p, Vec_Int_t ** pvBinary )
+{
+    unsigned * pState;
+    Vec_Int_t * vBinary, * vConst0;
+    int i, k, fConst0;
     // detect constant flops
-    vBinValued = Vec_IntAlloc( p->nFlops );
+    vConst0 = Vec_IntAlloc( p->nFlops );
+    vBinary = Vec_IntAlloc( p->nFlops );
     for ( k = 0; k < p->nFlops; k++ )
     {
         // check if this flop is constant 0 in all states
@@ -695,16 +745,106 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
             continue;
         // the flop is binary-valued        
         if ( fConst0 ) 
-        { 
-            Vec_PtrWriteEntry( vMap, Saig_ManPiNum(p->pAig) + k, Aig_ManConst0(p->pAig) );
-            Counter1++;
-        }
+            Vec_IntPush( vConst0, k );
         else
-            Vec_IntPush( vBinValued, k );
+            Vec_IntPush( vBinary, k );
     }
+    *pvBinary = vBinary;
+    return vConst0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find oscilators.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_MvManFindOscilators( Saig_MvMan_t * p, Vec_Int_t ** pvConst0 )
+{
+    Vec_Int_t * vBinary, * vOscils;
+    int Entry, i;
+    // detect constant flops
+    *pvConst0 = Saig_MvManFindConstBinaryFlops( p, &vBinary );
+    // check binary flops
+    vOscils = Vec_IntAlloc( 100 );
+    Vec_IntForEachEntry( vBinary, Entry, i )
+        if ( Saig_MvManCheckOscilator( p, Entry ) )
+            Vec_IntPush( vOscils, Entry );
+    Vec_IntFree( vBinary );
+    return vOscils;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find constants and oscilators.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_MvManCreateNextSkip( Saig_MvMan_t * p )
+{
+    Vec_Int_t * vConst0, * vOscils, * vXFlops;
+    int i, Entry;
+    vOscils = Saig_MvManFindOscilators( p, &vConst0 );
+//printf( "Found %d constants and %d oscilators.\n", Vec_IntSize(vConst0), Vec_IntSize(vOscils) );
+    vXFlops = Vec_IntAlloc( p->nFlops );
+    Vec_IntFill( vXFlops, p->nFlops, 1 );
+    Vec_IntForEachEntry( vConst0, Entry, i )
+        Vec_IntWriteEntry( vXFlops, Entry, 0 );
+    Vec_IntForEachEntry( vOscils, Entry, i )
+        Vec_IntWriteEntry( vXFlops, Entry, 0 );
+    Vec_IntFree( vOscils );
+    Vec_IntFree( vConst0 );
+    return vXFlops;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds equivalent flops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
+{
+    Vec_Int_t * vConst0, * vBinValued;
+    Vec_Ptr_t * vMap = NULL;
+    Aig_Obj_t * pObj;
+    unsigned * pState;
+    int i, k, j, FlopK, FlopJ;
+    int Counter1 = 0, Counter2 = 0;
+    // prepare CI map
+    vMap = Vec_PtrAlloc( Aig_ManPiNum(p->pAig) );
+    Aig_ManForEachPi( p->pAig, pObj, i )
+        Vec_PtrPush( vMap, pObj );
+    // detect constant flops
+    vConst0 = Saig_MvManFindConstBinaryFlops( p, &vBinValued );
+    // set constants
+    Vec_IntForEachEntry( vConst0, FlopK, k )
+    {
+        Vec_PtrWriteEntry( vMap, Saig_ManPiNum(p->pAig) + FlopK, Aig_ManConst0(p->pAig) );
+        Counter1++;
+    }
+    Vec_IntFree( vConst0 );
+
     // detect equivalent (non-ternary flops)
     Vec_IntForEachEntry( vBinValued, FlopK, k )
+    if ( FlopK >= 0 )
     Vec_IntForEachEntryStart( vBinValued, FlopJ, j, k+1 )
+    if ( FlopJ >= 0 )
     {
         // check if they are equal
         Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, i, 1 )
@@ -714,6 +854,7 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
             continue;
         // set the equivalence
         Vec_PtrWriteEntry( vMap, Saig_ManPiNum(p->pAig) + FlopJ, Saig_ManLo(p->pAig, FlopK) );
+        Vec_IntWriteEntry( vBinValued, FlopJ, -1 );
         Counter2++;
     }
     if ( fVerbose )
@@ -758,6 +899,20 @@ ABC_PRT( "Constructing the problem", clock() - clk );
     clk = clock();
     for ( f = 0; ; f++ )
     { 
+        if ( f == nFramesSatur )
+        {
+            if ( fVerbose )
+            printf( "Begining to saturate simulation after %d frames\n", f );
+            // find all flops that have at least one X value in the past and set them to X forever
+            p->vXFlops = Saig_MvManFindXFlops( p );            
+        }
+        if ( f == 2 * nFramesSatur )
+        {
+            if ( fVerbose )
+            printf( "Agressively saturating simulation after %d frames\n", f );
+            Vec_IntFree( p->vXFlops );
+            p->vXFlops = Saig_MvManCreateNextSkip( p );
+        }
         // retire some flops
         if ( p->vXFlops )
         {
@@ -777,13 +932,6 @@ ABC_PRT( "Constructing the problem", clock() - clk );
             printf( "Converged after %d frames with lasso in state %d. Cycle = %d.\n", f+1, iState-1, f+2-iState );
 //            printf( "Total number of PIs = %d. AND nodes = %d.\n", p->nPis, p->nObjs - p->nPis );
             break;
-        }
-        if ( f == nFramesSatur )
-        {
-            if ( fVerbose )
-            printf( "Begining to saturate simulation after %d frames\n", f+1 );
-            // find all flops that have at least one X value in the past and set them to X forever
-            p->vXFlops = Saig_MvManFindXFlops( p );            
         }
     }
 //    printf( "Coverged after %d frames.\n", f );

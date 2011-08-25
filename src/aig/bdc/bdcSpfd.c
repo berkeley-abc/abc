@@ -897,7 +897,7 @@ int Bdc_SpfdDecomposeTestOne( word t, Vec_Wrd_t * vDivs, Vec_Int_t * vWeights )
   SeeAlso     []
 
 ***********************************************************************/
-void Bdc_SpfdDecomposeTest()
+void Bdc_SpfdDecomposeTest44()
 {
 //    word t = 0x5052585a0002080a;
 
@@ -1113,6 +1113,59 @@ Abc_Show6VarFunc( 0, (FuncBest ^ t) );
     Extra_PrintHex( stdout, (unsigned *)&FuncBest, 6 ); printf( "\n" );
 
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bdc_SpfdDecomposeTest()
+{
+  int nSizeM = (1 << 26);  // big array size
+  int nSizeK = (1 << 3);   // small array size
+  Vec_Wrd_t * v1M, * v1K;
+  int EntryM, EntryK;
+  int i, k, Counter, clk;
+
+  Aig_ManRandom64( 1 );
+
+  v1M = Vec_WrdAlloc( nSizeM );
+  for ( i = 0; i < nSizeM; i++ )
+      Vec_WrdPush( v1M, Aig_ManRandom64(0) );
+
+  v1K = Vec_WrdAlloc( nSizeK );
+  for ( i = 0; i < nSizeK; i++ )
+      Vec_WrdPush( v1K, Aig_ManRandom64(0) );
+
+  clk = clock();
+  Counter = 0;
+//  for ( i = 0; i < nSizeM; i++ )
+//  for ( k = 0; k < nSizeK; k++ )
+//      Counter += ((v1M->pArray[i] & v1K->pArray[k]) == v1K->pArray[k]);
+  Vec_WrdForEachEntry( v1M, EntryM, i )
+  Vec_WrdForEachEntry( v1K, EntryK, k )
+      Counter += ((EntryM & EntryK) == EntryK);
+  printf( "Total = %8d.  ", Counter );
+  Abc_PrintTime( 1, "Time", clock() - clk );
+
+  clk = clock();
+  Counter = 0;
+//  for ( k = 0; k < nSizeK; k++ )
+//  for ( i = 0; i < nSizeM; i++ )
+//      Counter += ((v1M->pArray[i] & v1K->pArray[k]) == v1K->pArray[k]);
+  Vec_WrdForEachEntry( v1K, EntryK, k )
+  Vec_WrdForEachEntry( v1M, EntryM, i )
+      Counter += ((EntryM & EntryK) == EntryK);
+  printf( "Total = %8d.  ", Counter );
+  Abc_PrintTime( 1, "Time", clock() - clk );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
