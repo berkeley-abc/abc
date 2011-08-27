@@ -20416,7 +20416,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pGia, pAbc->pCex, nOutputs );
             if ( pAbc->pCex->iPo == -1 )
             {
-                pAbc->pCex->iPo = iPoOld;
+//                pAbc->pCex->iPo = iPoOld;
                 Abc_Print( 1, "Main AIG: The cex does not fail any outputs.\n" );
             }
             else if ( iPoOld != pAbc->pCex->iPo )
@@ -20445,7 +20445,7 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             pAbc->pCex->iPo = Gia_ManFindFailedPoCex( pAbc->pGia, pAbc->pCex, nOutputs );
             if ( pAbc->pCex->iPo == -1 )
             {
-                pAbc->pCex->iPo = iPoOld;
+//                pAbc->pCex->iPo = iPoOld;
                 Abc_Print( 1, "And  AIG: The cex does not fail any outputs.\n" );
             }
             else if ( iPoOld != pAbc->pCex->iPo )
