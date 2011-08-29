@@ -215,7 +215,9 @@ Vec_Ptr_t * Llb4_Nonlin4VerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     Aig_ManCleanMarkB(pAig);
     Aig_ManConst1(pAig)->fMarkB = 1;
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        pObj->fMarkB = 0; //Aig_InfoHasBit(p->pData, iBit++);
+    // do not require equal flop count in the AIG and in the CEX
+    iBit = p->nRegs;
     for ( i = 0; i <= p->iFrame; i++ )
     {
         // save current state
@@ -284,11 +286,13 @@ Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, 
         printf( "Llb4_Nonlin4NormalizeCex(): The number of flops in the original and reparametrized AIGs do not agree.\n" );
         return NULL;
     }
+/*
     if ( Saig_ManRegNum(pAigRpm) != pCexRpm->nRegs )
     {
         printf( "Llb4_Nonlin4NormalizeCex(): The number of flops in the reparametrized AIG and in the CEX do not agree.\n" );
         return NULL;
     }
+*/
     if ( Saig_ManPiNum(pAigRpm) != pCexRpm->nPis )
     {
         printf( "Llb4_Nonlin4NormalizeCex(): The number of PIs in the reparametrized AIG and in the CEX do not agree.\n" );
