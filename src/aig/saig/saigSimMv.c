@@ -838,7 +838,7 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
         Vec_PtrWriteEntry( vMap, Saig_ManPiNum(p->pAig) + FlopK, Aig_ManConst0(p->pAig) );
         Counter1++;
     }
-    Vec_IntFree( vConst0 );
+    Vec_IntFree( vConst0 ); 
 
     // detect equivalent (non-ternary flops)
     Vec_IntForEachEntry( vBinValued, FlopK, k )
@@ -854,7 +854,7 @@ Vec_Ptr_t * Saig_MvManDeriveMap( Saig_MvMan_t * p, int fVerbose )
             continue;
         // set the equivalence
         Vec_PtrWriteEntry( vMap, Saig_ManPiNum(p->pAig) + FlopJ, Saig_ManLo(p->pAig, FlopK) );
-        Vec_IntWriteEntry( vBinValued, FlopJ, -1 );
+        Vec_IntWriteEntry( vBinValued, j, -1 );
         Counter2++;
     }
     if ( fVerbose )
