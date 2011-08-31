@@ -621,6 +621,11 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
         assert( pAbs->pSeqModel == NULL );
         return Vec_IntAlloc( 0 );
     }
+    if ( pAbs->pSeqModel == NULL )
+    {
+        printf( "BMC did not detect a CEX with the given depth.\n" );
+        return Vec_IntAlloc( 0 );
+    }
     if ( pPars->fVerbose )
         Abc_CexPrintStats( pAbs->pSeqModel );
     // CEX is detected - refine the flops
