@@ -28477,12 +28477,13 @@ int Abc_CommandAbc9AbsPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nStart     =        0;
     int nFramesMax = (pAbc->nFrames >= 0) ? pAbc->nFrames : 20;
     int nConfMax   = 10000000;
+    int nTimeLimit =        0;
     int fVerbose   =        0;
     int iFrame     =       -1;
     int c;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28519,6 +28520,17 @@ int Abc_CommandAbc9AbsPba( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConfMax < 0 ) 
                 goto usage;
             break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeLimit < 0 ) 
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -28548,18 +28560,19 @@ int Abc_CommandAbc9AbsPba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The starting frame (%d) should be less than the total number of frames (%d).\n", nStart, nFramesMax );
         return 0;
     }
-    Gia_ManPbaPerform( pAbc->pGia, nStart, nFramesMax, nConfMax, fVerbose, &iFrame );
+    Gia_ManPbaPerform( pAbc->pGia, nStart, nFramesMax, nConfMax, nTimeLimit, fVerbose, &iFrame );
     if ( iFrame >= 0 )
         pAbc->nFrames = iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &abs_pba [-SFC num] [-vh]\n" );
+    Abc_Print( -2, "usage: &abs_pba [-SFCT num] [-vh]\n" );
     Abc_Print( -2, "\t         refines abstracted flop map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting timeframe for SAT check [default = %d]\n", nStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", nConfMax );
+    Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", nTimeLimit );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -28663,7 +28676,7 @@ usage:
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-T num : the time out in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

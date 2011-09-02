@@ -247,7 +247,7 @@ Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nFrames, int nConfLimit, int fVerbose, int * piFrame )
+Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nFrames, int nConfLimit, int TimeLimit, int fVerbose, int * piFrame )
 {
     Vec_Int_t * vFlops = NULL, * vMapVar2FF, * vAssumps, * vPiVarMap;
     Aig_Man_t * pFrames;
@@ -257,7 +257,12 @@ Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nF
     int nCoreLits, * pCoreLits;
     int i, iVar, RetValue, clk;
 if ( fVerbose )
-printf( "Performing abstraction with starting frame %d and total number of frames %d.\n", nStart, nFrames );
+{
+if ( TimeLimit )
+    printf( "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFrames, TimeLimit );
+else
+    printf( "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFrames );
+}
     // create SAT solver
 clk = clock();
     pFrames = Saig_ManUnrollForPba( pAig, nStart, nFrames, &vPiVarMap );
@@ -286,6 +291,10 @@ Abc_PrintTime( 1, "Preparing", clock() - clk );
         Vec_IntPush( vAssumps, toLitCond(iVar, 1) );
         Vec_IntWriteEntry( vMapVar2FF, iVar, i );
     }
+
+    // set runtime limit
+    if ( TimeLimit )
+        sat_solver_set_runtime_limit( pSat, clock() + TimeLimit * CLOCKS_PER_SEC );
 
     // run SAT solver
 clk = clock();

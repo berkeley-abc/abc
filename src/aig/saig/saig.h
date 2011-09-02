@@ -135,7 +135,7 @@ extern Abc_Cex_t *       Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t
 extern Vec_Int_t *       Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex_t * pCex, int fVerbose );
 extern Vec_Int_t *       Saig_ManCbaPerform( Aig_Man_t * pAig, int nInputs, Saig_ParBmc_t * pPars );
 /*=== sswAbsPba.c ==========================================================*/
-extern Vec_Int_t *       Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nFrames, int nConfLimit, int fVerbose, int * piFrame );
+extern Vec_Int_t *       Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nFrames, int nConfLimit, int nTimeLimit, int fVerbose, int * piFrame );
 /*=== sswAbsStart.c ==========================================================*/
 extern int               Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose );
 extern Vec_Int_t *       Saig_ManCexAbstractionFlops( Aig_Man_t * p, Gia_ParAbs_t * pPars );
