@@ -1134,7 +1134,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         }
         // consider the next timeframe
         if ( RetValue == -1 && pPars->nStart == 0 )
-            pPars->iFrame = f;
+            pPars->iFrame = f-1;
         // resize the array
         Vec_IntFillExtra( p->vPiVars, (f+1)*Saig_ManPiNum(p->pAig), 0 );
         // map nodes of this section
