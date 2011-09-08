@@ -499,7 +499,7 @@ Aig_Man_t * Aig_ManConstReduce( Aig_Man_t * p, int fUseMvSweep, int nFramesSymb,
 {
     Aig_Man_t * pTemp;
     Vec_Ptr_t * vMap;
-    while ( 1 )
+    while ( Aig_ManRegNum(p) > 0 )
     {
         if ( fUseMvSweep )
             vMap = Saig_MvManSimulate( p, nFramesSymb, nFramesSatur, fVerbose, fVeryVerbose );
