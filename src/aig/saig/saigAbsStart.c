@@ -168,7 +168,7 @@ Aig_Man_t * Saig_ManCexRefine( Aig_Man_t * p, Aig_Man_t * pAbs, Vec_Int_t * vFlo
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose )
+int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Vec_Int_t * vFlopClasses, Abc_Cex_t * pCex, int nFfToAddMax, int fTryFour, int fSensePath, int fVerbose )
 {
     Aig_Man_t * pAbs;
     Vec_Int_t * vFlopsNew;
@@ -198,7 +198,25 @@ int Saig_ManCexRefineStep( Aig_Man_t * p, Vec_Int_t * vFlops, Abc_Cex_t * pCex, 
         printf( "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vFlopsNew), Aig_ManRegNum(p)+Vec_IntSize(vFlopsNew) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
-    // vFlopsNew contains PI number that should be kept in pAbs
+    // vFlopsNew contains PI numbers that should be kept in pAbs
+    // select the most useful flops among those to be added
+    if ( nFfToAddMax > 0 && Vec_IntSize(vFlopsNew) > nFfToAddMax )
+    {
+        Vec_Int_t * vFlopsNewBest;
+        // shift the indices
+        Vec_IntForEachEntry( vFlopsNew, Entry, i )
+            Vec_IntAddToEntry( vFlopsNew, i, -Saig_ManPiNum(p) );
+        // create new flops
+        vFlopsNewBest = Saig_ManCbaFilterFlops( p, pCex, vFlopClasses, vFlopsNew, nFfToAddMax );
+        assert( Vec_IntSize(vFlopsNewBest) == nFfToAddMax );
+        printf( "Filtering flops based on cost (%d -> %d).\n", Vec_IntSize(vFlopsNew), Vec_IntSize(vFlopsNewBest) );
+        // update
+        Vec_IntFree( vFlopsNew );
+        vFlopsNew = vFlopsNewBest;
+        // shift the indices
+        Vec_IntForEachEntry( vFlopsNew, Entry, i )
+            Vec_IntAddToEntry( vFlopsNew, i, Saig_ManPiNum(p) );
+    }
     // add to the abstraction
     Vec_IntForEachEntry( vFlopsNew, Entry, i )
     {

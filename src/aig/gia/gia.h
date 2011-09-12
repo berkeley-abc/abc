@@ -599,7 +599,7 @@ static inline int         Gia_ObjLutFanin( Gia_Man_t * p, int Id, int i )   { re
 /*=== giaAbs.c ===========================================================*/
 extern void                Gia_ManCexAbstractionStart( Gia_Man_t * p, Gia_ParAbs_t * pPars );
 Gia_Man_t *                Gia_ManCexAbstractionDerive( Gia_Man_t * pGia );
-int                        Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose );
+int                        Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int nFfToAddMax, int fTryFour, int fSensePath, int fVerbose );
 extern int                 Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit, int nTimeLimit, int fVerbose, int * piFrame );
 extern int                 Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars );
 /*=== giaAiger.c ===========================================================*/

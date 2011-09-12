@@ -177,7 +177,7 @@ void Gia_ManCexAbstractionStart( Gia_Man_t * pGia, Gia_ParAbs_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fTryFour, int fSensePath, int fVerbose )
+int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int nFfToAddMax, int fTryFour, int fSensePath, int fVerbose )
 {
     Aig_Man_t * pNew;
     Vec_Int_t * vFlops;
@@ -188,7 +188,7 @@ int Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Cex_t * pCex, int fTryFou
     }
     pNew = Gia_ManToAig( pGia, 0 );
     vFlops = Gia_ManClasses2Flops( pGia->vFlopClasses );
-    if ( !Saig_ManCexRefineStep( pNew, vFlops, pCex, fTryFour, fSensePath, fVerbose ) )
+    if ( !Saig_ManCexRefineStep( pNew, vFlops, pGia->vFlopClasses, pCex, nFfToAddMax, fTryFour, fSensePath, fVerbose ) )
     {
         pGia->pCexSeq = pNew->pSeqModel; pNew->pSeqModel = NULL;
         Vec_IntFree( vFlops );

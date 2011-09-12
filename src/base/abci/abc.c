@@ -28408,15 +28408,27 @@ int Abc_CommandAbc9AbsRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
     int c;
-    int fTryFour   = 1;
-    int fSensePath = 0;
-    int fVerbose   = 0;
+    int nFfToAddMax = 0;
+    int fTryFour    = 1;
+    int fSensePath  = 0;
+    int fVerbose    = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "tsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mtsvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFfToAddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFfToAddMax < 0 ) 
+                goto usage;
+            break;
         case 't':
             fTryFour ^= 1;
             break;
@@ -28447,17 +28459,18 @@ int Abc_CommandAbc9AbsRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9AbsRefine(): There is no counter-example.\n" );
         return 1;
     } 
-    pAbc->Status = Gia_ManCexAbstractionRefine( pAbc->pGia, pAbc->pCex, fTryFour, fSensePath, fVerbose );
+    pAbc->Status = Gia_ManCexAbstractionRefine( pAbc->pGia, pAbc->pCex, nFfToAddMax, fTryFour, fSensePath, fVerbose );
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &abs_refine [-tsvh]\n" );
-    Abc_Print( -2, "\t        refines the pre-computed flop map using the counter-example\n" );
-    Abc_Print( -2, "\t-t    : toggle trying four abstractions instead of one [default = %s]\n", fTryFour? "yes": "no" );
-    Abc_Print( -2, "\t-s    : toggle using the path sensitization algorithm [default = %s]\n", fSensePath? "yes": "no" );
-    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: &abs_refine [-M <num>] [-tsvh]\n" );
+    Abc_Print( -2, "\t         refines the pre-computed flop map using the counter-example\n" );
+    Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", nFfToAddMax );
+    Abc_Print( -2, "\t-t     : toggle trying four abstractions instead of one [default = %s]\n", fTryFour? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using the path sensitization algorithm [default = %s]\n", fSensePath? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 } 
 
