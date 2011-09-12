@@ -49,6 +49,90 @@ struct Saig_ManCba_t_
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+
+/**Function*************************************************************
+
+  Synopsis    [Selects the best flops from the given array.]
+
+  Description [Selects the best 'nFfsToSelect' flops among the array 
+  'vAbsFfsToAdd' of flops that should be added to the abstraction.
+  To this end, this procedure simulates the original AIG (pAig) using
+  the given CEX (pAbsCex), which was detected for the abstraction.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd, int nFfsToSelect )
+{
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    Vec_Int_t * vMapEntries, * vFlopCosts, * vFlopAddCosts, * vFfsToAddBest;
+    int i, k, f, Entry, iBit, * pPerm;
+    assert( Aig_ManRegNum(pAig) == Vec_IntSize(vFlopClasses) );
+    assert( Vec_IntSize(vAbsFfsToAdd) > nFfsToSelect );
+    // map previously abstracted flops into their original numbers
+    vMapEntries = Vec_IntAlloc( Vec_IntSize(vFlopClasses) );
+    Vec_IntForEachEntry( vFlopClasses, Entry, i )
+        if ( Entry == 0 )
+            Vec_IntPush( vMapEntries, i );
+    // simulate one frame at a time
+    assert( Saig_ManPiNum(pAig) + Vec_IntSize(vMapEntries) == pAbsCex->nPis );
+    vFlopCosts = Vec_IntStart( Vec_IntSize(vMapEntries) );
+    // initialize the flops
+    Aig_ManCleanMarkB(pAig);
+    Aig_ManConst1(pAig)->fMarkB = 1;
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->fMarkB = 0;
+    for ( f = 0; f < pAbsCex->iFrame; f++ )
+    {
+        // override the flop values according to the cex
+        iBit = pAbsCex->nRegs + f * pAbsCex->nPis + Saig_ManPiNum(pAig);
+        Vec_IntForEachEntry( vMapEntries, Entry, k )
+            Saig_ManLo(pAig, Entry)->fMarkB = Aig_InfoHasBit(pAbsCex->pData, iBit + k);
+        // simulate
+        Aig_ManForEachNode( pAig, pObj, k )
+            pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                           (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachPo( pAig, pObj, k )
+            pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+        // transfer
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMarkB = pObjRi->fMarkB;
+        // compare
+        iBit = pAbsCex->nRegs + (f + 1) * pAbsCex->nPis + Saig_ManPiNum(pAig);
+        Vec_IntForEachEntry( vMapEntries, Entry, k )
+            if ( Saig_ManLi(pAig, Entry)->fMarkB != (unsigned)Aig_InfoHasBit(pAbsCex->pData, iBit + k) )
+                Vec_IntAddToEntry( vFlopCosts, k, 1 );
+    }
+//    Vec_IntForEachEntry( vFlopCosts, Entry, i )
+//        printf( "%d ", Entry );
+//    printf( "\n" );
+    // remap the cost
+    vFlopAddCosts = Vec_IntAlloc( Vec_IntSize(vAbsFfsToAdd) );
+    Vec_IntForEachEntry( vAbsFfsToAdd, Entry, i )
+        Vec_IntPush( vFlopAddCosts, -Vec_IntEntry(vFlopCosts, Entry) );
+    // sort the flops
+    pPerm = Abc_SortCost( Vec_IntArray(vFlopAddCosts), Vec_IntSize(vFlopAddCosts) );
+    // shrink the array
+    vFfsToAddBest = Vec_IntAlloc( nFfsToSelect );
+    for ( i = 0; i < nFfsToSelect; i++ )
+    {
+//        printf( "%d ", Vec_IntEntry(vFlopAddCosts, pPerm[i]) );
+        Vec_IntPush( vFfsToAddBest, Vec_IntEntry(vAbsFfsToAdd, pPerm[i]) );
+    }
+//    printf( "\n" );
+    // cleanup
+    ABC_FREE( pPerm );
+    Vec_IntFree( vMapEntries );
+    Vec_IntFree( vFlopCosts );
+    Vec_IntFree( vFlopAddCosts );
+    Aig_ManCleanMarkB(pAig);
+    // return the computed flops
+    return vFfsToAddBest;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Duplicate with literals.]
@@ -637,7 +721,8 @@ Vec_Int_t * Saig_ManCbaPerform( Aig_Man_t * pAbs, int nInputs, Saig_ParBmc_t * p
     }
     if ( pPars->fVerbose )
     {
-        printf( "Adding %d registers to the abstraction (total = %d).  ", Vec_IntSize(vAbsFfsToAdd), Aig_ManRegNum(pAbs)+Vec_IntSize(vAbsFfsToAdd) );
+        printf( "Adding %d registers to the abstraction (total = %d).  ", 
+            Vec_IntSize(vAbsFfsToAdd), Aig_ManRegNum(pAbs)+Vec_IntSize(vAbsFfsToAdd) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     return vAbsFfsToAdd;

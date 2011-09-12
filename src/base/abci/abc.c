@@ -28597,7 +28597,7 @@ int Abc_CommandAbc9AbsCba( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nStart     = (pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
     pPars->nFramesMax = pPars->nStart + 10;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCMTvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28632,6 +28632,17 @@ int Abc_CommandAbc9AbsCba( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFfToAddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFfToAddMax < 0 ) 
                 goto usage;
             break;
         case 'T':
@@ -28671,11 +28682,12 @@ int Abc_CommandAbc9AbsCba( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &abs_cba [-SFCT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &abs_cba [-SFCMT num] [-vh]\n" );
     Abc_Print( -2, "\t         refines abstracted flop map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", pPars->nFfToAddMax );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

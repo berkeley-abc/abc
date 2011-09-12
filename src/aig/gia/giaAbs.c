@@ -273,7 +273,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Gia_Man_t * pAbs;
     Aig_Man_t * pAig, * pOrig;
-    Vec_Int_t * vAbsFfsToAdd;
+    Vec_Int_t * vAbsFfsToAdd, * vAbsFfsToAddBest;
     // check if flop classes are given
     if ( pGia->vFlopClasses == NULL )
     {
@@ -297,6 +297,21 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
         Aig_ManStop( pOrig );
         Aig_ManStop( pAig );
         return 0;
+    }
+    // select the most useful flops among those to be added
+    if ( p->nFfToAddMax > 0 && Vec_IntSize(vAbsFfsToAdd) > p->nFfToAddMax )
+    {
+        // compute new flops
+        Aig_Man_t * pAigBig = Gia_ManToAigSimple( pGia );
+        vAbsFfsToAddBest = Saig_ManCbaFilterFlops( pAigBig, pAig->pSeqModel, pGia->vFlopClasses, vAbsFfsToAdd, p->nFfToAddMax );
+        Aig_ManStop( pAigBig );
+        assert( Vec_IntSize(vAbsFfsToAddBest) == p->nFfToAddMax );
+        if ( p->fVerbose )
+            printf( "Filtering flops based on cost (%d -> %d).\n", Vec_IntSize(vAbsFfsToAdd), Vec_IntSize(vAbsFfsToAddBest) );
+        // update
+        Vec_IntFree( vAbsFfsToAdd );
+        vAbsFfsToAdd = vAbsFfsToAddBest;
+
     }
     Aig_ManStop( pAig );
     // update flop classes
