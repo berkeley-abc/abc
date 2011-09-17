@@ -266,7 +266,7 @@ static inline int Vec_VecLevelSize( Vec_Vec_t * p, int i )
 static inline Vec_Ptr_t * Vec_VecEntry( Vec_Vec_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );
-    return p->pArray[i];
+    return (Vec_Ptr_t *)p->pArray[i];
 }
 
 /**Function*************************************************************
@@ -283,7 +283,7 @@ static inline Vec_Ptr_t * Vec_VecEntry( Vec_Vec_t * p, int i )
 static inline Vec_Int_t * Vec_VecEntryInt( Vec_Vec_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );
-    return p->pArray[i];
+    return (Vec_Int_t *)p->pArray[i];
 }
 
 /**Function*************************************************************

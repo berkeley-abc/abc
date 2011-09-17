@@ -429,8 +429,9 @@ void Ssw_RarManInitialize( Ssw_RarMan_t * p, Vec_Int_t * vInit )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarManObjIsConst( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
+int Ssw_RarManObjIsConst( void * pMan, Aig_Obj_t * pObj )
 {
+    Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
     word * pSim = Ssw_RarObjSim( p, Aig_ObjId(pObj) );
     word Flip = pObj->fPhase ? ~0 : 0;
     int w;
@@ -451,8 +452,9 @@ int Ssw_RarManObjIsConst( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ssw_RarManObjsAreEqual( Ssw_RarMan_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
+int Ssw_RarManObjsAreEqual( void * pMan, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
+    Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
     word * pSim0 = Ssw_RarObjSim( p, pObj0->Id );
     word * pSim1 = Ssw_RarObjSim( p, pObj1->Id );
     word Flip = (pObj0->fPhase != pObj1->fPhase) ? ~0 : 0;
@@ -474,8 +476,9 @@ int Ssw_RarManObjsAreEqual( Ssw_RarMan_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Ssw_RarManObjHashWord( Ssw_RarMan_t * p, Aig_Obj_t * pObj )
+unsigned Ssw_RarManObjHashWord( void * pMan, Aig_Obj_t * pObj )
 {
+    Ssw_RarMan_t * p = (Ssw_RarMan_t *)pMan;
     static int s_SPrimes[128] = { 
         1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
         1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 

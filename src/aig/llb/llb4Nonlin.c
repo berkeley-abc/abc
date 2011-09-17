@@ -995,7 +995,7 @@ void Llb_MnxStop( Llb_Mnx_t * p )
         Cudd_RecursiveDeref( p->dd, p->bCurrent );
     if ( p->bNext )
         Cudd_RecursiveDeref( p->dd, p->bNext );
-    if ( p->vRings );
+    if ( p->vRings )
     Vec_PtrForEachEntry( DdNode *, p->vRings, bTemp, i )
         Cudd_RecursiveDeref( p->dd, bTemp );
     if ( p->vRoots )

@@ -490,7 +490,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
 
     // check if there are other types of information to read
     pCur = pSymbols;
-    if ( (char *)pCur + 1 < pContents + nFileSize && *pCur == 'c' )
+    if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
     {
         pCur++;
         if ( *pCur == 'e' )
@@ -695,7 +695,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
 
     // check if there are other types of information to read
     pCur = pSymbols;
-    if ( (char *)pCur + 1 < pContents + nFileSize && *pCur == 'c' )
+    if ( pCur + 1 < (unsigned char *)pContents + nFileSize && *pCur == 'c' )
     {
         pCur++;
         if ( *pCur == 'e' )
@@ -749,11 +749,11 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     if ( *pCur != 'c' )
     {
         int fBreakUsed = 0;
-        char * pCurOld = pCur;
+        unsigned char * pCurOld = pCur;
         pNew->vUserPiIds = Vec_IntStartFull( nInputs );
         pNew->vUserPoIds = Vec_IntStartFull( nOutputs );
         pNew->vUserFfIds = Vec_IntStartFull( nLatches );
-        while ( (char *)pCur < pContents + nFileSize && *pCur != 'c' )
+        while ( pCur < (unsigned char *)pContents + nFileSize && *pCur != 'c' )
         {
             int iTerm;
             char * pType = (char *)pCur;
@@ -796,7 +796,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         // in case of abnormal termination, remove the arrays
         if ( fBreakUsed )
         {
-            char * pName;
+            unsigned char * pName;
             int Entry, nInvars, nConstr, iTerm;
 
             Vec_Int_t * vPoNames = Vec_IntStartFull( nOutputs );
@@ -807,8 +807,8 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
 
             // try to figure out signal names
             fBreakUsed = 0;
-            pCur = pCurOld;
-            while ( pCur < pContents + nFileSize && *pCur != 'c' )
+            pCur = (unsigned char *)pCurOld;
+            while ( pCur < (unsigned char *)pContents + nFileSize && *pCur != 'c' )
             {
                 // get the terminal type
                 if ( *pCur == 'i' || *pCur == 'l' )
@@ -825,7 +825,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
                     break;
                 }
                 // get the terminal number
-                iTerm = atoi( ++pCur );  while ( *pCur++ != ' ' );
+                iTerm = atoi( (char *)++pCur );  while ( *pCur++ != ' ' );
                 // get the node
                 if ( iTerm < 0 || iTerm >= nOutputs )
                 {
@@ -844,7 +844,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
                 pName = pCur;          while ( *pCur++ != '\n' );
                 *(pCur-1) = 0;
                 // assign the name
-                Vec_IntWriteEntry( vPoNames, iTerm, pName - pContents );
+                Vec_IntWriteEntry( vPoNames, iTerm, pName - (unsigned char *)pContents );
             } 
 
             // check that all names are assigned

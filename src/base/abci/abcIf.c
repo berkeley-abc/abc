@@ -1217,7 +1217,7 @@ void Abc_NtkRecreatePoDrivers( If_Man_t * p, Abc_Ntk_t * pNtkNew )
             if ( numPo == ~0 )
                 continue;
             // get the node and the complemented bit
-            pFaninNew = Vec_PtrEntry( vDriversNew, numPo );
+            pFaninNew = (Abc_Obj_t *)Vec_PtrEntry( vDriversNew, numPo );
             fCompl    = Vec_IntEntry( vDriverInvs, numPo );
             if ( fCompl )
                 pFaninNew = Abc_NtkCreateNodeInv( pNtkNew, pFaninNew );

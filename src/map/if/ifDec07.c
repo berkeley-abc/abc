@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "extra.h"
+#include "kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

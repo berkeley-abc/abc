@@ -134,7 +134,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
         if ( f >= nStart )
         {
             Saig_ManForEachPo( pAig, pObj, i )
-                pObjNew = Aig_Or( pFrames, pObjNew, pObj->pData );
+                pObjNew = Aig_Or( pFrames, pObjNew, (Aig_Obj_t *)pObj->pData );
         }
         // transfer
         if ( f == nFrames - 1 )
@@ -146,7 +146,7 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
             {
                 int iFlopNum = Aig_ObjPioNum(pObj) - Saig_ManPoNum(pAig);
                 assert( iFlopNum >= 0 && iFlopNum < Aig_ManRegNum(pAig) );
-                Saig_ObjLiToLo(pAig, pObj)->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,iFlopNum), Aig_ObjCreatePi(pFrames), pObj->pData );
+                Saig_ObjLiToLo(pAig, pObj)->pData = Aig_Mux( pFrames, Aig_ManPi(pFrames,iFlopNum), Aig_ObjCreatePi(pFrames), (Aig_Obj_t *)pObj->pData );
             }
         }
     }

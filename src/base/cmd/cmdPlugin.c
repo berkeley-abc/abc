@@ -706,8 +706,8 @@ int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv )
             pBuffer[strlen(pBuffer)-1] = 0;
         Cmd_CommandAdd( pAbc, pStrSection, pBuffer, Cmd_CommandAbcPlugIn, 1 );
 //        plugin_commands.push(Pair(cmd_name, binary_name));
-        Vec_PtrPush( pAbc->vPlugInComBinPairs, strdup(pBuffer) );
-        Vec_PtrPush( pAbc->vPlugInComBinPairs, strdup(pStrDirBin) );
+        Vec_PtrPush( pAbc->vPlugInComBinPairs, Extra_UtilStrsav(pBuffer) );
+        Vec_PtrPush( pAbc->vPlugInComBinPairs, Extra_UtilStrsav(pStrDirBin) );
         printf( "Creating command %s with binary %s\n", pBuffer, pStrDirBin );
     }
     fclose( pFile );

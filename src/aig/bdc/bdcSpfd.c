@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "bdcInt.h"
+#include "aig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -93,7 +94,6 @@ int Bdc_SpfdAdjCost( word t )
 
 
 extern void  Abc_Show6VarFunc( word F0, word F1 );
-extern word  Aig_ManRandom64( int fReset );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -254,12 +254,12 @@ Abc_PrintTime( 1, "Time", clock() - clk );
     {
 clk = clock();
         c = 0;
-        pNode1 = Vec_PtrEntry( vLevels, n-1 );
+        pNode1 = (Bdc_Nod_t *)Vec_PtrEntry( vLevels, n-1 );
         Count1 = Vec_IntEntry( vBegs, n-1 );
         // go through previous levels
         for ( k = 0; k < n-1; k++ )
         {
-            pNode0 = Vec_PtrEntry( vLevels, k );
+            pNode0 = (Bdc_Nod_t *)Vec_PtrEntry( vLevels, k );
             Count0 = Vec_IntEntry( vBegs, k );
             for ( i = 0; i < Count0; i++ )
             for ( j = 0; j < Count1; j++ )
@@ -915,8 +915,8 @@ void Bdc_SpfdDecomposeTest44()
 
     Vec_Int_t * vWeights;
     Vec_Wrd_t * vDivs;
-    word c0, c1, s, tt, ttt, tbest;
-    int i, j, k, n, Cost, CostBest = 100000;
+    word c0, c1, s, tt, tbest;
+    int i, j, Cost, CostBest = 100000;
     int clk = clock();
 
     return;

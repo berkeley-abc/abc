@@ -1643,11 +1643,11 @@ void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops )
         Vec_IntWriteEntry( vInputs, i, Vec_IntEntry(vInputs, k) );
         Vec_IntWriteEntry( vInputs, k, Entry );
         // swap PIs
-        pTemp = Vec_PtrEntry( pNtk->vPis, i );
+        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPis, i );
         Vec_PtrWriteEntry( pNtk->vPis, i, Vec_PtrEntry(pNtk->vPis, k) );
         Vec_PtrWriteEntry( pNtk->vPis, k, pTemp );
         // swap CIs
-        pTemp = Vec_PtrEntry( pNtk->vCis, i );
+        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, i );
         Vec_PtrWriteEntry( pNtk->vCis, i, Vec_PtrEntry(pNtk->vCis, k) );
         Vec_PtrWriteEntry( pNtk->vCis, k, pTemp );
 //printf( "Swapping PIs %d and %d.\n", i, k );
@@ -1662,11 +1662,11 @@ void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops )
         Vec_IntWriteEntry( vOutputs, i, Vec_IntEntry(vOutputs, k) );
         Vec_IntWriteEntry( vOutputs, k, Entry );
         // swap POs
-        pTemp = Vec_PtrEntry( pNtk->vPos, i );
+        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPos, i );
         Vec_PtrWriteEntry( pNtk->vPos, i, Vec_PtrEntry(pNtk->vPos, k) );
         Vec_PtrWriteEntry( pNtk->vPos, k, pTemp );
         // swap COs
-        pTemp = Vec_PtrEntry( pNtk->vCos, i );
+        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, i );
         Vec_PtrWriteEntry( pNtk->vCos, i, Vec_PtrEntry(pNtk->vCos, k) );
         Vec_PtrWriteEntry( pNtk->vCos, k, pTemp );
 //printf( "Swapping POs %d and %d.\n", i, k );
@@ -1682,15 +1682,15 @@ void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops )
         Vec_IntWriteEntry( vFlops, i, Vec_IntEntry(vFlops, k) );
         Vec_IntWriteEntry( vFlops, k, Entry );
         // swap flops
-        pTemp = Vec_PtrEntry( pNtk->vBoxes, i );
+        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vBoxes, i );
         Vec_PtrWriteEntry( pNtk->vBoxes, i, Vec_PtrEntry(pNtk->vBoxes, k) );
         Vec_PtrWriteEntry( pNtk->vBoxes, k, pTemp );
         // swap CIs
-        pTemp = Vec_PtrEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i );
+        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i );
         Vec_PtrWriteEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i, Vec_PtrEntry(pNtk->vCis, Abc_NtkPiNum(pNtk)+k) );
         Vec_PtrWriteEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+k, pTemp );
         // swap COs
-        pTemp = Vec_PtrEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i );
+        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i );
         Vec_PtrWriteEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i, Vec_PtrEntry(pNtk->vCos, Abc_NtkPoNum(pNtk)+k) );
         Vec_PtrWriteEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+k, pTemp );
 
