@@ -159,7 +159,8 @@ clk = clock();
         if ( pPars->fUseBackward )
             p->pCnfFrames = Cnf_Derive( p->pFrames, Aig_ManPoNum(p->pFrames) );  
         else
-            p->pCnfFrames = Cnf_Derive( p->pFrames, 0 );  
+//            p->pCnfFrames = Cnf_Derive( p->pFrames, 0 );  
+            p->pCnfFrames = Cnf_DeriveSimple( p->pFrames, 0 );  
 p->timeCnf += clock() - clk;    
         // report statistics
         if ( pPars->fVerbose )
@@ -226,7 +227,20 @@ p->timeCnf += clock() - clk;
                         printf( "Found a real counterexample in frame %d.\n", p->nFrames );
                     p->timeTotal = clock() - clkTotal;
                     *piFrame = p->nFrames;
-                    pAig->pSeqModel = (Abc_Cex_t *)Inter_ManGetCounterExample( pAig, p->nFrames+1, pPars->fVerbose );
+//                    pAig->pSeqModel = (Abc_Cex_t *)Inter_ManGetCounterExample( pAig, p->nFrames+1, pPars->fVerbose );
+                    {
+                        int RetValue;
+                        Saig_ParBmc_t ParsBmc, * pParsBmc = &ParsBmc;
+                        Saig_ParBmcSetDefaultParams( pParsBmc );
+                        pParsBmc->nConfLimit = 100000000;
+                        pParsBmc->nStart     = p->nFrames;
+                        pParsBmc->fVerbose   = pPars->fVerbose;
+                        RetValue = Saig_ManBmcScalable( pAig, pParsBmc );
+                        if ( RetValue == 1 )
+                            printf( "Error: The problem should be SAT but it is UNSAT.\n" );
+                        else if ( RetValue == -1 )
+                            printf( "Error: The problem timed out.\n" );
+                    }
                     Inter_ManStop( p );
                     Inter_CheckStop( pCheck );
                     return 0;
