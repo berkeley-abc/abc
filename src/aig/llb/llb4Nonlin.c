@@ -923,6 +923,7 @@ void Llb_Nonlin4Reorder( DdManager * dd, int fTwice, int fVerbose )
 Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
 {
     Llb_Mnx_t * p;
+
     p = ABC_CALLOC( Llb_Mnx_t, 1 );
     p->pAig    = pAig;
     p->pPars   = pPars;
@@ -944,7 +945,7 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     {
 //    p->vOrder  = Llb_Nonlin4CreateOrderSimple( pAig );
         p->vOrder  = Llb_Nonlin4CreateOrder( pAig );
-        p->dd      = Cudd_Init( Vec_IntSize(p->vOrder), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+        p->dd      = Cudd_Init( Vec_IntCountPositive(p->vOrder) + 1, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
         Cudd_AutodynEnable( p->dd,  CUDD_REORDER_SYMM_SIFT );
         Cudd_SetMaxGrowth( p->dd, 1.05 );
         // set the stop time parameter
@@ -1055,6 +1056,11 @@ int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     int RetValue = -1;
     if ( pPars->fVerbose )
     Aig_ManPrintStats( pAig );
+    if ( pPars->fCluster && Aig_ManObjNum(pAig) >= (1 << 15) )
+    {
+        printf( "The number of objects is more than 2^15.  Clustering cannot be used.\n" );
+        return RetValue;
+    }
     if ( !pPars->fSkipReach )
     {
         int clk = clock();

@@ -1707,9 +1707,6 @@ cuddBddPermuteRecur( DdManager * manager /* DD manager */ ,
     /* If problem already solved, look up answer and return. */
     if ( N->ref != 1 && ( res = cuddHashTableLookup1( table, N ) ) != NULL )
     {
-#ifdef DD_DEBUG
-        bddPermuteRecurHits++;
-#endif
         return ( Cudd_NotCond( res, N != node ) );
     }
 
