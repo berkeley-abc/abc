@@ -81,6 +81,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vUserPoIds );
     Vec_IntFreeP( &p->vUserFfIds );
     Vec_IntFreeP( &p->vFlopClasses );
+    Vec_IntFreeP( &p->vGateClasses );
     Vec_IntFreeP( &p->vLevels );
     Vec_IntFreeP( &p->vTruths );
     Vec_IntFree( p->vCis );
@@ -166,31 +167,51 @@ void Gia_ManPrintClasses_old( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPrintClasses( Gia_Man_t * p )
+void Gia_ManPrintFlopClasses( Gia_Man_t * p )
 {
-    int i, Class, Counter0, Counter1;
+    int Counter0, Counter1;
     if ( p->vFlopClasses == NULL )
         return;
     if ( Vec_IntSize(p->vFlopClasses) != Gia_ManRegNum(p) )
     {
-        printf( "Gia_ManPrintClasses(): The number of flop map entries differs from the number of flops.\n" );
+        printf( "Gia_ManPrintFlopClasses(): The number of flop map entries differs from the number of flops.\n" );
         return;
     }
-    printf( "Register classes: " );
-    // count zero entries
-    Counter0 = 0;
-    Vec_IntForEachEntry( p->vFlopClasses, Class, i )
-        Counter0 += (Class == 0);
-    printf( "0=%d  ", Counter0 );
-    // count one entries
-    Counter1 = 0;
-    Vec_IntForEachEntry( p->vFlopClasses, Class, i )
-        Counter1 += (Class == 1);
-    printf( "1=%d  ", Counter1 );
-    // add comment
+    Counter0 = Vec_IntCountEntry( p->vFlopClasses, 0 );
+    Counter1 = Vec_IntCountEntry( p->vFlopClasses, 1 );
+    printf( "Flop-level abstraction:  Excluded FFs = %d  Included FFs = %d  ", Counter0, Counter1 );
     if ( Counter0 + Counter1 < Gia_ManRegNum(p) )
-        printf( "there are other classes..." );
+        printf( "and there are other FF classes..." );
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintGateClasses( Gia_Man_t * p )
+{
+    int i, Counter[5];
+    if ( p->vGateClasses == NULL )
+        return;
+    if ( Vec_IntSize(p->vGateClasses) != Gia_ManObjNum(p) )
+    {
+        printf( "Gia_ManPrintGateClasses(): The number of flop map entries differs from the number of flops.\n" );
+        return;
+    }
+    for ( i = 0; i < 5; i++ )
+        Counter[i] = Vec_IntCountEntry( p->vGateClasses, i );
+    printf( "Gate-level abstraction:  PI = %d  PPI = %d  FF = %d  AND = %d  Unused = %d\n", 
+        Counter[1], Counter[2], Counter[3], Counter[4], Counter[0] );
+    if ( Counter[0] + Counter[1] + Counter[2] + Counter[3] + Counter[4] != Gia_ManObjNum(p) )
+        printf( "Gia_ManPrintGateClasses():  Mismatch in the object count.\n" );
 }
 
 /**Function*************************************************************
@@ -261,7 +282,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
     if ( p->pPlacement )
         Gia_ManPrintPlacement( p );
     // print register classes
-    Gia_ManPrintClasses( p );
+    Gia_ManPrintFlopClasses( p );
+    Gia_ManPrintGateClasses( p );
 }
 
 /**Function*************************************************************

@@ -138,7 +138,7 @@ Gia_Man_t * Gia_ManDupFf2In( Gia_Man_t * p, int nFlopsOld )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManReparm( Gia_Man_t * p, int fVerbose )
+Gia_Man_t * Gia_ManReparam( Gia_Man_t * p, int fVerbose )
 {
 //    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
     Aig_Man_t * pMan, * pTemp;

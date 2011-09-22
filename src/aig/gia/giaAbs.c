@@ -111,32 +111,6 @@ Vec_Int_t * Gia_ManClasses2Flops( Vec_Int_t * vFlopClasses )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs abstraction on the AIG manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Gia_Man_t * Gia_ManDupAbstractionAig( Gia_Man_t * p, Vec_Int_t * vFlops )
-{
-    Gia_Man_t * pGia;
-    Aig_Man_t * pNew, * pTemp;
-    pNew = Gia_ManToAig( p, 0 );
-    pNew = Saig_ManDupAbstraction( pTemp = pNew, vFlops );
-    Aig_ManStop( pTemp );
-    pGia = Gia_ManFromAig( pNew );
-//    pGia->vCiNumsOrig = pNew->vCiNumsOrig; 
-//    pNew->vCiNumsOrig = NULL;
-    Aig_ManStop( pNew );
-    return pGia;
-
-}
-
-/**Function*************************************************************
-
   Synopsis    [Starts abstraction by computing latch map.]
 
   Description []
@@ -281,7 +255,7 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
         pGia->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pGia) );
     }
     // derive abstraction
-    pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
+    pAbs = Gia_ManDupAbsFlops( pGia, pGia->vFlopClasses );
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );
     // refine abstraction using CBA
@@ -343,7 +317,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
         return 0;
     }
     // derive abstraction
-    pAbs = Gia_ManDupAbstraction( pGia, pGia->vFlopClasses );
+    pAbs = Gia_ManDupAbsFlops( pGia, pGia->vFlopClasses );
     // refine abstraction using PBA
     pAig = Gia_ManToAigSimple( pAbs );
     Gia_ManStop( pAbs );

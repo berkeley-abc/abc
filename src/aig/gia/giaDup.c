@@ -1517,12 +1517,13 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManDupAbstraction_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
+void Gia_ManDupAbsFlops_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
 {
     if ( ~pObj->Value )
         return;
-    Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin0(pObj) );
-    Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin1(pObj) );
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin0(pObj) );
+    Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin1(pObj) );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
 }
 
@@ -1537,7 +1538,7 @@ void Gia_ManDupAbstraction_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupAbstraction( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
+Gia_Man_t * Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
 { 
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -1562,14 +1563,73 @@ Gia_Man_t * Gia_ManDupAbstraction( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachPo( p, pObj, i )
     {
-        Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin0(pObj) );
+        Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin0(pObj) );
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
     // create RIs
     Gia_ManForEachRi( p, pObj, i )
         if ( Vec_IntEntry(vFlopClasses, i) )
         {
-            Gia_ManDupAbstraction_rec( pNew, Gia_ObjFanin0(pObj) );
+            Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin0(pObj) );
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+            nFlops++;
+        }
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, nFlops );
+    // clean up
+    pNew = Gia_ManSeqCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs abstraction of the AIG to preserve the included gates.]
+
+  Description [The array contains PIs, LOs, and internal nodes included.
+  0=unsed, 1=PI, 2=PPI, 3=FF, 4=AND.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
+{ 
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, nFlops = 0;
+    assert( Gia_ManPoNum(p) == 1 );
+    Gia_ManFillValue( p );
+    // start the new manager
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Gia_UtilStrsav( p->pName );
+    // create PIs
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 1 )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    // create additional PIs
+    Gia_ManForEachPi( p, pObj, i )
+        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 2 )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    // create ROs
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 3 )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    // create POs
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin0(pObj) );
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    // create RIs
+    Gia_ManForEachRo( p, pObj, i )
+        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 3 )
+        {
+            pObj = Gia_ObjRoToRi(p, pObj);
+            Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin0(pObj) );
             Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
             nFlops++;
         }

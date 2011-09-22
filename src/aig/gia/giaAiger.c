@@ -507,6 +507,13 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
             pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
             Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
         }
+        if ( *pCur == 'g' )
+        {
+            pCur++;
+            // read gate classes
+            pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
+            Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
+        }
         if ( *pCur == 'm' )
         {
             pCur++;
@@ -712,6 +719,13 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             pNew->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pNew) );
             Gia_ReadFlopClasses( &pCur, pNew->vFlopClasses, Gia_ManRegNum(pNew) );
         }
+        if ( *pCur == 'g' )
+        {
+            pCur++;
+            // read gate classes
+            pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
+            Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
+        }
         if ( *pCur == 'm' )
         {
             pCur++;
@@ -898,11 +912,13 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     }
 
     {
-        Vec_Int_t * vFlopMap;
+        Vec_Int_t * vFlopMap, * vGateMap;
         vFlopMap = pNew->vFlopClasses; pNew->vFlopClasses = NULL;
+        vGateMap = pNew->vGateClasses; pNew->vGateClasses = NULL;
         pNew = Gia_ManCleanup( pTemp = pNew );
         Gia_ManStop( pTemp );
         pNew->vFlopClasses = vFlopMap;
+        pNew->vGateClasses = vGateMap;
     }
     return pNew;
 }
@@ -1316,6 +1332,16 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fprintf( pFile, "f" );
         fwrite( Buffer, 1, 4, pFile );
         fwrite( Vec_IntArray(p->vFlopClasses), 1, nSize, pFile );
+    }
+    // write gate classes
+    if ( p->vGateClasses )
+    {
+        unsigned char Buffer[10];
+        int nSize = 4*Gia_ManObjNum(p);
+        Gia_WriteInt( Buffer, nSize );
+        fprintf( pFile, "g" );
+        fwrite( Buffer, 1, 4, pFile );
+        fwrite( Vec_IntArray(p->vGateClasses), 1, nSize, pFile );
     }
     // write mapping
     if ( p->pMapping )

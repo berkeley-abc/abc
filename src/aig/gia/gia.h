@@ -133,6 +133,7 @@ struct Gia_Man_t_
     int *          pCopies;       // intermediate copies
     Vec_Int_t *    vTruths;       // used for truth table computation
     Vec_Int_t *    vFlopClasses;  // classes of flops for retiming/merging/etc
+    Vec_Int_t *    vGateClasses;  // classes of gates for abstraction
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
     int *          pTravIds;      // separate traversal ID representation
@@ -656,7 +657,8 @@ extern Gia_Man_t *         Gia_ManMiter( Gia_Man_t * pAig0, Gia_Man_t * pAig1, i
 extern Gia_Man_t *         Gia_ManTransformMiter( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManChoiceMiter( Vec_Ptr_t * vGias );
 extern Gia_Man_t *         Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes );
-extern Gia_Man_t *         Gia_ManDupAbstraction( Gia_Man_t * p, Vec_Int_t * vFlopClasses );
+extern Gia_Man_t *         Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses );
+extern Gia_Man_t *         Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses );
 /*=== giaEnable.c ==========================================================*/
 extern void                Gia_ManDetectSeqSignals( Gia_Man_t * p, int fSetReset, int fVerbose );
 extern Gia_Man_t *         Gia_ManUnrollAndCofactor( Gia_Man_t * p, int nFrames, int nFanMax, int fVerbose );
@@ -750,7 +752,7 @@ extern int                 Gia_MmStepReadMemUsage( Gia_MmStep_t * p );
 /*=== giaPat.c ===========================================================*/
 extern void                Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, Vec_Int_t * vVisit );
 /*=== giaReparam.c ===========================================================*/
-extern Gia_Man_t *         Gia_ManReparm( Gia_Man_t * p, int fVerbose );
+extern Gia_Man_t *         Gia_ManReparam( Gia_Man_t * p, int fVerbose );
 /*=== giaRetime.c ===========================================================*/
 extern Gia_Man_t *         Gia_ManRetimeForward( Gia_Man_t * p, int nMaxIters, int fVerbose );
 /*=== giaSat.c ============================================================*/

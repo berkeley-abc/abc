@@ -917,11 +917,11 @@ static inline int Vec_IntSum( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_IntCountZero( Vec_Int_t * p ) 
+static inline int Vec_IntCountEntry( Vec_Int_t * p, int Entry ) 
 {
     int i, Counter = 0;
     for ( i = 0; i < p->nSize; i++ )
-        Counter += (p->pArray[i] == 0);
+        Counter += (p->pArray[i] == Entry);
     return Counter;
 }
 
