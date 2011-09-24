@@ -58,18 +58,21 @@ struct Sec_MtrStatus_t_
 typedef struct Saig_ParBmc_t_ Saig_ParBmc_t;
 struct Saig_ParBmc_t_
 {
-    int         nStart;       // starting timeframe
-    int         nFramesMax;   // maximum number of timeframes 
-    int         nConfLimit;   // maximum number of conflicts at a node
-    int         nTimeOut;     // approximate timeout in seconds
-    int         nPisAbstract; // the number of PIs to abstract
-    int         fSolveAll;    // does not stop at the first SAT output
-    int         fDropSatOuts; // replace sat outputs by constant 0
-    int         nFfToAddMax;  // max number of flops to add during CBA
-    int         fVerbose;     // verbose 
-    int         iFrame;       // explored up to this frame
-    int         nFailOuts;    // the number of failed outputs
+    int         nStart;         // starting timeframe
+    int         nFramesMax;     // maximum number of timeframes 
+    int         nConfLimit;     // maximum number of conflicts at a node
+    int         nConfLimitJump; // maximum number of conflicts after jumping
+    int         nFramesJump;    // the number of tiemframes to jump
+    int         nTimeOut;       // approximate timeout in seconds
+    int         nPisAbstract;   // the number of PIs to abstract
+    int         fSolveAll;      // does not stop at the first SAT output
+    int         fDropSatOuts;   // replace sat outputs by constant 0
+    int         nFfToAddMax;    // max number of flops to add during CBA
+    int         fVerbose;       // verbose 
+    int         iFrame;         // explored up to this frame
+    int         nFailOuts;      // the number of failed outputs
 };
+
  
 typedef struct Saig_ParBbr_t_ Saig_ParBbr_t;
 struct Saig_ParBbr_t_

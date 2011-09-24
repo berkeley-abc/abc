@@ -19017,7 +19017,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCILsdrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTCDJILsdrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19063,6 +19063,28 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConfLimitJump = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConfLimitJump < 0 ) 
+                goto usage;
+            break;
+        case 'J':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesJump = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesJump < 0 ) 
                 goto usage;
             break;
         case 'I':
@@ -19144,12 +19166,14 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTCI num] [-L file] [-sdvh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTCDJI num] [-L file] [-sdvh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-C num : max conflicts at an output [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-D num : max conflicts after jumping (0 = infinity) [default = %d]\n", pPars->nConfLimitJump );
+    Abc_Print( -2, "\t-J num : the number of timeframes to jump (0 = not used) [default = %d]\n", pPars->nFramesJump );
     Abc_Print( -2, "\t-I num : the number of PIs to abstract [default = %d]\n", pPars->nPisAbstract );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-s     : solve all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll? "yes": "no" );

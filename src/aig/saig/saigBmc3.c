@@ -1073,6 +1073,8 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->nStart         =     0;    // maximum number of timeframes 
     p->nFramesMax     =  2000;    // maximum number of timeframes 
     p->nConfLimit     =  2000;    // maximum number of conflicts at a node
+    p->nConfLimitJump =     0;    // maximum number of conflicts after jumping
+    p->nFramesJump    =     0;    // the number of tiemframes to jump
     p->nTimeOut       =     0;    // approximate timeout in seconds
     p->nPisAbstract   =     0;    // the number of PIs to abstract
     p->fSolveAll      =     0;    // stops on the first SAT instance
@@ -1097,7 +1099,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
 {
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
-    int RetValue = -1, fFirst = 1;
+    int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
     int nOutDigits = Aig_Base10Log( Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) );
     int i, f, Lit, status, clk, clk2, clkOther = 0, clkTotal = clock();
     if ( pPars->fVerbose && Aig_ManConstrNum(pAig) > 0 )
@@ -1133,7 +1135,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
             return 0;
         }
         // consider the next timeframe
-        if ( RetValue == -1 && pPars->nStart == 0 )
+        if ( RetValue == -1 && pPars->nStart == 0 && !nJumpFrame )
             pPars->iFrame = f-1;
         // resize the array
         Vec_IntFillExtra( p->vPiVars, (f+1)*Saig_ManPiNum(p->pAig), 0 );
@@ -1173,7 +1175,7 @@ clkOther += clock() - clk2;
                 return 1;
             }
         }
-        if ( pPars->nStart && f < pPars->nStart )
+        if ( (pPars->nStart && f < pPars->nStart) || (nJumpFrame && f < nJumpFrame) )
             continue;
         // solve SAT
         clk = clock(); 
@@ -1211,6 +1213,7 @@ clkOther += clock() - clk2;
                 continue;
             }
             // solve this output
+            fUnfinished = 0;
             sat_solver_compress( p->pSat );
             status = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( status == l_False )
@@ -1232,7 +1235,7 @@ clkOther += clock() - clk2;
 //ABC_PRT( "CNF generation runtime", clkOther );
                     if ( pPars->fVerbose )
                     {
-                        printf( "%3d : ", f );
+                        printf( "%3d %s : ", f, fUnfinished ? "-" : "+" );
                         printf( "Var =%8.0f. ", (double)p->nSatVars );
                         printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
                         printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
@@ -1261,6 +1264,19 @@ clkOther += clock() - clk2;
             else 
             {
                 assert( status == l_Undef );
+                if ( pPars->nTimeOut && ((float)pPars->nTimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+                {
+                    printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
+                    Saig_Bmc3ManStop( p );
+                    return RetValue;
+                }
+                if ( pPars->nFramesJump )
+                {
+                    pPars->nConfLimit = pPars->nConfLimitJump;
+                    nJumpFrame = f + pPars->nFramesJump;
+                    fUnfinished = 1;
+                    break;
+                }
                 Saig_Bmc3ManStop( p );
                 return RetValue;
             }
@@ -1278,7 +1294,7 @@ clkOther += clock() - clk2;
                 fFirst = 0;
 //                printf( "Outputs of frames up to %d are trivially UNSAT.\n", f );
             }
-            printf( "%3d : ", f );
+            printf( "%3d %s : ", f, fUnfinished ? "-" : "+" );
             printf( "Var =%8.0f. ", (double)p->nSatVars );
             printf( "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
             printf( "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
@@ -1293,7 +1309,9 @@ clkOther += clock() - clk2;
         }
     }
     // consider the next timeframe
-    if ( RetValue == -1 && pPars->nStart == 0 )
+    if ( nJumpFrame && pPars->nStart == 0 )
+        pPars->iFrame = nJumpFrame - pPars->nFramesJump;
+    else if ( RetValue == -1 && pPars->nStart == 0 )
         pPars->iFrame = f;
 //ABC_PRT( "CNF generation runtime", clkOther );
     if ( pPars->fVerbose )
