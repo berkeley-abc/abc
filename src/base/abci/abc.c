@@ -902,6 +902,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
         printf( "\n" );
     }
 */
+    {
+        extern void If_CluTest();
+        If_CluTest();
+    }
 } 
 
 /**Function*************************************************************
@@ -12992,6 +12996,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fSeqMap     =  0;
     pPars->fBidec      =  0;
     pPars->fVerbose    =  0;
+    pPars->pLutStruct  =  NULL;
     // internal parameters
     pPars->fTruth      =  0;
     pPars->nLatches    =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
@@ -13003,7 +13008,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEqaflepmrsdbugojikcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEWSqaflepmrsdbugojikcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13074,6 +13079,31 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->Epsilon < 0.0 || pPars->Epsilon > 1.0 ) 
                 goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->WireDelay = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->WireDelay < 0.0 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by string.\n" );
+                goto usage;
+            }
+            pPars->pLutStruct = argv[globalUtilOptind];
+            globalUtilOptind++;
+            if ( !strlen(pPars->pLutStruct) == 2 && !strlen(pPars->pLutStruct) == 3 ) 
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a 2- or 3-char string (e.g. \"44\" or \"555\").\n" );
+                goto usage;
+            }
             break;
         case 'q':
             pPars->fPreprocess ^= 1;
@@ -13261,6 +13291,20 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pLutLib     =  NULL;
     }
 
+    // modify for LUT structures
+    if ( pPars->pLutStruct )
+    {
+        if ( pPars->nLutSize == -1 )
+        {
+            Abc_Print( -1, "Please specify the maximum cut size (-K <num>) when LUT structure is used.\n" );
+            return 1;
+        }
+        pPars->fTruth      =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+    }
+
     // complain if truth tables are requested but the cut size is too large
     if ( pPars->fTruth && pPars->nLutSize > IF_MAX_FUNC_LUTSIZE )
     {
@@ -13323,7 +13367,7 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFA num] [-DE float] [-qarlepmsdbugojikcvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFA num] [-DEW float] [-S str] [-qarlepmsdbugojikcvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -13331,6 +13375,8 @@ usage:
     Abc_Print( -2, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
     Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );  
+    Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );  
+    Abc_Print( -2, "\t-S str   : string representing the LUT structure [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );  
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
 //    Abc_Print( -2, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );

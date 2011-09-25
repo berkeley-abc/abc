@@ -153,7 +153,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( pCut->nLeaves > 0 )
     {
         // recompute the parameters of the best cut
-        if ( p->pPars->fDelayOpt )
+        if ( p->pPars->pLutStruct )
+            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
+        else if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutDelaySopCost( p, pCut );
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
@@ -215,7 +217,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( pCut->Cost == IF_COST_MAX )
             continue;
         // check if the cut satisfies the required times
-        if ( p->pPars->fDelayOpt )
+        if ( p->pPars->pLutStruct )
+            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
+        else if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutDelaySopCost( p, pCut );
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );

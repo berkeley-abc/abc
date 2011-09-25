@@ -200,6 +200,7 @@ void Extra_PrintKMap(
   int fSuppType, /* the flag which determines how support is computed */
   char ** pVarNames )
 {
+    int fPrintTruth = 1;
     int d, p, n, s, v, h, w;
     int nVarsVer;
     int nVarsHor;
@@ -213,6 +214,40 @@ void Extra_PrintKMap(
         fprintf( Output, "PrintKMap(): The on-set and the off-set overlap\n" );
         return;
     }
+
+    // print truth table for debugging
+    if ( fPrintTruth )
+    {
+        DdNode * bCube, * bPart;
+        printf( "Truth table: " );
+        if ( nVars == 0 )
+            printf( "Constant" );
+        else if ( nVars == 1 )
+            printf( "1-var function" );
+        else
+        {
+//            printf( "0x" );
+            for ( d = (1<<(nVars-2)) - 1; d >= 0; d-- )
+            {
+                int Value = 0;
+                for ( s = 0; s < 4; s++ )
+                {
+                    bCube = Extra_bddBitsToCube( dd, 4*d+s, nVars, dd->vars, 0 );   Cudd_Ref( bCube );
+                    bPart = Cudd_Cofactor( dd, OnSet, bCube );                      Cudd_Ref( bPart );
+                    Value |= ((int)(bPart == b1) << s);
+                    Cudd_RecursiveDeref( dd, bPart );
+                    Cudd_RecursiveDeref( dd, bCube );
+                }
+                if ( Value < 10 )
+                    fprintf( stdout, "%d", Value );
+                else
+                    fprintf( stdout, "%c", 'a' + Value-10 );
+            }
+        }
+        printf( "\n" );
+    }
+
+
 /*
     if ( OnSet == b1 )
     {

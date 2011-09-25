@@ -101,6 +101,8 @@ struct If_Par_t_
     int                fEnableCheck10;// enable additional checking
     int                fEnableRealPos;// enable additional feature
     int                fVerbose;      // the verbosity flag
+    char *             pLutStruct;    // LUT structure
+    float              WireDelay;     // wire delay
     // internal parameters
     int                fDelayOpt;     // special delay optimization
     int                fAreaOnly;     // area only mode
@@ -414,6 +416,7 @@ extern float           If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t
 extern int             If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves );
 extern int             If_CutPerformCheck08( unsigned * pTruth, int nVars, int nLeaves );
 extern int             If_CutPerformCheck10( unsigned * pTruth, int nVars, int nLeaves );
+extern float           If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float WireDelay );
 /*=== ifLib.c =============================================================*/
 extern If_Lib_t *      If_LutLibRead( char * FileName );
 extern If_Lib_t *      If_LutLibDup( If_Lib_t * p );
