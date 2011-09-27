@@ -903,8 +903,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     }
 */
     {
-        extern void If_CluTest();
-        If_CluTest();
+//        extern void If_CluTest();
+//        If_CluTest();
     }
 } 
 
@@ -8860,9 +8860,22 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 }
 */
 
+{
+    extern void Abs_VfaManTest( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fVerbose );
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    if ( pNtk )
     {
-        void Bdc_SpfdDecomposeTest();
-        Bdc_SpfdDecomposeTest();
+        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+        Abs_VfaManTest( pAig, 32, 1000000, 1 );
+        Aig_ManStop( pAig );
+    }
+}
+
+
+
+    {
+//        void Bdc_SpfdDecomposeTest();
+//        Bdc_SpfdDecomposeTest();
     }
     return 0;
 usage:

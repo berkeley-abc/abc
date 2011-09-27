@@ -2039,7 +2039,7 @@ SOURCE=.\src\map\if\ifDec10.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifDec10f.c
+SOURCE=.\src\map\if\ifDec16.c
 # End Source File
 # Begin Source File
 
@@ -3504,6 +3504,10 @@ SOURCE=.\src\aig\saig\saigAbsPba.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigAbsStart.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigAbsVfa.c
 # End Source File
 # Begin Source File
 

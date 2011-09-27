@@ -27,17 +27,16 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define CLU_MAX 16
+#define CLU_VAR_MAX  16
+#define CLU_WRD_MAX  (1 << ((CLU_VAR_MAX)-6))
 
 // decomposition
-typedef struct If_Bst_t_ If_Bst_t;
-struct If_Bst_t_
+typedef struct If_Grp_t_ If_Grp_t;
+struct If_Grp_t_
 {
-    int   nMyu;
-    int   nVars;
-    int   Vars[CLU_MAX];
-    float Dels[CLU_MAX];
-    word  Truth[1 << (CLU_MAX-6)];
+    char nVars;
+    char nMyu;
+    char pVars[6];
 };
 
 // the bit count for the first 256 integer numbers
@@ -68,7 +67,7 @@ static word Truth6[6] = {
     0xFFFF0000FFFF0000,
     0xFFFFFFFF00000000
 };
-static word TruthAll[CLU_MAX][1 << (CLU_MAX-6)];
+static word TruthAll[CLU_VAR_MAX][CLU_WRD_MAX];
 
 extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 extern void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
@@ -84,12 +83,12 @@ extern void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
 void If_CluInitTruthTables()
 {
     int i, k;
-    assert( CLU_MAX <= 16 );
+    assert( CLU_VAR_MAX <= 16 );
     for ( i = 0; i < 6; i++ )
-        for ( k = 0; k < (1 << (CLU_MAX-6)); k++ )
+        for ( k = 0; k < CLU_WRD_MAX; k++ )
             TruthAll[i][k] = Truth6[i];
-    for ( i = 6; i < CLU_MAX; i++ )
-        for ( k = 0; k < (1 << (CLU_MAX-6)); k++ )
+    for ( i = 6; i < CLU_VAR_MAX; i++ )
+        for ( k = 0; k < CLU_WRD_MAX; k++ )
             TruthAll[i][k] = ((k >> i) & 1) ? ~0 : 0;
 }
 
@@ -103,6 +102,14 @@ static inline void If_CluCopy( word * pOut, word * pIn, int nVars )
     int w, nWords = If_CluWordNum( nVars );
     for ( w = 0; w < nWords; w++ )
         pOut[w] = pIn[w];
+}
+static inline int If_CluEqual( word * pOut, word * pIn, int nVars )
+{
+    int w, nWords = If_CluWordNum( nVars );
+    for ( w = 0; w < nWords; w++ )
+        if ( pOut[w] != pIn[w] )
+            return 0;
+    return 1;
 }
 static inline void If_CluSwapAdjacent( word * pOut, word * pIn, int iVar, int nVars )
 {
@@ -144,7 +151,7 @@ static inline void If_CluSwapAdjacent( word * pOut, word * pIn, int iVar, int nV
 // moves one var (v) to the given position (p)
 void If_CluMoveVar( word * pF, int nVars, int * Var2Pla, int * Pla2Var, int v, int p )
 {
-    word pG[1 << (CLU_MAX-6)], * pIn = pF, * pOut = pG, * pTemp;
+    word pG[CLU_WRD_MAX], * pIn = pF, * pOut = pG, * pTemp;
     int iPlace0, iPlace1, Count = 0;
     assert( v >= 0 && v < nVars );
     if ( Var2Pla[v] <= p )
@@ -185,36 +192,69 @@ void If_CluMoveVar( word * pF, int nVars, int * Var2Pla, int * Pla2Var, int v, i
 }
 
 // moves vars to be the most signiticant ones (Group[0] is MSB)
-void If_CluMoveGroupToMsb( word * pF, int nVars, int * V2P, int * P2V, word Group )
+void If_CluMoveGroupToMsb( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t * g )
 {
-    char * pVars = (char *)&Group;
     int v;
-    for ( v = 0; v < pVars[7]; v++ )
-        If_CluMoveVar( pF, nVars, V2P, P2V, pVars[pVars[7] - 1 - v], nVars - 1 - v );
+    for ( v = 0; v < g->nVars; v++ )
+        If_CluMoveVar( pF, nVars, V2P, P2V, g->pVars[g->nVars - 1 - v], nVars - 1 - v );
 }
 
 // return the number of cofactors w.r.t. the topmost vars (nBSsize)
-int If_CluCountCofs( word * pF, int nVars, int nBSsize, int iShift )
+int If_CluCountCofs( word * pF, int nVars, int nBSsize, int iShift, word * pCofs[2] )
 {
-    int nShift = (1 << (nVars - nBSsize));
-    word Mask  = (((word)1) << nShift) - 1;
     word iCofs[64], iCof;
-    int i, c, nMints = (1 << nBSsize), nCofs = 1;
+    int i, c, w, nMints = (1 << nBSsize), nCofs;
+
+    assert( nBSsize < nVars );
     assert( nBSsize >= 3 && nBSsize <= 6 );
-    assert( nVars - nBSsize > 0 && nVars - nBSsize <= 6 );
-    if ( nVars - nBSsize == 6 )
-        Mask = ~0;
-    iCofs[0] = (pF[iShift / 64] >> (iShift & 63)) & Mask;
-    for ( i = 1; i < nMints; i++ )
+
+    if ( nVars - nBSsize >= 6 )
     {
-        iCof = (pF[(iShift + i * nShift) / 64] >> ((iShift + i * nShift) & 63)) & Mask;
-        for ( c = 0; c < nCofs; c++ )
-            if ( iCof == iCofs[c] )
+        word * pCofA, * pCofB;
+        int nWords = (1 << (nVars - nBSsize - 6));
+        assert( nWords * nMints == If_CluWordNum(nVars) );
+        for ( nCofs = i = 0; i < nMints; i++ )
+        {
+            for ( c = 0; c < nCofs; c++ )
+            {
+                pCofA = pF + i * nWords;
+                pCofB = pF + iCofs[c] * nWords;
+                for ( w = 0; w < nWords; w++ )
+                    if ( pCofA[w] != pCofB[w] )
+                        break;
+                if ( w == nWords )
+                    break;
+            }
+            if ( c == nCofs )
+                iCofs[nCofs++] = i;
+            if ( nCofs == 5 )
                 break;
-        if ( c == nCofs )
-            iCofs[nCofs++] = iCof;
-        if ( nCofs == 5 )
-            break;
+        }
+        if ( nCofs == 2 && pCofs )
+        {
+            for ( c = 0; c < nCofs; c++ )
+            {
+                word * pCofA = pF + iCofs[c] * nWords;
+                for ( w = 0; w < nWords; w++ )
+                    pCofs[c][w] = pCofA[w];
+            }
+        }
+    }
+    else
+    {
+        int nShift = (1 << (nVars - nBSsize));
+        word Mask  = ((((word)1) << nShift) - 1);
+        for ( nCofs = i = 0; i < nMints; i++ )
+        {
+            iCof = (pF[(iShift + i * nShift) / 64] >> ((iShift + i * nShift) & 63)) & Mask;
+            for ( c = 0; c < nCofs; c++ )
+                if ( iCof == iCofs[c] )
+                    break;
+            if ( c == nCofs )
+                iCofs[nCofs++] = iCof;
+            if ( nCofs == 5 )
+                break;
+        }
     }
     assert( nCofs >= 2 && nCofs <= 5 );
     return nCofs;
@@ -252,82 +292,123 @@ void If_CluCofactors( word * pF, int nVars, int iVar, word * pCof0, word * pCof1
     }
 }
 
+// derives non-disjoint decomposition (assumes the shared var in pG->pVars[pG->nVars-1]
+word If_CluDeriveNonDisjoint( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t * g, If_Grp_t * pG )
+{
+    /*
+    word Truth, Truth0, Truth1;
+    word Cof[2][CLU_WRD_MAX], Cof0[2][CLU_WRD_MAX], Cof1[2][CLU_WRD_MAX];
+    int i, nFSvars, nFSHalfBits, nBSHalfBits;
+    assert( pG->nVars >= 3 && pG->nVar <= 6 );
+    assert( pG->nMyu == 3 || pG->nMyu == 4 );
+
+    If_CluMoveGroupToMsb( pF, nVars, V2P, P2V, pG );
+
+    If_CluCofactors( pF, nVars, nVars - 1, Cof[0], Cof[1] );
+
+    assert( 2 >= If_Dec6CofCount2(c0) );
+    assert( 2 >= If_Dec6CofCount2(c1) );
+
+    assert( 2 >= If_CluCountCofs( Cof[0], nVars - 1, pG->nVars - 1, 0 ) );
+    assert( 2 >= If_CluCountCofs( Cof[1], nVars - 1, pG->nVars - 1, 0 ) );
+
+    Truth0 = If_CluExtract2Cofs( Cof[0], nVars - 1, pG->nVars - 1, &Cof0[0], &Cof0[1] );
+    Truth1 = If_CluExtract2Cofs( Cof[1], nVars - 1, pG->nVars - 1, &Cof0[0], &Cof0[1] );
+
+    nFSHalfBits = (1 << (nVars - pG->nVars - 1));
+    nBSHalfBits = (1 << (pG->nVars - 1))
+
+    Truth = ((Truth0 && ((1 << nBSHalfBits) - 1)) << nBSHalfBits) | (Truth0 && ((1 << nBSHalfBits) - 1))
+
+
+    for ( i = 0; i < 4; i++ )
+        z |= (((word)Pla2Var[i+2]) << (16 + 4*i));
+    z |= ((word)((Cof0[1] << 4) | Cof0[0]) << 32);
+    z |= ((word)((Cof1[1] << 4) | Cof1[0]) << 40);
+    for ( i = 0; i < 2; i++ )
+        z |= (((word)Pla2Var[i]) << (48 + 4*i));
+    z |= (((word)7) << (48 + 4*i++));
+    z |= (((word)Pla2Var[5]) << (48 + 4*i++));
+    assert( i == 4 );
+    return z;
+    */
+    return 0;
+}
+
+
 // check non-disjoint decomposition
-int If_CluCheckNonDisjoint( word * pF, int nVars, int * V2P, int * P2V, int nBSsize, char * pGroup )
+int If_CluCheckNonDisjoint( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t * g )
 {
     int v, i, nCofsBest2;
-    if ( (pGroup[6] == 3 || pGroup[6] == 4) )
+    if ( (g->nMyu == 3 || g->nMyu == 4) )
     {
-        word pCof0[1 << (CLU_MAX-6)];
-        word pCof1[1 << (CLU_MAX-6)];
+        word pCof0[CLU_WRD_MAX];
+        word pCof1[CLU_WRD_MAX];
         // try cofactoring w.r.t. each variable
-        for ( v = 0; v < pGroup[7]; v++ )
+        for ( v = 0; v < g->nVars; v++ )
         {
-            If_CluCofactors( pF, nVars, pGroup[v], pCof0, pCof1 );
-            nCofsBest2 = If_CluCountCofs( pCof0, nVars, nBSsize, 0 );
+            If_CluCofactors( pF, nVars, V2P[g->pVars[v]], pCof0, pCof1 );
+            nCofsBest2 = If_CluCountCofs( pCof0, nVars, g->nVars, 0, NULL );
             if ( nCofsBest2 > 2 )
                 continue;
-            nCofsBest2 = If_CluCountCofs( pCof1, nVars, nBSsize, 0 );
+            nCofsBest2 = If_CluCountCofs( pCof1, nVars, g->nVars, 0, NULL );
             if ( nCofsBest2 > 2 )
                 continue;
-            // find a good variable - move to the end
-            If_CluMoveVar( pF, nVars, V2P, P2V, pGroup[v], nVars-1 );
-            for ( i = 0; i < nBSsize; i++ )
-                pGroup[i] = P2V[nVars-nBSsize+i];
+            // found good shared variable - move to the end
+            If_CluMoveVar( pF, nVars, V2P, P2V, g->pVars[v], nVars-1 );
+            for ( i = 0; i < g->nVars; i++ )
+                g->pVars[i] = P2V[nVars-g->nVars+i];
             return 1;
         }
     }
     return 0;
 }
 
-void If_CluPrintGroup( word Group )
+void If_CluPrintGroup( If_Grp_t * g )
 {
-    char * pGroup = (char *)&Group;
     int i;
-    for ( i = 0; i < pGroup[7]; i++ )
-        printf( "%d ", pGroup[i] );
+    for ( i = 0; i < g->nVars; i++ )
+        printf( "%d ", g->pVars[i] );
     printf( "\n" );
-    printf( "Cofs = %d", pGroup[6] );
+    printf( "Cofs = %d", g->nMyu );
     printf( "\n" );
-    printf( "Vars = %d", pGroup[7] );
+    printf( "Vars = %d", g->nVars );
     printf( "\n" );
 }
 
 
 // finds a good var group (cof count < 6; vars are MSBs)
-word If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * P2V, int nBSsize, int fDisjoint )
+If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * P2V, int nBSsize, int fDisjoint )
 {
-    int nRounds = 3;
-    word GroupBest = 0;
-    char * pGroupBest = (char *)&GroupBest;
+    If_Grp_t G = {0}, * g = &G;
     int i, r, v, nCofs, VarBest, nCofsBest2;
-    assert( nVars >= nBSsize + iVarStart && nVars <= CLU_MAX );
+    assert( nVars >= nBSsize + iVarStart && nVars <= CLU_VAR_MAX );
     assert( nBSsize >= 3 && nBSsize <= 6 );
     // start with the default group
-    pGroupBest[7] = nBSsize;
-    pGroupBest[6] = If_CluCountCofs( pF, nVars, nBSsize, 0 );
+    g->nVars = nBSsize;
+    g->nMyu = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
     for ( i = 0; i < nBSsize; i++ )
-        pGroupBest[i] = P2V[nVars-nBSsize+i];
+        g->pVars[i] = P2V[nVars-nBSsize+i];
     // check if good enough
-    if ( pGroupBest[6] == 2 )
-        return GroupBest;
-    if ( If_CluCheckNonDisjoint( pF, nVars, V2P, P2V, nBSsize, pGroupBest ) )
-        return GroupBest;
+    if ( g->nMyu == 2 )
+        return G;
+    if ( If_CluCheckNonDisjoint( pF, nVars, V2P, P2V, g ) )
+        return G;
 
     printf( "Iter %d  ", -1 );
-    If_CluPrintGroup( GroupBest );
+    If_CluPrintGroup( g );
 
     // try to find better group
-    for ( r = 0; r < nRounds; r++ )
+    for ( r = 0; r < nBSsize; r++ )
     {
         // find the best var to add
         VarBest = P2V[nVars-1-nBSsize];
-        nCofsBest2 = If_CluCountCofs( pF, nVars, nBSsize+1, 0 );
+        nCofsBest2 = If_CluCountCofs( pF, nVars, nBSsize+1, 0, NULL );
         for ( v = nVars-2-nBSsize; v >= iVarStart; v-- )
         {
             If_CluMoveVar( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
-            nCofs = If_CluCountCofs( pF, nVars, nBSsize+1, 0 );
-            if ( nCofsBest2 > nCofs )
+            nCofs = If_CluCountCofs( pF, nVars, nBSsize+1, 0, NULL );
+            if ( nCofsBest2 >= nCofs )
             {
                 nCofsBest2 = nCofs;
                 VarBest = P2V[nVars-1-nBSsize];
@@ -335,77 +416,94 @@ word If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * P2V,
         }
         // go back
         If_CluMoveVar( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
+        // update best bound set
+        nCofs = If_CluCountCofs( pF, nVars, nBSsize+1, 0, NULL );
+        assert( nCofs == nCofsBest2 );
 
         // find the best var to remove
         VarBest = P2V[nVars-1-nBSsize];
-        nCofsBest2 = If_CluCountCofs( pF, nVars, nBSsize, 0 );
+        nCofsBest2 = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
         for ( v = nVars-nBSsize; v < nVars; v++ )
         {
-            If_CluMoveVar( pF, nVars, V2P, P2V, v, nVars-1-nBSsize );
-            nCofs = If_CluCountCofs( pF, nVars, nBSsize, 0 );
-            if ( nCofsBest2 > nCofs )
+            If_CluMoveVar( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
+            nCofs = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
+            if ( nCofsBest2 >= nCofs )
             {
                 nCofsBest2 = nCofs;
                 VarBest = P2V[nVars-1-nBSsize];
             }
         }
+
         // go back
         If_CluMoveVar( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
-
         // update best bound set
-        nCofs = If_CluCountCofs( pF, nVars, nBSsize, 0 );
+        nCofs = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
         assert( nCofs == nCofsBest2 );
-        if ( pGroupBest[6] > nCofs )
+        if ( g->nMyu >= nCofs )
         {
-            pGroupBest[7] = nBSsize;
-            pGroupBest[6] = nCofs;
+            g->nVars = nBSsize;
+            g->nMyu = nCofs;
             for ( i = 0; i < nBSsize; i++ )
-                pGroupBest[i] = P2V[nVars-nBSsize+i];
+                g->pVars[i] = P2V[nVars-nBSsize+i];
         }
 
         printf( "Iter %d  ", r );
-        If_CluPrintGroup( GroupBest );
+        If_CluPrintGroup( g );
 
         // check if good enough
-        if ( pGroupBest[6] == 2 )
-            return GroupBest;
-        if ( If_CluCheckNonDisjoint( pF, nVars, V2P, P2V, nBSsize, pGroupBest ) )
-            return GroupBest;
+        if ( g->nMyu == 2 )
+            return G;
+        if ( If_CluCheckNonDisjoint( pF, nVars, V2P, P2V, g ) )
+            return G;
     }
-    assert( r == nRounds );
-    return 0;
+    assert( r == nBSsize );
+    g->nVars = 0;
+    return G;
 }
 
 
 // double check that the given group has a decomposition
-void If_CluCheckGroup( word * pTruth, int nVars, word Group )
+void If_CluCheckGroup( word * pTruth, int nVars, If_Grp_t * g )
 {
-    word pF[1 << (CLU_MAX-6)];
-    int v, nCofs, V2P[CLU_MAX], P2V[CLU_MAX];
-    char * pVars = (char *)&Group;
-    assert( pVars[7] >= 3 && pVars[7] <= 6 ); // vars
-    assert( pVars[6] >= 2 && pVars[6] <= 4 ); // cofs
+    word pF[CLU_WRD_MAX];
+    int v, nCofs, V2P[CLU_VAR_MAX], P2V[CLU_VAR_MAX];
+    assert( g->nVars >= 3 && g->nVars <= 6 ); // vars
+    assert( g->nMyu >= 2 && g->nMyu <= 4 ); // cofs
     // create permutation
     for ( v = 0; v < nVars; v++ )
         V2P[v] = P2V[v] = v;
     // create truth table
     If_CluCopy( pF, pTruth, nVars );
     // move group up
-    If_CluMoveGroupToMsb( pF, nVars, V2P, P2V, Group );
+    If_CluMoveGroupToMsb( pF, nVars, V2P, P2V, g );
     // check the number of cofactors
-    nCofs = If_CluCountCofs( pF, nVars, pVars[7], 0 );
-    if ( nCofs != pVars[6] )
+    nCofs = If_CluCountCofs( pF, nVars, g->nVars, 0, NULL );
+    if ( nCofs != g->nMyu )
         printf( "Group check 0 has failed.\n" );
     // check compatible
     if ( nCofs > 2 )
     {
-        nCofs = If_CluCountCofs( pF, nVars-1, pVars[7]-1, 0 );
+        nCofs = If_CluCountCofs( pF, nVars-1, g->nVars-1, 0, NULL );
         if ( nCofs > 2 )
             printf( "Group check 1 has failed.\n" );
-        nCofs = If_CluCountCofs( pF, nVars-1, pVars[7]-1, (1 << (nVars-1)) );
+        nCofs = If_CluCountCofs( pF, nVars-1, g->nVars-1, (1 << (nVars-1)), NULL );
         if ( nCofs > 2 )
             printf( "Group check 2 has failed.\n" );
     }
+}
+
+
+// double check that the permutation derived is correct
+void If_CluCheckPerm( word * pTruth, word * pF, int nVars, int * V2P, int * P2V )
+{
+    int i;
+    for ( i = 0; i < nVars; i++ )
+        If_CluMoveVar( pF, nVars, V2P, P2V, i, i );
+
+    if ( If_CluEqual( pTruth, pF, nVars ) )
+        printf( "Permutation successful\n" );
+    else
+        printf( "Permutation FAILED.\n" );
 }
 
 
@@ -449,57 +547,56 @@ static inline int If_CluSupport( word * t, int nVars )
     return Supp;
 }
 
-// returns the number of nodes and conf bits in vConf
-word If_CluCheck( word * pTruth, int nVars, int nLutLeaf, int nLutRoot )
+// returns the best group found
+If_Grp_t If_CluCheck( word * pTruth, int nVars, int nLutLeaf, int nLutRoot )
 {
-    int V2P[CLU_MAX], P2V[CLU_MAX];
-    word Group1, pF[1 << (CLU_MAX-6)];
+    int V2P[CLU_VAR_MAX], P2V[CLU_VAR_MAX];
+    word pF[CLU_WRD_MAX];
+    If_Grp_t G1 = {0};
     int i, nSupp;
-    assert( nVars <= CLU_MAX );
+    assert( nVars <= CLU_VAR_MAX );
     assert( nVars <= nLutLeaf + nLutRoot - 1 );
 
     // check minnimum base
     If_CluCopy( pF, pTruth, nVars );
     nSupp = If_CluSupport( pF, nVars );
     if ( !nSupp || !If_CluSuppIsMinBase(nSupp) )
-        return 0;
+        return G1;
 
     // perform testing
     for ( i = 0; i < nVars; i++ )
         V2P[i] = P2V[i] = i;
-    Group1 = If_CluFindGroup( pF, nVars, 0, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
-    if ( Group1 == 0 )
-        return 0;
+    G1 = If_CluFindGroup( pF, nVars, 0, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
+
+    // check permutation
+    If_CluCheckPerm( pTruth, pF, nVars, V2P, P2V );
+
+    if ( G1.nVars == 0 )
+        return G1;
 
     // perform checking
-    If_CluCheckGroup( pTruth, nVars, Group1 );
-
-    // compute conf bits
-    return Group1;
+    If_CluCheckGroup( pTruth, nVars, &G1 );
+    return G1;
 }
 
 
 // computes delay of the decomposition
-float If_CluDelayMax( word Group, float * pDelays )
+float If_CluDelayMax( If_Grp_t * g, float * pDelays )
 {
-    char * pVars = (char *)&Group;
     float Delay = 0.0;
     int i;
-    for ( i = 0; i < pVars[7]; i++ )
-        Delay = Abc_MaxFloat( Delay, pDelays[pVars[i]] );
+    for ( i = 0; i < g->nVars; i++ )
+        Delay = Abc_MaxFloat( Delay, pDelays[g->pVars[i]] );
     return Delay;
 }
 
 // returns delay of the decomposition;  sets area of the cut as its cost
 float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float WireDelay )
 {
-    float Delays[CLU_MAX+2];
-    int fUsed[CLU_MAX+2] = {0};
+    float Delays[CLU_VAR_MAX+2];
+    int fUsed[CLU_VAR_MAX+2] = {0};
     If_Obj_t * pLeaf;
-    word Group1 = 0, Group2 = 0, Group3 = 0;
-    char * pGroup1 = (char *)&Group1;
-    char * pGroup2 = (char *)&Group2;
-    char * pGroup3 = (char *)&Group3;
+    If_Grp_t G1 = {0}, G2 = {0}, G3 = {0};
     int nLeaves = If_CutLeaveNum(pCut);
     int i, nLutLeaf, nLutRoot;
     // mark the cut as user cut
@@ -539,48 +636,49 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
         for ( i = 0; i < nLeaves; i++ )
         {
             pCut->pPerm[i] = 1;
-            pGroup1[i] = i;
+            G1.pVars[i] = i;
         }
-        pGroup1[7] = nLeaves;
+        G1.nVars = nLeaves;
         pCut->Cost = 1;
-        return 1.0 + If_CluDelayMax( Group1, Delays );
+        return 1.0 + If_CluDelayMax( &G1, Delays );
     }
 
     // derive the first group
-    Group1 = If_CluCheck( (word *)If_CutTruth(pCut), nLeaves, nLutLeaf, nLutRoot );
-    if ( Group1 == 0 )
+    G1 = If_CluCheck( (word *)If_CutTruth(pCut), nLeaves, nLutLeaf, nLutRoot );
+    if ( G1.nVars == 0 )
         return ABC_INFINITY;
     // compute the delay
-    Delays[nLeaves] = If_CluDelayMax( Group1, Delays ) + (WireDelay == 0.0)?1.0:WireDelay;
-    if ( Group2 )
-        Delays[nLeaves+1] = If_CluDelayMax( Group2, Delays ) + (WireDelay == 0.0)?1.0:WireDelay;
+    Delays[nLeaves] = If_CluDelayMax( &G1, Delays ) + (WireDelay == 0.0)?1.0:WireDelay;
+    if ( G2.nVars )
+        Delays[nLeaves+1] = If_CluDelayMax( &G2, Delays ) + (WireDelay == 0.0)?1.0:WireDelay;
 
     // mark used groups
-    for ( i = 0; i < pGroup1[7]; i++ )
-        fUsed[pGroup1[i]] = 1;
-    for ( i = 0; i < pGroup2[7]; i++ )
-        fUsed[pGroup2[i]] = 1;
+    for ( i = 0; i < G1.nVars; i++ )
+        fUsed[G1.pVars[i]] = 1;
+    for ( i = 0; i < G2.nVars; i++ )
+        fUsed[G2.pVars[i]] = 1;
     // mark unused groups
-    assert( pGroup1[6] >= 2 && pGroup1[6] <= 4 );
-    if ( pGroup1[6] > 2 )
-        fUsed[pGroup1[0]] = 0;
-    assert( pGroup2[6] >= 2 && pGroup2[6] <= 4 );
-    if ( pGroup2[6] > 2 )
-        fUsed[pGroup2[0]] = 0;
+    assert( G1.nMyu >= 2 && G1.nMyu <= 4 );
+    if ( G1.nMyu > 2 )
+        fUsed[G1.pVars[G1.nVars-1]] = 0;
+    assert( G2.nMyu >= 2 && G2.nMyu <= 4 );
+    if ( G2.nMyu > 2 )
+        fUsed[G2.pVars[G2.nVars-1]] = 0;
 
     // create remaining group
-    assert( pGroup3[7] == 0 );
+    assert( G3.nVars == 0 );
     for ( i = 0; i < nLeaves; i++ )
         if ( !fUsed[i] )
-            pGroup3[pGroup3[7]++] = i;
-    pGroup3[pGroup3[7]++] = nLeaves;
-    if ( Group2 )
-        pGroup3[pGroup3[7]++] = nLeaves+1;
-    assert( pGroup1[7] + pGroup2[7] + pGroup3[7] == nLeaves + (pGroup1[7] > 0) + (pGroup2[7] > 0) + (pGroup1[6] > 2) + (pGroup2[6] > 2) );
+            G3.pVars[G3.nVars++] = i;
+    G3.pVars[G3.nVars++] = nLeaves;
+    if ( G2.nVars )
+        G3.pVars[G3.nVars++] = nLeaves+1;
+    assert( G1.nVars + G2.nVars + G3.nVars == nLeaves + 
+        (G1.nVars > 0) + (G2.nVars > 0) + (G1.nMyu > 2) + (G2.nMyu > 2) );
     // what if both non-disjoint vars are the same???
 
-    pCut->Cost = 2 + (pGroup2[7] > 0);
-    return 1.0 + If_CluDelayMax( Group3, Delays );
+    pCut->Cost = 2 + (G2.nVars > 0);
+    return 1.0 + If_CluDelayMax( &G3, Delays );
 }
 
 // testing procedure
@@ -591,13 +689,11 @@ void If_CluTest()
     int nLeaves  = 6;
     int nLutLeaf = 4;
     int nLutRoot = 4;
-    word Group1;
-    char * pVars = (char *)&Group1;
-//    return;
+    If_Grp_t G;
 
-    Group1 = If_CluCheck( &t, nLeaves, nLutLeaf, nLutRoot );
+    G = If_CluCheck( &t, nLeaves, nLutLeaf, nLutRoot );
 
-    If_CluPrintGroup( Group1 );
+    If_CluPrintGroup( &G );
 }
 
 

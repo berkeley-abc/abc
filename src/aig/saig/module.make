@@ -2,6 +2,7 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigAbsCba.c \
     src/aig/saig/saigAbsPba.c \
     src/aig/saig/saigAbsStart.c \
+    src/aig/saig/saigAbsVfa.c \
     src/aig/saig/saigBmc.c \
     src/aig/saig/saigBmc2.c \
     src/aig/saig/saigBmc3.c \
