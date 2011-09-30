@@ -262,8 +262,6 @@ void pyabc_internal_set_command_callback( PyObject* callback )
     pyabc_internal_python_command_callback = callback;
 }
 
-PyThreadState *_save;
-
 static int pyabc_internal_abc_command_callback(Abc_Frame_t * pAbc, int argc, char ** argv)
 {
     int i;
@@ -271,13 +269,15 @@ static int pyabc_internal_abc_command_callback(Abc_Frame_t * pAbc, int argc, cha
     PyObject* args;
     PyObject* arglist;
     PyObject* res;
-
+    
+    PyGILState_STATE gstate;
+    
     long lres;
     
     if ( !pyabc_internal_python_command_callback )
             return 0;
             
-    Py_BLOCK_THREADS
+    gstate = PyGILState_Ensure();
             
     args = PyList_New(argc);
     
@@ -292,14 +292,14 @@ static int pyabc_internal_abc_command_callback(Abc_Frame_t * pAbc, int argc, cha
 
     if ( !res )
     {
-        Py_UNBLOCK_THREADS
+        PyGILState_Release(gstate);
         return -1;
     }
     
     lres = PyInt_AsLong(res);
     Py_DECREF(res);
 
-    Py_UNBLOCK_THREADS
+    PyGILState_Release(gstate);
     
     return lres;
 }
@@ -309,11 +309,11 @@ int run_command(char* cmd)
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     int rc;
     
-    Py_UNBLOCK_THREADS
+    Py_BEGIN_ALLOW_THREADS
     
     rc = Cmd_CommandExecute(pAbc, cmd);
     
-    Py_BLOCK_THREADS
+    Py_END_ALLOW_THREADS
     
     return rc;
 }
@@ -401,13 +401,15 @@ int Util_SignalSystem(const char* cmd)
 {
     PyObject* arglist;
     PyObject* res;
+    
+    PyGILState_STATE gstate;
 
     long lres;
     
     if ( !pyabc_internal_system_callback )
             return -1;
             
-    Py_BLOCK_THREADS
+    gstate = PyGILState_Ensure();
             
     arglist = Py_BuildValue("(O)", PyString_FromString(cmd));
     Py_INCREF(arglist);
@@ -417,14 +419,14 @@ int Util_SignalSystem(const char* cmd)
 
     if ( !res )
     {
-        Py_UNBLOCK_THREADS
+        PyGILState_Release(gstate);
         return -1;
     }
     
     lres = PyInt_AsLong(res);
     Py_DECREF(res);
 
-    Py_UNBLOCK_THREADS
+    PyGILState_Release(gstate);
     
     return lres;
 }
@@ -437,12 +439,14 @@ int Util_SignalTmpFile(const char* prefix, const char* suffix, char** out_name)
     PyObject* arglist;
     PyObject* res;
     
+    PyGILState_STATE gstate;
+    
     *out_name = NULL;
 
     if ( !pyabc_internal_tmpfile_callback )
             return 0;
             
-    Py_BLOCK_THREADS
+    gstate = PyGILState_Ensure();
             
     arglist = Py_BuildValue("(ss)", prefix, suffix);
     Py_INCREF(arglist);
@@ -452,7 +456,7 @@ int Util_SignalTmpFile(const char* prefix, const char* suffix, char** out_name)
 
     if ( !res )
     {
-        Py_UNBLOCK_THREADS
+        PyGILState_Release(gstate);
         return -1;
     }
     
@@ -463,7 +467,7 @@ int Util_SignalTmpFile(const char* prefix, const char* suffix, char** out_name)
     
     Py_DECREF(res);
 
-    Py_UNBLOCK_THREADS
+    PyGILState_Release(gstate);
     
     return open(*out_name, O_WRONLY);
 }
@@ -472,11 +476,13 @@ void Util_SignalTmpFileRemove(const char* fname, int fLeave)
 {
     PyObject* arglist;
     PyObject* res;
+    
+    PyGILState_STATE gstate;
 
     if ( !pyabc_internal_tmpfile_remove_callback )
             return;
             
-    Py_BLOCK_THREADS
+    gstate = PyGILState_Ensure();
             
     arglist = Py_BuildValue("(si)", fname, fLeave);
     Py_INCREF(arglist);
@@ -485,7 +491,7 @@ void Util_SignalTmpFileRemove(const char* fname, int fLeave)
     Py_DECREF(arglist);
     Py_XDECREF(res);
 
-    Py_UNBLOCK_THREADS
+    PyGILState_Release(gstate);
 }
 
 void pyabc_internal_set_util_callbacks( PyObject* system_callback, PyObject* tmpfile_callback, PyObject* tmpfile_remove_callback )
@@ -1045,7 +1051,7 @@ def cmd_python(cmd_args):
     
     usage = "usage: %prog [options] <Python files>"
     
-    parser = optparse.OptionParser(usage)
+    parser = optparse.OptionParser(usage, prog="python")
     
     parser.add_option("-c", "--cmd", dest="cmd", help="Execute Python command directly")
     parser.add_option("-v", "--version", action="store_true", dest="version", help="Display Python Version")
