@@ -127,7 +127,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
 {
     Pdr_Set_t * pTemp, * pCubeK, * pCubeK1;
     Vec_Ptr_t * vArrayK, * vArrayK1;
-    int i, j, k, m, RetValue = 0, kMax = Vec_PtrSize(p->vSolvers)-1;
+    int i, j, k, m, RetValue = 0, RetValue2, kMax = Vec_PtrSize(p->vSolvers)-1;
     int Counter = 0;
     int clk = clock();
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, 1, kMax )
@@ -150,7 +150,10 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
             }
 
             // check if the clause can be moved to the next frame
-            if ( !Pdr_ManCheckCube( p, k, pCubeK, NULL, 0 ) )
+            RetValue2 = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0 );
+            if ( RetValue2 == -1 )
+                return -1;
+            if ( !RetValue2 )
                 continue;
 
             {
@@ -590,7 +593,16 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 Pdr_ManPrintClauses( p, 0 );
             }
             // push clauses into this timeframe
-            if ( Pdr_ManPushClauses( p ) )
+            RetValue = Pdr_ManPushClauses( p );
+            if ( RetValue == -1 )
+            {
+                if ( p->pPars->fVerbose ) 
+                    Pdr_ManPrintProgress( p, 1, clock() - clkStart );
+                printf( "Reached conflict limit (%d).\n",  p->pPars->nConfLimit );
+                p->pPars->iFrame = k;
+                return -1;
+            }
+            if ( RetValue )
             {
                 if ( p->pPars->fVerbose ) 
                     Pdr_ManPrintProgress( p, 1, clock() - clkStart );
