@@ -121,7 +121,7 @@ struct If_Par_t_
     float *            pTimesReq;     // required times
     int (* pFuncCost)  (If_Cut_t *);  // procedure to compute the user's cost of a cut
     int (* pFuncUser)  (If_Man_t *, If_Obj_t *, If_Cut_t *); //  procedure called for each cut when cut computation is finished
-    int (* pFuncCell)  (unsigned *, int, int);               //  procedure called for cut functions
+    int (* pFuncCell)  (unsigned *, int, int, char *);       //  procedure called for cut functions
     void *             pReoMan;       // reordering manager
 };
 
@@ -184,7 +184,10 @@ struct If_Man_t_
     If_Set_t *         pFreeList;     // the list of free cutsets
     int                nSmallSupp;    // the small support
     int                nCutsTotal;
-    int                nCutsUseless;
+    int                nCutsUseless[32];
+    int                nCutsCount[32];
+    int                nCutsCountAll;
+    int                nCutsUselessAll;
     // timing manager
     Tim_Man_t *        pManTim;
     Vec_Int_t *        vCoAttrs;      // CO attributes   0=optimize; 1=keep; 2=relax
@@ -413,9 +416,10 @@ extern float           If_CutPowerRef( If_Man_t * p, If_Cut_t * pCut, If_Obj_t *
 extern float           If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
 extern float           If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
 /*=== ifDec.c =============================================================*/
-extern int             If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves );
-extern int             If_CutPerformCheck08( unsigned * pTruth, int nVars, int nLeaves );
-extern int             If_CutPerformCheck10( unsigned * pTruth, int nVars, int nLeaves );
+extern int             If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheck08( unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheck10( unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheck16( unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern float           If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float WireDelay );
 /*=== ifLib.c =============================================================*/
 extern If_Lib_t *      If_LutLibRead( char * FileName );

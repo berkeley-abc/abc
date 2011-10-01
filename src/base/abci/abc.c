@@ -903,8 +903,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     }
 */
     {
-//        extern void If_CluTest();
-//        If_CluTest();
+        extern void If_CluTest();
+        If_CluTest();
     }
 } 
 
@@ -13252,7 +13252,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;            
     }
 
-    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fEnableCheck10 > 1 )
+    if ( pPars->fEnableCheck07 + pPars->fEnableCheck08 + pPars->fEnableCheck10 + (pPars->pLutStruct != NULL) > 1 )
     {
         Abc_Print( -1, "Only one additional check can be performed at the same time.\n" );
         return 1;
@@ -13287,6 +13287,16 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pFuncCell = If_CutPerformCheck10;
         pPars->fCutMin = 1;            
     }
+    if ( pPars->pLutStruct )
+    {
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 11 )
+        {
+            Abc_Print( -1, "This feature only works for {6,7,8,9,10,11}-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = If_CutPerformCheck16;
+        pPars->fCutMin = 1;            
+    }
 
     // enable truth table computation if cut minimization is selected
     if ( pPars->fCutMin )
@@ -13303,7 +13313,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fUsePerm    =  1;
         pPars->pLutLib     =  NULL;
     }
-
+/*
     // modify for LUT structures
     if ( pPars->pLutStruct )
     {
@@ -13317,7 +13327,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fUsePerm    =  1;
         pPars->pLutLib     =  NULL;
     }
-
+*/
     // complain if truth tables are requested but the cut size is too large
     if ( pPars->fTruth && pPars->nLutSize > IF_MAX_FUNC_LUTSIZE )
     {

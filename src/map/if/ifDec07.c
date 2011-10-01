@@ -673,9 +673,9 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves )
+int If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
-    int fDerive = 1;
+    int fDerive = 0;
     if ( nLeaves < 6 )
         return 1;
     if ( nLeaves == 6 )
@@ -685,7 +685,10 @@ int If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves )
             return 1;
         z = If_Dec6Perform( t, fDerive );
         if ( fDerive && z )
+        {
+//            If_DecPrintConfig( z );
             If_Dec6Verify( t, z );
+        }
         return z != 0;
     }
     if ( nLeaves == 7 )
@@ -698,8 +701,6 @@ int If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves )
         z = If_Dec7Perform( t, fDerive );
         if ( fDerive && z )
             If_Dec7Verify( t, z );
-
-
         return z != 0;
     }
     assert( 0 );

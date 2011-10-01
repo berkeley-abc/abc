@@ -153,9 +153,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( pCut->nLeaves > 0 )
     {
         // recompute the parameters of the best cut
-        if ( p->pPars->pLutStruct )
-            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
-        else if ( p->pPars->fDelayOpt )
+///        if ( p->pPars->pLutStruct )
+///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
+//        else if ( p->pPars->fDelayOpt )
+        if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutDelaySopCost( p, pCut );
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
@@ -205,9 +206,12 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->fUseless = 0;
             if ( p->pPars->pFuncCell && RetValue < 2 )
             {
-                assert( pCut->nLimit >= 4 && pCut->nLimit <= 10 );
-                pCut->fUseless = !p->pPars->pFuncCell( If_CutTruth(pCut), pCut->nLimit, pCut->nLeaves );
-                p->nCutsUseless += pCut->fUseless;
+                assert( pCut->nLimit >= 4 && pCut->nLimit <= 16 );
+                pCut->fUseless = !p->pPars->pFuncCell( If_CutTruth(pCut), pCut->nLimit, pCut->nLeaves, p->pPars->pLutStruct );
+                p->nCutsUselessAll += pCut->fUseless;
+                p->nCutsUseless[pCut->nLeaves] += pCut->fUseless;
+                p->nCutsCountAll++;
+                p->nCutsCount[pCut->nLeaves]++;
             }
 
         }
@@ -217,9 +221,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( pCut->Cost == IF_COST_MAX )
             continue;
         // check if the cut satisfies the required times
-        if ( p->pPars->pLutStruct )
-            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
-        else if ( p->pPars->fDelayOpt )
+///        if ( p->pPars->pLutStruct )
+///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
+//        else if ( p->pPars->fDelayOpt )
+        if ( p->pPars->fDelayOpt )
             pCut->Delay = If_CutDelaySopCost( p, pCut );
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );

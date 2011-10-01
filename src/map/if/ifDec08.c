@@ -478,7 +478,7 @@ printf( "\n" );
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutPerformCheck08( unsigned * pTruth, int nVars, int nLeaves )
+int If_CutPerformCheck08( unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
     int nSupp, fDerive = 0;
     word z[2] = {0}, pF[16];

@@ -127,8 +127,15 @@ void If_ManRestart( If_Man_t * p )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
-    if ( p->nCutsUseless && p->pPars->fVerbose )
-    Abc_Print( 1, "Useless cuts = %7d  (out of %7d)  (%6.2f %%)\n", p->nCutsUseless, p->nCutsTotal, 100.0*p->nCutsUseless/(p->nCutsTotal+1) );
+//    if ( p->nCutsUselessAll && p->pPars->fVerbose )
+    if ( p->nCutsUselessAll )
+    {
+        int i;
+        for ( i = 0; i <= 16; i++ )
+            if ( p->nCutsUseless[i] )
+                Abc_Print( 1, "Useless cuts %2d  = %7d  (out of %7d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/(p->nCutsCount[i]+1) );
+        Abc_Print( 1, "Useless cuts all = %7d  (out of %7d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/(p->nCutsCountAll+1) );
+    }
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );
 //    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );
     Vec_IntFreeP( &p->vCoAttrs );
