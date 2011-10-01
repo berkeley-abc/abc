@@ -620,6 +620,17 @@ ABC_PRT( "Time", clock() - clkTotal );
     }
     else if ( RetValue == 0 )
     {
+        if ( pNew->pSeqModel == NULL )
+        {
+            int i;
+            // if the CEX is not derives, it is because tricial CEX should be assumed
+            pNew->pSeqModel = Abc_CexAlloc( Aig_ManRegNum(pNew), pNew->nTruePis, 1 );
+            // if the CEX does not work, we need to change PIs to 1 because 
+            // the only way it can happen is when a PO is equal to a PI...
+            if ( Saig_ManFindFailedPoCex( pNew, pNew->pSeqModel ) == -1 )
+                for ( i = 0; i < pNew->nTruePis; i++ )
+                    Aig_InfoSetBit( pNew->pSeqModel->pData, i );
+        }
         if ( !pParSec->fSilent )
         {
             printf( "Networks are NOT EQUIVALENT.   " );
