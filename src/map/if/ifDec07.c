@@ -673,7 +673,7 @@ int If_Dec7PickBestMux( word t[2], word c0r[2], word c1r[2] )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutPerformCheck07( unsigned * pTruth, int nVars, int nLeaves, char * pStr )
+int If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
     int fDerive = 0;
     if ( nLeaves < 6 )

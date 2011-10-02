@@ -160,6 +160,12 @@ void If_ManStop( If_Man_t * p )
         Tim_ManStop( p->pManTim );
     if ( p->vSwitching )
         Vec_IntFree( p->vSwitching );
+    // hash table
+//    if ( p->nTableEntries )
+//        printf( "Entries = %d.  Size = %d.\n", p->nTableEntries, p->nTableSize );
+    ABC_FREE( p->pHashTable );
+    if ( p->pMemEntries )
+        Mem_FixedStop( p->pMemEntries, 0 );
     ABC_FREE( p );
 }
 
