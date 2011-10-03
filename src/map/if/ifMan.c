@@ -133,8 +133,8 @@ void If_ManStop( If_Man_t * p )
         int i;
         for ( i = 0; i <= 16; i++ )
             if ( p->nCutsUseless[i] )
-                Abc_Print( 1, "Useless cuts %2d  = %7d  (out of %7d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/(p->nCutsCount[i]+1) );
-        Abc_Print( 1, "Useless cuts all = %7d  (out of %7d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/(p->nCutsCountAll+1) );
+                Abc_Print( 1, "Useless cuts %2d  = %9d  (out of %9d)  (%6.2f %%)\n", i, p->nCutsUseless[i], p->nCutsCount[i], 100.0*p->nCutsUseless[i]/(p->nCutsCount[i]+1) );
+        Abc_Print( 1, "Useless cuts all = %9d  (out of %9d)  (%6.2f %%)\n", p->nCutsUselessAll, p->nCutsCountAll, 100.0*p->nCutsUselessAll/(p->nCutsCountAll+1) );
     }
 //    Abc_PrintTime( 1, "Truth", p->timeTruth );
 //    Abc_Print( 1, "Small support = %d.\n", p->nSmallSupp );
@@ -161,8 +161,8 @@ void If_ManStop( If_Man_t * p )
     if ( p->vSwitching )
         Vec_IntFree( p->vSwitching );
     // hash table
-//    if ( p->nTableEntries )
-//        printf( "Entries = %d.  Size = %d.\n", p->nTableEntries, p->nTableSize );
+    if ( p->nTableEntries )
+        printf( "Entries = %d.  Size = %d.\n", p->nTableEntries, p->nTableSize );
     ABC_FREE( p->pHashTable );
     if ( p->pMemEntries )
         Mem_FixedStop( p->pMemEntries, 0 );

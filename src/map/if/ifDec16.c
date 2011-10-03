@@ -92,6 +92,15 @@ static inline int If_CluWordNum( int nVars )
 {
     return nVars <= 6 ? 1 : 1 << (nVars-6);
 }
+static inline int If_CluCountOnes( word t )
+{
+    t =    (t & 0x5555555555555555) + ((t>> 1) & 0x5555555555555555);
+    t =    (t & 0x3333333333333333) + ((t>> 2) & 0x3333333333333333);
+    t =    (t & 0x0F0F0F0F0F0F0F0F) + ((t>> 4) & 0x0F0F0F0F0F0F0F0F);
+    t =    (t & 0x00FF00FF00FF00FF) + ((t>> 8) & 0x00FF00FF00FF00FF);
+    t =    (t & 0x0000FFFF0000FFFF) + ((t>>16) & 0x0000FFFF0000FFFF);
+    return (t & 0x00000000FFFFFFFF) +  (t>>32);
+}
 int If_CluHashKey( word * pTruth, int nWords, int Size )
 {
     static unsigned BigPrimes[8] = {12582917, 25165843, 50331653, 100663319, 201326611, 402653189, 805306457, 1610612741};
@@ -129,6 +138,22 @@ If_Grp_t * If_CluHashLookup( If_Man_t * p, word * pTruth )
     pEntry->pNext = ((If_Hte_t **)p->pHashTable)[HashKey];
     ((If_Hte_t **)p->pHashTable)[HashKey] = pEntry;
     return &pEntry->Group;
+}
+void If_CluHashPrintStats( If_Man_t * p )
+{
+    If_Hte_t * pEntry;
+    int i, Counter;
+    for ( i = 0; i < p->nTableSize; i++ )
+    {
+        Counter = 0;
+        for ( pEntry = ((If_Hte_t **)p->pHashTable)[i]; pEntry; pEntry = pEntry->pNext )
+            Counter++;
+        if ( Counter == 0 )
+            continue;
+        if ( Counter < 10 )
+            continue;
+        printf( "%d=%d ", i, Counter );
+    }
 }
 
 // variable permutation for large functions
@@ -194,6 +219,18 @@ static inline word If_CluAdjust( word t, int nVars )
         t |= t << (1<<nVars++);
     return t;
 }
+static inline void If_CluAdjustBig( word * pF, int nVarsCur, int nVarsMax )
+{
+    int v, nWords;
+    if ( nVarsCur == nVarsMax )
+        return;
+    assert( nVarsCur < nVarsMax );
+    for ( v = Abc_MaxInt( nVarsCur, 6 ); v < nVarsMax; v++ )
+    {
+        nWords = If_CluWordNum( v );
+        If_CluCopy( pF + nWords, pF, v );
+    }
+}
 static inline void If_CluSwapAdjacent( word * pOut, word * pIn, int iVar, int nVars )
 {
     int i, k, nWords = If_CluWordNum( nVars );
@@ -230,6 +267,147 @@ static inline void If_CluSwapAdjacent( word * pOut, word * pIn, int iVar, int nV
         }
     }
 }
+
+void If_CluChangePhase( word * pF, int nVars, int iVar )
+{
+    int nWords = If_CluWordNum( nVars );
+    assert( iVar < nVars );
+    if ( iVar < 6 )
+    {
+        int i, Shift = (1 << iVar);
+        for ( i = 0; i < nWords; i++ )
+            pF[i] = ((pF[i] & ~Truth6[iVar]) << Shift) | ((pF[i] & Truth6[iVar]) >> Shift);
+    }
+    else
+    {
+        word Temp;
+        int i, k, Step = (1 << (iVar - 6));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+            {
+                Temp = pF[i];
+                pF[i] = pF[Step+i];
+                pF[Step+i] = Temp;
+            }
+            pF += 2*Step;
+        }
+    }
+}
+void If_CluCountOnesInCofs( word * pTruth, int nVars, int * pStore )
+{
+    int nWords = If_CluWordNum( nVars );
+    int i, k, nOnes = 0, Limit = Abc_MinInt( nVars, 6 );
+    memset( pStore, 0, sizeof(int) * 2 * nVars );
+    // compute positive cofactors
+    for ( k = 0; k < nWords; k++ )
+        for ( i = 0; i < Limit; i++ )
+            pStore[2*i+1] += If_CluCountOnes( pTruth[k] & Truth6[i] );
+    if ( nVars > 6 )
+    for ( k = 0; k < nWords; k++ )
+        for ( i = 6; i < nVars; i++ )
+            if ( k & (1 << (i-6)) )
+                pStore[2*i+1] += If_CluCountOnes( pTruth[k] );
+    // compute negative cofactors
+    for ( k = 0; k < nWords; k++ )
+        nOnes += If_CluCountOnes( pTruth[k] );
+    for ( i = 0; i < nVars; i++ )
+        pStore[2*i] = nOnes - pStore[2*i+1];
+}
+unsigned If_CluSemiCanonicize( word * pTruth, int nVars, int * pCanonPerm )
+{
+    word pFunc[CLU_WRD_MAX], * pIn = pTruth, * pOut = pFunc, * pTemp;
+    int pStore[CLU_VAR_MAX*2];
+    unsigned uCanonPhase = 0;
+    int i, Temp, fChange, Counter = 0;
+//Kit_DsdPrintFromTruth( (unsigned*)pTruth, nVars ); printf( "\n" );
+
+    // collect signatures 
+    If_CluCountOnesInCofs( pTruth, nVars, pStore );
+    // canonicize phase
+    for ( i = 0; i < nVars; i++ )
+    {
+        if ( pStore[2*i+0] <= pStore[2*i+1] )
+            continue;
+        uCanonPhase |= (1 << i);
+        Temp = pStore[2*i+0];
+        pStore[2*i+0] = pStore[2*i+1];
+        pStore[2*i+1] = Temp;
+        If_CluChangePhase( pIn, nVars, i );
+    }
+    // compute permutation
+    for ( i = 0; i < nVars; i++ )
+        pCanonPerm[i] = i;
+    do {
+        fChange = 0;
+        for ( i = 0; i < nVars-1; i++ )
+        {
+            if ( pStore[2*i] <= pStore[2*(i+1)] )
+                continue;
+            Counter++;
+            fChange = 1;
+
+            Temp = pCanonPerm[i];
+            pCanonPerm[i] = pCanonPerm[i+1];
+            pCanonPerm[i+1] = Temp;
+
+            Temp = pStore[2*i];
+            pStore[2*i] = pStore[2*(i+1)];
+            pStore[2*(i+1)] = Temp;
+
+            Temp = pStore[2*i+1];
+            pStore[2*i+1] = pStore[2*(i+1)+1];
+            pStore[2*(i+1)+1] = Temp;
+
+            If_CluSwapAdjacent( pOut, pIn, i, nVars );
+            pTemp = pIn; pIn = pOut; pOut = pTemp;
+        }
+    } while ( fChange );
+    // swap if it was moved an odd number of times
+    if ( Counter & 1 )
+        If_CluCopy( pOut, pIn, nVars );
+    return uCanonPhase;
+}
+void If_CluSemiCanonicizeVerify( word * pTruth, word * pTruth0, int nVars, int * pCanonPerm, unsigned uCanonPhase )
+{
+    word pFunc[CLU_WRD_MAX], pGunc[CLU_WRD_MAX], * pIn = pTruth, * pOut = pFunc, * pTemp;
+    int i, Temp, fChange, Counter = 0;
+    If_CluCopy( pGunc, pTruth, nVars );
+    // undo permutation
+    do {
+        fChange = 0;
+        for ( i = 0; i < nVars-1; i++ )
+        {
+            if ( pCanonPerm[i] < pCanonPerm[i+1] )
+                continue;
+
+            Counter++;
+            fChange = 1;
+
+            Temp = pCanonPerm[i];
+            pCanonPerm[i] = pCanonPerm[i+1];
+            pCanonPerm[i+1] = Temp;
+
+            If_CluSwapAdjacent( pOut, pIn, i, nVars );
+            pTemp = pIn; pIn = pOut; pOut = pTemp;
+        }
+    } while ( fChange );
+    if ( Counter & 1 )
+        If_CluCopy( pOut, pIn, nVars );
+    // undo phase
+    for ( i = 0; i < nVars; i++ )
+        if ( (uCanonPhase >> i) & 1 )
+            If_CluChangePhase( pTruth, nVars, i );
+    // compare
+    if ( !If_CluEqual(pTruth0, pTruth, nVars) )
+    {
+        Kit_DsdPrintFromTruth( (unsigned*)pTruth0, nVars ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pGunc, nVars ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pTruth, nVars ); printf( "\n" );
+        printf( "SemiCanonical verification FAILED!\n" );
+    }
+}
+
 
 void If_CluPrintGroup( If_Grp_t * g )
 {
@@ -898,14 +1076,27 @@ static inline int If_CluSupport( word * t, int nVars )
 }
 
 // returns the best group found
-If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot )
+If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int nLutRoot )
 {
     If_Grp_t G1 = {0}, R = {0}, * pHashed = NULL;
-    word Truth, pF[CLU_WRD_MAX];//, pG[CLU_WRD_MAX];
-    int V2P[CLU_VAR_MAX+2], P2V[CLU_VAR_MAX+2];
-    int i, nSupp;
+    word Truth, pTruth[CLU_WRD_MAX], pF[CLU_WRD_MAX];//, pG[CLU_WRD_MAX];
+    int V2P[CLU_VAR_MAX+2], P2V[CLU_VAR_MAX+2], pCanonPerm[CLU_VAR_MAX];
+    int i, nSupp, uCanonPhase;
     assert( nVars <= CLU_VAR_MAX );
     assert( nVars <= nLutLeaf + nLutRoot - 1 );
+
+    // canonicize truth table
+    If_CluCopy( pTruth, pTruth0, p->pPars->nLutSize );
+
+    if ( 0 )
+    {
+        uCanonPhase = If_CluSemiCanonicize( pTruth, nVars, pCanonPerm );
+        If_CluAdjustBig( pTruth, nVars, p->pPars->nLutSize );
+    }
+
+//    If_CluSemiCanonicizeVerify( pTruth, pTruth0, nVars, pCanonPerm, uCanonPhase );
+//    If_CluCopy( pTruth, pTruth0, p->pPars->nLutSize );
+
 
  /*
     {
@@ -928,6 +1119,8 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int 
 //Extra_PrintBinary( stdout, &nSupp, 16 );  printf( "\n" );
     if ( !nSupp || !If_CluSuppIsMinBase(nSupp) )
         return G1;
+
+
 
     // check hash table
     pHashed = If_CluHashLookup( p, pTruth );
@@ -1161,14 +1354,25 @@ void If_CluTest()
 //    word t = 0x0100200000000001;
 //    word t2[4] = { 0x0000800080008000, 0x8000000000008000, 0x8000000080008000, 0x0000000080008000 };
 //    word t = 0x07770FFF07770FFF;
-//    word t = 0x002000D000D00020;
+    word t = 0x002000D000D00020;
 //    word t = 0x000F000E000F000F;
-    word t = 0xF7FFF7F7F7F7F7F7;
+//    word t = 0xF7FFF7F7F7F7F7F7;
+    word s = t;
     int nVars    = 6;
     int nLutLeaf = 4;
     int nLutRoot = 4;
     If_Grp_t G;
 
+/*
+    int pCanonPerm[CLU_VAR_MAX];
+    int uCanonPhase;
+
+    Kit_DsdPrintFromTruth( (unsigned*)&s, nVars ); printf( "\n" );
+    uCanonPhase = If_CluSemiCanonicize( &s, nVars, pCanonPerm );
+    Kit_DsdPrintFromTruth( (unsigned*)&s, nVars ); printf( "\n" );
+
+    If_CluSemiCanonicizeVerify( &s, &t, nVars, pCanonPerm, uCanonPhase );
+*/
     return;
 
     If_CutPerformCheck07( NULL, (unsigned *)&t, 6, 6, NULL );
