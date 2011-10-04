@@ -194,7 +194,7 @@ static inline void If_CluSharp( word * pRes, word * pIn1, word * pIn2, int nVars
     int w, nWords = If_CluWordNum( nVars );
     for ( w = 0; w < nWords; w++ )
         pRes[w] = pIn1[w] & ~pIn2[w];
-}
+} 
 static inline void If_CluOr( word * pRes, word * pIn1, word * pIn2, int nVars )
 {
     int w, nWords = If_CluWordNum( nVars );
@@ -203,8 +203,10 @@ static inline void If_CluOr( word * pRes, word * pIn1, word * pIn2, int nVars )
 }
 static inline word If_CluAdjust( word t, int nVars )
 {
-    assert( nVars >= 0 && nVars < 6 );
-    t &= (1 << (1 << nVars)) - 1;
+    assert( nVars >= 0 && nVars <= 6 );
+    if ( nVars == 6 )
+        return t;
+    t &= (((word)1) << (1 << nVars)) - 1;
     if ( nVars == 0 )
         t |= t << (1<<nVars++);
     if ( nVars == 1 )
@@ -703,11 +705,11 @@ int If_CluDetectSpecialCaseCofs( word * pF, int nVars, int iVar )
 
                 if ( Cof0 == 0 )
                     State[0]++;
-                else if ( Cof0 == ~Truth6[iVar] )
+                else if ( Cof0 == ~0 )
                     State[1]++;
                 else if ( Cof1 == 0 )
                     State[2]++;
-                else if ( Cof1 == ~Truth6[iVar] )
+                else if ( Cof1 == ~0 )
                     State[3]++;
                 else if ( Cof0 == ~Cof1 )
                     State[4]++;
@@ -1074,28 +1076,76 @@ static inline int If_CluSupport( word * t, int nVars )
             Supp |= (1 << v);
     return Supp;
 }
+static inline void If_CluTruthShrink( word * pF, int nVars, int nVarsAll, unsigned Phase )
+{
+    word pG[CLU_WRD_MAX], * pIn = pF, * pOut = pG, * pTemp;
+    int i, k, Var = 0, Counter = 0;
+    assert( nVarsAll <= 16 );
+    for ( i = 0; i < nVarsAll; i++ )
+        if ( Phase & (1 << i) )
+        {
+            for ( k = i-1; k >= Var; k-- )
+            {
+                If_CluSwapAdjacent( pOut, pIn, k, nVarsAll );
+                pTemp = pIn; pIn = pOut, pOut = pTemp;
+                Counter++;
+            }
+            Var++;
+        }
+    assert( Var == nVars );
+    // swap if it was moved an odd number of times
+    if ( Counter & 1 )
+        If_CluCopy( pOut, pIn, nVarsAll );
+}
+int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars )
+{
+    int v, iVar = 0, uSupp = 0;
+    assert( nVarsAll <= 16 );
+    for ( v = 0; v < nVarsAll; v++ )
+        if ( If_CluHasVar( t, nVarsAll, v ) )
+        {
+            uSupp |= (1 << v);
+            if ( pSupp )
+                pSupp[iVar] = pSupp[v];
+            iVar++;
+        }
+    if ( pnVars )
+        *pnVars = iVar;
+    if ( If_CluSuppIsMinBase( uSupp ) )
+        return 0;
+    If_CluTruthShrink( t, iVar, nVarsAll, uSupp );
+    return 1;
+}
 
 // returns the best group found
-If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int nLutRoot )
+If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int nLutRoot, If_Grp_t * pR, word * pFunc0, word * pFunc1 )
 {
     If_Grp_t G1 = {0}, R = {0}, * pHashed = NULL;
     word Truth, pTruth[CLU_WRD_MAX], pF[CLU_WRD_MAX];//, pG[CLU_WRD_MAX];
     int V2P[CLU_VAR_MAX+2], P2V[CLU_VAR_MAX+2], pCanonPerm[CLU_VAR_MAX];
     int i, nSupp, uCanonPhase;
+    int nLutSize = p ? p->pPars->nLutSize : nVars;
     assert( nVars <= CLU_VAR_MAX );
     assert( nVars <= nLutLeaf + nLutRoot - 1 );
 
+    if ( pR )
+    {
+        pR->nVars = 0;
+        *pFunc0 = 0;
+        *pFunc1 = 0;
+    }
+
     // canonicize truth table
-    If_CluCopy( pTruth, pTruth0, p->pPars->nLutSize );
+    If_CluCopy( pTruth, pTruth0, nLutSize );
 
     if ( 0 )
     {
         uCanonPhase = If_CluSemiCanonicize( pTruth, nVars, pCanonPerm );
-        If_CluAdjustBig( pTruth, nVars, p->pPars->nLutSize );
+        If_CluAdjustBig( pTruth, nVars, nLutSize );
     }
 
 //    If_CluSemiCanonicizeVerify( pTruth, pTruth0, nVars, pCanonPerm, uCanonPhase );
-//    If_CluCopy( pTruth, pTruth0, p->pPars->nLutSize );
+//    If_CluCopy( pTruth, pTruth0, nLutSize );
 
 
  /*
@@ -1123,9 +1173,12 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int
 
 
     // check hash table
-    pHashed = If_CluHashLookup( p, pTruth );
-    if ( pHashed && pHashed->nVars != CLU_UNUSED )
-        return *pHashed;
+    if ( p )
+    {
+        pHashed = If_CluHashLookup( p, pTruth );
+        if ( pHashed && pHashed->nVars != CLU_UNUSED )
+            return *pHashed;
+    }
 
     // detect easy cofs
     G1 = If_CluDecUsingCofs( pTruth, nVars, nLutLeaf );
@@ -1169,7 +1222,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int
     }
 
     // derive
-    if ( 0 )
+    if ( pR )
     {
         If_CluMoveGroupToMsb( pF, nVars, V2P, P2V, &G1 );
         if ( G1.nMyu == 2 )
@@ -1177,16 +1230,31 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int
         else
             Truth = If_CluDeriveNonDisjoint( pF, nVars, V2P, P2V, &G1, &R );
 
+        *pFunc0 = If_CluAdjust( pF[0], R.nVars );
+        *pFunc1 = If_CluAdjust( Truth, G1.nVars );
+
         // perform checking
         if ( 0 )
         {
             If_CluCheckGroup( pTruth, nVars, &G1 );
             If_CluVerify( pTruth, nVars, &G1, &R, Truth, pF );
         }
+        *pR = R;
     }
     return pHashed ? (*pHashed = G1) : G1;
 }
 
+
+// returns the best group found
+int If_CluCheckExt( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 )
+{
+    If_Grp_t G, R;
+    G = If_CluCheck( p, pTruth, nVars, nLutLeaf, nLutRoot, &R, pFunc0, pFunc1 );
+    memcpy( pLut0, &R, sizeof(If_Grp_t) );
+    memcpy( pLut1, &G, sizeof(If_Grp_t) );
+//    memcpy( pLut2, &G2, sizeof(If_Grp_t) );
+    return (G.nVars > 0);
+}
 
 // computes delay of the decomposition
 float If_CluDelayMax( If_Grp_t * g, float * pDelays )
@@ -1251,7 +1319,7 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     }
 
     // derive the first group
-    G1 = If_CluCheck( p, (word *)If_CutTruth(pCut), nLeaves, nLutLeaf, nLutRoot );
+    G1 = If_CluCheck( p, (word *)If_CutTruth(pCut), nLeaves, nLutLeaf, nLutRoot, NULL, NULL, NULL );
     if ( G1.nVars == 0 )
         return ABC_INFINITY;
 
@@ -1334,7 +1402,7 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
         return 1;
 
     // derive the first group
-    G1 = If_CluCheck( p, (word *)pTruth, nLeaves, nLutLeaf, nLutRoot );
+    G1 = If_CluCheck( p, (word *)pTruth, nLeaves, nLutLeaf, nLutRoot, NULL, NULL, NULL );
     if ( G1.nVars == 0 )
     {
 //        printf( "-%d ", nLeaves );
@@ -1380,7 +1448,7 @@ void If_CluTest()
 
     Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); printf( "\n" );
 
-    G = If_CluCheck( NULL, &t, nVars, nLutLeaf, nLutRoot );
+    G = If_CluCheck( NULL, &t, nVars, nLutLeaf, nLutRoot, NULL, NULL, NULL );
 
     If_CluPrintGroup( &G );
 }

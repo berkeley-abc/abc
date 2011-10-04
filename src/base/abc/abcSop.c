@@ -1261,6 +1261,58 @@ void Abc_SopToTruth7( char * pSop, int nInputs, word r[2] )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of the node.]
+ 
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SopToTruthBig( char * pSop, int nInputs, word ** pVars, word * pCube, word * pRes )
+{
+    int nVars = Abc_SopGetVarNum(pSop);
+    int nWords = nVars <= 6 ? 1 : 1 << (nVars-6);
+    int v, i, lit = 0;
+    assert( nVars >= 0 && nVars <= 16 );
+    assert( nVars == nInputs );
+    for ( i = 0; i < nWords; i++ )
+        pRes[i] = 0;
+    do {
+        for ( i = 0; i < nWords; i++ )
+            pCube[i] = ~0;
+        for ( v = 0; v < nVars; v++, lit++ )
+        {
+            if ( pSop[lit] == '1' )
+            {
+                for ( i = 0; i < nWords; i++ )
+                    pCube[i] &= pVars[v][i];
+            }
+            else if ( pSop[lit] == '0' )
+            {
+                for ( i = 0; i < nWords; i++ )
+                    pCube[i] &= ~pVars[v][i];
+            }
+            else if ( pSop[lit] != '-' )
+                assert( 0 );
+        }
+        for ( i = 0; i < nWords; i++ )
+            pRes[i] |= pCube[i];
+        assert( pSop[lit] == ' ' );
+        lit++;
+        lit++;
+        assert( pSop[lit] == '\n' );
+        lit++;
+    } while ( pSop[lit] );
+    if ( Abc_SopIsComplement(pSop) )
+    {
+        for ( i = 0; i < nWords; i++ )
+            pRes[i] = ~pRes[i];
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

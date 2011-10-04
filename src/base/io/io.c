@@ -1581,13 +1581,28 @@ usage:
 int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
+    char * pLutStruct = NULL;
     int c, fSpecial = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "jh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Sjh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'S':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-S\" should be followed by string.\n" );
+                    goto usage;
+                }
+                pLutStruct = argv[globalUtilOptind];
+                globalUtilOptind++;
+                if ( !strlen(pLutStruct) == 2 && !strlen(pLutStruct) == 3 ) 
+                {
+                    Abc_Print( -1, "Command line switch \"-S\" should be followed by a 2- or 3-char string (e.g. \"44\" or \"555\").\n" );
+                    goto usage;
+                }
+                break;
             case 'j':
                 fSpecial ^= 1;
                 break;
@@ -1607,15 +1622,16 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    if ( fSpecial )
-        Io_WriteBlifSpecial( pAbc->pNtkCur, pFileName );
+    if ( fSpecial || pLutStruct )
+        Io_WriteBlifSpecial( pAbc->pNtkCur, pFileName, pLutStruct );
     else
         Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BLIF );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_blif [-jh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_blif [-S str] [-jh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the network into a BLIF file\n" );
+    fprintf( pAbc->Err, "\t-S str : string representing the LUT structure [default = %s]\n", pLutStruct ? pLutStruct : "not used" );  
     fprintf( pAbc->Err, "\t-j     : enables special BLIF writing [default = %s]\n", fSpecial? "yes" : "no" );;
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .blif)\n" );

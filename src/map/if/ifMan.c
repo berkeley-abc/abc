@@ -127,8 +127,7 @@ void If_ManRestart( If_Man_t * p )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
-//    if ( p->nCutsUselessAll && p->pPars->fVerbose )
-    if ( p->nCutsUselessAll )
+    if ( p->pPars->fVerbose && p->nCutsUselessAll )
     {
         int i;
         for ( i = 0; i <= 16; i++ )
@@ -161,8 +160,8 @@ void If_ManStop( If_Man_t * p )
     if ( p->vSwitching )
         Vec_IntFree( p->vSwitching );
     // hash table
-    if ( p->nTableEntries )
-        printf( "Entries = %d.  Size = %d.\n", p->nTableEntries, p->nTableSize );
+    if ( p->pPars->fVerbose && p->nTableEntries )
+        printf( "Hash table:  Entries = %7d.  Size = %7d.\n", p->nTableEntries, p->nTableSize );
     ABC_FREE( p->pHashTable );
     if ( p->pMemEntries )
         Mem_FixedStop( p->pMemEntries, 0 );
