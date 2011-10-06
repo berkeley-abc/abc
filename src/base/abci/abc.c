@@ -13289,9 +13289,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->pLutStruct )
     {
-        if ( pPars->nLutSize < 6 || pPars->nLutSize > 11 )
+        if ( pPars->nLutSize < 6 || pPars->nLutSize > 16 )
         {
-            Abc_Print( -1, "This feature only works for {6,7,8,9,10,11}-LUTs.\n" );
+            Abc_Print( -1, "This feature only works for [6;16]-LUTs.\n" );
             return 1;
         }
         pPars->pFuncCell = If_CutPerformCheck16;
