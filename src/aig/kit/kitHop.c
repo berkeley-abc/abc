@@ -111,6 +111,11 @@ Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_
     }
     else
         pGraph = Kit_TruthToGraph( pTruth, nVars, vMemory );
+    if ( pGraph == NULL )
+    {
+        printf( "Kit_TruthToHop(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth, nVars ); printf( "\n" );
+    }
     // derive the AIG for the decomposition tree
     pObj = Kit_GraphToHop( pMan, pGraph );
     Kit_GraphFree( pGraph );

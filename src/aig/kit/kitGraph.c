@@ -360,7 +360,7 @@ Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemor
     RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 1 ); // tried 1 and found not useful in "renode"
     if ( RetValue == -1 )
         return NULL;
-    if ( Vec_IntSize(vMemory) > 1024 )
+    if ( Vec_IntSize(vMemory) > (1<<16) )
         return NULL;
 //    printf( "Isop size = %d.\n", Vec_IntSize(vMemory) );
     assert( RetValue == 0 || RetValue == 1 );
