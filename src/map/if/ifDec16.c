@@ -29,7 +29,8 @@ ABC_NAMESPACE_IMPL_START
 
 #define CLU_VAR_MAX  16
 #define CLU_WRD_MAX  (1 << ((CLU_VAR_MAX)-6))
-#define CLU_UNUSED   99
+#define CLU_MEM_MAX  1000  // 1 Gb
+#define CLU_UNUSED   0xff
 
 // decomposition
 typedef struct If_Grp_t_ If_Grp_t;
@@ -45,7 +46,8 @@ typedef struct If_Hte_t_ If_Hte_t;
 struct If_Hte_t_
 {
     If_Hte_t * pNext;
-    If_Grp_t   Group;
+    unsigned   Group;
+    unsigned   Counter;
     word       pTruth[1];
 };
 
@@ -82,10 +84,29 @@ static word TruthAll[CLU_VAR_MAX][CLU_WRD_MAX] = {{0}};
 extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 extern void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
 
+extern int If_CluSupportSize( word * t, int nVars );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+static inline unsigned If_CluGrp2Uns( If_Grp_t * pG )
+{
+    char * pChar = (char *)pG;
+    unsigned Res = 0;
+    int i;
+    for ( i = 0; i < 8; i++ )
+        Res |= ((pChar[i] & 15) << (i << 2));
+    return Res;
+}
+
+static inline void If_CluUns2Grp( unsigned Group, If_Grp_t * pG )
+{
+    char * pChar = (char *)pG;
+    int i;
+    for ( i = 0; i < 8; i++ )
+        pChar[i] = ((Group >> (i << 2)) & 15);
+}
 
 unsigned int If_CluPrimeCudd( unsigned int p )
 {
@@ -126,52 +147,35 @@ static inline int If_CluCountOnes( word t )
     t =    (t & 0x0000FFFF0000FFFF) + ((t>>16) & 0x0000FFFF0000FFFF);
     return (t & 0x00000000FFFFFFFF) +  (t>>32);
 }
-int If_CluHashKey( word * pTruth, int nWords, int Size )
+
+void If_CluHashTableCheck( If_Man_t * p )
 {
-    static unsigned BigPrimes[8] = {12582917, 25165843, 50331653, 100663319, 201326611, 402653189, 805306457, 1610612741};
-    unsigned char * s = (unsigned char *)pTruth;
-    unsigned Value = 0;
-    int i;
-    for ( i = 0; i < 8 * nWords; i++ )
-        Value ^= BigPrimes[i % 7] * s[i];
-    return Value % Size;
-}
-If_Grp_t * If_CluHashLookup( If_Man_t * p, word * pTruth )
-{
+    int t = 1;
     If_Hte_t * pEntry;
-    int nWords, HashKey;
-    if ( p == NULL )
-        return NULL;
-    nWords = If_CluWordNum(p->pPars->nLutSize);
-    if ( p->pMemEntries == NULL )
+    int i, RetValue, Status;
+    for ( i = 0; i < p->nTableSize[t]; i++ )
     {
-        p->pMemEntries = Mem_FixedStart( sizeof(If_Hte_t) + sizeof(word) * (If_CluWordNum(p->pPars->nLutSize) - 1) );
-        p->nTableSize  = If_CluPrimeCudd( Vec_PtrSize(p->vObjs) * p->pPars->nCutsMax * 2 );
-        p->pHashTable  = ABC_CALLOC( void *, p->nTableSize );
+        for ( pEntry = ((If_Hte_t **)p->pHashTable[t])[i]; pEntry; pEntry = pEntry->pNext )
+        {        
+            Status = ((pEntry->Group & 15) > 0);
+            RetValue = If_CutPerformCheck16( NULL, (unsigned *)pEntry->pTruth, 13, If_CluSupportSize(pEntry->pTruth, 13), "555" );
+            if ( RetValue != Status ) 
+            {
+                Kit_DsdPrintFromTruth( (unsigned*)pEntry->pTruth, 13 ); printf( "\n" );
+                RetValue = If_CutPerformCheck16( NULL, (unsigned *)pEntry->pTruth, 13, If_CluSupportSize(pEntry->pTruth, 13), "555" );
+                printf( "Hash table problem!!!\n" );
+            }
+        }
     }
-    // check if this entry exists
-    HashKey = If_CluHashKey( pTruth, nWords, p->nTableSize );
-    for ( pEntry = ((If_Hte_t **)p->pHashTable)[HashKey]; pEntry; pEntry = pEntry->pNext )
-        if ( memcmp(pEntry->pTruth, pTruth, sizeof(word) * nWords) == 0 )
-            return &pEntry->Group;
-    // create entry
-    p->nTableEntries++;
-    pEntry = (If_Hte_t *)Mem_FixedEntryFetch( p->pMemEntries );
-    memcpy( pEntry->pTruth, pTruth, sizeof(word) * nWords );
-    memset( &pEntry->Group, 0, sizeof(If_Grp_t) );
-    pEntry->Group.nVars = CLU_UNUSED;
-    pEntry->pNext = ((If_Hte_t **)p->pHashTable)[HashKey];
-    ((If_Hte_t **)p->pHashTable)[HashKey] = pEntry;
-    return &pEntry->Group;
 }
-void If_CluHashPrintStats( If_Man_t * p )
+void If_CluHashPrintStats( If_Man_t * p, int t )
 {
     If_Hte_t * pEntry;
     int i, Counter;
-    for ( i = 0; i < p->nTableSize; i++ )
+    for ( i = 0; i < p->nTableSize[t]; i++ )
     {
         Counter = 0;
-        for ( pEntry = ((If_Hte_t **)p->pHashTable)[i]; pEntry; pEntry = pEntry->pNext )
+        for ( pEntry = ((If_Hte_t **)p->pHashTable[t])[i]; pEntry; pEntry = pEntry->pNext )
             Counter++;
         if ( Counter == 0 )
             continue;
@@ -179,6 +183,150 @@ void If_CluHashPrintStats( If_Man_t * p )
             continue;
         printf( "%d=%d ", i, Counter );
     }
+}
+int If_CluHashFindMedian( If_Man_t * p, int t )
+{
+    If_Hte_t * pEntry;
+    Vec_Int_t * vCounters;
+    int i, Max = 0, Total = 0, Half = 0;
+    vCounters = Vec_IntStart( 1000 );
+    for ( i = 0; i < p->nTableSize[t]; i++ )
+    {
+        for ( pEntry = ((If_Hte_t **)p->pHashTable[t])[i]; pEntry; pEntry = pEntry->pNext )
+        {
+            if ( Max < (int)pEntry->Counter )
+            {
+                Max = pEntry->Counter;
+                Vec_IntSetEntry( vCounters, pEntry->Counter, 0 );
+            }
+            Vec_IntAddToEntry( vCounters, pEntry->Counter, 1 );
+            Total++;
+        }
+    }
+    for ( i = Max; i > 0; i-- )
+    {
+        Half += Vec_IntEntry( vCounters, i );
+        if ( Half > Total/2 )
+            break;
+    }
+/*
+    printf( "total = %d  ", Total );
+    printf( "half = %d  ", Half );
+    printf( "i = %d  ", i );
+    printf( "Max = %d.\n", Max );
+*/
+    Vec_IntFree( vCounters );
+    return Abc_MaxInt( i, 1 );
+}
+int If_CluHashKey( word * pTruth, int nWords, int Size )
+{
+    static unsigned BigPrimes[8] = {12582917, 25165843, 50331653, 100663319, 201326611, 402653189, 805306457, 1610612741};
+    unsigned Value = 0;
+    int i;
+    if ( nWords < 4 )
+    {
+        unsigned char * s = (unsigned char *)pTruth;
+        for ( i = 0; i < 8 * nWords; i++ )
+            Value ^= BigPrimes[i % 7] * s[i];
+    }
+    else
+    {
+        unsigned * s = (unsigned *)pTruth;
+        for ( i = 0; i < 2 * nWords; i++ )
+            Value ^= BigPrimes[i % 7] * s[i];
+    }
+    return Value % Size;
+}
+unsigned * If_CluHashLookup( If_Man_t * p, word * pTruth, int t )
+{
+    If_Hte_t * pEntry, * pPrev;
+    int nWords, HashKey;
+    if ( p == NULL )
+        return NULL;
+    nWords = If_CluWordNum(p->pPars->nLutSize);
+    if ( p->pMemEntries == NULL )
+        p->pMemEntries = Mem_FixedStart( sizeof(If_Hte_t) + sizeof(word) * (If_CluWordNum(p->pPars->nLutSize) - 1) );
+    if ( p->pHashTable[t] == NULL )
+    {
+        // decide how large should be the table
+        int nEntriesMax1 = 4 * If_CluPrimeCudd( Vec_PtrSize(p->vObjs) * p->pPars->nCutsMax );
+        int nEntriesMax2 = (int)(((double)CLU_MEM_MAX * (1 << 20)) / If_CluWordNum(p->pPars->nLutSize) / 8);
+//        int nEntriesMax2 = 10000;
+        // create table
+        p->nTableSize[t] = If_CluPrimeCudd( Abc_MinInt(nEntriesMax1, nEntriesMax2)/2 );
+        p->pHashTable[t] = ABC_CALLOC( void *, p->nTableSize[t] );
+    }
+    // check if this entry exists
+    HashKey = If_CluHashKey( pTruth, nWords, p->nTableSize[t] );
+    for ( pEntry = ((If_Hte_t **)p->pHashTable[t])[HashKey]; pEntry; pEntry = pEntry->pNext )
+        if ( memcmp(pEntry->pTruth, pTruth, sizeof(word) * nWords) == 0 )
+        {
+            pEntry->Counter++;
+            return &pEntry->Group;
+        }
+    // resize the hash table
+    if ( p->nTableEntries[t] >= 2 * p->nTableSize[t] )
+    {
+        // collect useful entries
+        If_Hte_t * pPrev;
+        Vec_Ptr_t * vUseful = Vec_PtrAlloc( p->nTableEntries[t] );
+        int i, Median = If_CluHashFindMedian( p, t );
+        for ( i = 0; i < p->nTableSize[t]; i++ )
+        {
+            for ( pEntry = ((If_Hte_t **)p->pHashTable[t])[i]; pEntry; )
+            {
+                if ( (int)pEntry->Counter > Median )
+                {
+                    Vec_PtrPush( vUseful, pEntry );
+                    pEntry = pEntry->pNext;
+                }
+                else
+                {
+                    pPrev = pEntry->pNext;
+                    Mem_FixedEntryRecycle( p->pMemEntries, (char *)pEntry );
+                    pEntry = pPrev;
+                }
+            }
+        }
+        // add useful entries
+        memset( p->pHashTable[t], 0, sizeof(void *) * p->nTableSize[t] );
+        Vec_PtrForEachEntry( If_Hte_t *, vUseful, pEntry, i )
+        {
+            HashKey = If_CluHashKey( pEntry->pTruth, nWords, p->nTableSize[t] );
+            pPrev = ((If_Hte_t **)p->pHashTable[t])[HashKey];
+            if ( pPrev == NULL || pEntry->Counter >= pPrev->Counter )
+            {
+                pEntry->pNext = pPrev;
+                ((If_Hte_t **)p->pHashTable[t])[HashKey] = pEntry;
+            }
+            else
+            {
+                while ( pPrev->pNext && pEntry->Counter < pPrev->pNext->Counter )
+                    pPrev = pPrev->pNext;
+                pEntry->pNext = pPrev->pNext;
+                pPrev->pNext = pEntry;
+            }
+        }
+        p->nTableEntries[t] = Vec_PtrSize( vUseful );
+        Vec_PtrFree( vUseful );
+    }
+    // create entry
+    p->nTableEntries[t]++;
+    pEntry = (If_Hte_t *)Mem_FixedEntryFetch( p->pMemEntries );
+    memcpy( pEntry->pTruth, pTruth, sizeof(word) * nWords );
+    pEntry->Group = CLU_UNUSED;
+    pEntry->Counter = 1;
+    // insert at the beginning
+//    pEntry->pNext = ((If_Hte_t **)p->pHashTable[t])[HashKey];
+//    ((If_Hte_t **)p->pHashTable[t])[HashKey] = pEntry;
+    // insert at the end
+    pEntry->pNext = NULL;
+    for ( pPrev = ((If_Hte_t **)p->pHashTable[t])[HashKey]; pPrev && pPrev->pNext; pPrev = pPrev->pNext );
+    if ( pPrev == NULL )
+        ((If_Hte_t **)p->pHashTable[t])[HashKey] = pEntry;
+    else
+        pPrev->pNext = pEntry;
+    return &pEntry->Group;
 }
 
 // variable permutation for large functions
@@ -440,10 +588,10 @@ void If_CluPrintGroup( If_Grp_t * g )
 {
     int i;
     printf( "Vars = %d   ", g->nVars );
-    printf( "Myu = %d   ", g->nMyu );
+    printf( "Myu = %d   {", g->nMyu );
     for ( i = 0; i < g->nVars; i++ )
-        printf( "%d ", g->pVars[i] );
-    printf( "\n" );
+        printf( " %c", 'a' + g->pVars[i] );
+    printf( " }\n" );
 }
 
 void If_CluPrintConfig( int nVars, If_Grp_t * g, If_Grp_t * r, word BStruth, word * pFStruth )
@@ -966,7 +1114,7 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
 {
     int fVerbose = 0;
     int nRounds = 2;//nBSsize;
-    If_Grp_t G = {0}, * g = &G;
+    If_Grp_t G = {0}, * g = &G, BestG = {0};
     int i, r, v, nCofs, VarBest, nCofsBest2;
     assert( nVars > nBSsize && nVars >= nBSsize + iVarStart && nVars <= CLU_VAR_MAX );
     assert( nBSsize >= 3 && nBSsize <= 6 );
@@ -979,7 +1127,10 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
     if ( g->nMyu == 2 )
         return G;
     if ( !fDisjoint && If_CluCheckNonDisjointGroup( pF, nVars, V2P, P2V, g ) )
+    {
+//        BestG = G;
         return G;
+    }
 
     if ( fVerbose )
     {
@@ -1049,12 +1200,16 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
         if ( g->nMyu == 2 )
             return G;
         if ( !fDisjoint && If_CluCheckNonDisjointGroup( pF, nVars, V2P, P2V, g ) )
+        {
+//            BestG = G;
             return G;
+        }
     }
 
     assert( r == nRounds );
     g->nVars = 0;
     return G;
+//    return BestG;
 }
 
 
@@ -1142,6 +1297,14 @@ static inline int If_CluSupport( word * t, int nVars )
             Supp |= (1 << v);
     return Supp;
 }
+int If_CluSupportSize( word * t, int nVars )
+{
+    int v, SuppSize = 0;
+    for ( v = 0; v < nVars; v++ )
+        if ( If_CluHasVar( t, nVars, v ) )
+            SuppSize++;
+    return SuppSize;
+}
 static inline void If_CluTruthShrink( word * pF, int nVars, int nVarsAll, unsigned Phase )
 {
     word pG[CLU_WRD_MAX], * pIn = pF, * pOut = pG, * pTemp;
@@ -1187,8 +1350,9 @@ int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars )
 If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, int nLutLeaf, int nLutRoot, 
                      If_Grp_t * pR, word * pFunc0, word * pFunc1, word * pLeftOver )
 {
-    int fEnableHashing = 1;
-    If_Grp_t G1 = {0}, R = {0}, * pHashed = NULL;
+    int fEnableHashing = 0;
+    If_Grp_t G1 = {0}, R = {0};
+    unsigned * pHashed = NULL;
     word Truth, pTruth[CLU_WRD_MAX], pF[CLU_WRD_MAX];//, pG[CLU_WRD_MAX];
     int V2P[CLU_VAR_MAX+2], P2V[CLU_VAR_MAX+2], pCanonPerm[CLU_VAR_MAX];
     int i, nSupp, uCanonPhase;
@@ -1234,17 +1398,20 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
     nSupp = If_CluSupport( pF, nVars );
 //Extra_PrintBinary( stdout, &nSupp, 16 );  printf( "\n" );
     if ( !nSupp || !If_CluSuppIsMinBase(nSupp) )
+    {
+//        assert( 0 );     
         return G1;
+    }
 
     // check hash table
     if ( p && fEnableHashing )
     {
-        pHashed = If_CluHashLookup( p, pTruth );
-        if ( pHashed && pHashed->nVars != CLU_UNUSED )
-            G1 = *pHashed;
+        pHashed = If_CluHashLookup( p, pTruth, 0 );
+        if ( pHashed && *pHashed != CLU_UNUSED )
+            If_CluUns2Grp( *pHashed, &G1 );
     }
 
-    if ( G1.nVars == 0 )
+    if ( G1.nVars == 0 ) 
     {
         // detect easy cofs
         G1 = If_CluDecUsingCofs( pTruth, nVars, nLutLeaf );
@@ -1260,6 +1427,15 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
                 {
                     nLutLeaf--;
                     G1 = If_CluFindGroup( pF, nVars, iVarStart, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
+                    nLutLeaf++;
+                }
+                // perform testing with a smaller set
+                if ( nLutLeaf > 3 && nVars < nLutLeaf + nLutRoot - 3 )
+                {
+                    nLutLeaf--;
+                    nLutLeaf--;
+                    G1 = If_CluFindGroup( pF, nVars, iVarStart, V2P, P2V, nLutLeaf, nLutLeaf + nLutRoot == nVars + 1 );
+                    nLutLeaf++;
                     nLutLeaf++;
                 }
                 if ( G1.nVars == 0 )
@@ -1281,7 +1457,9 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
                                 printf( "no\n" );
                         } 
     */
-                        return pHashed ? (*pHashed = G1) : G1;
+                        if ( pHashed )
+                            *pHashed = If_CluGrp2Uns( &G1 );
+                        return G1;
                     }
                 }
             }
@@ -1319,28 +1497,70 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
         }
         *pR = R;
     }
-    return pHashed ? (*pHashed = G1) : G1;
+
+    if ( pHashed )
+        *pHashed = If_CluGrp2Uns( &G1 );
+    return G1;
 }
 
 // returns the best group found
 If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                       If_Grp_t * pR, If_Grp_t * pG2, word * pFunc0, word * pFunc1, word * pFunc2 )
 {
+    int fEnableHashing = 1;
     static int Counter = 0;
+    unsigned * pHashed = NULL;
     word pLeftOver[CLU_WRD_MAX], Func0, Func1, Func2;
     If_Grp_t G1 = {0}, G2 = {0}, R = {0}, R2 = {0};
     int i;
     Counter++;
-    if ( Counter == 37590 )
+//    if ( Counter == 37590 )
+//    {
+//        int ns = 0;
+//    }
+
+    // check hash table
+    if ( p && fEnableHashing )
     {
-        int ns = 0;
+        pHashed = If_CluHashLookup( p, pTruth0, 1 );
+        if ( pHashed && *pHashed != CLU_UNUSED )
+        {
+            If_CluUns2Grp( *pHashed, &G1 );
+            return G1;
+        }
     }
 
     // check two-node decomposition
     G1 = If_CluCheck( p, pTruth0, nVars, 0, nLutLeaf, nLutRoot + nLutLeaf2 - 1, &R2, &Func0, &Func1, pLeftOver );
     // decomposition does not exist
     if ( G1.nVars == 0 )
+    {
+        // check for decomposition with two outputs
+        if ( (G1.nMyu == 3 || G1.nMyu == 4) && nLutLeaf == nLutLeaf2 )
+        {
+            if ( nVars - nLutLeaf + 2 <= nLutRoot )
+            {
+                G1.nVars = nLutLeaf;
+                if ( pHashed )
+                    *pHashed = If_CluGrp2Uns( &G1 );
+//                Kit_DsdPrintFromTruth( (unsigned*)pTruth0, nVars );  printf( "\n" );
+//                If_CluPrintGroup( &G1 );
+                return G1;
+            }
+        }
+/*
+//        if ( nVars == 6 )
+        {
+//            Extra_PrintHex( stdout, (unsigned *)pTruth0, nVars );  printf( "    " );
+            Kit_DsdPrintFromTruth( (unsigned*)pTruth0, nVars );  printf( "\n" );
+            if ( p != NULL )
+            If_CluCheck3( NULL, pTruth0, nVars, nLutLeaf, nLutLeaf2, nLutRoot, pR, pG2, pFunc0, pFunc1, pFunc2 );
+        } 
+*/
+        if ( pHashed )
+            *pHashed = If_CluGrp2Uns( &G1 );
         return G1;
+    }
     // decomposition exists and sufficient
     if ( R2.nVars <= nLutRoot || R2.nVars <= nLutLeaf2 )
     {
@@ -1349,14 +1569,27 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
         if ( pFunc0 )  *pFunc0 = Func0;
         if ( pFunc1 )  *pFunc1 = Func1;
         if ( pFunc2 )  *pFunc2 = 0;
+        if ( pHashed )
+            *pHashed = If_CluGrp2Uns( &G1 );
         return G1;
     }
     // update iVarStart here!!!
 
     // try second decomposition
+    {
+        int Test = 0;
+        if ( Test )
+        {
+            Kit_DsdPrintFromTruth( (unsigned*)&pLeftOver, R2.nVars ); printf( "\n" );
+        }
+    }
     G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL );
     if ( G2.nVars == 0 )
+    {
+        if ( pHashed )
+            *pHashed = If_CluGrp2Uns( &G2 );
         return G2;
+    }
     // remap variables
     for ( i = 0; i < G2.nVars; i++ )
     {
@@ -1378,6 +1611,8 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     if ( pFunc0 )  *pFunc0 = Func0;
     if ( pFunc1 )  *pFunc1 = Func1;
     if ( pFunc2 )  *pFunc2 = Func2;
+    if ( pHashed )
+        *pHashed = If_CluGrp2Uns( &G1 );
     return G1;
 }
 
@@ -1566,19 +1801,21 @@ void If_CluTest()
 //    word t = 0x0100200000000001;
 //    word t2[4] = { 0x0000800080008000, 0x8000000000008000, 0x8000000080008000, 0x0000000080008000 };
 //    word t = 0x07770FFF07770FFF;
-    word t = 0x002000D000D00020;
+//    word t = 0x002000D000D00020;
 //    word t = 0x000F000E000F000F;
 //    word t = 0xF7FFF7F7F7F7F7F7;
+//    word t = 0x0234AFDE23400BCE;
+    word t = 0x0080008880A088FF;
     word s = t;
     word t2[2] = { 0x7f807f807f80807f, 0x7f807f807f807f80 };
-    int nVars     = 7;
-    int nLutLeaf  = 3;
-    int nLutLeaf2 = 3;
-    int nLutRoot  = 3;
-    If_Grp_t G, G2, R;
-    word Func0, Func1, Func2;
-
-    return ;
+    int nVars     = 6;
+    int nLutLeaf  = 5;
+    int nLutLeaf2 = 5;
+    int nLutRoot  = 5;
+    If_Grp_t G;
+//    If_Grp_t G2, R;
+//    word Func0, Func1, Func2;
+    return;
 
 /*
     int pCanonPerm[CLU_VAR_MAX];
@@ -1590,6 +1827,7 @@ void If_CluTest()
 
     If_CluSemiCanonicizeVerify( &s, &t, nVars, pCanonPerm, uCanonPhase );
 */
+/*
     Kit_DsdPrintFromTruth( (unsigned*)t2, nVars ); printf( "\n" );
 
     G = If_CluCheck3( NULL, t2, nVars, nLutLeaf, nLutLeaf2, nLutRoot, &R, &G2, &Func0, &Func1, &Func2 );
@@ -1603,7 +1841,7 @@ void If_CluTest()
 
     If_CutPerformCheck07( NULL, (unsigned *)&t, 6, 6, NULL );
 //    return;
-
+*/
     Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); printf( "\n" );
 
     G = If_CluCheck( NULL, &t, nVars, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL );

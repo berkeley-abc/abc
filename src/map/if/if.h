@@ -192,12 +192,10 @@ struct If_Man_t_
     Tim_Man_t *        pManTim;
     Vec_Int_t *        vCoAttrs;      // CO attributes   0=optimize; 1=keep; 2=relax
     // hash table for functions
-    int                nTableSize;    // hash table size
-    int                nTableEntries; // hash table entries
-    void **            pHashTable;    // hash table bins
-    Mem_Fixed_t *      pMemEntries;   // memory manager for hash table entries
-
-
+    int                nTableSize[2];    // hash table size
+    int                nTableEntries[2]; // hash table entries
+    void **            pHashTable[2];    // hash table bins
+    Mem_Fixed_t *      pMemEntries;      // memory manager for hash table entries
     // statistics 
 //    int                timeTruth;
 };

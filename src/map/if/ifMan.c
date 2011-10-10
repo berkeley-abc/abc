@@ -127,6 +127,12 @@ void If_ManRestart( If_Man_t * p )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
+    {
+//        extern void If_CluHashFindMedian( If_Man_t * p );
+//        extern void If_CluHashTableCheck( If_Man_t * p );
+//        If_CluHashFindMedian( p );
+//        If_CluHashTableCheck( p );
+    }
     if ( p->pPars->fVerbose && p->nCutsUselessAll )
     {
         int i;
@@ -160,9 +166,12 @@ void If_ManStop( If_Man_t * p )
     if ( p->vSwitching )
         Vec_IntFree( p->vSwitching );
     // hash table
-    if ( p->pPars->fVerbose && p->nTableEntries )
-        printf( "Hash table:  Entries = %7d.  Size = %7d.\n", p->nTableEntries, p->nTableSize );
-    ABC_FREE( p->pHashTable );
+//    if ( p->pPars->fVerbose && p->nTableEntries[0] )
+//        printf( "Hash table 2:  Entries = %7d.  Size = %7d.\n", p->nTableEntries[0], p->nTableSize[0] );
+//    if ( p->pPars->fVerbose && p->nTableEntries[1] )
+//        printf( "Hash table 3:  Entries = %7d.  Size = %7d.\n", p->nTableEntries[1], p->nTableSize[1] );
+    ABC_FREE( p->pHashTable[0] );
+    ABC_FREE( p->pHashTable[1] );
     if ( p->pMemEntries )
         Mem_FixedStop( p->pMemEntries, 0 );
     ABC_FREE( p );
