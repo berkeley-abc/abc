@@ -1348,9 +1348,9 @@ int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars )
 
 // returns the best group found
 If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, int nLutLeaf, int nLutRoot, 
-                     If_Grp_t * pR, word * pFunc0, word * pFunc1, word * pLeftOver )
+                     If_Grp_t * pR, word * pFunc0, word * pFunc1, word * pLeftOver, int fHashing )
 {
-    int fEnableHashing = 0;
+//    int fEnableHashing = 0;
     If_Grp_t G1 = {0}, R = {0};
     unsigned * pHashed = NULL;
     word Truth, pTruth[CLU_WRD_MAX], pF[CLU_WRD_MAX];//, pG[CLU_WRD_MAX];
@@ -1404,7 +1404,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
     }
 
     // check hash table
-    if ( p && fEnableHashing )
+    if ( p && fHashing )
     {
         pHashed = If_CluHashLookup( p, pTruth, 0 );
         if ( pHashed && *pHashed != CLU_UNUSED )
@@ -1531,7 +1531,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     }
 
     // check two-node decomposition
-    G1 = If_CluCheck( p, pTruth0, nVars, 0, nLutLeaf, nLutRoot + nLutLeaf2 - 1, &R2, &Func0, &Func1, pLeftOver );
+    G1 = If_CluCheck( p, pTruth0, nVars, 0, nLutLeaf, nLutRoot + nLutLeaf2 - 1, &R2, &Func0, &Func1, pLeftOver, 0 );
     // decomposition does not exist
     if ( G1.nVars == 0 )
     {
@@ -1583,7 +1583,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
             Kit_DsdPrintFromTruth( (unsigned*)&pLeftOver, R2.nVars ); printf( "\n" );
         }
     }
-    G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL );
+    G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
     if ( G2.nVars == 0 )
     {
         if ( pHashed )
@@ -1620,7 +1620,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
 int If_CluCheckExt( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 )
 {
     If_Grp_t G, R;
-    G = If_CluCheck( p, pTruth, nVars, 0, nLutLeaf, nLutRoot, &R, pFunc0, pFunc1, NULL );
+    G = If_CluCheck( p, pTruth, nVars, 0, nLutLeaf, nLutRoot, &R, pFunc0, pFunc1, NULL, 0 );
     memcpy( pLut0, &R, sizeof(If_Grp_t) );
     memcpy( pLut1, &G, sizeof(If_Grp_t) );
 //    memcpy( pLut2, &G2, sizeof(If_Grp_t) );
@@ -1703,7 +1703,7 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     }
 
     // derive the first group
-    G1 = If_CluCheck( p, (word *)If_CutTruth(pCut), nLeaves, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL );
+    G1 = If_CluCheck( p, (word *)If_CutTruth(pCut), nLeaves, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
     if ( G1.nVars == 0 )
         return ABC_INFINITY;
 
@@ -1785,7 +1785,7 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
 
     // derive the first group
     if ( Length == 2 )
-        G1 = If_CluCheck( p, (word *)pTruth, nLeaves, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL );
+        G1 = If_CluCheck( p, (word *)pTruth, nLeaves, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
     else
         G1 = If_CluCheck3( p, (word *)pTruth, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, NULL, NULL, NULL, NULL, NULL );
     return (int)(G1.nVars > 0);
@@ -1844,7 +1844,7 @@ void If_CluTest()
 */
     Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); printf( "\n" );
 
-    G = If_CluCheck( NULL, &t, nVars, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL );
+    G = If_CluCheck( NULL, &t, nVars, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 0 );
 
     If_CluPrintGroup( &G );
 }
