@@ -691,9 +691,9 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
         If_CluCopy( pTTFans[i], TruthAll[g->pVars[i]], nVars );
     If_CluComposeLut( nVars, g, &BStruth, pTTFans, pTTWire );
 
-    for ( i = 0; i < g->nVars; i++ )
+    for ( i = 0; i < g2->nVars; i++ )
         If_CluCopy( pTTFans[i], TruthAll[g2->pVars[i]], nVars );
-    If_CluComposeLut( nVars, g, &BStruth2, pTTFans, pTTWire2 );
+    If_CluComposeLut( nVars, g2, &BStruth2, pTTFans, pTTWire2 );
 
     for ( i = 0; i < r->nVars; i++ )
         if ( r->pVars[i] == nVars )
@@ -706,8 +706,14 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
 
     if ( !If_CluEqual(pTTRes, pF, nVars) )
     {
-        printf( "\n" );
+        printf( "%d\n", nVars );
 //        If_CluPrintConfig( nVars, g, r, BStruth, pFStruth );
+//        Extra_PrintHex( stdout, (unsigned *)pF, nVars ); printf( "\n" );
+
+        Kit_DsdPrintFromTruth( (unsigned*)&BStruth, g->nVars );   printf( "    " ); If_CluPrintGroup(g);  // printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&BStruth2, g2->nVars ); printf( "    " ); If_CluPrintGroup(g2); // printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)&FStruth, r->nVars );   printf( "    " ); If_CluPrintGroup(r);  // printf( "\n" );
+
         Kit_DsdPrintFromTruth( (unsigned*)pTTWire, nVars ); printf( "\n" );
         Kit_DsdPrintFromTruth( (unsigned*)pTTWire2, nVars ); printf( "\n" );
         Kit_DsdPrintFromTruth( (unsigned*)pTTRes, nVars ); printf( "\n" );
@@ -769,8 +775,17 @@ void If_CluMoveGroupToMsb( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t 
 void If_CluReverseOrder( word * pF, int nVars, int * V2P, int * P2V, int iVarStart )
 {
     int v;
+
+//    for ( v = 0; v < nVars; v++ )
+//        printf( "%c ", 'a' + P2V[v] );
+//    printf( "  ---  " );
+
     for ( v = iVarStart; v < nVars; v++ )
-        If_CluMoveVar( pF, nVars, V2P, P2V, P2V[iVarStart], nVars - 1 - v );
+        If_CluMoveVar( pF, nVars, V2P, P2V, P2V[iVarStart], nVars - 1 - (v - iVarStart) );
+
+//    for ( v = 0; v < nVars; v++ )
+//        printf( "%c ", 'a' + P2V[v] );
+//    printf( "\n" );
 }
 
 // return the number of cofactors w.r.t. the topmost vars (nBSsize)
@@ -845,6 +860,44 @@ int If_CluCountCofs( word * pF, int nVars, int nBSsize, int iShift, word pCofs[3
         }
     }
     assert( nCofs >= 1 && nCofs <= 5 );
+    return nCofs;
+}
+
+// return the number of cofactors w.r.t. the topmost vars (nBSsize)
+int If_CluCountCofs4( word * pF, int nVars, int nBSsize, word pCofs[6][CLU_WRD_MAX/4] )
+{
+    word iCofs[128], iCof, Result0 = 0, Result1 = 0;
+    int nMints = (1 << nBSsize);
+    int i, c, nCofs;
+    assert( pCofs );
+    assert( nBSsize >= 2 && nBSsize <= 6 && nBSsize < nVars );
+    if ( nVars - nBSsize < 6 )
+    {
+        int nShift = (1 << (nVars - nBSsize));
+        word Mask  = ((((word)1) << nShift) - 1);
+        for ( nCofs = i = 0; i < nMints; i++ )
+        {
+            iCof = (pF[(i * nShift) / 64] >> ((i * nShift) & 63)) & Mask;
+            for ( c = 0; c < nCofs; c++ )
+                if ( iCof == iCofs[c] )
+                    break;
+            if ( c == nCofs )
+                iCofs[nCofs++] = iCof;
+            if ( c == 1 || c == 3 )
+                Result0 |= (((word)1) << i);
+            if ( c == 2 || c == 3 )
+                Result1 |= (((word)1) << i);
+        }
+        assert( nCofs >= 3 && nCofs <= 4 );
+        pCofs[0][0] = iCofs[0];
+        pCofs[1][0] = iCofs[1];
+        pCofs[2][0] = iCofs[2];
+        pCofs[3][0] = (nCofs == 4) ? iCofs[3] : iCofs[2];
+        pCofs[4][0] = Result0;
+        pCofs[5][0] = Result1;
+    }
+    else
+        assert( 0 );
     return nCofs;
 }
 
@@ -1041,6 +1094,35 @@ word If_CluDeriveDisjoint( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t 
     }
     return pCofs[2][0];
 }
+void If_CluDeriveDisjoint4( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t * g, If_Grp_t * r, word * pTruth0, word * pTruth1 )
+{
+    word pCofs[6][CLU_WRD_MAX/4];
+    word Cof0, Cof1;
+    int i, RetValue, nFSset = nVars - g->nVars;
+
+    assert( g->nVars <= 6 && nFSset <= 4 );
+
+    RetValue = If_CluCountCofs4( pF, nVars, g->nVars, pCofs );
+    if ( RetValue != 3 && RetValue != 4 )
+        printf( "If_CluDeriveDisjoint4(): Error!!!\n" );
+
+    Cof0  = (pCofs[1][0] << (1 << nFSset)) | pCofs[0][0];
+    Cof1  = (pCofs[3][0] << (1 << nFSset)) | pCofs[2][0];
+    pF[0] = (Cof1 << (1 << (nFSset+1))) | Cof0;
+    pF[0] = If_CluAdjust( pF[0], nFSset + 2 );
+
+    // create the resulting group
+    r->nVars = nFSset + 2;
+    r->nMyu = 0;
+    for ( i = 0; i < nFSset; i++ )
+        r->pVars[i] = P2V[i];
+    r->pVars[nFSset] = nVars;
+    r->pVars[nFSset+1] = nVars+1;
+
+    *pTruth0 = If_CluAdjust( pCofs[4][0], g->nVars );
+    *pTruth1 = If_CluAdjust( pCofs[5][0], g->nVars );
+}
+
 word If_CluDeriveNonDisjoint( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t * g, If_Grp_t * r )
 {
     word pCofs[2][CLU_WRD_MAX];
@@ -1117,7 +1199,7 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
     If_Grp_t G = {0}, * g = &G, BestG = {0};
     int i, r, v, nCofs, VarBest, nCofsBest2;
     assert( nVars > nBSsize && nVars >= nBSsize + iVarStart && nVars <= CLU_VAR_MAX );
-    assert( nBSsize >= 3 && nBSsize <= 6 );
+    assert( nBSsize >= 2 && nBSsize <= 6 );
     // start with the default group
     g->nVars = nBSsize;
     g->nMyu = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
@@ -1129,6 +1211,11 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
     if ( !fDisjoint && If_CluCheckNonDisjointGroup( pF, nVars, V2P, P2V, g ) )
     {
 //        BestG = G;
+        return G;
+    }
+    if ( nVars == nBSsize + iVarStart )
+    {
+        g->nVars = 0;
         return G;
     }
 
@@ -1414,7 +1501,8 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
     if ( G1.nVars == 0 ) 
     {
         // detect easy cofs
-        G1 = If_CluDecUsingCofs( pTruth, nVars, nLutLeaf );
+        if ( iVarStart == 0 )
+            G1 = If_CluDecUsingCofs( pTruth, nVars, nLutLeaf );
         if ( G1.nVars == 0 )
         {
             // perform testing
@@ -1430,7 +1518,7 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
                     nLutLeaf++;
                 }
                 // perform testing with a smaller set
-                if ( nLutLeaf > 3 && nVars < nLutLeaf + nLutRoot - 3 )
+                if ( nLutLeaf > 4 && nVars < nLutLeaf + nLutRoot - 3 )
                 {
                     nLutLeaf--;
                     nLutLeaf--;
@@ -1448,6 +1536,12 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
     //                If_CluCheckPerm( pTruth, pF, nVars, V2P, P2V );
                     if ( G1.nVars == 0 )
                     {
+                        // remember free set, just in case
+//                        for ( i = 0; i < nVars - nLutLeaf; i++ )
+///                           G1.pVars[nLutLeaf+i] = P2V[i];
+                        // if <XY>, this will not be used
+                        // if <XYZ>, this will not be hashed
+
     /*
                         if ( nVars == 6 )
                         {
@@ -1469,16 +1563,43 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
     // derive
     if ( pR )
     {
+        int iNewPos;
+
         If_CluMoveGroupToMsb( pF, nVars, V2P, P2V, &G1 );
         if ( G1.nMyu == 2 )
+        {
             Truth = If_CluDeriveDisjoint( pF, nVars, V2P, P2V, &G1, &R );
+            iNewPos = R.nVars - 1;
+        }
         else
+        {
             Truth = If_CluDeriveNonDisjoint( pF, nVars, V2P, P2V, &G1, &R );
+            iNewPos = R.nVars - 2;
+        }
+        assert( R.pVars[iNewPos] == nVars );
 
-        if ( pFunc0 && R.nVars <= 6 )
-            *pFunc0 = If_CluAdjust( pF[0], R.nVars );
-        if ( pFunc1 )
-            *pFunc1 = If_CluAdjust( Truth, G1.nVars );
+        // adjust the functions
+        Truth = If_CluAdjust( Truth, G1.nVars );
+        if ( R.nVars < 6 )
+            pF[0] = If_CluAdjust( pF[0], R.nVars );
+
+//        Kit_DsdPrintFromTruth( (unsigned*)&Truth, G1.nVars ); printf( "  ...1\n" );
+//        Kit_DsdPrintFromTruth( (unsigned*)pF, R.nVars );      printf( "  ...1\n" );
+
+        // update the variable order of R so that the new var was the first one
+//        if ( iVarStart == 0 )
+        {
+            int k, V2P2[CLU_VAR_MAX+2], P2V2[CLU_VAR_MAX+2];
+            assert( iNewPos >= iVarStart );
+            for ( k = 0; k < R.nVars; k++ )
+                V2P2[k] = P2V2[k] = k;
+            If_CluMoveVar( pF, R.nVars, V2P2, P2V2, iNewPos, iVarStart );
+            for ( k = iNewPos; k > iVarStart; k-- )
+                R.pVars[k] = R.pVars[k-1];
+            R.pVars[iVarStart] = nVars;
+        }
+
+//        Kit_DsdPrintFromTruth( (unsigned*)pF, R.nVars ); printf( "  ...2\n" );
 
         if ( pLeftOver )
         {
@@ -1494,8 +1615,14 @@ If_Grp_t If_CluCheck( If_Man_t * p, word * pTruth0, int nVars, int iVarStart, in
         {
             If_CluCheckGroup( pTruth, nVars, &G1 );
             If_CluVerify( pTruth, nVars, &G1, &R, Truth, pF );
-        }
+        } 
+
+        // save functions
         *pR = R;
+        if ( pFunc0 )
+            *pFunc0 = pF[0];
+        if ( pFunc1 )
+            *pFunc1 = Truth;
     }
 
     if ( pHashed )
@@ -1536,18 +1663,50 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     if ( G1.nVars == 0 )
     {
         // check for decomposition with two outputs
-        if ( (G1.nMyu == 3 || G1.nMyu == 4) && nLutLeaf == nLutLeaf2 )
+        if ( (G1.nMyu == 3 || G1.nMyu == 4) && nLutLeaf == nLutLeaf2 && nVars - nLutLeaf + 2 <= nLutRoot )
         {
-            if ( nVars - nLutLeaf + 2 <= nLutRoot )
+            int V2P[CLU_VAR_MAX+2], P2V[CLU_VAR_MAX+2];
+            word Func0, Func1, Func2;
+            int iVar0, iVar1;
+
+            G1.nVars = nLutLeaf;
+            If_CluCopy( pLeftOver, pTruth0, nVars );
+            for ( i = 0; i < nVars; i++ )
+                V2P[i] = P2V[i] = i;
+
+            If_CluMoveGroupToMsb( pLeftOver, nVars, V2P, P2V, &G1 );
+            If_CluDeriveDisjoint4( pLeftOver, nVars, V2P, P2V, &G1, &R, &Func1, &Func2 );
+
+            // move the two vars to the front
+            for ( i = 0; i < R.nVars; i++ )
+                V2P[i] = P2V[i] = i;
+            If_CluMoveVar( pLeftOver, R.nVars, V2P, P2V, R.nVars-2, 0 );
+            If_CluMoveVar( pLeftOver, R.nVars, V2P, P2V, R.nVars-1, 1 );
+            iVar0 = R.pVars[R.nVars-2];
+            iVar1 = R.pVars[R.nVars-1];
+            for ( i = R.nVars-1; i > 1; i-- )
+                R.pVars[i] = R.pVars[i-2];
+            R.pVars[0] = iVar0;
+            R.pVars[1] = iVar1;
+
+            Func0 = pLeftOver[0];
+            If_CluVerify3( pTruth0, nVars, &G1, &G1, &R, Func1, Func2, Func0 );
+            if ( pFunc1 && pFunc2 )
             {
-                G1.nVars = nLutLeaf;
-                if ( pHashed )
-                    *pHashed = If_CluGrp2Uns( &G1 );
+                *pFunc0 = Func0;
+                *pFunc1 = Func1;
+                *pFunc2 = Func2;
+                *pG2 = G1;
+                *pR = R;
+            }
+
+            if ( pHashed )
+                *pHashed = If_CluGrp2Uns( &G1 );
 //                Kit_DsdPrintFromTruth( (unsigned*)pTruth0, nVars );  printf( "\n" );
 //                If_CluPrintGroup( &G1 );
-                return G1;
-            }
+            return G1;
         }
+
 /*
 //        if ( nVars == 6 )
         {
@@ -1562,7 +1721,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
         return G1;
     }
     // decomposition exists and sufficient
-    if ( R2.nVars <= nLutRoot || R2.nVars <= nLutLeaf2 )
+    if ( R2.nVars <= nLutRoot )
     {
         if ( pG2 )     *pG2 = G2;
         if ( pR )      *pR  = R2;
@@ -1573,7 +1732,6 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
             *pHashed = If_CluGrp2Uns( &G1 );
         return G1;
     }
-    // update iVarStart here!!!
 
     // try second decomposition
     {
@@ -1583,7 +1741,9 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
             Kit_DsdPrintFromTruth( (unsigned*)&pLeftOver, R2.nVars ); printf( "\n" );
         }
     }
-    G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
+
+    // the new variable is at the bottom - skip it (iVarStart = 1)
+    G2 = If_CluCheck( p, pLeftOver, R2.nVars, 1, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
     if ( G2.nVars == 0 )
     {
         if ( pHashed )
@@ -1613,11 +1773,15 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     if ( pFunc2 )  *pFunc2 = Func2;
     if ( pHashed )
         *pHashed = If_CluGrp2Uns( &G1 );
+
+    // verify
+//    If_CluVerify3( pTruth0, nVars, &G1, &G2, &R, Func1, Func2, Func0 );
     return G1;
 }
 
 // returns the best group found
-int If_CluCheckExt( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 )
+int If_CluCheckExt( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
+                   char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 )
 {
     If_Grp_t G, R;
     G = If_CluCheck( p, pTruth, nVars, 0, nLutLeaf, nLutRoot, &R, pFunc0, pFunc1, NULL, 0 );
@@ -1788,6 +1952,10 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
         G1 = If_CluCheck( p, (word *)pTruth, nLeaves, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 1 );
     else
         G1 = If_CluCheck3( p, (word *)pTruth, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, NULL, NULL, NULL, NULL, NULL );
+
+//    if ( G1.nVars > 0 )
+//        If_CluPrintGroup( &G1 );
+
     return (int)(G1.nVars > 0);
 }
 
@@ -1805,16 +1973,27 @@ void If_CluTest()
 //    word t = 0x000F000E000F000F;
 //    word t = 0xF7FFF7F7F7F7F7F7;
 //    word t = 0x0234AFDE23400BCE;
-    word t = 0x0080008880A088FF;
-    word s = t;
-    word t2[2] = { 0x7f807f807f80807f, 0x7f807f807f807f80 };
+//    word t = 0x0080008880A088FF;
+//    word s = t;
+//    word t = 0xFFBBBBFFF0B0B0F0;
+    word t = 0x6DD9926D962D6996;
     int nVars     = 6;
-    int nLutLeaf  = 5;
-    int nLutLeaf2 = 5;
-    int nLutRoot  = 5;
+    int nLutLeaf  = 4;
+    int nLutLeaf2 = 4;
+    int nLutRoot  = 4;
+/*
+    word t2[2] = { 0x7f807f807f80807f, 0x7f807f807f807f80 };
+    int nVars     = 7;
+    int nLutLeaf  = 3;
+    int nLutLeaf2 = 3;
+    int nLutRoot  = 3;
+*/
+
     If_Grp_t G;
-//    If_Grp_t G2, R;
-//    word Func0, Func1, Func2;
+    If_Grp_t G2, R;
+    word Func0, Func1, Func2;
+
+
     return;
 
 /*
@@ -1827,26 +2006,23 @@ void If_CluTest()
 
     If_CluSemiCanonicizeVerify( &s, &t, nVars, pCanonPerm, uCanonPhase );
 */
-/*
-    Kit_DsdPrintFromTruth( (unsigned*)t2, nVars ); printf( "\n" );
 
-    G = If_CluCheck3( NULL, t2, nVars, nLutLeaf, nLutLeaf2, nLutRoot, &R, &G2, &Func0, &Func1, &Func2 );
+    Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); printf( "\n" );
+    G = If_CluCheck3( NULL, &t, nVars, nLutLeaf, nLutLeaf2, nLutRoot, &R, &G2, &Func0, &Func1, &Func2 );
     If_CluPrintGroup( &G );
     If_CluPrintGroup( &G2 );
     If_CluPrintGroup( &R );
 
-    If_CluVerify3( t2, nVars, &G, &G2, &R, Func1, Func2, Func0 );
+//    If_CluVerify3( &t, nVars, &G, &G2, &R, Func1, Func2, Func0 );
 
     return;
 
-    If_CutPerformCheck07( NULL, (unsigned *)&t, 6, 6, NULL );
+//    If_CutPerformCheck07( NULL, (unsigned *)&t, 6, 6, NULL );
 //    return;
-*/
-    Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); printf( "\n" );
 
-    G = If_CluCheck( NULL, &t, nVars, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 0 );
-
-    If_CluPrintGroup( &G );
+//    Kit_DsdPrintFromTruth( (unsigned*)&t, nVars ); printf( "\n" );
+//    G = If_CluCheck( NULL, &t, nVars, 0, nLutLeaf, nLutRoot, NULL, NULL, NULL, NULL, 0 );
+//    If_CluPrintGroup( &G );
 }
 
 

@@ -840,36 +840,34 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
 {
     Abc_Obj_t * pNet;
     int nLeaves = Abc_ObjFaninNum(pNode);
-    int i, nLutLeaf, nLutRoot;
+    int i, nLutLeaf, nLutLeaf2, nLutRoot, Length;
 
     // quit if parameters are wrong
-    if ( strlen(pStr) != 2 )
+    Length = strlen(pStr);
+    if ( Length != 2 && Length != 3 )
     {
         printf( "Wrong LUT struct (%s)\n", pStr );
         return;
     }
-    nLutLeaf = pStr[0] - '0';
-    if ( nLutLeaf < 3 || nLutLeaf > 6 )
+    for ( i = 0; i < Length; i++ )
+        if ( pStr[i] - '0' < 3 || pStr[i] - '0' > 6 )
+        {
+            printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", pStr[i] - '0' );
+            return;
+        }
+
+    nLutLeaf  =                   pStr[0] - '0';
+    nLutLeaf2 = ( Length == 3 ) ? pStr[1] - '0' : 0;
+    nLutRoot  =                   pStr[Length-1] - '0';
+    if ( nLeaves > nLutLeaf - 1 + (nLutLeaf2 ? nLutLeaf2 - 1 : 0) + nLutRoot )
     {
-        printf( "Leaf size (%d) should belong to {3,4,5,6}.\n", nLutLeaf );
-        return;
-    }
-    nLutRoot = pStr[1] - '0';
-    if ( nLutRoot < 3 || nLutRoot > 6 )
-    {
-        printf( "Root size (%d) should belong to {3,4,5,6}.\n", nLutRoot );
-        return;
-    }
-    if ( nLeaves > nLutLeaf + nLutRoot - 1 )
-    {
-        printf( "Node \"%s\" has %d inputs (too many for the LUT structure \"%d%d\"). Writing BLIF has failed.\n", 
-            Abc_ObjName(Abc_ObjFanout0(pNode)), nLeaves, nLutLeaf, nLutRoot );
+        printf( "The node size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return;
     }
 
     // consider easy case
     fprintf( pFile, "\n" );
-    if ( nLeaves <= Abc_MaxInt( nLutLeaf, nLutRoot ) )
+    if ( nLeaves <= Abc_MaxInt( nLutLeaf2, Abc_MaxInt(nLutLeaf, nLutRoot) ) )
     {
         // write the .names line
         fprintf( pFile, ".names" );
@@ -884,11 +882,14 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
     else
     {
         extern int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars );
-        extern int If_CluCheckExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
+        extern int If_CluCheckExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
+                            char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
+        extern int If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
+                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 
         static word TruthStore[16][1<<10] = {{0}}, * pTruths[16];
-        word pCube[1<<10], pRes[1<<10], Func0, Func1;
-        char pLut0[32], pLut1[32], * pSop;
+        word pCube[1<<10], pRes[1<<10], Func0, Func1, Func2;
+        char pLut0[32], pLut1[32], pLut2[32] = {0}, * pSop;
 //        int nVarsMin[3], pVars[3][20];
 
         if ( TruthStore[0][0] == 0 )
@@ -921,17 +922,35 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
 
         // derive truth table
         Abc_SopToTruthBig( (char*)Abc_ObjData(pNode), nLeaves, pTruths, pCube, pRes );
+        if ( Kit_TruthIsConst0((unsigned *)pRes, nLeaves) || Kit_TruthIsConst1((unsigned *)pRes, nLeaves) )
+        {
+            fprintf( pFile, ".names %s\n %d\n", Abc_ObjName(Abc_ObjFanout0(pNode)), Kit_TruthIsConst1((unsigned *)pRes, nLeaves) );
+            return;
+        }
 
 //        Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
 //        Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
 
         // perform decomposition
-        if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+        if ( Length == 2 )
         {
-            Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-            Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-            printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
-            return;
+            if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+            {
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                return;
+            }
+        }
+        else
+        {
+            if ( !If_CluCheckExt3( NULL, pRes, nLeaves, nLutLeaf, nLutLeaf2, nLutRoot, pLut0, pLut1, pLut2, &Func0, &Func1, &Func2 ) )
+            {
+                Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                printf( "Node \"%s\" is not decomposable. Writing BLIF has failed.\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                return;
+            }
         }
 
         // write leaf node
@@ -942,16 +961,19 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
         // write SOP
         pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, Func1, pLut1[0], vCover );
         fprintf( pFile, "%s", pSop );
-/*
-        // write leaf node
-        fprintf( pFile, ".names" );
-        for ( i = 0; i < pLut2[0]; i++ )
-            fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pLut2[2+i])) );
-        fprintf( pFile, " %s_lut1\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
-        // write SOP
-        pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, Func2, pLut2[0], vCover );
-        fprintf( pFile, "%s", pSop );
-*/
+
+        if ( Length == 3 && pLut2[0] > 0 )
+        {
+            // write leaf node
+            fprintf( pFile, ".names" );
+            for ( i = 0; i < pLut2[0]; i++ )
+                fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pLut2[2+i])) );
+            fprintf( pFile, " %s_lut2\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            // write SOP
+            pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, Func2, pLut2[0], vCover );
+            fprintf( pFile, "%s", pSop );
+        }
+
         // write root node
         fprintf( pFile, ".names" );
         for ( i = 0; i < pLut0[0]; i++ )
