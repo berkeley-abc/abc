@@ -37,140 +37,29 @@ struct Aig_GlaMan_t_
     int            nFramesMax;
     int            fVerbose;
     // abstraction
-    Vec_Int_t *    vAbstr;     // collects objects used in the abstraction
-    Vec_Int_t *    vUsed;      // maps object ID into its status (0=unused; 1=used)
+    Vec_Int_t *    vAssigned;  // collects objects whose SAT variables have been created
+    Vec_Int_t *    vIncluded;  // maps obj ID into its status (0=unused; 1=included in abstraction)
+    // components
     Vec_Int_t *    vPis;       // primary inputs
     Vec_Int_t *    vPPis;      // pseudo primary inputs
     Vec_Int_t *    vFlops;     // flops
     Vec_Int_t *    vNodes;     // nodes
     // unrolling
-    int            iFrame;
     int            nFrames;
     Vec_Int_t *    vObj2Vec;   // maps obj ID into its vec ID
     Vec_Int_t *    vVec2Var;   // maps vec ID into its sat Var (nFrames per vec ID)
     Vec_Int_t *    vVar2Inf;   // maps sat Var into its frame and obj ID
     // SAT solver
     sat_solver *   pSat;
+    // statistics
+    int            timeSat;
+    int            timeRef;
+    int            timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Performs abstraction of the AIG to preserve the included gates.]
-
-  Description [The array contains 1 if the obj is included; 0 otherwise.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Aig_GlaDupAbsGates( Aig_Man_t * p, Vec_Int_t * vUsed, int * pnRealPis )
-{ 
-    Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i, nFlops = 0, RetValue;
-    assert( Aig_ManPoNum(p) == 1 );
-    // start the new manager
-    pNew = Aig_ManStart( 5000 );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    // create constant
-    Aig_ManCleanData( p );
-    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    // create PIs
-    Saig_ManForEachPi( p, pObj, i )
-        if ( Vec_IntEntry(vUsed, Aig_ObjId(pObj)) )
-            pObj->pData = Aig_ObjCreatePi(pNew);
-    if ( pnRealPis )
-        *pnRealPis = Aig_ManPiNum(pNew);
-    // create additional PIs
-    Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
-        if ( Vec_IntEntry(vUsed, Aig_ObjId(pObjLo)) && !Vec_IntEntry(vUsed, Aig_ObjId(pObjLi)) )
-            pObjLo->pData = Aig_ObjCreatePi(pNew);
-    Aig_ManForEachNode( p, pObj, i )
-    {
-        if ( Vec_IntEntry(vUsed, Aig_ObjId(pObj)) && 
-             (!Vec_IntEntry(vUsed, Aig_ObjFaninId0(pObj)) ||
-              !Vec_IntEntry(vUsed, Aig_ObjFaninId1(pObj))) )
-            pObj->pData = Aig_ObjCreatePi(pNew);
-    }
-    // create ROs
-    Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
-        if ( Vec_IntEntry(vUsed, Aig_ObjId(pObjLo)) && Vec_IntEntry(vUsed, Aig_ObjId(pObjLi)) )
-            pObjLo->pData = Aig_ObjCreatePi(pNew), nFlops++;
-    // create internal nodes
-    Aig_ManForEachNode( p, pObj, i )
-    {
-        if ( Vec_IntEntry(vUsed, Aig_ObjId(pObj)) && 
-             Vec_IntEntry(vUsed, Aig_ObjFaninId0(pObj)) && 
-             Vec_IntEntry(vUsed, Aig_ObjFaninId1(pObj)) )
-            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-    }
-    // create PO
-    Saig_ManForEachPo( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-    // create RIs
-    Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
-        if ( Vec_IntEntry(vUsed, Aig_ObjId(pObjLo)) && Vec_IntEntry(vUsed, Aig_ObjId(pObjLi)) )
-            pObjLi->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObjLi) );
-    Aig_ManSetRegNum( pNew, nFlops );
-    // clean up
-    RetValue = Aig_ManCleanup( pNew );
-    assert( RetValue == 0 );
-    return pNew;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Aig_GlaDeriveAbs( Aig_GlaMan_t * p )
-{ 
-    Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
-    int i, nFlops = 0, RetValue;
-    assert( Aig_ManPoNum(p) == 1 );
-    // start the new manager
-    pNew = Aig_ManStart( 5000 );
-    pNew->pName = Aig_UtilStrsav( p->pAig->pName );
-    // create constant
-    Aig_ManCleanData( p->pAig );
-    Aig_ManConst1(p->pAig)->pData = Aig_ManConst1(pNew);
-    // create PIs
-    Aig_ManForEachObjVec( p->vPis, p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
-    // create additional PIs
-    Aig_ManForEachObjVec( p->vPPis, p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
-    // create ROs
-    Aig_ManForEachObjVec( p->vFlops, p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
-    // create internal nodes
-    Aig_ManForEachObjVec( p->vNodes, p->pAig, pObj, i )
-        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-    // create PO
-    Saig_ManForEachPo( p->pAig, pObj, i )
-        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-    // create RIs
-    Aig_ManForEachObjVec( p->vFlops, p->pAig, pObj, i )
-        Saig_ObjLoToLi(p->pAig, pObj)->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(Saig_ObjLoToLi(p->pAig, pObj)) );
-    Aig_ManSetRegNum( pNew, Vec_IntSize(p->vFlops) );
-    // clean up
-    RetValue = Aig_ManCleanup( pNew );
-    assert( RetValue == 0 );
-    return pNew;
-}
 
 /**Function*************************************************************
 
@@ -183,7 +72,7 @@ Aig_Man_t * Aig_GlaDeriveAbs( Aig_GlaMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_GlaAddConst( sat_solver * pSat, int iVar, int fCompl )
+static inline int Aig_GlaAddConst( sat_solver * pSat, int iVar, int fCompl )
 {
     lit Lit = toLitCond( iVar, fCompl );
     if ( !sat_solver_addclause( pSat, &Lit, &Lit + 1 ) )
@@ -202,7 +91,7 @@ int Aig_GlaAddConst( sat_solver * pSat, int iVar, int fCompl )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_GlaAddBuffer( sat_solver * pSat, int iVar0, int iVar1, int fCompl )
+static inline int Aig_GlaAddBuffer( sat_solver * pSat, int iVar0, int iVar1, int fCompl )
 {
     lit Lits[2];
 
@@ -230,7 +119,7 @@ int Aig_GlaAddBuffer( sat_solver * pSat, int iVar0, int iVar1, int fCompl )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_GlaAddNode( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1 )
+static inline int Aig_GlaAddNode( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1 )
 {
     lit Lits[3];
 
@@ -253,6 +142,155 @@ int Aig_GlaAddNode( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fComp
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of neighbors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Aig_GlaCollectAssigned( Aig_Man_t * p, Vec_Int_t * vGateClasses )
+{
+    Vec_Int_t * vAssigned;
+    Aig_Obj_t * pObj;
+    int i, Entry;
+    vAssigned = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( vGateClasses, Entry, i )
+    {
+        if ( Entry == 0 )
+            continue;
+        assert( Entry == 1 );
+        pObj = Aig_ManObj( p, i );
+        Vec_IntPush( vAssigned, Aig_ObjId(pObj) );
+        if ( Aig_ObjIsNode(pObj) )
+        {
+            Vec_IntPush( vAssigned, Aig_ObjFaninId0(pObj) );
+            Vec_IntPush( vAssigned, Aig_ObjFaninId1(pObj) );
+        }
+        else if ( Saig_ObjIsLo(p, pObj) )
+            Vec_IntPush( vAssigned, Aig_ObjFaninId0(Saig_ObjLoToLi(p, pObj)) );
+        else assert( Aig_ObjIsConst1(pObj) );
+    }
+    Vec_IntUniqify( vAssigned );
+    return vAssigned;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives abstraction components (PIs, PPIs, flops, nodes).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_GlaCollectAbstr( Aig_GlaMan_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Entry;
+/*
+    // make sure every neighbor of included objects is assigned a variable
+    Vec_IntForEachEntry( p->vIncluded, Entry, i )
+    {
+        if ( Entry == 0 )
+            continue;
+        assert( Entry == 1 );
+        pObj = Aig_ManObj( p->pAig, i );
+        if ( Vec_IntFind( p->vAssigned, Aig_ObjId(pObj) ) == -1 )
+            printf( "Aig_GlaCollectAbstr(): Object not found\n" );
+        if ( Aig_ObjIsNode(pObj) )
+        {
+            if ( Vec_IntFind( p->vAssigned, Aig_ObjFaninId0(pObj) ) == -1 )
+                printf( "Aig_GlaCollectAbstr(): Node's fanin is not found\n" );
+            if ( Vec_IntFind( p->vAssigned, Aig_ObjFaninId1(pObj) ) == -1 )
+                printf( "Aig_GlaCollectAbstr(): Node's fanin is not found\n" );
+        }
+        else if ( Saig_ObjIsLo(p->pAig, pObj) ) 
+        {
+            Aig_Obj_t * pObjLi;
+            pObjLi = Saig_ObjLoToLi(p->pAig, pObj);
+            if ( Vec_IntFind( p->vAssigned, Aig_ObjFaninId0(pObjLi) ) == -1 )
+                printf( "Aig_GlaCollectAbstr(): Flop's fanin is not found\n" );
+        }
+        else assert( Aig_ObjIsConst1(pObj) );
+    }
+*/
+    Vec_IntClear( p->vPis );
+    Vec_IntClear( p->vPPis );
+    Vec_IntClear( p->vFlops );
+    Vec_IntClear( p->vNodes );
+    Vec_IntForEachEntryReverse( p->vAssigned, Entry, i )
+    {
+        pObj = Aig_ManObj( p->pAig, Entry );
+        if ( Saig_ObjIsPi(p->pAig, pObj) )
+            Vec_IntPush( p->vPis, Aig_ObjId(pObj) );
+        else if ( !Vec_IntEntry(p->vIncluded, Aig_ObjId(pObj)) )
+            Vec_IntPush( p->vPPis, Aig_ObjId(pObj) );
+        else if ( Aig_ObjIsNode(pObj) )
+            Vec_IntPush( p->vNodes, Aig_ObjId(pObj) );
+        else if ( Saig_ObjIsLo(p->pAig, pObj) )
+            Vec_IntPush( p->vFlops, Aig_ObjId(pObj) );
+        else assert( Aig_ObjIsConst1(pObj) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_GlaDeriveAbs( Aig_GlaMan_t * p )
+{ 
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i, nFlops = 0, RetValue;
+    assert( Saig_ManPoNum(p->pAig) == 1 );
+    // start the new manager
+    pNew = Aig_ManStart( 5000 );
+    pNew->pName = Aig_UtilStrsav( p->pAig->pName );
+    // create constant
+    Aig_ManCleanData( p->pAig );
+    Aig_ManConst1(p->pAig)->pData = Aig_ManConst1(pNew);
+    // create PIs
+    Aig_ManForEachObjVec( p->vPis, p->pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi(pNew);
+    // create additional PIs
+    Aig_ManForEachObjVec( p->vPPis, p->pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi(pNew);
+    // create ROs
+    Aig_ManForEachObjVec( p->vFlops, p->pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi(pNew);
+    // create internal nodes
+    Aig_ManForEachObjVec( p->vNodes, p->pAig, pObj, i )
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create PO
+    Saig_ManForEachPo( p->pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    // create RIs
+    Aig_ManForEachObjVec( p->vFlops, p->pAig, pObj, i )
+    {
+        assert( Saig_ObjIsLo(p->pAig, pObj) );
+        pObj = Saig_ObjLoToLi( p->pAig, pObj );
+        pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    }
+    Aig_ManSetRegNum( pNew, Vec_IntSize(p->vFlops) );
+    // clean up
+    RetValue = Aig_ManCleanup( pNew );
+    assert( RetValue == 0 );
+    return pNew;
+}
 
 /**Function*************************************************************
 
@@ -268,17 +306,15 @@ int Aig_GlaAddNode( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fComp
 int Aig_GlaFetchVar( Aig_GlaMan_t * p, Aig_Obj_t * pObj, int k )
 {
     int i, iVecId, iSatVar;
-    if ( !Vec_IntEntry(p->vUsed, Aig_ObjId(pObj)) )
-    {
-        Vec_IntWriteEntry( p->vUsed, Aig_ObjId(pObj), 1 );
-        Vec_IntPush( p->vAbstr, Aig_ObjId(pObj) );
-    }
+    assert( k < p->nFrames );
     iVecId = Vec_IntEntry( p->vObj2Vec, Aig_ObjId(pObj) );
     if ( iVecId == 0 )
     {
         iVecId = Vec_IntSize( p->vVec2Var ) / p->nFrames;
         for ( i = 0; i < p->nFrames; i++ )
             Vec_IntPush( p->vVec2Var, 0 );
+        Vec_IntWriteEntry( p->vObj2Vec, Aig_ObjId(pObj), iVecId );
+        Vec_IntPushOrderReverse( p->vAssigned, Aig_ObjId(pObj) );
     }
     iSatVar = Vec_IntEntry( p->vVec2Var, iVecId * p->nFrames + k );
     if ( iSatVar == 0 )
@@ -304,27 +340,42 @@ int Aig_GlaFetchVar( Aig_GlaMan_t * p, Aig_Obj_t * pObj, int k )
 ***********************************************************************/
 int Aig_GlaObjAddToSolver( Aig_GlaMan_t * p, Aig_Obj_t * pObj, int k )
 {
-    assert( Vec_IntEntry(vUsed, Aig_ObjId(pObj)) );
+    if ( k == p->nFrames )
+    {
+        int i, j, nVecIds = Vec_IntSize( p->vVec2Var ) / p->nFrames;
+        Vec_Int_t * vVec2VarNew = Vec_IntAlloc( 4 * nVecIds * p->nFrames );
+        for ( i = 0; i < nVecIds; i++ )
+        {
+            for ( j = 0; j < p->nFrames; j++ )
+                Vec_IntPush( vVec2VarNew, Vec_IntEntry( p->vVec2Var, i * p->nFrames + j ) );
+            for ( j = 0; j < p->nFrames; j++ )
+                Vec_IntPush( vVec2VarNew, i ? 0 : -1 );
+        }
+        Vec_IntFree( p->vVec2Var );
+        p->vVec2Var = vVec2VarNew;
+        p->nFrames *= 2;
+    }
+    assert( k < p->nFrames );
+    assert( Vec_IntEntry(p->vIncluded, Aig_ObjId(pObj)) );
     if ( Aig_ObjIsConst1(pObj) )
         return Aig_GlaAddConst( p->pSat, Aig_GlaFetchVar(p, pObj, k), 0 );
-    if ( Saig_ObjIsPi(p->pAig, pObj) )
-        return 1;
     if ( Saig_ObjIsLo(p->pAig, pObj) )
     {
         Aig_Obj_t * pObjLi = Saig_ObjLoToLi(p->pAig, pObj);
         if ( k == 0 )
+        {
+            Aig_GlaFetchVar( p, Aig_ObjFanin0(pObjLi), 0 );
             return Aig_GlaAddConst( p->pSat, Aig_GlaFetchVar(p, pObj, k), 1 );
-        if ( Vec_IntEntry(p->vUsed, Aig_ObjId(pObjLi)) )
-            return 1;
-        return Aig_GlaAddBuffer( p->pSat, Aig_GlaFetchVar(p, pObj, k), Aig_GlaFetchVar(p, Aig_ObjFanin0(pObjLi), k-1), Aig_ObjFaninC0(pObjLi) );
+        }
+        return Aig_GlaAddBuffer( p->pSat, Aig_GlaFetchVar(p, pObj, k), 
+                Aig_GlaFetchVar(p, Aig_ObjFanin0(pObjLi), k-1), 
+                Aig_ObjFaninC0(pObjLi) );
     }
     assert( Aig_ObjIsNode(pObj) );
-    if ( Vec_IntEntry(p->vUsed, Aig_ObjFaninId0(pObj)) && Vec_IntEntry(p->vUsed, Aig_ObjFaninId1(pObj)) )
-        return 0;
     return Aig_GlaAddNode( p->pSat, Aig_GlaFetchVar(p, pObj, k), 
-        Aig_GlaFetchVar(p, Aig_ObjFanin0(pObj), k), 
-        Aig_GlaFetchVar(p, Aig_ObjFanin1(pObj), k), 
-        Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
+                Aig_GlaFetchVar(p, Aig_ObjFanin0(pObj), k), 
+                Aig_GlaFetchVar(p, Aig_ObjFanin1(pObj), k), 
+                Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
 }
 
 /**Function*************************************************************
@@ -344,19 +395,19 @@ Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig )
     int i;
 
     p = ABC_CALLOC( Aig_GlaMan_t, 1 );
-    p->pAig     = pAig;
-    p->vAbstr   = Vec_IntAlloc( 1000 );
-    p->vUsed    = Vec_IntStart( Aig_ManObjNumMax(pAig) );
-    p->nFrames  = 16;
+    p->pAig      = pAig;
+    p->vAssigned = Vec_IntAlloc( 1000 );
+    p->vIncluded = Vec_IntStart( Aig_ManObjNumMax(pAig) );
+    p->nFrames   = 32;
 
-    p->vPis     = Vec_IntAlloc( 1000 );
-    p->vPPis    = Vec_IntAlloc( 1000 );
-    p->vFlops   = Vec_IntAlloc( 1000 );
-    p->vNodes   = Vec_IntAlloc( 1000 );
+    p->vPis      = Vec_IntAlloc( 1000 );
+    p->vPPis     = Vec_IntAlloc( 1000 );
+    p->vFlops    = Vec_IntAlloc( 1000 );
+    p->vNodes    = Vec_IntAlloc( 1000 );
 
-    p->vObj2Vec = Vec_IntStart( Aig_ManObjNumMax(pAig) );
-    p->vVec2Var = Vec_IntAlloc( 1 << 20 );
-    p->vVar2Inf = Vec_IntAlloc( 1 << 20 );
+    p->vObj2Vec  = Vec_IntStart( Aig_ManObjNumMax(pAig) );
+    p->vVec2Var  = Vec_IntAlloc( 1 << 20 );
+    p->vVar2Inf  = Vec_IntAlloc( 1 << 20 );
 
     // skip first vector ID
     for ( i = 0; i < p->nFrames; i++ )
@@ -367,7 +418,7 @@ Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig )
 
     // start the SAT solver
     p->pSat = sat_solver_new();
-    sat_solver_setnvars( p->pSat, 1000 );
+    sat_solver_setnvars( p->pSat, 256 );
     return p;
 }
 
@@ -385,8 +436,8 @@ Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig )
 ***********************************************************************/
 void Aig_GlaManStop( Aig_GlaMan_t * p )
 {
-    Vec_IntFreeP( &p->vAbstr );
-    Vec_IntFreeP( &p->vUsed );
+    Vec_IntFreeP( &p->vAssigned );
+    Vec_IntFreeP( &p->vIncluded );
 
     Vec_IntFreeP( &p->vPis );
     Vec_IntFreeP( &p->vPPis );
@@ -413,41 +464,47 @@ void Aig_GlaManStop( Aig_GlaMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_GlaCollectAbstr( Aig_GlaMan_t * p )
+Abc_Cex_t * Aig_GlaDeriveCex( Aig_GlaMan_t * p, int iFrame )
 {
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i;
-    Vec_IntClear( p->vPis );
-    Vec_IntClear( p->vPPis );
-    Vec_IntClear( p->vFlops );
-    Vec_IntClear( p->vNodes );
-
-    Saig_ManForEachPi( p->pAig, pObj, i )
-        if ( Vec_IntEntry(p->vUsed, Aig_ObjId(pObj)) )
-            Vec_IntPush( p->vPis, Aig_ObjId(pObj) );
-
-    Saig_ManForEachLiLo( p->pAig, pObjLi, pObjLo, i )
-        if ( Vec_IntEntry(p->vUsed, Aig_ObjId(pObjLo)) )
+    Abc_Cex_t * pCex;
+    Aig_Obj_t * pObj;
+    int i, f, iVecId, iSatId;
+    pCex = Abc_CexAlloc( Vec_IntSize(p->vFlops), Vec_IntSize(p->vPis) + Vec_IntSize(p->vPPis), iFrame+1 );
+    pCex->iFrame = iFrame;
+    Aig_ManForEachObjVec( p->vPis, p->pAig, pObj, i )
+    {
+        iVecId = Vec_IntEntry( p->vObj2Vec, Aig_ObjId(pObj) );
+        assert( iVecId > 0 );
+        for ( f = 0; f <= iFrame; f++ )
         {
-            if ( Vec_IntEntry(p->vUsed, Aig_ObjFaninId0(pObjLi)) )
-                Vec_IntPush( p->vFlops, Aig_ObjId(pObjLo) );
-            else
-                Vec_IntPush( p->vPPis, Aig_ObjId(pObjLo) );
+            iSatId = Vec_IntEntry( p->vVec2Var, iVecId * p->nFrames + f );
+            if ( iSatId == 0 )
+                continue;
+            assert( iSatId > 0 );
+            if ( sat_solver_var_value(p->pSat, iSatId) )
+                Aig_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + i );
         }
-
-    Aig_ManForEachNode( p->pAig, pObj, i )
-        if ( Vec_IntEntry(p->vUsed, Aig_ObjId(pObj)) )
+    }
+    Aig_ManForEachObjVec( p->vPPis, p->pAig, pObj, i )
+    {
+        iVecId = Vec_IntEntry( p->vObj2Vec, Aig_ObjId(pObj) );
+        assert( iVecId > 0 );
+        for ( f = 0; f <= iFrame; f++ )
         {
-            if ( Vec_IntEntry(p->vUsed, Aig_ObjFaninId0(pObj)) && Vec_IntEntry(p->vUsed, Aig_ObjFaninId1(pObj)) )
-                Vec_IntPush( p->vNodes, Aig_ObjId(pObjLo) );
-            else
-                Vec_IntPush( p->vPPis, Aig_ObjId(pObjLo) );
+            iSatId = Vec_IntEntry( p->vVec2Var, iVecId * p->nFrames + f );
+            if ( iSatId == 0 )
+                continue;
+            assert( iSatId > 0 );
+            if ( sat_solver_var_value(p->pSat, iSatId) )
+                Aig_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + Vec_IntSize(p->vPis) + i );
         }
+    }
+    return pCex;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Prints current abstraction statistics.]
 
   Description []
                
@@ -456,48 +513,49 @@ void Aig_GlaCollectAbstr( Aig_GlaMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Aig_GlaDeriveCex( Aig_GlaMan_t * p )
+void Aig_GlaPrintAbstr( Aig_GlaMan_t * p, int f, int r, int v, int c )
 {
-    return NULL;
+    if ( r == 0 )
+        printf( "== %3d ==", f );
+    else
+        printf( "         " );
+    printf( " %4d  PI =%6d  PPI =%6d  FF =%6d  Node =%6d  Var =%7d  Conf =%6d\n", 
+        r, Vec_IntSize(p->vPis), Vec_IntSize(p->vPPis), Vec_IntSize(p->vFlops), Vec_IntSize(p->vNodes), v, c );
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Performs gate-level localization abstraction.]
 
-  Description []
+  Description [Returns array of objects included in the abstraction. This array
+  may contain only const1, flop outputs, and internal nodes, that is, objects
+  that should have clauses added to the SAT solver.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_GlaPrintAbstr( Aig_GlaMan_t * p, int f, int r )
+Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose )
 {
-    printf( "Fra %3d : Ref %3d : PI =%6d  PPI =%6d  Flop =%6d  Node =%6d\n", 
-        f, r, Vec_IntSize(p->vPis), Vec_IntSize(p->vPPis), Vec_IntSize(p->vFlops), Vec_IntSize(p->vNodes) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Perform variable frame abstraction.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerbose )
-{
+    int nStart = 0;
+    Vec_Int_t * vResult = NULL;
     Aig_GlaMan_t * p;
     Aig_Man_t * pAbs;
     Aig_Obj_t * pObj;
     Abc_Cex_t * pCex;
-    Vec_Int_t * vPPisToRefine;
+    Vec_Int_t * vPPiRefine;
     int f, g, r, i, iSatVar, Lit, Entry, RetValue;
+    int nConfBef, nConfAft, clk, clkTotal = clock();
     assert( Saig_ManPoNum(pAig) == 1 );
+
+    if ( fVerbose )
+    {
+    if ( TimeLimit )
+        printf( "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFramesMax, TimeLimit );
+    else
+        printf( "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFramesMax );
+    }
 
     // start the solver
     p = Aig_GlaManStart( pAig );
@@ -505,12 +563,22 @@ void Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerb
     p->nConfLimit = nConfLimit;
     p->fVerbose   = fVerbose;
 
+    // include constant node
+    Vec_IntWriteEntry( p->vIncluded, 0, 1 );
+    Aig_GlaFetchVar( p, Aig_ManConst1(pAig), 0 );
+
+    // set runtime limit
+    if ( TimeLimit )
+        sat_solver_set_runtime_limit( p->pSat, clock() + TimeLimit * CLOCKS_PER_SEC );
+
     // iterate over the timeframes
     for ( f = 0; f < nFramesMax; f++ )
     {
         // initialize abstraction in this timeframe
-        Aig_ManForEachObjVec( p->vAbstr, pAig, pObj, i )
-            Aig_GlaObjAddToSolver( p, pObj, f );
+        Aig_ManForEachObjVec( p->vAssigned, pAig, pObj, i )
+            if ( Vec_IntEntry(p->vIncluded, Aig_ObjId(pObj)) )
+                if ( !Aig_GlaObjAddToSolver( p, pObj, f ) )
+                    printf( "Error!  SAT solver became UNSAT.\n" );
 
         // create output literal to represent property failure
         pObj    = Aig_ManPo( pAig, 0 );
@@ -518,41 +586,83 @@ void Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int fVerb
         Lit     = toLitCond( iSatVar, Aig_ObjFaninC0(pObj) );
 
         // try solving the abstraction
-        Aig_GlaPrintAbstr( p, f, -1 );
+        Aig_GlaCollectAbstr( p );
         for ( r = 0; r < 1000000; r++ )
         {
+            // try to find a counter-example
+            clk = clock();
+            nConfBef = p->pSat->stats.conflicts;
             RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
                 (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+            nConfAft = p->pSat->stats.conflicts;
+            p->timeSat += clock() - clk;
             if ( RetValue != l_True )
+            {
+                if ( fVerbose )
+                {
+                    if ( r == 0 )
+                        printf( "== %3d ==", f );
+                    else
+                        printf( "         " );
+                    if ( TimeLimit && clock() > clkTotal + TimeLimit * CLOCKS_PER_SEC )
+                        printf( "       SAT solver timed out after %d seconds.\n", TimeLimit );
+                    else if ( RetValue != l_False )
+                        printf( "       SAT solver returned UNDECIDED after %5d conflicts.\n", nConfAft - nConfBef );
+                    else
+                        printf( "       SAT solver returned UNSAT after %5d conflicts.\n", nConfAft - nConfBef );
+                }
                 break;
-            // derive abstraction
-            Aig_GlaCollectAbstr( p );
-            // derive counter-example
-            pCex = Aig_GlaDeriveCex( p );
+            }
+            clk = clock();
             // derive abstraction
             pAbs = Aig_GlaDeriveAbs( p );
+            // derive counter-example
+            pCex = Aig_GlaDeriveCex( p, f );
+            // verify the counter-example
+            RetValue = Saig_ManVerifyCex( pAbs, pCex );
+            if ( RetValue == 0 )
+                printf( "Error!  CEX is invalid.\n" );
             // perform refinement
-            vPPisToRefine = Saig_ManCbaFilterInputs( pAig, Vec_IntSize(p->vPis), pCex, 0 );
-            // update
-            Vec_IntForEachEntry( vPPisToRefine, Entry, i )
+            vPPiRefine = Saig_ManCbaFilterInputs( pAbs, Vec_IntSize(p->vPis), pCex, 0 );
+            Vec_IntForEachEntry( vPPiRefine, Entry, i )
             {
+                pObj = Aig_ManObj( pAig, Vec_IntEntry(p->vPPis, Entry) );
+                assert( Aig_ObjIsNode(pObj) || Saig_ObjIsLo(p->pAig, pObj) );
+                assert( Vec_IntEntry( p->vIncluded, Aig_ObjId(pObj) ) == 0 );
+                Vec_IntWriteEntry( p->vIncluded, Aig_ObjId(pObj), 1 );
                 for ( g = 0; g <= f; g++ )
-                    Aig_GlaObjAddToSolver( p, Aig_ManObj(pAig, Vec_IntEntry(p->vPPis, Entry)), g );
+                    if ( !Aig_GlaObjAddToSolver( p, pObj, g ) )
+                        printf( "Error!  SAT solver became UNSAT.\n" );
             }
-            Vec_IntFree( vPPisToRefine );
-            // print abstraction
-            Aig_GlaPrintAbstr( p, f, r );
+            Vec_IntFree( vPPiRefine );
+            Aig_ManStop( pAbs );
+            Abc_CexFree( pCex );
+            p->timeRef += clock() - clk;
+
+            // prepare abstraction
+            Aig_GlaCollectAbstr( p );
+            if ( fVerbose )
+                Aig_GlaPrintAbstr( p, f, r, p->pSat->size, nConfAft - nConfBef );
         }
         if ( RetValue != l_False )
             break;
     }
-    Aig_GlaPrintAbstr( p, f, -1 );
+    p->timeTotal = clock() - clkTotal;
     if ( f == nFramesMax )
         printf( "Finished %d frames without exceeding conflict limit (%d).\n", f, nConfLimit );
     else
         printf( "Ran out of conflict limit (%d) at frame %d.\n", nConfLimit, f );
-
+    // print stats
+    if ( fVerbose )
+    {
+        ABC_PRTP( "Sat   ", p->timeSat,   p->timeTotal );
+        ABC_PRTP( "Ref   ", p->timeRef,   p->timeTotal );
+        ABC_PRTP( "Total ", p->timeTotal, p->timeTotal );
+    }
+    // prepare return value
+    vResult = p->vIncluded;  p->vIncluded = NULL;
     Aig_GlaManStop( p );
+    return vResult;
 }
 
 ////////////////////////////////////////////////////////////////////////

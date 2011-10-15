@@ -28858,12 +28858,12 @@ int Abc_CommandAbc9GlaDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
     if ( pAbc->pGia->vGateClasses == NULL )
     {
-        Abc_Print( -1, "Abstraction flop map is missing.\n" );
+        Abc_Print( -1, "Abstraction gate map is missing.\n" );
         return 0;
     }
-//    pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
-//    Abc_CommandUpdate9( pAbc, pTemp );
-    printf( "This command is currently not enabled.\n" );
+    pTemp = Gia_ManDupAbsGates( pAbc->pGia, pAbc->pGia->vGateClasses );
+    Abc_CommandUpdate9( pAbc, pTemp );
+//    printf( "This command is currently not enabled.\n" );
     return 0;
 
 usage:
@@ -28890,8 +28890,9 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ParBmc_t Pars, * pPars = &Pars;
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
-    pPars->nStart     = 0;//(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
-    pPars->nFramesMax = pPars->nStart + 10;
+    pPars->nStart     = 0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
+    pPars->nFramesMax = 50; //pPars->nStart + 10;
+    pPars->nConfLimit = 5000;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "SFCMTvh" ) ) != EOF )
     {
@@ -28971,11 +28972,11 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
-//    pAbc->Status = Gia_ManCbaPerform( pAbc->pGia, pPars );
-//    if ( pPars->nStart == 0 )
-//        pAbc->nFrames = pPars->iFrame;
-//    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    printf( "This command is currently not enabled.\n" );
+    pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars );
+    if ( pPars->nStart == 0 )
+       pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+//    printf( "This command is currently not enabled.\n" );
     return 0;
 
 usage:

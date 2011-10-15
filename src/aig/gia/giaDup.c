@@ -1586,8 +1586,8 @@ Gia_Man_t * Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
 
   Synopsis    [Performs abstraction of the AIG to preserve the included gates.]
 
-  Description [The array contains PIs, LOs, and internal nodes included.
-  0=unsed, 1=PI, 2=PPI, 3=FF, 4=AND.]
+  Description [The array contains 1 for those objects (const, RO, AND)
+  that are included in the abstraction; 0, otherwise.]
                
   SideEffects []
 
@@ -1596,50 +1596,109 @@ Gia_Man_t * Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
 ***********************************************************************/
 Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
 { 
+    Vec_Int_t * vAssigned, * vPis, * vPPis, * vFlops, * vNodes;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, nFlops = 0;
     assert( Gia_ManPoNum(p) == 1 );
-    Gia_ManFillValue( p );
+    assert( Vec_IntSize(vGateClasses) == Gia_ManObjNum(p) );
+
+    // create included objects and their fanins
+    vAssigned = Gia_GlaCollectAssigned( p, vGateClasses );
+
+    // create additional arrays
+    vPis   = Vec_IntAlloc( 1000 );
+    vPPis  = Vec_IntAlloc( 1000 );
+    vFlops = Vec_IntAlloc( 1000 );
+    vNodes = Vec_IntAlloc( 1000 );
+    Gia_ManForEachObjVec( vAssigned, p, pObj, i )
+    {
+        if ( Gia_ObjIsPi(p, pObj) )
+            Vec_IntPush( vPis, Gia_ObjId(p,pObj) );
+        else if ( !Vec_IntEntry(vGateClasses, Gia_ObjId(p,pObj)) )
+            Vec_IntPush( vPPis, Gia_ObjId(p,pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
+            Vec_IntPush( vNodes, Gia_ObjId(p,pObj) );
+        else if ( Gia_ObjIsRo(p, pObj) )
+            Vec_IntPush( vFlops, Gia_ObjId(p,pObj) );
+        else assert( Gia_ObjIsConst0(pObj) );
+    }
+
     // start the new manager
     pNew = Gia_ManStart( 5000 );
     pNew->pName = Gia_UtilStrsav( p->pName );
-    // create PIs
+    // create constant
+    Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachPi( p, pObj, i )
-        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 1 )
-            pObj->Value = Gia_ManAppendCi(pNew);
+    // create PIs
+    Gia_ManForEachObjVec( vPis, p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
     // create additional PIs
-    Gia_ManForEachPi( p, pObj, i )
-        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 2 )
-            pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachObjVec( vPPis, p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
     // create ROs
-    Gia_ManForEachRo( p, pObj, i )
-        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 3 )
-            pObj->Value = Gia_ManAppendCi(pNew);
-    // create POs
-    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachObjVec( vFlops, p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    // create internal nodes
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // create PO
     Gia_ManForEachPo( p, pObj, i )
-    {
-        Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin0(pObj) );
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    }
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     // create RIs
-    Gia_ManForEachRo( p, pObj, i )
-        if ( Vec_IntEntry(vGateClasses, Gia_ObjId(p, pObj)) == 3 )
-        {
-            pObj = Gia_ObjRoToRi(p, pObj);
-            Gia_ManDupAbsFlops_rec( pNew, Gia_ObjFanin0(pObj) );
-            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-            nFlops++;
-        }
-    Gia_ManHashStop( pNew );
-    Gia_ManSetRegNum( pNew, nFlops );
+    Gia_ManForEachObjVec( vFlops, p, pObj, i )
+        Gia_ObjRoToRi(p, pObj)->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ObjRoToRi(p, pObj)) );
+    Gia_ManSetRegNum( pNew, Vec_IntSize(vFlops) );
     // clean up
     pNew = Gia_ManSeqCleanup( pTemp = pNew );
+    assert( Gia_ManObjNum(pTemp) == Gia_ManObjNum(pNew) );
     Gia_ManStop( pTemp );
+
+    Vec_IntFree( vPis );
+    Vec_IntFree( vPPis );
+    Vec_IntFree( vFlops );
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vAssigned );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of neighbors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_GlaCollectAssigned( Gia_Man_t * p, Vec_Int_t * vGateClasses )
+{
+    Vec_Int_t * vAssigned;
+    Gia_Obj_t * pObj;
+    int i, Entry;
+    vAssigned = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( vGateClasses, Entry, i )
+    {
+        if ( Entry == 0 )
+            continue;
+        assert( Entry == 1 );
+        pObj = Gia_ManObj( p, i );
+        Vec_IntPush( vAssigned, Gia_ObjId(p, pObj) );
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Vec_IntPush( vAssigned, Gia_ObjFaninId0p(p, pObj) );
+            Vec_IntPush( vAssigned, Gia_ObjFaninId1p(p, pObj) );
+        }
+        else if ( Gia_ObjIsRo(p, pObj) )
+            Vec_IntPush( vAssigned, Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)) );
+        else assert( Gia_ObjIsConst0(pObj) );
+    }
+    Vec_IntUniqify( vAssigned );
+    return vAssigned;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

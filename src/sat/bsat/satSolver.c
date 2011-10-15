@@ -1485,6 +1485,8 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
 //        int nConfs = 0;
         double Ratio = (s->stats.learnts == 0)? 0.0 :
             s->stats.learnts_literals / (double)s->stats.learnts;
+        if ( s->nRuntimeLimit && clock() > s->nRuntimeLimit )
+            break;
 
         if (s->verbosity >= 1)
         {

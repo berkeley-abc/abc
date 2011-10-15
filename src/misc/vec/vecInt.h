@@ -657,6 +657,36 @@ static inline void Vec_IntPushOrder( Vec_Int_t * p, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntPushOrderReverse( Vec_Int_t * p, int Entry )
+{
+    int i;
+    if ( p->nSize == p->nCap )
+    {
+        if ( p->nCap < 16 )
+            Vec_IntGrow( p, 16 );
+        else
+            Vec_IntGrow( p, 2 * p->nCap );
+    }
+    p->nSize++;
+    for ( i = p->nSize-2; i >= 0; i-- )
+        if ( p->pArray[i] < Entry )
+            p->pArray[i+1] = p->pArray[i];
+        else
+            break;
+    p->pArray[i+1] = Entry;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts the entry while preserving the increasing order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_IntPushUniqueOrder( Vec_Int_t * p, int Entry )
 {
     int i;

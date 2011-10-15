@@ -350,6 +350,7 @@ Aig_Man_t * Gia_ManToAigSimple( Gia_Man_t * p )
         else
             assert( 0 );
         pObj->Value = Gia_Var2Lit( Aig_ObjId(Aig_Regular(ppNodes[i])), Aig_IsComplement(ppNodes[i]) );
+        assert( i == 0 || Aig_ObjId(ppNodes[i]) == i );
     }
     Aig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     ABC_FREE( ppNodes );
