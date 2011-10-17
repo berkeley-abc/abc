@@ -2971,6 +2971,10 @@ SOURCE=.\src\aig\cnf\cnfData.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\cnf\cnfFast.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\cnf\cnfMan.c
 # End Source File
 # Begin Source File

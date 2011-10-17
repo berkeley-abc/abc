@@ -410,24 +410,33 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 // iterator over the primary inputs
 #define Aig_ManForEachPi( p, pObj, i )                                          \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vPis, pObj, i )
+#define Aig_ManForEachPiReverse( p, pObj, i )                                   \
+    Vec_PtrForEachEntryReverse( Aig_Obj_t *, p->vPis, pObj, i )
 // iterator over the primary outputs
 #define Aig_ManForEachPo( p, pObj, i )                                          \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vPos, pObj, i )
-// iterator over the assertions
-#define Aig_ManForEachAssert( p, pObj, i )                                      \
-    Vec_PtrForEachEntryStart( Aig_Obj_t *, p->vPos, pObj, i, Aig_ManPoNum(p)-p->nAsserts )
-// iterator over all objects, including those currently not used
+#define Aig_ManForEachPoReverse( p, pObj, i )                                   \
+    Vec_PtrForEachEntryReverse( Aig_Obj_t *, p->vPos, pObj, i )
+// iterators over all objects, including those currently not used
 #define Aig_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
-// iterator over the objects whose IDs are stored in an array
-#define Aig_ManForEachObjVec( vIds, p, pObj, i )                               \
+#define Aig_ManForEachObjReverse( p, pObj, i )                                  \
+    Vec_PtrForEachEntryReverse( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
+// iterators over the objects whose IDs are stored in an array
+#define Aig_ManForEachObjVec( vIds, p, pObj, i )                                \
     for ( i = 0; i < Vec_IntSize(vIds) && (((pObj) = Aig_ManObj(p, Vec_IntEntry(vIds,i))), 1); i++ )
-// iterator over all nodes
+#define Aig_ManForEachObjVecReverse( vIds, p, pObj, i )                         \
+    for ( i = Vec_IntSize(vIds) - 1; i >= 0 && (((pObj) = Aig_ManObj(p, Vec_IntEntry(vIds,i))), 1); i-- )
+// iterators over all nodes
 #define Aig_ManForEachNode( p, pObj, i )                                        \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
+#define Aig_ManForEachNodeReverse( p, pObj, i )                                 \
+    Vec_PtrForEachEntryReverse( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
 // iterator over all nodes
 #define Aig_ManForEachExor( p, pObj, i )                                        \
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsExor(pObj) ) {} else
+#define Aig_ManForEachExorReverse( p, pObj, i )                                 \
+    Vec_PtrForEachEntryReverse( Aig_Obj_t *, p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsExor(pObj) ) {} else
 
 // these two procedures are only here for the use inside the iterator
 static inline int     Aig_ObjFanout0Int( Aig_Man_t * p, int ObjId )  { assert(ObjId < p->nFansAlloc);  return p->pFanData[5*ObjId];                         }

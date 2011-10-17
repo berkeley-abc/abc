@@ -1172,13 +1172,14 @@ Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t 
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
+Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, int fChangePol, int fVerbose )
 {
     Vec_Ptr_t * vMapped = NULL;
     Aig_Man_t * pMan;
     Cnf_Man_t * pManCnf = NULL;
     Cnf_Dat_t * pCnf;
     Abc_Ntk_t * pNtkNew = NULL;
+    int clk = clock();
     assert( Abc_NtkIsStrash(pNtk) );
 
     // convert to the AIG manager
@@ -1192,12 +1193,25 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
         return NULL;
     }
     // perform balance
+    if ( fVerbose )
     Aig_ManPrintStats( pMan );
 
     // derive CNF
-    pCnf = Cnf_Derive( pMan, 0 );
-    Cnf_DataTranformPolarity( pCnf, 0 );
-    printf( "Vars = %6d. Clauses = %7d. Literals = %8d.\n", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+    if ( fFastAlgo )
+        pCnf = Cnf_DeriveFast( pMan, 0 );
+    else
+        pCnf = Cnf_Derive( pMan, 0 );
+
+    // adjust polarity
+    if ( fChangePol )
+        Cnf_DataTranformPolarity( pCnf, 0 );
+
+    // print stats
+    if ( fVerbose )
+    {
+        printf( "Vars = %6d. Clauses = %7d. Literals = %8d.   ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+        Abc_PrintTime( 1, "Time", clock() - clk );
+    }
 
 /*
     // write the network for verification
@@ -1210,7 +1224,6 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
     Cnf_DataWriteIntoFile( pCnf, pFileName, 0 );
     Cnf_DataFree( pCnf );
     Cnf_ClearMemory();
-
     Aig_ManStop( pMan );
     return pNtkNew;
 }

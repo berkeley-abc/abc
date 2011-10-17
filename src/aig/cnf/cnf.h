@@ -138,6 +138,8 @@ extern void            Cnf_CutUpdateRefs( Cnf_Man_t * p, Cnf_Cut_t * pCut, Cnf_C
 extern Cnf_Cut_t *     Cnf_CutCompose( Cnf_Man_t * p, Cnf_Cut_t * pCut, Cnf_Cut_t * pCutFan, int iFan );
 /*=== cnfData.c ========================================================*/
 extern void            Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops );
+/*=== cnfData.c ========================================================*/
+extern Cnf_Dat_t *     Cnf_DeriveFast( Aig_Man_t * p, int nOutputs );
 /*=== cnfMan.c ========================================================*/
 extern Cnf_Man_t *     Cnf_ManStart();
 extern void            Cnf_ManStop( Cnf_Man_t * p );
