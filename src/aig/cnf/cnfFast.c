@@ -20,7 +20,6 @@
 
 #include "cnf.h"
 #include "kit.h"
-#include "satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -178,6 +177,24 @@ word Cnf_CutDeriveTruth( Aig_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes 
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Cnf_ObjGetLit( Vec_Int_t * vMap, Aig_Obj_t * pObj, int fCompl )
+{
+    int iSatVar = vMap ? Vec_IntEntry(vMap, Aig_ObjId(pObj)) : Aig_ObjId(pObj);
+    assert( iSatVar > 0 );
+    return iSatVar + iSatVar + fCompl;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects nodes inside the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot, 
     Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Int_t * vMap, Vec_Int_t * vCover, Vec_Int_t * vClauses )
 {
@@ -188,11 +205,11 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
 
     Vec_IntClear( vClauses );
 
-    OutLit = toLit( Vec_IntEntry(vMap, Aig_ObjId(pRoot)) );
+    OutLit = Cnf_ObjGetLit( vMap, pRoot, 0 );
     // detect cone
     Cnf_CollectLeaves( pRoot, vLeaves, 0 );
     Cnf_CollectVolume( p, pRoot, vLeaves, vNodes );
-    assert( pObj == Vec_PtrEntryLast(vNodes) );
+    assert( pRoot == Vec_PtrEntryLast(vNodes) );
     // check if this is an AND-gate
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pLeaf, k )
     {
@@ -208,13 +225,13 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
         Vec_IntPush( vClauses, 0 );
         Vec_IntPush( vClauses, OutLit );
         Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, k )
-            Vec_IntPush( vClauses, toLitCond(Vec_IntEntry(vMap, Aig_ObjId(Aig_Regular(pLeaf))), !Aig_IsComplement(pLeaf)) );
+            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, Aig_Regular(pLeaf), !Aig_IsComplement(pLeaf)) );
         // write small clauses
         Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, k )
         {
             Vec_IntPush( vClauses, 0 );
-            Vec_IntPush( vClauses, lit_neg(OutLit) );
-            Vec_IntPush( vClauses, toLitCond(Vec_IntEntry(vMap, Aig_ObjId(Aig_Regular(pLeaf))), Aig_IsComplement(pLeaf)) );
+            Vec_IntPush( vClauses, OutLit ^ 1 );
+            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, Aig_Regular(pLeaf), Aig_IsComplement(pLeaf)) );
         }
         return;
     }
@@ -225,9 +242,8 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
     Truth = Cnf_CutDeriveTruth( p, vLeaves, vNodes );
     if ( Truth == 0 || Truth == ~0 )
     {
-        assert( RetValue == 0 );
         Vec_IntPush( vClauses, 0 );
-        Vec_IntPush( vClauses, (Truth == 0) ? lit_neg(OutLit) : OutLit );
+        Vec_IntPush( vClauses, (Truth == 0) ? (OutLit ^ 1) : OutLit );
         return;
     }
 
@@ -243,7 +259,7 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
             if ( (Cube & 3) == 0 )
                 continue;
             assert( (Cube & 3) != 3 );
-            Vec_IntPush( vClauses, toLitCond( Vec_IntEntry(vMap, Aig_ObjId(Vec_PtrEntry(vLeaves,k))), (Cube&3)!=1 ) );
+            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, Vec_PtrEntry(vLeaves,k), (Cube&3)!=1) );
         }
     }
 
@@ -254,13 +270,13 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
     Vec_IntForEachEntry( vCover, Cube, c )
     {
         Vec_IntPush( vClauses, 0 );
-        Vec_IntPush( vClauses, lit_neg(OutLit) );
+        Vec_IntPush( vClauses, OutLit ^ 1 );
         for ( k = 0; k < Vec_PtrSize(vLeaves); k++, Cube >>= 2 )
         {
             if ( (Cube & 3) == 0 )
                 continue;
             assert( (Cube & 3) != 3 );
-            Vec_IntPush( vClauses, toLitCond( Vec_IntEntry(vMap, Aig_ObjId(Vec_PtrEntry(vLeaves,k))), (Cube&3)!=1 ) );
+            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, Vec_PtrEntry(vLeaves,k), (Cube&3)!=1) );
         }
     }
 }
@@ -591,7 +607,7 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
     // create clauses for the outputs
     Aig_ManForEachPo( p, pObj, i )
     {
-        DriLit = toLitCond( Vec_IntEntry(vMap, Aig_ObjFaninId0(pObj)), Aig_ObjFaninC0(pObj) );
+        DriLit = Cnf_ObjGetLit( vMap, Aig_ObjFanin0(pObj), Aig_ObjFaninC0(pObj) );
         if ( i < Aig_ManPoNum(p) - nOutputs )
         {
             Vec_IntPush( vClas, Vec_IntSize(vLits) );
@@ -599,20 +615,20 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
         }
         else
         {
-            OutLit = toLit( Vec_IntEntry(vMap, Aig_ObjId(pObj)) );
+            OutLit = Cnf_ObjGetLit( vMap, pObj, 0 );
             // first clause
             Vec_IntPush( vClas, Vec_IntSize(vLits) );
             Vec_IntPush( vLits, OutLit );
-            Vec_IntPush( vLits, lit_neg(DriLit) );
+            Vec_IntPush( vLits, DriLit ^ 1 );
             // second clause
             Vec_IntPush( vClas, Vec_IntSize(vLits) );
-            Vec_IntPush( vLits, lit_neg(OutLit) );
+            Vec_IntPush( vLits, OutLit ^ 1 );
             Vec_IntPush( vLits, DriLit );
         }
     }
  
     // write the constant literal
-    OutLit = toLit( Vec_IntEntry(vMap, Aig_ObjId(Aig_ManConst1(p))) );
+    OutLit = Cnf_ObjGetLit( vMap, Aig_ManConst1(p), 0 );
     Vec_IntPush( vClas, Vec_IntSize(vLits) );
     Vec_IntPush( vLits, OutLit );
 

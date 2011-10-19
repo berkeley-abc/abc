@@ -142,6 +142,7 @@ extern void            Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops );
 extern void            Cnf_CollectLeaves( Aig_Obj_t * pRoot, Vec_Ptr_t * vSuper, int fStopCompl );
 extern void            Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, 
                            Vec_Ptr_t * vNodes, Vec_Int_t * vMap, Vec_Int_t * vCover, Vec_Int_t * vClauses );
+extern void            Cnf_DeriveFastMark( Aig_Man_t * p );
 extern Cnf_Dat_t *     Cnf_DeriveFast( Aig_Man_t * p, int nOutputs );
 /*=== cnfMan.c ========================================================*/
 extern Cnf_Man_t *     Cnf_ManStart();
