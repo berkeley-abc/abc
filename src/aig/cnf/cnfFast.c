@@ -43,7 +43,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Cnf_CollectSuper_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fStopCompl )
+void Cnf_CollectLeaves_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fStopCompl )
 {
     if ( pRoot != pObj && (pObj->fMarkA || (fStopCompl && Aig_IsComplement(pObj))) )
     {
@@ -53,13 +53,13 @@ void Cnf_CollectSuper_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSup
     assert( Aig_ObjIsNode(pObj) );
     if ( fStopCompl )
     {
-        Cnf_CollectSuper_rec( pRoot, Aig_ObjChild0(pObj), vSuper, 1 );
-        Cnf_CollectSuper_rec( pRoot, Aig_ObjChild1(pObj), vSuper, 1 );
+        Cnf_CollectLeaves_rec( pRoot, Aig_ObjChild0(pObj), vSuper, 1 );
+        Cnf_CollectLeaves_rec( pRoot, Aig_ObjChild1(pObj), vSuper, 1 );
     }
     else
     {
-        Cnf_CollectSuper_rec( pRoot, Aig_ObjFanin0(pObj), vSuper, 0 );
-        Cnf_CollectSuper_rec( pRoot, Aig_ObjFanin1(pObj), vSuper, 0 );
+        Cnf_CollectLeaves_rec( pRoot, Aig_ObjFanin0(pObj), vSuper, 0 );
+        Cnf_CollectLeaves_rec( pRoot, Aig_ObjFanin1(pObj), vSuper, 0 );
     }
 }
 
@@ -74,11 +74,11 @@ void Cnf_CollectSuper_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSup
   SeeAlso     []
 
 ***********************************************************************/
-void Cnf_CollectSuper( Aig_Obj_t * pRoot, Vec_Ptr_t * vSuper, int fStopCompl )
+void Cnf_CollectLeaves( Aig_Obj_t * pRoot, Vec_Ptr_t * vSuper, int fStopCompl )
 {
     assert( !Aig_IsComplement(pRoot) );
     Vec_PtrClear( vSuper );
-    Cnf_CollectSuper_rec( pRoot, pRoot, vSuper, fStopCompl );
+    Cnf_CollectLeaves_rec( pRoot, pRoot, vSuper, fStopCompl );
 }
 
 /**Function*************************************************************
@@ -169,7 +169,7 @@ word Cnf_CutDeriveTruth( Aig_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes 
 
 /**Function*************************************************************
 
-  Synopsis    [Marks AIG for CNF computation.]
+  Synopsis    [Collects nodes inside the cone.]
 
   Description []
                
@@ -178,136 +178,94 @@ word Cnf_CutDeriveTruth( Aig_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes 
   SeeAlso     []
 
 ***********************************************************************/
-void Cnf_DeriveFastMark_( Aig_Man_t * p )
+void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot, 
+    Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Int_t * vMap, Vec_Int_t * vCover, Vec_Int_t * vClauses )
 {
-    Vec_Ptr_t * vLeaves, * vNodes;
-    Aig_Obj_t * pObj, * pObjC, * pObj0, * pObj1;
-    int i, k;
-    // mark CIs
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->fMarkA = 1;
-    // mark CO drivers
-    Aig_ManForEachPo( p, pObj, i )
-        Aig_ObjFanin0(pObj)->fMarkA = 1;
+    Aig_Obj_t * pLeaf;
+    int c, k, Cube, OutLit, RetValue;
+    word Truth;
+    assert( pRoot->fMarkA );
 
+    Vec_IntClear( vClauses );
 
-    // mark roots/leaves of MUX/XOR with MarkA
-    // mark internal nodes of MUX/XOR with MarkB
-    Aig_ManForEachNode( p, pObj, i )
+    OutLit = toLit( Vec_IntEntry(vMap, Aig_ObjId(pRoot)) );
+    // detect cone
+    Cnf_CollectLeaves( pRoot, vLeaves, 0 );
+    Cnf_CollectVolume( p, pRoot, vLeaves, vNodes );
+    assert( pObj == Vec_PtrEntryLast(vNodes) );
+    // check if this is an AND-gate
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pLeaf, k )
     {
-        if ( !Aig_ObjIsMuxType(pObj) )
-            continue;
-        pObjC = Aig_ObjRecognizeMux( pObj, &pObj1, &pObj0 );
-        Aig_Regular(pObjC)->fMarkA = 1;
-        Aig_Regular(pObj1)->fMarkA = 1;
-        Aig_Regular(pObj0)->fMarkA = 1;
-
-        Aig_ObjFanin0(pObj)->fMarkB = 1;
-        Aig_ObjFanin1(pObj)->fMarkB = 1;
-    }
-
-    // mark nodes with many fanouts or pointed to by a complemented edge
-    Aig_ManForEachNode( p, pObj, i )
-    {
-        if ( Aig_ObjRefs(pObj) > 1 )
-            pObj->fMarkA = 1;
-        if ( Aig_ObjFaninC0(pObj) )
-            Aig_ObjFanin0(pObj)->fMarkA = 1;
-        if ( Aig_ObjFaninC1(pObj) )
-            Aig_ObjFanin1(pObj)->fMarkA = 1;
-    }
-
-    // clean internal nodes of MUX/XOR
-    Aig_ManForEachNode( p, pObj, i )
-    {
-        if ( pObj->fMarkB )
-            pObj->fMarkB = pObj->fMarkA = 0;
-//            pObj->fMarkB = 0;
-    }
-    // remove nodes those fanins are used
-    Aig_ManForEachNode( p, pObj, i )
-        if ( pObj->fMarkA && Aig_ObjFanin0(pObj)->fMarkA && Aig_ObjFanin1(pObj)->fMarkA )
-            pObj->fMarkA = 0;
-
-    // mark CO drivers
-    Aig_ManForEachPo( p, pObj, i )
-        Aig_ObjFanin0(pObj)->fMarkA = 1;
-/*
-    // if node has multiple fanout
-    Aig_ManForEachNode( p, pObj, i )
-    {
-        if ( Aig_ObjRefs(pObj) == 1 )
-            continue;
-        if ( Aig_ObjRefs(pObj) == 2 && Aig_ObjFanin0(pObj)->fMarkA && Aig_ObjFanin1(pObj)->fMarkA )
-            continue;
-        pObj->fMarkA = 1;
-    }
-*/
-    // consider large cuts and mark inputs that are
-    vLeaves = Vec_PtrAlloc( 100 );
-    vNodes  = Vec_PtrAlloc( 100 );
-/*
-    while ( 1 )
-    {
-        int fChanges = 0;
-        Aig_ManForEachNode( p, pObj, i )
-        {
-            if ( !pObj->fMarkA )
-                continue;
-            if ( Aig_ObjRefs(pObj) == 1 )
-                continue;
-
-            Cnf_CollectSuper( pObj, vLeaves, 1 );
-            if ( Vec_PtrSize(vLeaves) <= 6 )
-                continue;
-            Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObjC, k )
-            {
-                if ( Aig_Regular(pObjC)->fMarkA == 0 )
-                    fChanges = 1;
-                Aig_Regular(pObjC)->fMarkA = 1;
-            }
-        }
-        printf( "Round 1 \n" );
-        if ( !fChanges )
+        if ( Aig_ObjFaninC0(pLeaf) && !Aig_ObjFanin0(pLeaf)->fMarkA )
+            break;
+        if ( Aig_ObjFaninC1(pLeaf) && !Aig_ObjFanin1(pLeaf)->fMarkA )
             break;
     }
-*/
-    while ( 1 )
+    if ( k == Vec_PtrSize(vNodes) )
     {
-        int fChanges = 0;
-        Aig_ManForEachNode( p, pObj, i )
+        Cnf_CollectLeaves( pRoot, vLeaves, 1 );
+        // write big clause
+        Vec_IntPush( vClauses, 0 );
+        Vec_IntPush( vClauses, OutLit );
+        Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, k )
+            Vec_IntPush( vClauses, toLitCond(Vec_IntEntry(vMap, Aig_ObjId(Aig_Regular(pLeaf))), !Aig_IsComplement(pLeaf)) );
+        // write small clauses
+        Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, k )
         {
-            if ( !pObj->fMarkA )
-                continue;
-            Cnf_CollectSuper( pObj, vLeaves, 0 );
-            if ( Vec_PtrSize(vLeaves) <= 6 )
-                continue;
-            Cnf_CollectVolume( p, pObj, vLeaves, vNodes );
-            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObjC, k )
-            {
-                if ( Aig_ObjFaninC0(pObjC) && !Aig_ObjFanin0(pObjC)->fMarkA )
-                {
-                    Aig_ObjFanin0(pObjC)->fMarkA = 1;
-//                    printf( "%d ", Aig_ObjFaninId0(pObjC) );
-                    fChanges = 1;
-                }
-                if ( Aig_ObjFaninC1(pObjC) && !Aig_ObjFanin1(pObjC)->fMarkA )
-                {
-                    Aig_ObjFanin1(pObjC)->fMarkA = 1;
-//                    printf( "%d ", Aig_ObjFaninId1(pObjC) );
-                    fChanges = 1;
-                }
-            }
+            Vec_IntPush( vClauses, 0 );
+            Vec_IntPush( vClauses, lit_neg(OutLit) );
+            Vec_IntPush( vClauses, toLitCond(Vec_IntEntry(vMap, Aig_ObjId(Aig_Regular(pLeaf))), Aig_IsComplement(pLeaf)) );
         }
-        printf( "Round 2\n" );
-        if ( !fChanges )
-            break;
+        return;
+    }
+    if ( Vec_PtrSize(vLeaves) > 6 )
+        printf( "FastCnfGeneration:  Internal error!!!\n" );
+    assert( Vec_PtrSize(vLeaves) <= 6 );
+
+    Truth = Cnf_CutDeriveTruth( p, vLeaves, vNodes );
+    if ( Truth == 0 || Truth == ~0 )
+    {
+        assert( RetValue == 0 );
+        Vec_IntPush( vClauses, 0 );
+        Vec_IntPush( vClauses, (Truth == 0) ? lit_neg(OutLit) : OutLit );
+        return;
     }
 
+    RetValue = Kit_TruthIsop( (unsigned *)&Truth, Vec_PtrSize(vLeaves), vCover, 0 );
+    assert( RetValue >= 0 );
 
-    Vec_PtrFree( vLeaves );
-    Vec_PtrFree( vNodes );
+    Vec_IntForEachEntry( vCover, Cube, c )
+    {
+        Vec_IntPush( vClauses, 0 );
+        Vec_IntPush( vClauses, OutLit );
+        for ( k = 0; k < Vec_PtrSize(vLeaves); k++, Cube >>= 2 )
+        {
+            if ( (Cube & 3) == 0 )
+                continue;
+            assert( (Cube & 3) != 3 );
+            Vec_IntPush( vClauses, toLitCond( Vec_IntEntry(vMap, Aig_ObjId(Vec_PtrEntry(vLeaves,k))), (Cube&3)!=1 ) );
+        }
+    }
+
+    Truth = ~Truth;
+
+    RetValue = Kit_TruthIsop( (unsigned *)&Truth, Vec_PtrSize(vLeaves), vCover, 0 );
+    assert( RetValue >= 0 );
+    Vec_IntForEachEntry( vCover, Cube, c )
+    {
+        Vec_IntPush( vClauses, 0 );
+        Vec_IntPush( vClauses, lit_neg(OutLit) );
+        for ( k = 0; k < Vec_PtrSize(vLeaves); k++, Cube >>= 2 )
+        {
+            if ( (Cube & 3) == 0 )
+                continue;
+            assert( (Cube & 3) != 3 );
+            Vec_IntPush( vClauses, toLitCond( Vec_IntEntry(vMap, Aig_ObjId(Vec_PtrEntry(vLeaves,k))), (Cube&3)!=1 ) );
+        }
+    }
 }
+
+
 
 /**Function*************************************************************
 
@@ -322,10 +280,14 @@ void Cnf_DeriveFastMark_( Aig_Man_t * p )
 ***********************************************************************/
 void Cnf_DeriveFastMark( Aig_Man_t * p )
 {
+    Vec_Int_t * vSupps;
     Vec_Ptr_t * vLeaves, * vNodes;
-    Aig_Obj_t * pObj, * pObjC, * pObj0, * pObj1;
-    int i, k, Counter;
-    Aig_ManCleanMarkAB( p );
+    Aig_Obj_t * pObj, * pTemp, * pObjC, * pObj0, * pObj1;
+    int i, k, nFans, Counter;
+
+    vLeaves = Vec_PtrAlloc( 100 );
+    vNodes  = Vec_PtrAlloc( 100 );
+    vSupps  = Vec_IntStart( Aig_ManObjNumMax(p) );
 
     // mark CIs
     Aig_ManForEachPi( p, pObj, i )
@@ -335,90 +297,99 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
     Aig_ManForEachPo( p, pObj, i )
         Aig_ObjFanin0(pObj)->fMarkA = 1;
 
+    // mark MUX/XOR nodes
+    Aig_ManForEachNode( p, pObj, i )
+    {
+        assert( !pObj->fMarkB );
+        if ( !Aig_ObjIsMuxType(pObj) )
+            continue;
+        pObj0 = Aig_ObjFanin0(pObj);
+        if ( pObj0->fMarkB || Aig_ObjRefs(pObj0) > 1 )
+            continue;
+        pObj1 = Aig_ObjFanin1(pObj);
+        if ( pObj1->fMarkB || Aig_ObjRefs(pObj1) > 1 )
+            continue;
+        // mark nodes
+        pObj->fMarkB = 1;
+        pObj0->fMarkB = 1;
+        pObj1->fMarkB = 1;
+        // mark inputs and outputs
+        pObj->fMarkA = 1;
+        Aig_ObjFanin0(pObj0)->fMarkA = 1;
+        Aig_ObjFanin1(pObj0)->fMarkA = 1;
+        Aig_ObjFanin0(pObj1)->fMarkA = 1;
+        Aig_ObjFanin1(pObj1)->fMarkA = 1;
+    }
+
+    // mark nodes with multiple fanouts and pointed to by complemented edges
     Aig_ManForEachNode( p, pObj, i )
     {
         // mark nodes with many fanouts
         if ( Aig_ObjRefs(pObj) > 1 )
             pObj->fMarkA = 1;
         // mark nodes pointed to by a complemented edge
-        if ( Aig_ObjFaninC0(pObj) )
+        if ( Aig_ObjFaninC0(pObj) && !Aig_ObjFanin0(pObj)->fMarkB )
             Aig_ObjFanin0(pObj)->fMarkA = 1;
-        if ( Aig_ObjFaninC1(pObj) )
+        if ( Aig_ObjFaninC1(pObj) && !Aig_ObjFanin1(pObj)->fMarkB )
             Aig_ObjFanin1(pObj)->fMarkA = 1;
-
-        // mark roots/leaves of MUX/XOR with MarkA
-        // mark internal nodes of MUX/XOR with MarkB
-        if ( !Aig_ObjIsMuxType(pObj) )
-            continue;
-
-        pObjC = Aig_ObjRecognizeMux( pObj, &pObj1, &pObj0 );
-        Aig_Regular(pObjC)->fMarkA = 1;
-        Aig_Regular(pObj1)->fMarkA = 1;
-        Aig_Regular(pObj0)->fMarkA = 1;
-
-        Aig_ObjFanin0(pObj)->fMarkB = 1;
-        Aig_ObjFanin1(pObj)->fMarkB = 1;
     }
 
-    // clean internal nodes of MUX/XOR
+    // compute supergate size for internal marked nodes
     Aig_ManForEachNode( p, pObj, i )
     {
-        if ( !pObj->fMarkB )
+        if ( !pObj->fMarkA )
             continue;
-        pObj->fMarkB = 0;
-        if ( Aig_ObjRefs(pObj) == 1 )
-            pObj->fMarkA = 0;
-    }
-
-    // remove nodes those fanins are used
-    Aig_ManForEachNode( p, pObj, i )
-        if ( pObj->fMarkA && Aig_ObjFanin0(pObj)->fMarkA && Aig_ObjFanin1(pObj)->fMarkA )
-            pObj->fMarkA = 0;
-
-    // mark CO drivers
-    Aig_ManForEachPo( p, pObj, i )
-        Aig_ObjFanin0(pObj)->fMarkA = 1;
-
-
-    vLeaves = Vec_PtrAlloc( 100 );
-    vNodes  = Vec_PtrAlloc( 100 );
-
-    while ( 1 )
-    {
-        int nChanges = 0;
-        Aig_ManForEachNode( p, pObj, i )
+        if ( pObj->fMarkB )
         {
-            if ( !pObj->fMarkA )
+            if ( !Aig_ObjIsMuxType(pObj) )
                 continue;
-            Cnf_CollectSuper( pObj, vLeaves, 0 );
-            if ( Vec_PtrSize(vLeaves) <= 6 )
-                continue;
-            Cnf_CollectVolume( p, pObj, vLeaves, vNodes );
-            Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObjC, k )
+            pObjC = Aig_ObjRecognizeMux( pObj, &pObj1, &pObj0 );
+            pObj0 = Aig_Regular(pObj0);
+            pObj1 = Aig_Regular(pObj1);
+            assert( pObj0->fMarkA );
+            assert( pObj1->fMarkA );
+//            if ( pObj0 == pObj1 )
+//                continue;
+            nFans = 1 + (pObj0 == pObj1);
+            if ( !pObj0->fMarkB && !Aig_ObjIsPi(pObj0) && Aig_ObjRefs(pObj0) == nFans && Vec_IntEntry(vSupps, Aig_ObjId(pObj0)) < 3 )
             {
-                if ( Aig_ObjFaninC0(pObjC) && !Aig_ObjFanin0(pObjC)->fMarkA )
-                {
-                    Aig_ObjFanin0(pObjC)->fMarkA = 1;
-//                    printf( "%d ", Aig_ObjFaninId0(pObjC) );
-                    nChanges++;
-                }
-                if ( Aig_ObjFaninC1(pObjC) && !Aig_ObjFanin1(pObjC)->fMarkA )
-                {
-                    Aig_ObjFanin1(pObjC)->fMarkA = 1;
-//                    printf( "%d ", Aig_ObjFaninId1(pObjC) );
-                    nChanges++;
-                }
+                pObj0->fMarkA = 0;
+                continue;
             }
+            if ( !pObj1->fMarkB && !Aig_ObjIsPi(pObj1) && Aig_ObjRefs(pObj1) == nFans && Vec_IntEntry(vSupps, Aig_ObjId(pObj1)) < 3 )
+            {
+                pObj1->fMarkA = 0;
+                continue;
+            }
+            continue;
         }
-        printf( "Made %d gate changes\n", nChanges );
-        if ( !nChanges )
+
+        Cnf_CollectLeaves( pObj, vLeaves, 1 );
+        Vec_IntWriteEntry( vSupps, Aig_ObjId(pObj), Vec_PtrSize(vLeaves) );
+        if ( Vec_PtrSize(vLeaves) >= 6 )
+            continue;
+        Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pTemp, k )
+        {
+            pTemp = Aig_Regular(pTemp);
+            assert( pTemp->fMarkA );
+            if ( pTemp->fMarkB || Aig_ObjIsPi(pTemp) || Aig_ObjRefs(pTemp) > 1 )
+                continue;
+            assert( Vec_IntEntry(vSupps, Aig_ObjId(pTemp)) > 0 );
+            if ( Vec_PtrSize(vLeaves) - 1 + Vec_IntEntry(vSupps, Aig_ObjId(pTemp)) > 6 )
+                continue;
+            pTemp->fMarkA = 0;
+            Vec_IntWriteEntry( vSupps, Aig_ObjId(pObj), 6 );
+//printf( "%d %d   ", Vec_PtrSize(vLeaves), Vec_IntEntry(vSupps, Aig_ObjId(pTemp)) );
             break;
+        }
     }
+    Aig_ManCleanMarkB( p );
 
     // check CO drivers
     Counter = 0;
     Aig_ManForEachPo( p, pObj, i )
         Counter += !Aig_ObjFanin0(pObj)->fMarkA;
+    if ( Counter )
     printf( "PO-driver rule is violated %d times.\n", Counter );
 
     // check that the AND-gates are fine
@@ -428,22 +399,24 @@ void Cnf_DeriveFastMark( Aig_Man_t * p )
         assert( pObj->fMarkB == 0 );
         if ( !pObj->fMarkA )
             continue;
-        Cnf_CollectSuper( pObj, vLeaves, 0 );
+        Cnf_CollectLeaves( pObj, vLeaves, 0 );
         if ( Vec_PtrSize(vLeaves) <= 6 )
             continue;
         Cnf_CollectVolume( p, pObj, vLeaves, vNodes );
-        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj1, k )
+        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pTemp, k )
         {
-            if ( Aig_ObjFaninC0(pObj1) && !Aig_ObjFanin0(pObj1)->fMarkA )
+            if ( Aig_ObjFaninC0(pTemp) && !Aig_ObjFanin0(pTemp)->fMarkA )
                 Counter++;
-            if ( Aig_ObjFaninC1(pObj1) && !Aig_ObjFanin1(pObj1)->fMarkA )
+            if ( Aig_ObjFaninC1(pTemp) && !Aig_ObjFanin1(pTemp)->fMarkA )
                 Counter++;
         }
     }
+    if ( Counter )
+    printf( "AND-gate rule is violated %d times.\n", Counter );
+
     Vec_PtrFree( vLeaves );
     Vec_PtrFree( vNodes );
-
-    printf( "AND-gate rule is violated %d times.\n", Counter );
+    Vec_IntFree( vSupps );
 }
 
 
@@ -523,7 +496,7 @@ int Cnf_CountCnfSize( Aig_Man_t * p )
     {
         if ( !pObj->fMarkA )
             continue;
-        Cnf_CollectSuper( pObj, vLeaves, 0 );
+        Cnf_CollectLeaves( pObj, vLeaves, 0 );
         Cnf_CollectVolume( p, pObj, vLeaves, vNodes );
         assert( pObj == Vec_PtrEntryLast(vNodes) );
 
@@ -556,12 +529,11 @@ int Cnf_CountCnfSize( Aig_Man_t * p )
 Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
 {
     Cnf_Dat_t * pCnf;
-    Vec_Int_t * vLits, * vClas, * vMap;
+    Vec_Int_t * vLits, * vClas, * vMap, * vTemp;
     Vec_Ptr_t * vLeaves, * vNodes;
     Vec_Int_t * vCover;
-    Aig_Obj_t * pObj, * pLeaf;
-    int i, c, k, nVars, Cube, Entry, OutLit, DriLit, RetValue;
-    word Truth;
+    Aig_Obj_t * pObj;
+    int i, k, nVars, Entry, OutLit, DriLit;
 
     vLits = Vec_IntAlloc( 1 << 16 );
     vClas = Vec_IntAlloc( 1 << 12 );
@@ -597,87 +569,24 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
     vLeaves = Vec_PtrAlloc( 100 );
     vNodes  = Vec_PtrAlloc( 100 );
     vCover  = Vec_IntAlloc( 1 << 16 );
+    vTemp   = Vec_IntAlloc( 100 );
     Aig_ManForEachNodeReverse( p, pObj, i )
     {
         if ( !pObj->fMarkA )
             continue;
-        OutLit = toLit( Vec_IntEntry(vMap, Aig_ObjId(pObj)) );
-        // detect cone
-        Cnf_CollectSuper( pObj, vLeaves, 0 );
-        Cnf_CollectVolume( p, pObj, vLeaves, vNodes );
-        assert( pObj == Vec_PtrEntryLast(vNodes) );
-        // check if this is an AND-gate
-        Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pLeaf, k )
+        Cnf_ComputeClauses( p, pObj, vLeaves, vNodes, vMap, vCover, vTemp );
+        Vec_IntForEachEntry( vTemp, Entry, k )
         {
-            if ( Aig_ObjFaninC0(pLeaf) && !Aig_ObjFanin0(pLeaf)->fMarkA )
-                break;
-            if ( Aig_ObjFaninC1(pLeaf) && !Aig_ObjFanin1(pLeaf)->fMarkA )
-                break;
-        }
-        if ( k == Vec_PtrSize(vNodes) )
-        {
-            Cnf_CollectSuper( pObj, vLeaves, 1 );
-            // write big clause
-            Vec_IntPush( vClas, Vec_IntSize(vLits) );
-            Vec_IntPush( vLits, OutLit );
-            Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, k )
-                Vec_IntPush( vLits, toLitCond(Vec_IntEntry(vMap, Aig_ObjId(Aig_Regular(pLeaf))), !Aig_IsComplement(pLeaf)) );
-            // write small clauses
-            Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pLeaf, k )
-            {
+            if ( Entry == 0 )
                 Vec_IntPush( vClas, Vec_IntSize(vLits) );
-                Vec_IntPush( vLits, lit_neg(OutLit) );
-                Vec_IntPush( vLits, toLitCond(Vec_IntEntry(vMap, Aig_ObjId(Aig_Regular(pLeaf))), Aig_IsComplement(pLeaf)) );
-            }
-            continue;
-        }
-        assert( Vec_PtrSize(vLeaves) <= 6 );
-
-        Truth = Cnf_CutDeriveTruth( p, vLeaves, vNodes );
-        if ( Truth == 0 || Truth == ~0 )
-        {
-            assert( RetValue == 0 );
-            Vec_IntPush( vClas, Vec_IntSize(vLits) );
-            Vec_IntPush( vLits, (Truth == 0) ? lit_neg(OutLit) : OutLit );
-            continue;
-        }
-
-        RetValue = Kit_TruthIsop( (unsigned *)&Truth, Vec_PtrSize(vLeaves), vCover, 0 );
-        assert( RetValue >= 0 );
-
-        Vec_IntForEachEntry( vCover, Cube, c )
-        {
-            Vec_IntPush( vClas, Vec_IntSize(vLits) );
-            Vec_IntPush( vLits, OutLit );
-            for ( k = 0; k < Vec_PtrSize(vLeaves); k++, Cube >>= 2 )
-            {
-                if ( (Cube & 3) == 0 )
-                    continue;
-                assert( (Cube & 3) != 3 );
-                Vec_IntPush( vLits, toLitCond( Vec_IntEntry(vMap, Aig_ObjId(Vec_PtrEntry(vLeaves,k))), (Cube&3)!=1 ) );
-            }
-        }
-
-        Truth = ~Truth;
-
-        RetValue = Kit_TruthIsop( (unsigned *)&Truth, Vec_PtrSize(vLeaves), vCover, 0 );
-        assert( RetValue >= 0 );
-        Vec_IntForEachEntry( vCover, Cube, c )
-        {
-            Vec_IntPush( vClas, Vec_IntSize(vLits) );
-            Vec_IntPush( vLits, lit_neg(OutLit) );
-            for ( k = 0; k < Vec_PtrSize(vLeaves); k++, Cube >>= 2 )
-            {
-                if ( (Cube & 3) == 0 )
-                    continue;
-                assert( (Cube & 3) != 3 );
-                Vec_IntPush( vLits, toLitCond( Vec_IntEntry(vMap, Aig_ObjId(Vec_PtrEntry(vLeaves,k))), (Cube&3)==1 ) );
-            }
-        }
+            else
+                Vec_IntPush( vLits, Entry );
+        }       
     }
     Vec_PtrFree( vLeaves );
     Vec_PtrFree( vNodes );
     Vec_IntFree( vCover );
+    Vec_IntFree( vTemp );
 
     // create clauses for the outputs
     Aig_ManForEachPo( p, pObj, i )
@@ -742,21 +651,21 @@ Cnf_Dat_t * Cnf_DeriveFast( Aig_Man_t * p, int nOutputs )
 {
     Cnf_Dat_t * pCnf = NULL;
     int clk, clkTotal = clock();
-    printf( "\n" );
+//    printf( "\n" );
     Aig_ManCleanMarkAB( p );
     // create initial marking
     clk = clock();
     Cnf_DeriveFastMark( p );
-    Abc_PrintTime( 1, "Marking", clock() - clk );
+//    Abc_PrintTime( 1, "Marking", clock() - clk );
     // compute CNF size
     clk = clock();
     pCnf = Cnf_DeriveFastClauses( p, nOutputs );
-    Abc_PrintTime( 1, "Clauses", clock() - clk );
+//    Abc_PrintTime( 1, "Clauses", clock() - clk );
     // derive the resulting CNF
     Aig_ManCleanMarkA( p );
-    Abc_PrintTime( 1, "TOTAL  ", clock() - clkTotal );
+//    Abc_PrintTime( 1, "TOTAL  ", clock() - clkTotal );
 
-    printf( "Vars = %6d. Clauses = %7d. Literals = %8d.   \n", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+//    printf( "Vars = %6d. Clauses = %7d. Literals = %8d.   \n", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
 
 //    Cnf_DataFree( pCnf );
 //    pCnf = NULL;

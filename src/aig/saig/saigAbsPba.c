@@ -269,7 +269,8 @@ clk = clock();
 if ( fVerbose )
 Aig_ManPrintStats( pFrames );
 //    pCnf = Cnf_DeriveSimple( pFrames, 0 );
-    pCnf = Cnf_Derive( pFrames, 0 );
+//    pCnf = Cnf_Derive( pFrames, 0 );
+    pCnf = Cnf_DeriveFast( pFrames, 0 );
     pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     if ( pSat == NULL )
     {

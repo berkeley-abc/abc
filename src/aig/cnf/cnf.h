@@ -138,7 +138,10 @@ extern void            Cnf_CutUpdateRefs( Cnf_Man_t * p, Cnf_Cut_t * pCut, Cnf_C
 extern Cnf_Cut_t *     Cnf_CutCompose( Cnf_Man_t * p, Cnf_Cut_t * pCut, Cnf_Cut_t * pCutFan, int iFan );
 /*=== cnfData.c ========================================================*/
 extern void            Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops );
-/*=== cnfData.c ========================================================*/
+/*=== cnfFast.c ========================================================*/
+extern void            Cnf_CollectLeaves( Aig_Obj_t * pRoot, Vec_Ptr_t * vSuper, int fStopCompl );
+extern void            Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, 
+                           Vec_Ptr_t * vNodes, Vec_Int_t * vMap, Vec_Int_t * vCover, Vec_Int_t * vClauses );
 extern Cnf_Dat_t *     Cnf_DeriveFast( Aig_Man_t * p, int nOutputs );
 /*=== cnfMan.c ========================================================*/
 extern Cnf_Man_t *     Cnf_ManStart();
