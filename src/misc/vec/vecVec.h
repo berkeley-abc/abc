@@ -334,7 +334,7 @@ static inline void Vec_VecFree( Vec_Vec_t * p )
     Vec_Ptr_t * vVec;
     int i;
     Vec_VecForEachLevel( p, vVec, i )
-        Vec_PtrFree( vVec );
+        if ( vVec ) Vec_PtrFree( vVec );
     Vec_PtrFree( (Vec_Ptr_t *)p );
 }
 
