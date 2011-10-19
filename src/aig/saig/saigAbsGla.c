@@ -20,6 +20,7 @@
 
 #include "saig.h"
 #include "satSolver.h"
+#include "cnf.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -49,6 +50,12 @@ struct Aig_GlaMan_t_
     Vec_Int_t *    vObj2Vec;   // maps obj ID into its vec ID
     Vec_Int_t *    vVec2Var;   // maps vec ID into its sat Var (nFrames per vec ID)
     Vec_Int_t *    vVar2Inf;   // maps sat Var into its frame and obj ID
+    // CNF computation
+    Vec_Ptr_t *    vLeaves;
+    Vec_Ptr_t *    vVolume;
+    Vec_Int_t *    vCover;
+    Vec_Ptr_t *    vObj2Cnf;
+    Vec_Int_t *    vLits;
     // SAT solver
     sat_solver *   pSat;
     // statistics
@@ -153,7 +160,7 @@ static inline int Aig_GlaAddNode( sat_solver * pSat, int iVar, int iVar0, int iV
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_GlaCollectAssigned( Aig_Man_t * p, Vec_Int_t * vGateClasses )
+Vec_Int_t * Aig_GlaCollectAssigned_( Aig_Man_t * p, Vec_Int_t * vGateClasses )
 {
     Vec_Int_t * vAssigned;
     Aig_Obj_t * pObj;
@@ -242,6 +249,27 @@ void Aig_GlaCollectAbstr( Aig_GlaMan_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_GlaDeriveAbs_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
+{
+    if ( pObj->pData )
+        return;
+    assert( Aig_ObjIsNode(pObj) );
+    Aig_GlaDeriveAbs_rec( pNew, Aig_ObjFanin0(pObj) );
+    Aig_GlaDeriveAbs_rec( pNew, Aig_ObjFanin1(pObj) );
+    pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives abstraction.]
 
   Description []
@@ -274,7 +302,8 @@ Aig_Man_t * Aig_GlaDeriveAbs( Aig_GlaMan_t * p )
         pObj->pData = Aig_ObjCreatePi(pNew);
     // create internal nodes
     Aig_ManForEachObjVec( p->vNodes, p->pAig, pObj, i )
-        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+//        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+        Aig_GlaDeriveAbs_rec( pNew, pObj );
     // create PO
     Saig_ManForEachPo( p->pAig, pObj, i )
         pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
@@ -371,11 +400,47 @@ int Aig_GlaObjAddToSolver( Aig_GlaMan_t * p, Aig_Obj_t * pObj, int k )
                 Aig_GlaFetchVar(p, Aig_ObjFanin0(pObjLi), k-1), 
                 Aig_ObjFaninC0(pObjLi) );
     }
-    assert( Aig_ObjIsNode(pObj) );
-    return Aig_GlaAddNode( p->pSat, Aig_GlaFetchVar(p, pObj, k), 
-                Aig_GlaFetchVar(p, Aig_ObjFanin0(pObj), k), 
-                Aig_GlaFetchVar(p, Aig_ObjFanin1(pObj), k), 
-                Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
+    else
+    { 
+        Vec_Int_t * vClauses;
+        int i, Entry;
+        assert( Aig_ObjIsNode(pObj) );
+        if ( p->vObj2Cnf == NULL )
+            return Aig_GlaAddNode( p->pSat, Aig_GlaFetchVar(p, pObj, k), 
+                        Aig_GlaFetchVar(p, Aig_ObjFanin0(pObj), k), 
+                        Aig_GlaFetchVar(p, Aig_ObjFanin1(pObj), k), 
+                        Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
+        // derive clauses
+        assert( pObj->fMarkA );
+        vClauses = Vec_PtrEntry( p->vObj2Cnf, Aig_ObjId(pObj) );
+        if ( vClauses == NULL )
+        {
+            Vec_PtrWriteEntry( p->vObj2Cnf, Aig_ObjId(pObj), (vClauses = Vec_IntAlloc(16)) );
+            Cnf_ComputeClauses( p->pAig, pObj, p->vLeaves, p->vVolume, NULL, p->vCover, vClauses );
+        }
+        // derive variables
+        Cnf_CollectLeaves( pObj, p->vLeaves, 0 );
+        Vec_PtrForEachEntry( Aig_Obj_t *, p->vLeaves, pObj, i )
+            Aig_GlaFetchVar( p, pObj, k );
+        // translate clauses
+        assert( Vec_IntSize(vClauses) >= 2 );
+        assert( Vec_IntEntry(vClauses, 0) == 0 );
+        Vec_IntForEachEntry( vClauses, Entry, i )
+        {
+            if ( Entry == 0 )
+            {
+                Vec_IntClear( p->vLits );
+                continue;
+            }
+            Vec_IntPush( p->vLits, (Entry & 1) ^ (2 * Aig_GlaFetchVar(p, Aig_ManObj(p->pAig, Entry >> 1), k)) );
+            if ( i == Vec_IntSize(vClauses) - 1 || Vec_IntEntry(vClauses, i+1) == 0 )
+            {
+                if ( !sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits)+Vec_IntSize(p->vLits) ) )
+                    return 0;
+            }
+        }       
+        return 1;
+    }
 }
 
 /**Function*************************************************************
@@ -389,7 +454,7 @@ int Aig_GlaObjAddToSolver( Aig_GlaMan_t * p, Aig_Obj_t * pObj, int k )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig )
+Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig, int fUseCnf )
 {
     Aig_GlaMan_t * p;
     int i;
@@ -415,6 +480,17 @@ Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig )
     // skip  first SAT variable
     Vec_IntPush( p->vVar2Inf, -1 );
     Vec_IntPush( p->vVar2Inf, -1 );
+
+    // CNF computation
+    if ( fUseCnf )
+    {
+        p->vLeaves   = Vec_PtrAlloc( 100 );
+        p->vVolume   = Vec_PtrAlloc( 100 );
+        p->vCover    = Vec_IntAlloc( 1 << 16 );
+        p->vObj2Cnf  = Vec_PtrStart( Aig_ManObjNumMax(pAig) );
+        p->vLits     = Vec_IntAlloc( 100 );
+        Cnf_DeriveFastMark( pAig );
+    }
 
     // start the SAT solver
     p->pSat = sat_solver_new();
@@ -447,6 +523,16 @@ void Aig_GlaManStop( Aig_GlaMan_t * p )
     Vec_IntFreeP( &p->vObj2Vec );
     Vec_IntFreeP( &p->vVec2Var );
     Vec_IntFreeP( &p->vVar2Inf );
+
+    if ( p->vObj2Cnf )
+    {
+        Vec_PtrFreeP( &p->vLeaves );
+        Vec_PtrFreeP( &p->vVolume );
+        Vec_IntFreeP( &p->vCover );
+        Vec_VecFreeP( (Vec_Vec_t **)&p->vObj2Cnf );
+        Vec_IntFreeP( &p->vLits );
+        Aig_ManCleanMarkA( p->pAig );
+    }
 
     if ( p->pSat )
         sat_solver_delete( p->pSat );
@@ -525,6 +611,34 @@ void Aig_GlaPrintAbstr( Aig_GlaMan_t * p, int f, int r, int v, int c )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints current abstraction statistics.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_GlaExtendIncluded( Aig_GlaMan_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, k;
+    Aig_ManForEachNode( p->pAig, pObj, i )
+    {
+        if ( !Vec_IntEntry( p->vIncluded, i ) )
+            continue;
+        Cnf_ComputeClauses( p->pAig, pObj, p->vLeaves, p->vVolume, NULL, p->vCover, p->vNodes );
+        Vec_PtrForEachEntry( Aig_Obj_t *, p->vVolume, pObj, k )
+        {
+            assert( Aig_ObjId(pObj) <= i );
+            Vec_IntWriteEntry( p->vIncluded, Aig_ObjId(pObj), 1 );
+        }
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs gate-level localization abstraction.]
 
   Description [Returns array of objects included in the abstraction. This array
@@ -536,7 +650,7 @@ void Aig_GlaPrintAbstr( Aig_GlaMan_t * p, int f, int r, int v, int c )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose )
+Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fUseCnf, int fVerbose )
 {
     int nStart = 0;
     Vec_Int_t * vResult = NULL;
@@ -558,7 +672,7 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
     }
 
     // start the solver
-    p = Aig_GlaManStart( pAig );
+    p = Aig_GlaManStart( pAig, fUseCnf );
     p->nFramesMax = nFramesMax;
     p->nConfLimit = nConfLimit;
     p->fVerbose   = fVerbose;
@@ -660,6 +774,7 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
         ABC_PRTP( "Total ", p->timeTotal, p->timeTotal );
     }
     // prepare return value
+    Aig_GlaExtendIncluded( p );
     vResult = p->vIncluded;  p->vIncluded = NULL;
     Aig_GlaManStop( p );
     return vResult;

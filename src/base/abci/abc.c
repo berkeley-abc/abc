@@ -28888,13 +28888,13 @@ usage:
 int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Saig_ParBmc_t Pars, * pPars = &Pars;
-    int c;
+    int c, fUseCnf = 1;
     Saig_ParBmcSetDefaultParams( pPars );
     pPars->nStart     = 0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
     pPars->nFramesMax = 50; //pPars->nStart + 10;
     pPars->nConfLimit = 5000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCMTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCMTcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28953,6 +28953,9 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 ) 
                 goto usage;
             break;
+        case 'c':
+            fUseCnf ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -28972,7 +28975,7 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
-    pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars );
+    pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars, fUseCnf );
     if ( pPars->nStart == 0 )
        pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
@@ -28980,13 +28983,14 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla_cba [-SFCMT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &gla_cba [-SFCMT num] [-cvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with CEX-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", pPars->nFfToAddMax );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-c     : toggle using smarter CNF computation [default = %s]\n", fUseCnf? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -1584,6 +1584,27 @@ Gia_Man_t * Gia_ManDupAbsFlops( Gia_Man_t * p, Vec_Int_t * vFlopClasses )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupAbsGates_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupAbsGates_rec( pNew, Gia_ObjFanin0(pObj) );
+    Gia_ManDupAbsGates_rec( pNew, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs abstraction of the AIG to preserve the included gates.]
 
   Description [The array contains 1 for those objects (const, RO, AND)
@@ -1642,6 +1663,7 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
     // create internal nodes
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+//        Gia_ManDupAbsGates_rec( pNew, pObj );
     // create PO
     Gia_ManForEachPo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
