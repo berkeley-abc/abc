@@ -377,9 +377,9 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fUseCnf )
+int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 {
-    extern Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fUseCnf, int fVerbose );
+    extern Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses;
     Aig_Man_t * pAig;
@@ -393,7 +393,7 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fUseCnf )
 */
     // perform abstraction
     pAig = Gia_ManToAigSimple( pGia );
-    vGateClasses = Aig_GlaManTest( pAig, p->nFramesMax, p->nConfLimit, p->nTimeOut, fUseCnf, p->fVerbose );
+    vGateClasses = Aig_GlaManTest( pAig, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
     Aig_ManStop( pAig );
 
     // update the map

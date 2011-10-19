@@ -454,7 +454,7 @@ int Aig_GlaObjAddToSolver( Aig_GlaMan_t * p, Aig_Obj_t * pObj, int k )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig, int fUseCnf )
+Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig, int fNaiveCnf )
 {
     Aig_GlaMan_t * p;
     int i;
@@ -482,7 +482,7 @@ Aig_GlaMan_t * Aig_GlaManStart( Aig_Man_t * pAig, int fUseCnf )
     Vec_IntPush( p->vVar2Inf, -1 );
 
     // CNF computation
-    if ( fUseCnf )
+    if ( !fNaiveCnf )
     {
         p->vLeaves   = Vec_PtrAlloc( 100 );
         p->vVolume   = Vec_PtrAlloc( 100 );
@@ -650,7 +650,7 @@ void Aig_GlaExtendIncluded( Aig_GlaMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fUseCnf, int fVerbose )
+Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose )
 {
     int nStart = 0;
     Vec_Int_t * vResult = NULL;
@@ -672,7 +672,7 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
     }
 
     // start the solver
-    p = Aig_GlaManStart( pAig, fUseCnf );
+    p = Aig_GlaManStart( pAig, fNaiveCnf );
     p->nFramesMax = nFramesMax;
     p->nConfLimit = nConfLimit;
     p->fVerbose   = fVerbose;
@@ -774,7 +774,8 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
         ABC_PRTP( "Total ", p->timeTotal, p->timeTotal );
     }
     // prepare return value
-    Aig_GlaExtendIncluded( p );
+    if ( !fNaiveCnf )
+        Aig_GlaExtendIncluded( p );
     vResult = p->vIncluded;  p->vIncluded = NULL;
     Aig_GlaManStop( p );
     return vResult;

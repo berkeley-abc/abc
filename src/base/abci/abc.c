@@ -28888,7 +28888,7 @@ usage:
 int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Saig_ParBmc_t Pars, * pPars = &Pars;
-    int c, fUseCnf = 1;
+    int c, fNaiveCnf = 0;
     Saig_ParBmcSetDefaultParams( pPars );
     pPars->nStart     = 0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
     pPars->nFramesMax = 50; //pPars->nStart + 10;
@@ -28954,7 +28954,7 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'c':
-            fUseCnf ^= 1;
+            fNaiveCnf ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -28975,7 +28975,7 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
-    pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars, fUseCnf );
+    pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars, fNaiveCnf );
     if ( pPars->nStart == 0 )
        pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
@@ -28990,7 +28990,7 @@ usage:
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", pPars->nFfToAddMax );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-c     : toggle using smarter CNF computation [default = %s]\n", fUseCnf? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggle using naive CNF computation [default = %s]\n", fNaiveCnf? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
