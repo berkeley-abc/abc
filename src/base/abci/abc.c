@@ -28975,6 +28975,11 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The network is combinational.\n" );
         return 0;
     }
+    if ( Gia_ManPoNum(pAbc->pGia) > 1 )
+    {
+        Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
+        return 0;
+    }
     pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars, fNaiveCnf );
     if ( pPars->nStart == 0 )
        pAbc->nFrames = pPars->iFrame;

@@ -665,10 +665,10 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
 
     if ( fVerbose )
     {
-    if ( TimeLimit )
-        printf( "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFramesMax, TimeLimit );
-    else
-        printf( "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFramesMax );
+        if ( TimeLimit )
+            printf( "Abstracting from frame %d to frame %d with timeout %d sec.\n", nStart, nFramesMax, TimeLimit );
+        else
+            printf( "Abstracting from frame %d to frame %d with no timeout.\n", nStart, nFramesMax );
     }
 
     // start the solver
@@ -748,6 +748,14 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
                     if ( !Aig_GlaObjAddToSolver( p, pObj, g ) )
                         printf( "Error!  SAT solver became UNSAT.\n" );
             }
+            if ( Vec_IntSize(vPPiRefine) == 0 )
+            {
+                Vec_IntFreeP( &p->vIncluded );
+                Vec_IntFree( vPPiRefine );
+                Aig_ManStop( pAbs );
+                Abc_CexFree( pCex );
+                break;
+            }
             Vec_IntFree( vPPiRefine );
             Aig_ManStop( pAbs );
             Abc_CexFree( pCex );
@@ -764,6 +772,8 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
     p->timeTotal = clock() - clkTotal;
     if ( f == nFramesMax )
         printf( "Finished %d frames without exceeding conflict limit (%d).\n", f, nConfLimit );
+    else if ( p->vIncluded == NULL )
+        printf( "The problem is SAT in frame %d. The CEX is currently not produced.\n", f );
     else
         printf( "Ran out of conflict limit (%d) at frame %d.\n", nConfLimit, f );
     // print stats
@@ -774,7 +784,7 @@ Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, in
         ABC_PRTP( "Total ", p->timeTotal, p->timeTotal );
     }
     // prepare return value
-    if ( !fNaiveCnf )
+    if ( !fNaiveCnf && p->vIncluded )
         Aig_GlaExtendIncluded( p );
     vResult = p->vIncluded;  p->vIncluded = NULL;
     Aig_GlaManStop( p );
