@@ -352,6 +352,7 @@ int Aig_GlaFetchVar( Aig_GlaMan_t * p, Aig_Obj_t * pObj, int k )
         Vec_IntPush( p->vVar2Inf, Aig_ObjId(pObj) );
         Vec_IntPush( p->vVar2Inf, k );
         Vec_IntWriteEntry( p->vVec2Var, iVecId * p->nFrames + k, iSatVar );
+        sat_solver_setnvars( p->pSat, iSatVar + 1 );
     }
     return iSatVar;
 }
