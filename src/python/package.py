@@ -70,7 +70,10 @@ def package(abc_exe, abc_sh, pyabc, ofname, scripts_dir, use_sys):
                     add_file( tf, fullname, os.path.join("pyabc/scripts", fn), 0666, mtime)
     
     add_dir(tf, "pyabc/lib", mtime)
-    add_file( tf, pyabc, "pyabc/lib/pyabc.py", 0666, mtime)
+    
+    for entry in os.listdir(pyabc):
+        if entry.endswith('.py'):
+            add_file( tf, os.path.join(pyabc, entry), os.path.join("pyabc/lib", entry), 0666, mtime)
     
     if not use_sys:
         # ZIP standard library    
