@@ -1,7 +1,5 @@
 python new_abc_commands.py
-python reachx_cmd.py
-
-load_plugin bip "Bip"
+python -c "import reachx_cmd"
 
 # global parameters
 set check         # checks intermediate networks
