@@ -424,6 +424,7 @@ void Abc_WriteKLut( FILE * pFile, int nLutSize )
 ***********************************************************************/
 void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars )
 {
+    int fGenerateFunc = 1;
     FILE * pFile;
     int nVarsLut = (1 << nLutSize);                     // the number of LUT variables
     int nVarsLog = Extra_Base2Log( nVars + nLuts - 1 ); // the number of encoding vars
@@ -440,7 +441,11 @@ void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars )
 
     fprintf( pFile, ".inputs" );
     for ( i = 0; i < nParsLut; i++ )
+    {
+        if ( i % (1 << nLutSize) == 0 && i != (nLuts - 1) * (1 << nLutSize) )
+            continue;
         fprintf( pFile, " pl%02d", i );
+    }
     fprintf( pFile, "\n" );
 
     fprintf( pFile, ".inputs" );
@@ -454,10 +459,27 @@ void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars )
     fprintf( pFile, "\n" );
 
     fprintf( pFile, ".outputs" );
-    fprintf( pFile, " v%02d", nVars + nLuts - 1 );
+//    fprintf( pFile, " v%02d", nVars + nLuts - 1 );
+    fprintf( pFile, " out" );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".names Gnd\n" ); 
     fprintf( pFile, " 0\n" ); 
+
+    // generate function
+    if ( fGenerateFunc )
+    {
+        fprintf( pFile, ".names v%02d func out\n", nVars + nLuts - 1 );
+        fprintf( pFile, "00 1\n11 1\n" );
+        fprintf( pFile, ".names" );
+        for ( i = 0; i < nVars; i++ )
+            fprintf( pFile, " v%02d", i );
+        fprintf( pFile, " func\n" );
+        for ( i = 0; i < nVars; i++ )
+            fprintf( pFile, "1" );
+        fprintf( pFile, " 1\n" );
+    }
+    else
+        fprintf( pFile, ".names v%02d out\n1 1\n", nVars + nLuts - 1 );
 
     // generate LUTs
     for ( i = 0; i < nLuts; i++ )

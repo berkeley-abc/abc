@@ -89,7 +89,8 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int fVerbose )
     {
         // solve the synthesis instance
 clkS = clock();
-        RetValue = Abc_NtkMiterSat( pNtkSyn, 0, 0, 0, NULL, NULL );
+//        RetValue = Abc_NtkMiterSat( pNtkSyn, 0, 0, 0, NULL, NULL );
+        RetValue = Abc_NtkDSat( pNtkSyn, (ABC_INT64_T)0, (ABC_INT64_T)0, 1, 0, 0 );
 clkS = clock() - clkS;
         if ( RetValue == 0 )
             Abc_NtkModelToVector( pNtkSyn, vPiValues );
@@ -143,8 +144,8 @@ clkV = clock() - clkV;
             printf( "AIG = %6d  ", Abc_NtkNodeNum(pNtkSyn) );
             Abc_NtkVectorPrintVars( pNtk, vPiValues, nPars );
             printf( "  " );
-//            ABC_PRTn( "Syn", clkS );
-            ABC_PRT( "Ver", clkV );
+            ABC_PRT( "Syn", clkS );
+//            ABC_PRT( "Ver", clkV );
         }
     }
     Abc_NtkDelete( pNtkSyn );

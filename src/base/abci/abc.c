@@ -8170,7 +8170,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
-    int nVars;
+    int nVars;    // the number of variables
+    int nLutSize; // the size of LUTs
+    int nLuts;    // the number of LUTs
     int fAdder;
     int fSorter;
     int fMesh;
@@ -8196,7 +8198,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fRandom = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasmftrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NKLasmftrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8209,6 +8211,28 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nVars < 0 ) 
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLuts < 0 ) 
                 goto usage;
             break;
         case 'a':
@@ -8253,7 +8277,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( fMesh )
         Abc_GenMesh( FileName, nVars );
     else if ( fFpga )
-        Abc_GenFpga( FileName, 4, 3, 10 );
+        Abc_GenFpga( FileName, nLutSize, nLuts, nVars );
 //        Abc_GenFpga( FileName, 2, 2, 3 );
 //        Abc_GenFpga( FileName, 3, 2, 5 );
     else if ( fOneHot )
@@ -8265,9 +8289,11 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: gen [-N num] [-asmftrvh] <file>\n" );
+    Abc_Print( -2, "usage: gen [-NKL num] [-asmftrvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
     Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );  
+    Abc_Print( -2, "\t-K num : the LUT size (to be used with switch -f) [default = %d]\n", nLutSize );  
+    Abc_Print( -2, "\t-L num : the LUT count (to be used with switch -f) [default = %d]\n", nLuts );  
     Abc_Print( -2, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
     Abc_Print( -2, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );  
     Abc_Print( -2, "\t-m     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );  
@@ -11053,8 +11079,8 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: qbf [-P num] [-vh]\n" );
-    Abc_Print( -2, "\t         solves a quantified intean formula problem EpVxM(p,x)\n" );
-    Abc_Print( -2, "\t-P num : number of paramters (should be the first PIs) [default = %d]\n", nPars );
+    Abc_Print( -2, "\t         solves QBF problem EpVxM(p,x)\n" );
+    Abc_Print( -2, "\t-P num : number of parameters p (should be the first PIs) [default = %d]\n", nPars );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
