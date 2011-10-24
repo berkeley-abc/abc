@@ -607,18 +607,18 @@ class _Cex(object):
         return _cex_get_frame(self.pCex)
        
 def cex_get_vector():
-	
-	res = []
-	
-	for i in xrange(_cex_get_vec_len()):
-		cex = _cex_get_vec(i)
-	
-		if cex is None:
-			res.append(None)
-		else:
-			res.append(_Cex(cex)) 		
-	
-	return res
+    
+    res = []
+    
+    for i in xrange(_cex_get_vec_len()):
+        cex = _cex_get_vec(i)
+
+        if cex is None:
+            res.append(None)
+        else:
+            res.append(_Cex(cex))
+    
+    return res
        
 def cex_get():
 
