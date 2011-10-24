@@ -43,18 +43,6 @@ def popen_and_wait_with_timeout(timeout,cmd, *args, **kwargs):
         return -1
 
 @contextmanager
-def replace_sys_argv(argv):
-    if 'argv' in sys.__dict__:
-        old_argv = sys.argv
-        sys.argv = argv
-        yield
-        sys.argv = old_argv
-    else:
-        sys.argv = argv
-        yield
-        del sys.argv
-
-@contextmanager
 def temp_file_name(suffix=""):
     file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     name = file.name
@@ -105,13 +93,12 @@ def run_reachx_cmd(effort, timeout):
 def reachx_cmd(argv):
     usage = "usage: %prog [options]"
     
-    parser = optparse.OptionParser(usage)
+    parser = optparse.OptionParser(usage, prog="reachx")
     
     parser.add_option("-e", "--effort", dest="effort", type=int, default=0, help="effort level. [default=0, means unlimited]")
     parser.add_option("-t", "--timeout", dest="timeout", type=int, default=0, help="timeout in seconds [default=0, unlimited]")
 
-    with replace_sys_argv(argv):
-        options, args = parser.parse_args()
+    options, args = parser.parse_args(argv)
 
     rc = run_reachx_cmd(options.effort, options.timeout)
     print "%s command: jabc returned: %d"%(argv[0], rc)

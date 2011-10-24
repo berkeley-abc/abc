@@ -34,7 +34,7 @@ import optparse
 def pytest3_cmd(args):
     usage = "usage: %prog [options]"
     
-    parser = optparse.OptionParser(usage)
+    parser = optparse.OptionParser(usage, prog="pytest3")
     
     parser.add_option("-c", "--cmd", dest="cmd", help="command to ask help for")
     parser.add_option("-v", "--version", action="store_true", dest="version", help="display Python Version")
