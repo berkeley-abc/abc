@@ -11,4 +11,4 @@ abc_root()
 abc_dir=$(abc_root "$0")
 bin_dir="${abc_dir}"/bin
 
-exec ${bin_dir}/abc -c "/super_prove_aiger $*"
+exec ${bin_dir}/abc -c "/simple_bip_aiger $*"
