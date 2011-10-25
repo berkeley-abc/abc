@@ -41,6 +41,8 @@ static void Abc_NtkVectorClearVars( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues, int
 static void Abc_NtkVectorPrintPars( Vec_Int_t * vPiValues, int nPars );
 static void Abc_NtkVectorPrintVars( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues, int nPars );
 
+extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fAlignPol, int fAndOuts, int fVerbose );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -58,7 +60,7 @@ static void Abc_NtkVectorPrintVars( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues, int
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int fVerbose )
+void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fVerbose )
 {
     Abc_Ntk_t * pNtkVer, * pNtkSyn, * pNtkSyn2, * pNtkTemp;
     Vec_Int_t * vPiValues;
@@ -74,6 +76,15 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int fVerbose )
 
     // initialize the synthesized network with 0000-combination
     vPiValues = Vec_IntStart( Abc_NtkPiNum(pNtk) );
+
+    // create random init value
+    {
+    int i;
+    srand( time(NULL) );
+    for ( i = nPars; i < Abc_NtkPiNum(pNtk); i++ )
+        Vec_IntWriteEntry( vPiValues, i, rand() & 1 );
+    }
+
     Abc_NtkVectorClearPars( vPiValues, nPars );
     pNtkSyn = Abc_NtkMiterCofactor( pNtk, vPiValues );
     if ( fVerbose )
@@ -147,6 +158,8 @@ clkV = clock() - clkV;
             ABC_PRT( "Syn", clkS );
 //            ABC_PRT( "Ver", clkV );
         }
+        if ( nIters+1 == nItersMax )
+            break;
     }
     Abc_NtkDelete( pNtkSyn );
     // report the results
@@ -159,7 +172,9 @@ clkV = clock() - clkV;
     }
     else if ( nIters == nIterMax )
         printf( "Unsolved after %d interations.  ", nIters );
-    else 
+    else if ( nIters == nItersMax )
+        printf( "Quit after %d interatios.  ", nItersMax );
+    else
         printf( "Implementation does not exist.  " );
     ABC_PRT( "Total runtime", clock() - clkTotal );
     Vec_IntFree( vPiValues );

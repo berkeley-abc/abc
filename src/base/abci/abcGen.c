@@ -442,8 +442,8 @@ void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars )
     fprintf( pFile, ".inputs" );
     for ( i = 0; i < nParsLut; i++ )
     {
-        if ( i % (1 << nLutSize) == 0 && i != (nLuts - 1) * (1 << nLutSize) )
-            continue;
+//        if ( i % (1 << nLutSize) == 0 && i != (nLuts - 1) * (1 << nLutSize) )
+//            continue;
         fprintf( pFile, " pl%02d", i );
     }
     fprintf( pFile, "\n" );

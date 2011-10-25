@@ -11016,14 +11016,16 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     int nPars;
+    int nIters;
     int fVerbose;
 
-    extern void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int fVerbose );
+    extern void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nIters, int fVerbose );
     // set defaults
     nPars    = -1;
+    nIters   = -1;
     fVerbose =  1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Pvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PIvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11036,6 +11038,17 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
             nPars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nPars < 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 ) 
                 goto usage;
             break;
         case 'v':
@@ -11068,19 +11081,20 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( Abc_NtkIsStrash(pNtk) )
-        Abc_NtkQbf( pNtk, nPars, fVerbose );
+        Abc_NtkQbf( pNtk, nPars, nIters, fVerbose );
     else
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 1, 0 );
-        Abc_NtkQbf( pNtk, nPars, fVerbose );
+        Abc_NtkQbf( pNtk, nPars, nIters, fVerbose );
         Abc_NtkDelete( pNtk );
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: qbf [-P num] [-vh]\n" );
+    Abc_Print( -2, "usage: qbf [-PI num] [-vh]\n" );
     Abc_Print( -2, "\t         solves QBF problem EpVxM(p,x)\n" );
     Abc_Print( -2, "\t-P num : number of parameters p (should be the first PIs) [default = %d]\n", nPars );
+    Abc_Print( -2, "\t-I num : quit after the given iteration even if unsolved [default = %d]\n", nIters );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
