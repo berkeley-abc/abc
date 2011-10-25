@@ -1,36 +1,17 @@
-
-# You can use 'from pyabc import *' and then not need the pyabc. prefix everywhere
-
+import sys
 import os
 import pyabc
-import abc_common
+import par
 import tempfile
 import shutil
 import redirect
-
-# A new command is just a function that accepts a list of string arguments
-#   The first argument is always the name of the command
-#   It MUST return an integer. -1: user quits, -2: error. Return 0 for success.
-
-# a command that calls prove(1) and returns success
-def prove_cmd(args):
-    result = abc_common.prove(1)
-    print result
-    return 0
-
-# registers the command:
-#   The first argument is the function
-#   The second argument is the category (mainly for the ABC help command)
-#   The third argument is the new command name
-#   Keep the fourth argument 0, or consult with Alan
-
-pyabc.add_abc_command(prove_cmd, "ZPython", "/prove", 0)
+import optparse
 
 def read_cmd(args):
     if len(args)==2:
-        abc_common.read_file_quiet(args[1])
+        par.read_file_quiet(args[1])
     else:
-        abc_common.read_file()
+        par.read_file()
     return 0
 
 pyabc.add_abc_command(read_cmd, "ZPython", "/rf", 0)
@@ -109,75 +90,67 @@ def print_aiger_result(args):
     
 pyabc.add_abc_command(print_aiger_result, "ZPython", "/print_aiger_result", 0)
 
-def super_prove_aiger_cmd(args):
+def proof_command_wrapper(prooffunc, category_name, command_name, change):
 
-    noisy = len(args)==2 and args[1]=='-n'
+    def wrapper(argv):
+        
+        usage = "usage: %prog [options] <aig_file>"
+    
+        parser = optparse.OptionParser(usage, prog=command_name)
+    
+        parser.add_option("-n", "--no_redirect", dest="noisy", action="store_true", default=False, help="don't redirect output")
+        parser.add_option("-d", "--current_dir", dest="current_dir", action="store_true", default=False, help="stay in current directory")
 
-    if not noisy:
-        pyabc.run_command('/pushredirect')
-        pyabc.run_command('/pushdtemp')
-    
-    try:
-        result = abc_common.super_prove()
-    except:
-        result = None
-    
-    if not noisy:
-        pyabc.run_command('/popdtemp')
-        pyabc.run_command('/popredirect')
+        options, args = parser.parse_args(argv)
+        
+        if len(args) != 2:
+            print args
+            parser.print_usage()
+            return 0
             
-    if result=="SAT":
-        print 1
-    elif result=="UNSAT":
-        print 0
-    else:
-        print 2
+        aig_filename = os.path.abspath(args[1])
 
-    return 0
-    
-pyabc.add_abc_command(super_prove_aiger_cmd, "ZPython", "/super_prove_aiger", 0)
-
-
-def prove_one_by_one_cmd(args):
-    
-    noisy = len(args)==2 and args[1]=='-n'
-
-    # switch to a temporary directory
-    pyabc.run_command('/pushdtemp')
-    
-    # write a copy of the original file in the temporary directory
-    pyabc.run_command('w original_aig_file.aig')
-    
-    # iterate through the ouptus
-    for po in range(0, pyabc.n_pos()):
-        
-        if not noisy:
+        if not options.noisy:
             pyabc.run_command('/pushredirect')
-
-        # replace the nework with the cone of the current PO
-        pyabc.run_command( 'cone -O %d -s'%po )
-
-        # run super_prove
+            
+        if not options.current_dir:
+            pyabc.run_command('/pushdtemp')
+            
         try:
-            result = abc_common.super_prove()
+            for d in os.environ['PATH'].split(':'):
+                bip = os.path.join(d, 'bip')
+                if os.path.exists(bip):
+                    pyabc.run_command("load_plugin %s Bip"%bip)
+                    break
+
+            basename = os.path.basename( aig_filename )
+            shutil.copyfile(aig_filename, basename)
+            aig_filename = basename
+
+            par.read_file_quiet(aig_filename)
+            result = prooffunc()
+            
+            par.cex_list = []
         except:
-            result = 'UNKNOWN'
+            result = None
 
-        if not noisy:
+        if not options.current_dir:
+            pyabc.run_command('/popdtemp')
+
+        if not options.noisy:
             pyabc.run_command('/popredirect')
+                
+        if result=="SAT":
+            print 1
+        elif result=="UNSAT":
+            print 0
+        else:
+            print 2
 
-        print 'PO %d is %s'%(po, result)
-        
-        # stop if the result is not UNSAT
-        if result != "UNSAT":
-            break
-
-        # read the original file for the next iteration
-        pyabc.run_command('r original_aig_file.aig')
-        
-    # go back to the original directory
-    pyabc.run_command('/popdtemp')
-
-    return 0
+        return 0
     
-pyabc.add_abc_command(prove_one_by_one_cmd, "ZPython", "/prove_one_by_one", 0)
+    pyabc.add_abc_command(wrapper, category_name, command_name, change)
+
+proof_command_wrapper(par.super_prove,  'HWMCC11', '/super_prove_aiger',  0)
+proof_command_wrapper(par.simple_prove, 'HWMCC11', '/simple_prove_aiger', 0)
+proof_command_wrapper(par.simple_bip,   'HWMCC11', '/simple_bip_aiger',   0)

@@ -1,14 +1,13 @@
 python new_abc_commands.py
-python reachx_cmd.py
-#python C:\Research\ABC\AIG\Python\reachx_cmd.py
+python -c "import reachx_cmd"
 
 # global parameters
 set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
-set checkread     # checks new networks after reading from file
-set backup        # saves backup networks retrived by "undo" and "recall"
-set savesteps 1   # sets the maximum number of backup networks to save 
-set progressbar   # display the progress bar
+#set checkread     # checks new networks after reading from file
+#set backup        # saves backup networks retrived by "undo" and "recall"
+#set savesteps 1   # sets the maximum number of backup networks to save 
+#set progressbar   # display the progress bar
 
 # program names for internal calls
 set dotwin dot.exe
@@ -25,6 +24,10 @@ set gnuplotwin wgnuplot.exe
 set gnuplotunix gnuplot
 
 # standard aliases
+alias srw "b; rw; b"
+alias fix "ps; st; ps; srw; ps; plat; cycle -x -F 1; plat; logic; undc; st; zero; ps; scorr; ps" 
+alias fixp "st; srw; cycle -x -F 1; logic; undc; st; zero "
+
 alias b balance
 alias cl cleanup
 alias clp collapse
@@ -67,8 +70,8 @@ alias rvl read_verlib
 alias rsup read_super mcnc5_old.super
 alias rlib read_library
 alias rlibc read_library cadence.genlib
-alias rw rewrite
-alias rwz rewrite -z
+alias rw drw
+alias rwz drw -z
 alias rf refactor
 alias rfz refactor -z
 alias re restructure
@@ -98,18 +101,18 @@ alias wv write_verilog
 
 # standard scripts
 alias share       "b; multi; fx; b"
-alias resyn       "b; rw; rwz; b; rwz; b"
-alias resyn2      "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
-alias resyn2a     "b; rw; b; rw; rwz; b; rwz; b"
+alias resyn       "b; drw; rwz; b; rwz; b"
+alias resyn2      "b; drw; rf; b; drw; rwz; b; rfz; rwz; b"
+alias resyn2a     "b; drw; b; drw; rwz; b; rwz; b"
 alias resyn3      "b; rs; rs -K 6; b; rsz; rsz -K 6; b; rsz -K 5; b"
-alias compress    "b -l; rw -l; rwz -l; b -l; rwz -l; b -l"
+alias compress    "b -l; drw -l; rwz -l; b -l; rwz -l; b -l"
 
-alias compress2   "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
+alias compress2   "b -l; drw -l; rf -l; b -l; drw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
 alias choice      "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
 alias choice2     "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
-alias rwsat       "st; rw -l; b -l; rw -l; rf -l"
-alias rwsat2      "st; rw -l; b -l; rw -l; rf -l; fraig; rw -l; b -l; rw -l; rf -l"
-alias shake       "st; ps; sat -C 5000; rw -l; ps; sat -C 5000; b -l; rf -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000; rwz -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000"
+alias rwsat       "st; drw -l; b -l; drw -l; rf -l"
+alias rwsat2      "st; drw -l; b -l; drw -l; rf -l; fraig; drw -l; b -l; drw -l; rf -l"
+alias shake       "st; ps; sat -C 5000; drw -l; ps; sat -C 5000; b -l; rf -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000; rwz -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000"
 
 alias snap fraig_store
 alias unsnap fraig_restore
@@ -126,24 +129,24 @@ alias icb "ic -M 2 -B 10 -s"
 alias cs "care_set "
 
 # resubstitution scripts for the IWLS paper
-alias src_rw      "st; rw -l; rwz -l; rwz -l" 
+alias src_rw      "st; drw -l; rwz -l; rwz -l" 
 alias src_rs      "st; rs -K 6 -N 2 -l; rs -K 9 -N 2 -l; rs -K 12 -N 2 -l" 
-alias src_rws     "st; rw -l; rs -K 6 -N 2 -l; rwz -l; rs -K 9 -N 2 -l; rwz -l; rs -K 12 -N 2 -l" 
-alias resyn2rs    "b; rs -K 6; rw; rs -K 6 -N 2; rf; rs -K 8; b; rs -K 8 -N 2; rw; rs -K 10; rwz; rs -K 10 -N 2; b; rs -K 12; rfz; rs -K 12 -N 2; rwz; b"
-alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; rs -K 8 -N 2 -l; rw -l; rs -K 10 -l; rwz -l; rs -K 10 -N 2 -l; b -l; rs -K 12 -l; rfz -l; rs -K 12 -N 2 -l; rwz -l; b -l"
+alias src_rws     "st; drw -l; rs -K 6 -N 2 -l; rwz -l; rs -K 9 -N 2 -l; rwz -l; rs -K 12 -N 2 -l" 
+alias resyn2rs    "b; rs -K 6; drw; rs -K 6 -N 2; rf; rs -K 8; b; rs -K 8 -N 2; drw; rs -K 10; rwz; rs -K 10 -N 2; b; rs -K 12; rfz; rs -K 12 -N 2; rwz; b"
+alias compress2rs "b -l; rs -K 6 -l; drw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; rs -K 8 -N 2 -l; drw -l; rs -K 10 -l; rwz -l; rs -K 10 -N 2 -l; b -l; rs -K 12 -l; rfz -l; rs -K 12 -N 2 -l; rwz -l; b -l"
 alias c2 "ua; compress2rs; sa"
 alias ic "indcut -v"
 alias lp "lutpack"
 alias c "ua; compress; sa"
-alias c1 "ua; compress;b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; sa" 
+alias c1 "ua; compress;b -l; rs -K 6 -l; drw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; sa" 
 alias dr dretime
 alias ds dsec -v
 alias dp dprove -v
 
 
 # experimental implementation of don't-cares
-alias resyn2rsdc    "b; rs -K 6 -F 2; rw; rs -K 6 -N 2 -F 2; rf; rs -K 8 -F 2; b; rs -K 8 -N 2 -F 2; rw; rs -K 10 -F 2; rwz; rs -K 10 -N 2 -F 2; b; rs -K 12 -F 2; rfz; rs -K 12 -N 2 -F 2; rwz; b"
-alias compress2rsdc "b -l; rs -K 6 -F 2 -l; rw -l; rs -K 6 -N 2 -F 2 -l; rf -l; rs -K 8 -F 2 -l; b -l; rs -K 8 -N 2 -F 2 -l; rw -l; rs -K 10 -F 2 -l; rwz -l; rs -K 10 -N 2 -F 2 -l; b -l; rs -K 12 -F 2 -l; rfz -l; rs -K 12 -N 2 -F 2 -l; rwz -l; b -l"
+alias resyn2rsdc    "b; rs -K 6 -F 2; drw; rs -K 6 -N 2 -F 2; rf; rs -K 8 -F 2; b; rs -K 8 -N 2 -F 2; drw; rs -K 10 -F 2; rwz; rs -K 10 -N 2 -F 2; b; rs -K 12 -F 2; rfz; rs -K 12 -N 2 -F 2; rwz; b"
+alias compress2rsdc "b -l; rs -K 6 -F 2 -l; drw -l; rs -K 6 -N 2 -F 2 -l; rf -l; rs -K 8 -F 2 -l; b -l; rs -K 8 -N 2 -F 2 -l; drw -l; rs -K 10 -F 2 -l; rwz -l; rs -K 10 -N 2 -F 2 -l; b -l; rs -K 12 -F 2 -l; rfz -l; rs -K 12 -N 2 -F 2 -l; rwz -l; b -l"
 
 # minimizing for FF literals
 alias fflitmin    "compress2rs; ren; sop; ps -f"
@@ -222,9 +225,10 @@ alias lcr "&get; &lcorr; &put"
 
 alias trm "logic;trim;st;ps"
 
-alias smp   "ua;ps;scl;ps;rw;dr;lcorr;rw;dr;ps;scorr;ps;fraig;ps;dc2;dr;scorr -F 2;ps;dc2rs;w temp.aig"
-alias smp1   "ua;ps;scl;ps;rw;dr;lcorr;rw;dr;ps;scorr;ps;fraig;ps;dc2;dr;ps;dc2rs;w temp.aig"
-alias smpf  "ua;ps;scl;lcr;ps;rw;dr;ps;scr;ps;dc2;&get;&scorr -F 2;&put;dr;ps;dc2;ps;w temp.aig"
+alias smp   "ua;ps;scl;ps;drw;dr;lcorr;drw;dr;ps;scorr;ps;fraig;ps;dc2;dr;scorr -F 2;ps;dc2rs;w temp.aig"
+alias smp1   "scl;drw;dr;lcorr;drw;dr;scorr;fraig;dc2rs"
+alias smp2   "ua;ps;scl;ps;drw;dr;lcorr;drw;dr;ps;scorr;ps;fraig;ps;dc2;dr;ps;dc2rs;w temp.aig"
+alias smpf  "ua;ps;scl;lcr;ps;drw;dr;ps;scr;ps;dc2;&get;&scorr -F 2;&put;dr;ps;dc2;ps;w temp.aig"
 
 
 alias &smp   "ua;&get;&ps;&scl;&ps;&dc2;&put;dr;&get;&lcorr;&dc2;&put;dr;&get;&ps;&scorr;&ps;&fraig;&ps;&dc2;&put;dr;&get;&scorr -F 2;&ps;&dc2;&put;w temp.aig"
@@ -233,7 +237,7 @@ alias smplite '&get;&scl;&dc2;&put;dr;&get;&lcorr;&dc2;&put;dr;&get;&scorr;&dc2;
 
 alias &smp1   "ua;&get;&ps;&scl;&ps;&dc2;&put;dr;&get;&lcorr;&dc2;&put;dr;&get;&ps;&scorr;&ps;&fraig;&ps;&dc2;&put;dr;&get;&ps;&dc2;&put;w temp.aig"
 
-alias &smpf  "ua;ps;rw;&get;&ps;&scl;&ps;&put;dr;&get;&ps;&lcorr;&ps;&dc2;&ps;&scorr;&ps;&put;rw;ps;w temp.aig"
+alias &smpf  "ua;ps;drw;&get;&ps;&scl;&ps;&put;dr;&get;&ps;&lcorr;&ps;&dc2;&ps;&scorr;&ps;&put;drw;ps;w temp.aig"
 
 #for each output separately
 alias simpk "dprove -vrcbkmiu -B 10 -D 1000"
@@ -323,7 +327,12 @@ alias %scr "%get;%st;%scorr;%put;st"
 
 alias sc "fold;w tempc.aig;unfold -s"
 alias uc "r tempc.aig;unfold -s"
-alias smpc "scl;rw;ps;scorr -c;ps;fraig;ps;compress2rs;ps"
+alias smpc "scl;drw;ps;scorr -c;ps;fraig;ps;compress2rs;ps"
+
+alias abseen "&get;,abs -vt=60 -timeout=60 -bob=10 -aig=temp.aig;r temp.aig"
+alias pdreen "&get;,pdr -vt=60"
+alias inteen "&get;,imc -vt=60"
+alias bmceen "&get;,bmc -vt=60"
 
 
 

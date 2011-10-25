@@ -1,9 +1,13 @@
 from pyabc import *
+import pyabc_split
+import par
 import redirect
 import sys
 import os
 import time
 import math
+
+
 global G_C,G_T,latches_before_abs,latches_before_pba,n_pos_before,x_factor
 
 """
@@ -40,7 +44,7 @@ stackno_gabs = stackno_gore = stackno_greg= 0
 STATUS_UNKNOWN = -1
 STATUS_SAT = 0
 STATUS_UNSAT = 1
-RESULT = ('SAT' , 'SAT', 'UNSAT', 'UNDECIDED but reduced', 'UNDECIDED, no reduction', 'UNDCIDED but reduced'  )
+RESULT = ('SAT' , 'SAT', 'UNSAT', 'UNDECIDED', 'UNDECIDED,', 'UNDCIDED'  )
 Sat_reg = 0
 Sat_true = 1
 Unsat = 2
@@ -190,29 +194,6 @@ def read_file():
 def rf():
     read_file()
 
-##def read_file():
-##    """This is the main program used for reading in a new circuit. The global file name is stored (f_name)
-##    Sometimes we want to know the initial starting name. The file name can have the .aig extension left off
-##    and it will assume that the .aig extension is implied. This should not be used for .blif files.
-##    Any time we want to process a new circuit, we should use this since otherwise we would not have the
-##    correct f_name."""
-##    global max_bmc,  f_name, d_name, initial_f_name, x_factor
-##    x_factor = 1
-##    max_bmc = -1
-##    print 'Type in the name of the aig file to be read in'
-##    s = raw_input()
-##    if s[-4:] == '.aig':
-##        f_name = s[:-4]
-##    else:
-##        f_name = s
-##        s = s+'.aig'
-##    run_command(s)
-##    initial_f_name = f_name
-##    print_circuit_stats()
-##    
-##def rf():
-##    """just an alias for read_file"""
-##    read_file()
 
 def write_file(s):
     """this is the main method for writing the current circuit to an AIG file on disk.
@@ -236,7 +217,7 @@ def wf():
 def bmc_depth():
     """ Finds the number of BMC frames that the latest operation has used. The operation could be BMC, reachability
     interpolation, abstract, speculate. max_bmc is continually increased. It reflects the maximum depth of any version of the circuit
-    including abstract ones, for which it is known that there is not cex out to that depth."""
+    including g ones, for which it is known that there is not cex out to that depth."""
     global max_bmc
     b = n_bmc_frames()
     max_bmc = max(b,max_bmc)
@@ -301,43 +282,7 @@ def rc(file):
     """reads <file> so that if constraints are explicit, it will preserve them"""
     abc('&r %s;&put'%file)                         
 
-##def push(file):
-##    """ saves <file>.aig in stack_x"""
-##    global stackno_gabs, stackno_gsrm, stackno_greg
-##    if 'gabs' in file:
-##        snm = 'gabs'
-##    elif 'gsrm' in file:
-##        snm = 'gsrm'
-##    elif 'x' in file:
-##        snm = 'greg'
-##    else:
-##        print 'wrong file name'
-##        return 
-##    print snm
-##    sn = 'stackno_%s'%snm
-##    print sn
-##    exec 'sn += sn'
-##    print sn, eval(sn)
-##    run_command("r %s.aig"%file)
-##    run_command("w %s_%d.aig"%(file,eval(sn)))
-##
-##def pop(file):
-##    """ reads top <file>.aig in stack_1 and saves it in <file>.aig"""
-##    global stackno_gabs, stackno_gsrm, stackno_greg
-##    if 'gabs' in file:
-##        sn = 'gabs'
-##    if 'gsrm' in file:
-##        sn = 'gsrm'
-##    if 'x' in file:
-##        sn = 'greg'
-##    else:
-##        print 'wrong file name'
-##        return 
-##    run_command("r %s_%d.aig"%(file,eval(sn)))
-##    run_command("w %s.aig"%file)
-##    os.remove("%s_%d.aig"%(file,eval(sn))) 
-##    exec 'sn = sn-1'
-##    # need to protect against wrong stack count
+
 
 def fast_int(n):
     """This is used to eliminate easy-to-prove outputs. Arg n is conflict limit to be used
@@ -382,10 +327,10 @@ def simplify():
     # set_globals()
 ##    print 'simplify initial ',
 ##    ps()
-    abc('w t.aig')
+    #abc('w t.aig')
     n=n_ands()
     abc('scl')
-    if n > 30000:
+    if n > 40000:
         abc('&get;&scl;&put')
         n = n_ands()
         if n < 100000:
@@ -393,7 +338,7 @@ def simplify():
             run_command('ps')
             print '.',
             n = n_ands()
-            if n<45000:
+            if n<60000:
                 abc("&get;&scorr -F 2;&put;dc2rs")
                 print '.',
                 #ps()
@@ -403,28 +348,34 @@ def simplify():
                 #ps()
             n = n_ands()
     n = n_ands()
-    if n <= 30000:
+    if n <= 40000:
         print '.',
         #ps()
-        if n > 15000:
+        if n > 30000:
             abc("dc2rs")
             print '.',
-        else:
-            abc("scorr -F 2;dc2rs")
-            print '.',
-            #ps()
+##        else:
+##            abc("scorr -F 2;dc2rs")
+##            print '.',
+##            ps()
     n = max(1,n_ands())
-    ps()
-    if n < 20000:
+    #ps()
+    if n < 30000:
+        abc('scl;rw;dr;lcorr;rw;dr')
         m = int(min( 60000/n, 16))
         #print 'm = %d'%m
-        if m >= 4:
-            j = 4
+        if m >= 1:
+            j = 1
             while j <= m:
                 set_size()
                 #print 'j - %d'%j
-                abc('scl;dr;dc2;scorr -C 5000 -F %d'%j)
-                if check_size() == 1:
+                #abc('scl;dr;dc2;scorr -C 5000 -F %d'%j)
+                if j<8:
+                    abc('dc2')
+                else:
+                    abc('dc2rs')
+                abc('scorr -C 5000 -F %d'%j)
+                if check_size():
                     break
                 j = 2*j
                 #ps()
@@ -464,6 +415,25 @@ def iterate_simulation(latches_before):
             if not is_sat():
                 break
 
+def simulate():
+    """Simulation is controlled by the amount
+    of memory it might use. At first wide but shallow simulation is done, bollowed by
+    successively more narrow but deeper simulation"""
+    global x_factor, f_name
+##    print 'RUNNING simulation iteratively'
+    f = 5
+    w = 255
+    for k in range(9):
+        f = min(f *2, 3500)
+        w = max(((w+1)/2)-1,1)
+        print '.',
+        abc('sim -m -F %d -W %d'%(f,w))
+        if is_sat():
+            print 'cex found in frame %d'%cex_frame()
+            return 'SAT'
+    return 'UNDECIDED'
+        
+
 def iterate_abstraction_refinement(latches_before,NBF):
     """Subroutine of 'abstract' which does the refinement of the abstracted model,
     using counterexamples found by BMC or BDD reachability"""
@@ -472,8 +442,7 @@ def iterate_abstraction_refinement(latches_before,NBF):
         F = 2000
     else:
         F = 2*NBF
-    print '\nIterating BMC or BDD reachability'
-    reach_sw = 0
+    print '\nIterating BMC/PDR'
     always_reach = 0
     cexf = 0
     reach_failed = 0
@@ -490,36 +459,47 @@ def iterate_abstraction_refinement(latches_before,NBF):
         nlri = n_latches()+ri
         #reach_allowed = ((nlri<150) or (((cexf>250))&(nlri<300)))
         reach_allowed = ((nlri<75) or (((cexf>250))&(nlri<300)))
+        pdr_allowed  = True
+        bmc = False
         t = max(1,G_T)
         if not F == -1:
             F = int(1.5*max_bmc)
-        if (((reach_allowed  or  (reach_sw ==1)) and not reach_failed)):
+        if (((reach_allowed  or pdr_allowed ) and not reach_failed)):
             #cmd = 'reach -B 200000 -F 3500 -T %f'%t
             #cmd = 'reachx -e %d -t %d'%(int(long(t)),max(10,int(t)))
-            cmd = 'reachx -t %d'%max(10,int(t))
-            reach_sw = 1
+            #cmd = 'reachx -t %d'%max(10,int(t))
+            cmd = '&get;,pdr -vt=%f'%t
         else:
-            reach_sw = 0
-            cmd = 'bmc3 -C %d -T %f -F %d'%(G_C,t,F)
-        print 'RUNNING %s'%cmd
+            #cmd = 'bmc3 -C %d -T %f -F %d'%(G_C,t,F)
+            bmc = True
+            cmd = '&get;,bmc -vt=%f'%(t)
+            #cmd = '&get;,pdr -vt=%f'%(t)
+        print '\n***RUNNING %s'%cmd
+        #run_command(cmd)
+        last_bmc = max_bmc
         abc(cmd)
         if prob_status() == 1:
-            print 'Reachability went to %d frames, '%n_bmc_frames()
+            #print 'Depth reached %d frames, '%n_bmc_frames()
             print 'UNSAT'
             return Unsat
         cexf = cex_frame()
-        set_max_bmc(cexf -1)
-        if ((not is_sat()) and (reach_sw == 1)):
+        #print 'cex depth = %d'%cexf
+        #set_max_bmc(cexf -1)
+        if ((not is_sat()) ):
             reach_failed = 1 # if ever reach failed, then we should not try it again on more refined models
         if is_sat():
-            set_max_bmc(cex_frame()-1)
+            #print 'CEX in frame %d for output %d'%(cex_frame(),cex_po())
+            #set_max_bmc(cexf-1)
             refine_with_cex() # if cex can't refine, status is set to Sat_true
             if is_sat():
                 print 'cex did not refine. Implies true_sat'
                 return Sat_true
         else:
             print "No CEX found in %d frames"%n_bmc_frames()
-            if reach_sw == 0:
+            set_max_bmc(n_bmc_frames())
+            if bmc:
+                break
+            elif max_bmc> 1.2*last_bmc: # if pdr increased significantly over abs, the assume OK
                 break
             else:
                 continue
@@ -543,29 +523,18 @@ def abstract():
     print 'Start: ',
     print_circuit_stats()
     c = 1.5*G_C
-    #c = 20000
-    t = max(1,1.25*G_T)
-    method = 3
-    if n_ands() > 100000:
-        method = 0
+    #t = max(1,1.25*G_T)
+    t = 2*max(1,1.25*G_T)
     s = min(max(3,c/30000),10) # stability between 3 and 10
-    if max_bmc == -1:
-        time = max(1,.01*G_T)
-        abc('bmc3 -C %d -T %f -F 165'%(.01*G_C, time))
-        set_max_bmc(bmc_depth())
-    f = min(250,1.5*max_bmc)
-    f = max(20, f)
-    f = 10*f
-    if not method == 0:
-        b = 10
-        b = max(b,max_bmc+2)
-        b = b*2**(x_factor-1)
-        b = 2*b
-        print 'Neen abstraction params: Bob = %d, Method #%d, %d conflicts, %d stable, %d sec., %d frames'%(b,method,c/3,s,t,f)
-        abc('&get; &abs_newstart -v -B %f -A %d -C %d -S %d -V %f -F %d'%(b,method,c/3,s,t,f))
-    else:
-        abc('&get;&abs_start -v -C 500000 -R 1')
-    #abc('w abstemp.aig')
+    time = max(1,.01*G_T)
+    abc('&get;,bmc -vt=%f'%time)
+    print 'BMC went %d frames'%n_bmc_frames()
+    set_max_bmc(bmc_depth())
+    f = max(2*max_bmc,20)
+    b = min(max(10,max_bmc),200)
+    cmd = '&get;,abs -bob=%d -stable=%d -timeout=%f -vt=%f -depth=%d'%(b,s,t,t,f)
+    print '     Running %s'%cmd
+    run_command(cmd)
     if is_sat():
         print 'Found true counterexample in frame %d'%cex_frame()
         return Sat_true
@@ -573,8 +542,8 @@ def abstract():
     print 'Abstraction good to %d frames'%n_bmc_frames()
     set_max_bmc(NBF)
     abc('&w %s_greg.aig; &abs_derive; &put; w %s_gabs.aig'%(f_name,f_name))
-    print 'First abstraction: ',
-    print_circuit_stats()
+##    print 'First abstraction: ',
+##    print_circuit_stats()
     latches_after = n_latches()
     #if latches_before_abs == latches_after:
     if latches_after >= .98*latches_before_abs:
@@ -583,7 +552,7 @@ def abstract():
         return Undecided_no_reduction    
     # refinement loop
     if (n_ands() + n_latches() + n_pis()) < 15000:
-        print 'Running simulation iteratively'
+        print '\n***Running simulation iteratively'
         for i in range(5):
             result = iterate_simulation(latches_before_abs)
             if result == Restart:
@@ -610,7 +579,8 @@ def absv(n,v):
     s = min(max(3,c/30000),10) # stability between 3 and 10
     if max_bmc == -1:
         time = max(1,.01*G_T)
-        abc('bmc3 -C %d -T %f -F 165'%(.01*G_C, time))
+        #abc('bmc3 -C %d -T %f -F 165'%(.01*G_C, time))
+        abc('&get;,bmc -vt=%f'%time)
         set_max_bmc(bmc_depth())
     f = min(250,1.5*max_bmc)
     f = max(20, f)
@@ -648,7 +618,7 @@ def spec():
     set_globals()
     t = max(1,.5*G_T)
     r = max(1,int(t))
-    print 'Running &equiv2 with C = %d, T = %f sec., F = %d -S 1 -R %d'%(G_C,t,200,r)
+    print '\n***Running &equiv2 with C = %d, T = %f sec., F = %d -S 1 -R %d'%(G_C,t,200,r)
     abc("&get; &equiv2 -C %d -F 200 -T %f -S 1 -R %d; &semi -F 50; &speci -F 20 -C 1000;&srm; r gsrm.aig; w %s_gsrm.aig; &w %s_gore.aig"%((G_C),t,r,f_name,f_name))
     print 'Initial speculation: ',
     print_circuit_stats()
@@ -723,11 +693,13 @@ def speculate():
     set_globals()
     t = max(1,.5*G_T)
     r = max(1,int(t))
-    print 'Running &equiv2 with C = %d, T = %f sec., F = %d -S 1 -R %d'%(G_C,t,200,r)
-    abc("&get; &equiv2 -C %d -F 200 -T %f -S 1 -R %d; &semi -F 50; &speci -F 20 -C 1000;&srm; r gsrm.aig; w %s_gsrm.aig; &w %s_gore.aig"%((G_C),t,r,f_name,f_name))
+    abc('write spec_temp.aig')
+    print '\n***Running &equiv2 with C = %d, T = %f sec., F = %d -S 1 -R %d'%(G_C,t,200,r)
+##    abc("&get; &equiv2 -C %d -F 200 -T %f -S 1 -R %d; &semi -F 50; &speci -F 20 -C 1000;&srm; r gsrm.aig; w %s_gsrm.aig; &w %s_gore.aig"%((G_C),t,r,f_name,f_name))
+    abc("&get; &equiv2 -C %d -F 200 -T %f -S 1 -R %d; &semi -W 63 -S 5 -C 500 -F 500; &speci -F 200 -C 5000;&srm; r gsrm.aig; w %s_gsrm.aig; &w %s_gore.aig"%((G_C),t,r,f_name,f_name))
     print 'Initial speculation: ',
     print_circuit_stats()
-    print 'Speculation good to %d frames'%n_bmc_frames()
+    #print 'Speculation good to %d frames'%n_bmc_frames()
     #simplify()
     if n_pos_before == n_pos():
         print 'No new outputs. Quitting speculate'
@@ -735,6 +707,12 @@ def speculate():
     if is_sat():
         #print '\nWARNING: if an abstraction was done, need to refine it further\n'
         return Sat_true
+    if n_latches() > .98*n_latches_before:
+        pre_simp()
+        if n_latches() > .98*n_latches_before:
+            print 'Quitting speculation - not enough gain'
+            abc('r spec_temp.aig')
+            return Undecided_no_reduction # not worth it
     k = n_ands() + n_latches() + n_pis()
     n = 0
     if k < 15000:
@@ -746,7 +724,7 @@ def speculate():
     elif k < 120000:
         n = 8
     if n > 0: # simulation can run out of memory for too large designs, so be careful
-        print 'RUNNING simulation iteratively'          
+        print '\n***RUNNING simulation iteratively'          
         for i in range(5):
             result = run_simulation(n)
             if result == Sat_true:
@@ -757,6 +735,7 @@ def speculate():
     cexf = 0
     reach_failed = 0
     init = 1
+    run_command('write temptemp.aig')
     print '\nIterating BMC or BDD reachability'
     while True: # now try real hard to get the last cex.
         set_globals()
@@ -788,7 +767,8 @@ def speculate():
                 print 'Int found true cex: Output = %d, Frame = %d'%(cex_po(),cex_frame())
                 return Sat_true
             refine_with_cex()
-            if n_pos_before == n_pos():            
+            if ((n_pos_before == n_pos()) or (n_latches_before == n_latches())):            
+                abc('r temp_spec.aig')
                 return Undecided_no_reduction
             if is_sat():
                 print '1. cex failed to refine abstraction'
@@ -800,11 +780,13 @@ def speculate():
             ri = n_real_inputs()  #seeing how many inputs would trm get rid of
             nlri = n_latches() + ri
             reach_allowed = ((nlri<75) or (((cexf>250)) and (nlri<300)))
-            if (((reach_allowed  or  (reach_sw == 1)) and not reach_failed)):
+            pdr_allowed = True
+            bmc = False
+            if (((reach_allowed  or pdr_allowed ) and not reach_failed)):
                 t = max(1,1.2*G_T)
                 f = max(3500, 2*max_bmc)
-                cmd = 'reachx -t %d'%max(10,int(t))
-                reach_sw = 1
+                #cmd = 'reachx -t %d'%max(10,int(t))
+                cmd ='&get;,pdr -vt=%f'%t
             else:
                 t = max(1,1.5*G_T)
                 if max_bmc == -1:
@@ -812,16 +794,19 @@ def speculate():
                 else:
                     f = max_bmc
                 f = int(1.5*f)
-                cmd = 'bmc3 -C %d -T %f -F %f'%(1.5*G_C,1.2*t,f)
-                reach_sw = 0            
-            print 'Running %s'%cmd
+                #cmd = 'bmc3 -C %d -T %f -F %f'%(1.5*G_C,1.2*t,f)
+                bmc = True
+                cmd = '&get;,bmc -vt=%f'%(1.2*t)
+            print '\n***Running %s'%cmd
+            last_bmc = max_bmc
             abc(cmd)
+            #run_command(cmd)
             if is_sat():
                 cexf = cex_frame()
-                set_max_bmc(cexf  - 1)
+                #set_max_bmc(cexf  - 1)
                 #This is a temporary fix since reachx always reports cex_ps = 0
-                if ((cex_po() < n_pos_before) and (cmd[:3] == 'bmc')):
-                    print 'BMC found true cex: Output = %d, Frame = %d'%(cex_po(),cex_frame())
+                if ((cex_po() < n_pos_before) and (cmd[:4] == '&get')):
+                    print 'BMC/PDR found true cex: Output = %d, Frame = %d'%(cex_po(),cex_frame())
                     return Sat_true
                 #End of temporary fix
                 refine_with_cex()#change the number of equivalences
@@ -829,14 +814,16 @@ def speculate():
                     return Undecided_no_reduction
                 continue
             else:
-                set_max_bmc(bmc_depth())
+                set_max_bmc(n_bmc_frames())
+                if prob_status() == 1:
+                        #print 'Convergence reached in %d frames'%n_bmc_frames()
+                        return Unsat
                 print 'No cex found in %d frames'%n_bmc_frames()
-                if reach_sw == 0:
+                if bmc:
+                    break
+                elif max_bmc > 1.2*last_bmc:
                     break
                 else:
-                    if prob_status() == 1:
-                        print 'Reachability converged in %d frames'%n_bmc_frames()
-                        return Unsat
                     reach_failed = 1
                     init = 1
                     continue
@@ -880,28 +867,39 @@ def quick_verify(n):
         if n_latches == 0:
             return check_sat()
         abc('trm')
+        if is_sat():
+            return Sat_true
     print 'After trimming: ',
     print_circuit_stats()
     #try_rpm()
     set_globals()
-    if is_sat():
-        return Sat_true   
+    t = max(1,.4*G_T)
+    print '    Running PDR for %d sec '%(t)
+    abc('&get;,pdr -vt=%f'%(t*.8))
+    status = get_status()
+    if not status == Unsat:
+        print 'PDR went to %d frames, '%n_bmc_frames(),
+    print RESULT[status]
+    return status #temporary
+    if status <= Unsat:
+        return status
+    N = bmc_depth()
     c = max(G_C/10, 1000)
     t = max(1,.4*G_T)
-    print 'RUNNING interpolation with %d conflicts, max %d sec and 100 frames'%(c,t)
-    abc('int -v -F 100 -C %d -T %f'%(c,t))
+    print '    RUNNING interpolation with %d conflicts, max %d sec and 100 frames'%(c,t)
+    #abc('int -v -F 100 -C %d -T %f'%(c,t))
+    abc(',imc -vt=%f '%t)
     status = get_status()
     if status <= Unsat:
         print 'Interpolation went to %d frames, '%n_bmc_frames(),
         print RESULT[status]
         return status
-    N = bmc_depth()
     L = n_latches()
     I = n_real_inputs()
     if ( ((I+L<200)&(N>100))  or  (I+L<125)  or  L < 51 ): #heuristic that if bmc went deep, then reachability might also
         t = max(1,.4*G_T)
         cmd = 'reachx -t %d'%max(10,int(t))
-        print 'Running %s'%cmd
+        print '    Running %s'%cmd
         abc(cmd)        
         status = get_status()
         if status <= Unsat:
@@ -944,7 +942,8 @@ def try_rpm():
         bmc_before = bmc_depth()
         #print 'running quick bmc to see if rpm is OK'
         t = max(1,.1*G_T)
-        abc('bmc3 -C %d, -T %f'%(.1*G_C, t))
+        #abc('bmc3 -C %d, -T %f'%(.1*G_C, t))
+        abc('&get;,bmc -vt=%f'%t)
         if is_sat(): #rpm made it sat by bmc test, so undo rpm
             abc('r %s_savetemp.aig'%f_name)
         else:
@@ -970,13 +969,22 @@ def final_verify():
     L = n_latches()
     I = n_real_inputs()
     #try_induction(G_C)
+    c = max(G_C/5, 1000)
+    t = max(1,G_T)
+    print '\n***Running PDR for %d sec'%(t)
+    abc('&get;,pdr -vt=%f'%(t*.8))
+    status = get_status()
+    if status <= Unsat:
+        print 'PDR went to %d frames, '%n_bmc_frames(),
+        print RESULT[status]
+        return status
     if ( ((I+L<250)&(N>100))  or  (I+L<200) or (L<51) ): #heuristic that if bmc went deep, then reachability might also
         t = max(1,1.5*G_T)
         #cmd = 'reach -v -B 1000000 -F 10000 -T %f'%t
         #cmd = 'reachx -e %d'%int(long(t))
         #cmd = 'reachx -e %d -t %d'%(int(long(t)),max(10,int(t)))
         cmd = 'reachx -t %d'%max(10,int(t))
-        print 'Running %s'%cmd
+        print '\n***Running %s'%cmd
         abc(cmd)        
         status = get_status()
         if status <= Unsat:
@@ -984,16 +992,17 @@ def final_verify():
             print RESULT[status]
             return status
         print 'BDD reachability aborted'          
-    #f = max(100,bmc_depth())
-    c = max(G_C/5, 1000)
-    t = max(1,G_T)
-    print '\nRUNNING interpolation with %d conflicts, %d sec, max 100 frames'%(c,t)
-    abc('int -v -F 100 -C %d -T %f'%(c,t))
+    return status #temporary
+    #f = max(100, bmc_depth())
+    print '\n***RUNNING interpolation with %d conflicts, %d sec, max 100 frames'%(c,t)
+    #abc('int -v -F 100 -C %d -T %f'%(c,t))
+    abc(',imc -vt=%f '%t)
     status = get_status()
     if status <= Unsat:
         print 'Interpolation went to %d frames, '%n_bmc_frames(),
         print RESULT[status]
         return status
+    t = max(1,G_T)
     simplify()
     if n_latches() == 0:
         return check_sat()
@@ -1005,7 +1014,7 @@ def check_sat():
     the remaining logic may be UNSAT, which is usually the case, but this has to be proved. The ABC command 'dsat' is used fro combinational problems"""
 ##    if n_ands() == 0:
 ##        return Unsat
-    abc('dsat -C %d'%G_C)
+    abc('orpos;dsat -C %d'%G_C)
     if is_sat():
         return Sat_true
     elif is_unsat():
@@ -1026,7 +1035,7 @@ def try_induction(C):
     """Sometimes proving the property directly using induction works but not very often.
     For 'ind' to work, it must have only 1 output, so all outputs are or'ed together temporarily"""
     return Undecided_reduction
-    print '\nTrying induction'
+    print '\n***Running induction'
     abc('w %s_temp.aig'%f_name)
     abc('orpos; ind -uv -C %d -F 10'%C)
     abc('r %s_savetemp.aig'%f_name)
@@ -1055,11 +1064,11 @@ def final_verify_recur(K):
         if status >= Unsat:
             return status
         if  i > 0:
-            print 'SAT returned, trying less abstract backup'
+            print 'SAT returned, Running less abstract backup'
             continue
         break
     if ((i == 0) and (status > Unsat) and (n_ands() > 0)):
-        print '\nTrying speculate on initial backup number %d:'%i,
+        print '\n***Running speculate on initial backup number %d:'%i,
         abc('r %s_backup_%d.aig'%(initial_f_name,i))
         ps()
         if n_ands() < 20000:
@@ -1073,29 +1082,42 @@ def final_verify_recur(K):
         return Undecided_reduction
         
 
+def smp():
+    pre_simp()
+    write_file('smp')
+
 def pre_simp():
     """This uses a set of simplification algorithms which preprocesses a design.
     Includes forward retiming, quick simp, signal correspondence with constraints, trimming away
     PIs, and strong simplify"""
+##    print "Trying BMC for 2 sec."
+##    abc("&get; ,bmc -vt=2")
+##    if is_sat():
+##        return Sat_true
     set_globals()
-    #print 'trying forward'
+    if n_latches == 0:
+        return check_sat()
+    #print '\n*** Running forward'
     try_forward()
-    #print 'trying quick simp'
+    #print \n*** Running quick simp'
     quick_simp()
-    #print 'trying_scorr_constr'
+    #print 'Running_scorr_constr'
     status = try_scorr_constr()
     #status = 3
-    #print 'trying trm'
+    #print 'Running trm'
     if ((n_ands() > 0) or (n_latches()>0)):
         abc('trm')
     print 'Forward, quick_simp, scorr_constr,: ',
     print_circuit_stats()
+    if n_latches() == 0:
+        return check_sat()
     status = process_status(status)
     if status <= Unsat:
         return status
     simplify()
     print 'Simplify: ',
     print_circuit_stats()
+    #abc('w temp_simp.aig')
     if n_latches() == 0:
         return check_sat()
     try_phase()
@@ -1132,7 +1154,7 @@ def try_phase():
     simplified (with retiming to see if there is a significant reduction.
     If not, then revert back to original""" 
     n = n_phases()
-    if ((n == 1) or (n_ands() > 30000)):
+    if ((n == 1) or (n_ands() > 40000)):
         return
     print 'Number of possible phases = %d'%n
     abc('w %s_savetemp.aig'%f_name)
@@ -1140,7 +1162,7 @@ def try_phase():
     nl = n_latches()
     ni = n_pis()
     no = n_pos()
-    cost_init = (1*n_pis())+(2*n_latches())+.05*n_ands()
+    cost_init = (1*n_pis())+(2*n_latches())+1*n_ands()
     cost_min = cost_init
     cost = cost_init
     abc('w %s_best.aig'%f_name)
@@ -1158,7 +1180,7 @@ def try_phase():
         #print_circuit_stats()
         abc('rw;lcorr;trm')
         #print_circuit_stats()
-        cost = (1*n_pis())+(2*n_latches())+.05*n_ands()
+        cost = (1*n_pis())+(2*n_latches())+1*n_ands()
         if cost < cost_min:
             cost_min = cost
             abc('w %s_best.aig'%f_name)
@@ -1207,7 +1229,6 @@ def quick_simp():
         abc('&get;&scl;&put;rw')
 
 def scorr_constr():
-    #return Undecided_no_reduction #temporarily disable the for the moment
     """Extracts implicit constraints and uses them in signal correspondence
     Constraints that are found are folded back when done"""
     na = max(1,n_ands())
@@ -1223,18 +1244,13 @@ def scorr_constr():
     else:
         cmd = 'unfold'
     abc(cmd)
-    if ((n_ands() > na) or (n_pos() == 1)):
+    if ((n_ands() > na) or (n_pos() == n_pos_before)):
         abc('r %s_savetemp.aig'%f_name)
         return Undecided_no_reduction
     print_circuit_stats()
     print 'Number of constraints = %d'%(n_pos() - n_pos_before)
-    abc('scorr -c -F %dd'%f)
-    if n_pos_before == 1:
-        #abc('cone -s -O 0') #don't fold constraints back in
-        abc('fold')
-    else:
-        abc('fold')
-##    abc('fold')
+    abc('scorr -c -F %d'%f)
+    abc('fold')
     return Undecided_no_reduction
 
 def process_status(status):
@@ -1253,7 +1269,7 @@ def input_x_factor():
 def prove(a):
     """Proves all the outputs together. If ever an abstraction was done then if SAT is returned,
         we make RESULT return "undecided".
-        if a = 0 we skip the first quick_verify"""
+        If a == 1 do not run speculate"""
     global x_factor,xfi,f_name
     x = time.clock()
     max_bmc = -1
@@ -1262,14 +1278,18 @@ def prove(a):
     print_circuit_stats()
     x_factor = xfi
     print 'x_factor = %f'%x_factor
-    print '\nRunning pre_simp'
+    print '\n***Running pre_simp'
     set_globals()
-    status = pre_simp()
-    if status <= Unsat:
+    if n_latches() > 0:
+        status = pre_simp()
+    else:
+        status = check_sat()
+    if ((status <= Unsat) or (n_latches() == 0)):
         print 'Time for proof = %f sec.'%(time.clock() - x)
         return RESULT[status]
     if n_ands() == 0:
-        abc('bmc3 -T 2')
+        #abc('bmc3 -T 2')
+        abc('&get;,bmc -vt=2')
         if is_sat():
             return 'SAT'
     abc('trm')
@@ -1277,8 +1297,9 @@ def prove(a):
     abc('w %s_backup_%d.aig'%(initial_f_name,K))
     K = K +1
     set_globals()
-    if ((n_ands() < 30000) and (a == 1) and (n_latches() < 300)):
-        print '\nRunning quick_verify'
+##    if ((n_ands() < 30000) and (a == 1) and (n_latches() < 300)):
+    if ((n_ands() < 30000) and (n_latches() < 300)):
+        print '\n***Running quick_verify'
         status = quick_verify(0)
         if status <= Unsat:
             if not status == Unsat:
@@ -1286,10 +1307,11 @@ def prove(a):
             print 'Time for proof = %f sec.'%(time.clock() - x)
             return RESULT[status]
         if n_ands() == 0:
-            abc('bmc3 -T 2')
+            #abc('bmc3 -T 2')
+            abc('&get;,bmc -vt=2')
             if is_sat():
                 return 'SAT'
-    print'\nRunning abstract'
+    print'\n***Running abstract'
     nl_b = n_latches()
     status = abstract()
     abc('trm')
@@ -1306,27 +1328,14 @@ def prove(a):
         return RESULT[status]
     abc('w %s_backup_%d.aig'%(initial_f_name,K))
     K = K +1
-    if status == Undecided_reduction:
-        print '\nRunning quick_verify'
-        status = quick_verify(1)
-        status = process_status(status)
-        if status <= Unsat:
-            if  status < Unsat:
-                print 'CEX in frame %d'%cex_frame()
-                #print 'Time for proof = %f sec.'%(time.clock() - x)
-                status = final_verify_recur(K-1)
-            abc('trm')
-            write_file('final')
-            print 'Time for proof = %f sec.'%(time.clock() - x)
-            return RESULT[status]
-    if n_ands() > 20000:
-        print 'Speculation skipped because too large'
+    if ((n_ands() > 20000) or (a == 1)):
+        print 'Speculation skipped because either too large or already done'
         K = 2
     elif n_ands() == 0:
-        print 'Speculation skipped because no and nodes'
+        print 'Speculation skipped because no AND nodes'
         K = 2
     else:
-        print '\nRunning speculate'
+        print '\n***Running speculate'
         status = speculate()
         abc('trm')
         write_file('spec')
@@ -1359,11 +1368,11 @@ def prove_g_pos(a):
     init_f_name = f_name
     #fast_int(1)
     print 'Beginning prove_g_pos'
-    result = prove_all_ind()
+    prove_all_ind()
     print 'Number of outputs reduced to %d by induction and fast interpolation'%n_pos()
-    print '\n************Trying second level prove****************\n'
+    print '\n************Running second level prove****************\n'
     try_rpm()
-    result = prove(0)
+    result = prove(1) # 1 here means do not try speculate.
     #result = prove_0_ind()
     if result == 'UNSAT':
         print 'Second prove returned UNSAT'
@@ -1372,7 +1381,7 @@ def prove_g_pos(a):
         print 'CEX found'
         return result
     print '\n********** Proving each output separately ************'
-    result = prove_all_ind()
+    prove_all_ind()
     print 'Number of outputs reduced to %d by induction and fast interpolation'%n_pos()
     f_name = init_f_name
     abc('w %s_osavetemp.aig'%f_name)
@@ -1428,20 +1437,16 @@ def prove_g_pos(a):
     return result
 
 def prove_pos():
-    """Proves the outputs clustered by a parameter a. 
-    a is the disallowed increase in latch support Clusters must be contiguous
-    If a = 0 then outputs are proved individually. Clustering is done from last to first
-    Output 0 is attempted to be proved inductively using other outputs as constraints.
+    """
     Proved outputs are removed if all the outputs have not been proved.
     If ever one of the proofs returns SAT, we stop and do not try any other outputs."""
     global f_name, max_bmc,x_factor
-    a=0
     x = time.clock()
     #input_x_factor()
     init_f_name = f_name
     #fast_int(1)
-    print 'Beginning prove_g_pos'
-    result = prove_all_ind()
+    print 'Beginning prove_pos'
+    prove_all_ind()
     print 'Number of outputs reduced to %d by induction and fast interpolation'%n_pos()
     print '\n********** Proving each output separately ************'
     f_name = init_f_name
@@ -1450,6 +1455,7 @@ def prove_pos():
     print 'Number of outputs = %d'%n
     #count = 0
     pos_proved = []
+    pos_disproved = []
     J = 0
     jnext = n-1
     while jnext >= 0:
@@ -1458,43 +1464,36 @@ def prove_pos():
         abc('r %s_osavetemp.aig'%f_name)
         #Do in reverse order
         jnext_old = jnext
-        if a == 0: # do not group
-            extract(jnext,jnext)
-            jnext = jnext -1 
-        else:
-            jnext = group(a,jnext)
-        if jnext_old > jnext+1:
-            print '\nProving outputs [%d-%d]'%(jnext + 1,jnext_old)
-        else:
-            print '\nProving output %d'%(jnext_old)
-        #ps()
-        #fast_int(1)
+        extract(jnext,jnext)
+        jnext = jnext -1 
+        print '\nProving output %d'%(jnext_old)
         f_name = f_name + '_%d'%jnext_old
         result = prove_1()
         if result == 'UNSAT':
-            if jnext_old > jnext+1:
-                print '\n********  PROVED OUTPUTS [%d-%d]  ******** \n\n'%(jnext+1,jnext_old)
-            else:
-                print '\n********  PROVED OUTPUT %d  ******** \n\n'%(jnext_old)
+            print '\n********  PROVED OUTPUT %d  ******** \n\n'%(jnext_old)
             pos_proved = pos_proved + range(jnext +1,jnext_old+1)
             continue
         if result == 'SAT':
-            print 'One of output in (%d to %d) is SAT'%(jnext + 1,jnext_old)
-            return result
+            print '\n********  DISPROVED OUTPUT %d  ******** \n\n'%(jnext_old)
+            pos_disproved = pos_disproved + range(jnext +1,jnext_old+1)
+            continue
         else:
-            print '\n********  UNDECIDED on OUTPUTS %d thru %d  ******** \n\n'%(jnext+1,jnext_old)
+            print '\n********  UNDECIDED on OUTPUT %d  ******** \n\n'%(jnext_old)
     f_name = init_f_name
     abc('r %s_osavetemp.aig'%f_name)
-    if not len(pos_proved) == n:
-        print 'Eliminating %d proved outputs'%(len(pos_proved))
-        remove(pos_proved)
+    list = pos_proved + pos_disproved
+    print 'Proved the following outputs: %s'%pos_proved
+    print 'Disproved the following outputs: %s'%pos_disproved
+    if not len(list) == n:
+        print 'Eliminating %d resolved outputs'%(len(list))
+        remove(list)
         abc('trm')
         write_file('group')
-        result = 'UNDECIDED'
+        result = 'UNRESOLVED'
     else:
-        print 'Proved all outputs. The problem is proved UNSAT'
-        result = 'UNSAT'
-    print 'Total time for prove_g_pos = %f sec.'%(time.clock() - x)
+        print 'Proved or disproved all outputs. The problem is proved RESOLVED'
+        result = 'RESOLVED'
+    print 'Total time for prove_pos = %f sec.'%(time.clock() - x)
     return result
 
 
@@ -1506,7 +1505,7 @@ def prove_g_pos_split():
     init_f_name = f_name
     #fast_int(1)
     print 'Beginning prove_g_pos_split'
-    result = prove_all_ind()
+    prove_all_ind()
     print 'Number of outputs reduced to %d by induction and fast interpolation'%n_pos()
     try_rpm()
     print '\n********** Proving each output separately ************'  
@@ -1575,7 +1574,7 @@ def group(a,n):
     for J in range(1,n+1):
         abc('r %s_osavetemp.aig'%f_name)
         j = n-J
-        #print 'trying %d to %d'%(j,n)
+        #print 'Running %d to %d'%(j,n)
         extract(j,n)
         #print 'n_latches = %d'%n_latches()
         #if n_latches() >= nli + (nlt - nli)/2:
@@ -1613,10 +1612,10 @@ def prove_0_ind():
     return status
 
 def remove(list):
-    """Removes outputs in list as well as easy output proved by fast interpolation"""
+    """Removes outputs in list"""
     zero(list)
-    abc('scl')
-    fast_int(1)
+    abc('&get;&trim;&put')
+    #fast_int(1)
 
 def zero(list):
     """Zeros out POs in list"""
@@ -1640,7 +1639,14 @@ def super_prove():
         input_x_factor()
     max_bmc = -1
     x = time.clock()
+    print "Trying BMC for 2 sec."
+    abc("&get; ,bmc -vt=2")
+    if is_sat():
+        print 'Total time taken by super_prove = %f sec.'%(time.clock() - x)
+        return 'SAT'
     result = prove(0)
+    if ((result[:3] == 'UND') and (n_latches() == 0)):
+        return result
     k = 1
     print result
     if not result[:3] == 'UND':
@@ -1662,60 +1668,64 @@ def super_prove():
     return result
 
 def reachm(t):
+    x = time.clock()
     run_command('&get;&reach -vcs -T %d;&put'%t)
-
+    print 'Time = %f'%(time.clock() - x)
+    
+def reachx(t):
+    x = time.clock()
+    run_command('reachx -t %d'%t)
+    print 'Time = %f'%(time.clock() - x)
 
 def BMC_VER_result(n):
     global init_initial_f_name
     #print init_initial_f_name
-    if n == 0:
-        print '\nTrying proof on initial simplified and abstracted circuit\n'
-        abc('r %s_smp.abs.aig'%init_initial_f_name)
-        ps()
-    x = time.clock()
+    xt = time.clock()
     result = 5
-    N = 0
     T = 150
-    if (n_pis()+n_latches() < 250):
-        print ' Trying deep Reachability'
-        run_command('reachx -t 150')
-        #run_command('&get;&reach -vcs -T %d'%T)
-        result = get_status()
-        if result == Unsat:
-            return 'UNSAT'
-        if ((result < Unsat) and (n == 0)):
-            N = 1
-    if ((result >= Unsat) and (N == 0)):
-        print 'Trying deep interpolation'
-        run_command('int -v -F 30000 -C 1000000 -T %d'%T)
-        result = get_status()
-        if result == Unsat:
-            return 'UNSAT'
-##    try_split()
-##    if n_pos() > 1:  
-##        result = prove_g_pos_split()
-##        if result[:5] == 'UNSAT':
-##            return result
-    #ps()
-    abc('r %s_smp.aig'%init_initial_f_name)
+    if n == 0:
+        abc('r %s_smp.aig'%init_initial_f_name)
+        print '\n***Running proof on initial simplified circuit\n',
+        ps()
+    else:
+        print '\n***Running proof on final unproved circuit'
+        ps()
+    print '    Running PDR for %d sec'%T
+    abc('&get;,pdr -vt=%d'%(T*.8))
+    result = get_status()
+    if result == Unsat:
+        return 'UNSAT'
+    if result > Unsat: #still undefined
+        if (n_pis()+n_latches() < 250):
+            print '    Running Reachability for 150 sec.'
+            abc('reachx -t 150')
+            #run_command('&get;&reach -vcs -T %d'%T)
+            result = get_status()
+            if result == Unsat:
+                return 'UNSAT'
+        if ((result > Unsat) and n ==1):
+            print '    Running interpolation for %f sec.'%T
+            abc(',imc -vt=%f'%T)
+            result = get_status()
+            if result == Unsat:
+                return 'UNSAT'
+    # if n=1 we are trying to prove result on abstracted circuit. If still undefined, then probably does
+    # not make sense to try pdr, reach, int on original simplified circuit, only BMC here.
+    if n == 1:
+        abc('r %s_smp.aig'%init_initial_f_name) #check if the initial circuit was SAT
+        #print 'Reading %s_smp'%init_initial_f_name,
+    #run_command('bmc3 -v -T %d -F 200000 -C 1000000'%T)
+    print '***Running BMC on initial simplified circuit'
     ps()
-    if N == 1:
-        print '\nTrying deep interpolation on initial simplified circuit\n'
-        run_command('int -v -F 30000 -C 1000000 -T %d'%T)
-        result = get_status()
-        if result == Unsat:
-            return 'UNSAT'
-        if result < Unsat:
-            return 'SAT'
-    print '\nTrying deep BMC on initial simplified circuit\n'
-    run_command('bmc3 -v -T %d -F 200000 -C 1000000'%T)
+    print '\n'
+    abc('&get;,bmc -vt=%f'%T)
     result = get_status()
     if result < Unsat:
         result = 'SAT'
         print ' CEX found in frame %d'%cex_frame()
     else:
         result = 'UNDECIDED'
-    print 'Additional time taken by BMC/ability = %f sec.'%(time.clock() - x)
+    print 'Additional time taken by BMC/PDR/Reach = %f sec.'%(time.clock() - xt)
     return result
 
 def try_split():
@@ -1733,12 +1743,74 @@ def time_diff():
     last_time = new_time
     result = 'Lapsed time = %.2f sec.'%diff
     return result
-                         
+
 def prove_all_ind():
+    """Tries to prove output k by induction, using other outputs as constraints. If ever an output is proved
+    it is set to 0 so it can't be used in proving another output to break circularity.
+    Finally all zero'ed ooutputs are removed. """
+    N = n_pos()
+    remove_0_pos()
+    print '0 valued output removal changed POs from %d to %d'%(N,n_pos())
+    abc('w %s_osavetemp.aig'%f_name)
+    list = range(n_pos())
+    for j in list:
+        #abc('r %s_osavetemp.aig'%f_name)
+        abc('swappos -N %d'%j)
+        remove_0_pos() #may not have to do this if constr works well with 0'ed outputs
+        abc('constr -N %d'%(n_pos()-1))
+        abc('fold')
+        n = max(1,n_ands())
+        f = max(1,min(40000/n,16))
+        f = int(f)
+        abc('ind -u -C 10000 -F %d'%f)
+        status = get_status()
+        abc('r %s_osavetemp.aig'%f_name)
+        if status == Unsat:
+            print '+',
+            abc('zeropo -N %d'%j)
+            abc('w %s_osavetemp.aig'%f_name) #if changed, store it permanently
+        print '%d'%j,
+    remove_0_pos()
+    print '\nThe number of POs reduced from %d to %d'%(N,n_pos())
+    #return status
+
+def prove_all_pdr(t):
+    """Tries to prove output k by PDR. If ever an output is proved
+    it is set to 0. Finally all zero'ed ooutputs are removed. """
+    N = n_pos()
+    remove_0_pos()
+    print '0 valued output removal changed POs from %d to %d'%(N,n_pos())
+    abc('w %s_osavetemp.aig'%f_name)
+    list = range(n_pos())
+    for j in list:
+        #abc('r %s_osavetemp.aig'%f_name)
+        abc('cone -O %d -s'%j)
+        abc('scl')
+        abc('&get;,pdr -vt=%d'%t)
+        status = get_status()
+        abc('r %s_osavetemp.aig'%f_name)
+        if status == Unsat:
+            print '+',
+            abc('zeropo -N %d'%j)
+            abc('w %s_osavetemp.aig'%f_name) #if changed, store it permanently
+        print '%d'%j,
+    remove_0_pos()
+    print '\nThe number of POs reduced from %d to %d'%(N,n_pos())
+    #return status
+
+
+def remove_0_pos():
+    abc('&get; &trim; &put')
+
+    
+def prove_all_ind2():
     """Tries to prove output k by induction, using outputs > k as constraints. Removes proved outputs from POs."""
     abc('w %s_osavetemp.aig'%f_name)
     plist = []
-    for j in range(n_pos()):
+    list = range(n_pos())
+##    if r == 1:
+##        list.reverse()
+    for j in list:
         abc('r %s_osavetemp.aig'%f_name)
         extract(j,n_pos())
         abc('constr -N %d'%(n_pos()-1))
@@ -1750,12 +1822,50 @@ def prove_all_ind():
         status = get_status()
         if status == Unsat:
             plist = plist + [j]
+            print '-',
+##        else:
+##            status = pdr(1)
+##            if status == Unsat:
+##                print '+',
+##                plist = plist + [j]
         print '%d'%j,
-    print '\nOutputs proved inductively = ',
+    print '\nOutputs proved = ',
     print plist
     abc('r %s_osavetemp.aig'%f_name)
     remove(plist) #remove the outputs proved
-    return status
+##    #the following did not work because abc command constr, allows only  last set of outputs to be constraints
+##    abc('w %s_osavetemp.aig'%f_name)
+##    plist = []
+##    list = range(n_pos())
+##    list.reverse()
+##    for j in list:
+##        abc('r %s_osavetemp.aig'%f_name)
+##        extract(j,n_pos())
+##        abc('constr -N %d'%(n_pos()-1))
+##        abc('fold')
+##        n = max(1,n_ands())
+##        f = max(1,min(40000/n,16))
+##        f = int(f)
+##        abc('ind -u -C 10000 -F %d'%f)
+##        status = get_status()
+##        if status == Unsat:
+##            plist = plist + [j]
+##            print '-',
+####        else:
+####            status = pdr(1)
+####            if status == Unsat:
+####                print '+',
+####                plist = plist + [j]
+##        print '%d'%j,
+##    print '\nOutputs proved = ',
+##    print plist.reverse
+##    abc('r %s_osavetemp.aig'%f_name)
+##    remove(plist) #remove the outputs proved
+##    return status
+
+def pdr(t):
+    abc('&get; ,pdr -vt=%f'%t)
+    result = get_status()
 
 def split(n):
     abc('orpos;&get')
@@ -1787,10 +1897,10 @@ def prove_1():
     print_circuit_stats()
     x_factor = xfi
     print 'x_factor = %f'%x_factor
-    print '\nRunning pre_simp'
+    print '\n***Running pre_simp'
     set_globals()
     status = pre_simp()
-    if status <= Unsat:
+    if ((status <= Unsat) or (n_latches == 0)):
         print 'Time for proof = %f sec.'%(time.clock() - x)
         return RESULT[status]
     abc('trm')
@@ -1799,14 +1909,14 @@ def prove_1():
     K = K +1
     set_globals()
     if ((n_ands() < 30000) and (a == 1) and (n_latches() < 300)):
-        print '\nRunning quick_verify'
+        print '\n***Running quick_verify'
         status = quick_verify(0)
         if status <= Unsat:
             if not status == Unsat:
                 print 'CEX in frame %d'%cex_frame()
             print 'Time for proof = %f sec.'%(time.clock() - x)
             return RESULT[status]
-    print'\nRunning abstract'
+    print'\n***Running abstract'
     nl_b = n_latches()
     status = abstract()
     abc('trm')
@@ -1851,5 +1961,47 @@ def qprove():
     print 'Time for proof = %f sec.'%(time.clock() - x)
     return result
     
+def pre_reduce():
+    x = time.clock()
+    pre_simp()
+    write_file('smp')
+    abstract()
+    write_file('abs')
+    print 'Time = %f'%(time.clock() - x)
 
 
+#PARALLEL FUNCTIONS
+"""  funcs should look like
+funcs = [defer(abc)('&get;,bmc -vt=50;&put'),defer(super_prove)()]
+After this is executed funcs becomes a special list of lambda functions
+which are given to abc_split_all to be executed as in fork below.
+It has been set up so that each of the functions works on the current aig and
+possibly transforms it. The new aig and status is always read into the master when done
+
+"""
+
+def fork(funcs):
+    """ runs funcs in parallel"""
+    for i,res in pyabc_split.abc_split_all(funcs):
+        status = prob_status()
+        if not status == -1:
+            print i,status
+            ps()
+            break
+        else:
+            print i,status
+            ps()
+            continue
+    return status
+
+def handler_s(res):
+    """ This serial handler returns True if the problem is solved by the first returning function,
+    in which case, the problem is replaced by the new aig and status.
+    """
+    if not res == -1:
+        #replace_prob()
+        print ('UNSAT','SAT')[res]
+        return True
+    else:
+        return False
+    

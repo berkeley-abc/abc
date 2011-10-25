@@ -57,7 +57,7 @@ pyabc.tgz : $(PROG) $(ABC_PYTHON_SRC:_wrap.c=.py) $(ABC_PYTHON_FILES_PREFIX)/abc
     $(ABC_PYTHON) $(ABC_PYTHON_FILES_PREFIX)/package.py \
         --abc=$(PROG) \
         --abc_sh=$(ABC_PYTHON_FILES_PREFIX)/abc.sh \
-        --pyabc=$(ABC_PYTHON_SRC:_wrap.c=.py) \
+        --pyabc=$(ABC_PYTHON_FILES_PREFIX) \
         --out=$@ \
         $(ABC_PYTHON_OPTIONS)
 
@@ -65,8 +65,6 @@ PYABC_INSTALL_TARGET ?= $(shell date +%Y-%m-%d_%H-%M.%N_${USER})
 PYABC_INSTALL_TARGET := $(PYABC_INSTALL_TARGET)
 
 PYABC_INSTALL_DIR ?= /hd/common/pyabc/builds/pyabc_builds/
-
-.PHONY: zzz
 
 pyabc_install_target: pyabc_extension_bdist
     mkdir -p "$(PYABC_INSTALL_DIR)/$(PYABC_INSTALL_TARGET)"
