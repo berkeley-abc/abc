@@ -1,6 +1,5 @@
 SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigAbsCba.c \
-    src/aig/saig/saigAbsGla.c \
     src/aig/saig/saigAbsPba.c \
     src/aig/saig/saigAbsStart.c \
     src/aig/saig/saigAbsVfa.c \
@@ -12,6 +11,8 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigConstr.c \
     src/aig/saig/saigConstr2.c \
     src/aig/saig/saigDup.c \
+    src/aig/saig/saigGlaCba.c \
+    src/aig/saig/saigGlaPba.c \
     src/aig/saig/saigHaig.c \
     src/aig/saig/saigInd.c \
     src/aig/saig/saigIoa.c \

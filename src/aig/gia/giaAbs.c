@@ -379,7 +379,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
 ***********************************************************************/
 int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 {
-    extern Vec_Int_t * Aig_GlaManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
+    extern Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses;
     Aig_Man_t * pAig;
@@ -393,7 +393,43 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 */
     // perform abstraction
     pAig = Gia_ManToAigSimple( pGia );
-    vGateClasses = Aig_GlaManTest( pAig, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
+    vGateClasses = Aig_Gla1ManTest( pAig, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
+    Aig_ManStop( pAig );
+
+    // update the map
+    Vec_IntFreeP( &pGia->vGateClasses );
+    pGia->vGateClasses = vGateClasses;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derive unrolled timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
+{
+    extern Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose );
+    Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
+    Vec_Int_t * vGateClasses;
+    Aig_Man_t * pAig;
+/*
+    // check if flop classes are given
+    if ( pGia->vGateClasses == NULL )
+    {
+        Abc_Print( 0, "Initial gate map is not given. Trivial abstraction is assumed.\n" );
+        pGia->vGateClasses = Vec_IntStart( Gia_ManObjNum(pGia) );
+    }
+*/
+    // perform abstraction
+    pAig = Gia_ManToAigSimple( pGia );
+    vGateClasses = Aig_Gla2ManTest( pAig, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fVerbose );
     Aig_ManStop( pAig );
 
     // update the map

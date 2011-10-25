@@ -3503,10 +3503,6 @@ SOURCE=.\src\aig\saig\saigAbsCba.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\saig\saigAbsGla.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\saig\saigAbsPba.c
 # End Source File
 # Begin Source File
@@ -3548,6 +3544,14 @@ SOURCE=.\src\aig\saig\saigConstr2.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigDup.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigGlaCba.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigGlaPba.c
 # End Source File
 # Begin Source File
 
