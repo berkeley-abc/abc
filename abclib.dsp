@@ -3071,6 +3071,10 @@ SOURCE=.\src\aig\kit\kitIsop.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\kit\kitPerm.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\kit\kitPla.c
 # End Source File
 # Begin Source File

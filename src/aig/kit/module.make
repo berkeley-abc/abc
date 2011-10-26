@@ -6,6 +6,7 @@ SRC +=  src/aig/kit/kitAig.c \
     src/aig/kit/kitGraph.c \
     src/aig/kit/kitHop.c \
     src/aig/kit/kitIsop.c \
+    src/aig/kit/kitPerm.c \
     src/aig/kit/kitPla.c \
     src/aig/kit/kitSop.c \
     src/aig/kit/kitTruth.c
