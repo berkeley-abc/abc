@@ -29022,9 +29022,14 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
         return 0;
     }
-    if ( pPars->nFramesMax < 1 )
+    if ( pPars->nFramesMax < 0 )
     {
         Abc_Print( 1, "The number of frames should be a positive integer.\n" );
+        return 0;
+    }
+    if ( pPars->nStart > 0 && pPars->nStart >= pPars->nFramesMax )
+    {
+        Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
         return 0;
     }
     pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars, fNaiveCnf );
@@ -29035,13 +29040,13 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla_cba [-FCT num] [-cvh]\n" );
+    Abc_Print( -2, "usage: &gla_cba [-SFCT num] [-cvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with CEX-based abstraction\n" );
-//    Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
-    Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
-    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nStart );
+    Abc_Print( -2, "\t-F num : the max number of timeframes to unroll (0=unused) [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
 //    Abc_Print( -2, "\t-M num : the max number of flops to add (0 = not used) [default = %d]\n", pPars->nFfToAddMax );
-    Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-T num : an approximate timeout in seconds (0=unused) [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-c     : toggle using naive CNF computation [default = %s]\n", fNaiveCnf? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -29145,19 +29150,25 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The number of frames should be a positive integer.\n" );
         return 0;
     }
+    if ( pPars->nStart >= pPars->nFramesMax )
+    {
+        Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
+        return 0;
+    }
+    if ( pPars->nStart )
+        Abc_Print( 0, "The starting frame is specified. The resulting abstraction may be unsound.\n" );
     pAbc->Status = Gia_ManGlaPbaPerform( pAbc->pGia, pPars );
     if ( pPars->nStart == 0 )
        pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-//    printf( "This command is currently not enabled.\n" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla_pba [-FCT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &gla_pba [-SFCT num] [-vh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
-//    Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
+    Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
-    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

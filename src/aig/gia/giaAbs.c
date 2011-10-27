@@ -379,25 +379,29 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
 ***********************************************************************/
 int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 {
-    extern Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
+    extern Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
-    Vec_Int_t * vGateClasses;
+    Vec_Int_t * vGateClasses, * vGateClassesOld = NULL;
     Aig_Man_t * pAig;
-/*
+
     // check if flop classes are given
     if ( pGia->vGateClasses == NULL )
+        Abc_Print( 0, "Initial gate map is not given. Abstraction begins from scratch.\n" );
+    else
     {
-        Abc_Print( 0, "Initial gate map is not given. Trivial abstraction is assumed.\n" );
-        pGia->vGateClasses = Vec_IntStart( Gia_ManObjNum(pGia) );
+        Abc_Print( 0, "Initial gate map is given. Abstraction refines this map.\n" );
+        vGateClassesOld = pGia->vGateClasses; pGia->vGateClasses = NULL;
+        fNaiveCnf = 1;
     }
-*/
+
     // perform abstraction
     pAig = Gia_ManToAigSimple( pGia );
-    vGateClasses = Aig_Gla1ManTest( pAig, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
+    assert( vGateClassesOld == NULL || Vec_IntSize(vGateClassesOld) == Aig_ManObjNumMax(pAig) );
+    vGateClasses = Aig_Gla1ManTest( pAig, vGateClassesOld, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
     Aig_ManStop( pAig );
 
     // update the map
-    Vec_IntFreeP( &pGia->vGateClasses );
+    Vec_IntFreeP( &vGateClassesOld );
     pGia->vGateClasses = vGateClasses;
     return 1;
 }
@@ -415,26 +419,63 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 ***********************************************************************/
 int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
 {
-    extern Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose );
+    extern Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses;
     Aig_Man_t * pAig;
-/*
+
     // check if flop classes are given
     if ( pGia->vGateClasses == NULL )
     {
-        Abc_Print( 0, "Initial gate map is not given. Trivial abstraction is assumed.\n" );
-        pGia->vGateClasses = Vec_IntStart( Gia_ManObjNum(pGia) );
+        Abc_Print( 0, "Initial gate map is not given. Abstraction begins from scratch.\n" );
+        pAig = Gia_ManToAigSimple( pGia );
     }
-*/
+    else
+    {
+        Gia_Man_t * pGiaAbs;
+        Abc_Print( 0, "Initial gate map is given. Abstraction refines this map.\n" );
+        pGiaAbs = Gia_ManDupAbsGates( pGia, pGia->vGateClasses );
+        pAig = Gia_ManToAigSimple( pGiaAbs );
+        Gia_ManStop( pGiaAbs );
+    }
+
     // perform abstraction
-    pAig = Gia_ManToAigSimple( pGia );
-    vGateClasses = Aig_Gla2ManTest( pAig, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fVerbose );
+    vGateClasses = Aig_Gla2ManTest( pAig, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fVerbose );
     Aig_ManStop( pAig );
 
-    // update the map
-    Vec_IntFreeP( &pGia->vGateClasses );
-    pGia->vGateClasses = vGateClasses;
+    // update the BMC depth
+    if ( vGateClasses )
+        p->iFrame = p->nFramesMax;
+
+    // update the abstraction map (hint: AIG and GIA have one-to-one obj ID match)
+    if ( pGia->vGateClasses && vGateClasses )
+    {
+        Gia_Obj_t * pObj;
+        int i, Counter = 0;
+        Gia_ManForEachObj1( pGia, pObj, i )
+        {
+            if ( !~pObj->Value )
+                continue;
+            if ( !Vec_IntEntry(pGia->vGateClasses, i) )
+                continue;
+            // this obj was abstracted before
+            assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(pGia, pObj) );
+            // if corresponding AIG object is not abstracted, remove abstraction
+            if ( !Vec_IntEntry(vGateClasses, Gia_Lit2Var(pObj->Value)) )
+            {
+                Vec_IntWriteEntry( pGia->vGateClasses, i, 0 );
+                Counter++;
+            }
+        }
+        Vec_IntFree( vGateClasses );
+        if ( p->fVerbose )
+            Abc_Print( 1, "Repetition of abstraction removed %d entries from the old abstraction map.\n", Counter );
+    }
+    else
+    {
+        Vec_IntFreeP( &pGia->vGateClasses );
+        pGia->vGateClasses = vGateClasses;
+    }
     return 1;
 }
 

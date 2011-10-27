@@ -34,7 +34,7 @@ struct Aig_Gla2Man_t_
 {
     // user data
     Aig_Man_t *    pAig;
-    int            nConfMax;
+    int            nStart;
     int            nFramesMax;
     int            fVerbose;
     // unrolling
@@ -226,8 +226,8 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
     int i, f, ObjId, nVars, RetValue = 1;
 
     // assign variables
-//    for ( f = p->nFramesMax - 1; f >= 0; f-- )
-    for ( f = 0; f < p->nFramesMax; f++ )
+    for ( f = p->nFramesMax - 1; f >= 0; f-- )
+//    for ( f = 0; f < p->nFramesMax; f++ )
         Aig_Gla2AssignVars_rec( p, Aig_ManPo(p->pAig, 0), f );
 
     // create SAT solver
@@ -301,7 +301,7 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
 
     // add output clause
     vPoLits = Vec_IntAlloc( p->nFramesMax );
-    for ( f = 0; f < p->nFramesMax; f++ )
+    for ( f = p->nStart; f < p->nFramesMax; f++ )
         Vec_IntPush( vPoLits, 2 * Aig_Gla2FetchVar(p, Aig_ManPo(p->pAig, 0), f) );
     RetValue &= sat_solver_addclause( p->pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) );
     Vec_IntFree( vPoLits );
@@ -311,11 +311,12 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
 
     assert( nVars == Vec_IntSize(p->vVar2Inf) );
     assert( ((Sto_Man_t *)p->pSat->pStore)->nClauses == Vec_IntSize(p->vCla2Obj) );
-
 //    Sto_ManDumpClauses( ((Sto_Man_t *)p->pSat->pStore), "temp_sto.cnf" );
-
-
     sat_solver_store_mark_roots( p->pSat ); 
+
+    if ( p->fVerbose )
+        printf( "The resulting SAT problem contains %d vars, %d clauses, and %d literals.\n", 
+            p->pSat->size, p->pSat->stats.clauses, p->pSat->stats.tot_literals );
     return RetValue;
 }
 
@@ -330,7 +331,7 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Gla2Man_t * Aig_Gla2ManStart( Aig_Man_t * pAig, int nFramesMax )
+Aig_Gla2Man_t * Aig_Gla2ManStart( Aig_Man_t * pAig, int nStart, int nFramesMax, int fVerbose )
 {
     Aig_Gla2Man_t * p;
     int i;
@@ -345,7 +346,9 @@ Aig_Gla2Man_t * Aig_Gla2ManStart( Aig_Man_t * pAig, int nFramesMax )
     p->vCla2Fra   = Vec_IntAlloc( 1 << 20 );
 
     // skip first vector ID
+    p->nStart     = nStart;
     p->nFramesMax = nFramesMax;
+    p->fVerbose   = fVerbose;
     for ( i = 0; i < p->nFramesMax; i++ )
         Vec_IntPush( p->vVec2Var, -1 );
 
@@ -416,7 +419,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     }
     if ( fVerbose )
     {
-        printf( "SAT solver returned UNSAT after %d conflicts.  ", pSat->stats.conflicts );
+        printf( "SAT solver returned UNSAT after %7d conflicts.      ", pSat->stats.conflicts );
         ABC_PRT( "Time", clock() - clk );
     }
     assert( RetValue == l_False );
@@ -428,7 +431,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     Intp_ManFree( pManProof );
     if ( fVerbose )
     {
-        printf( "SAT core contains %d clauses (out of %d).     ", Vec_IntSize(vCore), ((Sto_Man_t *)pSatCnf)->nRoots );
+        printf( "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), ((Sto_Man_t *)pSatCnf)->nRoots );
         ABC_PRT( "Time", clock() - clk );
     }
     Sto_ManFree( (Sto_Man_t *)pSatCnf );
@@ -500,9 +503,8 @@ Vec_Int_t * Aig_Gla2ManCollect( Aig_Gla2Man_t * p, Vec_Int_t * vCore )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose )
+Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose )
 {
-    int nStart = 0;
     Aig_Gla2Man_t * p;
     Vec_Int_t * vCore, * vResult;
     int clk, clkTotal = clock();
@@ -518,7 +520,7 @@ Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, i
 
     // start the solver
     clk = clock();
-    p = Aig_Gla2ManStart( pAig, nFramesMax );
+    p = Aig_Gla2ManStart( pAig, nStart, nFramesMax, fVerbose );
     if ( !Aig_Gla2CreateSatSolver( p ) )
     {
         printf( "Error!  SAT solver became UNSAT.\n" );

@@ -151,43 +151,6 @@ static inline int Aig_Gla1AddNode( sat_solver * pSat, int iVar, int iVar0, int i
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the array of neighbors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Aig_Gla1CollectAssigned_( Aig_Man_t * p, Vec_Int_t * vGateClasses )
-{
-    Vec_Int_t * vAssigned;
-    Aig_Obj_t * pObj;
-    int i, Entry;
-    vAssigned = Vec_IntAlloc( 1000 );
-    Vec_IntForEachEntry( vGateClasses, Entry, i )
-    {
-        if ( Entry == 0 )
-            continue;
-        assert( Entry == 1 );
-        pObj = Aig_ManObj( p, i );
-        Vec_IntPush( vAssigned, Aig_ObjId(pObj) );
-        if ( Aig_ObjIsNode(pObj) )
-        {
-            Vec_IntPush( vAssigned, Aig_ObjFaninId0(pObj) );
-            Vec_IntPush( vAssigned, Aig_ObjFaninId1(pObj) );
-        }
-        else if ( Saig_ObjIsLo(p, pObj) )
-            Vec_IntPush( vAssigned, Aig_ObjFaninId0(Saig_ObjLoToLi(p, pObj)) );
-        else assert( Aig_ObjIsConst1(pObj) );
-    }
-    Vec_IntUniqify( vAssigned );
-    return vAssigned;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Derives abstraction components (PIs, PPIs, flops, nodes).]
 
   Description []
@@ -446,6 +409,44 @@ int Aig_Gla1ObjAddToSolver( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the array of neighbors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Aig_Gla1CollectAssigned( Aig_Man_t * p, Vec_Int_t * vGateClasses )
+{
+    Vec_Int_t * vAssigned;
+    Aig_Obj_t * pObj;
+    int i, Entry;
+    vAssigned = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( vGateClasses, Entry, i )
+    {
+        if ( Entry == 0 )
+            continue;
+        assert( Entry == 1 );
+        pObj = Aig_ManObj( p, i );
+        Vec_IntPush( vAssigned, Aig_ObjId(pObj) );
+        if ( Aig_ObjIsNode(pObj) )
+        {
+            Vec_IntPush( vAssigned, Aig_ObjFaninId0(pObj) );
+            Vec_IntPush( vAssigned, Aig_ObjFaninId1(pObj) );
+        }
+        else if ( Saig_ObjIsLo(p, pObj) )
+            Vec_IntPush( vAssigned, Aig_ObjFaninId0(Saig_ObjLoToLi(p, pObj)) );
+        else assert( Aig_ObjIsConst1(pObj) );
+    }
+    Vec_IntUniqify( vAssigned );
+    Vec_IntReverseOrder( vAssigned );
+    return vAssigned;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -455,16 +456,25 @@ int Aig_Gla1ObjAddToSolver( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Gla1Man_t * Aig_Gla1ManStart( Aig_Man_t * pAig, int fNaiveCnf )
+Aig_Gla1Man_t * Aig_Gla1ManStart( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int fNaiveCnf )
 {
     Aig_Gla1Man_t * p;
     int i;
 
     p = ABC_CALLOC( Aig_Gla1Man_t, 1 );
     p->pAig      = pAig;
-    p->vAssigned = Vec_IntAlloc( 1000 );
-    p->vIncluded = Vec_IntStart( Aig_ManObjNumMax(pAig) );
     p->nFrames   = 32;
+    if ( vGateClassesOld )
+    {
+        p->vAssigned = Aig_Gla1CollectAssigned( pAig, vGateClassesOld );
+        p->vIncluded = Vec_IntDup( vGateClassesOld );
+        assert( fNaiveCnf );
+    }
+    else
+    {
+        p->vAssigned = Vec_IntAlloc( 1000 );
+        p->vIncluded = Vec_IntStart( Aig_ManObjNumMax(pAig) );
+    }
 
     p->vPis      = Vec_IntAlloc( 1000 );
     p->vPPis     = Vec_IntAlloc( 1000 );
@@ -651,9 +661,8 @@ void Aig_Gla1ExtendIncluded( Aig_Gla1Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose )
+Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose )
 {
-    int nStart = 0;
     Vec_Int_t * vResult = NULL;
     Aig_Gla1Man_t * p;
     Aig_Man_t * pAbs;
@@ -664,6 +673,9 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, i
     int nConfBef, nConfAft, clk, clkTotal = clock();
     assert( Saig_ManPoNum(pAig) == 1 );
 
+    if ( nFramesMax == 0 )
+        nFramesMax = ABC_INFINITY;
+
     if ( fVerbose )
     {
         if ( TimeLimit )
@@ -673,7 +685,7 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, i
     }
 
     // start the solver
-    p = Aig_Gla1ManStart( pAig, fNaiveCnf );
+    p = Aig_Gla1ManStart( pAig, vGateClassesOld, fNaiveCnf );
     p->nFramesMax = nFramesMax;
     p->nConfLimit = nConfLimit;
     p->fVerbose   = fVerbose;
@@ -695,6 +707,10 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, i
                 if ( !Aig_Gla1ObjAddToSolver( p, pObj, f ) )
                     printf( "Error!  SAT solver became UNSAT.\n" );
 
+        // skip checking if we are not supposed to
+        if ( f < nStart )
+            continue;
+
         // create output literal to represent property failure
         pObj    = Aig_ManPo( pAig, 0 );
         iSatVar = Aig_Gla1FetchVar( p, Aig_ObjFanin0(pObj), f );
@@ -702,7 +718,7 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, i
 
         // try solving the abstraction
         Aig_Gla1CollectAbstr( p );
-        for ( r = 0; r < 1000000; r++ )
+        for ( r = 0; r < ABC_INFINITY; r++ )
         {
             // try to find a counter-example
             clk = clock();
@@ -724,7 +740,10 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, int nFramesMax, int nConfLimit, i
                     else if ( RetValue != l_False )
                         printf( "       SAT solver returned UNDECIDED after %5d conflicts.\n", nConfAft - nConfBef );
                     else
-                        printf( "       SAT solver returned UNSAT after %5d conflicts.\n", nConfAft - nConfBef );
+                    {
+                        printf( "       SAT solver returned UNSAT after %5d conflicts.  ", nConfAft - nConfBef );
+                        Abc_PrintTime( 1, "Total time", clock() - clkTotal );
+                    }
                 }
                 break;
             }
