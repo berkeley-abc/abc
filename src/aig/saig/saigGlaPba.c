@@ -41,7 +41,10 @@ struct Aig_Gla2Man_t_
     Vec_Int_t *    vObj2Vec;   // maps obj ID into its vec ID
     Vec_Int_t *    vVec2Var;   // maps vec ID into its sat Var (nFrames per vec ID)
     Vec_Int_t *    vVar2Inf;   // maps sat Var into its frame and obj ID
-    Vec_Int_t *    vCla2Obj;   // maps sat Var into its first clause
+    // clause mapping
+    Vec_Int_t *    vCla2Obj;   // maps clause into its root object
+    Vec_Int_t *    vCla2Fra;   // maps clause into its frame
+    Vec_Int_t *    vVec2Use;   // maps vec ID into its used frames (nFrames per vec ID)
     // SAT solver
     sat_solver *   pSat;
     // statistics
@@ -248,6 +251,10 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
             Vec_IntPush( p->vCla2Obj, ObjId );
             Vec_IntPush( p->vCla2Obj, ObjId );
             Vec_IntPush( p->vCla2Obj, ObjId );
+
+            Vec_IntPush( p->vCla2Fra, f );
+            Vec_IntPush( p->vCla2Fra, f );
+            Vec_IntPush( p->vCla2Fra, f );
         }
         else if ( Saig_ObjIsLo(p->pAig, pObj) )
         {
@@ -255,6 +262,8 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
             {
                 RetValue &= Aig_Gla2AddConst( p->pSat, Aig_Gla2FetchVar(p, pObj, f), 1 );
                 Vec_IntPush( p->vCla2Obj, ObjId );
+
+                Vec_IntPush( p->vCla2Fra, f );
             }
             else
             {
@@ -264,6 +273,9 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
                                                         Aig_ObjFaninC0(pObjLi) );
                 Vec_IntPush( p->vCla2Obj, ObjId );
                 Vec_IntPush( p->vCla2Obj, ObjId );
+
+                Vec_IntPush( p->vCla2Fra, f );
+                Vec_IntPush( p->vCla2Fra, f );
             }
         }
         else if ( Saig_ObjIsPo(p->pAig, pObj) )
@@ -273,11 +285,16 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
                                                     Aig_ObjFaninC0(pObj) );
             Vec_IntPush( p->vCla2Obj, ObjId );
             Vec_IntPush( p->vCla2Obj, ObjId );
+
+            Vec_IntPush( p->vCla2Fra, f );
+            Vec_IntPush( p->vCla2Fra, f );
         }
         else if ( Aig_ObjIsConst1(pObj) )
         {
             RetValue &= Aig_Gla2AddConst( p->pSat, Aig_Gla2FetchVar(p, pObj, f), 0 );
             Vec_IntPush( p->vCla2Obj, ObjId );
+
+            Vec_IntPush( p->vCla2Fra, f );
         }
         else assert( Saig_ObjIsPi(p->pAig, pObj) );
     }
@@ -289,9 +306,14 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
     RetValue &= sat_solver_addclause( p->pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) );
     Vec_IntFree( vPoLits );
     Vec_IntPush( p->vCla2Obj, 0 );
+    Vec_IntPush( p->vCla2Fra, 0 );
+    assert( Vec_IntSize(p->vCla2Fra) == Vec_IntSize(p->vCla2Obj) );
 
     assert( nVars == Vec_IntSize(p->vVar2Inf) );
     assert( ((Sto_Man_t *)p->pSat->pStore)->nClauses == Vec_IntSize(p->vCla2Obj) );
+
+//    Sto_ManDumpClauses( ((Sto_Man_t *)p->pSat->pStore), "temp_sto.cnf" );
+
 
     sat_solver_store_mark_roots( p->pSat ); 
     return RetValue;
@@ -320,6 +342,7 @@ Aig_Gla2Man_t * Aig_Gla2ManStart( Aig_Man_t * pAig, int nFramesMax )
     p->vVec2Var   = Vec_IntAlloc( 1 << 20 );
     p->vVar2Inf   = Vec_IntAlloc( 1 << 20 );
     p->vCla2Obj   = Vec_IntAlloc( 1 << 20 );
+    p->vCla2Fra   = Vec_IntAlloc( 1 << 20 );
 
     // skip first vector ID
     p->nFramesMax = nFramesMax;
@@ -349,6 +372,8 @@ void Aig_Gla2ManStop( Aig_Gla2Man_t * p )
     Vec_IntFreeP( &p->vVec2Var );
     Vec_IntFreeP( &p->vVar2Inf );
     Vec_IntFreeP( &p->vCla2Obj );
+    Vec_IntFreeP( &p->vCla2Fra );
+    Vec_IntFreeP( &p->vVec2Use );
 
     if ( p->pSat )
         sat_solver_delete( p->pSat );
@@ -401,12 +426,12 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     pManProof = Intp_ManAlloc();
     vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, 0 );
     Intp_ManFree( pManProof );
-    Sto_ManFree( (Sto_Man_t *)pSatCnf );
     if ( fVerbose )
     {
-        printf( "SAT core contains %d clauses (out of %d).  ", Vec_IntSize(vCore), pSat->stats.clauses );
+        printf( "SAT core contains %d clauses (out of %d).     ", Vec_IntSize(vCore), ((Sto_Man_t *)pSatCnf)->nRoots );
         ABC_PRT( "Time", clock() - clk );
     }
+    Sto_ManFree( (Sto_Man_t *)pSatCnf );
     return vCore;
 }
 
@@ -425,16 +450,39 @@ Vec_Int_t * Aig_Gla2ManCollect( Aig_Gla2Man_t * p, Vec_Int_t * vCore )
 {
     Vec_Int_t * vResult;
     Aig_Obj_t * pObj;
-    int i, ClaId;
+    int i, ClaId, iVecId;
+//    p->vVec2Use = Vec_IntStart( Vec_IntSize(p->vVec2Var) );
+
     vResult = Vec_IntStart( Aig_ManObjNumMax(p->pAig) );
     Vec_IntWriteEntry( vResult, 0, 1 ); // add const1
     Vec_IntForEachEntry( vCore, ClaId, i )
     {
         pObj = Aig_ManObj( p->pAig, Vec_IntEntry(p->vCla2Obj, ClaId) );
-        if ( Saig_ObjIsPi(p->pAig, pObj) || Saig_ObjIsPo(p->pAig, pObj) )
+        if ( Saig_ObjIsPi(p->pAig, pObj) || Saig_ObjIsPo(p->pAig, pObj) || Aig_ObjIsConst1(pObj) )
             continue;
         assert( Saig_ObjIsLo(p->pAig, pObj) || Aig_ObjIsNode(pObj) );
         Vec_IntWriteEntry( vResult, Aig_ObjId(pObj), 1 );
+
+        if ( p->vVec2Use )
+        {
+            iVecId = Vec_IntEntry( p->vObj2Vec, Aig_ObjId(pObj) );
+            Vec_IntWriteEntry( p->vVec2Use, iVecId * p->nFramesMax + Vec_IntEntry(p->vCla2Fra, ClaId), 1 );
+        }
+    }
+
+    // count the number of objects in each frame
+    if ( p->vVec2Use )
+    {
+        Vec_Int_t * vCounts = Vec_IntStart( p->nFramesMax );
+        int v, f, Entry, nVecIds = Vec_IntSize(p->vVec2Use) / p->nFramesMax;
+        for ( f = 0; f < p->nFramesMax; f++ )
+        for ( v = 0; v < nVecIds; v++ )
+            if ( Vec_IntEntry( p->vVec2Use, v * p->nFramesMax + f ) )
+                Vec_IntAddToEntry( vCounts, f, 1 );
+        Vec_IntForEachEntry( vCounts, Entry, f )
+            printf( "%d ", Entry );
+        printf( "\n" );
+        Vec_IntFree( vCounts );
     }
     return vResult;
 }
