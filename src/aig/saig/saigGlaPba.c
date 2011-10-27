@@ -315,8 +315,8 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
     sat_solver_store_mark_roots( p->pSat ); 
 
     if ( p->fVerbose )
-        printf( "The resulting SAT problem contains %d vars, %d clauses, and %d literals.\n", 
-            p->pSat->size, p->pSat->stats.clauses, p->pSat->stats.tot_literals );
+        printf( "The resulting SAT problem contains %d variables and %d clauses.\n", 
+            p->pSat->size, p->pSat->stats.clauses );
     return RetValue;
 }
 
