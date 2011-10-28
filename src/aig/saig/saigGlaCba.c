@@ -37,6 +37,11 @@ struct Aig_Gla1Man_t_
     int            nConfLimit;
     int            nFramesMax;
     int            fVerbose;
+    // unrolling
+    int            nFrames;
+    Vec_Int_t *    vObj2Vec;   // maps obj ID into its vec ID
+    Vec_Int_t *    vVec2Var;   // maps vec ID into its sat Var (nFrames per vec ID)
+    Vec_Int_t *    vVar2Inf;   // maps sat Var into its frame and obj ID
     // abstraction
     Vec_Int_t *    vAssigned;  // collects objects whose SAT variables have been created
     Vec_Int_t *    vIncluded;  // maps obj ID into its status (0=unused; 1=included in abstraction)
@@ -45,11 +50,6 @@ struct Aig_Gla1Man_t_
     Vec_Int_t *    vPPis;      // pseudo primary inputs
     Vec_Int_t *    vFlops;     // flops
     Vec_Int_t *    vNodes;     // nodes
-    // unrolling
-    int            nFrames;
-    Vec_Int_t *    vObj2Vec;   // maps obj ID into its vec ID
-    Vec_Int_t *    vVec2Var;   // maps vec ID into its sat Var (nFrames per vec ID)
-    Vec_Int_t *    vVar2Inf;   // maps sat Var into its frame and obj ID
     // CNF computation
     Vec_Ptr_t *    vLeaves;
     Vec_Ptr_t *    vVolume;
@@ -295,10 +295,9 @@ Aig_Man_t * Aig_Gla1DeriveAbs( Aig_Gla1Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_Gla1FetchVar( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
+static inline int Aig_Gla1FetchVecId( Aig_Gla1Man_t * p, Aig_Obj_t * pObj )
 {
-    int i, iVecId, iSatVar;
-    assert( k < p->nFrames );
+    int i, iVecId;
     iVecId = Vec_IntEntry( p->vObj2Vec, Aig_ObjId(pObj) );
     if ( iVecId == 0 )
     {
@@ -308,6 +307,25 @@ int Aig_Gla1FetchVar( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
         Vec_IntWriteEntry( p->vObj2Vec, Aig_ObjId(pObj), iVecId );
         Vec_IntPushOrderReverse( p->vAssigned, Aig_ObjId(pObj) );
     }
+    return iVecId;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds existing SAT variable or creates a new one.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Aig_Gla1FetchVar( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
+{
+    int iVecId, iSatVar;
+    assert( k < p->nFrames );
+    iVecId  = Aig_Gla1FetchVecId( p, pObj );
     iSatVar = Vec_IntEntry( p->vVec2Var, iVecId * p->nFrames + k );
     if ( iSatVar == 0 )
     {
@@ -357,12 +375,12 @@ int Aig_Gla1ObjAddToSolver( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
         Aig_Obj_t * pObjLi = Saig_ObjLoToLi(p->pAig, pObj);
         if ( k == 0 )
         {
-            Aig_Gla1FetchVar( p, Aig_ObjFanin0(pObjLi), 0 );
+            Aig_Gla1FetchVecId( p, Aig_ObjFanin0(pObjLi) );
             return Aig_Gla1AddConst( p->pSat, Aig_Gla1FetchVar(p, pObj, k), 1 );
         }
         return Aig_Gla1AddBuffer( p->pSat, Aig_Gla1FetchVar(p, pObj, k), 
-                Aig_Gla1FetchVar(p, Aig_ObjFanin0(pObjLi), k-1), 
-                Aig_ObjFaninC0(pObjLi) );
+                   Aig_Gla1FetchVar(p, Aig_ObjFanin0(pObjLi), k-1), 
+                   Aig_ObjFaninC0(pObjLi) );
     }
     else
     { 
@@ -371,9 +389,9 @@ int Aig_Gla1ObjAddToSolver( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
         assert( Aig_ObjIsNode(pObj) );
         if ( p->vObj2Cnf == NULL )
             return Aig_Gla1AddNode( p->pSat, Aig_Gla1FetchVar(p, pObj, k), 
-                        Aig_Gla1FetchVar(p, Aig_ObjFanin0(pObj), k), 
-                        Aig_Gla1FetchVar(p, Aig_ObjFanin1(pObj), k), 
-                        Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
+                       Aig_Gla1FetchVar(p, Aig_ObjFanin0(pObj), k), 
+                       Aig_Gla1FetchVar(p, Aig_ObjFanin1(pObj), k), 
+                       Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
         // derive clauses
         assert( pObj->fMarkA );
         vClauses = Vec_PtrEntry( p->vObj2Cnf, Aig_ObjId(pObj) );
@@ -418,31 +436,26 @@ int Aig_Gla1ObjAddToSolver( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_Gla1CollectAssigned( Aig_Man_t * p, Vec_Int_t * vGateClasses )
+void Aig_Gla1CollectAssigned( Aig_Gla1Man_t * p, Vec_Int_t * vGateClasses )
 {
-    Vec_Int_t * vAssigned;
     Aig_Obj_t * pObj;
     int i, Entry;
-    vAssigned = Vec_IntAlloc( 1000 );
-    Vec_IntForEachEntry( vGateClasses, Entry, i )
+    Vec_IntForEachEntryReverse( vGateClasses, Entry, i )
     {
         if ( Entry == 0 )
             continue;
         assert( Entry == 1 );
-        pObj = Aig_ManObj( p, i );
-        Vec_IntPush( vAssigned, Aig_ObjId(pObj) );
+        pObj = Aig_ManObj( p->pAig, i );
+        Aig_Gla1FetchVecId( p, pObj );
         if ( Aig_ObjIsNode(pObj) )
         {
-            Vec_IntPush( vAssigned, Aig_ObjFaninId0(pObj) );
-            Vec_IntPush( vAssigned, Aig_ObjFaninId1(pObj) );
+            Aig_Gla1FetchVecId( p, Aig_ObjFanin0(pObj) );
+            Aig_Gla1FetchVecId( p, Aig_ObjFanin1(pObj) );
         }
-        else if ( Saig_ObjIsLo(p, pObj) )
-            Vec_IntPush( vAssigned, Aig_ObjFaninId0(Saig_ObjLoToLi(p, pObj)) );
+        else if ( Saig_ObjIsLo(p->pAig, pObj) )
+            Aig_Gla1FetchVecId( p, Aig_ObjFanin0(Saig_ObjLoToLi(p->pAig, pObj)) );
         else assert( Aig_ObjIsConst1(pObj) );
     }
-    Vec_IntUniqify( vAssigned );
-    Vec_IntReverseOrder( vAssigned );
-    return vAssigned;
 }
 
 /**Function*************************************************************
@@ -464,23 +477,8 @@ Aig_Gla1Man_t * Aig_Gla1ManStart( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld,
     p = ABC_CALLOC( Aig_Gla1Man_t, 1 );
     p->pAig      = pAig;
     p->nFrames   = 32;
-    if ( vGateClassesOld )
-    {
-        p->vAssigned = Aig_Gla1CollectAssigned( pAig, vGateClassesOld );
-        p->vIncluded = Vec_IntDup( vGateClassesOld );
-        assert( fNaiveCnf );
-    }
-    else
-    {
-        p->vAssigned = Vec_IntAlloc( 1000 );
-        p->vIncluded = Vec_IntStart( Aig_ManObjNumMax(pAig) );
-    }
 
-    p->vPis      = Vec_IntAlloc( 1000 );
-    p->vPPis     = Vec_IntAlloc( 1000 );
-    p->vFlops    = Vec_IntAlloc( 1000 );
-    p->vNodes    = Vec_IntAlloc( 1000 );
-
+    // unrolling
     p->vObj2Vec  = Vec_IntStart( Aig_ManObjNumMax(pAig) );
     p->vVec2Var  = Vec_IntAlloc( 1 << 20 );
     p->vVar2Inf  = Vec_IntAlloc( 1 << 20 );
@@ -491,6 +489,23 @@ Aig_Gla1Man_t * Aig_Gla1ManStart( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld,
     // skip  first SAT variable
     Vec_IntPush( p->vVar2Inf, -1 );
     Vec_IntPush( p->vVar2Inf, -1 );
+
+    // abstraction
+    p->vAssigned = Vec_IntAlloc( 1000 );
+    if ( vGateClassesOld )
+    {
+        p->vIncluded = Vec_IntDup( vGateClassesOld );
+        Aig_Gla1CollectAssigned( p, vGateClassesOld );
+        assert( fNaiveCnf );
+    }
+    else
+        p->vIncluded = Vec_IntStart( Aig_ManObjNumMax(pAig) );
+
+    // components
+    p->vPis      = Vec_IntAlloc( 1000 );
+    p->vPPis     = Vec_IntAlloc( 1000 );
+    p->vFlops    = Vec_IntAlloc( 1000 );
+    p->vNodes    = Vec_IntAlloc( 1000 );
 
     // CNF computation
     if ( !fNaiveCnf )
@@ -523,6 +538,10 @@ Aig_Gla1Man_t * Aig_Gla1ManStart( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld,
 ***********************************************************************/
 void Aig_Gla1ManStop( Aig_Gla1Man_t * p )
 {
+    Vec_IntFreeP( &p->vObj2Vec );
+    Vec_IntFreeP( &p->vVec2Var );
+    Vec_IntFreeP( &p->vVar2Inf );
+
     Vec_IntFreeP( &p->vAssigned );
     Vec_IntFreeP( &p->vIncluded );
 
@@ -530,10 +549,6 @@ void Aig_Gla1ManStop( Aig_Gla1Man_t * p )
     Vec_IntFreeP( &p->vPPis );
     Vec_IntFreeP( &p->vFlops );
     Vec_IntFreeP( &p->vNodes );
-
-    Vec_IntFreeP( &p->vObj2Vec );
-    Vec_IntFreeP( &p->vVec2Var );
-    Vec_IntFreeP( &p->vVar2Inf );
 
     if ( p->vObj2Cnf )
     {
@@ -692,7 +707,7 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int 
 
     // include constant node
     Vec_IntWriteEntry( p->vIncluded, 0, 1 );
-    Aig_Gla1FetchVar( p, Aig_ManConst1(pAig), 0 );
+    Aig_Gla1FetchVecId( p, Aig_ManConst1(pAig) );
 
     // set runtime limit
     if ( TimeLimit )
