@@ -22,6 +22,7 @@
 #include "main.h"
 #include "mio.h"
 #include "kit.h"
+#include "if.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -882,10 +883,6 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
     else
     {
         extern int If_CluMinimumBase( word * t, int * pSupp, int nVarsAll, int * pnVars );
-        extern int If_CluCheckExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
-                            char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
-        extern int If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
-                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 
         static word TruthStore[16][1<<10] = {{0}}, * pTruths[16];
         word pCube[1<<10], pRes[1<<10], Func0, Func1, Func2;

@@ -13154,7 +13154,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->pLutStruct = argv[globalUtilOptind];
             globalUtilOptind++;
-            if ( !strlen(pPars->pLutStruct) == 2 && !strlen(pPars->pLutStruct) == 3 ) 
+            if ( strlen(pPars->pLutStruct) != 2 && strlen(pPars->pLutStruct) != 3 ) 
             {
                 Abc_Print( -1, "Command line switch \"-S\" should be followed by a 2- or 3-char string (e.g. \"44\" or \"555\").\n" );
                 goto usage;

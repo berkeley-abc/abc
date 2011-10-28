@@ -259,7 +259,7 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
             if ( (Cube & 3) == 0 )
                 continue;
             assert( (Cube & 3) != 3 );
-            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, Vec_PtrEntry(vLeaves,k), (Cube&3)!=1) );
+            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, (Aig_Obj_t *)Vec_PtrEntry(vLeaves,k), (Cube&3)!=1) );
         }
     }
 
@@ -276,7 +276,7 @@ void Cnf_ComputeClauses( Aig_Man_t * p, Aig_Obj_t * pRoot,
             if ( (Cube & 3) == 0 )
                 continue;
             assert( (Cube & 3) != 3 );
-            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, Vec_PtrEntry(vLeaves,k), (Cube&3)!=1) );
+            Vec_IntPush( vClauses, Cnf_ObjGetLit(vMap, (Aig_Obj_t *)Vec_PtrEntry(vLeaves,k), (Cube&3)!=1) );
         }
     }
 }

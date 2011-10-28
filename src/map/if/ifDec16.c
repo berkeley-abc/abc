@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1780,9 +1781,10 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
 }
 
 // returns the best group found
-int If_CluCheckExt( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
+int If_CluCheckExt( void * pMan, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
                    char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 )
 {
+    If_Man_t * p = (If_Man_t *)pMan;
     If_Grp_t G, R;
     G = If_CluCheck( p, pTruth, nVars, 0, nLutLeaf, nLutRoot, &R, pFunc0, pFunc1, NULL, 0 );
     memcpy( pLut0, &R, sizeof(If_Grp_t) );
@@ -1792,9 +1794,10 @@ int If_CluCheckExt( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nL
 }
 
 // returns the best group found
-int If_CluCheckExt3( If_Man_t * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
+int If_CluCheckExt3( void * pMan, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                     char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 )
 {
+    If_Man_t * p = (If_Man_t *)pMan;
     If_Grp_t G, G2, R;
     G = If_CluCheck3( p, pTruth, nVars, nLutLeaf, nLutLeaf2, nLutRoot, &R, &G2, pFunc0, pFunc1, pFunc2 );
     memcpy( pLut0, &R, sizeof(If_Grp_t) );

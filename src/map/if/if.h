@@ -426,6 +426,10 @@ extern int             If_CutPerformCheck08( If_Man_t * p, unsigned * pTruth, in
 extern int             If_CutPerformCheck10( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern float           If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float WireDelay );
+extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
+                           char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
+extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
+                           char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
 /*=== ifLib.c =============================================================*/
 extern If_Lib_t *      If_LutLibRead( char * FileName );
 extern If_Lib_t *      If_LutLibDup( If_Lib_t * p );

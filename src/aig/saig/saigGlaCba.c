@@ -394,7 +394,7 @@ int Aig_Gla1ObjAddToSolver( Aig_Gla1Man_t * p, Aig_Obj_t * pObj, int k )
                        Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
         // derive clauses
         assert( pObj->fMarkA );
-        vClauses = Vec_PtrEntry( p->vObj2Cnf, Aig_ObjId(pObj) );
+        vClauses = (Vec_Int_t *)Vec_PtrEntry( p->vObj2Cnf, Aig_ObjId(pObj) );
         if ( vClauses == NULL )
         {
             Vec_PtrWriteEntry( p->vObj2Cnf, Aig_ObjId(pObj), (vClauses = Vec_IntAlloc(16)) );
