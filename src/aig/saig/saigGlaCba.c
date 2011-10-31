@@ -686,6 +686,7 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int 
     Vec_Int_t * vPPiRefine;
     int f, g, r, i, iSatVar, Lit, Entry, RetValue;
     int nConfBef, nConfAft, clk, clkTotal = clock();
+    int nTimeToStop = time(NULL) + TimeLimit;
     assert( Saig_ManPoNum(pAig) == 1 );
 
     if ( nFramesMax == 0 )
@@ -711,7 +712,7 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int 
 
     // set runtime limit
     if ( TimeLimit )
-        sat_solver_set_runtime_limit( p->pSat, clock() + TimeLimit * CLOCKS_PER_SEC );
+        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
 
     // iterate over the timeframes
     for ( f = 0; f < nFramesMax; f++ )
@@ -750,7 +751,7 @@ Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int 
                         printf( "== %3d ==", f );
                     else
                         printf( "         " );
-                    if ( TimeLimit && clock() > clkTotal + TimeLimit * CLOCKS_PER_SEC )
+                    if ( TimeLimit && time(NULL) > nTimeToStop )
                         printf( "       SAT solver timed out after %d seconds.\n", TimeLimit );
                     else if ( RetValue != l_False )
                         printf( "       SAT solver returned UNDECIDED after %5d conflicts.\n", nConfAft - nConfBef );

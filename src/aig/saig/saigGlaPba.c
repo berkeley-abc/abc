@@ -465,13 +465,30 @@ Vec_Int_t * Aig_Gla2ManCollect( Aig_Gla2Man_t * p, Vec_Int_t * vCore )
             continue;
         assert( Saig_ObjIsLo(p->pAig, pObj) || Aig_ObjIsNode(pObj) );
         Vec_IntWriteEntry( vResult, Aig_ObjId(pObj), 1 );
-
+/*
+        // add flop inputs with multiple fanouts
+        if ( Saig_ObjIsLo(p->pAig, pObj) )
+        {
+            Aig_Obj_t * pObjLi = Saig_ObjLoToLi(p->pAig, pObj);
+            if ( !Saig_ObjIsPi(p->pAig, Aig_ObjFanin0(pObjLi)) )
+//            if ( Aig_ObjRefs( Aig_ObjFanin0(pObjLi) ) > 1 )
+                Vec_IntWriteEntry( vResult, Aig_ObjFaninId0(pObjLi), 1 );
+        }
+        else
+        {
+            if ( !Saig_ObjIsPi(p->pAig, Aig_ObjFanin0(pObj)) )
+                Vec_IntWriteEntry( vResult, Aig_ObjFaninId0(pObj), 1 );
+            if ( !Saig_ObjIsPi(p->pAig, Aig_ObjFanin1(pObj)) )
+                Vec_IntWriteEntry( vResult, Aig_ObjFaninId1(pObj), 1 );
+        }
+*/
         if ( p->vVec2Use )
         {
             iVecId = Vec_IntEntry( p->vObj2Vec, Aig_ObjId(pObj) );
             Vec_IntWriteEntry( p->vVec2Use, iVecId * p->nFramesMax + Vec_IntEntry(p->vCla2Fra, ClaId), 1 );
         }
     }
+//    printf( "Number of entries %d\n", Vec_IntCountPositive(vResult) );
 
     // count the number of objects in each frame
     if ( p->vVec2Use )
@@ -508,6 +525,7 @@ Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int n
     Aig_Gla2Man_t * p;
     Vec_Int_t * vCore, * vResult;
     int clk, clkTotal = clock();
+    int nTimeToStop = time(NULL) + TimeLimit;
     assert( Saig_ManPoNum(pAig) == 1 );
 
     if ( fVerbose )
@@ -531,7 +549,7 @@ Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int n
 
     // set runtime limit
     if ( TimeLimit )
-        sat_solver_set_runtime_limit( p->pSat, clock() + TimeLimit * CLOCKS_PER_SEC );
+        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
 
     // compute UNSAT core
     clk = clock();

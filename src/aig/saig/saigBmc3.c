@@ -1102,6 +1102,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
     int nOutDigits = Aig_Base10Log( Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) );
     int i, f, Lit, status, clk, clk2, clkOther = 0, clkTotal = clock();
+    int nTimeToStop = time(NULL) + pPars->nTimeOut;
     if ( pPars->fVerbose && Aig_ManConstrNum(pAig) > 0 )
         printf( "Performing BMC with constraints...\n" );
     p = Saig_Bmc3ManStart( pAig );
@@ -1116,7 +1117,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     } 
     // set runtime limit
     if ( p->pPars->nTimeOut )
-        sat_solver_set_runtime_limit( p->pSat, clock() + p->pPars->nTimeOut * CLOCKS_PER_SEC );
+        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     // perform frames
     Aig_ManRandom( 1 );
     Saig_ManBmcMarkPis( pAig, pPars->nPisAbstract );
@@ -1264,7 +1265,7 @@ clkOther += clock() - clk2;
             else 
             {
                 assert( status == l_Undef );
-                if ( pPars->nTimeOut && ((float)pPars->nTimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+                if ( pPars->nTimeOut && time(NULL) > nTimeToStop )
                 {
                     printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                     Saig_Bmc3ManStop( p );
@@ -1280,7 +1281,7 @@ clkOther += clock() - clk2;
                 Saig_Bmc3ManStop( p );
                 return RetValue;
             }
-            if ( pPars->nTimeOut && ((float)pPars->nTimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+            if ( pPars->nTimeOut && time(NULL) > nTimeToStop )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 Saig_Bmc3ManStop( p );

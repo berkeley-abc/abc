@@ -976,9 +976,9 @@ cuddBddTransferRecur(
     if (st_lookup(table, (const char *)f, (char **)&res))
         return(Cudd_NotCond(res,comple));
 
-    if ( ddS->TimeStop && ddS->TimeStop < clock() )
+    if ( ddS->TimeStop && ddS->TimeStop < time(NULL) )
         return NULL;
-    if ( ddD->TimeStop && ddD->TimeStop < clock() )
+    if ( ddD->TimeStop && ddD->TimeStop < time(NULL) )
         return NULL;
     
     /* Recursive step. */

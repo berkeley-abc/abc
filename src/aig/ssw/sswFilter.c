@@ -383,6 +383,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
     Ssw_Pars_t Pars, * pPars = &Pars;
     Ssw_Man_t * p;
     int r, TimeLimitPart, clkTotal = clock();
+    int nTimeToStop = TimeLimit ? TimeLimit + time(NULL) : 0;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
     // consider the case of empty AIG
@@ -428,7 +429,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
             Ssw_ClassesPrint( p->ppClasses, 0 );
         }
         p->pMSat = Ssw_SatStart( 0 );
-        TimeLimitPart = TimeLimit ? TimeLimit - (int)((float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) : 0;
+        TimeLimitPart = TimeLimit ? nTimeToStop - time(NULL) : 0;
         if ( TimeLimit2 )
         {
             if ( TimeLimitPart )
@@ -443,7 +444,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
         // simulate pattern forward
         Ssw_ManRollForward( p, p->pPars->nFramesK );
         // check timeout
-        if ( TimeLimit && ((float)TimeLimit <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+        if ( TimeLimit && time(NULL) > nTimeToStop )
         {
             printf( "Reached timeout (%d seconds).\n",  TimeLimit );
             break;

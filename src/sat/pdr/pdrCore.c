@@ -514,7 +514,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         }
 
         // check the timeout
-        if ( p->timeToStop && clock() >= p->timeToStop )
+        if ( p->timeToStop && time(NULL) > p->timeToStop )
             return -1;
     }
     return 1;
@@ -538,7 +538,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     int k, RetValue = -1;
     int clkTotal = clock();
     int clkStart = clock();
-    p->timeToStop = (p->pPars->nTimeOut == 0) ? 0 : clock() + (CLOCKS_PER_SEC * p->pPars->nTimeOut);
+    p->timeToStop = p->pPars->nTimeOut ? time(NULL) + p->pPars->nTimeOut : 0;
     assert( Vec_PtrSize(p->vSolvers) == 0 );
     // create the first timeframe
     Pdr_ManCreateSolver( p, (k = 0) );
@@ -619,7 +619,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
         }
 
         // check the timeout
-        if ( p->timeToStop && clock() >= p->timeToStop )
+        if ( p->timeToStop && time(NULL) > p->timeToStop )
         {
             if ( fPrintClauses )
             {

@@ -586,10 +586,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     int nThreshold = 10000;
 
     // compute time to stop
-    if ( p->pPars->TimeLimit )
-        p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
-    else
-        p->pPars->TimeTarget = 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? time(NULL) + p->pPars->TimeLimit : 0;
 
     // define variable limits
     Llb_ManPrepareVarLimits( p );
@@ -660,7 +657,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     { 
         clk2 = clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && time(NULL) > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout during image computation (%d seconds).\n",  p->pPars->TimeLimit );

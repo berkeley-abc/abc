@@ -254,6 +254,7 @@ Vec_Int_t * Saig_ManPbaDerive( Aig_Man_t * pAig, int nInputs, int nStart, int nF
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
     Aig_Obj_t * pObj;
+    int nTimeToStop = time(NULL) + TimeLimit;
     int nCoreLits, * pCoreLits;
     int i, iVar, RetValue, clk;
 if ( fVerbose )
@@ -295,7 +296,7 @@ Abc_PrintTime( 1, "Preparing", clock() - clk );
 
     // set runtime limit
     if ( TimeLimit )
-        sat_solver_set_runtime_limit( pSat, clock() + TimeLimit * CLOCKS_PER_SEC );
+        sat_solver_set_runtime_limit( pSat, nTimeToStop );
 
     // run SAT solver
 clk = clock();

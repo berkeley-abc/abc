@@ -926,7 +926,7 @@ cuddBddAndRecur(
         if (r != NULL) return(r);
     }
 
-    if ( manager->TimeStop && manager->TimeStop < clock() )
+    if ( manager->TimeStop && manager->TimeStop < time(NULL) )
         return NULL;
 
     /* Here we can skip the use of cuddI, because the operands are known

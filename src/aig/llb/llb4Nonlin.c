@@ -725,7 +725,7 @@ int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
     { 
         clkIter = clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && time(NULL) > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -929,10 +929,8 @@ Llb_Mnx_t * Llb_MnxStart( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     p->pPars   = pPars;
 
     // compute time to stop
-    if ( p->pPars->TimeLimit )
-        p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
-    else
-        p->pPars->TimeTarget = 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? time(NULL) + p->pPars->TimeLimit : 0;
+
     if ( pPars->fCluster )
     {
 //        Llb_Nonlin4Cluster( p->pAig, &p->dd, &p->vOrder, &p->vRoots, pPars->nBddMax, pPars->fVerbose );

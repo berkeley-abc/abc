@@ -433,10 +433,8 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     assert( Aig_ManRegNum(p->pAig) > 0 );
 
     // compute time to stop
-    if ( p->pPars->TimeLimit )
-        p->pPars->TimeTarget = clock() + p->pPars->TimeLimit * CLOCKS_PER_SEC;
-    else
-        p->pPars->TimeTarget = 0;
+    p->pPars->TimeTarget = p->pPars->TimeLimit ? time(NULL) + p->pPars->TimeLimit : 0;
+
     // set the stop time parameter
     p->dd->TimeStop  = p->pPars->TimeTarget;
     p->ddG->TimeStop = p->pPars->TimeTarget;
@@ -474,7 +472,7 @@ int Llb_NonlinReachability( Llb_Mnn_t * p )
     { 
         // check the runtime limit
         clk2 = clock();
-        if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && time(NULL) > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );

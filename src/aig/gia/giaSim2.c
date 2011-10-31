@@ -641,6 +641,7 @@ int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     Gia_Obj_t * pObj;
     int i, clkTotal = clock();
     int RetValue = 0, iOut, iPat;
+    int nTimeToStop = pPars->TimeLimit ? pPars->TimeLimit + time(NULL) : 0;
     assert( pAig->pReprs && pAig->pNexts );
     ABC_FREE( pAig->pCexSeq );
     p = Gia_Sim2Create( pAig, pPars );
@@ -681,7 +682,7 @@ int Gia_ManSimSimulateEquiv( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
         }
         if ( pAig->pReprs && pAig->pNexts )
             Gia_Sim2InfoRefineEquivs( p );
-        if ( (clock() - clkTotal)/CLOCKS_PER_SEC >= pPars->TimeLimit )
+        if ( time(NULL) > nTimeToStop )
         {
             i++;
             break;

@@ -218,7 +218,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
         p->pPars->TimeTarget = 0;
 */
 
-    if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
+    if ( time(NULL) > p->pPars->TimeTarget )
     {
         if ( !p->pPars->fSilent )
             printf( "Reached timeout (%d seconds) before image computation.\n", p->pPars->TimeLimit );
@@ -286,7 +286,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     { 
         clk2 = clock();
         // check the runtime limit
-        if ( p->pPars->TimeLimit && clock() >= p->pPars->TimeTarget )
+        if ( p->pPars->TimeLimit && time(NULL) > p->pPars->TimeTarget )
         {
             if ( !p->pPars->fSilent )
                 printf( "Reached timeout (%d seconds) during image computation.\n",  p->pPars->TimeLimit );
@@ -729,10 +729,7 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
     int clk = clock();
 
     // compute time to stop
-    if ( pPars->TimeLimit )
-        pPars->TimeTarget = clock() + pPars->TimeLimit * CLOCKS_PER_SEC;
-    else
-        pPars->TimeTarget = 0;
+    pPars->TimeTarget = pPars->TimeLimit ? time(NULL) + pPars->TimeLimit : 0;
 
     p = Aig_ManDupFlopsOnly( pAig );
 //Aig_ManShow( p, 0, NULL );
@@ -744,7 +741,7 @@ int Llb_ManReachMinCut( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
 
     vResult = Llb_ManComputeCuts( p, pPars->nPartValue, pPars->fVerbose, pPars->fVeryVerbose );
 
-    if ( pPars->TimeLimit && clock() >= pPars->TimeTarget )
+    if ( pPars->TimeLimit && time(NULL) > pPars->TimeTarget )
     {
         if ( !pPars->fSilent )
             printf( "Reached timeout (%d seconds) after partitioning.\n", pPars->TimeLimit );

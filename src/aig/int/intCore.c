@@ -81,11 +81,7 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     Inter_Check_t * pCheck = NULL;
     Aig_Man_t * pAigTemp;
     int s, i, RetValue, Status, clk, clk2, clkTotal = clock(), timeTemp;
-    int nTimeNewOut = 0;
-
-    // set runtime limit
-    if ( pPars->nSecLimit )
-        nTimeNewOut = clock() + pPars->nSecLimit * CLOCKS_PER_SEC;
+    int nTimeNewOut = pPars->nSecLimit ? time(NULL) + pPars->nSecLimit : 0;
 
     // sanity checks
     assert( Saig_ManRegNum(pAig) > 0 );
@@ -252,7 +248,7 @@ p->timeCnf += clock() - clk;
             }
             else if ( RetValue == -1 ) 
             {
-                if ( pPars->nSecLimit && clock() > nTimeNewOut ) // timed out
+                if ( pPars->nSecLimit && time(NULL) > nTimeNewOut ) // timed out
                 {
                     if ( pPars->fVerbose )
                         printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
@@ -331,7 +327,7 @@ p->timeEqu += clock() - clk - timeTemp;
                 Inter_CheckStop( pCheck );
                 return 1;
             }
-            if ( pPars->nSecLimit && clock() > nTimeNewOut )
+            if ( pPars->nSecLimit && time(NULL) > nTimeNewOut )
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
                 p->timeTotal = clock() - clkTotal;

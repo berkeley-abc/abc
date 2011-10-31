@@ -750,6 +750,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     Saig_Bmc_t * p;
     Aig_Man_t * pNew;
     Cnf_Dat_t * pCnf;
+    int nTimeToStop = time(NULL) + nTimeOut;
     int nOutsSolved = 0;
     int Iter, RetValue = -1, clk = clock(), clk2, clkTotal = clock();
     int Status = -1;
@@ -769,7 +770,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     } 
     // set runtime limit
     if ( nTimeOut )
-        sat_solver_set_runtime_limit( p->pSat, clock() + nTimeOut * CLOCKS_PER_SEC );
+        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     for ( Iter = 0; ; Iter++ )
     {
         clk2 = clock();
@@ -800,7 +801,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         if ( RetValue != l_False )
             break;
         // check the timeout
-        if ( nTimeOut && ((float)nTimeOut <= (float)(clock()-clkTotal)/(float)(CLOCKS_PER_SEC)) )
+        if ( nTimeOut && time(NULL) > nTimeToStop )
         {
             printf( "Reached timeout (%d seconds).\n",  nTimeOut );
             if ( piFrames )
@@ -843,10 +844,10 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
             printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
         else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
             printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
-        else if ( nTimeOut == 0 || nTimeOut > clock() )
-            printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
+        else if ( nTimeOut && time(NULL) > nTimeToStop )
+            printf( "Reached timeout (%d seconds).\n", nTimeOut );
         else
-            printf( "Reached timeout (%d sec).\n", nTimeOut );
+            printf( "Reached local conflict limit (%d).\n", p->nConfMaxOne );
     }
     Saig_BmcManStop( p );
     return Status;
