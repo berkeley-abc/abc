@@ -1694,7 +1694,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1, clk = clock();
-    int nTimeLimit = nTimeOut ? clock() + nTimeOut * CLOCKS_PER_SEC : 0;
+    int nTimeLimit = nTimeOut ? time(NULL) + nTimeOut : 0;
 
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
@@ -1722,7 +1722,7 @@ int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nStart, int nFrames, int nSizeMax, int 
         else if ( RetValue == -1 )
         {
             printf( "No output asserted in %d frames. Resource limit reached ", iFrame );
-            if ( nTimeLimit < clock() )
+            if ( time(NULL) > nTimeLimit )
                 printf( "(timeout %d sec). ", nTimeLimit );
             else
                 printf( "(conf limit %d). ", nBTLimit );
@@ -1804,7 +1804,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
 {
     Aig_Man_t * pMan;
     int status, RetValue = -1, clk = clock();
-    int nTimeOut = pPars->nTimeOut ? clock() + pPars->nTimeOut * CLOCKS_PER_SEC : 0;
+    int nTimeOut = pPars->nTimeOut ? time(NULL) + pPars->nTimeOut : 0;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
     {
@@ -1825,7 +1825,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
         if ( pPars->nFailOuts == 0 )
         {
             printf( "No output asserted in %d frames. Resource limit reached ", pPars->iFrame );
-            if ( nTimeOut < clock() )
+            if ( time(NULL) > nTimeOut )
                 printf( "(timeout %d sec). ", pPars->nTimeOut );
             else
                 printf( "(conf limit %d). ", pPars->nConfLimit );
@@ -1833,7 +1833,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
         else
         {
             printf( "The total of %d outputs asserted in %d frames. Resource limit reached ", pPars->nFailOuts, pPars->iFrame );
-            if ( nTimeOut < clock() )
+            if ( time(NULL) > nTimeOut )
                 printf( "(timeout %d sec). ", pPars->nTimeOut );
             else
                 printf( "(conf limit %d). ", pPars->nConfLimit );
