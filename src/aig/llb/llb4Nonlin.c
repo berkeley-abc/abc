@@ -1059,12 +1059,12 @@ int Llb_Nonlin4CoreReach( Aig_Man_t * pAig, Gia_ParLlb_t * pPars )
         printf( "The number of objects is more than 2^15.  Clustering cannot be used.\n" );
         return RetValue;
     }
-    if ( !pPars->fSkipReach )
     {
         int clk = clock();
         pMnn = Llb_MnxStart( pAig, pPars );
 //Llb_MnxCheckNextStateVars( pMnn );
-        RetValue = Llb_Nonlin4Reachability( pMnn );
+        if ( !pPars->fSkipReach )
+            RetValue = Llb_Nonlin4Reachability( pMnn );
         pMnn->timeTotal = clock() - clk;
         Llb_MnxStop( pMnn );
     }
