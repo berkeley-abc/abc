@@ -57,6 +57,38 @@ struct Aig_Gla2Man_t_
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#define ABC_CPS 1000
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure returns miliseconds elapsed since the last reset.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_Clock( int Timer, int fReset )
+{
+    static Time[16], Clock[16];
+    int Clock2, Diff;
+    assert( Timer > 0 && Timer < 16 );
+    if ( fReset )
+    {
+        Time[Timer] = time(NULL);
+        Clock[Timer] = clock();
+        return 0;
+    }
+    Clock2 = clock();
+    if ( Clock2 > Clock[Timer] )
+        Diff = (Clock2 - Clock[Timer]) % CLOCKS_PER_SEC;
+    else
+        Diff = CLOCKS_PER_SEC - (Clock[Timer] - Clock2) % CLOCKS_PER_SEC;
+    return (time(NULL) - Time[Timer]) * ABC_CPS + (Diff * ABC_CPS) / CLOCKS_PER_SEC;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Adds constant to the solver.]
@@ -400,10 +432,11 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     Vec_Int_t * vCore;
     void * pSatCnf; 
     Intp_Man_t * pManProof;
-    int RetValue, clk = clock();
+    int RetValue;
     if ( piRetValue )
         *piRetValue = -1;
     // solve the problem
+    Abc_Clock(2,1);
     RetValue = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_Undef )
     {
@@ -420,19 +453,19 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     if ( fVerbose )
     {
         printf( "SAT solver returned UNSAT after %7d conflicts.      ", pSat->stats.conflicts );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock(2,0) );
     }
     assert( RetValue == l_False );
     pSatCnf = sat_solver_store_release( pSat ); 
     // derive the UNSAT core
-    clk = clock();
+    Abc_Clock(2,1);
     pManProof = Intp_ManAlloc();
     vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, 0 );
     Intp_ManFree( pManProof );
     if ( fVerbose )
     {
         printf( "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), ((Sto_Man_t *)pSatCnf)->nRoots );
-        ABC_PRT( "Time", clock() - clk );
+        ABC_PRT( "Time", Abc_Clock(2,0) );
     }
     Sto_ManFree( (Sto_Man_t *)pSatCnf );
     return vCore;
@@ -524,10 +557,10 @@ Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int n
 {
     Aig_Gla2Man_t * p;
     Vec_Int_t * vCore, * vResult;
-    int clk, clkTotal = clock();
     int nTimeToStop = time(NULL) + TimeLimit;
     assert( Saig_ManPoNum(pAig) == 1 );
 
+    Abc_Clock(0,1); 
     if ( fVerbose )
     {
         if ( TimeLimit )
@@ -537,7 +570,7 @@ Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int n
     }
 
     // start the solver
-    clk = clock();
+    Abc_Clock(1,1); 
     p = Aig_Gla2ManStart( pAig, nStart, nFramesMax, fVerbose );
     if ( !Aig_Gla2CreateSatSolver( p ) )
     {
@@ -545,22 +578,22 @@ Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int n
         Aig_Gla2ManStop( p );
         return NULL;
     }
-    p->timePre += clock() - clk;
+    p->timePre += Abc_Clock(1,0);
 
     // set runtime limit
     if ( TimeLimit )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
 
     // compute UNSAT core
-    clk = clock();
+    Abc_Clock(1,1); 
     vCore = Saig_AbsSolverUnsatCore( p->pSat, nConfLimit, fVerbose, NULL );
     if ( vCore == NULL )
     {
         Aig_Gla2ManStop( p );
         return NULL;
     }
-    p->timeSat += clock() - clk;
-    p->timeTotal = clock() - clkTotal;
+    p->timeSat += Abc_Clock(1,0);
+    p->timeTotal = Abc_Clock(0,0);
 
     // print stats
     if ( fVerbose )
