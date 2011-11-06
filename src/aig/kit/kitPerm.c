@@ -235,6 +235,31 @@ void Kit_PermComputeNaive( word * F, int nVars )
     If_CluReverseOrder( F, nVars, V2P, P2V, 0 );
 }
 
+
+word M ( word f1, word f2, int n)
+{
+    word temp = 0;
+    word a = 1;
+    int i;
+    for(  i = 0; i < n; i++)
+        temp = temp + (((f1>>i)&a) << (2*i) ) + (((f2>>i)&a) << (2*i+1));
+    return temp;
+}
+
+word Tf ( word f, int n)
+{
+    if(n==1)
+        return f;
+    else
+    {
+        int x = (int)pow(2,n-1);
+//        int x;
+        x = (1 << (n-1));
+        return (  M (Tf( (f << x) >> x, n-1), Tf( (f >> x), n-1), x) );     //def. of M just below the function
+     }
+}
+
+
 #define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
 #define NFUNCS (1<<20)
 
@@ -271,7 +296,8 @@ void Kit_PermComputeTest()
     for ( k = 0; k < NFUNCS; k++ )
     {
         i = T[k];
-        Kit_PermComputeNaive( &i, 6 );
+//        Kit_PermComputeNaive( &i, 6 );
+        Tf( i, 6 );
     }
     ABC_PRT( "Perm1 ", clock() - clk );
 
@@ -291,6 +317,34 @@ void Kit_PermComputeTest()
     assert( w == 0 );
     free( T );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+`
+***********************************************************************/
+void Kit_PermComputeTest_()
+{
+    word t, s;
+    t = 0xacaccacaaccaacca;
+//    Kit_DsdPrintFromTruth( &t, 6 ); printf( "\n" );
+    s = Tf( t, 6 );
+//    Kit_PermComputeNaive( &t, 6 );
+//    Kit_DsdPrintFromTruth( &s, 6 ); printf( "\n" );
+}
+
+/*
+    {
+        extern void Kit_PermComputeTest();
+        Kit_PermComputeTest();
+    }
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
