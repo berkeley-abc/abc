@@ -252,8 +252,8 @@ word Tf ( word f, int n)
         return f;
     else
     {
-        int x = (int)pow(2,n-1);
-//        int x;
+//        int x = (int)pow(2,n-1);
+        int x;
         x = (1 << (n-1));
         return (  M (Tf( (f << x) >> x, n-1), Tf( (f >> x), n-1), x) );     //def. of M just below the function
      }
