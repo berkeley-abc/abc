@@ -689,6 +689,7 @@ extern void            Aig_ManSetPhase( Aig_Man_t * pAig );
 extern Vec_Ptr_t *     Aig_ManMuxesCollect( Aig_Man_t * pAig );
 extern void            Aig_ManMuxesDeref( Aig_Man_t * pAig, Vec_Ptr_t * vMuxes );
 extern void            Aig_ManMuxesRef( Aig_Man_t * pAig, Vec_Ptr_t * vMuxes );
+extern void            Aig_ManInvertConstraints( Aig_Man_t * pAig );
 
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );

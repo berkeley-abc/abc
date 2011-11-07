@@ -466,18 +466,23 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
         Ioa_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    fprintf( pFile, "aig%s %u %u %u %u %u\n", 
+    fprintf( pFile, "aig%s %u %u %u %u %u", 
         fCompact? "2" : "",
         Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan), 
         Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan),
         Aig_ManRegNum(pMan),
-        Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManConstrNum(pMan) ? 0 : Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan),
         Aig_ManNodeNum(pMan) );
+    // write the extended header "B C J F"
+    if ( Aig_ManConstrNum(pMan) )
+        fprintf( pFile, " %u %u", Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) - Aig_ManConstrNum(pMan), Aig_ManConstrNum(pMan) );
+    fprintf( pFile, "\n" ); 
 
     // if the driver node is a constant, we need to complement the literal below
     // because, in the AIGER format, literal 0/1 is represented as number 0/1
     // while, in ABC, constant 1 node has number 0 and so literal 0/1 will be 1/0
 
+    Aig_ManInvertConstraints( pMan );
     if ( !fCompact ) 
     {
         // write latch drivers
@@ -502,6 +507,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
         Vec_StrFree( vBinary );
         Vec_IntFree( vLits );
     }
+    Aig_ManInvertConstraints( pMan );
 
     // write the nodes into the buffer
     Pos = 0;

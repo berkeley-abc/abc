@@ -233,7 +233,9 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     Vec_Int_t * vLits = NULL;
     Abc_Obj_t * pObj, * pNode0, * pNode1;
     Abc_Ntk_t * pNtkNew;
-    int nTotal, nInputs, nOutputs, nLatches, nAnds, nFileSize = -1, iTerm, nDigits, i;
+    int nTotal, nInputs, nOutputs, nLatches, nAnds;
+    int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
+    int nFileSize = -1, iTerm, nDigits, i;
     char * pContents, * pDrivers = NULL, * pSymbols, * pCur, * pName, * pType;
     unsigned uLit0, uLit1, uLit;
 
@@ -257,8 +259,79 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
     {
         fprintf( stdout, "Wrong input file format.\n" );
-        free( pContents );
+        ABC_FREE( pContents );
         return NULL;
+    }
+
+    // read the parameters (M I L O A + B C J F)
+    pCur = pContents;         while ( *pCur != ' ' ) pCur++; pCur++;
+    // read the number of objects
+    nTotal = atoi( pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
+    // read the number of inputs
+    nInputs = atoi( pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
+    // read the number of latches
+    nLatches = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
+    // read the number of outputs
+    nOutputs = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
+    // read the number of nodes
+    nAnds = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+    if ( *pCur == ' ' )
+    {
+        assert( nOutputs == 0 );
+        // read the number of properties
+        pCur++;
+        nBad = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nBad;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nConstr = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nConstr;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nJust = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nJust;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nFair = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nFair;
+    }
+    if ( *pCur != '\n' )
+    {
+        fprintf( stdout, "The parameter line is in a wrong format.\n" );
+        ABC_FREE( pContents );
+        return NULL;
+    }
+    pCur++;
+
+    // check the parameters
+    if ( nTotal != nInputs + nLatches + nAnds )
+    {
+        fprintf( stdout, "The number of objects does not match.\n" );
+        ABC_FREE( pContents );
+        return NULL;
+    }
+    if ( nJust || nFair )
+    {
+        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
+        ABC_FREE( pContents );
+        return NULL;
+    }
+
+    if ( nConstr )
+    {
+        if ( nConstr == 1 )
+            fprintf( stdout, "Warning: The last output is interpreted as a constraint.\n" );
+        else
+            fprintf( stdout, "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
     }
 
     // allocate the empty AIG
@@ -267,26 +340,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     pNtkNew->pName = Extra_UtilStrsav( pName );
     pNtkNew->pSpec = Extra_UtilStrsav( pFileName );
     ABC_FREE( pName );
-
-
-    // read the file type
-    pCur = pContents;         while ( *pCur++ != ' ' );
-    // read the number of objects
-    nTotal = atoi( pCur );    while ( *pCur++ != ' ' );
-    // read the number of inputs
-    nInputs = atoi( pCur );   while ( *pCur++ != ' ' );
-    // read the number of latches
-    nLatches = atoi( pCur );  while ( *pCur++ != ' ' );
-    // read the number of outputs
-    nOutputs = atoi( pCur );  while ( *pCur++ != ' ' );
-    // read the number of nodes
-    nAnds = atoi( pCur );     while ( *pCur++ != '\n' );  
-    // check the parameters
-    if ( nTotal != nInputs + nLatches + nAnds )
-    {
-        fprintf( stdout, "The paramters are wrong.\n" );
-        return NULL;
-    }
+    pNtkNew->nConstrs = nConstr;
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );
@@ -359,7 +413,25 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     {
         Abc_NtkForEachLatchInput( pNtkNew, pObj, i )
         {
-            uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
+            uLit0 = atoi( pCur );  while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+            if ( *pCur == ' ' ) // read initial value
+            {
+                pCur++;
+                if ( atoi( pCur ) == 1 )
+                    Abc_LatchSetInit1( Abc_NtkBox(pNtkNew, i) );
+                else if ( atoi( pCur ) == 0 )
+                    Abc_LatchSetInit0( Abc_NtkBox(pNtkNew, i) );
+                else 
+                    Abc_LatchSetInitDc( Abc_NtkBox(pNtkNew, i) );
+                while ( *pCur != ' ' && *pCur != '\n' ) pCur++;
+            }
+            if ( *pCur != '\n' )
+            {
+                fprintf( stdout, "The initial value of latch number %d is not recongnized.\n", i );
+                return NULL;
+            }
+            pCur++;
+
             pNode0 = Abc_ObjNotCond( (Abc_Obj_t *)Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
             Abc_ObjAddFanin( pObj, pNode0 );
         }
@@ -403,7 +475,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
                 vTerms = pNtkNew->vPis;
             else if ( *pCur == 'l' )
                 vTerms = pNtkNew->vBoxes;
-            else if ( *pCur == 'o' )
+            else if ( *pCur == 'o' || *pCur == 'b' || *pCur == 'c' || *pCur == 'j' || *pCur == 'f' )
                 vTerms = pNtkNew->vPos;
             else
             {
@@ -485,6 +557,10 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
 
     // remove the extra nodes
     Abc_AigCleanup( (Abc_Aig_t *)pNtkNew->pManFunc );
+
+    // update polarity of the additional outputs
+    if ( nBad || nConstr || nJust || nFair )
+        Abc_NtkInvertConstraints( pNtkNew );
 
     // check the result
     if ( fCheck && !Abc_NtkCheckRead( pNtkNew ) )

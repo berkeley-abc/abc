@@ -1565,6 +1565,29 @@ void Aig_ManMuxesRef( Aig_Man_t * pAig, Vec_Ptr_t * vMuxes )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Complements the constraint outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManInvertConstraints( Aig_Man_t * pAig )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    if ( Aig_ManConstrNum(pAig) == 0 )
+        return;
+    Saig_ManForEachPo( pAig, pObj, i )
+    {
+        if ( i >= Saig_ManPoNum(pAig) - Aig_ManConstrNum(pAig) )
+            Aig_ObjChild0Flip( pObj );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

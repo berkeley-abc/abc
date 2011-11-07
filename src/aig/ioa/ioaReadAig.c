@@ -109,6 +109,7 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     Aig_Obj_t * pObj, * pNode0, * pNode1;
     Aig_Man_t * pNew;
     int nTotal, nInputs, nOutputs, nLatches, nAnds, i;//, iTerm, nDigits;
+    int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
     char * pDrivers, * pSymbols, * pCur;//, * pType;
     unsigned uLit0, uLit1, uLit;
 
@@ -119,27 +120,77 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         return NULL;
     }
 
-    // read the file type
-    pCur = pContents;         while ( *pCur++ != ' ' );
+    // read the parameters (M I L O A + B C J F)
+    pCur = pContents;         while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of objects
-    nTotal = atoi( pCur );    while ( *pCur++ != ' ' );
+    nTotal = atoi( pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of inputs
-    nInputs = atoi( pCur );   while ( *pCur++ != ' ' );
+    nInputs = atoi( pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of latches
-    nLatches = atoi( pCur );  while ( *pCur++ != ' ' );
+    nLatches = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of outputs
-    nOutputs = atoi( pCur );  while ( *pCur++ != ' ' );
+    nOutputs = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of nodes
-    nAnds = atoi( pCur );     while ( *pCur++ != '\n' );  
+    nAnds = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+    if ( *pCur == ' ' )
+    {
+        assert( nOutputs == 0 );
+        // read the number of properties
+        pCur++;
+        nBad = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nBad;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nConstr = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nConstr;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nJust = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nJust;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nFair = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nFair;
+    }
+    if ( *pCur != '\n' )
+    {
+        fprintf( stdout, "The parameter line is in a wrong format.\n" );
+        return NULL;
+    }
+    pCur++;
+
     // check the parameters
     if ( nTotal != nInputs + nLatches + nAnds )
     {
-        fprintf( stdout, "The paramters are wrong.\n" );
+        fprintf( stdout, "The number of objects does not match.\n" );
         return NULL;
+    }
+    if ( nJust || nFair )
+    {
+        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
+        return NULL;
+    }
+
+    if ( nConstr )
+    {
+        if ( nConstr == 1 )
+            fprintf( stdout, "Warning: The last output is interpreted as a constraint.\n" );
+        else
+            fprintf( stdout, "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
     }
 
     // allocate the empty AIG
     pNew = Aig_ManStart( nAnds );
+    pNew->nConstrs = nConstr;
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );
@@ -351,6 +402,10 @@ Aig_Man_t * Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     // remove the extra nodes
     Aig_ManCleanup( pNew );
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(pNew) );
+
+    // update polarity of the additional outputs
+    if ( nBad || nConstr || nJust || nFair )
+        Aig_ManInvertConstraints( pNew );
 
     // check the result
     if ( fCheck && !Aig_ManCheck( pNew ) )

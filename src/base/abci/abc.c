@@ -20033,6 +20033,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFrames;
     int nConfs; 
     int nProps; 
+    int fRemove;
     int fStruct;
     int fInvert;
     int fOldAlgo;
@@ -20045,13 +20046,14 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFrames   =      1;
     nConfs    =   1000;
     nProps    =   1000;
+    fRemove   =      0;
     fStruct   =      0;
     fInvert   =      0;    
     fOldAlgo  =      0;
     fVerbose  =      0;
     nConstrs  =      0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPNsiavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPNrsiavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20099,6 +20101,9 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConstrs < 0 ) 
                 goto usage;
             break;
+        case 'r':
+            fRemove ^= 1;
+            break;
         case 's':
             fStruct ^= 1;
             break;
@@ -20132,21 +20137,26 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
+    if ( fRemove )
+    {
+        if ( Abc_NtkConstrNum(pNtk) == 0 )
+        {
+            Abc_Print( -1, "Constraints are not defined.\n" );
+            return 0;
+        }
+        Abc_Print( 1, "Constraints are converted to be primary outputs.\n" );
+        pNtk->nConstrs = 0;
+        return 0;
+    }
     // consider the case of already defined constraints
     if ( Abc_NtkConstrNum(pNtk) > 0 )
     {
         extern void Abc_NtkDarConstrProfile( Abc_Ntk_t * pNtk, int fVerbose );
         if ( fInvert )
         {
-            Abc_Obj_t * pObj;
-            int i;
-            Abc_NtkForEachPo( pNtk, pObj, i )
-            {
-                if ( i >= Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk) )
-                    Abc_ObjXorFaninC( pObj, 0 );
-            }
+            Abc_NtkInvertConstraints( pNtk );
             if ( Abc_NtkConstrNum(pNtk) == 1 )
-                Abc_Print( 1, "The outputs of %d constraint is complemented.\n", Abc_NtkConstrNum(pNtk) );
+                Abc_Print( 1, "The output of %d constraint is complemented.\n", Abc_NtkConstrNum(pNtk) );
             else
                 Abc_Print( 1, "The outputs of %d constraints are complemented.\n", Abc_NtkConstrNum(pNtk) );
         }
@@ -20175,7 +20185,7 @@ int Abc_CommandConstr( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_NtkDarConstr( pNtk, nFrames, nConfs, nProps, fStruct, fOldAlgo, fVerbose );
     return 0;
 usage:
-    Abc_Print( -2, "usage: constr [-FCPN num] [-isavh]\n" );
+    Abc_Print( -2, "usage: constr [-FCPN num] [-risavh]\n" );
     Abc_Print( -2, "\t         a toolkit for constraint manipulation\n" );
     Abc_Print( -2, "\t         if constraints are absent, detect them functionally\n" );
     Abc_Print( -2, "\t         if constraints are present, profiles them using random simulation\n" );
@@ -20183,6 +20193,7 @@ usage:
     Abc_Print( -2, "\t-C num : the max number of conflicts in SAT solving [default = %d]\n", nConfs );
     Abc_Print( -2, "\t-P num : the max number of propagations in SAT solving [default = %d]\n", nProps );
     Abc_Print( -2, "\t-N num : manually set the last <num> POs to be constraints [default = %d]\n", nConstrs );
+    Abc_Print( -2, "\t-r     : manually remove the constraints [default = %s]\n", fRemove? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle inverting already defined constraints [default = %s]\n", fInvert? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle using structural detection methods [default = %s]\n", fStruct? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle fast implication detection [default = %s]\n", !fOldAlgo? "yes": "no" );

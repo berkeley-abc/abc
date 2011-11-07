@@ -350,6 +350,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
     Vec_Int_t * vNodes, * vDrivers;//, * vTerms;
     int iObj, iNode0, iNode1;
     int nTotal, nInputs, nOutputs, nLatches, nAnds, nFileSize, i;//, iTerm, nDigits;
+    int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
     unsigned char * pDrivers, * pSymbols, * pCur;//, * pType;
     char * pContents, * pName;
     unsigned uLit0, uLit1, uLit;
@@ -370,24 +371,75 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
         return NULL;
     }
 
-    // read the file type
-    pCur = (unsigned char *)pContents;  while ( *pCur++ != ' ' );
+    // read the parameters (M I L O A + B C J F)
+    pCur = (unsigned char *)pContents;         while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of objects
-    nTotal = atoi( (char *)pCur );    while ( *pCur++ != ' ' );
+    nTotal = atoi( pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of inputs
-    nInputs = atoi( (char *)pCur );   while ( *pCur++ != ' ' );
+    nInputs = atoi( pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of latches
-    nLatches = atoi( (char *)pCur );  while ( *pCur++ != ' ' );
+    nLatches = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of outputs
-    nOutputs = atoi( (char *)pCur );  while ( *pCur++ != ' ' );
+    nOutputs = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of nodes
-    nAnds = atoi( (char *)pCur );     while ( *pCur++ != '\n' );  
+    nAnds = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+    if ( *pCur == ' ' )
+    {
+        assert( nOutputs == 0 );
+        // read the number of properties
+        pCur++;
+        nBad = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nBad;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nConstr = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nConstr;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nJust = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nJust;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nFair = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nFair;
+    }
+    if ( *pCur != '\n' )
+    {
+        fprintf( stdout, "The parameter line is in a wrong format.\n" );
+        ABC_FREE( pContents );
+        return NULL;
+    }
+    pCur++;
+
     // check the parameters
     if ( nTotal != nInputs + nLatches + nAnds )
     {
+        fprintf( stdout, "The number of objects does not match.\n" );
         ABC_FREE( pContents );
-        fprintf( stdout, "The paramters are wrong.\n" );
         return NULL;
+    }
+    if ( nJust || nFair )
+    {
+        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
+        ABC_FREE( pContents );
+        return NULL;
+    }
+
+    if ( nConstr )
+    {
+        if ( nConstr == 1 )
+            fprintf( stdout, "Warning: The last output is interpreted as a constraint.\n" );
+        else
+            fprintf( stdout, "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
     }
 
     // allocate the empty AIG
@@ -396,6 +448,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
     pNew->pName = Gia_UtilStrsav( pName );
 //    pNew->pSpec = Gia_UtilStrsav( pFileName );
     ABC_FREE( pName );
+    pNew->nConstrs = nConstr;
 
     // prepare the array of nodes
     vNodes = Vec_IntAlloc( 1 + nTotal );
@@ -548,6 +601,10 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
     }
     Vec_IntFree( vNodes );
 
+    // update polarity of the additional outputs
+    if ( nBad || nConstr || nJust || nFair )
+        Gia_ManInvertConstraints( pNew );
+
     // skipping the comments
 /*
     // check the result
@@ -580,31 +637,81 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     Vec_Int_t * vNodes, * vDrivers;//, * vTerms;
     int iObj, iNode0, iNode1;
     int nTotal, nInputs, nOutputs, nLatches, nAnds, i;//, iTerm, nDigits;
+    int nBad = 0, nConstr = 0, nJust = 0, nFair = 0;
     unsigned char * pDrivers, * pSymbols, * pCur;//, * pType;
     unsigned uLit0, uLit1, uLit;
 
-    // read the file type
-    pCur = (unsigned char *)pContents;  while ( *pCur++ != ' ' );
+    // read the parameters (M I L O A + B C J F)
+    pCur = (unsigned char *)pContents;         while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of objects
-    nTotal = atoi( (char *)pCur );    while ( *pCur++ != ' ' );
+    nTotal = atoi( pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of inputs
-    nInputs = atoi( (char *)pCur );   while ( *pCur++ != ' ' );
+    nInputs = atoi( pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of latches
-    nLatches = atoi( (char *)pCur );  while ( *pCur++ != ' ' );
+    nLatches = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of outputs
-    nOutputs = atoi( (char *)pCur );  while ( *pCur++ != ' ' );
+    nOutputs = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of nodes
-    nAnds = atoi( (char *)pCur );     while ( *pCur++ != '\n' );  
+    nAnds = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+    if ( *pCur == ' ' )
+    {
+        assert( nOutputs == 0 );
+        // read the number of properties
+        pCur++;
+        nBad = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nBad;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nConstr = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nConstr;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nJust = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nJust;
+    }
+    if ( *pCur == ' ' )
+    {
+        // read the number of properties
+        pCur++;
+        nFair = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nOutputs += nFair;
+    }
+    if ( *pCur != '\n' )
+    {
+        fprintf( stdout, "The parameter line is in a wrong format.\n" );
+        return NULL;
+    }
+    pCur++;
+
     // check the parameters
     if ( nTotal != nInputs + nLatches + nAnds )
     {
-        ABC_FREE( pContents );
-        fprintf( stdout, "The paramters are wrong.\n" );
+        fprintf( stdout, "The number of objects does not match.\n" );
         return NULL;
+    }
+    if ( nJust || nFair )
+    {
+        fprintf( stdout, "Reading AIGER files with liveness properties are currently not supported.\n" );
+        return NULL;
+    }
+
+    if ( nConstr )
+    {
+        if ( nConstr == 1 )
+            fprintf( stdout, "Warning: The last output is interpreted as a constraint.\n" );
+        else
+            fprintf( stdout, "Warning: The last %d outputs are interpreted as constraints.\n", nConstr );
     }
 
     // allocate the empty AIG
     pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
+    pNew->nConstrs = nConstr;
 
     // prepare the array of nodes
     vNodes = Vec_IntAlloc( 1 + nTotal );
@@ -903,6 +1010,11 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         return NULL;
     }
 */
+
+    // update polarity of the additional outputs
+    if ( nBad || nConstr || nJust || nFair )
+        Gia_ManInvertConstraints( pNew );
+
     // clean the PO drivers
     if ( vPoTypes )
     {
@@ -1243,14 +1355,19 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         p = pInit;
 
     // write the header "M I L O A" where M = I + L + A
-    fprintf( pFile, "aig%s %u %u %u %u %u\n", 
+    fprintf( pFile, "aig%s %u %u %u %u %u", 
         fCompact? "2" : "",
         Gia_ManCiNum(p) + Gia_ManAndNum(p), 
         Gia_ManPiNum(p),
         Gia_ManRegNum(p),
-        Gia_ManPoNum(p),
+        Gia_ManConstrNum(p) ? 0 : Gia_ManPoNum(p),
         Gia_ManAndNum(p) );
+    // write the extended header "B C J F"
+    if ( Gia_ManConstrNum(p) )
+        fprintf( pFile, " %u %u", Gia_ManPoNum(p) - Gia_ManConstrNum(p), Gia_ManConstrNum(p) );
+    fprintf( pFile, "\n" ); 
 
+    Gia_ManInvertConstraints( p );
     if ( !fCompact ) 
     {
         // write latch drivers
@@ -1268,6 +1385,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Vec_StrFree( vBinary );
         Vec_IntFree( vLits );
     }
+    Gia_ManInvertConstraints( p );
 
     // write the nodes into the buffer
     Pos = 0;
@@ -1372,6 +1490,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fwrite( Buffer, 1, 4, pFile );
         fwrite( p->pSwitching, 1, nSize, pFile );
     }
+/*
     // write constraints
     if ( p->nConstrs )
     {
@@ -1380,6 +1499,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fprintf( pFile, "c" );
         fwrite( Buffer, 1, 4, pFile );
     }
+*/
     // write name
     if ( p->pName )
         fprintf( pFile, "n%s%c", p->pName, '\0' );

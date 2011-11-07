@@ -1224,6 +1224,30 @@ int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs )
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Complements the constraint outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManInvertConstraints( Gia_Man_t * pAig )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( Gia_ManConstrNum(pAig) == 0 )
+        return;
+    Gia_ManForEachPo( pAig, pObj, i )
+    {
+        if ( i >= Gia_ManPoNum(pAig) - Gia_ManConstrNum(pAig) )
+            Gia_ObjFlipFaninC0( pObj );
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

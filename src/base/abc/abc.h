@@ -938,6 +938,8 @@ extern ABC_DLL Vec_Int_t *        Abc_NtkGetCiIds( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkReassignIds( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_ObjPointerCompare( void ** pp1, void ** pp2 );
 extern ABC_DLL void               Abc_NtkTransferCopy( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkInvertConstraints( Abc_Ntk_t * pNtk );
+
 
 /*=== abcVerify.c ==========================================================*/
 extern ABC_DLL int *              Abc_NtkVerifyGetCleanModel( Abc_Ntk_t * pNtk, int nFrames );

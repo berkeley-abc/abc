@@ -1909,6 +1909,30 @@ void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Complements the constraint outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkInvertConstraints( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    if ( Abc_NtkConstrNum(pNtk) == 0 )
+        return;
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        if ( i >= Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk) )
+            Abc_ObjXorFaninC( pObj, 0 );
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

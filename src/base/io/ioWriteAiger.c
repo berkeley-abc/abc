@@ -296,18 +296,23 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
         Io_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    fprintf( pFile, "aig%s %u %u %u %u %u\n", 
+    fprintf( pFile, "aig%s %u %u %u %u %u", 
         fCompact? "2" : "",
         Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) + Abc_NtkNodeNum(pNtk), 
         Abc_NtkPiNum(pNtk),
         Abc_NtkLatchNum(pNtk),
-        Abc_NtkPoNum(pNtk),
+        Abc_NtkConstrNum(pNtk) ? 0 : Abc_NtkPoNum(pNtk),
         Abc_NtkNodeNum(pNtk) );
+    // write the extended header "B C J F"
+    if ( Abc_NtkConstrNum(pNtk) )
+        fprintf( pFile, " %u %u", Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk), Abc_NtkConstrNum(pNtk) );
+    fprintf( pFile, "\n" );
 
     // if the driver node is a constant, we need to complement the literal below
     // because, in the AIGER format, literal 0/1 is represented as number 0/1
     // while, in ABC, constant 1 node has number 0 and so literal 0/1 will be 1/0
 
+    Abc_NtkInvertConstraints( pNtk );
     if ( !fCompact ) 
     {
         // write latch drivers
@@ -331,6 +336,7 @@ void Io_WriteAiger_old( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, i
         Vec_StrFree( vBinary );
         Vec_IntFree( vLits );
     }
+    Abc_NtkInvertConstraints( pNtk );
 
     // write the nodes into the buffer
     Pos = 0;
@@ -427,30 +433,35 @@ void Io_WriteAigerGz( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         Io_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    gzprintf( pFile, "aig %u %u %u %u %u\n", 
+    gzprintf( pFile, "aig %u %u %u %u %u", 
               Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) + Abc_NtkNodeNum(pNtk), 
               Abc_NtkPiNum(pNtk),
               Abc_NtkLatchNum(pNtk),
-              Abc_NtkPoNum(pNtk),
+              Abc_NtkConstrNum(pNtk) ? 0 : Abc_NtkPoNum(pNtk),
               Abc_NtkNodeNum(pNtk) );
+    // write the extended header "B C J F"
+    if ( Abc_NtkConstrNum(pNtk) )
+        gzprintf( pFile, " %u %u", Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk), Abc_NtkConstrNum(pNtk) );
+    gzprintf( pFile, "\n" ); 
 
     // if the driver node is a constant, we need to complement the literal below
     // because, in the AIGER format, literal 0/1 is represented as number 0/1
     // while, in ABC, constant 1 node has number 0 and so literal 0/1 will be 1/0
 
     // write latch drivers
+    Abc_NtkInvertConstraints( pNtk );
     Abc_NtkForEachLatchInput( pNtk, pObj, i )
     {
         pDriver = Abc_ObjFanin0(pObj);
         gzprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
     }
-
     // write PO drivers
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
         pDriver = Abc_ObjFanin0(pObj);
         gzprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
     }
+    Abc_NtkInvertConstraints( pNtk );
 
     // write the nodes into the buffer
     Pos = 0;
@@ -628,18 +639,23 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         Io_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    fprintfBz2Aig( &b, "aig%s %u %u %u %u %u\n", 
+    fprintfBz2Aig( &b, "aig%s %u %u %u %u %u", 
         fCompact? "2" : "",
         Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) + Abc_NtkNodeNum(pNtk), 
         Abc_NtkPiNum(pNtk),
         Abc_NtkLatchNum(pNtk),
-        Abc_NtkPoNum(pNtk),
+        Abc_NtkConstrNum(pNtk) ? 0 : Abc_NtkPoNum(pNtk),
         Abc_NtkNodeNum(pNtk) );
+    // write the extended header "B C J F"
+    if ( Abc_NtkConstrNum(pNtk) )
+        fprintfBz2Aig( &b, " %u %u", Abc_NtkPoNum(pNtk) - Abc_NtkConstrNum(pNtk), Abc_NtkConstrNum(pNtk) );
+    fprintfBz2Aig( &b, "\n" );
 
     // if the driver node is a constant, we need to complement the literal below
     // because, in the AIGER format, literal 0/1 is represented as number 0/1
     // while, in ABC, constant 1 node has number 0 and so literal 0/1 will be 1/0
 
+    Abc_NtkInvertConstraints( pNtk );
     if ( !fCompact ) 
     {
         // write latch drivers
@@ -675,6 +691,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         Vec_StrFree( vBinary );
         Vec_IntFree( vLits );
     }
+    Abc_NtkInvertConstraints( pNtk );
 
     // write the nodes into the buffer
     Pos = 0;
