@@ -28943,9 +28943,10 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ParBmc_t Pars, * pPars = &Pars;
     int c, fNaiveCnf = 0;
     Saig_ParBmcSetDefaultParams( pPars );
-    pPars->nStart     = 0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
-    pPars->nFramesMax = 50; //pPars->nStart + 10;
-    pPars->nConfLimit = 5000;
+    pPars->nStart     =  0;  // (pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
+    pPars->nFramesMax =  0;  // pPars->nStart + 10;
+    pPars->nConfLimit =  0;
+    pPars->nTimeOut   = 60;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "SFCMTcvh" ) ) != EOF )
     {
@@ -29080,9 +29081,9 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ParBmc_t Pars, * pPars = &Pars;
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
-    pPars->nStart     = 0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
+    pPars->nStart     =  0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
     pPars->nFramesMax = 10; //pPars->nStart + 10;
-    pPars->nConfLimit = 1000000;
+    pPars->nConfLimit =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTcvh" ) ) != EOF )
     {
