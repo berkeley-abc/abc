@@ -350,6 +350,50 @@ int Saig_ManFindFailedPoCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates while ORing the POs of sequential circuit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManDupWithPhase( Aig_Man_t * pAig, Vec_Int_t * vInit )
+{
+    Aig_Man_t * pAigNew;
+    Aig_Obj_t * pObj;
+    int i;
+    assert( Aig_ManRegNum(pAig) <= Vec_IntSize(vInit) );
+    // start the new manager
+    pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
+    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->nConstrs = pAig->nConstrs;
+    // map the constant node
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
+    // create variables for PIs
+    Aig_ManForEachPi( pAig, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    // update the flop variables
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->pData = Aig_NotCond( pObj->pData, Vec_IntEntry(vInit, i) );
+    // add internal nodes of this frame
+    Aig_ManForEachNode( pAig, pObj, i )
+        pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // transfer to register outputs
+    Saig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+    // update the flop variables
+    Saig_ManForEachLi( pAig, pObj, i )
+        Aig_ObjCreatePo( pAigNew, Aig_NotCond(Aig_ObjChild0Copy(pObj), Vec_IntEntry(vInit, i)) );
+    // finalize
+    Aig_ManCleanup( pAigNew );
+    Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
+    return pAigNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

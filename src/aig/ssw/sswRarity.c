@@ -892,11 +892,13 @@ int Ssw_RarCheckTrivial( Aig_Man_t * pAig, int fVerbose )
 ***********************************************************************/
 int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fVerbose )
 {
+    int fTryBmc = 1;
     int fMiter = 1;
     Ssw_RarMan_t * p;
     int r, f, clk, clkTotal = clock();
     int nTimeToStop = time(NULL) + TimeOut;
     int RetValue = -1;
+    int iFrameFail = -1;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );
     // consider the case of empty AIG
@@ -919,6 +921,14 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     for ( r = 0; r < nRounds; r++ )
     {
         clk = clock();
+        if ( fTryBmc )
+        {
+            Aig_Man_t * pNewAig = Saig_ManDupWithPhase( pAig, p->vInits );
+            Saig_BmcPerform( pNewAig, 0, 100, 2000, 3, 0, 0, 1 /*fVerbose*/, 0, &iFrameFail );
+//            if ( pNewAig->pSeqModel != NULL )
+//                printf( "BMC has found a counter-example in frame %d.\n", iFrameFail );
+            Aig_ManStop( pNewAig );
+        }
         // simulate
         for ( f = 0; f < nFrames; f++ )
         {
