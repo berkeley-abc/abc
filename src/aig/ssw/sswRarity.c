@@ -892,7 +892,7 @@ int Ssw_RarCheckTrivial( Aig_Man_t * pAig, int fVerbose )
 ***********************************************************************/
 int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fVerbose )
 {
-    int fTryBmc = 1;
+    int fTryBmc = 0;
     int fMiter = 1;
     Ssw_RarMan_t * p;
     int r, f, clk, clkTotal = clock();
