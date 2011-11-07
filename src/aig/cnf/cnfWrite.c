@@ -198,6 +198,7 @@ int Cnf_IsopWriteCube( int Cube, int nVars, int * pVars, int * pLiterals )
 ***********************************************************************/
 Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
 {
+    int fChangeVariableOrder = 0; // should be set to 0 to improve performance
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Cnf_Cut_t * pCut;
@@ -252,37 +253,69 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     pCnf->pClauses = ABC_ALLOC( int *, nClauses + 1 );
     pCnf->pClauses[0] = ABC_ALLOC( int, nLiterals );
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
-
     // create room for variable numbers
     pCnf->pVarNums = ABC_ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
 //    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p->pManAig) );
     for ( i = 0; i < Aig_ManObjNumMax(p->pManAig); i++ )
         pCnf->pVarNums[i] = -1;
-    // assign variables to the last (nOutputs) POs
-    Number = 1;
-    if ( nOutputs )
+
+    if ( !fChangeVariableOrder )
     {
-        if ( Aig_ManRegNum(p->pManAig) == 0 )
+        // assign variables to the last (nOutputs) POs
+        Number = 1;
+        if ( nOutputs )
         {
-            assert( nOutputs == Aig_ManPoNum(p->pManAig) );
-            Aig_ManForEachPo( p->pManAig, pObj, i )
-                pCnf->pVarNums[pObj->Id] = Number++;
+            if ( Aig_ManRegNum(p->pManAig) == 0 )
+            {
+                assert( nOutputs == Aig_ManPoNum(p->pManAig) );
+                Aig_ManForEachPo( p->pManAig, pObj, i )
+                    pCnf->pVarNums[pObj->Id] = Number++;
+            }
+            else
+            {
+                assert( nOutputs == Aig_ManRegNum(p->pManAig) );
+                Aig_ManForEachLiSeq( p->pManAig, pObj, i )
+                    pCnf->pVarNums[pObj->Id] = Number++;
+            }
         }
-        else
-        {
-            assert( nOutputs == Aig_ManRegNum(p->pManAig) );
-            Aig_ManForEachLiSeq( p->pManAig, pObj, i )
-                pCnf->pVarNums[pObj->Id] = Number++;
-        }
+        // assign variables to the internal nodes
+        Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
+            pCnf->pVarNums[pObj->Id] = Number++;
+        // assign variables to the PIs and constant node
+        Aig_ManForEachPi( p->pManAig, pObj, i )
+            pCnf->pVarNums[pObj->Id] = Number++;
+        pCnf->pVarNums[Aig_ManConst1(p->pManAig)->Id] = Number++;
+        pCnf->nVars = Number;
     }
-    // assign variables to the internal nodes
-    Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
-        pCnf->pVarNums[pObj->Id] = Number++;
-    // assign variables to the PIs and constant node
-    Aig_ManForEachPi( p->pManAig, pObj, i )
-        pCnf->pVarNums[pObj->Id] = Number++;
-    pCnf->pVarNums[Aig_ManConst1(p->pManAig)->Id] = Number++;
-    pCnf->nVars = Number;
+    else
+    {
+        // assign variables to the last (nOutputs) POs
+        Number = Aig_ManObjNumMax(p->pManAig) + 1;
+        pCnf->nVars = Number + 1;
+        if ( nOutputs )
+        {
+            if ( Aig_ManRegNum(p->pManAig) == 0 )
+            {
+                assert( nOutputs == Aig_ManPoNum(p->pManAig) );
+                Aig_ManForEachPo( p->pManAig, pObj, i )
+                    pCnf->pVarNums[pObj->Id] = Number--;
+            }
+            else
+            {
+                assert( nOutputs == Aig_ManRegNum(p->pManAig) );
+                Aig_ManForEachLiSeq( p->pManAig, pObj, i )
+                    pCnf->pVarNums[pObj->Id] = Number--;
+            }
+        }
+        // assign variables to the internal nodes
+        Vec_PtrForEachEntry( Aig_Obj_t *, vMapped, pObj, i )
+            pCnf->pVarNums[pObj->Id] = Number--;
+        // assign variables to the PIs and constant node
+        Aig_ManForEachPi( p->pManAig, pObj, i )
+            pCnf->pVarNums[pObj->Id] = Number--;
+        pCnf->pVarNums[Aig_ManConst1(p->pManAig)->Id] = Number--;
+        assert( Number >= 0 );
+    }
 
     // assign the clauses
     vSopTemp = Vec_IntAlloc( 1 << 16 );
