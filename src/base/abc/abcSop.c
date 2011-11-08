@@ -954,7 +954,7 @@ char * Abc_SopFromTruthHex( char * pTruth )
 
     // get the number of variables
     nTruthSize = strlen(pTruth);
-    nVars = Extra_Base2Log( nTruthSize ) + 2;
+    nVars = (nTruthSize < 2) ? 2 : Extra_Base2Log(nTruthSize) + 2;
     if ( nTruthSize != (1 << (nVars-2)) )
     {
         printf( "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
