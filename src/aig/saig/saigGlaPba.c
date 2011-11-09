@@ -17,7 +17,7 @@
   Revision    [$Id: saigGlaPba.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
-
+ 
 #include "saig.h"
 #include "satSolver.h"
 #include "satStore.h"
@@ -74,7 +74,7 @@ int Abc_Clock( int Timer, int fReset )
 {
     static Time[16], Clock[16];
     int Clock2, Diff;
-    assert( Timer > 0 && Timer < 16 );
+    assert( Timer >= 0 && Timer < 16 );
     if ( fReset )
     {
         Time[Timer] = time(NULL);

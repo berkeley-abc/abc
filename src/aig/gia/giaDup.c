@@ -1672,7 +1672,10 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
         Gia_ObjRoToRi(p, pObj)->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ObjRoToRi(p, pObj)) );
     Gia_ManSetRegNum( pNew, Vec_IntSize(vFlops) );
     // clean up
-    pNew = Gia_ManSeqCleanup( pTemp = pNew );
+//    pNew = Gia_ManSeqCleanup( pTemp = pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    if ( Gia_ManObjNum(pTemp) != Gia_ManObjNum(pNew) )
+        printf( "Gia_ManDupAbsGates() Internal error: object mismatch.\n" );
     assert( Gia_ManObjNum(pTemp) == Gia_ManObjNum(pNew) );
     Gia_ManStop( pTemp );
 
