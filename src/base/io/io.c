@@ -198,7 +198,7 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     // read the file using the corresponding file reader
     pNtk = Io_Read( pFileName, Io_ReadFileType(pFileName), fCheck );
     if ( pNtk == NULL )
-        return 1;
+        return 0;
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
     Abc_FrameCopyLTLDataBase( pAbc, pNtk );
