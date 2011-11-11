@@ -116,13 +116,13 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         i++;
     }
     p->LutMax = i-1;
-
+/*
     if ( p->LutMax > FPGA_MAX_LEAVES )
     {
         p->LutMax = FPGA_MAX_LEAVES;
         printf( "Warning: LUTs with more than %d inputs will not be used.\n", FPGA_MAX_LEAVES );
     }
-
+*/
     // check the library
     if ( p->fVarPinDelays )
     {
