@@ -72,7 +72,7 @@ struct Aig_Gla2Man_t_
 ***********************************************************************/
 int Abc_Clock( int Timer, int fReset )
 {
-    static Time[16], Clock[16];
+    static int Time[16], Clock[16];
     int Clock2, Diff;
     assert( Timer >= 0 && Timer < 16 );
     if ( fReset )
@@ -453,7 +453,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     if ( fVerbose )
     {
         printf( "SAT solver returned UNSAT after %7d conflicts.      ", pSat->stats.conflicts );
-        ABC_PRT( "Time", Abc_Clock(2,0) );
+        ABC_PRT( "Time", (Abc_Clock(2,0)/ABC_CPS)*CLOCKS_PER_SEC );
     }
     assert( RetValue == l_False );
     pSatCnf = sat_solver_store_release( pSat ); 
@@ -465,7 +465,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
     if ( fVerbose )
     {
         printf( "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), ((Sto_Man_t *)pSatCnf)->nRoots );
-        ABC_PRT( "Time", Abc_Clock(2,0) );
+        ABC_PRT( "Time", (Abc_Clock(2,0)/ABC_CPS)*CLOCKS_PER_SEC );
     }
     Sto_ManFree( (Sto_Man_t *)pSatCnf );
     return vCore;
