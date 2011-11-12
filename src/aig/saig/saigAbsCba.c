@@ -593,7 +593,7 @@ void Saig_ManCbaShrink( Saig_ManCba_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fNewOrder, int fVerbose )
+Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose )
 {
     Saig_ManCba_t * p;
     Vec_Int_t * vReasons;
@@ -611,8 +611,8 @@ Abc_Cex_t * Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int 
         Saig_ManCbaShrink( p );
 
 
-if ( fVerbose )
-Aig_ManPrintStats( p->pFrames );
+//if ( fVerbose )
+//Aig_ManPrintStats( p->pFrames );
 
     if ( fVerbose )
     {
@@ -629,9 +629,15 @@ ABC_PRT( "Time", clock() - clk );
     Saig_ManCbaStop( p );
 
 if ( fVerbose )
+{
+printf( "Real " );
 Abc_CexPrintStats( pCex );
+}
 if ( fVerbose )
+{
+printf( "Care " );
 Abc_CexPrintStats( pCare );
+}
 
     return pCare;
 }

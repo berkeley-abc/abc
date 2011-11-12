@@ -136,7 +136,7 @@ extern Vec_Int_t *       Saig_ManFlops2Classes( int nRegs, Vec_Int_t * vFlops );
 extern Abc_Cex_t *       Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexAbs );
 /*=== sswAbsCba.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_Int_t * vFlopClasses, Vec_Int_t * vAbsFfsToAdd, int nFfsToSelect );
-extern Abc_Cex_t *       Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fNewOrder, int fVerbose );
+extern Abc_Cex_t *       Saig_ManCbaFindCexCareBits( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInputs, int fVerbose );
 extern Vec_Int_t *       Saig_ManCbaFilterInputs( Aig_Man_t * pAig, int iFirstFlopPi, Abc_Cex_t * pCex, int fVerbose );
 extern Vec_Int_t *       Saig_ManCbaPerform( Aig_Man_t * pAig, int nInputs, Saig_ParBmc_t * pPars );
 /*=== sswAbsPba.c ==========================================================*/

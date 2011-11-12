@@ -196,7 +196,7 @@ void Abc_CexPrintStats( Abc_Cex_t * p )
     for ( k = 0; k < p->nBits; k++ )
         Counter += Abc_InfoHasBit(p->pData, k);
     printf( "CEX: iPo = %d  iFrame = %d  nRegs = %d  nPis = %d  nBits = %d  nOnes = %5d (%5.2f %%)\n", 
-        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, Counter, 100.0 * Counter / p->nBits );
+        p->iPo, p->iFrame, p->nRegs, p->nPis, p->nBits, Counter, 100.0 * Counter / (p->nBits - p->nRegs) );
 }
 
 /**Function*************************************************************
@@ -231,6 +231,24 @@ void Abc_CexPrint( Abc_Cex_t * p )
         printf( "\n" );
     }
     assert( k == p->nBits );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_CexFreeP( Abc_Cex_t ** p )
+{
+    if ( *p == NULL )
+        return;
+    ABC_FREE( *p );
 }
 
 /**Function*************************************************************

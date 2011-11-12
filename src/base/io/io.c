@@ -20,6 +20,7 @@
 
 #include "ioAbc.h"
 #include "mainInt.h"
+#include "saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -2012,14 +2013,17 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk;
     char * pFileName;
-    int c;
-    int fNames;
+    int c, fNames;
+    int fMinimize;
     int forceSeq;
+    int fVerbose;
 
     fNames = 0;
+    fMinimize = 0;
     forceSeq = 0;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "snh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2028,6 +2032,12 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'n':
                 fNames ^= 1;
+                break;
+            case 'm':
+                fMinimize ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -2080,11 +2090,25 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         }
         if ( fNames )
         {
+            Abc_Cex_t * pCare = NULL;
+            if ( fMinimize )
+            {
+                extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+                Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+                pCare = Saig_ManCbaFindCexCareBits( pAig, pCex, 0, fVerbose );
+                if ( pCare == NULL )
+                    printf( "Counter-example minimization has failed.\n" );
+                Aig_ManStop( pAig );
+            }
+            // output flop values (unaffected by the minimization)
             Abc_NtkForEachLatch( pNtk, pObj, i )
                 fprintf( pFile, "%s@0=%c ", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
+            // output PI values (while skipping the minimized ones)
             for ( f = 0; f <= pCex->iFrame; f++ )
                 Abc_NtkForEachPi( pNtk, pObj, i )
-                    fprintf( pFile, "%s@%d=%c ", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                    if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
+                        fprintf( pFile, "%s@%d=%c ", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+            Abc_CexFreeP( &pCare );
         }
         else
         {
@@ -2125,11 +2149,13 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_counter [-snh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_counter [-snmvh] <file>\n" );
     fprintf( pAbc->Err, "\t         saves counter-example derived by \"sat\", \"iprove\", or \"dprove\"\n" );
     fprintf( pAbc->Err, "\t         the file contains values for each PI in the natural order\n" );
     fprintf( pAbc->Err, "\t-s     : always report a sequential ctrex (cycle 0 for comb) [default = %s]\n", forceSeq? "yes": "no" );
     fprintf( pAbc->Err, "\t-n     : write input names into the file [default = %s]\n", fNames? "yes": "no" );
+    fprintf( pAbc->Err, "\t-m     : minimize counter-example by dropping don't-care values [default = %s]\n", fMinimize? "yes": "no" );
+    fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
