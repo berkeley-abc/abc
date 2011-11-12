@@ -443,7 +443,13 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         p->tContain += clock() - clk;
 
         // check if the cube is already contained
-        if ( Pdr_ManCheckCubeCs( p, pThis->iFrame, pThis->pState ) ) // cube is blocked by clauses in this frame
+        RetValue = Pdr_ManCheckCubeCs( p, pThis->iFrame, pThis->pState );
+        if ( RetValue == -1 ) // cube is blocked by clauses in this frame
+        {
+            Pdr_OblDeref( pThis );
+            return -1;
+        }
+        if ( RetValue ) // cube is blocked by clauses in this frame
         {
             Pdr_OblDeref( pThis );
             continue;

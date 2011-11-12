@@ -246,7 +246,8 @@ int Pdr_ManCheckCubeCs( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     pSat = Pdr_ManFetchSolver( p, k );
     vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 0 );
     RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
-    assert( RetValue != l_Undef );
+    if ( RetValue == l_Undef )
+        return -1;
     return (RetValue == l_False);
 }
 
