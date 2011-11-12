@@ -614,8 +614,6 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     Pdr_ManPrintProgress( p, 1, clock() - clkStart );
                 Pdr_ManReportInvariant( p );
                 Pdr_ManVerifyInvariant( p );
-                if ( p->pPars->fDumpInv )
-                    Pdr_ManDumpClauses( p, (char *)"inv.pla" );
                 p->pPars->iFrame = k;
                 return 1; // UNSAT
             }
@@ -669,6 +667,9 @@ int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit,
     p = Pdr_ManStart( pAig, pPars, pvPrioInit? *pvPrioInit : NULL );
     RetValue = Pdr_ManSolveInt( p );
     *ppCex = RetValue ? NULL : Pdr_ManDeriveCex( p );
+    if ( p->pPars->fDumpInv )
+        Pdr_ManDumpClauses( p, (char *)"inv.pla", RetValue==1 );
+
 //    if ( *ppCex && pPars->fVerbose )
 //        printf( "Found counter-example in frame %d after exploring %d frames.\n", 
 //            (*ppCex)->iFrame, p->nFrames );

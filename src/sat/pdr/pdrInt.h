@@ -144,7 +144,7 @@ extern int             Pdr_ManCheckContainment( Pdr_Man_t * p, int k, Pdr_Set_t 
 /*=== pdrInv.c ==========================================================*/
 extern void            Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time );
 extern void            Pdr_ManPrintClauses( Pdr_Man_t * p, int kStart );
-extern void            Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName );
+extern void            Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved );
 extern void            Pdr_ManReportInvariant( Pdr_Man_t * p );
 extern void            Pdr_ManVerifyInvariant( Pdr_Man_t * p );
 /*=== pdrMan.c ==========================================================*/
