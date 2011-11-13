@@ -1684,7 +1684,10 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
             assert( !Gia_LitIsCompl(pObj->Value) );
             pCopy = Gia_ObjCopy( pTemp, pObj );
             if ( !~pCopy->Value )
+            {
+                pObj->Value = ~0;
                 continue;
+            }
             assert( !Gia_LitIsCompl(pCopy->Value) );
             pObj->Value = pCopy->Value;
         }
