@@ -739,7 +739,7 @@ void Fxu_UpdateAddNewDoubles( Fxu_Matrix * p, Fxu_Cube * pCube )
             continue;
         // to prevent adding duplicated pairs of the new cubes
         // do not add the pair, if the current cube is marked 
-        if ( pTemp->pOrder && pTemp >= pCube )
+        if ( pTemp->pOrder && pTemp->iCube >= pCube->iCube )
             continue;
         Fxu_MatrixAddDivisor( p, pTemp, pCube );
     }
