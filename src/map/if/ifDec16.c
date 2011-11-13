@@ -622,10 +622,8 @@ void If_CluInitTruthTables()
         for ( k = 0; k < CLU_WRD_MAX; k++ )
             TruthAll[i][k] = ((k >> (i-6)) & 1) ? ~0 : 0;
 
-    for ( i = 0; i < 8; i++ )
-    {
-    Extra_PrintHex( stdout, (unsigned *)TruthAll[i], 8 ); printf( "\n" );
-    }
+//    Extra_PrintHex( stdout, TruthAll[6], 8 ); printf( "\n" );
+//    Extra_PrintHex( stdout, TruthAll[7], 8 ); printf( "\n" );
 }
 
 
@@ -687,16 +685,11 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
     assert( g->nVars >= 2 && g2->nVars >= 2 && r->nVars >= 2 );
     assert( g->nVars <= 6 && g2->nVars <= 6 && r->nVars <= 6 );
 
-    printf( "%d\n\n", TruthAll[0][0] );
-
-//    if ( TruthAll[0][0] == 0 )
+    if ( TruthAll[0][0] == 0 )
         If_CluInitTruthTables();
 
     for ( i = 0; i < g->nVars; i++ )
-    {
         If_CluCopy( pTTFans[i], TruthAll[g->pVars[i]], nVars );
-        Kit_DsdPrintFromTruth( (unsigned*)pTTFans[i], nVars ); printf( "\n" );
-    }
     If_CluComposeLut( nVars, g, &BStruth, pTTFans, pTTWire );
 
     for ( i = 0; i < g2->nVars; i++ )
@@ -728,8 +721,6 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
         Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); printf( "\n" );
 //        Extra_PrintHex( stdout, (unsigned *)pF, nVars ); printf( "\n" );
         printf( "Verification FAILED!\n" );
-        fflush( stdout );
-        exit(1);
     }
 //    else
 //        printf( "Verification succeed!\n" );
@@ -1973,7 +1964,7 @@ int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeave
 
 
 // testing procedure
-void If_CluTest3()
+void If_CluTest()
 {
 //    word t = 0xff00f0f0ccccaaaa;
 //    word t = 0xfedcba9876543210;
@@ -2037,21 +2028,8 @@ void If_CluTest3()
 //    If_CluPrintGroup( &G );
 }
 
-void If_CluTest()
-{
-    word pF[1024] = {0};
-    If_Grp_t G  = { 6, 4, {'e'-'a','f'-'a','c'-'a','a'-'a','b'-'a','g'-'a'} };
-    If_Grp_t G2 = { 6, 4, {'e'-'a','f'-'a','c'-'a','a'-'a','b'-'a','g'-'a'} };
-    If_Grp_t R  = { 5, 0, {'j'-'a','k'-'a','d'-'a','h'-'a','i'-'a'} };
-    word BStruth  = 0x70050367E00A0C6E;
-    word BStruth2 = 0xFFAACC88E0A0C080;
-    word FStruth  = 0x003F6FFF;
-//F = 70050367E00A0C6E(a,b,c,d,e,f)    Vars = 6   Myu = 4   { e f c a b g }
-//F = FFAACC88E0A0C080(a,b,c,d,e,f)    Vars = 6   Myu = 4   { e f c a b g }
-//F = 003F6FFF(a,b,c,d,e)    Vars = 5   Myu = 0   { j k d h i }
-    return;
-    If_CluVerify3( pF, 9, &G, &G2, &R, BStruth, BStruth2, FStruth );
-}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

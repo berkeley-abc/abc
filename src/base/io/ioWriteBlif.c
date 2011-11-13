@@ -900,7 +900,7 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
                 0xFFFFFFFF00000000
             };
             int nVarsMax = 16;
-            int nWordsMax = (1 << nVarsMax);
+            int nWordsMax = (1 << 10);
             int i, k;
             assert( nVarsMax <= 16 );
             for ( i = 0; i < nVarsMax; i++ )
