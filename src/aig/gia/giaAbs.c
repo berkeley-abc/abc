@@ -291,6 +291,8 @@ int Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars )
     // update flop classes
     Gia_ManFlopsAddToClasses( pGia->vFlopClasses, vAbsFfsToAdd );
     Vec_IntFree( vAbsFfsToAdd );
+    if ( p->fVerbose )
+        Gia_ManPrintStats( pGia, 0 );
     return -1;
 }
 
@@ -362,6 +364,8 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
         RetValue = -1;
     }
     Aig_ManStop( pAig );
+    if ( fVerbose )
+        Gia_ManPrintStats( pGia, 0 );
     return RetValue;
 }
 
@@ -379,7 +383,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
 ***********************************************************************/
 int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 {
-    extern Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
+    extern Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose, int * piFrame );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses, * vGateClassesOld = NULL;
     Aig_Man_t * pAig;
@@ -395,14 +399,17 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
     }
 
     // perform abstraction
+    p->iFrame = -1;
     pAig = Gia_ManToAigSimple( pGia );
     assert( vGateClassesOld == NULL || Vec_IntSize(vGateClassesOld) == Aig_ManObjNumMax(pAig) );
-    vGateClasses = Aig_Gla1ManPerform( pAig, vGateClassesOld, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
+    vGateClasses = Aig_Gla1ManPerform( pAig, vGateClassesOld, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose, &p->iFrame );
     Aig_ManStop( pAig );
 
     // update the map
     Vec_IntFreeP( &vGateClassesOld );
     pGia->vGateClasses = vGateClasses;
+    if ( p->fVerbose )
+        Gia_ManPrintStats( pGia, 0 );
     return 1;
 }
 
@@ -476,6 +483,8 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
         Vec_IntFreeP( &pGia->vGateClasses );
         pGia->vGateClasses = vGateClasses;
     }
+    if ( p->fVerbose )
+        Gia_ManPrintStats( pGia, 0 );
     return 1;
 }
 
