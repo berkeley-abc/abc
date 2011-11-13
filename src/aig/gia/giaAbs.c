@@ -429,6 +429,7 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
     extern Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fSkipRand, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses;
+    Gia_Man_t * pGiaAbs;
     Aig_Man_t * pAig;
 
     // check if flop classes are given
@@ -439,7 +440,6 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
     }
     else
     {
-        Gia_Man_t * pGiaAbs;
         Abc_Print( 0, "Initial gate map is given. Abstraction refines this map.\n" );
         pGiaAbs = Gia_ManDupAbsGates( pGia, pGia->vGateClasses );
         pAig = Gia_ManToAigSimple( pGiaAbs );
@@ -483,6 +483,9 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
         Vec_IntFreeP( &pGia->vGateClasses );
         pGia->vGateClasses = vGateClasses;
     }
+    // clean up the abstraction map
+    pGiaAbs = Gia_ManDupAbsGates( pGia, pGia->vGateClasses );
+    Gia_ManStop( pGiaAbs );
     if ( p->fVerbose )
         Gia_ManPrintStats( pGia, 0 );
     return 1;
