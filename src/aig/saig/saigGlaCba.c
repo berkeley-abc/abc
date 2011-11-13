@@ -812,7 +812,7 @@ Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, i
         printf( "The problem is SAT in frame %d. The CEX is currently not produced.\n", f );
     else
         printf( "Ran out of conflict limit (%d) at frame %d.\n", nConfLimit, f );
-    *piFrame = i;
+    *piFrame = f;
     // print stats
     if ( fVerbose )
     {
