@@ -721,6 +721,7 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
         Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); printf( "\n" );
 //        Extra_PrintHex( stdout, (unsigned *)pF, nVars ); printf( "\n" );
         printf( "Verification FAILED!\n" );
+        exit(1);
     }
 //    else
 //        printf( "Verification succeed!\n" );
