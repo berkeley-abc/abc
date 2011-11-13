@@ -2045,6 +2045,7 @@ void If_CluTest()
 //F = 70050367E00A0C6E(a,b,c,d,e,f)    Vars = 6   Myu = 4   { e f c a b g }
 //F = FFAACC88E0A0C080(a,b,c,d,e,f)    Vars = 6   Myu = 4   { e f c a b g }
 //F = 003F6FFF(a,b,c,d,e)    Vars = 5   Myu = 0   { j k d h i }
+    return;
     If_CluVerify3( pF, 9, &G, &G2, &R, BStruth, BStruth2, FStruth );
 }
 
