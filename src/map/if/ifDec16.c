@@ -687,6 +687,8 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
     assert( g->nVars >= 2 && g2->nVars >= 2 && r->nVars >= 2 );
     assert( g->nVars <= 6 && g2->nVars <= 6 && r->nVars <= 6 );
 
+    printf( "%d\n\n", TruthAll[0][0] );
+
     if ( TruthAll[0][0] == 0 )
         If_CluInitTruthTables();
 
