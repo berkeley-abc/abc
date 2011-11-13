@@ -1685,6 +1685,7 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
             pCopy = Gia_ObjCopy( pTemp, pObj );
             if ( !~pCopy->Value )
             {
+                Vec_IntWriteEntry( vGateClasses, i, 0 );
                 pObj->Value = ~0;
                 continue;
             }

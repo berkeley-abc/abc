@@ -280,6 +280,8 @@ Aig_Man_t * Aig_Gla1DeriveAbs( Aig_Gla1Man_t * p )
     Aig_ManSetRegNum( pNew, Vec_IntSize(p->vFlops) );
     // clean up
     RetValue = Aig_ManCleanup( pNew );
+    if ( RetValue > 0 )
+        printf( "Aig_Gla1DeriveAbs(): Internal error! Object count mismatch.\n" );
     assert( RetValue == 0 );
     return pNew;
 }
