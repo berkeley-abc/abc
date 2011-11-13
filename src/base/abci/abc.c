@@ -19430,6 +19430,11 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Does not work for combinational networks.\n" );
         return 0;
     }
+    if ( Abc_NtkConstrNum(pNtk) > 0 )
+    {
+        Abc_Print( -1, "Cannot run interpolation with constraints. Use \"fold\".\n" );
+        return 0;
+    }
     if ( Abc_NtkPoNum(pNtk)-Abc_NtkConstrNum(pNtk) != 1 )
     {
         if ( Abc_NtkConstrNum(pNtk) > 0 )
