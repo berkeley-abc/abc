@@ -175,6 +175,7 @@ struct sat_solver_t
     Sat_MmStep_t * pMem;
 
     int      fSkipSimplify; // set to one to skip simplification of the clause database
+    int      fNotUseRandom; // do not allow random decisions with a fixed probability
 
     int *    pGlobalVars;   // for experiments with global vars during interpolation
     // clause store
@@ -226,6 +227,13 @@ static int sat_solver_set_runtime_limit(sat_solver* s, int Limit)
     int nRuntimeLimit = s->nRuntimeLimit;
     s->nRuntimeLimit = Limit;
     return nRuntimeLimit;
+}
+
+static int sat_solver_set_random(sat_solver* s, int fNotUseRandom)
+{
+    int fNotUseRandomOld = s->fNotUseRandom;
+    s->fNotUseRandom = fNotUseRandom;
+    return fNotUseRandomOld;
 }
 
 ABC_NAMESPACE_HEADER_END

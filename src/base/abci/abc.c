@@ -29093,8 +29093,9 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nStart     =  0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
     pPars->nFramesMax = 10; //pPars->nStart + 10;
     pPars->nConfLimit =  0;
+    pPars->fSkipRand  =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29142,6 +29143,9 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 ) 
                 goto usage;
             break;
+        case 'r':
+            pPars->fSkipRand ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29185,12 +29189,13 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla_pba [-SFCT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &gla_pba [-SFCT num] [-rvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-r     : toggle using random decisiont during SAT solving [default = %s]\n", !pPars->fSkipRand? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

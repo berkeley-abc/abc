@@ -379,7 +379,7 @@ int Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit
 ***********************************************************************/
 int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 {
-    extern Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
+    extern Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses, * vGateClassesOld = NULL;
     Aig_Man_t * pAig;
@@ -397,7 +397,7 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
     // perform abstraction
     pAig = Gia_ManToAigSimple( pGia );
     assert( vGateClassesOld == NULL || Vec_IntSize(vGateClassesOld) == Aig_ManObjNumMax(pAig) );
-    vGateClasses = Aig_Gla1ManTest( pAig, vGateClassesOld, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
+    vGateClasses = Aig_Gla1ManPerform( pAig, vGateClassesOld, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, fNaiveCnf, p->fVerbose );
     Aig_ManStop( pAig );
 
     // update the map
@@ -419,7 +419,7 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
 ***********************************************************************/
 int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
 {
-    extern Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose );
+    extern Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fSkipRand, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses;
     Aig_Man_t * pAig;
@@ -440,7 +440,7 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
     }
 
     // perform abstraction
-    vGateClasses = Aig_Gla2ManTest( pAig, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fVerbose );
+    vGateClasses = Aig_Gla2ManPerform( pAig, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fSkipRand, p->fVerbose );
     Aig_ManStop( pAig );
 
     // update the BMC depth

@@ -553,7 +553,7 @@ Vec_Int_t * Aig_Gla2ManCollect( Aig_Gla2Man_t * p, Vec_Int_t * vCore )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fVerbose )
+Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fSkipRand, int fVerbose )
 {
     Aig_Gla2Man_t * p;
     Vec_Int_t * vCore, * vResult;
@@ -578,6 +578,7 @@ Vec_Int_t * Aig_Gla2ManTest( Aig_Man_t * pAig, int nStart, int nFramesMax, int n
         Aig_Gla2ManStop( p );
         return NULL;
     }
+    sat_solver_set_random( p->pSat, fSkipRand );
     p->timePre += Abc_Clock(1,0);
 
     // set runtime limit

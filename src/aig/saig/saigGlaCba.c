@@ -676,7 +676,7 @@ void Aig_Gla1ExtendIncluded( Aig_Gla1Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_Gla1ManTest( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose )
+Vec_Int_t * Aig_Gla1ManPerform( Aig_Man_t * pAig, Vec_Int_t * vGateClassesOld, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fNaiveCnf, int fVerbose )
 {
     Vec_Int_t * vResult = NULL;
     Aig_Gla1Man_t * p;

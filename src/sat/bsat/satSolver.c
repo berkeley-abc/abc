@@ -967,7 +967,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
     int*    levels          = s->levels;
     double  var_decay       = 0.95;
     double  clause_decay    = 0.999;
-    double  random_var_freq = 0.02;
+    double  random_var_freq = s->fNotUseRandom ? 0.0 : 0.02;
 
     ABC_INT64_T  conflictC       = 0;
     veci    learnt_clause;

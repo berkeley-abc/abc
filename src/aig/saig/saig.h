@@ -68,6 +68,7 @@ struct Saig_ParBmc_t_
     int         fSolveAll;      // does not stop at the first SAT output
     int         fDropSatOuts;   // replace sat outputs by constant 0
     int         nFfToAddMax;    // max number of flops to add during CBA
+    int         fSkipRand;      // skip random decisions
     int         fVerbose;       // verbose 
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs
