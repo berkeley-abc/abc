@@ -622,8 +622,10 @@ void If_CluInitTruthTables()
         for ( k = 0; k < CLU_WRD_MAX; k++ )
             TruthAll[i][k] = ((k >> (i-6)) & 1) ? ~0 : 0;
 
-//    Extra_PrintHex( stdout, TruthAll[6], 8 ); printf( "\n" );
-//    Extra_PrintHex( stdout, TruthAll[7], 8 ); printf( "\n" );
+    for ( i = 0; i < 8; i++ )
+    {
+    Extra_PrintHex( stdout, (unsigned *)TruthAll[i], 8 ); printf( "\n" );
+    }
 }
 
 
