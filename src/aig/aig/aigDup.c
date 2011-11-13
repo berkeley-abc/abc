@@ -1295,6 +1295,53 @@ Aig_Man_t * Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG with only one primary output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
+{
+    Aig_Man_t * p, * pNew;
+    Aig_Obj_t * pObj;
+    int i, k;
+    if ( Vec_PtrSize(vArray) == 0 )
+        return NULL;
+    p = Vec_PtrEntry( vArray, 0 );
+    Vec_PtrForEachEntry( Aig_Man_t *, vArray, pNew, k )
+    {
+        assert( Aig_ManRegNum(pNew) == 0 );
+        assert( Aig_ManPiNum(pNew) == Aig_ManPiNum(p) );
+    }
+    // create the new manager
+    pNew = Aig_ManStart( 10000 );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    Aig_ManForEachPi( p, pObj, i )
+        Aig_ObjCreatePi(pNew);
+    // create the PIs
+    Vec_PtrForEachEntry( Aig_Man_t *, vArray, p, k )
+    {
+        Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+        Aig_ManForEachPi( p, pObj, i )
+            pObj->pData = Aig_ManPi( pNew, i );
+        Aig_ManForEachNode( p, pObj, i )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+        Aig_ManForEachPo( p, pObj, i )
+            Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    }
+    Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+    return pNew;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

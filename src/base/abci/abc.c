@@ -19316,7 +19316,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Inter_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTKLrtpomcgbkdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTKLrtpomcgbkdfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19403,6 +19403,9 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pPars->fDropSatOuts ^= 1;
             break;
+        case 'f':
+            pPars->fDropInvar ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -19473,7 +19476,7 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: int [-CFTK num] [-L file] [-rtpomcgbkdvh]\n" );
+    Abc_Print( -2, "usage: int [-CFTK num] [-L file] [-rtpomcgbkdfvh]\n" );
     Abc_Print( -2, "\t         uses interpolation to prove the property\n" );
     Abc_Print( -2, "\t-C num : the limit on conflicts for one SAT run [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the limit on number of frames to unroll [default = %d]\n", pPars->nFramesMax );
@@ -19491,6 +19494,7 @@ usage:
     Abc_Print( -2, "\t-b     : toggle using backward interpolation (works with -t) [default = %s]\n", pPars->fUseBackward? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle solving each output separately [default = %s]\n", pPars->fUseSeparate? "yes": "no" );
     Abc_Print( -2, "\t-d     : drops (replaces by 0) sat outputs (with -k is used) [default = %s]\n", pPars->fDropSatOuts? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle dumping inductive invariant into a file [default = %s]\n", pPars->fDropInvar? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

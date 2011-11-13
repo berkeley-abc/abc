@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "intInt.h"
+#include "ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -51,7 +52,9 @@ Inter_Man_t * Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars )
     p->vVarsAB = Vec_IntAlloc( Aig_ManRegNum(pAig) );
     p->nConfLimit = pPars->nBTLimit;
     p->fVerbose = pPars->fVerbose;
-    p->pAig = pAig;   
+    p->pAig = pAig;
+    if ( pPars->fDropInvar )
+        p->vInters = Vec_PtrAlloc( 100 );
     return p;
 }
 
@@ -68,6 +71,14 @@ Inter_Man_t * Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars )
 ***********************************************************************/
 void Inter_ManClean( Inter_Man_t * p )
 {
+    if ( p->vInters )
+    {
+        Aig_Man_t * pMan;
+        int i;
+        Vec_PtrForEachEntry( Aig_Man_t *, p->vInters, pMan, i )
+            Aig_ManStop( pMan );
+        Vec_PtrClear( p->vInters );
+    }
     if ( p->pCnfInter )
         Cnf_DataFree( p->pCnfInter );
     if ( p->pCnfFrames )
@@ -76,6 +87,29 @@ void Inter_ManClean( Inter_Man_t * p )
         Aig_ManStop( p->pInter );
     if ( p->pFrames )
         Aig_ManStop( p->pFrames );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes interpolant into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Inter_ManInterDump( Inter_Man_t * p, int fProved )
+{
+    Aig_Man_t * pMan;
+    pMan = Aig_ManDupArray( p->vInters );
+    Ioa_WriteAiger( pMan, "invar.aig", 0, 0 );
+    Aig_ManStop( pMan );
+    if ( fProved )
+        printf( "Inductive invariant is dumped into file \"invar.aig\".\n" );
+    else
+        printf( "Interpolants are dumped into file \"inter.aig\".\n" );
 }
 
 /**Function*************************************************************
@@ -89,7 +123,7 @@ void Inter_ManClean( Inter_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Inter_ManStop( Inter_Man_t * p )
+void Inter_ManStop( Inter_Man_t * p, int fProved )
 {
     if ( p->fVerbose )
     {
@@ -104,24 +138,20 @@ void Inter_ManStop( Inter_Man_t * p )
         ABC_PRTP( "TOTAL      ", p->timeTotal, p->timeTotal );
     }
 
+    if ( p->vInters )
+        Inter_ManInterDump( p, fProved );
+
     if ( p->pCnfAig )
         Cnf_DataFree( p->pCnfAig );
-    if ( p->pCnfFrames )
-        Cnf_DataFree( p->pCnfFrames );
-    if ( p->pCnfInter )
-        Cnf_DataFree( p->pCnfInter );
-    Vec_IntFree( p->vVarsAB );
     if ( p->pAigTrans )
         Aig_ManStop( p->pAigTrans );
-    if ( p->pFrames )
-        Aig_ManStop( p->pFrames );
-    if ( p->pInter )
-        Aig_ManStop( p->pInter );
     if ( p->pInterNew )
         Aig_ManStop( p->pInterNew );
+    Inter_ManClean( p );
+    Vec_PtrFreeP( &p->vInters );
+    Vec_IntFreeP( &p->vVarsAB );
     ABC_FREE( p );
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -114,7 +114,7 @@ extern Aig_Man_t *     Inter_ManFramesInter( Aig_Man_t * pAig, int nFrames, int 
 /*=== intMan.c ============================================================*/
 extern Inter_Man_t *   Inter_ManCreate( Aig_Man_t * pAig, Inter_ManParams_t * pPars );
 extern void            Inter_ManClean( Inter_Man_t * p );
-extern void            Inter_ManStop( Inter_Man_t * p );
+extern void            Inter_ManStop( Inter_Man_t * p, int fProved );
 
 /*=== intM114.c ============================================================*/
 extern int             Inter_ManPerformOneStep( Inter_Man_t * p, int fUseBias, int fUseBackward, int nTimeNewOut );

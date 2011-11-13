@@ -62,6 +62,7 @@ struct Inter_ManParams_t_
     int  fUseBackward;  // perform backward interpolation
     int  fUseSeparate;  // solve each output separately
     int  fDropSatOuts;  // replace by 1 the solved outputs
+    int  fDropInvar;    // dump inductive invariant into file
     int  fVerbose;      // print verbose statistics
     int  iFrameMax;     // the time frame reached
 };

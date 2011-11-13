@@ -179,6 +179,8 @@ p->timeCnf += clock() - clk;
             RetValue = Inter_CheckPerform( pCheck, pCnfInter2, nTimeNewOut );
 //            assert( RetValue == 0 );
             Cnf_DataFree( pCnfInter2 );
+            if ( p->vInters )
+                Vec_PtrPush( p->vInters, Aig_ManDupSimple(p->pInter) );
         }
         //////////////////////////////////////////
 
@@ -190,7 +192,7 @@ p->timeCnf += clock() - clk;
                 if ( pPars->fVerbose )
                     printf( "Reached limit (%d) on the number of timeframes.\n", pPars->nFramesMax );
                 p->timeTotal = clock() - clkTotal;
-                Inter_ManStop( p );
+                Inter_ManStop( p, 0 );
                 Inter_CheckStop( pCheck );
                 return -1;
             }
@@ -237,7 +239,7 @@ p->timeCnf += clock() - clk;
                         else if ( RetValue == -1 )
                             printf( "Error: The problem timed out.\n" );
                     }
-                    Inter_ManStop( p );
+                    Inter_ManStop( p, 0 );
                     Inter_CheckStop( pCheck );
                     return 0;
                 }
@@ -260,7 +262,7 @@ p->timeCnf += clock() - clk;
                         printf( "Reached limit (%d) on the number of conflicts.\n", p->nConfLimit );
                 }
                 p->timeTotal = clock() - clkTotal;
-                Inter_ManStop( p );
+                Inter_ManStop( p, 0 );
                 Inter_CheckStop( pCheck );
                 return -1;
             }
@@ -283,7 +285,7 @@ p->timeRwr += clock() - clk;
                 if ( pPars->fVerbose )
                     printf( "The problem is trivially true for all states.\n" );
                 p->timeTotal = clock() - clkTotal;
-                Inter_ManStop( p );
+                Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
                 return 1;
             }
@@ -305,6 +307,8 @@ timeTemp = clock() - clk2;
             
                         Status = Inter_CheckPerform( pCheck, pCnfInter2, nTimeNewOut );
                         Cnf_DataFree( pCnfInter2 );
+                        if ( p->vInters )
+                            Vec_PtrPush( p->vInters, Aig_ManDupSimple(p->pInterNew) );
                     }
                 }
                 else
@@ -323,7 +327,7 @@ p->timeEqu += clock() - clk - timeTemp;
                 if ( pPars->fVerbose )
                     printf( "Proved containment of interpolants.\n" );
                 p->timeTotal = clock() - clkTotal;
-                Inter_ManStop( p );
+                Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
                 return 1;
             }
@@ -331,7 +335,7 @@ p->timeEqu += clock() - clk - timeTemp;
             {
                 printf( "Reached timeout (%d seconds).\n",  pPars->nSecLimit );
                 p->timeTotal = clock() - clkTotal;
-                Inter_ManStop( p );
+                Inter_ManStop( p, 1 );
                 Inter_CheckStop( pCheck );
                 return -1;
             }
