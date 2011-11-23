@@ -727,6 +727,99 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
 }
 
 
+
+void If_CluSwapVars( word * pTruth, int nVars, int * V2P, int * P2V, int iVar, int jVar )
+{
+    word low2High, high2Low, temp;
+    int nWords = If_CluWordNum(nVars);
+    int shift, step, iStep, jStep;
+    int w = 0, i = 0, j = 0;
+    static word PPMasks[6][6] = {
+        { 0x2222222222222222, 0x0A0A0A0A0A0A0A0A, 0x00AA00AA00AA00AA, 0x0000AAAA0000AAAA, 0x00000000AAAAAAAA, 0xAAAAAAAAAAAAAAAA },
+        { 0x0000000000000000, 0x0C0C0C0C0C0C0C0C, 0x00CC00CC00CC00CC, 0x0000CCCC0000CCCC, 0x00000000CCCCCCCC, 0xCCCCCCCCCCCCCCCC },
+        { 0x0000000000000000, 0x0000000000000000, 0x00F000F000F000F0, 0x0000F0F00000F0F0, 0x00000000F0F0F0F0, 0xF0F0F0F0F0F0F0F0 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000FF000000FF00, 0x00000000FF00FF00, 0xFF00FF00FF00FF00 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x00000000FFFF0000, 0xFFFF0000FFFF0000 },
+        { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0xFFFFFFFF00000000 }
+    };
+    if( iVar == jVar )
+        return;
+    if( jVar < iVar )
+    {
+        int varTemp = jVar;
+        jVar = iVar;
+        iVar = varTemp;
+    }
+    if ( iVar <= 5 && jVar <= 5 )
+    {
+        shift = (1 <<  jVar) - (1 << iVar);
+        for ( w = 0; w < nWords; w++ )
+        {
+            low2High = (pTruth[w] & PPMasks[iVar][jVar - 1] ) << shift;
+            pTruth[w] &= ~PPMasks[iVar][jVar - 1];
+            high2Low = (pTruth[w] & (PPMasks[iVar][jVar - 1] << shift )) >> shift;
+            pTruth[w] &= ~ (PPMasks[iVar][jVar - 1] << shift);
+            pTruth[w] = pTruth[w] | low2High | high2Low;
+        }
+    }
+    else if( iVar <= 5 && jVar > 5 )
+    {
+        step = If_CluWordNum(jVar + 1)/2;
+        shift = 1 << iVar;
+        for ( w = 0; w < nWords; w += 2*step )
+        {
+            for (j = 0; j < step; j++)
+            {
+                low2High = (pTruth[w + j] & PPMasks[iVar][5]) >> shift;
+                pTruth[w + j] &= ~PPMasks[iVar][5];
+                high2Low = (pTruth[w + step + j] & (PPMasks[iVar][5] >> shift)) << shift;
+                pTruth[w + step + j] &= ~(PPMasks[iVar][5] >> shift);
+                pTruth[w + j] |= high2Low;
+                pTruth[w + step + j] |= low2High;            
+            }
+        }
+    }
+    else
+    {
+        iStep = If_CluWordNum(iVar + 1)/2;
+        jStep = If_CluWordNum(jVar + 1)/2;
+        for ( w = 0; w < nWords; w += 2*jStep )
+        {
+            for ( i = 0; i < jStep; i += 2*iStep )
+            {
+                temp = pTruth[w + iStep + i];
+                pTruth[w + iStep + i] = pTruth[w + jStep + i];
+                pTruth[w + jStep + i] = temp;
+            }
+
+        }
+    }    
+    if ( V2P && P2V )
+    {
+        V2P[P2V[iVar]] = jVar;
+        V2P[P2V[jVar]] = iVar;
+        P2V[iVar] ^= P2V[jVar];
+        P2V[jVar] ^= P2V[iVar];
+        P2V[iVar] ^= P2V[jVar];
+    }
+}
+void If_CluReverseOrder( word * pTruth, int nVars, int * V2P, int * P2V, int iVarStart )
+{
+    int i, j, k;
+    for ( k = 0; k < (nVars-iVarStart)/2 ; k++ )
+    {
+        i = iVarStart + k;
+        j = nVars - 1 - k;
+        If_CluSwapVars( pTruth, nVars, V2P, P2V, i, j );
+    }
+}
+
+// moves one var (v) to the given position (p)
+void If_CluMoveVar2( word * pF, int nVars, int * Var2Pla, int * Pla2Var, int v, int p )
+{
+    If_CluSwapVars( pF, nVars, Var2Pla, Pla2Var, Var2Pla[v], p );
+}
+
 // moves one var (v) to the given position (p)
 void If_CluMoveVar( word * pF, int nVars, int * Var2Pla, int * Pla2Var, int v, int p )
 {
@@ -772,10 +865,14 @@ void If_CluMoveGroupToMsb( word * pF, int nVars, int * V2P, int * P2V, If_Grp_t 
         If_CluMoveVar( pF, nVars, V2P, P2V, g->pVars[g->nVars - 1 - v], nVars - 1 - v );
 }
 
+
 // reverses the variable order
-void If_CluReverseOrder( word * pF, int nVars, int * V2P, int * P2V, int iVarStart )
+void If_CluReverseOrder_old( word * pF, int nVars, int * V2P, int * P2V, int iVarStart )
 {
+    word pG[CLU_WRD_MAX];
     int v;
+
+    If_CluCopy( pG, pF, nVars );
 
 //    for ( v = 0; v < nVars; v++ )
 //        printf( "%c ", 'a' + P2V[v] );
@@ -787,6 +884,25 @@ void If_CluReverseOrder( word * pF, int nVars, int * V2P, int * P2V, int iVarSta
 //    for ( v = 0; v < nVars; v++ )
 //        printf( "%c ", 'a' + P2V[v] );
 //    printf( "\n" );
+
+//    if ( iVarStart > 0 )
+//        return;
+
+    If_CluReverseOrder( pG, nVars, NULL, NULL, iVarStart );
+    if ( If_CluEqual( pG, pF, nVars ) )
+    {
+//        printf( "+" );
+    }
+    else
+    {
+/*
+        printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pF, nVars ); printf( "\n" );
+        Kit_DsdPrintFromTruth( (unsigned*)pG, nVars ); 
+        printf( "\n" );
+*/
+        printf( "%d ", nVars );
+    }
 }
 
 // return the number of cofactors w.r.t. the topmost vars (nBSsize)
@@ -1191,7 +1307,7 @@ int If_CluCheckNonDisjointGroup( word * pF, int nVars, int * V2P, int * P2V, If_
     return 0;
 }
 
- 
+
 // finds a good var group (cof count < 6; vars are MSBs)
 If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * P2V, int nBSsize, int fDisjoint )
 {
@@ -1236,7 +1352,8 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
             nCofsBest2 = If_CluCountCofs( pF, nVars, nBSsize+1, 0, NULL );
             for ( v = nVars-2-nBSsize; v >= iVarStart; v-- )
             {
-                If_CluMoveVar( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
+//                If_CluMoveVar( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
+                If_CluMoveVar2( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
                 nCofs = If_CluCountCofs( pF, nVars, nBSsize+1, 0, NULL );
                 if ( nCofsBest2 >= nCofs )
                 {
@@ -1245,7 +1362,8 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
                 }
             }
             // go back
-            If_CluMoveVar( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
+//            If_CluMoveVar( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
+            If_CluMoveVar2( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
             // update best bound set
             nCofs = If_CluCountCofs( pF, nVars, nBSsize+1, 0, NULL );
             assert( nCofs == nCofsBest2 );
@@ -1256,7 +1374,8 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
         nCofsBest2 = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
         for ( v = nVars-nBSsize; v < nVars; v++ )
         {
-            If_CluMoveVar( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
+//            If_CluMoveVar( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
+            If_CluMoveVar2( pF, nVars, V2P, P2V, P2V[v], nVars-1-nBSsize );
             nCofs = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
             if ( nCofsBest2 >= nCofs )
             {
@@ -1266,7 +1385,8 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
         }
 
         // go back
-        If_CluMoveVar( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
+//        If_CluMoveVar( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
+        If_CluMoveVar2( pF, nVars, V2P, P2V, VarBest, nVars-1-nBSsize );
         // update best bound set
         nCofs = If_CluCountCofs( pF, nVars, nBSsize, 0, NULL );
         assert( nCofs == nCofsBest2 );
