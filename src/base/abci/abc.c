@@ -28952,8 +28952,8 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ParBmc_t Pars, * pPars = &Pars;
     int c, fNaiveCnf = 0;
     Saig_ParBmcSetDefaultParams( pPars );
-    pPars->nStart     =  0;  // (pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
-    pPars->nFramesMax =  0;  // pPars->nStart + 10;
+    pPars->nStart     =  (pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
+    pPars->nFramesMax =  0;  
     pPars->nConfLimit =  0;
     pPars->nTimeOut   = 60;
     Extra_UtilGetoptReset();
@@ -29054,10 +29054,9 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     pAbc->Status = Gia_ManGlaCbaPerform( pAbc->pGia, pPars, fNaiveCnf );
-    if ( pPars->nStart == 0 )
+//    if ( pPars->nStart == 0 )
        pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-//    printf( "This command is currently not enabled.\n" );
     return 0;
 
 usage:
@@ -29090,8 +29089,8 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     Saig_ParBmc_t Pars, * pPars = &Pars;
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
-    pPars->nStart     =  0;  //(pAbc->nFrames >= 0) ? pAbc->nFrames : 0;
-    pPars->nFramesMax = 10; //pPars->nStart + 10;
+    pPars->nStart     =  0;  
+    pPars->nFramesMax = (pAbc->nFrames >= 0) ? pAbc->nFrames : 10;
     pPars->nConfLimit =  0;
     pPars->fSkipRand  =  0;
     Extra_UtilGetoptReset();
@@ -29183,7 +29182,7 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pPars->nStart )
         Abc_Print( 0, "The starting frame is specified. The resulting abstraction may be unsound.\n" );
     pAbc->Status = Gia_ManGlaPbaPerform( pAbc->pGia, pPars );
-    if ( pPars->nStart == 0 )
+//    if ( pPars->nStart == 0 )
        pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;

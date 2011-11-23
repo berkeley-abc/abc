@@ -484,8 +484,11 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
         pGia->vGateClasses = vGateClasses;
     }
     // clean up the abstraction map
-    pGiaAbs = Gia_ManDupAbsGates( pGia, pGia->vGateClasses );
-    Gia_ManStop( pGiaAbs );
+    if ( pGia->vGateClasses )
+    {
+        pGiaAbs = Gia_ManDupAbsGates( pGia, pGia->vGateClasses );
+        Gia_ManStop( pGiaAbs );
+    }
     if ( p->fVerbose )
         Gia_ManPrintStats( pGia, 0 );
     return 1;

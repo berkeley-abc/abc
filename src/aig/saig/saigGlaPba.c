@@ -579,7 +579,7 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
         return NULL;
     }
     sat_solver_set_random( p->pSat, fSkipRand );
-    p->timePre += Abc_Clock(1,0);
+    p->timePre += (Abc_Clock(1,0)/ABC_CPS)*CLOCKS_PER_SEC;
 
     // set runtime limit
     if ( TimeLimit )
@@ -593,8 +593,8 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
         Aig_Gla2ManStop( p );
         return NULL;
     }
-    p->timeSat += Abc_Clock(1,0);
-    p->timeTotal = Abc_Clock(0,0);
+    p->timeSat += (Abc_Clock(1,0)/ABC_CPS)*CLOCKS_PER_SEC;
+    p->timeTotal = (Abc_Clock(0,0)/ABC_CPS)*CLOCKS_PER_SEC;
 
     // print stats
     if ( fVerbose )
