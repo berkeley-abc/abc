@@ -34,6 +34,9 @@ MODULES := \
 all: $(PROG)
 default: $(PROG)
 
+# Please note that to compile on 32-bit Linux the following optflags are required:
+# -DLIN -DSIZEOF_VOID_P=4 -DSIZEOF_LONG=4 
+
 #OPTFLAGS  := -DNDEBUG -O3 -DLIN
 #OPTFLAGS  := -DNDEBUG -O3 -DLIN64
 #OPTFLAGS  := -g -O -DLIN -m32
