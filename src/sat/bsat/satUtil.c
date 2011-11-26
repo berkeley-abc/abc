@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "satSolver.h"
+#include "satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -148,13 +149,36 @@ void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncrement )
 ***********************************************************************/
 void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
 {
-//    printf( "calls         : %8d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
-    printf( "starts        : %8d\n", (int)p->stats.starts );
-    printf( "conflicts     : %8d\n", (int)p->stats.conflicts );
-    printf( "decisions     : %8d\n", (int)p->stats.decisions );
-    printf( "propagations  : %8d\n", (int)p->stats.propagations );
-    printf( "inspects      : %8d\n", (int)p->stats.inspects );
-//    printf( "inspects2     : %8d\n", (int)p->stats.inspects2 );
+//    printf( "calls         : %10d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
+    printf( "starts        : %10d\n", (int)p->stats.starts );
+    printf( "conflicts     : %10d\n", (int)p->stats.conflicts );
+    printf( "decisions     : %10d\n", (int)p->stats.decisions );
+    printf( "propagations  : %10d\n", (int)p->stats.propagations );
+    printf( "inspects      : %10d\n", (int)p->stats.inspects );
+//    printf( "inspects2     : %10d\n", (int)p->stats.inspects2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the given clause in a file in DIMACS format.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sat_Solver2PrintStats( FILE * pFile, sat_solver2 * p )
+{
+//    printf( "calls         : %10d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
+    printf( "starts        : %10d\n", (int)p->stats.starts );
+    printf( "conflicts     : %10d\n", (int)p->stats.conflicts );
+    printf( "decisions     : %10d\n", (int)p->stats.decisions );
+    printf( "propagations  : %10d\n", (int)p->stats.propagations );
+    printf( "inspects      : %10d\n", (int)p->stats.inspects );
+//    printf( "inspects2     : %10d\n", (int)p->stats.inspects2 );
+    printf( "memory        : %10d\n", p->nMemSize );
 }
 
 /**Function*************************************************************
@@ -169,6 +193,30 @@ void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
 
 ***********************************************************************/
 int * Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars )
+{
+    int * pModel;
+    int i;
+    pModel = ABC_CALLOC( int, nVars+1 );
+    for ( i = 0; i < nVars; i++ )
+    {
+        assert( pVars[i] >= 0 && pVars[i] < p->size );
+        pModel[i] = (int)(p->model.ptr[pVars[i]] == l_True);
+    }
+    return pModel;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns a counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Sat_Solver2GetModel( sat_solver2 * p, int * pVars, int nVars )
 {
     int * pModel;
     int i;

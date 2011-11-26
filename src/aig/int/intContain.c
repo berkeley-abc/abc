@@ -57,7 +57,7 @@ int Inter_ManCheckContainment( Aig_Man_t * pNew, Aig_Man_t * pOld )
         pAigTemp = Fra_FraigEquivence( pMiter, 1000000, 1 );
         RetValue = Fra_FraigMiterStatus( pAigTemp );
         Aig_ManStop( pAigTemp );
-//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0, 0 );
+//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0, 0, 0 );
     }
     assert( RetValue != -1 );
     Aig_ManStop( pMiter );
@@ -88,7 +88,7 @@ int Inter_ManCheckEquivalence( Aig_Man_t * pNew, Aig_Man_t * pOld )
         pAigTemp = Fra_FraigEquivence( pMiter, 1000000, 1 );
         RetValue = Fra_FraigMiterStatus( pAigTemp );
         Aig_ManStop( pAigTemp );
-//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0, 0 );
+//        RetValue = Fra_FraigSat( pMiter, 1000000, 0, 0, 0, 0 );
     }
     assert( RetValue != -1 );
     Aig_ManStop( pMiter );

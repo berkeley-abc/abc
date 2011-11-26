@@ -20,6 +20,7 @@
 
 #include "cnf.h"
 #include "satSolver.h"
+#include "satSolver2.h"
 #include "zlib.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -416,6 +417,98 @@ void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit )
 
 /**Function*************************************************************
 
+  Synopsis    [Writes CNF into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Cnf_DataWriteIntoSolver2( Cnf_Dat_t * p, int nFrames, int fInit )
+{
+    sat_solver2 * pSat;
+    int i, f, status;
+    assert( nFrames > 0 );
+    pSat = sat_solver2_new();
+    sat_solver2_setnvars( pSat, p->nVars * nFrames );
+    for ( i = 0; i < p->nClauses; i++ )
+    {
+        if ( !sat_solver2_addclause( pSat, p->pClauses[i], p->pClauses[i+1] ) )
+        {
+            sat_solver2_delete( pSat );
+            return NULL;
+        }
+    }
+    if ( nFrames > 1 )
+    {
+        Aig_Obj_t * pObjLo, * pObjLi;
+        int nLitsAll, * pLits, Lits[2];
+        nLitsAll = 2 * p->nVars;
+        pLits = p->pClauses[0];
+        for ( f = 1; f < nFrames; f++ )
+        {
+            // add equality of register inputs/outputs for different timeframes
+            Aig_ManForEachLiLoSeq( p->pMan, pObjLi, pObjLo, i )
+            {
+                Lits[0] = (f-1)*nLitsAll + toLitCond( p->pVarNums[pObjLi->Id], 0 );
+                Lits[1] =  f   *nLitsAll + toLitCond( p->pVarNums[pObjLo->Id], 1 );
+                if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+                {
+                    sat_solver2_delete( pSat );
+                    return NULL;
+                }
+                Lits[0]++;
+                Lits[1]--;
+                if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
+                {
+                    sat_solver2_delete( pSat );
+                    return NULL;
+                }
+            }
+            // add clauses for the next timeframe
+            for ( i = 0; i < p->nLiterals; i++ )
+                pLits[i] += nLitsAll;
+            for ( i = 0; i < p->nClauses; i++ )
+            {
+                if ( !sat_solver2_addclause( pSat, p->pClauses[i], p->pClauses[i+1] ) )
+                {
+                    sat_solver2_delete( pSat );
+                    return NULL;
+                }
+            }
+        }
+        // return literals to their original state
+        nLitsAll = (f-1) * nLitsAll;
+        for ( i = 0; i < p->nLiterals; i++ )
+            pLits[i] -= nLitsAll;
+    }
+    if ( fInit )
+    {
+        Aig_Obj_t * pObjLo;
+        int Lits[1];
+        Aig_ManForEachLoSeq( p->pMan, pObjLo, i )
+        {
+            Lits[0] = toLitCond( p->pVarNums[pObjLo->Id], 1 );
+            if ( !sat_solver2_addclause( pSat, Lits, Lits + 1 ) )
+            {
+                sat_solver2_delete( pSat );
+                return NULL;
+            }
+        }
+    }
+    status = sat_solver2_simplify(pSat);
+    if ( status == 0 )
+    {
+        sat_solver2_delete( pSat );
+        return NULL;
+    }
+    return pSat;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Adds the OR-clause.]
 
   Description []
@@ -434,6 +527,34 @@ int Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
     Aig_ManForEachPo( pCnf->pMan, pObj, i )
         pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
     if ( !sat_solver_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
+    {
+        ABC_FREE( pLits );
+        return 0;
+    }
+    ABC_FREE( pLits );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the OR-clause.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cnf_DataWriteOrClause2( void * p, Cnf_Dat_t * pCnf )
+{
+    sat_solver2 * pSat = (sat_solver2 *)p;
+    Aig_Obj_t * pObj;
+    int i, * pLits;
+    pLits = ABC_ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
+    Aig_ManForEachPo( pCnf->pMan, pObj, i )
+        pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
+    if ( !sat_solver2_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
     {
         ABC_FREE( pLits );
         return 0;

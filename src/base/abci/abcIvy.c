@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
 extern void   Aig_ManStop( Aig_Man_t * pMan );
-//extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
+//extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose );
 extern Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph );
 extern void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs );
 
@@ -532,7 +532,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     // if SAT only, solve without iteration
 //    RetValue = Abc_NtkMiterSat( pNtk, 2*(ABC_INT64_T)pParams->nMiteringLimitStart, (ABC_INT64_T)0, 0, NULL, NULL );
     pMan2 = Abc_NtkToDar( pNtk, 0, 0 );
-    RetValue = Fra_FraigSat( pMan2, (ABC_INT64_T)pParams->nMiteringLimitStart, (ABC_INT64_T)0, 1, 0, 0 ); 
+    RetValue = Fra_FraigSat( pMan2, (ABC_INT64_T)pParams->nMiteringLimitStart, (ABC_INT64_T)0, 1, 0, 0, 0 ); 
     pNtk->pModel = (int *)pMan2->pData, pMan2->pData = NULL;
     Aig_ManStop( pMan2 );
 //    pNtk->pModel = Aig_ManReleaseData( pMan2 );
@@ -582,7 +582,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
             Ioa_WriteAiger( pMan2, pFileName, 0, 0 );
             printf( "Intermediate reduced miter is written into file \"%s\".\n", pFileName );
         }
-        RetValue = Fra_FraigSat( pMan2, pParams->nMiteringLimitLast, 0, 0, 0, pParams->fVerbose ); 
+        RetValue = Fra_FraigSat( pMan2, pParams->nMiteringLimitLast, 0, 0, 0, 0, pParams->fVerbose ); 
         pNtk->pModel = (int *)pMan2->pData, pMan2->pData = NULL;
         Aig_ManStop( pMan2 );
     }

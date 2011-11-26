@@ -1275,6 +1275,14 @@ SOURCE=.\src\sat\bsat\satSolver.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satSolver2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\satSolver2.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satStore.c
 # End Source File
 # Begin Source File

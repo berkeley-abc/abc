@@ -568,11 +568,11 @@ void Gia_ManSeqCleanupClasses( Gia_Man_t * p, int fConst, int fEquiv, int fVerbo
 ***********************************************************************/
 int Gia_ManSolveSat( Gia_Man_t * p )
 {
-//    extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fVerbose );
+//    extern int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fFlipBits, int fAndOuts, int fNewSolver, int fVerbose );
     Aig_Man_t * pNew;
     int RetValue, clk = clock();
     pNew = Gia_ManToAig( p, 0 );
-    RetValue = Fra_FraigSat( pNew, 10000000, 0, 1, 1, 0 );
+    RetValue = Fra_FraigSat( pNew, 10000000, 0, 1, 1, 0, 0 );
     if ( RetValue == 0 )
     {
         Gia_Obj_t * pObj;

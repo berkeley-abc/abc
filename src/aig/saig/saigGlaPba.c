@@ -558,6 +558,7 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
     Aig_Gla2Man_t * p;
     Vec_Int_t * vCore, * vResult;
     int nTimeToStop = time(NULL) + TimeLimit;
+    int clk, clk2 = clock();
     assert( Saig_ManPoNum(pAig) == 1 );
 
     Abc_Clock(0,1); 
@@ -570,6 +571,7 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
     }
 
     // start the solver
+    clk = clock();
     Abc_Clock(1,1); 
     p = Aig_Gla2ManStart( pAig, nStart, nFramesMax, fVerbose );
     if ( !Aig_Gla2CreateSatSolver( p ) )
@@ -579,13 +581,15 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
         return NULL;
     }
     sat_solver_set_random( p->pSat, fSkipRand );
-    p->timePre += (Abc_Clock(1,0)/ABC_CPS)*CLOCKS_PER_SEC;
+//    p->timePre += (Abc_Clock(1,0)/ABC_CPS)*CLOCKS_PER_SEC;
+    p->timePre += clock() - clk;
 
     // set runtime limit
     if ( TimeLimit )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
 
     // compute UNSAT core
+    clk = clock();
     Abc_Clock(1,1); 
     vCore = Saig_AbsSolverUnsatCore( p->pSat, nConfLimit, fVerbose, NULL );
     if ( vCore == NULL )
@@ -593,8 +597,10 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
         Aig_Gla2ManStop( p );
         return NULL;
     }
-    p->timeSat += (Abc_Clock(1,0)/ABC_CPS)*CLOCKS_PER_SEC;
-    p->timeTotal = (Abc_Clock(0,0)/ABC_CPS)*CLOCKS_PER_SEC;
+//    p->timeSat += (Abc_Clock(1,0)/ABC_CPS)*CLOCKS_PER_SEC;
+//    p->timeTotal = (Abc_Clock(0,0)/ABC_CPS)*CLOCKS_PER_SEC;
+    p->timeSat += clock() - clk;
+    p->timeTotal += clock() - clk2;
 
     // print stats
     if ( fVerbose )

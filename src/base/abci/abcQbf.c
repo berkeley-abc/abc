@@ -41,7 +41,7 @@ static void Abc_NtkVectorClearVars( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues, int
 static void Abc_NtkVectorPrintPars( Vec_Int_t * vPiValues, int nPars );
 static void Abc_NtkVectorPrintVars( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues, int nPars );
 
-extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fAlignPol, int fAndOuts, int fVerbose );
+extern int Abc_NtkDSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fAlignPol, int fAndOuts, int fNewSolver, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -101,7 +101,7 @@ void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int nItersMax, int fVerbose )
         // solve the synthesis instance
 clkS = clock();
 //        RetValue = Abc_NtkMiterSat( pNtkSyn, 0, 0, 0, NULL, NULL );
-        RetValue = Abc_NtkDSat( pNtkSyn, (ABC_INT64_T)0, (ABC_INT64_T)0, 1, 0, 0 );
+        RetValue = Abc_NtkDSat( pNtkSyn, (ABC_INT64_T)0, (ABC_INT64_T)0, 1, 0, 0, 0 );
 clkS = clock() - clkS;
         if ( RetValue == 0 )
             Abc_NtkModelToVector( pNtkSyn, vPiValues );
