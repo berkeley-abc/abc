@@ -154,7 +154,7 @@ void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
     printf( "conflicts     : %10d\n", (int)p->stats.conflicts );
     printf( "decisions     : %10d\n", (int)p->stats.decisions );
     printf( "propagations  : %10d\n", (int)p->stats.propagations );
-    printf( "inspects      : %10d\n", (int)p->stats.inspects );
+//    printf( "inspects      : %10d\n", (int)p->stats.inspects );
 //    printf( "inspects2     : %10d\n", (int)p->stats.inspects2 );
 }
 
@@ -176,7 +176,7 @@ void Sat_Solver2PrintStats( FILE * pFile, sat_solver2 * p )
     printf( "conflicts     : %10d\n", (int)p->stats.conflicts );
     printf( "decisions     : %10d\n", (int)p->stats.decisions );
     printf( "propagations  : %10d\n", (int)p->stats.propagations );
-    printf( "inspects      : %10d\n", (int)p->stats.inspects );
+//    printf( "inspects      : %10d\n", (int)p->stats.inspects );
 //    printf( "inspects2     : %10d\n", (int)p->stats.inspects2 );
     printf( "memory        : %10d\n", p->nMemSize );
 }

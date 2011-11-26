@@ -98,6 +98,7 @@ struct sat_solver2_t
     int      cla_inc;       // Amount to bump next clause with.
 //    float    cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
 
+    clause** pWatches;      // watcher lists (for each literal)
     vecp*    wlists;        // 
 //    double*  activity;      // A heuristic measurement of the activity of a variable.
     unsigned*activity;      // A heuristic measurement of the activity of a variable.
