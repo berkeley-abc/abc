@@ -1037,7 +1037,7 @@ p->timeTotal += clock() - clkTotal;
     if ( fVerbose )
         printf( "Root clauses = %d. Learned clauses = %d. UNSAT core size = %d.\n", 
             p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, Vec_IntSize(vCore) );
-    Intp_ManUnsatCoreVerify( p->pCnf, vCore );
+//    Intp_ManUnsatCoreVerify( p->pCnf, vCore );
     return vCore;   
 }
 
