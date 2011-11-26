@@ -113,8 +113,8 @@ extern void *      sat_solver_store_release( sat_solver * s );
 //=================================================================================================
 // Solver representation:
 
-struct clause_t;
-typedef struct clause_t clause;
+//struct clause_t;
+//typedef struct clause_t clause;
 
 struct sat_solver_t
 {

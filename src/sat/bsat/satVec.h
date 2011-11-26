@@ -124,6 +124,8 @@ struct stats_t
 };
 typedef struct stats_t stats_t;
 
+struct clause_t;
+typedef struct clause_t clause;
 
 ABC_NAMESPACE_HEADER_END
 
