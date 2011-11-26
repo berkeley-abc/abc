@@ -306,6 +306,15 @@ static clause* clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
     assert(end - begin > 1);
     assert(learnt >= 0 && learnt < 2);
     size           = end - begin;
+
+    // do not allocate memory for the two-literal problem clause
+    if ( size == 2 && !learnt )
+    {
+        vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)(clause_from_lit(begin[1])));
+        vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)(clause_from_lit(begin[0])));
+        return NULL;
+    }
+
 //    c              = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
 #ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
     c = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
@@ -336,6 +345,8 @@ static clause* clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
     vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)(size > 2 ? c : clause_from_lit(begin[1])));
     vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)(size > 2 ? c : clause_from_lit(begin[0])));
 
+//    if ( learnt )
+//    printf( "%d ", size );
     return c;
 }
 
@@ -1212,6 +1223,7 @@ void sat_solver_delete(sat_solver* s)
 
 int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
 {
+    clause * c;
     lit *i,*j;
     int maxvar;
     lbool* values;
@@ -1271,7 +1283,9 @@ int sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
         return enqueue(s,*begin,(clause*)0);
 
     // create new clause
-    vecp_push(&s->clauses,clause_new(s,begin,j,0));
+    c = clause_new(s,begin,j,0);
+    if ( c )
+        vecp_push(&s->clauses,c);
 
 
     s->stats.clauses++;

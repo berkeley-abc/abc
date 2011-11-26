@@ -36,7 +36,7 @@ ABC_NAMESPACE_HEADER_START
 
 //=================================================================================================
 // Simple types:
-
+/*
 #ifndef __cplusplus
 #ifndef false
 #  define false 0
@@ -64,7 +64,7 @@ static inline int  lit_sign (lit l)        { return l & 1; }
 static inline int  lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
 static inline lit  lit_read (int s)        { return s > 0 ? toLit(s-1) : lit_neg(toLit(-s-1)); }
 static inline int  lit_check(lit l, int n) { return l >= 0 && lit_var(l) < n;                  }
-
+*/
 
 //=================================================================================================
 // Public interface:
@@ -84,14 +84,14 @@ extern int         sat_solver_nclauses(sat_solver* s);
 extern int         sat_solver_nconflicts(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
-
+/*
 struct stats_t
 {
     ABC_INT64_T   starts, decisions, propagations, inspects, conflicts;
     ABC_INT64_T   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
 };
 typedef struct stats_t stats_t;
-
+*/
 extern void        Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars );
 extern void        Sat_SolverPrintStats( FILE * pFile, sat_solver * p );
 extern int *       Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars );

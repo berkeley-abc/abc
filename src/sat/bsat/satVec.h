@@ -86,6 +86,44 @@ static inline void   vecp_push   (vecp* v, void* e)
 
 
 
+//=================================================================================================
+// Simple types:
+
+#ifndef __cplusplus
+#ifndef false
+#  define false 0
+#endif
+#ifndef true
+#  define true 1
+#endif
+#endif
+
+typedef int                lit;
+typedef char               lbool;
+
+static const int   var_Undef = -1;
+static const lit   lit_Undef = -2;
+
+static const lbool l_Undef   =  0;
+static const lbool l_True    =  1;
+static const lbool l_False   = -1;
+
+static inline lit  toLit    (int v)        { return v + v; }
+static inline lit  toLitCond(int v, int c) { return v + v + (c != 0); }
+static inline lit  lit_neg  (lit l)        { return l ^ 1; }
+static inline int  lit_var  (lit l)        { return l >> 1; }
+static inline int  lit_sign (lit l)        { return l & 1; }
+static inline int  lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
+static inline lit  lit_read (int s)        { return s > 0 ? toLit(s-1) : lit_neg(toLit(-s-1)); }
+static inline int  lit_check(lit l, int n) { return l >= 0 && lit_var(l) < n;                  }
+
+struct stats_t
+{
+    ABC_INT64_T   starts, decisions, propagations, inspects, conflicts;
+    ABC_INT64_T   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
+};
+typedef struct stats_t stats_t;
+
 
 ABC_NAMESPACE_HEADER_END
 
