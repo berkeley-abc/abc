@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 
 #define SAT_USE_ANALYZE_FINAL
-//#define SAT_USE_WATCH_ARRAYS
+#define SAT_USE_WATCH_ARRAYS
 
 //=================================================================================================
 // Debug:
@@ -79,7 +79,9 @@ struct clause_t
 {
     int size_learnt;
     unsigned act;
+#ifndef SAT_USE_WATCH_ARRAYS
     clause * pNext[2];
+#endif
     lit lits[0];
 };
 
@@ -253,6 +255,8 @@ static inline void act_clause_decay(sat_solver2* s) { s->cla_inc += (s->cla_inc 
 
 //=================================================================================================
 // Clause functions:
+#ifndef SAT_USE_WATCH_ARRAYS
+
 static inline void clause_watch_( sat_solver2* s, clause* c, lit Lit )
 {
     if ( c->lits[0] == Lit )
@@ -353,6 +357,8 @@ static inline void clause_watch( sat_solver2* s, clause* c, lit Lit )
     }
     s->pWatches[lit_neg(Lit)] = c;
 }
+
+#endif
 
 static clause* clause_new(sat_solver2* s, lit* begin, lit* end, int learnt)
 {
@@ -855,6 +861,7 @@ static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
 #endif
 }
 
+#ifndef SAT_USE_WATCH_ARRAYS
 
 static inline clause* clause_propagate__( sat_solver2* s, lit Lit )
 {
@@ -936,7 +943,6 @@ clause* sat_solver2_propagate_new__( sat_solver2* s )
     }
     return NULL;
 }
-
 
 static inline clause* clause_propagate( sat_solver2* s, lit Lit, clause** ppHead, clause** ppTail )
 {
@@ -1080,6 +1086,7 @@ clause* sat_solver2_propagate_new( sat_solver2* s )
     return NULL;
 }
 
+#endif
 
 clause* sat_solver2_propagate(sat_solver2* s)
 {
@@ -1473,7 +1480,7 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
 int sat_solver2_simplify(sat_solver2* s)
 {
     clause** reasons;
-    int type;
+//    int type;
     int Counter = 0;
 
     assert(sat_solver2_dlevel(s) == 0);
