@@ -54,6 +54,15 @@ static inline void   veci_push   (veci* v, int e)
         v->cap = newsize; }
     v->ptr[v->size++] = e;
 }
+static inline void   veci_remove(veci* v, int e)
+{
+    int * ws = (int*)veci_begin(v);
+    int    j  = 0;
+    for (; ws[j] != e  ; j++);
+    assert(j < veci_size(v));
+    for (; j < veci_size(v)-1; j++) ws[j] = ws[j+1];
+    veci_resize(v,veci_size(v)-1);
+}
 
 
 // vector of 32- or 64-bit pointers
@@ -83,6 +92,15 @@ static inline void   vecp_push   (vecp* v, void* e)
         v->cap = newsize; }
     v->ptr[v->size++] = e;
 }
+static inline void   vecp_remove(vecp* v, void* e)
+{
+    void** ws = vecp_begin(v);
+    int    j  = 0;
+    for (; ws[j] != e  ; j++);
+    assert(j < vecp_size(v));
+    for (; j < vecp_size(v)-1; j++) ws[j] = ws[j+1];
+    vecp_resize(v,vecp_size(v)-1);
+}
 
 
 
@@ -99,6 +117,7 @@ static inline void   vecp_push   (vecp* v, void* e)
 #endif
 
 typedef int                lit;
+typedef int                cla;
 typedef char               lbool;
 
 static const int   var_Undef = -1;

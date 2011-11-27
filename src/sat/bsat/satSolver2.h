@@ -77,71 +77,61 @@ extern void *      sat_solver2_store_release( sat_solver2 * s );
 //struct clause_t;
 //typedef struct clause_t clause;
 
+struct varinfo_t;
+typedef struct varinfo_t varinfo;
+
 struct sat_solver2_t
 {
-    int      size;          // nof variables
-    int      cap;           // size of varmaps
-    int      qhead;         // Head index of queue.
-    int      qtail;         // Tail index of queue.
+    int           size;          // nof variables
+    int           cap;           // size of varmaps
+    int           qhead;         // Head index of queue.
+    int           qtail;         // Tail index of queue.
+
+    int           root_level;    // Level of first proper decision.
+    int           simpdb_assigns;// Number of top-level assignments at last 'simplifyDB()'.
+    int           simpdb_props;  // Number of propagations before next 'simplifyDB()'.
+    double        random_seed;
+    double        progress_estimate;
+    int           verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
+    int           fNotUseRandom; // do not allow random decisions with a fixed probability
+//    int           fSkipSimplify; // set to one to skip simplification of the clause database
 
     // clauses
-    vecp     clauses;       // List of problem constraints. (contains: clause*)
-    vecp     learnts;       // List of learnt clauses. (contains: clause*)
+    int           iLearnt;       // the first learnt clause 
+    int           iLast;         // the last learnt clause 
+    veci*         wlists;        // watcher lists (for each literal)
+    cla*          pWatches;      // watcher lists (for each literal)
+
+    // clause memory
+    int *         pMemArray;
+    int           nMemAlloc;
+    int           nMemSize;
 
     // activities
-//    double   var_inc;       // Amount to bump next variable with.
-//    double   var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
-    int      var_inc;
-//    int      var_decay;
+    int           var_inc;       // Amount to bump next variable with.
+    int           cla_inc;       // Amount to bump next clause with.
+    unsigned*     activity;      // A heuristic measurement of the activity of a variable.
 
-//    float    cla_inc;       // Amount to bump next clause with.
-    int      cla_inc;       // Amount to bump next clause with.
-//    float    cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
+    // internal state
+    varinfo *     vi;            // variable information
+    cla*          reasons;       
+    lit*          trail;
+    int*          orderpos;      // Index in variable order.
 
-    clause** pWatches;      // watcher lists (for each literal)
-    vecp*    wlists;        // 
-//    double*  activity;      // A heuristic measurement of the activity of a variable.
-    unsigned*activity;      // A heuristic measurement of the activity of a variable.
-    lbool*   assigns;       // Current values of variables.
-    int*     orderpos;      // Index in variable order.
-    clause** reasons;       //
-    int*     levels;        //
-    lit*     trail;
-    char*    polarity;
-
-    clause*  binary;        // A temporary binary clause
-    lbool*   tags;          //
-    veci     tagged;        // (contains: var)
-    veci     stack;         // (contains: var)
-
-    veci     order;         // Variable order. (heap) (contains: var)
-    veci     trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
-    veci     model;         // If problem is solved, this vector contains the model (contains: lbool).
-    veci     conf_final;    // If problem is unsatisfiable (possibly under assumptions),
-                            // this vector represent the final conflict clause expressed in the assumptions.
-
-    int      root_level;    // Level of first proper decision.
-    int      simpdb_assigns;// Number of top-level assignments at last 'simplifyDB()'.
-    int      simpdb_props;  // Number of propagations before next 'simplifyDB()'.
-    double   random_seed;
-    double   progress_estimate;
-    int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
-
-    stats_t    stats;
-
+    veci          tagged;        // (contains: var)
+    veci          stack;         // (contains: var)
+    veci          order;         // Variable order. (heap) (contains: var)
+    veci          trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
+    veci          temp_clause;   // temporary storage for a CNF clause
+    veci          model;         // If problem is solved, this vector contains the model (contains: lbool).
+    veci          conf_final;    // If problem is unsatisfiable (possibly under assumptions),
+                                 // this vector represent the final conflict clause expressed in the assumptions.
+    // statistics
+    stats_t       stats;
     ABC_INT64_T   nConfLimit;    // external limit on the number of conflicts
     ABC_INT64_T   nInsLimit;     // external limit on the number of implications
     int           nRuntimeLimit; // external limit on runtime
 
-    // clause memory
-    int *    pMemArray;
-    int      nMemAlloc;
-    int      nMemSize;
-
-//    int      fSkipSimplify; // set to one to skip simplification of the clause database
-    int      fNotUseRandom; // do not allow random decisions with a fixed probability
-
-    veci     temp_clause;    // temporary storage for a CNF clause
 };
 
 static int sat_solver2_var_value( sat_solver2* s, int v ) 

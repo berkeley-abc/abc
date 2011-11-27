@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 
 
 #define SAT_USE_ANALYZE_FINAL
-#define SAT_USE_WATCH_ARRAYS
+//#define SAT_USE_WATCH_ARRAYS
 
 //=================================================================================================
 // Debug:
@@ -73,38 +73,69 @@ static inline int irand(double* seed, int size) {
 static void sat_solver2_sort(void** array, int size, int(*comp)(const void *, const void *));
 
 //=================================================================================================
+// Variable datatype + minor functions:
+
+static const int var0  = 1;
+static const int var1  = 0;
+static const int varX  = 3;
+
+struct varinfo_t
+{
+    unsigned val    :  2; 
+    unsigned pol    :  1;
+    unsigned mark   :  1;
+    unsigned tag    :  3;
+    unsigned lev    : 25;
+};
+
+static inline int     var_value     (sat_solver2 * s, int v)            { return s->vi[v].val;                          }
+static inline int     var_polar     (sat_solver2 * s, int v)            { return s->vi[v].pol;                          }
+static inline int     var_tag       (sat_solver2 * s, int v)            { return s->vi[v].tag;                          }
+static inline int     var_mark      (sat_solver2 * s, int v)            { return s->vi[v].mark;                         }
+static inline int     var_level     (sat_solver2 * s, int v)            { return s->vi[v].lev;                          }
+
+static inline void    var_set_value (sat_solver2 * s, int v, int val )  { s->vi[v].val = val;                           }
+static inline void    var_set_polar (sat_solver2 * s, int v, int pol )  { s->vi[v].pol = pol;                           }
+static inline void    var_set_tag   (sat_solver2 * s, int v, int tag )  { s->vi[v].tag = tag;                           }
+static inline void    var_set_mark  (sat_solver2 * s, int v, int mark)  { s->vi[v].mark = mark;                         }
+static inline void    var_set_level (sat_solver2 * s, int v, int lev )  { s->vi[v].lev = lev;                           }
+
+//=================================================================================================
 // Clause datatype + minor functions:
 
-struct clause_t
+struct clause_t // should have odd number of entries!
 {
-    int size_learnt;
+    unsigned learnt :  1;
+    unsigned fMark  :  1;
+    unsigned fPartA :  1;
+    unsigned fRefed :  1;
+    unsigned nLits  : 28;
     unsigned act;
+    unsigned proof;
 #ifndef SAT_USE_WATCH_ARRAYS
-    clause * pNext[2];
+    int      pNext[2];
 #endif
     lit lits[0];
 };
 
-static inline int      clause_size    (clause* c)              { return c->size_learnt >> 1;           }
-static inline int      clause_learnt  (clause* c)              { return c->size_learnt & 1;            }
-static inline lit*     clause_begin   (clause* c)              { return c->lits;                       }
+static inline lit*    clause_begin  (clause* c)                  { return c->lits;                                 }
+static inline int     clause_learnt (clause* c)                  { return c->learnt;                               }
+static inline int     clause_nlits  (clause* c)                  { return c->nLits;                                }
+static inline int     clause_size   (int nLits)                  { return sizeof(clause)/4 + nLits + !(nLits & 1); }
 
-static inline clause * get_clause     (sat_solver2* s, int c)  { return (clause *)(s->pMemArray + c);  }
+static inline clause* get_clause    (sat_solver2* s, int c)      { return (clause *)(s->pMemArray + c);            }
+static inline int     clause_id     (sat_solver2* s, clause* c)  { return ((int *)c - s->pMemArray);               }
+
+#define sat_solver_foreach_clause( s, c, i )  \
+    for ( i = 16; (i < s->nMemSize) && (((c) = get_clause(s, i)), 1); i += clause_size(c->nLits) )
+#define sat_solver_foreach_learnt( s, c, i )  \
+    for ( i = s->iLearnt; (i < s->nMemSize) && (((c) = get_clause(s, i)), 1); i += clause_size(c->nLits) )
 
 //=================================================================================================
 // Simple helpers:
 
 static inline int     sat_solver2_dlevel(sat_solver2* s)            { return veci_size(&s->trail_lim); }
-static inline vecp*   sat_solver2_read_wlist(sat_solver2* s, lit l) { return &s->wlists[l]; }
-static inline void    vecp_remove(vecp* v, void* e)
-{
-    void** ws = vecp_begin(v);
-    int    j  = 0;
-    for (; ws[j] != e  ; j++);
-    assert(j < vecp_size(v));
-    for (; j < vecp_size(v)-1; j++) ws[j] = ws[j+1];
-    vecp_resize(v,vecp_size(v)-1);
-}
+static inline veci*   sat_solver2_read_wlist(sat_solver2* s, lit l) { return &s->wlists[l]; }
 
 //=================================================================================================
 // Variable order functions:
@@ -147,13 +178,14 @@ static inline int  order_select(sat_solver2* s, float random_var_freq) // select
 {
     int*      heap     = veci_begin(&s->order);
     int*      orderpos = s->orderpos;
-    lbool*    values   = s->assigns;
+//    lbool*    values   = s->assigns;
 
     // Random decision:
     if (drand(&s->random_seed) < random_var_freq){
         int next = irand(&s->random_seed,s->size);
         assert(next >= 0 && next < s->size);
-        if (values[next] == l_Undef)
+//        if (values[next] == l_Undef)
+        if (var_value(s, next) == varX)
             return next;
     }
 
@@ -191,7 +223,8 @@ static inline int  order_select(sat_solver2* s, float random_var_freq) // select
         }
 
 //printf( "-%d ", next );
-        if (values[next] == l_Undef)
+//        if (values[next] == l_Undef)
+        if (var_value(s, next) == varX)
             return next;
     }
 
@@ -228,16 +261,14 @@ static inline void act_var_bump(sat_solver2* s, int v) {
 static inline void act_var_decay(sat_solver2* s) { s->var_inc += (s->var_inc >> 4); }
 
 static inline void act_clause_rescale(sat_solver2* s) {
-    clause** cs = (clause**)vecp_begin(&s->learnts);
+    clause * c;
     int i, clk = clock();
     static int Total = 0;
-
-    for (i = 0; i < vecp_size(&s->learnts); i++)
-        cs[i]->act >>= 14;
+    sat_solver_foreach_learnt( s, c, i )
+        c->act >>= 14;
     s->cla_inc >>= 14;
 //    assert( s->cla_inc > (1<<10)-1 );
     s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
-
     printf( "Rescaling... Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
     Total += clock() - clk;
     Abc_PrintTime( 1, "Time", Total );
@@ -257,7 +288,7 @@ static inline void act_clause_decay(sat_solver2* s) { s->cla_inc += (s->cla_inc 
 // Clause functions:
 #ifndef SAT_USE_WATCH_ARRAYS
 
-static inline void clause_watch_( sat_solver2* s, clause* c, lit Lit )
+static inline void clause_watch_front( sat_solver2* s, clause* c, lit Lit )
 {
     if ( c->lits[0] == Lit )
         c->pNext[0] = s->pWatches[lit_neg(Lit)];  
@@ -266,53 +297,12 @@ static inline void clause_watch_( sat_solver2* s, clause* c, lit Lit )
         assert( c->lits[1] == Lit );
         c->pNext[1] = s->pWatches[lit_neg(Lit)];  
     }
-    s->pWatches[lit_neg(Lit)] = c;
+    s->pWatches[lit_neg(Lit)] = clause_id(s, c);
 }
-
-static inline void clause_watch__( sat_solver2* s, clause* c, lit Lit )
+static inline void clause_watch( sat_solver2* s, clause* c, lit Lit )
 {
-    clause* pLast = s->pWatches[lit_neg(Lit)];
-    if ( c->lits[0] == Lit )
-        c->pNext[0] = NULL;  
-    else
-    {
-        assert( c->lits[1] == Lit );
-        c->pNext[1] = NULL;  
-    }
-    // add at the tail
-    if ( pLast == NULL )
-    {
-        s->pWatches[lit_neg(Lit)] = c;
-        return;
-    }
-    // find the last one
-    while ( 1 )
-    {        
-        if ( pLast->lits[0] == Lit )
-        {
-            if ( pLast->pNext[0] == NULL )
-            {
-                pLast->pNext[0] = c;
-                return;
-            }
-            pLast = pLast->pNext[0];
-        }
-        else
-        {
-            assert( pLast->lits[1] == Lit );
-            if ( pLast->pNext[1] == NULL )
-            {
-                pLast->pNext[1] = c;
-                return;
-            }
-            pLast = pLast->pNext[1];
-        }
-    }
-}
-
-static inline void clause_watch33( sat_solver2* s, clause* c, lit Lit )
-{
-    clause** ppList = s->pWatches + lit_neg(Lit),** ppNext;
+    clause * pList;
+    cla * ppList = s->pWatches + lit_neg(Lit), * ppNext;
     if ( c->lits[0] == Lit )
         ppNext = &c->pNext[0];  
     else
@@ -320,53 +310,59 @@ static inline void clause_watch33( sat_solver2* s, clause* c, lit Lit )
         assert( c->lits[1] == Lit );
         ppNext = &c->pNext[1];
     }
-    if ( *ppList == NULL )
+    if ( *ppList == 0 )
     {
-        *ppList = c;
-        *ppNext = c;
+        *ppList = clause_id(s, c);
+        *ppNext = clause_id(s, c);
         return;
     }
     // add at the tail
-    if ( (*ppList)->lits[0] == Lit )
+    pList = get_clause( s, *ppList );
+    if ( pList->lits[0] == Lit )
     {
-        assert( (*ppList)->pNext[0] != NULL );
-        *ppNext = (*ppList)->pNext[0];
-        (*ppList)->pNext[0] = c;  
+        assert( pList->pNext[0] != 0 );
+        *ppNext = pList->pNext[0];
+        pList->pNext[0] = clause_id(s, c);  
     }
     else
     {
-        assert( (*ppList)->lits[1] == Lit );
-        assert( (*ppList)->pNext[1] != NULL );
-        *ppNext = (*ppList)->pNext[1];
-        (*ppList)->pNext[1] = c;  
+        assert( pList->lits[1] == Lit );
+        assert( pList->pNext[1] != 0 );
+        *ppNext = pList->pNext[1];
+        pList->pNext[1] = clause_id(s, c);  
     }
-    *ppList = c;
+    *ppList = clause_id(s, c);
 }
-
+/*
 static inline void clause_watch( sat_solver2* s, clause* c, lit Lit )
 {
-    clause * pList = s->pWatches[lit_neg(Lit)];
+    int * ppList = s->pWatches[lit_neg(Lit)];
     assert( c->lits[0] == Lit || c->lits[1] == Lit );
-    if ( pList == NULL )
-        c->pNext[c->lits[1] == Lit] = c;
+    if ( *ppList == NULL )
+        c->pNext[c->lits[1] == Lit] = clause_id(s, c);
     else
     {
+        clause * pList = get_clause( s, *ppList );
         assert( pList->lits[0] == Lit || pList->lits[1] == Lit );
         c->pNext[c->lits[1] == Lit] = pList->pNext[pList->lits[1] == Lit];
-        pList->pNext[pList->lits[1] == Lit] = c;  
+        pList->pNext[pList->lits[1] == Lit] = clause_id(s, c);  
     }
-    s->pWatches[lit_neg(Lit)] = c;
+    s->pWatches[lit_neg(Lit)] = clause_id(s, c);
 }
-
+*/
 #endif
 
-static clause* clause_new(sat_solver2* s, lit* begin, lit* end, int learnt)
+static int clause_new(sat_solver2* s, lit* begin, lit* end, int learnt)
 {
     clause* c;
-    int i, size = end - begin;
-    assert(size > 1);
+    int i, Cid, nLits = end - begin;
+    assert(nLits > 1);
+    assert(begin[0] >= 0);
+    assert(begin[1] >= 0);
+    assert(lit_var(begin[0]) < s->size);
+    assert(lit_var(begin[1]) < s->size);
     // add memory if needed
-    if ( s->nMemSize + (int)sizeof(clause)/4 + size > s->nMemAlloc )
+    if ( s->nMemSize + clause_size(nLits) > s->nMemAlloc )
     {
         int nMemAlloc = s->nMemAlloc ? s->nMemAlloc * 2 : (1 << 24);
         s->pMemArray  = ABC_REALLOC( int, s->pMemArray, nMemAlloc );
@@ -377,32 +373,33 @@ static clause* clause_new(sat_solver2* s, lit* begin, lit* end, int learnt)
     }
     // create clause
     c = (clause*)(s->pMemArray + s->nMemSize);
-    s->nMemSize += sizeof(clause)/4 + size;
+    c->learnt = learnt;
+    c->nLits  = nLits;
+    for (i = 0; i < nLits; i++)
+        c->lits[i] = begin[i];
+
+    // extend storage
+    Cid = s->nMemSize;
+    s->nMemSize += clause_size(nLits);
     if ( s->nMemSize > s->nMemAlloc )
         printf( "Out of memory!!!\n" );
     assert( s->nMemSize <= s->nMemAlloc );
-    c->size_learnt = (size << 1) | learnt;
-    assert(((ABC_PTRUINT_T)c & 1) == 0);
-    c->act = 0;
-    for (i = 0; i < size; i++)
-        c->lits[i] = begin[i];
+    assert(((ABC_PTRUINT_T)c & 7) == 0);
 
-    assert(begin[0] >= 0);
-    assert(begin[0] < s->size*2);
-    assert(begin[1] >= 0);
-    assert(begin[1] < s->size*2);
-
-    assert(lit_neg(begin[0]) < s->size*2);
-    assert(lit_neg(begin[1]) < s->size*2);
 
 #ifdef SAT_USE_WATCH_ARRAYS
-    vecp_push(sat_solver2_read_wlist(s,lit_neg(begin[0])),(void*)c);
-    vecp_push(sat_solver2_read_wlist(s,lit_neg(begin[1])),(void*)c);
+    veci_push(sat_solver2_read_wlist(s,lit_neg(begin[0])),clause_id(s,c));
+    veci_push(sat_solver2_read_wlist(s,lit_neg(begin[1])),clause_id(s,c));
 #else
     clause_watch( s, c, begin[0] );
     clause_watch( s, c, begin[1] );
 #endif
-    return c;
+
+    // remember the last one and first learnt
+    s->iLast = Cid;
+    if ( learnt && s->iLearnt == -1 )
+        s->iLearnt = Cid;
+    return Cid;
 }
 
 
@@ -413,16 +410,16 @@ static void clause_remove(sat_solver2* s, clause* c)
     assert(lit_neg(lits[1]) < s->size*2);
 
 #ifdef SAT_USE_WATCH_ARRAYS
-    vecp_remove(sat_solver2_read_wlist(s,lit_neg(lits[0])),(void*)c);
-    vecp_remove(sat_solver2_read_wlist(s,lit_neg(lits[1])),(void*)c);
+    veci_remove(sat_solver2_read_wlist(s,lit_neg(lits[0])),clause_id(s,c));
+    veci_remove(sat_solver2_read_wlist(s,lit_neg(lits[1])),clause_id(s,c));
 #endif
 
     if (clause_learnt(c)){
         s->stats.learnts--;
-        s->stats.learnts_literals -= clause_size(c);
+        s->stats.learnts_literals -= clause_nlits(c);
     }else{
         s->stats.clauses--;
-        s->stats.clauses_literals -= clause_size(c);
+        s->stats.clauses_literals -= clause_nlits(c);
     }
 }
 
@@ -430,14 +427,15 @@ static void clause_remove(sat_solver2* s, clause* c)
 static lbool clause_simplify(sat_solver2* s, clause* c)
 {
     lit*   lits   = clause_begin(c);
-    lbool* values = s->assigns;
+//    lbool* values = s->assigns;
     int i;
 
     assert(sat_solver2_dlevel(s) == 0);
 
-    for (i = 0; i < clause_size(c); i++){
-        lbool sig = !lit_sign(lits[i]); sig += sig - 1;
-        if (values[lit_var(lits[i])] == sig)
+    for (i = 0; i < clause_nlits(c); i++){
+//        lbool sig = !lit_sign(lits[i]); sig += sig - 1;
+//        if (values[lit_var(lits[i])] == sig)
+        if (var_value(s, lit_var(lits[i])) == lit_sign(lits[i]))
             return l_True;
     }
     return l_False;
@@ -455,40 +453,32 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         while (s->cap < n) s->cap = s->cap*2+1;
 
 #ifdef SAT_USE_WATCH_ARRAYS
-        s->wlists    = ABC_REALLOC(vecp,   s->wlists,   s->cap*2);
+        s->wlists    = ABC_REALLOC(veci,     s->wlists,   s->cap*2);
 #else
-        s->pWatches  = ABC_REALLOC(clause*,s->pWatches, s->cap*2);
+        s->pWatches  = ABC_REALLOC(cla,      s->pWatches, s->cap*2);
 #endif
+        s->vi        = ABC_REALLOC(varinfo,  s->vi,       s->cap);
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
-        s->assigns   = ABC_REALLOC(lbool,  s->assigns,  s->cap);
-        s->orderpos  = ABC_REALLOC(int,    s->orderpos, s->cap);
-        s->reasons   = ABC_REALLOC(clause*,s->reasons,  s->cap);
-        s->levels    = ABC_REALLOC(int,    s->levels,   s->cap);
-        s->tags      = ABC_REALLOC(lbool,  s->tags,     s->cap);
-        s->trail     = ABC_REALLOC(lit,    s->trail,    s->cap);
-        s->polarity  = ABC_REALLOC(char,   s->polarity, s->cap);
-
+        s->orderpos  = ABC_REALLOC(int,      s->orderpos, s->cap);
+        s->reasons   = ABC_REALLOC(cla,      s->reasons,  s->cap);
+        s->trail     = ABC_REALLOC(lit,      s->trail,    s->cap);
     }
 
     for (var = s->size; var < n; var++){
 #ifdef SAT_USE_WATCH_ARRAYS
-        vecp_new(&s->wlists[2*var]);
-        vecp_new(&s->wlists[2*var+1]);
+        veci_new(&s->wlists[2*var]);
+        veci_new(&s->wlists[2*var+1]);
 #else
-        s->pWatches[2*var]   = NULL;
-        s->pWatches[2*var+1] = NULL;
+        s->pWatches[2*var]   = 0;
+        s->pWatches[2*var+1] = 0;
 #endif
-        s->activity [var] = (1<<10);
-        s->assigns  [var] = l_Undef;
-        s->orderpos [var] = veci_size(&s->order);
-        s->reasons  [var] = (clause*)0;
-        s->levels   [var] = 0;
-        s->tags     [var] = l_Undef;
-        s->polarity [var] = 0;
+        *((int*)s->vi + var) = 0; s->vi[var].val = varX;
+        s->activity [var]    = (1<<10);
+        s->orderpos [var]    = veci_size(&s->order);
+        s->reasons  [var]    = 0;
         
-        /* does not hold because variables enqueued at top level will not be reinserted in the heap
-           assert(veci_size(&s->order) == var); 
-         */
+        // does not hold because variables enqueued at top level will not be reinserted in the heap
+        // assert(veci_size(&s->order) == var); 
         veci_push(&s->order,var);
         order_update(s, var);
     }
@@ -497,77 +487,59 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 }
 
 
-static inline int enqueue(sat_solver2* s, lit l, clause* from)
+static inline int enqueue(sat_solver2* s, lit l, int from)
 {
-    lbool* values = s->assigns;
     int    v      = lit_var(l);
-    lbool  val    = values[v];
 #ifdef VERBOSEDEBUG
     printf(L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
 #endif
-
-    lbool sig = !lit_sign(l); sig += sig - 1;
-    if (val != l_Undef){
-        return val == sig;
-    }else{
-        // New fact -- store it.
+    if (var_value(s, v) != varX)
+        return var_value(s, v) == lit_sign(l);
+    else
+    {  // New fact -- store it.
 #ifdef VERBOSEDEBUG
         printf(L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
 #endif
-        int*     levels  = s->levels;
-        clause** reasons = s->reasons;
-
-        values [v] = sig;
-        levels [v] = sat_solver2_dlevel(s);
-        reasons[v] = from;
+        var_set_value( s, v, lit_sign(l) );
+        var_set_level( s, v, sat_solver2_dlevel(s) );
+        s->reasons[v] = from;
         s->trail[s->qtail++] = l;
-
         order_assigned(s, v);
         return true;
     }
 }
 
-
-static inline int assume(sat_solver2* s, lit l){
+static inline int assume(sat_solver2* s, lit l)
+{
     assert(s->qtail == s->qhead);
-    assert(s->assigns[lit_var(l)] == l_Undef);
+    assert(var_value(s, lit_var(l)) == varX);
 #ifdef VERBOSEDEBUG
     printf(L_IND"assume("L_LIT")\n", L_ind, L_lit(l));
 #endif
     veci_push(&s->trail_lim,s->qtail);
-    return enqueue(s,l,(clause*)0);
+    return enqueue(s,l,0);
 }
-
 
 static void sat_solver2_canceluntil(sat_solver2* s, int level) {
     lit*     trail;   
-    lbool*   values;  
-    clause** reasons; 
     int      bound;
     int      lastLev;
-    int      c;
-    
+    int      c, x;
+   
     if (sat_solver2_dlevel(s) <= level)
         return;
 
     trail   = s->trail;
-    values  = s->assigns;
-    reasons = s->reasons;
     bound   = (veci_begin(&s->trail_lim))[level];
     lastLev = (veci_begin(&s->trail_lim))[veci_size(&s->trail_lim)-1];
 
-    ////////////////////////////////////////
-    // added to cancel all assignments
-//    if ( level == -1 )
-//        bound = 0;
-    ////////////////////////////////////////
-
-    for (c = s->qtail-1; c >= bound; c--) {
-        int     x  = lit_var(trail[c]);
-        values [x] = l_Undef;
-        reasons[x] = (clause*)0;
+    for (c = s->qtail-1; c >= bound; c--) 
+    {
+        x = lit_var(trail[c]);
+        var_set_value(s, x, varX);
+        s->reasons[x] = 0;
         if ( c < lastLev )
-            s->polarity[x] = !lit_sign(trail[c]);
+            var_set_polar(s, x, !lit_sign(trail[c]));
     }
 
     for (c = s->qhead-1; c >= bound; c--)
@@ -579,16 +551,15 @@ static void sat_solver2_canceluntil(sat_solver2* s, int level) {
 
 static void sat_solver2_record(sat_solver2* s, veci* cls)
 {
-    lit*    begin = veci_begin(cls);
-    lit*    end   = begin + veci_size(cls);
-    clause* c     = (veci_size(cls) > 1) ? clause_new(s,begin,end,1) : (clause*)0;
+    lit* begin = veci_begin(cls);
+    lit* end   = begin + veci_size(cls);
+    int  c     = (veci_size(cls) > 1) ? clause_new(s,begin,end,1) : 0;
     enqueue(s,*begin,c);
 
     assert(veci_size(cls) > 0);
 
-    if (c != 0) {
-        vecp_push(&s->learnts,c);
-        act_clause_bump(s,c);
+    if (c) {
+        act_clause_bump(s,get_clause(s,c));
         s->stats.learnts++;
         s->stats.learnts_literals += veci_size(cls);
     }
@@ -597,15 +568,11 @@ static void sat_solver2_record(sat_solver2* s, veci* cls)
 
 static double sat_solver2_progress(sat_solver2* s)
 {
-    lbool*  values = s->assigns;
-    int*    levels = s->levels;
-    int     i;
-
-    double  progress = 0;
-    double  F        = 1.0 / s->size;
+    int i;
+    double progress = 0.0, F = 1.0 / s->size;
     for (i = 0; i < s->size; i++)
-        if (values[i] != l_Undef)
-            progress += pow(F, levels[i]);
+        if (var_value(s, i) != varX)
+            progress += pow(F, var_level(s, i));
     return progress / s->size;
 }
 
@@ -614,48 +581,38 @@ static double sat_solver2_progress(sat_solver2* s)
 
 static int sat_solver2_lit_removable(sat_solver2* s, lit l, int minl)
 {
-    lbool*   tags    = s->tags;
-    clause** reasons = s->reasons;
-    int*     levels  = s->levels;
-    int      top     = veci_size(&s->tagged);
-
+    clause* c;
+    lit* lits;
+    int i, j, v, top = veci_size(&s->tagged);
     assert(lit_var(l) >= 0 && lit_var(l) < s->size);
-    assert(reasons[lit_var(l)] != 0);
+    assert(s->reasons[lit_var(l)] != 0);
     veci_resize(&s->stack,0);
     veci_push(&s->stack,lit_var(l));
-
-    while (veci_size(&s->stack) > 0){
-        clause* c;
-        int v = veci_begin(&s->stack)[veci_size(&s->stack)-1];
+    while (veci_size(&s->stack) > 0)
+    {
+        v = veci_begin(&s->stack)[veci_size(&s->stack)-1];
         assert(v >= 0 && v < s->size);
         veci_resize(&s->stack,veci_size(&s->stack)-1);
-        assert(reasons[v] != 0);
-        c    = reasons[v];
-
-        {
-        lit*    lits = clause_begin(c);
-        int     i, j;
-
-        for (i = 1; i < clause_size(c); i++){
+        assert(s->reasons[v] != 0);
+        c = get_clause(s, s->reasons[v]);
+        lits = clause_begin(c);
+        for (i = 1; i < clause_nlits(c); i++){
             int v = lit_var(lits[i]);
-            if (tags[v] == l_Undef && levels[v] != 0){
-                if (reasons[v] != 0 && ((1 << (levels[v] & 31)) & minl)){
-
+            if (s->vi[v].tag == 0 && var_level(s,v)){
+                if (s->reasons[v] != 0 && ((1 << (var_level(s,v) & 31)) & minl)){
                     veci_push(&s->stack,lit_var(lits[i]));
-                    tags[v] = l_True;
+                    var_set_tag(s, v, 1);
                     veci_push(&s->tagged,v);
                 }else{
                     int* tagged = veci_begin(&s->tagged);
                     for (j = top; j < veci_size(&s->tagged); j++)
-                        tags[tagged[j]] = l_Undef;
+                        var_set_tag(s, tagged[j], 0);
                     veci_resize(&s->tagged,top);
                     return false;
                 }
             }
         }
-        }
     }
-
     return true;
 }
 
@@ -713,19 +670,18 @@ void Solver::analyzeFinal(Clause* confl, bool skip_first)
 
 static void sat_solver2_analyze_final(sat_solver2* s, clause* conf, int skip_first)
 {
+    int* tagged;
     int i, j, start;
     veci_resize(&s->conf_final,0);
     if ( s->root_level == 0 )
         return;
     assert( veci_size(&s->tagged) == 0 );
-//    assert( s->tags[lit_var(p)] == l_Undef );
-//    s->tags[lit_var(p)] = l_True;
-    for (i = skip_first ? 1 : 0; i < clause_size(conf); i++)
+    for (i = skip_first ? 1 : 0; i < clause_nlits(conf); i++)
     {
         int x = lit_var(clause_begin(conf)[i]);
-        if (s->levels[x] > 0)
+        if ( var_level(s,x) )
         {
-            s->tags[x] = l_True;
+            var_set_tag(s, x, 1);
             veci_push(&s->tagged,x);
         }
     }
@@ -733,26 +689,25 @@ static void sat_solver2_analyze_final(sat_solver2* s, clause* conf, int skip_fir
     start = (s->root_level >= veci_size(&s->trail_lim))? s->qtail-1 : (veci_begin(&s->trail_lim))[s->root_level];
     for (i = start; i >= (veci_begin(&s->trail_lim))[0]; i--){
         int x = lit_var(s->trail[i]);
-        if (s->tags[x] == l_True){
-            if (s->reasons[x] == NULL){
-                assert(s->levels[x] > 0);
+        if (s->vi[x].tag == 1){
+            if (s->reasons[x] == 0){
+                assert( var_level(s,x) );
                 veci_push(&s->conf_final,lit_neg(s->trail[i]));
             }else{
-                clause* c = s->reasons[x];
-                {
-                    int* lits = clause_begin(c);
-                    for (j = 1; j < clause_size(c); j++)
-                        if (s->levels[lit_var(lits[j])] > 0)
-                        {
-                            s->tags[lit_var(lits[j])] = l_True;
-                            veci_push(&s->tagged,lit_var(lits[j]));
-                        }
-                }
+                clause* c = get_clause(s, s->reasons[x]);
+                int* lits = clause_begin(c);
+                for (j = 1; j < clause_nlits(c); j++)
+                    if ( var_level(s,lit_var(lits[j])) )
+                    {
+                        var_set_tag(s, lit_var(lits[j]), 1);
+                        veci_push(&s->tagged,lit_var(lits[j]));
+                    }
             }
         }
     }
+    tagged = veci_begin(&s->tagged);
     for (i = 0; i < veci_size(&s->tagged); i++)
-        s->tags[veci_begin(&s->tagged)[i]] = l_Undef;
+        var_set_tag(s, tagged[i], 0);
     veci_resize(&s->tagged,0);
 }
 
@@ -762,15 +717,13 @@ static void sat_solver2_analyze_final(sat_solver2* s, clause* conf, int skip_fir
 static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
 {
     lit*     trail   = s->trail;
-    lbool*   tags    = s->tags;
-    clause** reasons = s->reasons;
-    int*     levels  = s->levels;
     int      cnt     = 0;
     lit      p       = lit_Undef;
     int      ind     = s->qtail-1;
     lit*     lits;
     int      i, j, minl;
     int*     tagged;
+    assert( veci_size(&s->tagged) == 0 );
 
     veci_push(learnt,lit_Undef);
 
@@ -780,25 +733,24 @@ static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
             act_clause_bump(s,c);
 
         lits = clause_begin(c);
-        //printlits(lits,lits+clause_size(c)); printf("\n");
-        for (j = (p == lit_Undef ? 0 : 1); j < clause_size(c); j++){
+        for (j = (p == lit_Undef ? 0 : 1); j < clause_nlits(c); j++){
             lit q = lits[j];
             assert(lit_var(q) >= 0 && lit_var(q) < s->size);
-            if (tags[lit_var(q)] == l_Undef && levels[lit_var(q)] > 0){
-                tags[lit_var(q)] = l_True;
+            if (!var_tag(s, lit_var(q)) && var_level(s,lit_var(q))){
+                var_set_tag(s, lit_var(q), 1);
                 veci_push(&s->tagged,lit_var(q));
                 act_var_bump(s,lit_var(q));
-                if (levels[lit_var(q)] == sat_solver2_dlevel(s))
+                if (var_level(s,lit_var(q)) == sat_solver2_dlevel(s))
                     cnt++;
                 else
                     veci_push(learnt,q);
             }
         }
 
-        while (tags[lit_var(trail[ind--])] == l_Undef);
+        while (!var_tag(s, lit_var(trail[ind--])));
 
         p = trail[ind+1];
-        c = reasons[lit_var(p)];
+        c = get_clause(s, s->reasons[lit_var(p)]);
         cnt--;
 
     }while (cnt > 0);
@@ -807,14 +759,12 @@ static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
 
     lits = veci_begin(learnt);
     minl = 0;
-    for (i = 1; i < veci_size(learnt); i++){
-        int lev = levels[lit_var(lits[i])];
-        minl    |= 1 << (lev & 31);
-    }
+    for (i = 1; i < veci_size(learnt); i++)
+        minl |= 1 << (var_level(s,lit_var(lits[i])) & 31);
 
     // simplify (full)
     for (i = j = 1; i < veci_size(learnt); i++){
-        if (reasons[lit_var(lits[i])] == 0 || !sat_solver2_lit_removable(s,lits[i],minl))
+        if (s->reasons[lit_var(lits[i])] == 0 || !sat_solver2_lit_removable(s,lits[i],minl))
             lits[j++] = lits[i];
     }
 
@@ -826,12 +776,12 @@ static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
     // clear tags
     tagged = veci_begin(&s->tagged);
     for (i = 0; i < veci_size(&s->tagged); i++)
-        tags[tagged[i]] = l_Undef;
+        var_set_tag(s, tagged[i], 0);
     veci_resize(&s->tagged,0);
 
 #ifdef DEBUG
     for (i = 0; i < s->size; i++)
-        assert(tags[i] == l_Undef);
+        assert(!var_tag(s, i));
 #endif
 
 #ifdef VERBOSEDEBUG
@@ -839,13 +789,12 @@ static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
     for (i = 0; i < veci_size(learnt); i++) printf(" "L_LIT, L_lit(lits[i]));
 #endif
     if (veci_size(learnt) > 1){
-        int max_i = 1;
-        int max   = levels[lit_var(lits[1])];
         lit tmp;
-
+        int max_i = 1;
+        int max   = var_level(s, lit_var(lits[1]));
         for (i = 2; i < veci_size(learnt); i++)
-            if (levels[lit_var(lits[i])] > max){
-                max   = levels[lit_var(lits[i])];
+            if (max < var_level(s, lit_var(lits[i]))) {
+                max = var_level(s, lit_var(lits[i]));
                 max_i = i;
             }
 
@@ -855,7 +804,7 @@ static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
     }
 #ifdef VERBOSEDEBUG
     {
-        int lev = veci_size(learnt) > 1 ? levels[lit_var(lits[1])] : 0;
+        int lev = veci_size(learnt) > 1 ? var_level(s, lit_var(lits[1])) : 0;
         printf(" } at level %d\n", lev);
     }
 #endif
@@ -863,20 +812,22 @@ static void sat_solver2_analyze(sat_solver2* s, clause* c, veci* learnt)
 
 #ifndef SAT_USE_WATCH_ARRAYS
 
-static inline clause* clause_propagate__( sat_solver2* s, lit Lit )
+static inline clause* clause_propagate__front( sat_solver2* s, lit Lit )
 {
-    clause ** ppPrev, * pCur, * pTemp;
+    clause * pCur;
+    cla * ppPrev, pThis, pTemp;
     lit LitF = lit_neg(Lit);
-    int i, sig, Counter = 0;
+    int i, Counter = 0;
     s->stats.propagations++;
-    if ( s->pWatches[Lit] == NULL )
+    if ( s->pWatches[Lit] == 0 )
         return NULL;
     // iterate through the literals
     ppPrev = s->pWatches + Lit;
-    for ( pCur = *ppPrev; pCur; pCur = *ppPrev )
+    for ( pThis = *ppPrev; pThis; pThis = *ppPrev )
     {
         Counter++;
         // make sure the false literal is in the second literal of the clause
+        pCur = get_clause( s, pThis );
         if ( pCur->lits[0] == LitF )
         {
             pCur->lits[0] = pCur->lits[1];
@@ -889,20 +840,22 @@ static inline clause* clause_propagate__( sat_solver2* s, lit Lit )
 
         // if the first literal is true, the clause is satisfied
 //        if ( pCur->lits[0] == s->pAssigns[lit_var(pCur->lits[0])] )
-        sig = !lit_sign(pCur->lits[0]); sig += sig - 1;
-        if (s->assigns[lit_var(pCur->lits[0])] == sig)
+//        sig = !lit_sign(pCur->lits[0]); sig += sig - 1;
+//        if (s->assigns[lit_var(pCur->lits[0])] == sig)
+        if (var_value(s, lit_var(pCur->lits[0])) == lit_sign(pCur->lits[0]))
         {
             ppPrev = &pCur->pNext[1];
             continue;
         }
 
         // look for a new literal to watch
-        for ( i = 2; i < clause_size(pCur); i++ )
+        for ( i = 2; i < clause_nlits(pCur); i++ )
         {
             // skip the case when the literal is false
 //            if ( lit_neg(pCur->lits[i]) == p->pAssigns[lit_var(pCur->lits[i])] )
-            sig = lit_sign(pCur->lits[i]); sig += sig - 1;
-            if (s->assigns[lit_var(pCur->lits[i])] == sig)
+//            sig = lit_sign(pCur->lits[i]); sig += sig - 1;
+//            if (s->assigns[lit_var(pCur->lits[i])] == sig)
+            if (var_value(s, lit_var(pCur->lits[i])) == !lit_sign(pCur->lits[i]))
                 continue;
             // the literal is either true or unassigned - watch it
             pCur->lits[1] = pCur->lits[i];
@@ -913,11 +866,11 @@ static inline clause* clause_propagate__( sat_solver2* s, lit Lit )
             clause_watch( s, pCur, pCur->lits[1] );
             break;
         }
-        if ( i < clause_size(pCur) ) // found new watch
+        if ( i < clause_nlits(pCur) ) // found new watch
             continue;
 
         // clause is unit - enqueue new implication
-        if ( enqueue(s, pCur->lits[0], pCur) )
+        if ( enqueue(s, pCur->lits[0], clause_id(s,pCur)) )
         {
             ppPrev = &pCur->pNext[1];
             continue;
@@ -930,31 +883,32 @@ static inline clause* clause_propagate__( sat_solver2* s, lit Lit )
 //    printf( "%d ", Counter );
     return NULL;
 }
-clause* sat_solver2_propagate_new__( sat_solver2* s )
+clause* sat_solver2_propagate_new__front( sat_solver2* s )
 {
     clause* pClause;
-    int Lit;
+    lit Lit;
     while ( s->qtail - s->qhead > 0 )
     {
         Lit = s->trail[s->qhead++];
-        pClause = clause_propagate__( s, Lit );
+        pClause = clause_propagate__front( s, Lit );
         if ( pClause )
             return pClause;
     }
     return NULL;
 }
 
-static inline clause* clause_propagate( sat_solver2* s, lit Lit, clause** ppHead, clause** ppTail )
+static inline clause* clause_propagate( sat_solver2* s, lit Lit, int * ppHead, int * ppTail )
 {
-    clause ** ppPrev = ppHead;
-    clause * pCur, * pTemp, * pPrev = NULL;
+    clause * pCur;
+    cla * ppPrev = ppHead, pThis, pTemp, pPrev = 0;
     lit LitF = lit_neg(Lit);
-    int i, sig, Counter = 0;
-    // iterate through the clauses in the linked list
-    for ( pCur = *ppPrev; pCur; pCur = *ppPrev )
+    int i, Counter = 0;
+    // iterate through the literals
+    for ( pThis = *ppPrev; pThis; pThis = *ppPrev )
     {
         Counter++;
         // make sure the false literal is in the second literal of the clause
+        pCur = get_clause( s, pThis );
         if ( pCur->lits[0] == LitF )
         {
             pCur->lits[0] = pCur->lits[1];
@@ -967,29 +921,31 @@ static inline clause* clause_propagate( sat_solver2* s, lit Lit, clause** ppHead
 
         // if the first literal is true, the clause is satisfied
 //        if ( pCur->lits[0] == s->pAssigns[lit_var(pCur->lits[0])] )
-        sig = !lit_sign(pCur->lits[0]); sig += sig - 1;
-        if (s->assigns[lit_var(pCur->lits[0])] == sig)
+//        sig = !lit_sign(pCur->lits[0]); sig += sig - 1;
+//        if ( s->assigns[lit_var(pCur->lits[0])] == sig )
+        if (var_value(s, lit_var(pCur->lits[0])) == lit_sign(pCur->lits[0]))
         {
-            pPrev = pCur;
+            pPrev = pThis;
             ppPrev = &pCur->pNext[1];
             continue;
         }
 
         // look for a new literal to watch
-        for ( i = 2; i < clause_size(pCur); i++ )
+        for ( i = 2; i < clause_nlits(pCur); i++ )
         {
             // skip the case when the literal is false
 //            if ( lit_neg(pCur->lits[i]) == p->pAssigns[lit_var(pCur->lits[i])] )
-            sig = lit_sign(pCur->lits[i]); sig += sig - 1;
-            if (s->assigns[lit_var(pCur->lits[i])] == sig)
+//            sig = lit_sign(pCur->lits[i]); sig += sig - 1;
+//            if ( s->assigns[lit_var(pCur->lits[i])] == sig )
+            if (var_value(s, lit_var(pCur->lits[i])) == !lit_sign(pCur->lits[i]))
                 continue;
             // the literal is either true or unassigned - watch it
             pCur->lits[1] = pCur->lits[i];
             pCur->lits[i] = LitF;
             // remove this clause from the watch list of Lit
-            if ( pCur->pNext[1] == NULL )
+            if ( pCur->pNext[1] == 0 )
             {
-                assert( *ppTail == pCur );
+                assert( *ppTail == pThis );
                 *ppTail = pPrev;
             }
             *ppPrev = pCur->pNext[1];
@@ -997,13 +953,13 @@ static inline clause* clause_propagate( sat_solver2* s, lit Lit, clause** ppHead
             clause_watch( s, pCur, pCur->lits[1] );
             break;
         }
-        if ( i < clause_size(pCur) ) // found new watch
+        if ( i < clause_nlits(pCur) ) // found new watch
             continue;
 
         // clause is unit - enqueue new implication
-        if ( enqueue(s, pCur->lits[0], pCur) )
+        if ( enqueue(s, pCur->lits[0], clause_id(s,pCur)) )
         {
-            pPrev = pCur;
+            pPrev = pThis;
             ppPrev = &pCur->pNext[1];
             continue;
         }
@@ -1014,71 +970,67 @@ static inline clause* clause_propagate( sat_solver2* s, lit Lit, clause** ppHead
     }
 //    printf( "%d ", Counter );
     return NULL;
+
 }
 clause* sat_solver2_propagate_new( sat_solver2* s )
-{
-    clause* pClause,* pHead,* pTail;
-    int Lit, Flag;
+{ 
+    clause * pClause, * pTailC;
+    cla pHead, pTail;
+    lit Lit;
     while ( s->qtail - s->qhead > 0 )
     {
         s->stats.propagations++;
         Lit = s->trail[s->qhead++];
-        if ( s->pWatches[Lit] == NULL )
+        if ( s->pWatches[Lit] == 0 )
             continue;
         // get head and tail
         pTail = s->pWatches[Lit];
+        pTailC = get_clause( s, pTail );
 /*
-        if ( pTail->lits[0] == lit_neg(Lit) )
+        if ( pTailC->lits[0] == lit_neg(Lit) )
         {
-            pHead = pTail->pNext[0]; 
-            pTail->pNext[0] = NULL;
+            pHead = pTailC->pNext[0]; 
+            pTailC->pNext[0] = NULL;
         }
         else
         {
-            assert( pTail->lits[1] == lit_neg(Lit) );
-            pHead = pTail->pNext[1];  
-            pTail->pNext[1] = NULL;
+            assert( pTailC->lits[1] == lit_neg(Lit) );
+            pHead = pTailC->pNext[1];  
+            pTailC->pNext[1] = NULL;
         }
 */
-/*
-        Flag = pTail->lits[1] == lit_neg(Lit);
-        assert( pTail->lits[0] == lit_neg(Lit) || Flag );
-        pHead = pTail->pNext[Flag]; 
-        pTail->pNext[Flag] = NULL;
-*/
-        assert( pTail->lits[0] == lit_neg(Lit) || pTail->lits[1] == lit_neg(Lit) );
-        pHead = pTail->pNext[pTail->lits[1] == lit_neg(Lit)]; 
-        pTail->pNext[pTail->lits[1] == lit_neg(Lit)] = NULL;
+        if ( s->stats.propagations == 10 )
+        {
+            int s = 0;
+        }
+        assert( pTailC->lits[0] == lit_neg(Lit) || pTailC->lits[1] == lit_neg(Lit) );
+        pHead = pTailC->pNext[pTailC->lits[1] == lit_neg(Lit)]; 
+        pTailC->pNext[pTailC->lits[1] == lit_neg(Lit)] = 0;
 
         // propagate
         pClause = clause_propagate( s, Lit, &pHead, &pTail );
-        assert( (pHead == NULL) == (pTail == NULL) );
+        assert( (pHead == 0) == (pTail == 0) );
+
         // create new list
         s->pWatches[Lit] = pTail;
 /*
         if ( pTail )
         {
-            if ( pTail->lits[0] == lit_neg(Lit) )
-                pTail->pNext[0] = pHead;
+            pTailC = get_clause( s, pTail );
+            if ( pTailC->lits[0] == lit_neg(Lit) )
+                pTailC->pNext[0] = pHead;
             else
             {
-                assert( pTail->lits[1] == lit_neg(Lit) );
-                pTail->pNext[1] = pHead;
+                assert( pTailC->lits[1] == lit_neg(Lit) );
+                pTailC->pNext[1] = pHead;
             }
         }
 */
-/*
         if ( pTail )
         {
-            Flag = pTail->lits[1] == lit_neg(Lit);
-            assert( pTail->lits[0] == lit_neg(Lit) || Flag );
-            pTail->pNext[Flag] = pHead;
-        }
-*/
-        if ( pTail )
-        {
-            assert( pTail->lits[0] == lit_neg(Lit) || pTail->lits[1] == lit_neg(Lit) );
-            pTail->pNext[pTail->lits[1] == lit_neg(Lit)] = pHead;
+            pTailC = get_clause( s, pTail );
+            assert( pTailC->lits[0] == lit_neg(Lit) || pTailC->lits[1] == lit_neg(Lit) );
+            pTailC->pNext[pTailC->lits[1] == lit_neg(Lit)] = pHead;
         }
         if ( pClause )
             return pClause;
@@ -1090,75 +1042,71 @@ clause* sat_solver2_propagate_new( sat_solver2* s )
 
 clause* sat_solver2_propagate(sat_solver2* s)
 {
-    lbool*  values = s->assigns;
-    clause* confl  = NULL;
-    lit*    lits;
+    clause * c, * confl  = NULL;
+    veci* ws;
+    lit* lits, false_lit, p, * stop, * k;
+    cla* begin,* end, *i, *j;
+
 
 #ifndef SAT_USE_WATCH_ARRAYS
     return sat_solver2_propagate_new( s );
 #endif
 
     while (confl == 0 && s->qtail - s->qhead > 0){
-        lit  p  = s->trail[s->qhead++];
-        vecp* ws = sat_solver2_read_wlist(s,p);
-        clause **begin = (clause**)vecp_begin(ws);
-        clause **end   = begin + vecp_size(ws);
-        clause **i, **j;
+        p  = s->trail[s->qhead++];
+        ws = sat_solver2_read_wlist(s,p);
+        begin = (cla*)veci_begin(ws);
+        end   = begin + veci_size(ws);
 
         s->stats.propagations++;
         s->simpdb_props--;
 
-        //printf("checking lit %d: "L_LIT"\n", veci_size(ws), L_lit(p));
         for (i = j = begin; i < end; ){
-        {
-            lit false_lit;
-            lbool sig;
+            {
+                c = get_clause(s,*i);
+                lits = clause_begin(c);
 
-            lits = clause_begin(*i);
-
-            // Make sure the false literal is data[1]:
-            false_lit = lit_neg(p);
-            if (lits[0] == false_lit){
-                lits[0] = lits[1];
-                lits[1] = false_lit;
-            }
-            assert(lits[1] == false_lit);
-            //printf("checking clause: "); printlits(lits, lits+clause_size(*i)); printf("\n");
-
-            // If 0th watch is true, then clause is already satisfied.
-            sig = !lit_sign(lits[0]); sig += sig - 1;
-            if (values[lit_var(lits[0])] == sig){
-                *j++ = *i;
-            }else{
-                // Look for new watch:
-                lit* stop = lits + clause_size(*i);
-                lit* k;
-                for (k = lits + 2; k < stop; k++){
-                    lbool sig = lit_sign(*k); sig += sig - 1;
-                    if (values[lit_var(*k)] != sig){
-                        lits[1] = *k;
-                        *k = false_lit;
-                        vecp_push(sat_solver2_read_wlist(s,lit_neg(lits[1])),*i);
-                        goto next; }
+                // Make sure the false literal is data[1]:
+                false_lit = lit_neg(p);
+                if (lits[0] == false_lit){
+                    lits[0] = lits[1];
+                    lits[1] = false_lit;
                 }
+                assert(lits[1] == false_lit);
 
-                *j++ = *i;
-                // Clause is unit under assignment:
-                if (!enqueue(s,lits[0], *i)){
-                    confl = *i++;
-                    // Copy the remaining watches:
-//                        s->stats.inspects2 += end - i;
-                    while (i < end)
-                        *j++ = *i++;
+                // If 0th watch is true, then clause is already satisfied.
+    //            sig = !lit_sign(lits[0]); sig += sig - 1;
+    //            if (values[lit_var(lits[0])] == sig){
+                if (var_value(s, lit_var(lits[0])) == lit_sign(lits[0]))
+                    *j++ = *i;
+                else{
+                    // Look for new watch:
+                    stop = lits + clause_nlits(c);
+                    for (k = lits + 2; k < stop; k++){
+    //                    lbool sig = lit_sign(*k); sig += sig - 1;
+    //                    if (values[lit_var(*k)] != sig){
+                        if (var_value(s, lit_var(*k)) != !lit_sign(*k)){
+                            lits[1] = *k;
+                            *k = false_lit;
+                            veci_push(sat_solver2_read_wlist(s,lit_neg(lits[1])),*i);
+                            goto next; }
+                    }
+
+                    *j++ = *i;
+                    // Clause is unit under assignment:
+                    if (!enqueue(s,lits[0], *i)){
+                        confl = get_clause(s,*i++);
+                        // Copy the remaining watches:
+    //                        s->stats.inspects2 += end - i;
+                        while (i < end)
+                            *j++ = *i++;
+                    }
                 }
             }
+next:       i++;
         }
-        next:
-            i++;
-        }
-
-        s->stats.inspects += j - (clause**)vecp_begin(ws);
-        vecp_resize(ws,j - (clause**)vecp_begin(ws));
+        s->stats.inspects += j - (int*)veci_begin(ws);
+        veci_resize(ws,j - (int*)veci_begin(ws));
     }
 
     return confl;
@@ -1166,49 +1114,45 @@ clause* sat_solver2_propagate(sat_solver2* s)
 
 
 static int clause_cmp (const void* x, const void* y) {
-//    return clause_size((clause*)x) > 2 && (clause_size((clause*)y) == 2 || clause_activity((clause*)x) < clause_activity((clause*)y)) ? -1 : 1; }
-    return clause_size((clause*)x) > 2 && (clause_size((clause*)y) == 2 || ((clause*)x)->act < ((clause*)y)->act) ? -1 : 1; }
-
+//    return clause_nlits((clause*)x) > 2 && (clause_nlits((clause*)y) == 2 || clause_activity((clause*)x) < clause_activity((clause*)y)) ? -1 : 1; }
+    return clause_nlits((clause*)x) > 2 && (clause_nlits((clause*)y) == 2 || ((clause*)x)->act < ((clause*)y)->act) ? -1 : 1; }
+ 
 void sat_solver2_reducedb(sat_solver2* s)
 {
-    int Counter = 0;
-    int      i, j;
-    unsigned extra_lim;
-    double   extra_limD = (double)s->cla_inc / vecp_size(&s->learnts); // Remove any clause below this activity
-    clause** learnts = (clause**)vecp_begin(&s->learnts);
-    clause** reasons = s->reasons;
+/*
+    vecp     Vec, * pVec = &Vec;
+    double   extra_limD = (double)s->cla_inc / veci_size(&s->learnts); // Remove any clause below this activity
+    unsigned extra_lim  = (extra_limD < 1.0) ? 1 : (int)extra_limD;
+    int      i, j, * pBeg, * pEnd;
 
-    if ( extra_limD < 1.0 )
-        extra_lim = 1;
-    else
-        extra_lim = (int)extra_limD;
+    // move clauses into vector
+    vecp_new( pVec );
+    pBeg = (int*)veci_begin(&s->learnts);
+    pEnd = pBeg + veci_size(&s->learnts);
+    while ( pBeg < pEnd )
+        vecp_push( pVec, get_clause(s,*pBeg++) );
+    sat_solver2_sort( vecp_begin(pVec), vecp_size(pVec), &clause_cmp );
+    vecp_delete( pVec );
 
-    sat_solver2_sort(vecp_begin(&s->learnts), vecp_size(&s->learnts), &clause_cmp);
-
-    for (i = j = 0; i < vecp_size(&s->learnts) / 2; i++){
-//        printf( "%d ", learnts[i]->act );
-//    for (i = j = 0; i < vecp_size(&s->learnts) / 4; i++){
-        if (clause_size(learnts[i]) > 2 && reasons[lit_var(*clause_begin(learnts[i]))] != learnts[i])
-            clause_remove(s,learnts[i]), Counter++;
+    // compact clauses
+    pBeg = (int*)veci_begin(&s->learnts);
+    for (i = j = 0; i < vecp_size(pVec); i++)
+    {
+        clause * c = ((clause**)vecp_begin(pVec))[i]; 
+        int Cid = clause_id(s,c);
+//        printf( "%d ", c->act );
+        if (clause_nlits(c) > 2 && s->reasons[lit_var(*clause_begin(c))] != Cid && (i < vecp_size(pVec)/2 || c->act < extra_lim) )
+            clause_remove(s,c);
         else
-            learnts[j++] = learnts[i];
+            pBeg[j++] = Cid;
     }
-    for (; i < vecp_size(&s->learnts); i++){
-//        if (clause_size(learnts[i]) > 2 && reasons[lit_var(*clause_begin(learnts[i]))] != learnts[i] && clause_activity(learnts[i]) < extra_lim)
-        if (clause_size(learnts[i]) > 2 && reasons[lit_var(*clause_begin(learnts[i]))] != learnts[i] && learnts[i]->act < extra_lim)
-            clause_remove(s,learnts[i]), Counter++;
-        else
-            learnts[j++] = learnts[i];
-    }
-printf( "Reduction removed %10d clauses (out of %10d)... Value = %d\n", Counter, vecp_size(&s->learnts), extra_lim );
-
-    //printf("reducedb deleted %d\n", vecp_size(&s->learnts) - j);
-    vecp_resize(&s->learnts,j);
+printf( "Reduction removed %10d clauses (out of %10d)... Value = %d\n", veci_size(&s->learnts) - j, veci_size(&s->learnts), extra_lim );
+    veci_resize(&s->learnts,j);
+*/
 }
 
 static lbool sat_solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts, ABC_INT64_T * nof_learnts)
 {
-    int*    levels          = s->levels;
     double  var_decay       = 0.95;
     double  clause_decay    = 0.999;
     double  random_var_freq = s->fNotUseRandom ? 0.0 : 0.02;
@@ -1244,13 +1188,15 @@ static lbool sat_solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts, ABC_I
 
             veci_resize(&learnt_clause,0);
             sat_solver2_analyze(s, confl, &learnt_clause);
-            blevel = veci_size(&learnt_clause) > 1 ? levels[lit_var(veci_begin(&learnt_clause)[1])] : s->root_level;
+            blevel = veci_size(&learnt_clause) > 1 ? var_level(s, lit_var(veci_begin(&learnt_clause)[1])) : s->root_level;
             blevel = s->root_level > blevel ? s->root_level : blevel;
             sat_solver2_canceluntil(s,blevel);
             sat_solver2_record(s,&learnt_clause);
 #ifdef SAT_USE_ANALYZE_FINAL
-//            if (learnt_clause.size() == 1) level[var(learnt_clause[0])] = 0;    // (this is ugly (but needed for 'analyzeFinal()') -- in future versions, we will backtrack past the 'root_level' and redo the assumptions)
-            if ( learnt_clause.size == 1 ) s->levels[lit_var(learnt_clause.ptr[0])] = 0;
+            // if (learnt_clause.size() == 1) level[var(learnt_clause[0])] = 0;    
+            // (this is ugly (but needed for 'analyzeFinal()') -- in future versions, we will backtrack past the 'root_level' and redo the assumptions)
+            if ( learnt_clause.size == 1 ) 
+                var_set_level( s, lit_var(learnt_clause.ptr[0]), 0 );
 #endif
             act_var_decay(s);
             act_clause_decay(s);
@@ -1281,7 +1227,7 @@ static lbool sat_solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts, ABC_I
                 // Simplify the set of problem clauses:
 //                sat_solver2_simplify(s);
 
-            if (*nof_learnts >= 0 && vecp_size(&s->learnts) - s->qtail >= *nof_learnts)
+            if (*nof_learnts >= 0 && s->stats.learnts - s->qtail >= *nof_learnts)
             {
                 // Reduce the set of learnt clauses:
 //                sat_solver2_reducedb(s);
@@ -1294,11 +1240,10 @@ static lbool sat_solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts, ABC_I
 
             if (next == var_Undef){
                 // Model found:
-                lbool* values = s->assigns;
                 int i;
                 veci_resize(&s->model, 0);
                 for (i = 0; i < s->size; i++) 
-                    veci_push(&s->model,(int)values[i]);
+                    veci_push( &s->model, var_value(s,i)==var1 ? l_True : l_False );
                 sat_solver2_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
 
@@ -1313,7 +1258,7 @@ static lbool sat_solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts, ABC_I
                 return l_True;
             }
 
-            if ( s->polarity[next] ) // positive polarity
+            if ( var_polar(s, next) ) // positive polarity
                 assume(s,toLit(next));
             else
                 assume(s,lit_neg(toLit(next)));
@@ -1328,50 +1273,24 @@ static lbool sat_solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts, ABC_I
 
 sat_solver2* sat_solver2_new(void)
 {
-    sat_solver2* s = (sat_solver2*)ABC_ALLOC( char, sizeof(sat_solver2));
-    memset( s, 0, sizeof(sat_solver2) );
+    sat_solver2 * s;
+    s = (sat_solver2 *)ABC_CALLOC( char, sizeof(sat_solver2) );
 
     // initialize vectors
-    vecp_new(&s->clauses);
-    vecp_new(&s->learnts);
     veci_new(&s->order);
     veci_new(&s->trail_lim);
     veci_new(&s->tagged);
     veci_new(&s->stack);
     veci_new(&s->model);
-//    veci_new(&s->act_vars);
     veci_new(&s->temp_clause);
     veci_new(&s->conf_final);
 
-    // initialize other vars
-    s->size                   = 0;
-    s->cap                    = 0;
-    s->qhead                  = 0;
-    s->qtail                  = 0;
+    // initialize other
+    s->iLearnt                = -1; // the first learnt clause 
+    s->iLast                  = -1; // the last learnt clause 
     s->cla_inc                = (1 << 11);
     s->var_inc                = (1 << 5);
-//    s->cla_decay              = 1;
-//    s->var_decay              = 1;
-    s->root_level             = 0;
-    s->simpdb_assigns         = 0;
-    s->simpdb_props           = 0;
     s->random_seed            = 91648253;
-    s->progress_estimate      = 0;
-    s->binary                 = (clause*)ABC_ALLOC( char, sizeof(clause) + sizeof(lit)*2);
-    s->binary->size_learnt    = (2 << 1);
-    s->verbosity              = 0;
-
-    s->stats.starts           = 0;
-    s->stats.decisions        = 0;
-    s->stats.propagations     = 0;
-    s->stats.inspects         = 0;
-    s->stats.conflicts        = 0;
-    s->stats.clauses          = 0;
-    s->stats.clauses_literals = 0;
-    s->stats.learnts          = 0;
-    s->stats.learnts_literals = 0;
-    s->stats.max_literals     = 0;
-    s->stats.tot_literals     = 0;
     return s;
 }
 
@@ -1381,8 +1300,6 @@ void sat_solver2_delete(sat_solver2* s)
     ABC_FREE(s->pMemArray);
 
     // delete vectors
-    vecp_delete(&s->clauses);
-    vecp_delete(&s->learnts);
     veci_delete(&s->order);
     veci_delete(&s->trail_lim);
     veci_delete(&s->tagged);
@@ -1390,24 +1307,20 @@ void sat_solver2_delete(sat_solver2* s)
     veci_delete(&s->model);
     veci_delete(&s->temp_clause);
     veci_delete(&s->conf_final);
-    ABC_FREE(s->binary);
 
     // delete arrays
-    if (s->assigns != 0){
+    if (s->vi != 0){
         int i;
         if ( s->wlists )
             for (i = 0; i < s->size*2; i++)
-                vecp_delete(&s->wlists[i]);
+                veci_delete(&s->wlists[i]);
         ABC_FREE(s->wlists   );
         ABC_FREE(s->pWatches );
+        ABC_FREE(s->vi       );
         ABC_FREE(s->activity );
-        ABC_FREE(s->assigns  );
         ABC_FREE(s->orderpos );
         ABC_FREE(s->reasons  );
-        ABC_FREE(s->levels   );
         ABC_FREE(s->trail    );
-        ABC_FREE(s->tags     );
-        ABC_FREE(s->polarity );
     }
     ABC_FREE(s);
 }
@@ -1415,10 +1328,9 @@ void sat_solver2_delete(sat_solver2* s)
 
 int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
 {
-    clause * c;
+    int c;
     lit *i,*j;
     int maxvar;
-    lbool* values;
     lit last;
 
     veci_resize( &s->temp_clause, 0 );
@@ -1444,16 +1356,18 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
 //    sat_solver2_setnvars(s, lit_var(*(end-1))+1 );
 
     //printlits(begin,end); printf("\n");
-    values = s->assigns;
+//    values = s->assigns;
 
     // delete duplicates
     last = lit_Undef;
     for (i = j = begin; i < end; i++){
         //printf("lit: "L_LIT", value = %d\n", L_lit(*i), (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]));
-        lbool sig = !lit_sign(*i); sig += sig - 1;
-        if (*i == lit_neg(last) || sig == values[lit_var(*i)])
+//        lbool sig = !lit_sign(*i); sig += sig - 1;
+//        if (*i == lit_neg(last) || sig == values[lit_var(*i)])
+        if (*i == lit_neg(last) || var_value(s, lit_var(*i)) == lit_sign(*i))
             return true;   // tautology
-        else if (*i != last && values[lit_var(*i)] == l_Undef)
+//        else if (*i != last && values[lit_var(*i)] == l_Undef)
+        else if (*i != last && var_value(s, lit_var(*i)) == varX)
             last = *j++ = *i;
     }
 
@@ -1463,23 +1377,19 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
         return false;
 
     if (j - begin == 1) // unit clause
-        return enqueue(s,*begin,(clause*)0);
+        return enqueue(s,*begin,0);
 
     // create new clause
     c = clause_new(s,begin,j,0);
-    if ( c )
-        vecp_push( &s->clauses,c );
 
     s->stats.clauses++;
     s->stats.clauses_literals += j - begin;
-
     return true;
 }
 
 
 int sat_solver2_simplify(sat_solver2* s)
 {
-    clause** reasons;
 //    int type;
     int Counter = 0;
 
@@ -1491,21 +1401,21 @@ int sat_solver2_simplify(sat_solver2* s)
     if (s->qhead == s->simpdb_assigns || s->simpdb_props > 0)
         return true;
 
-    reasons = s->reasons;
 /*
     for (type = 0; type < 2; type++){
-        vecp*    cs  = type ? &s->learnts : &s->clauses;
-        clause** cls = (clause**)vecp_begin(cs);
+        veci* cs  = type ? &s->learnts : &s->clauses;
+        int*  cls = (int*)veci_begin(cs);
 
         int i, j;
-        for (j = i = 0; i < vecp_size(cs); i++){
-            if (reasons[lit_var(*clause_begin(cls[i]))] != cls[i] &&
-                clause_simplify(s,cls[i]) == l_True)
-                clause_remove(s,cls[i]), Counter++;
+        for (j = i = 0; i < veci_size(cs); i++){
+            clause * c = get_clause(s,cls[i]);
+            if (s->reasons[lit_var(*clause_begin(c))] != cls[i] &&
+                clause_simplify(s,c) == l_True)
+                clause_remove(s,c), Counter++;
             else
                 cls[j++] = cls[i];
         }
-        vecp_resize(cs,j);
+        veci_resize(cs,j);
     }
 */
 //printf( "Simplification removed %d clauses (out of %d)...\n", Counter, s->stats.clauses );
@@ -1543,7 +1453,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
     ABC_INT64_T  nof_conflicts;
     ABC_INT64_T  nof_learnts   = sat_solver2_nclauses(s) / 3;
     lbool   status        = l_Undef;
-    lbool*  values        = s->assigns;
+//    lbool*  values        = s->assigns;
     lit*    i;
 
     // set the external limits
@@ -1565,15 +1475,16 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
 
     //printf("solve: "); printlits(begin, end); printf("\n");
     for (i = begin; i < end; i++){
-        switch (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]){
-        case 1: // l_True: 
+//        switch (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]){
+        switch (var_value(s, *i)) {
+        case var1: // l_True: 
             break;
-        case 0: // l_Undef
+        case varX: // l_Undef
             assume(s, *i);
             if (sat_solver2_propagate(s) == NULL)
                 break;
             // fallthrough
-        case -1: // l_False 
+        case var0: // l_False 
             sat_solver2_canceluntil(s, 0);
             return l_False;
         }
@@ -1622,9 +1533,9 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         lit p = *i;
         assert(lit_var(p) < s->size);
         veci_push(&s->trail_lim,s->qtail);
-        if (!enqueue(s,p,(clause*)0))
+        if (!enqueue(s,p,0))
         {
-            clause * r = s->reasons[lit_var(p)];
+            clause * r = get_clause(s, s->reasons[lit_var(p)]);
             if (r != NULL)
             {
                 clause* confl = r;
@@ -1722,7 +1633,7 @@ int sat_solver2_nvars(sat_solver2* s)
 
 int sat_solver2_nclauses(sat_solver2* s)
 {
-    return vecp_size(&s->clauses);
+    return (int)s->stats.clauses;
 }
 
 

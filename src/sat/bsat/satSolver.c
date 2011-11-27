@@ -118,15 +118,6 @@ static inline lit     clause_read_lit (clause* c) { return (lit)((ABC_PTRUINT_T)
 
 static inline int     sat_solver_dlevel(sat_solver* s)            { return veci_size(&s->trail_lim); }
 static inline vecp*   sat_solver_read_wlist(sat_solver* s, lit l) { return &s->wlists[l]; }
-static inline void    vecp_remove(vecp* v, void* e)
-{
-    void** ws = vecp_begin(v);
-    int    j  = 0;
-    for (; ws[j] != e  ; j++);
-    assert(j < vecp_size(v));
-    for (; j < vecp_size(v)-1; j++) ws[j] = ws[j+1];
-    vecp_resize(v,vecp_size(v)-1);
-}
 
 //=================================================================================================
 // Variable order functions:
