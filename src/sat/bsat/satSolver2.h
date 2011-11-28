@@ -100,7 +100,6 @@ struct sat_solver2_t
     int           iLearnt;       // the first learnt clause 
     int           iLast;         // the last learnt clause 
     veci*         wlists;        // watcher lists (for each literal)
-    cla*          pWatches;      // watcher lists (for each literal)
 
     // clause memory
     int *         pMemArray;
@@ -111,6 +110,8 @@ struct sat_solver2_t
     int           var_inc;       // Amount to bump next variable with.
     int           cla_inc;       // Amount to bump next clause with.
     unsigned*     activity;      // A heuristic measurement of the activity of a variable.
+    veci          claActs;       // clause activities
+    veci          claProofs;     // clause proofs
 
     // internal state
     varinfo *     vi;            // variable information
@@ -134,24 +135,39 @@ struct sat_solver2_t
 
 };
 
-static int sat_solver2_var_value( sat_solver2* s, int v ) 
+static inline int sat_solver2_nvars(sat_solver2* s)
+{
+    return s->size;
+}
+
+static inline int sat_solver2_nclauses(sat_solver2* s)
+{
+    return (int)s->stats.clauses;
+}
+
+static inline int sat_solver2_nconflicts(sat_solver2* s)
+{
+    return (int)s->stats.conflicts;
+}
+
+static inline int sat_solver2_var_value( sat_solver2* s, int v ) 
 {
     assert( s->model.ptr != NULL && v < s->size );
     return (int)(s->model.ptr[v] == l_True);
 }
-static int sat_solver2_var_literal( sat_solver2* s, int v ) 
+static inline int sat_solver2_var_literal( sat_solver2* s, int v ) 
 {
     assert( s->model.ptr != NULL && v < s->size );
     return toLitCond( v, s->model.ptr[v] != l_True );
 }
-static void sat_solver2_act_var_clear(sat_solver2* s) 
+static inline void sat_solver2_act_var_clear(sat_solver2* s) 
 {
     int i;
     for (i = 0; i < s->size; i++)
         s->activity[i] = 0;//.0;
     s->var_inc = 1.0;
 }
-static void sat_solver2_compress(sat_solver2* s) 
+static inline void sat_solver2_compress(sat_solver2* s) 
 {
     if ( s->qtail != s->qhead )
     {
@@ -160,20 +176,20 @@ static void sat_solver2_compress(sat_solver2* s)
     }
 }
 
-static int sat_solver2_final(sat_solver2* s, int ** ppArray)
+static inline int sat_solver2_final(sat_solver2* s, int ** ppArray)
 {
     *ppArray = s->conf_final.ptr;
     return s->conf_final.size;
 }
 
-static int sat_solver2_set_runtime_limit(sat_solver2* s, int Limit)
+static inline int sat_solver2_set_runtime_limit(sat_solver2* s, int Limit)
 {
     int nRuntimeLimit = s->nRuntimeLimit;
     s->nRuntimeLimit = Limit;
     return nRuntimeLimit;
 }
 
-static int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
+static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
 {
     int fNotUseRandomOld = s->fNotUseRandom;
     s->fNotUseRandom = fNotUseRandom;
