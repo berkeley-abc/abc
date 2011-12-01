@@ -327,6 +327,22 @@ static inline int * Vec_IntArray( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int * Vec_IntLimit( Vec_Int_t * p )
+{
+    return p->pArray + p->nSize;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_IntSize( Vec_Int_t * p )
 {
     return p->nSize;
