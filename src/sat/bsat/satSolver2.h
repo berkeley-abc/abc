@@ -47,10 +47,6 @@ extern int         sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end);
 extern int         sat_solver2_simplify(sat_solver2* s);
 extern int         sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 
-extern int         sat_solver2_nvars(sat_solver2* s);
-extern int         sat_solver2_nclauses(sat_solver2* s);
-extern int         sat_solver2_nconflicts(sat_solver2* s);
-
 extern void        sat_solver2_setnvars(sat_solver2* s,int n);
 
 extern void        Sat_Solver2WriteDimacs( sat_solver2 * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars );
