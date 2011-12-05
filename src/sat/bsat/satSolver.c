@@ -1460,6 +1460,9 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit
             {
                 veci_resize(&s->conf_final,0);
                 veci_push(&s->conf_final, lit_neg(p));
+                // the two lines below are a bug fix by Siert Wieringa 
+                if (s->levels[lit_var(p)] > 0)
+                    veci_push(&s->conf_final, p);
             }
             sat_solver_canceluntil(s, 0);
             return l_False; 

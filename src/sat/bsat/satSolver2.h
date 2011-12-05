@@ -93,8 +93,7 @@ struct sat_solver2_t
     // clauses
     veci          clauses;       // clause memory
     veci*         wlists;        // watcher lists (for each literal)
-    int           iLearnt;       // the first learnt clause 
-    int           iLast;         // the last learnt clause 
+    int           iFirstLearnt;  // the first learnt clause 
 
     // activities
 #ifdef USE_FLOAT_ACTIVITY
@@ -113,9 +112,10 @@ struct sat_solver2_t
 
     // internal state
     varinfo *     vi;            // variable information
-    cla*          reasons;       
-    lit*          trail;
+    lit*          trail;         // sequence of assignment and implications
     int*          orderpos;      // Index in variable order.
+    cla*          reasons;       // reason clauses
+    cla*          units;         // unit clauses
 
     veci          tagged;        // (contains: var)
     veci          stack;         // (contains: var)
@@ -132,7 +132,8 @@ struct sat_solver2_t
     // proof logging
     veci          proof_clas;    // sequence of proof clauses
     veci          proof_vars;    // sequence of proof variables 
-    int           iStartChain;   // beginning of the chain
+    int           iStartChain;   // temporary variable to remember beginning of the current chain in proof logging
+    int           fLastConfId;   // in proof-logging mode, the ID of the final conflict clause (conf_final)
 
     // statistics
     stats_t       stats;
