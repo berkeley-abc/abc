@@ -67,6 +67,14 @@ extern void        sat_solver2_store_mark_roots( sat_solver2 * s );
 extern void        sat_solver2_store_mark_clauses_a( sat_solver2 * s );
 extern void *      sat_solver2_store_release( sat_solver2 * s ); 
 
+// global variables
+extern int         var_is_global (sat_solver2* s, int v);
+extern void        var_set_global(sat_solver2* s, int v, int glo);
+// clause grouping (these two only work after creating a clause before the solver is called)
+extern int         clause_is_partA (sat_solver2* s, int cid);
+extern void        clause_set_partA(sat_solver2* s, int cid, int partA);
+
+
 //=================================================================================================
 // Solver representation:
 

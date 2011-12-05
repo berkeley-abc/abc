@@ -48,7 +48,7 @@ struct Sat_Set_t_
 
 static inline int          Sat_SetCheck( Vec_Int_t * p, Sat_Set_t * pNode ) { return (int *)pNode > Vec_IntArray(p) && (int *)pNode < Vec_IntLimit(p); }
 static inline int          Sat_SetId( Vec_Int_t * p, Sat_Set_t * pNode )    { return (int *)pNode - Vec_IntArray(p);                                   }
-static inline Sat_Set_t *  Sat_SetFromId( Vec_Int_t * p, int i )             { return (Sat_Set_t *)(Vec_IntArray(p) + i);                              }
+static inline Sat_Set_t *  Sat_SetFromId( Vec_Int_t * p, int i )            { return (Sat_Set_t *)(Vec_IntArray(p) + i);                              }
 static inline int          Sat_SetSize( Sat_Set_t * pNode )                 { return pNode->nEnts + 2;          }
 
 #define Sat_PoolForEachSet( p, pNode, i )  \

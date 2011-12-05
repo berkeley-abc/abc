@@ -85,28 +85,32 @@ struct varinfo_t
 {
     unsigned val    :  2;  // variable value 
     unsigned pol    :  1;  // last polarity
+    unsigned glo    :  1;  // global variable
     unsigned tag    :  3;  // conflict analysis tags
-    unsigned lev    : 26;  // variable level
+    unsigned lev    : 25;  // variable level
 };
+
+int    var_is_global (sat_solver2* s, int v)            { return s->vi[v].glo; }
+void   var_set_global(sat_solver2* s, int v, int glo)   { s->vi[v].glo = glo;  }
 
 static inline int     var_value     (sat_solver2* s, int v)            { return s->vi[v].val; }
 static inline int     var_polar     (sat_solver2* s, int v)            { return s->vi[v].pol; }
 static inline int     var_level     (sat_solver2* s, int v)            { return s->vi[v].lev; }
 
-static inline void    var_set_value (sat_solver2* s, int v, int val )  { s->vi[v].val = val;  }
-static inline void    var_set_polar (sat_solver2* s, int v, int pol )  { s->vi[v].pol = pol;  }
-static inline void    var_set_level (sat_solver2* s, int v, int lev )  { s->vi[v].lev = lev;  }
+static inline void    var_set_value (sat_solver2* s, int v, int val)   { s->vi[v].val = val;  }
+static inline void    var_set_polar (sat_solver2* s, int v, int pol)   { s->vi[v].pol = pol;  }
+static inline void    var_set_level (sat_solver2* s, int v, int lev)   { s->vi[v].lev = lev;  }
 
 // variable tags
 static inline int     var_tag       (sat_solver2* s, int v)            { return s->vi[v].tag; }
 static inline void    var_set_tag   (sat_solver2* s, int v, int tag)   { 
-    assert( tag > 0 && tag < 16 );
+    assert( tag > 0 && tag < 8 );
     if ( s->vi[v].tag == 0 )
         veci_push( &s->tagged, v );
     s->vi[v].tag = tag;                           
 }
 static inline void    var_add_tag   (sat_solver2* s, int v, int tag)   { 
-    assert( tag > 0 && tag < 16 );
+    assert( tag > 0 && tag < 8 );
     if ( s->vi[v].tag == 0 )
         veci_push( &s->tagged, v );
     s->vi[v].tag |= tag;                           
@@ -145,7 +149,7 @@ static inline int     lit_reason    (sat_solver2* s, int l)            { return 
 // Clause datatype + minor functions:
 
 typedef struct satset_t satset;
-struct satset_t // should have even number of entries!
+struct satset_t 
 {
     unsigned learnt :  1;
     unsigned mark   :  1;
@@ -155,10 +159,14 @@ struct satset_t // should have even number of entries!
     lit      pLits[0];
 };
 
-static inline int     clause_size   (int nLits)                  { return sizeof(satset)/4 + nLits;  }
-
 static inline satset* get_clause    (sat_solver2* s, int c)      { return c ? (satset*)(veci_begin(&s->clauses) + c) : NULL;  }
 static inline cla     clause_id     (sat_solver2* s, satset* c)  { return (cla)((int *)c - veci_begin(&s->clauses));          }
+static inline int     clause_size   (int nLits)                  { return sizeof(satset)/4 + nLits;                           }
+static inline int     clause_proofid(sat_solver2* s, satset* c)  { return c->learnt ? veci_begin(&s->claProofs)[c->Id]<<1 : (clause_id(s,c)<<1) | 1;  }
+
+// these two only work after creating a clause before the solver is called
+int    clause_is_partA (sat_solver2* s, int cid)                 { return get_clause(s, cid)->partA;                          }  
+void   clause_set_partA(sat_solver2* s, int cid, int partA)      { get_clause(s, cid)->partA = partA;                         }
 
 //static inline satset* var_unit_clause(sat_solver2* s, int v)           { return (s->reasons[v]&1) ? get_clause(s, s->reasons[v] >> 1) : NULL;  } 
 //static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(i && !s->reasons[v]); s->reasons[v] = (i << 1) | 1;            } 
@@ -166,7 +174,7 @@ static inline satset* var_unit_clause(sat_solver2* s, int v)           { return 
 static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; } 
 
 #define sat_solver_foreach_clause( s, c, i )  \
-    for ( i = 16; (i < s->nMemSize) && (((c) = get_clause(s, i)), 1); i += clause_size(c->nLits) )
+    for ( i = 1; (i < s->nMemSize) && (((c) = get_clause(s, i)), 1); i += clause_size(c->nLits) )
 #define sat_solver_foreach_learnt( s, c, i )  \
     for ( i = s->iFirstLearnt; (i < s->nMemSize) && (((c) = get_clause(s, i)), 1); i += clause_size(c->nLits) )
 
@@ -186,7 +194,7 @@ static inline void proof_chain_start( sat_solver2* s, satset* c )
         s->iStartChain = veci_size(&s->proof_clas);
         veci_push(&s->proof_clas, 0);
         veci_push(&s->proof_clas, 0);
-        veci_push(&s->proof_clas, c->learnt ? veci_begin(&s->claProofs)[c->Id] : clause_id(s,c) ^ 1 );
+        veci_push(&s->proof_clas, clause_proofid(s, c) );
         veci_push(&s->proof_vars, 0);
         veci_push(&s->proof_vars, 0);
         veci_push(&s->proof_vars, 0);
@@ -198,8 +206,9 @@ static inline void proof_chain_resolve( sat_solver2* s, satset* cls, int Var )
     if ( s->fProofLogging )
     {
         satset* c = cls ? cls : var_unit_clause( s, Var );
-        veci_push(&s->proof_clas, c->learnt ? veci_begin(&s->claProofs)[c->Id] : clause_id(s,c) ^ 1 );
+        veci_push(&s->proof_clas, clause_proofid(s, c) );
         veci_push(&s->proof_vars, Var);
+//        printf( "%d %d  ", clause_proofid(s, c), Var );
     }
 }
 
@@ -394,7 +403,8 @@ static int clause_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proo
         memset( veci_begin(&s->clauses) + s->clauses.cap, 0, sizeof(int) * (nMemAlloc - s->clauses.cap) );
 //        printf( "Reallocing from %d to %d...\n", s->clauses.cap, nMemAlloc );
         s->clauses.cap = nMemAlloc;
-        s->clauses.size = Abc_MaxInt( veci_size(&s->clauses), 2 ); 
+        if ( veci_size(&s->clauses) == 0 )
+            veci_push( &s->clauses, -1 );
     }
     // create clause
     c = (satset*)(veci_begin(&s->clauses) + veci_size(&s->clauses));
@@ -1325,7 +1335,6 @@ void sat_solver2_delete(sat_solver2* s)
 
 int sat_solver2_addclause__(sat_solver2* s, lit* begin, lit* end)
 {
-    cla Cid;
     lit *i,*j;
     int maxvar;
     lit last;
@@ -1375,8 +1384,7 @@ int sat_solver2_addclause__(sat_solver2* s, lit* begin, lit* end)
         return solver2_enqueue(s,*begin,0);
 
     // create new clause
-    Cid = clause_new(s,begin,j,0,0);
-    return true;
+    return clause_new(s,begin,j,0,0);
 }
 
 int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
@@ -1420,7 +1428,7 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
     // count literals
     s->stats.clauses++;
     s->stats.clauses_literals += end - begin;
-    return 1;
+    return Cid;
 }
 
 
