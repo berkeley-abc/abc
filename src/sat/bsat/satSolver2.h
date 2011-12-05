@@ -32,7 +32,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ABC_NAMESPACE_HEADER_START
 
-
+//#define USE_FLOAT_ACTIVITY
 
 //=================================================================================================
 // Public interface:
@@ -70,9 +70,6 @@ extern void *      sat_solver2_store_release( sat_solver2 * s );
 //=================================================================================================
 // Solver representation:
 
-//struct clause_t;
-//typedef struct clause_t clause;
-
 struct varinfo_t;
 typedef struct varinfo_t varinfo;
 
@@ -91,21 +88,26 @@ struct sat_solver2_t
     int           verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
     int           fNotUseRandom; // do not allow random decisions with a fixed probability
 //    int           fSkipSimplify; // set to one to skip simplification of the clause database
+    int           fProofLogging; // enable proof-logging
 
     // clauses
+    veci          clauses;       // clause memory
+    veci*         wlists;        // watcher lists (for each literal)
     int           iLearnt;       // the first learnt clause 
     int           iLast;         // the last learnt clause 
-    veci*         wlists;        // watcher lists (for each literal)
-
-    // clause memory
-    int *         pMemArray;
-    int           nMemAlloc;
-    int           nMemSize;
 
     // activities
+#ifdef USE_FLOAT_ACTIVITY
+    double        var_inc;       // Amount to bump next variable with.
+    double        var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
+    float         cla_inc;       // Amount to bump next clause with.
+    float         cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
+    double*       activity;      // A heuristic measurement of the activity of a variable.
+#else
     int           var_inc;       // Amount to bump next variable with.
     int           cla_inc;       // Amount to bump next clause with.
     unsigned*     activity;      // A heuristic measurement of the activity of a variable.
+#endif
     veci          claActs;       // clause activities
     veci          claProofs;     // clause proofs
 
@@ -123,6 +125,15 @@ struct sat_solver2_t
     veci          model;         // If problem is solved, this vector contains the model (contains: lbool).
     veci          conf_final;    // If problem is unsatisfiable (possibly under assumptions),
                                  // this vector represent the final conflict clause expressed in the assumptions.
+    veci          mark_levels;   // temporary storage for labeled levels
+    veci          min_lit_order; // ordering of removable literals
+    veci          min_step_order;// ordering of resolution steps
+
+    // proof logging
+    veci          proof_clas;    // sequence of proof clauses
+    veci          proof_vars;    // sequence of proof variables 
+    int           iStartChain;   // beginning of the chain
+
     // statistics
     stats_t       stats;
     ABC_INT64_T   nConfLimit;    // external limit on the number of conflicts

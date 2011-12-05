@@ -44,7 +44,8 @@ static inline void veci_new (veci* v) {
 static inline void   veci_delete (veci* v)          { ABC_FREE(v->ptr);   }
 static inline int*   veci_begin  (veci* v)          { return v->ptr;  }
 static inline int    veci_size   (veci* v)          { return v->size; }
-static inline void   veci_resize (veci* v, int k)   { v->size = k;    } // only safe to shrink !!
+static inline void   veci_resize (veci* v, int k)   { assert(k <= v->size); v->size = k;         } // only safe to shrink !!
+static inline int    veci_pop    (veci* v)          { assert(v->size); return v->ptr[--v->size]; }
 static inline void   veci_push   (veci* v, int e)
 {
     if (v->size == v->cap) {
@@ -82,7 +83,7 @@ static inline void vecp_new (vecp* v) {
 static inline void   vecp_delete (vecp* v)          { ABC_FREE(v->ptr);   }
 static inline void** vecp_begin  (vecp* v)          { return v->ptr;  }
 static inline int    vecp_size   (vecp* v)          { return v->size; }
-static inline void   vecp_resize (vecp* v, int   k) { v->size = k;    } // only safe to shrink !!
+static inline void   vecp_resize (vecp* v, int   k) { assert(k <= v->size); v->size = k;    } // only safe to shrink !!
 static inline void   vecp_push   (vecp* v, void* e)
 {
     if (v->size == v->cap) {
@@ -142,9 +143,6 @@ struct stats_t
     ABC_INT64_T   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
 };
 typedef struct stats_t stats_t;
-
-struct clause_t;
-typedef struct clause_t clause;
 
 ABC_NAMESPACE_HEADER_END
 

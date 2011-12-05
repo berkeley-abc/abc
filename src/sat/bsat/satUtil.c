@@ -169,16 +169,15 @@ void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Sat_Solver2PrintStats( FILE * pFile, sat_solver2 * p )
+void Sat_Solver2PrintStats( FILE * pFile, sat_solver2 * s )
 {
-//    printf( "calls         : %10d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
-    printf( "starts        : %10d\n", (int)p->stats.starts );
-    printf( "conflicts     : %10d\n", (int)p->stats.conflicts );
-    printf( "decisions     : %10d\n", (int)p->stats.decisions );
-    printf( "propagations  : %10d\n", (int)p->stats.propagations );
-//    printf( "inspects      : %10d\n", (int)p->stats.inspects );
-//    printf( "inspects2     : %10d\n", (int)p->stats.inspects2 );
-    printf( "memory        : %10d\n", p->nMemSize );
+    printf( "starts        : %10d\n", (int)s->stats.starts );
+    printf( "conflicts     : %10d\n", (int)s->stats.conflicts );
+    printf( "decisions     : %10d\n", (int)s->stats.decisions );
+    printf( "propagations  : %10d\n", (int)s->stats.propagations );
+//    printf( "inspects      : %10d\n", (int)s->stats.inspects );
+//    printf( "inspects2     : %10d\n", (int)s->stats.inspects2 );
+    printf( "memory        : %10d\n", veci_size(&s->clauses) );
 }
 
 /**Function*************************************************************

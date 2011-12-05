@@ -105,8 +105,8 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
         // simplify the problem
         clk = clock();
         status = sat_solver2_simplify(pSat);
-        printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver2_nvars(pSat), sat_solver2_nclauses(pSat) );
-        ABC_PRT( "Time", clock() - clk );
+//        printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver2_nvars(pSat), sat_solver2_nclauses(pSat) );
+//        ABC_PRT( "Time", clock() - clk );
         if ( status == 0 )
         {
             Vec_IntFree( vCiIds );
