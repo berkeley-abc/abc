@@ -134,6 +134,7 @@ struct sat_solver2_t
     veci          proof_vars;    // sequence of proof variables 
     int           iStartChain;   // temporary variable to remember beginning of the current chain in proof logging
     int           fLastConfId;   // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    int           nUnits;        // the total number of unit clauses
 
     // statistics
     stats_t       stats;
