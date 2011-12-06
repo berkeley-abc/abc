@@ -193,10 +193,10 @@ cuddTestInteract(
   int  x,
   int  y)
 {
-    int posn, word, bit, result;
+    long posn, word, bit, result;
 
     if (x > y) {
-        int tmp = x;
+        long tmp = x;
         x = y;
         y = tmp;
     }

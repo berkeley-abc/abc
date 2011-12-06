@@ -434,8 +434,10 @@ cuddBddExistAbstractRecur(
             Cudd_IterDerefBdd(manager, res2);
             return(NULL);
         }
-        cuddDeref(res1);
-        cuddDeref(res2);
+        cuddRef(res); //Added
+        Cudd_IterDerefBdd(manager, res1); //cuddDeref(res1);
+        Cudd_IterDerefBdd(manager, res2); //cuddDeref(res2);
+        cuddDeref(res); //Added
         if (F->ref != 1)
             cuddCacheInsert2(manager, Cudd_bddExistAbstract, f, cube, res);
         return(res);
