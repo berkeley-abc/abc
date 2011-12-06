@@ -323,6 +323,7 @@ Abc_Ntk_t * Abc_NtkRecUse()
     Abc_NtkRecPs();
     p->pNtk = NULL;
     Abc_NtkRecStop();
+    Abc_NtkCleanData(pNtk);
     return pNtk;
 }
 
