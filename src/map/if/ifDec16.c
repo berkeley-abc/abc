@@ -781,17 +781,32 @@ void If_CluSwapVars( word * pTruth, int nVars, int * V2P, int * P2V, int iVar, i
     }
     else
     {
+/*
         iStep = If_CluWordNum(iVar + 1)/2;
         jStep = If_CluWordNum(jVar + 1)/2;
-        for ( w = 0; w < nWords; w += 2*jStep )
+        for (w = 0; w < nWords; w += 2*jStep)
         {
-            for ( i = 0; i < jStep; i += 2*iStep )
+            for (i = 0; i < jStep; i += 2*iStep)
             {
                 temp = pTruth[w + iStep + i];
                 pTruth[w + iStep + i] = pTruth[w + jStep + i];
                 pTruth[w + jStep + i] = temp;
             }
-
+        }
+*/
+        iStep = If_CluWordNum(iVar + 1)/2;
+        jStep = If_CluWordNum(jVar + 1)/2;
+        for (w = 0; w < nWords; w += 2*jStep)
+        {
+            for (i = 0; i < jStep; i += 2*iStep)
+            {
+                for (j = 0; j < iStep; j++)
+                {
+                    temp = pTruth[w + iStep + i + j];
+                    pTruth[w + iStep + i + j] = pTruth[w + jStep + i + j];
+                    pTruth[w + jStep + i + j] = temp;
+                }
+            }
         }
     }    
     if ( V2P && P2V )
