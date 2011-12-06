@@ -411,6 +411,9 @@ static int clause_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proo
             veci_push(&s->claProofs, proof_id);
         if ( nLits > 2 )
             act_clause_bump( s,c );
+
+//        printf( "Clause for proof %d: ", proof_id );
+//        satset_print( c );
     }
     else
     {
@@ -672,6 +675,8 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
     }
 //    if (pfl && visit[p0] & 1){
 //        result.push(p0); }
+    if ( s->fProofLogging && (var_tag(s,v) & 1) )
+        veci_push(&s->min_lit_order, v );
     var_add_tag(s,v,6);
     return 1;
 }
