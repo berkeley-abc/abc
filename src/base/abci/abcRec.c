@@ -237,7 +237,7 @@ p->timeTruth += clock() - clk;
 
         // add the resulting truth table to the hash table 
         ppSpot = Abc_NtkRecTableLookup( p, pTruth, p->nVars );
-        assert( pObj->pEquiv == NULL );
+        assert( pObj->pData == NULL );
         assert( pObj->pCopy == NULL );
         if ( *ppSpot == NULL )
         {
@@ -246,8 +246,8 @@ p->timeTruth += clock() - clk;
         }
         else
         {
-            pObj->pEquiv = (*ppSpot)->pEquiv;
-            (*ppSpot)->pEquiv = (Hop_Obj_t *)pObj;
+            pObj->pData = (*ppSpot)->pData;
+            (*ppSpot)->pData = (Hop_Obj_t *)pObj;
             if ( !Abc_NtkRecAddCutCheckCycle_rec(*ppSpot, pObj) )
                 printf( "Loop!\n" );
         }
@@ -362,7 +362,7 @@ void Abc_NtkRecPs()
     {
         Counters[ Abc_ObjGetMax(pEntry) ]++;
         Counter++;
-        for ( pTemp = pEntry; pTemp; pTemp = (Abc_Obj_t *)pTemp->pEquiv )
+        for ( pTemp = pEntry; pTemp; pTemp = (Abc_Obj_t *)pTemp->pData )
         {
             assert( Abc_ObjGetMax(pTemp) == Abc_ObjGetMax(pEntry) );
             CountersS[ Abc_ObjGetMax(pTemp) ]++;
@@ -935,7 +935,7 @@ s_pMan->timeCanon += clock() - clk;
 
     // add the resulting truth table to the hash table 
     ppSpot = Abc_NtkRecTableLookup( s_pMan, pTruth, nInputs );
-    assert( pObj->pEquiv == NULL );
+    assert( pObj->pData == NULL );
     assert( pObj->pCopy == NULL );
     if ( *ppSpot == NULL )
     {
@@ -944,8 +944,8 @@ s_pMan->timeCanon += clock() - clk;
     }
     else
     {
-        pObj->pEquiv = (*ppSpot)->pEquiv;
-        (*ppSpot)->pEquiv = (Hop_Obj_t *)pObj;
+        pObj->pData = (*ppSpot)->pData;
+        (*ppSpot)->pData = pObj;
         if ( !Abc_NtkRecAddCutCheckCycle_rec(*ppSpot, pObj) )
             printf( "Loop!\n" );
     }
@@ -1104,7 +1104,7 @@ int Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTru
     }
 
     // go through the candidates - and recursively label them
-    for ( pCand = *ppSpot; pCand; pCand = (Abc_Obj_t *)pCand->pEquiv )
+    for ( pCand = *ppSpot; pCand; pCand = (Abc_Obj_t *)pCand->pData )
         Abc_NtkRecStrashNodeLabel_rec( pNtkNew, pCand, 0, s_pMan->vLabels );
 
 
@@ -1120,7 +1120,7 @@ int Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTru
     // find the best subgraph
     CostMin = ABC_INFINITY;
     pCandMin = NULL;
-    for ( pCand = *ppSpot; pCand; pCand = (Abc_Obj_t *)pCand->pEquiv )
+    for ( pCand = *ppSpot; pCand; pCand = (Abc_Obj_t *)pCand->pData )
     {
         // label the leaves
         Abc_NtkIncrementTravId( pAig );

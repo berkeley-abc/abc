@@ -206,11 +206,11 @@ static int Abc_CommandFraigDress             ( Abc_Frame_t * pAbc, int argc, cha
 //static int Abc_CommandHaigStop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandHaigUse                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-//static int Abc_CommandRecStart               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecAdd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-//static int Abc_CommandRecUse                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecStart               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecAdd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecUse                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -662,11 +662,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Choicing",     "haig_stop",     Abc_CommandHaigStop,         0 );
 //    Cmd_CommandAdd( pAbc, "Choicing",     "haig_use",      Abc_CommandHaigUse,          1 );
 
-//    Cmd_CommandAdd( pAbc, "Choicing",     "rec_start",     Abc_CommandRecStart,         0 );
-//    Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop",      Abc_CommandRecStop,          0 );
-//    Cmd_CommandAdd( pAbc, "Choicing",     "rec_add",       Abc_CommandRecAdd,           0 );
-//    Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps",        Abc_CommandRecPs,            0 );
-//    Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_start",     Abc_CommandRecStart,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop",      Abc_CommandRecStop,          0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_add",       Abc_CommandRecAdd,           0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps",        Abc_CommandRecPs,            0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
@@ -11887,6 +11887,7 @@ usage:
     return 1;
 }
 
+#endif
 
 
 /**Function*************************************************************
@@ -11909,7 +11910,7 @@ int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
-    nVars = 4;
+    nVars = 6;
     nCuts = 8;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCh" ) ) != EOF )
@@ -12154,8 +12155,6 @@ usage:
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
-
-#endif
 
 /**Function*************************************************************
 

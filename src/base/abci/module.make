@@ -42,6 +42,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcProve.c \
     src/base/abci/abcQbf.c \
     src/base/abci/abcQuant.c \
+    src/base/abci/abcRec.c \
     src/base/abci/abcReconv.c \
     src/base/abci/abcReach.c \
     src/base/abci/abcRefactor.c \

@@ -1658,20 +1658,20 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
 {
 //    short pStore2[32];
     unsigned * pIn = pInOut, * pOut = pAux, * pTemp;
-//    int nWords = Kit_TruthWordNum( nVars );
-    int i, Temp, fChange, Counter;//, nOnes;//, k, j, w, Limit;
+    int nWords = Kit_TruthWordNum( nVars );
+    int i, Temp, fChange, Counter, nOnes;//, k, j, w, Limit;
     unsigned uCanonPhase;
 
     // canonicize output
     uCanonPhase = 0;
-/*
+
     nOnes = Kit_TruthCountOnes(pIn, nVars);
     if ( (nOnes > nWords * 16) )//|| ((nOnes == nWords * 16) && (pIn[0] & 1)) )
     {
         uCanonPhase |= (1 << nVars);
         Kit_TruthNot( pIn, pIn, nVars );
     }
-*/
+
     // collect the minterm counts
     Kit_TruthCountOnesInCofs( pIn, nVars, pStore );
 /*
@@ -1698,7 +1698,6 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
 
     // permute
     Counter = 0;
-
     do {
         fChange = 0;
         for ( i = 0; i < nVars-1; i++ )
@@ -1721,11 +1720,11 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
             pStore[2*(i+1)+1] = Temp;
 
             // if the polarity of variables is different, swap them
-//            if ( ((uCanonPhase & (1 << i)) > 0) != ((uCanonPhase & (1 << (i+1))) > 0) )
-//            {
-//                uCanonPhase ^= (1 << i);
-//                uCanonPhase ^= (1 << (i+1));
-//            }
+            if ( ((uCanonPhase & (1 << i)) > 0) != ((uCanonPhase & (1 << (i+1))) > 0) )
+            {
+                uCanonPhase ^= (1 << i);
+                uCanonPhase ^= (1 << (i+1));
+            }
 
             Kit_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
             pTemp = pIn; pIn = pOut; pOut = pTemp;
