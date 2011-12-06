@@ -389,15 +389,15 @@ void Abc_NtkRecPs()
             printf( "Inputs = %2d.  Funcs = %8d.  Subgrs = %8d.  Ratio = %6.2f.\n", i, Counters[i], CountersS[i], 1.0*CountersS[i]/Counters[i] );
     }
 
-    printf( "Subgraphs tried                             = %8d. (%6.2f %%)\n", p->nTried,        !p->nTried? 0 : 100.0*p->nTried/p->nTried );
-    printf( "Subgraphs filtered by support size          = %8d. (%6.2f %%)\n", p->nFilterSize,   !p->nTried? 0 : 100.0*p->nFilterSize/p->nTried );
-    printf( "Subgraphs filtered by structural redundancy = %8d. (%6.2f %%)\n", p->nFilterRedund, !p->nTried? 0 : 100.0*p->nFilterRedund/p->nTried );
-    printf( "Subgraphs filtered by volume                = %8d. (%6.2f %%)\n", p->nFilterVolume, !p->nTried? 0 : 100.0*p->nFilterVolume/p->nTried );
-    printf( "Subgraphs filtered by TT redundancy         = %8d. (%6.2f %%)\n", p->nFilterTruth,  !p->nTried? 0 : 100.0*p->nFilterTruth/p->nTried );
-    printf( "Subgraphs filtered by error                 = %8d. (%6.2f %%)\n", p->nFilterError,  !p->nTried? 0 : 100.0*p->nFilterError/p->nTried );
-    printf( "Subgraphs filtered by isomorphism           = %8d. (%6.2f %%)\n", p->nFilterSame,   !p->nTried? 0 : 100.0*p->nFilterSame/p->nTried );
-    printf( "Subgraphs added                             = %8d. (%6.2f %%)\n", p->nAdded,        !p->nTried? 0 : 100.0*p->nAdded/p->nTried );
-    printf( "Functions added                             = %8d. (%6.2f %%)\n", p->nAddedFuncs,   !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
+    printf( "Subgraphs tried                             = %10d. (%6.2f %%)\n", p->nTried,        !p->nTried? 0 : 100.0*p->nTried/p->nTried );
+    printf( "Subgraphs filtered by support size          = %10d. (%6.2f %%)\n", p->nFilterSize,   !p->nTried? 0 : 100.0*p->nFilterSize/p->nTried );
+    printf( "Subgraphs filtered by structural redundancy = %10d. (%6.2f %%)\n", p->nFilterRedund, !p->nTried? 0 : 100.0*p->nFilterRedund/p->nTried );
+    printf( "Subgraphs filtered by volume                = %10d. (%6.2f %%)\n", p->nFilterVolume, !p->nTried? 0 : 100.0*p->nFilterVolume/p->nTried );
+    printf( "Subgraphs filtered by TT redundancy         = %10d. (%6.2f %%)\n", p->nFilterTruth,  !p->nTried? 0 : 100.0*p->nFilterTruth/p->nTried );
+    printf( "Subgraphs filtered by error                 = %10d. (%6.2f %%)\n", p->nFilterError,  !p->nTried? 0 : 100.0*p->nFilterError/p->nTried );
+    printf( "Subgraphs filtered by isomorphism           = %10d. (%6.2f %%)\n", p->nFilterSame,   !p->nTried? 0 : 100.0*p->nFilterSame/p->nTried );
+    printf( "Subgraphs added                             = %10d. (%6.2f %%)\n", p->nAdded,        !p->nTried? 0 : 100.0*p->nAdded/p->nTried );
+    printf( "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,   !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
 
     p->timeOther = p->timeTotal - p->timeCollect - p->timeTruth - p->timeCanon;
     ABC_PRTP( "Collecting nodes ", p->timeCollect, p->timeTotal );
