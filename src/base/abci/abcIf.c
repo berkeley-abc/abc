@@ -404,7 +404,7 @@ Hop_Obj_t * Abc_NodeTruthToHop( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pCut 
     Vec_Wrd_t * vArray;
     vArray  = If_CutDelaySopArray( p, pCut );
     pResult = Abc_NodeTruthToHopInt( pMan, vArray, If_CutLeaveNum(pCut) );
-    Vec_WrdFree( vArray );
+//    Vec_WrdFree( vArray );
     return pResult;
 }
 

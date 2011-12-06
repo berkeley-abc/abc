@@ -149,6 +149,10 @@ void If_ManStop( If_Man_t * p )
     Vec_PtrFree( p->vObjs );
 //    Vec_PtrFree( p->vMapped );
     Vec_PtrFree( p->vTemp );
+    Vec_IntFreeP( &p->vCover );
+    Vec_WrdFreeP( &p->vAnds );
+    Vec_WrdFreeP( &p->vAndGate );
+    Vec_WrdFreeP( &p->vOrGate );
     if ( p->vObjsRev )    Vec_PtrFree( p->vObjsRev );
     if ( p->vLatchOrder ) Vec_PtrFree( p->vLatchOrder );
     if ( p->vLags )       Vec_IntFree( p->vLags );

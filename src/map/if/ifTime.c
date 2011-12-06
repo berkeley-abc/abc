@@ -166,35 +166,34 @@ If_And_t If_CutDelaySopCube( Vec_Wrd_t * vCube, Vec_Wrd_t * vAnds, int fOrGate )
 ***********************************************************************/
 Vec_Wrd_t * If_CutDelaySopAnds( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCover, int fCompl )
 {
-    Vec_Wrd_t * vAnds, * vAndGate, * vOrGate;
     If_Obj_t * pLeaf;
     If_And_t Leaf;
     int i, k, Entry, Literal;
-    vAnds = Vec_WrdAlloc( 32 );
+    Vec_WrdClear( p->vAnds );
     if ( Vec_IntSize(vCover) == 0 ) // const 0
     {
         assert( fCompl == 0 );
-        return vAnds; 
+        return p->vAnds; 
     }
     if ( Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover, 0) == 0 ) // const 1
     {
         assert( fCompl == 0 );
-        Vec_WrdPush( vAnds, 0 );
-        return vAnds;
+        Vec_WrdPush( p->vAnds, 0 );
+        return p->vAnds;
     }
     If_CutForEachLeaf( p, pCut, pLeaf, k )
     {
         If_AndClear( &Leaf );
         Leaf.Id     = k;
         Leaf.Delay  = (int)If_ObjCutBest(pLeaf)->Delay; 
-        Vec_WrdPush( vAnds, If_AndToWrd(Leaf) );
+        Vec_WrdPush( p->vAnds, If_AndToWrd(Leaf) );
     }
     // iterate through the cubes
-    vOrGate = Vec_WrdAlloc( 16 );
-    vAndGate = Vec_WrdAlloc( 16 );
+    Vec_WrdClear( p->vOrGate );
+    Vec_WrdClear( p->vAndGate );
     Vec_IntForEachEntry( vCover, Entry, i )
     { 
-        Vec_WrdClear( vAndGate );
+        Vec_WrdClear( p->vAndGate );
         If_CutForEachLeaf( p, pCut, pLeaf, k )
         {
             Literal = 3 & (Entry >> (k << 1));
@@ -204,39 +203,37 @@ Vec_Wrd_t * If_CutDelaySopAnds( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCove
                 Leaf.fCompl = 1;
                 Leaf.Id     = k;
                 Leaf.Delay  = (int)If_ObjCutBest(pLeaf)->Delay; 
-                If_AndInsertSorted( vAndGate, Leaf );
+                If_AndInsertSorted( p->vAndGate, Leaf );
             }
             else if ( Literal == 2 ) // pos literal
             {
                 If_AndClear( &Leaf );
                 Leaf.Id     = k;
                 Leaf.Delay  = (int)If_ObjCutBest(pLeaf)->Delay; 
-                If_AndInsertSorted( vAndGate, Leaf );
+                If_AndInsertSorted( p->vAndGate, Leaf );
             }
             else if ( Literal != 0 ) 
                 assert( 0 );
         }
-        Leaf = If_CutDelaySopCube( vAndGate, vAnds, 0 );
-        If_AndInsertSorted( vOrGate, Leaf );
+        Leaf = If_CutDelaySopCube( p->vAndGate, p->vAnds, 0 );
+        If_AndInsertSorted( p->vOrGate, Leaf );
     }
-    Leaf = If_CutDelaySopCube( vOrGate, vAnds, 1 );
-    Vec_WrdFree( vAndGate );
-    Vec_WrdFree( vOrGate );
-    if ( Vec_WrdSize(vAnds) == (int)pCut->nLeaves )
+    Leaf = If_CutDelaySopCube( p->vOrGate, p->vAnds, 1 );
+    if ( Vec_WrdSize(p->vAnds) == (int)pCut->nLeaves )
     {
 //        Extra_PrintBinary( stdout, If_CutTruth(pCut), 32 ); printf( "\n" );
         assert( Leaf.Id < pCut->nLeaves );
         Leaf.iFan0 = Leaf.iFan1 = Leaf.Id;
-        Leaf.Id    = Vec_WrdSize(vAnds);
-        Vec_WrdPush( vAnds, If_AndToWrd(Leaf) );
+        Leaf.Id    = Vec_WrdSize(p->vAnds);
+        Vec_WrdPush( p->vAnds, If_AndToWrd(Leaf) );
     }
     if ( fCompl )
     {
-        Leaf = If_WrdToAnd( Vec_WrdPop(vAnds) );
+        Leaf = If_WrdToAnd( Vec_WrdPop(p->vAnds) );
         Leaf.fCompl ^= 1;
-        Vec_WrdPush( vAnds, If_AndToWrd(Leaf) );
+        Vec_WrdPush( p->vAnds, If_AndToWrd(Leaf) );
     }
-    return vAnds;
+    return p->vAnds;
 }
 
 /**Function*************************************************************
@@ -252,18 +249,21 @@ Vec_Wrd_t * If_CutDelaySopAnds( If_Man_t * p, If_Cut_t * pCut, Vec_Int_t * vCove
 ***********************************************************************/
 Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
 {
-    Vec_Int_t * vCover;
     Vec_Wrd_t * vAnds;
     int RetValue;
-    vCover = Vec_IntAlloc(0);
-    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), vCover, 1 );
-    if ( RetValue == -1 )
+    if ( p->vCover == NULL )
     {
-        Vec_IntFree( vCover );
-        return NULL;
+        p->vCover   = Vec_IntAlloc(0);
+        p->vAnds    = Vec_WrdAlloc(100);
+        p->vAndGate = Vec_WrdAlloc(100);
+        p->vOrGate  = Vec_WrdAlloc(100);
+
     }
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), p->vCover, 1 );
+    if ( RetValue == -1 )
+        return NULL;
     assert( RetValue == 0 || RetValue == 1 );
-    vAnds = If_CutDelaySopAnds( p, pCut, vCover, RetValue ^ pCut->fCompl );
+    vAnds = If_CutDelaySopAnds( p, pCut, p->vCover, RetValue ^ pCut->fCompl );
 /*
     if ( pCut->nLeaves <= 5 )
     {
@@ -289,7 +289,6 @@ Vec_Wrd_t * If_CutDelaySopArray( If_Man_t * p, If_Cut_t * pCut )
 //            printf( "Verification passed for %d vars.\n", pCut->nLeaves );
     }
 */
-    Vec_IntFree( vCover );
     return vAnds;
 }
 
@@ -386,7 +385,6 @@ int If_CutDelaySopCost( If_Man_t * p, If_Cut_t * pCut )
         Delay = If_CutDelayLeafDepth( vAnds, i );
         pCut->pPerm[i] = (char)(Delay == -IF_BIG_CHAR ? IF_BIG_CHAR : Delay);
     }
-//    Vec_WrdFree( vAnds );
     // verify the delay
 //    Delay = If_CutDelay( p, pObj, pCut );
 //    assert( (int)Leaf.Delay == Delay );

@@ -165,6 +165,11 @@ struct If_Man_t_
     int                nChoices;      // the number of choice nodes
     Vec_Int_t *        vSwitching;    // switching activity of each node
     Vec_Int_t **       pDriverCuts;   // temporary driver cuts
+    // SOP balancing
+    Vec_Int_t *        vCover;        // used to compute ISOP
+    Vec_Wrd_t *        vAnds;         // intermediate storage
+    Vec_Wrd_t *        vOrGate;       // intermediate storage
+    Vec_Wrd_t *        vAndGate;      // intermediate storage
     // sequential mapping
     Vec_Ptr_t *        vLatchOrder;   // topological ordering of latches
     Vec_Int_t *        vLags;         // sequentail lags of all nodes
