@@ -86,12 +86,12 @@ struct varinfo_t
     unsigned val    :  2;  // variable value 
     unsigned pol    :  1;  // last polarity
     unsigned glo    :  1;  // global variable
-    unsigned tag    :  3;  // conflict analysis tags
-    unsigned lev    : 25;  // variable level
+    unsigned tag    :  4;  // conflict analysis tags
+    unsigned lev    : 24;  // variable level
 };
 
 int    var_is_global (sat_solver2* s, int v)            { return s->vi[v].glo; }
-void   var_set_global(sat_solver2* s, int v, int glo)   { s->vi[v].glo = glo;  }
+void   var_set_global(sat_solver2* s, int v, int glo)   { s->vi[v].glo = glo; if (glo) veci_push(&s->glob_vars, v); }
 
 static inline int     var_value     (sat_solver2* s, int v)            { return s->vi[v].val; }
 static inline int     var_polar     (sat_solver2* s, int v)            { return s->vi[v].pol; }
@@ -104,13 +104,13 @@ static inline void    var_set_level (sat_solver2* s, int v, int lev)   { s->vi[v
 // variable tags
 static inline int     var_tag       (sat_solver2* s, int v)            { return s->vi[v].tag; }
 static inline void    var_set_tag   (sat_solver2* s, int v, int tag)   { 
-    assert( tag > 0 && tag < 8 );
+    assert( tag > 0 && tag < 16 );
     if ( s->vi[v].tag == 0 )
         veci_push( &s->tagged, v );
     s->vi[v].tag = tag;                           
 }
 static inline void    var_add_tag   (sat_solver2* s, int v, int tag)   { 
-    assert( tag > 0 && tag < 8 );
+    assert( tag > 0 && tag < 16 );
     if ( s->vi[v].tag == 0 )
         veci_push( &s->tagged, v );
     s->vi[v].tag |= tag;                           
@@ -139,44 +139,30 @@ static inline void    solver2_clear_marks(sat_solver2* s)              {
     veci_resize(&s->mark_levels,0);
 }
 
-// other inlines
-//static inline int     var_reason    (sat_solver2* s, int v)            { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   } 
-//static inline int     lit_reason    (sat_solver2* s, int l)            { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; } 
-static inline int     var_reason    (sat_solver2* s, int v)            { return s->reasons[v]; } 
-static inline int     lit_reason    (sat_solver2* s, int l)            { return s->reasons[lit_var(l)]; } 
-
 //=================================================================================================
 // Clause datatype + minor functions:
 
-typedef struct satset_t satset;
-struct satset_t 
-{
-    unsigned learnt :  1;
-    unsigned mark   :  1;
-    unsigned partA  :  1;
-    unsigned nLits  : 29;
-    int      Id;
-    lit      pLits[0];
-};
+static inline satset* clause_read   (sat_solver2* s, cla h)      { return satset_read( &s->clauses, h );    }
+static inline cla     clause_handle (sat_solver2* s, satset* c)  { return satset_handle( &s->clauses, c );  }
+static inline int     clause_check  (sat_solver2* s, satset* c)  { return satset_check( &s->clauses, c );   }
+static inline int     clause_proofid(sat_solver2* s, satset* c)  { return c->learnt ? veci_begin(&s->claProofs)[c->Id]<<1 : (clause_handle(s,c)<<1) | 1;                   }
 
-static inline satset* get_clause    (sat_solver2* s, int c)      { return c ? (satset*)(veci_begin(&s->clauses) + c) : NULL;  }
-static inline cla     clause_id     (sat_solver2* s, satset* c)  { return (cla)((int *)c - veci_begin(&s->clauses));          }
-static inline int     clause_size   (int nLits)                  { return sizeof(satset)/4 + nLits;                           }
-static inline int     clause_proofid(sat_solver2* s, satset* c)  { return c->learnt ? veci_begin(&s->claProofs)[c->Id]<<1 : (clause_id(s,c)<<1) | 1;  }
-
-// these two only work after creating a clause before the solver is called
-int    clause_is_partA (sat_solver2* s, int cid)                 { return get_clause(s, cid)->partA;                          }  
-void   clause_set_partA(sat_solver2* s, int cid, int partA)      { get_clause(s, cid)->partA = partA;                         }
-
-//static inline satset* var_unit_clause(sat_solver2* s, int v)           { return (s->reasons[v]&1) ? get_clause(s, s->reasons[v] >> 1) : NULL;  } 
-//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(i && !s->reasons[v]); s->reasons[v] = (i << 1) | 1;            } 
-static inline satset* var_unit_clause(sat_solver2* s, int v)           { return get_clause(s, s->units[v]);                                           } 
+//static inline int     var_reason    (sat_solver2* s, int v)      { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   } 
+//static inline int     lit_reason    (sat_solver2* s, int l)      { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; } 
+//static inline satset* var_unit_clause(sat_solver2* s, int v)           { return (s->reasons[v]&1) ? clause_read(s, s->reasons[v] >> 1) : NULL;  } 
+//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(i && !s->reasons[v]); s->reasons[v] = (i << 1) | 1;             } 
+static inline int     var_reason    (sat_solver2* s, int v)      { return s->reasons[v];           } 
+static inline int     lit_reason    (sat_solver2* s, int l)      { return s->reasons[lit_var(l)];  } 
+static inline satset* var_unit_clause(sat_solver2* s, int v)           { return clause_read(s, s->units[v]);                                          } 
 static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; } 
 
-#define sat_solver_foreach_clause( s, c, i )  \
-    for ( i = 1; (i < s->nMemSize) && (((c) = get_clause(s, i)), 1); i += clause_size(c->nLits) )
-#define sat_solver_foreach_learnt( s, c, i )  \
-    for ( i = s->iFirstLearnt; (i < s->nMemSize) && (((c) = get_clause(s, i)), 1); i += clause_size(c->nLits) )
+// these two only work after creating a clause before the solver is called
+int    clause_is_partA (sat_solver2* s, int h)                   { return clause_read(s, h)->partA;         }  
+void   clause_set_partA(sat_solver2* s, int h, int partA)        { clause_read(s, h)->partA = partA;        }
+int    clause_id(sat_solver2* s, int h)                          { return clause_read(s, h)->Id;            }
+
+#define sat_solver_foreach_clause( s, c, h )  satset_foreach_entry( &s->clauses, c, h, 1 )
+#define sat_solver_foreach_learnt( s, c, h )  satset_foreach_entry( &s->clauses, c, h, s->iLearntFirst )
 
 //=================================================================================================
 // Simple helpers:
@@ -219,7 +205,7 @@ static inline int proof_chain_stop( sat_solver2* s )
         int RetValue = s->iStartChain;
         satset* c = (satset*)(veci_begin(&s->proof_clas) + s->iStartChain);
         assert( s->iStartChain > 0 && s->iStartChain < veci_size(&s->proof_clas) );
-        c->nLits = veci_size(&s->proof_clas) - s->iStartChain - 2;
+        c->nEnts = veci_size(&s->proof_clas) - s->iStartChain - 2;
         s->iStartChain = 0;
         return RetValue;
     }
@@ -396,11 +382,11 @@ static int clause_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proo
     assert(nLits < 1 || lit_var(begin[0]) < s->size);
     assert(nLits < 2 || lit_var(begin[1]) < s->size);
     // add memory if needed
-    if ( veci_size(&s->clauses) + clause_size(nLits) > s->clauses.cap )
+    if ( veci_size(&s->clauses) + satset_size(nLits) > s->clauses.cap )
     {
         int nMemAlloc = s->clauses.cap ? 2 * s->clauses.cap : (1 << 20);
         s->clauses.ptr = ABC_REALLOC( int, veci_begin(&s->clauses), nMemAlloc );
-        memset( veci_begin(&s->clauses) + s->clauses.cap, 0, sizeof(int) * (nMemAlloc - s->clauses.cap) );
+//        memset( veci_begin(&s->clauses) + s->clauses.cap, 0, sizeof(int) * (nMemAlloc - s->clauses.cap) );
 //        printf( "Reallocing from %d to %d...\n", s->clauses.cap, nMemAlloc );
         s->clauses.cap = nMemAlloc;
         if ( veci_size(&s->clauses) == 0 )
@@ -408,10 +394,11 @@ static int clause_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proo
     }
     // create clause
     c = (satset*)(veci_begin(&s->clauses) + veci_size(&s->clauses));
+    ((int*)c)[0] = 0;
     c->learnt = learnt;
-    c->nLits  = nLits;
+    c->nEnts  = nLits;
     for (i = 0; i < nLits; i++)
-        c->pLits[i] = begin[i];
+        c->pEnts[i] = begin[i];
     // assign clause ID
     if ( learnt )
     {
@@ -434,14 +421,14 @@ static int clause_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proo
 
     // extend storage
     Cid = veci_size(&s->clauses);
-    s->clauses.size += clause_size(nLits);
+    s->clauses.size += satset_size(nLits);
     assert( veci_size(&s->clauses) <= s->clauses.cap );
     assert(((ABC_PTRUINT_T)c & 3) == 0);
 
     // remember the last one and first learnt
-    s->fLastConfId = Cid;
-    if ( learnt && s->iFirstLearnt == -1 )
-        s->iFirstLearnt = Cid;
+    s->iLearntLast = Cid;
+    if ( learnt && s->iLearntFirst == -1 )
+        s->iLearntFirst = Cid;
 
     // watch the clause
     if ( nLits > 1 ){
@@ -614,9 +601,9 @@ static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
         return -1;
     proof_chain_start( s, conf );
     assert( veci_size(&s->tagged) == 0 );
-    for ( i = skip_first; i < (int)conf->nLits; i++ )
+    for ( i = skip_first; i < (int)conf->nEnts; i++ )
     {
-        x = lit_var(conf->pLits[i]);
+        x = lit_var(conf->pEnts[i]);
         if ( var_level(s,x) )
             var_set_tag(s, x, 1);
         else
@@ -627,11 +614,11 @@ static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
     for (i = s->qtail-1; i >= (veci_begin(&s->trail_lim))[0]; i--){
         x = lit_var(s->trail[i]);
         if (var_tag(s,x)){
-            satset* c = get_clause(s, var_reason(s,x));
+            satset* c = clause_read(s, var_reason(s,x));
             if (c){
                 proof_chain_resolve( s, c, x );
-                for (j = 1; j < (int)c->nLits; j++) {
-                    x = lit_var(c->pLits[j]);
+                for (j = 1; j < (int)c->nEnts; j++) {
+                    x = lit_var(c->pEnts[j]);
                     if ( var_level(s,x) )
                         var_set_tag(s, x, 1);
                     else
@@ -664,14 +651,14 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
         return (var_tag(s,v) & 4) > 0;
 
     // skip decisions on a wrong level
-    c = get_clause(s, var_reason(s,v));
+    c = clause_read(s, var_reason(s,v));
     if ( c == NULL ){
         var_add_tag(s,v,2);
         return 0;
     }
 
-    for ( i = 1; i < (int)c->nLits; i++ ){
-        x = lit_var(c->pLits[i]);
+    for ( i = 1; i < (int)c->nEnts; i++ ){
+        x = lit_var(c->pEnts[i]);
         if (var_tag(s,x) & 1)
             solver2_lit_removable_rec(s, x);
         else{
@@ -715,9 +702,9 @@ static int solver2_lit_removable(sat_solver2* s, int x)
             veci_push(&s->stack, x ^ 1 );
         }
         x >>= 1;
-        c = get_clause(s, var_reason(s,x));
-        for (i = 1; i < (int)c->nLits; i++){
-            x = lit_var(c->pLits[i]);
+        c = clause_read(s, var_reason(s,x));
+        for (i = 1; i < (int)c->nEnts; i++){
+            x = lit_var(c->pEnts[i]);
             if (var_tag(s,x) || !var_level(s,x))
                 continue;
             if (!var_reason(s,x) || !var_lev_mark(s,x)){
@@ -749,17 +736,33 @@ static void solver2_logging_order(sat_solver2* s, int x)
         }
         veci_push(&s->stack, x ^ 1 );
         x >>= 1;
-        c = get_clause(s, var_reason(s,x));
+        c = clause_read(s, var_reason(s,x));
 //        if ( !c )
 //            printf( "solver2_logging_order(): Error in conflict analysis!!!\n" );
-        for (i = 1; i < (int)c->nLits; i++){
-            x = lit_var(c->pLits[i]);
+        for (i = 1; i < (int)c->nEnts; i++){
+            x = lit_var(c->pEnts[i]);
             if ( !var_level(s,x) || (var_tag(s,x) & 1) )
                 continue;
             veci_push(&s->stack, x << 1);
             var_add_tag(s, x, 4);
         }
     }
+}
+
+static void solver2_logging_order_rec(sat_solver2* s, int x)
+{
+    satset* c;
+    int i, y;
+    if ( (var_tag(s,x) & 8) )
+        return;
+    c = clause_read(s, var_reason(s,x));
+    for (i = 1; i < (int)c->nEnts; i++){
+        y = lit_var(c->pEnts[i]);
+        if ( var_level(s,y) && (var_tag(s,y) & 1) == 0 )
+            solver2_logging_order_rec(s, y);
+    }
+    var_add_tag(s, x, 8);
+    veci_push(&s->min_step_order, x);
 }
 
 static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
@@ -780,8 +783,8 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
         assert(c != 0);
         if (c->learnt)
             act_clause_bump(s,c);
-        for ( j = (int)(p != lit_Undef); j < (int)c->nLits; j++){
-            x = lit_var(c->pLits[j]);
+        for ( j = (int)(p != lit_Undef); j < (int)c->nEnts; j++){
+            x = lit_var(c->pEnts[j]);
             assert(x >= 0 && x < s->size);
             if ( var_tag(s, x) )
                 continue;
@@ -795,13 +798,13 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
             if (var_level(s,x) == solver2_dlevel(s))
                 cnt++;
             else
-                veci_push(learnt,c->pLits[j]);
+                veci_push(learnt,c->pEnts[j]);
         }
 
         while (!var_tag(s, lit_var(s->trail[ind--])));
 
         p = s->trail[ind+1];
-        c = get_clause(s, lit_reason(s,p));
+        c = clause_read(s, lit_reason(s,p));
         cnt--;
         if ( cnt == 0 )
             break;
@@ -818,8 +821,8 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
     // simplify (full)
     veci_resize(&s->min_lit_order, 0);
     for (i = j = 1; i < veci_size(learnt); i++){
-//        if (!solver2_lit_removable_rec(s,lit_var(lits[i]))) // changed to vars!!!
-        if (!solver2_lit_removable( s,lit_var(lits[i])) )
+//        if (!solver2_lit_removable( s,lit_var(lits[i])) )
+        if (!solver2_lit_removable_rec(s,lit_var(lits[i]))) // changed to vars!!!
             lits[j++] = lits[i];
     } 
 
@@ -830,16 +833,17 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
         veci_resize(&s->min_step_order, 0);
         vars = veci_begin(&s->min_lit_order);
         for (i = 0; i < veci_size(&s->min_lit_order); i++)
-            solver2_logging_order( s, vars[i] );
+//            solver2_logging_order( s, vars[i] );
+            solver2_logging_order_rec( s, vars[i] );
 
         // add them in the reverse order
         vars = veci_begin(&s->min_step_order);
         for (i = veci_size(&s->min_step_order); i > 0; ) { i--;
-            c = get_clause(s, var_reason(s,vars[i]));
+            c = clause_read(s, var_reason(s,vars[i]));
             proof_chain_resolve( s, c, vars[i] );
-            for ( k = 1; k < (int)c->nLits; k++ )
+            for ( k = 1; k < (int)c->nEnts; k++ )
             {
-                x = lit_var(c->pLits[k]);
+                x = lit_var(c->pEnts[k]);
                 if ( var_level(s,x) == 0 )
                     proof_chain_resolve( s, NULL, x );
             }
@@ -908,8 +912,8 @@ satset* solver2_propagate(sat_solver2* s)
         s->simpdb_props--;
 
         for (i = j = begin; i < end; ){
-            c = get_clause(s,*i);
-            lits = c->pLits;
+            c = clause_read(s,*i);
+            lits = c->pEnts;
 
             // Make sure the false literal is data[1]:
             false_lit = lit_neg(p);
@@ -924,7 +928,7 @@ satset* solver2_propagate(sat_solver2* s)
                 *j++ = *i;
             else{
                 // Look for new watch:
-                stop = lits + c->nLits;
+                stop = lits + c->nEnts;
                 for (k = lits + 2; k < stop; k++){
                     if (var_value(s, lit_var(*k)) != !lit_sign(*k)){
                         lits[1] = *k;
@@ -939,9 +943,9 @@ satset* solver2_propagate(sat_solver2* s)
                     int fLitIsFalse = (var_value(s, Var) == !lit_sign(lits[0])); 
                     // Log production of top-level unit clause:
                     proof_chain_start( s, c );
-                    for ( k = 1; k < (int)c->nLits; k++ )
+                    for ( k = 1; k < (int)c->nEnts; k++ )
                     {
-                        int x = lit_var(c->pLits[k]);
+                        int x = lit_var(c->pEnts[k]);
                         assert( var_level(s, x) == 0 );
                         proof_chain_resolve( s, NULL, x );
                     }
@@ -955,7 +959,7 @@ satset* solver2_propagate(sat_solver2* s)
                         var_set_unit_clause(s, Var, Cid);
                     else{
                         // Empty clause derived:
-                        proof_chain_start( s, get_clause(s,Cid) );
+                        proof_chain_start( s, clause_read(s,Cid) );
                         proof_chain_resolve( s, NULL, Var );
                         proof_id = proof_chain_stop( s );
                         clause_new( s, lits, lits, 1, proof_id );
@@ -965,7 +969,7 @@ satset* solver2_propagate(sat_solver2* s)
                 *j++ = *i;
                 // Clause is unit under assignment:
                 if (!solver2_enqueue(s,lits[0], *i)){
-                    confl = get_clause(s,*i++);
+                    confl = clause_read(s,*i++);
                     // Copy the remaining watches:
                     while (i < end)
                         *j++ = *i++;
@@ -984,18 +988,18 @@ WatchFound: i++;
 
 static void clause_remove(sat_solver2* s, satset* c)
 {
-    assert(lit_neg(c->pLits[0]) < s->size*2);
-    assert(lit_neg(c->pLits[1]) < s->size*2);
+    assert(lit_neg(c->pEnts[0]) < s->size*2);
+    assert(lit_neg(c->pEnts[1]) < s->size*2);
 
-    veci_remove(solver2_wlist(s,lit_neg(c->pLits[0])),clause_id(s,c));
-    veci_remove(solver2_wlist(s,lit_neg(c->pLits[1])),clause_id(s,c));
+    veci_remove(solver2_wlist(s,lit_neg(c->pEnts[0])),clause_handle(s,c));
+    veci_remove(solver2_wlist(s,lit_neg(c->pEnts[1])),clause_handle(s,c));
 
     if (c->learnt){
         s->stats.learnts--;
-        s->stats.learnts_literals -= c->nLits;
+        s->stats.learnts_literals -= c->nEnts;
     }else{
         s->stats.clauses--;
-        s->stats.clauses_literals -= c->nLits;
+        s->stats.clauses_literals -= c->nEnts;
     }
 }
 
@@ -1004,8 +1008,8 @@ static lbool clause_simplify(sat_solver2* s, satset* c)
 {
     int i;
     assert(solver2_dlevel(s) == 0);
-    for (i = 0; i < (int)c->nLits; i++){
-        if (var_value(s, lit_var(c->pLits[i])) == lit_sign(c->pLits[i]))
+    for (i = 0; i < (int)c->nEnts; i++){
+        if (var_value(s, lit_var(c->pEnts[i])) == lit_sign(c->pEnts[i]))
             return l_True;
     }
     return l_False;
@@ -1026,8 +1030,8 @@ int sat_solver2_simplify(sat_solver2* s)
         int*  cls = (int*)veci_begin(cs);
         int i, j;
         for (j = i = 0; i < veci_size(cs); i++){
-            satset* c = get_clause(s,cls[i]);
-            if (lit_reason(s,c->pLits[0]) != cls[i] &&
+            satset* c = clause_read(s,cls[i]);
+            if (lit_reason(s,c->pEnts[0]) != cls[i] &&
                 clause_simplify(s,c) == l_True)
                 clause_remove(s,c), Counter++;
             else
@@ -1067,7 +1071,7 @@ void solver2_reducedb(sat_solver2* s)
         {
             assert( c->Id == k );
             c->mark = 0;
-            if ( c->nLits > 2 && lit_reason(s,c->pLits[0]) != Cid && (k < nLearnts/2 || pActs[k] < extra_lim) )
+            if ( c->nEnts > 2 && lit_reason(s,c->pEnts[0]) != Cid && (k < nLearnts/2 || pActs[k] < extra_lim) )
             {
                 c->mark = 1;
                 Counter++;
@@ -1216,14 +1220,15 @@ sat_solver2* sat_solver2_new(void)
     veci_new(&s->mark_levels);
     veci_new(&s->min_lit_order); 
     veci_new(&s->min_step_order);
+    veci_new(&s->glob_vars);
     veci_new(&s->proof_clas); veci_push(&s->proof_clas, -1);
     veci_new(&s->proof_vars); veci_push(&s->proof_vars, -1);
     veci_new(&s->claActs);    veci_push(&s->claActs,    -1);
     veci_new(&s->claProofs);  veci_push(&s->claProofs,  -1);
 
     // initialize other
-    s->iFirstLearnt           = -1; // the first learnt clause 
-    s->fLastConfId            = -1; // the last learnt clause 
+    s->iLearntFirst           = -1; // the first learnt clause 
+    s->iLearntLast            = -1; // the last learnt clause 
 #ifdef USE_FLOAT_ACTIVITY
     s->var_inc                = 1;
     s->cla_inc                = 1;
@@ -1245,9 +1250,9 @@ sat_solver2* sat_solver2_new(void)
     if ( s->fProofLogging )
     {
         s->proof_clas.cap = (1 << 20);
-        s->proof_clas.ptr = ABC_ALLOC( int, s->proof_clas.cap );
+        s->proof_clas.ptr = ABC_REALLOC( int, s->proof_clas.ptr, s->proof_clas.cap );
         s->proof_vars.cap = (1 << 20);
-        s->proof_vars.ptr = ABC_ALLOC( int, s->proof_clas.cap );
+        s->proof_vars.ptr = ABC_REALLOC( int, s->proof_vars.ptr, s->proof_clas.cap );
     }
     return s;
 }
@@ -1294,9 +1299,18 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 
 void sat_solver2_delete(sat_solver2* s)
 {
+    satset * c = clause_read(s, s->iLearntLast);
     // report statistics
     assert( veci_size(&s->proof_clas) == veci_size(&s->proof_vars) );
     printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 8.0 * veci_size(&s->proof_clas) / (1<<20), s->nUnits );
+
+    Sat_ProofTest( 
+        &s->clauses,      // clauses
+        &s->proof_clas,   // proof clauses
+        &s->proof_vars,   // proof variables
+        NULL,             // proof roots
+        veci_begin(&s->claProofs)[c->Id],  // one root
+        &s->glob_vars );  // global variables (for interpolation)
 
     // delete vectors
     veci_delete(&s->order);
@@ -1309,6 +1323,7 @@ void sat_solver2_delete(sat_solver2* s)
     veci_delete(&s->mark_levels);
     veci_delete(&s->min_lit_order);
     veci_delete(&s->min_step_order);
+    veci_delete(&s->glob_vars);
     veci_delete(&s->proof_clas);
     veci_delete(&s->proof_vars);
     veci_delete(&s->claActs);
@@ -1320,7 +1335,10 @@ void sat_solver2_delete(sat_solver2* s)
         int i;
         if ( s->wlists )
             for (i = 0; i < s->size*2; i++)
+            {
+//                printf( "%d ", s->wlists[i].size );
                 veci_delete(&s->wlists[i]);
+            }
         ABC_FREE(s->wlists   );
         ABC_FREE(s->vi       );
         ABC_FREE(s->trail    );
@@ -1461,7 +1479,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
 //    lbool*  values        = s->assigns;
     lit*    i;
 
-    s->fLastConfId = -1;
+    s->iLearntLast = -1;
 
     // set the external limits
 //    s->nCalls++;
@@ -1542,7 +1560,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         veci_push(&s->trail_lim,s->qtail);
         if (!solver2_enqueue(s,p,0))
         {
-            satset* r = get_clause(s, lit_reason(s,p));
+            satset* r = clause_read(s, lit_reason(s,p));
             if (r != NULL)
             {
                 satset* confl = r;

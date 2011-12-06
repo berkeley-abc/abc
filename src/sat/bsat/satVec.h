@@ -29,15 +29,15 @@ ABC_NAMESPACE_HEADER_START
 
 // vector of 32-bit intergers (added for 64-bit portability)
 struct veci_t {
-    int    size;
     int    cap;
+    int    size;
     int*   ptr;
 };
 typedef struct veci_t veci;
 
 static inline void veci_new (veci* v) {
-    v->size = 0;
     v->cap  = 4;
+    v->size = 0;
     v->ptr  = (int*)ABC_ALLOC( char, sizeof(int)*v->cap);
 }
 
@@ -68,8 +68,8 @@ static inline void   veci_remove(veci* v, int e)
 
 // vector of 32- or 64-bit pointers
 struct vecp_t {
-    int    size;
     int    cap;
+    int    size;
     void** ptr;
 };
 typedef struct vecp_t vecp;
