@@ -85,13 +85,13 @@ struct varinfo_t
 {
     unsigned val    :  2;  // variable value 
     unsigned pol    :  1;  // last polarity
-    unsigned glo    :  1;  // global variable
+    unsigned partA  :  1;  // partA variable
     unsigned tag    :  4;  // conflict analysis tags
     unsigned lev    : 24;  // variable level
 };
 
-int    var_is_global (sat_solver2* s, int v)            { return s->vi[v].glo; }
-void   var_set_global(sat_solver2* s, int v, int glo)   { s->vi[v].glo = glo; if (glo) veci_push(&s->glob_vars, v); }
+int    var_is_partA (sat_solver2* s, int v)              { return s->vi[v].partA;  }
+void   var_set_partA(sat_solver2* s, int v, int partA)   { s->vi[v].partA = partA; }
 
 static inline int     var_value     (sat_solver2* s, int v)            { return s->vi[v].val; }
 static inline int     var_polar     (sat_solver2* s, int v)            { return s->vi[v].pol; }
@@ -145,7 +145,7 @@ static inline void    solver2_clear_marks(sat_solver2* s)              {
 static inline satset* clause_read   (sat_solver2* s, cla h)      { return satset_read( &s->clauses, h );    }
 static inline cla     clause_handle (sat_solver2* s, satset* c)  { return satset_handle( &s->clauses, c );  }
 static inline int     clause_check  (sat_solver2* s, satset* c)  { return satset_check( &s->clauses, c );   }
-static inline int     clause_proofid(sat_solver2* s, satset* c)  { return c->learnt ? veci_begin(&s->claProofs)[c->Id]<<1 : (clause_handle(s,c)<<1) | 1;                   }
+static inline int     clause_proofid(sat_solver2* s, satset* c, int partA)  { return c->learnt ? (veci_begin(&s->claProofs)[c->Id]<<2) | (partA<<1) : (clause_handle(s,c)<<2) | 1; }
 
 //static inline int     var_reason    (sat_solver2* s, int v)      { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   } 
 //static inline int     lit_reason    (sat_solver2* s, int l)      { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; } 
@@ -180,10 +180,7 @@ static inline void proof_chain_start( sat_solver2* s, satset* c )
         s->iStartChain = veci_size(&s->proof_clas);
         veci_push(&s->proof_clas, 0);
         veci_push(&s->proof_clas, 0);
-        veci_push(&s->proof_clas, clause_proofid(s, c) );
-        veci_push(&s->proof_vars, 0);
-        veci_push(&s->proof_vars, 0);
-        veci_push(&s->proof_vars, 0);
+        veci_push(&s->proof_clas, clause_proofid(s, c, 0) );
     }
 }
 
@@ -192,8 +189,7 @@ static inline void proof_chain_resolve( sat_solver2* s, satset* cls, int Var )
     if ( s->fProofLogging )
     {
         satset* c = cls ? cls : var_unit_clause( s, Var );
-        veci_push(&s->proof_clas, clause_proofid(s, c) );
-        veci_push(&s->proof_vars, Var);
+        veci_push(&s->proof_clas, clause_proofid(s, c, var_is_partA(s,Var)) );
 //        printf( "%d %d  ", clause_proofid(s, c), Var );
     }
 }
@@ -1225,9 +1221,7 @@ sat_solver2* sat_solver2_new(void)
     veci_new(&s->mark_levels);
     veci_new(&s->min_lit_order); 
     veci_new(&s->min_step_order);
-    veci_new(&s->glob_vars);
     veci_new(&s->proof_clas); veci_push(&s->proof_clas, -1);
-    veci_new(&s->proof_vars); veci_push(&s->proof_vars, -1);
     veci_new(&s->claActs);    veci_push(&s->claActs,    -1);
     veci_new(&s->claProofs);  veci_push(&s->claProofs,  -1);
 
@@ -1256,8 +1250,6 @@ sat_solver2* sat_solver2_new(void)
     {
         s->proof_clas.cap = (1 << 20);
         s->proof_clas.ptr = ABC_REALLOC( int, s->proof_clas.ptr, s->proof_clas.cap );
-        s->proof_vars.cap = (1 << 20);
-        s->proof_vars.ptr = ABC_REALLOC( int, s->proof_vars.ptr, s->proof_clas.cap );
     }
     return s;
 }
@@ -1306,16 +1298,14 @@ void sat_solver2_delete(sat_solver2* s)
 {
     satset * c = clause_read(s, s->iLearntLast);
     // report statistics
-    assert( veci_size(&s->proof_clas) == veci_size(&s->proof_vars) );
-    printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 8.0 * veci_size(&s->proof_clas) / (1<<20), s->nUnits );
+    printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 2.0 * veci_size(&s->proof_clas) / (1<<20), s->nUnits );
 
     Sat_ProofTest( 
         &s->clauses,      // clauses
         &s->proof_clas,   // proof clauses
-        &s->proof_vars,   // proof variables
         NULL,             // proof roots
-        veci_begin(&s->claProofs)[c->Id],  // one root
-        &s->glob_vars );  // global variables (for interpolation)
+        veci_begin(&s->claProofs)[c->Id]  // one root
+         );  
 
     // delete vectors
     veci_delete(&s->order);
@@ -1328,9 +1318,7 @@ void sat_solver2_delete(sat_solver2* s)
     veci_delete(&s->mark_levels);
     veci_delete(&s->min_lit_order);
     veci_delete(&s->min_step_order);
-    veci_delete(&s->glob_vars);
     veci_delete(&s->proof_clas);
-    veci_delete(&s->proof_vars);
     veci_delete(&s->claActs);
     veci_delete(&s->claProofs);
     veci_delete(&s->clauses);

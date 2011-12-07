@@ -68,8 +68,8 @@ extern void         sat_solver2_store_mark_clauses_a( sat_solver2 * s );
 extern void *       sat_solver2_store_release( sat_solver2 * s ); 
 
 // global variables
-extern int          var_is_global (sat_solver2* s, int v);
-extern void         var_set_global(sat_solver2* s, int v, int glo);
+extern int          var_is_partA (sat_solver2* s, int v);
+extern void         var_set_partA(sat_solver2* s, int v, int partA);
 // clause grouping (these two only work after creating a clause before the solver is called)
 extern int          clause_is_partA (sat_solver2* s, int handle);
 extern void         clause_set_partA(sat_solver2* s, int handle, int partA);
@@ -143,7 +143,6 @@ struct sat_solver2_t
 
     // proof logging
     veci            proof_clas;     // sequence of proof clauses
-    veci            proof_vars;     // sequence of proof variables 
     int             iStartChain;    // temporary variable to remember beginning of the current chain in proof logging
     int             nUnits;         // the total number of unit clauses
 
@@ -177,9 +176,13 @@ static inline void    satset_print  (satset * c)          {
     printf( "}\n" );
 }
 
-
 #define satset_foreach_entry( p, c, h, s )  \
     for ( h = s; (h < veci_size(p)) && (((c) = satset_read(p, h)), 1); h += satset_size(c->nEnts) )
+#define satset_foreach_var( p, var, i )        \
+    for ( i = 0; (i < (int)(p)->nEnts) && ((var) = lit_var((p)->pEnts[i])); i++ )
+#define satset_foreach_lit( p, lit, i )        \
+    for ( i = 0; (i < (int)(p)->nEnts) && ((lit) = (p)->pEnts[i]); i++ )
+
 
 //=================================================================================================
 // Public APIs:
@@ -245,7 +248,7 @@ static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
     return fNotUseRandomOld;
 }
 
-extern void Sat_ProofTest( veci * pClauses, veci * pProof, veci * pVars, veci * pRoots, int hRoot, veci * pGlobVars );
+extern void Sat_ProofTest( veci * pClauses, veci * pProof, veci * pRoots, int hRoot );
 
 ABC_NAMESPACE_HEADER_END
 
