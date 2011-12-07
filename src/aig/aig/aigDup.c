@@ -1313,7 +1313,7 @@ Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
     int i, k;
     if ( Vec_PtrSize(vArray) == 0 )
         return NULL;
-    p = Vec_PtrEntry( vArray, 0 );
+    p = (Aig_Man_t *)Vec_PtrEntry( vArray, 0 );
     Vec_PtrForEachEntry( Aig_Man_t *, vArray, pNew, k )
     {
         assert( Aig_ManRegNum(pNew) == 0 );

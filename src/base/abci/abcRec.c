@@ -199,7 +199,7 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts )
     p->vTtElems = Vec_PtrAlloc( 0 ); assert( p->vTtElems->pArray == NULL );
     p->vTtElems->nSize = p->nVars;
     p->vTtElems->nCap = p->nVars;
-    p->vTtElems->pArray = (void *)Extra_TruthElementary( p->nVars );        
+    p->vTtElems->pArray = (void **)Extra_TruthElementary( p->nVars );        
 
     // allocate room for node truth tables
     if ( Abc_NtkObjNum(pNtk) > (1<<14) )
@@ -213,9 +213,9 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts )
     memset( p->pBins, 0, sizeof(Abc_Obj_t *) * p->nBins );
 
     // set elementary tables
-    Kit_TruthFill( Vec_PtrEntry(p->vTtNodes, 0), p->nVars );
+    Kit_TruthFill( (unsigned *)Vec_PtrEntry(p->vTtNodes, 0), p->nVars );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Kit_TruthCopy( Vec_PtrEntry(p->vTtNodes, pObj->Id), Vec_PtrEntry(p->vTtElems, i), p->nVars );
+        Kit_TruthCopy( (unsigned *)Vec_PtrEntry(p->vTtNodes, pObj->Id), (unsigned *)Vec_PtrEntry(p->vTtElems, i), p->nVars );
 
     // compute the tables
 clk = clock();
@@ -233,7 +233,7 @@ p->timeTruth += clock() - clk;
         p->nAdded++;
 
         pObj = Abc_ObjFanin0(pObj);
-        pTruth = Vec_PtrEntry( p->vTtNodes, pObj->Id );
+        pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, pObj->Id );
 
         // add the resulting truth table to the hash table 
         ppSpot = Abc_NtkRecTableLookup( p, pTruth, p->nVars );
@@ -461,7 +461,7 @@ Abc_Obj_t ** Abc_NtkRecTableLookup( Abc_ManRec_t * p, unsigned * pTruth, int nVa
     Abc_Obj_t ** ppSpot, * pEntry;
     ppSpot = p->pBins + Abc_NtkRecTableHash( pTruth, nVars, p->nBins, s_Primes );
     for ( pEntry = *ppSpot; pEntry; ppSpot = &pEntry->pCopy, pEntry = pEntry->pCopy )
-        if ( Kit_TruthIsEqualWithPhase(Vec_PtrEntry(p->vTtNodes, pEntry->Id), pTruth, nVars) )
+        if ( Kit_TruthIsEqualWithPhase((unsigned *)Vec_PtrEntry(p->vTtNodes, pEntry->Id), pTruth, nVars) )
             return ppSpot;
     return ppSpot;
 }
@@ -482,9 +482,9 @@ int Abc_NtkRecComputeTruth( Abc_Obj_t * pObj, Vec_Ptr_t * vTtNodes, int nVars )
     unsigned * pTruth, * pTruth0, * pTruth1;
     int RetValue;
     assert( Abc_ObjIsNode(pObj) );
-    pTruth  = Vec_PtrEntry( vTtNodes, pObj->Id );
-    pTruth0 = Vec_PtrEntry( vTtNodes, Abc_ObjFaninId0(pObj) );
-    pTruth1 = Vec_PtrEntry( vTtNodes, Abc_ObjFaninId1(pObj) );
+    pTruth  = (unsigned *)Vec_PtrEntry( vTtNodes, pObj->Id );
+    pTruth0 = (unsigned *)Vec_PtrEntry( vTtNodes, Abc_ObjFaninId0(pObj) );
+    pTruth1 = (unsigned *)Vec_PtrEntry( vTtNodes, Abc_ObjFaninId1(pObj) );
     Kit_TruthAndPhase( pTruth, pTruth0, pTruth1, nVars, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     assert( (pTruth[0] & 1) == pObj->fPhase );
     RetValue = ((pTruth[0] & 1) == pObj->fPhase);
@@ -667,7 +667,7 @@ int Abc_NtkRecCutTruth( Vec_Ptr_t * vNodes, int nLeaves, Vec_Ptr_t * vTtTemps, V
         pSims = (unsigned *)pObj->pCopy;
         if ( i < nLeaves )
         {
-            Kit_TruthCopy( pSims, Vec_PtrEntry(vTtElems, i), nInputs );
+            Kit_TruthCopy( pSims, (unsigned *)Vec_PtrEntry(vTtElems, i), nInputs );
             continue;
         }
         assert( If_ObjIsAnd(pObj) );
@@ -679,7 +679,7 @@ int Abc_NtkRecCutTruth( Vec_Ptr_t * vNodes, int nLeaves, Vec_Ptr_t * vTtTemps, V
     }
 
     // check the support size
-    pRoot = Vec_PtrEntryLast( vNodes );
+    pRoot = (If_Obj_t *)Vec_PtrEntryLast( vNodes );
     pSims = (unsigned *)pRoot->pCopy;
     if ( Kit_TruthSupport(pSims, nInputs) != Kit_BitMask(nLeaves) )
         return 0;
@@ -867,11 +867,11 @@ s_pMan->timeCanon += clock() - clk;
     nNodesBeg = Abc_NtkObjNumMax( pAig );
     Vec_PtrForEachEntryStart( If_Obj_t *, vNodes, pIfObj, i, nLeaves )
     {
-        pFanin0 = Abc_ObjNotCond( If_ObjFanin0(pIfObj)->pCopy, If_ObjFaninC0(pIfObj) );
-        pFanin1 = Abc_ObjNotCond( If_ObjFanin1(pIfObj)->pCopy, If_ObjFaninC1(pIfObj) );
+        pFanin0 = Abc_ObjNotCond( (Abc_Obj_t *)If_ObjFanin0(pIfObj)->pCopy, If_ObjFaninC0(pIfObj) );
+        pFanin1 = Abc_ObjNotCond( (Abc_Obj_t *)If_ObjFanin1(pIfObj)->pCopy, If_ObjFaninC1(pIfObj) );
 
         nNodes = Abc_NtkObjNumMax( pAig );
-        pObj = Abc_AigAnd( pAig->pManFunc, pFanin0, pFanin1 );
+        pObj = Abc_AigAnd( (Abc_Aig_t *)pAig->pManFunc, pFanin0, pFanin1 );
         assert( !Abc_ObjIsComplement(pObj) );
         pIfObj->pCopy = pObj;
 
@@ -892,7 +892,7 @@ s_pMan->timeCanon += clock() - clk;
     }
 
     assert(pObj);
-    pTruth = Vec_PtrEntry( s_pMan->vTtNodes, pObj->Id );
+    pTruth = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, pObj->Id );
     if ( Kit_TruthSupport(pTruth, nInputs) != Kit_BitMask(nLeaves) )
     {
         s_pMan->nFilterError++;
@@ -971,7 +971,7 @@ Abc_Obj_t * Abc_NtkRecStrashNodeLabel_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj
     assert( !Abc_ObjIsComplement(pObj) );
     // if this node is already visited, skip
     if ( Abc_NodeIsTravIdCurrent( pObj ) )
-        return Vec_PtrEntry( vLabels, pObj->Id );
+        return (Abc_Obj_t *)Vec_PtrEntry( vLabels, pObj->Id );
     assert( Abc_ObjIsNode(pObj) );
     // mark the node as visited
     Abc_NodeSetTravIdCurrent( pObj );
@@ -985,9 +985,9 @@ Abc_Obj_t * Abc_NtkRecStrashNodeLabel_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj
         pFanin0New = Abc_ObjNotCond( pFanin0New, Abc_ObjFaninC0(pObj) );
         pFanin1New = Abc_ObjNotCond( pFanin1New, Abc_ObjFaninC1(pObj) );
         if ( fBuild )
-            pLabel = Abc_AigAnd( pNtkNew->pManFunc, pFanin0New, pFanin1New );
+            pLabel = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, pFanin0New, pFanin1New );
         else
-            pLabel = Abc_AigAndLookup( pNtkNew->pManFunc, pFanin0New, pFanin1New );
+            pLabel = Abc_AigAndLookup( (Abc_Aig_t *)pNtkNew->pManFunc, pFanin0New, pFanin1New );
     }
     Vec_PtrWriteEntry( vLabels, pObj->Id, pLabel );
     return pLabel;
@@ -1074,7 +1074,7 @@ int Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTru
     s_pMan->nFunsFound++;        
 
     // make sure the truth table is the same
-    pTruthRec = Vec_PtrEntry( s_pMan->vTtNodes, (*ppSpot)->Id );
+    pTruthRec = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, (*ppSpot)->Id );
     if ( !Kit_TruthIsEqualWithPhase( pTruthRec, pInOut, nVars ) )
     {
         assert( 0 );

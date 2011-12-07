@@ -459,9 +459,9 @@ Vec_Int_t * Sat_ProofCore( Vec_Int_t * vProof, int nRoots, Vec_Int_t * vRoots )
     {
         pNode->Id = 0;
         for ( pBeg = pNode->pEnts; pBeg < pNode->pEnts + pNode->nEnts; pBeg++ )
-            if ( (*pBeg & 1) && !Aig_InfoHasBit(pBeg, *pBeg>>1) )
+            if ( (*pBeg & 1) && !Aig_InfoHasBit((unsigned *)pBeg, *pBeg>>1) )
             {
-                Aig_InfoSetBit( pBeg, *pBeg>>1 );
+                Aig_InfoSetBit( (unsigned *)pBeg, *pBeg>>1 );
                 Vec_IntPush( vCore, (*pBeg>>1)-1 );
             }
     }

@@ -378,7 +378,7 @@ Aig_Man_t * Saig_ManDupWithPhase( Aig_Man_t * pAig, Vec_Int_t * vInit )
         pObj->pData = Aig_ObjCreatePi( pAigNew );
     // update the flop variables
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_NotCond( pObj->pData, Vec_IntEntry(vInit, i) );
+        pObj->pData = Aig_NotCond( (Aig_Obj_t *)pObj->pData, Vec_IntEntry(vInit, i) );
     // add internal nodes of this frame
     Aig_ManForEachNode( pAig, pObj, i )
         pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );

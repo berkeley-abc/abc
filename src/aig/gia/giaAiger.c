@@ -374,42 +374,42 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
     // read the parameters (M I L O A + B C J F)
     pCur = (unsigned char *)pContents;         while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of objects
-    nTotal = atoi( pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
+    nTotal = atoi( (const char *)pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of inputs
-    nInputs = atoi( pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
+    nInputs = atoi( (const char *)pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of latches
-    nLatches = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
+    nLatches = atoi( (const char *)pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of outputs
-    nOutputs = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
+    nOutputs = atoi( (const char *)pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of nodes
-    nAnds = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+    nAnds = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
     if ( *pCur == ' ' )
     {
         assert( nOutputs == 0 );
         // read the number of properties
         pCur++;
-        nBad = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nBad = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nBad;
     }
     if ( *pCur == ' ' )
     {
         // read the number of properties
         pCur++;
-        nConstr = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nConstr = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nConstr;
     }
     if ( *pCur == ' ' )
     {
         // read the number of properties
         pCur++;
-        nJust = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nJust = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nJust;
     }
     if ( *pCur == ' ' )
     {
         // read the number of properties
         pCur++;
-        nFair = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nFair = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nFair;
     }
     if ( *pCur != '\n' )
@@ -644,42 +644,42 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     // read the parameters (M I L O A + B C J F)
     pCur = (unsigned char *)pContents;         while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of objects
-    nTotal = atoi( pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
+    nTotal = atoi( (const char *)pCur );    while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of inputs
-    nInputs = atoi( pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
+    nInputs = atoi( (const char *)pCur );   while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of latches
-    nLatches = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
+    nLatches = atoi( (const char *)pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of outputs
-    nOutputs = atoi( pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
+    nOutputs = atoi( (const char *)pCur );  while ( *pCur != ' ' ) pCur++; pCur++;
     // read the number of nodes
-    nAnds = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+    nAnds = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
     if ( *pCur == ' ' )
     {
         assert( nOutputs == 0 );
         // read the number of properties
         pCur++;
-        nBad = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nBad = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nBad;
     }
     if ( *pCur == ' ' )
     {
         // read the number of properties
         pCur++;
-        nConstr = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nConstr = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nConstr;
     }
     if ( *pCur == ' ' )
     {
         // read the number of properties
         pCur++;
-        nJust = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nJust = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nJust;
     }
     if ( *pCur == ' ' )
     {
         // read the number of properties
         pCur++;
-        nFair = atoi( pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
+        nFair = atoi( (const char *)pCur );     while ( *pCur != ' ' && *pCur != '\n' ) pCur++; 
         nOutputs += nFair;
     }
     if ( *pCur != '\n' )
