@@ -315,6 +315,7 @@ typedef struct DdCache {
 #ifdef DD_CACHE_PROFILE
     ptrint count;
 #endif
+    unsigned hash;
 } DdCache;
 
 typedef struct DdSubtable {     /* subtable for one index */
@@ -372,7 +373,8 @@ struct DdManager {      /* specialized DD symbol table */
                                 /* (measured w.r.t. slots, not keys) */
     unsigned int initSlots;     /* initial size of a subtable */
     DdNode **stack;             /* stack for iterative procedures */
-    double allocated;           /* number of nodes allocated */
+//    double allocated;           /* number of nodes allocated */
+    ABC_INT64_T allocated;      /* number of nodes allocated */
                                 /* (not during reordering) */
     double reclaimed;           /* number of nodes brought back from the dead */
     int isolated;               /* isolated projection functions */
@@ -699,6 +701,20 @@ typedef struct DdLevelQueue {
 
 /**Macro***********************************************************************
 
+  Synopsis    [Converts pointer into a literal.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+#define cuddF2L(f) ((Cudd_Regular(f)->Id << 1) | Cudd_IsComplement(f))
+
+
+/**Macro***********************************************************************
+
   Synopsis    [Hash function for the unique table.]
 
   Description []
@@ -729,6 +745,7 @@ typedef struct DdLevelQueue {
   SeeAlso     [ddHash ddCHash2]
 
 ******************************************************************************/
+/*
 #if SIZEOF_VOID_P == 8 && SIZEOF_INT == 4
 #define ddCHash(o,f,g,h,s) \
 ((((((unsigned)(ptruint)(f) + (unsigned)(ptruint)(o)) * DD_P1 + \
@@ -739,7 +756,7 @@ typedef struct DdLevelQueue {
 ((((((unsigned)(f) + (unsigned)(o)) * DD_P1 + (unsigned)(g)) * DD_P2 + \
    (unsigned)(h)) * DD_P3) >> (s))
 #endif
-
+*/
 
 /**Macro***********************************************************************
 
@@ -757,9 +774,14 @@ typedef struct DdLevelQueue {
 #define ddCHash2(o,f,g,s) \
 (((((unsigned)(ptruint)(f) + (unsigned)(ptruint)(o)) * DD_P1 + \
    (unsigned)(ptruint)(g)) * DD_P2) >> (s))
+#define ddCHash2_(o,f,g) \
+(((((unsigned)(ptruint)(f) + (unsigned)(ptruint)(o)) * DD_P1 + \
+   (unsigned)(ptruint)(g)) * DD_P2))
 #else
 #define ddCHash2(o,f,g,s) \
 (((((unsigned)(f) + (unsigned)(o)) * DD_P1 + (unsigned)(g)) * DD_P2) >> (s))
+#define ddCHash2_(o,f,g) \
+(((((unsigned)(f) + (unsigned)(o)) * DD_P1 + (unsigned)(g)) * DD_P2))
 #endif
 
 

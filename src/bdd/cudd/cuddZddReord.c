@@ -592,7 +592,7 @@ cuddZddSwapInPlace(
             */
         } else {
             /* Check xlist for triple (xindex, f11, f01). */
-            posn = ddHash(f11, f01, xshift);
+            posn = ddHash(cuddF2L(f11), cuddF2L(f01), xshift);
             /* For each element newf1 in collision list xlist[posn]. */
             newf1 = xlist[posn];
             while (newf1 != NULL) {
@@ -630,7 +630,7 @@ cuddZddSwapInPlace(
             cuddSatInc(newf0->ref);
         } else {
             /* Check xlist for triple (xindex, f10, f00). */
-            posn = ddHash(f10, f00, xshift);
+            posn = ddHash(cuddF2L(f10), cuddF2L(f00), xshift);
             /* For each element newf0 in collision list xlist[posn]. */
             newf0 = xlist[posn];
             while (newf0 != NULL) {
@@ -662,7 +662,7 @@ cuddZddSwapInPlace(
         ** The modified f does not already exists in ylist.
         ** (Because of the uniqueness of the cofactors.)
         */
-        posn = ddHash(newf1, newf0, yshift);
+        posn = ddHash(cuddF2L(newf1), cuddF2L(newf0), yshift);
         newykeys++;
         f->next = ylist[posn];
         ylist[posn] = f;
@@ -1456,7 +1456,7 @@ zddReorderPostprocess(
     ** nodes with zero reference count; hence lower probability of finding
     ** a result in the cache.
     */
-    if (table->reclaimed > table->allocated * 0.5) return(1);
+    if (table->reclaimed > table->allocated / 2) return(1);
 
     /* Resize subtables. */
     for (i = 0; i < table->sizeZ; i++) {
@@ -1491,7 +1491,7 @@ zddReorderPostprocess(
             node = oldnodelist[j];
             while (node != NULL) {
                 next = node->next;
-                posn = ddHash(cuddT(node), cuddE(node), shift);
+                posn = ddHash(cuddF2L(cuddT(node)), cuddF2L(cuddE(node)), shift);
                 node->next = nodelist[posn];
                 nodelist[posn] = node;
                 node = next;

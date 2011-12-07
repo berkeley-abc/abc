@@ -416,7 +416,8 @@ cuddDynamicAllocNode(
         /* Try to allocate a new block. */
         saveHandler = MMoutOfMemory;
         MMoutOfMemory = Cudd_OutOfMem;
-        mem = (DdNodePtr *) ABC_ALLOC(DdNode, DD_MEM_CHUNK + 1);
+//        mem = (DdNodePtr *) ABC_ALLOC(DdNode, DD_MEM_CHUNK + 1);
+        mem = (DdNodePtr *) ABC_ALLOC(DdNode, DD_MEM_CHUNK + 2);
         MMoutOfMemory = saveHandler;
         if (mem == NULL && table->stash != NULL) {
             ABC_FREE(table->stash);
@@ -427,7 +428,8 @@ cuddDynamicAllocNode(
             for (i = 0; i < table->size; i++) {
                 table->subtables[i].maxKeys <<= 2;
             }
-            mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
+//            mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
+            mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 2);
         }
         if (mem == NULL) {
             /* Out of luck. Call the default handler to do
@@ -453,10 +455,13 @@ cuddDynamicAllocNode(
             ** power of 2 and a multiple of the size of a pointer.
             ** If we align one node, all the others will be aligned
             ** as well. */
-            offset = (unsigned long) mem & (sizeof(DdNode) - 1);
-            mem += (sizeof(DdNode) - offset) / sizeof(DdNodePtr);
+//            offset = (unsigned long) mem & (sizeof(DdNode) - 1);
+//            mem += (sizeof(DdNode) - offset) / sizeof(DdNodePtr);
+            offset = (unsigned long) mem & (32 - 1);
+            mem += (32 - offset) / sizeof(DdNodePtr);
 #ifdef DD_DEBUG
-            assert(((unsigned long) mem & (sizeof(DdNode) - 1)) == 0);
+//            assert(((unsigned long) mem & (sizeof(DdNode) - 1)) == 0);
+            assert(((unsigned long) mem & (32 - 1)) == 0);
 #endif
             list = (DdNode *) mem;
 
@@ -927,7 +932,7 @@ cuddSwapInPlace(
                 f1 = cuddT(f);
                 f0 = cuddE(f);
                 /* Check xlist for pair (f11,f01). */
-                posn = ddHash(f1, f0, xshift);
+                posn = ddHash(cuddF2L(f1), cuddF2L(f0), xshift);
                 /* For each element tmp in collision list xlist[posn]. */
                 previousP = &(xlist[posn]);
                 tmp = *previousP;
@@ -988,7 +993,7 @@ cuddSwapInPlace(
                 cuddSatInc(newf1->ref);
             } else {
                 /* Check xlist for triple (xindex,f11,f01). */
-                posn = ddHash(f11, f01, xshift);
+                posn = ddHash(cuddF2L(f11), cuddF2L(f01), xshift);
                 /* For each element newf1 in collision list xlist[posn]. */
                 previousP = &(xlist[posn]);
                 newf1 = *previousP;
@@ -1042,7 +1047,7 @@ cuddSwapInPlace(
                     f00 = Cudd_Not(f00);
                 }
                 /* Check xlist for triple (xindex,f10,f00). */
-                posn = ddHash(f10, f00, xshift);
+                posn = ddHash(cuddF2L(f10), cuddF2L(f00), xshift);
                 /* For each element newf0 in collision list xlist[posn]. */
                 previousP = &(xlist[posn]);
                 newf0 = *previousP;
@@ -1083,7 +1088,7 @@ cuddSwapInPlace(
             ** The modified f does not already exists in ylist.
             ** (Because of the uniqueness of the cofactors.)
             */
-            posn = ddHash(newf1, newf0, yshift);
+            posn = ddHash(cuddF2L(newf1), cuddF2L(newf0), yshift);
             newykeys++;
             previousP = &(ylist[posn]);
             tmp = *previousP;

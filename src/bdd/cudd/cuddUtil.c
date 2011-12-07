@@ -3361,7 +3361,7 @@ cuddUniqueLookup(
     assert(level < (unsigned) cuddI(unique,Cudd_Regular(E)->index));
 #endif
 
-    posn = ddHash(T, E, subtable->shift);
+    posn = ddHash(cuddF2L(T), cuddF2L(E), subtable->shift);
     nodelist = subtable->nodelist;
     looking = nodelist[posn];
 

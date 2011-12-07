@@ -260,7 +260,8 @@ cuddAllocNode(
             /* Try to allocate a new block. */
             saveHandler = MMoutOfMemory;
             MMoutOfMemory = Cudd_OutOfMem;
-            mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
+//            mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
+            mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 2);
             MMoutOfMemory = saveHandler;
             if (mem == NULL) {
                 /* No more memory: Try collecting garbage. If this succeeds,
@@ -276,7 +277,8 @@ cuddAllocNode(
                         /* Inhibit resizing of tables. */
                         cuddSlowTableGrowth(unique);
                         /* Now try again. */
-                        mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
+//                        mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 1);
+                        mem = (DdNodePtr *) ABC_ALLOC(DdNode,DD_MEM_CHUNK + 2);
                     }
                     if (mem == NULL) {
                         /* Out of luck. Call the default handler to do
@@ -301,11 +303,14 @@ cuddAllocNode(
                 mem[0] = (DdNodePtr) unique->memoryList;
                 unique->memoryList = mem;
 
-                /* Here we rely on the fact that a DdNode is as large
-                ** as 4 pointers.  */
-                offset = (ptruint) mem & (sizeof(DdNode) - 1);
-                mem += (sizeof(DdNode) - offset) / sizeof(DdNodePtr);
-                assert(((ptruint) mem & (sizeof(DdNode) - 1)) == 0);
+                /* Here we rely on the fact that a DdNode is as large as 4 pointers.  */
+//                offset = (ptruint) mem & (sizeof(DdNode) - 1);
+//                mem += (sizeof(DdNode) - offset) / sizeof(DdNodePtr);
+//                assert(((ptruint) mem & (sizeof(DdNode) - 1)) == 0);
+//                list = (DdNode *) mem;
+                offset = (ptruint) mem & (32 - 1);
+                mem += (32 - offset) / sizeof(DdNodePtr);
+                assert(((ptruint) mem & (32 - 1)) == 0);
                 list = (DdNode *) mem;
 
                 i = 1;
@@ -324,6 +329,7 @@ cuddAllocNode(
     unique->allocated++;
     node = unique->nextFree;
     unique->nextFree = node->next;
+    node->Id = (unique->allocated<<4);
     return(node);
 
 } /* end of cuddAllocNode */
@@ -976,8 +982,11 @@ cuddGarbageCollect(
     while (memListTrav != NULL) {
         ptruint offset;
         nxtNode = (DdNodePtr *)memListTrav[0];
-        offset = (ptruint) memListTrav & (sizeof(DdNode) - 1);
-        memListTrav += (sizeof(DdNode) - offset) / sizeof(DdNodePtr);
+//        offset = (ptruint) memListTrav & (sizeof(DdNode) - 1);
+//        memListTrav += (sizeof(DdNode) - offset) / sizeof(DdNodePtr);
+        offset = (ptruint) memListTrav & (32 - 1);
+        memListTrav += (32 - offset) / sizeof(DdNodePtr);
+
         downTrav = (DdNode *)memListTrav;
         k = 0;
         do {
@@ -1147,7 +1156,7 @@ cuddUniqueInter(
     assert(level < (unsigned) cuddI(unique,Cudd_Regular(E)->index));
 #endif
 
-    pos = ddHash(T, E, subtable->shift);
+    pos = ddHash(cuddF2L(T), cuddF2L(E), subtable->shift);
     nodelist = subtable->nodelist;
     previousP = &(nodelist[pos]);
     looking = *previousP;
@@ -1205,7 +1214,7 @@ cuddUniqueInter(
         /* Update pointer to insertion point. In the case of rehashing,
         ** the slot may have changed. In the case of garbage collection,
         ** the predecessor may have been dead. */
-        pos = ddHash(T, E, subtable->shift);
+        pos = ddHash(cuddF2L(T), cuddF2L(E), subtable->shift);
         nodelist = subtable->nodelist;
         previousP = &(nodelist[pos]);
         looking = *previousP;
@@ -1236,7 +1245,7 @@ cuddUniqueInter(
 
     if (gcNumber != unique->garbageCollections) {
         DdNode *looking2;
-        pos = ddHash(T, E, subtable->shift);
+        pos = ddHash(cuddF2L(T), cuddF2L(E), subtable->shift);
         nodelist = subtable->nodelist;
         previousP = &(nodelist[pos]);
         looking2 = *previousP;
@@ -1268,6 +1277,8 @@ cuddUniqueInter(
     cuddCheckCollisionOrdering(unique,level,pos);
 #endif
 
+//    assert( Cudd_Regular(T)->Id < 100000000 );
+//    assert( Cudd_Regular(E)->Id < 100000000 );
     return(looking);
 
 } /* end of cuddUniqueInter */
@@ -1367,7 +1378,7 @@ cuddUniqueInterZdd(
         }
     }
 
-    pos = ddHash(T, E, subtable->shift);
+    pos = ddHash(cuddF2L(T), cuddF2L(E), subtable->shift);
     nodelist = subtable->nodelist;
     looking = nodelist[pos];
 
@@ -1594,7 +1605,7 @@ cuddRehash(
             oddP = &(nodelist[(j<<1)+1]);
             while (node != sentinel) {
                 next = node->next;
-                pos = ddHash(cuddT(node), cuddE(node), shift);
+                pos = ddHash(cuddF2L(cuddT(node)), cuddF2L(cuddE(node)), shift);
                 if (pos & 1) {
                     *oddP = node;
                     oddP = &(node->next);
@@ -1731,7 +1742,7 @@ cuddShrinkSubtable(
             DdNode *looking, *T, *E;
             DdNodePtr *previousP;
             next = node->next;
-            posn = ddHash(cuddT(node), cuddE(node), shift);
+            posn = ddHash(cuddF2L(cuddT(node)), cuddF2L(cuddE(node)), shift);
             previousP = &(nodelist[posn]);
             looking = *previousP;
             T = cuddT(node);
@@ -2472,7 +2483,7 @@ ddRehashZdd(
         node = oldnodelist[j];
         while (node != NULL) {
             next = node->next;
-            pos = ddHash(cuddT(node), cuddE(node), shift);
+            pos = ddHash(cuddF2L(cuddT(node)), cuddF2L(cuddE(node)), shift);
             node->next = nodelist[pos];
             nodelist[pos] = node;
             node = next;

@@ -353,7 +353,7 @@ cuddZddLinearInPlace(
         ** eventually be moved or garbage collected. No node
         ** re-expression will add a pointer to it.
         */
-        posn = ddHash(f11, f0, yshift);
+        posn = ddHash(cuddF2L(f11), cuddF2L(f0), yshift);
         f->next = ylist[posn];
         ylist[posn] = f;
         newykeys++;
@@ -388,7 +388,7 @@ cuddZddLinearInPlace(
             cuddSatInc(newf1->ref);
         } else {
             /* Check ylist for triple (yindex, f01, f10). */
-            posn = ddHash(f01, f10, yshift);
+            posn = ddHash(cuddF2L(f01), cuddF2L(f10), yshift);
             /* For each element newf1 in collision list ylist[posn]. */
             newf1 = ylist[posn];
             /* Search the collision chain skipping the marked nodes. */
@@ -426,7 +426,7 @@ cuddZddLinearInPlace(
             cuddSatInc(newf0->ref);
         } else {
             /* Check ylist for triple (yindex, f11, f00). */
-            posn = ddHash(f11, f00, yshift);
+            posn = ddHash(cuddF2L(f11), cuddF2L(f00), yshift);
             /* For each element newf0 in collision list ylist[posn]. */
             newf0 = ylist[posn];
             while (newf0 != NULL) {
@@ -459,7 +459,7 @@ cuddZddLinearInPlace(
         ** The modified f does not already exists in xlist.
         ** (Because of the uniqueness of the cofactors.)
         */
-        posn = ddHash(newf1, newf0, xshift);
+        posn = ddHash(cuddF2L(newf1), cuddF2L(newf0), xshift);
         newxkeys++;
         f->next = xlist[posn];
         xlist[posn] = f;
@@ -491,7 +491,7 @@ cuddZddLinearInPlace(
                 f1 = cuddT(f);
                 cuddSatDec(f1->ref);
                 /* Check ylist for triple (yindex, f1, empty). */
-                posn = ddHash(f1, empty, yshift);
+                posn = ddHash(cuddF2L(f1), cuddF2L(empty), yshift);
                 /* For each element newf1 in collision list ylist[posn]. */
                 newf1 = ylist[posn];
                 while (newf1 != NULL) {
@@ -522,7 +522,7 @@ cuddZddLinearInPlace(
                 cuddT(f) = newf1;
                 f0 = cuddE(f);
                 /* Insert f in x list. */
-                posn = ddHash(newf1, f0, xshift);
+                posn = ddHash(cuddF2L(newf1), cuddF2L(f0), xshift);
                 newxkeys++;
                 newykeys--;
                 f->next = xlist[posn];

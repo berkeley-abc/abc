@@ -556,7 +556,7 @@ Cudd_bddLeq(
         tmp = g;
         g = Cudd_Not(f);
         f = Cudd_Not(tmp);
-    } else if (Cudd_IsComplement(f) && g < f) {
+    } else if (Cudd_IsComplement(f) && cuddF2L(g) < cuddF2L(f)) {
         tmp = g;
         g = Cudd_Not(f);
         f = Cudd_Not(tmp);
@@ -789,7 +789,7 @@ cuddBddIntersectRecur(
     if (f == one) return(g);
 
     /* At this point f and g are not constant. */
-    if (f > g) { DdNode *tmp = f; f = g; g = tmp; }
+    if (cuddF2L(f) > cuddF2L(g)) { DdNode *tmp = f; f = g; g = tmp; }
     res = cuddCacheLookup2(dd,Cudd_bddIntersect,f,g);
     if (res != NULL) return(res);
 
@@ -912,7 +912,7 @@ cuddBddAndRecur(
     }
 
     /* At this point f and g are not constant. */
-    if (f > g) { /* Try to increase cache efficiency. */
+    if (cuddF2L(f) > cuddF2L(g)) { /* Try to increase cache efficiency. */
         DdNode *tmp = f;
         f = g;
         g = tmp;
@@ -926,7 +926,7 @@ cuddBddAndRecur(
         if (r != NULL) return(r);
     }
 
-    if ( manager->TimeStop && manager->TimeStop < time(NULL) )
+    if ( manager->TimeStop && manager->TimeStop < clock() )
         return NULL;
 
     /* Here we can skip the use of cuddI, because the operands are known
@@ -1030,7 +1030,7 @@ cuddBddXorRecur(
     /* Terminal cases. */
     if (f == g) return(zero);
     if (f == Cudd_Not(g)) return(one);
-    if (f > g) { /* Try to increase cache efficiency and simplify tests. */
+    if (cuddF2L(f) > cuddF2L(g)) { /* Try to increase cache efficiency and simplify tests. */
         DdNode *tmp = f;
         f = g;
         g = tmp;
@@ -1197,7 +1197,7 @@ bddVarToCanonical(
     change = 0;
 
     if (G == one) {                     /* ITE(F,c,H) */
-        if ((topf > toph) || (topf == toph && f > h)) {
+        if ((topf > toph) || (topf == toph && cuddF2L(f) > cuddF2L(h))) {
             r = h;
             h = f;
             f = r;                      /* ITE(F,1,H) = ITE(H,1,F) */
@@ -1208,7 +1208,7 @@ bddVarToCanonical(
             change = 1;
         }
     } else if (H == one) {              /* ITE(F,G,c) */
-        if ((topf > topg) || (topf == topg && f > g)) {
+        if ((topf > topg) || (topf == topg && cuddF2L(f) > cuddF2L(g))) {
             r = g;
             g = f;
             f = r;                      /* ITE(F,G,0) = ITE(G,F,0) */
@@ -1219,7 +1219,7 @@ bddVarToCanonical(
             change = 1;
         }
     } else if (g == Cudd_Not(h)) {      /* ITE(F,G,!G) = ITE(G,F,!F) */
-        if ((topf > topg) || (topf == topg && f > g)) {
+        if ((topf > topg) || (topf == topg && cuddF2L(f) > cuddF2L(g))) {
             r = f;
             f = g;
             g = r;

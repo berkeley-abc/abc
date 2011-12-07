@@ -139,7 +139,7 @@ static char rcsid[] DD_UNUSED = "$Id: cuddLCache.c,v 1.24 2009/03/08 02:49:02 fa
   SeeAlso     [ddLCHash2 ddLCHash]
 
 ******************************************************************************/
-#define ddLCHash3(f,g,h,shift) ddCHash2(f,g,h,shift)
+#define ddLCHash3(f,g,h,shift)  ddCHash2(f,g,h,shift)
 
 
 /**AutomaticStart*************************************************************/
@@ -789,7 +789,7 @@ cuddHashTableInsert1(
     cuddRef(value);
     item->count = count;
     item->key[0] = f;
-    posn = ddLCHash2(f,f,hash->shift);
+    posn = ddLCHash2(cuddF2L(f),cuddF2L(f),hash->shift);
     item->next = hash->bucket[posn];
     hash->bucket[posn] = item;
 
@@ -827,7 +827,7 @@ cuddHashTableLookup1(
     assert(hash->keysize == 1);
 #endif
 
-    posn = ddLCHash2(f,f,hash->shift);
+    posn = ddLCHash2(cuddF2L(f),cuddF2L(f),hash->shift);
     item = hash->bucket[posn];
     prev = NULL;
 
@@ -898,7 +898,7 @@ cuddHashTableInsert2(
     item->count = count;
     item->key[0] = f;
     item->key[1] = g;
-    posn = ddLCHash2(f,g,hash->shift);
+    posn = ddLCHash2(cuddF2L(f),cuddF2L(g),hash->shift);
     item->next = hash->bucket[posn];
     hash->bucket[posn] = item;
 
@@ -937,7 +937,7 @@ cuddHashTableLookup2(
     assert(hash->keysize == 2);
 #endif
 
-    posn = ddLCHash2(f,g,hash->shift);
+    posn = ddLCHash2(cuddF2L(f),cuddF2L(g),hash->shift);
     item = hash->bucket[posn];
     prev = NULL;
 
@@ -1010,7 +1010,7 @@ cuddHashTableInsert3(
     item->key[0] = f;
     item->key[1] = g;
     item->key[2] = h;
-    posn = ddLCHash3(f,g,h,hash->shift);
+    posn = ddLCHash3(cuddF2L(f),cuddF2L(g),cuddF2L(h),hash->shift);
     item->next = hash->bucket[posn];
     hash->bucket[posn] = item;
 
@@ -1050,7 +1050,7 @@ cuddHashTableLookup3(
     assert(hash->keysize == 3);
 #endif
 
-    posn = ddLCHash3(f,g,h,hash->shift);
+    posn = ddLCHash3(cuddF2L(f),cuddF2L(g),cuddF2L(h),hash->shift);
     item = hash->bucket[posn];
     prev = NULL;
 
@@ -1326,7 +1326,7 @@ cuddHashTableResize(
             while (item != NULL) {
                 next = item->next;
                 key = item->key;
-                posn = ddLCHash2(key[0], key[0], shift);
+                posn = ddLCHash2(cuddF2L(key[0]), cuddF2L(key[0]), shift);
                 item->next = buckets[posn];
                 buckets[posn] = item;
                 item = next;
@@ -1338,7 +1338,7 @@ cuddHashTableResize(
             while (item != NULL) {
                 next = item->next;
                 key = item->key;
-                posn = ddLCHash2(key[0], key[1], shift);
+                posn = ddLCHash2(cuddF2L(key[0]), cuddF2L(key[1]), shift);
                 item->next = buckets[posn];
                 buckets[posn] = item;
                 item = next;
@@ -1350,7 +1350,7 @@ cuddHashTableResize(
             while (item != NULL) {
                 next = item->next;
                 key = item->key;
-                posn = ddLCHash3(key[0], key[1], key[2], shift);
+                posn = ddLCHash3(cuddF2L(key[0]), cuddF2L(key[1]), cuddF2L(key[2]), shift);
                 item->next = buckets[posn];
                 buckets[posn] = item;
                 item = next;

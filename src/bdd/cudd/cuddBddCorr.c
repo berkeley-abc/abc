@@ -258,7 +258,7 @@ bddCorrelationAux(
     **     (f EXNOR g)   = (g EXNOR f)
     **     (f' EXNOR g') = (f EXNOR g).
     */
-    if (f > g) {
+    if (cuddF2L(f) > cuddF2L(g)) {
         DdNode *tmp = f;
         f = g; g = tmp;
     }
@@ -361,7 +361,7 @@ bddCorrelationWeightsAux(
     **     (f EXNOR g)   = (g EXNOR f)
     **     (f' EXNOR g') = (f EXNOR g).
     */
-    if (f > g) {
+    if (cuddF2L(f) > cuddF2L(g)) {
         DdNode *tmp = f;
         f = g; g = tmp;
     }

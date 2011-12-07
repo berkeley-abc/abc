@@ -3067,8 +3067,7 @@ Cudd_PrintInfo(
     if (retval == EOF) return(0);
     retval = fprintf(fp,"Number of dead ZDD nodes: %u\n", dd->deadZ);
     if (retval == EOF) return(0);
-    retval = fprintf(fp,"Total number of nodes allocated: %.0f\n",
-                     dd->allocated);
+    retval = fprintf(fp,"Total number of nodes allocated: %d\n", dd->allocated);
     if (retval == EOF) return(0);
     retval = fprintf(fp,"Total number of nodes reclaimed: %.0f\n",
                      dd->reclaimed);

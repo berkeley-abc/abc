@@ -283,6 +283,7 @@ struct DdNode {
         CUDD_VALUE_TYPE value;  /* for constant nodes */
         DdChildren kids;        /* for internal nodes */
     } type;
+    ABC_INT64_T Id;
 };
 
 #ifdef __osf__

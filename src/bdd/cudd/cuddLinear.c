@@ -496,7 +496,7 @@ cuddLinearInPlace(
                 cuddSatInc(newf1->ref);
             } else {
                 /* Check ylist for triple (yindex,f11,f00). */
-                posn = ddHash(f11, f00, yshift);
+                posn = ddHash(cuddF2L(f11), cuddF2L(f00), yshift);
                 /* For each element newf1 in collision list ylist[posn]. */
                 previousP = &(ylist[posn]);
                 newf1 = *previousP;
@@ -550,7 +550,7 @@ cuddLinearInPlace(
                     f10 = Cudd_Not(f10);
                 }
                 /* Check ylist for triple (yindex,f01,f10). */
-                posn = ddHash(f01, f10, yshift);
+                posn = ddHash(cuddF2L(f01), cuddF2L(f10), yshift);
                 /* For each element newf0 in collision list ylist[posn]. */
                 previousP = &(ylist[posn]);
                 newf0 = *previousP;
@@ -591,7 +591,7 @@ cuddLinearInPlace(
             ** The modified f does not already exists in xlist.
             ** (Because of the uniqueness of the cofactors.)
             */
-            posn = ddHash(newf1, newf0, xshift);
+            posn = ddHash(cuddF2L(newf1), cuddF2L(newf0), xshift);
             newxkeys++;
             previousP = &(xlist[posn]);
             tmp = *previousP;
