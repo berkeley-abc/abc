@@ -23,6 +23,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
+#define IF_USE_CASE3
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -781,19 +782,6 @@ void If_CluSwapVars( word * pTruth, int nVars, int * V2P, int * P2V, int iVar, i
     }
     else
     {
-/*
-        iStep = If_CluWordNum(iVar + 1)/2;
-        jStep = If_CluWordNum(jVar + 1)/2;
-        for (w = 0; w < nWords; w += 2*jStep)
-        {
-            for (i = 0; i < jStep; i += 2*iStep)
-            {
-                temp = pTruth[w + iStep + i];
-                pTruth[w + iStep + i] = pTruth[w + jStep + i];
-                pTruth[w + jStep + i] = temp;
-            }
-        }
-*/
         iStep = If_CluWordNum(iVar + 1)/2;
         jStep = If_CluWordNum(jVar + 1)/2;
         for (w = 0; w < nWords; w += 2*jStep)
@@ -1879,7 +1867,11 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     }
 
     // the new variable is at the bottom - skip it (iVarStart = 1)
+#ifdef IF_USE_CASE3
+    G2 = If_CluCheck( p, pLeftOver, R2.nVars, 0, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
+#else
     G2 = If_CluCheck( p, pLeftOver, R2.nVars, 1, nLutLeaf2, nLutRoot, &R, &Func0, &Func2, NULL, 0 );
+#endif
     if ( G2.nVars == 0 )
     {
         if ( pHashed )
