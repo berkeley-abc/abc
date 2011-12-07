@@ -477,7 +477,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
             if ( *pvReg2Frame )
             {
                 Vec_VecPushInt( *pvReg2Frame, f, Aig_ObjId(pObj) );             // record LO
-                Vec_VecPushInt( *pvReg2Frame, f, Aig_ObjRealLit((Aig_Obj_t *)pObj->pData) ); // record its literal
+                Vec_VecPushInt( *pvReg2Frame, f, Aig_ObjToLit((Aig_Obj_t *)pObj->pData) ); // record its literal
             }
         }
     }
