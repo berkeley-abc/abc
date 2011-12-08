@@ -28,10 +28,11 @@ ABC_NAMESPACE_IMPL_START
 /*
     Proof is represented as a vector of integers.
     The first entry is -1.
-    The clause is represented as an offset in this array.
-    One clause's entry is <size><label><ant1><ant2>...<antN>
+    A resolution record is represented by a handle (an offset in this array).
+    A resolution record entry is <size><label><ant1><ant2>...<antN>
     Label is initialized to 0.
-    Root clauses are 1-based. They are marked by prepending bit 1;
+    Root clauses are given by their handles.
+    They are marked by bitshifting by 2 bits up and setting the LSB to 1
 */
 /*
 
@@ -59,11 +60,11 @@ static inline cla     Proof_NodeHandle (Vec_Int_t* p, satset* c)  { return satse
 static inline int     Proof_NodeCheck  (Vec_Int_t* p, satset* c)  { return satset_check( (veci*)p, c );  }
 static inline int     Proof_NodeSize   (int nEnts)                { return sizeof(satset)/4 + nEnts;     }
 
-#define Proof_ForeachNode( p, pNode, hNode )             \
-    satset_foreach_entry( ((veci*)p), pNode, hNode, 1 )
-#define Proof_ForeachNodeVec( pVec, p, pNode, i )        \
+#define Proof_ForeachNode( p, pNode, h )                         \
+    for ( h = 1; (h < Vec_IntSize(p)) && ((pNode) = Proof_NodeRead(p, h)); h += Proof_NodeSize(pNode->nEnts) )
+#define Proof_ForeachNodeVec( pVec, p, pNode, i )            \
     for ( i = 0; (i < Vec_IntSize(pVec)) && ((pNode) = Proof_NodeRead(p, Vec_IntEntry(pVec,i))); i++ )
-#define Proof_NodeForeachFanin( p, pNode, pFanin, i )    \
+#define Proof_NodeForeachFanin( p, pNode, pFanin, i )        \
     for ( i = 0; (i < (int)pNode->nEnts) && (((pFanin) = (pNode->pEnts[i] & 1) ? NULL : Proof_NodeRead(p, pNode->pEnts[i] >> 2)), 1); i++ )
 #define Proof_NodeForeachLeaf( pLeaves, pNode, pLeaf, i )    \
     for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_NodeRead(pLeaves, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
@@ -139,7 +140,7 @@ void Proof_CollectUsed_iter( Vec_Int_t * p, satset * pNode, Vec_Int_t * vUsed, V
     while ( Vec_IntSize(vStack) )
     {
         hNode = Vec_IntPop( vStack );
-        if ( hNode & 1 ) // extrated second time
+        if ( hNode & 1 ) // extracted second time
         {
             Vec_IntPush( vUsed, hNode >> 1 );
             continue;
@@ -171,6 +172,8 @@ void Proof_CollectUsed_iter( Vec_Int_t * p, satset * pNode, Vec_Int_t * vUsed, V
 Vec_Int_t * Proof_CollectUsedIter( Vec_Int_t * vProof, Vec_Int_t * vRoots, int hRoot )
 {
     Vec_Int_t * vUsed, * vStack;
+    int clk = clock();
+    int i, Entry, iPrev = 0;
     assert( (hRoot > 0) ^ (vRoots != NULL) );
     vUsed = Vec_IntAlloc( 1000 );
     vStack = Vec_IntAlloc( 1000 );
@@ -184,6 +187,30 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Int_t * vProof, Vec_Int_t * vRoots, int h
             Proof_CollectUsed_iter( vProof, pNode, vUsed, vStack );
     }
     Vec_IntFree( vStack );
+    Abc_PrintTime( 1, "Iterative clause collection time", clock() - clk );
+/*
+    // verify topological order
+    iPrev = 0;
+    Vec_IntForEachEntry( vUsed, Entry, i )
+    {
+        printf( "%d ", Entry - iPrev );
+        iPrev = Entry;
+    }
+*/
+    clk = clock();
+//    Vec_IntSort( vUsed, 0 );
+    Abc_Sort( Vec_IntArray(vUsed), Vec_IntSize(vUsed) );
+    Abc_PrintTime( 1, "Postprocessing with sorting time", clock() - clk );
+
+    // verify topological order
+    iPrev = 0;
+    Vec_IntForEachEntry( vUsed, Entry, i )
+    {
+        if ( iPrev >= Entry )
+            printf( "Out of topological order!!!\n" );
+        assert( iPrev < Entry );
+        iPrev = Entry;
+    }
     return vUsed;
 }
 
@@ -224,10 +251,9 @@ void Proof_CollectUsed_rec( Vec_Int_t * p, satset * pNode, Vec_Int_t * vUsed )
 ***********************************************************************/
 Vec_Int_t * Proof_CollectUsedRec( Vec_Int_t * vProof, Vec_Int_t * vRoots, int hRoot )
 {
-    Vec_Int_t * vUsed, * vStack;
+    Vec_Int_t * vUsed;
     assert( (hRoot > 0) ^ (vRoots != NULL) );
     vUsed = Vec_IntAlloc( 1000 );
-    vStack = Vec_IntAlloc( 1000 );
     if ( hRoot )
         Proof_CollectUsed_rec( vProof, Proof_NodeRead(vProof, hRoot), vUsed );
     else
@@ -237,7 +263,6 @@ Vec_Int_t * Proof_CollectUsedRec( Vec_Int_t * vProof, Vec_Int_t * vRoots, int hR
         Proof_ForeachNodeVec( vRoots, vProof, pNode, i )
             Proof_CollectUsed_rec( vProof, pNode, vUsed );
     }
-    Vec_IntFree( vStack );
     return vUsed;
 }
  
@@ -333,6 +358,7 @@ void Proof_Check( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hRoot )
     int i, k, Counter = 0, clk = clock(); 
     // collect visited clauses
     vUsed = Proof_CollectUsedRec( vProof, NULL, hRoot );
+//    vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
     Proof_CleanCollected( vProof, vUsed );
     // perform resolution steps
     vTemp = Vec_IntAlloc( 1000 );
@@ -366,60 +392,6 @@ void Proof_Check( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hRoot )
     Vec_IntFree( vUsed );
 }
 
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively visits useful proof nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Sat_ProofReduceOne( Vec_Int_t * p, satset * pNode, int * pnSize, Vec_Int_t * vStack )
-{
-    satset * pNext;
-    int i, NodeId;
-    if ( pNode->Id )
-        return pNode->Id;
-    // start with node
-    pNode->Id = 1;
-    Vec_IntPush( vStack, Proof_NodeHandle(p, pNode) );
-    // perform DFS search
-    while ( Vec_IntSize(vStack) )
-    {
-        NodeId = Vec_IntPop( vStack );
-        if ( NodeId & 1 ) // extrated second time
-        {
-            pNode = Proof_NodeRead( p, NodeId ^ 1 );
-            pNode->Id = *pnSize;
-            *pnSize += Proof_NodeSize(pNode->nEnts);
-            // update fanins
-            Proof_NodeForeachFanin( p, pNode, pNext, i )
-                if ( pNext )
-                    pNode->pEnts[i] = pNext->Id;
-            continue;
-        }
-        // extracted first time
-        // add second time
-        Vec_IntPush( vStack, NodeId ^ 1 );
-        // add its anticedents
-        pNode = Proof_NodeRead( p, NodeId );
-        Proof_NodeForeachFanin( p, pNode, pNext, i )
-            if ( pNext && !pNext->Id )
-            {
-                pNext->Id = 1;
-                Vec_IntPush( vStack, Proof_NodeHandle(p, pNode) ); // add first time
-            }
-    }
-    return pNode->Id;
-}
-
 /**Function*************************************************************
 
   Synopsis    [Reduces the proof to contain only roots and their children.]
@@ -431,38 +403,67 @@ int Sat_ProofReduceOne( Vec_Int_t * p, satset * pNode, int * pnSize, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-void Sat_ProofReduce( Vec_Int_t * p, Vec_Int_t * vRoots )
+void Sat_ProofReduce( Vec_Int_t * vProof, Vec_Int_t * vRoots )
 {
-    int i, nSize = 1;
-    int * pBeg, * pEnd, * pNew;
-    Vec_Int_t * vStack;
-    satset * pNode;
-    // mark used nodes
-    vStack = Vec_IntAlloc( 1000 );
-    Proof_ForeachNodeVec( vRoots, p, pNode, i )
-        vRoots->pArray[i] = Sat_ProofReduceOne( p, pNode, &nSize, vStack );
-    Vec_IntFree( vStack );
-    // compact proof
-    pNew = Vec_IntArray(p) + 1;
-    Proof_ForeachNode( p, pNode, i )
+    Vec_Int_t * vUsed;
+    satset * pNode, * pFanin;
+    int i, k, nSize = 1;
+    // collect visited nodes
+    vUsed = Proof_CollectUsedIter( vProof, vRoots, 0 );
+    // relabel nodes to use smaller space
+    Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
     {
-        if ( !pNode->Id )
-            continue;
-        assert( pNew - Vec_IntArray(p) == pNode->Id );
+        pNode->Id = nSize;
+        nSize += Proof_NodeSize(pNode->nEnts);
+        Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
+            if ( pFanin )
+                pNode->pEnts[i] = (pFanin->Id << 2) | (pNode->pEnts[i] & 2);
+    }
+    // compact the nodes
+    Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
+    {
+        memmove( Vec_IntArray(vProof) + pNode->Id, pNode, Proof_NodeSize(pNode->nEnts) );
         pNode->Id = 0;
-        pBeg = (int *)pNode;
-        pEnd = pBeg + Proof_NodeSize(pNode->nEnts);
-        while ( pBeg < pEnd )
-            *pNew++ = *pBeg++;
     }
     // report the result
     printf( "The proof was reduced from %d to %d (by %6.2f %%)\n", 
-        Vec_IntSize(p), nSize, 100.0 * (Vec_IntSize(p) - nSize) / Vec_IntSize(p) );
-    assert( pNew - Vec_IntArray(p) == nSize );
-    Vec_IntShrink( p, nSize );
+        Vec_IntSize(vProof), nSize, 100.0 * (Vec_IntSize(vProof) - nSize) / Vec_IntSize(vProof) );
+    Vec_IntShrink( vProof, nSize );
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Collects nodes belonging to the UNSAT core.]
+
+  Description [The result is the array of root clause indexes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_Int_t * vUsed )
+{
+    Vec_Int_t * vCore;
+    satset * pNode, * pFanin;
+    int i, k, clk = clock();
+    vCore = Vec_IntAlloc( 1000 );
+    Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
+    {
+        pNode->Id = 0;
+        Proof_NodeForeachLeaf( vClauses, pNode, pFanin, k )
+            if ( pFanin && !pFanin->mark )
+            {
+                pFanin->mark = 1;
+                Vec_IntPush( vCore, Proof_NodeHandle(vClauses, pFanin) );
+            }
+    }
+    // clean core clauses
+    Proof_ForeachNodeVec( vCore, vClauses, pNode, i )
+        pNode->mark = 0;
+    return vCore;
+}
 
 /**Function*************************************************************
 
@@ -475,31 +476,14 @@ void Sat_ProofReduce( Vec_Int_t * p, Vec_Int_t * vRoots )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Sat_ProofCore( Vec_Int_t * vProof, Vec_Int_t * vRoots )
+Vec_Int_t * Sat_ProofCore( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hNode )
 {
     Vec_Int_t * vCore, * vUsed;
-    satset * pNode, * pFanin;
-    int i, k, clk = clock();;
     // collect visited clauses
-    vUsed = Proof_CollectUsedIter( vProof, vRoots, 0 );
+    vUsed = Proof_CollectUsedIter( vProof, NULL, hNode );
     // collect core clauses 
-    vCore = Vec_IntAlloc( 1000 );
-    Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
-    {
-        pNode->Id = 0;
-        Proof_NodeForeachLeaf( vRoots, pNode, pFanin, k )
-            if ( pFanin && !pFanin->mark )
-            {
-                pFanin->mark = 1;
-                Vec_IntPush( vCore, Proof_NodeHandle(vRoots, pFanin) );
-            }
-    }
-    // clean core clauses
-    Proof_ForeachNodeVec( vCore, vRoots, pNode, i )
-        pNode->mark = 0;
+    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed );
     Vec_IntFree( vUsed );
-    printf( "Collected %d core clauses.  ", Vec_IntSize(vCore) );
-    Abc_PrintTime( 1, "Time", clock() - clk );
     return vCore;
 }
 
@@ -514,31 +498,29 @@ Vec_Int_t * Sat_ProofCore( Vec_Int_t * vProof, Vec_Int_t * vRoots )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Sat_ProofInterpolant( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hRoot, Vec_Int_t * vGlobVars )
+Aig_Man_t * Sat_ProofInterpolant( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hNode, Vec_Int_t * vGlobVars )
 {
-    Vec_Int_t * vUsed, * vCore, * vVarMap;
-    Vec_Int_t * vUsedNums, * vCoreNums;
+    Vec_Int_t * vUsed, * vCore, * vCoreNums, * vVarMap;
     satset * pNode, * pFanin;
     Aig_Man_t * pAig;
     Aig_Obj_t * pObj;
     int i, k, iVar, Entry;
 
-    // collect core clauses
-    vCore = Sat_ProofCore( vProof, vClauses );
-    // collect visited clauses
-    vUsed = Proof_CollectUsedRec( vProof, NULL, hRoot );
-    Proof_CleanCollected( vProof, vUsed );
+    // collect visited nodes
+    vUsed = Proof_CollectUsedIter( vProof, NULL, hNode );
+    // collect core clauses (cleans vUsed and vCore)
+    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed );
+
+    // map variables into their global numbers
+    vVarMap = Vec_IntStartFull( Vec_IntFindMax(vGlobVars) + 1 );
+    Vec_IntForEachEntry( vGlobVars, Entry, i )
+        Vec_IntWriteEntry( vVarMap, Entry, i );
 
     // start the AIG
     pAig = Aig_ManStart( 10000 );
     pAig->pName = Aig_UtilStrsav( "interpol" );
     for ( i = 0; i < Vec_IntSize(vGlobVars); i++ )
         Aig_ObjCreatePi( pAig );
-
-    // map variables into their global numbers
-    vVarMap = Vec_IntStartFull( Vec_IntFindMax(vGlobVars) + 1 );
-    Vec_IntForEachEntry( vGlobVars, Entry, i )
-        Vec_IntWriteEntry( vVarMap, Entry, i );
 
     // copy the numbers out and derive interpol for clause
     vCoreNums = Vec_IntAlloc( Vec_IntSize(vCore) );
@@ -547,7 +529,7 @@ Aig_Man_t * Sat_ProofInterpolant( Vec_Int_t * vClauses, Vec_Int_t * vProof, int 
         if ( pNode->partA )
         {
             pObj = Aig_ManConst0( pAig );
-            satset_foreach_var( pNode, iVar, k )
+            satset_foreach_var( pNode, iVar, k, 0 )
                 if ( iVar < Vec_IntSize(vVarMap) && Vec_IntEntry(vVarMap, iVar) >= 0 )
                     pObj = Aig_Or( pAig, pObj, Aig_IthVar(pAig, iVar) );
         }
@@ -560,24 +542,23 @@ Aig_Man_t * Sat_ProofInterpolant( Vec_Int_t * vClauses, Vec_Int_t * vProof, int 
     Vec_IntFree( vVarMap );
 
     // copy the numbers out and derive interpol for resolvents
-    vUsedNums = Vec_IntAlloc( Vec_IntSize(vUsed) );
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
     {
         assert( pNode->nEnts > 1 );
         Proof_NodeForeachFaninRoot( vProof, vClauses, pNode, pFanin, k )
         {
             if ( k == 0 )
-                pObj = Aig_ObjFromLit(pAig, pFanin->Id);
+                pObj = Aig_ObjFromLit( pAig, pFanin->Id );
             else if ( pNode->pEnts[k] & 2 ) // variable of A
                 pObj = Aig_Or( pAig, pObj, Aig_ObjFromLit(pAig, pFanin->Id) );
             else
                 pObj = Aig_And( pAig, pObj, Aig_ObjFromLit(pAig, pFanin->Id) );
         }
         // remember the interpolant
-        Vec_IntPush( vUsedNums, pNode->Id );
         pNode->Id = Aig_ObjToLit(pObj);
     }
     // save the result
+    assert( Proof_NodeHandle(vProof, pNode) == hNode );
     Aig_ObjCreatePo( pAig, pObj );
     Aig_ManCleanup( pAig );
 
@@ -585,23 +566,14 @@ Aig_Man_t * Sat_ProofInterpolant( Vec_Int_t * vClauses, Vec_Int_t * vProof, int 
     Proof_ForeachNodeVec( vCore, vClauses, pNode, i )
         pNode->Id = Vec_IntEntry( vCoreNums, i );
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
-        pNode->Id = Vec_IntEntry( vUsedNums, i );
+        pNode->Id = 0;
     // cleanup
     Vec_IntFree( vCore );
     Vec_IntFree( vUsed );
     Vec_IntFree( vCoreNums );
-    Vec_IntFree( vUsedNums );
     return pAig;
 }
 
-/*
-    Sat_ProofTest( 
-        &s->clauses,      // clauses
-        &s->proof_clas,   // proof clauses
-        NULL,             // proof roots
-        veci_begin(&s->claProofs)[clause_read(s, s->iLearntLast)->Id)],  // one root
-        &s->glob_vars );  // global variables (for interpolation)
-*/
 
 /**Function*************************************************************
 
@@ -621,36 +593,30 @@ void Sat_ProofTest( veci * pClauses, veci * pProof, veci * pRoots, int hRoot )
     Vec_Int_t * vRoots    = (Vec_Int_t *)pRoots;
     Vec_Int_t * vUsed, * vCore;
 //    int i, Entry;
-
+/*
     // collect visited clauses
     vUsed = Proof_CollectUsedRec( vProof, NULL, hRoot );
     Proof_CleanCollected( vProof, vUsed );
     printf( "Found %d useful resolution nodes.\n", Vec_IntSize(vUsed) );
     Vec_IntFree( vUsed );
-
+*/
     // collect visited clauses
     vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
     Proof_CleanCollected( vProof, vUsed );
     printf( "Found %d useful resolution nodes.\n", Vec_IntSize(vUsed) );
     Vec_IntFree( vUsed );
 
-    vCore = Sat_ProofCore( vProof, vClauses );
+    vCore = Sat_ProofCore( vClauses, vProof, hRoot );
     Vec_IntFree( vCore );
 
-
-
-//    Vec_IntForEachEntry( vUsed, Entry, i )
-//        printf( "%d ", Entry );
-//    printf( "\n" );
 /*
     printf( "Found %d useful resolution nodes.\n", Vec_IntSize(vUsed) );
     Vec_IntFree( vUsed );
     vUsed = Proof_CollectAll( vProof );
     printf( "Found %d total  resolution nodes.\n", Vec_IntSize(vUsed) );
     Vec_IntFree( vUsed );
-
-    Proof_Check( vClauses, vProof, hRoot );
 */
+    Proof_Check( vClauses, vProof, hRoot );
 }
 
 ////////////////////////////////////////////////////////////////////////

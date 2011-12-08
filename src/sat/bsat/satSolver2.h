@@ -176,13 +176,10 @@ static inline void    satset_print  (satset * c)          {
     printf( "}\n" );
 }
 
-#define satset_foreach_entry( p, c, h, s )  \
+#define satset_foreach_entry( p, c, h, s )            \
     for ( h = s; (h < veci_size(p)) && (((c) = satset_read(p, h)), 1); h += satset_size(c->nEnts) )
-#define satset_foreach_var( p, var, i )        \
-    for ( i = 0; (i < (int)(p)->nEnts) && ((var) = lit_var((p)->pEnts[i])); i++ )
-#define satset_foreach_lit( p, lit, i )        \
-    for ( i = 0; (i < (int)(p)->nEnts) && ((lit) = (p)->pEnts[i]); i++ )
-
+#define satset_foreach_var( p, var, i, start )        \
+    for ( i = start; (i < (int)(p)->nEnts) && ((var) = lit_var((p)->pEnts[i])); i++ )
 
 //=================================================================================================
 // Public APIs:

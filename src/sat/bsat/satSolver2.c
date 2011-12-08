@@ -600,9 +600,7 @@ static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
         return -1;
     proof_chain_start( s, conf );
     assert( veci_size(&s->tagged) == 0 );
-    for ( i = skip_first; i < (int)conf->nEnts; i++ )
-    {
-        x = lit_var(conf->pEnts[i]);
+    satset_foreach_var( conf, x, i, skip_first ){
         if ( var_level(s,x) )
             var_set_tag(s, x, 1);
         else
@@ -616,13 +614,12 @@ static int solver2_analyze_final(sat_solver2* s, satset* conf, int skip_first)
             satset* c = clause_read(s, var_reason(s,x));
             if (c){
                 proof_chain_resolve( s, c, x );
-                for (j = 1; j < (int)c->nEnts; j++) {
-                    x = lit_var(c->pEnts[j]);
+                satset_foreach_var( c, x, j, 1 ){
                     if ( var_level(s,x) )
                         var_set_tag(s, x, 1);
                     else
                         proof_chain_resolve( s, NULL, x );
-                }
+                } 
             }else {
                 assert( var_level(s,x) );
                 veci_push(&s->conf_final,lit_neg(s->trail[i]));
@@ -656,8 +653,7 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
         return 0;
     }
 
-    for ( i = 1; i < (int)c->nEnts; i++ ){
-        x = lit_var(c->pEnts[i]);
+    satset_foreach_var( c, x, i, 1 ){
         if (var_tag(s,x) & 1)
             solver2_lit_removable_rec(s, x);
         else{
@@ -704,8 +700,7 @@ static int solver2_lit_removable(sat_solver2* s, int x)
         }
         x >>= 1;
         c = clause_read(s, var_reason(s,x));
-        for (i = 1; i < (int)c->nEnts; i++){
-            x = lit_var(c->pEnts[i]);
+        satset_foreach_var( c, x, i, 1 ){
             if (var_tag(s,x) || !var_level(s,x))
                 continue;
             if (!var_reason(s,x) || !var_lev_mark(s,x)){
@@ -740,8 +735,7 @@ static void solver2_logging_order(sat_solver2* s, int x)
         c = clause_read(s, var_reason(s,x));
 //        if ( !c )
 //            printf( "solver2_logging_order(): Error in conflict analysis!!!\n" );
-        for (i = 1; i < (int)c->nEnts; i++){
-            x = lit_var(c->pEnts[i]);
+        satset_foreach_var( c, x, i, 1 ){
             if ( !var_level(s,x) || (var_tag(s,x) & 1) )
                 continue;
             veci_push(&s->stack, x << 1);
@@ -757,11 +751,9 @@ static void solver2_logging_order_rec(sat_solver2* s, int x)
     if ( (var_tag(s,x) & 8) )
         return;
     c = clause_read(s, var_reason(s,x));
-    for (i = 1; i < (int)c->nEnts; i++){
-        y = lit_var(c->pEnts[i]);
+    satset_foreach_var( c, y, i, 1 )
         if ( var_level(s,y) && (var_tag(s,y) & 1) == 0 )
             solver2_logging_order_rec(s, y);
-    }
     var_add_tag(s, x, 8);
     veci_push(&s->min_step_order, x);
 }
@@ -769,7 +761,7 @@ static void solver2_logging_order_rec(sat_solver2* s, int x)
 static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
 {
     int cnt      = 0;
-    lit p        = lit_Undef;
+    lit p        = 0;
     int x, ind   = s->qtail-1;
     int proof_id = 0;
     lit* lits,* vars, i, j, k;
@@ -784,8 +776,7 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
         assert(c != 0);
         if (c->learnt)
             act_clause_bump(s,c);
-        for ( j = (int)(p != lit_Undef); j < (int)c->nEnts; j++){
-            x = lit_var(c->pEnts[j]);
+        satset_foreach_var( c, x, j, (int)(p > 0) ){
             assert(x >= 0 && x < s->size);
             if ( var_tag(s, x) )
                 continue;
@@ -822,7 +813,7 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
     // simplify (full)
     veci_resize(&s->min_lit_order, 0);
     for (i = j = 1; i < veci_size(learnt); i++){
-//        if (!solver2_lit_removable( s,lit_var(lits[i])) )
+//        if (!solver2_lit_removable( s,lit_var(lits[i])))
         if (!solver2_lit_removable_rec(s,lit_var(lits[i]))) // changed to vars!!!
             lits[j++] = lits[i];
     } 
@@ -834,20 +825,17 @@ static int solver2_analyze(sat_solver2* s, satset* c, veci* learnt)
         veci_resize(&s->min_step_order, 0);
         vars = veci_begin(&s->min_lit_order);
         for (i = 0; i < veci_size(&s->min_lit_order); i++)
-//            solver2_logging_order( s, vars[i] );
-            solver2_logging_order_rec( s, vars[i] );
+//            solver2_logging_order(s, vars[i]);
+            solver2_logging_order_rec(s, vars[i]);
 
         // add them in the reverse order
         vars = veci_begin(&s->min_step_order);
         for (i = veci_size(&s->min_step_order); i > 0; ) { i--;
             c = clause_read(s, var_reason(s,vars[i]));
             proof_chain_resolve( s, c, vars[i] );
-            for ( k = 1; k < (int)c->nEnts; k++ )
-            {
-                x = lit_var(c->pEnts[k]);
+            satset_foreach_var(c, x, k, 1)
                 if ( var_level(s,x) == 0 )
                     proof_chain_resolve( s, NULL, x );
-            }
         }
         proof_id = proof_chain_stop( s );
     }
@@ -940,13 +928,11 @@ satset* solver2_propagate(sat_solver2* s)
 
                 // Did not find watch -- clause is unit under assignment:
                 if (s->fProofLogging && solver2_dlevel(s) == 0){
-                    int k, proof_id, Cid, Var = lit_var(lits[0]);
+                    int k, x, proof_id, Cid, Var = lit_var(lits[0]);
                     int fLitIsFalse = (var_value(s, Var) == !lit_sign(lits[0])); 
                     // Log production of top-level unit clause:
                     proof_chain_start( s, c );
-                    for ( k = 1; k < (int)c->nEnts; k++ )
-                    {
-                        int x = lit_var(c->pEnts[k]);
+                    satset_foreach_var( c, x, k, 1 ){
                         assert( var_level(s, x) == 0 );
                         proof_chain_resolve( s, NULL, x );
                     }
@@ -1007,12 +993,11 @@ static void clause_remove(sat_solver2* s, satset* c)
 
 static lbool clause_simplify(sat_solver2* s, satset* c)
 {
-    int i;
+    int i, x;
     assert(solver2_dlevel(s) == 0);
-    for (i = 0; i < (int)c->nEnts; i++){
-        if (var_value(s, lit_var(c->pEnts[i])) == lit_sign(c->pEnts[i]))
+    satset_foreach_var( c, x, i, 0 )
+        if (var_value(s, x) == lit_sign(c->pEnts[i]))
             return l_True;
-    }
     return l_False;
 }
 
