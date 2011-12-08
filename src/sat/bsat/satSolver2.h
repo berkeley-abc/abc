@@ -103,8 +103,8 @@ struct sat_solver2_t
     // clauses
     veci            clauses;        // clause memory
     veci*           wlists;         // watcher lists (for each literal)
-    int             iLearntFirst;   // the first learnt clause 
-    int             iLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    int             hLearntFirst;   // the first learnt clause 
+    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
 
     // activities
 #ifdef USE_FLOAT_ACTIVITY
@@ -139,10 +139,10 @@ struct sat_solver2_t
     veci            mark_levels;    // temporary storage for labeled levels
     veci            min_lit_order;  // ordering of removable literals
     veci            min_step_order; // ordering of resolution steps
-    veci            glob_vars;      // global variables
+    veci            learnt_live;    // remaining clauses after reduce DB
 
     // proof logging
-    veci            proof_clas;     // sequence of proof clauses
+    veci            proofs;         // sequence of proof records
     int             iStartChain;    // temporary variable to remember beginning of the current chain in proof logging
     int             nUnits;         // the total number of unit clauses
 
@@ -178,6 +178,8 @@ static inline void    satset_print  (satset * c)          {
 
 #define satset_foreach_entry( p, c, h, s )            \
     for ( h = s; (h < veci_size(p)) && (((c) = satset_read(p, h)), 1); h += satset_size(c->nEnts) )
+#define satset_foreach_entry_vec( pVec, p, c, i )     \
+    for ( i = 0; (i < veci_size(pVec)) && ((c) = satset_read(p, veci_begin(pVec)[i])); i++ )
 #define satset_foreach_var( p, var, i, start )        \
     for ( i = start; (i < (int)(p)->nEnts) && ((var) = lit_var((p)->pEnts[i])); i++ )
 

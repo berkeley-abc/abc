@@ -139,8 +139,9 @@ static inline int  lit_check(lit l, int n) { return l >= 0 && lit_var(l) < n;   
 
 struct stats_t
 {
-    ABC_INT64_T   starts, decisions, propagations, inspects, conflicts;
-    ABC_INT64_T   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
+    unsigned starts, clauses, learnts;
+    ABC_INT64_T decisions, propagations, inspects, conflicts;
+    ABC_INT64_T clauses_literals, learnts_literals, tot_literals;
 };
 typedef struct stats_t stats_t;
 

@@ -805,7 +805,6 @@ static void sat_solver_analyze(sat_solver* s, clause* c, veci* learnt)
     }
 
     // update size of learnt + statistics
-    s->stats.max_literals += veci_size(learnt);
     veci_resize(learnt,j);
     s->stats.tot_literals += j;
 
@@ -1150,7 +1149,6 @@ sat_solver* sat_solver_new(void)
     s->stats.clauses_literals = 0;
     s->stats.learnts          = 0;
     s->stats.learnts_literals = 0;
-    s->stats.max_literals     = 0;
     s->stats.tot_literals     = 0;
 
 #ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
