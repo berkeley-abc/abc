@@ -234,6 +234,86 @@ char * Kit_DsdWriteHex( char * pBuff, unsigned * pTruth, int nFans )
   SeeAlso     []
 
 ***********************************************************************/
+void Kit_DsdPrint2_rec( FILE * pFile, Kit_DsdNtk_t * pNtk, int Id )
+{
+    Kit_DsdObj_t * pObj;
+    unsigned iLit, i;
+    char Symbol;
+
+    pObj = Kit_DsdNtkObj( pNtk, Id );
+    if ( pObj == NULL )
+    {
+        assert( Id < pNtk->nVars );
+        fprintf( pFile, "%c", 'a' + Id );
+        return;
+    }
+
+    if ( pObj->Type == KIT_DSD_CONST1 )
+    {
+        assert( pObj->nFans == 0 );
+        fprintf( pFile, "Const1" );
+        return;
+    }
+
+    if ( pObj->Type == KIT_DSD_VAR )
+        assert( pObj->nFans == 1 );
+
+    if ( pObj->Type == KIT_DSD_AND )
+        Symbol = '*';
+    else if ( pObj->Type == KIT_DSD_XOR )
+        Symbol = '+';
+    else 
+        Symbol = ',';
+
+    if ( pObj->Type == KIT_DSD_PRIME )
+        fprintf( pFile, "[" );
+    else
+        fprintf( pFile, "(" );
+    Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+    {
+        if ( Kit_DsdLitIsCompl(iLit) ) 
+            fprintf( pFile, "!" );
+        Kit_DsdPrint2_rec( pFile, pNtk, Kit_DsdLit2Var(iLit) );
+        if ( i < pObj->nFans - 1 )
+            fprintf( pFile, "%c", Symbol );
+    }
+    if ( pObj->Type == KIT_DSD_PRIME )
+        fprintf( pFile, "]" );
+    else
+        fprintf( pFile, ")" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdPrint2( FILE * pFile, Kit_DsdNtk_t * pNtk )
+{
+//    fprintf( pFile, "F = " );
+    if ( Kit_DsdLitIsCompl(pNtk->Root) )
+        fprintf( pFile, "!" );
+    Kit_DsdPrint2_rec( pFile, pNtk, Kit_DsdLit2Var(pNtk->Root) );
+//    fprintf( pFile, "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively print the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Kit_DsdPrint_rec( FILE * pFile, Kit_DsdNtk_t * pNtk, int Id )
 {
     Kit_DsdObj_t * pObj;
@@ -415,6 +495,28 @@ void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars )
 //    Kit_DsdPrintExpanded( pTemp );
     pTemp2 = Kit_DsdExpand( pTemp );
     Kit_DsdPrint( stdout, pTemp2 );
+    Kit_DsdVerify( pTemp2, pTruth, nVars ); 
+    Kit_DsdNtkFree( pTemp2 );
+    Kit_DsdNtkFree( pTemp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdPrintFromTruth2( FILE * pFile, unsigned * pTruth, int nVars )
+{
+    Kit_DsdNtk_t * pTemp, * pTemp2;
+    pTemp = Kit_DsdDecomposeMux( pTruth, nVars, 0 );
+    pTemp2 = Kit_DsdExpand( pTemp );
+    Kit_DsdPrint2( pFile, pTemp2 );
     Kit_DsdVerify( pTemp2, pTruth, nVars ); 
     Kit_DsdNtkFree( pTemp2 );
     Kit_DsdNtkFree( pTemp );

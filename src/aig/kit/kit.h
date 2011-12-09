@@ -539,6 +539,7 @@ extern void            Kit_DsdTruthPartialTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * 
 extern void            Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
+extern void            Kit_DsdPrintFromTruth2( FILE * pFile, unsigned * pTruth, int nVars );
 extern void            Kit_DsdWriteFromTruth( char * pBuffer, unsigned * pTruth, int nVars );
 extern Kit_DsdNtk_t *  Kit_DsdDecompose( unsigned * pTruth, int nVars );
 extern Kit_DsdNtk_t *  Kit_DsdDecomposeExpand( unsigned * pTruth, int nVars );

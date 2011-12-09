@@ -70,7 +70,7 @@ char * Abc_UtilsGetVersion( Abc_Frame_t * pAbc )
 ***********************************************************************/
 char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
 {
-    static char Prompt[1000];
+    static char Prompt[5000];
 #ifndef _WIN32
     static char * line = NULL;
 #endif
@@ -78,7 +78,7 @@ char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
     sprintf( Prompt, "abc %02d> ", pAbc->nSteps );
 #ifdef _WIN32
     fprintf( pAbc->Out, "%s", Prompt );
-    fgets( Prompt, 999, stdin );
+    fgets( Prompt, 5000, stdin );
     return Prompt;
 #else
     if (line != NULL) ABC_FREE(line);

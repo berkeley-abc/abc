@@ -929,6 +929,8 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     }
 
+    c = strlen(argv[globalUtilOptind]);
+
     // convert truth table to SOP
     if ( fHex )
         pSopCover = Abc_SopFromTruthHex(argv[globalUtilOptind]);

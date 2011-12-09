@@ -200,12 +200,16 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts )
     p->vTtElems->nSize = p->nVars;
     p->vTtElems->nCap = p->nVars;
     p->vTtElems->pArray = (void **)Extra_TruthElementary( p->nVars );        
-
+/*
     // allocate room for node truth tables
     if ( Abc_NtkObjNum(pNtk) > (1<<14) )
         p->vTtNodes = Vec_PtrAllocSimInfo( 2 * Abc_NtkObjNum(pNtk), p->nWords );
     else
         p->vTtNodes = Vec_PtrAllocSimInfo( 1<<14, p->nWords );
+*/
+    p->vTtNodes = Vec_PtrAlloc( 1000 );
+    for ( i = 0; i < Abc_NtkObjNumMax(pNtk); i++ )
+        Vec_PtrPush( p->vTtNodes, ABC_ALLOC(unsigned, p->nWords) );
 
     // create hash table
     p->nBins = 50011;
@@ -269,6 +273,38 @@ p->timeTotal += clock() - clkTotal;
 
 /**Function*************************************************************
 
+  Synopsis    [Dump truth tables into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecDumpTruthTables( Abc_ManRec_t * p )
+{
+    FILE * pFile;
+    Abc_Obj_t * pObj;
+    unsigned * pTruth;
+    int i;
+    pFile = fopen( "tt16.txt", "wb" );
+    for ( i = 0; i < p->nBins; i++ )
+        for ( pObj = p->pBins[i]; pObj; pObj = pObj->pCopy )
+        {
+            pTruth = Vec_PtrEntry(p->vTtNodes, pObj->Id);
+            if ( Kit_TruthSupport(pTruth, 16) != (1<<16)-1 )
+                continue;
+            Extra_PrintHex( pFile, pTruth, 16 );
+            fprintf( pFile, " " );
+            Kit_DsdPrintFromTruth2( pFile, pTruth, 16 );
+            fprintf( pFile, "\n" );
+        }
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the given record.]
 
   Description []
@@ -281,9 +317,12 @@ p->timeTotal += clock() - clkTotal;
 void Abc_NtkRecStop()
 {
     assert( s_pMan != NULL );
+    Abc_NtkRecDumpTruthTables( s_pMan );
+
     if ( s_pMan->pNtk )
         Abc_NtkDelete( s_pMan->pNtk );
-    Vec_PtrFree( s_pMan->vTtNodes );
+//    Vec_PtrFree( s_pMan->vTtNodes );
+    Vec_PtrFreeFree( s_pMan->vTtNodes );
     Vec_PtrFree( s_pMan->vTtElems );
     ABC_FREE( s_pMan->pBins );
 
@@ -878,8 +917,11 @@ s_pMan->timeCanon += clock() - clk;
         if ( pObj->Id == nNodes )
         {
             // increase storage for truth tables
-            if ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
-                Vec_PtrDoubleSimInfo(s_pMan->vTtNodes);
+//            if ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
+//                Vec_PtrDoubleSimInfo(s_pMan->vTtNodes);
+            while ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
+                Vec_PtrPush( s_pMan->vTtNodes, ABC_ALLOC(unsigned, s_pMan->nWords) );
+
             // compute the truth table
             RetValue = Abc_NtkRecComputeTruth( pObj, s_pMan->vTtNodes, nInputs );
             if ( RetValue == 0 )
