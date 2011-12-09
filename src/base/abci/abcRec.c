@@ -284,20 +284,21 @@ p->timeTotal += clock() - clkTotal;
 ***********************************************************************/
 void Abc_NtkRecDumpTruthTables( Abc_ManRec_t * p )
 {
+    int nVars = 10;
     FILE * pFile;
     Abc_Obj_t * pObj;
     unsigned * pTruth;
     int i;
-    pFile = fopen( "tt16.txt", "wb" );
+    pFile = fopen( "tt10.txt", "wb" );
     for ( i = 0; i < p->nBins; i++ )
         for ( pObj = p->pBins[i]; pObj; pObj = pObj->pCopy )
         {
             pTruth = Vec_PtrEntry(p->vTtNodes, pObj->Id);
-            if ( Kit_TruthSupport(pTruth, 16) != (1<<16)-1 )
+            if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
                 continue;
-            Extra_PrintHex( pFile, pTruth, 16 );
+            Extra_PrintHex( pFile, pTruth, nVars );
             fprintf( pFile, " " );
-            Kit_DsdPrintFromTruth2( pFile, pTruth, 16 );
+            Kit_DsdPrintFromTruth2( pFile, pTruth, nVars );
             fprintf( pFile, "\n" );
         }
     fclose( pFile );
@@ -317,8 +318,7 @@ void Abc_NtkRecDumpTruthTables( Abc_ManRec_t * p )
 void Abc_NtkRecStop()
 {
     assert( s_pMan != NULL );
-    Abc_NtkRecDumpTruthTables( s_pMan );
-
+//    Abc_NtkRecDumpTruthTables( s_pMan );
     if ( s_pMan->pNtk )
         Abc_NtkDelete( s_pMan->pNtk );
 //    Vec_PtrFree( s_pMan->vTtNodes );
