@@ -3575,6 +3575,10 @@ SOURCE=.\src\aig\saig\saigGlaPba.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigGlaPba2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigHaig.c
 # End Source File
 # Begin Source File
