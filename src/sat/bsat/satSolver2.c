@@ -1450,7 +1450,7 @@ void solver2_reducedb(sat_solver2* s)
     extern void Sat_ProofReduce( veci * pProof, veci * pRoots );
     satset * c;
     cla h,* pArray,* pArray2;
-    int Counter = 0, CounterStart = s->stats.learnts * 2 / 3;
+    int Counter = 0, CounterStart = s->stats.learnts * 3 / 4; // 2/3;
     int i, j, k, hTemp, hHandle, clk = clock();
     static int TimeTotal = 0;
 

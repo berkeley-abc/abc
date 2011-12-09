@@ -34,8 +34,70 @@ ABC_NAMESPACE_IMPL_START
     Root clauses are given by their handles.
     They are marked by bitshifting by 2 bits up and setting the LSB to 1
 */
-/*
 
+// data-structure to record resolvents of the proof
+typedef struct Rec_Int_t_ Rec_Int_t;
+struct Rec_Int_t_ 
+{
+    int          nShift;  // log number of entries on a page
+    int          Mask;    // mask for entry number on a page
+    int          nSize;   // the total number of entries
+    int          nLast;   // the total number of entries before last append
+    Vec_Ptr_t *  vPages;  // memory pages
+};
+static inline Rec_Int_t * Rec_IntAlloc( int nShift )
+{
+    Rec_Int_t * p;
+    p = ABC_CALLOC( Rec_Int_t, 1 );
+    p->nShift  = nShift;
+    p->Mask    = (1<<nShift)-1;
+    p->vPages  = Vec_PtrAlloc( 50 );
+    return p;
+}
+static inline int Rec_IntSize( Rec_Int_t * p )
+{
+    return p->nSize;
+}
+static inline int Rec_IntSizeLast( Rec_Int_t * p )
+{
+    return p->nLast;
+}
+static inline void Rec_IntPush( Rec_Int_t * p, int Entry )
+{
+    if ( (p->nSize >> p->nShift) == Vec_PtrSize(p->vPages) )
+        Vec_PtrPush( p->vPages, ABC_ALLOC(int, p->Mask+1) );
+    ((int*)p->vPages->pArray[p->nSize >> p->nShift])[p->nSize++ & p->Mask] = Entry;
+}
+static inline void Rec_IntAppend( Rec_Int_t * p, int * pArray, int nSize )
+{
+    assert( nSize <= p->Mask );
+    if ( (p->nSize & p->Mask) + nSize >= p->Mask )
+    {
+        Rec_IntPush( p, 0 );
+        p->nSize = ((p->nSize >> p->nShift) + 1) * (p->Mask + 1);
+    }
+    if ( (p->nSize >> p->nShift) == Vec_PtrSize(p->vPages) )
+        Vec_PtrPush( p->vPages, ABC_ALLOC(int, p->Mask+1) );
+//    assert( (p->nSize >> p->nShift) + 1 == Vec_PtrSize(p->vPages) );
+    memmove( (int*)p->vPages->pArray[p->nSize >> p->nShift] + (p->nSize & p->Mask), pArray, sizeof(int) * nSize );
+    p->nLast = p->nSize;
+    p->nSize += nSize;
+}
+static inline int Rec_IntEntry( Rec_Int_t * p, int i )
+{
+    return ((int*)p->vPages->pArray[i >> p->nShift])[i & p->Mask];
+}
+static inline int * Rec_IntEntryP( Rec_Int_t * p, int i )
+{
+    return (int*)p->vPages->pArray[i >> p->nShift] + (i & p->Mask);
+}
+static inline void Rec_IntFree( Rec_Int_t * p )
+{
+    Vec_PtrFreeFree( p->vPages );
+    ABC_FREE( p );
+}
+
+/*
 typedef struct satset_t satset;
 struct satset_t 
 {
@@ -55,10 +117,12 @@ struct satset_t
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline satset* Proof_NodeRead   (Vec_Int_t* p, cla h )     { return satset_read( (veci*)p, h );   }
-static inline cla     Proof_NodeHandle (Vec_Int_t* p, satset* c)  { return satset_handle( (veci*)p, c ); }
-static inline int     Proof_NodeCheck  (Vec_Int_t* p, satset* c)  { return satset_check( (veci*)p, c );  }
-static inline int     Proof_NodeSize   (int nEnts)                { return sizeof(satset)/4 + nEnts;     }
+static inline satset* Proof_NodeRead    (Vec_Int_t* p, cla h )    { return satset_read( (veci*)p, h );   }
+static inline cla     Proof_NodeHandle  (Vec_Int_t* p, satset* c) { return satset_handle( (veci*)p, c ); }
+static inline int     Proof_NodeCheck   (Vec_Int_t* p, satset* c) { return satset_check( (veci*)p, c );  }
+static inline int     Proof_NodeSize    (int nEnts)               { return sizeof(satset)/4 + nEnts;     }
+
+static inline satset* Proof_ResolveRead (Rec_Int_t* p, cla h )    { return (satset*)Rec_IntEntryP(p, h); }
 
 // iterating through nodes in the proof
 #define Proof_ForeachNode( p, pNode, h )                         \
@@ -73,6 +137,7 @@ static inline int     Proof_NodeSize   (int nEnts)                { return sizeo
     for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_NodeRead(pLeaves, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
 #define Proof_NodeForeachFaninLeaf( p, pLeaves, pNode, pFanin, i )    \
     for ( i = 0; (i < (int)pNode->nEnts) && ((pFanin) = (pNode->pEnts[i] & 1) ? Proof_NodeRead(pLeaves, pNode->pEnts[i] >> 2) : Proof_NodeRead(p, pNode->pEnts[i] >> 2)); i++ )
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -289,132 +354,9 @@ Vec_Int_t * Proof_CollectUsedRec( Vec_Int_t * vProof, Vec_Int_t * vRoots, int hR
     }
     return vUsed;
 }
- 
-/**Function*************************************************************
 
-  Synopsis    [Performs one resultion step.]
 
-  Description [Returns ID of the resolvent if success, and -1 if failure.]
-               
-  SideEffects []
 
-  SeeAlso     []
-
-***********************************************************************/
-satset * Proof_ResolveOne( Vec_Int_t * p, satset * c1, satset * c2, Vec_Int_t * vTemp )
-{
-    satset * c;
-    int i, k, hNode, Var = -1, Count = 0;
-    // find resolution variable
-    for ( i = 0; i < (int)c1->nEnts; i++ )
-    for ( k = 0; k < (int)c2->nEnts; k++ )
-        if ( (c1->pEnts[i] ^ c2->pEnts[k]) == 1 )
-        {
-            Var = (c1->pEnts[i] >> 1);
-            Count++;
-        }
-    if ( Count == 0 )
-    {
-        printf( "Cannot find resolution variable\n" );
-        return NULL;
-    }
-    if ( Count > 1 )
-    {
-        printf( "Found more than 1 resolution variables\n" );
-        return NULL;
-    }
-    // perform resolution
-    Vec_IntClear( vTemp );
-    for ( i = 0; i < (int)c1->nEnts; i++ )
-        if ( (c1->pEnts[i] >> 1) != Var )
-            Vec_IntPush( vTemp, c1->pEnts[i] );
-    for ( i = 0; i < (int)c2->nEnts; i++ )
-        if ( (c2->pEnts[i] >> 1) != Var )
-            Vec_IntPushUnique( vTemp, c2->pEnts[i] );
-    // move to the new one
-    hNode = Vec_IntSize( p );
-    Vec_IntPush( p, 0 ); // placeholder
-    Vec_IntPush( p, 0 );
-    Vec_IntForEachEntry( vTemp, Var, i )
-        Vec_IntPush( p, Var );
-    c = Proof_NodeRead( p, hNode );
-    c->nEnts = Vec_IntSize(vTemp);
-    return c;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks the proof for consitency.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-satset * Proof_CheckReadOne( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_Int_t * vResolves, int iAnt )
-{
-    satset * pAnt;
-    if ( iAnt & 1 )
-        return Proof_NodeRead( vClauses, iAnt >> 2 );
-    assert( iAnt > 0 );
-    pAnt = Proof_NodeRead( vProof, iAnt >> 2 );
-    assert( pAnt->Id > 0 );
-    return Proof_NodeRead( vResolves, pAnt->Id );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks the proof for consitency.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Proof_Check( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hRoot )
-{
-    Vec_Int_t * vUsed, * vResolves, * vTemp;
-    satset * pSet, * pSet0, * pSet1;
-    int i, k, Counter = 0, clk = clock(); 
-    // collect visited clauses
-    vUsed = Proof_CollectUsedRec( vProof, NULL, hRoot );
-//    vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
-    Proof_CleanCollected( vProof, vUsed );
-    // perform resolution steps
-    vTemp = Vec_IntAlloc( 1000 );
-    vResolves = Vec_IntAlloc( 1000 );
-    Vec_IntPush( vResolves, -1 );
-    Proof_ForeachNodeVec( vUsed, vProof, pSet, i )
-    {
-        pSet0 = Proof_CheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[0] );
-        for ( k = 1; k < (int)pSet->nEnts; k++ )
-        {
-            pSet1 = Proof_CheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[k] );
-            pSet0 = Proof_ResolveOne( vResolves, pSet0, pSet1, vTemp );
-        }
-        pSet->Id = Proof_NodeHandle( vResolves, pSet0 );
-//printf( "Clause for proof %d: ", Vec_IntEntry(vUsed, i) );
-//satset_print( pSet0 );
-        Counter++;
-    }
-    Vec_IntFree( vTemp );
-    // clean the proof
-    Proof_CleanCollected( vProof, vUsed );
-    // compare the final clause
-    printf( "Used %6.2f Mb for resolvents.\n", 4.0 * Vec_IntSize(vResolves) / (1<<20) );
-    if ( pSet0->nEnts > 0 )
-        printf( "Cound not derive the empty clause.  " );
-    else
-        printf( "Proof verification successful.  " );
-    Abc_PrintTime( 1, "Time", clock() - clk );
-    // cleanup
-    Vec_IntFree( vResolves );
-    Vec_IntFree( vUsed );
-}
 
 /**Function*************************************************************
 
@@ -448,6 +390,7 @@ Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_
         pNode->mark = 0;
     return vCore;
 }
+
 
 /**Function*************************************************************
 
@@ -591,10 +534,7 @@ void Sat_ProofReduce( veci * pProof, veci * pRoots )
         pNode->Id = hNewHandle; hNewHandle += Proof_NodeSize(pNode->nEnts);
         Proof_NodeForeachFanin( vProof, pNode, pFanin, k )
             if ( pFanin )
-            {
-                assert( (pNode->pEnts[k] >> 2) == Proof_NodeHandle(vProof, pFanin) );
                 pNode->pEnts[k] = (pFanin->Id << 2) | (pNode->pEnts[k] & 2);
-            }
     }
     // update roots
     Proof_ForeachNodeVec( vRoots, vProof, pNode, i )
@@ -617,6 +557,267 @@ void Sat_ProofReduce( veci * pProof, veci * pRoots )
     }
     Vec_IntShrink( vProof, hNewHandle );
 }
+
+
+
+
+
+#if 0
+ 
+/**Function*************************************************************
+
+  Synopsis    [Performs one resultion step.]
+
+  Description [Returns ID of the resolvent if success, and -1 if failure.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+satset * Proof_ResolveOne( Vec_Int_t * p, satset * c1, satset * c2, Vec_Int_t * vTemp )
+{
+    satset * c;
+    int i, k, hNode, Var = -1, Count = 0;
+    // find resolution variable
+    for ( i = 0; i < (int)c1->nEnts; i++ )
+    for ( k = 0; k < (int)c2->nEnts; k++ )
+        if ( (c1->pEnts[i] ^ c2->pEnts[k]) == 1 )
+        {
+            Var = (c1->pEnts[i] >> 1);
+            Count++;
+        }
+    if ( Count == 0 )
+    {
+        printf( "Cannot find resolution variable\n" );
+        return NULL;
+    }
+    if ( Count > 1 )
+    {
+        printf( "Found more than 1 resolution variables\n" );
+        return NULL;
+    }
+    // perform resolution
+    Vec_IntClear( vTemp );
+    for ( i = 0; i < (int)c1->nEnts; i++ )
+        if ( (c1->pEnts[i] >> 1) != Var )
+            Vec_IntPush( vTemp, c1->pEnts[i] );
+    for ( i = 0; i < (int)c2->nEnts; i++ )
+        if ( (c2->pEnts[i] >> 1) != Var )
+            Vec_IntPushUnique( vTemp, c2->pEnts[i] );
+    // move to the new one
+    hNode = Vec_IntSize( p );
+    Vec_IntPush( p, 0 ); // placeholder
+    Vec_IntPush( p, 0 );
+    Vec_IntForEachEntry( vTemp, Var, i )
+        Vec_IntPush( p, Var );
+    c = Proof_NodeRead( p, hNode );
+    c->nEnts = Vec_IntSize(vTemp);
+    return c;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the proof for consitency.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+satset * Proof_CheckReadOne( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_Int_t * vResolves, int iAnt )
+{
+    satset * pAnt;
+    if ( iAnt & 1 )
+        return Proof_NodeRead( vClauses, iAnt >> 2 );
+    assert( iAnt > 0 );
+    pAnt = Proof_NodeRead( vProof, iAnt >> 2 );
+    assert( pAnt->Id > 0 );
+    return Proof_NodeRead( vResolves, pAnt->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the proof for consitency.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Proof_Check( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hRoot )
+{
+    Vec_Int_t * vUsed, * vResolves, * vTemp;
+    satset * pSet, * pSet0, * pSet1;
+    int i, k, Counter = 0, clk = clock(); 
+    // collect visited clauses
+    vUsed = Proof_CollectUsedRec( vProof, NULL, hRoot );
+//    vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
+    Proof_CleanCollected( vProof, vUsed );
+    // perform resolution steps
+    vTemp = Vec_IntAlloc( 1000 );
+    vResolves = Vec_IntAlloc( 1000 );
+    Vec_IntPush( vResolves, -1 );
+    Proof_ForeachNodeVec( vUsed, vProof, pSet, i )
+    {
+        pSet0 = Proof_CheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[0] );
+        for ( k = 1; k < (int)pSet->nEnts; k++ )
+        {
+            pSet1 = Proof_CheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[k] );
+            pSet0 = Proof_ResolveOne( vResolves, pSet0, pSet1, vTemp );
+        }
+        pSet->Id = Proof_NodeHandle( vResolves, pSet0 );
+//printf( "Clause for proof %d: ", Vec_IntEntry(vUsed, i) );
+//satset_print( pSet0 );
+        Counter++;
+    }
+    Vec_IntFree( vTemp );
+    // clean the proof
+    Proof_CleanCollected( vProof, vUsed );
+    // compare the final clause
+    printf( "Used %6.2f Mb for resolvents.\n", 4.0 * Vec_IntSize(vResolves) / (1<<20) );
+    if ( pSet0->nEnts > 0 )
+        printf( "Cound not derive the empty clause.  " );
+    else
+        printf( "Proof verification successful.  " );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    // cleanup
+    Vec_IntFree( vResolves );
+    Vec_IntFree( vUsed );
+}
+
+#endif
+
+/**Function*************************************************************
+
+  Synopsis    [Performs one resultion step.]
+
+  Description [Returns ID of the resolvent if success, and -1 if failure.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+satset * Proof_ResolveOne( Rec_Int_t * p, satset * c1, satset * c2, Vec_Int_t * vTemp )
+{
+    satset * c;
+    int i, k, Var = -1, Count = 0;
+    // find resolution variable
+    for ( i = 0; i < (int)c1->nEnts; i++ )
+    for ( k = 0; k < (int)c2->nEnts; k++ )
+        if ( (c1->pEnts[i] ^ c2->pEnts[k]) == 1 )
+        {
+            Var = (c1->pEnts[i] >> 1);
+            Count++;
+        }
+    if ( Count == 0 )
+    {
+        printf( "Cannot find resolution variable\n" );
+        return NULL;
+    }
+    if ( Count > 1 )
+    {
+        printf( "Found more than 1 resolution variables\n" );
+        return NULL;
+    }
+    // perform resolution
+    Vec_IntClear( vTemp );
+    Vec_IntPush( vTemp, 0 ); // placeholder
+    Vec_IntPush( vTemp, 0 );
+    for ( i = 0; i < (int)c1->nEnts; i++ )
+        if ( (c1->pEnts[i] >> 1) != Var )
+            Vec_IntPush( vTemp, c1->pEnts[i] );
+    for ( i = 0; i < (int)c2->nEnts; i++ )
+        if ( (c2->pEnts[i] >> 1) != Var )
+            Vec_IntPushUnique( vTemp, c2->pEnts[i] );
+    // create new resolution entry
+    Rec_IntAppend( p, Vec_IntArray(vTemp), Vec_IntSize(vTemp) );
+    // return the new entry
+    c = Proof_ResolveRead( p, Rec_IntSizeLast(p) );
+    c->nEnts = Vec_IntSize(vTemp)-2;
+    return c;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the proof for consitency.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+satset * Proof_CheckReadOne( Vec_Int_t * vClauses, Vec_Int_t * vProof, Rec_Int_t * vResolves, int iAnt )
+{
+    satset * pAnt;
+    if ( iAnt & 1 )
+        return Proof_NodeRead( vClauses, iAnt >> 2 );
+    assert( iAnt > 0 );
+    pAnt = Proof_NodeRead( vProof, iAnt >> 2 );
+    assert( pAnt->Id > 0 );
+    return Proof_ResolveRead( vResolves, pAnt->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the proof for consitency.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Proof_Check( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hRoot )
+{
+    Rec_Int_t * vResolves;
+    Vec_Int_t * vUsed, * vTemp;
+    satset * pSet, * pSet0, * pSet1;
+    int i, k, Counter = 0, clk = clock(); 
+    // collect visited clauses
+//    vUsed = Proof_CollectUsedRec( vProof, NULL, hRoot );
+    vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
+    Proof_CleanCollected( vProof, vUsed );
+    // perform resolution steps
+    vTemp = Vec_IntAlloc( 1000 );
+    vResolves = Rec_IntAlloc( 20 );
+    Rec_IntPush( vResolves, -1 );
+    Proof_ForeachNodeVec( vUsed, vProof, pSet, i )
+    {
+        pSet0 = Proof_CheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[0] );
+        for ( k = 1; k < (int)pSet->nEnts; k++ )
+        {
+            pSet1 = Proof_CheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[k] );
+            pSet0 = Proof_ResolveOne( vResolves, pSet0, pSet1, vTemp );
+        }
+        pSet->Id = Rec_IntSizeLast( vResolves );
+//printf( "Clause for proof %d: ", Vec_IntEntry(vUsed, i) );
+//satset_print( pSet0 );
+        Counter++;
+    }
+    Vec_IntFree( vTemp );
+    // clean the proof
+    Proof_CleanCollected( vProof, vUsed );
+    // compare the final clause
+    printf( "Used %6.2f Mb for resolvents.\n", 4.0 * Rec_IntSize(vResolves) / (1<<20) );
+    if ( pSet0->nEnts > 0 )
+        printf( "Cound not derive the empty clause.  " );
+    else
+        printf( "Proof verification successful.  " );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    // cleanup
+    Rec_IntFree( vResolves );
+    Vec_IntFree( vUsed );
+}
+
 
 /**Function*************************************************************
 
