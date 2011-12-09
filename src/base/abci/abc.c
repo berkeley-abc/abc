@@ -29093,13 +29093,14 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Saig_ParBmc_t Pars, * pPars = &Pars;
     int c;
+    int fNewSolver = 0;
     Saig_ParBmcSetDefaultParams( pPars );
     pPars->nStart     =  0;  
     pPars->nFramesMax = (pAbc->nFrames >= 0) ? pAbc->nFrames : 10;
     pPars->nConfLimit =  0;
     pPars->fSkipRand  =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTrnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29150,6 +29151,9 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             pPars->fSkipRand ^= 1;
             break;
+        case 'n':
+            fNewSolver ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29186,20 +29190,21 @@ int Abc_CommandAbc9GlaPba( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->nStart )
         Abc_Print( 0, "The starting frame is specified. The resulting abstraction may be unsound.\n" );
-    pAbc->Status = Gia_ManGlaPbaPerform( pAbc->pGia, pPars );
+    pAbc->Status = Gia_ManGlaPbaPerform( pAbc->pGia, pPars, fNewSolver );
 //    if ( pPars->nStart == 0 )
        pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla_pba [-SFCT num] [-rvh]\n" );
+    Abc_Print( -2, "usage: &gla_pba [-SFCT num] [-rnvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-r     : toggle using random decisiont during SAT solving [default = %s]\n", !pPars->fSkipRand? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggle using on-the-fly proof-logging [default = %s]\n", fNewSolver? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

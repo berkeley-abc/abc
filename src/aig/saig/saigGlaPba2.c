@@ -19,8 +19,7 @@
 ***********************************************************************/
  
 #include "saig.h"
-#include "satSolver.h"
-#include "satStore.h"
+#include "satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -29,8 +28,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Aig_Gla2Man_t_ Aig_Gla2Man_t;
-struct Aig_Gla2Man_t_
+typedef struct Aig_Gla3Man_t_ Aig_Gla3Man_t;
+struct Aig_Gla3Man_t_
 {
     // user data
     Aig_Man_t *    pAig;
@@ -46,7 +45,7 @@ struct Aig_Gla2Man_t_
     Vec_Int_t *    vCla2Fra;   // maps clause into its frame
     Vec_Int_t *    vVec2Use;   // maps vec ID into its used frames (nFrames per vec ID)
     // SAT solver
-    sat_solver *   pSat;
+    sat_solver2 *  pSat;
     // statistics
     int            timePre;
     int            timeSat;
@@ -61,36 +60,6 @@ struct Aig_Gla2Man_t_
 
 /**Function*************************************************************
 
-  Synopsis    [Procedure returns miliseconds elapsed since the last reset.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_Clock( int Timer, int fReset )
-{
-    static int Time[16], Clock[16];
-    int Clock2, Diff;
-    assert( Timer >= 0 && Timer < 16 );
-    if ( fReset )
-    {
-        Time[Timer] = time(NULL);
-        Clock[Timer] = clock();
-        return 0;
-    }
-    Clock2 = clock();
-    if ( Clock2 > Clock[Timer] )
-        Diff = (Clock2 - Clock[Timer]) % CLOCKS_PER_SEC;
-    else
-        Diff = CLOCKS_PER_SEC - (Clock[Timer] - Clock2) % CLOCKS_PER_SEC;
-    return (time(NULL) - Time[Timer]) * ABC_CPS + (Diff * ABC_CPS) / CLOCKS_PER_SEC;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Adds constant to the solver.]
 
   Description []
@@ -100,10 +69,10 @@ int Abc_Clock( int Timer, int fReset )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Aig_Gla2AddConst( sat_solver * pSat, int iVar, int fCompl )
+static inline int Aig_Gla3AddConst( sat_solver2 * pSat, int iVar, int fCompl )
 {
     lit Lit = toLitCond( iVar, fCompl );
-    if ( !sat_solver_addclause( pSat, &Lit, &Lit + 1 ) )
+    if ( !sat_solver2_addclause( pSat, &Lit, &Lit + 1 ) )
         return 0;
     return 1;
 }
@@ -119,18 +88,18 @@ static inline int Aig_Gla2AddConst( sat_solver * pSat, int iVar, int fCompl )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Aig_Gla2AddBuffer( sat_solver * pSat, int iVar0, int iVar1, int fCompl )
+static inline int Aig_Gla3AddBuffer( sat_solver2 * pSat, int iVar0, int iVar1, int fCompl )
 {
     lit Lits[2];
 
     Lits[0] = toLitCond( iVar0, 0 );
     Lits[1] = toLitCond( iVar1, !fCompl );
-    if ( !sat_solver_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
         return 0;
 
     Lits[0] = toLitCond( iVar0, 1 );
     Lits[1] = toLitCond( iVar1, fCompl );
-    if ( !sat_solver_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
         return 0;
 
     return 1;
@@ -147,24 +116,24 @@ static inline int Aig_Gla2AddBuffer( sat_solver * pSat, int iVar0, int iVar1, in
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Aig_Gla2AddNode( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1 )
+static inline int Aig_Gla3AddNode( sat_solver2 * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1 )
 {
     lit Lits[3];
 
     Lits[0] = toLitCond( iVar, 1 );
     Lits[1] = toLitCond( iVar0, fCompl0 );
-    if ( !sat_solver_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
         return 0;
 
     Lits[0] = toLitCond( iVar, 1 );
     Lits[1] = toLitCond( iVar1, fCompl1 );
-    if ( !sat_solver_addclause( pSat, Lits, Lits + 2 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 2 ) )
         return 0;
 
     Lits[0] = toLitCond( iVar, 0 );
     Lits[1] = toLitCond( iVar0, !fCompl0 );
     Lits[2] = toLitCond( iVar1, !fCompl1 );
-    if ( !sat_solver_addclause( pSat, Lits, Lits + 3 ) )
+    if ( !sat_solver2_addclause( pSat, Lits, Lits + 3 ) )
         return 0;
 
     return 1;
@@ -182,7 +151,7 @@ static inline int Aig_Gla2AddNode( sat_solver * pSat, int iVar, int iVar0, int i
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_Gla2FetchVar( Aig_Gla2Man_t * p, Aig_Obj_t * pObj, int k )
+int Aig_Gla3FetchVar( Aig_Gla3Man_t * p, Aig_Obj_t * pObj, int k )
 {
     int i, iVecId, iSatVar;
     assert( k < p->nFramesMax );
@@ -216,28 +185,28 @@ int Aig_Gla2FetchVar( Aig_Gla2Man_t * p, Aig_Obj_t * pObj, int k )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_Gla2AssignVars_rec( Aig_Gla2Man_t * p, Aig_Obj_t * pObj, int f )
+void Aig_Gla3AssignVars_rec( Aig_Gla3Man_t * p, Aig_Obj_t * pObj, int f )
 {
     int nVars = Vec_IntSize(p->vVar2Inf);
-    Aig_Gla2FetchVar( p, pObj, f );
+    Aig_Gla3FetchVar( p, pObj, f );
     if ( nVars == Vec_IntSize(p->vVar2Inf) )
         return;
     if ( Aig_ObjIsConst1(pObj) )
         return;
     if ( Saig_ObjIsPo( p->pAig, pObj ) )
     {
-        Aig_Gla2AssignVars_rec( p, Aig_ObjFanin0(pObj), f );
+        Aig_Gla3AssignVars_rec( p, Aig_ObjFanin0(pObj), f );
         return;
     }
     if ( Aig_ObjIsPi( pObj ) )
     {
         if ( Saig_ObjIsLo(p->pAig, pObj) && f > 0 )
-            Aig_Gla2AssignVars_rec( p, Aig_ObjFanin0( Saig_ObjLoToLi(p->pAig, pObj) ), f-1 );
+            Aig_Gla3AssignVars_rec( p, Aig_ObjFanin0( Saig_ObjLoToLi(p->pAig, pObj) ), f-1 );
         return;
     }
     assert( Aig_ObjIsNode(pObj) );
-    Aig_Gla2AssignVars_rec( p, Aig_ObjFanin0(pObj), f );
-    Aig_Gla2AssignVars_rec( p, Aig_ObjFanin1(pObj), f );
+    Aig_Gla3AssignVars_rec( p, Aig_ObjFanin0(pObj), f );
+    Aig_Gla3AssignVars_rec( p, Aig_ObjFanin1(pObj), f );
 }
 
 /**Function*************************************************************
@@ -251,7 +220,7 @@ void Aig_Gla2AssignVars_rec( Aig_Gla2Man_t * p, Aig_Obj_t * pObj, int f )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
+int Aig_Gla3CreateSatSolver( Aig_Gla3Man_t * p )
 {
     Vec_Int_t * vPoLits;
     Aig_Obj_t * pObj;
@@ -259,13 +228,11 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
 
     // assign variables
     for ( f = p->nFramesMax - 1; f >= 0; f-- )
-//    for ( f = 0; f < p->nFramesMax; f++ )
-        Aig_Gla2AssignVars_rec( p, Aig_ManPo(p->pAig, 0), f );
+        Aig_Gla3AssignVars_rec( p, Aig_ManPo(p->pAig, 0), f );
 
     // create SAT solver
-    p->pSat = sat_solver_new();
-    sat_solver_store_alloc( p->pSat ); 
-    sat_solver_setnvars( p->pSat, Vec_IntSize(p->vVar2Inf)/2 );
+    p->pSat = sat_solver2_new();
+    sat_solver2_setnvars( p->pSat, Vec_IntSize(p->vVar2Inf)/2 );
 
     // add clauses
     nVars = Vec_IntSize( p->vVar2Inf );
@@ -276,10 +243,10 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
         pObj = Aig_ManObj( p->pAig, ObjId );
         if ( Aig_ObjIsNode(pObj) )
         {
-            RetValue &= Aig_Gla2AddNode( p->pSat, Aig_Gla2FetchVar(p, pObj, f), 
-                                                  Aig_Gla2FetchVar(p, Aig_ObjFanin0(pObj), f), 
-                                                  Aig_Gla2FetchVar(p, Aig_ObjFanin1(pObj), f), 
-                                                  Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
+            Aig_Gla3AddNode( p->pSat, Aig_Gla3FetchVar(p, pObj, f), 
+                                      Aig_Gla3FetchVar(p, Aig_ObjFanin0(pObj), f), 
+                                      Aig_Gla3FetchVar(p, Aig_ObjFanin1(pObj), f), 
+                                      Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
             Vec_IntPush( p->vCla2Obj, ObjId );
             Vec_IntPush( p->vCla2Obj, ObjId );
             Vec_IntPush( p->vCla2Obj, ObjId );
@@ -292,7 +259,7 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
         {
             if ( f == 0 )
             {
-                RetValue &= Aig_Gla2AddConst( p->pSat, Aig_Gla2FetchVar(p, pObj, f), 1 );
+                Aig_Gla3AddConst( p->pSat, Aig_Gla3FetchVar(p, pObj, f), 1 );
                 Vec_IntPush( p->vCla2Obj, ObjId );
 
                 Vec_IntPush( p->vCla2Fra, f );
@@ -300,9 +267,9 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
             else
             {
                 Aig_Obj_t * pObjLi = Saig_ObjLoToLi(p->pAig, pObj);
-                RetValue &= Aig_Gla2AddBuffer( p->pSat, Aig_Gla2FetchVar(p, pObj, f), 
-                                                        Aig_Gla2FetchVar(p, Aig_ObjFanin0(pObjLi), f-1), 
-                                                        Aig_ObjFaninC0(pObjLi) );
+                Aig_Gla3AddBuffer( p->pSat, Aig_Gla3FetchVar(p, pObj, f), 
+                                            Aig_Gla3FetchVar(p, Aig_ObjFanin0(pObjLi), f-1), 
+                                            Aig_ObjFaninC0(pObjLi) );
                 Vec_IntPush( p->vCla2Obj, ObjId );
                 Vec_IntPush( p->vCla2Obj, ObjId );
 
@@ -312,9 +279,9 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
         }
         else if ( Saig_ObjIsPo(p->pAig, pObj) )
         {
-            RetValue &= Aig_Gla2AddBuffer( p->pSat, Aig_Gla2FetchVar(p, pObj, f), 
-                                                    Aig_Gla2FetchVar(p, Aig_ObjFanin0(pObj), f), 
-                                                    Aig_ObjFaninC0(pObj) );
+            Aig_Gla3AddBuffer( p->pSat, Aig_Gla3FetchVar(p, pObj, f), 
+                                        Aig_Gla3FetchVar(p, Aig_ObjFanin0(pObj), f), 
+                                        Aig_ObjFaninC0(pObj) );
             Vec_IntPush( p->vCla2Obj, ObjId );
             Vec_IntPush( p->vCla2Obj, ObjId );
 
@@ -323,7 +290,7 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
         }
         else if ( Aig_ObjIsConst1(pObj) )
         {
-            RetValue &= Aig_Gla2AddConst( p->pSat, Aig_Gla2FetchVar(p, pObj, f), 0 );
+            Aig_Gla3AddConst( p->pSat, Aig_Gla3FetchVar(p, pObj, f), 0 );
             Vec_IntPush( p->vCla2Obj, ObjId );
 
             Vec_IntPush( p->vCla2Fra, f );
@@ -334,18 +301,14 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
     // add output clause
     vPoLits = Vec_IntAlloc( p->nFramesMax );
     for ( f = p->nStart; f < p->nFramesMax; f++ )
-        Vec_IntPush( vPoLits, 2 * Aig_Gla2FetchVar(p, Aig_ManPo(p->pAig, 0), f) );
-    RetValue &= sat_solver_addclause( p->pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) );
+        Vec_IntPush( vPoLits, 2 * Aig_Gla3FetchVar(p, Aig_ManPo(p->pAig, 0), f) );
+    sat_solver2_addclause( p->pSat, Vec_IntArray(vPoLits), Vec_IntArray(vPoLits) + Vec_IntSize(vPoLits) );
     Vec_IntFree( vPoLits );
     Vec_IntPush( p->vCla2Obj, 0 );
     Vec_IntPush( p->vCla2Fra, 0 );
     assert( Vec_IntSize(p->vCla2Fra) == Vec_IntSize(p->vCla2Obj) );
-
     assert( nVars == Vec_IntSize(p->vVar2Inf) );
-    assert( ((Sto_Man_t *)p->pSat->pStore)->nClauses == Vec_IntSize(p->vCla2Obj) );
-//    Sto_ManDumpClauses( ((Sto_Man_t *)p->pSat->pStore), "temp_sto.cnf" );
-    sat_solver_store_mark_roots( p->pSat ); 
-
+    assert( Vec_IntSize(p->vCla2Obj) == (int)p->pSat->stats.clauses );
     if ( p->fVerbose )
         printf( "The resulting SAT problem contains %d variables and %d clauses.\n", 
             p->pSat->size, p->pSat->stats.clauses );
@@ -363,12 +326,12 @@ int Aig_Gla2CreateSatSolver( Aig_Gla2Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Gla2Man_t * Aig_Gla2ManStart( Aig_Man_t * pAig, int nStart, int nFramesMax, int fVerbose )
+Aig_Gla3Man_t * Aig_Gla3ManStart( Aig_Man_t * pAig, int nStart, int nFramesMax, int fVerbose )
 {
-    Aig_Gla2Man_t * p;
+    Aig_Gla3Man_t * p;
     int i;
 
-    p = ABC_CALLOC( Aig_Gla2Man_t, 1 );
+    p = ABC_CALLOC( Aig_Gla3Man_t, 1 );
     p->pAig       = pAig;
 
     p->vObj2Vec   = Vec_IntStart( Aig_ManObjNumMax(pAig) );
@@ -401,7 +364,7 @@ Aig_Gla2Man_t * Aig_Gla2ManStart( Aig_Man_t * pAig, int nStart, int nFramesMax, 
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_Gla2ManStop( Aig_Gla2Man_t * p )
+void Aig_Gla3ManStop( Aig_Gla3Man_t * p )
 {
     Vec_IntFreeP( &p->vObj2Vec );
     Vec_IntFreeP( &p->vVec2Var );
@@ -411,7 +374,7 @@ void Aig_Gla2ManStop( Aig_Gla2Man_t * p )
     Vec_IntFreeP( &p->vVec2Use );
 
     if ( p->pSat )
-        sat_solver_delete( p->pSat );
+        sat_solver2_delete( p->pSat );
     ABC_FREE( p );
 }
 
@@ -427,16 +390,14 @@ void Aig_Gla2ManStop( Aig_Gla2Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbose, int * piRetValue )
+Vec_Int_t * Aig_Gla3ManUnsatCore( sat_solver2 * pSat, int nConfMax, int fVerbose, int * piRetValue )
 {
     Vec_Int_t * vCore;
-    void * pSatCnf; 
-    Intp_Man_t * pManProof;
     int RetValue, clk = clock();
     if ( piRetValue )
         *piRetValue = -1;
     // solve the problem
-    RetValue = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    RetValue = sat_solver2_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_Undef )
     {
         printf( "Conflict limit is reached.\n" );
@@ -455,18 +416,15 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     assert( RetValue == l_False );
-    pSatCnf = sat_solver_store_release( pSat ); 
+
     // derive the UNSAT core
     clk = clock();
-    pManProof = Intp_ManAlloc();
-    vCore = (Vec_Int_t *)Intp_ManUnsatCore( pManProof, (Sto_Man_t *)pSatCnf, 0 );
-    Intp_ManFree( pManProof );
+    vCore = Sat_ProofCore( pSat );
     if ( fVerbose )
     {
-        printf( "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver_nclauses(pSat) );
+        printf( "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
-    Sto_ManFree( (Sto_Man_t *)pSatCnf );
     return vCore;
 }
 
@@ -481,7 +439,7 @@ Vec_Int_t * Saig_AbsSolverUnsatCore( sat_solver * pSat, int nConfMax, int fVerbo
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_Gla2ManCollect( Aig_Gla2Man_t * p, Vec_Int_t * vCore )
+Vec_Int_t * Aig_Gla3ManCollect( Aig_Gla3Man_t * p, Vec_Int_t * vCore )
 {
     Vec_Int_t * vResult;
     Aig_Obj_t * pObj;
@@ -497,31 +455,12 @@ Vec_Int_t * Aig_Gla2ManCollect( Aig_Gla2Man_t * p, Vec_Int_t * vCore )
             continue;
         assert( Saig_ObjIsLo(p->pAig, pObj) || Aig_ObjIsNode(pObj) );
         Vec_IntWriteEntry( vResult, Aig_ObjId(pObj), 1 );
-/*
-        // add flop inputs with multiple fanouts
-        if ( Saig_ObjIsLo(p->pAig, pObj) )
-        {
-            Aig_Obj_t * pObjLi = Saig_ObjLoToLi(p->pAig, pObj);
-            if ( !Saig_ObjIsPi(p->pAig, Aig_ObjFanin0(pObjLi)) )
-//            if ( Aig_ObjRefs( Aig_ObjFanin0(pObjLi) ) > 1 )
-                Vec_IntWriteEntry( vResult, Aig_ObjFaninId0(pObjLi), 1 );
-        }
-        else
-        {
-            if ( !Saig_ObjIsPi(p->pAig, Aig_ObjFanin0(pObj)) )
-                Vec_IntWriteEntry( vResult, Aig_ObjFaninId0(pObj), 1 );
-            if ( !Saig_ObjIsPi(p->pAig, Aig_ObjFanin1(pObj)) )
-                Vec_IntWriteEntry( vResult, Aig_ObjFaninId1(pObj), 1 );
-        }
-*/
         if ( p->vVec2Use )
         {
             iVecId = Vec_IntEntry( p->vObj2Vec, Aig_ObjId(pObj) );
             Vec_IntWriteEntry( p->vVec2Use, iVecId * p->nFramesMax + Vec_IntEntry(p->vCla2Fra, ClaId), 1 );
         }
     }
-//    printf( "Number of entries %d\n", Vec_IntCountPositive(vResult) );
-
     // count the number of objects in each frame
     if ( p->vVec2Use )
     {
@@ -552,9 +491,9 @@ Vec_Int_t * Aig_Gla2ManCollect( Aig_Gla2Man_t * p, Vec_Int_t * vCore )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fSkipRand, int fVerbose )
+Vec_Int_t * Aig_Gla3ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fSkipRand, int fVerbose )
 {
-    Aig_Gla2Man_t * p;
+    Aig_Gla3Man_t * p;
     Vec_Int_t * vCore, * vResult;
     int nTimeToStop = time(NULL) + TimeLimit;
     int clk, clk2 = clock();
@@ -570,26 +509,26 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
 
     // start the solver
     clk = clock();
-    p = Aig_Gla2ManStart( pAig, nStart, nFramesMax, fVerbose );
-    if ( !Aig_Gla2CreateSatSolver( p ) )
+    p = Aig_Gla3ManStart( pAig, nStart, nFramesMax, fVerbose );
+    if ( !Aig_Gla3CreateSatSolver( p ) )
     {
         printf( "Error!  SAT solver became UNSAT.\n" );
-        Aig_Gla2ManStop( p );
+        Aig_Gla3ManStop( p );
         return NULL;
     }
-    sat_solver_set_random( p->pSat, fSkipRand );
+    sat_solver2_set_random( p->pSat, fSkipRand );
     p->timePre += clock() - clk;
 
     // set runtime limit
     if ( TimeLimit )
-        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+        sat_solver2_set_runtime_limit( p->pSat, nTimeToStop );
 
     // compute UNSAT core
     clk = clock();
-    vCore = Saig_AbsSolverUnsatCore( p->pSat, nConfLimit, fVerbose, NULL );
+    vCore = Aig_Gla3ManUnsatCore( p->pSat, nConfLimit, fVerbose, NULL );
     if ( vCore == NULL )
     {
-        Aig_Gla2ManStop( p );
+        Aig_Gla3ManStop( p );
         return NULL;
     }
     p->timeSat += clock() - clk;
@@ -604,9 +543,9 @@ Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
     }
 
     // prepare return value
-    vResult = Aig_Gla2ManCollect( p, vCore );
+    vResult = Aig_Gla3ManCollect( p, vCore );
     Vec_IntFree( vCore );
-    Aig_Gla2ManStop( p );
+    Aig_Gla3ManStop( p );
     return vResult;
 }
 

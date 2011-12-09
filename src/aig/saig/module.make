@@ -13,6 +13,7 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigDup.c \
     src/aig/saig/saigGlaCba.c \
     src/aig/saig/saigGlaPba.c \
+    src/aig/saig/saigGlaPba2.c \
     src/aig/saig/saigHaig.c \
     src/aig/saig/saigInd.c \
     src/aig/saig/saigIoa.c \

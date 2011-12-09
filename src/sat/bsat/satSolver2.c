@@ -28,7 +28,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ABC_NAMESPACE_IMPL_START
 
-
 #define SAT_USE_ANALYZE_FINAL
 #define SAT_USE_PROOF_LOGGING
 
@@ -369,7 +368,7 @@ static inline void act_clause_decay(sat_solver2* s) { s->cla_inc += (s->cla_inc 
 //=================================================================================================
 // Clause functions:
 
-static int clause_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proof_id)
+static int clause_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, int proof_id)
 {
     satset* c;
     int i, Cid, nLits = end - begin;
@@ -516,7 +515,7 @@ static void solver2_record(sat_solver2* s, veci* cls, int proof_id)
 {
     lit* begin = veci_begin(cls);
     lit* end   = begin + veci_size(cls);
-    int  Cid   = clause_new(s,begin,end,1, proof_id);
+    int  Cid   = clause_create_new(s,begin,end,1, proof_id);
     assert(veci_size(cls) > 0);
     if ( veci_size(cls) == 1 )
     {
@@ -888,6 +887,7 @@ satset* solver2_propagate(sat_solver2* s)
     veci* ws;
     lit* lits, false_lit, p, * stop, * k;
     cla* begin,* end, *i, *j;
+    int Lit;
 
     while (confl == 0 && s->qtail - s->qhead > 0){
 
@@ -926,9 +926,10 @@ satset* solver2_propagate(sat_solver2* s)
                 }
 
                 // Did not find watch -- clause is unit under assignment:
+                Lit = lits[0];
                 if (s->fProofLogging && solver2_dlevel(s) == 0){
-                    int k, x, proof_id, Cid, Var = lit_var(lits[0]);
-                    int fLitIsFalse = (var_value(s, Var) == !lit_sign(lits[0])); 
+                    int k, x, proof_id, Cid, Var = lit_var(Lit);
+                    int fLitIsFalse = (var_value(s, Var) == !lit_sign(Lit)); 
                     // Log production of top-level unit clause:
                     proof_chain_start( s, c );
                     satset_foreach_var( c, x, k, 1 ){
@@ -937,7 +938,7 @@ satset* solver2_propagate(sat_solver2* s)
                     }
                     proof_id = proof_chain_stop( s );
                     // get a new clause
-                    Cid = clause_new( s, lits, lits + 1, 1, proof_id );
+                    Cid = clause_create_new( s, &Lit, &Lit + 1, 1, proof_id );
                     assert( (var_unit_clause(s, Var) == NULL) != fLitIsFalse ); 
                     // if variable already has unit clause, it must be with the other polarity 
                     // in this case, we should derive the empty clause here
@@ -948,13 +949,13 @@ satset* solver2_propagate(sat_solver2* s)
                         proof_chain_start( s, clause_read(s,Cid) );
                         proof_chain_resolve( s, NULL, Var );
                         proof_id = proof_chain_stop( s );
-                        clause_new( s, lits, lits, 1, proof_id );
+                        clause_create_new( s, &Lit, &Lit, 1, proof_id );
                     }
                 }
 
                 *j++ = *i;
                 // Clause is unit under assignment:
-                if (!solver2_enqueue(s,lits[0], *i)){
+                if (!solver2_enqueue(s,Lit, *i)){
                     confl = clause_read(s,*i++);
                     // Copy the remaining watches:
                     while (i < end)
@@ -1275,16 +1276,17 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 
 void sat_solver2_delete(sat_solver2* s)
 {
-    satset * c = clause_read(s, s->hLearntLast);
+//    veci * pCore;
     // report statistics
     printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 2.0 * veci_size(&s->proofs) / (1<<20), s->nUnits );
+/*
+    pCore = Sat_ProofCore( s );
+    printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
+    veci_delete( pCore );
+    ABC_FREE( pCore );
 
-    Sat_ProofTest( 
-        &s->clauses,      // clauses
-        &s->proofs,   // proof clauses
-        NULL,             // proof roots
-        veci_begin(&s->claProofs)[c->Id]  // one root
-         );  
+*/
+//    Sat_ProofCheck( s );
 
     // delete vectors
     veci_delete(&s->order);
@@ -1308,10 +1310,7 @@ void sat_solver2_delete(sat_solver2* s)
         int i;
         if ( s->wlists )
             for (i = 0; i < s->size*2; i++)
-            {
-//                printf( "%d ", s->wlists[i].size );
                 veci_delete(&s->wlists[i]);
-            }
         ABC_FREE(s->wlists   );
         ABC_FREE(s->vi       );
         ABC_FREE(s->trail    );
@@ -1375,7 +1374,7 @@ int sat_solver2_addclause__(sat_solver2* s, lit* begin, lit* end)
         return solver2_enqueue(s,*begin,0);
 
     // create new clause
-    return clause_new(s,begin,j,0,0);
+    return clause_create_new(s,begin,j,0,0);
 }
 
 int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
@@ -1404,21 +1403,17 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
     sat_solver2_setnvars(s,maxvar+1);
 
     // create a new clause
-    Cid = clause_new( s, begin, end, 0, 0 );
+    Cid = clause_create_new( s, begin, end, 0, 0 );
     // handle unit clause
     if ( begin + 1 == end )
     {
-        printf( "Adding unit clause %d\n", begin[0] );
+//        printf( "Adding unit clause %d\n", begin[0] );
 //        solver2_canceluntil(s, 0);
         if ( s->fProofLogging )
             var_set_unit_clause( s, lit_var(begin[0]), Cid );
         if ( !solver2_enqueue(s,begin[0],0) )
             assert( 0 );
     }
-
-    // count literals
-    s->stats.clauses++;
-    s->stats.clauses_literals += end - begin;
     return Cid;
 }
 
@@ -1447,7 +1442,6 @@ void luby2_test()
 // updates clauses, watches, units, and proof
 void solver2_reducedb(sat_solver2* s)
 {
-    extern void Sat_ProofReduce( veci * pProof, veci * pRoots );
     satset * c;
     cla h,* pArray,* pArray2;
     int Counter = 0, CounterStart = s->stats.learnts * 3 / 4; // 2/3;
@@ -1504,7 +1498,7 @@ void solver2_reducedb(sat_solver2* s)
     s->stats.learnts = veci_size(&s->learnt_live);
 
     // compact proof (compacts 'proofs' and update 'claProofs')
-    Sat_ProofReduce( &s->proofs, &s->claProofs );
+    Sat_ProofReduce( s );
 
     TimeTotal += clock() - clk;
     Abc_PrintTime( 1, "Time", TimeTotal );
@@ -1658,7 +1652,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
          // reduce the set of learnt clauses:
         if (nof_learnts > 0 && s->stats.learnts > nof_learnts)
         {
-            solver2_reducedb(s);
+//            solver2_reducedb(s);
             nof_learnts = nof_learnts * 11 / 10;
         }
         // perform next run

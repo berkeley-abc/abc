@@ -59,14 +59,6 @@ extern void         sat_solver2TraceStart( sat_solver2 * pSat, char * pName );
 extern void         sat_solver2TraceStop( sat_solver2 * pSat );
 extern void         sat_solver2TraceWrite( sat_solver2 * pSat, int * pBeg, int * pEnd, int fRoot );
 
-// clause storage
-extern void         sat_solver2_store_alloc( sat_solver2 * s );
-extern void         sat_solver2_store_write( sat_solver2 * s, char * pFileName );
-extern void         sat_solver2_store_free( sat_solver2 * s );
-extern void         sat_solver2_store_mark_roots( sat_solver2 * s );
-extern void         sat_solver2_store_mark_clauses_a( sat_solver2 * s );
-extern void *       sat_solver2_store_release( sat_solver2 * s ); 
-
 // global variables
 extern int          var_is_partA (sat_solver2* s, int v);
 extern void         var_set_partA(sat_solver2* s, int v, int partA);
@@ -76,6 +68,11 @@ extern void         clause_set_partA(sat_solver2* s, int handle, int partA);
 // other clause functions
 extern int          clause_id(sat_solver2* s, int h);
  
+// proof-based APIs
+extern void *       Sat_ProofCore( sat_solver2 * s );
+extern void *       Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars );
+extern void         Sat_ProofReduce( sat_solver2 * s );
+extern void         Sat_ProofCheck( sat_solver2 * s );
 
 //=================================================================================================
 // Solver representation:
@@ -246,8 +243,6 @@ static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
     s->fNotUseRandom = fNotUseRandom;
     return fNotUseRandomOld;
 }
-
-extern void Sat_ProofTest( veci * pClauses, veci * pProof, veci * pRoots, int hRoot );
 
 ABC_NAMESPACE_HEADER_END
 

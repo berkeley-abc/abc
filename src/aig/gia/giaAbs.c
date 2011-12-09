@@ -424,9 +424,10 @@ int Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
+int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver )
 {
     extern Vec_Int_t * Aig_Gla2ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fSkipRand, int fVerbose );
+    extern Vec_Int_t * Aig_Gla3ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nConfLimit, int TimeLimit, int fSkipRand, int fVerbose );
     Saig_ParBmc_t * p = (Saig_ParBmc_t *)pPars;
     Vec_Int_t * vGateClasses;
     Gia_Man_t * pGiaAbs;
@@ -447,7 +448,10 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars )
     }
 
     // perform abstraction
-    vGateClasses = Aig_Gla2ManPerform( pAig, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fSkipRand, p->fVerbose );
+    if ( fNewSolver )
+        vGateClasses = Aig_Gla3ManPerform( pAig, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fSkipRand, p->fVerbose );
+    else
+        vGateClasses = Aig_Gla2ManPerform( pAig, p->nStart, p->nFramesMax, p->nConfLimit, p->nTimeOut, p->fSkipRand, p->fVerbose );
     Aig_ManStop( pAig );
 
     // update the BMC depth

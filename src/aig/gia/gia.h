@@ -606,7 +606,7 @@ int                        Gia_ManCexAbstractionRefine( Gia_Man_t * pGia, Abc_Ce
 extern int                 Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int nFrames, int nConfLimit, int nTimeLimit, int fVerbose, int * piFrame );
 extern int                 Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars );
 extern int                 Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf );
-extern int                 Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars );
+extern int                 Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver );
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
 extern Gia_Man_t *         Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck );
