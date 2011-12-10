@@ -239,6 +239,9 @@ void Sat_MmFixedRestart( Sat_MmFixed_t * p )
 {
     int i;
     char * pTemp;
+    if ( p->nChunks == 0 )
+        return;
+    assert( p->nChunks > 0 );
 
     // deallocate all chunks except the first one
     for ( i = 1; i < p->nChunks; i++ )
@@ -478,6 +481,30 @@ void Sat_MmStepStop( Sat_MmStep_t * p, int fVerbose )
     ABC_FREE( p->pMems );
     ABC_FREE( p->pMap );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the memory manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sat_MmStepRestart( Sat_MmStep_t * p )
+{
+    int i;
+    if ( p->nChunksAlloc )
+    {
+        for ( i = 0; i < p->nChunks; i++ )
+            ABC_FREE( p->pChunks[i] );
+        p->nChunks = 0;
+    }
+    for ( i = 0; i < p->nMems; i++ )
+        Sat_MmFixedRestart( p->pMems[i] );
 }
 
 /**Function*************************************************************

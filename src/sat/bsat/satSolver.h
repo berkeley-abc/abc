@@ -47,6 +47,7 @@ extern void        sat_solver_delete(sat_solver* s);
 extern int         sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
 extern int         sat_solver_simplify(sat_solver* s);
 extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
+extern void        sat_solver_rollback( sat_solver* s );
 
 extern int         sat_solver_nvars(sat_solver* s);
 extern int         sat_solver_nclauses(sat_solver* s);

@@ -138,7 +138,7 @@ extern Abc_Cex_t *     Pdr_ManDeriveCex( Pdr_Man_t * p );
 extern int             Pdr_ObjSatVar( Pdr_Man_t * p, int k, Aig_Obj_t * pObj );
 extern int             Pdr_ObjRegNum( Pdr_Man_t * p, int k, int iSatVar );
 extern int             Pdr_ManFreeVar( Pdr_Man_t * p, int k );
-extern sat_solver *    Pdr_ManNewSolver( Pdr_Man_t * p, int k, int fInit );
+extern sat_solver *    Pdr_ManNewSolver( sat_solver * pSat, Pdr_Man_t * p, int k, int fInit );
 /*=== pdrCore.c ==========================================================*/
 extern int             Pdr_ManCheckContainment( Pdr_Man_t * p, int k, Pdr_Set_t * pSet );
 /*=== pdrInv.c ==========================================================*/

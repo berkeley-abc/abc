@@ -66,6 +66,7 @@ extern int                 Sat_MmFlexReadMemUsage( Sat_MmFlex_t * p );
 // hierarchical memory manager
 extern Sat_MmStep_t *      Sat_MmStepStart( int nSteps );
 extern void                Sat_MmStepStop( Sat_MmStep_t * p, int fVerbose );
+extern void                Sat_MmStepRestart( Sat_MmStep_t * p );
 extern char *              Sat_MmStepEntryFetch( Sat_MmStep_t * p, int nBytes );
 extern void                Sat_MmStepEntryRecycle( Sat_MmStep_t * p, char * pEntry, int nBytes );
 extern int                 Sat_MmStepReadMemUsage( Sat_MmStep_t * p );

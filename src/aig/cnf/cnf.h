@@ -156,6 +156,7 @@ extern void            Cnf_DataFlipLastLiteral( Cnf_Dat_t * p );
 extern void            Cnf_DataPrint( Cnf_Dat_t * p, int fReadable );
 extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable );
 extern void *          Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit );
+extern void *          Cnf_DataWriteIntoSolverInt( void * pSat, Cnf_Dat_t * p, int nFrames, int fInit );
 extern int             Cnf_DataWriteOrClause( void * pSat, Cnf_Dat_t * pCnf );
 extern int             Cnf_DataWriteAndClauses( void * p, Cnf_Dat_t * pCnf );
 extern void            Cnf_DataTranformPolarity( Cnf_Dat_t * pCnf, int fTransformPos );

@@ -334,12 +334,12 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
   SeeAlso     []
 
 ***********************************************************************/
-void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit )
+void * Cnf_DataWriteIntoSolverInt( sat_solver * pSat, Cnf_Dat_t * p, int nFrames, int fInit )
 {
-    sat_solver * pSat;
     int i, f, status;
     assert( nFrames > 0 );
-    pSat = sat_solver_new();
+    assert( pSat );
+//    pSat = sat_solver_new();
     sat_solver_setnvars( pSat, p->nVars * nFrames );
     for ( i = 0; i < p->nClauses; i++ )
     {
@@ -413,6 +413,22 @@ void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit )
         return NULL;
     }
     return pSat;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes CNF into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit )
+{
+    return Cnf_DataWriteIntoSolverInt( sat_solver_new(), p, nFrames, fInit );
 }
 
 /**Function*************************************************************

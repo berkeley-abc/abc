@@ -261,11 +261,11 @@ int Pdr_ManFreeVar( Pdr_Man_t * p, int k )
   SeeAlso     []
 
 ***********************************************************************/
-static inline sat_solver * Pdr_ManNewSolver1( Pdr_Man_t * p, int k, int fInit )
+static inline sat_solver * Pdr_ManNewSolver1( sat_solver * pSat, Pdr_Man_t * p, int k, int fInit )
 {
-    sat_solver * pSat;
     Aig_Obj_t * pObj;
     int i;
+    assert( pSat );
     if ( p->pCnf1 == NULL )
     {
         int nRegs = p->pAig->nRegs;
@@ -277,7 +277,7 @@ static inline sat_solver * Pdr_ManNewSolver1( Pdr_Man_t * p, int k, int fInit )
         Saig_ManForEachLi( p->pAig, pObj, i )
             Vec_IntWriteEntry( p->vVar2Reg, Pdr_ObjSatVar(p, k, pObj), i );
     }
-    pSat = (sat_solver *)Cnf_DataWriteIntoSolver( p->pCnf1, 1, fInit );
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolverInt( pSat, p->pCnf1, 1, fInit );
     sat_solver_set_runtime_limit( pSat, p->timeToStop );
     return pSat;
 }
@@ -293,11 +293,11 @@ static inline sat_solver * Pdr_ManNewSolver1( Pdr_Man_t * p, int k, int fInit )
   SeeAlso     []
 
 ***********************************************************************/
-static inline sat_solver * Pdr_ManNewSolver2( Pdr_Man_t * p, int k, int fInit )
+static inline sat_solver * Pdr_ManNewSolver2( sat_solver * pSat, Pdr_Man_t * p, int k, int fInit )
 {
-    sat_solver * pSat;
     Vec_Int_t * vVar2Ids;
     int i, Entry;
+    assert( pSat );
     if ( p->pCnf2 == NULL )
     {
         p->pCnf2     = Cnf_DeriveOther( p->pAig );
@@ -321,7 +321,7 @@ static inline sat_solver * Pdr_ManNewSolver2( Pdr_Man_t * p, int k, int fInit )
     Vec_IntClear( vVar2Ids );
     Vec_IntPush( vVar2Ids, -1 );
     // start the SAT solver
-    pSat = sat_solver_new();
+//    pSat = sat_solver_new();
     sat_solver_setnvars( pSat, 500 );
     sat_solver_set_runtime_limit( pSat, p->timeToStop );
     return pSat;
@@ -338,12 +338,13 @@ static inline sat_solver * Pdr_ManNewSolver2( Pdr_Man_t * p, int k, int fInit )
   SeeAlso     []
 
 ***********************************************************************/
-sat_solver * Pdr_ManNewSolver( Pdr_Man_t * p, int k, int fInit )
+sat_solver * Pdr_ManNewSolver( sat_solver * pSat, Pdr_Man_t * p, int k, int fInit )
 {
+    assert( pSat != NULL );
     if ( p->pPars->fMonoCnf )
-        return Pdr_ManNewSolver1( p, k, fInit );
+        return Pdr_ManNewSolver1( pSat, p, k, fInit );
     else
-        return Pdr_ManNewSolver2( p, k, fInit );
+        return Pdr_ManNewSolver2( pSat, p, k, fInit );
 }
 
 

@@ -994,8 +994,6 @@ sat_solver* sat_solver_new(void)
 #ifdef USE_FLOAT_ACTIVITY
     s->var_inc                = 1;
     s->cla_inc                = 1;
-//    s->var_decay              = 1;
-//    s->cla_decay              = 1;
     s->var_decay              = (float)(1 / 0.95  );
     s->cla_decay              = (float)(1 / 0.999 );
 #else
@@ -1035,7 +1033,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
     int var;
 
     if (s->cap < n){
-
+        int old_cap = s->cap;
         while (s->cap < n) s->cap = s->cap*2+1;
 
         s->wlists    = ABC_REALLOC(vecp,   s->wlists,   s->cap*2);
@@ -1052,11 +1050,16 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->tags      = ABC_REALLOC(lbool,  s->tags,     s->cap);
         s->trail     = ABC_REALLOC(lit,    s->trail,    s->cap);
         s->polarity  = ABC_REALLOC(char,   s->polarity, s->cap);
+        memset( s->wlists + 2*old_cap, 0, 2*(s->cap-old_cap)*sizeof(vecp) );
     }
 
     for (var = s->size; var < n; var++){
-        vecp_new(&s->wlists[2*var]);
-        vecp_new(&s->wlists[2*var+1]);
+        assert(!s->wlists[2*var].size);
+        assert(!s->wlists[2*var+1].size);
+        if ( s->wlists[2*var].ptr == NULL )
+            vecp_new(&s->wlists[2*var]);
+        if ( s->wlists[2*var+1].ptr == NULL )
+            vecp_new(&s->wlists[2*var+1]);
 #ifdef USE_FLOAT_ACTIVITY
         s->activity[var] = 0;
 #else
@@ -1109,10 +1112,8 @@ void sat_solver_delete(sat_solver* s)
     // delete arrays
     if (s->wlists != 0){
         int i;
-        for (i = 0; i < s->size*2; i++)
+        for (i = 0; i < s->cap*2; i++)
             vecp_delete(&s->wlists[i]);
-
-        // if one is different from null, all are
         ABC_FREE(s->wlists   );
         ABC_FREE(s->activity );
         ABC_FREE(s->factors  );
@@ -1127,6 +1128,57 @@ void sat_solver_delete(sat_solver* s)
 
     sat_solver_store_free(s);
     ABC_FREE(s);
+}
+
+void sat_solver_rollback( sat_solver* s )
+{
+    int i;
+#ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
+    for (i = 0; i < vecp_size(&s->clauses); i++)
+        ABC_FREE(vecp_begin(&s->clauses)[i]);
+    for (i = 0; i < vecp_size(&s->learnts); i++)
+        ABC_FREE(vecp_begin(&s->learnts)[i]);
+#else
+    Sat_MmStepRestart( s->pMem );
+#endif
+    vecp_resize(&s->clauses, 0);
+    vecp_resize(&s->learnts, 0);
+    veci_resize(&s->trail_lim, 0);
+    veci_resize(&s->order, 0);
+    for ( i = 0; i < s->size*2; i++ )
+        s->wlists[i].size = 0;
+
+    // initialize other vars
+    s->size                   = 0;
+//    s->cap                    = 0;
+    s->qhead                  = 0;
+    s->qtail                  = 0;
+#ifdef USE_FLOAT_ACTIVITY
+    s->var_inc                = 1;
+    s->cla_inc                = 1;
+    s->var_decay              = (float)(1 / 0.95  );
+    s->cla_decay              = (float)(1 / 0.999 );
+#else
+    s->var_inc                = (1 <<  5);
+    s->cla_inc                = (1 << 11);
+#endif
+    s->root_level             = 0;
+    s->simpdb_assigns         = 0;
+    s->simpdb_props           = 0;
+    s->random_seed            = 91648253;
+    s->progress_estimate      = 0;
+    s->verbosity              = 0;
+
+    s->stats.starts           = 0;
+    s->stats.decisions        = 0;
+    s->stats.propagations     = 0;
+    s->stats.inspects         = 0;
+    s->stats.conflicts        = 0;
+    s->stats.clauses          = 0;
+    s->stats.clauses_literals = 0;
+    s->stats.learnts          = 0;
+    s->stats.learnts_literals = 0;
+    s->stats.tot_literals     = 0;
 }
 
 
