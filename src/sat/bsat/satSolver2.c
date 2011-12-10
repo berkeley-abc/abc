@@ -1322,7 +1322,8 @@ void sat_solver2_delete(sat_solver2* s)
     veci_delete( pCore );
     ABC_FREE( pCore ); 
 */
-//    Sat_ProofCheck( s );
+//    if ( s->fProofLogging )
+//        Sat_ProofCheck( s );
 
     // delete vectors
     veci_delete(&s->order);
@@ -1516,17 +1517,17 @@ void solver2_reducedb(sat_solver2* s)
     {
         pArray = veci_begin(&s->wlists[i]);
         for ( j = k = 0; k < veci_size(&s->wlists[i]); k++ )
-            if ( pArray[k] & 1 )
+            if ( !(pArray[k] & 1) ) // problem clause
                 pArray[j++] = pArray[k];
-            else if ( !(c = clause_read(s, pArray[k]))->mark )
-                pArray[j++] = c->Id;
+            else if ( !(c = clause_read(s, pArray[k]))->mark ) // useful learned clause
+                pArray[j++] = (c->Id << 1) | 1;
         veci_resize(&s->wlists[i],j);
     }
     // compact units
     if ( s->fProofLogging )
     for ( i = 0; i < s->size; i++ )
         if ( s->units[i] && (s->units[i] & 1) )
-            s->units[i] = clause_read(s, s->units[i])->Id;
+            s->units[i] = (clause_read(s, s->units[i])->Id << 1) | 1;
     // compact clauses
     satset_foreach_entry_vec( &s->learnt_live, &s->learnts, c, i )
     {
