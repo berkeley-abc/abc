@@ -32,7 +32,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ABC_NAMESPACE_HEADER_START
 
-#define USE_FLOAT_ACTIVITY
+//#define USE_FLOAT_ACTIVITY2
 
 //=================================================================================================
 // Public interface:
@@ -92,19 +92,9 @@ struct sat_solver2_t
     int             simpdb_props;   // Number of propagations before next 'simplifyDB()'.
     double          random_seed;
     double          progress_estimate;
-    int             verbosity;      // Verbosity level. 0=silent, 1=some progress report, 2=everything
-    int             fNotUseRandom;  // do not allow random decisions with a fixed probability
-//  int             fSkipSimplify;  // set to one to skip simplification of the clause database
-    int             fProofLogging;  // enable proof-logging
+    int             verbosity;      // Verbosity level. 0=silent, 1=some progress report, 2=everything    // activities
 
-    // clauses
-    veci            clauses;        // clause memory
-    veci*           wlists;         // watcher lists (for each literal)
-    int             hLearntFirst;   // the first learnt clause 
-    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
-
-    // activities
-#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY2
     double          var_inc;        // Amount to bump next variable with.
     double          var_decay;      // INVERSE decay factor for variable activity: stores 1/decay. 
     float           cla_inc;        // Amount to bump next clause with.
@@ -115,6 +105,17 @@ struct sat_solver2_t
     int             cla_inc;        // Amount to bump next clause with.
     unsigned*       activity;       // A heuristic measurement of the activity of a variable.
 #endif
+
+    int             fNotUseRandom;  // do not allow random decisions with a fixed probability
+//  int             fSkipSimplify;  // set to one to skip simplification of the clause database
+    int             fProofLogging;  // enable proof-logging
+
+    // clauses
+    veci            clauses;        // clause memory
+    veci*           wlists;         // watcher lists (for each literal)
+    int             hLearntFirst;   // the first learnt clause 
+    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
+
     veci            claActs;        // clause activities
     veci            claProofs;      // clause proofs
 

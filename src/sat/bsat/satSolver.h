@@ -33,38 +33,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ABC_NAMESPACE_HEADER_START
 
-
-//=================================================================================================
-// Simple types:
-/*
-#ifndef __cplusplus
-#ifndef false
-#  define false 0
-#endif
-#ifndef true
-#  define true 1
-#endif
-#endif
-
-typedef int                lit;
-typedef char               lbool;
-
-static const int   var_Undef = -1;
-static const lit   lit_Undef = -2;
-
-static const lbool l_Undef   =  0;
-static const lbool l_True    =  1;
-static const lbool l_False   = -1;
-
-static inline lit  toLit    (int v)        { return v + v; }
-static inline lit  toLitCond(int v, int c) { return v + v + (c != 0); }
-static inline lit  lit_neg  (lit l)        { return l ^ 1; }
-static inline int  lit_var  (lit l)        { return l >> 1; }
-static inline int  lit_sign (lit l)        { return l & 1; }
-static inline int  lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
-static inline lit  lit_read (int s)        { return s > 0 ? toLit(s-1) : lit_neg(toLit(-s-1)); }
-static inline int  lit_check(lit l, int n) { return l >= 0 && lit_var(l) < n;                  }
-*/
+//#define USE_FLOAT_ACTIVITY
 
 //=================================================================================================
 // Public interface:
@@ -84,14 +53,7 @@ extern int         sat_solver_nclauses(sat_solver* s);
 extern int         sat_solver_nconflicts(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
-/*
-struct stats_t
-{
-    ABC_INT64_T   starts, decisions, propagations, inspects, conflicts;
-    ABC_INT64_T   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
-};
-typedef struct stats_t stats_t;
-*/
+
 extern void        Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars );
 extern void        Sat_SolverPrintStats( FILE * pFile, sat_solver * p );
 extern int *       Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars );
@@ -128,13 +90,19 @@ struct sat_solver_t
     vecp     learnts;       // List of learnt clauses. (contains: clause*)
 
     // activities
+#ifdef USE_FLOAT_ACTIVITY
     double   var_inc;       // Amount to bump next variable with.
     double   var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
     float    cla_inc;       // Amount to bump next clause with.
     float    cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
+    double*  activity;      // A heuristic measurement of the activity of a variable.
+#else
+    int      var_inc;       // Amount to bump next variable with.
+    int      cla_inc;       // Amount to bump next clause with.
+    unsigned*activity;      // A heuristic measurement of the activity of a variable.
+#endif
 
     vecp*    wlists;        // 
-    double*  activity;      // A heuristic measurement of the activity of a variable.
     lbool*   assigns;       // Current values of variables.
     int*     orderpos;      // Index in variable order.
     clause** reasons;       //

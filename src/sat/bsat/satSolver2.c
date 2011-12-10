@@ -38,7 +38,7 @@ ABC_NAMESPACE_IMPL_START
 
 // For derivation output (verbosity level 2)
 #define L_IND    "%-*d"
-#define L_ind    solver2_dlevel(s)*3+3,solver2_dlevel(s)
+#define L_ind    solver2_dlevel(s)*2+2,solver2_dlevel(s)
 #define L_LIT    "%sx%d"
 #define L_lit(p) lit_sign(p)?"~":"", (lit_var(p))
 static void printlits(lit* begin, lit* end)
@@ -285,7 +285,7 @@ static inline int  order_select(sat_solver2* s, float random_var_freq) // select
 //=================================================================================================
 // Activity functions:
 
-#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY2
 
 static inline void act_var_rescale(sat_solver2* s)  {
     double* activity = s->activity;
@@ -303,8 +303,8 @@ static inline void act_clause_rescale(sat_solver2* s) {
     s->cla_inc *= (float)1e-20;
 
     Total += clock() - clk;
-//    printf( "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
-//    Abc_PrintTime( 1, "Time", Total );
+    printf( "Rescaling...   Cla inc = %10.3f  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
+    Abc_PrintTime( 1, "Time", Total );
 }
 static inline void act_var_bump(sat_solver2* s, int v) {
     s->activity[v] += s->var_inc;
@@ -342,7 +342,7 @@ static inline void act_clause_rescale(sat_solver2* s) {
     s->cla_inc >>= 14;
     s->cla_inc = Abc_MaxInt( s->cla_inc, (1<<10) );
 
-    Total += clock() - clk;
+//    Total += clock() - clk;
 //    printf( "Rescaling...   Cla inc = %5d  Conf = %10d   ", s->cla_inc,  s->stats.conflicts );
 //    Abc_PrintTime( 1, "Time", Total );
 }
@@ -443,7 +443,7 @@ static inline int solver2_enqueue(sat_solver2* s, lit l, int from)
 {
     int v = lit_var(l);
 #ifdef VERBOSEDEBUG
-    printf(L_IND"solver2_enqueue("L_LIT")\n", L_ind, L_lit(l));
+    printf(L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
 #endif
     if (var_value(s, v) != varX)
         return var_value(s, v) == lit_sign(l);
@@ -454,15 +454,6 @@ static inline int solver2_enqueue(sat_solver2* s, lit l, int from)
 #endif
         var_set_value( s, v, lit_sign(l) );
         var_set_level( s, v, solver2_dlevel(s) );
-/*
-        if ( s->units && s->units[v] != 0 )
-        {
-            assert( solver2_dlevel(s) == 0 );
-//            assert( from == 0 );
-            if ( from )
-                printf( "." );
-        }
-*/
         s->reasons[v] = from;  //  = from << 1;
         s->trail[s->qtail++] = l;
         order_assigned(s, v);
@@ -475,7 +466,8 @@ static inline int solver2_assume(sat_solver2* s, lit l)
     assert(s->qtail == s->qhead);
     assert(var_value(s, lit_var(l)) == varX);
 #ifdef VERBOSEDEBUG
-    printf(L_IND"solver2_assume("L_LIT")\n", L_ind, L_lit(l));
+    printf(L_IND"assume("L_LIT")  ", L_ind, L_lit(l));
+    printf( "act = %.20f\n", s->activity[lit_var(l)] );
 #endif
     veci_push(&s->trail_lim,s->qtail);
     return solver2_enqueue(s,l,0);
@@ -664,8 +656,6 @@ static int solver2_lit_removable_rec(sat_solver2* s, int v)
             }
         }
     }
-//    if (pfl && visit[p0] & 1){
-//        result.push(p0); }
     if ( s->fProofLogging && (var_tag(s,v) & 1) )
         veci_push(&s->min_lit_order, v );
     var_add_tag(s,v,6);
@@ -1075,6 +1065,8 @@ Abc_PrintTime( 1, "Time", clock() - clk );
 
 static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
 {
+//    double  var_decay       = 0.95;
+//    double  clause_decay    = 0.999;
     double  random_var_freq = s->fNotUseRandom ? 0.0 : 0.02;
 
     ABC_INT64_T  conflictC       = 0;
@@ -1084,6 +1076,8 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
     assert(s->root_level == solver2_dlevel(s));
 
     s->stats.starts++;
+//    s->var_decay = (float)(1 / var_decay   );
+//    s->cla_decay = (float)(1 / clause_decay);
     veci_resize(&s->model,0);
     veci_new(&learnt_clause);
 
@@ -1208,11 +1202,13 @@ sat_solver2* sat_solver2_new(void)
     // initialize other
     s->hLearntFirst           = -1; // the first learnt clause 
     s->hLearntLast            = -1; // the last learnt clause 
-#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY2
     s->var_inc                = 1;
     s->cla_inc                = 1;
     s->var_decay              = (float)(1 / 0.95  );
     s->cla_decay              = (float)(1 / 0.999 );
+//    s->cla_decay              = 1;
+//    s->var_decay              = 1;
 #else
     s->var_inc                = (1 <<  5);
     s->cla_inc                = (1 << 11);
@@ -1250,7 +1246,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         s->reasons   = ABC_REALLOC(cla,      s->reasons,  s->cap);
         if ( s->fProofLogging )
         s->units     = ABC_REALLOC(cla,      s->units,    s->cap);
-#ifdef USE_FLOAT_ACTIVITY
+#ifdef USE_FLOAT_ACTIVITY2
         s->activity  = ABC_REALLOC(double,   s->activity, s->cap);
 #else
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
@@ -1265,7 +1261,11 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         s->reasons [var] = 0;        
         if ( s->fProofLogging )
         s->units   [var] = 0;        
+#ifdef USE_FLOAT_ACTIVITY2
+        s->activity[var] = 0;
+#else
         s->activity[var] = (1<<10);
+#endif
         // does not hold because variables enqueued at top level will not be reinserted in the heap
         // assert(veci_size(&s->order) == var); 
         veci_push(&s->order,var);
