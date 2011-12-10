@@ -46,6 +46,7 @@ extern void         sat_solver2_delete(sat_solver2* s);
 extern int          sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end);
 extern int          sat_solver2_simplify(sat_solver2* s);
 extern int          sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
+extern void         sat_solver2_rollback(sat_solver2* s);
 
 extern void         sat_solver2_setnvars(sat_solver2* s,int n);
 
@@ -112,9 +113,12 @@ struct sat_solver2_t
 
     // clauses
     veci            clauses;        // clause memory
+    veci            learnts;        // learnt memory
     veci*           wlists;         // watcher lists (for each literal)
-    int             hLearntFirst;   // the first learnt clause 
+    int             hClausePivot;   // the pivot among problem clause
+    int             hLearntPivot;   // the pivot among learned clause
     int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    int             iVarPivot;      // the pivot among the variables
 
     veci            claActs;        // clause activities
     veci            claProofs;      // clause proofs
@@ -243,6 +247,13 @@ static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
     int fNotUseRandomOld = s->fNotUseRandom;
     s->fNotUseRandom = fNotUseRandom;
     return fNotUseRandomOld;
+}
+
+static inline int sat_solver2_bookmark(sat_solver2* s)
+{
+    s->hLearntPivot = veci_size(&s->learnts);
+    s->hClausePivot = veci_size(&s->clauses);
+    s->iVarPivot    = s->size;
 }
 
 ABC_NAMESPACE_HEADER_END

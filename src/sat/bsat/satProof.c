@@ -215,7 +215,7 @@ void Proof_CleanCollected( Vec_Int_t * vProof, Vec_Int_t * vUsed )
   SeeAlso     []
 
 ***********************************************************************/
-void Proof_CollectUsed_iter( Vec_Int_t * p, satset * pNode, Vec_Int_t * vUsed, Vec_Int_t * vStack )
+void Proof_CollectUsed_iter( Vec_Int_t * vProof, satset * pNode, Vec_Int_t * vUsed, Vec_Int_t * vStack )
 {
     satset * pNext;
     int i, hNode;
@@ -223,7 +223,7 @@ void Proof_CollectUsed_iter( Vec_Int_t * p, satset * pNode, Vec_Int_t * vUsed, V
         return;
     // start with node
     pNode->Id = 1;
-    Vec_IntPush( vStack, Proof_NodeHandle(p, pNode) << 1 );
+    Vec_IntPush( vStack, Proof_NodeHandle(vProof, pNode) << 1 );
     // perform DFS search
     while ( Vec_IntSize(vStack) )
     {
@@ -236,12 +236,12 @@ void Proof_CollectUsed_iter( Vec_Int_t * p, satset * pNode, Vec_Int_t * vUsed, V
         // extracted first time        
         Vec_IntPush( vStack, hNode ^ 1 ); // add second time
         // add its anticedents        ;
-        pNode = Proof_NodeRead( p, hNode >> 1 );
-        Proof_NodeForeachFanin( p, pNode, pNext, i )
+        pNode = Proof_NodeRead( vProof, hNode >> 1 );
+        Proof_NodeForeachFanin( vProof, pNode, pNext, i )
             if ( pNext && !pNext->Id )
             {
                 pNext->Id = 1;
-                Vec_IntPush( vStack, Proof_NodeHandle(p, pNext) << 1 ); // add first time
+                Vec_IntPush( vStack, Proof_NodeHandle(vProof, pNext) << 1 ); // add first time
             }
     }
 }
@@ -314,17 +314,17 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Int_t * vProof, Vec_Int_t * vRoots, int h
   SeeAlso     []
 
 ***********************************************************************/
-void Proof_CollectUsed_rec( Vec_Int_t * p, satset * pNode, Vec_Int_t * vUsed )
+void Proof_CollectUsed_rec( Vec_Int_t * vProof, satset * pNode, Vec_Int_t * vUsed )
 {
     satset * pNext;
     int i;
     if ( pNode->Id )
         return;
     pNode->Id = 1;
-    Proof_NodeForeachFanin( p, pNode, pNext, i )
+    Proof_NodeForeachFanin( vProof, pNode, pNext, i )
         if ( pNext && !pNext->Id )
-            Proof_CollectUsed_rec( p, pNext, vUsed );
-    Vec_IntPush( vUsed, Proof_NodeHandle(p, pNode) );
+            Proof_CollectUsed_rec( vProof, pNext, vUsed );
+    Vec_IntPush( vUsed, Proof_NodeHandle(vProof, pNode) );
 }
 
 /**Function*************************************************************
@@ -637,7 +637,7 @@ void Sat_ProofCheck( sat_solver2 * s )
 {
     Vec_Int_t * vClauses = (Vec_Int_t *)&s->clauses;
     Vec_Int_t * vProof   = (Vec_Int_t *)&s->proofs;
-    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->clauses, s->hLearntLast)->Id];
+    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
 
     Rec_Int_t * vResolves;
     Vec_Int_t * vUsed, * vTemp;
@@ -731,7 +731,7 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     Vec_Int_t * vClauses  = (Vec_Int_t *)&s->clauses;
     Vec_Int_t * vProof    = (Vec_Int_t *)&s->proofs;
     Vec_Int_t * vGlobVars = (Vec_Int_t *)pGloVars;
-    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->clauses, s->hLearntLast)->Id];
+    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
 
     Vec_Int_t * vUsed, * vCore, * vCoreNums, * vVarMap;
     satset * pNode, * pFanin;
@@ -822,7 +822,7 @@ void * Sat_ProofCore( sat_solver2 * s )
 {
     Vec_Int_t * vClauses  = (Vec_Int_t *)&s->clauses;
     Vec_Int_t * vProof    = (Vec_Int_t *)&s->proofs;
-    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->clauses, s->hLearntLast)->Id];
+    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
 
     Vec_Int_t * vCore, * vUsed;
     // collect visited clauses
