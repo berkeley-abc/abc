@@ -417,6 +417,8 @@ static int clause_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, i
         assert(((ABC_PTRUINT_T)c & 3) == 0);
 //        printf( "Clause for proof %d: ", proof_id );
 //        satset_print( c );
+        // remember the last one
+        s->hLearntLast = Cid;
     }
     else
     {
@@ -445,8 +447,6 @@ static int clause_create_new(sat_solver2* s, lit* begin, lit* end, int learnt, i
         s->clauses.size += satset_size(nLits);
         assert( veci_size(&s->clauses) <= s->clauses.cap );
         assert(((ABC_PTRUINT_T)c & 3) == 0);
-        // remember the last one
-        s->hLearntLast = Cid;
     }
     // watch the clause
     if ( nLits > 1 ){
@@ -1085,8 +1085,6 @@ Abc_PrintTime( 1, "Time", clock() - clk );
 
 static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
 {
-//    double  var_decay       = 0.95;
-//    double  clause_decay    = 0.999;
     double  random_var_freq = s->fNotUseRandom ? 0.0 : 0.02;
 
     ABC_INT64_T  conflictC       = 0;
@@ -1096,8 +1094,8 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
     assert(s->root_level == solver2_dlevel(s));
 
     s->stats.starts++;
-//    s->var_decay = (float)(1 / var_decay   );
-//    s->cla_decay = (float)(1 / clause_decay);
+//    s->var_decay = (float)(1 / 0.95   );
+//    s->cla_decay = (float)(1 / 0.999);
     veci_resize(&s->model,0);
     veci_new(&learnt_clause);
 
@@ -1158,9 +1156,9 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
                 return l_Undef; 
             }
 
-//            if (solver2_dlevel(s) == 0 && !s->fSkipSimplify)
+            if (solver2_dlevel(s) == 0 && !s->fSkipSimplify)
                 // Simplify the set of problem clauses:
-//                sat_solver2_simplify(s);
+                sat_solver2_simplify(s);
 
             // New variable decision:
             s->stats.decisions++;
@@ -1236,6 +1234,8 @@ sat_solver2* sat_solver2_new(void)
 #else
     s->fProofLogging  =  0;
 #endif
+    s->fSkipSimplify  =  1;
+    s->fNotUseRandom  =  0;
 
     // prealloc clause
     assert( !s->clauses.ptr );
@@ -1268,7 +1268,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
     int var;
 
     if (s->cap < n){
- 
+        int old_cap = s->cap;
         while (s->cap < n) s->cap = s->cap*2+1;
 
         s->wlists    = ABC_REALLOC(veci,     s->wlists,   s->cap*2);
@@ -1283,6 +1283,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 #else
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
 #endif
+        memset( s->wlists + 2*old_cap, 0, 2*(s->cap-old_cap)*sizeof(vecp) );
     }
 
     for (var = s->size; var < n; var++){
@@ -1319,8 +1320,7 @@ void sat_solver2_delete(sat_solver2* s)
     pCore = Sat_ProofCore( s );
     printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
     veci_delete( pCore );
-    ABC_FREE( pCore );
-
+    ABC_FREE( pCore ); 
 */
 //    Sat_ProofCheck( s );
 
@@ -1346,7 +1346,7 @@ void sat_solver2_delete(sat_solver2* s)
     if (s->vi != 0){
         int i;
         if ( s->wlists )
-            for (i = 0; i < s->size*2; i++)
+            for (i = 0; i < s->cap*2; i++)
                 veci_delete(&s->wlists[i]);
         ABC_FREE(s->wlists   );
         ABC_FREE(s->vi       );

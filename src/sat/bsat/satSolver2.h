@@ -108,7 +108,7 @@ struct sat_solver2_t
 #endif
 
     int             fNotUseRandom;  // do not allow random decisions with a fixed probability
-//  int             fSkipSimplify;  // set to one to skip simplification of the clause database
+    int             fSkipSimplify;  // set to one to skip simplification of the clause database
     int             fProofLogging;  // enable proof-logging
 
     // clauses
