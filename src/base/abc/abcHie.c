@@ -403,6 +403,103 @@ void Abc_NtkFlattenLogicHierarchy_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, in
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 0 if CI names are repeated.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCompareNames( Abc_Ntk_t ** p1, Abc_Ntk_t ** p2 )
+{
+    return strcmp( Abc_NtkName(*p1), Abc_NtkName(*p2) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints information about boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods;
+    Abc_Ntk_t * pModel, * pBoxModel;
+    Abc_Obj_t * pObj;
+    Vec_Int_t * vCounts;
+    int i, k, Num;
+    if ( pNtk->pDesign == NULL || pNtk->pDesign->vModules == NULL )
+    {
+        printf( "There is no hierarchy information.\n" );
+        return;
+    }
+    // sort models by name
+    vMods = pNtk->pDesign->vModules;
+    Vec_PtrSort( vMods, (int(*)())Abc_NtkCompareNames );
+//    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+//        printf( "%s\n", Abc_NtkName(pModel) );
+
+    // swap the first model
+    Num = Vec_PtrFind( vMods, pNtk );
+    assert( Num >= 0 && Num < Vec_PtrSize(vMods) );
+    pBoxModel = (Abc_Ntk_t *)Vec_PtrEntry(vMods, 0);
+    Vec_PtrWriteEntry(vMods, 0, (Abc_Ntk_t *)Vec_PtrEntry(vMods, Num) );
+    Vec_PtrWriteEntry(vMods, Num, pBoxModel );
+
+    // print models
+    vCounts = Vec_IntStart( Vec_PtrSize(vMods) );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+    {
+        if ( Abc_NtkBoxNum(pModel) == 0 )
+            continue;
+        Vec_IntFill( vCounts, Vec_IntSize(vCounts), 0 );
+        Abc_NtkForEachBox( pModel, pObj, k )
+        {
+            pBoxModel = (Abc_Ntk_t *)pObj->pData;
+            Num = Vec_PtrFind( vMods, pBoxModel );
+            assert( Num >= 0 && Num < Vec_PtrSize(vMods) );
+            Vec_IntAddToEntry( vCounts, Num, 1 );
+        }
+
+//        Abc_NtkPrintStats( pModel, 0, 0, 0, 0, 0, 0, 0 );
+        printf( "MODULE  " );
+        printf( "%-30s : ", Abc_NtkName(pModel) );
+        printf( "PI=%6d ", Abc_NtkPiNum(pModel) );
+        printf( "PO=%6d ", Abc_NtkPoNum(pModel) );
+        printf( "BB=%6d ", Abc_NtkBoxNum(pModel) );
+        printf( "ND=%6d ", Abc_NtkNodeNum(pModel)-2 ); // sans constants
+        printf( "Lev=%5d ", Abc_NtkLevel(pModel) );
+        printf( "\n" );
+
+        Vec_IntForEachEntry( vCounts, Num, k )
+            if ( Num )
+                printf( "%15d : %s\n", Num, Abc_NtkName((Abc_Ntk_t *)Vec_PtrEntry(vMods, k)) );
+    }
+    Vec_IntFree( vCounts );
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+    {
+        if ( Abc_NtkBoxNum(pModel) != 0 )
+            continue;
+        printf( "MODULE   " );
+        printf( "%-30s : ", Abc_NtkName(pModel) );
+        printf( "PI=%6d ", Abc_NtkPiNum(pModel) );
+        printf( "PO=%6d ", Abc_NtkPoNum(pModel) );
+        printf( "BB=%6d ", Abc_NtkBoxNum(pModel) );
+        printf( "ND=%6d ", Abc_NtkNodeNum(pModel) );
+        printf( "Lev=%5d ", Abc_NtkLevel(pModel) );
+        printf( "\n" );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Flattens the logic hierarchy of the netlist.]
 
   Description []
@@ -421,6 +518,9 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
     int i, Counter = -1;
 
     assert( Abc_NtkIsNetlist(pNtk) );
+
+Abc_NtkPrintBoxInfo( pNtk );
+
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // duplicate the name and the spec
