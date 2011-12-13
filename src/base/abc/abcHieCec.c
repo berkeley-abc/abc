@@ -283,6 +283,49 @@ Gia_Man_t * Abc_NtkDeriveFlatGia( Abc_Ntk_t * pNtk )
     return pGia;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Count the number of instances and I/O pins in the hierarchy.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCountInstances_rec( Abc_Ntk_t * pNtk, int * pCountInst, int * pCountPins )
+{
+    Vec_Ptr_t * vOrder = (Vec_Ptr_t *)pNtk->pData;
+    Abc_Obj_t * pObj;
+    int i;
+    *pCountInst += 1;
+    *pCountPins += Abc_NtkPiNum(pNtk) + Abc_NtkPoNum(pNtk);
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+        if ( Abc_ObjIsBox(pObj) )
+            Abc_NtkCountInstances_rec( (Abc_Ntk_t *)pObj->pData, pCountInst, pCountPins );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of instances and I/O pins in the hierarchy.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCountInstances( Abc_Ntk_t * pNtk )
+{
+    int CountInst = 0, CountPins = 0;
+    assert( Abc_NtkIsNetlist(pNtk) );
+    assert( !Abc_NtkLatchNum(pNtk) );
+    // recursively flatten hierarchy
+    Abc_NtkCountInstances_rec( pNtk, &CountInst, &CountPins );
+    printf( "Instances = %10d.  I/O pins = %10d.\n", CountInst, CountPins );
+}
 
 /**Function*************************************************************
 
@@ -331,6 +374,10 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     clk = clock();
     pGia = Abc_NtkDeriveFlatGia( pNtk );
     Abc_PrintTime( 1, "Deriving GIA", clock() - clk );
+
+    clk = clock();
+    Abc_NtkCountInstances( pNtk );
+    Abc_PrintTime( 1, "Gather stats", clock() - clk );
 
     // clean nodes/boxes of all nodes
     Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
