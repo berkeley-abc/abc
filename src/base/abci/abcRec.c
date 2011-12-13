@@ -293,7 +293,7 @@ void Abc_NtkRecDumpTruthTables( Abc_ManRec_t * p )
     for ( i = 0; i < p->nBins; i++ )
         for ( pObj = p->pBins[i]; pObj; pObj = pObj->pCopy )
         {
-            pTruth = Vec_PtrEntry(p->vTtNodes, pObj->Id);
+            pTruth = (unsigned *)Vec_PtrEntry(p->vTtNodes, pObj->Id);
             if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
                 continue;
             Extra_PrintHex( pFile, pTruth, nVars );

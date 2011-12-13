@@ -419,7 +419,7 @@ Vec_Int_t * Aig_Gla3ManUnsatCore( sat_solver2 * pSat, int nConfMax, int fVerbose
 
     // derive the UNSAT core
     clk = clock();
-    vCore = Sat_ProofCore( pSat );
+    vCore = (Vec_Int_t *)Sat_ProofCore( pSat );
     if ( fVerbose )
     {
         printf( "SAT core contains %8d clauses (out of %8d).   ", Vec_IntSize(vCore), sat_solver2_nclauses(pSat) );

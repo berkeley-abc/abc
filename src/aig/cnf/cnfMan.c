@@ -334,8 +334,9 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
   SeeAlso     []
 
 ***********************************************************************/
-void * Cnf_DataWriteIntoSolverInt( sat_solver * pSat, Cnf_Dat_t * p, int nFrames, int fInit )
+void * Cnf_DataWriteIntoSolverInt( void * pSolver, Cnf_Dat_t * p, int nFrames, int fInit )
 {
+    sat_solver * pSat = (sat_solver *)pSolver;
     int i, f, status;
     assert( nFrames > 0 );
     assert( pSat );
