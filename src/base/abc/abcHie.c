@@ -519,8 +519,6 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsNetlist(pNtk) );
 
-Abc_NtkPrintBoxInfo( pNtk );
-
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // duplicate the name and the spec

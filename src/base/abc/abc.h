@@ -632,6 +632,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkHaigUse( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL );
+extern ABC_DLL void               Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk );
 /*=== abcLatch.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch );
 extern ABC_DLL int                Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk );
@@ -907,6 +908,7 @@ extern ABC_DLL int                Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanData( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCleanEquiv( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkFillTemp( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkCountCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkSaveCopy( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies );
