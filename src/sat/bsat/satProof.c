@@ -133,10 +133,10 @@ static inline satset* Proof_ResolveRead (Rec_Int_t* p, cla h )    { return (sats
 // iterating through fanins of a proof node
 #define Proof_NodeForeachFanin( p, pNode, pFanin, i )        \
     for ( i = 0; (i < (int)pNode->nEnts) && (((pFanin) = (pNode->pEnts[i] & 1) ? NULL : Proof_NodeRead(p, pNode->pEnts[i] >> 2)), 1); i++ )
-#define Proof_NodeForeachLeaf( pLeaves, pNode, pLeaf, i )    \
-    for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_NodeRead(pLeaves, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
-#define Proof_NodeForeachFaninLeaf( p, pLeaves, pNode, pFanin, i )    \
-    for ( i = 0; (i < (int)pNode->nEnts) && ((pFanin) = (pNode->pEnts[i] & 1) ? Proof_NodeRead(pLeaves, pNode->pEnts[i] >> 2) : Proof_NodeRead(p, pNode->pEnts[i] >> 2)); i++ )
+#define Proof_NodeForeachLeaf( pClauses, pNode, pLeaf, i )   \
+    for ( i = 0; (i < (int)pNode->nEnts) && (((pLeaf) = (pNode->pEnts[i] & 1) ? Proof_NodeRead(pClauses, pNode->pEnts[i] >> 2) : NULL), 1); i++ )
+#define Proof_NodeForeachFaninLeaf( p, pClauses, pNode, pFanin, i )    \
+    for ( i = 0; (i < (int)pNode->nEnts) && ((pFanin) = (pNode->pEnts[i] & 1) ? Proof_NodeRead(pClauses, pNode->pEnts[i] >> 2) : Proof_NodeRead(p, pNode->pEnts[i] >> 2)); i++ )
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -420,135 +420,6 @@ void Sat_ProofReduce( sat_solver2 * s )
 
 
 
-#if 0
- 
-/**Function*************************************************************
-
-  Synopsis    [Performs one resultion step.]
-
-  Description [Returns ID of the resolvent if success, and -1 if failure.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-satset * Sat_ProofCheckResolveOne( Vec_Int_t * p, satset * c1, satset * c2, Vec_Int_t * vTemp )
-{
-    satset * c;
-    int i, k, hNode, Var = -1, Count = 0;
-    // find resolution variable
-    for ( i = 0; i < (int)c1->nEnts; i++ )
-    for ( k = 0; k < (int)c2->nEnts; k++ )
-        if ( (c1->pEnts[i] ^ c2->pEnts[k]) == 1 )
-        {
-            Var = (c1->pEnts[i] >> 1);
-            Count++;
-        }
-    if ( Count == 0 )
-    {
-        printf( "Cannot find resolution variable\n" );
-        return NULL;
-    }
-    if ( Count > 1 )
-    {
-        printf( "Found more than 1 resolution variables\n" );
-        return NULL;
-    }
-    // perform resolution
-    Vec_IntClear( vTemp );
-    for ( i = 0; i < (int)c1->nEnts; i++ )
-        if ( (c1->pEnts[i] >> 1) != Var )
-            Vec_IntPush( vTemp, c1->pEnts[i] );
-    for ( i = 0; i < (int)c2->nEnts; i++ )
-        if ( (c2->pEnts[i] >> 1) != Var )
-            Vec_IntPushUnique( vTemp, c2->pEnts[i] );
-    // move to the new one
-    hNode = Vec_IntSize( p );
-    Vec_IntPush( p, 0 ); // placeholder
-    Vec_IntPush( p, 0 );
-    Vec_IntForEachEntry( vTemp, Var, i )
-        Vec_IntPush( p, Var );
-    c = Proof_NodeRead( p, hNode );
-    c->nEnts = Vec_IntSize(vTemp);
-    return c;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks the proof for consitency.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-satset * Sat_ProofCheckReadOne( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_Int_t * vResolves, int iAnt )
-{
-    satset * pAnt;
-    if ( iAnt & 1 )
-        return Proof_NodeRead( vClauses, iAnt >> 2 );
-    assert( iAnt > 0 );
-    pAnt = Proof_NodeRead( vProof, iAnt >> 2 );
-    assert( pAnt->Id > 0 );
-    return Proof_NodeRead( vResolves, pAnt->Id );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks the proof for consitency.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sat_ProofCheck( Vec_Int_t * vClauses, Vec_Int_t * vProof, int hRoot )
-{
-    Vec_Int_t * vUsed, * vResolves, * vTemp;
-    satset * pSet, * pSet0, * pSet1;
-    int i, k, Counter = 0, clk = clock(); 
-    // collect visited clauses
-    vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
-    Proof_CleanCollected( vProof, vUsed );
-    // perform resolution steps
-    vTemp = Vec_IntAlloc( 1000 );
-    vResolves = Vec_IntAlloc( 1000 );
-    Vec_IntPush( vResolves, -1 );
-    Proof_ForeachNodeVec( vUsed, vProof, pSet, i )
-    {
-        pSet0 = Sat_ProofCheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[0] );
-        for ( k = 1; k < (int)pSet->nEnts; k++ )
-        {
-            pSet1 = Sat_ProofCheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[k] );
-            pSet0 = Sat_ProofCheckResolveOne( vResolves, pSet0, pSet1, vTemp );
-        }
-        pSet->Id = Proof_NodeHandle( vResolves, pSet0 );
-//printf( "Clause for proof %d: ", Vec_IntEntry(vUsed, i) );
-//satset_print( pSet0 );
-        Counter++;
-    }
-    Vec_IntFree( vTemp );
-    // clean the proof
-    Proof_CleanCollected( vProof, vUsed );
-    // compare the final clause
-    printf( "Used %6.2f Mb for resolvents.\n", 4.0 * Vec_IntSize(vResolves) / (1<<20) );
-    if ( pSet0->nEnts > 0 )
-        printf( "Cound not derive the empty clause.  " );
-    else
-        printf( "Proof verification successful.  " );
-    Abc_PrintTime( 1, "Time", clock() - clk );
-    // cleanup
-    Vec_IntFree( vResolves );
-    Vec_IntFree( vUsed );
-}
-
-#endif
-
 /**Function*************************************************************
 
   Synopsis    [Performs one resultion step.]
@@ -669,7 +540,7 @@ void Sat_ProofCheck( sat_solver2 * s )
     // compare the final clause
     printf( "Used %6.2f Mb for resolvents.\n", 4.0 * Rec_IntSize(vResolves) / (1<<20) );
     if ( pSet0->nEnts > 0 )
-        printf( "Cound not derive the empty clause.  " );
+        printf( "Derived clause with %d lits instead of the empty clause.  ", pSet0->nEnts );
     else
         printf( "Proof verification successful.  " );
     Abc_PrintTime( 1, "Time", clock() - clk );
@@ -689,7 +560,7 @@ void Sat_ProofCheck( sat_solver2 * s )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_Int_t * vUsed )
+Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_Int_t * vUsed, int fUseIds )
 {
     Vec_Int_t * vCore;
     satset * pNode, * pFanin;
@@ -709,11 +580,59 @@ Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_
     Proof_ForeachNodeVec( vCore, vClauses, pNode, i )
     {
         pNode->mark = 0;
-        Vec_IntWriteEntry( vCore, i, pNode->Id - 1 );
+        if ( fUseIds )
+            Vec_IntWriteEntry( vCore, i, pNode->Id - 1 );
     }
     return vCore;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Verifies that variables are labeled correctly.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sat_ProofInterpolantCheckVars( sat_solver2 * s, Vec_Int_t * vGloVars )
+{
+    satset* c; 
+    Vec_Int_t * vVarMap;
+    int i, k, Entry, * pMask;
+    int Counts[5] = {0};
+    // map variables into their type (A, B, or AB)
+    vVarMap = Vec_IntStart( s->size );
+    sat_solver_foreach_clause( s, c, i )
+        for ( k = 0; k < (int)c->nEnts; k++ )
+            *Vec_IntEntryP(vVarMap, lit_var(c->pEnts[k])) |= 2 - c->partA;
+    // analyze variables
+    Vec_IntForEachEntry( vGloVars, Entry, i )
+    {
+        pMask = Vec_IntEntryP(vVarMap, Entry);
+        assert( *pMask >= 0 && *pMask <= 3 );
+        Counts[(*pMask & 3)]++;
+        *pMask = 0;
+    }
+    // count the number of global variables not listed
+    Vec_IntForEachEntry( vVarMap, Entry, i )
+        if ( Entry == 3 )
+            Counts[4]++;
+    Vec_IntFree( vVarMap );
+    // report
+    if ( Counts[0] )
+        printf( "Warning: %6d variables listed as global do not appear in clauses (this is normal)\n", Counts[0] );
+    if ( Counts[1] )
+        printf( "Warning: %6d variables listed as global appear only in A-clauses (this is a BUG)\n", Counts[1] );
+    if ( Counts[2] )
+        printf( "Warning: %6d variables listed as global appear only in B-clauses (this is a BUG)\n", Counts[2] );
+    if ( Counts[3] )
+        printf( "Warning: %6d (out of %d) variables listed as global appear in both A- and B-clauses (this is normal)\n", Counts[3], Vec_IntSize(vGloVars) );
+    if ( Counts[4] )
+        printf( "Warning: %6d variables not listed as global appear in both A- and B-clauses (this is a BUG)\n", Counts[4] );
+}
 
 /**Function*************************************************************
 
@@ -737,15 +656,17 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     satset * pNode, * pFanin;
     Aig_Man_t * pAig;
     Aig_Obj_t * pObj;
-    int i, k, iVar, Entry;
+    int i, k, iVar, Lit, Entry;
+
+    Sat_ProofInterpolantCheckVars( s, vGlobVars );
 
     // collect visited nodes
     vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
     // collect core clauses (cleans vUsed and vCore)
-    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed );
+    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed, 0 );
 
     // map variables into their global numbers
-    vVarMap = Vec_IntStartFull( Vec_IntFindMax(vGlobVars) + 1 );
+    vVarMap = Vec_IntStartFull( s->size );
     Vec_IntForEachEntry( vGlobVars, Entry, i )
         Vec_IntWriteEntry( vVarMap, Entry, i );
 
@@ -762,9 +683,9 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
         if ( pNode->partA )
         {
             pObj = Aig_ManConst0( pAig );
-            satset_foreach_var( pNode, iVar, k, 0 )
-                if ( iVar < Vec_IntSize(vVarMap) && Vec_IntEntry(vVarMap, iVar) >= 0 )
-                    pObj = Aig_Or( pAig, pObj, Aig_IthVar(pAig, iVar) );
+            satset_foreach_lit( pNode, Lit, k, 0 )
+                if ( (iVar = Vec_IntEntry(vVarMap, lit_var(Lit))) >= 0 )
+                    pObj = Aig_Or( pAig, pObj, Aig_NotCond(Aig_IthVar(pAig, iVar), lit_sign(Lit)) );
         }
         else
             pObj = Aig_ManConst1( pAig );
@@ -777,9 +698,11 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     // copy the numbers out and derive interpol for resolvents
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
     {
+//        satset_print( pNode );
         assert( pNode->nEnts > 1 );
         Proof_NodeForeachFaninLeaf( vProof, vClauses, pNode, pFanin, k )
         {
+            assert( pFanin->Id < 2*Aig_ManObjNumMax(pAig) );
             if ( k == 0 )
                 pObj = Aig_ObjFromLit( pAig, pFanin->Id );
             else if ( pNode->pEnts[k] & 2 ) // variable of A
@@ -828,7 +751,7 @@ void * Sat_ProofCore( sat_solver2 * s )
     // collect visited clauses
     vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
     // collect core clauses 
-    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed );
+    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed, 1 );
     Vec_IntFree( vUsed );
     return vCore;
 }

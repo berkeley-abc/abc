@@ -144,10 +144,8 @@ static inline void    solver2_clear_marks(sat_solver2* s)              {
 static inline satset* clause_read   (sat_solver2* s, cla h)      { return (h & 1) ? satset_read(&s->learnts, h>>1)  : satset_read(&s->clauses, h>>1);          }
 static inline cla     clause_handle (sat_solver2* s, satset* c)  { return c->learnt ? (satset_handle(&s->learnts, c)<<1)|1: satset_handle(&s->clauses, c)<<1;  }
 static inline int     clause_check  (sat_solver2* s, satset* c)  { return c->learnt ? satset_check(&s->learnts, c)  : satset_check(&s->clauses, c);            }
-static inline int     clause_proofid(sat_solver2* s, satset* c, int partA)  { return c->learnt ? (veci_begin(&s->claProofs)[c->Id]<<2) | (partA<<1) : (satset_handle(&s->clauses, c)<<2) | 1; }
+static inline int     clause_proofid(sat_solver2* s, satset* c, int partA)  { return c->learnt ? (veci_begin(&s->claProofs)[c->Id]<<2) | (partA<<1) : (satset_handle(&s->clauses, c)<<2) | (partA<<1) | 1; }
 static inline int     clause_is_used(sat_solver2* s, cla h)      { return (h & 1) ? (h >> 1) < s->hLearntPivot : (h >> 1) < s->hClausePivot;                   }
-
-
 
 //static inline int     var_reason    (sat_solver2* s, int v)      { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   } 
 //static inline int     lit_reason    (sat_solver2* s, int l)      { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; } 
@@ -162,9 +160,6 @@ static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(
 int    clause_is_partA (sat_solver2* s, int h)                   { return clause_read(s, h)->partA;         }  
 void   clause_set_partA(sat_solver2* s, int h, int partA)        { clause_read(s, h)->partA = partA;        }
 int    clause_id(sat_solver2* s, int h)                          { return clause_read(s, h)->Id;            }
-
-#define sat_solver_foreach_clause( s, c, h )  satset_foreach_entry( &s->clauses, c, h, 1 )
-#define sat_solver_foreach_learnt( s, c, h )  satset_foreach_entry( &s->learnts, c, h, 1 )
 
 //=================================================================================================
 // Simple helpers:
@@ -1452,6 +1447,7 @@ int sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end)
         if ( !solver2_enqueue(s,begin[0],0) )
             assert( 0 );
     }
+//satset_print( clause_read(s, Cid) );
     return Cid;
 }
 

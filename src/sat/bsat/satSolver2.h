@@ -184,6 +184,11 @@ static inline void    satset_print  (satset * c)          {
     for ( i = 0; (i < veci_size(pVec)) && ((c) = satset_read(p, veci_begin(pVec)[i])); i++ )
 #define satset_foreach_var( p, var, i, start )        \
     for ( i = start; (i < (int)(p)->nEnts) && ((var) = lit_var((p)->pEnts[i])); i++ )
+#define satset_foreach_lit( p, lit, i, start )        \
+    for ( i = start; (i < (int)(p)->nEnts) && ((lit) = (p)->pEnts[i]); i++ )
+
+#define sat_solver_foreach_clause( s, c, h )  satset_foreach_entry( &s->clauses, c, h, 1 )
+#define sat_solver_foreach_learnt( s, c, h )  satset_foreach_entry( &s->learnts, c, h, 1 )
 
 //=================================================================================================
 // Public APIs:
