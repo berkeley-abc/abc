@@ -1401,6 +1401,11 @@ int Abc_NodeCompareLevelsIncrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
         return -1;
     if ( Diff > 0 ) 
         return 1;
+    Diff = Abc_ObjRegular(*pp1)->Id - Abc_ObjRegular(*pp2)->Id;
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
     return 0; 
 }
 

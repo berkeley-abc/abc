@@ -1015,6 +1015,11 @@ int Aig_NodeCompareRefsIncrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
         return -1;
     if ( Diff > 0 ) 
         return 1;
+    Diff = Aig_ObjId(*pp1) - Aig_ObjId(*pp2);
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
     return 0; 
 }
 

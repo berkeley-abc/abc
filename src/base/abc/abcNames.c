@@ -314,6 +314,11 @@ int Abc_NodeCompareNames( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
         return -1;
     if ( Diff > 0 ) 
         return 1;
+    Diff = (*pp1)->Id - (*pp2)->Id;
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
     return 0; 
 }
 

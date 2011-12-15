@@ -103,6 +103,11 @@ int Ivy_NodeCompareLevelsDecrease( Ivy_Obj_t ** pp1, Ivy_Obj_t ** pp2 )
         return -1;
     if ( Diff < 0 ) 
         return 1;
+    Diff = Ivy_Regular(*pp1)->Id - Ivy_Regular(*pp2)->Id;
+    if ( Diff > 0 )
+        return -1;
+    if ( Diff < 0 ) 
+        return 1;
     return 0; 
 }
 
