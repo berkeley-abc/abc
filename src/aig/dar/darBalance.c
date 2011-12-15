@@ -253,6 +253,11 @@ int Aig_NodeCompareLevelsDecrease( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
         return -1;
     if ( Diff < 0 ) 
         return 1;
+    Diff = Aig_ObjId(Aig_Regular(*pp1)) - Aig_ObjId(Aig_Regular(*pp2));
+    if ( Diff > 0 )
+        return -1;
+    if ( Diff < 0 ) 
+        return 1;
     return 0; 
 }
 
