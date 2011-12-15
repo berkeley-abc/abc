@@ -257,7 +257,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     pParsRef->fVerbose = 0;//fVerbose;
 
     pAig = Aig_ManDupDfs( pAig ); 
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Starting:  " ), Aig_ManPrintStats( pAig );
 /*
     // balance
     if ( fBalance )
@@ -275,27 +275,27 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
 
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
     
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
 
     // balance
 //    if ( fBalance )
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
 
     pParsRwr->fUseZeros = 1;
     pParsRef->fUseZeros = 1;
@@ -304,34 +304,34 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
 
     // balance
     if ( fBalance )
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
     
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "RefactorZ: " ), Aig_ManPrintStats( pAig );
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
 
     // balance
     if ( fBalance )
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
     return pAig;
 }
