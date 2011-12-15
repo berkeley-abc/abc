@@ -57,6 +57,7 @@ static int s_MemoryPeak;
 ***********************************************************************/
 int Fxu_FastExtract( Fxu_Data_t * pData )
 {
+    int fScrollLines = 1;
     Fxu_Matrix * p;
     Fxu_Single * pSingle;
     Fxu_Double * pDouble;
@@ -81,8 +82,8 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
         {
             Weight1 = Fxu_HeapSingleReadMaxWeight( p->pHeapSingle );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best single = %5d.\r", Counter++, Weight1 );
-            if ( Weight1 > 0 || (Weight1 == 0 && pData->fUse0) )
+                printf( "Div %5d : Best single = %5d.%s", Counter++, Weight1, fScrollLines?"\n":"\r" );
+            if ( Weight1 > pData->WeightMax || (Weight1 == 0 && pData->fUse0) )
                 Fxu_UpdateSingle( p );
             else
                 break;
@@ -96,8 +97,8 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
         {
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d.\r", Counter++, Weight2 );
-            if ( Weight2 > 0 || (Weight2 == 0 && pData->fUse0) )
+                printf( "Div %5d : Best double = %5d.%s", Counter++, Weight2, fScrollLines?"\n":"\r" );
+            if ( Weight2 > pData->WeightMax || (Weight2 == 0 && pData->fUse0) )
                 Fxu_UpdateDouble( p );
             else
                 break;
@@ -113,19 +114,19 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
 
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d. Best single = %5d.\r", Counter++, Weight2, Weight1 );
+                printf( "Div %5d : Best double = %5d. Best single = %5d.%s", Counter++, Weight2, Weight1, fScrollLines?"\n":"\r" );
 //Fxu_Select( p, &pSingle, &pDouble );
 
             if ( Weight1 >= Weight2 )
             {
-                if ( Weight1 > 0 || (Weight1 == 0 && pData->fUse0) )
+                if ( Weight1 > pData->WeightMax || (Weight1 == 0 && pData->fUse0) )
                     Fxu_UpdateSingle( p );
                 else
                     break;
             }
             else
             {
-                if ( Weight2 > 0 || (Weight2 == 0 && pData->fUse0) )
+                if ( Weight2 > pData->WeightMax || (Weight2 == 0 && pData->fUse0) )
                     Fxu_UpdateDouble( p );
                 else
                     break;
@@ -144,10 +145,10 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             // select the best single and double
             Weight3 = Fxu_Select( p, &pSingle, &pDouble );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d. Best single = %5d. Best complement = %5d.\r", 
-                    Counter++, Weight2, Weight1, Weight3 );
+                printf( "Div %5d : Best double = %5d. Best single = %5d. Best complement = %5d.%s", 
+                    Counter++, Weight2, Weight1, Weight3, fScrollLines?"\n":"\r" );
 
-            if ( Weight3 > 0 || (Weight3 == 0 && pData->fUse0) )
+            if ( Weight3 > pData->WeightMax || (Weight3 == 0 && pData->fUse0) )
                 Fxu_Update( p, pSingle, pDouble );
             else
                 break;

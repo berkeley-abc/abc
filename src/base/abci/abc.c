@@ -3426,19 +3426,19 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkFxuFreeInfo( Fxu_Data_t * p );
 
     // allocate the structure
-    p = ABC_ALLOC( Fxu_Data_t, 1 );
-    memset( p, 0, sizeof(Fxu_Data_t) );
+    p = ABC_CALLOC( Fxu_Data_t, 1 );
     // set the defaults
     p->nSingleMax = 20000;
     p->nPairsMax  = 30000;
     p->nNodesExt  = 10000;
+    p->WeightMax  = 0;
     p->fOnlyS     = 0;
     p->fOnlyD     = 0;
     p->fUse0      = 0;
     p->fUseCompl  = 1;
     p->fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "SDNsdzcvh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNWsdzcvh")) != EOF ) 
     {
         switch (c) 
         {
@@ -3473,6 +3473,17 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 p->nNodesExt = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
                 if ( p->nNodesExt < 0 ) 
+                    goto usage;
+                break;
+            case 'W':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                p->WeightMax = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( p->WeightMax < 0 ) 
                     goto usage;
                 break;
             case 's':
@@ -3526,11 +3537,12 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: fx [-SDN <num>] [-sdzcvh]\n");
+    Abc_Print( -2, "usage: fx [-SDNW <num>] [-sdzcvh]\n");
     Abc_Print( -2, "\t           performs unate fast extract on the current network\n");
     Abc_Print( -2, "\t-S <num> : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );  
     Abc_Print( -2, "\t-D <num> : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );  
     Abc_Print( -2, "\t-N <num> : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
+    Abc_Print( -2, "\t-W <num> : only extract divisors with weight more than this [default = %d]\n", p->nSingleMax );  
     Abc_Print( -2, "\t-s       : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );  
     Abc_Print( -2, "\t-d       : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );  
     Abc_Print( -2, "\t-z       : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );  

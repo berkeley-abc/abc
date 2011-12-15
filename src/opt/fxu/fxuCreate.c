@@ -188,7 +188,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
         printf( "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
         printf( "that the user changes the network by reducing the size of logic node and\n" );
         printf( "consequently the number of cube pairs to be processed by this command.\n" );
-        printf( "One way to achieve this is to run the commands \"st; multi -m -F <num>\"\n" );
+        printf( "It can be achieved as follows: \"st; if -K <num>\" or \"st; renode -s -K <num>\"\n" );
         printf( "as a proprocessing step, while selecting <num> as approapriate.\n" );
         return NULL;
     }
@@ -197,6 +197,18 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
             return NULL;
 //    if ( pData->fVerbose )
 //        printf( "Only %d best cube pairs will be used by the fast extract command.\n", pData->nPairsMax );
+
+    if ( p->lVars.nItems > 1000000 )
+    {
+        printf( "The total number of variables is more than 1,000,000.\n" );
+        printf( "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
+        printf( "that the user changes the network by reducing the size of logic node and\n" );
+        printf( "consequently the number of cube pairs to be processed by this command.\n" );
+        printf( "It can be achieved as follows: \"st; if -K <num>\" or \"st; renode -s -K <num>\"\n" );
+        printf( "as a proprocessing step, while selecting <num> as approapriate.\n" );
+        return NULL;
+    }
+
 
     // add the var pairs to the heap
     Fxu_MatrixComputeSingles( p, pData->fUse0, pData->nSingleMax );
