@@ -57,7 +57,7 @@ static int s_MemoryPeak;
 ***********************************************************************/
 int Fxu_FastExtract( Fxu_Data_t * pData )
 {
-    int fScrollLines = 1;
+    int fScrollLines = 0;
     Fxu_Matrix * p;
     Fxu_Single * pSingle;
     Fxu_Double * pDouble;
