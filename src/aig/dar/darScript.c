@@ -86,7 +86,7 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     pParsRef->fVerbose = fVerbose;
 //printf( "1" );
     pAig = Aig_ManDupDfs( pAig ); 
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Starting:  " ), Aig_ManPrintStats( pAig );
 
 //printf( "2" );
     // balance
@@ -94,7 +94,7 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     {
     pAig = Dar_ManBalance( pTemp = pAig, 0 );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
    
 //Aig_ManDumpBlif( pAig, "inter.blif", NULL, NULL );
@@ -103,14 +103,14 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
 
 //printf( "4" );
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
 
 //printf( "5" );
     // balance
@@ -118,7 +118,7 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     {
     pAig = Dar_ManBalance( pTemp = pAig, 0 );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
     
 //printf( "6" );
@@ -126,7 +126,7 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
 
 //printf( "7" );
     return pAig;
@@ -184,34 +184,34 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     pParsRef->fVerbose = 0;//fVerbose;
 
     pAig = Aig_ManDupDfs( pAig ); 
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Starting:  " ), Aig_ManPrintStats( pAig );
 /*
     // balance
     if ( fBalance )
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
 */    
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
     
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
 
     // balance
     if ( fBalance )
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
 
     pParsRwr->fUseZeros = 1;
@@ -221,7 +221,7 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
 
     return pAig;
 }
@@ -264,7 +264,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
 */
     // rewrite
@@ -466,26 +466,26 @@ Aig_Man_t * Dar_NewCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     pParsRef->fVerbose = 0;//fVerbose;
 
 //    pAig = Aig_ManDupDfs( pAig ); 
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Starting:  " ), Aig_ManPrintStats( pAig );
 
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
     
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
 
     // balance
     if ( fBalance )
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
 
     pParsRwr->fUseZeros = 1;
@@ -495,7 +495,7 @@ Aig_Man_t * Dar_NewCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
 
     return pAig;
 }
@@ -531,7 +531,7 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     pParsRef->fVerbose = 0;//fVerbose;
 
 //    pAig = Aig_ManDupDfs( pAig ); 
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Starting:  " ), Aig_ManPrintStats( pAig );
 
     // skip if lighter synthesis is requested
     if ( !fLightSynth )
@@ -544,19 +544,19 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
 
         pAig = Aig_ManDupDfs( pTemp = pAig ); 
         Aig_ManStop( pTemp );
-        if ( fVerbose ) Aig_ManPrintStats( pAig );
+        if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
     
         // refactor
         Dar_ManRefactor( pAig, pParsRef );
         pAig = Aig_ManDupDfs( pTemp = pAig ); 
         Aig_ManStop( pTemp );
-        if ( fVerbose ) Aig_ManPrintStats( pAig );
+        if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
     }
 
     // balance
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     
     // skip if lighter synthesis is requested
     if ( !fLightSynth )
@@ -565,7 +565,7 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
         Dar_ManRewrite( pAig, pParsRwr );
         pAig = Aig_ManDupDfs( pTemp = pAig ); 
         Aig_ManStop( pTemp );
-        if ( fVerbose ) Aig_ManPrintStats( pAig );
+        if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
     }
 
     pParsRwr->fUseZeros = 1;
@@ -575,7 +575,7 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
 
     // skip if lighter synthesis is requested
     if ( !fLightSynth )
@@ -585,7 +585,7 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
         {
         pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
         Aig_ManStop( pTemp );
-        if ( fVerbose ) Aig_ManPrintStats( pAig );
+        if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
         }
     }
     
@@ -593,7 +593,7 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "RefactorZ: " ), Aig_ManPrintStats( pAig );
     
     // skip if lighter synthesis is requested
     if ( !fLightSynth )
@@ -602,7 +602,7 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
         Dar_ManRewrite( pAig, pParsRwr );
         pAig = Aig_ManDupDfs( pTemp = pAig ); 
         Aig_ManStop( pTemp );
-        if ( fVerbose ) Aig_ManPrintStats( pAig );
+        if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
     }
 
     // balance
@@ -610,9 +610,30 @@ Aig_Man_t * Dar_NewCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     {
     pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
     Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
     }
     return pAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of nodes with very high fanout count.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dar_NewChoiceSynthesisGuard( Aig_Man_t * pAig )
+{
+    Aig_Obj_t * pObj;
+    int i, Count = 0;
+    Aig_ManForEachNode( pAig, pObj, i )
+        if ( Aig_ObjRefs(pObj) > 1000 )
+            Count += Aig_ObjRefs(pObj) / 1000;
+    return (int)(Count > 10);
 }
 
 /**Function*************************************************************
@@ -633,6 +654,13 @@ Gia_Man_t * Dar_NewChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
     Vec_Ptr_t * vGias;
     Gia_Man_t * pGia, * pTemp;
     int i;
+
+    if ( fUpdateLevel && Dar_NewChoiceSynthesisGuard(pAig) )
+    {
+        if ( fVerbose )
+            printf( "Warning: Due to high fanout count of some nodes, level updating is disabled.\n" );
+        fUpdateLevel = 0;
+    }
 
     vGias = Vec_PtrAlloc( 3 );
     pGia = Gia_ManFromAig(pAig);
