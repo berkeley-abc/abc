@@ -518,6 +518,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
     int i, Counter = -1;
 
     assert( Abc_NtkIsNetlist(pNtk) );
+//    Abc_NtkPrintBoxInfo( pNtk );
 
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
