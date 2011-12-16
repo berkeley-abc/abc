@@ -33,7 +33,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ABC_NAMESPACE_HEADER_START
 
-//#define USE_FLOAT_ACTIVITY
+#define USE_FLOAT_ACTIVITY
 
 //=================================================================================================
 // Public interface:
