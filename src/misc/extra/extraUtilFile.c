@@ -520,6 +520,103 @@ char * Extra_StringAppend( char * pStrGiven, char * pStrAdd )
     return pTemp;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [String comparison procedure.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Extra_StringCompare( const char * pp1, const char * pp2 )
+{
+    return strcmp(*(char **)pp1, *(char **)pp2);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sorts lines in the file alphabetically.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_FileSort( char * pFileName, char * pFileNameOut )
+{
+    FILE * pFile;
+    char * pContents;
+    char ** pLines;
+    int i, nLines, Begin;
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Extra_FileSort(): Cannot open file \"%s\".\n", pFileName );
+        return;
+    }
+    pContents = Extra_FileRead( pFile );
+    fclose( pFile );
+    if ( pContents == NULL )
+    {
+        printf( "Extra_FileSort(): Cannot read contents of file \"%s\".\n", pFileName );
+        return;
+    }
+    // count end of lines
+    for ( nLines = 0, i = 0; pContents[i]; i++ )
+        nLines += (pContents[i] == '\n');
+    // break the file into lines
+    pLines = (char **)malloc( sizeof(char *) * nLines );
+    Begin = 0;
+    for ( nLines = 0, i = 0; pContents[i]; i++ )
+        if ( pContents[i] == '\n' )
+        {
+            pContents[i] = 0;
+            pLines[nLines++] = pContents + Begin;
+            Begin = i + 1;
+        }
+    // sort the lines
+    qsort( pLines, nLines, sizeof(char *), Extra_StringCompare );
+    // write a new file
+    pFile = fopen( pFileNameOut, "wb" );
+    for ( i = 0; i < nLines; i++ )
+        if ( pLines[i][0] )
+            fprintf( pFile, "%s\n", pLines[i] );
+    fclose( pFile );
+    // cleanup
+    free( pLines );
+    free( pContents );
+    // report the result
+    printf( "The file after sorting is \"%s\".\n", pFileNameOut );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+int main( int argc, char ** argv )
+{
+    if ( argc == 2 )
+        Extra_FileSort( argv[1], Extra_FileNameAppend(argv[1], "_sorted") );
+    else
+        printf( "%s: Wrong number of command line arguments.\n", argv[0] );
+    return 1;
+}
+*/
+
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
 /*---------------------------------------------------------------------------*/
