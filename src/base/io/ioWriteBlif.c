@@ -964,7 +964,10 @@ void Io_NtkWriteNodeIntStruct( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCov
             // write leaf node
             fprintf( pFile, ".names" );
             for ( i = 0; i < pLut2[0]; i++ )
-                fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pLut2[2+i])) );
+                if ( pLut2[2+i] == nLeaves )
+                    fprintf( pFile, " %s_lut1", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+                else
+                    fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin(pNode,pLut2[2+i])) );
             fprintf( pFile, " %s_lut2\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
             // write SOP
             pSop = Io_NtkDeriveSop( (Mem_Flex_t *)Abc_ObjNtk(pNode)->pManFunc, Func2, pLut2[0], vCover );
