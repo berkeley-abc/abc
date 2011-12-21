@@ -30,6 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 #define IO_BLIFMV_MAXVALUES 256
+#define IO_VERBOSE_OUTPUT
 
 typedef struct Io_MvVar_t_ Io_MvVar_t; // parsing var
 typedef struct Io_MvMod_t_ Io_MvMod_t; // parsing model
@@ -735,6 +736,12 @@ static int Io_MvReadInterfaces( Io_MvMan_t * p )
         Vec_PtrForEachEntry( char *, pMod->vLtlProperties, pLine, k )
             if ( !Io_MvParseLineLtlProperty( pMod, pLine ) )
                 return 0;
+        // report the results
+#ifdef IO_VERBOSE_OUTPUT
+        printf( "Parsed %-32s: PI =%6d  PO =%6d  ND =%8d  FF =%6d  B =%6d\n", 
+            pMod->pNtk->pName, Abc_NtkPiNum(pMod->pNtk), Abc_NtkPoNum(pMod->pNtk),
+            Vec_PtrSize(pMod->vNames), Vec_PtrSize(pMod->vLatches), Vec_PtrSize(pMod->vSubckts) );
+#endif
     }
     return 1;
 }
@@ -760,6 +767,10 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
     // iterate through the models
     Vec_PtrForEachEntry( Io_MvMod_t *, p->vModels, pMod, i )
     { 
+#ifdef IO_VERBOSE_OUTPUT
+printf( "Parsing model %s...\n", pMod->pNtk->pName );
+#endif
+
         // check if there any MV lines
         if ( Vec_PtrSize(pMod->vMvs) > 0 )
             Abc_NtkStartMvVars( pMod->pNtk );
@@ -1191,14 +1202,15 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Abc_Ntk_t * pModel;
     Abc_Obj_t * pBox, * pNet, * pTerm;
-    char * pToken, * pName, ** ppNames;
-    int nEquals, i, k;
+    char * pToken, * pName, * pName2, ** ppNames;
+    int nEquals, Last, i, k;
 
     // split the line into tokens
     nEquals = Io_MvCountChars( pLine, '=' );
     Io_MvSplitIntoTokensAndClear( vTokens, pLine, '\0', '=' );
     pToken = (char *)Vec_PtrEntry(vTokens,0);
     assert( !strcmp(pToken, "subckt") );
+//printf( "%d ", nEquals );
 
     // get the model for this box
     pName = (char *)Vec_PtrEntry(vTokens,1);
@@ -1237,13 +1249,19 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
     if ( p->pMan->fBlifMv )
         Abc_ObjAssignName( pBox, (char *)Vec_PtrEntry(vTokens,2), NULL );
     // go through formal inputs
+    Last = 0;
     Abc_NtkForEachPi( pModel, pTerm, i )
     { 
         // find this terminal among the actual inputs of the subcircuit
+        pName2 = NULL;
         pName = Abc_ObjName(Abc_ObjFanout0(pTerm));
         for ( k = 0; k < nEquals; k++ )
-            if ( !strcmp( ppNames[2*k], pName ) )
+            if ( !strcmp( ppNames[2*((k+Last)%nEquals)], pName ) )
+            {
+                pName2 = ppNames[2*((k+Last)%nEquals)+1];
+                Last = k+Last+1;
                 break;
+            }
 /*
         if ( k == nEquals )
         {
@@ -1263,21 +1281,28 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
             Abc_ObjAddFanin( pTerm, pNet );
             continue;
         }
- 
+        assert( pName2 != NULL );
+  
         // create the BI with the actual name
-        pNet = Abc_NtkFindOrCreateNet( p->pNtk, ppNames[2*k+1] );
+        pNet = Abc_NtkFindOrCreateNet( p->pNtk, pName2 );
         pTerm = Abc_NtkCreateBi( p->pNtk );
         Abc_ObjAddFanin( pBox, pTerm );
         Abc_ObjAddFanin( pTerm, pNet );
     }
     // go through formal outputs
+    Last = 0;
     Abc_NtkForEachPo( pModel, pTerm, i )
     {
         // find this terminal among the actual outputs of the subcircuit
+        pName2 = NULL;
         pName = Abc_ObjName(Abc_ObjFanin0(pTerm));
         for ( k = 0; k < nEquals; k++ )
-            if ( !strcmp( ppNames[2*k], pName ) )
+            if ( !strcmp( ppNames[2*((k+Last)%nEquals)], pName ) )
+            {
+                pName2 = ppNames[2*((k+Last)%nEquals)+1];
+                Last = k+Last+1;
                 break;
+            }
 /*
         if ( k == nEquals )
         {
@@ -1286,9 +1311,11 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
             return 0;
         }
 */
+        assert( pName2 != NULL );
+
         // create the BI with the actual name
         pTerm = Abc_NtkCreateBo( p->pNtk );
-        pNet = Abc_NtkFindOrCreateNet( p->pNtk, k == nEquals ? Abc_ObjNameSuffix(pTerm, "abc") : ppNames[2*k+1] );
+        pNet = Abc_NtkFindOrCreateNet( p->pNtk, k == nEquals ? Abc_ObjNameSuffix(pTerm, "abc") : pName2 );
         Abc_ObjAddFanin( pNet, pTerm );
         Abc_ObjAddFanin( pTerm, pBox );
     }
