@@ -21,6 +21,7 @@
 #include "satSolver2.h"
 #include "vec.h"
 #include "aig.h"
+#include "satTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -728,6 +729,114 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     Vec_IntFree( vUsed );
     Vec_IntFree( vCoreNums );
     return pAig;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes interpolant of the proof.]
+
+  Description [Aassuming that vars/clause of partA are marked.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word * Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars )
+{
+    Vec_Int_t * vClauses  = (Vec_Int_t *)&s->clauses;
+    Vec_Int_t * vProof    = (Vec_Int_t *)&s->proofs;
+    Vec_Int_t * vGlobVars = (Vec_Int_t *)pGloVars;
+    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
+
+    Vec_Int_t * vUsed, * vCore, * vCoreNums, * vVarMap;
+    satset * pNode, * pFanin;
+    Tru_Man_t * pTru;
+    int nVars = Vec_IntSize(vGlobVars);
+    int nWords = (nVars < 6) ? 1 : (1 << (nVars-6));
+    word * pRes = ABC_ALLOC( word, nWords );
+    int i, k, iVar, Lit, Entry;
+    assert( nVars > 0 && nVars <= 16 );
+
+    Sat_ProofInterpolantCheckVars( s, vGlobVars );
+
+    // collect visited nodes
+    vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
+    // collect core clauses (cleans vUsed and vCore)
+    vCore = Sat_ProofCollectCore( vClauses, vProof, vUsed, 0 );
+
+    // map variables into their global numbers
+    vVarMap = Vec_IntStartFull( s->size );
+    Vec_IntForEachEntry( vGlobVars, Entry, i )
+        Vec_IntWriteEntry( vVarMap, Entry, i );
+
+    // start the AIG
+    pTru = Tru_ManAlloc( nVars );
+
+    // copy the numbers out and derive interpol for clause
+    vCoreNums = Vec_IntAlloc( Vec_IntSize(vCore) );
+    Proof_ForeachNodeVec( vCore, vClauses, pNode, i )
+    {
+        if ( pNode->partA )
+        {
+//            pObj = Aig_ManConst0( pAig );
+            Tru_ManClear( pRes, nWords );
+            satset_foreach_lit( pNode, Lit, k, 0 )
+                if ( (iVar = Vec_IntEntry(vVarMap, lit_var(Lit))) >= 0 )
+//                    pObj = Aig_Or( pAig, pObj, Aig_NotCond(Aig_IthVar(pAig, iVar), lit_sign(Lit)) );
+                    pRes = Tru_ManOrNotCond( pRes, Tru_ManVar(pTru, iVar), nWords, lit_sign(Lit) );
+        }
+        else
+//            pObj = Aig_ManConst1( pAig );
+            Tru_ManFill( pRes, nWords );
+        // remember the interpolant
+        Vec_IntPush( vCoreNums, pNode->Id );
+//        pNode->Id = Aig_ObjToLit(pObj);
+        pNode->Id = Tru_ManInsert( pTru, pRes );
+    }
+    Vec_IntFree( vVarMap );
+
+    // copy the numbers out and derive interpol for resolvents
+    Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
+    {
+//        satset_print( pNode );
+        assert( pNode->nEnts > 1 );
+        Proof_NodeForeachFaninLeaf( vProof, vClauses, pNode, pFanin, k )
+        {
+//            assert( pFanin->Id < 2*Aig_ManObjNumMax(pAig) );
+            assert( pFanin->Id <= Tru_ManHandleMax(pTru) );
+            if ( k == 0 )
+//                pObj = Aig_ObjFromLit( pAig, pFanin->Id );
+                pRes = Tru_ManCopyNotCond( pRes, Tru_ManFunc(pTru, pFanin->Id & ~1), nWords, pFanin->Id & 1 );
+            else if ( pNode->pEnts[k] & 2 ) // variable of A
+//                pObj = Aig_Or( pAig, pObj, Aig_ObjFromLit(pAig, pFanin->Id) );
+                pRes = Tru_ManOrNotCond( pRes, Tru_ManFunc(pTru, pFanin->Id & ~1), nWords, pFanin->Id & 1 );
+            else
+//                pObj = Aig_And( pAig, pObj, Aig_ObjFromLit(pAig, pFanin->Id) );
+                pRes = Tru_ManAndNotCond( pRes, Tru_ManFunc(pTru, pFanin->Id & ~1), nWords, pFanin->Id & 1 );
+        }
+        // remember the interpolant
+//        pNode->Id = Aig_ObjToLit(pObj);
+        pNode->Id = Tru_ManInsert( pTru, pRes );
+    }
+    // save the result
+    assert( Proof_NodeHandle(vProof, pNode) == hRoot );
+//    Aig_ObjCreatePo( pAig, pObj );
+//    Aig_ManCleanup( pAig );
+
+    // move the results back
+    Proof_ForeachNodeVec( vCore, vClauses, pNode, i )
+        pNode->Id = Vec_IntEntry( vCoreNums, i );
+    Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
+        pNode->Id = 0;
+    // cleanup
+    Vec_IntFree( vCore );
+    Vec_IntFree( vUsed );
+    Vec_IntFree( vCoreNums );
+    Tru_ManFree( pTru );
+//    ABC_FREE( pRes );
+    return pRes;
 }
 
 /**Function*************************************************************

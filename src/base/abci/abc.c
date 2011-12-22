@@ -8909,7 +8909,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        Aig_ManInterRepar( pAig, 1 );
+//        Aig_ManInterRepar( pAig, 1 );
+        Aig_ManInterTest( pAig, 1 );
         Aig_ManStop( pAig );
     }
 }

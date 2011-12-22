@@ -8,4 +8,5 @@ SRC +=  src/sat/bsat/satMem.c \
     src/sat/bsat/satSolver2.c \
     src/sat/bsat/satStore.c \
     src/sat/bsat/satTrace.c \
+    src/sat/bsat/satTruth.c \
     src/sat/bsat/satUtil.c

@@ -72,6 +72,7 @@ extern int          clause_id(sat_solver2* s, int h);
 // proof-based APIs
 extern void *       Sat_ProofCore( sat_solver2 * s );
 extern void *       Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars );
+extern word *       Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars );
 extern void         Sat_ProofReduce( sat_solver2 * s );
 extern void         Sat_ProofCheck( sat_solver2 * s );
 

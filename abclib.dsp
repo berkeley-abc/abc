@@ -1307,11 +1307,23 @@ SOURCE=.\src\sat\bsat\satTrace.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satTruth.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\satTruth.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satUtil.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\sat\bsat\satVec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\vecRec.h
 # End Source File
 # End Group
 # Begin Group "proof"

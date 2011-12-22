@@ -123,7 +123,8 @@ static inline void Aig_ManInterAddXor( sat_solver2 * pSat, int iVarA, int iVarB,
 void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
 {
     sat_solver2 * pSat;
-    Aig_Man_t * pInter;
+//    Aig_Man_t * pInter;
+    word * pInter;
     Vec_Int_t * vVars;
     Cnf_Dat_t * pCnf;
     Aig_Obj_t * pObj;
@@ -183,12 +184,16 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
     Sat_Solver2PrintStats( stdout, pSat );
 
     // derive interpolant
-    pInter = Sat_ProofInterpolant( pSat, vVars );
-    Aig_ManPrintStats( pInter );
-    Aig_ManDumpBlif( pInter, "int.blif", NULL, NULL );
+//    pInter = Sat_ProofInterpolant( pSat, vVars );
+//    Aig_ManPrintStats( pInter );
+//    Aig_ManDumpBlif( pInter, "int.blif", NULL, NULL );
+    pInter = Sat_ProofInterpolantTruth( pSat, vVars );
+    Extra_PrintHex( stdout, pInter, Vec_IntSize(vVars) ); printf( "\n" );
 
     // clean up
-    Aig_ManStop( pInter );
+//    Aig_ManStop( pInter );
+    ABC_FREE( pInter );
+
     Vec_IntFree( vVars );
     Cnf_DataFree( pCnf );
     sat_solver2_delete( pSat );

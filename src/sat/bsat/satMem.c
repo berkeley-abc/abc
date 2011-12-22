@@ -2,6 +2,8 @@
 
   FileName    [satMem.c]
 
+  SystemName  [ABC: Logic synthesis and verification system.]
+
   PackageName [SAT solver.]
 
   Synopsis    [Memory management.]
