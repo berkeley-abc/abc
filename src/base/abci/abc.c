@@ -5498,6 +5498,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMulti;
     int nPartSize;
     int fTrans;
+    int fIgnoreNames;
 
     pNtk = Abc_FrameReadNtk(pAbc);
 
@@ -5508,8 +5509,9 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     fMulti = 0;
     nPartSize = 0;
     fTrans = 0;
+    fIgnoreNames = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Pcmith" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Pcmitnh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5536,6 +5538,9 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fTrans ^= 1;
             break;
+        case 'n':
+            fIgnoreNames ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -5559,6 +5564,12 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
+    
+    if ( fIgnoreNames )
+    {
+        Abc_NtkShortNames( pNtk1 );
+        Abc_NtkShortNames( pNtk2 );
+    }
     // compute the miter
     pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize, fImplic, fMulti );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
@@ -5579,13 +5590,14 @@ usage:
         strcpy( Buffer, "unused" );
     else
         sprintf( Buffer, "%d", nPartSize );
-    Abc_Print( -2, "usage: miter [-P <num>] [-cimth] <file1> <file2>\n" );
+    Abc_Print( -2, "usage: miter [-P <num>] [-cimtnh] <file1> <file2>\n" );
     Abc_Print( -2, "\t           computes the miter of the two circuits\n" );
     Abc_Print( -2, "\t-P <num> : output partition size [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-c       : toggles deriving combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles deriving implication miter (file1 => file2) [default = %s]\n", fImplic? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles creating multi-output miter [default = %s]\n", fMulti? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggle XORing pair-wise POs of the miter [default = %s]\n", fTrans? "yes": "no" );
+    Abc_Print( -2, "\t-n       : toggle ignoring names when matching CIs/COs [default = %s]\n", fIgnoreNames? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\tfile1    : (optional) the file with the first network\n");
     Abc_Print( -2, "\tfile2    : (optional) the file with the second network\n");
@@ -8910,7 +8922,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
 //        Aig_ManInterRepar( pAig, 1 );
-        Aig_ManInterTest( pAig, 1 );
+//        Aig_ManInterTest( pAig, 1 );
         Aig_ManStop( pAig );
     }
 }
