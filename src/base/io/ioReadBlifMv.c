@@ -738,9 +738,10 @@ static int Io_MvReadInterfaces( Io_MvMan_t * p )
                 return 0;
         // report the results
 #ifdef IO_VERBOSE_OUTPUT
-        printf( "Parsed %-32s: PI =%6d  PO =%6d  ND =%8d  FF =%6d  B =%6d\n", 
-            pMod->pNtk->pName, Abc_NtkPiNum(pMod->pNtk), Abc_NtkPoNum(pMod->pNtk),
-            Vec_PtrSize(pMod->vNames), Vec_PtrSize(pMod->vLatches), Vec_PtrSize(pMod->vSubckts) );
+        if ( Vec_PtrSize(p->vModels) > 1 )
+            printf( "Parsed %-32s: PI =%6d  PO =%6d  ND =%8d  FF =%6d  B =%6d\n", 
+                pMod->pNtk->pName, Abc_NtkPiNum(pMod->pNtk), Abc_NtkPoNum(pMod->pNtk),
+                Vec_PtrSize(pMod->vNames), Vec_PtrSize(pMod->vLatches), Vec_PtrSize(pMod->vSubckts) );
 #endif
     }
     return 1;
@@ -768,7 +769,8 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
     Vec_PtrForEachEntry( Io_MvMod_t *, p->vModels, pMod, i )
     { 
 #ifdef IO_VERBOSE_OUTPUT
-printf( "Parsing model %s...\n", pMod->pNtk->pName );
+        if ( Vec_PtrSize(p->vModels) > 1 )
+            printf( "Parsing model %s...\n", pMod->pNtk->pName );
 #endif
 
         // check if there any MV lines
