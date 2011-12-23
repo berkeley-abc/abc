@@ -72,7 +72,7 @@ static const int var0  = 1;
 static const int var1  = 0;
 static const int varX  = 3;
 
-struct varinfo_t
+struct varinfo2_t
 {
 //    unsigned val    :  2;  // variable value 
     unsigned pol    :  1;  // last polarity
@@ -1263,7 +1263,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         while (s->cap < n) s->cap = s->cap*2+1;
 
         s->wlists    = ABC_REALLOC(veci,     s->wlists,   s->cap*2);
-        s->vi        = ABC_REALLOC(varinfo,  s->vi,       s->cap);
+        s->vi        = ABC_REALLOC(varinfo2, s->vi,       s->cap);
         s->levels    = ABC_REALLOC(int,      s->levels,   s->cap);
         s->assigns   = ABC_REALLOC(char,     s->assigns,  s->cap);
         s->trail     = ABC_REALLOC(lit,      s->trail,    s->cap);

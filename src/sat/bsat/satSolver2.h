@@ -80,7 +80,7 @@ extern void         Sat_ProofCheck( sat_solver2 * s );
 // Solver representation:
 
 struct varinfo_t;
-typedef struct varinfo_t varinfo;
+typedef struct varinfo2_t varinfo2;
 
 struct sat_solver2_t
 {
@@ -125,7 +125,7 @@ struct sat_solver2_t
     veci            claProofs;      // clause proofs
 
     // internal state
-    varinfo *       vi;             // variable information
+    varinfo2 *      vi;             // variable information
     int*            levels;         // 
     char*           assigns;        // 
     lit*            trail;          // sequence of assignment and implications
