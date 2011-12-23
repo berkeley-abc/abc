@@ -58,6 +58,7 @@ static void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, int fIncreme
 ***********************************************************************/
 void Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars )
 {
+/*
     FILE * pFile;
     void ** pClauses;
     int nClauses, i;
@@ -110,6 +111,7 @@ void Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBe
 
     fprintf( pFile, "\n" );
     fclose( pFile );
+*/
 }   
 
 /**Function*************************************************************
@@ -273,6 +275,7 @@ int * Sat_Solver2GetModel( sat_solver2 * p, int * pVars, int nVars )
 ***********************************************************************/
 void Sat_SolverDoubleClauses( sat_solver * p, int iVar )
 {
+/*
     clause * pClause;
     lit Lit, * pLits;
     int RetValue, nClauses, nVarsOld, nLitsOld, nLits, c, v;
@@ -305,6 +308,7 @@ void Sat_SolverDoubleClauses( sat_solver * p, int iVar )
         for ( v = 0; v < nLits; v++ )
             pLits[v] -= nLitsOld;
     }
+*/
 }
 
 

@@ -126,6 +126,8 @@ struct sat_solver2_t
 
     // internal state
     varinfo *       vi;             // variable information
+    int*            levels;         // 
+    char*           assigns;        // 
     lit*            trail;          // sequence of assignment and implications
     int*            orderpos;       // Index in variable order.
     cla*            reasons;        // reason clauses

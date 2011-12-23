@@ -596,7 +596,8 @@ Vec_Vec_t * Ssw_ManFindDirectImplications( Aig_Man_t * p, int nFrames, int nConf
                 pReprR = Aig_Regular(pRepr);
                 if ( pCnf->pVarNums[Aig_ObjId(pReprR)] < 0 )
                     continue;
-                value = pSat->assigns[ pCnf->pVarNums[Aig_ObjId(pReprR)] ];
+//                value = pSat->assigns[ pCnf->pVarNums[Aig_ObjId(pReprR)] ];
+                value = sat_solver_get_var_value( pSat, pCnf->pVarNums[Aig_ObjId(pReprR)] );
                 if ( value == l_Undef )
                     continue;
                 // label this node as taken

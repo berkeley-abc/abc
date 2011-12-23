@@ -65,14 +65,6 @@ static inline double drand(double* seed) {
 static inline int irand(double* seed, int size) {
     return (int)(drand(seed) * size); }
 
-static inline int     sat_float2int( float Val )  { union { int x; float y; } v; v.y = Val; return v.x; }
-static inline float   sat_int2float( int Num )    { union { int x; float y; } v; v.x = Num; return v.y; }
-
-//=================================================================================================
-// Predeclarations:
-
-static void solver2_sort(void** array, int size, int(*comp)(const void *, const void *));
-
 //=================================================================================================
 // Variable datatype + minor functions:
 
@@ -82,23 +74,27 @@ static const int varX  = 3;
 
 struct varinfo_t
 {
-    unsigned val    :  2;  // variable value 
+//    unsigned val    :  2;  // variable value 
     unsigned pol    :  1;  // last polarity
     unsigned partA  :  1;  // partA variable
     unsigned tag    :  4;  // conflict analysis tags
-    unsigned lev    : 24;  // variable level
+//    unsigned lev    : 24;  // variable level
 };
 
 int    var_is_partA (sat_solver2* s, int v)              { return s->vi[v].partA;  }
 void   var_set_partA(sat_solver2* s, int v, int partA)   { s->vi[v].partA = partA; }
 
-static inline int     var_value     (sat_solver2* s, int v)            { return s->vi[v].val; }
+//static inline int     var_level     (sat_solver2* s, int v)            { return s->vi[v].lev; }
+static inline int     var_level     (sat_solver2* s, int v)            { return s->levels[v];  }
+//static inline int     var_value     (sat_solver2* s, int v)            { return s->vi[v].val; }
+static inline int     var_value     (sat_solver2* s, int v)            { return s->assigns[v]; }
 static inline int     var_polar     (sat_solver2* s, int v)            { return s->vi[v].pol; }
-static inline int     var_level     (sat_solver2* s, int v)            { return s->vi[v].lev; }
 
-static inline void    var_set_value (sat_solver2* s, int v, int val)   { s->vi[v].val = val;  }
+//static inline void    var_set_level (sat_solver2* s, int v, int lev)   { s->vi[v].lev = lev;  }
+static inline void    var_set_level (sat_solver2* s, int v, int lev)   { s->levels[v] = lev;  }
+//static inline void    var_set_value (sat_solver2* s, int v, int val)   { s->vi[v].val = val;  }
+static inline void    var_set_value (sat_solver2* s, int v, int val)   { s->assigns[v] = val; }
 static inline void    var_set_polar (sat_solver2* s, int v, int pol)   { s->vi[v].pol = pol;  }
-static inline void    var_set_level (sat_solver2* s, int v, int lev)   { s->vi[v].lev = lev;  }
 
 // variable tags
 static inline int     var_tag       (sat_solver2* s, int v)            { return s->vi[v].tag; }
@@ -1268,6 +1264,8 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 
         s->wlists    = ABC_REALLOC(veci,     s->wlists,   s->cap*2);
         s->vi        = ABC_REALLOC(varinfo,  s->vi,       s->cap);
+        s->levels    = ABC_REALLOC(int,      s->levels,   s->cap);
+        s->assigns   = ABC_REALLOC(char,     s->assigns,  s->cap);
         s->trail     = ABC_REALLOC(lit,      s->trail,    s->cap);
         s->orderpos  = ABC_REALLOC(int,      s->orderpos, s->cap);
         s->reasons   = ABC_REALLOC(cla,      s->reasons,  s->cap);
@@ -1288,7 +1286,9 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
             veci_new(&s->wlists[2*var]);
         if ( s->wlists[2*var+1].ptr == NULL )
             veci_new(&s->wlists[2*var+1]);
-        *((int*)s->vi + var) = 0; s->vi[var].val = varX;
+        *((int*)s->vi + var) = 0; //s->vi[var].val = varX;
+        s->levels  [var] = 0;
+        s->assigns [var] = varX;
         s->orderpos[var] = veci_size(&s->order);
         s->reasons [var] = 0;        
         if ( s->fProofLogging )
@@ -1346,6 +1346,8 @@ void sat_solver2_delete(sat_solver2* s)
                 veci_delete(&s->wlists[i]);
         ABC_FREE(s->wlists   );
         ABC_FREE(s->vi       );
+        ABC_FREE(s->levels   );
+        ABC_FREE(s->assigns  );
         ABC_FREE(s->trail    );
         ABC_FREE(s->orderpos );
         ABC_FREE(s->reasons  );

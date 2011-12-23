@@ -66,6 +66,9 @@ struct Vec_Rec_t_
     for ( c = 1; c <= p->nChunks; c++ )                \
         for ( s = 0; p->pChunks[c][s] && ((Handle) = (((c)<<16)|(s))); s += Size, assert(s < p->Mask) )
 
+#define Vec_RecForEachEntryStart( p, Size, Handle, c, s, hStart )   \
+    for ( c = Vec_RecChunk(hStart), s = Vec_RecShift(hStart); c <= p->nChunks; c++, s = 0 )                \
+        for ( ; p->pChunks[c][s] && ((Handle) = (((c)<<16)|(s))); s += Size, assert(s < p->Mask) )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -96,6 +99,22 @@ static inline Vec_Rec_t * Vec_RecAlloc()
     p->pChunks[1]    = ABC_ALLOC( int, (1 << 16) );
     p->pChunks[1][0] = 0;
     return p;
+}
+static inline void Vec_RecAlloc_( Vec_Rec_t * p )
+{
+//    Vec_Rec_t * p;
+//    p = ABC_CALLOC( Vec_Rec_t, 1 );
+    memset( p, 0, sizeof(Vec_Rec_t) );
+    p->LogSize       = 15; // chunk size = 2^15 ints = 128 Kb
+    p->Mask          = (1 << p->LogSize) - 1;
+    p->hCurrent      = (1 << 16);
+    p->nChunks       = 1;
+    p->nChunksAlloc  = 16;
+    p->pChunks       = ABC_CALLOC( int *, p->nChunksAlloc );
+    p->pChunks[0]    = NULL;
+    p->pChunks[1]    = ABC_ALLOC( int, (1 << 16) );
+    p->pChunks[1][0] = 0;
+//    return p;
 }
 
 /**Function*************************************************************
@@ -238,6 +257,14 @@ static inline void Vec_RecFree( Vec_Rec_t * p )
         ABC_FREE( p->pChunks[i] );
     ABC_FREE( p->pChunks );
     ABC_FREE( p );
+}
+static inline void Vec_RecFree_( Vec_Rec_t * p )
+{
+    int i;
+    for ( i = 0; i < p->nChunksAlloc; i++ )
+        ABC_FREE( p->pChunks[i] );
+    ABC_FREE( p->pChunks );
+//    ABC_FREE( p );
 }
 
 /**Function*************************************************************

@@ -29,7 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <assert.h>
 
 #include "satVec.h"
-#include "vecRec.h"
+#include "satMem.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -54,8 +54,6 @@ extern int         sat_solver_nclauses(sat_solver* s);
 extern int         sat_solver_nconflicts(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
-extern int         sat_solver_get_var_value(sat_solver* s, int v);
-
 
 extern void        Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars );
 extern void        Sat_SolverPrintStats( FILE * pFile, sat_solver * p );
@@ -81,87 +79,84 @@ extern void *      sat_solver_store_release( sat_solver * s );
 struct clause_t;
 typedef struct clause_t clause;
 
-struct varinfo_t;
-typedef struct varinfo_t varinfo;
-
 struct sat_solver_t
 {
-    int         size;          // nof variables
-    int         cap;           // size of varmaps
-    int         qhead;         // Head index of queue.
-    int         qtail;         // Tail index of queue.
+    int      size;          // nof variables
+    int      cap;           // size of varmaps
+    int      qhead;         // Head index of queue.
+    int      qtail;         // Tail index of queue.
 
     // clauses
-    Vec_Rec_t   Mem;
-    int         hLearnts;      // the first learnt clause
-    int         hBinary;       // the special binary clause
-    clause *    binary;
+    vecp     clauses;       // List of problem constraints. (contains: clause*)
+    vecp     learnts;       // List of learnt clauses. (contains: clause*)
 
     // activities
 #ifdef USE_FLOAT_ACTIVITY
-    double      var_inc;       // Amount to bump next variable with.
-    double      var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
-    float       cla_inc;       // Amount to bump next clause with.
-    float       cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
-    double*     activity;      // A heuristic measurement of the activity of a variable.
+    double   var_inc;       // Amount to bump next variable with.
+    double   var_decay;     // INVERSE decay factor for variable activity: stores 1/decay. 
+    float    cla_inc;       // Amount to bump next clause with.
+    float    cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
+    double*  activity;      // A heuristic measurement of the activity of a variable.
 #else
-    int         var_inc;       // Amount to bump next variable with.
-    int         cla_inc;       // Amount to bump next clause with.
-    unsigned*   activity;      // A heuristic measurement of the activity of a variable.
+    int      var_inc;       // Amount to bump next variable with.
+    int      cla_inc;       // Amount to bump next clause with.
+    unsigned*activity;      // A heuristic measurement of the activity of a variable.
 #endif
 
-    veci*       wlists;        // 
-//    varinfo *   vi;            // variable information
-    int*        levels;        //
-    char*       assigns;       // Current values of variables.
-    char*       polarity;      //
-    char*       tags;          //
+    vecp*    wlists;        // 
+    lbool*   assigns;       // Current values of variables.
+    int*     orderpos;      // Index in variable order.
+    clause** reasons;       //
+    int*     levels;        //
+    lit*     trail;
+    char*    polarity;
 
-    int*        orderpos;      // Index in variable order.
-    int*        reasons;       //
-    lit*        trail;
-    veci        tagged;        // (contains: var)
-    veci        stack;         // (contains: var)
+    clause*  binary;        // A temporary binary clause
+    lbool*   tags;          //
+    veci     tagged;        // (contains: var)
+    veci     stack;         // (contains: var)
 
-    veci        order;         // Variable order. (heap) (contains: var)
-    veci        trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
-    veci        model;         // If problem is solved, this vector contains the model (contains: lbool).
-    veci        conf_final;    // If problem is unsatisfiable (possibly under assumptions),
-                               // this vector represent the final conflict clause expressed in the assumptions.
+    veci     order;         // Variable order. (heap) (contains: var)
+    veci     trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
+    veci     model;         // If problem is solved, this vector contains the model (contains: lbool).
+    veci     conf_final;    // If problem is unsatisfiable (possibly under assumptions),
+                            // this vector represent the final conflict clause expressed in the assumptions.
 
-    int         root_level;    // Level of first proper decision.
-    int         simpdb_assigns;// Number of top-level assignments at last 'simplifyDB()'.
-    int         simpdb_props;  // Number of propagations before next 'simplifyDB()'.
-    double      random_seed;
-    double      progress_estimate;
-    int         verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
+    int      root_level;    // Level of first proper decision.
+    int      simpdb_assigns;// Number of top-level assignments at last 'simplifyDB()'.
+    int      simpdb_props;  // Number of propagations before next 'simplifyDB()'.
+    double   random_seed;
+    double   progress_estimate;
+    int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
-    stats_t     stats;
+    stats_t    stats;
 
-    ABC_INT64_T nConfLimit;    // external limit on the number of conflicts
-    ABC_INT64_T nInsLimit;     // external limit on the number of implications
-    int         nRuntimeLimit; // external limit on runtime
+    ABC_INT64_T   nConfLimit;    // external limit on the number of conflicts
+    ABC_INT64_T   nInsLimit;     // external limit on the number of implications
+    int           nRuntimeLimit; // external limit on runtime
 
-    veci        act_vars;      // variables whose activity has changed
-    double*     factors;       // the activity factors
-    int         nRestarts;     // the number of local restarts
-    int         nCalls;        // the number of local restarts
-    int         nCalls2;        // the number of local restarts
+    veci     act_vars;      // variables whose activity has changed
+    double*  factors;       // the activity factors
+    int      nRestarts;     // the number of local restarts
+    int      nCalls;        // the number of local restarts
+    int      nCalls2;        // the number of local restarts
+ 
+    Sat_MmStep_t * pMem;
 
-    int         fSkipSimplify; // set to one to skip simplification of the clause database
-    int         fNotUseRandom; // do not allow random decisions with a fixed probability
+    int      fSkipSimplify; // set to one to skip simplification of the clause database
+    int      fNotUseRandom; // do not allow random decisions with a fixed probability
 
-    int *       pGlobalVars;   // for experiments with global vars during interpolation
+    int *    pGlobalVars;   // for experiments with global vars during interpolation
     // clause store
-    void *      pStore;
-    int         fSolved;
+    void *   pStore;
+    int      fSolved;
 
     // trace recording
-    FILE *      pFile;
-    int         nClauses;
-    int         nRoots;
+    FILE *   pFile;
+    int      nClauses;
+    int      nRoots;
 
-    veci        temp_clause;    // temporary storage for a CNF clause
+    veci     temp_clause;    // temporary storage for a CNF clause
 };
 
 static int sat_solver_var_value( sat_solver* s, int v ) 
