@@ -128,22 +128,6 @@ static inline void Vec_RecAlloc_( Vec_Rec_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_RecEntryNum( Vec_Rec_t * p )
-{
-    return p->nEntries;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline int Vec_RecChunk( int i )
 {
     return i>>16;
@@ -163,6 +147,38 @@ static inline int Vec_RecChunk( int i )
 static inline int Vec_RecShift( int i )
 {
     return i&0xFFFF;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_RecSize( Vec_Rec_t * p )
+{
+    return Vec_RecChunk(p->hCurrent) * (1 << p->LogSize); 
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_RecEntryNum( Vec_Rec_t * p )
+{
+    return p->nEntries;
 }
 
 /**Function*************************************************************

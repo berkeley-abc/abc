@@ -1317,8 +1317,8 @@ void sat_solver2_delete(sat_solver2* s)
     veci_delete( pCore );
     ABC_FREE( pCore ); 
 */
-//    if ( s->fProofLogging )
-//        Sat_ProofCheck( s );
+    if ( s->fProofLogging )
+        Sat_ProofCheck( s );
 
     // delete vectors
     veci_delete(&s->order);

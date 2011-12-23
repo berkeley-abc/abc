@@ -22,6 +22,7 @@
 #include "vec.h"
 #include "aig.h"
 #include "satTruth.h"
+#include "vecRec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -36,67 +37,6 @@ ABC_NAMESPACE_IMPL_START
     They are marked by bitshifting by 2 bits up and setting the LSB to 1
 */
 
-// data-structure to record resolvents of the proof
-typedef struct Rec_Int_t_ Rec_Int_t;
-struct Rec_Int_t_ 
-{
-    int          nShift;  // log number of entries on a page
-    int          Mask;    // mask for entry number on a page
-    int          nSize;   // the total number of entries
-    int          nLast;   // the total number of entries before last append
-    Vec_Ptr_t *  vPages;  // memory pages
-};
-static inline Rec_Int_t * Rec_IntAlloc( int nShift )
-{
-    Rec_Int_t * p;
-    p = ABC_CALLOC( Rec_Int_t, 1 );
-    p->nShift  = nShift;
-    p->Mask    = (1<<nShift)-1;
-    p->vPages  = Vec_PtrAlloc( 50 );
-    return p;
-}
-static inline int Rec_IntSize( Rec_Int_t * p )
-{
-    return p->nSize;
-}
-static inline int Rec_IntSizeLast( Rec_Int_t * p )
-{
-    return p->nLast;
-}
-static inline void Rec_IntPush( Rec_Int_t * p, int Entry )
-{
-    if ( (p->nSize >> p->nShift) == Vec_PtrSize(p->vPages) )
-        Vec_PtrPush( p->vPages, ABC_ALLOC(int, p->Mask+1) );
-    ((int*)Vec_PtrEntry(p->vPages, p->nSize >> p->nShift))[p->nSize++ & p->Mask] = Entry;
-}
-static inline void Rec_IntAppend( Rec_Int_t * p, int * pArray, int nSize )
-{
-    assert( nSize <= p->Mask );
-    if ( (p->nSize & p->Mask) + nSize >= p->Mask )
-    {
-        Rec_IntPush( p, 0 );
-        p->nSize = ((p->nSize >> p->nShift) + 1) * (p->Mask + 1);
-    }
-    if ( (p->nSize >> p->nShift) == Vec_PtrSize(p->vPages) )
-        Vec_PtrPush( p->vPages, ABC_ALLOC(int, p->Mask+1) );
-//    assert( (p->nSize >> p->nShift) + 1 == Vec_PtrSize(p->vPages) );
-    memmove( (int*)Vec_PtrEntry(p->vPages, p->nSize >> p->nShift) + (p->nSize & p->Mask), pArray, sizeof(int) * nSize );
-    p->nLast = p->nSize;
-    p->nSize += nSize;
-}
-static inline int Rec_IntEntry( Rec_Int_t * p, int i )
-{
-    return ((int*)p->vPages->pArray[i >> p->nShift])[i & p->Mask];
-}
-static inline int * Rec_IntEntryP( Rec_Int_t * p, int i )
-{
-    return (int*)p->vPages->pArray[i >> p->nShift] + (i & p->Mask);
-}
-static inline void Rec_IntFree( Rec_Int_t * p )
-{
-    Vec_PtrFreeFree( p->vPages );
-    ABC_FREE( p );
-}
 
 /*
 typedef struct satset_t satset;
@@ -118,12 +58,12 @@ struct satset_t
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline satset* Proof_NodeRead    (Vec_Int_t* p, cla h )    { return satset_read( (veci*)p, h );   }
+static inline satset* Proof_NodeRead    (Vec_Int_t* p, cla h)     { return satset_read( (veci*)p, h );   }
 static inline cla     Proof_NodeHandle  (Vec_Int_t* p, satset* c) { return satset_handle( (veci*)p, c ); }
 static inline int     Proof_NodeCheck   (Vec_Int_t* p, satset* c) { return satset_check( (veci*)p, c );  }
 static inline int     Proof_NodeSize    (int nEnts)               { return sizeof(satset)/4 + nEnts;     }
 
-static inline satset* Proof_ResolveRead (Rec_Int_t* p, cla h )    { return (satset*)Rec_IntEntryP(p, h); }
+static inline satset* Proof_ResolveRead (Vec_Rec_t* p, cla h)     { return (satset*)Vec_RecEntryP(p, h); }
 
 // iterating through nodes in the proof
 #define Proof_ForeachNode( p, pNode, h )                         \
@@ -418,9 +358,6 @@ void Sat_ProofReduce( sat_solver2 * s )
 }
 
 
-
-
-
 /**Function*************************************************************
 
   Synopsis    [Performs one resultion step.]
@@ -432,10 +369,10 @@ void Sat_ProofReduce( sat_solver2 * s )
   SeeAlso     []
 
 ***********************************************************************/
-satset * Sat_ProofCheckResolveOne( Rec_Int_t * p, satset * c1, satset * c2, Vec_Int_t * vTemp )
+int Sat_ProofCheckResolveOne( Vec_Rec_t * p, satset * c1, satset * c2, Vec_Int_t * vTemp )
 {
     satset * c;
-    int i, k, Var = -1, Count = 0;
+    int h, i, k, Var = -1, Count = 0;
     // find resolution variable
     for ( i = 0; i < (int)c1->nEnts; i++ )
     for ( k = 0; k < (int)c2->nEnts; k++ )
@@ -447,12 +384,12 @@ satset * Sat_ProofCheckResolveOne( Rec_Int_t * p, satset * c1, satset * c2, Vec_
     if ( Count == 0 )
     {
         printf( "Cannot find resolution variable\n" );
-        return NULL;
+        return 0;
     }
     if ( Count > 1 )
     {
         printf( "Found more than 1 resolution variables\n" );
-        return NULL;
+        return 0;
     }
     // perform resolution
     Vec_IntClear( vTemp );
@@ -465,11 +402,11 @@ satset * Sat_ProofCheckResolveOne( Rec_Int_t * p, satset * c1, satset * c2, Vec_
         if ( (c2->pEnts[i] >> 1) != Var )
             Vec_IntPushUnique( vTemp, c2->pEnts[i] );
     // create new resolution entry
-    Rec_IntAppend( p, Vec_IntArray(vTemp), Vec_IntSize(vTemp) );
+    h = Vec_RecPush( p, Vec_IntArray(vTemp), Vec_IntSize(vTemp) );
     // return the new entry
-    c = Proof_ResolveRead( p, Rec_IntSizeLast(p) );
+    c = Proof_ResolveRead( p, h );
     c->nEnts = Vec_IntSize(vTemp)-2;
-    return c;
+    return h;
 }
 
 /**Function*************************************************************
@@ -483,7 +420,7 @@ satset * Sat_ProofCheckResolveOne( Rec_Int_t * p, satset * c1, satset * c2, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-satset * Sat_ProofCheckReadOne( Vec_Int_t * vClauses, Vec_Int_t * vProof, Rec_Int_t * vResolves, int iAnt )
+satset * Sat_ProofCheckReadOne( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_Rec_t * vResolves, int iAnt )
 {
     satset * pAnt;
     if ( iAnt & 1 )
@@ -511,26 +448,26 @@ void Sat_ProofCheck( sat_solver2 * s )
     Vec_Int_t * vProof   = (Vec_Int_t *)&s->proofs;
     int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
 
-    Rec_Int_t * vResolves;
+    Vec_Rec_t * vResolves;
     Vec_Int_t * vUsed, * vTemp;
     satset * pSet, * pSet0, * pSet1;
-    int i, k, Counter = 0, clk = clock(); 
+    int i, k, Handle, Counter = 0, clk = clock(); 
     // collect visited clauses
     vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
     Proof_CleanCollected( vProof, vUsed );
     // perform resolution steps
     vTemp = Vec_IntAlloc( 1000 );
-    vResolves = Rec_IntAlloc( 20 );
-    Rec_IntPush( vResolves, -1 );
+    vResolves = Vec_RecAlloc();
     Proof_ForeachNodeVec( vUsed, vProof, pSet, i )
     {
         pSet0 = Sat_ProofCheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[0] );
         for ( k = 1; k < (int)pSet->nEnts; k++ )
         {
-            pSet1 = Sat_ProofCheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[k] );
-            pSet0 = Sat_ProofCheckResolveOne( vResolves, pSet0, pSet1, vTemp );
+            pSet1  = Sat_ProofCheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[k] );
+            Handle = Sat_ProofCheckResolveOne( vResolves, pSet0, pSet1, vTemp );
+            pSet0  = Proof_ResolveRead( vResolves, Handle );
         }
-        pSet->Id = Rec_IntSizeLast( vResolves );
+        pSet->Id = Handle;
 //printf( "Clause for proof %d: ", Vec_IntEntry(vUsed, i) );
 //satset_print( pSet0 );
         Counter++;
@@ -539,16 +476,17 @@ void Sat_ProofCheck( sat_solver2 * s )
     // clean the proof
     Proof_CleanCollected( vProof, vUsed );
     // compare the final clause
-    printf( "Used %6.2f Mb for resolvents.\n", 4.0 * Rec_IntSize(vResolves) / (1<<20) );
+    printf( "Used %6.2f Mb for resolvents.\n", 4.0 * Vec_RecSize(vResolves) / (1<<20) );
     if ( pSet0->nEnts > 0 )
         printf( "Derived clause with %d lits instead of the empty clause.  ", pSet0->nEnts );
     else
         printf( "Proof verification successful.  " );
     Abc_PrintTime( 1, "Time", clock() - clk );
     // cleanup
-    Rec_IntFree( vResolves );
+    Vec_RecFree( vResolves );
     Vec_IntFree( vUsed );
 }
+
 
 /**Function*************************************************************
 
