@@ -40,14 +40,14 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 // data-structure for logging entries
-// memory is allocated in 2^(p->LogSize+2) byte chunks
+// memory is allocated in 'p->Mask+1' int chunks
 // the first 'int' of each entry cannot be 0
 typedef struct Vec_Rec_t_ Vec_Rec_t;
 struct Vec_Rec_t_ 
 {
-    int                LogSize;      // the log size of one chunk in 'int'
     int                Mask;         // mask for the log size
     int                hCurrent;     // current position
+    int                hShadow;      // current position
     int                nEntries;     // total number of entries
     int                nChunks;      // total number of chunks
     int                nChunksAlloc; // the number of allocated chunks
@@ -89,8 +89,7 @@ static inline Vec_Rec_t * Vec_RecAlloc()
 {
     Vec_Rec_t * p;
     p = ABC_CALLOC( Vec_Rec_t, 1 );
-    p->LogSize       = 15; // chunk size = 2^15 ints = 128 Kb
-    p->Mask          = (1 << p->LogSize) - 1;
+    p->Mask          = (1 << 15) - 1; // chunk size = 2^15 ints = 128 Kb
     p->hCurrent      = (1 << 16);
     p->nChunks       = 1;
     p->nChunksAlloc  = 16;
@@ -105,8 +104,7 @@ static inline void Vec_RecAlloc_( Vec_Rec_t * p )
 //    Vec_Rec_t * p;
 //    p = ABC_CALLOC( Vec_Rec_t, 1 );
     memset( p, 0, sizeof(Vec_Rec_t) );
-    p->LogSize       = 15; // chunk size = 2^15 ints = 128 Kb
-    p->Mask          = (1 << p->LogSize) - 1;
+    p->Mask          = (1 << 15) - 1; // chunk size = 2^15 ints = 128 Kb
     p->hCurrent      = (1 << 16);
     p->nChunks       = 1;
     p->nChunksAlloc  = 16;
@@ -162,7 +160,7 @@ static inline int Vec_RecShift( int i )
 ***********************************************************************/
 static inline int Vec_RecSize( Vec_Rec_t * p )
 {
-    return Vec_RecChunk(p->hCurrent) * (1 << p->LogSize); 
+    return Vec_RecChunk(p->hCurrent) * (p->Mask + 1); 
 }
 
 /**Function*************************************************************
@@ -296,7 +294,6 @@ static inline void Vec_RecFree_( Vec_Rec_t * p )
 ***********************************************************************/
 static inline int Vec_RecAppend( Vec_Rec_t * p, int nSize )
 {
-    int RetValue;
     assert( nSize <= p->Mask );
     assert( Vec_RecEntry(p, p->hCurrent) == 0 );
     assert( Vec_RecChunk(p->hCurrent) == p->nChunks );
@@ -309,15 +306,14 @@ static inline int Vec_RecAppend( Vec_Rec_t * p, int nSize )
             p->nChunksAlloc *= 2;
         }
         if ( p->pChunks[p->nChunks] == NULL )
-            p->pChunks[p->nChunks] = ABC_ALLOC( int, (1 << p->LogSize) );
+            p->pChunks[p->nChunks] = ABC_ALLOC( int, (p->Mask + 1) );
         p->pChunks[p->nChunks][0] = 0;
         p->hCurrent = p->nChunks << 16;
     }
-    RetValue = p->hCurrent;
     p->hCurrent += nSize;
     *Vec_RecEntryP(p, p->hCurrent) = 0;
     p->nEntries++;
-    return RetValue;
+    return p->hCurrent - nSize;
 }
 
 /**Function*************************************************************
@@ -336,6 +332,57 @@ static inline int Vec_RecPush( Vec_Rec_t * p, int * pArray, int nSize )
     int Handle = Vec_RecAppend( p, nSize );
     memmove( Vec_RecEntryP(p, Handle), pArray, sizeof(int) * nSize );
     return Handle;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_RecSetShadow( Vec_Rec_t * p, int hShadow )
+{
+    p->hShadow = hShadow;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_RecReadShadow( Vec_Rec_t * p )
+{
+    return p->hShadow;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_RecAppendShadow( Vec_Rec_t * p, int nSize )
+{
+    if ( Vec_RecShift(p->hShadow) + nSize >= p->Mask )
+        p->hShadow = ((Vec_RecChunk(p->hShadow) + 1) << 16);
+    p->hShadow += nSize;
+    return p->hShadow - nSize;
 }
 
 

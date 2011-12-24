@@ -1308,15 +1308,16 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 
 void sat_solver2_delete(sat_solver2* s)
 {
-//    veci * pCore;
+    veci * pCore;
+
     // report statistics
     printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 2.0 * veci_size(&s->proofs) / (1<<20), s->nUnits );
-/*
+
     pCore = Sat_ProofCore( s );
     printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
     veci_delete( pCore );
     ABC_FREE( pCore ); 
-*/
+
     if ( s->fProofLogging )
         Sat_ProofCheck( s );
 
