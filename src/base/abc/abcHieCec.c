@@ -285,6 +285,274 @@ Gia_Man_t * Abc_NtkDeriveFlatGia( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the total number of AIG nodes before flattening.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCountAndNodes( Vec_Ptr_t * vOrder )
+{
+    Gia_Man_t * pGiaBox;
+    Abc_Ntk_t * pNtkModel;
+    Abc_Obj_t * pObj;
+    int i, Counter = 0;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+    {
+        if ( Abc_ObjIsNode(pObj) )
+        {
+            Counter++;
+            continue;
+        }
+        assert( Abc_ObjIsBox(pObj) );
+        pNtkModel = (Abc_Ntk_t *)pObj->pData;
+        pGiaBox   = (Gia_Man_t *)pNtkModel->pData;
+        Counter  += Gia_ManAndNum(pGiaBox);
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Flattens the logic hierarchy of the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Abc_NtkDeriveFlatGia2Derive( Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
+{
+    int gFanins[16];
+    Abc_Ntk_t * pNtkModel;
+    Gia_Man_t * pGiaBox, * pGia = NULL;
+    Gia_Obj_t * pGiaObj;
+    Abc_Obj_t * pTerm, * pObj;
+    int i, k;
+
+    assert( Abc_NtkIsNetlist(pNtk) );
+    assert( !Abc_NtkLatchNum(pNtk) );
+    Abc_NtkFillTemp( pNtk );
+
+    // start the network
+    pGia = Gia_ManStart( (1<<15) );
+    pGia->pName = Gia_UtilStrsav( Abc_NtkName(pNtk) );
+    Gia_ManHashAlloc( pGia );
+    // create PIs
+    Abc_NtkForEachPi( pNtk, pTerm, i )
+        Abc_ObjFanout0(pTerm)->iTemp = Gia_ManAppendCi( pGia );
+    // recursively flatten hierarchy
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+    {
+        if ( Abc_ObjIsNode(pObj) )
+        {
+            char * pSop = (char *)pObj->pData;
+            assert( Abc_ObjFaninNum(pObj) <= 16 );
+            assert( Abc_ObjFaninNum(pObj) == Abc_SopGetVarNum(pSop) );
+            Abc_ObjForEachFanin( pObj, pTerm, k )
+            {
+                gFanins[k] = pTerm->iTemp;
+                assert( gFanins[k] >= 0 );
+            }
+            Abc_ObjFanout0(pObj)->iTemp = Abc_NtkDeriveFlatGiaSop( pGia, gFanins, pSop );
+            continue;
+        }
+        assert( Abc_ObjIsBox(pObj) );
+        pNtkModel = (Abc_Ntk_t *)pObj->pData;
+        // check the match between the number of actual and formal parameters
+        assert( Abc_ObjFaninNum(pObj) == Abc_NtkPiNum(pNtkModel) );
+        assert( Abc_ObjFanoutNum(pObj) == Abc_NtkPoNum(pNtkModel) );
+/*
+        // assign PIs
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Abc_ObjFanout0( Abc_NtkPi(pNtkModel, k) )->iTemp = Abc_ObjFanin0(pTerm)->iTemp;
+        // call recursively
+        Abc_NtkDeriveFlatGia_rec( pGia, pNtkModel );
+        // assign POs
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            Abc_ObjFanout0(pTerm)->iTemp = Abc_ObjFanin0( Abc_NtkPo(pNtkModel, k) )->iTemp;
+*/ 
+        // duplicate the AIG
+        pGiaBox = (Gia_Man_t *)pNtkModel->pData;
+        assert( Abc_ObjFaninNum(pObj) == Gia_ManPiNum(pGiaBox) );
+        assert( Abc_ObjFanoutNum(pObj) == Gia_ManPoNum(pGiaBox) );
+        Gia_ManFillValue( pGiaBox );
+        Gia_ManConst0(pGiaBox)->Value = 0;
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Gia_ManPi(pGiaBox, k)->Value = Abc_ObjFanin0(pTerm)->iTemp;
+        Gia_ManForEachAnd( pGiaBox, pGiaObj, k )
+            pGiaObj->Value = Gia_ManHashAnd( pGia, Gia_ObjFanin0Copy(pGiaObj), Gia_ObjFanin1Copy(pGiaObj) );
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            Abc_ObjFanout0(pTerm)->iTemp = Gia_ObjFanin0Copy(Gia_ManPo(pGiaBox, k));
+    }
+    // create POs
+    Abc_NtkForEachPo( pNtk, pTerm, i )
+        Gia_ManAppendCo( pGia, Abc_ObjFanin0(pTerm)->iTemp );
+    // prepare return value
+    Gia_ManHashStop( pGia );
+    Gia_ManSetRegNum( pGia, 0 );
+    pGia = Gia_ManCleanup( pGiaBox = pGia );
+    Gia_ManStop( pGiaBox );
+
+    printf( "%8d -> ", Abc_NtkCountAndNodes(vOrder) );
+    Gia_ManPrintStats( pGia, 0 );
+    return pGia;
+}
+/*
+void Abc_NtkDeriveFlatGia2_rec( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vOrder;
+    Abc_Obj_t * pObj;
+    int i;
+    if ( pNtk->pData != NULL )
+        return;
+    vOrder = Abc_NtkDfsBoxes( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+        if ( Abc_ObjIsBox(pObj) )
+            Abc_NtkDeriveFlatGia2_rec( (Abc_Ntk_t *)pObj->pData );
+    pNtk->pData = Abc_NtkDeriveFlatGia2Derive( pNtk, vOrder );
+    Vec_PtrFree( vOrder );
+}
+
+Gia_Man_t * Abc_NtkDeriveFlatGia2( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods;
+    Abc_Ntk_t * pModel;
+    Gia_Man_t * pGia = NULL;
+    int i;
+
+    assert( Abc_NtkIsNetlist(pNtk) );
+    assert( !Abc_NtkLatchNum(pNtk) );
+
+    vMods = pNtk->pDesign->vModules;
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+        pModel->pData = NULL;
+
+    Abc_NtkDeriveFlatGia2_rec( pNtk );
+    pGia = pNtk->pData;  pNtk->pData = NULL;
+    
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+        Gia_ManStopP( (Gia_Man_t **)&pModel->pData );
+
+    return pGia;
+}
+*/
+Gia_Man_t * Abc_NtkDeriveFlatGia2( Abc_Ntk_t * pNtk, Vec_Ptr_t * vModels )
+{ 
+    Abc_Ntk_t * pModel;
+    Vec_Ptr_t * vOrder;
+    Gia_Man_t * pGia = NULL;
+    int i;
+
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vModels, pModel, i )
+    {
+        vOrder = Abc_NtkDfsBoxes( pModel );
+        pModel->pData = Abc_NtkDeriveFlatGia2Derive( pModel, vOrder );
+        Vec_PtrFree( vOrder );
+    }
+
+    pGia = pModel->pData;  pModel->pData = NULL;
+
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vModels, pModel, i )
+        Gia_ManStopP( (Gia_Man_t **)&pModel->pData );
+
+    return pGia;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collect models in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCollectHie_rec( Abc_Ntk_t * pNtk, Vec_Ptr_t * vModels )
+{
+    Vec_Ptr_t * vOrder;
+    Abc_Obj_t * pObj;
+    int i;
+    if ( pNtk->iStep >= 0 )
+        return;
+    vOrder = Abc_NtkDfsBoxes( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+        if ( Abc_ObjIsBox(pObj) )
+            Abc_NtkCollectHie_rec( (Abc_Ntk_t *)pObj->pData, vModels );
+    Vec_PtrFree( vOrder );
+    pNtk->iStep = Vec_PtrSize(vModels);
+    Vec_PtrPush( vModels, pNtk );
+}
+
+Vec_Ptr_t * Abc_NtkCollectHie( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods, * vResult;
+    Abc_Ntk_t * pModel;
+    int i;
+
+    assert( Abc_NtkIsNetlist(pNtk) );
+    assert( !Abc_NtkLatchNum(pNtk) );
+
+    vMods = pNtk->pDesign->vModules;
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+        pModel->iStep = -1;
+
+    vResult = Vec_PtrAlloc( 1000 );
+    Abc_NtkCollectHie_rec( pNtk, vResult );
+    return vResult;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of intstances.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCountInst_rec( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vOrder;
+    Abc_Obj_t * pObj;
+    int i, Counter = 0;
+    if ( pNtk->iStep >= 0 )
+        return pNtk->iStep;
+    vOrder = Abc_NtkDfsBoxes( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+        if ( Abc_ObjIsBox(pObj) )
+            Counter += Abc_NtkCountInst_rec( (Abc_Ntk_t *)pObj->pData );
+    Vec_PtrFree( vOrder );
+    return pNtk->iStep = 1 + Counter;
+}
+
+void Abc_NtkCountInst( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods;
+    Abc_Ntk_t * pModel;
+    int i, Counter;
+
+    vMods = pNtk->pDesign->vModules;
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+        pModel->iStep = -1;
+ 
+    Counter = Abc_NtkCountInst_rec( pNtk );
+    printf( "Instances = %10d.\n", Counter );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Count the number of instances and I/O pins in the hierarchy.]
 
   Description []
@@ -306,17 +574,6 @@ void Abc_NtkCountInstances_rec( Abc_Ntk_t * pNtk, int * pCountInst, int * pCount
             Abc_NtkCountInstances_rec( (Abc_Ntk_t *)pObj->pData, pCountInst, pCountPins );
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Count the number of instances and I/O pins in the hierarchy.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Abc_NtkCountInstances( Abc_Ntk_t * pNtk )
 {
     int CountInst = 0, CountPins = 0;
@@ -326,6 +583,7 @@ void Abc_NtkCountInstances( Abc_Ntk_t * pNtk )
     Abc_NtkCountInstances_rec( pNtk, &CountInst, &CountPins );
     printf( "Instances = %10d.  I/O pins = %10d.\n", CountInst, CountPins );
 }
+
 
 /**Function*************************************************************
 
@@ -341,7 +599,7 @@ void Abc_NtkCountInstances( Abc_Ntk_t * pNtk )
 Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
 {
     int fCheck = 1;
-    Vec_Ptr_t * vMods;
+    Vec_Ptr_t * vMods, * vOrder;
     Abc_Ntk_t * pNtk, * pModel;
     Gia_Man_t * pGia;
     int i, clk = clock();
@@ -361,10 +619,27 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     }
     Abc_PrintTime( 1, "Reading file", clock() - clk );
 
+    assert( Abc_NtkIsNetlist(pNtk) );
+    assert( !Abc_NtkLatchNum(pNtk) );
+
     // print stats
     if ( fVerbose )
         Abc_NtkPrintBoxInfo( pNtk );
 
+    clk = clock();
+    vOrder = Abc_NtkCollectHie( pNtk );
+    Abc_PrintTime( 1, "Collect DFS ", clock() - clk );
+
+    // derive GIA
+    clk = clock();
+    pGia = Abc_NtkDeriveFlatGia2( pNtk, vOrder );
+    Abc_PrintTime( 1, "Deriving GIA", clock() - clk );
+    Gia_ManPrintStats( pGia, 0 );
+//    Gia_ManStop( pGia );
+
+    Vec_PtrFree( vOrder );
+
+/*
     // order nodes/boxes of all models
     vMods = pNtk->pDesign->vModules;
     Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
@@ -374,6 +649,7 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     clk = clock();
     pGia = Abc_NtkDeriveFlatGia( pNtk );
     Abc_PrintTime( 1, "Deriving GIA", clock() - clk );
+    Gia_ManPrintStats( pGia, 0 );
 
     clk = clock();
     Abc_NtkCountInstances( pNtk );
@@ -382,8 +658,12 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     // clean nodes/boxes of all nodes
     Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
         Vec_PtrFree( (Vec_Ptr_t *)pModel->pData );
-    Abc_NtkDelete( pNtk );
+*/
+    clk = clock();
+    Abc_NtkCountInst( pNtk );
+    Abc_PrintTime( 1, "Gather stats", clock() - clk );
 
+    Abc_NtkDelete( pNtk );
     return pGia;
 }
 
