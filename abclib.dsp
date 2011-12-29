@@ -4003,6 +4003,10 @@ SOURCE=.\src\aig\gia\giaAbs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaAbsVta.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaAig.c
 # End Source File
 # Begin Source File

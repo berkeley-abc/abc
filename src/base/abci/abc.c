@@ -30097,8 +30097,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int fSwitch = 0;
-    extern void Gia_SatSolveTest( Gia_Man_t * p );
-    extern void Cbs_ManSolveTest( Gia_Man_t * pGia );
+    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -30129,13 +30128,12 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_SatSolveTest( pAbc->pGia );
 //    For_ManExperiment( pAbc->pGia, 20, 1, 1 );
 //    Gia_ManUnrollSpecial( pAbc->pGia, 5, 100, 1 );
-
-    if ( fSwitch )
-        pAbc->pGia = Gia_ManDupSelf( pTemp = pAbc->pGia );
-    else 
-        pAbc->pGia = Gia_ManRemoveEnables( pTemp = pAbc->pGia );
-    Gia_ManStop( pTemp );
+//    pAbc->pGia = Gia_ManDupSelf( pTemp = pAbc->pGia );
+//    pAbc->pGia = Gia_ManRemoveEnables( pTemp = pAbc->pGia );
 //    Cbs_ManSolveTest( pAbc->pGia );
+
+    pAbc->pGia = Gia_VtaTest( pTemp = pAbc->pGia );
+    Gia_ManStopP( &pTemp );
     return 0;
 
 usage:
