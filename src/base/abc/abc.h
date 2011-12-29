@@ -772,13 +772,14 @@ extern ABC_DLL void               Abc_NtkShow6VarFunc( char * pF0, char * pF1 );
 extern ABC_DLL int                Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pParams );
 extern ABC_DLL int                Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
 /*=== abcRec.c ==========================================================*/
-extern ABC_DLL void               Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts );
+extern ABC_DLL void               Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim );
 extern ABC_DLL void               Abc_NtkRecStop();
 extern ABC_DLL void               Abc_NtkRecAdd( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkRecPs();
-extern ABC_DLL void               Abc_NtkRecFilter( int iVar, int iPlus );
+extern ABC_DLL void               Abc_NtkRecFilter(int nLimit);
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkRecUse();
 extern ABC_DLL int                Abc_NtkRecIsRunning();
+extern ABC_DLL int                Abc_NtkRecIsInTrimMode();
 extern ABC_DLL int                Abc_NtkRecVarNum();
 extern ABC_DLL Vec_Int_t *        Abc_NtkRecMemory();
 extern ABC_DLL int                Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTruth, int nVars );

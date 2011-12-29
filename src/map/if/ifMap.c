@@ -20,8 +20,8 @@
 
 #include "if.h"
 
-ABC_NAMESPACE_IMPL_START
 
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -93,7 +93,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_Set_t * pCutSet;
     If_Cut_t * pCut0, * pCut1, * pCut;
     int i, k;
- 
+
 //    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 1 );
 //    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 1 );
 
@@ -156,8 +156,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 ///        if ( p->pPars->pLutStruct )
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
 //        else if ( p->pPars->fDelayOpt )
-        if ( p->pPars->fDelayOpt )
-            pCut->Delay = If_CutDelaySopCost( p, pCut );
+        if ( p->pPars->fUserRecLib )
+            pCut->Delay = If_CutDelayRecCost(p, pCut);
+        else if(p->pPars->fDelayOpt)
+            pCut->Delay = If_CutDelaySopCost(p,pCut);
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
@@ -224,8 +226,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 ///        if ( p->pPars->pLutStruct )
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
 //        else if ( p->pPars->fDelayOpt )
-        if ( p->pPars->fDelayOpt )
-            pCut->Delay = If_CutDelaySopCost( p, pCut );
+        if ( p->pPars->fUserRecLib )
+            pCut->Delay = If_CutDelayRecCost(p, pCut);
+        else if (p->pPars->fDelayOpt)
+            pCut->Delay = If_CutDelaySopCost(p, pCut);  
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
 //        Abc_Print( 1, "%.2f ", pCut->Delay );
@@ -252,9 +256,12 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 
     // update the best cut
     if ( !fPreprocess || pCutSet->ppCuts[0]->Delay <= pObj->Required + p->fEpsilon )
+    {
         If_CutCopy( p, If_ObjCutBest(pObj), pCutSet->ppCuts[0] );
+        if(p->pPars->fUserRecLib)
+            assert(If_ObjCutBest(pObj)->Cost < IF_COST_MAX && If_ObjCutBest(pObj)->Delay < ABC_INFINITY);
+    }
     assert( p->pPars->fSeqMap || If_ObjCutBest(pObj)->nLeaves > 1 );
-
     // ref the selected cut
     if ( Mode && pObj->nRefs > 0 )
         If_CutAreaRef( p, If_ObjCutBest(pObj) );
@@ -265,6 +272,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( p->pPars->pFuncUser )
         If_ObjForEachCut( pObj, pCut, i )
             p->pPars->pFuncUser( p, pObj, pCut );
+
 
     // free the cuts
     If_ManDerefNodeCutSet( p, pObj );

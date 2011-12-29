@@ -83,7 +83,7 @@ void Abc_NtkIfComputeSwitching( Abc_Ntk_t * pNtk, If_Man_t * pIfMan )
         if ( (pObjAig = (Aig_Obj_t *)pObjAbc->pTemp) )
         {
             pObjAbc->dTemp = pSwitching[pObjAig->Id];
-            // J. Anderson and F. N. Najm, “Power-Aware Technology Mapping for LUT-Based FPGAs,”
+            // J. Anderson and F. N. Najm, “Power-Aware Technology Mapping for LUT-Based FPGAs,
             // IEEE Intl. Conf. on Field-Programmable Technology, 2002.
 //            pObjAbc->dTemp = (1.55 + 1.05 / (float) Abc_ObjFanoutNum(pObjAbc)) * pSwitching[pObjAig->Id];
         }
@@ -436,7 +436,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     pCutBest = If_ObjCutBest( pIfObj );
 //    printf( "%d 0x%02X %d\n", pCutBest->nLeaves, 0xff & *If_CutTruth(pCutBest), pIfMan->pPars->pFuncCost(pCutBest) );
 //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
-    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct )
+    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib )
         If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {
@@ -487,6 +487,11 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         {
             extern Hop_Obj_t * Abc_NodeTruthToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut );
             pNodeNew->pData = Abc_NodeTruthToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
+        }
+        else if ( pIfMan->pPars->fUserRecLib )
+        {
+            extern Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut );
+            pNodeNew->pData = Abc_RecToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest );
         }
         else
         {

@@ -105,6 +105,7 @@ struct If_Par_t_
     float              WireDelay;     // wire delay
     // internal parameters
     int                fDelayOpt;     // special delay optimization
+    int                fUserRecLib;   // use recorded library
     int                fAreaOnly;     // area only mode
     int                fTruth;        // truth table computation enabled
     int                fUsePerm;      // use permutation (delay info)
@@ -496,6 +497,9 @@ extern Vec_Ptr_t *     If_ManCollectMappingDirect( If_Man_t * p );
 extern Vec_Int_t *     If_ManCollectMappingInt( If_Man_t * p );
 
 extern int             If_ManCountSpecialPos( If_Man_t * p );
+
+/*=== abcRec.c ============================================================*/
+extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut);
 
 // othe packages
 extern int Bat_ManCellFuncLookup( unsigned * pTruth, int nVars, int nLeaves );

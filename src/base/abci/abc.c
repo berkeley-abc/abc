@@ -211,6 +211,7 @@ static int Abc_CommandRecStop                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRecAdd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecUse                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecFilter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -668,6 +669,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_add",       Abc_CommandRecAdd,           0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps",        Abc_CommandRecPs,            0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter",    Abc_CommandRecFilter,        1 );
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
@@ -11935,13 +11937,15 @@ int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nVars;
     int nCuts;
+    int fTrim;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     nVars = 6;
     nCuts = 8;
+    fTrim = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCth" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11967,6 +11971,9 @@ int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCuts < 1 ) 
                 goto usage;
             break;
+        case 't':
+            fTrim ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -11988,15 +11995,16 @@ int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command works only for AIGs; run strashing (\"st\").\n" );
         return 0;
     }
-    Abc_NtkRecStart( pNtk, nVars, nCuts );
+    Abc_NtkRecStart( pNtk, nVars, nCuts, fTrim );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rec_start [-K num] [-C num] [-h]\n" );
+    Abc_Print( -2, "usage: rec_start [-K num] [-C num] [-th]\n" );
     Abc_Print( -2, "\t         starts recording AIG subgraphs (should be called for\n" );
     Abc_Print( -2, "\t         an empty network or after reading in a previous record)\n" );
     Abc_Print( -2, "\t-K num : the largest number of inputs [default = %d]\n", nVars );
     Abc_Print( -2, "\t-C num : the max number of cuts used at a node (0 < num < 2^12) [default = %d]\n", nCuts );
+    Abc_Print( -2, "\t-t     : toggles the use of trimming [default = %s]\n", fTrim? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -12183,6 +12191,64 @@ usage:
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, nLimit = 0;
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLimit < 0 ) 
+                goto usage;
+        break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start\".\n" );
+        return 0;
+    }
+    if (!Abc_NtkRecIsInTrimMode())
+        Abc_Print( 0, "This command works fine only in trim mode. Please call \"rec_start -t\" first.\n" );
+    
+    Abc_NtkRecFilter(nLimit);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_filter [-h]\n" );
+    Abc_Print( -2, "\t         filter the library of the recorder\n" );
+    Abc_Print( -2, "\t-F num : the limit number of function class [default = %d]\n", nLimit );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -13090,7 +13156,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     fLutMux = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEWSqaflepmrsdbugojikcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEWSqaflepmrsdbugyojikcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13225,6 +13291,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'g':
             pPars->fDelayOpt ^= 1;
+            break;
+        case 'y':
+            pPars->fUserRecLib ^= 1;
             break;
         case 'o':
             pPars->fUseBuffs ^= 1;
@@ -13375,7 +13444,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify for global delay optimization
-    if ( pPars->fDelayOpt )
+    if ( pPars->fDelayOpt || pPars->fUserRecLib )
     {
         pPars->fTruth      =  1;
         pPars->fExpRed     =  0;
@@ -13459,7 +13528,7 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFA num] [-DEW float] [-S str] [-qarlepmsdbugojikcvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFA num] [-DEW float] [-S str] [-qarlepmsdbugyojikcvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -13482,6 +13551,7 @@ usage:
     Abc_Print( -2, "\t-b       : toggles the use of one special feature [default = %s]\n", pPars->fUseBat? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles the use of MUXes along with LUTs [default = %s]\n", fLutMux? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles global delay optimization [default = %s]\n", pPars->fDelayOpt? "yes": "no" );
+    Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck08? "yes": "no" );
@@ -16780,7 +16850,7 @@ usage:
 
 ***********************************************************************/
 int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
-{    
+{   
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
     int fInputs = 1;
     int fOutputs = 1;
@@ -16843,7 +16913,7 @@ usage:
 
 ***********************************************************************/
 int Abc_CommandUnpermute( Abc_Frame_t * pAbc, int argc, char ** argv )
-{    
+{   
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
     int c;
     Extra_UtilGetoptReset();
@@ -19826,7 +19896,7 @@ usage:
 int Abc_CommandTempor( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkDarTempor( Abc_Ntk_t * pNtk, int nFrames, int TimeOut, int nConfLimit, int fUseBmc, int fUseTransSigs, int fVerbose, int fVeryVerbose );
-     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     int nFrames       =       0;
     int TimeOut       =     300;
     int nConfMax      =  100000;
@@ -20465,7 +20535,7 @@ usage:
 
 ***********************************************************************/
 int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
-{    
+{   
     FILE * pOut, * pErr;
     Abc_Ntk_t *pNtk, *pNtk1, *pNtk2;
     int fDelete1, fDelete2; 
@@ -20476,7 +20546,7 @@ int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
-    pErr = Abc_FrameReadErr(pAbc);    
+    pErr = Abc_FrameReadErr(pAbc);  
     
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Ph" ) ) != EOF )
@@ -20486,7 +20556,7 @@ int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'h':
             goto usage;
         case 'P':
-            p_equivalence = 1;            
+            p_equivalence = 1;          
             break;        
         default:
             Abc_Print( -2, "Unknown switch.\n");
@@ -20510,7 +20580,7 @@ int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
     bmGateWay( pNtk1, pNtk2, p_equivalence );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
-    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );        
+    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );     
     return 0;
 
 usage:
@@ -20545,7 +20615,7 @@ usage:
 
 ***********************************************************************/
 int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
-{    
+{   
     Abc_Ntk_t * pNtk;
     int c;
     int nOutputs = 0;
@@ -20593,10 +20663,10 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
         else if ( Abc_NtkPiNum(pNtk) != pAbc->pCex->nPis )
             Abc_Print( 1, "Main AIG: The number of PIs (%d) is different from cex (%d).\n", Abc_NtkPiNum(pNtk), pAbc->pCex->nPis );
-//        else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
-//            Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
-//        else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
-//            Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
+//      else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
+//          Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
+//      else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
+//          Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
         else 
         {
             extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
@@ -20625,10 +20695,10 @@ int Abc_CommandTestCex( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "And  AIG: There is no current network.\n");
         else if ( Gia_ManPiNum(pAbc->pGia) != pAbc->pCex->nPis )
             Abc_Print( 1, "And  AIG: The number of PIs (%d) is different from cex (%d).\n", Gia_ManPiNum(pAbc->pGia), pAbc->pCex->nPis );
-//        else if ( Gia_ManRegNum(pAbc->pGia) != pAbc->pCex->nRegs )
-//            Abc_Print( 1, "And  AIG: The number of registers (%d) is different from cex (%d).\n", Gia_ManRegNum(pAbc->pGia), pAbc->pCex->nRegs );
-//        else if ( Gia_ManPoNum(pAbc->pGia) <= pAbc->pCex->iPo )
-//            Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
+//      else if ( Gia_ManRegNum(pAbc->pGia) != pAbc->pCex->nRegs )
+//          Abc_Print( 1, "And  AIG: The number of registers (%d) is different from cex (%d).\n", Gia_ManRegNum(pAbc->pGia), pAbc->pCex->nRegs );
+//      else if ( Gia_ManPoNum(pAbc->pGia) <= pAbc->pCex->iPo )
+//          Abc_Print( 1, "And  AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Gia_ManPoNum(pAbc->pGia), pAbc->pCex->iPo );
         else 
         {
     //        if ( !Gia_ManVerifyCex( pAbc->pGia, pAbc->pCex, 0 ) )
@@ -20671,7 +20741,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex );
     Pdr_Par_t Pars, * pPars = &Pars;
-     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Cex_t * pCex = NULL;
     int c;
     Pdr_ManSetDefaultParams( pPars );
@@ -20829,7 +20899,7 @@ usage:
 
 ***********************************************************************/
 int Abc_CommandReconcile( Abc_Frame_t * pAbc, int argc, char ** argv )
-{    
+{   
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Cex_t * Llb4_Nonlin4NormalizeCex( Aig_Man_t * pAigOrg, Aig_Man_t * pAigRpm, Abc_Cex_t * pCexRpm );
     Abc_Cex_t * pCex;
@@ -20917,8 +20987,8 @@ usage:
 
 ***********************************************************************/
 int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
-{    
-     Abc_Ntk_t * pNtk;
+{   
+    Abc_Ntk_t * pNtk;
     Abc_Cex_t * vCexNew = NULL;
     int c;
     int nConfLimit = 1000;
@@ -20976,10 +21046,10 @@ int Abc_CommandCexMin( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
     else if ( Abc_NtkPiNum(pNtk) != pAbc->pCex->nPis )
         Abc_Print( 1, "Main AIG: The number of PIs (%d) is different from cex (%d).\n", Abc_NtkPiNum(pNtk), pAbc->pCex->nPis );
-//        else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
-//            Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
-//        else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
-//            Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
+//      else if ( Abc_NtkLatchNum(pNtk) != pAbc->pCex->nRegs )
+//          Abc_Print( 1, "Main AIG: The number of registers (%d) is different from cex (%d).\n", Abc_NtkLatchNum(pNtk), pAbc->pCex->nRegs );
+//      else if ( Abc_NtkPoNum(pNtk) <= pAbc->pCex->iPo )
+//          Abc_Print( 1, "Main AIG: The number of POs (%d) is less than the PO index in cex (%d).\n", Abc_NtkPoNum(pNtk), pAbc->pCex->iPo );
     else 
     {
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
