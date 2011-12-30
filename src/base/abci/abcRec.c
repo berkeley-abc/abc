@@ -8,9 +8,9 @@
 
   Synopsis    [Record of semi-canonical AIG subgraphs.]
 
-  Author      [Alan Mishchenko]
+  Author      [Allan Yang, Alan Mishchenko]
   
-  Affiliation [UC Berkeley]
+  Affiliation [Fudan University in Shanghai, UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
@@ -678,6 +678,70 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates non-danglingn nodes and POs driven by constants.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDupWithoutDangling_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
+{
+    if ( pObj->pCopy != NULL )
+        return;
+    assert( Abc_ObjIsNode(pObj) );
+    Abc_NtkDupWithoutDangling_rec( pNtkNew, Abc_ObjFanin0(pObj) );
+    Abc_NtkDupWithoutDangling_rec( pNtkNew, Abc_ObjFanin1(pObj) );
+    pObj->pCopy = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates non-danglingn nodes and POs driven by constants.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDupWithoutDangling( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj;
+    int i;
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    // map the constant nodes
+    if ( Abc_NtkIsStrash(pNtk) && Abc_NtkIsStrash(pNtkNew) )
+        Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
+    // clone PIs
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    // recursively add non-dangling logic
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        if ( Abc_ObjFanin0(pObj) != Abc_AigConst1(pNtk) )
+            Abc_NtkDupWithoutDangling_rec( pNtkNew, Abc_ObjFanin0(pObj) );
+    // clone POs
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        if ( Abc_ObjFanin0(pObj) != Abc_AigConst1(pNtk) )
+        {
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
+        }
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Filter the library.]
 
   Description []
@@ -690,9 +754,10 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut )
 void Abc_NtkRecFilter(int nLimit)
 {
     Abc_Obj_t * pObj;
-    void * temp;
+//    void * temp;
     Rec_Obj_t * previous = NULL, * entry = NULL, * pTemp;
-    int i, j, counter = 0;
+    int i, counter = 0;
+//    int j;
     Abc_Ntk_t * pNtk = s_pMan->pNtk;
     int time = clock();
     if (nLimit > 0)
@@ -746,7 +811,16 @@ void Abc_NtkRecFilter(int nLimit)
             Abc_ObjClearMax( pObj );
         }
     }
-    
+
+    // remove dangling nodes and POs driven by constants
+    s_pMan->pNtk = Abc_NtkDupWithoutDangling( pNtk );
+
+    // HERE WE NEED TO UPDATE ENTRIES IN THE HASH TABLE...
+    // (until we did this, the code will not work)
+
+    Abc_NtkDelete( pNtk );
+
+/*    
     // delete the dangling node.
     Abc_AigCleanup((Abc_Aig_t * )pNtk->pManFunc);
     
@@ -767,6 +841,7 @@ void Abc_NtkRecFilter(int nLimit)
     }
     //update the new size of PO vector.
     pNtk->vPos->nSize = i;
+*/
     s_pMan->timeTrim += clock() - time;
     s_pMan->timeTotal += clock() - time;
 }
