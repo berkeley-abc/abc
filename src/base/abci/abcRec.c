@@ -713,6 +713,7 @@ Abc_Ntk_t * Abc_NtkDupWithoutDangling( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj;
     int i;
+    assert( Abc_NtkIsStrash(pNtk) );
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // duplicate the name and the spec
@@ -721,8 +722,7 @@ Abc_Ntk_t * Abc_NtkDupWithoutDangling( Abc_Ntk_t * pNtk )
     // clean the node copy fields
     Abc_NtkCleanCopy( pNtk );
     // map the constant nodes
-    if ( Abc_NtkIsStrash(pNtk) && Abc_NtkIsStrash(pNtkNew) )
-        Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     // clone PIs
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
@@ -737,7 +737,32 @@ Abc_Ntk_t * Abc_NtkDupWithoutDangling( Abc_Ntk_t * pNtk )
             Abc_NtkDupObj( pNtkNew, pObj, 0 );
             Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
         }
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkDupWithoutDangling(): Network check has failed.\n" );
+    pNtk->pCopy = pNtkNew;
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Filter the library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_RecUpdateHashTable()
+{
+    Abc_ManRec_t * p = s_pMan;
+    Rec_Obj_t * pEntry, * pTemp;
+    int i;
+    for ( i = 0; i < p->nBins; i++ )
+        for ( pEntry = p->pBins[i]; pEntry; pEntry = pEntry->pCopy )
+            for ( pTemp = pEntry; pTemp; pTemp = pTemp->pNext )
+                pTemp->obj = pTemp->obj->pCopy;
 }
 
 /**Function*************************************************************
@@ -814,34 +839,10 @@ void Abc_NtkRecFilter(int nLimit)
 
     // remove dangling nodes and POs driven by constants
     s_pMan->pNtk = Abc_NtkDupWithoutDangling( pNtk );
-
-    // HERE WE NEED TO UPDATE ENTRIES IN THE HASH TABLE...
-    // (until we did this, the code will not work)
-
+    Abc_RecUpdateHashTable();
     Abc_NtkDelete( pNtk );
 
-/*    
-    // delete the dangling node.
-    Abc_AigCleanup((Abc_Aig_t * )pNtk->pManFunc);
-    
-    // delete the PO with a constant node as its input.
-    i = 0;
-    j = Abc_NtkPoNum(pNtk) - 1;
-    while(1)
-    {
-        while(Abc_ObjChild0(Abc_NtkPo(pNtk, i)) != Abc_ObjNot( Abc_AigConst1(pNtk)))
-            i++;
-        while(Abc_ObjChild0(Abc_NtkPo(pNtk, j)) == Abc_ObjNot( Abc_AigConst1(pNtk)))
-            j--;
-        if(i > j)
-            break;
-        temp = Vec_PtrEntry(pNtk->vPos, i);
-        Vec_PtrWriteEntry(pNtk->vPos, i, Vec_PtrEntry(pNtk->vPos, j));
-        Vec_PtrWriteEntry(pNtk->vPos, j, temp);
-    }
-    //update the new size of PO vector.
-    pNtk->vPos->nSize = i;
-*/
+    // collect runtime stats
     s_pMan->timeTrim += clock() - time;
     s_pMan->timeTotal += clock() - time;
 }
@@ -1177,7 +1178,6 @@ void Abc_NtkRecPs()
     Rec_Obj_t * pEntry, * pTemp;
     Abc_Obj_t * pObj;
     int i;
-    int nVars = 6;
     // set the max PI number
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, i+1 );
