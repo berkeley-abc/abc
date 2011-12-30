@@ -736,7 +736,9 @@ Abc_Ntk_t * Abc_NtkDupWithoutDangling( Abc_Ntk_t * pNtk )
         {
             Abc_NtkDupObj( pNtkNew, pObj, 0 );
             Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
-        }
+        } 
+    Abc_NtkAddDummyPiNames( pNtkNew );
+    Abc_NtkAddDummyPoNames( pNtkNew );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDupWithoutDangling(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
