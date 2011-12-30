@@ -58,6 +58,7 @@ struct Abc_ManRec_t_
     Abc_Ntk_t *       pNtk;                        // the record
     Vec_Ptr_t *       vTtElems;                    // the elementary truth tables
     Vec_Ptr_t *       vTtNodes;                    // the node truth tables
+    Mem_Fixed_t *     pMmTruth;                 // memory manager for truth tables
     Rec_Obj_t **      pBins;                    // hash table mapping truth tables into nodes
     int               nBins;                    // the number of allocated bins
     int               nVars;                    // the number of variables
@@ -995,8 +996,10 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim )
         p->vTtNodes = Vec_PtrAllocSimInfo( 1<<14, p->nWords );
 */
     p->vTtNodes = Vec_PtrAlloc( 1000 );
+    p->pMmTruth = Mem_FixedStart( sizeof(unsigned)*p->nWords );
     for ( i = 0; i < Abc_NtkObjNumMax(pNtk); i++ )
-        Vec_PtrPush( p->vTtNodes, ABC_ALLOC(unsigned, p->nWords) );
+//        Vec_PtrPush( p->vTtNodes, ABC_ALLOC(unsigned, p->nWords) );
+        Vec_PtrPush( p->vTtNodes, Mem_FixedEntryFetch(p->pMmTruth) );
 
     // create hash table
     //p->nBins = 50011;
@@ -1110,8 +1113,9 @@ void Abc_NtkRecStop()
 //    Abc_NtkRecDumpTruthTables( s_pMan );
     if ( s_pMan->pNtk )
         Abc_NtkDelete( s_pMan->pNtk );
-//    Vec_PtrFree( s_pMan->vTtNodes );
-    Vec_PtrFreeFree( s_pMan->vTtNodes );
+//    Vec_PtrFreeFree( s_pMan->vTtNodes );
+    Mem_FixedStop( s_pMan->pMmTruth, 0 );
+    Vec_PtrFree( s_pMan->vTtNodes );
     Vec_PtrFree( s_pMan->vTtElems );
     ABC_FREE( s_pMan->pBins );
 
@@ -1707,7 +1711,8 @@ clk = clock();
 //            if ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
 //                Vec_PtrDoubleSimInfo(s_pMan->vTtNodes);
             while ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
-                Vec_PtrPush( s_pMan->vTtNodes, ABC_ALLOC(unsigned, s_pMan->nWords) );
+//                Vec_PtrPush( s_pMan->vTtNodes, ABC_ALLOC(unsigned, s_pMan->nWords) );
+                Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
 
             // compute the truth table
             RetValue = Abc_NtkRecComputeTruth( pObj, s_pMan->vTtNodes, nInputs );
@@ -1820,6 +1825,8 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
     //functional class not found in the library.
     if ( *ppSpot == NULL )
     {
+Kit_DsdPrintFromTruth( pInOut, nLeaves ); printf( "\n" );
+
         s_pMan->nFunsNotFound++;        
         pCut->Cost = IF_COST_MAX;
         pCut->fUser = 1;
