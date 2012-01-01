@@ -4023,6 +4023,10 @@ SOURCE=.\src\aig\gia\giaBidec.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaCCof.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaCof.c
 # End Source File
 # Begin Source File

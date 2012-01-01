@@ -212,7 +212,7 @@ void Vga_ManGrow( Vta_Man_t * p, int fThis )
     static int PrevF = -1;
     Gia_Obj_t * pObj, * pObj2;
     int Beg, End, One, i, c, f, iOutVar, nClauses;
-    assert( ++PrevF == f );
+    assert( ++PrevF == fThis );
     assert( fThis >= 0 && fThis < p->nFramesMax );
 
     // create variable for the output
@@ -422,9 +422,9 @@ void Gia_VtaCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vOrder, Ve
 ***********************************************************************/
 Vec_Int_t * Gia_VtaCollect( Gia_Man_t * p, Vec_Int_t ** pvFraLims, Vec_Int_t ** pvRoots )
 {
-    Vec_Int_t * vOrder;   // resulting ordering of PI/RO/And
+    Vec_Int_t * vOrder;    // resulting ordering of PI/RO/And
     Vec_Int_t * vFraLims;  // frame limits 
-    Vec_Int_t * vRoots;   // CO roots
+    Vec_Int_t * vRoots;    // CO roots
     Gia_Obj_t * pObj;
     int i, StopPoint;
 
@@ -435,10 +435,15 @@ Vec_Int_t * Gia_VtaCollect( Gia_Man_t * p, Vec_Int_t ** pvFraLims, Vec_Int_t ** 
     Gia_ManForEachPo( p, pObj, i )
         Vec_IntPush( vRoots, Gia_ObjId(p, pObj) );
 
-    // collects nodes/flops
-    vFraLims = Vec_IntAlloc( 1000 );
+    // start order
     vOrder = Vec_IntAlloc( Gia_ManObjNum(p) );
     Vec_IntPush( vOrder, -1 );
+
+    // start limits
+    vFraLims = Vec_IntAlloc( 1000 );
+    Vec_IntPush( vFraLims, Vec_IntSize(vOrder) );
+
+    // collect new nodes
     StopPoint = Vec_IntSize(vRoots);
     Gia_ManForEachObjVec( vRoots, p, pObj, i )
     {
@@ -487,6 +492,7 @@ Gia_Man_t * Gia_VtaTest( Gia_Man_t * p )
 {
     Vec_Int_t * vOrder, * vFraLims, * vRoots;
     Gia_Man_t * pCopy;
+    int i, Entry;
     // the new AIG orders flops and PIs in the "natural" order
     vOrder = Gia_VtaCollect( p, &vFraLims, &vRoots );
  
@@ -496,6 +502,10 @@ Gia_Man_t * Gia_VtaTest( Gia_Man_t * p )
         Gia_ManObjNum(p), 
         Gia_ManObjNum(p) - Gia_ManCoNum(p) - Vec_IntSize(vOrder), 
         Vec_IntSize(vFraLims) - 1 );
+
+    Vec_IntForEachEntry( vFraLims, Entry, i )
+        printf( "%d=%d ", i, Entry );
+    printf( "\n" );
 
     pCopy = Gia_VtaDup( p, vOrder );
 //    Gia_ManStopP( &pCopy );

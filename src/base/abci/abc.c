@@ -383,6 +383,7 @@ static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GlaCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9BackReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachM             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReachP             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -839,6 +840,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_cba",      Abc_CommandAbc9GlaCba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_pba",      Abc_CommandAbc9GlaPba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&back_reach",   Abc_CommandAbc9BackReach,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachm",       Abc_CommandAbc9ReachM,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reachp",       Abc_CommandAbc9ReachP,       0 );
@@ -26256,13 +26258,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManFrames2( Gia_Man_t * pAig, Gia_ParFra_t * pPars );
+
     Gia_Man_t * pTemp;
     Gia_ParFra_t Pars, * pPars = &Pars;
     int c;
     int nCofFanLit = 0;
+    int nNewAlgo = 1;
     Gia_ManFraSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FLivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FLiavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26291,6 +26296,9 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'i':
             pPars->fInit ^= 1;
             break;
+        case 'a':
+            nNewAlgo ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -26312,17 +26320,20 @@ int Abc_CommandAbc9Frames( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nCofFanLit )
         pTemp = Gia_ManUnrollAndCofactor( pAbc->pGia, pPars->nFrames, nCofFanLit, pPars->fVerbose );
-    else
+    else if ( nNewAlgo )
+        pTemp = Gia_ManFrames2( pAbc->pGia, pPars );
+    else 
         pTemp = Gia_ManFrames( pAbc->pGia, pPars );
     Abc_CommandUpdate9( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &frames [-FL <num>] [-ivh]\n" );
+    Abc_Print( -2, "usage: &frames [-FL <num>] [-aivh]\n" );
     Abc_Print( -2, "\t         unrolls the design for several timeframes\n" );
     Abc_Print( -2, "\t-F num : the number of frames to unroll [default = %d]\n", pPars->nFrames );
     Abc_Print( -2, "\t-L num : the limit on fanout count of resets/enables to cofactor [default = %d]\n", nCofFanLit );
     Abc_Print( -2, "\t-i     : toggle initializing registers [default = %s]\n", pPars->fInit? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle using new algorithm [default = %s]\n", nNewAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -29420,6 +29431,98 @@ usage:
     Abc_Print( -2, "\t        performs input trimming and reparameterization\n" );
     Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9BackReach( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int nTimeMax, int fVerbose );
+
+    Gia_Man_t * pTemp = NULL;
+    int c, fVerbose = 0;
+    int nFrameMax = 1000000;
+    int nConfMax  = 1000000;
+    int nTimeMax  =      10;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCTvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrameMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrameMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BackReach(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManPoNum(pAbc->pGia) != 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BackReach(): The number of POs is different from 1.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManCofTest( pAbc->pGia, nFrameMax, nConfMax, nTimeMax, fVerbose );
+    Abc_CommandUpdate9( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &back_reach [-FCT <num>] [-vh]\n" );
+    Abc_Print( -2, "\t         performs input trimming and reparameterization\n" );
+    Abc_Print( -2, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrameMax );
+    Abc_Print( -2, "\t-C num : the conflict limit at a node during induction [default = %d]\n", nConfMax );
+    Abc_Print( -2, "\t-T num : the timeout for property directed reachability [default = %d]\n", nTimeMax );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 

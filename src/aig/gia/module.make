@@ -4,6 +4,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaAig.c \
     src/aig/gia/giaAiger.c \
     src/aig/gia/giaBidec.c \
+    src/aig/gia/giaCCof.c \
     src/aig/gia/giaCof.c \
     src/aig/gia/giaCSatOld.c \
     src/aig/gia/giaCSat.c \
