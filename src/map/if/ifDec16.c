@@ -23,7 +23,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#define IF_USE_CASE3
+//#define IF_USE_CASE3
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
