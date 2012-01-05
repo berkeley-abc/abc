@@ -174,6 +174,7 @@ struct Gia_ParFra_t_
 {
     int            nFrames;       // the number of frames to unroll
     int            fInit;         // initialize the timeframes
+    int            fSaveLastLit;  // adds POs for outputs of each frame
     int            fVerbose;      // enables verbose output
 };
 
@@ -700,6 +701,10 @@ extern void                Gia_ManFanoutStop( Gia_Man_t * p );
 /*=== giaForce.c =========================================================*/
 extern void                For_ManExperiment( Gia_Man_t * pGia, int nIters, int fClustered, int fVerbose );
 /*=== giaFrames.c =========================================================*/
+extern void *              Gia_ManUnrollStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars );
+extern void *              Gia_ManUnrollAdd( void * pMan, int fMax );
+extern void                Gia_ManUnrollStop( void * pMan );
+extern int                 Gia_ManUnrollLastLit( void * pMan );
 extern void                Gia_ManFraSetDefaultParams( Gia_ParFra_t * p );
 extern Gia_Man_t *         Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars );  
 /*=== giaFront.c ==========================================================*/
