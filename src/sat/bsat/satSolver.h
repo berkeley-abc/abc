@@ -210,6 +210,106 @@ static int sat_solver_set_random(sat_solver* s, int fNotUseRandom)
     return fNotUseRandomOld;
 }
 
+static inline int sat_solver_add_const( sat_solver * pSat, int iVar, int fCompl )
+{
+    lit Lits[1];
+    int Cid;
+    assert( iVar >= 0 );
+
+    Lits[0] = toLitCond( iVar, fCompl );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 1 );
+    assert( Cid );
+    return 1;
+}
+static inline int sat_solver_add_buffer( sat_solver * pSat, int iVarA, int iVarB, int fCompl )
+{
+    lit Lits[2];
+    int Cid;
+    assert( iVarA >= 0 && iVarB >= 0 );
+
+    Lits[0] = toLitCond( iVarA, 0 );
+    Lits[1] = toLitCond( iVarB, !fCompl );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarA, 1 );
+    Lits[1] = toLitCond( iVarB, fCompl );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+    return 2;
+}
+static inline int sat_solver_add_and( sat_solver * pSat, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1 )
+{
+    lit Lits[3];
+    int Cid;
+
+    Lits[0] = toLitCond( iVar, 1 );
+    Lits[1] = toLitCond( iVar0, fCompl0 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVar, 1 );
+    Lits[1] = toLitCond( iVar1, fCompl1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVar, 0 );
+    Lits[1] = toLitCond( iVar0, !fCompl0 );
+    Lits[2] = toLitCond( iVar1, !fCompl1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+    return 3;
+}
+static inline int sat_solver_add_xor( sat_solver * pSat, int iVarA, int iVarB, int iVarC, int fCompl )
+{
+    lit Lits[3];
+    int Cid;
+    assert( iVarA >= 0 && iVarB >= 0 && iVarC >= 0 );
+
+    Lits[0] = toLitCond( iVarA, !fCompl );
+    Lits[1] = toLitCond( iVarB, 1 );
+    Lits[2] = toLitCond( iVarC, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarA, !fCompl );
+    Lits[1] = toLitCond( iVarB, 0 );
+    Lits[2] = toLitCond( iVarC, 0 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarA, fCompl );
+    Lits[1] = toLitCond( iVarB, 1 );
+    Lits[2] = toLitCond( iVarC, 0 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVarA, fCompl );
+    Lits[1] = toLitCond( iVarB, 0 );
+    Lits[2] = toLitCond( iVarC, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 3 );
+    assert( Cid );
+    return 4;
+}
+static inline int sat_solver_add_constraint( sat_solver * pSat, int iVar, int fCompl )
+{
+    lit Lits[2];
+    int Cid;
+    assert( iVar >= 0 );
+
+    Lits[0] = toLitCond( iVar, fCompl );
+    Lits[1] = toLitCond( iVar+1, 0 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+
+    Lits[0] = toLitCond( iVar, fCompl );
+    Lits[1] = toLitCond( iVar+1, 1 );
+    Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
+    assert( Cid );
+    return 2;
+}
+
+
 ABC_NAMESPACE_HEADER_END
 
 #endif
