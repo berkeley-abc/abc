@@ -200,6 +200,11 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtk = Io_Read( pFileName, Io_ReadFileType(pFileName), fCheck );
     if ( pNtk == NULL )
         return 0;
+    if ( Abc_NtkPiNum(pNtk) == 0 )
+    {
+        Abc_Print( 0, "The new network has no primary inputs. It is recommended\n" );
+        Abc_Print( 1, "to add a dummy PI to make sure all commands work correctly.\n" );
+    }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
     Abc_FrameCopyLTLDataBase( pAbc, pNtk );
