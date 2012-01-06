@@ -244,7 +244,8 @@ void Fra_SmlSavePattern( Fra_Man_t * p )
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
     Aig_ManForEachPi( p->pManFraig, pObj, i )
-        if ( p->pSat->model.ptr[Fra_ObjSatNum(pObj)] == l_True )
+//        if ( p->pSat->model.ptr[Fra_ObjSatNum(pObj)] == l_True )
+        if ( sat_solver_var_value(p->pSat, Fra_ObjSatNum(pObj)) )
             Aig_InfoSetBit( p->pPatWords, i );
 
     if ( p->vCex )

@@ -1087,7 +1087,6 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
     s->stats.starts++;
 //    s->var_decay = (float)(1 / 0.95   );
 //    s->cla_decay = (float)(1 / 0.999);
-    veci_resize(&s->model,0);
     veci_new(&learnt_clause);
 
     for (;;){
@@ -1158,9 +1157,8 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             if (next == var_Undef){
                 // Model found:
                 int i;
-                veci_resize(&s->model, 0);
                 for (i = 0; i < s->size; i++) 
-                    veci_push( &s->model, var_value(s,i)==var1 ? l_True : l_False );
+                    s->model[i] = (var_value(s,i)==var1 ? l_True : l_False);
                 solver2_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
 
@@ -1197,7 +1195,6 @@ sat_solver2* sat_solver2_new(void)
     veci_new(&s->trail_lim);
     veci_new(&s->tagged);
     veci_new(&s->stack);
-    veci_new(&s->model);
     veci_new(&s->temp_clause);
     veci_new(&s->conf_final);
     veci_new(&s->mark_levels);
@@ -1276,6 +1273,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 #else
         s->activity  = ABC_REALLOC(unsigned, s->activity, s->cap);
 #endif
+        s->model     = ABC_REALLOC(int,      s->model,    s->cap);
         memset( s->wlists + 2*old_cap, 0, 2*(s->cap-old_cap)*sizeof(vecp) );
     }
 
@@ -1326,7 +1324,6 @@ void sat_solver2_delete(sat_solver2* s)
     veci_delete(&s->trail_lim);
     veci_delete(&s->tagged);
     veci_delete(&s->stack);
-    veci_delete(&s->model);
     veci_delete(&s->temp_clause);
     veci_delete(&s->conf_final);
     veci_delete(&s->mark_levels);
@@ -1354,6 +1351,7 @@ void sat_solver2_delete(sat_solver2* s)
         ABC_FREE(s->reasons  );
         ABC_FREE(s->units    );
         ABC_FREE(s->activity );
+        ABC_FREE(s->model    );
     }
     ABC_FREE(s);
 }

@@ -279,7 +279,8 @@ int Res_SatSimulate( Res_Sim_t * p, int nPatsLimit, int fOnSet )
             for ( i = 0; i < p->nTruePis; i++ )
             {
                 Var = (int)(ABC_PTRUINT_T)Abc_NtkPi(p->pAig,i)->pCopy;
-                value = (int)(pSat->model.ptr[Var] == l_True);
+//                value = (int)(pSat->model.ptr[Var] == l_True);
+                value = sat_solver_var_value(pSat, Var);
                 if ( value )
                     Abc_InfoSetBit( (unsigned *)Vec_PtrEntry(vPats, i), k );
                 Lit = toLitCond( Var, value );

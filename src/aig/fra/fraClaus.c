@@ -1303,7 +1303,8 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
         if ( RetValue != l_False )
         {
 //            printf( "S- " );
-            Fra_ClausSimInfoRecord( p, (int*)p->pSatMain->model.ptr + p->nFrames * p->pCnf->nVars );
+//            Fra_ClausSimInfoRecord( p, (int*)p->pSatMain->model.ptr + p->nFrames * p->pCnf->nVars );
+            Fra_ClausSimInfoRecord( p, (int*)p->pSatMain->model + p->nFrames * p->pCnf->nVars );
 //            RetValue = Fra_ClausSimInfoCheck(p, pStart + Beg, End - Beg);
 //            assert( RetValue );
 

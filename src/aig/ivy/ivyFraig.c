@@ -1518,7 +1518,8 @@ int * Ivy_FraigCreateModel( Ivy_FraigMan_t * p )
     int i;
     pModel = ABC_ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
     Ivy_ManForEachPi( p->pManFraig, pObj, i )
-        pModel[i] = ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True );
+//        pModel[i] = ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True );
+        pModel[i] = ( p->pSat->model[Ivy_ObjSatNum(pObj)] == l_True );
     return pModel;
 }
 
@@ -1540,7 +1541,8 @@ void Ivy_FraigSavePattern( Ivy_FraigMan_t * p )
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
     Ivy_ManForEachPi( p->pManFraig, pObj, i )
 //    Vec_PtrForEachEntry( Ivy_Obj_t *, p->vPiVars, pObj, i )
-        if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
+//        if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
+        if ( p->pSat->model[Ivy_ObjSatNum(pObj)] == l_True )
             Ivy_InfoSetBit( p->pPatWords, i );
 //            Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
 }
@@ -1563,7 +1565,8 @@ void Ivy_FraigSavePattern2( Ivy_FraigMan_t * p )
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
 //    Ivy_ManForEachPi( p->pManFraig, pObj, i )
     Vec_PtrForEachEntry( Ivy_Obj_t *, p->vPiVars, pObj, i )
-        if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
+//        if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
+        if ( p->pSat->model[Ivy_ObjSatNum(pObj)] == l_True )
 //            Ivy_InfoSetBit( p->pPatWords, i );
             Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
 }
@@ -1586,7 +1589,8 @@ void Ivy_FraigSavePattern3( Ivy_FraigMan_t * p )
     for ( i = 0; i < p->nPatWords; i++ )
         p->pPatWords[i] = Ivy_ObjRandomSim();
     Vec_PtrForEachEntry( Ivy_Obj_t *, p->vPiVars, pObj, i )
-        if ( Ivy_InfoHasBit( p->pPatWords, pObj->Id - 1 ) ^ (p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True) )
+//        if ( Ivy_InfoHasBit( p->pPatWords, pObj->Id - 1 ) ^ (p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True) )
+        if ( Ivy_InfoHasBit( p->pPatWords, pObj->Id - 1 ) ^ sat_solver_var_value(p->pSat, Ivy_ObjSatNum(pObj)) )
             Ivy_InfoXorBit( p->pPatWords, pObj->Id - 1 );
 }
 

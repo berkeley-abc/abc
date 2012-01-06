@@ -274,7 +274,12 @@ int Inter_ManCheckUniqueness( Aig_Man_t * p, sat_solver * pSat, Cnf_Dat_t * pCnf
     int Counter;
     if ( nFrames == 1 )
         return 1;
-    if ( pSat->model.size == 0 )
+//    if ( pSat->model.size == 0 )
+    
+    // possible consequences here!!!
+    assert( 0 );
+
+    if ( sat_solver_nvars(pSat) == 0 )
         return 1;
 //    assert( Saig_ManPoNum(p) == 1 );
     assert( Aig_ManRegNum(p) > 0 );

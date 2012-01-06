@@ -938,7 +938,7 @@ sat_solver* sat_solver_new(void)
     veci_new(&s->trail_lim);
     veci_new(&s->tagged);
     veci_new(&s->stack);
-    veci_new(&s->model);
+//    veci_new(&s->model);
     veci_new(&s->act_vars);
     veci_new(&s->temp_clause);
     veci_new(&s->conf_final);
@@ -1010,6 +1010,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->orderpos  = ABC_REALLOC(int,    s->orderpos, s->cap);
         s->reasons   = ABC_REALLOC(int,    s->reasons,  s->cap);
         s->trail     = ABC_REALLOC(lit,    s->trail,    s->cap);
+        s->model     = ABC_REALLOC(int,    s->model,    s->cap);
         memset( s->wlists + 2*old_cap, 0, 2*(s->cap-old_cap)*sizeof(veci) );
     } 
 
@@ -1054,7 +1055,7 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->trail_lim);
     veci_delete(&s->tagged);
     veci_delete(&s->stack);
-    veci_delete(&s->model);
+//    veci_delete(&s->model);
     veci_delete(&s->act_vars);
     veci_delete(&s->temp_clause);
     veci_delete(&s->conf_final);
@@ -1075,6 +1076,7 @@ void sat_solver_delete(sat_solver* s)
         ABC_FREE(s->orderpos );
         ABC_FREE(s->reasons  );
         ABC_FREE(s->trail    );
+        ABC_FREE(s->model    );
     }
 
     sat_solver_store_free(s);
@@ -1326,7 +1328,7 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
     s->stats.starts++;
 //    s->var_decay = (float)(1 / var_decay   );  // move this to sat_solver_new()
 //    s->cla_decay = (float)(1 / clause_decay);  // move this to sat_solver_new()
-    veci_resize(&s->model,0);
+//    veci_resize(&s->model,0);
     veci_new(&learnt_clause);
 
     // use activity factors in every even restart
@@ -1408,9 +1410,8 @@ static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT
             if (next == var_Undef){
                 // Model found:
                 int i;
-                veci_resize(&s->model, 0);
-                for (i = 0; i < s->size; i++) 
-                    veci_push( &s->model, var_value(s,i)==var1 ? l_True : l_False );
+                for (i = 0; i < s->size; i++)
+                    s->model[i] = (var_value(s,i)==var1 ? l_True : l_False);
                 sat_solver_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
 

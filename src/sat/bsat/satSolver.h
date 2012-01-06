@@ -125,7 +125,8 @@ struct sat_solver_t
 
     veci        order;         // Variable order. (heap) (contains: var)
     veci        trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
-    veci        model;         // If problem is solved, this vector contains the model (contains: lbool).
+//    veci        model;         // If problem is solved, this vector contains the model (contains: lbool).
+    int *       model;         // If problem is solved, this vector contains the model (contains: lbool).
     veci        conf_final;    // If problem is unsatisfiable (possibly under assumptions),
                                // this vector represent the final conflict clause expressed in the assumptions.
 
@@ -164,15 +165,15 @@ struct sat_solver_t
     veci        temp_clause;    // temporary storage for a CNF clause
 };
 
-static int sat_solver_var_value( sat_solver* s, int v ) 
+static int sat_solver_var_value( sat_solver* s, int v )
 {
-    assert( s->model.ptr != NULL && v < s->size );
-    return (int)(s->model.ptr[v] == l_True);
+    assert( v >= 0 && v < s->size );
+    return (int)(s->model[v] == l_True);
 }
-static int sat_solver_var_literal( sat_solver* s, int v ) 
+static int sat_solver_var_literal( sat_solver* s, int v )
 {
-    assert( s->model.ptr != NULL && v < s->size );
-    return toLitCond( v, s->model.ptr[v] != l_True );
+    assert( v >= 0 && v < s->size );
+    return toLitCond( v, s->model[v] != l_True );
 }
 static void sat_solver_act_var_clear(sat_solver* s) 
 {

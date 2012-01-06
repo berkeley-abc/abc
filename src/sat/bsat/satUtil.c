@@ -231,10 +231,7 @@ int * Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars )
     int i;
     pModel = ABC_CALLOC( int, nVars+1 );
     for ( i = 0; i < nVars; i++ )
-    {
-        assert( pVars[i] >= 0 && pVars[i] < p->size );
-        pModel[i] = (int)(p->model.ptr[pVars[i]] == l_True);
-    }
+        pModel[i] = sat_solver_var_value(p, pVars[i]);
     return pModel;    
 }
 
@@ -255,10 +252,7 @@ int * Sat_Solver2GetModel( sat_solver2 * p, int * pVars, int nVars )
     int i;
     pModel = ABC_CALLOC( int, nVars+1 );
     for ( i = 0; i < nVars; i++ )
-    {
-        assert( pVars[i] >= 0 && pVars[i] < p->size );
-        pModel[i] = (int)(p->model.ptr[pVars[i]] == l_True);
-    }
+        pModel[i] = sat_solver2_var_value(p, pVars[i]);
     return pModel;    
 }
 
