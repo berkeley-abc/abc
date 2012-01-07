@@ -192,6 +192,12 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
     if ( nFrames == 0 )
     {
         nFrames = Saig_ManPhasePrefixLength( pAig, fVerbose, fVeryVerbose, &vTransSigs );
+        if ( nFrames == 0 )
+        {
+            Vec_IntFreeP( &vTransSigs );
+            printf( "The leading sequence has length 0. Temporal decomposition is not performed.\n" );
+            return NULL;
+        }
         if ( nFrames == 1 )
         {
             Vec_IntFreeP( &vTransSigs );
