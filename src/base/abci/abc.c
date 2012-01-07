@@ -5789,6 +5789,9 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "ORing the POs has failed.\n" );
         return 1;
     }
+    // Bug fix: there is now only one PO.  make sure the counterexample points to the right one
+    if ( pAbc->pCex )
+        pAbc->pCex->iPo = 0;
     // replace the current network
 //    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
