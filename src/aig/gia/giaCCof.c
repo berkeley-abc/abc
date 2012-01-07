@@ -132,12 +132,12 @@ void Gia_ManCofExtendSolver( Ccf_Man_t * p )
     }
 }
 
-static inline int Gia_Obj0Copy( Vec_Int_t * vCopies, Gia_Man_t * pGia, Gia_Obj_t * pObj )  
-{ return Gia_LitNotCond( Vec_IntEntry(vCopies, Gia_ObjFaninId0p(pGia, pObj)), Gia_ObjFaninC0(pObj) ); }
+static inline int Gia_Obj0Copy( Vec_Int_t * vCopies, int Fan0, int fCompl0 )  
+{ return Gia_LitNotCond( Vec_IntEntry(vCopies, Fan0), fCompl0 ); }
 
-static inline int Gia_Obj1Copy( Vec_Int_t * vCopies, Gia_Man_t * pGia, Gia_Obj_t * pObj )  
-{ return Gia_LitNotCond( Vec_IntEntry(vCopies, Gia_ObjFaninId1p(pGia, pObj)), Gia_ObjFaninC1(pObj) ); }
-
+static inline int Gia_Obj1Copy( Vec_Int_t * vCopies, int Fan1, int fCompl1 )  
+{ return Gia_LitNotCond( Vec_IntEntry(vCopies, Fan1), fCompl1 ); }
+ 
 /**Function*************************************************************
 
   Synopsis    [Cofactor the circuit w.r.t. the given assignment.]
@@ -159,11 +159,15 @@ void Gia_ManCofOneDerive_rec( Ccf_Man_t * p, int Id )
     assert( Gia_ObjIsCi(pObj) || Gia_ObjIsAnd(pObj) );
     if ( Gia_ObjIsAnd(pObj) )
     {
-        Gia_ManCofOneDerive_rec( p, Gia_ObjFaninId0p(p->pFrames, Gia_ManObj(p->pFrames, Id)) );
-        Gia_ManCofOneDerive_rec( p, Gia_ObjFaninId1p(p->pFrames, Gia_ManObj(p->pFrames, Id)) );
+        int fCompl0 = Gia_ObjFaninC0(pObj);
+        int fCompl1 = Gia_ObjFaninC1(pObj);
+        int Fan0 = Gia_ObjFaninId0p(p->pFrames, pObj);
+        int Fan1 = Gia_ObjFaninId1p(p->pFrames, pObj);
+        Gia_ManCofOneDerive_rec( p, Fan0 );
+        Gia_ManCofOneDerive_rec( p, Fan1 );
         Res = Gia_ManHashAnd( p->pFrames, 
-            Gia_Obj0Copy(p->vCopies, p->pFrames, Gia_ManObj(p->pFrames, Id)), 
-            Gia_Obj1Copy(p->vCopies, p->pFrames, Gia_ManObj(p->pFrames, Id)) );
+            Gia_Obj0Copy(p->vCopies, Fan0, fCompl0), 
+            Gia_Obj1Copy(p->vCopies, Fan1, fCompl1) );
     }
     else if ( Gia_ObjCioId(pObj) >= Gia_ManRegNum(p->pGia) ) // PI
         Res = sat_solver_var_value( p->pSat, Id );
