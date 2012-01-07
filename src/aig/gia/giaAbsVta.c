@@ -28,6 +28,22 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Vta_Obj_t_ Vta_Obj_t; // object
+struct Vta_Obj_t_
+{
+    int           iObj;
+    int           iFrame;
+    int           iNext;
+    unsigned      Prio   : 24;
+    unsigned      Value  :  2;
+    unsigned      fAdded :  1;
+    unsigned      fVisit :  1;
+    unsigned      fPi    :  1;
+    unsigned      fConst :  1;
+    int           fFlop  :  1;
+    int           fAnd   :  1;
+};
+
 typedef struct Vta_Man_t_ Vta_Man_t; // manager
 struct Vta_Man_t_
 {
@@ -38,138 +54,26 @@ struct Vta_Man_t_
     int           nTimeMax;
     int           fVerbose;
     // internal data
-    int           nSatVars;     // the number of SAT variables
-    int           nObjUsed;     // the number objects used
-    int           Shift;        // bit count for obj number
-    int           Mask;         // bit mask for obj number
-    Vec_Int_t *   vOrder;       // map Num to Id
-    Vec_Int_t *   vId2Num;      // map Id to Num
-    Vec_Int_t *   vFraLims;     // frame limits
-    Vec_Int_t *   vOne2Sat;     // map (Frame; Num) to Sat
-    Vec_Int_t *   vCla2One;     // map clause to (Frame; Num)
-    Vec_Int_t *   vNumAbs;      // abstraction for each timeframe
+    int           nObjs;        // the number of objects
+    int           nObjsAlloc;   // the number of objects
+    int           nBins;        // number of hash table entries
+    int *         pBins;        // hash table bins
+    Vta_Obj_t *   pObjs;        // hash table bins
+    // other data
+    Vec_Int_t *   vTemp;     
     sat_solver2 * pSat;
 };
 
-static inline int Vta_FraNum2One( Vta_Man_t * p, int f, int n ) { return (f << p->Shift) | n; }
-static inline int Vta_One2Fra( Vta_Man_t * p, int i )           { return i >> p->Shift;       }
-static inline int Vta_One2Num( Vta_Man_t * p, int i )           { return i & p->Mask;         }
-
-static inline void Vta_SetSatVar( Vta_Man_t * p, int f, int n )
-{
-    int One = Vta_FraNum2One( p, f, n );
-    int * pPlace = Vec_IntEntryP( p->vOne2Sat, One );
-    assert( *pPlace == 0 );
-    *pPlace = p->nSatVars++;
-    // create additional var for ROs of frame 0
-}
-static inline int Vta_GetSatVar( Vta_Man_t * p, int f, int n )
-{
-    int One = Vta_FraNum2One( p, f, n );
-    int * pPlace = Vec_IntEntryP( p->vOne2Sat, One );
-    assert( *pPlace == 0 );
-    return *pPlace;
-}
-static inline int Vta_GetSatVarObj( Vta_Man_t * p, int f, Gia_Obj_t * pObj )
-{
-    return Vta_GetSatVar( p, f, Vec_IntEntry(p->vId2Num, Gia_ObjId(p->pGia, pObj)) );
-}
-
-extern Vec_Int_t * Gia_VtaCollect( Gia_Man_t * p, Vec_Int_t ** pvFraLims, Vec_Int_t ** pvRoots );
-
-// check the first value of vOrder!!!
+static inline Vta_Obj_t *  Vec_ManObj( Vta_Man_t * p, int i )           { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                 }
+static inline int          Vta_ObjId( Vta_Man_t * p, Vta_Obj_t * pObj ) { assert( pObj > p->pObjs && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-
 /**Function*************************************************************
 
-  Synopsis    [Adds one time-frame to the solver.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Vga_ManGrow( Vta_Man_t * p, int fThis )
-{
-    static int PrevF = -1;
-    Gia_Obj_t * pObj, * pObj2;
-    int Beg, End, One, i, c, f, iOutVar, nClauses;
-    assert( ++PrevF == fThis );
-    assert( fThis >= 0 && fThis < p->nFramesMax );
-
-    // create variable for the output
-    iOutVar = p->nSatVars++;
-
-    // add variables for this frame
-    for ( f = fThis; f >= 0; f-- )
-    {
-        Beg = Vec_IntEntry( p->vFraLims, fThis-f );
-        End = Vec_IntEntry( p->vFraLims, fThis-f+1 );
-        for ( i = End-1; i >= Beg; i-- )
-            Vta_SetSatVar( p, f, i );
-    }
-
-    // create clauses for the output
-    pObj = Gia_ManPo( p->pGia, 0 );
-    nClauses = sat_solver2_add_buffer( p->pSat,
-        iOutVar,
-        Vta_GetSatVarObj( p, f, Gia_ObjFanin0(pObj) ),
-        Gia_ObjFaninC0(pObj), 0 );
-
-    // add clauses for this frame
-    for ( f = fThis; f >= 0; f-- )
-    {
-        Beg = Vec_IntEntry( p->vFraLims, fThis-f );
-        End = Vec_IntEntry( p->vFraLims, fThis-f+1 );
-        for ( i = End-1; i >= Beg; i-- )
-        {
-            nClauses = 0;
-            pObj = Gia_ManObj( p->pGia, Vec_IntEntry(p->vOrder, i) );
-            if ( Gia_ObjIsAnd(pObj) )
-                nClauses = sat_solver2_add_and( p->pSat,
-                    Vta_GetSatVarObj( p, f, pObj ),
-                    Vta_GetSatVarObj( p, f, Gia_ObjFanin0(pObj) ),
-                    Vta_GetSatVarObj( p, f, Gia_ObjFanin1(pObj) ),
-                    Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
-            else if ( Gia_ObjIsRo(p->pGia, pObj) )
-            {
-                if ( f == 0 )
-                {
-                    nClauses = sat_solver2_add_constraint( p->pSat,
-                        Vta_GetSatVarObj( p, f, pObj ),
-                        1, 0 );
-                }
-                else
-                {
-                    pObj2 = Gia_ObjRoToRi(p->pGia, pObj);
-                    nClauses = sat_solver2_add_buffer( p->pSat,
-                        Vta_GetSatVarObj( p, f, pObj ),
-                        Vta_GetSatVarObj( p, f-1, Gia_ObjFanin0(pObj2) ),
-                        Gia_ObjFaninC0(pObj2), 0 );
-                }
-            }
-            else if ( Gia_ObjIsConst0(pObj) )
-            {
-                nClauses = sat_solver2_add_const( p->pSat,
-                    Vta_GetSatVarObj( p, f, pObj ),
-                    1, 0 );
-            }
-            One = Vta_FraNum2One( p, f, i );
-            for ( c = 0; c < nClauses; c++ )
-                Vec_IntPush( p->vCla2One, One );
-        }
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create manager.]
+  Synopsis    []
 
   Description []
                
@@ -189,22 +93,14 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, int nFramesMax, int nConfMax, int nT
     p->nTimeMax   = nTimeMax;
     p->fVerbose   = fVerbose;
     // internal data
-    p->vOrder     = Gia_VtaCollect( pGia, &p->vFraLims, NULL );
-    Vec_IntWriteEntry( p->vOrder, 0, 0 );
-    p->vId2Num    = Vec_IntInvert( p->vOrder, 0 );
-    Vec_IntWriteEntry( p->vOrder, 0, -1 );
-    Vec_IntWriteEntry( p->vId2Num, 0, -1 );
-    // internal data
-    p->nObjUsed   = Vec_IntEntry( p->vFraLims, nFramesMax );
-    p->Shift      = Gia_Base2Log( p->nObjUsed );
-    p->Mask       = (1 << p->Shift) - 1;
-    // internal data
-    p->vOne2Sat   = Vec_IntStart( (1 << p->Shift) * nFramesMax );
-    p->vCla2One   = Vec_IntAlloc( 100000 );  Vec_IntPush( p->vCla2One, -1 );
-    p->vNumAbs    = Vec_IntAlloc( p->nObjUsed );
+    p->nObjsAlloc = (1 << 20);
+    p->pObjs      = ABC_CALLOC( Vta_Obj_t, p->nObjsAlloc );
+    p->nObjs      = 1;
+    p->nBins      = Gia_PrimeCudd( p->nObjsAlloc/3 );
+    p->pBins      = ABC_CALLOC( int, p->nBins );
+    // other data
+    p->vTemp      = Vec_IntAlloc( 1000 );
     p->pSat       = sat_solver2_new();
-    sat_solver2_setnvars( p->pSat, 10000 );
-    p->nSatVars   = 1;
     return p;
 }
 
@@ -221,12 +117,10 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, int nFramesMax, int nConfMax, int nT
 ***********************************************************************/
 void Vga_ManStop( Vta_Man_t * p )
 {
-    Vec_IntFreeP( &p->vOrder );
-    Vec_IntFreeP( &p->vId2Num );
-    Vec_IntFreeP( &p->vFraLims );
-    Vec_IntFreeP( &p->vOne2Sat );
-    Vec_IntFreeP( &p->vCla2One );
+    Vec_IntFreeP( &p->vTemp );
     sat_solver2_delete( p->pSat );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p->pObjs );
     ABC_FREE( p );
 }
 
@@ -234,7 +128,7 @@ void Vga_ManStop( Vta_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicate AIG with the given ordering of nodes.]
+  Synopsis    []
 
   Description []
                
@@ -243,35 +137,14 @@ void Vga_ManStop( Vta_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_VtaDup( Gia_Man_t * p, Vec_Int_t * vOrder )
+static inline int Vga_ManHash( int iObj, int iFrame, int nBins )
 {
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj;
-    int i, nFlops = 0;
-    Gia_ManFillValue( p );
-    pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
-    Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachPi( p, pObj, i )
-        pObj->Value = Gia_ManAppendCi(pNew);
-    Gia_ManForEachObjVec( vOrder, p, pObj, i )
-        if ( i && Gia_ObjIsRo(p, pObj) )
-            pObj->Value = Gia_ManAppendCi(pNew), nFlops++;
-    Gia_ManForEachObjVec( vOrder, p, pObj, i )
-        if ( i && Gia_ObjIsAnd(pObj) )
-            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManForEachPo( p, pObj, i )
-        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManForEachObjVec( vOrder, p, pObj, i )
-        if ( i && Gia_ObjIsRo(p, pObj) && (pObj = Gia_ObjRoToRi(p, pObj)) )
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManSetRegNum( pNew, nFlops );
-    return pNew;
+    return ((iObj + iFrame)*(iObj + iFrame + 1)) % nBins;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Collect nodes/flops involved in different timeframes.]
+  Synopsis    []
 
   Description []
                
@@ -280,26 +153,46 @@ Gia_Man_t * Gia_VtaDup( Gia_Man_t * p, Vec_Int_t * vOrder )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_VtaCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vOrder, Vec_Int_t * vRoots )
+static inline int * Vga_ManLookup( Vta_Man_t * p, int iObj, int iFrame )
 {
-    if ( pObj->fMark0 )
-        return;
-    pObj->fMark0 = 1;
-    if ( Gia_ObjIsConst0(pObj) )
-        return;
-    if ( Gia_ObjIsAnd(pObj) )
-    {
-        Gia_VtaCollect_rec( p, Gia_ObjFanin0(pObj), vOrder, vRoots );
-        Gia_VtaCollect_rec( p, Gia_ObjFanin1(pObj), vOrder, vRoots );
-    }
-    else if ( Gia_ObjIsRo(p, pObj) )
-        Vec_IntPush( vRoots, Gia_ObjId(p, Gia_ObjRoToRi(p, pObj)) );
-    Vec_IntPush( vOrder, Gia_ObjId(p, pObj) );
+    Vta_Obj_t * pThis;
+    int * pPlace = p->pBins + Vga_ManHash( iObj, iFrame, p->nBins );
+    for ( pThis = Vec_ManObj(p, *pPlace); 
+          pThis;  pPlace = &pThis->iNext, 
+          pThis = Vec_ManObj(p, *pPlace) )
+        if ( pThis->iObj == iObj && pThis->iFrame == iFrame )
+            break;
+    return pPlace;
+}
+static inline Vta_Obj_t * Vga_ManFind( Vta_Man_t * p, int iObj, int iFrame )
+{
+    int * pPlace = Vga_ManLookup( p, iObj, iFrame );
+    return Vec_ManObj(p, *pPlace);
+}
+static inline Vta_Obj_t * Vga_ManFindOrAdd( Vta_Man_t * p, int iObj, int iFrame )
+{
+    int * pPlace = Vga_ManLookup( p, iObj, iFrame );
+    Vta_Obj_t * pThis = Vec_ManObj(p, *pPlace);
+    if ( pThis )
+        return pThis;
+    *pPlace = p->nObjs++;
+    pThis = Vec_ManObj(p, *pPlace);
+    pThis->iObj   = iObj;
+    pThis->iFrame = iFrame;
+    return pThis;
+}
+static inline void Vga_ManDelete( Vta_Man_t * p, int iObj, int iFrame )
+{
+    int * pPlace = Vga_ManLookup( p, iObj, iFrame );
+    Vta_Obj_t * pThis = Vec_ManObj(p, *pPlace);
+    assert( pThis != NULL );
+    *pPlace = pThis->iNext;
+    pThis->iNext = -1;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Collect nodes/flops involved in different timeframes.]
+  Synopsis    []
 
   Description []
                
@@ -308,62 +201,6 @@ void Gia_VtaCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vOrder, Ve
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_VtaCollect( Gia_Man_t * p, Vec_Int_t ** pvFraLims, Vec_Int_t ** pvRoots )
-{
-    Vec_Int_t * vOrder;    // resulting ordering of PI/RO/And
-    Vec_Int_t * vFraLims;  // frame limits 
-    Vec_Int_t * vRoots;    // CO roots
-    Gia_Obj_t * pObj;
-    int i, StopPoint;
-
-    Gia_ManCheckMark0( p );
-
-    // create roots
-    vRoots = Vec_IntAlloc( 1000 );
-    Gia_ManForEachPo( p, pObj, i )
-        Vec_IntPush( vRoots, Gia_ObjId(p, pObj) );
-
-    // start order
-    vOrder = Vec_IntAlloc( Gia_ManObjNum(p) );
-    Vec_IntPush( vOrder, -1 );
-
-    // start limits
-    vFraLims = Vec_IntAlloc( 1000 );
-    Vec_IntPush( vFraLims, Vec_IntSize(vOrder) );
-
-    // collect new nodes
-    StopPoint = Vec_IntSize(vRoots);
-    Gia_ManForEachObjVec( vRoots, p, pObj, i )
-    {
-        if ( i == StopPoint )
-        {
-            Vec_IntPush( vFraLims, Vec_IntSize(vOrder) );
-            StopPoint = Vec_IntSize(vRoots);
-        }
-        Gia_VtaCollect_rec( p, Gia_ObjFanin0(pObj), vOrder, vRoots );
-    }
-    assert( i == StopPoint );
-    Vec_IntPush( vFraLims, Vec_IntSize(vOrder) );
-
-/*
-    // add unmarked PIs
-    Gia_ManForEachPi( p, pObj, i )
-        if ( !pObj->fMark0 )
-            Vec_IntPush( vOrder, Gia_ObjId(p, pObj) );
-*/
-
-    // clean/return
-    Gia_ManCleanMark0( p );
-    if ( pvFraLims )
-        *pvFraLims = vFraLims;
-    else
-        Vec_IntFree( vFraLims );
-    if ( pvRoots )
-        *pvRoots = vRoots;
-    else
-        Vec_IntFree( vRoots );
-    return vOrder;
-}
 
 /**Function*************************************************************
 
@@ -378,6 +215,7 @@ Vec_Int_t * Gia_VtaCollect( Gia_Man_t * p, Vec_Int_t ** pvFraLims, Vec_Int_t ** 
 ***********************************************************************/
 Gia_Man_t * Gia_VtaTest( Gia_Man_t * p )
 {
+/*
     Vec_Int_t * vOrder, * vFraLims, * vRoots;
     Gia_Man_t * pCopy;
     int i, Entry;
@@ -403,6 +241,8 @@ Gia_Man_t * Gia_VtaTest( Gia_Man_t * p )
     Vec_IntFree( vFraLims );
     Vec_IntFree( vRoots );
     return pCopy;
+*/
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////
