@@ -149,19 +149,21 @@ static inline int Gia_Obj1Copy( Vec_Int_t * vCopies, Gia_Man_t * pGia, Gia_Obj_t
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManCofOneDerive_rec( Ccf_Man_t * p, Gia_Obj_t * pObj )
+void Gia_ManCofOneDerive_rec( Ccf_Man_t * p, int Id )
 {
-    int Res, Id = Gia_ObjId( p->pFrames, pObj );
+    Gia_Obj_t * pObj;
+    int Res;
     if ( Vec_IntEntry(p->vCopies, Id) != -1 )
         return;
+    pObj = Gia_ManObj(p->pFrames, Id);
     assert( Gia_ObjIsCi(pObj) || Gia_ObjIsAnd(pObj) );
     if ( Gia_ObjIsAnd(pObj) )
     {
-        Gia_ManCofOneDerive_rec( p, Gia_ObjFanin0(pObj) );
-        Gia_ManCofOneDerive_rec( p, Gia_ObjFanin1(pObj) );
+        Gia_ManCofOneDerive_rec( p, Gia_ObjFaninId0p(p->pFrames, Gia_ManObj(p->pFrames, Id)) );
+        Gia_ManCofOneDerive_rec( p, Gia_ObjFaninId1p(p->pFrames, Gia_ManObj(p->pFrames, Id)) );
         Res = Gia_ManHashAnd( p->pFrames, 
-            Gia_Obj0Copy(p->vCopies, p->pFrames, pObj), 
-            Gia_Obj1Copy(p->vCopies, p->pFrames, pObj) );
+            Gia_Obj0Copy(p->vCopies, p->pFrames, Gia_ManObj(p->pFrames, Id)), 
+            Gia_Obj1Copy(p->vCopies, p->pFrames, Gia_ManObj(p->pFrames, Id)) );
     }
     else if ( Gia_ObjCioId(pObj) >= Gia_ManRegNum(p->pGia) ) // PI
         Res = sat_solver_var_value( p->pSat, Id );
@@ -183,15 +185,12 @@ void Gia_ManCofOneDerive_rec( Ccf_Man_t * p, Gia_Obj_t * pObj )
 ***********************************************************************/
 int Gia_ManCofOneDerive( Ccf_Man_t * p, int LitProp )
 {
-    Gia_Obj_t * pObj;
     int LitOut;
-    // get the property node
-    pObj = Gia_ManObj( p->pFrames, Gia_Lit2Var(LitProp) );
-    // derive the cofactor
+    // derive the cofactor of the property node
     Vec_IntFill( p->vCopies, Gia_ManObjNum(p->pFrames), -1 );
-    Gia_ManCofOneDerive_rec( p, pObj );
-    LitOut = Vec_IntEntry(p->vCopies, Gia_Lit2Var(LitProp));
-    LitOut = Gia_LitNotCond(LitOut, Gia_LitIsCompl(LitProp));
+    Gia_ManCofOneDerive_rec( p, Gia_Lit2Var(LitProp) );
+    LitOut = Vec_IntEntry( p->vCopies, Gia_Lit2Var(LitProp) );
+    LitOut = Gia_LitNotCond( LitOut, Gia_LitIsCompl(LitProp) );
     // add new PO for the cofactor
     Gia_ManAppendCo( p->pFrames, LitOut );
     // add SAT clauses
