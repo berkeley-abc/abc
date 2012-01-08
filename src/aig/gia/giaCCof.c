@@ -130,6 +130,7 @@ void Gia_ManCofExtendSolver( Ccf_Man_t * p )
                 Gia_ObjFaninC0(pObj), 
                 Gia_ObjFaninC1(pObj) ); 
     }
+    sat_solver_setnvars( p->pSat, Gia_ManObjNum(p->pFrames) );
 }
 
 static inline int Gia_Obj0Copy( Vec_Int_t * vCopies, int Fan0, int fCompl0 )  
@@ -262,15 +263,22 @@ int Gia_ManCofGetReachable( Ccf_Man_t * p, int Lit )
 
 ***********************************************************************/
 Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int nTimeMax, int fVerbose )
-{
+{ 
     Gia_Man_t * pNew;
     Ccf_Man_t * p;
-    int f, Lit, RetValue;
+    Gia_Obj_t * pObj;
+    int f, i, Lit, RetValue, fFailed = 0;
+    int nTimeToStop = time(NULL) + nTimeMax;
     int clk = clock();
     assert( Gia_ManPoNum(pGia) == 1 );
 
     // create reachability manager
     p = Ccf_ManStart( pGia, nFrameMax, nConfMax, nTimeMax, fVerbose );
+
+    // set runtime limit
+    if ( nTimeMax )
+        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+
     // perform backward image computation
     for ( f = 0; f < nFrameMax; f++ )
     {
@@ -286,15 +294,35 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
         RetValue = Gia_ManCofGetReachable( p, Lit );
         if ( RetValue )
             break;
+
+        // check the property output
+        Gia_ManSetPhase( p->pFrames );
+        Gia_ManForEachPo( p->pFrames, pObj, i )
+            if ( pObj->fPhase )
+            {
+                printf( "Property failed in frame %d.\n", f );
+                fFailed = 1;
+                break;
+            }
+        if ( i < Gia_ManPoNum(p->pFrames) )
+            break;
     }
+
     // report the result
-    if ( f == nFrameMax )
+    if ( nTimeToStop && time(NULL) > nTimeToStop )
+        printf( "Runtime limit (%d sec) is reached after %d frames.  ", nTimeMax, f );
+    else if ( f == nFrameMax )
         printf( "Completed %d frames without converging.  ", f );
     else if ( RetValue == 1 )
         printf( "Backward reachability converged after %d iterations.  ", f-1 );
     else if ( RetValue == -1 )
         printf( "Conflict limit or timeout is reached after %d frames.  ", f-1 );
     Abc_PrintTime( 1, "Runtime", clock() - clk );
+
+    if ( !fFailed && RetValue == 1 )
+        printf( "Property holds.\n" );
+    else if ( !fFailed )
+        printf( "Property is undecided.\n" );
 
     // get the resulting AIG manager
     Gia_ManHashStop( p->pFrames );
@@ -304,10 +332,8 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
     // cleanup
 //    if ( fVerbose )
 //        Gia_ManPrintStats( pNew, 0 );
-
     pNew = Gia_ManCleanup( pGia = pNew );
     Gia_ManStop( pGia );
-
 //    if ( fVerbose )
 //        Gia_ManPrintStats( pNew, 0 );
     return pNew;   
