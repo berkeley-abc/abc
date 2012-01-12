@@ -196,7 +196,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         p->nCutsTotal++;
         // check if this cut is contained in any of the available cuts
 //        if ( p->pPars->pFuncCost == NULL && If_CutFilter( p, pCut ) ) // do not filter functionality cuts
-        if ( If_CutFilter( pCutSet, pCut ) )
+        if ( !p->pPars->fSkipCutFilter && If_CutFilter( pCutSet, pCut ) )
             continue;
         // compute the truth table
         pCut->fCompl = 0;

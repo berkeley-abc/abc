@@ -777,6 +777,7 @@ extern ABC_DLL void               Abc_NtkRecStop();
 extern ABC_DLL void               Abc_NtkRecAdd( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkRecPs();
 extern ABC_DLL void               Abc_NtkRecFilter(int nLimit);
+extern ABC_DLL void               Abc_NtkRecLibMerge(Abc_Ntk_t * pNtk);
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkRecUse();
 extern ABC_DLL int                Abc_NtkRecIsRunning();
 extern ABC_DLL int                Abc_NtkRecIsInTrimMode();

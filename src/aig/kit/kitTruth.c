@@ -1666,6 +1666,7 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
     uCanonPhase = 0;
 
     nOnes = Kit_TruthCountOnes(pIn, nVars);
+    //if(pIn[0] & 1)
     if ( (nOnes > nWords * 16) )//|| ((nOnes == nWords * 16) && (pIn[0] & 1)) )
     {
         uCanonPhase |= (1 << nVars);

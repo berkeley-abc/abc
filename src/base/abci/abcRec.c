@@ -24,7 +24,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-
+//#define LibOut
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -34,82 +34,84 @@ typedef struct Abc_ManRec_t_ Abc_ManRec_t;
 typedef struct Rec_Obj_t_ Rec_Obj_t;
 
 typedef enum {
-    REC_ERROR,                    //0: error
-    REC_SMALL,                    //1: smaller than
-    REC_EQUAL,                    //2: equal with
+    REC_ERROR,                  //0: error
+    REC_SMALL,                  //1: smaller than
+    REC_EQUAL,                  //2: equal with
     REC_BIG,                    //3: bigger than    
-    REC_DOMINANCE,                //4: dominance
+    REC_DOMINANCE,              //4: dominance
     REC_BEDOMINANCED            //5: be dominated
 } Abc_LookUpStatus_t;
 
 struct Rec_Obj_t_
 {
-    Abc_Obj_t* obj;                // the actual structure in the library
-    Rec_Obj_t* pNext;            // link to the next structure of the same functional class
-    Rec_Obj_t* pCopy;            // link to the next functional class in the same bucket
-    int Id;                        // structure's ID
-    unsigned char cost;            // structure's cost
+    Abc_Obj_t* obj;             // the actual structure in the library
+    Rec_Obj_t* pNext;           // link to the next structure of the same functional class
+    Rec_Obj_t* pCopy;           // link to the next functional class in the same bucket
+    int Id;                     // structure's ID
+    unsigned nFrequency;        // appear times of this functional class among benchmarks
+    unsigned char cost;         // structure's cost
     char* pinToPinDelay;        // structure's pin-to-pin delay
 };
 
 
 struct Abc_ManRec_t_
 {
-    Abc_Ntk_t *       pNtk;                        // the record
-    Vec_Ptr_t *       vTtElems;                    // the elementary truth tables
-    Vec_Ptr_t *       vTtNodes;                    // the node truth tables
+    Abc_Ntk_t *       pNtk;                     // the record
+    Vec_Ptr_t *       vTtElems;                 // the elementary truth tables
+    Vec_Ptr_t *       vTtNodes;                 // the node truth tables
     Mem_Fixed_t *     pMmTruth;                 // memory manager for truth tables
     Rec_Obj_t **      pBins;                    // hash table mapping truth tables into nodes
     int               nBins;                    // the number of allocated bins
     int               nVars;                    // the number of variables
     int               nVarsInit;                // the number of variables requested initially
-    int               nWords;                    // the number of TT words
+    int               nWords;                   // the number of TT words
     int               nCuts;                    // the max number of cuts to use
-    Mem_Fixed_t *     pMemObj;                    // memory manager for Rec objects
-    int                  recObjSize;                // size for one Rec object
-    int                  fTrim;                    // filter the library or not.
+    Mem_Fixed_t *     pMemObj;                  // memory manager for Rec objects
+    int               recObjSize;               // size for one Rec object
+    int               fTrim;                    // filter the library or not.
     // temporaries
-    int *             pBytes;                    // temporary storage for minterms
-    int *             pMints;                    // temporary storage for minterm counters
-    unsigned *        pTemp1;                    // temporary truth table
-    unsigned *        pTemp2;                    // temporary truth table
-    Vec_Ptr_t *       vNodes;                    // the temporary nodes
-    Vec_Ptr_t *       vTtTemps;                    // the truth tables for the internal nodes of the cut
-    Vec_Ptr_t *       vLabels;                    // temporary storage for AIG node labels
-    Vec_Str_t *       vCosts;                    // temporary storage for costs
-    Vec_Int_t *       vMemory;                    // temporary memory for truth tables
+    int *             pBytes;                   // temporary storage for minterms
+    int *             pMints;                   // temporary storage for minterm counters
+    unsigned *        pTemp1;                   // temporary truth table
+    unsigned *        pTemp2;                   // temporary truth table
+    Vec_Ptr_t *       vNodes;                   // the temporary nodes
+    Vec_Ptr_t *       vTtTemps;                 // the truth tables for the internal nodes of the cut
+    Vec_Ptr_t *       vLabels;                  // temporary storage for AIG node labels
+    Vec_Str_t *       vCosts;                   // temporary storage for costs
+    Vec_Int_t *       vMemory;                  // temporary memory for truth tables
     // statistics
-    int               nTried;                    // the number of cuts tried
-    int               nFilterSize;                // the number of same structures
+    int               nTried;                   // the number of cuts tried
+    int               nFilterSize;              // the number of same structures
     int               nFilterRedund;            // the number of same structures
     int               nFilterVolume;            // the number of same structures
-    int               nFilterTruth;                // the number of same structures
-    int               nFilterError;                // the number of same structures
-    int               nFilterSame;                // the number of same structures
-    int               nAdded;                    // the number of subgraphs added
-    int               nAddedFuncs;                // the number of functions added
-    int                  nIfMapTried;
-    int                  nIfMapError;
-    int                  nTrimed;                    // the number of structures filtered
+    int               nFilterTruth;             // the number of same structures
+    int               nFilterError;             // the number of same structures
+    int               nFilterSame;              // the number of same structures
+    int               nAdded;                   // the number of subgraphs added
+    int               nAddedFuncs;              // the number of functions added
+    int               nIfMapTried;
+    int               nIfMapError;
+    int               nTrimed;                  // the number of structures filtered
     // rewriting
-    int               nFunsFound;                // the found functions
+    int               nFunsFound;               // the found functions
     int               nFunsNotFound;            // the missing functions
-    int                  nFunsTried;
-    int                  nFunsFilteredBysupport;    // the function filtered when rewriting because not all supports are in use.
-    int                  nFunsDelayComput;            // the times delay computed, just for statistics
+    int               nFunsTried;
+    int               nFunsFilteredBysupport;   // the function filtered when rewriting because not all supports are in use.
+    int               nFunsDelayComput;         // the times delay computed, just for statistics
     // rewriting runtime
-    int                  timeIfTotal;                // time used on the whole process of rewriting a structure.
-    int                  timeIfComputDelay;        // time used on the structure's delay computation.
-    int                  timeIfCanonicize;            // time used on canonicize the function
-    int                  timeIfDerive;                // time used on derive the final network;
-    int                  timeIfOther;                // time used on other things
+    int               timeIfTotal;              // time used on the whole process of rewriting a structure.
+    int               timeIfComputDelay;        // time used on the structure's delay computation.
+    int               timeIfCanonicize;         // time used on canonicize the function
+    int               timeIfDerive;             // time used on derive the final network;
+    int               timeIfOther;              // time used on other things
     // record runtime
-    int                  timeTrim;                    // the runtime to filter the library
-    int               timeCollect;                // the runtime to collect the node of a structure.
+    int               timeTrim;                 // the runtime to filter the library
+    int               timeCollect;              // the runtime to collect the node of a structure.
     int               timeTruth;                // the runtime to compute truth table.
     int               timeCanon;                // the runtime to canonicize
-    int                  timeInsert;                // the runtime to insert a structure.
-    int                  timeBuild;                // the runtime to build a new structure in the library.
+    int               timeInsert;               // the runtime to insert a structure.
+    int               timeBuild;                // the runtime to build a new structure in the library.
+    int               timeMerge;                // the runtime to merge libraries;
     int               timeOther;                // the runtime of other
     int               timeTotal;                // the runtime to total.
 };
@@ -120,12 +122,20 @@ struct Abc_ManRec_t_
 static Rec_Obj_t ** Abc_NtkRecTableLookup( Abc_ManRec_t * p, unsigned * pTruth, int nVars );
 static int          Abc_NtkRecComputeTruth( Abc_Obj_t * pObj, Vec_Ptr_t * vTtNodes, int nVars );
 static int          Abc_NtkRecAddCutCheckCycle_rec( Abc_Obj_t * pRoot, Abc_Obj_t * pObj );
+static void         Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars );
 
 static Abc_ManRec_t * s_pMan = NULL;
 
 static inline void Abc_ObjSetMax( Abc_Obj_t * pObj, int Value ) { assert( pObj->Level < 0xff ); pObj->Level = (Value << 8) | (pObj->Level & 0xff); }
 static inline void Abc_ObjClearMax( Abc_Obj_t * pObj )          { pObj->Level = (pObj->Level & 0xff); }
 static inline int  Abc_ObjGetMax( Abc_Obj_t * pObj )            { return (pObj->Level >> 8) & 0xff; }
+
+static inline void Abc_NtkRecFrequencyInc(Rec_Obj_t* entry)     
+{   
+    // the hit number of this functional class increased
+    if (entry != NULL && entry->nFrequency < 0xffffffff)
+        entry->nFrequency += 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -152,7 +162,7 @@ void If_CutTruthStretch(unsigned* pInOut, int nVarS, int nVarB)
         return;
     for (w = 0; w <nWords; w += step)
         for (i = 0; i < step; i++)
-            pInOut[w + i] = pInOut[i];                
+            pInOut[w + i] = pInOut[i];              
 }
 
 /**Function*************************************************************
@@ -179,7 +189,8 @@ Rec_Obj_t* Rec_ObjAlloc(Abc_ManRec_t* p, Abc_Obj_t* pObj, char* pinToPinDelay, c
     pRecObj->Id = pObj->Id;
     for (i = 0; i < nVar; i++)
         pRecObj->pinToPinDelay[i] = pinToPinDelay[i];
-    pRecObj->cost = cost;    
+    pRecObj->cost = cost;   
+    pRecObj->nFrequency = 0;
     return pRecObj;
 }
 
@@ -217,17 +228,17 @@ void Rec_ObjSet(Abc_ManRec_t* p, Rec_Obj_t* pRecObj, Abc_Obj_t* pObj, char* newD
 ***********************************************************************/
 /* int If_CutDelayRecComput_rec(Abc_Obj_t* pObj, Vec_Str_t* vCosts)
  {
-     char Delay0, Delay1, Delay;
-     Abc_Obj_t *pFanin0, *pFanin1;
-     pObj = Abc_ObjRegular(pObj);
-     if (Abc_NodeIsTravIdCurrent(pObj) || pObj->Type == ABC_OBJ_PI)
-         return Vec_StrEntry(vCosts,pObj->Id);
-     Abc_NodeSetTravIdCurrent(pObj);
-     Delay0 = If_CutDelayRecComput_rec(Abc_ObjFanin0(pObj), vCosts);
-     Delay1 = If_CutDelayRecComput_rec(Abc_ObjFanin1(pObj), vCosts);
-     Delay = ABC_MAX(Delay0, Delay1) + 1;
-     Vec_StrWriteEntry(vCosts,pObj->Id,Delay);
-     return Delay;
+    char Delay0, Delay1, Delay;
+    Abc_Obj_t *pFanin0, *pFanin1;
+    pObj = Abc_ObjRegular(pObj);
+    if (Abc_NodeIsTravIdCurrent(pObj) || pObj->Type == ABC_OBJ_PI)
+        return Vec_StrEntry(vCosts,pObj->Id);
+    Abc_NodeSetTravIdCurrent(pObj);
+    Delay0 = If_CutDelayRecComput_rec(Abc_ObjFanin0(pObj), vCosts);
+    Delay1 = If_CutDelayRecComput_rec(Abc_ObjFanin1(pObj), vCosts);
+    Delay = ABC_MAX(Delay0, Delay1) + 1;
+    Vec_StrWriteEntry(vCosts,pObj->Id,Delay);
+    return Delay;
  }*/
 
 /**Function*************************************************************
@@ -338,14 +349,14 @@ Abc_LookUpStatus_t ABC_NtkRecDelayCompare(char* delayFromStruct, char* delayFrom
             dominace = 0;
             if (smallThan == 0)
                 bigThan = 1;        
-        }    
+        }   
     }
-     if(equal)
-         return REC_EQUAL;
-     else if(dominace)
-         return REC_DOMINANCE;
-     else if(beDominaced)
-         return REC_BEDOMINANCED;
+    if(equal)
+        return REC_EQUAL;
+    else if(dominace)
+        return REC_DOMINANCE;
+    else if(beDominaced)
+        return REC_BEDOMINANCED;
      if(bigThan)
         return REC_BIG;
     else if(smallThan)
@@ -404,7 +415,7 @@ void Abc_NtkRecDeleteSubGragh(Abc_ManRec_t* p, Abc_Obj_t* pObj)
             Abc_NtkRecReplacePO(pFanOut);
             deleted++;
             p->nTrimed++;
-        }        
+        }       
     }
     assert(deleted == 1);
 }
@@ -482,7 +493,7 @@ void Abc_NtkRecSweepDominance(Abc_ManRec_t* p, Rec_Obj_t* previous, Rec_Obj_t* c
 void Abc_NtkRecInsertToLookUpTable(Abc_ManRec_t* p, Rec_Obj_t** ppSpot, Abc_Obj_t* pObj, int nVars, int fTrim)
 {
     char delayFromStruct[16] ;
-    int i;    
+    int i;  
     Abc_Obj_t* pLeaf;
     Rec_Obj_t* entry, *previous = NULL, *current = * ppSpot;
     unsigned char costFromStruct = If_CutAreaRecComput_rec(pObj);
@@ -492,87 +503,104 @@ void Abc_NtkRecInsertToLookUpTable(Abc_ManRec_t* p, Rec_Obj_t** ppSpot, Abc_Obj_
         pLeaf = Abc_NtkPi( p->pNtk,  i);
         pLeaf =Abc_ObjRegular(pLeaf);
         delayFromStruct[i] = If_CutDepthRecComput_rec(pObj, pLeaf->Id);
-    }    
-    while(1)
+    }
+    if(fTrim)
+    {       
+        while(1)
+        {
+            if (current == NULL)
+            {
+                p->nAdded++;
+                entry = Rec_ObjAlloc(p, pObj, delayFromStruct, costFromStruct, nVars);          
+                if(previous != NULL)
+                {
+                    previous->pNext = entry;
+                }
+                else
+                {
+                    // new functional class found
+                    p->nAddedFuncs++;
+                    *ppSpot = entry;
+                    entry->nFrequency = 1;
+                }
+                break;
+            }
+            result = ABC_NtkRecDelayCompare(delayFromStruct, current->pinToPinDelay, nVars);    
+            if(result == REC_EQUAL)
+            {
+                // when delay profile is equal, replace only if it has smaller cost.
+                if(costFromStruct < current->cost)
+                {   
+                    Abc_NtkRecDeleteSubGragh(p, current->obj);
+                    Rec_ObjSet(p, current, pObj, delayFromStruct, costFromStruct, nVars);
+                }
+                else
+                    Abc_NtkRecDeleteSubGragh(p, pObj);
+                break;
+            }
+            // when the new structure can dominate others, sweep them out of the library, delete them if required.
+            else if(result == REC_DOMINANCE)
+            {
+                Abc_NtkRecDeleteSubGragh(p, current->obj);
+                Rec_ObjSet(p, current, pObj, delayFromStruct, costFromStruct, nVars);
+                Abc_NtkRecSweepDominance(p,current,current->pNext,delayFromStruct, nVars, fTrim);       
+                break;
+            }
+            // when the new structure is domianted by an existed one, don't store it.
+            else if (result == REC_BEDOMINANCED)
+            {
+                Abc_NtkRecDeleteSubGragh(p, pObj);
+                break;
+            }
+            // when the new structure's delay profile is big than the current, test the next one
+            else if (result == REC_BIG)
+            {
+                previous = current;
+                current = current->pNext;
+            }
+            // insert the new structure to the right position, sweep the ones it can dominate.
+            else if (result == REC_SMALL)
+            {
+                p->nAdded++;
+                entry = Rec_ObjAlloc(p, pObj, delayFromStruct, costFromStruct, nVars);  
+                if(previous != NULL)
+                {
+                    previous->pNext = entry;
+                    entry->pNext = current;
+                }
+                else
+                {
+                    entry->pNext = current;
+                    entry->pCopy = (*ppSpot)->pCopy;
+                    entry->nFrequency = (*ppSpot)->nFrequency;
+                    (*ppSpot)->pCopy = NULL;
+                    (*ppSpot)->nFrequency = 0;
+                    *ppSpot = entry;
+                }
+                Abc_NtkRecSweepDominance(p,current,current->pNext,delayFromStruct, nVars, fTrim);           
+                break;
+            }
+            else
+                assert(0);      
+        }
+    }
+    else
     {
-        
         if (current == NULL)
         {
             p->nAdded++;
-            entry = Rec_ObjAlloc(p, pObj, delayFromStruct, costFromStruct, nVars);            
-            if(previous != NULL)
-            {
-                previous->pNext = entry;
-            }
-            else
-            {
-                // new functional class found
-                p->nAddedFuncs++;
-                *ppSpot = entry;
-            }
-            break;
+            entry = Rec_ObjAlloc(p, pObj, delayFromStruct, costFromStruct, nVars);          
+            p->nAddedFuncs++;
+            *ppSpot = entry;
+            entry->nFrequency = 1;
         }
-        result = ABC_NtkRecDelayCompare(delayFromStruct, current->pinToPinDelay, nVars);    
-         if(result == REC_EQUAL)
-         {
-            // when delay profile is equal, replace only if it has smaller cost.
-             if(costFromStruct < current->cost)
-            {    
-                if(fTrim)
-                    Abc_NtkRecDeleteSubGragh(p, current->obj);
-                 Rec_ObjSet(p, current, pObj, delayFromStruct, costFromStruct, nVars);
-            }
-            else
-            {
-                if(fTrim)
-                    Abc_NtkRecDeleteSubGragh(p, pObj);
-            }
-             break;
-         }
-        // when the new structure can dominate others, sweep them out of the library, delete them if required.
-         else if(result == REC_DOMINANCE)
-         {
-            if(fTrim)
-                Abc_NtkRecDeleteSubGragh(p, current->obj);
-             Rec_ObjSet(p, current, pObj, delayFromStruct, costFromStruct, nVars);
-            Abc_NtkRecSweepDominance(p,current,current->pNext,delayFromStruct, nVars, fTrim);        
-             break;
-         }
-        // when the new structure is domianted by an existed one, don't store it.
-         else if (result == REC_BEDOMINANCED)
-         {
-            if(fTrim)
-                Abc_NtkRecDeleteSubGragh(p, pObj);
-             break;
-         }
-        // when the new structure's delay profile is big than the current, test the next one
-         else if (result == REC_BIG)
-         {
-             previous = current;
-             current = current->pNext;
-         }
-        // insert the new structure to the right position, sweep the ones it can dominate.
-         else if (result == REC_SMALL)
-         {
-             p->nAdded++;
-             entry = Rec_ObjAlloc(p, pObj, delayFromStruct, costFromStruct, nVars);    
-             if(previous != NULL)
-             {
-                 previous->pNext = entry;
-                 entry->pNext = current;
-             }
-             else
-             {
-                 entry->pNext = current;
-                 entry->pCopy = (*ppSpot)->pCopy;
-                 (*ppSpot)->pCopy = NULL;
-                 *ppSpot = entry;
-             }
-            Abc_NtkRecSweepDominance(p,current,current->pNext,delayFromStruct, nVars, fTrim);            
-             break;
-         }
-         else
-             assert(0);        
+        else
+        {
+            p->nAdded++;
+            entry = Rec_ObjAlloc(p, pObj, delayFromStruct, costFromStruct, nVars);  
+            entry->pNext = (*ppSpot)->pNext;
+            (*ppSpot)->pNext = entry;
+        }
     }
 }
 
@@ -589,18 +617,18 @@ void Abc_NtkRecInsertToLookUpTable(Abc_ManRec_t* p, Rec_Obj_t** ppSpot, Abc_Obj_
 ***********************************************************************/
  Hop_Obj_t * Abc_NtkRecBuildUp_rec(Hop_Man_t* pMan, Abc_Obj_t* pObj, Vec_Ptr_t * vNodes)
  {
-      Hop_Obj_t * pRes0, *pRes1, *pRes;
-     Abc_Obj_t *pRegular = Abc_ObjRegular(pObj);
-     if (Abc_NodeIsTravIdCurrent(pRegular) || pRegular->Type == ABC_OBJ_PI)
-         return (Hop_Obj_t *)Vec_PtrEntry(vNodes, pRegular->Id);
-     Abc_NodeSetTravIdCurrent(pRegular);
-     pRes0 = Abc_NtkRecBuildUp_rec(pMan, Abc_ObjFanin0(pRegular), vNodes);
+     Hop_Obj_t * pRes0, *pRes1, *pRes;
+    Abc_Obj_t *pRegular = Abc_ObjRegular(pObj);
+    if (Abc_NodeIsTravIdCurrent(pRegular) || pRegular->Type == ABC_OBJ_PI)
+        return (Hop_Obj_t *)Vec_PtrEntry(vNodes, pRegular->Id);
+    Abc_NodeSetTravIdCurrent(pRegular);
+    pRes0 = Abc_NtkRecBuildUp_rec(pMan, Abc_ObjFanin0(pRegular), vNodes);
     pRes0 = Hop_NotCond(pRes0, pRegular->fCompl0);
-     pRes1 = Abc_NtkRecBuildUp_rec(pMan, Abc_ObjFanin1(pRegular), vNodes);
+    pRes1 = Abc_NtkRecBuildUp_rec(pMan, Abc_ObjFanin1(pRegular), vNodes);
     pRes1 = Hop_NotCond(pRes1, pRegular->fCompl1);
-     pRes = Hop_And(pMan, pRes0, pRes1);
-     Vec_PtrWriteEntry(vNodes,pRegular->Id,pRes);
-     return pRes;
+    pRes = Hop_And(pMan, pRes0, pRes1);
+    Vec_PtrWriteEntry(vNodes,pRegular->Id,pRes);
+    return pRes;
  }
 
 /**Function*************************************************************
@@ -628,25 +656,32 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut )
     unsigned *pInOut = s_pMan->pTemp1;
     unsigned *pTemp = s_pMan->pTemp2;
     int time = clock();
+    int fCompl = 0;
 #ifdef Dervie
     static FILE* pFile;
 #endif
     nLeaves = If_CutLeaveNum(pCut);
-//     if (nLeaves < 3)
-//         return Abc_NodeTruthToHop(pMan, pIfMan, pCut);
+//  if (nLeaves < 3)
+//      return Abc_NodeTruthToHop(pMan, pIfMan, pCut);
     Kit_TruthCopy(pInOut, If_CutTruth(pCut), pCut->nLimit);
     for (i = 0; i < nLeaves; i++)
         pCanonPerm[i] = i;
     uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
     ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
+    if (*ppSpot == NULL)
+    {
+        Kit_TruthNot(pInOut, pInOut, nVars);
+        ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
+        fCompl = 1;
+    }
     assert(*ppSpot != NULL);
     DelayMin = ABC_INFINITY;
     pCandMin = NULL;
     // find the best one
     for ( pCand = *ppSpot; pCand; pCand = pCand->pNext )
     {
-        s_pMan->nFunsDelayComput++;    
+        s_pMan->nFunsDelayComput++; 
         Delay = If_CutComputDelay(pIfMan, pCand, pCut, pCanonPerm ,nLeaves);
         if ( DelayMin > Delay )
         {
@@ -661,7 +696,12 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut )
     }
     assert( pCandMin != NULL );
     if ( s_pMan->vLabels == NULL )
-        s_pMan->vLabels = Vec_PtrStart( Abc_NtkObjNumMax(pAig) );
+        s_pMan->vLabels = Vec_PtrStart( Abc_NtkObjNumMax(pAig));
+    else
+    {
+        Vec_PtrGrow(s_pMan->vLabels, Abc_NtkObjNumMax(pAig));
+        s_pMan->vLabels->nSize = s_pMan->vLabels->nCap;
+    }
     for (i = 0; i < nLeaves; i++)
     {
         pAbcObj = Abc_NtkPi( pAig, i );
@@ -674,7 +714,7 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut )
     pHopObj = Abc_NtkRecBuildUp_rec(pMan, pCandMin->obj, s_pMan->vLabels);
     s_pMan->timeIfDerive += clock() - time;
     s_pMan->timeIfTotal += clock() - time;
-    return Hop_NotCond(pHopObj, (pCut->fCompl)^(((uCanonPhase & (1 << nLeaves)) > 0)));    
+    return Hop_NotCond(pHopObj, (pCut->fCompl)^(((uCanonPhase & (1 << nLeaves)) > 0)) ^ fCompl);    
 }
 
 /**Function*************************************************************
@@ -781,36 +821,20 @@ void Abc_RecUpdateHashTable()
 ***********************************************************************/
 void Abc_NtkRecFilter(int nLimit)
 {
-    Abc_Obj_t * pObj;
-//    void * temp;
     Rec_Obj_t * previous = NULL, * entry = NULL, * pTemp;
-    int i, counter = 0;
-//    int j;
+    int i;
     Abc_Ntk_t * pNtk = s_pMan->pNtk;
     int time = clock();
     if (nLimit > 0)
     {
-        Abc_NtkForEachPi( pNtk, pObj, i )
-            Abc_ObjSetMax( pObj, i+1 );
-        Abc_AigForEachAnd( pNtk, pObj, i )
-            Abc_ObjSetMax( pObj, ABC_MAX( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
         for ( i = 0; i < s_pMan->nBins; i++ )
         {
             previous = NULL;
             for ( entry = s_pMan->pBins[i]; entry; entry = entry->pCopy)
             {
-                //make sure the structures with 2 variables stay in the library.
-                if(Abc_ObjGetMax(entry->obj) == 2)
-                    continue;
-                counter = 0;
-                for ( pTemp = entry; pTemp; pTemp = pTemp->pNext)
-                {
-                    counter++;
-                    if(counter > nLimit)
-                        break;
-                }
-                // only filter the functional classed with subgragh less than nLimit.
-                if(counter > nLimit)
+                assert(entry->nFrequency != 0);
+                // only filter the functional classed with frequency less than nLimit.
+                if((int)entry->nFrequency > nLimit)
                 {
                     previous = entry;
                     continue;
@@ -826,17 +850,12 @@ void Abc_NtkRecFilter(int nLimit)
                 s_pMan->nAddedFuncs--;
                 //delete all the subgragh.
                 for ( pTemp = entry; pTemp; pTemp = pTemp->pNext )
-                {        
+                {       
                     s_pMan->nAdded--;
                     Abc_NtkRecDeleteSubGragh(s_pMan, pTemp->obj);
-                    Mem_FixedEntryRecycle(s_pMan->pMemObj, (char *)pTemp);                
+                    Mem_FixedEntryRecycle(s_pMan->pMemObj, (char *)pTemp);              
                 }
             }
-        }
-        // clean level info.
-        Abc_NtkForEachObj( pNtk, pObj, i )
-        {
-            Abc_ObjClearMax( pObj );
         }
     }
 
@@ -914,6 +933,54 @@ int Abc_NtkRecVarNum()
 Vec_Int_t * Abc_NtkRecMemory()
 {
     return s_pMan->vMemory;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the record for the given network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecLibMerge(Abc_Ntk_t* pNtk)
+{
+    int i;
+    Abc_Obj_t * pObj;
+    Abc_ManRec_t * p = s_pMan;
+    int clk = clock();
+    if ( Abc_NtkPiNum(pNtk) > s_pMan->nVars )
+    {
+        printf( "The library has more inputs than the record.\n");
+        return;
+    }
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_ObjSetMax( pObj, i+1 );
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        Abc_ObjSetMax( pObj, ABC_MAX( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
+
+    // insert the PO nodes into the table
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        p->nTried++;
+        //if the PO's input is a constant, skip it.
+        if (Abc_ObjChild0(pObj) == Abc_ObjNot( Abc_AigConst1(pNtk)))
+        {
+            p->nTrimed++;
+            continue;
+        }   
+        pObj = Abc_ObjFanin0(pObj); 
+        Abc_NtkRecAddFromLib(pNtk, pObj, Abc_ObjGetMax(pObj) );     
+    }
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        Abc_ObjClearMax( pObj );
+    }
+    s_pMan->timeMerge += clock() - clk;
+    s_pMan->timeTotal += clock() - clk;
 }
 
 /**Function*************************************************************
@@ -1037,8 +1104,8 @@ p->timeTruth += clock() - clk;
         {
             p->nTrimed++;
             continue;
-        }    
-        pObj = Abc_ObjFanin0(pObj);        
+        }   
+        pObj = Abc_ObjFanin0(pObj);     
         pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, pObj->Id );
         // add the resulting truth table to the hash table 
         ppSpot = Abc_NtkRecTableLookup( p, pTruth, p->nVars );
@@ -1055,7 +1122,7 @@ p->timeTruth += clock() - clk;
     p->pTemp1 = ABC_ALLOC( unsigned, p->nWords );
     p->pTemp2 = ABC_ALLOC( unsigned, p->nWords );
     p->vNodes = Vec_PtrAlloc( 100 );
-    p->vTtTemps = Vec_PtrAllocSimInfo( 64, p->nWords );
+    p->vTtTemps = Vec_PtrAllocSimInfo( 1024, p->nWords );
     p->vMemory = Vec_IntAlloc( Abc_TruthWordNum(p->nVars) * 1000 );
 
     // set the manager
@@ -1133,8 +1200,8 @@ void Abc_NtkRecStop()
     if(s_pMan->pMemObj)
         Mem_FixedStop(s_pMan->pMemObj, 0);
     Vec_IntFree( s_pMan->vMemory );
-//     if(s_pMan->vFiltered)
-//         Vec_StrFree(s_pMan->vFiltered);
+//  if(s_pMan->vFiltered)
+//      Vec_StrFree(s_pMan->vFiltered);
         
     ABC_FREE( s_pMan );
     s_pMan = NULL;
@@ -1184,11 +1251,46 @@ void Abc_NtkRecPs()
     Rec_Obj_t * pEntry, * pTemp;
     Abc_Obj_t * pObj;
     int i;
+#ifdef LibOut
+    FILE * pFile;
+    unsigned* pTruth;
+    Rec_Obj_t* entry;
+    int j;
+    int nVars = 6;
+#endif
     // set the max PI number
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, i+1 );
     Abc_AigForEachAnd( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, ABC_MAX( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
+#ifdef LibOut
+pFile = fopen( "tt10.txt", "wb" );
+for ( i = 0; i < p->nBins; i++ )
+    for ( entry = p->pBins[i]; entry; entry = entry->pCopy )
+    {
+        int tmp = 0;
+        pTruth = Vec_PtrEntry(p->vTtNodes, entry->Id);
+        /*if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
+            continue;*/
+        Extra_PrintHex( pFile, pTruth, nVars );
+        fprintf( pFile, " : nVars:  %d, Frequency:%d  :  ", Abc_ObjGetMax(entry->obj), entry->nFrequency);
+        Kit_DsdPrintFromTruth2( pFile, pTruth, Abc_ObjGetMax(entry->obj) );
+        fprintf( pFile, "\n" );
+        for ( pTemp = entry; pTemp; pTemp = pTemp->pNext )
+        {
+            fprintf(pFile,"%d :", tmp);
+            for (j = 0; j <Abc_ObjGetMax(pTemp->obj); j++)
+            {
+                fprintf(pFile, " %d, ", pTemp->pinToPinDelay[j]);
+            }
+            fprintf(pFile, "cost = %d\n", pTemp->cost);             
+            tmp++;
+        }
+        fprintf( pFile, "\n");
+        fprintf( pFile, "\n");
+    }
+    fclose( pFile) ;
+#endif
     // go through the table
     Counter = CounterS = 0;
     for ( i = 0; i < p->nBins; i++ )
@@ -1232,11 +1334,12 @@ void Abc_NtkRecPs()
     printf( "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,   !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
     if(s_pMan->fTrim)
         printf( "Functions trimed                            = %10d. (%6.2f %%)\n", p->nTrimed,       !p->nTried? 0 : 100.0*p->nTrimed/p->nTried );
-    p->timeOther = p->timeTotal - p->timeCollect - p->timeTruth - p->timeCanon - p->timeInsert - p->timeBuild - p->timeTrim;
+    p->timeOther = p->timeTotal - p->timeCollect - p->timeTruth - p->timeCanon - p->timeInsert - p->timeBuild - p->timeTrim - p->timeMerge;
     ABC_PRTP( "Collecting nodes ", p->timeCollect, p->timeTotal);
     ABC_PRTP( "Computing truth  ", p->timeTruth, p->timeTotal );
     ABC_PRTP( "Canonicizing     ", p->timeCanon, p->timeTotal );
     ABC_PRTP( "Building         ", p->timeBuild, p->timeTotal );
+    ABC_PRTP( "Merge            ", p->timeMerge, p->timeTotal );
     ABC_PRTP( "Insert           ", p->timeInsert, p->timeTotal);
     if(s_pMan->fTrim)
         ABC_PRTP( "Filter           ", p->timeTrim, p->timeTotal);
@@ -1251,7 +1354,7 @@ void Abc_NtkRecPs()
         printf( "Functions filtered by support               = %10d. (%6.2f %%)\n", p->nFunsFilteredBysupport, !p->nFunsFilteredBysupport? 0 : 100.0*p->nFunsFilteredBysupport/p->nFunsTried );
         printf( "Functions not found in lib                  = %10d. (%6.2f %%)\n", p->nFunsNotFound, !p->nFunsNotFound? 0 : 100.0*p->nFunsNotFound/p->nFunsTried );
         printf( "Functions founded                           = %10d. (%6.2f %%)\n", p->nFunsFound,   !p->nFunsFound? 0 : 100.0*p->nFunsFound/p->nFunsTried );
-        printf( "Functions delay computed                    = %10d.  Ratio   = %6.2f.\n", p->nFunsDelayComput,  !p->nFunsDelayComput? 0 : 1.0*p->nFunsDelayComput/p->nFunsFound );    
+        printf( "Functions delay computed                    = %10d.  Ratio   = %6.2f.\n", p->nFunsDelayComput,  !p->nFunsDelayComput? 0 : 1.0*p->nFunsDelayComput/p->nFunsFound ); 
         p->timeIfOther = p->timeIfTotal - p->timeIfCanonicize - p->timeIfComputDelay -p->timeIfDerive;
         ABC_PRTP( "Canonicize       ", p->timeIfCanonicize, p->timeIfTotal );
         ABC_PRTP( "Compute Delay    ", p->timeIfComputDelay, p->timeIfTotal );
@@ -1380,6 +1483,7 @@ void Abc_NtkRecAdd( Abc_Ntk_t * pNtk )
     pPars->fUseSops    =  0;
     pPars->fUseCnfs    =  0;
     pPars->fUseMv      =  0;
+    pPars->fSkipCutFilter = 1;
     pPars->pFuncCost   =  NULL;
     pPars->pFuncUser   =  Abc_NtkRecAddCut;
 
@@ -1411,6 +1515,26 @@ void Abc_NtkRecCollectNodes_rec( If_Obj_t * pNode, Vec_Ptr_t * vNodes )
     assert( If_ObjIsAnd(pNode) );
     Abc_NtkRecCollectNodes_rec( If_ObjFanin0(pNode), vNodes );
     Abc_NtkRecCollectNodes_rec( If_ObjFanin1(pNode), vNodes );
+    Vec_PtrPush( vNodes, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the cut function to the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecCollectNodesFromLib_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    if ( Abc_ObjIsPi(pNode))
+        return;
+    Abc_NtkRecCollectNodesFromLib_rec( Abc_ObjFanin0(pNode), vNodes );
+    Abc_NtkRecCollectNodesFromLib_rec( Abc_ObjFanin1(pNode), vNodes );
     Vec_PtrPush( vNodes, pNode );
 }
 
@@ -1475,6 +1599,30 @@ int Abc_NtkRecCollectNodes( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut
     }
 */
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the cut function to the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecCollectNodesFromLib(Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes , int nVars)
+{
+    int i;
+    // collect the internal nodes of the cut
+    Vec_PtrClear( vNodes );
+    for ( i = 0; i < nVars; i++ )
+        Vec_PtrPush( vNodes, Abc_NtkPi(pNtk, i));
+
+
+    // collect other nodes
+    Abc_NtkRecCollectNodesFromLib_rec( pRoot, vNodes );
 }
 
 /**Function*************************************************************
@@ -1576,6 +1724,50 @@ int Abc_NtkRecCutTruth( Vec_Ptr_t * vNodes, int nLeaves, Vec_Ptr_t * vTtTemps, V
 
 /**Function*************************************************************
 
+  Synopsis    [Computes truth tables of nodes in the cut.]
+
+  Description [Returns 0 if the TT does not depend on some cut variables.
+  Or if the TT can be expressed simpler using other nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecCutTruthFromLib( Vec_Ptr_t * vNodes, int nLeaves, Vec_Ptr_t * vTtTemps, Vec_Ptr_t * vTtElems )
+{
+    unsigned * pSims, * pSims0, * pSims1;
+    unsigned * pTemp = s_pMan->pTemp2;
+    Abc_Obj_t * pObj, * pRoot;
+    int i, nInputs = s_pMan->nVars;
+
+    assert( Vec_PtrSize(vNodes) > nLeaves );
+
+    // set the elementary truth tables and compute the truth tables of the nodes
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        pObj->pTemp = Vec_PtrEntry(vTtTemps, i);
+        pSims = (unsigned *)pObj->pTemp;
+        if ( i < nLeaves )
+        {
+            Kit_TruthCopy( pSims, (unsigned *)Vec_PtrEntry(vTtElems, i), nInputs );
+            continue;
+        }
+        // get hold of the simulation information
+        pSims0 = (unsigned *)Abc_ObjFanin0(pObj)->pTemp;
+        pSims1 = (unsigned *)Abc_ObjFanin1(pObj)->pTemp;
+        // simulate the node
+        Kit_TruthAndPhase( pSims, pSims0, pSims1, nInputs, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+    }
+
+    // check the support size
+    pRoot = (Abc_Obj_t *)Vec_PtrEntryLast( vNodes );
+    pSims = (unsigned *)pRoot->pTemp;
+    assert ( Kit_TruthSupport(pSims, nInputs) == Kit_BitMask(nLeaves) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Adds the cut function to the internal storage.]
 
   Description []
@@ -1626,6 +1818,7 @@ int Abc_NtkRecAddCut( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = If_CutLeaveNum(pCut);
     unsigned uCanonPhase;
     int clk, timeInsert, timeBuild;
+    int begin = clock();
     assert( nInputs <= 16 );
     assert( nInputs == (int)pCut->nLimit );
     s_pMan->nTried++;
@@ -1635,7 +1828,7 @@ int Abc_NtkRecAddCut( If_Man_t * pIfMan, If_Obj_t * pRoot, If_Cut_t * pCut )
         s_pMan->nFilterSize++;
         return 1;
      }
-
+    
     // collect internal nodes and skip redundant cuts
 clk = clock();
     RetValue = Abc_NtkRecCollectNodes( pIfMan, pRoot, pCut, vNodes );
@@ -1725,7 +1918,7 @@ clk = clock();
         }
     }
     assert(pObj);
-    s_pMan->timeBuild = clock() - timeBuild;
+    s_pMan->timeBuild += clock() - timeBuild;
     pTruth = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, pObj->Id );
     if ( Kit_TruthSupport(pTruth, nInputs) != Kit_BitMask(nLeaves) )
     {
@@ -1743,13 +1936,17 @@ clk = clock();
     }
 //    Extra_PrintBinary( stdout, pInOut, 8 ); printf( "\n" );
 
+    // look up in the hash table and increase the hit number of the functional class
+    ppSpot = Abc_NtkRecTableLookup( s_pMan, pTruth, nInputs );
+    Abc_NtkRecFrequencyInc(*ppSpot);
+
     // if not new nodes were added and the node has a CO fanout
     if ( nNodesBeg == Abc_NtkObjNumMax(pAig) && Abc_NodeFindCoFanout(pObj) != NULL )
     {
         s_pMan->nFilterSame++;
+        assert(*ppSpot != NULL);
         return 1;
     }
-    //s_pMan->nAdded++;
 
     // create PO for this node
     pObjPo = Abc_NtkCreatePo(pAig);
@@ -1770,10 +1967,125 @@ clk = clock();
 
     // add the resulting truth table to the hash table 
     timeInsert = clock();
-    ppSpot = Abc_NtkRecTableLookup( s_pMan, pTruth, nInputs );
     Abc_NtkRecInsertToLookUpTable(s_pMan, ppSpot, pObj, nLeaves, s_pMan->fTrim);
     s_pMan->timeInsert += clock() - timeInsert;
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the cut function to the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars )
+{
+    char Buffer[40], Name[20], Truth[20];
+    Abc_Obj_t * pObj = NULL, * pFanin0, * pFanin1, * pObjPo;
+    Rec_Obj_t ** ppSpot;
+    Abc_Ntk_t * pAig = s_pMan->pNtk;
+    Abc_Obj_t * pAbcObj;
+    Vec_Ptr_t * vNodes = s_pMan->vNodes;
+    unsigned * pInOut = s_pMan->pTemp1;
+    unsigned * pTemp = s_pMan->pTemp2;
+    unsigned * pTruth;
+    int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = nVars;
+    assert( nInputs <= 16 );
+
+    
+    // collect internal nodes and skip redundant cuts
+
+    Abc_NtkRecCollectNodesFromLib(pNtk, pRoot, vNodes , nLeaves);
+
+    Abc_NtkRecCutTruthFromLib(vNodes, nLeaves, s_pMan->vTtTemps, s_pMan->vTtElems );
+
+    // copy the truth table
+    Kit_TruthCopy( pInOut, (unsigned *)pRoot->pTemp, nInputs );
+
+    // go through the variables in the new truth table
+    for ( i = 0; i < nLeaves; i++ )
+    {
+        // get hold of the corresponding leaf
+        pAbcObj = Abc_NtkPi(pNtk, i);
+        // get hold of the corresponding new node
+        pObj = Abc_NtkPi( pAig, i );
+        // map them
+        pAbcObj->pCopy = pObj;
+    }
+
+    // build the node and compute its truth table
+    nNodesBeg = Abc_NtkObjNumMax( pAig );
+    Vec_PtrForEachEntryStart( Abc_Obj_t *, vNodes, pAbcObj, i, nLeaves )
+    {
+        pFanin0 = Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin0(pAbcObj)->pCopy, Abc_ObjFaninC0(pAbcObj) );
+        pFanin1 = Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin1(pAbcObj)->pCopy, Abc_ObjFaninC1(pAbcObj) );
+
+        nNodes = Abc_NtkObjNumMax( pAig );
+        pObj = Abc_AigAnd( (Abc_Aig_t *)pAig->pManFunc, pFanin0, pFanin1 );
+        assert( !Abc_ObjIsComplement(pObj) );
+        pAbcObj->pCopy = pObj;
+
+        if ( pObj->Id == nNodes )
+        {
+            // increase storage for truth tables
+//            if ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
+//                Vec_PtrDoubleSimInfo(s_pMan->vTtNodes);
+            while ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
+//                Vec_PtrPush( s_pMan->vTtNodes, ABC_ALLOC(unsigned, s_pMan->nWords) );
+                Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
+
+            // compute the truth table
+            RetValue = Abc_NtkRecComputeTruth( pObj, s_pMan->vTtNodes, nInputs );
+            if ( RetValue == 0 )
+            {
+                s_pMan->nFilterError++;
+                printf( "T" );
+            }
+        }
+    }
+    assert(pObj);
+    pTruth = (unsigned *)Vec_PtrEntry( s_pMan->vTtNodes, pObj->Id );
+    assert ( Kit_TruthSupport(pTruth, nInputs) == Kit_BitMask(nLeaves) );
+    // compare the truth tables
+    assert (Kit_TruthIsEqual( pTruth, pInOut, nInputs ) );
+
+//    Extra_PrintBinary( stdout, pInOut, 8 ); printf( "\n" );
+
+    // look up in the hash table and increase the hit number of the functional class
+    ppSpot = Abc_NtkRecTableLookup( s_pMan, pTruth, nInputs );
+
+    // if not new nodes were added and the node has a CO fanout
+    if ( nNodesBeg == Abc_NtkObjNumMax(pAig) && Abc_NodeFindCoFanout(pObj) != NULL )
+    {
+        s_pMan->nFilterSame++;
+        assert(*ppSpot != NULL);
+        return;
+    }
+
+    // create PO for this node
+    pObjPo = Abc_NtkCreatePo(pAig);
+    Abc_ObjAddFanin( pObjPo, pObj );
+
+    // assign the name to this PO
+    sprintf( Name, "%d_%06d", nLeaves, Abc_NtkPoNum(pAig) );
+    if ( (nInputs <= 6) && 0 )
+    {
+        Extra_PrintHexadecimalString( Truth, pInOut, nInputs );
+        sprintf( Buffer, "%s_%s", Name, Truth );
+    }
+    else
+    {
+        sprintf( Buffer, "%s", Name );
+    }
+    Abc_ObjAssignName( pObjPo, Buffer, NULL );
+
+    // add the resulting truth table to the hash table 
+    Abc_NtkRecInsertToLookUpTable(s_pMan, ppSpot, pObj, nLeaves, s_pMan->fTrim);
 }
 
 
@@ -1819,14 +2131,17 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
         pCanonPerm[i] = i;
     uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
-    s_pMan->timeIfCanonicize += clock() - timeCanonicize;    
+    s_pMan->timeIfCanonicize += clock() - timeCanonicize;   
     ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
-    assert (!(*ppSpot == NULL && nLeaves == 2));    
+    if (*ppSpot == NULL)
+    {
+        Kit_TruthNot(pInOut, pInOut, nVars);
+        ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
+    }
+    assert (!(*ppSpot == NULL && nLeaves == 2));
     //functional class not found in the library.
     if ( *ppSpot == NULL )
     {
-Kit_DsdPrintFromTruth( pInOut, nLeaves ); printf( "\n" );
-
         s_pMan->nFunsNotFound++;        
         pCut->Cost = IF_COST_MAX;
         pCut->fUser = 1;

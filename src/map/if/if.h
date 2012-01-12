@@ -106,6 +106,7 @@ struct If_Par_t_
     // internal parameters
     int                fDelayOpt;     // special delay optimization
     int                fUserRecLib;   // use recorded library
+    int                fSkipCutFilter;// skip cut filter
     int                fAreaOnly;     // area only mode
     int                fTruth;        // truth table computation enabled
     int                fUsePerm;      // use permutation (delay info)

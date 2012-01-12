@@ -212,6 +212,7 @@ static int Abc_CommandRecAdd                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRecPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecUse                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRecFilter              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecMerge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -671,6 +672,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps",        Abc_CommandRecPs,            0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
     Cmd_CommandAdd( pAbc, "Choicing",     "rec_filter",    Abc_CommandRecFilter,        1 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_merge",     Abc_CommandRecMerge,         1 );
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
@@ -11947,7 +11949,7 @@ int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     nVars = 6;
-    nCuts = 8;
+    nCuts = 32;
     fTrim = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCth" ) ) != EOF )
@@ -12251,6 +12253,50 @@ usage:
     Abc_Print( -2, "\t         filter the library of the recorder\n" );
     Abc_Print( -2, "\t-F num : the limit number of function class [default = %d]\n", nLimit );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecMerge( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning() )
+    {
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start\".\n" );
+        return 0;
+    }
+    Abc_NtkRecLibMerge(pNtk);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rec_merge [-h]\n" );
+    Abc_Print( -2, "\t        merge libraries\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
 
