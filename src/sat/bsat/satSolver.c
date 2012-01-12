@@ -1035,6 +1035,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         s->tags    [var] = 0;
         s->orderpos[var] = veci_size(&s->order);
         s->reasons [var] = 0;
+        s->model   [var] = 0; 
         
         /* does not hold because variables enqueued at top level will not be reinserted in the heap
            assert(veci_size(&s->order) == var); 

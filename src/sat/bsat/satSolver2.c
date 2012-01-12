@@ -1296,6 +1296,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 #else
         s->activity[var] = (1<<10);
 #endif
+        s->model   [var] = 0; 
         // does not hold because variables enqueued at top level will not be reinserted in the heap
         // assert(veci_size(&s->order) == var); 
         veci_push(&s->order,var);
