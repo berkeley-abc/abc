@@ -174,6 +174,8 @@ int Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk )
     if ( st_is_member( pLib->tModules, (char *)pNtk->pName ) )
         return 0;
     st_insert( pLib->tModules, (char *)pNtk->pName, (char *)pNtk );
+    assert( pNtk->Id == 0 );
+    pNtk->Id = Vec_PtrSize(pLib->vModules);
     Vec_PtrPush( pLib->vModules, pNtk );
     pNtk->pDesign = pLib;
     return 1;
