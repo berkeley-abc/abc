@@ -589,6 +589,14 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
 
+    // test the new data-structure
+    {
+        extern void Au_ManDeriveTest( Abc_Ntk_t * pRoot );
+        Au_ManDeriveTest( pNtk );
+        Abc_NtkDelete( pNtk );
+        return NULL;
+    }
+
     // print stats
     if ( fVerbose )
         Abc_NtkPrintBoxInfo( pNtk );

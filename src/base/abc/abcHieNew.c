@@ -25,6 +25,7 @@
 #include <time.h>
 
 #include "vec.h"
+#include "utilNam.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -32,7 +33,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define AU_MAX_FANINS 0x0FFFFFFF
+#define AU_MAX_FANINS 0x1FFFFFFF
  
 typedef enum { 
     AU_OBJ_NONE,           // 0: non-existent object
@@ -54,8 +55,8 @@ typedef struct Au_Obj_t_   Au_Obj_t;
 struct Au_Obj_t_ // 16 bytes
 {
     unsigned               Func;               // functionality
-    unsigned               Type    :  4;       // object type
-    unsigned               nFanins : 28;       // fanin count (related to AU_MAX_FANIN_NUM)
+    unsigned               Type    :  3;       // object type
+    unsigned               nFanins : 29;       // fanin count (related to AU_MAX_FANIN_NUM)
     int                    Fanins[2];          // fanin literals
 };
 
@@ -70,6 +71,7 @@ struct Au_Ntk_t_
     int                    nObjsUsed;          // used objects
     int                    nObjs[AU_OBJ_VOID]; // counter of objects of each type
     // memory for objects
+    Vec_Ptr_t *            vChunks;            // memory pages
     Vec_Ptr_t              vPages;             // memory pages
     int                    iHandle;            // currently available ID
     int                    nUseful;            // the number of useful entries
@@ -87,6 +89,7 @@ struct Au_Man_t_
 {
     char *                 pName;              // the name of the library
     Vec_Ptr_t              vNtks;              // the array of modules
+    Abc_Nam_t *            pFuncs;             // hashing functions into integers
     int                    nRefs;              // reference counter
 };
 
@@ -116,9 +119,9 @@ static inline int          Au_NtkFanNum( Au_Ntk_t * p )                  { retur
 static inline int          Au_NtkFlopNum( Au_Ntk_t * p )                 { return p->nObjs[AU_OBJ_FLOP];                                          } 
 static inline int          Au_NtkBoxNum( Au_Ntk_t * p )                  { return p->nObjs[AU_OBJ_BOX];                                           } 
 static inline int          Au_NtkNodeNum( Au_Ntk_t * p )                 { return p->nObjs[AU_OBJ_NODE];                                          } 
-static inline int          Au_NtkObjNumMax( Au_Ntk_t * p )               { return Vec_PtrSize(&p->vPages) * (1 << 12) + p->iHandle;               } 
+static inline int          Au_NtkObjNumMax( Au_Ntk_t * p )               { return (Vec_PtrSize(&p->vPages) - 1) * (1 << 12) + p->iHandle;         } 
 static inline int          Au_NtkObjNum( Au_Ntk_t * p )                  { return p->nObjsUsed;                                                   } 
-static inline Au_Obj_t *   Au_NtkObj( Au_Ntk_t * p, int i )              { return (Au_Obj_t *)p->vPages.pArray[i >> 16] + (i & 0xFFFF);           }
+static inline Au_Obj_t *   Au_NtkObj( Au_Ntk_t * p, int i )              { return (Au_Obj_t *)p->vPages.pArray[i >> 12] + (i & 0xFFF);            }
 
 static inline int          Au_ObjIsNone( Au_Obj_t * p )                  { return p->Type == AU_OBJ_NONE;                                         } 
 static inline int          Au_ObjIsConst0( Au_Obj_t * p )                { return p->Type == AU_OBJ_CONST0;                                       } 
@@ -132,7 +135,7 @@ static inline int          Au_ObjIsTerm( Au_Obj_t * p )                  { retur
 
 static inline char *       Au_ObjBase( Au_Obj_t * p )                    { return (char *)p - ((ABC_PTRINT_T)p & 0x3FF);                          } 
 static inline Au_Ntk_t *   Au_ObjNtk( Au_Obj_t * p )                     { return ((Au_Ntk_t **)Au_ObjBase(p))[0];                                } 
-static inline int          Au_ObjId( Au_Obj_t * p )                      { return ((int *)Au_ObjBase(p))[3] + (((ABC_PTRINT_T)p & 0x3FF) >> 4);   }
+static inline int          Au_ObjId( Au_Obj_t * p )                      { return ((int *)Au_ObjBase(p))[2] | (((ABC_PTRINT_T)p & 0x3FF) >> 4);   }
 static inline int          Au_ObjPioNum( Au_Obj_t * p )                  { assert(Au_ObjIsTerm(p)); return p->Fanins[p->nFanins];                 }
 static inline int          Au_ObjFunc( Au_Obj_t * p )                    { return p->Func;                                                        }
 static inline Au_Ntk_t *   Au_ObjModel( Au_Obj_t * p )                   { assert(Au_ObjIsFan(p)||Au_ObjIsBox(p)); return Au_ManNtk(Au_NtkMan(Au_ObjNtk(p)), p->Func); }
@@ -146,11 +149,69 @@ static inline void         Au_ObjSetFaninLit( Au_Obj_t * p, int i, int f){ asser
 static inline int          Au_ObjFanout( Au_Obj_t * p, int i )           { assert(p->Type == AU_OBJ_BOX && i >= 0 && i < p->Fanins[p->nFanins] && p->Fanins[i]); return p->Fanins[p->nFanins + 1 + i];             }
 static inline int          Au_ObjSetFanout( Au_Obj_t * p, int i, int f ) { assert(p->Type == AU_OBJ_BOX && i >= 0 && i < p->Fanins[p->nFanins] && p->Fanins[i] == 0 && f > 0); p->Fanins[p->nFanins + 1 + i] = f;  }
 
-extern void Au_NtkPrintStats( Au_Ntk_t * p );
+extern void Au_ManAddNtk( Au_Man_t * pMan, Au_Ntk_t * p );
+extern void Au_ManFree( Au_Man_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Working with models.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Au_Ntk_t * Au_NtkAlloc( Au_Man_t * pMan, char * pName )
+{
+    Au_Ntk_t * p;
+    p = ABC_CALLOC( Au_Ntk_t, 1 );
+    p->pName = Au_UtilStrsav( pName );
+    p->vChunks = Vec_PtrAlloc( 111 );
+    Vec_IntGrow( &p->vPis,  111 );
+    Vec_IntGrow( &p->vPos,  111 );
+    Vec_PtrGrow( &p->vPages, 11 );
+    Au_ManAddNtk( pMan, p );
+    return p;
+}
+void Au_NtkFree( Au_Ntk_t * p )
+{
+    Au_ManFree( p->pMan );
+    Vec_PtrFreeFree( p->vChunks );
+    ABC_FREE( p->vPages.pArray );
+    ABC_FREE( p->vPis.pArray );
+    ABC_FREE( p->vPos.pArray );
+    ABC_FREE( p->pHTable );
+    ABC_FREE( p->pName );
+    ABC_FREE( p );
+}
+int Au_NtkMemUsage( Au_Ntk_t * p )
+{
+    int Mem = sizeof(Au_Ntk_t);
+    Mem += 4 * Vec_IntSize(&p->vPis);
+    Mem += 4 * Vec_IntSize(&p->vPos);
+    Mem += 16 * Vec_PtrSize(p->vChunks) * ((1<<12) + 64);
+    return Mem;
+}
+void Au_NtkPrintStats( Au_Ntk_t * p )
+{
+    printf( "%-13s:",         Au_NtkName(p) );
+    printf( " i/o =%5d/%5d",  Au_NtkPiNum(p), Au_NtkPoNum(p) );
+//    printf( "  lat =%5d",     Au_NtkFlopNum(p) );
+    printf( "  nd =%6d",      Au_NtkNodeNum(p) );
+    printf( "  box =%5d",     Au_NtkBoxNum(p) );
+    printf( "  obj =%6d",     Au_NtkObjNum(p) );
+    printf( "  max =%6d",     Au_NtkObjNumMax(p) );
+    printf( "  use =%6d",     p->nUseful );
+    printf( " (%.2f %%)",      100.0 * (Au_NtkObjNumMax(p) - p->nUseful) / Au_NtkObjNumMax(p) );
+    printf( "    %.2f Mb",    1.0 * Au_NtkMemUsage(p) / (1 << 20) );
+    printf( "\n" );
+}
 
 /**Function*************************************************************
 
@@ -170,6 +231,7 @@ Au_Man_t * Au_ManAlloc( char * pName )
     p->pName = Au_UtilStrsav( pName );
     Vec_PtrGrow( &p->vNtks,  111 );
     Vec_PtrPush( &p->vNtks, NULL );
+    p->pFuncs = Abc_NamStart( 100, 16 );
     return p;
 }
 void Au_ManFree( Au_Man_t * p )
@@ -177,15 +239,23 @@ void Au_ManFree( Au_Man_t * p )
     assert( p->nRefs > 0 );
     if ( --p->nRefs > 0 )
         return;
+    Abc_NamStop( p->pFuncs );
     ABC_FREE( p->vNtks.pArray );
     ABC_FREE( p->pName );
     ABC_FREE( p );
+}
+void Au_ManDelete( Au_Man_t * p )
+{
+    Au_Ntk_t * pNtk;
+    int i;
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, &p->vNtks, pNtk, i, 1 )
+        Au_NtkFree( pNtk );
 }
 int Au_ManFindNtk( Au_Man_t * p, char * pName )
 {
     Au_Ntk_t * pNtk;
     int i;
-    Vec_PtrForEachEntry( Au_Ntk_t *, &p->vNtks, pNtk, i )
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, &p->vNtks, pNtk, i, 1 )
         if ( !strcmp(Au_NtkName(pNtk), pName) )
             return i;
     return -1;
@@ -197,59 +267,26 @@ void Au_ManAddNtk( Au_Man_t * pMan, Au_Ntk_t * p )
     p->Id = Vec_PtrSize( &pMan->vNtks );
     Vec_PtrPush( &pMan->vNtks, p );
 }
+int Au_ManMemUsage( Au_Man_t * p )
+{
+    Au_Ntk_t * pNtk;
+    int i, Mem = 0;
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, &p->vNtks, pNtk, i, 1 )
+        Mem += Au_NtkMemUsage( pNtk );
+    return Mem;
+}
 void Au_ManPrintStats( Au_Man_t * p )
 {
     Au_Ntk_t * pNtk;
     int i;
     printf( "Design %-13s\n", Au_ManName(p) );
-    Vec_PtrForEachEntry( Au_Ntk_t *, &p->vNtks, pNtk, i )
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, &p->vNtks, pNtk, i, 1 )
         Au_NtkPrintStats( pNtk );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Working with models.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Au_Ntk_t * Au_NtkAlloc( Au_Man_t * pMan, char * pName )
-{
-    Au_Ntk_t * p;
-    p = ABC_CALLOC( Au_Ntk_t, 1 );
-    p->pName = Au_UtilStrsav( pName );
-    Vec_IntGrow( &p->vPis,  111 );
-    Vec_IntGrow( &p->vPos,  111 );
-    Vec_PtrGrow( &p->vPages, 11 );
-    Au_ManAddNtk( pMan, p );
-    return p;
-}
-void Au_NtkFree( Au_Ntk_t * p )
-{
-    Au_ManFree( p->pMan );
-    ABC_FREE( p->vPages.pArray );
-    ABC_FREE( p->vPis.pArray );
-    ABC_FREE( p->vPos.pArray );
-    ABC_FREE( p->pHTable );
-    ABC_FREE( p->pName );
-    ABC_FREE( p );
-}
-void Au_NtkPrintStats( Au_Ntk_t * p )
-{
-    printf( "%-13s:",        Au_NtkName(p) );
-    printf( " i/o =%5d/%5d", Au_NtkPiNum(p), Au_NtkPoNum(p) );
-    printf( "  lat =%5d",    Au_NtkFlopNum(p) );
-    printf( "  nd =%6d",   Au_NtkNodeNum(p) );
-    printf( "  box =%5d",    Au_NtkBoxNum(p) );
-    printf( "  obj =%6d",    Au_NtkObjNum(p) );
-    printf( "  max =%6d",    Au_NtkObjNumMax(p) );
-    printf( "  use =%6d",    p->nUseful );
+    printf( "Different functions = %d. ", Abc_NamObjNumMax(p->pFuncs) );
+    printf( "Memory = %.2f Mb",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
     printf( "\n" );
 }
+
 
 /**Function*************************************************************
 
@@ -265,50 +302,77 @@ void Au_NtkPrintStats( Au_Ntk_t * p )
 static inline void Au_NtkInsertHeader( Au_Ntk_t * p )
 {
     Au_Obj_t * pMem = (Au_Obj_t *)Vec_PtrEntryLast( &p->vPages );
-    if ( p->iHandle > 0 )
-        p->iHandle += 64 - (p->iHandle & 63); 
     assert( (((ABC_PTRINT_T)(pMem + p->iHandle) & 0x3FF) >> 4) == 0 );
     ((Au_Ntk_t **)(pMem + p->iHandle))[0] = p;
-    ((int *)(pMem + p->iHandle))[3] = Vec_PtrSize(&p->vPages) - 1;
+    ((int *)(pMem + p->iHandle))[2] = ((Vec_PtrSize(&p->vPages) - 1) << 12) | (p->iHandle & 0xFC0);
     p->iHandle++;
 }
 int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
 {
-    Au_Obj_t * pMem;
-    int nObjInt = ((1+nFanins) >> 4) + (((1+nFanins) & 15) > 0);
+    Au_Obj_t * pMem, * pObj, * pTemp;
+    int Id, nObjInt = ((2+nFanins) >> 2) + (((2+nFanins) & 3) > 0);
+    if ( nObjInt > 63 )
+    {
+        int nObjInt2 = 63 + 64 * (((nObjInt-63) >> 6) + (((nObjInt-63) & 63) > 0));
+        assert( nObjInt2 >= nObjInt );
+        p->nUseful += nObjInt - nObjInt2;
+        nObjInt = nObjInt2;
+    }
+
     if ( Vec_PtrSize(&p->vPages) == 0 || p->iHandle + nObjInt > (1 << 12) )
     {
-        if ( nObjInt + (1 << 6) > (1 << 12) )
-            pMem = ABC_CALLOC( Au_Obj_t, nObjInt + (1 << 6) );
+        if ( nObjInt + 64 > (1 << 12) )
+            pMem = ABC_CALLOC( Au_Obj_t, nObjInt + 64 );
         else
-            pMem = ABC_CALLOC( Au_Obj_t, (1 << 12) );
-        Vec_PtrPush( &p->vPages, pMem );
+            pMem = ABC_CALLOC( Au_Obj_t, (1 << 12) + 64 );
+        Vec_PtrPush( p->vChunks, pMem );
+        if ( ((ABC_PTRINT_T)pMem & 0xF) )
+            pMem = (Au_Obj_t *)((char *)pMem + 16 - ((ABC_PTRINT_T)pMem & 0xF));
+        assert( ((ABC_PTRINT_T)pMem & 0xF) == 0 );
         p->iHandle = (((ABC_PTRINT_T)pMem & 0x3FF) >> 4);
+        if ( p->iHandle )
+        {
+            pMem += 64 - (p->iHandle & 63);
+            // can introduce p->iHandleMax = (1 << 12) - (64 - (p->iHandle & 63))
+            p->iHandle = 0; 
+        }
+        Vec_PtrPush( &p->vPages, pMem );
         Au_NtkInsertHeader( p );
     }
     else
+    {
         pMem = (Au_Obj_t *)Vec_PtrEntryLast( &p->vPages );
-    if ( nObjInt > 64 - (p->iHandle & 63) )
-        Au_NtkInsertHeader( p );
-    if ( p->iHandle + nObjInt > (1 << 12) )
-        return Au_NtkAllocObj( p, nFanins, Type );
-    assert( *((int *)pMem) == 0 );
-    pMem->nFanins = nFanins;
-    p->nObjs[pMem->Type = Type]++;
+        if ( !(p->iHandle & 63) || nObjInt > (64 - (p->iHandle & 63)) )
+        {
+            if ( p->iHandle & 63 )
+                p->iHandle += 64 - (p->iHandle & 63); 
+            Au_NtkInsertHeader( p );
+        }
+        if ( p->iHandle + nObjInt > (1 << 12) )
+            return Au_NtkAllocObj( p, nFanins, Type );
+    }
+    pObj = pMem + p->iHandle;
+    assert( *((int *)pObj) == 0 );
+    pObj->nFanins = nFanins;
+    p->nObjs[pObj->Type = Type]++;
     if ( Type == AU_OBJ_PI )
     {
-        Au_ObjSetFaninLit( pMem, 0, Vec_IntSize(&p->vPis) );
-        Vec_IntPush( &p->vPis, Au_ObjId(pMem) );
+        Au_ObjSetFaninLit( pObj, 0, Vec_IntSize(&p->vPis) );
+        Vec_IntPush( &p->vPis, Au_ObjId(pObj) );
     }
     else if ( Type == AU_OBJ_PO )
     {
-        Au_ObjSetFaninLit( pMem, 1, Vec_IntSize(&p->vPos) );
-        Vec_IntPush( &p->vPos, Au_ObjId(pMem) );
+        Au_ObjSetFaninLit( pObj, 1, Vec_IntSize(&p->vPos) );
+        Vec_IntPush( &p->vPos, Au_ObjId(pObj) );
     }
     p->iHandle += nObjInt;
     p->nUseful += nObjInt;
     p->nObjsUsed++;
-    return Au_ObjId(pMem);
+
+    Id = Au_ObjId(pObj);
+    pTemp = Au_NtkObj( p, Id );
+    assert( pTemp == pObj );
+    return Id;
 }
 int Au_NtkCreateConst0( Au_Ntk_t * pNtk )
 {
@@ -357,6 +421,7 @@ int Au_NtkCreateBox( Au_Ntk_t * pNtk, Vec_Int_t * vFanins, int nFanouts, int iMo
         Au_ObjSetFaninLit( p, nFanins + 1 + i, Au_NtkCreateFan(pNtk, Id, i, iModel) );
     p->nFanins = nFanins;
     p->Func = iModel;
+    assert( iModel > 0 );
     return Id;
 }
 
@@ -386,6 +451,7 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk )
     Vec_Int_t * vFanins;
     int i, k, iFunc;
     assert( Abc_NtkIsNetlist(pNtk) );
+    Abc_NtkCleanCopy( pNtk );
     p = Au_NtkAlloc( pMan, Abc_NtkName(pNtk) );
     // copy PIs
     Abc_NtkForEachPi( pNtk, pTerm, i )
@@ -396,15 +462,17 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
     {
         Vec_IntClear( vFanins );
-        Abc_ObjForEachFanin( pObj, pTerm, k )
-            Vec_IntPush( vFanins, pTerm->iTemp );
         if ( Abc_ObjIsNode(pObj) )
         {
-            iFunc = 3; // add type here
+            Abc_ObjForEachFanin( pObj, pTerm, k )
+                Vec_IntPush( vFanins, pTerm->iTemp );
+            iFunc = Abc_NamStrFindOrAdd( pMan->pFuncs, (char *)pObj->pData, NULL );
             Abc_ObjFanout0(pObj)->iTemp = Au_NtkCreateNode(p, vFanins, iFunc);
             continue;
         }
         assert( Abc_ObjIsBox(pObj) );
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Vec_IntPush( vFanins, Abc_ObjFanin0(pTerm)->iTemp );
         pNtkModel = (Abc_Ntk_t *)pObj->pData;
         pObj->iTemp = Au_NtkCreateBox(p, vFanins, Abc_ObjFanoutNum(pObj), pNtkModel->iStep );
         pAuObj = Au_NtkObj(p, pObj->iTemp);
@@ -419,20 +487,31 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk )
     return p;
 }
 
-void Au_ManDeriveTest( Abc_Lib_t * pLib )
+void Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 {
+    extern Vec_Ptr_t * Abc_NtkCollectHie( Abc_Ntk_t * pNtk );
+
+    Vec_Ptr_t * vOrder;
     Abc_Ntk_t * pMod;
     Au_Man_t * pMan;
     Au_Ntk_t * pNtk;
-    int i;
-    pMan = Au_ManAlloc( pLib->pName );
-    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pMod, i )
+    int i, clk = clock();
+
+    pMan = Au_ManAlloc( pRoot->pDesign->pName );
+
+    vOrder = Abc_NtkCollectHie( pRoot );
+//    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pMod, i )
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vOrder, pMod, i )
     {
         pNtk = Au_NtkDerive( pMan, pMod );
         pMod->iStep = pNtk->Id;
     }
+    Vec_PtrFree( vOrder );
+
     Au_ManPrintStats( pMan );
-    Au_ManFree( pMan );
+    Au_ManDelete( pMan );
+    
+    Abc_PrintTime( 1, "Time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -2455,6 +2455,14 @@ SOURCE=.\src\misc\util\utilMem.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilNam.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilNam.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilSignal.c
 # End Source File
 # Begin Source File

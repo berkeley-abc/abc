@@ -298,6 +298,33 @@ static inline void Abc_PrintMemoryP( int level, const char * pStr, int time, int
     ABC_PRMP( pStr, time, Time );
 }
 
+// Returns the next prime >= p
+static inline int Abc_PrimeCudd( unsigned int p )
+{
+    int i,pn;
+    p--;
+    do {
+        p++;
+        if (p&1) 
+        {
+            pn = 1;
+            i = 3;
+            while ((unsigned) (i * i) <= p) 
+            {
+                if (p % i == 0) {
+                    pn = 0;
+                    break;
+                }
+                i += 2;
+            }
+        } 
+        else 
+            pn = 0;
+    } while (!pn);
+    return(p);
+
+} // end of Cudd_Prime 
+
 extern void   Abc_Sort( int * pInput, int nSize );
 extern int *  Abc_SortCost( int * pCosts, int nSize );
 
