@@ -193,6 +193,7 @@ void Abc_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Abc_Ntk_t * pNtk )
         {
             char * pSop = (char *)pObj->pData;
             int nLength = strlen(pSop);
+/*
             if ( nLength == 4 ) // buf/inv
             {
                 assert( pSop[2] == '1' );
@@ -214,6 +215,7 @@ void Abc_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Abc_Ntk_t * pNtk )
                     );
                 continue;
             }
+*/
             assert( Abc_ObjFaninNum(pObj) <= 16 );
             assert( Abc_ObjFaninNum(pObj) == Abc_SopGetVarNum(pSop) );
             Abc_ObjForEachFanin( pObj, pTerm, k )
@@ -564,6 +566,7 @@ void Abc_NtkCountInst( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
 {
+    int fUseTest = 1;
     int fUseNew = 0;
     int fCheck = 1;
     Vec_Ptr_t * vMods, * vOrder;
@@ -590,11 +593,13 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     assert( !Abc_NtkLatchNum(pNtk) );
 
     // test the new data-structure
+    if ( fUseTest )
     {
-        extern void Au_ManDeriveTest( Abc_Ntk_t * pRoot );
-        Au_ManDeriveTest( pNtk );
+        extern Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot );
+        Gia_Man_t * pGia;
+        pGia = Au_ManDeriveTest( pNtk );
         Abc_NtkDelete( pNtk );
-        return NULL;
+        return pGia;
     }
 
     // print stats
