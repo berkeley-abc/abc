@@ -92,6 +92,8 @@ struct Au_Man_t_
     Vec_Ptr_t              vNtks;              // the array of modules
     Abc_Nam_t *            pFuncs;             // hashing functions into integers
     int                    nRefs;              // reference counter
+    // statistics
+    int                    nGiaObjMax;         // max number of GIA objects
 };
 
 
@@ -252,9 +254,9 @@ void Au_NtkPrintStats( Au_Ntk_t * p )
 //    printf( "  lat =%5d",     Au_NtkFlopNum(p) );
     printf( "  nd =%6d",      Au_NtkNodeNum(p) );
     printf( "  box =%5d",     Au_NtkBoxNum(p) );
-    printf( "  obj =%6d",     Au_NtkObjNum(p) );
-    printf( "  max =%6d",     Au_NtkObjNumMax(p) );
-//    printf( "  use =%6d",     p->nUseful );
+    printf( "  obj =%7d",     Au_NtkObjNum(p) );
+    printf( "  max =%7d",     Au_NtkObjNumMax(p) );
+    printf( "  use =%7d",     p->nUseful );
     printf( "  %4.1f %%",     100.0 * (Au_NtkObjNumMax(p) - p->nUseful) / Au_NtkObjNumMax(p) );
     printf( "  %5.1f Mb",     1.0 * Au_NtkMemUsage(p) / (1 << 20) );
     printf( "\n" );
@@ -541,6 +543,8 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
         Au_ObjSetCopy( pTerm, Au_ObjCopy(Au_ObjFanin0(pTerm)) );
     Au_NtkForEachPo( p, pTerm, i )
         assert( Au_ObjCopy(pTerm) >= 0 );
+
+    p->pMan->nGiaObjMax = Abc_MaxInt( p->pMan->nGiaObjMax, Gia_ManObjNum(pGia) );
 }
 
 /**Function*************************************************************
@@ -669,9 +673,14 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 
     Au_ManPrintStats( pMan );
 
+    Abc_PrintTime( 1, "Time all", clock() - clk );
+    Abc_PrintTime( 1, "Time new", clk2 );
+
     clk1 = clock();
     pGia = Au_NtkDeriveFlatGia( (Au_Ntk_t *)pRoot->pData );
     clk3 = clock() - clk1;
+
+    printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
 
     clk1 = clock();
     Au_ManDelete( pMan );
