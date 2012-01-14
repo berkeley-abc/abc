@@ -490,8 +490,12 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
     {
         int * pPlace = Gia_ManHashFind( p, iLit0, iLit1 );
-        if ( *pPlace ) 
+        if ( *pPlace )
+        {
+            p->nHashHit++;
             return *pPlace;
+        }
+        p->nHashMiss++;
         if ( p->nObjs < p->nObjsAlloc )
             return *pPlace = Gia_ManAppendAnd( p, iLit0, iLit1 );
         else

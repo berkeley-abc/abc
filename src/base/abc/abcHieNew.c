@@ -369,7 +369,8 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
     {
         int nObjInt2 = 63 + 64 * (((nObjInt-63) >> 6) + (((nObjInt-63) & 63) > 0));
         assert( nObjInt2 >= nObjInt );
-        p->nUseful += nObjInt - nObjInt2;
+//        if ( nObjInt2 + 64 < (1 << 12) )
+//            p->nUseful += nObjInt - nObjInt2;
         nObjInt = nObjInt2;
     }
 

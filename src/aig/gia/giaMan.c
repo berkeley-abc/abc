@@ -70,6 +70,7 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
 ***********************************************************************/
 void Gia_ManStop( Gia_Man_t * p )  
 {
+    printf( "Hash table hits = %12u.   Hash table misses = %12u.\n", (int)p->nHashHit, (int)p->nHashMiss );
     Tim_ManStopP( (Tim_Man_t **)&p->pManTime );
     assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
