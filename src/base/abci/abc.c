@@ -8927,11 +8927,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Abs_VfaManTest( Aig_Man_t * pAig, int nFrames, int nConfLimit, int fVerbose );
     extern void Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose );
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern void Aig_ManSupportsTest( Aig_Man_t * pMan );
     if ( pNtk )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
 //        Aig_ManInterRepar( pAig, 1 );
 //        Aig_ManInterTest( pAig, 1 );
+        Aig_ManSupportsTest( pAig );
         Aig_ManStop( pAig );
     }
 }

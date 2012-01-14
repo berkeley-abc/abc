@@ -277,7 +277,7 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
     Part_Man_t * p;
     Part_One_t * pPart0, * pPart1;
     Aig_Obj_t * pObj;
-    int i;
+    int i, Counter = 0;
     // set the number of PIs/POs
     Aig_ManForEachPi( pMan, pObj, i )
         pObj->pNext = (Aig_Obj_t *)(long)i;
@@ -301,6 +301,8 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
             assert( pPart1->nRefs > 0 );
             if ( --pPart1->nRefs == 0 )
                 Part_ManRecycleEntry( p, pPart1 );
+            if ( ((Part_One_t *)pObj->pData)->nOuts <= 16 )
+                Counter++;
             continue;
         }
         if ( Aig_ObjIsPo(pObj) )
@@ -346,7 +348,26 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
         printf( "%d ", Vec_IntSize( Vec_VecEntryInt(vSupports, i) ) );
     printf( "\n" );
 */
+//    printf( "%d \n", Counter );
     return vSupports;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManSupportsTest( Aig_Man_t * pMan )
+{
+    Vec_Ptr_t * vSupps;
+    vSupps = Aig_ManSupports( pMan );
+    Vec_VecFree( (Vec_Vec_t *)vSupps );
 }
 
 /**Function*************************************************************

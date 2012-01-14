@@ -552,6 +552,40 @@ void Abc_NtkCountInst( Abc_Ntk_t * pNtk )
     printf( "Instances = %10d.\n", Counter );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks if there is a recursive definition.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods;
+    Abc_Ntk_t * pModel;
+    Abc_Obj_t * pObj;
+    int i, k, RetValue = 0;
+
+    assert( Abc_NtkIsNetlist(pNtk) );
+    assert( !Abc_NtkLatchNum(pNtk) );
+
+    vMods = pNtk->pDesign->vModules;
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+    {
+        Abc_NtkForEachObj( pModel, pObj, k )
+            if ( Abc_ObjIsBox(pObj) && pObj->pData == (void *)pModel )
+            {
+                printf( "WARNING: Model \"%s\" contains a recursive defition.\n", Abc_NtkName(pModel) );
+                RetValue = 1;
+                break;
+            }
+    }
+    return RetValue;
+}
 
 /**Function*************************************************************
 
@@ -591,6 +625,9 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
 
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
+
+    if ( Abc_NtkCheckRecursive(pNtk) )
+        return NULL;
 
     // test the new data-structure
     if ( fUseTest )

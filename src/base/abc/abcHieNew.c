@@ -638,6 +638,8 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
     // copy POs
     Abc_NtkForEachPo( pNtk, pTerm, i )
         Au_NtkCreatePo( p, Abc_ObjFanin0(pTerm)->iTemp );
+
+    Au_NtkPrintStats( p );
     return p;
 }
 
