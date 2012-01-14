@@ -194,6 +194,7 @@ struct Abc_Ntk_t_
     short             fHieVisited;   // flag to mark the visited network
     short             fHiePath;      // flag to mark the network on the path
     int               Id;            // model ID
+    double            dTemp;         // temporary value
     // miscellaneous data members
     int               nTravIds;      // the unique traversal IDs of nodes
     Mem_Fixed_t *     pMmObj;        // memory manager for objects

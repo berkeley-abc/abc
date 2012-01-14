@@ -365,15 +365,9 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
 {
     Au_Obj_t * pMem, * pObj, * pTemp;
     int Id, nObjInt = ((2+nFanins) >> 2) + (((2+nFanins) & 3) > 0);
+    int nObjIntReal = nObjInt;
     if ( nObjInt > 63 )
-    {
-        int nObjInt2 = 63 + 64 * (((nObjInt-63) >> 6) + (((nObjInt-63) & 63) > 0));
-        assert( nObjInt2 >= nObjInt );
-//        if ( nObjInt2 + 64 < (1 << 12) )
-//            p->nUseful += nObjInt - nObjInt2;
-        nObjInt = nObjInt2;
-    }
-
+        nObjInt = 63 + 64 * (((nObjInt-63) >> 6) + (((nObjInt-63) & 63) > 0));
     if ( Vec_PtrSize(&p->vPages) == 0 || p->iHandle + nObjInt > (1 << 12) )
     {
         if ( nObjInt + 64 > (1 << 12) )
@@ -421,7 +415,7 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
         Vec_IntPush( &p->vPos, Au_ObjId(pObj) );
     }
     p->iHandle += nObjInt;
-    p->nUseful += nObjInt;
+    p->nUseful += nObjIntReal;
     p->nObjsUsed++;
 
     Id = Au_ObjId(pObj);

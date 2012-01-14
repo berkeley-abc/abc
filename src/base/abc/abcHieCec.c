@@ -532,7 +532,7 @@ int Abc_NtkCountInst_rec( Abc_Ntk_t * pNtk )
         return pNtk->iStep;
     vOrder = Abc_NtkDfsBoxes( pNtk );
     Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
-        if ( Abc_ObjIsBox(pObj) )
+        if ( Abc_ObjIsBox(pObj) && (Abc_Ntk_t *)pObj->pData != pNtk )
             Counter += Abc_NtkCountInst_rec( (Abc_Ntk_t *)pObj->pData );
     Vec_PtrFree( vOrder );
     return pNtk->iStep = 1 + Counter;
@@ -550,6 +550,50 @@ void Abc_NtkCountInst( Abc_Ntk_t * pNtk )
  
     Counter = Abc_NtkCountInst_rec( pNtk );
     printf( "Instances = %10d.\n", Counter );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+double Abc_NtkCountNodes_rec( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vOrder;
+    Abc_Obj_t * pObj;
+    double Counter = 0;
+    int i;
+    if ( pNtk->dTemp >= 0 )
+        return pNtk->dTemp;
+    vOrder = Abc_NtkDfsBoxes( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
+        if ( Abc_ObjIsNode(pObj) )
+            Counter++;
+        else if ( Abc_ObjIsBox(pObj) && (Abc_Ntk_t *)pObj->pData != pNtk )
+            Counter += Abc_NtkCountNodes_rec( (Abc_Ntk_t *)pObj->pData );
+    Vec_PtrFree( vOrder );
+    return pNtk->dTemp = Counter;
+}
+
+void Abc_NtkCountNodes( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods;
+    Abc_Ntk_t * pModel;
+    double Counter;
+    int i;
+
+    vMods = pNtk->pDesign->vModules;
+    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+        pModel->dTemp = -1;
+ 
+    Counter = Abc_NtkCountNodes_rec( pNtk );
+    printf( "Nodes = %.0f\n", Counter );
 }
 
 /**Function*************************************************************
@@ -625,6 +669,10 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
 
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
+
+    clk = clock();
+    Abc_NtkCountNodes( pNtk );
+    Abc_PrintTime( 1, "Count nodes", clock() - clk );
 
     // print stats
     if ( fVerbose )
