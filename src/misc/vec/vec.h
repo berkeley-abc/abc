@@ -35,6 +35,7 @@
 #include "vecVec.h"
 #include "vecAtt.h"
 #include "vecWrd.h"
+#include "vecBit.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
