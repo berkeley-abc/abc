@@ -188,7 +188,7 @@ void Aig_ManInterTest( Aig_Man_t * pMan, int fVerbose )
 //    Aig_ManPrintStats( pInter );
 //    Aig_ManDumpBlif( pInter, "int.blif", NULL, NULL );
     pInter = Sat_ProofInterpolantTruth( pSat, vVars );
-    Extra_PrintHex( stdout, pInter, Vec_IntSize(vVars) ); printf( "\n" );
+//    Extra_PrintHex( stdout, pInter, Vec_IntSize(vVars) ); printf( "\n" );
 
     // clean up
 //    Aig_ManStop( pInter );
