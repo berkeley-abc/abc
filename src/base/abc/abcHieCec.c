@@ -487,7 +487,7 @@ void Abc_NtkCollectHie_rec( Abc_Ntk_t * pNtk, Vec_Ptr_t * vModels )
         return;
     vOrder = Abc_NtkDfsBoxes( pNtk );
     Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pObj, i )
-        if ( Abc_ObjIsBox(pObj) )
+        if ( Abc_ObjIsBox(pObj) && (Abc_Ntk_t *)pObj->pData != pNtk )
             Abc_NtkCollectHie_rec( (Abc_Ntk_t *)pObj->pData, vModels );
     Vec_PtrFree( vOrder );
     pNtk->iStep = Vec_PtrSize(vModels);
@@ -626,8 +626,9 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
 
-    if ( Abc_NtkCheckRecursive(pNtk) )
-        return NULL;
+    // print stats
+    if ( fVerbose )
+        Abc_NtkPrintBoxInfo( pNtk );
 
     // test the new data-structure
     if ( fUseTest )
@@ -639,9 +640,8 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
         return pGia;
     }
 
-    // print stats
-    if ( fVerbose )
-        Abc_NtkPrintBoxInfo( pNtk );
+    if ( Abc_NtkCheckRecursive(pNtk) )
+        return NULL;
 
     if ( fUseNew )
     {

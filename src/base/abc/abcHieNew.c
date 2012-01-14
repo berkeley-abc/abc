@@ -487,7 +487,7 @@ int Au_NtkCreateBox( Au_Ntk_t * pNtk, Vec_Int_t * vFanins, int nFanouts, int iMo
 
 extern Vec_Ptr_t * Abc_NtkDfsBoxes( Abc_Ntk_t * pNtk );
 extern int Abc_NtkDeriveFlatGiaSop( Gia_Man_t * pGia, int * gFanins, char * pSop );
-
+extern int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk );
 
 /**Function*************************************************************
 
@@ -639,7 +639,7 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
     Abc_NtkForEachPo( pNtk, pTerm, i )
         Au_NtkCreatePo( p, Abc_ObjFanin0(pTerm)->iTemp );
 
-    Au_NtkPrintStats( p );
+//    Au_NtkPrintStats( p );
     return p;
 }
 
@@ -647,12 +647,12 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 {
     extern Vec_Ptr_t * Abc_NtkCollectHie( Abc_Ntk_t * pNtk );
 
-    Gia_Man_t * pGia;
+    Gia_Man_t * pGia = NULL;
     Vec_Ptr_t * vOrder, * vModels;
     Abc_Ntk_t * pMod;
     Au_Man_t * pMan;
     Au_Ntk_t * pNtk;
-    int i, clk1, clk2 = 0, clk3, clk = clock();
+    int i, clk1, clk2 = 0, clk3 = 0, clk = clock();
 
     clk1 = clock();
     pMan = Au_ManAlloc( pRoot->pDesign->pName );
@@ -676,14 +676,13 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 
     Au_ManPrintStats( pMan );
 
-    Abc_PrintTime( 1, "Time all", clock() - clk );
-    Abc_PrintTime( 1, "Time new", clk2 );
-
-    clk1 = clock();
-    pGia = Au_NtkDeriveFlatGia( (Au_Ntk_t *)pRoot->pData );
-    clk3 = clock() - clk1;
-
-    printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
+    if ( !Abc_NtkCheckRecursive(pRoot) )
+    {
+        clk1 = clock();
+        pGia = Au_NtkDeriveFlatGia( (Au_Ntk_t *)pRoot->pData );
+        clk3 = clock() - clk1;
+        printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
+    }
 
     clk1 = clock();
     Au_ManDelete( pMan );

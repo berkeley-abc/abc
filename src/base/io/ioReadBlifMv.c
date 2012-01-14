@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 #define IO_BLIFMV_MAXVALUES 256
-#define IO_VERBOSE_OUTPUT
+//#define IO_VERBOSE_OUTPUT
 
 typedef struct Io_MvVar_t_ Io_MvVar_t; // parsing var
 typedef struct Io_MvMod_t_ Io_MvMod_t; // parsing model
