@@ -2181,6 +2181,32 @@ void Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints one AIG sugraph recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_RecPrint_rec( Abc_Obj_t * pObj )
+{
+    if ( Abc_ObjIsPi(pObj) )
+    {
+        printf( "%c", 'a' + pObj->Id - 1 );
+        return;
+    }
+    assert( Abc_ObjIsNode(pObj) );
+    printf( "(%s", Abc_ObjFaninC0(pObj)? "!" : "" );
+    Abc_RecPrint_rec( Abc_ObjFanin0(pObj) );
+    printf( "*%s", Abc_ObjFaninC1(pObj)? "!" : "" );
+    Abc_RecPrint_rec( Abc_ObjFanin1(pObj) );
+    printf( ")" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the  delay using library.]
 
   Description []
@@ -2192,6 +2218,7 @@ void Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars )
 ***********************************************************************/
 int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
 {
+    int fVerbose = 0;
     int timeDelayComput, timeTotal = clock(), timeCanonicize;
     int nLeaves, i, DelayMin = ABC_INFINITY , Delay = -ABC_INFINITY;
     char pCanonPerm[16];
@@ -2201,7 +2228,7 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
     Abc_Ntk_t *pAig = s_pMan->pNtk;
     unsigned *pInOut = s_pMan->pTemp1;
     unsigned *pTemp = s_pMan->pTemp2;
-    int nVars = s_pMan->nVars;
+    int Counter, nVars = s_pMan->nVars;
     assert( s_pMan != NULL );
     nLeaves = If_CutLeaveNum(pCut);
     s_pMan->nFunsTried++;
@@ -2251,9 +2278,22 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
     DelayMin = ABC_INFINITY;
     pCandMin = NULL;
     timeDelayComput = clock();
+
+    if ( fVerbose )
+        Kit_DsdPrintFromTruth( pInOut, nLeaves ), printf( "   Subgraphs: " );
+
     //find the best structure of the functional class.
+    Counter = 0;
     for ( pCand = *ppSpot; pCand; pCand = pCand->pNext )
     {
+        Counter++;
+        if ( fVerbose )
+        {
+            printf( "%s(", Abc_ObjIsComplement(pCand->obj)? "!" : "" );
+            Abc_RecPrint_rec( Abc_ObjRegular(pCand->obj) );
+            printf( ")   " );
+        }
+
         s_pMan->nFunsDelayComput++;
         Delay = If_CutComputDelay(p, pCand, pCut, pCanonPerm ,nLeaves);
         if ( DelayMin > Delay )
@@ -2268,6 +2308,9 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
                 pCandMin = pCand;
         }
     }
+    if ( fVerbose )
+        printf( "Printed %d subgraphs.\n", Counter );
+
     s_pMan->timeIfComputDelay += clock() - timeDelayComput;
     assert( pCandMin != NULL );
     for ( i = 0; i < nLeaves; i++ )
