@@ -503,11 +503,17 @@ Vec_Ptr_t * Abc_NtkCollectHie( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
 
+    vResult = Vec_PtrAlloc( 1000 );
+    if ( pNtk->pDesign == NULL )
+    {
+        Vec_PtrPush( vResult, pNtk );
+        return vResult;
+    }
+
     vMods = pNtk->pDesign->vModules;
     Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
         pModel->iStep = -1;
 
-    vResult = Vec_PtrAlloc( 1000 );
     Abc_NtkCollectHie_rec( pNtk, vResult );
     return vResult;    
 }
@@ -544,11 +550,15 @@ void Abc_NtkCountInst( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pModel;
     int i, Counter;
 
-    vMods = pNtk->pDesign->vModules;
-    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
-        pModel->iStep = -1;
- 
-    Counter = Abc_NtkCountInst_rec( pNtk );
+    if ( pNtk->pDesign == NULL )
+        Counter = Abc_NtkNodeNum(pNtk);
+    else
+    {
+        vMods = pNtk->pDesign->vModules;
+        Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+            pModel->iStep = -1;
+        Counter = Abc_NtkCountInst_rec( pNtk );
+    }
     printf( "Instances = %10d.\n", Counter );
 }
 
@@ -588,11 +598,15 @@ void Abc_NtkCountNodes( Abc_Ntk_t * pNtk )
     double Counter;
     int i;
 
-    vMods = pNtk->pDesign->vModules;
-    Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
-        pModel->dTemp = -1;
- 
-    Counter = Abc_NtkCountNodes_rec( pNtk );
+    if ( pNtk->pDesign == NULL )
+        Counter = Abc_NtkNodeNum(pNtk);
+    else
+    {
+        vMods = pNtk->pDesign->vModules;
+        Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
+            pModel->dTemp = -1;
+        Counter = Abc_NtkCountNodes_rec( pNtk );
+    }
     printf( "Nodes = %.0f\n", Counter );
 }
 
@@ -616,6 +630,9 @@ int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
+
+    if ( pNtk->pDesign == NULL )
+        return RetValue;
 
     vMods = pNtk->pDesign->vModules;
     Vec_PtrForEachEntry( Abc_Ntk_t *, vMods, pModel, i )
@@ -662,17 +679,20 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
     if ( pNtk->pDesign == NULL || pNtk->pDesign->vModules == NULL )
     {
         printf( "There is no hierarchy information.\n" );
-        Abc_NtkDelete( pNtk );
-        return NULL;
+//        Abc_NtkDelete( pNtk );
+//        return NULL;
     }
     Abc_PrintTime( 1, "Reading file", clock() - clk );
 
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
 
-    clk = clock();
-    Abc_NtkCountNodes( pNtk );
-    Abc_PrintTime( 1, "Count nodes", clock() - clk );
+    if ( pNtk->pDesign != NULL )
+    {
+        clk = clock();
+        Abc_NtkCountNodes( pNtk );
+        Abc_PrintTime( 1, "Count nodes", clock() - clk );
+    }
 
     // print stats
     if ( fVerbose )

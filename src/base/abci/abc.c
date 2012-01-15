@@ -8928,12 +8928,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose );
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern void Aig_ManSupportsTest( Aig_Man_t * pMan );
+    extern int Aig_SupportSizeTest( Aig_Man_t * pMan );
+    extern int Abc_NtkSuppSizeTest( Abc_Ntk_t * p );
     if ( pNtk )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
 //        Aig_ManInterRepar( pAig, 1 );
 //        Aig_ManInterTest( pAig, 1 );
-        Aig_ManSupportsTest( pAig );
+//        Aig_ManSupportsTest( pAig );
+//        Aig_SupportSizeTest( pAig );
+        Abc_NtkSuppSizeTest( pNtk );
         Aig_ManStop( pAig );
     }
 }
@@ -30323,6 +30327,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
     extern void Gia_VtaTest( Gia_Man_t * p, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
+    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -30359,7 +30364,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 //    pAbc->pGia = Gia_VtaTest( pTemp = pAbc->pGia );
 //    Gia_ManStopP( &pTemp );
-    Gia_VtaTest( pAbc->pGia, 100000, 0, 0, 1 );
+//    Gia_VtaTest( pAbc->pGia, 100000, 0, 0, 1 );
+    Gia_ManSuppSizeTest( pAbc->pGia );
 
     return 0;
 

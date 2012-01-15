@@ -69,13 +69,13 @@ struct Au_Ntk_t_
     Vec_Int_t              vPis;               // primary inputs (CI id -> handle)
     Vec_Int_t              vPos;               // primary outputs (CI id -> handle)
     Vec_Int_t              vObjs;              // internal nodes (obj id -> handle)
-    int                    nObjsUsed;          // used objects
     int                    nObjs[AU_OBJ_VOID]; // counter of objects of each type
     // memory for objects
     Vec_Ptr_t *            vChunks;            // memory pages
     Vec_Ptr_t              vPages;             // memory pages
     int                    iHandle;            // currently available ID
-    int                    nUseful;            // the number of useful entries
+    int                    nObjsAlloc;         // the total number of objects allocated
+    int                    nObjsUsed;          // the number of useful entries
     // object attributes
     int                    nTravIds;           // counter of traversal IDs
     Vec_Int_t              vTravIds;           // trav IDs of the objects
@@ -123,7 +123,7 @@ static inline int          Au_NtkFlopNum( Au_Ntk_t * p )                 { retur
 static inline int          Au_NtkBoxNum( Au_Ntk_t * p )                  { return p->nObjs[AU_OBJ_BOX];                                           } 
 static inline int          Au_NtkNodeNum( Au_Ntk_t * p )                 { return p->nObjs[AU_OBJ_NODE];                                          } 
 static inline int          Au_NtkObjNumMax( Au_Ntk_t * p )               { return (Vec_PtrSize(&p->vPages) - 1) * (1 << 12) + p->iHandle;         } 
-static inline int          Au_NtkObjNum( Au_Ntk_t * p )                  { return p->nObjsUsed;                                                   } 
+static inline int          Au_NtkObjNum( Au_Ntk_t * p )                  { return Vec_IntSize(&p->vObjs);                                         } 
 static inline Au_Obj_t *   Au_NtkObj( Au_Ntk_t * p, int h )              { return (Au_Obj_t *)p->vPages.pArray[h >> 12] + (h & 0xFFF);            }
 
 static inline Au_Obj_t *   Au_NtkPi( Au_Ntk_t * p, int i )               { return Au_NtkObj(p, Vec_IntEntry(&p->vPis, i));                        }
@@ -145,7 +145,7 @@ static inline Au_Ntk_t *   Au_ObjNtk( Au_Obj_t * p )                     { retur
 static inline int          Au_ObjId( Au_Obj_t * p )                      { return ((int *)Au_ObjBase(p))[2] | (((ABC_PTRINT_T)p & 0x3FF) >> 4);   }
 static inline int          Au_ObjPioNum( Au_Obj_t * p )                  { assert(Au_ObjIsTerm(p)); return p->Fanins[p->nFanins];                 }
 static inline int          Au_ObjFunc( Au_Obj_t * p )                    { return p->Func;                                                        }
-static inline Au_Ntk_t *   Au_ObjModel( Au_Obj_t * p )                   { assert(Au_ObjIsFan(p)||Au_ObjIsBox(p)); return Au_ManNtk(Au_NtkMan(Au_ObjNtk(p)), p->Func); }
+static inline Au_Ntk_t *   Au_ObjNtkel( Au_Obj_t * p )                   { assert(Au_ObjIsFan(p)||Au_ObjIsBox(p)); return Au_ManNtk(Au_NtkMan(Au_ObjNtk(p)), p->Func); }
 
 static inline int          Au_ObjFaninNum( Au_Obj_t * p )                { return p->nFanins;                                                     }
 static inline int          Au_ObjFaninId( Au_Obj_t * p, int i )          { assert(i >= 0 && i < (int)p->nFanins && p->Fanins[i]); return Au_Lit2Var(p->Fanins[i]);     }
@@ -170,6 +170,14 @@ static inline void         Au_ObjSetCopy( Au_Obj_t * p, int c )          { Vec_I
 
 static inline int          Au_ObjFanout( Au_Obj_t * p, int i )           { assert(p->Type == AU_OBJ_BOX && i >= 0 && i < p->Fanins[p->nFanins] && p->Fanins[i]); return p->Fanins[p->nFanins + 1 + i];             }
 static inline int          Au_ObjSetFanout( Au_Obj_t * p, int i, int f ) { assert(p->Type == AU_OBJ_BOX && i >= 0 && i < p->Fanins[p->nFanins] && p->Fanins[i] == 0 && f > 0); p->Fanins[p->nFanins + 1 + i] = f;  }
+
+static inline void         Au_NtkIncrementTravId( Au_Ntk_t * p )            { if (p->vTravIds.pArray == NULL) Vec_IntFill(&p->vTravIds, Au_NtkObjNumMax(p)+500, 0); p->nTravIds++; assert(p->nTravIds < (1<<30));  }
+static inline void         Au_ObjSetTravIdCurrent( Au_Obj_t * p )           { Vec_IntSetEntry(&Au_ObjNtk(p)->vTravIds, Au_ObjId(p), Au_ObjNtk(p)->nTravIds );                        }
+static inline void         Au_ObjSetTravIdPrevious( Au_Obj_t * p )          { Vec_IntSetEntry(&Au_ObjNtk(p)->vTravIds, Au_ObjId(p), Au_ObjNtk(p)->nTravIds-1 );                      }
+static inline int          Au_ObjIsTravIdCurrent( Au_Obj_t * p )            { return (Vec_IntGetEntry(&Au_ObjNtk(p)->vTravIds, Au_ObjId(p)) == Au_ObjNtk(p)->nTravIds);              }
+static inline int          Au_ObjIsTravIdPrevious( Au_Obj_t * p )           { return (Vec_IntGetEntry(&Au_ObjNtk(p)->vTravIds, Au_ObjId(p)) == Au_ObjNtk(p)->nTravIds-1);            }
+static inline void         Au_ObjSetTravIdCurrentId( Au_Ntk_t * p, int Id ) { Vec_IntSetEntry(&p->vTravIds, Id, p->nTravIds );                                                       }
+static inline int          Au_ObjIsTravIdCurrentId( Au_Ntk_t * p, int Id )  { return (Vec_IntGetEntry(&p->vTravIds, Id) == p->nTravIds);                                             }
 
 #define Au_ManForEachNtk( p, pNtk, i )           \
     for ( i = 1; (i < Vec_PtrSize(&p->vNtks))   && (((pNtk) = Au_ManNtk(p, i)), 1); i++ ) 
@@ -244,24 +252,27 @@ int Au_NtkMemUsage( Au_Ntk_t * p )
     Mem += 4 * p->vPis.nCap;
     Mem += 4 * p->vPos.nCap;
     Mem += 4 * p->vObjs.nCap;
-    Mem += 16 * Vec_PtrSize(p->vChunks) * ((1<<12) + 64);
+    Mem += 16 * p->nObjsAlloc;
     return Mem;
 }
 void Au_NtkPrintStats( Au_Ntk_t * p )
 {
-    printf( "%-32s:",         Au_NtkName(p) );
-    printf( " i/o =%6d/%6d",  Au_NtkPiNum(p), Au_NtkPoNum(p) );
-//    printf( "  lat =%5d",     Au_NtkFlopNum(p) );
-    printf( "  nd =%6d",      Au_NtkNodeNum(p) );
-    printf( "  box =%5d",     Au_NtkBoxNum(p) );
-    printf( "  obj =%7d",     Au_NtkObjNum(p) );
-    printf( "  max =%7d",     Au_NtkObjNumMax(p) );
-    printf( "  use =%7d",     p->nUseful );
-    printf( "  %4.1f %%",     100.0 * (Au_NtkObjNumMax(p) - p->nUseful) / Au_NtkObjNumMax(p) );
-    printf( "  %5.1f Mb",     1.0 * Au_NtkMemUsage(p) / (1 << 20) );
+    printf( "%-30s:",        Au_NtkName(p) );
+    printf( " i/o =%6d/%6d", Au_NtkPiNum(p), Au_NtkPoNum(p) );
+    if ( Au_NtkFlopNum(p) )
+        printf( "  lat =%5d",    Au_NtkFlopNum(p) );
+    printf( "  nd =%6d",     Au_NtkNodeNum(p) );
+    if ( Au_NtkBoxNum(p) )
+        printf( "  box =%5d",    Au_NtkBoxNum(p) );
+    printf( "  obj =%7d",    Au_NtkObjNum(p) );
+//    printf( "  max =%7d",    Au_NtkObjNumMax(p) );
+//    printf( "  use =%7d",    p->nObjsUsed );
+    printf( " %5.1f %%",     100.0 * (Au_NtkObjNumMax(p) - Au_NtkObjNum(p)) / Au_NtkObjNumMax(p) );
+    printf( " %6.1f Mb",     1.0 * Au_NtkMemUsage(p) / (1 << 20) );
+    printf( " %5.1f %%",     100.0 * (p->nObjsAlloc - p->nObjsUsed) / p->nObjsAlloc );
     printf( "\n" );
 }
-void Au_NtkStartCopy( Au_Ntk_t * p )
+void Au_NtkCleanCopy( Au_Ntk_t * p )
 {
     Vec_IntFill( &p->vCopies, Au_NtkObjNumMax(p), -1 );
 }
@@ -325,22 +336,86 @@ int Au_ManMemUsage( Au_Man_t * p )
     Au_Ntk_t * pNtk;
     int i, Mem = 0;
     Au_ManForEachNtk( p, pNtk, i )
-        Mem += Au_NtkMemUsage( pNtk );
+        Mem += 16 * pNtk->nObjsAlloc;
+    return Mem;
+}
+int Au_ManMemUsageUseful( Au_Man_t * p )
+{
+    Au_Ntk_t * pNtk;
+    int i, Mem = 0;
+    Au_ManForEachNtk( p, pNtk, i )
+        Mem += 16 * pNtk->nObjsUsed;
     return Mem;
 }
 void Au_ManPrintStats( Au_Man_t * p )
 {
     Au_Ntk_t * pNtk;
     int i;
-    printf( "Design %-13s\n", Au_ManName(p) );
+    if ( Vec_PtrSize(&p->vNtks) > 2 )
+        printf( "Design %-13s\n", Au_ManName(p) );
     Au_ManForEachNtk( p, pNtk, i )
         Au_NtkPrintStats( pNtk );
     printf( "Different functions = %d. ", Abc_NamObjNumMax(p->pFuncs) );
-    printf( "Memory = %.2f Mb",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
+    printf( "Memory = %.1f Mb",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
+    printf( " %5.1f %%",       100.0 * (Au_ManMemUsage(p) - Au_ManMemUsageUseful(p)) / Au_ManMemUsage(p) );
     printf( "\n" );
 //    Abc_NamPrint( pMan->pFuncs );
 }
 
+// count the number of support variables
+int Au_ObjSuppSize_rec( Au_Ntk_t * p, int Id )
+{
+    Au_Obj_t * pObj;
+    int i, iFanin, Counter = 0;
+    if ( Au_ObjIsTravIdCurrentId(p, Id) )
+        return 0;
+    Au_ObjSetTravIdCurrentId(p, Id);
+    pObj = Au_NtkObj( p, Id );
+    if ( Au_ObjIsPi(pObj) )
+        return 1;
+    assert( Au_ObjIsNode(pObj) || Au_ObjIsBox(pObj) || Au_ObjIsFan(pObj) );
+    Au_ObjForEachFaninId( pObj, iFanin, i )
+        Counter += Au_ObjSuppSize_rec( p, iFanin );
+    return Counter;
+}
+int Au_ObjSuppSize( Au_Obj_t * pObj )
+{
+    Au_Ntk_t * p = Au_ObjNtk(pObj);
+    Au_NtkIncrementTravId( p );
+    return Au_ObjSuppSize_rec( p, Au_ObjId(pObj) );
+}
+/*
+// this version is 50% slower than above
+int Au_ObjSuppSize_rec( Au_Obj_t * pObj )
+{
+    Au_Obj_t * pFanin;
+    int i, Counter = 0;
+    if ( Au_ObjIsTravIdCurrent(pObj) )
+        return 0;
+    Au_ObjSetTravIdCurrent(pObj);
+    if ( Au_ObjIsPi(pObj) )
+        return 1;
+    assert( Au_ObjIsNode(pObj) || Au_ObjIsBox(pObj) || Au_ObjIsFan(pObj) );
+    Au_ObjForEachFanin( pObj, pFanin, i )
+        Counter += Au_ObjSuppSize_rec( pFanin );
+    return Counter;
+}
+int Au_ObjSuppSize( Au_Obj_t * pObj )
+{
+    Au_NtkIncrementTravId( Au_ObjNtk(pObj) );
+    return Au_ObjSuppSize_rec( pObj );
+}
+*/
+int Au_NtkSuppSizeTest( Au_Ntk_t * p )
+{
+    Au_Obj_t * pObj;
+    int i, Counter = 0;
+    Au_NtkForEachObj( p, pObj, i )
+        if ( Au_ObjIsNode(pObj) )
+            Counter += (Au_ObjSuppSize(pObj) <= 16);
+    printf( "Nodes with small support %d (out of %d)\n", Counter, Au_NtkNodeNum(p) );
+    return Counter;
+}
 
 /**Function*************************************************************
 
@@ -364,16 +439,16 @@ static inline void Au_NtkInsertHeader( Au_Ntk_t * p )
 int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
 {
     Au_Obj_t * pMem, * pObj, * pTemp;
-    int Id, nObjInt = ((2+nFanins) >> 2) + (((2+nFanins) & 3) > 0);
-    int nObjIntReal = nObjInt;
+    int nObjInt = ((2+nFanins) >> 2) + (((2+nFanins) & 3) > 0);
+    int Id, nObjIntReal = nObjInt;
     if ( nObjInt > 63 )
         nObjInt = 63 + 64 * (((nObjInt-63) >> 6) + (((nObjInt-63) & 63) > 0));
     if ( Vec_PtrSize(&p->vPages) == 0 || p->iHandle + nObjInt > (1 << 12) )
     {
         if ( nObjInt + 64 > (1 << 12) )
-            pMem = ABC_CALLOC( Au_Obj_t, nObjInt + 64 );
+            pMem = ABC_CALLOC( Au_Obj_t, nObjInt + 64 ), p->nObjsAlloc += nObjInt + 64;
         else
-            pMem = ABC_CALLOC( Au_Obj_t, (1 << 12) + 64 );
+            pMem = ABC_CALLOC( Au_Obj_t, (1 << 12) + 64 ), p->nObjsAlloc += (1 << 12) + 64;
         Vec_PtrPush( p->vChunks, pMem );
         if ( ((ABC_PTRINT_T)pMem & 0xF) )
             pMem = (Au_Obj_t *)((char *)pMem + 16 - ((ABC_PTRINT_T)pMem & 0xF));
@@ -382,7 +457,6 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
         if ( p->iHandle )
         {
             pMem += 64 - (p->iHandle & 63);
-            // can introduce p->iHandleMax = (1 << 12) - (64 - (p->iHandle & 63))
             p->iHandle = 0; 
         }
         Vec_PtrPush( &p->vPages, pMem );
@@ -391,7 +465,7 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
     else
     {
         pMem = (Au_Obj_t *)Vec_PtrEntryLast( &p->vPages );
-        if ( !(p->iHandle & 63) || nObjInt > (64 - (p->iHandle & 63)) )
+        if ( (p->iHandle & 63) == 0 || nObjInt > (64 - (p->iHandle & 63)) )
         {
             if ( p->iHandle & 63 )
                 p->iHandle += 64 - (p->iHandle & 63); 
@@ -415,8 +489,7 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
         Vec_IntPush( &p->vPos, Au_ObjId(pObj) );
     }
     p->iHandle += nObjInt;
-    p->nUseful += nObjIntReal;
-    p->nObjsUsed++;
+    p->nObjsUsed += nObjIntReal;
 
     Id = Au_ObjId(pObj);
     Vec_IntPush( &p->vObjs, Id );
@@ -519,8 +592,8 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
         }
         else if ( Au_ObjIsBox(pObj) )
         {
-            Au_Ntk_t * pModel = Au_ObjModel(pObj);
-            Vec_IntFill( &pModel->vCopies, Au_NtkObjNumMax(pModel), -1 );
+            Au_Ntk_t * pModel = Au_ObjNtkel(pObj);
+            Au_NtkCleanCopy( pModel );
             // check the match between the number of actual and formal parameters
             assert( Au_ObjFaninNum(pObj) == Au_NtkPiNum(pModel) );
             assert( Au_BoxFanoutNum(pObj) == Au_NtkPoNum(pModel) );
@@ -538,8 +611,7 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
         Au_ObjSetCopy( pTerm, Au_ObjCopy(Au_ObjFanin0(pTerm)) );
     Au_NtkForEachPo( p, pTerm, i )
         assert( Au_ObjCopy(pTerm) >= 0 );
-
-    p->pMan->nGiaObjMax = Abc_MaxInt( p->pMan->nGiaObjMax, Gia_ManObjNum(pGia) );
+//    p->pMan->nGiaObjMax = Abc_MaxInt( p->pMan->nGiaObjMax, Gia_ManObjNum(pGia) );
 }
 
 /**Function*************************************************************
@@ -558,7 +630,7 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     Gia_Man_t * pTemp, * pGia = NULL;
     Au_Obj_t * pTerm;
     int i;
-    Vec_IntFill( &p->vCopies, Au_NtkObjNumMax(p), -1 );
+    Au_NtkCleanCopy( p );
     // start the network
     pGia = Gia_ManStart( (1<<16) );
     pGia->pName = Gia_UtilStrsav( Au_NtkName(p) );
@@ -646,10 +718,10 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Abc_Ntk_t * pMod;
     Au_Man_t * pMan;
     Au_Ntk_t * pNtk;
-    int i, clk1, clk2 = 0, clk3 = 0, clk = clock();
+    int i, clk1, clk2 = 0, clk3 = 0, clk4 = 0, clk = clock();
 
     clk1 = clock();
-    pMan = Au_ManAlloc( pRoot->pDesign->pName );
+    pMan = Au_ManAlloc( pRoot->pDesign ? pRoot->pDesign->pName : pRoot->pName );
     clk2 += clock() - clk1;
 
     vModels = Abc_NtkCollectHie( pRoot );
@@ -675,16 +747,21 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
         clk1 = clock();
         pGia = Au_NtkDeriveFlatGia( (Au_Ntk_t *)pRoot->pData );
         clk3 = clock() - clk1;
-        printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
+//        printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
     }
+
+    clk1 = clock();
+    Au_NtkSuppSizeTest( (Au_Ntk_t *)pRoot->pData );
+    clk4 = clock() - clk1;
 
     clk1 = clock();
     Au_ManDelete( pMan );
     clk2 += clock() - clk1;
     
-    Abc_PrintTime( 1, "Time all", clock() - clk );
-    Abc_PrintTime( 1, "Time new", clk2 );
-    Abc_PrintTime( 1, "Time GIA", clk3 );
+    Abc_PrintTime( 1, "Time all ", clock() - clk );
+    Abc_PrintTime( 1, "Time new ", clk2 );
+    Abc_PrintTime( 1, "Time GIA ", clk3 );
+    Abc_PrintTime( 1, "Time supp", clk4 );
 
     return pGia;
 }
