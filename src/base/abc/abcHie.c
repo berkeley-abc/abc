@@ -463,6 +463,8 @@ void Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk )
         Abc_NtkForEachBox( pModel, pObj, k )
         {
             pBoxModel = (Abc_Ntk_t *)pObj->pData;
+            if ( pBoxModel == NULL )
+                continue;
             Num = Vec_PtrFind( vMods, pBoxModel );
             assert( Num >= 0 && Num < Vec_PtrSize(vMods) );
             Vec_IntAddToEntry( vCounts, Num, 1 );
@@ -474,7 +476,7 @@ void Abc_NtkPrintBoxInfo( Abc_Ntk_t * pNtk )
         printf( "PI=%6d ", Abc_NtkPiNum(pModel) );
         printf( "PO=%6d ", Abc_NtkPoNum(pModel) );
         printf( "BB=%6d ", Abc_NtkBoxNum(pModel) );
-        printf( "ND=%6d ", Abc_NtkNodeNum(pModel)-2 ); // sans constants
+        printf( "ND=%6d ", Abc_NtkNodeNum(pModel) ); // sans constants
         printf( "Lev=%5d ", Abc_NtkLevel(pModel) );
         printf( "\n" );
 

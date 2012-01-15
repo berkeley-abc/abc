@@ -47,9 +47,9 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
 {
-    Abc_Ntk_t * pNtk;
+    Abc_Ntk_t * pNtk, * pTemp;
     Abc_Lib_t * pDesign;
-    int RetValue;
+    int i, RetValue;
 
     // parse the verilog file
     pDesign = Ver_ParseFile( pFileName, NULL, fCheck, 1 );
@@ -60,8 +60,13 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
     RetValue = Abc_LibFindTopLevelModels( pDesign );
     pNtk = (Abc_Ntk_t *)Vec_PtrEntry( pDesign->vTops, 0 );
     if ( RetValue > 1 )
-        printf( "Warning: The design has %d root-level modules. The first one (%s) will be used.\n",
-            Vec_PtrSize(pDesign->vTops), pNtk->pName );
+    {
+        printf( "Warning: The design has %d root-level modules: ", Vec_PtrSize(pDesign->vTops) );
+        Vec_PtrForEachEntry( Abc_Ntk_t *, pDesign->vTops, pTemp, i )
+            printf( " %s", Abc_NtkName(pTemp) );
+        printf( "\n" );
+        printf( "The first one (%s) will be used.\n", pNtk->pName );
+    }
 
     // extract the master network
     pNtk->pDesign = pDesign;
@@ -83,6 +88,7 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
     }
 
 //Io_WriteVerilog( pNtk, "_temp.v" );
+    Abc_NtkPrintBoxInfo( pNtk );
     return pNtk;
 }
 

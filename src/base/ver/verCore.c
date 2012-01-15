@@ -1098,6 +1098,8 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
         pWord = Ver_ParseGetName( pMan );
         if ( pWord == NULL )
             return 0;
+        if ( strcmp(pWord, "#1") == 0 )
+            continue;
         // check for vector-inputs
         if ( !Ver_ParseLookupSuffix( pMan, pWord, &nMsb, &nLsb ) )
             return 0;

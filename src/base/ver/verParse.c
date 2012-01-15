@@ -116,7 +116,7 @@ char * Ver_ParseGetName( Ver_Man_t * pMan )
     }
     else
         pWord = Ver_StreamGetWord( p, " \t\n\r(),;" );
-    if ( !Ver_ParseSkipComments( pMan ) )
+    if ( Ver_StreamIsOkey(p) && !Ver_ParseSkipComments( pMan ) )
         return NULL;
     return pWord;
 }
