@@ -782,6 +782,70 @@ Vec_Ptr_t * Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNod
 
 /**Function*************************************************************
 
+  Synopsis    [Computes support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjSuppSize_rec( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanin;
+    int i, Counter = 0;
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return 0;
+    Abc_NodeSetTravIdCurrent(pObj);
+    if ( Abc_ObjIsPi(pObj) )
+        return 1;
+    assert( Abc_ObjIsNode(pObj) || Abc_ObjIsBox(pObj) );
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        Counter += Abc_ObjSuppSize_rec( pFanin );
+    return Counter;
+}
+/**Function*************************************************************
+
+  Synopsis    [Computes support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjSuppSize( Abc_Obj_t * pObj )
+{
+    Abc_NtkIncrementTravId( Abc_ObjNtk(pObj) );
+    return Abc_ObjSuppSize_rec( pObj );
+}
+/**Function*************************************************************
+
+  Synopsis    [Computes support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSuppSizeTest( Abc_Ntk_t * p )
+{
+    Abc_Obj_t * pObj;
+    int i, Counter = 0, clk = clock();
+    Abc_NtkForEachObj( p, pObj, i )
+        if ( Abc_ObjIsNode(pObj) )
+            Counter += (Abc_ObjSuppSize(pObj) <= 16);
+    printf( "Nodes with small support %d (out of %d)\n", Counter, Abc_NtkNodeNum(p) );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the sum total of supports of all outputs.]
 
   Description []

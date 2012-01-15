@@ -246,6 +246,46 @@ int Gia_ManSuppSize_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSuppSizeOne( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    Gia_ManIncrementTravId( p );
+    return Gia_ManSuppSize_rec( p, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSuppSizeTest( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, Counter = 0, clk = clock();
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjIsAnd(pObj) )
+            Counter += (Gia_ManSuppSizeOne(p, pObj) <= 16);
+    printf( "Nodes with small support %d (out of %d)\n", Counter, Gia_ManAndNum(p) );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collects support nodes.]
 
   Description []
