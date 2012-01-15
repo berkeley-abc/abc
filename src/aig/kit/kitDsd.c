@@ -346,7 +346,7 @@ void Kit_DsdPrint_rec( FILE * pFile, Kit_DsdNtk_t * pNtk, int Id )
         Symbol = ',';
 
     if ( pObj->Type == KIT_DSD_PRIME )
-        Kit_DsdPrintHex( stdout, Kit_DsdObjTruth(pObj), pObj->nFans );
+        Kit_DsdPrintHex( pFile, Kit_DsdObjTruth(pObj), pObj->nFans );
 
     fprintf( pFile, "(" );
     Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
