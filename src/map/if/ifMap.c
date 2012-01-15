@@ -180,6 +180,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_ObjForEachCut( pObj->pFanin0, pCut0, i )
     If_ObjForEachCut( pObj->pFanin1, pCut1, k )
     {
+
         // get the next free cut
         assert( pCutSet->nCuts <= pCutSet->nCutsMax );
         pCut = pCutSet->ppCuts[pCutSet->nCuts];
@@ -227,11 +228,13 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 ///            pCut->Delay = If_CutDelayLutStruct( p, pCut, p->pPars->pLutStruct, p->pPars->WireDelay );
 //        else if ( p->pPars->fDelayOpt )
         if ( p->pPars->fUserRecLib )
-            pCut->Delay = If_CutDelayRecCost(p, pCut);
+           pCut->Delay = If_CutDelayRecCost(p, pCut);
         else if (p->pPars->fDelayOpt)
             pCut->Delay = If_CutDelaySopCost(p, pCut);  
         else
             pCut->Delay = If_CutDelay( p, pObj, pCut );
+        if ( pCut->Cost == IF_COST_MAX )
+            continue;
 //        Abc_Print( 1, "%.2f ", pCut->Delay );
         if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
             continue;

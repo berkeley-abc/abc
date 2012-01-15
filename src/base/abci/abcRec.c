@@ -2243,8 +2243,8 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
     if ( !Kit_TruthIsEqualWithPhase( pTruthRec, pInOut, nLeaves ) )
     {
         assert( 0 );
-        return -1;
         s_pMan->nIfMapError++;  
+        return -1;
     }
     // mark as user cut.
     pCut->fUser = 1;

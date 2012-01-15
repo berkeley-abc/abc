@@ -51,7 +51,7 @@ ABC_NAMESPACE_HEADER_START
 // a very large number
 #define IF_INFINITY          100000000  
 // the largest possible user cut cost
-#define IF_COST_MAX          ((1<<14)-1)
+#define IF_COST_MAX          8191 // ((1<<13)-1)
 
 // object types
 typedef enum { 
@@ -216,7 +216,7 @@ struct If_Cut_t_
     float              Power;         // the power flow
     float              Delay;         // delay of the cut
     unsigned           uSign;         // cut signature
-    unsigned           Cost    : 13;  // the user's cost of the cut
+    unsigned           Cost    : 13;  // the user's cost of the cut (related to IF_COST_MAX)
     unsigned           fCompl  :  1;  // the complemented attribute 
     unsigned           fUser   :  1;  // using the user's area and delay
     unsigned           fUseless:  1;  // using the user's area and delay
