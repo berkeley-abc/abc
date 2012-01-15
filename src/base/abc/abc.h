@@ -777,7 +777,7 @@ extern ABC_DLL int                Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pP
 extern ABC_DLL void               Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim );
 extern ABC_DLL void               Abc_NtkRecStop();
 extern ABC_DLL void               Abc_NtkRecAdd( Abc_Ntk_t * pNtk );
-extern ABC_DLL void               Abc_NtkRecPs();
+extern ABC_DLL void               Abc_NtkRecPs(int fPrintLib);
 extern ABC_DLL void               Abc_NtkRecFilter(int nLimit);
 extern ABC_DLL void               Abc_NtkRecLibMerge(Abc_Ntk_t * pNtk);
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkRecUse();

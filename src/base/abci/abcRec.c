@@ -48,7 +48,7 @@ struct Rec_Obj_t_
     Rec_Obj_t* pNext;           // link to the next structure of the same functional class
     Rec_Obj_t* pCopy;           // link to the next functional class in the same bucket
     int Id;                     // structure's ID
-    unsigned nFrequency;        // appear times of this functional class among benchmarks
+    int nFrequency;             // appear times of this functional class among benchmarks
     unsigned char cost;         // structure's cost
     char* pinToPinDelay;        // structure's pin-to-pin delay
 };
@@ -112,6 +112,7 @@ struct Abc_ManRec_t_
     int               timeInsert;               // the runtime to insert a structure.
     int               timeBuild;                // the runtime to build a new structure in the library.
     int               timeMerge;                // the runtime to merge libraries;
+    int               timeReHash;                // the runtime to resize the hash table.
     int               timeOther;                // the runtime of other
     int               timeTotal;                // the runtime to total.
 };
@@ -119,7 +120,7 @@ struct Abc_ManRec_t_
 
 // the truth table is canonicized in such a way that for (00000) its value is 0
 
-static Rec_Obj_t ** Abc_NtkRecTableLookup( Abc_ManRec_t * p, unsigned * pTruth, int nVars );
+static Rec_Obj_t ** Abc_NtkRecTableLookup( Abc_ManRec_t* p, Rec_Obj_t ** pBins, int nBins, unsigned * pTruth, int nVars );
 static int          Abc_NtkRecComputeTruth( Abc_Obj_t * pObj, Vec_Ptr_t * vTtNodes, int nVars );
 static int          Abc_NtkRecAddCutCheckCycle_rec( Abc_Obj_t * pRoot, Abc_Obj_t * pObj );
 static void         Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars );
@@ -133,7 +134,7 @@ static inline int  Abc_ObjGetMax( Abc_Obj_t * pObj )            { return (pObj->
 static inline void Abc_NtkRecFrequencyInc(Rec_Obj_t* entry)     
 {   
     // the hit number of this functional class increased
-    if (entry != NULL && entry->nFrequency < 0xffffffff)
+    if (entry != NULL && entry->nFrequency < 0x7fffffff)
         entry->nFrequency += 1;
 }
 
@@ -306,17 +307,60 @@ char If_CutDepthRecComput_rec(Abc_Obj_t* pObj, int iLeaf)
   SeeAlso     []
 
 ***********************************************************************/
-unsigned char If_CutAreaRecComput_rec(Abc_Obj_t* pObj)
+unsigned char Abc_NtkRecAreaAndMark_rec(Abc_Obj_t* pObj)
 {
     unsigned char Area0, Area1, Area;
     pObj = Abc_ObjRegular(pObj);
-    if(pObj->Type == ABC_OBJ_PI )
+    if(Abc_ObjIsCi(pObj) || pObj->fMarkA == 1)
         return 0;
-    Area0 = If_CutAreaRecComput_rec(Abc_ObjFanin0(pObj));
-    Area1 = If_CutAreaRecComput_rec(Abc_ObjFanin1(pObj));
+    Area0 = Abc_NtkRecAreaAndMark_rec(Abc_ObjFanin0(pObj));
+    Area1 = Abc_NtkRecAreaAndMark_rec(Abc_ObjFanin1(pObj));
     Area = Area1 + Area0 + 1;
     assert(Area <= 255);
+    pObj->fMarkA = 1;
     return Area;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compute area of the structure.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecAreaUnMark_rec(Abc_Obj_t* pObj)
+{
+    pObj = Abc_ObjRegular(pObj);
+    if ( Abc_ObjIsCi(pObj) || pObj->fMarkA == 0 )
+        return;
+    Abc_NtkRecAreaUnMark_rec( Abc_ObjFanin0(pObj) ); 
+    Abc_NtkRecAreaUnMark_rec( Abc_ObjFanin1(pObj) );
+    assert( pObj->fMarkA ); // loop detection
+    pObj->fMarkA = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute area of the structure.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned char Abc_NtkRecArea(Abc_Obj_t* pObj)
+{
+    unsigned char area;
+    area = Abc_NtkRecAreaAndMark_rec(pObj);
+    Abc_NtkRecAreaUnMark_rec(pObj);
+    return area;
 }
 
 /**Function*************************************************************
@@ -496,7 +540,7 @@ void Abc_NtkRecInsertToLookUpTable(Abc_ManRec_t* p, Rec_Obj_t** ppSpot, Abc_Obj_
     int i;  
     Abc_Obj_t* pLeaf;
     Rec_Obj_t* entry, *previous = NULL, *current = * ppSpot;
-    unsigned char costFromStruct = If_CutAreaRecComput_rec(pObj);
+    unsigned char costFromStruct = Abc_NtkRecArea(pObj);
     Abc_LookUpStatus_t result;
     for (i = 0; i < nVars; i++)
     {
@@ -668,11 +712,11 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut )
         pCanonPerm[i] = i;
     uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
-    ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
+    ppSpot = Abc_NtkRecTableLookup(s_pMan, s_pMan->pBins, s_pMan->nBins, pInOut, nVars );
     if (*ppSpot == NULL)
     {
         Kit_TruthNot(pInOut, pInOut, nVars);
-        ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
+        ppSpot = Abc_NtkRecTableLookup(s_pMan, s_pMan->pBins, s_pMan->nBins, pInOut, nVars );
         fCompl = 1;
     }
     assert(*ppSpot != NULL);
@@ -834,7 +878,7 @@ void Abc_NtkRecFilter(int nLimit)
             {
                 assert(entry->nFrequency != 0);
                 // only filter the functional classed with frequency less than nLimit.
-                if((int)entry->nFrequency > nLimit)
+                if(entry->nFrequency > nLimit)
                 {
                     previous = entry;
                     continue;
@@ -985,6 +1029,52 @@ void Abc_NtkRecLibMerge(Abc_Ntk_t* pNtk)
 
 /**Function*************************************************************
 
+  Synopsis    [Resize the hash table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRecRezieHash(Abc_ManRec_t* p)
+{
+    Rec_Obj_t ** pBinsNew, **ppSpot;
+    Rec_Obj_t * pEntry, * pTemp;
+    int nBinsNew, Counter, i;
+    int clk = clock();
+    // get the new table size
+    nBinsNew = Cudd_Prime( 3 * p->nBins ); 
+    printf("Hash table resize from %d to %d.\n", p->nBins, nBinsNew);
+    // allocate a new array
+    pBinsNew = ABC_ALLOC( Rec_Obj_t *, nBinsNew );
+    memset( pBinsNew, 0, sizeof(Rec_Obj_t *) * nBinsNew );
+    // rehash the entries from the old table
+    Counter = 0;
+    for ( i = 0; i < p->nBins; i++ )
+        for ( pEntry = p->pBins[i]; pEntry;)
+        {          
+            pTemp = pEntry->pCopy;
+            ppSpot = Abc_NtkRecTableLookup(p, pBinsNew, nBinsNew, (unsigned *)Vec_PtrEntry(p->vTtNodes, pEntry->Id), p->nVars);
+            assert(*ppSpot == NULL);
+            *ppSpot = pEntry;
+            pEntry->pCopy = NULL;
+            pEntry = pTemp;
+            Counter++;
+        }
+    assert( Counter == p->nAddedFuncs);
+    ABC_FREE( p->pBins );
+    p->pBins = pBinsNew;
+    p->nBins = nBinsNew;
+    p->timeReHash += clock() - clk;
+    p->timeTotal += clock() - clk;
+
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Starts the record for the given network.]
 
   Description []
@@ -1070,7 +1160,7 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim )
 
     // create hash table
     //p->nBins = 50011;
-    p->nBins =500011;
+    p->nBins =97;
     p->pBins = ABC_ALLOC( Rec_Obj_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Rec_Obj_t *) * p->nBins );
 
@@ -1108,7 +1198,9 @@ p->timeTruth += clock() - clk;
         pObj = Abc_ObjFanin0(pObj);     
         pTruth = (unsigned *)Vec_PtrEntry( p->vTtNodes, pObj->Id );
         // add the resulting truth table to the hash table 
-        ppSpot = Abc_NtkRecTableLookup( p, pTruth, p->nVars );
+        if(p->nAddedFuncs > 2 * p->nBins)
+            Abc_NtkRecRezieHash(p);
+        ppSpot = Abc_NtkRecTableLookup(p, p->pBins, p->nBins, pTruth, p->nVars );
         Abc_NtkRecInsertToLookUpTable(p, ppSpot, pObj, Abc_ObjGetMax(pObj), p->fTrim);       
     }
     p->timeInsert += clock() - timeInsert;
@@ -1223,7 +1315,7 @@ Abc_Ntk_t * Abc_NtkRecUse()
     Abc_ManRec_t * p = s_pMan;
     Abc_Ntk_t * pNtk = p->pNtk;
     assert( p != NULL );
-    Abc_NtkRecPs();
+    Abc_NtkRecPs(0);
     p->pNtk = NULL;
     Abc_NtkRecStop();
     Abc_NtkCleanData(pNtk);
@@ -1242,7 +1334,7 @@ Abc_Ntk_t * Abc_NtkRecUse()
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkRecPs()
+void Abc_NtkRecPs(int fPrintLib)
 {
     int Counter, Counters[17] = {0};
     int CounterS, CountersS[17] = {0};
@@ -1251,20 +1343,19 @@ void Abc_NtkRecPs()
     Rec_Obj_t * pEntry, * pTemp;
     Abc_Obj_t * pObj;
     int i;
-#ifdef LibOut
     FILE * pFile;
     unsigned* pTruth;
     Rec_Obj_t* entry;
     int j;
-    int nVars = 6;
-#endif
+    int nVars = s_pMan->nVars;
     // set the max PI number
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, i+1 );
     Abc_AigForEachAnd( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, ABC_MAX( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
-#ifdef LibOut
-pFile = fopen( "tt10.txt", "wb" );
+if(fPrintLib)
+{
+    pFile = fopen( "tt10.txt", "wb" );
 for ( i = 0; i < p->nBins; i++ )
     for ( entry = p->pBins[i]; entry; entry = entry->pCopy )
     {
@@ -1273,7 +1364,7 @@ for ( i = 0; i < p->nBins; i++ )
         /*if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
             continue;*/
         Extra_PrintHex( pFile, pTruth, nVars );
-        fprintf( pFile, " : nVars:  %d, Frequency:%d  :  ", Abc_ObjGetMax(entry->obj), entry->nFrequency);
+        fprintf( pFile, " : nVars:  %d, Frequency:%d, nBin:%d  :  ", Abc_ObjGetMax(entry->obj), entry->nFrequency, i);
         Kit_DsdPrintFromTruth2( pFile, pTruth, Abc_ObjGetMax(entry->obj) );
         fprintf( pFile, "\n" );
         for ( pTemp = entry; pTemp; pTemp = pTemp->pNext )
@@ -1283,14 +1374,15 @@ for ( i = 0; i < p->nBins; i++ )
             {
                 fprintf(pFile, " %d, ", pTemp->pinToPinDelay[j]);
             }
-            fprintf(pFile, "cost = %d\n", pTemp->cost);             
+            fprintf(pFile, "cost = %d ID = %d\n", pTemp->cost, pTemp->Id);             
             tmp++;
         }
         fprintf( pFile, "\n");
         fprintf( pFile, "\n");
     }
     fclose( pFile) ;
-#endif
+}
+
     // go through the table
     Counter = CounterS = 0;
     for ( i = 0; i < p->nBins; i++ )
@@ -1334,11 +1426,12 @@ for ( i = 0; i < p->nBins; i++ )
     printf( "Functions added                             = %10d. (%6.2f %%)\n", p->nAddedFuncs,   !p->nTried? 0 : 100.0*p->nAddedFuncs/p->nTried );
     if(s_pMan->fTrim)
         printf( "Functions trimed                            = %10d. (%6.2f %%)\n", p->nTrimed,       !p->nTried? 0 : 100.0*p->nTrimed/p->nTried );
-    p->timeOther = p->timeTotal - p->timeCollect - p->timeTruth - p->timeCanon - p->timeInsert - p->timeBuild - p->timeTrim - p->timeMerge;
+    p->timeOther = p->timeTotal - p->timeCollect - p->timeTruth - p->timeCanon - p->timeInsert - p->timeBuild - p->timeTrim - p->timeMerge - p->timeReHash;
     ABC_PRTP( "Collecting nodes ", p->timeCollect, p->timeTotal);
     ABC_PRTP( "Computing truth  ", p->timeTruth, p->timeTotal );
     ABC_PRTP( "Canonicizing     ", p->timeCanon, p->timeTotal );
     ABC_PRTP( "Building         ", p->timeBuild, p->timeTotal );
+    ABC_PRTP( "ReHash           ", p->timeReHash, p->timeTotal );
     ABC_PRTP( "Merge            ", p->timeMerge, p->timeTotal );
     ABC_PRTP( "Insert           ", p->timeInsert, p->timeTotal);
     if(s_pMan->fTrim)
@@ -1397,11 +1490,11 @@ static inline unsigned Abc_NtkRecTableHash( unsigned * pTruth, int nVars, int nB
   SeeAlso     []
 
 ***********************************************************************/
-Rec_Obj_t ** Abc_NtkRecTableLookup( Abc_ManRec_t * p, unsigned * pTruth, int nVars )
+Rec_Obj_t ** Abc_NtkRecTableLookup(Abc_ManRec_t* p,  Rec_Obj_t ** pBins, int nBins, unsigned * pTruth, int nVars )
 {
     static int s_Primes[10] = { 1291, 1699, 2357, 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
     Rec_Obj_t ** ppSpot, * pEntry;
-    ppSpot = p->pBins + Abc_NtkRecTableHash( pTruth, nVars, p->nBins, s_Primes );
+    ppSpot = pBins + Abc_NtkRecTableHash( pTruth, nVars, nBins, s_Primes );
     for ( pEntry = *ppSpot; pEntry; ppSpot = &pEntry->pCopy, pEntry = pEntry->pCopy )
         if ( Kit_TruthIsEqualWithPhase((unsigned *)Vec_PtrEntry(p->vTtNodes, pEntry->Id), pTruth, nVars) )
             return ppSpot;
@@ -1472,8 +1565,9 @@ void Abc_NtkRecAdd( Abc_Ntk_t * pNtk )
     pPars->fLatchPaths =  0;
     pPars->fSeqMap     =  0;
     pPars->fVerbose    =  0;
+    //pPars->fCutMin     =  1;
     // internal parameters
-    pPars->fTruth      =  0;
+    pPars->fTruth      =  1;
     pPars->fUsePerm    =  0; 
     pPars->nLatches    =  0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
@@ -1935,16 +2029,18 @@ clk = clock();
         return 1;
     }
 //    Extra_PrintBinary( stdout, pInOut, 8 ); printf( "\n" );
-
+    
     // look up in the hash table and increase the hit number of the functional class
-    ppSpot = Abc_NtkRecTableLookup( s_pMan, pTruth, nInputs );
-    Abc_NtkRecFrequencyInc(*ppSpot);
-
+    if(s_pMan->nAddedFuncs > 2 * s_pMan->nBins)
+        Abc_NtkRecRezieHash(s_pMan);
+    ppSpot = Abc_NtkRecTableLookup(s_pMan, s_pMan->pBins,s_pMan->nBins , pTruth, nInputs );
+    Abc_NtkRecFrequencyInc(*ppSpot);   
     // if not new nodes were added and the node has a CO fanout
+    
     if ( nNodesBeg == Abc_NtkObjNumMax(pAig) && Abc_NodeFindCoFanout(pObj) != NULL )
     {
         s_pMan->nFilterSame++;
-        assert(*ppSpot != NULL);
+        //assert(*ppSpot != NULL);
         return 1;
     }
 
@@ -1995,18 +2091,12 @@ void Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars )
     unsigned * pTemp = s_pMan->pTemp2;
     unsigned * pTruth;
     int i, RetValue, nNodes, nNodesBeg, nInputs = s_pMan->nVars, nLeaves = nVars;
-    assert( nInputs <= 16 );
-
-    
+    assert( nInputs <= 16 );   
     // collect internal nodes and skip redundant cuts
-
     Abc_NtkRecCollectNodesFromLib(pNtk, pRoot, vNodes , nLeaves);
-
     Abc_NtkRecCutTruthFromLib(vNodes, nLeaves, s_pMan->vTtTemps, s_pMan->vTtElems );
-
     // copy the truth table
     Kit_TruthCopy( pInOut, (unsigned *)pRoot->pTemp, nInputs );
-
     // go through the variables in the new truth table
     for ( i = 0; i < nLeaves; i++ )
     {
@@ -2038,7 +2128,6 @@ void Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars )
             while ( Vec_PtrSize(s_pMan->vTtNodes) <= pObj->Id )
 //                Vec_PtrPush( s_pMan->vTtNodes, ABC_ALLOC(unsigned, s_pMan->nWords) );
                 Vec_PtrPush( s_pMan->vTtNodes, Mem_FixedEntryFetch(s_pMan->pMmTruth) );
-
             // compute the truth table
             RetValue = Abc_NtkRecComputeTruth( pObj, s_pMan->vTtNodes, nInputs );
             if ( RetValue == 0 )
@@ -2057,13 +2146,15 @@ void Abc_NtkRecAddFromLib( Abc_Ntk_t* pNtk, Abc_Obj_t * pRoot, int nVars )
 //    Extra_PrintBinary( stdout, pInOut, 8 ); printf( "\n" );
 
     // look up in the hash table and increase the hit number of the functional class
-    ppSpot = Abc_NtkRecTableLookup( s_pMan, pTruth, nInputs );
+    if(s_pMan->nAddedFuncs > 2 * s_pMan->nBins)
+        Abc_NtkRecRezieHash(s_pMan);
+    ppSpot = Abc_NtkRecTableLookup(s_pMan, s_pMan->pBins, s_pMan->nBins, pTruth, nInputs );
 
     // if not new nodes were added and the node has a CO fanout
     if ( nNodesBeg == Abc_NtkObjNumMax(pAig) && Abc_NodeFindCoFanout(pObj) != NULL )
     {
         s_pMan->nFilterSame++;
-        assert(*ppSpot != NULL);
+        //assert(*ppSpot != NULL);
         return;
     }
 
@@ -2132,11 +2223,11 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut)
     uCanonPhase = Kit_TruthSemiCanonicize(pInOut, pTemp, nLeaves, pCanonPerm, (short*)s_pMan->pMints);
     If_CutTruthStretch(pInOut, nLeaves, nVars);
     s_pMan->timeIfCanonicize += clock() - timeCanonicize;   
-    ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
+    ppSpot = Abc_NtkRecTableLookup(s_pMan, s_pMan->pBins, s_pMan->nBins, pInOut, nVars );
     if (*ppSpot == NULL)
     {
         Kit_TruthNot(pInOut, pInOut, nVars);
-        ppSpot = Abc_NtkRecTableLookup( s_pMan, pInOut, nVars );
+        ppSpot = Abc_NtkRecTableLookup(s_pMan, s_pMan->pBins, s_pMan->nBins, pInOut, nVars );
     }
     assert (!(*ppSpot == NULL && nLeaves == 2));
     //functional class not found in the library.

@@ -12125,13 +12125,16 @@ usage:
 int Abc_CommandRecPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
+    int c, fPrintLib = 0;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'p':
+            fPrintLib ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -12143,7 +12146,7 @@ int Abc_CommandRecPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command works for AIGs only after calling \"rec_start\".\n" );
         return 0;
     }
-    Abc_NtkRecPs();
+    Abc_NtkRecPs(fPrintLib);
     return 0;
 
 usage:
