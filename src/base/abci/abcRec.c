@@ -1159,8 +1159,7 @@ void Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts, int fTrim )
         Vec_PtrPush( p->vTtNodes, Mem_FixedEntryFetch(p->pMmTruth) );
 
     // create hash table
-    //p->nBins = 50011;
-    p->nBins =97;
+    p->nBins = 50011;
     p->pBins = ABC_ALLOC( Rec_Obj_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Rec_Obj_t *) * p->nBins );
 
