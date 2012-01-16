@@ -134,6 +134,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vTruths;       // used for truth table computation
     Vec_Int_t *    vFlopClasses;  // classes of flops for retiming/merging/etc
     Vec_Int_t *    vGateClasses;  // classes of gates for abstraction
+    Vec_Int_t *    vObjClasses;   // classes of objects for abstraction
     unsigned char* pSwitching;    // switching activity for each object
     Gia_Plc_t *    pPlacement;    // placement of the objects
     int *          pTravIds;      // separate traversal ID representation
@@ -703,6 +704,8 @@ extern void                Gia_ManFanoutStop( Gia_Man_t * p );
 /*=== giaForce.c =========================================================*/
 extern void                For_ManExperiment( Gia_Man_t * pGia, int nIters, int fClustered, int fVerbose );
 /*=== giaFrames.c =========================================================*/
+extern Gia_Man_t *         Gia_ManUnrollDup( Gia_Man_t * p, Vec_Int_t * vLimit );
+extern Vec_Ptr_t *         Gia_ManUnrollAbs( Gia_Man_t * p, int nFrames );
 extern void *              Gia_ManUnrollStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars );
 extern void *              Gia_ManUnrollAdd( void * pMan, int fMax );
 extern void                Gia_ManUnrollStop( void * pMan );

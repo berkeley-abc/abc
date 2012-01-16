@@ -83,6 +83,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vUserFfIds );
     Vec_IntFreeP( &p->vFlopClasses );
     Vec_IntFreeP( &p->vGateClasses );
+    Vec_IntFreeP( &p->vObjClasses );
     Vec_IntFreeP( &p->vLevels );
     Vec_IntFreeP( &p->vTruths );
     Vec_IntFree( p->vCis );
@@ -256,6 +257,71 @@ void Gia_ManPrintGateClasses( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManPrintObjClasses( Gia_Man_t * p )
+{
+    Vec_Int_t * vSeens;  // objects seen so far
+    Vec_Int_t * vAbs = p->vObjClasses;
+    int i, k, Entry, iStart, iStop, nFrames;
+    int nObjBits, nObjMask, iObj, iFrame, nWords;
+    unsigned * pInfo, * pCountAll, * pCountUni;
+    if ( vAbs == NULL )
+        return;
+    nFrames = Vec_IntEntry( vAbs, 0 );
+    assert( Vec_IntEntry(vAbs, nFrames+1) == Vec_IntSize(vAbs) );
+    pCountAll = ABC_ALLOC( int, nFrames + 1 );
+    pCountUni = ABC_ALLOC( int, nFrames + 1 );
+    // start storage for seen objects
+    nWords = Gia_BitWordNum( nFrames );
+    vSeens = Vec_IntStart( Gia_ManObjNum(p) * nWords );
+    // get the bitmasks
+    nObjBits = Gia_Base2Log( Gia_ManObjNum(p) );
+    nObjMask = (1 << nObjBits) - 1;
+    assert( Gia_ManObjNum(p) <= nObjMask );
+    // print info about frames
+    for ( i = 0; i < nFrames; i++ )
+    {
+        iStart = Vec_IntEntry( vAbs, i+1 );
+        iStop  = Vec_IntEntry( vAbs, i+2 );
+        memset( pCountAll, 0, sizeof(int) * (nFrames + 1) );
+        memset( pCountUni, 0, sizeof(int) * (nFrames + 1) );
+        Vec_IntForEachEntryStartStop( vAbs, Entry, k, iStart, iStop )
+        {
+            iObj   = (Entry &  nObjMask);
+            iFrame = (Entry >> nObjBits);
+            pInfo  = (unsigned *)Vec_IntEntryP( vSeens, nWords * iObj );
+            if ( Gia_InfoHasBit(pInfo, iFrame) == 0 )
+            {
+                Gia_InfoSetBit( pInfo, iFrame );
+                pCountUni[iFrame+1]++;
+                pCountUni[0]++;
+            }
+            pCountAll[iFrame+1]++;
+            pCountAll[0]++;
+        }
+        assert( pCountAll[0] == (unsigned)(iStop - iStart) );
+        printf( "%5d%5d  ", pCountAll[0], pCountUni[0] ); 
+        for ( k = 0; k < nFrames; k++ )
+            if ( k <= i )
+                printf( "%5d%5d  ", pCountAll[k+1], pCountUni[k+1] ); 
+        printf( "\n" );
+    }
+    assert( iStop == Vec_IntSize(vAbs) );
+    Vec_IntFree( vSeens );
+    ABC_FREE( pCountAll );
+    ABC_FREE( pCountUni );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManPrintPlacement( Gia_Man_t * p )
 {
     int i, nFixed = 0, nUndef = 0;
@@ -315,6 +381,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, int fSwitch )
     // print register classes
     Gia_ManPrintFlopClasses( p );
     Gia_ManPrintGateClasses( p );
+    Gia_ManPrintObjClasses( p );
 }
 
 /**Function*************************************************************

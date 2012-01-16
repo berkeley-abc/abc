@@ -586,6 +586,29 @@ static inline void Vec_VecSort( Vec_Vec_t * p, int fReverse )
                 (int (*)(const void *, const void *)) Vec_VecSortCompare1 );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_VecPrintInt( Vec_Vec_t * p )
+{
+    int i, k, Entry;
+    printf( "Integers by level" );
+    Vec_VecForEachEntryInt( p, Entry, i, k )
+    {
+        if ( k == 0 )
+            printf( "\n%3d : ", i );
+        printf( "%6d ", Entry );
+    }
+    printf( "\n" );
+}
 
 
 ABC_NAMESPACE_HEADER_END

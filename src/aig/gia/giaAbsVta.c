@@ -46,6 +46,7 @@ struct Vta_Man_t_
 {
     // user data
     Gia_Man_t *   pGia;         // AIG manager
+    int           nFramesStart; // the number of starting frames
     int           nFramesMax;   // maximum number of frames
     int           nConfMax;     // conflict limit
     int           nTimeMax;     // runtime limit
@@ -59,11 +60,11 @@ struct Vta_Man_t_
     Vta_Obj_t *   pObjs;        // hash table bins
     Vec_Int_t *   vOrder;       // objects in DPS order
     // abstraction
-    int           nWords;       // the number of sim words for abs
-    int           nFramesS;     // the number of copmleted frames
-    Vec_Int_t *   vAbs;         // starting abstraction
-    Vec_Int_t *   vAbsNew;      // computed abstraction
-    Vec_Int_t *   vAbsAll;      // abstraction of all timeframes
+    int           nObjBits;     // the number of bits to represent objects
+    unsigned      nObjMask;     // object mask
+    Vec_Ptr_t *   vFrames;      // start abstraction for each frame
+    int           nWords;       // the number of words in the record
+    Vec_Int_t *   vSeens;       // seen objects
     // other data
     Vec_Int_t *   vCla2Var;     // map clauses into variables
     Vec_Ptr_t *   vCores;       // unsat core for each frame
@@ -86,8 +87,8 @@ static inline int Vta_ValIs1( Vta_Obj_t * pThis, int fCompl )
 static inline Vta_Obj_t *  Vta_ManObj( Vta_Man_t * p, int i )           { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                     }
 static inline int          Vta_ObjId( Vta_Man_t * p, Vta_Obj_t * pObj ) { assert( pObj > p->pObjs && pObj < p->pObjs + p->nObjs ); return pObj - p->pObjs;      }
 
-static inline unsigned *   Vta_ObjAbsOld( Vta_Man_t * p, int i )   { assert( i >= 0 && i < p->nObjs ); return (unsigned *)Vec_IntEntryP( p->vAbs,    i*p->nWords ); }
-static inline unsigned *   Vta_ObjAbsNew( Vta_Man_t * p, int i )   { assert( i >= 0 && i < p->nObjs ); return (unsigned *)Vec_IntEntryP( p->vAbsNew, i*p->nWords ); }
+//static inline unsigned *   Vta_ObjAbsOld( Vta_Man_t * p, int i )   { assert( i >= 0 && i < p->nObjs ); return (unsigned *)Vec_IntEntryP( p->vAbs,    i*p->nWords ); }
+//static inline unsigned *   Vta_ObjAbsNew( Vta_Man_t * p, int i )   { assert( i >= 0 && i < p->nObjs ); return (unsigned *)Vec_IntEntryP( p->vAbsNew, i*p->nWords ); }
 
 #define Vta_ManForEachObj( p, pObj, i )                                 \
     for ( i = 1; (i < p->nObjs) && ((pObj) = Vta_ManObj(p, i)); i++ )
@@ -96,9 +97,79 @@ static inline unsigned *   Vta_ObjAbsNew( Vta_Man_t * p, int i )   { assert( i >
 #define Vta_ManForEachObjVecReverse( vVec, p, pObj, i )                        \
     for ( i = Vec_IntSize(vVec) - 1; (i >= 1) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))); i-- )
 
+// abstraction is given as an array of integers:
+// - the first entry is the number of timeframes (F)
+// - the next (F+1) entries give the beginning position of each timeframe
+// - the following entries give the object IDs
+// invariant:  assert( vec[vec[0]+2] == size(vec) );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Converting from one array to per-frame arrays.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Vta_ManAbsToFrames( Vec_Int_t * vAbs )
+{
+    Vec_Ptr_t * vFrames;
+    Vec_Int_t * vFrame;
+    int i, k, Entry, iStart, iStop;
+    int nFrames = Vec_IntEntry( vAbs, 0 );
+    assert( Vec_IntEntry(vAbs, nFrames+1) == Vec_IntSize(vAbs) );
+    vFrames = Vec_PtrAlloc( nFrames );
+    for ( i = 0; i < nFrames; i++ )
+    {
+        iStart = Vec_IntEntry( vAbs, i+1 );
+        iStop  = Vec_IntEntry( vAbs, i+2 );
+        vFrame = Vec_IntAlloc( iStop - iStart );
+        Vec_IntForEachEntryStartStop( vAbs, Entry, k, iStart, iStop )
+            Vec_IntPush( vFrame, Entry );
+        Vec_PtrPush( vFrames, vFrame );
+    }
+    assert( iStop == Vec_IntSize(vAbs) );
+    return vFrames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converting from per-frame arrays to one integer array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Vta_ManFramesToAbs( Vec_Vec_t * vFrames )
+{
+    Vec_Int_t * vOne, * vAbs;
+    int i, k, Entry, nSize;
+    vAbs = Vec_IntAlloc( 2 + Vec_VecSize(vFrames) + Vec_VecSizeSize(vFrames) );
+    Vec_IntPush( vAbs, Vec_VecSize(vFrames) );
+    nSize = Vec_VecSize(vFrames) + 2;
+    Vec_VecForEachLevelInt( vFrames, vOne, i )
+    {
+        Vec_IntPush( vAbs, nSize );
+        nSize += Vec_IntSize( vOne );
+    }
+    Vec_IntPush( vAbs, nSize );
+    assert( Vec_IntSize(vAbs) == Vec_VecSize(vFrames) + 2 );
+    Vec_VecForEachLevelInt( vFrames, vOne, i )
+        Vec_IntForEachEntry( vOne, Entry, k )
+            Vec_IntPush( vAbs, Entry );
+    assert( Vec_IntEntry(vAbs, Vec_IntEntry(vAbs,0)+1) == Vec_IntSize(vAbs) );
+    return vAbs;
+}
 
 /**Function*************************************************************
 
@@ -164,6 +235,88 @@ static inline Vec_Int_t * Vta_ManDeriveAbsAll( Vec_Int_t * p, int nWords )
 
 /**Function*************************************************************
 
+  Synopsis    [Collect nodes/flops involved in different timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Vec_IntDoubleWidth( Vec_Int_t * p, int nWords )
+{
+    int * pArray = ABC_CALLOC( int, Vec_IntSize(p) * 2 );
+    int i, w, nObjs = Vec_IntSize(p) / nWords;
+    assert( Vec_IntSize(p) % nWords == 0 );
+    for ( i = 0; i < nObjs; i++ )
+        for ( w = 0; w < nWords; w++ )
+            pArray[2 * nWords * i + w] = p->pArray[nWords * i + w];
+    ABC_FREE( p->pArray );
+    p->pArray = pArray;
+    p->nSize *= 2;
+    p->nCap = p->nSize;
+    return 2 * nWords;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the results.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+void Vta_ManAbsPrint( Vta_Man_t * p, int fThis )
+{
+    Vec_Ptr_t * vInfos;
+    Vec_Int_t * vPres;
+    unsigned * pInfo;
+    int CountAll, CountUni;
+    int Entry, i, w, f;
+    // collected used nodes
+    vInfos = Vec_PtrAlloc( 1000 );
+    Vec_IntForEachEntry( p->vAbsAll, Entry, i )
+    {
+        if ( Entry )
+            Vec_PtrPush( vInfos, Vta_ObjAbsNew(p, i) );
+
+        pInfo = Vta_ObjAbsNew(p, i);
+        for ( w = 0; w < p->nWords; w++ )
+            if ( pInfo[w] )
+                break;
+        assert( Entry == (int)(w < p->nWords) );
+    }
+    printf( "%d", Vec_PtrSize(vInfos) );
+    // print results for used nodes
+    vPres = Vec_IntStart( Vec_PtrSize(vInfos) );
+    for ( f = 0; f <= fThis; f++ )
+    {
+        CountAll = CountUni = 0;
+        Vec_PtrForEachEntry( unsigned *, vInfos, pInfo, i )
+        {
+            if ( !Gia_InfoHasBit(pInfo, f) )
+                continue;
+            CountAll++;
+            if ( Vec_IntEntry(vPres, i) )
+                continue;
+            CountUni++;
+            Vec_IntWriteEntry( vPres, i, 1 );
+        }
+        printf( "  %d(%d)", CountAll, CountUni );
+    }
+    printf( "\n" );
+    Vec_PtrFree( vInfos );
+    Vec_IntFree( vPres );
+}
+*/
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -173,34 +326,42 @@ static inline Vec_Int_t * Vta_ManDeriveAbsAll( Vec_Int_t * p, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
-Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Vec_Int_t * vAbs, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose )
+Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose )
 {
     Vta_Man_t * p;
-    assert( nFramesMax > 0 && nFramesMax < 32 );
+    assert( nFramesMax == 0 || nFramesStart <= nFramesMax );
     p = ABC_CALLOC( Vta_Man_t, 1 );
-    p->pGia       = pGia;
-    p->nFramesMax = nFramesMax;    
-    p->nConfMax   = nConfMax;
-    p->nTimeMax   = nTimeMax;
-    p->fVerbose   = fVerbose;
+    p->pGia         = pGia;
+    p->nFramesStart = nFramesStart;    
+    p->nFramesMax   = nFramesMax;    
+    p->nConfMax     = nConfMax;
+    p->nTimeMax     = nTimeMax;
+    p->fVerbose     = fVerbose;
     // internal data
-    p->nObjsAlloc = (1 << 20);
-    p->pObjs      = ABC_CALLOC( Vta_Obj_t, p->nObjsAlloc );
-    p->nObjs      = 1;
-    p->nBins      = Gia_PrimeCudd( p->nObjsAlloc/2 );
-    p->pBins      = ABC_CALLOC( int, p->nBins );
-    p->vOrder     = Vec_IntAlloc( 1013 );
+    p->nObjsAlloc   = (1 << 20);
+    p->pObjs        = ABC_CALLOC( Vta_Obj_t, p->nObjsAlloc );
+    p->nObjs        = 1;
+    p->nBins        = Gia_PrimeCudd( p->nObjsAlloc/2 );
+    p->pBins        = ABC_CALLOC( int, p->nBins );
+    p->vOrder       = Vec_IntAlloc( 1013 );
     // abstraction
-    p->nWords     = vAbs ? Vec_IntSize(vAbs) / Gia_ManObjNum(p->pGia) : 1;
-    p->nFramesS   = vAbs ? Vta_ManReadFrameStart( vAbs, p->nWords ) : Abc_MinInt( p->nFramesMax, 10 );
-    p->vAbs       = vAbs ? Vec_IntDup(vAbs) : Vec_IntStartFull( Gia_ManObjNum(p->pGia) * p->nWords );
-    p->vAbsNew    = Vec_IntStart( Gia_ManObjNum(p->pGia) * p->nWords );
-    p->vAbsAll    = Vta_ManDeriveAbsAll( vAbs, p->nWords );
+    p->nObjBits     = Gia_Base2Log( Gia_ManObjNum(pGia) );
+    p->nObjMask     = (1 << p->nObjBits) - 1;
+    assert( Gia_ManObjNum(pGia) <= (int)p->nObjMask );
+    p->nWords       = 1;
+    p->vSeens       = Vec_IntStart( Gia_ManObjNum(pGia) * p->nWords );
+    // start the abstraction
+    if ( pGia->vObjClasses )
+        p->vFrames  = Vta_ManAbsToFrames( pGia->vObjClasses );
+    else
+        p->vFrames  = Gia_ManUnrollAbs( pGia, nFramesStart );
     // other data
-    p->vCla2Var   = Vec_IntAlloc( 1000 );
-    p->vCores     = Vec_PtrAlloc( 100 );
-    p->pSat       = sat_solver2_new();
-    assert( nFramesMax == 0 || p->nFramesS <= nFramesMax );
+    p->vCla2Var     = Vec_IntAlloc( 1000 );
+    p->vCores       = Vec_PtrAlloc( 100 );
+    p->pSat         = sat_solver2_new();
+
+
+
     return p;
 }
 
@@ -217,10 +378,8 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Vec_Int_t * vAbs, int nFramesMax, in
 ***********************************************************************/
 void Vga_ManStop( Vta_Man_t * p )
 {
-    assert( p->vAbs == NULL );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
-    Vec_IntFreeP( &p->vAbs );
-    Vec_IntFreeP( &p->vAbsAll );
+    Vec_IntFreeP( &p->vSeens );
     Vec_IntFreeP( &p->vOrder );
     Vec_IntFreeP( &p->vCla2Var );
     sat_solver2_delete( p->pSat );
@@ -422,6 +581,7 @@ Vec_Int_t * Vta_ManUnsatCore( Vec_Int_t * vCla2Var, sat_solver2 * pSat, int nCon
     }
 
     // remap core into variables
+    clk = clock();
     vPres = Vec_IntStart( sat_solver2_nvars(pSat) );
     k = 0; 
     Vec_IntForEachEntry( vCore, Entry, i )
@@ -442,6 +602,28 @@ Vec_Int_t * Vta_ManUnsatCore( Vec_Int_t * vCla2Var, sat_solver2 * pSat, int nCon
     return vCore;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Remaps core into frame/node pairs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vta_ManUnsatCoreRemap( Vta_Man_t * p, Vec_Int_t * vCore )
+{
+    Vta_Obj_t * pThis;
+    int i, Entry;
+    Vec_IntForEachEntry( vCore, Entry, i )
+    {
+        pThis = Vta_ManObj( p, Entry );
+        Entry = (pThis->iFrame << p->nObjBits) | pThis->iObj;
+        Vec_IntWriteEntry( vCore, i, Entry );
+    }
+}
 
 /**Function*************************************************************
 
@@ -519,8 +701,14 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p )
         assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
         if ( !pThis->fAdded )
         {
+            unsigned * pInfo = (unsigned *)Vec_IntEntryP( p->vSeens, p->nWords * pThis->iObj );
+            int i;
+            for ( i = 0; i < p->nWords; i++ )
+                if ( pInfo[i] )
+                    break;
             assert( pThis->Prio > 0 || pThis->Prio < VTA_LARGE );
-            if ( Vec_IntEntry(p->vAbsAll, pThis->iObj) )
+//            if ( Vec_IntEntry(p->vAbsAll, pThis->iObj) )
+            if ( i < p->nWords )
                 Vec_PtrPush( vTermsUsed, pThis );
             else
                 Vec_PtrPush( vTermsUnused, pThis );
@@ -775,85 +963,6 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Collect nodes/flops involved in different timeframes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Vec_IntDoubleWidth( Vec_Int_t * p, int nWords )
-{
-    int * pArray = ABC_CALLOC( int, Vec_IntSize(p) * 2 );
-    int i, w, nObjs = Vec_IntSize(p) / nWords;
-    assert( Vec_IntSize(p) % nWords == 0 );
-    for ( i = 0; i < nObjs; i++ )
-        for ( w = 0; w < nWords; w++ )
-            pArray[2 * nWords * i + w] = p->pArray[nWords * i + w];
-    ABC_FREE( p->pArray );
-    p->pArray = pArray;
-    p->nSize *= 2;
-    p->nCap = p->nSize;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prints the results.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Vta_ManAbsPrint( Vta_Man_t * p, int fThis )
-{
-    Vec_Ptr_t * vInfos;
-    Vec_Int_t * vPres;
-    unsigned * pInfo;
-    int CountAll, CountUni;
-    int Entry, i, w, f;
-    // collected used nodes
-    vInfos = Vec_PtrAlloc( 1000 );
-    Vec_IntForEachEntry( p->vAbsAll, Entry, i )
-    {
-        if ( Entry )
-            Vec_PtrPush( vInfos, Vta_ObjAbsNew(p, i) );
-
-        pInfo = Vta_ObjAbsNew(p, i);
-        for ( w = 0; w < p->nWords; w++ )
-            if ( pInfo[w] )
-                break;
-        assert( Entry == (int)(w < p->nWords) );
-    }
-    printf( "%d", Vec_PtrSize(vInfos) );
-    // print results for used nodes
-    vPres = Vec_IntStart( Vec_PtrSize(vInfos) );
-    for ( f = 0; f <= fThis; f++ )
-    {
-        CountAll = CountUni = 0;
-        Vec_PtrForEachEntry( unsigned *, vInfos, pInfo, i )
-        {
-            if ( !Gia_InfoHasBit(pInfo, f) )
-                continue;
-            CountAll++;
-            if ( Vec_IntEntry(vPres, i) )
-                continue;
-            CountUni++;
-            Vec_IntWriteEntry( vPres, i, 1 );
-        }
-        printf( "  %d(%d)", CountAll, CountUni );
-    }
-    printf( "\n" );
-    Vec_PtrFree( vInfos );
-    Vec_IntFree( vPres );
-}
-
-/**Function*************************************************************
-
   Synopsis    []
 
   Description []
@@ -868,8 +977,8 @@ static inline void Vga_ManUnroll_rec( Vta_Man_t * p, int iObj, int iFrame )
     int iVar;
     Gia_Obj_t * pObj;
     Vta_Obj_t * pThis;
-    if ( !Gia_InfoHasBit( Vta_ObjAbsOld(p, iObj), iFrame ) )
-        return;
+//    if ( !Gia_InfoHasBit( Vta_ObjAbsOld(p, iObj), iFrame ) )
+//        return;
     pThis = Vga_ManFindOrAdd( p, iObj, iFrame );
     if ( !pThis->fNew )
         return;
@@ -906,6 +1015,65 @@ static inline void Vga_ManUnroll_rec( Vta_Man_t * p, int iObj, int iFrame )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int iFrame )
+{
+    int i, k, iObj, Entry;
+    unsigned * pInfo, * pCountAll, * pCountUni;
+    // print info about frames
+    pCountAll = ABC_CALLOC( int, iFrame + 2 );
+    pCountUni = ABC_CALLOC( int, iFrame + 2 );
+    Vec_IntForEachEntry( vCore, Entry, i )
+    {
+        iObj   = (Entry &  p->nObjMask);
+        iFrame = (Entry >> p->nObjBits);
+        pInfo  = (unsigned *)Vec_IntEntryP( p->vSeens, p->nWords * iObj );
+        if ( Gia_InfoHasBit(pInfo, iFrame) == 0 )
+        {
+            Gia_InfoSetBit( pInfo, iFrame );
+            pCountUni[iFrame+1]++;
+            pCountUni[0]++;
+        }
+        pCountAll[iFrame+1]++;
+        pCountAll[0]++;
+
+        printf( "%5d%5d  ", pCountAll[0], pCountUni[0] ); 
+        for ( k = 0; k <= iFrame; k++ )
+            printf( "%5d%5d  ", pCountAll[k+1], pCountUni[k+1] ); 
+        printf( "\n" );
+    }
+    ABC_FREE( pCountAll );
+    ABC_FREE( pCountUni );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vga_ManAddOneSlice( Vta_Man_t * p, Vec_Int_t * vOne, int Lift )
+{
+    int Entry, i;
+    Vec_IntForEachEntry( vOne, Entry, i )
+        Vga_ManFindOrAdd( p, Entry & p->nObjMask, (Entry >> p->nObjBits) + Lift );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collect nodes/flops involved in different timeframes.]
 
   Description []
@@ -915,58 +1083,71 @@ static inline void Vga_ManUnroll_rec( Vta_Man_t * p, int iObj, int iFrame )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_VtaTest( Gia_Man_t * pAig, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose )
+void Gia_VtaTest( Gia_Man_t * pAig, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose )
 {
     Vta_Man_t * p;
     Gia_Obj_t * pObj;
-    Abc_Cex_t * pCex;
-    Vec_Int_t * vCore;
-    Vec_Int_t * vAbs = NULL;
-    int f, i, iObjPrev, RetValue, Entry;
+    Abc_Cex_t * pCex = NULL;
+    Vec_Int_t * vCore, * vOne;
+    int f, i, iObjPrev, RetValue, Limit;
     assert( Gia_ManPoNum(pAig) == 1 );
     pObj = Gia_ManPo( pAig, 0 );
     // start the manager
-    p = Vga_ManStart( pAig, vAbs, nFramesMax, nConfMax, nTimeMax, fVerbose );
-    // iteragte though time frames
+    p = Vga_ManStart( pAig, nFramesStart, nFramesMax, nConfMax, nTimeMax, fVerbose );
+    // perform initial abstraction
     for ( f = 0; f < nFramesMax; f++ )
     {
+        if ( f == p->nWords * 32 )
+            p->nWords = Vec_IntDoubleWidth( p->vSeens, p->nWords );
         p->iFrame = f;
         if ( fVerbose )
             printf( "Frame %4d : ", f );
-        if ( p->nWords * 32 == f )
+        if ( f < nFramesStart )
         {
-            Vec_IntDoubleWidth( vAbs, p->nWords );
-            p->nWords *= 2;
-        }
-
-        if ( f < p->nFramesS )
-        {
-            // unroll and create clauses
+            // load the time frame
             iObjPrev = p->nObjs;
-            assert( Gia_InfoHasBit( Vta_ObjAbsOld(p, Gia_ObjFaninId0p(p->pGia, pObj)), f ) );
-            Vga_ManUnroll_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
+            vOne = Vec_PtrEntry( p->vFrames, f );
+            Vga_ManAddOneSlice( p, vOne, 0 );
             for ( i = iObjPrev; i < p->nObjs; i++ )
                 Vga_ManAddClausesOne( p, Vta_ManObj(p, i) );
             // run SAT solver
             vCore = Vta_ManUnsatCore( p->vCla2Var, p->pSat, nConfMax, fVerbose, &RetValue );
             if ( vCore == NULL && RetValue == 0 )
+            {
+                // make sure, there was no initial abstraction (otherwise, it was invalid)
+                assert( pAig->vObjClasses == NULL );
+                // derive counter-example
                 pCex = NULL;
+                break;
+            }
         }
         else
         {
-            // consider the last p->nFramesS/2 cores
+            break;
 
-            // add them for the last time frame
-
+            Limit = Abc_MinInt(3, nFramesStart);
+            // load the time frame
+            iObjPrev = p->nObjs;
+            for ( i = 1; i <= Limit; i++ )
+            {
+                vOne = Vec_PtrEntry( p->vCores, f-i );
+                Vga_ManAddOneSlice( p, vOne, i );
+            }
+            for ( i = iObjPrev; i < p->nObjs; i++ )
+                Vga_ManAddClausesOne( p, Vta_ManObj(p, i) );
             // iterate as long as there are counter-examples
             while ( 1 )
             {
                 vCore = Vta_ManUnsatCore( p->vCla2Var, p->pSat, nConfMax, fVerbose, &RetValue );
+                if ( RetValue ) // resource limit is reached
+                {
+                    assert( vCore == NULL );
+                    break;
+                }
                 if ( vCore != NULL )
                 {
                     // unroll the solver, add the core
-
-                    // return and dobule check
+                    // return and double check
                     break;
                 }
                 pCex = Vta_ManRefineAbstraction( p );
@@ -974,7 +1155,6 @@ void Gia_VtaTest( Gia_Man_t * pAig, int nFramesMax, int nConfMax, int nTimeMax, 
                     break;
             }
         }
-
         if ( pCex != NULL )
         {
             // the problem is SAT
@@ -983,27 +1163,18 @@ void Gia_VtaTest( Gia_Man_t * pAig, int nFramesMax, int nConfMax, int nTimeMax, 
         {
             // resource limit is reached
         }
-
-        // add core to storage
-        Vec_IntForEachEntry( vCore, Entry, i )
-        {
-            Vta_Obj_t * pThis = Vta_ManObj( p, Entry );
-            unsigned * pInfo = Vta_ObjAbsNew( p, pThis->iObj );
-            Vec_IntWriteEntry( p->vAbsAll, pThis->iObj, 1 );
-            Gia_InfoSetBit( pInfo, pThis->iFrame );
-        }
-//        Vec_IntFree( vCore );
+        // add the core
         Vec_PtrPush( p->vCores, vCore );
         // print the result
         if ( fVerbose )
-            Vta_ManAbsPrint( p, f );
+            Vta_ManAbsPrintFrame( p, vCore, f );
     }
-
-    vAbs = p->vAbsNew; p->vAbsNew = NULL;
+    assert( Vec_PtrSize(p->vCores) > 0 );
+    if ( pAig->vObjClasses != NULL )
+        printf( "Replacing the old abstraction by a new one.\n" );
+    Vec_IntFreeP( &pAig->vObjClasses );
+    pAig->vObjClasses = Vta_ManFramesToAbs( (Vec_Vec_t *)p->vCores );
     Vga_ManStop( p );
-
-    // print statistics about the core
-    Vec_IntFree( vAbs );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -567,6 +567,14 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
             pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
             Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
         }
+        if ( *pCur == 'v' )
+        {
+            pCur++;
+            // read object classes
+            pNew->vObjClasses = Vec_IntStart( Gia_ReadInt(pCur)/4 ); pCur += 4;
+            memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
+            pCur += 4*Vec_IntSize(pNew->vObjClasses);
+        }
         if ( *pCur == 'm' )
         {
             pCur++;
@@ -617,7 +625,6 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
 */
     return pNew;
 }
-
 
 /**Function*************************************************************
 
@@ -833,6 +840,14 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             pNew->vGateClasses = Vec_IntStart( Gia_ManObjNum(pNew) );
             Gia_ReadFlopClasses( &pCur, pNew->vGateClasses, Gia_ManObjNum(pNew) );
         }
+        if ( *pCur == 'v' )
+        {
+            pCur++;
+            // read object classes
+            pNew->vObjClasses = Vec_IntStart( Gia_ReadInt(pCur)/4 ); pCur += 4;
+            memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
+            pCur += 4*Vec_IntSize(pNew->vObjClasses);
+        }
         if ( *pCur == 'm' )
         {
             pCur++;
@@ -1024,14 +1039,26 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
     }
 
     {
-        Vec_Int_t * vFlopMap, * vGateMap;
+        Vec_Int_t * vFlopMap, * vGateMap, * vObjMap;
         vFlopMap = pNew->vFlopClasses; pNew->vFlopClasses = NULL;
         vGateMap = pNew->vGateClasses; pNew->vGateClasses = NULL;
+        vObjMap  = pNew->vObjClasses;  pNew->vObjClasses  = NULL;
         pNew = Gia_ManCleanup( pTemp = pNew );
         Gia_ManStop( pTemp );
         pNew->vFlopClasses = vFlopMap;
         pNew->vGateClasses = vGateMap;
+        pNew->vObjClasses  = vObjMap;
     }
+/*
+    {
+        extern Vec_Int_t * Vta_ManFramesToAbs( Vec_Vec_t * vFrames );
+        extern Vec_Ptr_t * Vta_ManAbsToFrames( Vec_Int_t * vAbs );
+        Vec_Vec_t * vAbs = (Vec_Vec_t *)Gia_ManUnrollAbs( pNew );
+        assert( pNew->vObjClasses == NULL );
+        pNew->vObjClasses = Vta_ManFramesToAbs( vAbs );
+        Vec_VecFree( vAbs );
+    }
+*/
     return pNew;
 }
 
@@ -1460,6 +1487,16 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fprintf( pFile, "g" );
         fwrite( Buffer, 1, 4, pFile );
         fwrite( Vec_IntArray(p->vGateClasses), 1, nSize, pFile );
+    }
+    // write object classes
+    if ( p->vObjClasses )
+    {
+        unsigned char Buffer[10];
+        int nSize = 4*Vec_IntSize(p->vObjClasses);
+        Gia_WriteInt( Buffer, nSize );
+        fprintf( pFile, "v" );
+        fwrite( Buffer, 1, 4, pFile );
+        fwrite( Vec_IntArray(p->vObjClasses), 1, nSize, pFile );
     }
     // write mapping
     if ( p->pMapping )
