@@ -568,11 +568,18 @@ extern int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk );
 
 ***********************************************************************/
 void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
-{
+{ 
     Au_Obj_t * pObj, * pTerm;
     int i, k;
     Au_NtkForEachPi( p, pTerm, i )
         assert( Au_ObjCopy(pTerm) >= 0 );
+    if ( strcmp(Au_NtkName(p), "ref_egcd") == 0 )
+    {
+        printf( "Replacing one instance of recursive model \"%s\" by a black box.\n", "ref_egcd" );
+        Au_NtkForEachPo( p, pTerm, i )
+            Au_ObjSetCopy( pTerm, Gia_ManAppendCi(pGia) );
+        return;
+    }
     Au_NtkForEachObj( p, pObj, i )
     {
         if ( Au_ObjIsNode(pObj) )
@@ -635,6 +642,7 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     pGia = Gia_ManStart( (1<<16) );
     pGia->pName = Gia_UtilStrsav( Au_NtkName(p) );
     Gia_ManHashAlloc( pGia );
+    Gia_ManFlipVerbose( pGia );
     // create PIs
     Au_NtkForEachPi( p, pTerm, i )
         Au_ObjSetCopy( pTerm, Gia_ManAppendCi(pGia) );
@@ -725,7 +733,6 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     clk2 += clock() - clk1;
 
     vModels = Abc_NtkCollectHie( pRoot );
-//    Vec_PtrForEachEntry( Abc_Ntk_t *, pLib->vModules, pMod, i )
     Vec_PtrForEachEntry( Abc_Ntk_t *, vModels, pMod, i )
     {
         vOrder = Abc_NtkDfsBoxes( pMod );
@@ -742,7 +749,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 
     Au_ManPrintStats( pMan );
 
-    if ( !Abc_NtkCheckRecursive(pRoot) )
+//    if ( !Abc_NtkCheckRecursive(pRoot) )
     {
         clk1 = clock();
         pGia = Au_NtkDeriveFlatGia( (Au_Ntk_t *)pRoot->pData );
@@ -750,9 +757,9 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 //        printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
     }
 
-    clk1 = clock();
-    Au_NtkSuppSizeTest( (Au_Ntk_t *)pRoot->pData );
-    clk4 = clock() - clk1;
+//    clk1 = clock();
+//    Au_NtkSuppSizeTest( (Au_Ntk_t *)pRoot->pData );
+//    clk4 = clock() - clk1;
 
     clk1 = clock();
     Au_ManDelete( pMan );
@@ -761,7 +768,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Abc_PrintTime( 1, "Time all ", clock() - clk );
     Abc_PrintTime( 1, "Time new ", clk2 );
     Abc_PrintTime( 1, "Time GIA ", clk3 );
-    Abc_PrintTime( 1, "Time supp", clk4 );
+//    Abc_PrintTime( 1, "Time supp", clk4 );
 
     return pGia;
 }

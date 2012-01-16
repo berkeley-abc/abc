@@ -686,14 +686,14 @@ Gia_Man_t * Abc_NtkHieCecTest( char * pFileName, int fVerbose )
 
     assert( Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkLatchNum(pNtk) );
-
+/*
     if ( pNtk->pDesign != NULL )
     {
         clk = clock();
         Abc_NtkCountNodes( pNtk );
         Abc_PrintTime( 1, "Count nodes", clock() - clk );
     }
-
+*/
     // print stats
     if ( fVerbose )
         Abc_NtkPrintBoxInfo( pNtk );

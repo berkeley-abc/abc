@@ -152,6 +152,7 @@ struct Gia_Man_t_
     void *         pLutLib;       // LUT library
     word           nHashHit;      // hash table hit
     word           nHashMiss;     // hash table miss
+    int            fVerbose;      // verbose reports
 };
 
 
@@ -303,6 +304,7 @@ static inline int          Gia_ManObjNum( Gia_Man_t * p )      { return p->nObjs
 static inline int          Gia_ManAndNum( Gia_Man_t * p )      { return p->nObjs - Vec_IntSize(p->vCis) - Vec_IntSize(p->vCos) - 1;  }
 static inline int          Gia_ManCandNum( Gia_Man_t * p )     { return Gia_ManCiNum(p) + Gia_ManAndNum(p);                          }
 static inline int          Gia_ManConstrNum( Gia_Man_t * p )   { return p->nConstrs;           }
+static inline void         Gia_ManFlipVerbose( Gia_Man_t * p ) { p->fVerbose ^= 1;             } 
 
 static inline Gia_Obj_t *  Gia_ManConst0( Gia_Man_t * p )      { return p->pObjs;                                               }
 static inline Gia_Obj_t *  Gia_ManConst1( Gia_Man_t * p )      { return Gia_Not(Gia_ManConst0(p));                              }
@@ -428,7 +430,8 @@ static inline Gia_Obj_t * Gia_ManAppendObj( Gia_Man_t * p )
 { 
     if ( p->nObjs == p->nObjsAlloc )
     {
-//        printf("Reallocing %d.\n", 2 * p->nObjsAlloc );
+        if ( p->fVerbose )
+            printf("Extending GIA object storage: %d -> %d.\n", p->nObjsAlloc, 2 * p->nObjsAlloc );
         assert( p->nObjsAlloc > 0 );
         p->pObjs = ABC_REALLOC( Gia_Obj_t, p->pObjs, 2 * p->nObjsAlloc );
         memset( p->pObjs + p->nObjsAlloc, 0, sizeof(Gia_Obj_t) * p->nObjsAlloc );

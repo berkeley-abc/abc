@@ -151,6 +151,18 @@ void Gia_ManHashStart( Gia_Man_t * p )
 ***********************************************************************/
 void Gia_ManHashStop( Gia_Man_t * p )  
 {
+    int i, Ent, Counter;
+    printf( "Hash table hits = %12u.   Hash table misses = %12u.\n", (int)p->nHashHit, (int)p->nHashMiss );
+    printf( "Hash table size = %12u.   Object count = %12u.\n", p->nHTable, p->nObjs );
+    for ( i = 0; i < Abc_MinInt(p->nHTable, 1000); i++ )
+    {
+        Counter = 0;
+        for ( Ent = Gia_Lit2Var(p->pHTable[i]); Ent; Ent = Gia_Lit2Var(Gia_ManObj(p, Ent)->Value) )
+            Counter++;
+        printf( "%d ", Counter );
+    }
+    printf( "\n" );
+
     ABC_FREE( p->pHTable );
     p->nHTable = 0;
 }
@@ -195,6 +207,8 @@ void Gia_ManHashResize( Gia_Man_t * p )
     Counter2 = Gia_ManAndNum(p);
     assert( Counter == Counter2 );
     ABC_FREE( pHTableOld );
+    if ( p->fVerbose )
+        printf( "Resizing GIA hash table: %d -> %d.\n", nHTableOld, p->nHTable );
 }
 
 /**Function********************************************************************
