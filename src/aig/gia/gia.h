@@ -196,9 +196,17 @@ struct Gia_ParSim_t_
     int            iOutFail;      // index of the failed output
 };
 
-extern void Gia_ManSimSetDefaultParams( Gia_ParSim_t * p );
-extern int Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars );
-
+// abstraction parameters
+typedef struct Gia_ParVta_t_ Gia_ParVta_t;
+struct Gia_ParVta_t_
+{
+    int            nFramesStart;  // starting frame 
+    int            nFramesMax;    // maximum frames
+    int            nConfLimit;    // conflict limit
+    int            nTimeOut;      // timeout in seconds
+    int            fVerbose;      // verbose flag
+    int            iFrame;        // the number of frames covered 
+};
 
 static inline int          Gia_IntAbs( int n )                    { return (n < 0)? -n : n;                                     }
 static inline int          Gia_Float2Int( float Val )             { union { int x; float y; } v; v.y = Val; return v.x;         }
@@ -611,6 +619,12 @@ extern int                 Gia_ManPbaPerform( Gia_Man_t * pGia, int nStart, int 
 extern int                 Gia_ManCbaPerform( Gia_Man_t * pGia, void * pPars );
 extern int                 Gia_ManGlaCbaPerform( Gia_Man_t * pGia, void * pPars, int fNaiveCnf );
 extern int                 Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver );
+/*=== giaAbsVta.c ===========================================================*/
+extern void                Gia_VtaSetDefaultParams( Gia_ParVta_t * p );
+extern Vec_Ptr_t *         Gia_VtaAbsToFrames( Vec_Int_t * vAbs );
+extern Vec_Int_t *         Gia_VtaFramesToAbs( Vec_Vec_t * vFrames );
+extern Vec_Int_t *         Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vAbs );
+extern int                 Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars );
 /*=== giaAiger.c ===========================================================*/
 extern int                 Gia_FileSize( char * pFileName );
 extern Gia_Man_t *         Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck );
@@ -783,6 +797,7 @@ extern Gia_Man_t *         Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLeve
 /*=== giaSort.c ============================================================*/
 extern int *               Gia_SortFloats( float * pArray, int * pPerm, int nSize );
 /*=== giaSim.c ============================================================*/
+extern void                Gia_ManSimSetDefaultParams( Gia_ParSim_t * p );
 extern int                 Gia_ManSimSimulate( Gia_Man_t * pAig, Gia_ParSim_t * pPars );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );

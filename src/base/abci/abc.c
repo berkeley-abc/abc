@@ -383,6 +383,7 @@ static int Abc_CommandAbc9AbsPba             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Vta                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BackReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -841,6 +842,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_derive",   Abc_CommandAbc9GlaDerive,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_cba",      Abc_CommandAbc9GlaCba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_pba",      Abc_CommandAbc9GlaPba,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&vta",          Abc_CommandAbc9Vta,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&back_reach",   Abc_CommandAbc9BackReach,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
@@ -29457,6 +29459,122 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_ParVta_t Pars, * pPars = &Pars;
+    int c;
+    Gia_VtaSetDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesStart = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesStart < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9AbsCba(): There is no AIG.\n" );
+        return 1;
+    } 
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( Gia_ManPoNum(pAbc->pGia) > 1 )
+    {
+        Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
+        return 0;
+    }
+    if ( pPars->nFramesMax > 0 )
+    {
+        Abc_Print( 1, "The number of starting frames should be a positive integer.\n" );
+        return 0;
+    }
+    if ( pPars->nFramesMax && pPars->nFramesStart > pPars->nFramesMax )
+    {
+        Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
+        return 0;
+    }
+    pAbc->Status  = Gia_VtaPerform( pAbc->pGia, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &vta [-SFCT num] [-vh]\n" );
+    Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
+    Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
+    Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Reparam( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp = NULL;
@@ -30330,7 +30448,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
-    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
+//    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -30368,7 +30486,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ManStopP( &pTemp );
 //    Gia_ManSuppSizeTest( pAbc->pGia );
 
-    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
+//    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );
