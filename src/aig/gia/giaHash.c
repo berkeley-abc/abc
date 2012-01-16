@@ -151,18 +151,6 @@ void Gia_ManHashStart( Gia_Man_t * p )
 ***********************************************************************/
 void Gia_ManHashStop( Gia_Man_t * p )  
 {
-    int i, Ent, Counter;
-    printf( "Hash table hits = %12u.   Hash table misses = %12u.\n", (int)p->nHashHit, (int)p->nHashMiss );
-    printf( "Hash table size = %12u.   Object count = %12u.\n", p->nHTable, p->nObjs );
-    for ( i = 0; i < Abc_MinInt(p->nHTable, 1000); i++ )
-    {
-        Counter = 0;
-        for ( Ent = Gia_Lit2Var(p->pHTable[i]); Ent; Ent = Gia_Lit2Var(Gia_ManObj(p, Ent)->Value) )
-            Counter++;
-        printf( "%d ", Counter );
-    }
-    printf( "\n" );
-
     ABC_FREE( p->pHTable );
     p->nHTable = 0;
 }
@@ -225,9 +213,11 @@ void Gia_ManHashResize( Gia_Man_t * p )
 void Gia_ManHashProfile( Gia_Man_t * p )
 {
     Gia_Obj_t * pEntry;
-    int i, Counter;
-    printf( "Table size = %d. Entries = %d.\n", p->nHTable, Gia_ManAndNum(p) );
-    for ( i = 0; i < p->nHTable; i++ )
+    int i, Counter, Limit;
+    printf( "Table size = %d. Entries = %d. ", p->nHTable, Gia_ManAndNum(p) );
+    printf( "Hits = %d. Misses = %d.\n", (int)p->nHashHit, (int)p->nHashMiss );
+    Limit = Abc_MinInt( 1000, p->nHTable );
+    for ( i = 0; i < Limit; i++ )
     {
         Counter = 0;
         for ( pEntry = (p->pHTable[i]? Gia_ManObj(p, Gia_Lit2Var(p->pHTable[i])) : NULL); 
