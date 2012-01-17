@@ -200,6 +200,8 @@ static inline int          Au_ObjIsTravIdCurrentId( Au_Ntk_t * p, int Id )  { re
     for ( i = 0; (i < Vec_IntSize(&p->vPos))    && (((pObj) = Au_NtkPo(p, i)), 1); i++ )
 #define Au_NtkForEachObj( p, pObj, i )           \
     for ( i = 0; (i < Vec_IntSize(&p->vObjs))   && (((pObj) = Au_NtkObjI(p, i)), 1); i++ )
+#define Au_NtkForEachBox( p, pObj, i )           \
+    for ( i = 0; (i < Vec_IntSize(&p->vObjs))   && (((pObj) = Au_NtkObjI(p, i)), 1); i++ ) if ( !Au_ObjIsBox(pObj) ) {} else
 
 
 extern void Au_ManAddNtk( Au_Man_t * pMan, Au_Ntk_t * p );
@@ -546,6 +548,220 @@ int Au_NtkCreateBox( Au_Ntk_t * pNtk, Vec_Int_t * vFanins, int nFanouts, int iMo
     p->Func = iModel;
     assert( iModel > 0 );
     return Id;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Reads one entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Au_NtkRemapNum( Vec_Int_t * vNum2Obj, int Num )
+{
+    return Au_Var2Lit(Vec_IntEntry(vNum2Obj, Au_Lit2Var(Num)), Au_LitIsCompl(Num));
+}
+/**Function*************************************************************
+
+  Synopsis    [Reads one entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Au_NtkParseCBlifNum( Vec_Int_t * vFanins, char * pToken, Vec_Int_t * vNum2Obj )
+{
+    char * pCur;
+    int Num1, Num2, i;
+    assert( pToken[0] >= '0' && pToken[0] <= '9' );
+    Num1 = atoi( pToken );
+    for ( pCur = pToken; *pCur; pCur++ )
+        if ( *pCur == ':' )
+        {
+            Num2 = atoi( pCur+1 );
+            for ( i = 0; i < Num2; i++ )
+                Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1 + 2 * i) );
+        }
+        else if ( *pCur == '*' )
+        {
+            Num2 = atoi( pCur+1 );
+            for ( i = 0; i < Num2; i++ )
+                Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1) );
+        }
+    if ( *pCur == 0 )
+        Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Parses CBLIF file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
+{
+    extern char * Extra_FileRead( FILE * pFile );
+    FILE * pFile;
+    Au_Man_t * pMan;
+    Au_Ntk_t * pRoot;
+    Au_Obj_t * pBox;
+    char * pBuffer, * pCur;
+    Vec_Int_t * vLines, * vNum2Obj, * vFanins;
+    int i, k, Id, nInputs, nOutputs;
+    int Line, Num, Func;
+    // read the file
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\".\n", pFileName );
+        return NULL;
+    }
+    pBuffer = Extra_FileRead( pFile );
+    fclose( pFile );
+    // split into lines
+    vLines = Vec_IntAlloc( 1000 );
+    Vec_IntPush( vLines, 0 );
+    for ( pCur = pBuffer; *pCur; pCur++ )
+        if ( *pCur == '\n' )
+        {
+            *pCur = 0;
+            Vec_IntPush( vLines, pCur - pBuffer + 1 );
+        }
+    // start the manager
+    pMan = Au_ManAlloc( pFileName );
+    // parse the lines
+    vNum2Obj = Vec_IntAlloc( 1000 );
+    vFanins = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( vLines, Line, i )
+    {
+        pCur = strtok( pBuffer + Line, " \t\r" );
+        if ( pCur == NULL )
+            continue;
+        if ( *pCur == '#' )
+            continue;
+        if ( *pCur != '.' )
+        {
+            printf( "Cannot read directive in line %d: \"%s\".\n", i, pBuffer + Line );
+            continue;
+        }
+        if ( !strcmp(pCur, ".and") )
+        {
+            Vec_IntClear( vFanins );
+            for ( k = 0; k < 2; k++ )
+            {
+                pCur = strtok( NULL, " \t\r" );
+                Num  = atoi( pCur );
+                Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num) );
+            }
+            Id = Au_NtkCreateNode( pRoot, vFanins, 1 );
+            Vec_IntPush( vNum2Obj, Id );
+        }
+        else if ( !strcmp(pCur, ".xor") )
+        {
+            Vec_IntClear( vFanins );
+            for ( k = 0; k < 2; k++ )
+            {
+                pCur = strtok( NULL, " \t\r" );
+                Num  = atoi( pCur );
+                Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num) );
+            }
+            Id = Au_NtkCreateNode( pRoot, vFanins, 2 );
+            Vec_IntPush( vNum2Obj, Id );
+        }
+        else if ( !strcmp(pCur, ".mux") )
+        {
+            Vec_IntClear( vFanins );
+            for ( k = 0; k < 3; k++ )
+            {
+                pCur = strtok( NULL, " \t\r" );
+                Num  = atoi( pCur );
+                Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num) );
+            }
+            Id = Au_NtkCreateNode( pRoot, vFanins, 3 );
+            Vec_IntPush( vNum2Obj, Id );
+        }
+        else if ( !strcmp(pCur, ".subckt") )
+        {
+            pCur = strtok( NULL, " \t\r" );
+            Func = pCur - pBuffer;
+            pCur = strtok( NULL, " \t\r" );
+            nInputs = atoi( pCur );
+            pCur = strtok( NULL, " \t\r" );
+            nOutputs = atoi( pCur );
+            Vec_IntClear( vFanins );
+            while ( 1 )
+            {
+                pCur = strtok( NULL, " \t\r" );
+                if ( pCur == NULL )
+                    break;
+                Au_NtkParseCBlifNum( vFanins, pCur, vNum2Obj );
+            }
+            assert( Vec_IntSize(vFanins) == nInputs );
+            Id = Au_NtkCreateBox( pRoot, vFanins, nOutputs, Func );
+            for ( k = 0; k < nOutputs; k++ )
+                Vec_IntPush( vNum2Obj, Id + 1 + k );
+        }
+        else if ( !strcmp(pCur, ".model") )
+        {
+            pCur  = strtok( NULL, " \t\r" );
+            pRoot = Au_NtkAlloc( pMan, pCur );
+            Id    = Au_NtkCreateConst0( pRoot );
+            Vec_IntClear( vNum2Obj );
+            Vec_IntPush( vNum2Obj, Id );
+        }
+        else if ( !strcmp(pCur, ".inputs") )
+        {
+            pCur = strtok( NULL, " \t\r" );
+            Num  = atoi( pCur );
+            for ( k = 0; k < Num; k++ )
+            {
+                Id = Au_NtkCreatePi( pRoot );
+                Vec_IntPush( vNum2Obj, Id );
+            }
+        }
+        else if ( !strcmp(pCur, ".outputs") )
+        {
+            Vec_IntClear( vFanins );
+            while ( 1 )
+            {
+                pCur = strtok( NULL, " \t\r" );
+                if ( pCur == NULL )
+                    break; 
+                Au_NtkParseCBlifNum( vFanins, pCur, vNum2Obj );
+            }
+            Vec_IntForEachEntry( vFanins, Num, k )
+                Vec_IntPush( vNum2Obj, Au_NtkCreatePo(pRoot, Num) );
+        }
+        else if ( strcmp(pCur, ".end") )
+            printf( "Unknown directive in line %d: \"%s\".\n", i, pBuffer + Line );
+    }
+    Vec_IntFree( vFanins );
+    Vec_IntFree( vNum2Obj );
+    Vec_IntFree( vLines );
+    ABC_FREE( pBuffer );
+    // set pointers to models
+    Au_ManForEachNtk( pMan, pRoot, i )
+        Au_NtkForEachBox( pRoot, pBox, k )
+        {
+            pBox->Func = Au_ManFindNtk( pMan, pBuffer + pBox->Func );
+            assert( pBox->Func > 0 );
+        }
+    // return the root network
+    return (Au_Ntk_t *)Vec_PtrEntry( &pMan->vNtks, 0 );
 }
 
 
