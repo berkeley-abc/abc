@@ -98,6 +98,8 @@ static inline int          Vta_ObjId( Vta_Man_t * p, Vta_Obj_t * pObj ) { assert
 // - the following entries give the object IDs
 // invariant:  assert( vec[vec[0]+2] == size(vec) );
 
+extern void Vga_ManAddClausesOne( Vta_Man_t * p, Vta_Obj_t * pThis );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -302,135 +304,6 @@ int Vec_IntDoubleWidth( Vec_Int_t * p, int nWords )
     return 2 * nWords;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Prints the results.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-void Vta_ManAbsPrint( Vta_Man_t * p, int fThis )
-{
-    Vec_Ptr_t * vInfos;
-    Vec_Int_t * vPres;
-    unsigned * pInfo;
-    int CountAll, CountUni;
-    int Entry, i, w, f;
-    // collected used nodes
-    vInfos = Vec_PtrAlloc( 1000 );
-    Vec_IntForEachEntry( p->vAbsAll, Entry, i )
-    {
-        if ( Entry )
-            Vec_PtrPush( vInfos, Vta_ObjAbsNew(p, i) );
-
-        pInfo = Vta_ObjAbsNew(p, i);
-        for ( w = 0; w < p->nWords; w++ )
-            if ( pInfo[w] )
-                break;
-        assert( Entry == (int)(w < p->nWords) );
-    }
-    printf( "%d", Vec_PtrSize(vInfos) );
-    // print results for used nodes
-    vPres = Vec_IntStart( Vec_PtrSize(vInfos) );
-    for ( f = 0; f <= fThis; f++ )
-    {
-        CountAll = CountUni = 0;
-        Vec_PtrForEachEntry( unsigned *, vInfos, pInfo, i )
-        {
-            if ( !Gia_InfoHasBit(pInfo, f) )
-                continue;
-            CountAll++;
-            if ( Vec_IntEntry(vPres, i) )
-                continue;
-            CountUni++;
-            Vec_IntWriteEntry( vPres, i, 1 );
-        }
-        printf( "  %d(%d)", CountAll, CountUni );
-    }
-    printf( "\n" );
-    Vec_PtrFree( vInfos );
-    Vec_IntFree( vPres );
-}
-*/
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
-{
-    Vta_Man_t * p;
-    p = ABC_CALLOC( Vta_Man_t, 1 );
-    p->pGia         = pGia;
-    p->pPars        = pPars;
-    // internal data
-    p->nObjsAlloc   = (1 << 20);
-    p->pObjs        = ABC_CALLOC( Vta_Obj_t, p->nObjsAlloc );
-    p->nObjs        = 1;
-    p->nBins        = Abc_PrimeCudd( p->nObjsAlloc/2 );
-    p->pBins        = ABC_CALLOC( int, p->nBins );
-    p->vOrder       = Vec_IntAlloc( 1013 );
-    // abstraction
-    p->nObjBits     = Gia_Base2Log( Gia_ManObjNum(pGia) );
-    p->nObjMask     = (1 << p->nObjBits) - 1;
-    assert( Gia_ManObjNum(pGia) <= (int)p->nObjMask );
-    p->nWords       = 1;
-    p->vSeens       = Vec_IntStart( Gia_ManObjNum(pGia) * p->nWords );
-    // start the abstraction
-    if ( pGia->vObjClasses == NULL )
-        p->vFrames  = Gia_ManUnrollAbs( pGia, pPars->nFramesStart );
-    else
-    {
-        p->vFrames  = Gia_VtaAbsToFrames( pGia->vObjClasses );
-        // update parameters
-        if ( pPars->nFramesStart != Vec_PtrSize(p->vFrames) )
-            printf( "Starting frame count is set in accordance with abstraction (%d).\n", Vec_PtrSize(p->vFrames) ); 
-        pPars->nFramesStart = Vec_PtrSize(p->vFrames);
-        if ( pPars->nFramesMax )
-            pPars->nFramesMax = Abc_MaxInt( pPars->nFramesMax, pPars->nFramesStart );
-    }
-    // other data
-    p->vCla2Var     = Vec_IntAlloc( 1000 );
-    p->vCores       = Vec_PtrAlloc( 100 );
-    p->pSat         = sat_solver2_new();
-    return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Delete manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Vga_ManStop( Vta_Man_t * p )
-{
-    Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
-    Vec_VecFreeP( (Vec_Vec_t **)&p->vFrames );
-    Vec_IntFreeP( &p->vSeens );
-    Vec_IntFreeP( &p->vOrder );
-    Vec_IntFreeP( &p->vCla2Var );
-    sat_solver2_delete( p->pSat );
-    ABC_FREE( p->pBins );
-    ABC_FREE( p->pObjs );
-    ABC_FREE( p );
-}
 
 
 
@@ -449,18 +322,6 @@ static inline int Vga_ManHash( int iObj, int iFrame, int nBins )
 {
     return ((iObj + iFrame)*(iObj + iFrame + 1)) % nBins;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline int * Vga_ManLookup( Vta_Man_t * p, int iObj, int iFrame )
 {
     Vta_Obj_t * pThis;
@@ -505,73 +366,6 @@ static inline void Vga_ManDelete( Vta_Man_t * p, int iObj, int iFrame )
     assert( pThis != NULL );
     *pPlace = pThis->iNext;
     pThis->iNext = -1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds clauses to the solver.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Vga_ManAddClausesOne( Vta_Man_t * p, Vta_Obj_t * pThis )
-{
-    Vta_Obj_t * pThis0, * pThis1;
-    Gia_Obj_t * pObj;
-    int i = Vta_ObjId( p, pThis );
-    assert( !pThis->fAdded && !pThis->fNew );
-    pObj = Gia_ManObj( p->pGia, pThis->iObj );
-    if ( Gia_ObjIsAnd(pObj) )
-    {
-        pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );
-        pThis1 = Vga_ManFind( p, Gia_ObjFaninId1p(p->pGia, pObj), pThis->iFrame );
-        if ( pThis0 && pThis1 )
-        {
-            pThis->fAdded = 1;
-            sat_solver2_add_and( p->pSat, 
-                Vta_ObjId(p, pThis), Vta_ObjId(p, pThis0), Vta_ObjId(p, pThis1), 
-                Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
-            Vec_IntPush( p->vCla2Var, i );
-            Vec_IntPush( p->vCla2Var, i );
-            Vec_IntPush( p->vCla2Var, i );
-        }
-    }
-    else if ( Gia_ObjIsRo(p->pGia, pObj) )
-    {
-        if ( pThis->iFrame == 0 )
-        {
-            pThis->fAdded = 1;
-            sat_solver2_add_constraint( p->pSat, pThis->iObj, 1, 0 );
-            Vec_IntPush( p->vCla2Var, i );
-            Vec_IntPush( p->vCla2Var, i );
-        }
-        else
-        {
-            pObj = Gia_ObjRoToRi( p->pGia, pObj );
-            pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame-1 );
-            if ( pThis0 )
-            {
-                pThis->fAdded = 1;
-                sat_solver2_add_buffer( p->pSat, 
-                    Vta_ObjId(p, pThis), Vta_ObjId(p, pThis0), 
-                    Gia_ObjFaninC0(pObj), 0 );  
-                Vec_IntPush( p->vCla2Var, i );
-                Vec_IntPush( p->vCla2Var, i );
-            }
-        }
-    }
-    else if ( Gia_ObjIsConst0(pObj) )
-    {
-        pThis->fAdded = 1;
-        sat_solver2_add_const( p->pSat, Vta_ObjId(p, pThis), 1, 0 );
-        Vec_IntPush( p->vCla2Var, i );
-    }
-    else if ( !Gia_ObjIsPi(p->pGia, pObj) )
-        assert( 0 );
 }
 
 /**Function*************************************************************
@@ -1018,6 +812,79 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p )
     return pCex;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
+{
+    Vta_Man_t * p;
+    p = ABC_CALLOC( Vta_Man_t, 1 );
+    p->pGia         = pGia;
+    p->pPars        = pPars;
+    // internal data
+    p->nObjsAlloc   = (1 << 20);
+    p->pObjs        = ABC_CALLOC( Vta_Obj_t, p->nObjsAlloc );
+    p->nObjs        = 1;
+    p->nBins        = Abc_PrimeCudd( p->nObjsAlloc/2 );
+    p->pBins        = ABC_CALLOC( int, p->nBins );
+    p->vOrder       = Vec_IntAlloc( 1013 );
+    // abstraction
+    p->nObjBits     = Gia_Base2Log( Gia_ManObjNum(pGia) );
+    p->nObjMask     = (1 << p->nObjBits) - 1;
+    assert( Gia_ManObjNum(pGia) <= (int)p->nObjMask );
+    p->nWords       = 1;
+    p->vSeens       = Vec_IntStart( Gia_ManObjNum(pGia) * p->nWords );
+    // start the abstraction
+    if ( pGia->vObjClasses == NULL )
+        p->vFrames  = Gia_ManUnrollAbs( pGia, pPars->nFramesStart );
+    else
+    {
+        p->vFrames  = Gia_VtaAbsToFrames( pGia->vObjClasses );
+        // update parameters
+        if ( pPars->nFramesStart != Vec_PtrSize(p->vFrames) )
+            printf( "Starting frame count is set in accordance with abstraction (%d).\n", Vec_PtrSize(p->vFrames) ); 
+        pPars->nFramesStart = Vec_PtrSize(p->vFrames);
+        if ( pPars->nFramesMax )
+            pPars->nFramesMax = Abc_MaxInt( pPars->nFramesMax, pPars->nFramesStart );
+    }
+    // other data
+    p->vCla2Var     = Vec_IntAlloc( 1000 );
+    p->vCores       = Vec_PtrAlloc( 100 );
+    p->pSat         = sat_solver2_new();
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Delete manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vga_ManStop( Vta_Man_t * p )
+{
+    Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
+    Vec_VecFreeP( (Vec_Vec_t **)&p->vFrames );
+    Vec_IntFreeP( &p->vSeens );
+    Vec_IntFreeP( &p->vOrder );
+    Vec_IntFreeP( &p->vCla2Var );
+    sat_solver2_delete( p->pSat );
+    ABC_FREE( p->pBins );
+    ABC_FREE( p->pObjs );
+    ABC_FREE( p );
+}
 
 /**Function*************************************************************
 
@@ -1063,6 +930,73 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames )
 
 /**Function*************************************************************
 
+  Synopsis    [Adds clauses to the solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vga_ManAddClausesOne( Vta_Man_t * p, Vta_Obj_t * pThis )
+{
+    Vta_Obj_t * pThis0, * pThis1;
+    Gia_Obj_t * pObj;
+    int i = Vta_ObjId( p, pThis );
+    assert( !pThis->fAdded && !pThis->fNew );
+    pObj = Gia_ManObj( p->pGia, pThis->iObj );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );
+        pThis1 = Vga_ManFind( p, Gia_ObjFaninId1p(p->pGia, pObj), pThis->iFrame );
+        if ( pThis0 && pThis1 )
+        {
+            pThis->fAdded = 1;
+            sat_solver2_add_and( p->pSat, 
+                Vta_ObjId(p, pThis), Vta_ObjId(p, pThis0), Vta_ObjId(p, pThis1), 
+                Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
+            Vec_IntPush( p->vCla2Var, i );
+            Vec_IntPush( p->vCla2Var, i );
+            Vec_IntPush( p->vCla2Var, i );
+        }
+    }
+    else if ( Gia_ObjIsRo(p->pGia, pObj) )
+    {
+        if ( pThis->iFrame == 0 )
+        {
+            pThis->fAdded = 1;
+            sat_solver2_add_constraint( p->pSat, pThis->iObj, 1, 0 );
+            Vec_IntPush( p->vCla2Var, i );
+            Vec_IntPush( p->vCla2Var, i );
+        }
+        else
+        {
+            pObj = Gia_ObjRoToRi( p->pGia, pObj );
+            pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame-1 );
+            if ( pThis0 )
+            {
+                pThis->fAdded = 1;
+                sat_solver2_add_buffer( p->pSat, 
+                    Vta_ObjId(p, pThis), Vta_ObjId(p, pThis0), 
+                    Gia_ObjFaninC0(pObj), 0 );  
+                Vec_IntPush( p->vCla2Var, i );
+                Vec_IntPush( p->vCla2Var, i );
+            }
+        }
+    }
+    else if ( Gia_ObjIsConst0(pObj) )
+    {
+        pThis->fAdded = 1;
+        sat_solver2_add_const( p->pSat, Vta_ObjId(p, pThis), 1, 0 );
+        Vec_IntPush( p->vCla2Var, i );
+    }
+    else if ( !Gia_ObjIsPi(p->pGia, pObj) )
+        assert( 0 );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -1074,9 +1008,23 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames )
 ***********************************************************************/
 void Vga_ManLoadSlice( Vta_Man_t * p, Vec_Int_t * vOne, int Lift )
 {
+    Gia_Obj_t * pObj;
+    Vta_Obj_t * pThis;
     int i, Entry, iObjPrev = p->nObjs;
     Vec_IntForEachEntry( vOne, Entry, i )
-        Vga_ManFindOrAdd( p, Entry & p->nObjMask, (Entry >> p->nObjBits) + Lift );
+    {
+        pObj = Gia_ManObj( p->pGia, Entry & p->nObjMask );
+        if ( Gia_ObjIsPi(p->pGia, pObj) )
+            continue;
+        pThis = Vga_ManFindOrAdd( p, Entry & p->nObjMask, (Entry >> p->nObjBits) + Lift );
+        pThis->fNew = 0;
+        // add constraint variable
+        if ( Gia_ObjIsRo(p->pGia, pObj) && (Entry >> p->nObjBits) + Lift == 0 )
+        {
+            pThis = Vga_ManFindOrAdd( p, Entry & p->nObjMask, (Entry >> p->nObjBits) + Lift );
+            pThis->fNew = 0;
+        }
+    }
     for ( i = iObjPrev; i < p->nObjs; i++ )
         Vga_ManAddClausesOne( p, Vta_ManObj(p, i) );
 }
@@ -1104,7 +1052,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // start the manager
     p = Vga_ManStart( pAig, pPars );
     // perform initial abstraction
-    for ( f = 0; f < p->pPars->nFramesMax; f++ )
+    for ( f = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
         if ( p->pPars->fVerbose )
             printf( "Frame %4d : ", f );
@@ -1172,7 +1120,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Vec_PtrPush( p->vCores, vCore );
         // print the result
         if ( p->pPars->fVerbose )
-            Vta_ManAbsPrintFrame( p, vCore, f );
+            Vta_ManAbsPrintFrame( p, vCore, f+1 );
     }
     if ( pCex == NULL )
     {
