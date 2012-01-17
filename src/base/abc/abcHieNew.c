@@ -297,7 +297,6 @@ Au_Man_t * Au_ManAlloc( char * pName )
     p->pName = Au_UtilStrsav( pName );
     Vec_PtrGrow( &p->vNtks,  111 );
     Vec_PtrPush( &p->vNtks, NULL );
-    p->pFuncs = Abc_NamStart( 100, 16 );
     return p;
 }
 void Au_ManFree( Au_Man_t * p )
@@ -305,7 +304,8 @@ void Au_ManFree( Au_Man_t * p )
     assert( p->nRefs > 0 );
     if ( --p->nRefs > 0 )
         return;
-    Abc_NamStop( p->pFuncs );
+    if ( p->pFuncs )
+        Abc_NamStop( p->pFuncs );
     ABC_FREE( p->vNtks.pArray );
     ABC_FREE( p->pName );
     ABC_FREE( p );
@@ -357,7 +357,7 @@ void Au_ManPrintStats( Au_Man_t * p )
         printf( "Design %-13s\n", Au_ManName(p) );
     Au_ManForEachNtk( p, pNtk, i )
         Au_NtkPrintStats( pNtk );
-    printf( "Different functions = %d. ", Abc_NamObjNumMax(p->pFuncs) );
+    printf( "Different functions = %d. ", p->pFuncs ? Abc_NamObjNumMax(p->pFuncs) : 0 );
     printf( "Memory = %.1f Mb",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
     printf( " %5.1f %%",       100.0 * (Au_ManMemUsage(p) - Au_ManMemUsageUseful(p)) / Au_ManMemUsage(p) );
     printf( "\n" );
@@ -511,7 +511,7 @@ int Au_NtkCreatePo( Au_Ntk_t * pNtk, int iFanin )
 {
     int Id = Au_NtkAllocObj( pNtk, 1, AU_OBJ_PO );
     if ( iFanin )
-        Au_ObjSetFanin( Au_NtkObj(pNtk, Id), 0, iFanin );
+        Au_ObjSetFaninLit( Au_NtkObj(pNtk, Id), 0, iFanin );
     return Id;
 }
 int Au_NtkCreateFan( Au_Ntk_t * pNtk, int iFanin, int iFanout, int iModel )
@@ -519,7 +519,7 @@ int Au_NtkCreateFan( Au_Ntk_t * pNtk, int iFanin, int iFanout, int iModel )
     int Id = Au_NtkAllocObj( pNtk, 1, AU_OBJ_FAN );
     Au_Obj_t * p = Au_NtkObj( pNtk, Id );
     if ( iFanin )
-        Au_ObjSetFanin( p, 0, iFanin );
+        Au_ObjSetFaninLit( p, 0, iFanin );
     Au_ObjSetFaninLit( p, 1, iFanout );
     p->Func = iModel;
     return Id;
@@ -530,7 +530,7 @@ int Au_NtkCreateNode( Au_Ntk_t * pNtk, Vec_Int_t * vFanins, int iFunc )
     int Id = Au_NtkAllocObj( pNtk, Vec_IntSize(vFanins), AU_OBJ_NODE );
     Au_Obj_t * p = Au_NtkObj( pNtk, Id );
     Vec_IntForEachEntry( vFanins, iFanin, i )
-        Au_ObjSetFanin( p, i, iFanin );
+        Au_ObjSetFaninLit( p, i, iFanin );
     p->Func = iFunc;
     return Id;
 }
@@ -540,17 +540,39 @@ int Au_NtkCreateBox( Au_Ntk_t * pNtk, Vec_Int_t * vFanins, int nFanouts, int iMo
     int Id = Au_NtkAllocObj( pNtk, nFanins + 1 + nFanouts, AU_OBJ_BOX );
     Au_Obj_t * p = Au_NtkObj( pNtk, Id );
     Vec_IntForEachEntry( vFanins, iFanin, i )
-        Au_ObjSetFanin( p, i, iFanin );
+        Au_ObjSetFaninLit( p, i, iFanin );
     Au_ObjSetFaninLit( p, nFanins, nFanouts );
     for ( i = 0; i < nFanouts; i++ )
-        Au_ObjSetFaninLit( p, nFanins + 1 + i, Au_NtkCreateFan(pNtk, Id, i, iModel) );
+        Au_ObjSetFaninLit( p, nFanins + 1 + i, Au_NtkCreateFan(pNtk, Au_Var2Lit(Id,0), i, iModel) );
     p->nFanins = nFanins;
     p->Func = iModel;
     assert( iModel > 0 );
     return Id;
 }
 
+/*
+ * 0/1 would denote false/true respectively.
+ * Signals would be even numbers, and negation would be handled by xor with 1.
+ * The output signal for each gate or subckt could be implicitly generated just use the next signal number.
+ * For ranges, we could use "start:cnt" to denote the sequence "start, start+2, ..., start + 2*(cnt- 1)".
+    - "cnt" seems more intuitive when signals are restricted to even numbers.
+ * We'd have subckts and specialized gates .and, .xor, and .mux.
 
+Here is a small example:
+
+.model test
+.inputs 3 # Inputs 2 4 6
+.subckt and3 3 1 2:3 # 8 is implicit output
+.outputs 1 8
+.end
+
+.model and3
+.inputs 3 # Inputs 2 4 6
+.and 2 4 # 8 output
+.and 6 8 # 10 output
+.outputs 1 10
+.end
+*/
 
 /**Function*************************************************************
 
@@ -589,16 +611,18 @@ static inline void Au_NtkParseCBlifNum( Vec_Int_t * vFanins, char * pToken, Vec_
         {
             Num2 = atoi( pCur+1 );
             for ( i = 0; i < Num2; i++ )
-                Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1 + 2 * i) );
+                Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1 + i + i) );
+            return;
         }
         else if ( *pCur == '*' )
         {
             Num2 = atoi( pCur+1 );
             for ( i = 0; i < Num2; i++ )
                 Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1) );
+            return;
         }
-    if ( *pCur == 0 )
-        Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1) );
+    assert( *pCur == 0 );
+    Vec_IntPush( vFanins, Au_NtkRemapNum(vNum2Obj, Num1) );
 }
 
 /**Function*************************************************************
@@ -618,10 +642,10 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
     FILE * pFile;
     Au_Man_t * pMan;
     Au_Ntk_t * pRoot;
-    Au_Obj_t * pBox;
+    Au_Obj_t * pBox, * pFan;
     char * pBuffer, * pCur;
     Vec_Int_t * vLines, * vNum2Obj, * vFanins;
-    int i, k, Id, nInputs, nOutputs;
+    int i, k, j, Id, nInputs, nOutputs;
     int Line, Num, Func;
     // read the file
     pFile = fopen( pFileName, "rb" );
@@ -649,18 +673,16 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
     Vec_IntForEachEntry( vLines, Line, i )
     {
         pCur = strtok( pBuffer + Line, " \t\r" );
-        if ( pCur == NULL )
-            continue;
-        if ( *pCur == '#' )
+        if ( pCur == NULL || *pCur == '#' )
             continue;
         if ( *pCur != '.' )
         {
             printf( "Cannot read directive in line %d: \"%s\".\n", i, pBuffer + Line );
             continue;
         }
+        Vec_IntClear( vFanins );
         if ( !strcmp(pCur, ".and") )
         {
-            Vec_IntClear( vFanins );
             for ( k = 0; k < 2; k++ )
             {
                 pCur = strtok( NULL, " \t\r" );
@@ -672,7 +694,6 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
         }
         else if ( !strcmp(pCur, ".xor") )
         {
-            Vec_IntClear( vFanins );
             for ( k = 0; k < 2; k++ )
             {
                 pCur = strtok( NULL, " \t\r" );
@@ -684,7 +705,6 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
         }
         else if ( !strcmp(pCur, ".mux") )
         {
-            Vec_IntClear( vFanins );
             for ( k = 0; k < 3; k++ )
             {
                 pCur = strtok( NULL, " \t\r" );
@@ -702,18 +722,18 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
             nInputs = atoi( pCur );
             pCur = strtok( NULL, " \t\r" );
             nOutputs = atoi( pCur );
-            Vec_IntClear( vFanins );
             while ( 1 )
             {
                 pCur = strtok( NULL, " \t\r" );
-                if ( pCur == NULL )
+                if ( pCur == NULL || *pCur == '#' )
                     break;
                 Au_NtkParseCBlifNum( vFanins, pCur, vNum2Obj );
             }
             assert( Vec_IntSize(vFanins) == nInputs );
             Id = Au_NtkCreateBox( pRoot, vFanins, nOutputs, Func );
-            for ( k = 0; k < nOutputs; k++ )
-                Vec_IntPush( vNum2Obj, Id + 1 + k );
+            pBox = Au_NtkObj( pRoot, Id );
+            Au_BoxForEachFanoutId( pBox, Num, k )
+                Vec_IntPush( vNum2Obj, Num );
         }
         else if ( !strcmp(pCur, ".model") )
         {
@@ -728,23 +748,22 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
             pCur = strtok( NULL, " \t\r" );
             Num  = atoi( pCur );
             for ( k = 0; k < Num; k++ )
-            {
-                Id = Au_NtkCreatePi( pRoot );
-                Vec_IntPush( vNum2Obj, Id );
-            }
+                Vec_IntPush( vNum2Obj, Au_NtkCreatePi(pRoot) );
         }
         else if ( !strcmp(pCur, ".outputs") )
         {
-            Vec_IntClear( vFanins );
+            pCur = strtok( NULL, " \t\r" );
+            nOutputs = atoi( pCur );
             while ( 1 )
             {
                 pCur = strtok( NULL, " \t\r" );
-                if ( pCur == NULL )
+                if ( pCur == NULL || *pCur == '#' )
                     break; 
                 Au_NtkParseCBlifNum( vFanins, pCur, vNum2Obj );
             }
+            assert( Vec_IntSize(vFanins) == nOutputs );
             Vec_IntForEachEntry( vFanins, Num, k )
-                Vec_IntPush( vNum2Obj, Au_NtkCreatePo(pRoot, Num) );
+                Au_NtkCreatePo( pRoot, Num );
         }
         else if ( strcmp(pCur, ".end") )
             printf( "Unknown directive in line %d: \"%s\".\n", i, pBuffer + Line );
@@ -752,16 +771,18 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
     Vec_IntFree( vFanins );
     Vec_IntFree( vNum2Obj );
     Vec_IntFree( vLines );
-    ABC_FREE( pBuffer );
     // set pointers to models
     Au_ManForEachNtk( pMan, pRoot, i )
         Au_NtkForEachBox( pRoot, pBox, k )
         {
             pBox->Func = Au_ManFindNtk( pMan, pBuffer + pBox->Func );
             assert( pBox->Func > 0 );
+            Au_BoxForEachFanout( pBox, pFan, j )
+                pFan->Func = pBox->Func;
         }
+    ABC_FREE( pBuffer );
     // return the root network
-    return (Au_Ntk_t *)Vec_PtrEntry( &pMan->vNtks, 0 );
+    return (Au_Ntk_t *)Vec_PtrEntry( &pMan->vNtks, 1 );
 }
 
 
@@ -786,7 +807,7 @@ extern int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk );
 void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
 { 
     Au_Obj_t * pObj, * pTerm;
-    int i, k;
+    int i, k, Lit;
     Au_NtkForEachPi( p, pTerm, i )
         assert( Au_ObjCopy(pTerm) >= 0 );
     if ( strcmp(Au_NtkName(p), "ref_egcd") == 0 )
@@ -800,17 +821,38 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
     {
         if ( Au_ObjIsNode(pObj) )
         {
-            int Lit, gFanins[16];
-            char * pSop = Abc_NamStr( p->pMan->pFuncs, pObj->Func );
-            int nLength = strlen(pSop);
-            assert( Au_ObjFaninNum(pObj) <= 16 );
-            assert( Au_ObjFaninNum(pObj) == Abc_SopGetVarNum(pSop) );
-            Au_ObjForEachFanin( pObj, pTerm, k )
+            if ( p->pMan->pFuncs )
             {
-                gFanins[k] = Au_ObjCopy(pTerm);
-                assert( gFanins[k] >= 0 );
+                int gFanins[16];
+                char * pSop = Abc_NamStr( p->pMan->pFuncs, pObj->Func );
+                int nLength = strlen(pSop);
+                assert( Au_ObjFaninNum(pObj) <= 16 );
+                assert( Au_ObjFaninNum(pObj) == Abc_SopGetVarNum(pSop) );
+                Au_ObjForEachFanin( pObj, pTerm, k )
+                {
+                    gFanins[k] = Au_ObjCopy(pTerm);
+                    assert( gFanins[k] >= 0 );
+                }
+                Lit = Abc_NtkDeriveFlatGiaSop( pGia, gFanins, pSop );
             }
-            Lit = Abc_NtkDeriveFlatGiaSop( pGia, gFanins, pSop );
+            else
+            {
+                int Lit0, Lit1, Lit2;
+                assert( pObj->Func >= 1 && pObj->Func <= 3 );
+                Lit0 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin0(pObj)), Au_ObjFaninC0(pObj) );
+                Lit1 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin1(pObj)), Au_ObjFaninC1(pObj) );
+                if ( pObj->Func == 1 )
+                    Lit = Gia_ManHashAnd( pGia, Lit0, Lit1 );
+                else if ( pObj->Func == 2 )
+                    Lit = Gia_ManHashXor( pGia, Lit0, Lit1 );
+                else if ( pObj->Func == 3 )
+                {
+                    Lit2 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin(pObj, 2)), Au_ObjFaninC(pObj, 2) );
+                    Lit = Gia_ManHashMux( pGia, Lit0, Lit1, Lit2 );
+                }
+                else assert( 0 ); 
+            } 
+            assert( Lit >= 0 );
             Au_ObjSetCopy( pObj, Lit );
         }
         else if ( Au_ObjIsBox(pObj) )
@@ -829,9 +871,15 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
             Au_BoxForEachFanout( pObj, pTerm, k )
                 Au_ObjSetCopy( pTerm, Au_ObjCopy(Au_NtkPo(pModel, k)) );
         }
+        else if ( Au_ObjIsConst0(pObj) )
+            Au_ObjSetCopy( pObj, 0 );
+            
     }
     Au_NtkForEachPo( p, pTerm, i )
-        Au_ObjSetCopy( pTerm, Au_ObjCopy(Au_ObjFanin0(pTerm)) );
+    {
+        Lit = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin0(pTerm)), Au_ObjFaninC0(pTerm) );
+        Au_ObjSetCopy( pTerm, Lit );
+    }
     Au_NtkForEachPo( p, pTerm, i )
         assert( Au_ObjCopy(pTerm) >= 0 );
 //    p->pMan->nGiaObjMax = Abc_MaxInt( p->pMan->nGiaObjMax, Gia_ManObjNum(pGia) );
@@ -910,14 +958,14 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
         if ( Abc_ObjIsNode(pObj) )
         {
             Abc_ObjForEachFanin( pObj, pTerm, k )
-                Vec_IntPush( vFanins, pTerm->iTemp );
+                Vec_IntPush( vFanins, Au_Var2Lit(pTerm->iTemp, 0) );
             iFunc = Abc_NamStrFindOrAdd( pMan->pFuncs, (char *)pObj->pData, NULL );
             Abc_ObjFanout0(pObj)->iTemp = Au_NtkCreateNode(p, vFanins, iFunc);
             continue;
         }
         assert( Abc_ObjIsBox(pObj) );
         Abc_ObjForEachFanin( pObj, pTerm, k )
-            Vec_IntPush( vFanins, Abc_ObjFanin0(pTerm)->iTemp );
+            Vec_IntPush( vFanins, Au_Var2Lit(Abc_ObjFanin0(pTerm)->iTemp, 0) );
         pObj->iTemp = Au_NtkCreateBox(p, vFanins, Abc_ObjFanoutNum(pObj), ((Abc_Ntk_t *)pObj->pData)->iStep );
         pAuObj = Au_NtkObj(p, pObj->iTemp);
         Abc_ObjForEachFanout( pObj, pTerm, k )
@@ -927,7 +975,7 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
     Vec_IntFree( vFanins );
     // copy POs
     Abc_NtkForEachPo( pNtk, pTerm, i )
-        Au_NtkCreatePo( p, Abc_ObjFanin0(pTerm)->iTemp );
+        Au_NtkCreatePo( p, Au_Var2Lit(Abc_ObjFanin0(pTerm)->iTemp, 0) );
 
 //    Au_NtkPrintStats( p );
     return p;
@@ -946,6 +994,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 
     clk1 = clock();
     pMan = Au_ManAlloc( pRoot->pDesign ? pRoot->pDesign->pName : pRoot->pName );
+    pMan->pFuncs = Abc_NamStart( 100, 16 );
     clk2 += clock() - clk1;
 
     vModels = Abc_NtkCollectHie( pRoot );
@@ -986,6 +1035,57 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Abc_PrintTime( 1, "Time GIA ", clk3 );
 //    Abc_PrintTime( 1, "Time supp", clk4 );
 
+    return pGia;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs hierarchical equivalence checking.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose )
+{
+    Au_Ntk_t * pNtk;
+    Gia_Man_t * pGia;
+    int clk1 = 0, clk2 = 0, clk3 = 0, clk = clock();
+
+    // read hierarchical netlist
+    pNtk = Au_NtkParseCBlif( pFileName );
+    if ( pNtk == NULL )
+    {
+        printf( "Reading CBLIF file has failed.\n" );
+        return NULL;
+    }
+    if ( pNtk->pMan == NULL || pNtk->pMan->vNtks.pArray == NULL )
+    {
+        printf( "There is no hierarchy information.\n" );
+        Au_NtkFree( pNtk );
+        return NULL;
+    }
+    Abc_PrintTime( 1, "Reading file", clock() - clk );
+
+    Au_ManPrintStats( pNtk->pMan );
+
+//    if ( !Abc_NtkCheckRecursive(pNtk) )
+    {
+        clk1 = clock();
+        pGia = Au_NtkDeriveFlatGia( pNtk );
+        clk3 = clock() - clk1;
+    }
+
+    clk1 = clock();
+    Au_ManDelete( pNtk->pMan );
+    clk2 += clock() - clk1;
+    
+    Abc_PrintTime( 1, "Time all ", clock() - clk );
+    Abc_PrintTime( 1, "Time new ", clk2 );
+    Abc_PrintTime( 1, "Time GIA ", clk3 );
     return pGia;
 }
 
