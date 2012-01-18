@@ -500,7 +500,7 @@ extern Vec_Int_t *     If_ManCollectMappingInt( If_Man_t * p );
 extern int             If_ManCountSpecialPos( If_Man_t * p );
 
 /*=== abcRec.c ============================================================*/
-extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut);
+extern int             If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj);
 
 // othe packages
 extern int Bat_ManCellFuncLookup( unsigned * pTruth, int nVars, int nLeaves );
