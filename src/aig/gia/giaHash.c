@@ -195,8 +195,8 @@ void Gia_ManHashResize( Gia_Man_t * p )
     Counter2 = Gia_ManAndNum(p);
     assert( Counter == Counter2 );
     ABC_FREE( pHTableOld );
-    if ( p->fVerbose )
-        printf( "Resizing GIA hash table: %d -> %d.\n", nHTableOld, p->nHTable );
+//    if ( p->fVerbose )
+//        printf( "Resizing GIA hash table: %d -> %d.\n", nHTableOld, p->nHTable );
 }
 
 /**Function********************************************************************

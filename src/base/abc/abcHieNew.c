@@ -145,7 +145,7 @@ static inline Au_Ntk_t *   Au_ObjNtk( Au_Obj_t * p )                     { retur
 static inline int          Au_ObjId( Au_Obj_t * p )                      { return ((int *)Au_ObjBase(p))[2] | (((ABC_PTRINT_T)p & 0x3FF) >> 4);   }
 static inline int          Au_ObjPioNum( Au_Obj_t * p )                  { assert(Au_ObjIsTerm(p)); return p->Fanins[p->nFanins];                 }
 static inline int          Au_ObjFunc( Au_Obj_t * p )                    { return p->Func;                                                        }
-static inline Au_Ntk_t *   Au_ObjNtkel( Au_Obj_t * p )                   { assert(Au_ObjIsFan(p)||Au_ObjIsBox(p)); return Au_ManNtk(Au_NtkMan(Au_ObjNtk(p)), p->Func); }
+static inline Au_Ntk_t *   Au_ObjModel( Au_Obj_t * p )                   { assert(Au_ObjIsFan(p)||Au_ObjIsBox(p)); return Au_ManNtk(Au_NtkMan(Au_ObjNtk(p)), p->Func); }
 
 static inline int          Au_ObjFaninNum( Au_Obj_t * p )                { return p->nFanins;                                                     }
 static inline int          Au_ObjFaninId( Au_Obj_t * p, int i )          { assert(i >= 0 && i < (int)p->nFanins && p->Fanins[i]); return Au_Lit2Var(p->Fanins[i]);     }
@@ -264,7 +264,7 @@ void Au_NtkPrintStats( Au_Ntk_t * p )
     if ( Au_NtkFlopNum(p) )
         printf( "  lat =%5d",    Au_NtkFlopNum(p) );
     printf( "  nd =%6d",     Au_NtkNodeNum(p) );
-    if ( Au_NtkBoxNum(p) )
+//    if ( Au_NtkBoxNum(p) )
         printf( "  box =%5d",    Au_NtkBoxNum(p) );
     printf( "  obj =%7d",    Au_NtkObjNum(p) );
 //    printf( "  max =%7d",    Au_NtkObjNumMax(p) );
@@ -361,7 +361,155 @@ void Au_ManPrintStats( Au_Man_t * p )
     printf( "Memory = %.1f Mb",  1.0 * Au_ManMemUsage(p) / (1 << 20) );
     printf( " %5.1f %%",       100.0 * (Au_ManMemUsage(p) - Au_ManMemUsageUseful(p)) / Au_ManMemUsage(p) );
     printf( "\n" );
-//    Abc_NamPrint( pMan->pFuncs );
+//    if ( p->pFuncs )
+//        Abc_NamPrint( p->pFuncs );
+}
+int Au_NtkCompareNames( Au_Ntk_t ** p1, Au_Ntk_t ** p2 )
+{
+    return strcmp( Au_NtkName(*p1), Au_NtkName(*p2) );
+}
+void Au_ManPrintBoxInfo( Au_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods;
+    Au_Ntk_t * pModel, * pBoxModel;
+    Au_Obj_t * pObj;
+    Vec_Int_t * vCounts;
+    int i, k, Num;
+    if ( pNtk->pMan == NULL )
+    {
+        printf( "There is no hierarchy information.\n" );
+        return;
+    }
+    vMods = &pNtk->pMan->vNtks;
+
+/*
+    vMods->nSize--;
+    vMods->pArray++;
+    // sort models by name
+    Vec_PtrSort( vMods, (int(*)())Au_NtkCompareNames );
+    // swap the first model
+    Num = Vec_PtrFind( vMods, pNtk );
+    assert( Num >= 0 && Num < Vec_PtrSize(vMods) );
+    pBoxModel = (Au_Ntk_t *)Vec_PtrEntry(vMods, 0);
+    Vec_PtrWriteEntry(vMods, 0, (Au_Ntk_t *)Vec_PtrEntry(vMods, Num) );
+    Vec_PtrWriteEntry(vMods, Num, pBoxModel );
+    vMods->pArray--;
+    vMods->nSize++;
+*/
+
+//    Vec_PtrForEachEntry( Au_Ntk_t *, vMods, pModel, i )
+//        printf( "%s\n", Au_NtkName(pModel) );
+
+    // print models
+    vCounts = Vec_IntStart( Vec_PtrSize(vMods) );
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, vMods, pModel, i, 1 )
+    {
+        if ( Au_NtkBoxNum(pModel) == 0 )
+            continue;
+        Vec_IntFill( vCounts, Vec_IntSize(vCounts), 0 );
+        Au_NtkForEachBox( pModel, pObj, k )
+        {
+            pBoxModel = Au_ObjModel(pObj);
+            if ( pBoxModel == NULL )
+                continue;
+            Num = Vec_PtrFind( vMods, pBoxModel );
+            assert( Num >= 0 && Num < Vec_PtrSize(vMods) );
+            Vec_IntAddToEntry( vCounts, Num, 1 );
+        }
+
+//        Au_NtkPrintStats( pModel, 0, 0, 0, 0, 0, 0, 0 );
+        printf( "MODULE  " );
+        printf( "%-30s : ", Au_NtkName(pModel) );
+        printf( "PI=%6d ", Au_NtkPiNum(pModel) );
+        printf( "PO=%6d ", Au_NtkPoNum(pModel) );
+        printf( "BB=%6d ", Au_NtkBoxNum(pModel) );
+        printf( "ND=%6d ", Au_NtkNodeNum(pModel) ); // sans constants
+//        printf( "Lev=%5d ", Au_NtkLevel(pModel) );
+        printf( "\n" );
+
+        Vec_IntForEachEntry( vCounts, Num, k )
+            if ( Num )
+                printf( "%15d : %s\n", Num, Au_NtkName((Au_Ntk_t *)Vec_PtrEntry(vMods, k)) );
+    }
+    Vec_IntFree( vCounts );
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, vMods, pModel, i, 1 )
+    {
+        if ( Au_NtkBoxNum(pModel) != 0 )
+            continue;
+        printf( "MODULE  " );
+        printf( "%-30s : ", Au_NtkName(pModel) );
+        printf( "PI=%6d ", Au_NtkPiNum(pModel) );
+        printf( "PO=%6d ", Au_NtkPoNum(pModel) );
+        printf( "BB=%6d ", Au_NtkBoxNum(pModel) );
+        printf( "ND=%6d ", Au_NtkNodeNum(pModel) );
+//        printf( "Lev=%5d ", Au_NtkLevel(pModel) );
+        printf( "\n" );
+    }
+}
+int Au_NtkCompareSign( Au_Ntk_t ** p1, Au_Ntk_t ** p2 )
+{
+    if ( Au_NtkPiNum(*p1) - Au_NtkPiNum(*p2) != 0 )
+        return Au_NtkPiNum(*p1) - Au_NtkPiNum(*p2);
+    else
+        return Au_NtkPoNum(*p1) - Au_NtkPoNum(*p2);
+}
+void Au_ManPrintBoxInfoSorted( Au_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods, * vModsNew;
+    Au_Ntk_t * pModel;
+    int i;
+    if ( pNtk->pMan == NULL )
+    {
+        printf( "There is no hierarchy information.\n" );
+        return;
+    }
+    vMods = &pNtk->pMan->vNtks;
+
+    vMods->nSize--;
+    vMods->pArray++;
+    vModsNew = Vec_PtrDup( vMods );
+    vMods->pArray--;
+    vMods->nSize++;
+
+    Vec_PtrSort( vModsNew, (int(*)())Au_NtkCompareSign );
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, vModsNew, pModel, i, 1 )
+    {
+        printf( "MODULE  " );
+        printf( "%-30s : ", Au_NtkName(pModel) );
+        printf( "PI=%6d ", Au_NtkPiNum(pModel) );
+        printf( "PO=%6d ", Au_NtkPoNum(pModel) );
+        printf( "BB=%6d ", Au_NtkBoxNum(pModel) );
+        printf( "ND=%6d ", Au_NtkNodeNum(pModel) );
+        printf( "\n" );
+    }
+    Vec_PtrFree( vModsNew );
+}
+
+int Au_NtkCheckRecursive( Au_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vMods;
+    Au_Ntk_t * pModel;
+    Au_Obj_t * pObj;
+    int i, k, RetValue = 0;
+
+    if ( pNtk->pMan == NULL )
+    {
+        printf( "There is no hierarchy information.\n" );
+        return RetValue;
+    }
+
+    vMods = &pNtk->pMan->vNtks;
+    Vec_PtrForEachEntryStart( Au_Ntk_t *, vMods, pModel, i, 1 )
+    {
+        Au_NtkForEachObj( pModel, pObj, k )
+            if ( Au_ObjIsBox(pObj) && Au_ObjModel(pObj) == pModel )
+            {
+                printf( "WARNING: Model \"%s\" contains a recursive defition.\n", Au_NtkName(pModel) );
+                RetValue = 1;
+                break;
+            }
+    }
+    return RetValue;
 }
 
 // count the number of support variables
@@ -857,7 +1005,7 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
         }
         else if ( Au_ObjIsBox(pObj) )
         {
-            Au_Ntk_t * pModel = Au_ObjNtkel(pObj);
+            Au_Ntk_t * pModel = Au_ObjModel(pObj);
             Au_NtkCleanCopy( pModel );
             // check the match between the number of actual and formal parameters
             assert( Au_ObjFaninNum(pObj) == Au_NtkPiNum(pModel) );
@@ -916,6 +1064,7 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     Au_NtkForEachPo( p, pTerm, i )
         Gia_ManAppendCo( pGia, Au_ObjCopy(pTerm) );
     // prepare return value
+//    Gia_ManHashProfile( pGia );
     Gia_ManHashStop( pGia );
     Gia_ManSetRegNum( pGia, 0 );
     pGia = Gia_ManCleanup( pTemp = pGia );
@@ -1034,7 +1183,6 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Abc_PrintTime( 1, "Time new ", clk2 );
     Abc_PrintTime( 1, "Time GIA ", clk3 );
 //    Abc_PrintTime( 1, "Time supp", clk4 );
-
     return pGia;
 }
 
@@ -1070,9 +1218,13 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose )
     }
     Abc_PrintTime( 1, "Reading file", clock() - clk );
 
+    if ( fVerbose )
+        Au_ManPrintBoxInfo( pNtk );
+//    Au_ManPrintBoxInfoSorted( pNtk );
     Au_ManPrintStats( pNtk->pMan );
 
-//    if ( !Abc_NtkCheckRecursive(pNtk) )
+    if ( !Au_NtkCheckRecursive(pNtk) ); // COMMA!!!
+
     {
         clk1 = clock();
         pGia = Au_NtkDeriveFlatGia( pNtk );

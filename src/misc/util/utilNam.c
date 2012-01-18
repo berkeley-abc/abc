@@ -132,8 +132,8 @@ void Abc_NamPrint( Abc_Nam_t * p )
 {
     int h, i;
     Vec_IntForEachEntryStart( p->vInt2Handle, h, i, 1 )
-        Abc_Print( 1, "%d=%s ", i, Abc_NamHandleToStr(p, h) );
-    Abc_Print( 1, "\n" );
+        Abc_Print( 1, "%d=\n%s\n", i, Abc_NamHandleToStr(p, h) );
+//    Abc_Print( 1, "\n" );
 }
 
 /**Function*************************************************************
