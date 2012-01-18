@@ -511,6 +511,8 @@ int Fra_SetActivityFactors_rec( Fra_Man_t * p, Aig_Obj_t * pObj, int LevelMin, i
         return 0;
     // set the factor of this variable
     // (LevelMax-LevelMin) / (pObj->Level-LevelMin) = p->pPars->dActConeBumpMax / ThisBump
+    if ( p->pSat->factors == NULL )
+        p->pSat->factors = ABC_CALLOC( double, p->pSat->size );
     p->pSat->factors[Fra_ObjSatNum(pObj)] = p->pPars->dActConeBumpMax * (pObj->Level - LevelMin)/(LevelMax - LevelMin);
     veci_push(&p->pSat->act_vars, Fra_ObjSatNum(pObj));
     // explore the fanins
