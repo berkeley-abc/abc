@@ -430,6 +430,8 @@ static inline Gia_Obj_t * Gia_ManAppendObj( Gia_Man_t * p )
 { 
     if ( p->nObjs == p->nObjsAlloc )
     {
+        if ( 2 * p->nObjsAlloc > (1 << 29) )
+            printf( "Hard limit on the number of nodes (2^29) is reached. Quitting...\n" ), exit(1);
         if ( p->fVerbose )
             printf("Extending GIA object storage: %d -> %d.\n", p->nObjsAlloc, 2 * p->nObjsAlloc );
         assert( p->nObjsAlloc > 0 );
