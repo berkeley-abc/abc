@@ -84,6 +84,11 @@ struct Au_Ntk_t_
     int                    nHTable;            // hash table size
     int *                  pHTable;            // hash table
     Au_Obj_t *             pConst0;            // constant node
+    // statistics
+    int                    fMark;
+    double                 nBoxes;
+    double                 nNodes;
+    double                 nPorts;
 };
 
 struct Au_Man_t_ 
@@ -112,7 +117,9 @@ static inline int          Au_IsComplement( Au_Obj_t * p )               { retur
 static inline char *       Au_UtilStrsav( char * s )                     { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;             }
 
 static inline char *       Au_ManName( Au_Man_t * p )                    { return p->pName;                                                       }
+static inline int          Au_ManNtkNum( Au_Man_t * p )                  { return Vec_PtrSize(&p->vNtks) - 1;                                     }
 static inline Au_Ntk_t *   Au_ManNtk( Au_Man_t * p, int i )              { return (Au_Ntk_t *)Vec_PtrEntry(&p->vNtks, i);                         }
+static inline Au_Ntk_t *   Au_ManNtkRoot( Au_Man_t * p )                 { return Au_ManNtk( p, 1 );                                              }
 
 static inline char *       Au_NtkName( Au_Ntk_t * p )                    { return p->pName;                                                       }
 static inline Au_Man_t *   Au_NtkMan( Au_Ntk_t * p )                     { return p->pMan;                                                        }
@@ -364,6 +371,122 @@ void Au_ManPrintStats( Au_Man_t * p )
 //    if ( p->pFuncs )
 //        Abc_NamPrint( p->pFuncs );
 }
+
+void Au_ManReorderModels_rec( Au_Ntk_t * pNtk, Vec_Int_t * vOrder )
+{
+    Au_Ntk_t * pBoxModel;
+    Au_Obj_t * pObj;
+    int k;
+    if ( pNtk->fMark )
+        return;
+    pNtk->fMark = 1;
+    Au_NtkForEachBox( pNtk, pObj, k )
+    {
+        pBoxModel = Au_ObjModel(pObj);
+        if ( pBoxModel == NULL || pBoxModel == pNtk )
+            continue;
+        Au_ManReorderModels_rec( pBoxModel, vOrder );
+    }
+    Vec_IntPush( vOrder, pNtk->Id );
+}
+void Au_ManReorderModels( Au_Man_t * p, Au_Ntk_t * pRoot )
+{
+    Vec_Ptr_t * vNtksNew;
+    Vec_Int_t * vOrder, * vTemp;
+    Au_Ntk_t * pNtk, * pBoxModel;
+    Au_Obj_t * pBox, * pFan;
+    int i, k, j, Entry;
+    Au_ManForEachNtk( p, pNtk, i )
+        pNtk->fMark = 0;
+    // collect networks in the DFS order
+    vOrder = Vec_IntAlloc( Au_ManNtkNum(p)+1 );
+    Vec_IntPush( vOrder, 0 );
+    Au_ManReorderModels_rec( pRoot, vOrder );
+    assert( Vec_IntEntryLast(vOrder) == pRoot->Id );
+    // add unconnected ones
+    Vec_IntPop( vOrder );
+    Au_ManForEachNtk( p, pNtk, i )
+        if ( pNtk->fMark == 0 )
+            Vec_IntPush( vOrder, pNtk->Id );
+    Vec_IntPush( vOrder, pRoot->Id );
+    assert( Vec_IntSize(vOrder) == Au_ManNtkNum(p)+1 );
+    // reverse order
+    vOrder->nSize--;
+    vOrder->pArray++;
+    Vec_IntReverseOrder( vOrder ); 
+    vOrder->pArray--;
+    vOrder->nSize++;
+    // compute new order
+    vNtksNew = Vec_PtrAlloc( Au_ManNtkNum(p)+1 );
+    Vec_IntForEachEntry( vOrder, Entry, i )
+        Vec_PtrPush( vNtksNew, Au_ManNtk(p, Entry) );
+    // invert order
+    assert( Vec_IntEntry(vOrder, 1) == pRoot->Id );
+    vOrder = Vec_IntInvert( vTemp = vOrder, 0 );
+    Vec_IntFree( vTemp );
+    assert( Vec_IntEntry(vOrder, 1) == pRoot->Id );
+    // update model numbers
+    Au_ManForEachNtk( p, pNtk, i )
+    {
+        pNtk->Id = Vec_IntEntry( vOrder, pNtk->Id );
+        Au_NtkForEachBox( pNtk, pBox, k )
+        {
+            pBox->Func = Vec_IntEntry( vOrder, pBox->Func );
+            assert( pBox->Func > 0 );
+            Au_BoxForEachFanout( pBox, pFan, j )
+                pFan->Func = pBox->Func;
+        }
+    }
+    // update
+    ABC_FREE( p->vNtks.pArray );
+    p->vNtks.pArray = vNtksNew->pArray;
+    vNtksNew->pArray = NULL;
+    Vec_PtrFree( vNtksNew );
+    // verify
+    Au_ManForEachNtk( p, pNtk, i )
+        Au_NtkForEachBox( pNtk, pBox, k )
+        {
+            pBoxModel = Au_ObjModel(pBox);
+            if ( pBoxModel == NULL || pBoxModel == pNtk )
+                continue;
+            assert( !pBox->Func || pBox->Func >= (unsigned)pNtk->Id );
+            assert( Au_ObjFaninNum(pBox) == Au_NtkPiNum(pBoxModel) );
+            assert( Au_BoxFanoutNum(pBox) == Au_NtkPoNum(pBoxModel) );
+        }
+    Vec_IntFree( vOrder );
+}
+void Au_ManCountThings( Au_Man_t * p )
+{
+    Au_Ntk_t * pNtk, * pBoxModel;
+    Au_Obj_t * pBox;
+    int i, k;
+    Au_ManForEachNtkReverse( p, pNtk, i )
+    {
+        pNtk->nBoxes = Au_NtkBoxNum(pNtk);
+        pNtk->nNodes = Au_NtkNodeNum(pNtk);
+        pNtk->nPorts = Au_NtkPiNum(pNtk) + Au_NtkPoNum(pNtk);
+//        printf( "adding %.0f nodes of model %s\n", pNtk->nNodes, Au_NtkName(pNtk) );
+        Au_NtkForEachBox( pNtk, pBox, k )
+        {
+            pBoxModel = Au_ObjModel(pBox);
+            if ( pBoxModel == NULL || pBoxModel == pNtk )
+                continue;
+            assert( Au_ObjFaninNum(pBox) == Au_NtkPiNum(pBoxModel) );
+            assert( Au_BoxFanoutNum(pBox) == Au_NtkPoNum(pBoxModel) );
+            assert( pBoxModel->Id > pNtk->Id );
+            assert( pBoxModel->nPorts > 0 );
+            pNtk->nBoxes += pBoxModel->nBoxes;
+            pNtk->nNodes += pBoxModel->nNodes;
+            pNtk->nPorts += pBoxModel->nPorts;
+//            printf( "    adding %.0f nodes of model %s\n", pBoxModel->nNodes, Au_NtkName(pBoxModel) );
+        }
+//        printf( "total %.0f nodes in model %s\n", pNtk->nNodes, Au_NtkName(pNtk) );
+    }
+    pNtk = Au_ManNtkRoot(p);
+    printf( "Total nodes = %12.0f. Total instances = %12.0f. Total ports = %12.0f.\n", 
+        pNtk->nNodes, pNtk->nBoxes, pNtk->nPorts );
+}
+
 int Au_NtkCompareNames( Au_Ntk_t ** p1, Au_Ntk_t ** p2 )
 {
     return strcmp( Au_NtkName(*p1), Au_NtkName(*p2) );
@@ -410,7 +533,7 @@ void Au_ManPrintBoxInfo( Au_Ntk_t * pNtk )
         Au_NtkForEachBox( pModel, pObj, k )
         {
             pBoxModel = Au_ObjModel(pObj);
-            if ( pBoxModel == NULL )
+            if ( pBoxModel == NULL || pBoxModel == pModel )
                 continue;
             Num = Vec_PtrFind( vMods, pBoxModel );
             assert( Num >= 0 && Num < Vec_PtrSize(vMods) );
@@ -929,8 +1052,10 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
                 pFan->Func = pBox->Func;
         }
     ABC_FREE( pBuffer );
-    // return the root network
-    return (Au_Ntk_t *)Vec_PtrEntry( &pMan->vNtks, 1 );
+    // order models in topological order
+    pRoot = Au_ManNtkRoot( pMan );
+    Au_ManReorderModels( pMan, pRoot );
+    return pRoot;
 }
 
 
@@ -1125,7 +1250,6 @@ Au_Ntk_t * Au_NtkDerive( Au_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
     // copy POs
     Abc_NtkForEachPo( pNtk, pTerm, i )
         Au_NtkCreatePo( p, Au_Var2Lit(Abc_ObjFanin0(pTerm)->iTemp, 0) );
-
 //    Au_NtkPrintStats( p );
     return p;
 }
@@ -1160,8 +1284,12 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
         Vec_PtrFree( vOrder );
     }
     Vec_PtrFree( vModels );
+    // order models in topological order
+    Au_ManReorderModels( pMan, pNtk );
 
+    // print statistics
     Au_ManPrintStats( pMan );
+    Au_ManCountThings( pNtk->pMan );
 
 //    if ( !Abc_NtkCheckRecursive(pRoot) )
     {
@@ -1222,6 +1350,7 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose )
         Au_ManPrintBoxInfo( pNtk );
 //    Au_ManPrintBoxInfoSorted( pNtk );
     Au_ManPrintStats( pNtk->pMan );
+    Au_ManCountThings( pNtk->pMan );
 
     if ( !Au_NtkCheckRecursive(pNtk) ); // COMMA!!!
 
