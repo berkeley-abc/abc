@@ -2018,17 +2018,14 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk;
     char * pFileName;
-    int c, fNames;
-    int fMinimize;
-    int forceSeq;
-    int fVerbose;
+    int c, fNames  = 0;
+    int fMinimize  = 0;
+    int forceSeq   = 0;
+    int fPrintFull = 0;
+    int fVerbose   = 0;
 
-    fNames = 0;
-    fMinimize = 0;
-    forceSeq = 0;
-    fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "snmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snmfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2041,6 +2038,9 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'm':
                 fMinimize ^= 1;
                 break;
+            case 'f':
+                fPrintFull ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -2050,28 +2050,25 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
                 goto usage;
         }
     }
-
     pNtk = pAbc->pNtkCur;
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
     }
-
-    if ( argc != globalUtilOptind + 1 )
-    {
-        printf( "File name is missing on the command line.\n" );
-        goto usage;
-    }
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-
     if ( pNtk->pModel == NULL && pAbc->pCex == NULL )
     {
         fprintf( pAbc->Out, "Counter-example is not available.\n" );
         return 0;
     }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf( "File name is missing on the command line.\n" );
+        goto usage;
+    }
 
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
     // write the counter-example into the file
     if ( pAbc->pCex )
     { 
@@ -2093,7 +2090,20 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
             fprintf( stdout, "IoCommandWriteCounter(): Cannot open the output file \"%s\".\n", pFileName );
             return 1;
         }
-        if ( fNames )
+        if ( fPrintFull )
+        {
+            extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+            Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+            Abc_Cex_t * pCexFull = Saig_ManExtendCex( pAig, pCex );
+            Aig_ManStop( pAig );
+            // output PI values (while skipping the minimized ones)
+            assert( pCexFull->nBits == Abc_NtkCiNum(pNtk) * (pCex->iFrame + 1) );
+            for ( f = 0; f <= pCex->iFrame; f++ )
+                Abc_NtkForEachCi( pNtk, pObj, i )
+                    fprintf( pFile, "%s@%d=%c ", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCexFull->pData, Abc_NtkCiNum(pNtk)*f + i) );
+            Abc_CexFreeP( &pCexFull );
+        }
+        else if ( fNames )
         {
             Abc_Cex_t * pCare = NULL;
             if ( fMinimize )
@@ -2154,12 +2164,13 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_counter [-snmvh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_counter [-snmfvh] <file>\n" );
     fprintf( pAbc->Err, "\t         saves counter-example derived by \"sat\", \"iprove\", or \"dprove\"\n" );
     fprintf( pAbc->Err, "\t         the file contains values for each PI in the natural order\n" );
     fprintf( pAbc->Err, "\t-s     : always report a sequential ctrex (cycle 0 for comb) [default = %s]\n", forceSeq? "yes": "no" );
     fprintf( pAbc->Err, "\t-n     : write input names into the file [default = %s]\n", fNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-m     : minimize counter-example by dropping don't-care values [default = %s]\n", fMinimize? "yes": "no" );
+    fprintf( pAbc->Err, "\t-f     : enable printing flop values in each timeframe [default = %s].\n", fPrintFull? "yes": "no" );  
     fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );

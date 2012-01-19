@@ -315,6 +315,58 @@ int Saig_ManVerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Cex_t * Saig_ManExtendCex( Aig_Man_t * pAig, Abc_Cex_t * p )
+{
+    Abc_Cex_t * pNew;
+    Aig_Obj_t * pObj, * pObjRi, * pObjRo;
+    int RetValue, i, k, iBit = 0;
+    // create new counter-example
+    pNew = Abc_CexAlloc( 0, Aig_ManPiNum(pAig), p->iFrame + 1 );
+    pNew->iPo = p->iPo;
+    pNew->iFrame = p->iFrame;
+    // simulate the AIG
+    Aig_ManCleanMarkB(pAig);
+    Aig_ManConst1(pAig)->fMarkB = 1;
+    Saig_ManForEachLo( pAig, pObj, i )
+        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+    for ( i = 0; i <= p->iFrame; i++ )
+    {
+        Saig_ManForEachPi( pAig, pObj, k )
+            pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        ///////// write PI+LO values ////////////
+        Aig_ManForEachPi( pAig, pObj, k )
+            if ( pObj->fMarkB )
+                Aig_InfoSetBit(pNew->pData, Aig_ManPiNum(pAig)*i + k);
+        /////////////////////////////////////////
+        Aig_ManForEachNode( pAig, pObj, k )
+            pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                           (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+        Aig_ManForEachPo( pAig, pObj, k )
+            pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+        if ( i == p->iFrame )
+            break;
+        Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
+            pObjRo->fMarkB = pObjRi->fMarkB;
+    }
+    assert( iBit == p->nBits );
+    RetValue = Aig_ManPo(pAig, p->iPo)->fMarkB;
+    Aig_ManCleanMarkB(pAig);
+    if ( RetValue == 0 )
+        printf( "Saig_ManExtendCex(): The counter-example is invalid!!!\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resimulates the counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Saig_ManFindFailedPoCex( Aig_Man_t * pAig, Abc_Cex_t * p )
 {
     Aig_Obj_t * pObj, * pObjRi, * pObjRo;
