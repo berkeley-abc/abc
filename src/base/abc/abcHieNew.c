@@ -89,6 +89,9 @@ struct Au_Ntk_t_
     double                 nBoxes;
     double                 nNodes;
     double                 nPorts;
+    double                 nNodeAnds;
+    double                 nNodeXors;
+    double                 nNodeMuxs;
 };
 
 struct Au_Man_t_ 
@@ -207,6 +210,8 @@ static inline int          Au_ObjIsTravIdCurrentId( Au_Ntk_t * p, int Id )  { re
     for ( i = 0; (i < Vec_IntSize(&p->vPos))    && (((pObj) = Au_NtkPo(p, i)), 1); i++ )
 #define Au_NtkForEachObj( p, pObj, i )           \
     for ( i = 0; (i < Vec_IntSize(&p->vObjs))   && (((pObj) = Au_NtkObjI(p, i)), 1); i++ )
+#define Au_NtkForEachNode( p, pObj, i )           \
+    for ( i = 0; (i < Vec_IntSize(&p->vObjs))   && (((pObj) = Au_NtkObjI(p, i)), 1); i++ ) if ( !Au_ObjIsNode(pObj) ) {} else
 #define Au_NtkForEachBox( p, pObj, i )           \
     for ( i = 0; (i < Vec_IntSize(&p->vObjs))   && (((pObj) = Au_NtkObjI(p, i)), 1); i++ ) if ( !Au_ObjIsBox(pObj) ) {} else
 
@@ -284,6 +289,20 @@ void Au_NtkPrintStats( Au_Ntk_t * p )
 void Au_NtkCleanCopy( Au_Ntk_t * p )
 {
     Vec_IntFill( &p->vCopies, Au_NtkObjNumMax(p), -1 );
+}
+int Au_NtkNodeNumFunc( Au_Ntk_t * p, int Func )
+{
+    Au_Obj_t * pObj;
+    int i, Counter = 0;
+    if ( p->pMan && p->pMan->pFuncs )
+        return 0;
+    Au_NtkForEachNode( p, pObj, i )
+    {
+        Counter += (pObj->Func == (unsigned)Func);
+//        printf( "%d ", pObj->Func );
+    }
+//    printf( "\n" );
+    return Counter;
 }
 
 /**Function*************************************************************
@@ -459,12 +478,16 @@ void Au_ManCountThings( Au_Man_t * p )
 {
     Au_Ntk_t * pNtk, * pBoxModel;
     Au_Obj_t * pBox;
-    int i, k;
+    int i, k, clk = clock();
     Au_ManForEachNtkReverse( p, pNtk, i )
     {
         pNtk->nBoxes = Au_NtkBoxNum(pNtk);
         pNtk->nNodes = Au_NtkNodeNum(pNtk);
         pNtk->nPorts = Au_NtkPiNum(pNtk) + Au_NtkPoNum(pNtk);
+        pNtk->nNodeAnds = Au_NtkNodeNumFunc( pNtk, 1 );
+        pNtk->nNodeXors = Au_NtkNodeNumFunc( pNtk, 2 );
+        pNtk->nNodeMuxs = Au_NtkNodeNumFunc( pNtk, 3 );
+//        assert( pNtk->nNodes == pNtk->nNodeAnds + pNtk->nNodeXors + pNtk->nNodeMuxs );
 //        printf( "adding %.0f nodes of model %s\n", pNtk->nNodes, Au_NtkName(pNtk) );
         Au_NtkForEachBox( pNtk, pBox, k )
         {
@@ -478,13 +501,24 @@ void Au_ManCountThings( Au_Man_t * p )
             pNtk->nBoxes += pBoxModel->nBoxes;
             pNtk->nNodes += pBoxModel->nNodes;
             pNtk->nPorts += pBoxModel->nPorts;
+            pNtk->nNodeAnds += pBoxModel->nNodeAnds;
+            pNtk->nNodeXors += pBoxModel->nNodeXors;
+            pNtk->nNodeMuxs += pBoxModel->nNodeMuxs;
 //            printf( "    adding %.0f nodes of model %s\n", pBoxModel->nNodes, Au_NtkName(pBoxModel) );
         }
 //        printf( "total %.0f nodes in model %s\n", pNtk->nNodes, Au_NtkName(pNtk) );
     }
     pNtk = Au_ManNtkRoot(p);
-    printf( "Total nodes = %12.0f. Total instances = %12.0f. Total ports = %12.0f.\n", 
+    printf( "Total nodes = %15.0f. Total instances = %15.0f. Total ports = %15.0f.\n", 
+//    printf( "Total nodes = %.2e. Total instances = %.2e. Total ports = %.2e.\n", 
         pNtk->nNodes, pNtk->nBoxes, pNtk->nPorts );
+//    printf( "Total ANDs  = %15.0f. Total XORs      = %15.0f. Total MUXes = %15.0f.\n", 
+//    printf( "Total ANDs  = %.2e. Total XORs      = %.2e. Total MUXes = %.2e.  ", 
+//        pNtk->nNodeAnds, pNtk->nNodeXors, pNtk->nNodeMuxs );
+    printf( "Total ANDs  = %15.0f.\n", pNtk->nNodeAnds );
+    printf( "Total XORs  = %15.0f.\n", pNtk->nNodeXors );
+    printf( "Total MUXes = %15.0f.\n", pNtk->nNodeMuxs );
+//    Abc_PrintTime( 1, "Time", clock() - clk );
 }
 
 int Au_NtkCompareNames( Au_Ntk_t ** p1, Au_Ntk_t ** p2 )
