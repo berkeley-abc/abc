@@ -352,6 +352,13 @@ int Au_ManFindNtk( Au_Man_t * p, char * pName )
             return i;
     return -1;
 }
+Au_Ntk_t * Au_ManFindNtkP( Au_Man_t * p, char * pName )
+{
+    int iNtk = Au_ManFindNtk( p, pName );
+    if ( iNtk == -1 )
+        return NULL;
+    return Au_ManNtk( p, iNtk );
+}
 void Au_ManAddNtk( Au_Man_t * pMan, Au_Ntk_t * p )
 {
     assert( Au_ManFindNtk(pMan, Au_NtkName(p)) == -1 );
@@ -1208,6 +1215,7 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     Gia_Man_t * pTemp, * pGia = NULL;
     Au_Obj_t * pTerm;
     int i;
+    printf( "Collapsing model \"%s\"...\n", Au_NtkName(p) );
     Au_NtkCleanCopy( p );
     // start the network
     pGia = Gia_ManStart( (1<<16) );
@@ -1292,11 +1300,13 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 {
     extern Vec_Ptr_t * Abc_NtkCollectHie( Abc_Ntk_t * pNtk );
 
+//    char * pModelName = NULL;
+    char * pModelName = "path_0_r_x_lhs";
     Gia_Man_t * pGia = NULL;
     Vec_Ptr_t * vOrder, * vModels;
     Abc_Ntk_t * pMod;
     Au_Man_t * pMan;
-    Au_Ntk_t * pNtk;
+    Au_Ntk_t * pNtk = NULL;
     int i, clk1, clk2 = 0, clk3 = 0, clk4 = 0, clk = clock();
 
     clk1 = clock();
@@ -1325,10 +1335,17 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Au_ManPrintStats( pMan );
     Au_ManCountThings( pNtk->pMan );
 
+    // select network
+    if ( pModelName )
+        pNtk = Au_ManFindNtkP( pMan, pModelName );
+    if ( pNtk == NULL )
+        pNtk = (Au_Ntk_t *)pRoot->pData;
+
+  
 //    if ( !Abc_NtkCheckRecursive(pRoot) )
     {
         clk1 = clock();
-        pGia = Au_NtkDeriveFlatGia( (Au_Ntk_t *)pRoot->pData );
+        pGia = Au_NtkDeriveFlatGia( pNtk );
         clk3 = clock() - clk1;
 //        printf( "GIA objects max = %d.\n", pMan->nGiaObjMax );
     }
@@ -1361,8 +1378,10 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 ***********************************************************************/
 Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose )
 {
-    Au_Ntk_t * pNtk;
-    Gia_Man_t * pGia;
+//    char * pModelName = NULL;
+    char * pModelName = "path_0_r_x_lhs";
+    Gia_Man_t * pGia = NULL;
+    Au_Ntk_t * pNtk, * pNtkClp = NULL;
     int clk1 = 0, clk2 = 0, clk3 = 0, clk = clock();
 
     // read hierarchical netlist
@@ -1386,11 +1405,18 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose )
     Au_ManPrintStats( pNtk->pMan );
     Au_ManCountThings( pNtk->pMan );
 
-    if ( !Au_NtkCheckRecursive(pNtk) ); // COMMA!!!
+    // select network
+    if ( pModelName )
+        pNtkClp = Au_ManFindNtkP( pNtk->pMan, pModelName );
+    if ( pNtkClp == NULL )
+        pNtkClp = pNtk;
+
+
+    if ( !Au_NtkCheckRecursive(pNtkClp) ); // COMMA!!!
 
     {
         clk1 = clock();
-        pGia = Au_NtkDeriveFlatGia( pNtk );
+        pGia = Au_NtkDeriveFlatGia( pNtkClp );
         clk3 = clock() - clk1;
     }
 
