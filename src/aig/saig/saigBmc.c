@@ -211,7 +211,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         *piFrame = nFrames;
     if ( fVerbose )
     {
-        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+        printf( "Running \"bmc\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
         printf( "Time-frames (%d):  PI/PO = %d/%d.  Node = %6d. Lev = %5d.  ", 

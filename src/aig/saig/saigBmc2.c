@@ -762,7 +762,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
     if ( fVerbose )
     {
-        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
+        printf( "Running \"bmc2\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig) );
         printf( "Params: FramesMax = %d. NodesDelta = %d. ConfMaxOne = %d. ConfMaxAll = %d.\n", 

@@ -17620,14 +17620,16 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     char * pLogFileName = NULL;
+    int nBmcFramesMax = 20;
+    int nBmcConfMax = 2000;
 
     extern void Fra_SecSetDefaultParams( Fra_Sec_t * p );
-    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar );
+    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, int nBmcConfMax );
     // set defaults
     Fra_SecSetDefaultParams( pSecPar );
 //    pSecPar->TimeLimit = 300;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cbFCGDVBRTLarmfijkoupwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbAEFCGDVBRTLarmfijkoupwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17636,6 +17638,28 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             pSecPar->fTryBmc ^= 1;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBmcFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBmcFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBmcConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBmcConfMax < 0 ) 
+                goto usage;
             break;
         case 'F':
             if ( globalUtilOptind >= argc )
@@ -17787,7 +17811,7 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    pAbc->Status = Abc_NtkDarProve( pNtk, pSecPar );
+    pAbc->Status = Abc_NtkDarProve( pNtk, pSecPar, nBmcFramesMax, nBmcConfMax );
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
     if ( pLogFileName )
         Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "dprove" );
@@ -17806,8 +17830,10 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dprove [-FCGDVBRT num] [-L file] [-cbarmfijoupvwh]\n" );
+    Abc_Print( -2, "usage: dprove [-AEFCGDVBRT num] [-L file] [-cbarmfijoupvwh]\n" );
     Abc_Print( -2, "\t         performs SEC on the sequential miter\n" );
+    Abc_Print( -2, "\t-A num : the limit on the depth of BMC [default = %d]\n", nBmcFramesMax );
+    Abc_Print( -2, "\t-E num : the conflict limit during BMC [default = %d]\n", nBmcConfMax );
     Abc_Print( -2, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
     Abc_Print( -2, "\t-C num : the conflict limit at a node during induction [default = %d]\n", pSecPar->nBTLimit );
     Abc_Print( -2, "\t-G num : the global conflict limit during induction [default = %d]\n", pSecPar->nBTLimitGlobal );

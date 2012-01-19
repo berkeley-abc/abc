@@ -2204,10 +2204,10 @@ int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
+int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, int nBmcConfMax )
 {
     Aig_Man_t * pMan;
-    int RetValue = -1, clkTotal = clock();
+    int iFrame = -1, RetValue = -1, clkTotal = clock();
     if ( pSecPar->fTryComb || Abc_NtkLatchNum(pNtk) == 0 )
     {
         Prove_Params_t Params, * pParams = &Params;
@@ -2250,20 +2250,6 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
             return RetValue;
         }
     }
-    if ( pSecPar->fTryBmc )
-    {
-        RetValue = Abc_NtkDarBmc( pNtk, 0, 20, 100000, -1, 0, 2000, -1, 0, 1, 0, 0, NULL );
-        if ( RetValue == 0 )
-        {
-            printf( "Networks are not equivalent.\n" );
-            if ( pSecPar->fReportSolution )
-            {
-            printf( "SOLUTION: FAIL       " );
-            ABC_PRT( "Time", clock() - clkTotal );
-            }
-            return RetValue;
-        }
-    } 
     // derive the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
@@ -2272,6 +2258,22 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar )
         return -1;
     }
     assert( pMan->nRegs > 0 );
+
+    if ( pSecPar->fTryBmc )
+    {
+        RetValue = Saig_BmcPerform( pMan, 0, nBmcFramesMax, 2000, 0, nBmcConfMax, 0, pSecPar->fVerbose, 0, &iFrame );
+        if ( RetValue == 0 )
+        {
+            printf( "Networks are not equivalent.\n" );
+            if ( pSecPar->fReportSolution )
+            {
+                printf( "SOLUTION: FAIL       " );
+                ABC_PRT( "Time", clock() - clkTotal );
+            }
+            Aig_ManStop( pMan );
+            return RetValue;
+        }
+    } 
     // perform verification
     if ( pSecPar->fUseNewProver )
     {

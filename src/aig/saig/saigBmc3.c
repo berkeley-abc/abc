@@ -1114,7 +1114,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     p->pPars = pPars;
     if ( pPars->fVerbose )
     {
-        printf( "AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.  Map = %6d. Sect =%3d.\n", 
+        printf( "Running \"bmc3\". AIG:  PI/PO/Reg = %d/%d/%d.  Node = %6d. Lev = %5d.  Map = %6d. Sect =%3d.\n", 
             Saig_ManPiNum(pAig), Saig_ManPoNum(pAig), Saig_ManRegNum(pAig),
             Aig_ManNodeNum(pAig), Aig_ManLevelNum(pAig), (Vec_IntSize(p->vMapping)-Aig_ManObjNumMax(pAig))/5, Vec_VecSize(p->vSects) );
         printf( "Params: Start = %d. FramesMax = %d. ConfLimit = %d. TimeOut = %d. SolveAll = %d.\n", 
