@@ -24567,18 +24567,28 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReadCBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose );
+    extern Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbose );
     Gia_Man_t * pAig;
     FILE * pFile;
     char ** pArgvNew;
     char * FileName, * pTemp;
+    char * pModelName = NULL;
     int nArgcNew;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pModelName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -24610,13 +24620,14 @@ int Abc_CommandAbc9ReadCBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    pAig = Abc_NtkHieCecTest2( FileName, fVerbose );
+    pAig = Abc_NtkHieCecTest2( FileName, pModelName, fVerbose );
     Abc_CommandUpdate9( pAbc, pAig );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &read_cblif [-vh] <file>\n" );
-    Abc_Print( -2, "\t         reads the current AIG from a hierarchical CBLIF file\n" );
+    Abc_Print( -2, "usage: &read_cblif [-M name] [-vh] <file>\n" );
+    Abc_Print( -2, "\t         reads CBLIF file and collapse it into an AIG\n" );
+    Abc_Print( -2, "\t-M name: module name to collapse [default = <root_module>]\n" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");

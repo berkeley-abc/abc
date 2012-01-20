@@ -1337,7 +1337,11 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 
     // select network
     if ( pModelName )
+    {
         pNtk = Au_ManFindNtkP( pMan, pModelName );
+        if ( pNtk == NULL )
+            printf( "Could not find module \"%s\".\n", pModelName );
+    }
     if ( pNtk == NULL )
         pNtk = (Au_Ntk_t *)pRoot->pData;
 
@@ -1376,13 +1380,11 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose )
+Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbose )
 {
-//    char * pModelName = NULL;
-    char * pModelName = "path_0_r_x_lhs";
     Gia_Man_t * pGia = NULL;
     Au_Ntk_t * pNtk, * pNtkClp = NULL;
-    int clk1 = 0, clk2 = 0, clk3 = 0, clk = clock();
+    int clk1 = 0, clk = clock();
 
     // read hierarchical netlist
     pNtk = Au_NtkParseCBlif( pFileName );
@@ -1411,22 +1413,17 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, int fVerbose )
     if ( pNtkClp == NULL )
         pNtkClp = pNtk;
 
+    // check if the model is recursive
+    Au_NtkCheckRecursive( pNtkClp );
 
-    if ( !Au_NtkCheckRecursive(pNtkClp) ); // COMMA!!!
-
-    {
-        clk1 = clock();
-        pGia = Au_NtkDeriveFlatGia( pNtkClp );
-        clk3 = clock() - clk1;
-    }
-
+    // collapse
     clk1 = clock();
+    pGia = Au_NtkDeriveFlatGia( pNtkClp );
+    Abc_PrintTime( 1, "Time GIA ", clock() - clk1 );
+
+    // delete
     Au_ManDelete( pNtk->pMan );
-    clk2 += clock() - clk1;
-    
     Abc_PrintTime( 1, "Time all ", clock() - clk );
-    Abc_PrintTime( 1, "Time new ", clk2 );
-    Abc_PrintTime( 1, "Time GIA ", clk3 );
     return pGia;
 }
 
