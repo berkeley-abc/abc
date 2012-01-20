@@ -103,7 +103,8 @@ struct Au_Man_t_
     int                    nRefs;              // reference counter
     // statistics
     int                    nGiaObjMax;         // max number of GIA objects
-    double                 nPortsC;            // const ports
+    double                 nPortsC0;           // const ports
+    double                 nPortsC1;           // const ports
     double                 nPortsNC;           // non-const ports
 };
 
@@ -1328,8 +1329,10 @@ void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
         assert( Au_ObjGetXsim(pTerm) > 0 );
         if ( Au_ObjGetXsim(pTerm) == AU_VALX )
             p->pMan->nPortsNC++;
+        else if ( Au_ObjGetXsim(pTerm) == AU_VAL0 )
+            p->pMan->nPortsC0++;
         else
-            p->pMan->nPortsC++;
+            p->pMan->nPortsC1++;
     }
     if ( strcmp(Au_NtkName(p), "ref_egcd") == 0 )
     {
@@ -1376,8 +1379,10 @@ void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
         assert( Au_ObjGetXsim(pTerm) > 0 );
         if ( Au_ObjGetXsim(pTerm) == AU_VALX )
             p->pMan->nPortsNC++;
+        else if ( Au_ObjGetXsim(pTerm) == AU_VAL0 )
+            p->pMan->nPortsC0++;
         else
-            p->pMan->nPortsC++;
+            p->pMan->nPortsC1++;
     }
 }
 
@@ -1402,7 +1407,8 @@ void Au_NtkTerSimulate( Au_Ntk_t * p )
     Au_NtkForEachPi( p, pTerm, i )
         Au_ObjSetXsim( pTerm, AU_VALX );
     // recursively flatten hierarchy
-    p->pMan->nPortsC = 0;
+    p->pMan->nPortsC0 = 0;
+    p->pMan->nPortsC1 = 0;
     p->pMan->nPortsNC = 0;
     Au_NtkTerSimulate_rec( p );
     // analyze outputs
@@ -1414,8 +1420,8 @@ void Au_NtkTerSimulate( Au_Ntk_t * p )
     // print results
     printf( "Const0 outputs =%15d. Const1 outputs =%15d.  Total outputs =%15d.\n", 
         Counter[0], Counter[1], Au_NtkPoNum(p) );
-    printf( "Const  ports   =%15.0f. Non-const ports=%15.0f.  Total ports   =%15.0f.\n", 
-        p->pMan->nPortsC, p->pMan->nPortsNC, p->pMan->nPortsC + p->pMan->nPortsNC );
+    printf( "Const0 ports =  %.0f. Const1  ports =  %.0f. Non-const ports=  %.0f.  Total ports =  %.0f.\n", 
+        p->pMan->nPortsC0, p->pMan->nPortsC1, p->pMan->nPortsNC, p->pMan->nPortsC0 + p->pMan->nPortsC1 + p->pMan->nPortsNC );
 }
 
 
@@ -1561,7 +1567,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 ***********************************************************************/
 Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbose )
 {
-    int fSimulation = 1;
+    int fSimulation = 0;
     Gia_Man_t * pGia = NULL;
     Au_Ntk_t * pNtk, * pNtkClp = NULL;
     int clk1 = 0, clk = clock();
