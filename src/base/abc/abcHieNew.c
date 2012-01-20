@@ -54,7 +54,8 @@ typedef struct Au_Obj_t_   Au_Obj_t;
 
 struct Au_Obj_t_ // 16 bytes
 {
-    unsigned               Func;               // functionality
+    unsigned               Func    : 30;       // functionality
+    unsigned               Value   :  2;       // node value
     unsigned               Type    :  3;       // object type
     unsigned               nFanins : 29;       // fanin count (related to AU_MAX_FANIN_NUM)
     int                    Fanins[2];          // fanin literals
@@ -102,6 +103,8 @@ struct Au_Man_t_
     int                    nRefs;              // reference counter
     // statistics
     int                    nGiaObjMax;         // max number of GIA objects
+    double                 nPortsC;            // const ports
+    double                 nPortsNC;           // non-const ports
 };
 
 
@@ -161,12 +164,15 @@ static inline int          Au_ObjFaninNum( Au_Obj_t * p )                { retur
 static inline int          Au_ObjFaninId( Au_Obj_t * p, int i )          { assert(i >= 0 && i < (int)p->nFanins && p->Fanins[i]); return Au_Lit2Var(p->Fanins[i]);     }
 static inline int          Au_ObjFaninId0( Au_Obj_t * p )                { return Au_ObjFaninId(p, 0);                                                                 }
 static inline int          Au_ObjFaninId1( Au_Obj_t * p )                { return Au_ObjFaninId(p, 1);                                                                 }
+static inline int          Au_ObjFaninId2( Au_Obj_t * p )                { return Au_ObjFaninId(p, 2);                                                                 }
 static inline Au_Obj_t *   Au_ObjFanin( Au_Obj_t * p, int i )            { return Au_NtkObj(Au_ObjNtk(p), Au_ObjFaninId(p, i));                                        }
 static inline Au_Obj_t *   Au_ObjFanin0( Au_Obj_t * p )                  { return Au_ObjFanin( p, 0 );                                                                 }
 static inline Au_Obj_t *   Au_ObjFanin1( Au_Obj_t * p )                  { return Au_ObjFanin( p, 1 );                                                                 }
+static inline Au_Obj_t *   Au_ObjFanin2( Au_Obj_t * p )                  { return Au_ObjFanin( p, 2 );                                                                 }
 static inline int          Au_ObjFaninC( Au_Obj_t * p, int i )           { assert(i >= 0 && i < (int)p->nFanins && p->Fanins[i]); return Au_LitIsCompl(p->Fanins[i]);  }
 static inline int          Au_ObjFaninC0( Au_Obj_t * p )                 { return Au_ObjFaninC(p, 0);                                                                  }
 static inline int          Au_ObjFaninC1( Au_Obj_t * p )                 { return Au_ObjFaninC(p, 1);                                                                  }
+static inline int          Au_ObjFaninC2( Au_Obj_t * p )                 { return Au_ObjFaninC(p, 2);                                                                  }
 static inline int          Au_ObjFaninLit( Au_Obj_t * p, int i )         { assert(i >= 0 && i < (int)p->nFanins && p->Fanins[i]); return p->Fanins[i];                 }
 static inline void         Au_ObjSetFanin( Au_Obj_t * p, int i, int f )  { assert(f > 0 && p->Fanins[i] == 0); p->Fanins[i] = Au_Var2Lit(f,0);                         }
 static inline void         Au_ObjSetFaninLit( Au_Obj_t * p, int i, int f){ assert(f >= 0 && p->Fanins[i] == 0); p->Fanins[i] = f;                                      }
@@ -214,6 +220,7 @@ static inline int          Au_ObjIsTravIdCurrentId( Au_Ntk_t * p, int Id )  { re
     for ( i = 0; (i < Vec_IntSize(&p->vObjs))   && (((pObj) = Au_NtkObjI(p, i)), 1); i++ ) if ( !Au_ObjIsNode(pObj) ) {} else
 #define Au_NtkForEachBox( p, pObj, i )           \
     for ( i = 0; (i < Vec_IntSize(&p->vObjs))   && (((pObj) = Au_NtkObjI(p, i)), 1); i++ ) if ( !Au_ObjIsBox(pObj) ) {} else
+
 
 
 extern void Au_ManAddNtk( Au_Man_t * pMan, Au_Ntk_t * p );
@@ -1161,7 +1168,7 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
                     Lit = Gia_ManHashXor( pGia, Lit0, Lit1 );
                 else if ( pObj->Func == 3 )
                 {
-                    Lit2 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin(pObj, 2)), Au_ObjFaninC(pObj, 2) );
+                    Lit2 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin2(pObj)), Au_ObjFaninC2(pObj) );
                     Lit = Gia_ManHashMux( pGia, Lit0, Lit1, Lit2 );
                 }
                 else assert( 0 ); 
@@ -1237,6 +1244,178 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     pGia = Gia_ManCleanup( pTemp = pGia );
     Gia_ManStop( pTemp );
     return pGia;
+}
+
+
+// ternary simulation
+#define AU_VAL0   1
+#define AU_VAL1   2
+#define AU_VALX   3
+
+static inline void Au_ObjSetXsim( Au_Obj_t * pObj, int Value )  { pObj->Value = Value;  }
+static inline int  Au_ObjGetXsim( Au_Obj_t * pObj )             { return pObj->Value;   }
+static inline int  Au_XsimInv( int Value )   
+{ 
+    if ( Value == AU_VAL0 )
+        return AU_VAL1;
+    if ( Value == AU_VAL1 )
+        return AU_VAL0;
+    assert( Value == AU_VALX );       
+    return AU_VALX;
+}
+static inline int  Au_XsimAnd( int Value0, int Value1 )   
+{ 
+    if ( Value0 == AU_VAL0 || Value1 == AU_VAL0 )
+        return AU_VAL0;
+    if ( Value0 == AU_VALX || Value1 == AU_VALX )
+        return AU_VALX;
+    assert( Value0 == AU_VAL1 && Value1 == AU_VAL1 );
+    return AU_VAL1;
+}
+static inline int  Au_XsimXor( int Value0, int Value1 )   
+{ 
+    if ( Value0 == AU_VALX || Value1 == AU_VALX )
+        return AU_VALX;
+    if ( (Value0 == AU_VAL0) == (Value1 == AU_VAL0) )
+        return AU_VAL0;
+    return AU_VAL1;
+}
+static inline int  Au_XsimMux( int ValueC, int Value1, int Value0 )   
+{ 
+    if ( ValueC == AU_VAL0 )
+        return Value0;
+    if ( ValueC == AU_VAL1 )
+        return Value1;
+    if ( Value0 == AU_VAL0 && Value1 == AU_VAL0 )
+        return AU_VAL0;
+    if ( Value0 == AU_VAL1 && Value1 == AU_VAL1 )
+        return AU_VAL1;
+    return AU_VALX;
+}
+static inline int  Au_ObjGetXsimFan0( Au_Obj_t * pObj )       
+{ 
+    int Value = Au_ObjGetXsim( Au_ObjFanin0(pObj) );
+    return Au_ObjFaninC0(pObj) ? Au_XsimInv(Value) : Value;
+}
+static inline int  Au_ObjGetXsimFan1( Au_Obj_t * pObj )       
+{ 
+    int Value = Au_ObjGetXsim( Au_ObjFanin1(pObj) );
+    return Au_ObjFaninC1(pObj) ? Au_XsimInv(Value) : Value;
+}
+static inline int  Au_ObjGetXsimFan2( Au_Obj_t * pObj )       
+{ 
+    int Value = Au_ObjGetXsim( Au_ObjFanin2(pObj) );
+    return Au_ObjFaninC2(pObj) ? Au_XsimInv(Value) : Value;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Flattens the logic hierarchy of the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
+{ 
+    Au_Obj_t * pObj, * pTerm;
+    int i, k;
+    Au_NtkForEachPi( p, pTerm, i )
+    {
+        assert( Au_ObjGetXsim(pTerm) > 0 );
+        if ( Au_ObjGetXsim(pTerm) == AU_VALX )
+            p->pMan->nPortsNC++;
+        else
+            p->pMan->nPortsC++;
+    }
+    if ( strcmp(Au_NtkName(p), "ref_egcd") == 0 )
+    {
+        printf( "Replacing one instance of recursive model \"%s\" by a black box.\n", "ref_egcd" );
+        Au_NtkForEachPo( p, pTerm, i )
+            Au_ObjSetXsim( pTerm, AU_VALX );
+        return;
+    }
+    Au_NtkForEachObj( p, pObj, i )
+    {
+        if ( Au_ObjIsNode(pObj) )
+        {
+            if ( pObj->Func == 1 )
+                Au_ObjSetXsim( pObj, Au_XsimAnd(Au_ObjGetXsimFan0(pObj), Au_ObjGetXsimFan1(pObj)) );
+            else if ( pObj->Func == 2 )
+                Au_ObjSetXsim( pObj, Au_XsimXor(Au_ObjGetXsimFan0(pObj), Au_ObjGetXsimFan1(pObj)) );
+            else if ( pObj->Func == 3 )
+                Au_ObjSetXsim( pObj, Au_XsimMux(Au_ObjGetXsimFan0(pObj), Au_ObjGetXsimFan1(pObj), Au_ObjGetXsimFan2(pObj)) );
+            else assert( 0 );
+        }
+        else if ( Au_ObjIsBox(pObj) )
+        {
+            Au_Ntk_t * pModel = Au_ObjModel(pObj);
+            // check the match between the number of actual and formal parameters
+            assert( Au_ObjFaninNum(pObj) == Au_NtkPiNum(pModel) );
+            assert( Au_BoxFanoutNum(pObj) == Au_NtkPoNum(pModel) );
+            // assign PIs
+            Au_ObjForEachFanin( pObj, pTerm, k )
+                Au_ObjSetXsim( Au_NtkPi(pModel, k), Au_ObjGetXsim(pTerm) );
+            // call recursively
+            Au_NtkTerSimulate_rec( pModel );
+            // assign POs
+            Au_BoxForEachFanout( pObj, pTerm, k )
+                Au_ObjSetXsim( pTerm, Au_ObjGetXsim(Au_NtkPo(pModel, k)) );
+        }
+        else if ( Au_ObjIsConst0(pObj) )
+            Au_ObjSetXsim( pObj, AU_VAL0 );
+            
+    }
+    Au_NtkForEachPo( p, pTerm, i )
+        Au_ObjSetXsim( pTerm, Au_ObjGetXsimFan0(pObj) );
+    Au_NtkForEachPo( p, pTerm, i )
+    {
+        assert( Au_ObjGetXsim(pTerm) > 0 );
+        if ( Au_ObjGetXsim(pTerm) == AU_VALX )
+            p->pMan->nPortsNC++;
+        else
+            p->pMan->nPortsC++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Flattens the logic hierarchy of the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Au_NtkTerSimulate( Au_Ntk_t * p )
+{
+    Au_Obj_t * pTerm;
+    int i, Counter[2] = {0};
+    assert( p->pMan->pFuncs == NULL );
+    printf( "Collapsing model \"%s\"...\n", Au_NtkName(p) );
+    // create PIs
+    Au_NtkForEachPi( p, pTerm, i )
+        Au_ObjSetXsim( pTerm, AU_VALX );
+    // recursively flatten hierarchy
+    p->pMan->nPortsC = 0;
+    p->pMan->nPortsNC = 0;
+    Au_NtkTerSimulate_rec( p );
+    // analyze outputs
+    Au_NtkForEachPo( p, pTerm, i )
+        if ( Au_ObjGetXsim(pTerm) == AU_VAL0 )
+            Counter[0]++;
+        else if ( Au_ObjGetXsim(pTerm) == AU_VAL1 )
+            Counter[1]++;
+    // print results
+    printf( "Const0 outputs =%15d. Const1 outputs =%15d.  Total outputs =%15d.\n", 
+        Counter[0], Counter[1], Au_NtkPoNum(p) );
+    printf( "Const  ports   =%15.0f. Non-const ports=%15.0f.  Total ports   =%15.0f.\n", 
+        p->pMan->nPortsC, p->pMan->nPortsNC, p->pMan->nPortsC + p->pMan->nPortsNC );
 }
 
 
@@ -1382,6 +1561,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
 ***********************************************************************/
 Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbose )
 {
+    int fSimulation = 1;
     Gia_Man_t * pGia = NULL;
     Au_Ntk_t * pNtk, * pNtkClp = NULL;
     int clk1 = 0, clk = clock();
@@ -1402,9 +1582,11 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
     Abc_PrintTime( 1, "Reading file", clock() - clk );
 
     if ( fVerbose )
+    {
         Au_ManPrintBoxInfo( pNtk );
 //    Au_ManPrintBoxInfoSorted( pNtk );
-    Au_ManPrintStats( pNtk->pMan );
+        Au_ManPrintStats( pNtk->pMan );
+    }
     Au_ManCountThings( pNtk->pMan );
 
     // select network
@@ -1418,8 +1600,16 @@ Gia_Man_t * Abc_NtkHieCecTest2( char * pFileName, char * pModelName, int fVerbos
 
     // collapse
     clk1 = clock();
-    pGia = Au_NtkDeriveFlatGia( pNtkClp );
-    Abc_PrintTime( 1, "Time GIA ", clock() - clk1 );
+    if ( fSimulation )
+    {
+        Au_NtkTerSimulate( pNtkClp );
+        Abc_PrintTime( 1, "Time sim ", clock() - clk1 );
+    }
+    else
+    {
+        pGia = Au_NtkDeriveFlatGia( pNtkClp );
+        Abc_PrintTime( 1, "Time GIA ", clock() - clk1 );
+    }
 
     // delete
     Au_ManDelete( pNtk->pMan );
