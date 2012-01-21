@@ -385,6 +385,7 @@ static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GlaCba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaPba             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Vta                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Vta2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Reparam            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BackReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Posplit            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -845,6 +846,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_cba",      Abc_CommandAbc9GlaCba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gla_pba",      Abc_CommandAbc9GlaPba,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&vta",          Abc_CommandAbc9Vta,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&vta_gla",      Abc_CommandAbc9Vta2Gla,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reparam",      Abc_CommandAbc9Reparam,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&back_reach",   Abc_CommandAbc9BackReach,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&posplit",      Abc_CommandAbc9Posplit,      0 );
@@ -29573,7 +29575,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTtvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29621,6 +29623,9 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 ) 
                 goto usage;
             break;
+        case 't':
+            pPars->fUseTermVars ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -29661,16 +29666,68 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &vta [-SFCT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &vta [-SFCT num] [-tvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-t     : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 } 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Vta2Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( pAbc->pGia->vObjClasses == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Vta2Gla(): There is no variable-time-frame abstraction defines.\n" );
+        return 1;
+    }
+    Vec_IntFreeP( &pAbc->pGia->vGateClasses );
+    pAbc->pGia->vGateClasses = Gia_VtaConvertToGla( pAbc->pGia, pAbc->pGia->vObjClasses );
+    Vec_IntFreeP( &pAbc->pGia->vObjClasses );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &vta_gla [-vh]\n" );
+    Abc_Print( -2, "\t        maps variable- into fixed-time-frame abstraction\n" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 

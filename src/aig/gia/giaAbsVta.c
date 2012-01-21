@@ -23,7 +23,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#define VTA_LARGE  0xFFFFFF
+#define VTA_LARGE  0xFFFFFFF
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -35,7 +35,7 @@ struct Vta_Obj_t_
     int           iObj;
     int           iFrame;
     int           iNext;
-    unsigned      Prio   : 24;  // related to VTA_LARGE
+    unsigned      Prio   : 28;  // related to VTA_LARGE
     unsigned      Value  :  2;
     unsigned      fAdded :  1;
     unsigned      fNew   :  1;
@@ -60,6 +60,8 @@ struct Vta_Man_t_
     Vec_Ptr_t *   vFrames;      // start abstraction for each frame
     int           nWords;       // the number of words in the record
     Vec_Int_t *   vSeens;       // seen objects
+    Vec_Bit_t *   vSeenGla;     // seen objects in all frames
+    int           nSeenGla;     // seen objects in all frames
     // other data
     Vec_Int_t *   vCla2Var;     // map clauses into variables
     Vec_Ptr_t *   vCores;       // unsat core for each frame
@@ -202,6 +204,7 @@ Vec_Int_t * Gia_VtaFramesToAbs( Vec_Vec_t * vFrames )
 ***********************************************************************/
 Vec_Int_t * Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vAbs )
 {
+    Gia_Obj_t * pObj;
     Vec_Int_t * vPresent;
     int nObjMask, nObjs = Gia_ManObjNum(p);
     int i, Entry, nFrames = Vec_IntEntry( vAbs, 0 );
@@ -210,9 +213,14 @@ Vec_Int_t * Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vAbs )
     nObjMask = (1 << Gia_Base2Log(nObjs)) - 1;
     assert( nObjs <= nObjMask );
     // go through objects
-    vPresent = Vec_IntAlloc( nObjs );
+    vPresent = Vec_IntStart( nObjs );
+    Vec_IntWriteEntry( vPresent, 0, 1 );
     Vec_IntForEachEntryStart( vAbs, Entry, i, nFrames+2 )
+    {
+        pObj = Gia_ManObj( p, (Entry &  nObjMask) );
+        assert( Gia_ObjIsRo(p, pObj) || Gia_ObjIsAnd(pObj) || Gia_ObjIsConst0(pObj) );
         Vec_IntWriteEntry( vPresent, (Entry &  nObjMask), 1 );
+    }
     return vPresent;
 }
 
@@ -773,6 +781,8 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     assert( Gia_ManObjNum(pGia) <= (int)p->nObjMask );
     p->nWords      = 1;
     p->vSeens      = Vec_IntStart( Gia_ManObjNum(pGia) * p->nWords );
+    p->vSeenGla    = Vec_BitStart( Gia_ManObjNum(pGia) );
+    p->nSeenGla    = 1;
     // start the abstraction
     if ( pGia->vObjClasses == NULL )
         p->vFrames = Gia_ManUnrollAbs( pGia, pPars->nFramesStart );
@@ -811,8 +821,13 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 ***********************************************************************/
 void Vga_ManStop( Vta_Man_t * p )
 {
+    if ( p->pPars->fVerbose )
+        printf( "SAT solver:  Variables = %d. Clauses = %d. Conflicts = %d.\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat) );
+
     Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vFrames );
+    Vec_BitFreeP( &p->vSeenGla );
     Vec_IntFreeP( &p->vSeens );
     Vec_IntFreeP( &p->vOrder );
     Vec_IntFreeP( &p->vCla2Var );
@@ -845,16 +860,12 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
     RetValue = sat_solver2_solve( pSat, &iLit, &iLit+1, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_Undef )
     {
-//        if ( fVerbose )
-            printf( "Conflict limit is reached.\n" );
         if ( piRetValue )
             *piRetValue = -1;
         return NULL;
     }
     if ( RetValue == l_True )
     {
-//        if ( fVerbose )
-            printf( "The BMC problem is SAT.\n" );
         if ( piRetValue )
             *piRetValue = 0;
         return NULL;
@@ -930,13 +941,20 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames )
         }
         pCountAll[iFrame+1]++;
         pCountAll[0]++;
+        if ( !Vec_BitEntry(p->vSeenGla, iObj) )
+        {
+            Vec_BitWriteEntry(p->vSeenGla, iObj, 1);
+            p->nSeenGla++;
+        }
     }
 //    printf( "%5d%5d", pCountAll[0], pCountUni[0] ); 
-    printf( "%7d", pCountAll[0] ); 
+    printf( "%6d", p->nSeenGla ); 
+    printf( "%6d", pCountAll[0] ); 
     for ( k = 0; k < nFrames; k++ )
 //        printf( "%5d%5d  ", pCountAll[k+1], pCountUni[k+1] ); 
         printf( "%4d", pCountAll[k+1] ); 
     printf( "\n" );
+    fflush( stdout );
     ABC_FREE( pCountAll );
     ABC_FREE( pCountUni );
 }
@@ -953,13 +971,14 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames )
 
 ***********************************************************************/
 void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame )
-{
+{ 
     Vta_Obj_t * pThis0, * pThis1;
     Gia_Obj_t * pObj = Gia_ManObj( p->pGia, iObj );
     Vta_Obj_t * pThis = Vga_ManFindOrAdd( p, iObj, iFrame );
     int iMainVar = Vta_ObjId(p, pThis);
     assert( pThis->iObj == iObj && pThis->iFrame == iFrame );
-    assert( pThis->fAdded == 0 );
+    if ( pThis->fAdded )
+        return;
     pThis->fAdded = 1;
     if ( Gia_ObjIsAnd(pObj) )
     {
@@ -977,14 +996,18 @@ void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame )
 //printf( "Adding flop %d (var %d)\n", iObj, iMainVar );
         if ( iFrame == 0 )
         {
-            /*
-            pThis0 = Vga_ManFindOrAdd( p, iObj, -1 );
-            sat_solver2_add_constraint( p->pSat, iMainVar, Vta_ObjId(p, pThis0), 1, 0 );
-            Vec_IntPush( p->vCla2Var, iMainVar );
-            Vec_IntPush( p->vCla2Var, iMainVar );
-            */
-            sat_solver2_add_const( p->pSat, iMainVar, 1, 0 );
-            Vec_IntPush( p->vCla2Var, iMainVar );
+            if ( p->pPars->fUseTermVars )
+            {
+                pThis0 = Vga_ManFindOrAdd( p, iObj, -1 );
+                sat_solver2_add_constraint( p->pSat, iMainVar, Vta_ObjId(p, pThis0), 1, 0 );
+                Vec_IntPush( p->vCla2Var, iMainVar );
+                Vec_IntPush( p->vCla2Var, iMainVar );
+            }
+            else
+            {
+                sat_solver2_add_const( p->pSat, iMainVar, 1, 0 );
+                Vec_IntPush( p->vCla2Var, iMainVar );
+            }
         }
         else
         {
@@ -1061,6 +1084,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     Abc_Cex_t * pCex = NULL;
     Gia_Obj_t * pObj;
     int i, f, Status, RetValue = -1;
+    int clk = clock();
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
@@ -1068,12 +1092,11 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     p = Vga_ManStart( pAig, pPars );
     // perform initial abstraction
     if ( p->pPars->fVerbose )
-        printf( "Frame  Confl   All  F0  F1  F2  F3  ...\n" );
+        printf( "Frame  Confl  One   All  F0  F1  F2  F3 ...\n" );
     for ( f = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
         if ( p->pPars->fVerbose )
             printf( "%3d :", f );
-//printf( "\n" );
         p->pPars->iFrame = f;
         // realloc storage for abstraction marks
         if ( f == p->nWords * 32 )
@@ -1083,7 +1106,6 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
             // load this timeframe
             Vga_ManLoadSlice( p, Vec_PtrEntry(p->vFrames, f), 0 );
-//            Vga_ManAddClausesOne( p, 0, f );
             // run SAT solver
             vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status );
             assert( (vCore != NULL) == (Status == 1) );
@@ -1109,10 +1131,9 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
 /*
             // load the time frame
-            int Limit = Abc_MinInt(3, p->pPars->nFramesStart);
+            int Limit = Abc_MinInt(5, p->pPars->nFramesStart);
             for ( i = 1; i <= Limit; i++ )
                 Vga_ManLoadSlice( p, Vec_PtrEntry(p->vCores, f-i), i );
-//            Vga_ManAddClausesOne( p, 0, f );
             // iterate as long as there are counter-examples
             do {
                 vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status );
@@ -1163,9 +1184,9 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Vec_IntFreeP( &pAig->vObjClasses );
         pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
         if ( Status == -1 )
-            printf( "SAT solver ran out of resources at %d conflicts in frame %d.\n", pPars->nConfLimit, f );
+            printf( "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
         else
-            printf( "SAT solver completed %d frames and produced an abstraction.\n", f+1 );
+            printf( "SAT solver completed %d frames and produced an abstraction.  ", f+1 );
     }
     else
     {
@@ -1173,7 +1194,9 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         p->pGia->pCexSeq = pCex;
         if ( !Gia_ManVerifyCex( p->pGia, pCex, 0 ) )
             printf( "Gia_VtaPerform(): CEX verification has failed!\n" );
+        printf( "Counter-example detected in frame %d.  ", f );
     }
+    Abc_PrintTime( 1, "Time", clock() - clk );
     Vga_ManStop( p );
     return RetValue;
 }

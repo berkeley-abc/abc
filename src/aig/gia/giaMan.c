@@ -277,7 +277,7 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
     nObjMask = (1 << nObjBits) - 1;
     assert( Gia_ManObjNum(p) <= nObjMask );
     // print info about frames
-    printf( "Frame   All  F0  F1  F2  F3  ...\n" );
+    printf( "Frame   All  F0  F1  F2  F3 ...\n" );
     for ( i = 0; i < nFrames; i++ )
     {
         iStart = Vec_IntEntry( vAbs, i+1 );
