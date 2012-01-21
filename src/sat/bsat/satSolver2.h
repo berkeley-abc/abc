@@ -355,20 +355,20 @@ static inline int sat_solver2_add_xor( sat_solver2 * pSat, int iVarA, int iVarB,
         clause_set_partA( pSat, Cid, 1 );
     return 4;
 }
-static inline int sat_solver2_add_constraint( sat_solver2 * pSat, int iVar, int fCompl, int fMark )
+static inline int sat_solver2_add_constraint( sat_solver2 * pSat, int iVar, int iVar2, int fCompl, int fMark )
 {
     lit Lits[2];
     int Cid;
     assert( iVar >= 0 );
 
     Lits[0] = toLitCond( iVar, fCompl );
-    Lits[1] = toLitCond( iVar+1, 0 );
+    Lits[1] = toLitCond( iVar2, 0 );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
     if ( fMark )
         clause_set_partA( pSat, Cid, 1 );
 
     Lits[0] = toLitCond( iVar, fCompl );
-    Lits[1] = toLitCond( iVar+1, 1 );
+    Lits[1] = toLitCond( iVar2, 1 );
     Cid = sat_solver2_addclause( pSat, Lits, Lits + 2 );
     if ( fMark )
         clause_set_partA( pSat, Cid, 1 );

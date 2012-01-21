@@ -189,11 +189,12 @@ Vec_Ptr_t * Gia_ManUnrollAbs( Gia_Man_t * p, int nFrames )
             iStop  = (f+1 < Vec_IntSize(vLimit)) ? Vec_IntEntry(vLimit, f+1) : 0;
             for ( k = iStop - 1; k >= iStart; k-- )
             {
-                pObj  = Gia_ManObj(pNew, k);
-                if ( Gia_ObjIsCo(pObj) )
+                assert( Gia_ManObj(pNew, k)->Value > 0 );
+                pObj  = Gia_ManObj(p, Gia_ManObj(pNew, k)->Value);
+                if ( Gia_ObjIsCo(pObj) || Gia_ObjIsPi(p, pObj) )
                     continue;
-                assert( Gia_ObjIsCi(pObj) || Gia_ObjIsAnd(pObj) );
-                Entry = ((fMax-f) << nObjBits) | pObj->Value;
+                assert( Gia_ObjIsRo(p, pObj) || Gia_ObjIsAnd(pObj) );
+                Entry = ((fMax-f) << nObjBits) | Gia_ObjId(p, pObj);
                 Vec_IntPush( vOne, Entry );
 //                printf( "%d ", Gia_ManObj(pNew, k)->Value );
             }

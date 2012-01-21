@@ -277,6 +277,7 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
     nObjMask = (1 << nObjBits) - 1;
     assert( Gia_ManObjNum(p) <= nObjMask );
     // print info about frames
+    printf( "Frame   All  F0  F1  F2  F3  ...\n" );
     for ( i = 0; i < nFrames; i++ )
     {
         iStart = Vec_IntEntry( vAbs, i+1 );
@@ -298,10 +299,13 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
             pCountAll[0]++;
         }
         assert( pCountAll[0] == (unsigned)(iStop - iStart) );
-        printf( "%5d%5d  ", pCountAll[0], pCountUni[0] ); 
+//        printf( "%5d%5d  ", pCountAll[0], pCountUni[0] ); 
+        printf( "%3d :", i );
+        printf( "%6d", pCountAll[0] ); 
         for ( k = 0; k < nFrames; k++ )
             if ( k <= i )
-                printf( "%5d%5d  ", pCountAll[k+1], pCountUni[k+1] ); 
+//                printf( "%5d%5d  ", pCountAll[k+1], pCountUni[k+1] ); 
+                printf( "%4d", pCountAll[k+1] ); 
         printf( "\n" );
     }
     assert( iStop == Vec_IntSize(vAbs) );

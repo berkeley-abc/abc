@@ -150,7 +150,8 @@ static inline int     clause_is_used(sat_solver2* s, cla h)      { return (h & 1
 static inline int     var_reason    (sat_solver2* s, int v)            { return s->reasons[v];           } 
 static inline int     lit_reason    (sat_solver2* s, int l)            { return s->reasons[lit_var(l)];  } 
 static inline satset* var_unit_clause(sat_solver2* s, int v)           { return clause_read(s, s->units[v]);                                          } 
-static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; } 
+//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; } 
+static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size); s->units[v] = i; s->nUnits++; } 
 
 // these two only work after creating a clause before the solver is called
 int    clause_is_partA (sat_solver2* s, int h)                   { return clause_read(s, h)->partA;         }  
@@ -1102,7 +1103,8 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             if (solver2_dlevel(s) <= s->root_level){
 #ifdef SAT_USE_ANALYZE_FINAL
                 proof_id = solver2_analyze_final(s, confl, 0);
-                if ( proof_id > 0 )
+                assert( proof_id > 0 );
+//                if ( proof_id > 0 )
                     solver2_record(s,&s->conf_final, proof_id);
 #endif
                 veci_delete(&learnt_clause);
@@ -1307,11 +1309,11 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 
 void sat_solver2_delete(sat_solver2* s)
 {
-    veci * pCore;
+//    veci * pCore;
 
     // report statistics
     printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 2.0 * veci_size(&s->proofs) / (1<<20), s->nUnits );
-
+/*
     pCore = Sat_ProofCore( s );
     printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
     veci_delete( pCore );
@@ -1319,7 +1321,7 @@ void sat_solver2_delete(sat_solver2* s)
 
     if ( s->fProofLogging )
         Sat_ProofCheck( s );
-
+*/
     // delete vectors
     veci_delete(&s->order);
     veci_delete(&s->trail_lim);
@@ -1392,7 +1394,7 @@ int sat_solver2_addclause__(sat_solver2* s, lit* begin, lit* end)
     // delete duplicates
     last = lit_Undef;
     for (i = j = begin; i < end; i++){
-        //printf("lit: "L_LIT", value = %d\n", L_lit(*i), (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]));
+        //printf("lit: "L_LIT", value = %d\n", L_lit(*i), (lit_sign(*i) ? -var_value(s, lit_var(*i)) : var_value(s, lit_var(*i))));
         if (*i == lit_neg(last) || var_value(s, lit_var(*i)) == lit_sign(*i))
             return true;   // tautology
         else if (*i != last && var_value(s, lit_var(*i)) == varX)
@@ -1634,9 +1636,9 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
     int restart_iter = 0;
     ABC_INT64_T  nof_conflicts;
     ABC_INT64_T  nof_learnts   = sat_solver2_nclauses(s) / 3;
-    lbool   status        = l_Undef;
-//    lbool*  values        = s->assigns;
-    lit*    i;
+    lbool status = l_Undef;
+    int proof_id;
+    lit * i;
 
     s->hLearntLast = -1;
 
@@ -1659,7 +1661,6 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
 
     //printf("solve: "); printlits(begin, end); printf("\n");
     for (i = begin; i < end; i++){
-//        switch (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]){
         switch (var_value(s, *i)) {
         case var1: // l_True: 
             break;
@@ -1723,17 +1724,19 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
             if (r != NULL)
             {
                 satset* confl = r;
-                solver2_analyze_final(s, confl, 1);
+                proof_id = solver2_analyze_final(s, confl, 1);
                 veci_push(&s->conf_final, lit_neg(p));
             }
             else
             {
+                proof_id = -1; // the only case when ProofId is not assigned (conflicting assumptions)
                 veci_resize(&s->conf_final,0);
                 veci_push(&s->conf_final, lit_neg(p));
                 // the two lines below are a bug fix by Siert Wieringa 
                 if (var_level(s, lit_var(p)) > 0) 
                     veci_push(&s->conf_final, p);
             }
+            solver2_record(s, &s->conf_final, proof_id);
             solver2_canceluntil(s, 0);
             return l_False; 
         }
@@ -1741,9 +1744,10 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         {
             satset* confl = solver2_propagate(s);
             if (confl != NULL){
-                solver2_analyze_final(s, confl, 0);
+                proof_id = solver2_analyze_final(s, confl, 0);
                 assert(s->conf_final.size > 0);
                 solver2_canceluntil(s, 0);
+                solver2_record(s,&s->conf_final, proof_id);
                 return l_False; 
             }
         }

@@ -292,19 +292,19 @@ static inline int sat_solver_add_xor( sat_solver * pSat, int iVarA, int iVarB, i
     assert( Cid );
     return 4;
 }
-static inline int sat_solver_add_constraint( sat_solver * pSat, int iVar, int fCompl )
+static inline int sat_solver_add_constraint( sat_solver * pSat, int iVar, int iVar2, int fCompl )
 {
     lit Lits[2];
     int Cid;
     assert( iVar >= 0 );
 
     Lits[0] = toLitCond( iVar, fCompl );
-    Lits[1] = toLitCond( iVar+1, 0 );
+    Lits[1] = toLitCond( iVar2, 0 );
     Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
     assert( Cid );
 
     Lits[0] = toLitCond( iVar, fCompl );
-    Lits[1] = toLitCond( iVar+1, 1 );
+    Lits[1] = toLitCond( iVar2, 1 );
     Cid = sat_solver_addclause( pSat, Lits, Lits + 2 );
     assert( Cid );
     return 2;

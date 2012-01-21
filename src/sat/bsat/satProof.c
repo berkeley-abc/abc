@@ -443,12 +443,13 @@ void Sat_ProofCheck( sat_solver2 * s )
 {
     Vec_Int_t * vClauses = (Vec_Int_t *)&s->clauses;
     Vec_Int_t * vProof   = (Vec_Int_t *)&s->proofs;
-    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
-
     Vec_Rec_t * vResolves;
     Vec_Int_t * vUsed, * vTemp;
     satset * pSet, * pSet0, * pSet1;
-    int i, k, Handle, Counter = 0, clk = clock(); 
+    int i, k, hRoot, Handle, Counter = 0, clk = clock(); 
+    if ( s->hLearntLast < 0 )
+        return;
+    hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
     // collect visited clauses
     vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
     Proof_CleanCollected( vProof, vUsed );
@@ -509,7 +510,7 @@ Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Int_t * vProof, Vec_
             if ( pFanin && !pFanin->mark )
             {
                 pFanin->mark = 1;
-                Vec_IntPush( vCore, pNode->pEnts[i] >> 2 );
+                Vec_IntPush( vCore, pNode->pEnts[k] >> 2 );
             }
     }
     // clean core clauses and reexpress core in terms of clause IDs
@@ -586,13 +587,14 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     Vec_Int_t * vClauses  = (Vec_Int_t *)&s->clauses;
     Vec_Int_t * vProof    = (Vec_Int_t *)&s->proofs;
     Vec_Int_t * vGlobVars = (Vec_Int_t *)pGloVars;
-    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
-
     Vec_Int_t * vUsed, * vCore, * vCoreNums, * vVarMap;
     satset * pNode, * pFanin;
     Aig_Man_t * pAig;
     Aig_Obj_t * pObj;
-    int i, k, iVar, Lit, Entry;
+    int i, k, iVar, Lit, Entry, hRoot;
+    if ( s->hLearntLast < 0 )
+        return NULL;
+    hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
 
     Sat_ProofInterpolantCheckVars( s, vGlobVars );
 
@@ -683,16 +685,17 @@ word * Sat_ProofInterpolantTruth( sat_solver2 * s, void * pGloVars )
     Vec_Int_t * vClauses  = (Vec_Int_t *)&s->clauses;
     Vec_Int_t * vProof    = (Vec_Int_t *)&s->proofs;
     Vec_Int_t * vGlobVars = (Vec_Int_t *)pGloVars;
-    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
-
     Vec_Int_t * vUsed, * vCore, * vCoreNums, * vVarMap;
     satset * pNode, * pFanin;
     Tru_Man_t * pTru;
     int nVars = Vec_IntSize(vGlobVars);
     int nWords = (nVars < 6) ? 1 : (1 << (nVars-6));
     word * pRes = ABC_ALLOC( word, nWords );
-    int i, k, iVar, Lit, Entry;
+    int i, k, iVar, Lit, Entry, hRoot;
     assert( nVars > 0 && nVars <= 16 );
+    if ( s->hLearntLast < 0 )
+        return NULL;
+    hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
 
     Sat_ProofInterpolantCheckVars( s, vGlobVars );
 
@@ -789,9 +792,11 @@ void * Sat_ProofCore( sat_solver2 * s )
 {
     Vec_Int_t * vClauses  = (Vec_Int_t *)&s->clauses;
     Vec_Int_t * vProof    = (Vec_Int_t *)&s->proofs;
-    int hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
-
     Vec_Int_t * vCore, * vUsed;
+    int hRoot;
+    if ( s->hLearntLast < 0 )
+        return NULL;
+    hRoot = veci_begin(&s->claProofs)[satset_read(&s->learnts, s->hLearntLast>>1)->Id];
     // collect visited clauses
     vUsed = Proof_CollectUsedIter( vProof, NULL, hRoot );
     // collect core clauses 
