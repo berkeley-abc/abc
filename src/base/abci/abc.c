@@ -504,6 +504,18 @@ void Abc_CommandUpdate9( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
         Abc_Print( -1, "Abc_CommandUpdate9(): Tranformation has failed.\n" );
         return;
     }
+    // transfer names
+    if (!pNew->vNamesIn && pAbc->pGia && pAbc->pGia->vNamesIn && Gia_ManCiNum(pNew) == Vec_PtrSize(pAbc->pGia->vNamesIn))
+    {
+        pNew->vNamesIn = pAbc->pGia->vNamesIn;
+        pAbc->pGia->vNamesIn = NULL;
+    }
+    if (!pNew->vNamesOut && pAbc->pGia && pAbc->pGia->vNamesOut && Gia_ManCoNum(pNew) == Vec_PtrSize(pAbc->pGia->vNamesOut))
+    {
+        pNew->vNamesOut = pAbc->pGia->vNamesOut;
+        pAbc->pGia->vNamesOut = NULL;
+    }
+    // update
     if ( pAbc->pGia2 )
         Gia_ManStop( pAbc->pGia2 );
     pAbc->pGia2 = pAbc->pGia;
@@ -24728,15 +24740,8 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan );
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    int fVerbose;
+    int c, fVerbose = 0;
 
-    pNtk = Abc_FrameReadNtk(pAbc);
-
-
-
-    // set defaults
-    fVerbose    = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
@@ -24777,6 +24782,18 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk = Abc_NtkFromDarChoices( pNtkNoCh, pMan );
         Abc_NtkDelete( pNtkNoCh );
         Aig_ManStop( pMan );
+    }
+    // transfer PI names to pNtk
+    if ( pAbc->pGia->vNamesIn ) 
+    {
+        Abc_Obj_t * pObj;
+        int i;
+        Abc_NtkForEachCi( pNtk, pObj, i ) {
+            if (i < Vec_PtrSize(pAbc->pGia->vNamesIn)) {
+                Nm_ManDeleteIdName(pNtk->pManName, pObj->Id);
+                Abc_ObjAssignName( pObj, Vec_PtrEntry(pAbc->pGia->vNamesIn, i), NULL );
+            }
+        }
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
