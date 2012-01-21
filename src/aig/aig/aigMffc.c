@@ -269,7 +269,7 @@ int Aig_NodeMffcExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves
     // dereference the current cut
     LevelMax = 0;
     Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
-        LevelMax = ABC_MAX( LevelMax, (int)pObj->Level );
+        LevelMax = Abc_MaxInt( LevelMax, (int)pObj->Level );
     if ( LevelMax == 0 )
         return 0;
     // dereference the cut

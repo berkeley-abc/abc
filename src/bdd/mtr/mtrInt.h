@@ -48,8 +48,8 @@
 
 ******************************************************************************/
 
-#ifndef _MTRINT
-#define _MTRINT
+#ifndef ABC__bdd__mtr__mtrInt_h
+#define ABC__bdd__mtr__mtrInt_h
 
 #include "mtr.h"
 

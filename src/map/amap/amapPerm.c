@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "amapInt.h"
-#include "kit.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -51,13 +51,13 @@ void Amap_LibCollectFanins_rec( Amap_Lib_t * pLib, Amap_Nod_t * pNod, Vec_Int_t 
         Vec_IntPush( vFanins, 0 );
         return;
     }
-    pFan0 = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan0) );
-    if ( Amap_LitIsCompl(pNod->iFan0) || pFan0->Type != pNod->Type )
+    pFan0 = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan0) );
+    if ( Abc_LitIsCompl(pNod->iFan0) || pFan0->Type != pNod->Type )
         Vec_IntPush( vFanins, pNod->iFan0 );
     else
         Amap_LibCollectFanins_rec( pLib, pFan0, vFanins );
-    pFan1 = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan1) );
-    if ( Amap_LitIsCompl(pNod->iFan1) || pFan1->Type != pNod->Type )
+    pFan1 = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan1) );
+    if ( Abc_LitIsCompl(pNod->iFan1) || pFan1->Type != pNod->Type )
         Vec_IntPush( vFanins, pNod->iFan1 );
     else
         Amap_LibCollectFanins_rec( pLib, pFan1, vFanins );
@@ -98,8 +98,8 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
     Kit_DsdObj_t * pDsdObj, * pDsdFanin;
     Amap_Nod_t * pNodFanin;
     int iDsdFanin, iNodFanin, Value, iDsdLit, i, k, j;
-    assert( !Kit_DsdLitIsCompl(iLit) );
-    pDsdObj = Kit_DsdNtkObj( pNtk, Kit_DsdLit2Var(iLit) );
+    assert( !Abc_LitIsCompl(iLit) );
+    pDsdObj = Kit_DsdNtkObj( pNtk, Abc_Lit2Var(iLit) );
     if ( pDsdObj == NULL )
     {
         vPerm = Vec_IntAlloc( 1 );
@@ -110,22 +110,22 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
     {
         vPerm = Vec_IntAlloc( 10 );
 
-        iDsdFanin  = Kit_DsdLitRegular(pDsdObj->pFans[0]);
-        pNodFanin  = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan0) );
+        iDsdFanin  = Abc_LitRegular(pDsdObj->pFans[0]);
+        pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan0) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
 
-        iDsdFanin  = Kit_DsdLitRegular(pDsdObj->pFans[1]);
-        pNodFanin  = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan1) );
+        iDsdFanin  = Abc_LitRegular(pDsdObj->pFans[1]);
+        pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan1) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
         Vec_IntFree( vPermFanin );
 
-        iDsdFanin  = Kit_DsdLitRegular(pDsdObj->pFans[2]);
-        pNodFanin  = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan2) );
+        iDsdFanin  = Abc_LitRegular(pDsdObj->pFans[2]);
+        pNodFanin  = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan2) );
         vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, iDsdFanin, pNodFanin );
         Vec_IntForEachEntry( vPermFanin, Value, k )
             Vec_IntPush( vPerm, Value );
@@ -149,7 +149,7 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
     vDsdLits = Vec_IntAlloc( 10 );
     Kit_DsdObjForEachFaninReverse( pNtk, pDsdObj, iDsdFanin, i )
     {
-        pDsdFanin = Kit_DsdNtkObj( pNtk, Kit_DsdLit2Var(iDsdFanin) );
+        pDsdFanin = Kit_DsdNtkObj( pNtk, Abc_Lit2Var(iDsdFanin) );
         if ( pDsdFanin )
             pDsdFanin->fMark = 0;
         else
@@ -166,10 +166,10 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
             continue;
         }
         // find a matching component
-        pNodFanin = Amap_LibNod( pLib, Amap_Lit2Var(iNodFanin) );
+        pNodFanin = Amap_LibNod( pLib, Abc_Lit2Var(iNodFanin) );
         Kit_DsdObjForEachFaninReverse( pNtk, pDsdObj, iDsdFanin, i )
         {
-            pDsdFanin = Kit_DsdNtkObj( pNtk, Kit_DsdLit2Var(iDsdFanin) );
+            pDsdFanin = Kit_DsdNtkObj( pNtk, Abc_Lit2Var(iDsdFanin) );
             if ( pDsdFanin == NULL )
                 continue;
             if ( pDsdFanin->fMark == 1 )
@@ -178,7 +178,7 @@ Vec_Int_t * Amap_LibDeriveGatePerm_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * pNtk, 
                    (pDsdFanin->Type == KIT_DSD_XOR && pNodFanin->Type == AMAP_OBJ_XOR) ||
                    (pDsdFanin->Type == KIT_DSD_PRIME && pNodFanin->Type == AMAP_OBJ_MUX)) )
                    continue;
-            vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, Kit_DsdLitRegular(iDsdFanin), pNodFanin );
+            vPermFanin = Amap_LibDeriveGatePerm_rec( pLib, pNtk, Abc_LitRegular(iDsdFanin), pNodFanin );
             if ( vPermFanin == NULL )
                 continue;
             pDsdFanin->fMark = 1;
@@ -214,24 +214,24 @@ unsigned * Amap_LibVerifyPerm_rec( Amap_Lib_t * pLib, Amap_Nod_t * pNod,
     assert( pNod->Type != AMAP_OBJ_MUX );
     if ( pNod->Id == 0 )
         return (unsigned *)Vec_PtrEntry( vTtElems, (*piInput)++ );
-    pFan0 = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan0) );
+    pFan0 = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan0) );
     pTruth0 = Amap_LibVerifyPerm_rec( pLib, pFan0, vTtElems, vTruth, nWords, piInput );
-    pFan1 = Amap_LibNod( pLib, Amap_Lit2Var(pNod->iFan1) );
+    pFan1 = Amap_LibNod( pLib, Abc_Lit2Var(pNod->iFan1) );
     pTruth1 = Amap_LibVerifyPerm_rec( pLib, pFan1, vTtElems, vTruth, nWords, piInput );
     pTruth  = Vec_IntFetch( vTruth, nWords );
     if ( pNod->Type == AMAP_OBJ_XOR )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = pTruth0[i] ^ pTruth1[i];
-    else if ( !Amap_LitIsCompl(pNod->iFan0) && !Amap_LitIsCompl(pNod->iFan1) )
+    else if ( !Abc_LitIsCompl(pNod->iFan0) && !Abc_LitIsCompl(pNod->iFan1) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = pTruth0[i] & pTruth1[i];
-    else if ( !Amap_LitIsCompl(pNod->iFan0) && Amap_LitIsCompl(pNod->iFan1) )
+    else if ( !Abc_LitIsCompl(pNod->iFan0) && Abc_LitIsCompl(pNod->iFan1) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = pTruth0[i] & ~pTruth1[i];
-    else if ( Amap_LitIsCompl(pNod->iFan0) && !Amap_LitIsCompl(pNod->iFan1) )
+    else if ( Abc_LitIsCompl(pNod->iFan0) && !Abc_LitIsCompl(pNod->iFan1) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = ~pTruth0[i] & pTruth1[i];
-    else // if ( Amap_LitIsCompl(pNod->iFan0) && Hop_ObjFaninC1(pObj) )
+    else // if ( Abc_LitIsCompl(pNod->iFan0) && Hop_ObjFaninC1(pObj) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = ~pTruth0[i] & ~pTruth1[i];
     return pTruth;
@@ -265,8 +265,8 @@ void Amap_LibVerifyPerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t * p
     vTtElemsPol = Vec_PtrAlloc( pGate->nPins );
     for ( i = 0; i < (int)pGate->nPins; i++ )
     {
-        pTruth = (unsigned *)Vec_PtrEntry( vTtElems, Amap_Lit2Var(pArray[i]) );
-        if ( Amap_LitIsCompl( pArray[i] ) )
+        pTruth = (unsigned *)Vec_PtrEntry( vTtElems, Abc_Lit2Var(pArray[i]) );
+        if ( Abc_LitIsCompl( pArray[i] ) )
             Kit_TruthNot( pTruth, pTruth, pGate->nPins );
         Vec_PtrPush( vTtElemsPol, pTruth );
     }
@@ -275,7 +275,7 @@ void Amap_LibVerifyPerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t * p
     // compute the truth table recursively
     pTruth = Amap_LibVerifyPerm_rec( pLib, pNod, vTtElemsPol, vTruth, nWords, &iInput );
     assert( iInput == (int)pGate->nPins );
-    if ( Kit_DsdLitIsCompl(pNtk->Root) )
+    if ( Abc_LitIsCompl(pNtk->Root) )
         Kit_TruthNot( pTruth, pTruth, pGate->nPins );
 //Extra_PrintBinary( stdout, pTruth, 4 ); printf("\n" );
 //Extra_PrintBinary( stdout, pGate->pFunc, 4 ); printf("\n" );
@@ -304,14 +304,14 @@ int Amap_LibDeriveGatePerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t 
     int fVerbose = 0;
     Vec_Int_t * vPerm;
     int Entry, Entry2, i, k;
-    vPerm = Amap_LibDeriveGatePerm_rec( pLib, pNtk, Kit_DsdLitRegular(pNtk->Root), pNod );
+    vPerm = Amap_LibDeriveGatePerm_rec( pLib, pNtk, Abc_LitRegular(pNtk->Root), pNod );
     if ( vPerm == NULL )
         return 0;
     // check that the permutation is valid
     assert( Vec_IntSize(vPerm) == (int)pNod->nSuppSize );
     Vec_IntForEachEntry( vPerm, Entry, i )
         Vec_IntForEachEntryStart( vPerm, Entry2, k, i+1 )
-            if ( Amap_Lit2Var(Entry) == Amap_Lit2Var(Entry2) )
+            if ( Abc_Lit2Var(Entry) == Abc_Lit2Var(Entry2) )
             {
                 Vec_IntFree( vPerm );
                 return 0;
@@ -321,9 +321,9 @@ int Amap_LibDeriveGatePerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t 
     Vec_IntForEachEntry( vPerm, Entry, i )
     {
         assert( Entry < 2 * (int)pNod->nSuppSize );
-        pArray[Kit_DsdLit2Var(Entry)] = Amap_Var2Lit( i, Kit_DsdLitIsCompl(Entry) );
+        pArray[Abc_Lit2Var(Entry)] = Abc_Var2Lit( i, Abc_LitIsCompl(Entry) );
 //        pArray[i] = Entry;
-//printf( "%d=%d%c ", Kit_DsdLit2Var(Entry), i, Kit_DsdLitIsCompl(Entry)?'-':'+' );
+//printf( "%d=%d%c ", Abc_Lit2Var(Entry), i, Abc_LitIsCompl(Entry)?'-':'+' );
     }
 //printf( "\n" );
 //    if ( Kit_DsdNonDsdSizeMax(pNtk) < 3 )
@@ -334,7 +334,7 @@ int Amap_LibDeriveGatePerm( Amap_Lib_t * pLib, Amap_Gat_t * pGate, Kit_DsdNtk_t 
     {
     printf( "node %4d : ", pNod->Id );
     for ( i = 0; i < (int)pNod->nSuppSize; i++ )
-        printf( "%d=%d%c ", i, Amap_Lit2Var(pArray[i]), Amap_LitIsCompl(pArray[i])?'-':'+' );
+        printf( "%d=%d%c ", i, Abc_Lit2Var(pArray[i]), Abc_LitIsCompl(pArray[i])?'-':'+' );
     printf( "\n" );
     }
     return 1;

@@ -17,7 +17,7 @@
 ***********************************************************************/
 
 #include "fpgaInt.h"
-#include "main.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -346,7 +346,7 @@ Fpga_Node_t * Fpga_NodeCreate( Fpga_Man_t * p, Fpga_Node_t * p1, Fpga_Node_t * p
 void Fpga_TableCreate( Fpga_Man_t * pMan )
 {
     assert( pMan->pBins == NULL );
-    pMan->nBins = Cudd_Prime(50000);
+    pMan->nBins = Abc_PrimeCudd(50000);
     pMan->pBins = ABC_ALLOC( Fpga_Node_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Fpga_Node_t *) * pMan->nBins );
     pMan->nNodes = 0;
@@ -430,7 +430,7 @@ void Fpga_TableResize( Fpga_Man_t * pMan )
 
 clk = clock();
     // get the new table size
-    nBinsNew = Cudd_Prime(2 * pMan->nBins); 
+    nBinsNew = Abc_PrimeCudd(2 * pMan->nBins); 
     // allocate a new array
     pBinsNew = ABC_ALLOC( Fpga_Node_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Fpga_Node_t *) * nBinsNew );

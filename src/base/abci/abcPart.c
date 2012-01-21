@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "main.h"
-#include "cmd.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/main.h"
+#include "src/base/cmd/cmd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -594,7 +594,7 @@ int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vParts
         if ( Vec_IntSize(vPartSupp) < 100 )
             Repulse = 1;
         else
-            Repulse = 1+Extra_Base2Log(Vec_IntSize(vPartSupp)-100);
+            Repulse = 1+Abc_Base2Log(Vec_IntSize(vPartSupp)-100);
         Value = Attract/Repulse;
         if ( ValueBest < Value )
         {

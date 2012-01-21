@@ -73,7 +73,7 @@ int Ioa_FileSize( char * pFileName )
 char * Ioa_FileNameGeneric( char * FileName )
 {
     char * pDot, * pRes;
-    pRes = Aig_UtilStrsav( FileName );
+    pRes = Abc_UtilStrsav( FileName );
     if ( (pDot = strrchr( pRes, '.' )) )
         *pDot = 0;
     return pRes;

@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "kit.h"
+#include "src/base/abc/abc.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 

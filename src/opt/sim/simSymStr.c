@@ -18,8 +18,7 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
 #include "sim.h"
 
 ABC_NAMESPACE_IMPL_START

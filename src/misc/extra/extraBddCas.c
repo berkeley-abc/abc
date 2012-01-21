@@ -16,7 +16,7 @@
 
 ***********************************************************************/
 
-#include "extra.h"
+#include "extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -146,7 +146,7 @@ Extra_bddEncodingBinary(
     DdNode * bResult;
     DdNode * bCube, * bTemp, * bProd;
 
-    assert( nVars >= Extra_Base2Log(nFuncs) );
+    assert( nVars >= Abc_Base2Log(nFuncs) );
 
     bResult = b0;   Cudd_Ref( bResult );
     for ( i = 0; i < nFuncs; i++ )

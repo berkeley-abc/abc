@@ -19,8 +19,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 // Modified to compile with MS Visual Studio 6.0 by Alan Mishchenko
 
-#ifndef satSolver_h
-#define satSolver_h
+#ifndef ABC__sat__bsat__satSolver_old_h
+#define ABC__sat__bsat__satSolver_old_h
 
 
 #include <stdio.h>

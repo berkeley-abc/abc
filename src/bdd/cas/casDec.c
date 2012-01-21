@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "extra.h"
+#include "src/misc/extra/extraBdd.h"
 #include "cas.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -175,7 +175,7 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
             p->nIns   = s_LutSize;
             p->nInsP  = PrevMulti;
             p->nCols  = Profile[nNames-(nVarsRem-(s_LutSize-PrevMulti))];
-            p->nMulti = Extra_Base2Log(p->nCols);
+            p->nMulti = Abc_Base2Log(p->nCols);
             p->Level  = nNames-nVarsRem;
 
             nVarsRem  = nVarsRem-(s_LutSize-PrevMulti);

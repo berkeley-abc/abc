@@ -100,8 +100,8 @@ void Gia_SatVerifyPattern( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t * vCex, V
     Gia_SatCollectCone( p, Gia_ObjFanin0(pRoot), vVisit );
     // set binary values to nodes in the counter-example
     Vec_IntForEachEntry( vCex, Entry, i )
-//        Sat_ObjSetXValue( Gia_ManObj(p, Gia_Lit2Var(Entry)), Gia_LitIsCompl(Entry)? GIA_ZER : GIA_ONE );
-        Sat_ObjSetXValue( Gia_ManCi(p, Gia_Lit2Var(Entry)), Gia_LitIsCompl(Entry)? GIA_ZER : GIA_ONE );
+//        Sat_ObjSetXValue( Gia_ManObj(p, Abc_Lit2Var(Entry)), Abc_LitIsCompl(Entry)? GIA_ZER : GIA_ONE );
+        Sat_ObjSetXValue( Gia_ManCi(p, Abc_Lit2Var(Entry)), Abc_LitIsCompl(Entry)? GIA_ZER : GIA_ONE );
     // simulate
     Gia_ManForEachObjVec( vVisit, p, pObj, i )
     {

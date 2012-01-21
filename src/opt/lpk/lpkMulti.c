@@ -57,7 +57,7 @@ void Lpk_CreateVarOrder( Kit_DsdNtk_t * pNtk, char pTable[][16] )
         Kit_DsdObjForEachFanin( pNtk, pObj, iFaninLit, k )
         {
             if ( Kit_DsdLitIsLeaf( pNtk, iFaninLit ) )
-                Above[nAbove++] = Kit_DsdLit2Var(iFaninLit);
+                Above[nAbove++] = Abc_Lit2Var(iFaninLit);
             else
                 uSuppFanins |= Kit_DsdLitSupport( pNtk, iFaninLit );
         }
@@ -190,7 +190,7 @@ int Lpk_FindHighest( Kit_DsdNtk_t ** ppNtks, int * piLits, int nSize, int * pPri
             uSupps[i] = Kit_DsdLitSupport( ppNtks[i], piLits[i] );
         else
         {
-            pObj = Kit_DsdNtkObj( ppNtks[i], Kit_DsdLit2Var(piLits[i]) );
+            pObj = Kit_DsdNtkObj( ppNtks[i], Abc_Lit2Var(piLits[i]) );
             if ( pObj->Type == KIT_DSD_PRIME )
             {
                 pTriv[i] = 0;
@@ -292,7 +292,7 @@ If_Obj_t * Lpk_MapTreeMulti_rec( Lpk_Man_t * p, Kit_DsdNtk_t ** ppNtks, int * pi
             if ( p->pPars->fVeryVerbose )
                 printf( "%d ", i );
             assert( piLits[i] >= 0 );
-            pObj = Kit_DsdNtkObj( ppNtks[i], Kit_DsdLit2Var(piLits[i]) );
+            pObj = Kit_DsdNtkObj( ppNtks[i], Abc_Lit2Var(piLits[i]) );
             if ( pObj == NULL )
                 piLitsNew[i] = -2;
             else if ( pObj->Type == KIT_DSD_PRIME )
@@ -464,9 +464,9 @@ If_Obj_t * Lpk_MapTreeMulti( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj
         // collect the roots
         pRoot = Kit_DsdNtkRoot(ppNtks[i]);
         if ( pRoot->Type == KIT_DSD_CONST1 )
-            piLits[i] = Kit_DsdLitIsCompl(ppNtks[i]->Root)? -2: -1;
+            piLits[i] = Abc_LitIsCompl(ppNtks[i]->Root)? -2: -1;
         else if ( pRoot->Type == KIT_DSD_VAR )
-            piLits[i] = Kit_DsdLitNotCond( pRoot->pFans[0], Kit_DsdLitIsCompl(ppNtks[i]->Root) );
+            piLits[i] = Abc_LitNotCond( pRoot->pFans[0], Abc_LitIsCompl(ppNtks[i]->Root) );
         else
             piLits[i] = ppNtks[i]->Root;
     }

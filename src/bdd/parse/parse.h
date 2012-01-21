@@ -16,8 +16,8 @@
 
 ***********************************************************************/
 
-#ifndef __PARSE_H__
-#define __PARSE_H__
+#ifndef ABC__bdd__parse__parse_h
+#define ABC__bdd__parse__parse_h
 
 
 ABC_NAMESPACE_HEADER_START

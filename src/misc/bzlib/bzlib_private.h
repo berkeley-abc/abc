@@ -19,8 +19,8 @@
    ------------------------------------------------------------------ */
 
 
-#ifndef _BZLIB_PRIVATE_H
-#define _BZLIB_PRIVATE_H
+#ifndef ABC__misc__bzlib__bzlib_private_h
+#define ABC__misc__bzlib__bzlib_private_h
 
 
 #include <stdlib.h>

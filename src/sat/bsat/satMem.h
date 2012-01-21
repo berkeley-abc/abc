@@ -18,14 +18,14 @@
 
 ***********************************************************************/
  
-#ifndef __SAT_MEM_H__
-#define __SAT_MEM_H__
+#ifndef ABC__sat__bsat__satMem_h
+#define ABC__sat__bsat__satMem_h
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 

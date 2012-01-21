@@ -80,42 +80,6 @@ void Gia_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int 
             pInfo[w] = Gia_ManRandom(0);
 }
 
-/**Function********************************************************************
-
-  Synopsis    [Returns the next prime >= p.]
-
-  Description [Copied from CUDD, for stand-aloneness.]
-
-  SideEffects [None]
-
-  SeeAlso     []
-
-******************************************************************************/
-unsigned int Gia_PrimeCudd( unsigned int p )
-{
-    int i,pn;
-
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
-
 
 /**Function*************************************************************
 
@@ -483,7 +447,7 @@ int Gia_ManLevelNum( Gia_Man_t * p )
         else if ( Gia_ObjIsCo(pObj) )
         {
             Gia_ObjSetCoLevel( p, pObj );
-            p->nLevels = ABC_MAX( p->nLevels, Gia_ObjLevel(p, pObj) );
+            p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
         }
         else
             Gia_ObjSetLevel( p, pObj, 0 );
@@ -1150,11 +1114,11 @@ int Gia_ManVerifyCex( Gia_Man_t * pAig, Abc_Cex_t * p, int fDualOut )
     int RetValue, i, k, iBit = 0;
     Gia_ManCleanMark0(pAig);
     Gia_ManForEachRo( pAig, pObj, i )
-        pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+        pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
     for ( i = 0; i <= p->iFrame; i++ )
     {
         Gia_ManForEachPi( pAig, pObj, k )
-            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+            pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
         Gia_ManForEachAnd( pAig, pObj, k )
             pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
                            (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));
@@ -1194,12 +1158,12 @@ int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs )
     assert( Gia_ManPiNum(pAig) == p->nPis );
     Gia_ManCleanMark0(pAig);
 //    Gia_ManForEachRo( pAig, pObj, i )
-//       pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+//       pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
     iBit = p->nRegs;
     for ( i = 0; i <= p->iFrame; i++ )
     {
         Gia_ManForEachPi( pAig, pObj, k )
-            pObj->fMark0 = Gia_InfoHasBit(p->pData, iBit++);
+            pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
         Gia_ManForEachAnd( pAig, pObj, k )
             pObj->fMark0 = (Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj)) & 
                            (Gia_ObjFanin1(pObj)->fMark0 ^ Gia_ObjFaninC1(pObj));

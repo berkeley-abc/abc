@@ -112,7 +112,7 @@ void Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout )
     assert( pFanout->Id > 0 );
     if ( pObj->Id >= p->nFansAlloc || pFanout->Id >= p->nFansAlloc )
     {
-        int nFansAlloc = 2 * ABC_MAX( pObj->Id, pFanout->Id ); 
+        int nFansAlloc = 2 * Abc_MaxInt( pObj->Id, pFanout->Id ); 
         p->pFanData = ABC_REALLOC( int, p->pFanData, 5 * nFansAlloc );
         memset( p->pFanData + 5 * p->nFansAlloc, 0, sizeof(int) * 5 * (nFansAlloc - p->nFansAlloc) );
         p->nFansAlloc = nFansAlloc;

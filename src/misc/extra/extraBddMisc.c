@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "extra.h"
+#include "extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1917,7 +1917,7 @@ DdNode * extraBddAndPermute( DdHashTable * table, DdManager * ddF, DdNode * bF, 
     // find the topmost variable in F and G using var order of F
     LevF = cuddI( ddF, Cudd_Regular(bF)->index );
     LevG = cuddI( ddF, pPermute ? pPermute[Cudd_Regular(bG)->index] : Cudd_Regular(bG)->index );
-    Lev  = ABC_MIN( LevF, LevG );
+    Lev  = Abc_MinInt( LevF, LevG );
     assert( Lev < ddF->size );
     bVar = ddF->vars[ddF->invperm[Lev]];
 

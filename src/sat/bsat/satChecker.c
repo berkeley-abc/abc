@@ -23,7 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include "vec.h"
+#include "misc/vec/vec.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "cec.h"
+#include "src/proof/cec/cec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -417,7 +417,7 @@ void Gia_ManEquivReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, 
     if ( (pRepr = Gia_ManEquivRepr(p, pObj, fUseAll, fDualOut)) )
     {
         Gia_ManEquivReduce_rec( pNew, p, pRepr, fUseAll, fDualOut );
-        pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+        pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
         return;
     }
     if ( ~pObj->Value )
@@ -474,7 +474,7 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fV
     if ( fDualOut )
         Gia_ManEquivSetColors( p, fVerbose );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -536,7 +536,7 @@ void Gia_ManEquivUpdatePointers( Gia_Man_t * p, Gia_Man_t * pNew )
     {
         if ( !~pObj->Value )
             continue;
-        pObjNew = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );
+        pObjNew = Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) );
         if ( pObjNew->fMark0 )
             pObj->Value = ~0;
     }
@@ -568,10 +568,10 @@ void Gia_ManEquivDeriveReprs( Gia_Man_t * p, Gia_Man_t * pNew, Gia_Man_t * pFina
         pObj = Gia_ManObj( p, i );
         if ( !~pObj->Value )
             continue;
-        pObjNew = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );
-        if ( Gia_Lit2Var(pObjNew->Value) == 0 )
+        pObjNew = Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) );
+        if ( Abc_Lit2Var(pObjNew->Value) == 0 )
             continue;
-        Gia_ObjSetRepr( pFinal, Gia_Lit2Var(pObjNew->Value), 0 );
+        Gia_ObjSetRepr( pFinal, Abc_Lit2Var(pObjNew->Value), 0 );
     }
     // iterate over class candidates
     vClass = Vec_IntAlloc( 100 );
@@ -583,8 +583,8 @@ void Gia_ManEquivDeriveReprs( Gia_Man_t * p, Gia_Man_t * pNew, Gia_Man_t * pFina
             pObj = Gia_ManObj( p, k );
             if ( !~pObj->Value )
                 continue;
-            pObjNew = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );
-            Vec_IntPushUnique( vClass, Gia_Lit2Var(pObjNew->Value) );
+            pObjNew = Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) );
+            Vec_IntPushUnique( vClass, Abc_Lit2Var(pObjNew->Value) );
         }
         if ( Vec_IntSize( vClass ) < 2 )
             continue;
@@ -624,14 +624,14 @@ Gia_Man_t * Gia_ManEquivRemapDfs( Gia_Man_t * p )
         Gia_ObjSetRepr( pNew, i, GIA_VOID );
     // iterate over constant candidates
     Gia_ManForEachConst( p, i )
-        Gia_ObjSetRepr( pNew, Gia_Lit2Var(Gia_ManObj(p, i)->Value), 0 );
+        Gia_ObjSetRepr( pNew, Abc_Lit2Var(Gia_ManObj(p, i)->Value), 0 );
     // iterate over class candidates
     vClass = Vec_IntAlloc( 100 );
     Gia_ManForEachClass( p, i )
     {
         Vec_IntClear( vClass );
         Gia_ClassForEachObj( p, i, k )
-            Vec_IntPushUnique( vClass, Gia_Lit2Var(Gia_ManObj(p, k)->Value) );
+            Vec_IntPushUnique( vClass, Abc_Lit2Var(Gia_ManObj(p, k)->Value) );
         assert( Vec_IntSize( vClass ) > 1 );
         Vec_IntSort( vClass, 0 );
         iRepr = iPrev = Vec_IntEntry( vClass, 0 );
@@ -758,7 +758,7 @@ static inline void Gia_ManSpecBuild( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t 
 //    if ( fDualOut && !Gia_ObjDiffColors( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
     if ( fDualOut && !Gia_ObjDiffColors2( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
         return;
-    iLitNew = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+    iLitNew = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     if ( pObj->Value != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
     {
         if ( vTrace ) 
@@ -847,7 +847,7 @@ Gia_Man_t * Gia_ManSpecReduceTrace( Gia_Man_t * p, Vec_Int_t * vTrace )
     Gia_ManSetPhase( p );
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -917,7 +917,7 @@ Gia_Man_t * Gia_ManSpecReduce( Gia_Man_t * p, int fDualOut, int fSynthesis, int 
     if ( fDualOut )
         Gia_ManEquivSetColors( p, fVerbose );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
@@ -983,7 +983,7 @@ void Gia_ManSpecBuildInit( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Ve
 //    if ( fDualOut && !Gia_ObjDiffColors( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
     if ( fDualOut && !Gia_ObjDiffColors2( p, Gia_ObjId(p, pObj), Gia_ObjId(p, pRepr) ) )
         return;
-    iLitNew = Gia_LitNotCond( Gia_ObjCopyF(p, f, pRepr), Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+    iLitNew = Abc_LitNotCond( Gia_ObjCopyF(p, f, pRepr), Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
     if ( Gia_ObjCopyF(p, f, pObj) != iLitNew && !Gia_ObjProved(p, Gia_ObjId(p,pObj)) )
         Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, Gia_ObjCopyF(p, f, pObj), iLitNew) );
     Gia_ObjSetCopyF( p, f, pObj, iLitNew );
@@ -1063,10 +1063,10 @@ Gia_Man_t * Gia_ManSpecReduceInit( Gia_Man_t * p, Abc_Cex_t * pInit, int nFrames
     if ( fDualOut )
         Gia_ManEquivSetColors( p, 0 );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachRo( p, pObj, i )
-        Gia_ObjSetCopyF( p, 0, pObj, Gia_InfoHasBit(pInit->pData, i) );
+        Gia_ObjSetCopyF( p, 0, pObj, Abc_InfoHasBit(pInit->pData, i) );
     for ( f = 0; f < nFrames; f++ )
     {
         Gia_ObjSetCopyF( p, f, Gia_ManConst0(p), 0 );
@@ -1463,7 +1463,7 @@ void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
     {
         if ( Gia_ObjIsConst0(pRepr) )
         {
-            pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+            pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
             return;
         }
         Gia_ManEquivToChoices_rec( pNew, p, pRepr );
@@ -1471,22 +1471,22 @@ void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
         Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
         Gia_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin1(pObj) );
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        if ( Gia_LitRegular(pObj->Value) == Gia_LitRegular(pRepr->Value) )
+        if ( Abc_LitRegular(pObj->Value) == Abc_LitRegular(pRepr->Value) )
         {
-            assert( (int)pObj->Value == Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) ) );
+            assert( (int)pObj->Value == Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) ) );
             return;
         }
         if ( pRepr->Value > pObj->Value ) // should never happen with high resource limit
             return;
         assert( pRepr->Value < pObj->Value );
-        pReprNew = Gia_ManObj( pNew, Gia_Lit2Var(pRepr->Value) );
-        pObjNew  = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );
+        pReprNew = Gia_ManObj( pNew, Abc_Lit2Var(pRepr->Value) );
+        pObjNew  = Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) );
         if ( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) )
         {
 //            assert( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) == pReprNew );
             if ( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) != pReprNew )
                 return;
-            pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+            pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
             return;
         }
         if ( !Gia_ObjCheckTfi( pNew, pReprNew, pObjNew ) )
@@ -1495,7 +1495,7 @@ void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
             Gia_ObjSetRepr( pNew, Gia_ObjId(pNew, pObjNew), Gia_ObjId(pNew, pReprNew) );
             Gia_ManAddNextEntry_rec( pNew, pReprNew, pObjNew ); 
         }
-        pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+        pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
         return;
     }
     assert( Gia_ObjIsAnd(pObj) );
@@ -1573,7 +1573,7 @@ Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     assert( (Gia_ManCoNum(p) % nSnapshots) == 0 );
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
     pNew->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
@@ -1654,9 +1654,9 @@ int Gia_ManCountChoices( Gia_Man_t * p )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "aig.h"
-#include "saig.h"
-#include "cec.h"
+#include "src/aig/aig/aig.h"
+#include "src/aig/saig/saig.h"
+#include "src/proof/cec/cec.h"
 #include "giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -1826,7 +1826,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
     {
         if ( pObj1->Value == ~0 )
             continue;
-        pObjM = Gia_ManObj( pMiter, Gia_Lit2Var(pObj1->Value) );
+        pObjM = Gia_ManObj( pMiter, Abc_Lit2Var(pObj1->Value) );
         pObj = Gia_ManObj( pGia, Gia_ObjId(pMiter, pObjM) );
         pObj->fMark0 = 1;
     }
@@ -1835,7 +1835,7 @@ int Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * p
     {
         if ( pObj2->Value == ~0 )
             continue;
-        pObjM = Gia_ManObj( pMiter, Gia_Lit2Var(pObj2->Value) );
+        pObjM = Gia_ManObj( pMiter, Abc_Lit2Var(pObj2->Value) );
         pObj = Gia_ManObj( pGia, Gia_ObjId(pMiter, pObjM) );
         pObj->fMark1 = 1;
     }
@@ -1965,7 +1965,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
     {
         if ( pObj1->Value == ~0 )
             continue;
-        pObjM = Gia_ManObj( pMiter, Gia_Lit2Var(pObj1->Value) );
+        pObjM = Gia_ManObj( pMiter, Abc_Lit2Var(pObj1->Value) );
         pObj = Gia_ManObj( pGia, Gia_ObjId(pMiter, pObjM) );
         pObj->fMark0 = 1;
     }
@@ -1974,7 +1974,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
     {
         if ( pObj2->Value == ~0 )
             continue;
-        pObjM = Gia_ManObj( pMiter, Gia_Lit2Var(pObj2->Value) );
+        pObjM = Gia_ManObj( pMiter, Abc_Lit2Var(pObj2->Value) );
         pObj = Gia_ManObj( pGia, Gia_ObjId(pMiter, pObjM) );
         pObj->fMark1 = 1;
     }

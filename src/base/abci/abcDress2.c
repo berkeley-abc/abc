@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "aig.h"
-#include "dch.h"
+#include "src/base/abc/abc.h"
+#include "src/aig/aig/aig.h"
+#include "src/proof/dch/dch.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -392,8 +392,8 @@ void Abc_NtkDressPrintStats( Vec_Ptr_t * vRes, int nNodes0, int nNodes1, int Tim
         NegAll[1] += Neg[1]; // total negative polarity in network 1
 
         // assuming that the name can be transferred to only one node
-        PairsAll += ABC_MIN(Neg[0] + Pos[0], Neg[1] + Pos[1]);
-        PairsOne += ABC_MIN(Neg[0], Neg[1]) + ABC_MIN(Pos[0], Pos[1]);
+        PairsAll += Abc_MinInt(Neg[0] + Pos[0], Neg[1] + Pos[1]);
+        PairsOne += Abc_MinInt(Neg[0], Neg[1]) + Abc_MinInt(Pos[0], Pos[1]);
     }
     printf( "Total number of equiv classes                = %7d.\n", Vec_PtrSize(vRes) );
     printf( "Participating nodes from both networks       = %7d.\n", NegAll[0]+PosAll[0]+NegAll[1]+PosAll[1] );

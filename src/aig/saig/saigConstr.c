@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "cnf.h"
-#include "satSolver.h"
-#include "kit.h"
-#include "ioa.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/bool/kit/kit.h"
+#include "src/aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -64,7 +64,7 @@ Aig_Man_t * Saig_ManDupUnfoldConstrs( Aig_Man_t * pAig )
     }
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
@@ -113,7 +113,7 @@ Aig_Man_t * Saig_ManDupFoldConstrs( Aig_Man_t * pAig, Vec_Int_t * vConstrs )
     assert( Saig_ManRegNum(pAig) > 0 );
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs

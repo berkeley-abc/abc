@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "gia.h"
+#include "src/base/abc/abc.h"
+#include "src/aig/gia/gia.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -102,7 +102,7 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nF
     else
     {
         for ( i = 0; i < pCex->nRegs; i++ )
-            fprintf( pFile, "%d", Gia_InfoHasBit(pCex->pData,i) );
+            fprintf( pFile, "%d", Abc_InfoHasBit(pCex->pData,i) );
     }
     fprintf( pFile, "\n" );
     // write <TRACE>
@@ -112,7 +112,7 @@ void Abc_NtkWriteLogFile( char * pFileName, Abc_Cex_t * pCex, int Status, int nF
     {
         assert( pCex->nBits - pCex->nRegs == pCex->nPis * (pCex->iFrame + 1) );
         for ( i = pCex->nRegs; i < pCex->nBits; i++ )
-            fprintf( pFile, "%d", Gia_InfoHasBit(pCex->pData,i) );
+            fprintf( pFile, "%d", Abc_InfoHasBit(pCex->pData,i) );
     }
     fprintf( pFile, "\n" );
     fclose( pFile );
@@ -211,7 +211,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
         assert( Vec_IntSize(vNums) == pCex->nBits );
         for ( c = 0; c < pCex->nBits; c++ )
             if ( Vec_IntEntry(vNums, c) )
-                Gia_InfoSetBit( pCex->pData, c );
+                Abc_InfoSetBit( pCex->pData, c );
         Vec_IntFree( vNums );
         if ( ppCex )
             *ppCex = pCex;

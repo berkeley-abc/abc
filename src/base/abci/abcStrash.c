@@ -18,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
-#include "dec.h"
+#include "src/base/abc/abc.h"
+#include "src/bool/dec/dec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -468,7 +467,7 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkCoNum(pNtk) == 1 );
     // get the cutoff level
-    LevelCut = ABC_MAX( 0, Abc_AigLevel(pNtk) - nLevels );
+    LevelCut = Abc_MaxInt( 0, Abc_AigLevel(pNtk) - nLevels );
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);

@@ -18,11 +18,11 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "main.h"
-#include "if.h"
-#include "kit.h"
-#include "aig.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/main.h"
+#include "src/map/if/if.h"
+#include "src/bool/kit/kit.h"
+#include "src/aig/aig/aig.h"
 
 ABC_NAMESPACE_IMPL_START
 

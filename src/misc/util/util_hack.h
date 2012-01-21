@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __UTIL_HACK_H__
-#define __UTIL_HACK_H__
+#ifndef ABC__misc__util__util_hack_h
+#define ABC__misc__util__util_hack_h
 
 #include <stdio.h>
 #include <stdlib.h>

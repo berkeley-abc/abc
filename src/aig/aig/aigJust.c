@@ -114,7 +114,7 @@ int Aig_NtkFindSatAssign_rec( Aig_Man_t * pAig, Aig_Obj_t * pNode, int Value, Ve
 //        if ( Aig_ObjId(pNode) % 1000 == 0 )
 //            Value ^= 1;
         if ( vSuppLits )
-            Vec_IntPush( vSuppLits, Aig_Var2Lit( Aig_ObjPioNum(pNode), !Value ) );
+            Vec_IntPush( vSuppLits, Abc_Var2Lit( Aig_ObjPioNum(pNode), !Value ) );
         return 1;
     }
     assert( Aig_ObjIsNode(pNode) );
@@ -221,8 +221,8 @@ int Aig_ObjTerSimulate( Aig_Man_t * pAig, Aig_Obj_t * pNode, Vec_Int_t * vSuppLi
     Aig_ManIncrementTravId( pAig );
     Vec_IntForEachEntry( vSuppLits, Entry, i )
     {
-        pObj = Aig_ManPi( pAig, Aig_Lit2Var(Entry) );
-        Aig_ObjSetTerValue( pObj, Aig_LitIsCompl(Entry) ? AIG_VAL0 : AIG_VAL1 );
+        pObj = Aig_ManPi( pAig, Abc_Lit2Var(Entry) );
+        Aig_ObjSetTerValue( pObj, Abc_LitIsCompl(Entry) ? AIG_VAL0 : AIG_VAL1 );
         Aig_ObjSetTravIdCurrent( pAig, pObj );
 //printf( "%d ", Entry );
     }

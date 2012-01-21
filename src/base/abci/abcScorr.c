@@ -18,13 +18,13 @@
 
 ***********************************************************************/
  
-#include "abc.h"
-#include "ioAbc.h"
-#include "saig.h"
-#include "ssw.h"
-#include "gia.h"
-#include "cec.h"
-#include "giaAig.h"
+#include "src/base/abc/abc.h"
+#include "src/base/io/ioAbc.h"
+#include "src/aig/saig/saig.h"
+#include "src/proof/ssw/ssw.h"
+#include "src/aig/gia/gia.h"
+#include "src/proof/cec/cec.h"
+#include "src/aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -80,7 +80,7 @@ Vec_Int_t * Abc_NtkMapGiaIntoNameId( Abc_Ntk_t * pNetlist, Aig_Man_t * pAig, Gia
             if ( pGia == NULL )
                 Vec_IntWriteEntry( vId2Name, Aig_ObjId(pObjAig), Abc_ObjId(pNet) );
             else
-                Vec_IntWriteEntry( vId2Name, Gia_Lit2Var(pObjAig->iData), Abc_ObjId(pNet) );
+                Vec_IntWriteEntry( vId2Name, Abc_Lit2Var(pObjAig->iData), Abc_ObjId(pNet) );
         }
     }
     // overwrite CO names
@@ -95,7 +95,7 @@ Vec_Int_t * Abc_NtkMapGiaIntoNameId( Abc_Ntk_t * pNetlist, Aig_Man_t * pAig, Gia
             if ( pGia == NULL )
                 Vec_IntWriteEntry( vId2Name, Aig_ObjId(pObjAig), Abc_ObjId(pNet) );
             else
-                Vec_IntWriteEntry( vId2Name, Gia_Lit2Var(pObjAig->iData), Abc_ObjId(pNet) );
+                Vec_IntWriteEntry( vId2Name, Abc_Lit2Var(pObjAig->iData), Abc_ObjId(pNet) );
         }
     }
     // overwrite CI names
@@ -110,7 +110,7 @@ Vec_Int_t * Abc_NtkMapGiaIntoNameId( Abc_Ntk_t * pNetlist, Aig_Man_t * pAig, Gia
             if ( pGia == NULL )
                 Vec_IntWriteEntry( vId2Name, Aig_ObjId(pObjAig), Abc_ObjId(pNet) );
             else
-                Vec_IntWriteEntry( vId2Name, Gia_Lit2Var(pObjAig->iData), Abc_ObjId(pNet) );
+                Vec_IntWriteEntry( vId2Name, Abc_Lit2Var(pObjAig->iData), Abc_ObjId(pNet) );
         }
     }
     return vId2Name;

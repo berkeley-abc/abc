@@ -18,10 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
+#include "src/proof/fraig/fraig.h"
 #include "sim.h"
-#include "fraig.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -217,7 +217,7 @@ int Lpk_SuppDelay( unsigned uSupp, char * pDelays )
     int Delay, Var;
     Delay = 0;
     Lpk_SuppForEachVar( uSupp, Var )
-        Delay = ABC_MAX( Delay, pDelays[Var] );
+        Delay = Abc_MaxInt( Delay, pDelays[Var] );
     return Delay + 1;
 }
 

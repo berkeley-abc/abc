@@ -8,7 +8,7 @@
 /*===================================================================*/
 
 #if !defined(PLACE_GORDIAN_H_)
-#define PLACE_GORDIAN_H_
+#define ABC__phys__place__place_gordian_h
 
 
 #include "place_base.h"

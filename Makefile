@@ -8,41 +8,35 @@ PROG := abc
 
 MODULES := \
         $(wildcard src/ext) src/misc/ext \
-	src/base/abc src/base/abci src/base/cmd \
-	src/base/io src/base/main src/base/ver src/base/test \
-	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr \
-	src/bdd/parse src/bdd/reo src/bdd/cas \
-	src/map/fpga src/map/mapper src/map/mio src/map/super \
-	src/map/if src/map/amap src/map/cov \
-	src/misc/extra src/misc/mvc src/misc/st src/misc/util \
-	src/misc/nm src/misc/vec src/misc/hash \
-	src/misc/bzlib src/misc/zlib \
-	src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/mfs \
-	src/opt/sim src/opt/ret src/opt/res src/opt/lpk \
-	src/sat/bsat src/sat/csat src/sat/msat src/sat/fraig \
-	src/sat/psat src/sat/pdr \
-	src/aig/ivy src/aig/hop src/aig/rwt src/aig/deco \
-	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \
-	src/aig/csw src/aig/ioa src/aig/aig src/aig/kit \
-	src/aig/bdc src/aig/bar src/aig/ntl src/aig/nwk \
-	src/aig/mfx src/aig/tim src/aig/saig src/aig/bbr \
-	src/aig/int src/aig/dch src/aig/ssw src/aig/cgt \
-	src/aig/cec src/aig/gia src/aig/bbl src/aig/live \
-	src/aig/llb \
+	src/base/abc src/base/abci src/base/cmd src/base/io \
+	src/base/main src/base/ver src/base/test \
+	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse \
+	src/bdd/reo src/bdd/cas \
+	src/map/fpga src/map/mapper src/map/mio src/map/super src/map/if \
+	src/map/amap src/map/cov \
+	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm \
+	src/misc/vec src/misc/hash src/misc/tim src/misc/bzlib src/misc/zlib \
+	src/misc/mem src/misc/bar src/misc/bbl \
+	src/opt/cut src/opt/fxu src/opt/rwr src/opt/mfs src/opt/sim \
+	src/opt/ret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt \
+	src/opt/cgt src/opt/csw src/opt/dar \
+	src/sat/bsat src/sat/csat src/sat/msat src/sat/psat src/sat/cnf \
+	src/bool/bdc src/bool/deco src/bool/dec src/bool/kit \
+	src/proof/pdr src/proof/int src/proof/bbr src/proof/llb src/proof/live \
+	src/proof/cec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw \
+	src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop \
 	src/python 
 
 all: $(PROG)
 default: $(PROG)
 
-# Please note that to compile on 32-bit Linux the following optflags are required:
-# -DLIN -DSIZEOF_VOID_P=4 -DSIZEOF_LONG=4 
+arch_flags : arch_flags.c
+	gcc arch_flags.c -o arch_flags
 
-#OPTFLAGS  := -DNDEBUG -O3 -DLIN
-#OPTFLAGS  := -DNDEBUG -O3 -DLIN64
-#OPTFLAGS  := -g -O -DLIN -m32
-OPTFLAGS  := -g -O -DLIN64 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -DSIZEOF_INT=4 -DABC_NAMESPACE=xxx
+ARCHFLAGS := $(shell  gcc arch_flags.c -o arch_flags && ./arch_flags)
+OPTFLAGS  := -g -O #-DABC_NAMESPACE=xxx
 
-CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
+CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)
 CXXFLAGS += $(CFLAGS) 
 
 #LIBS := -m32 -ldl -rdynamic -lreadline -ltermcap

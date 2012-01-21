@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "src/base/abc/abc.h"
 #include "mainInt.h"
 
 ABC_NAMESPACE_IMPL_START

@@ -50,8 +50,8 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     int i, nTruePis;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     assert( p->vFlopNums == NULL || Vec_IntSize(p->vFlopNums) == p->nRegs );

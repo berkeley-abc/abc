@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "satSolver.h"
-#include "cnf.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/sat/cnf/cnf.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -250,7 +250,7 @@ Aig_Man_t * Aig_Gla1DeriveAbs( Aig_Gla1Man_t * p )
     assert( Saig_ManPoNum(p->pAig) == 1 );
     // start the new manager
     pNew = Aig_ManStart( 5000 );
-    pNew->pName = Aig_UtilStrsav( p->pAig->pName );
+    pNew->pName = Abc_UtilStrsav( p->pAig->pName );
     // create constant
     Aig_ManCleanData( p->pAig );
     Aig_ManConst1(p->pAig)->pData = Aig_ManConst1(pNew);
@@ -596,7 +596,7 @@ Abc_Cex_t * Aig_Gla1DeriveCex( Aig_Gla1Man_t * p, int iFrame )
                 continue;
             assert( iSatId > 0 );
             if ( sat_solver_var_value(p->pSat, iSatId) )
-                Aig_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + i );
+                Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + i );
         }
     }
     Aig_ManForEachObjVec( p->vPPis, p->pAig, pObj, i )
@@ -610,7 +610,7 @@ Abc_Cex_t * Aig_Gla1DeriveCex( Aig_Gla1Man_t * p, int iFrame )
                 continue;
             assert( iSatId > 0 );
             if ( sat_solver_var_value(p->pSat, iSatId) )
-                Aig_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + Vec_IntSize(p->vPis) + i );
+                Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + Vec_IntSize(p->vPis) + i );
         }
     }
     return pCex;

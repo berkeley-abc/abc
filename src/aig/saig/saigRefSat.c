@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "cnf.h"
-#include "satSolver.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -95,13 +95,13 @@ Abc_Cex_t * Saig_RefManReason2Cex( Saig_RefMan_t * p, Vec_Int_t * vReasons )
     Abc_Cex_t * pCare;
     int i, Entry, iInput, iFrame;
     pCare = Abc_CexDup( p->pCex, p->pCex->nRegs );
-    memset( pCare->pData, 0, sizeof(unsigned) * Aig_BitWordNum(pCare->nBits) );
+    memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
     Vec_IntForEachEntry( vReasons, Entry, i )
     {
         assert( Entry >= 0 && Entry < Aig_ManPiNum(p->pFrames) );
         iInput = Vec_IntEntry( p->vMapPiF2A, 2*Entry );
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*Entry+1 );
-        Aig_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
+        Abc_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
     }
     return pCare;
 }
@@ -181,7 +181,7 @@ Vec_Int_t * Saig_RefManFindReason( Saig_RefMan_t * p )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
-        pObj->fPhase = Aig_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
+        pObj->fPhase = Abc_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
         // assign priority
         if ( Vec_IntEntry(vPi2Prio, iInput) == ~0 )
             Vec_IntWriteEntry( vPi2Prio, iInput, CountPrios++ );
@@ -295,11 +295,11 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
 
     // derive unrolled timeframes
     pFrames = Aig_ManStart( 10000 );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
-    pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // initialize the flops 
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Aig_InfoHasBit(pCex->pData, i) );
+        pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, i) );
     // iterate through the frames
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
@@ -318,7 +318,7 @@ Aig_Man_t * Saig_ManUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nInpu
                 if ( Aig_ObjPioNum(pObj) < nInputs )
                 {
                     int iBit = pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj);
-                    pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Aig_InfoHasBit(pCex->pData, iBit) );
+                    pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, iBit) );
                 }
                 else
                 {
@@ -409,9 +409,9 @@ int Saig_RefManSetPhases( Saig_RefMan_t * p, Abc_Cex_t * pCare, int fValue1 )
     {
         iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
-        pObj->fPhase = Aig_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
+        pObj->fPhase = Abc_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
         // update value if it is a don't-care
-        if ( pCare && !Aig_InfoHasBit( pCare->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput ) )
+        if ( pCare && !Abc_InfoHasBit( pCare->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput ) )
             pObj->fPhase = fValue1;
     }
     Aig_ManForEachNode( p->pFrames, pObj, i )
@@ -448,7 +448,7 @@ Vec_Vec_t * Saig_RefManOrderLiterals( Saig_RefMan_t * p, Vec_Int_t * vVar2PiId, 
         assert( iPiNum >= 0 && iPiNum < Aig_ManPiNum(p->pFrames) );
         iInput = Vec_IntEntry( p->vMapPiF2A, 2*iPiNum );
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*iPiNum+1 );
-//        Aig_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
+//        Abc_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
         if ( Vec_IntEntry( vVar2New, iInput ) == ~0 )
             Vec_IntWriteEntry( vVar2New, iInput, Vec_VecSize(vLits) );
         Vec_VecPushInt( vLits, Vec_IntEntry( vVar2New, iInput ), Entry );
@@ -475,14 +475,14 @@ Abc_Cex_t * Saig_RefManCreateCex( Saig_RefMan_t * p, Vec_Int_t * vVar2PiId, Vec_
     int i, Entry, iInput, iFrame;
     // create counter-example
     pCare = Abc_CexDup( p->pCex, p->pCex->nRegs );
-    memset( pCare->pData, 0, sizeof(unsigned) * Aig_BitWordNum(pCare->nBits) );
+    memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
     Vec_IntForEachEntry( vAssumps, Entry, i )
     {
         int iPiNum = Vec_IntEntry( vVar2PiId, lit_var(Entry) );
         assert( iPiNum >= 0 && iPiNum < Aig_ManPiNum(p->pFrames) );
         iInput = Vec_IntEntry( p->vMapPiF2A, 2*iPiNum );
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*iPiNum+1 );
-        Aig_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
+        Abc_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
     }
     return pCare;
 }
@@ -540,7 +540,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
             printf( "The problem is trivially UNSAT. The CEX is real.\n" );
             // create counter-example
             pCare = Abc_CexDup( p->pCex, p->pCex->nRegs );
-            memset( pCare->pData, 0, sizeof(unsigned) * Aig_BitWordNum(pCare->nBits) );
+            memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
             return pCare;
         }
         // the problem is SAT - it is expected
@@ -552,7 +552,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
-//        RetValue = Aig_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
+//        RetValue = Abc_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
 //        Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], !RetValue ) );
         Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], 1 ) );
         Vec_IntWriteEntry( vVar2PiId, pCnf->pVarNums[Aig_ObjId(pObj)], i );
@@ -740,7 +740,7 @@ Vec_Int_t * Saig_RefManRefineWithSat( Saig_RefMan_t * p, Vec_Int_t * vAigPis )
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
         if ( Vec_IntEntry(vVisited, iInput) == 0 )
             continue;
-        RetValue = Aig_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
+        RetValue = Abc_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
         Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], !RetValue ) );
 //        Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], 1 ) );
         Vec_IntWriteEntry( vVar2PiId, pCnf->pVarNums[Aig_ObjId(pObj)], i );

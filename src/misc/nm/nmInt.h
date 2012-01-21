@@ -18,16 +18,16 @@
 
 ***********************************************************************/
  
-#ifndef __NM_INT_H__
-#define __NM_INT_H__
+#ifndef ABC__misc__nm__nmInt_h
+#define ABC__misc__nm__nmInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "extra.h"
-#include "vec.h"
+#include "src/misc/extra/extra.h"
+#include "src/misc/vec/vec.h"
 #include "nm.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -78,7 +78,6 @@ extern int              Nm_ManTableAdd( Nm_Man_t * p, Nm_Entry_t * pEntry );
 extern int              Nm_ManTableDelete( Nm_Man_t * p, int ObjId );
 extern Nm_Entry_t *     Nm_ManTableLookupId( Nm_Man_t * p, int ObjId );
 extern Nm_Entry_t *     Nm_ManTableLookupName( Nm_Man_t * p, char * pName, int Type );
-extern unsigned int     Cudd_PrimeNm( unsigned int p );
 
 
 

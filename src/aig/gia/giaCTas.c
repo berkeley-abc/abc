@@ -122,8 +122,8 @@ static inline void  Tas_VarSetValue( Gia_Obj_t * pVar, int v ) { assert(pVar->fM
 static inline int   Tas_VarIsJust( Gia_Obj_t * pVar )          { return Gia_ObjIsAnd(pVar) && !Tas_VarIsAssigned(Gia_ObjFanin0(pVar)) && !Tas_VarIsAssigned(Gia_ObjFanin1(pVar)); } 
 static inline int   Tas_VarFanin0Value( Gia_Obj_t * pVar )     { return !Tas_VarIsAssigned(Gia_ObjFanin0(pVar)) ? 2 : (Tas_VarValue(Gia_ObjFanin0(pVar)) ^ Gia_ObjFaninC0(pVar)); }
 static inline int   Tas_VarFanin1Value( Gia_Obj_t * pVar )     { return !Tas_VarIsAssigned(Gia_ObjFanin1(pVar)) ? 2 : (Tas_VarValue(Gia_ObjFanin1(pVar)) ^ Gia_ObjFaninC1(pVar)); }
-static inline int   Tas_VarToLit( Tas_Man_t * p, Gia_Obj_t * pObj ) { assert( Tas_VarIsAssigned(pObj) ); return Gia_Var2Lit( Gia_ObjId(p->pAig, pObj), !Tas_VarValue(pObj) );     }
-static inline int   Tas_LitIsTrue( Gia_Obj_t * pObj, int Lit ) { assert( Tas_VarIsAssigned(pObj) ); return Tas_VarValue(pObj) != Gia_LitIsCompl(Lit);                             }
+static inline int   Tas_VarToLit( Tas_Man_t * p, Gia_Obj_t * pObj ) { assert( Tas_VarIsAssigned(pObj) ); return Abc_Var2Lit( Gia_ObjId(p->pAig, pObj), !Tas_VarValue(pObj) );     }
+static inline int   Tas_LitIsTrue( Gia_Obj_t * pObj, int Lit ) { assert( Tas_VarIsAssigned(pObj) ); return Tas_VarValue(pObj) != Abc_LitIsCompl(Lit);                             }
 
 static inline int         Tas_ClsHandle( Tas_Man_t * p, Tas_Cls_t * pClause ) { return ((int *)pClause) - p->pStore.pData;   }
 static inline Tas_Cls_t * Tas_ClsFromHandle( Tas_Man_t * p, int h )           { return (Tas_Cls_t *)(p->pStore.pData + h);   }
@@ -292,8 +292,8 @@ static inline void Tas_ManSaveModel( Tas_Man_t * p, Vec_Int_t * vCex )
     Tas_QueForEachEntry( p->pProp, pVar, i )
     {
         if ( Gia_ObjIsCi(pVar) )
-//            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjId(p->pAig,pVar), !Tas_VarValue(pVar)) );
-            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjCioId(pVar), !Tas_VarValue(pVar)) );
+//            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Tas_VarValue(pVar)) );
+            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjCioId(pVar), !Tas_VarValue(pVar)) );
 /*
         printf( "%5d(%d) = ", Gia_ObjId(p->pAig, pVar), Tas_VarValue(pVar) );
         if ( Gia_ObjIsCi(pVar) )
@@ -443,7 +443,7 @@ static inline int Tas_VarFaninFanoutMax( Tas_Man_t * p, Gia_Obj_t * pObj )
     assert( Gia_ObjIsAnd(pObj) );
     Count0 = Gia_ObjRefs( p->pAig, Gia_ObjFanin0(pObj) );
     Count1 = Gia_ObjRefs( p->pAig, Gia_ObjFanin1(pObj) );
-    return ABC_MAX( Count0, Count1 );
+    return Abc_MaxInt( Count0, Count1 );
 }
 
 
@@ -793,11 +793,11 @@ static inline void Tas_ManDeriveReason( Tas_Man_t * p, int Level )
         if ( Tas_VarHasReasonCls( p, pObj ) )
         {
             Tas_Cls_t * pCls = Tas_VarReasonCls( p, pObj );
-            pReason = Gia_ManObj( p->pAig, Gia_Lit2Var(pCls->pLits[0]) );
+            pReason = Gia_ManObj( p->pAig, Abc_Lit2Var(pCls->pLits[0]) );
             assert( pReason == pObj );
             for ( j = 1; j < pCls->nLits; j++ )
             {
-                pReason = Gia_ManObj( p->pAig, Gia_Lit2Var(pCls->pLits[j]) );
+                pReason = Gia_ManObj( p->pAig, Abc_Lit2Var(pCls->pLits[j]) );
                 iLitLevel2 = Tas_VarDecLevel( p, pReason );
                 assert( Tas_VarIsAssigned( pReason ) );
                 assert( !Tas_LitIsTrue( pReason, pCls->pLits[j] ) );
@@ -953,16 +953,16 @@ static inline Tas_Cls_t * Tas_ManAllocCls( Tas_Man_t * p, int nSize )
 ***********************************************************************/
 static inline void Tas_ManWatchClause( Tas_Man_t * p, Tas_Cls_t * pClause, int Lit )
 {
-    assert( Gia_Lit2Var(Lit) < Gia_ManObjNum(p->pAig) );
+    assert( Abc_Lit2Var(Lit) < Gia_ManObjNum(p->pAig) );
     assert( pClause->nLits >= 2 );
     assert( pClause->pLits[0] == Lit || pClause->pLits[1] == Lit );
     if ( pClause->pLits[0] == Lit )
-        pClause->iNext[0] = p->pWatches[Gia_LitNot(Lit)];  
+        pClause->iNext[0] = p->pWatches[Abc_LitNot(Lit)];  
     else
-        pClause->iNext[1] = p->pWatches[Gia_LitNot(Lit)];  
-    if ( p->pWatches[Gia_LitNot(Lit)] == 0 )
-        Vec_IntPush( p->vWatchLits, Gia_LitNot(Lit) );
-    p->pWatches[Gia_LitNot(Lit)] = Tas_ClsHandle( p, pClause );
+        pClause->iNext[1] = p->pWatches[Abc_LitNot(Lit)];  
+    if ( p->pWatches[Abc_LitNot(Lit)] == 0 )
+        Vec_IntPush( p->vWatchLits, Abc_LitNot(Lit) );
+    p->pWatches[Abc_LitNot(Lit)] = Tas_ClsHandle( p, pClause );
 }
 
 /**Function*************************************************************
@@ -994,7 +994,7 @@ static inline Tas_Cls_t * Tas_ManCreateCls( Tas_Man_t * p, int hClause )
     for ( i = hClause; (pObj = pQue->pData[i]); i++ )
     {
         assert( Tas_VarIsAssigned( pObj ) );
-        pClause->pLits[i-hClause] = Gia_LitNot( Tas_VarToLit(p, pObj) );
+        pClause->pLits[i-hClause] = Abc_LitNot( Tas_VarToLit(p, pObj) );
     }
     // add the clause as watched one
     if ( nLits >= 2 )
@@ -1027,7 +1027,7 @@ static inline int Tas_ManCreateFromCls( Tas_Man_t * p, Tas_Cls_t * pCls, int Lev
     Tas_QuePush( pQue, NULL );
     for ( i = 0; i < pCls->nLits; i++ )
     {
-        pObj = Gia_ManObj( p->pAig, Gia_Lit2Var(pCls->pLits[i]) );
+        pObj = Gia_ManObj( p->pAig, Abc_Lit2Var(pCls->pLits[i]) );
         assert( Tas_VarIsAssigned(pObj) );
         assert( !Tas_LitIsTrue( pObj, pCls->pLits[i] ) );
         Tas_QuePush( pQue, pObj );
@@ -1052,7 +1052,7 @@ static inline int Tas_ManPropagateWatch( Tas_Man_t * p, int Level, int Lit )
     Gia_Obj_t * pObj;
     Tas_Cls_t * pCur;
     int * piPrev, iCur, iTemp;
-    int i, LitF = Gia_LitNot(Lit);
+    int i, LitF = Abc_LitNot(Lit);
     // iterate through the clauses
     piPrev = p->pWatches + Lit;
     for ( iCur = p->pWatches[Lit]; iCur; iCur = *piPrev )
@@ -1070,8 +1070,8 @@ static inline int Tas_ManPropagateWatch( Tas_Man_t * p, int Level, int Lit )
         assert( pCur->pLits[1] == LitF );
 
         // if the first literal is true, the clause is satisfied
-//        if ( pCur->pLits[0] == p->pAssigns[Gia_Lit2Var(pCur->pLits[0])] )
-        pObj = Gia_ManObj( p->pAig, Gia_Lit2Var(pCur->pLits[0]) );
+//        if ( pCur->pLits[0] == p->pAssigns[Abc_Lit2Var(pCur->pLits[0])] )
+        pObj = Gia_ManObj( p->pAig, Abc_Lit2Var(pCur->pLits[0]) );
         if ( Tas_VarIsAssigned(pObj) && Tas_LitIsTrue( pObj, pCur->pLits[0] ) )
         {
             piPrev = &pCur->iNext[1];
@@ -1082,8 +1082,8 @@ static inline int Tas_ManPropagateWatch( Tas_Man_t * p, int Level, int Lit )
         for ( i = 2; i < (int)pCur->nLits; i++ )
         {
             // skip the case when the literal is false
-//            if ( Gia_LitNot(pCur->pLits[i]) == p->pAssigns[Gia_Lit2Var(pCur->pLits[i])] )
-            pObj = Gia_ManObj( p->pAig, Gia_Lit2Var(pCur->pLits[i]) );
+//            if ( Abc_LitNot(pCur->pLits[i]) == p->pAssigns[Abc_Lit2Var(pCur->pLits[i])] )
+            pObj = Gia_ManObj( p->pAig, Abc_Lit2Var(pCur->pLits[i]) );
             if ( Tas_VarIsAssigned(pObj) && !Tas_LitIsTrue( pObj, pCur->pLits[i] ) )
                 continue;
             // the literal is either true or unassigned - watch it
@@ -1099,7 +1099,7 @@ static inline int Tas_ManPropagateWatch( Tas_Man_t * p, int Level, int Lit )
             continue;
 
         // clause is unit - enqueue new implication
-        pObj = Gia_ManObj( p->pAig, Gia_Lit2Var(pCur->pLits[0]) );
+        pObj = Gia_ManObj( p->pAig, Abc_Lit2Var(pCur->pLits[0]) );
         if ( !Tas_VarIsAssigned(pObj) )
         {
 /*
@@ -1107,7 +1107,7 @@ static inline int Tas_ManPropagateWatch( Tas_Man_t * p, int Level, int Lit )
                 int iLitLevel, iPlace;
                 for ( i = 1; i < (int)pCur->nLits; i++ )
                 {
-                    pObj = Gia_ManObj( p->pAig, Gia_Lit2Var(pCur->pLits[i]) );
+                    pObj = Gia_ManObj( p->pAig, Abc_Lit2Var(pCur->pLits[i]) );
                     iLitLevel = Tas_VarDecLevel( p, pObj );
                     iPlace = pObj->Value;
                     printf( "Lit = %d. Level = %d. Place = %d.\n", pCur->pLits[i], iLitLevel, iPlace );
@@ -1300,7 +1300,7 @@ int Tas_ManSolve_rec( Tas_Man_t * p, int Level )
     if ( Tas_QueIsEmpty(&p->pJust) )
         return 0;
     // quit using resource limits
-    p->Pars.nJustThis = ABC_MAX( p->Pars.nJustThis, p->pJust.iTail - p->pJust.iHead );
+    p->Pars.nJustThis = Abc_MaxInt( p->Pars.nJustThis, p->pJust.iTail - p->pJust.iHead );
     if ( Tas_ManCheckLimits( p ) )
         return 0;
     // remember the state before branching
@@ -1401,7 +1401,7 @@ int Tas_ManSolve( Tas_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 )
     Vec_IntClear( p->vActiveVars );
     // statistics
     p->Pars.nBTTotal += p->Pars.nBTThis;
-    p->Pars.nJustTotal = ABC_MAX( p->Pars.nJustTotal, p->Pars.nJustThis );
+    p->Pars.nJustTotal = Abc_MaxInt( p->Pars.nJustTotal, p->Pars.nJustThis );
     if ( Tas_ManCheckLimits( p ) )
         RetValue = -1;
     return RetValue;
@@ -1460,7 +1460,7 @@ int Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs )
     Vec_IntClear( p->vActiveVars );
     // statistics
     p->Pars.nBTTotal += p->Pars.nBTThis;
-    p->Pars.nJustTotal = ABC_MAX( p->Pars.nJustTotal, p->Pars.nJustThis );
+    p->Pars.nJustTotal = Abc_MaxInt( p->Pars.nJustTotal, p->Pars.nJustThis );
     if ( Tas_ManCheckLimits( p ) )
         RetValue = -1;
 
@@ -1644,19 +1644,19 @@ int Tas_StorePatternTry( Vec_Ptr_t * vInfo, Vec_Ptr_t * vPres, int iBit, int * p
     int i;
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        if ( Gia_InfoHasBit( pPres, iBit ) && 
-             Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Abc_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Abc_Lit2Var(pLits[i]));
+        if ( Abc_InfoHasBit( pPres, iBit ) && 
+             Abc_InfoHasBit( pInfo, iBit ) == Abc_LitIsCompl(pLits[i]) )
              return 0;
     }
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        Gia_InfoSetBit( pPres, iBit );
-        if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
-            Gia_InfoXorBit( pInfo, iBit );
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Abc_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Abc_Lit2Var(pLits[i]));
+        Abc_InfoSetBit( pPres, iBit );
+        if ( Abc_InfoHasBit( pInfo, iBit ) == Abc_LitIsCompl(pLits[i]) )
+            Abc_InfoXorBit( pInfo, iBit );
     }
     return 1;
 }

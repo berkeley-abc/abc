@@ -26,8 +26,9 @@
 
 
 #include "abc.h"
-#include "main.h"
-#include "ioAbc.h"
+#include "src/base/main/main.h"
+#include "src/base/io/ioAbc.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

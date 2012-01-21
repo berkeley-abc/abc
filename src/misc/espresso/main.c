@@ -14,7 +14,7 @@
  */
 
 #include "espresso.h"
-#include "main.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
         /* table definitions for options */

@@ -25,7 +25,7 @@
 #include <time.h>
 
 //#include "vec.h"
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 #include "pr.h"
 
 ABC_NAMESPACE_IMPL_START

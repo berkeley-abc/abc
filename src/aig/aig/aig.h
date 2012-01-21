@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __AIG_H__
-#define __AIG_H__
+#ifndef ABC__aig__aig__aig_h
+#define ABC__aig__aig__aig_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -32,8 +32,8 @@
 #include <assert.h>
 #include <time.h>
 
-#include "vec.h"
-#include "utilCex.h"
+#include "src/misc/vec/vec.h"
+#include "src/misc/util/utilCex.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -222,20 +222,6 @@ static inline Aig_Cut_t *  Aig_CutNext( Aig_Cut_t * pCut )              { return
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int          Aig_IntAbs( int n )                    { return (n < 0)? -n : n;                                }
-//static inline int          Aig_Float2Int( float Val )             { return *((int *)&Val);                                 }
-//static inline float        Aig_Int2Float( int Num )               { return *((float *)&Num);                               }
-static inline int          Aig_Float2Int( float Val )             { union { int x; float y; } v; v.y = Val; return v.x;    }
-static inline float        Aig_Int2Float( int Num )               { union { int x; float y; } v; v.x = Num; return v.y;    }
-static inline int          Aig_Base2Log( unsigned n )             { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
-static inline int          Aig_Base10Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
-static inline char *       Aig_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL; }
-static inline int          Aig_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);                  }
-static inline int          Aig_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));            }
-static inline int          Aig_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;              }
-static inline void         Aig_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                          }
-static inline void         Aig_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                          }
-static inline unsigned     Aig_InfoMask( int nVar )               { return (~(unsigned)0) >> (32-nVar);                    }
 static inline unsigned     Aig_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                            }
 static inline int          Aig_WordCountOnes( unsigned uWord )
 {
@@ -253,13 +239,6 @@ static inline int          Aig_WordFindFirstBit( unsigned uWord )
             return i;
     return -1;
 }
-
-static inline int          Aig_Var2Lit( int Var, int fCompl )     { return Var + Var + fCompl;                       }
-static inline int          Aig_Lit2Var( int Lit )                 { return Lit >> 1;                                 }
-static inline int          Aig_LitIsCompl( int Lit )              { return Lit & 1;                                  }
-static inline int          Aig_LitNot( int Lit )                  { return Lit ^ 1;                                  }
-static inline int          Aig_LitNotCond( int Lit, int c )       { return Lit ^ (int)(c > 0);                       }
-static inline int          Aig_LitRegular( int Lit )              { return Lit & ~01;                                }
 
 static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);  }
 static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);  }
@@ -335,10 +314,10 @@ static inline void         Aig_ObjChild1Flip( Aig_Obj_t * pObj )  { assert( !Aig
 static inline Aig_Obj_t *  Aig_ObjCopy( Aig_Obj_t * pObj )        { assert( !Aig_IsComplement(pObj) ); return (Aig_Obj_t *)pObj->pData;               } 
 static inline void         Aig_ObjSetCopy( Aig_Obj_t * pObj, Aig_Obj_t * pCopy )     {  assert( !Aig_IsComplement(pObj) ); pObj->pData = pCopy;       } 
 static inline Aig_Obj_t *  Aig_ObjRealCopy( Aig_Obj_t * pObj )    { return Aig_NotCond((Aig_Obj_t *)Aig_Regular(pObj)->pData, Aig_IsComplement(pObj));}
-static inline int          Aig_ObjToLit( Aig_Obj_t * pObj )       { return Aig_Var2Lit( Aig_ObjId(Aig_Regular(pObj)), Aig_IsComplement(pObj) );       }
-static inline Aig_Obj_t *  Aig_ObjFromLit( Aig_Man_t * p,int iLit){ return Aig_NotCond( Aig_ManObj(p, Aig_Lit2Var(iLit)), Aig_LitIsCompl(iLit) );     }
+static inline int          Aig_ObjToLit( Aig_Obj_t * pObj )       { return Abc_Var2Lit( Aig_ObjId(Aig_Regular(pObj)), Aig_IsComplement(pObj) );       }
+static inline Aig_Obj_t *  Aig_ObjFromLit( Aig_Man_t * p,int iLit){ return Aig_NotCond( Aig_ManObj(p, Abc_Lit2Var(iLit)), Abc_LitIsCompl(iLit) );     }
 static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { assert( !Aig_IsComplement(pObj) ); return pObj->Level;                            }
-static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + ABC_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
+static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + Abc_MaxInt(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
 static inline int          Aig_ObjSetLevel( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return pObj->Level = i;                    }
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
@@ -653,7 +632,6 @@ extern unsigned *      Aig_ManCutTruth( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, 
 /*=== aigTsim.c ========================================================*/
 extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fUseMvSweep, int nFramesSymb, int nFramesSatur, int fVerbose, int fVeryVerbose );
 /*=== aigUtil.c =========================================================*/
-extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );
 extern char *          Aig_TimeStamp();
 extern int             Aig_ManHasNoGaps( Aig_Man_t * p );

@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -204,7 +203,7 @@ Vec_Ptr_t * Abc_NodeGetFaninNames( Abc_Obj_t * pNode )
     int i;
     vNodes = Vec_PtrAlloc( 100 );
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        Vec_PtrPush( vNodes, Extra_UtilStrsav(Abc_ObjName(pFanin)) );
+        Vec_PtrPush( vNodes, Abc_UtilStrsav(Abc_ObjName(pFanin)) );
     return vNodes;
 }
 
@@ -380,7 +379,7 @@ void Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int nDigits, i;
-    nDigits = Extra_Base10Log( Abc_NtkPiNum(pNtk) );
+    nDigits = Abc_Base10Log( Abc_NtkPiNum(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjAssignName( pObj, Abc_ObjNameDummy("pi", i, nDigits), NULL );
 }
@@ -400,7 +399,7 @@ void Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int nDigits, i;
-    nDigits = Extra_Base10Log( Abc_NtkPoNum(pNtk) );
+    nDigits = Abc_Base10Log( Abc_NtkPoNum(pNtk) );
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_ObjAssignName( pObj, Abc_ObjNameDummy("po", i, nDigits), NULL );
 }
@@ -432,7 +431,7 @@ void Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk )
                 CountCur++;
             else
                 break;
-        CountMax = ABC_MAX( CountMax, CountCur );
+        CountMax = Abc_MaxInt( CountMax, CountCur );
     }
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
@@ -443,7 +442,7 @@ void Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk )
                 CountCur++;
             else
                 break;
-        CountMax = ABC_MAX( CountMax, CountCur );
+        CountMax = Abc_MaxInt( CountMax, CountCur );
     }
 //printf( "CountMax = %d\n", CountMax );
     assert( CountMax < 100-2 );
@@ -455,7 +454,7 @@ void Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk )
     PrefLo[i+1] = 0;
     // create latch names
     assert( !Abc_NtkIsNetlist(pNtk) );
-    nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtk) );
+    nDigits = Abc_Base10Log( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pObj, i )
     {
         Abc_ObjAssignName( pObj, Abc_ObjNameDummy("l", i, nDigits), NULL );
@@ -463,14 +462,14 @@ void Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk )
         Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjNameDummy(PrefLo, i, nDigits), NULL );
     }
 /*
-    nDigits = Extra_Base10Log( Abc_NtkBlackboxNum(pNtk) );
+    nDigits = Abc_Base10Log( Abc_NtkBlackboxNum(pNtk) );
     Abc_NtkForEachBlackbox( pNtk, pObj, i )
     {
         pName = Abc_ObjAssignName( pObj, Abc_ObjNameDummy("B", i, nDigits), NULL );
-        nDigitsF = Extra_Base10Log( Abc_ObjFaninNum(pObj) );
+        nDigitsF = Abc_Base10Log( Abc_ObjFaninNum(pObj) );
         Abc_ObjForEachFanin( pObj, pTerm, k )
             Abc_ObjAssignName( Abc_ObjFanin0(pObj), pName, Abc_ObjNameDummy("i", k, nDigitsF) );
-        nDigitsF = Extra_Base10Log( Abc_ObjFanoutNum(pObj) );
+        nDigitsF = Abc_Base10Log( Abc_ObjFanoutNum(pObj) );
         Abc_ObjForEachFanout( pObj, pTerm, k )
             Abc_ObjAssignName( Abc_ObjFanin0(pObj), pName, Abc_ObjNameDummy("o", k, nDigitsF) );
     }

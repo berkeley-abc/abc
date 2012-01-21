@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "kit.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -289,7 +289,7 @@ Vec_Ptr_t * Aig_SuppMinPerform( Aig_Man_t * p, Vec_Ptr_t * vOrGate, Vec_Ptr_t * 
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vTrSupp, * vTrNode, * vCofs;
     unsigned * uFunc, * uCare, * uFunc0, * uFunc1, * uCof;
-    int i, nWords = Aig_TruthWordNum( Vec_PtrSize(vSupp) );
+    int i, nWords = Abc_TruthWordNum( Vec_PtrSize(vSupp) );
     // assign support nodes
     vTrSupp = Vec_PtrAllocTruthTables( Vec_PtrSize(vSupp) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vSupp, pObj, i )

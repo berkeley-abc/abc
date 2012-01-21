@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "fra.h"
+#include "src/proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 

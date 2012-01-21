@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "fra.h"
-#include "cnf.h"
-#include "satStore.h"
+#include "src/proof/fra/fra.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -130,7 +130,7 @@ unsigned * Saig_ManBmcTerSimOne( Aig_Man_t * p, unsigned * pPrev )
     Aig_Obj_t * pObj, * pObjLi;
     unsigned * pInfo;
     int i, Val0, Val1;
-    pInfo = ABC_CALLOC( unsigned, Aig_BitWordNum(2 * Aig_ManObjNumMax(p)) );
+    pInfo = ABC_CALLOC( unsigned, Abc_BitWordNum(2 * Aig_ManObjNumMax(p)) );
     Saig_ManBmcSimInfoSet( pInfo, Aig_ManConst1(p), SAIG_TER_ONE );
     Saig_ManForEachPi( p, pObj, i )
         Saig_ManBmcSimInfoSet( pInfo, pObj, SAIG_TER_UND );
@@ -1105,7 +1105,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
     int RetValue = -1, fFirst = 1, nJumpFrame = 0, fUnfinished = 0;
-    int nOutDigits = Aig_Base10Log( Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) );
+    int nOutDigits = Abc_Base10Log( Saig_ManPoNum(pAig) - Saig_ManConstrNum(pAig) );
     int i, f, Lit, status, clk, clk2, clkOther = 0, clkTotal = clock();
     int nTimeToStop = time(NULL) + pPars->nTimeOut;
     if ( pPars->fVerbose && Aig_ManConstrNum(pAig) > 0 )

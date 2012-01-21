@@ -145,10 +145,10 @@ Saig_Tsim_t * Saig_TsiStart( Aig_Man_t * pAig )
     p = (Saig_Tsim_t *)ABC_ALLOC( char, sizeof(Saig_Tsim_t) );
     memset( p, 0, sizeof(Saig_Tsim_t) );
     p->pAig    = pAig;
-    p->nWords  = Aig_BitWordNum( 2*Aig_ManRegNum(pAig) );
+    p->nWords  = Abc_BitWordNum( 2*Aig_ManRegNum(pAig) );
     p->vStates = Vec_PtrAlloc( 1000 );
     p->pMem    = Aig_MmFixedStart( sizeof(unsigned) * p->nWords + sizeof(unsigned *), 10000 );
-    p->nBins   = Aig_PrimeCudd(TSIM_MAX_ROUNDS/2);
+    p->nBins   = Abc_PrimeCudd(TSIM_MAX_ROUNDS/2);
     p->pBins   = ABC_ALLOC( unsigned *, p->nBins );
     memset( p->pBins, 0, sizeof(unsigned *) * p->nBins );
     return p;
@@ -233,7 +233,7 @@ int Saig_TsiCountNonXValuedRegisters( Saig_Tsim_t * p, int nPref )
     {
         Vec_PtrForEachEntryStart( unsigned *, p->vStates, pState, k, nPref )
         {
-            Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+            Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
             assert( Value != 0 );
             if ( Value == SAIG_XVSX )
                 break;
@@ -266,7 +266,7 @@ Vec_Int_t * Saig_TsiComputeTransient( Saig_Tsim_t * p, int nPref )
     {
         Vec_PtrForEachEntry( unsigned *, p->vStates, pState, k )
         {
-            ValueThis = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+            ValueThis = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
 //printf( "%s", (ValueThis == 1)? "0" : ((ValueThis == 2)? "1" : "x") );
             assert( ValueThis != 0 );
             if ( ValuePrev != ValueThis )
@@ -320,7 +320,7 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix, int nLoop )
 /*
         Vec_PtrForEachEntry( unsigned *, p->vStates, pState, k )
         {
-            Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+            Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
             if ( Value == SAIG_XVSX )
                 break;
         }
@@ -335,7 +335,7 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix, int nLoop )
         printf( "%5d : ", Counter++ );
         Vec_PtrForEachEntryStop( unsigned *, p->vStates, pState, k, Vec_PtrSize(p->vStates)-1 )
         {
-            Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+            Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
             if ( Value == SAIG_XVS0 )
                 printf( "0" );
             else if ( Value == SAIG_XVS1 )
@@ -458,7 +458,7 @@ void Saig_TsiStatePrint( Saig_Tsim_t * p, unsigned * pState )
     int i, Value, nZeros = 0, nOnes = 0, nDcs = 0;
     for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
     {
-        Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+        Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
         if ( Value == SAIG_XVS0 )
             printf( "0" ), nZeros++;
         else if ( Value == SAIG_XVS1 )
@@ -488,7 +488,7 @@ int Saig_TsiStateCount( Saig_Tsim_t * p, unsigned * pState )
     int i, Value, nCounter = 0;
     Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObjLo, i )
     {
-        Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+        Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
         nCounter += (Value == SAIG_XVS0 || Value == SAIG_XVS1);
     }
     return nCounter;
@@ -559,9 +559,9 @@ Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits, int f
         {
             Value = Saig_ObjGetXsim(pObjLo);
             if ( Value & 1 )
-                Aig_InfoSetBit( pState, 2 * i );
+                Abc_InfoSetBit( pState, 2 * i );
             if ( Value & 2 )
-                Aig_InfoSetBit( pState, 2 * i + 1 );
+                Abc_InfoSetBit( pState, 2 * i + 1 );
         }
 //        printf( "%d ", Saig_TsiStateCount(pTsi, pState) );
 //        Saig_TsiStatePrint( pTsi, pState );
@@ -679,7 +679,7 @@ int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVe
                 pState = (unsigned *)Vec_PtrEntry( pTsi->vStates, k );
             else
                 pState = (unsigned *)Vec_PtrEntry( pTsi->vStates, k - pTsi->nCycle );
-            Value = (Aig_InfoHasBit( pState, 2 * Reg + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * Reg );
+            Value = (Abc_InfoHasBit( pState, 2 * Reg + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * Reg );
             assert( Value == SAIG_XVS0 || Value == SAIG_XVS1 );
             if ( k < nFrames || (fIgnore && k == nFrames) )
                 Values[k % nFrames] = Value;
@@ -761,8 +761,8 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
 
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFrames );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
-    pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // map constant nodes
     for ( f = 0; f < nFrames; f++ )
         Saig_ObjSetFrames( pObjMap, nFrames, Aig_ManConst1(pAig), f, Aig_ManConst1(pFrames) );
@@ -782,7 +782,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
         {
             pObj = Saig_ManLo( pAig, Reg );
             pState = (unsigned *)Vec_PtrEntry( pTsi->vStates, f );
-            Value = (Aig_InfoHasBit( pState, 2 * Reg + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * Reg );
+            Value = (Abc_InfoHasBit( pState, 2 * Reg + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * Reg );
             assert( Value == SAIG_XVS0 || Value == SAIG_XVS1 );
             pObjNew = (Value == SAIG_XVS1)? Aig_ManConst1(pFrames) : Aig_ManConst0(pFrames);
             Saig_ObjSetFrames( pObjMap, nFrames, pObj, f, pObjNew );
@@ -922,7 +922,7 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     // derive information
     pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, (unsigned *)Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
     pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
-    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, ABC_MIN(pTsi->nPrefix,nPref));
+    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, Abc_MinInt(pTsi->nPrefix,nPref));
     // print statistics
     if ( fVerbose )
     {
@@ -1066,8 +1066,8 @@ Abc_Cex_t * Saig_PhaseTranslateCex( Aig_Man_t * p, Abc_Cex_t * pCex )
     pNew->iPo    = pCex->iPo % Saig_ManPoNum(p);
     // copy the bit data
     for ( i = pCex->nRegs, k = pNew->nRegs; k < pNew->nBits; k++, i++ )
-        if ( Aig_InfoHasBit( pCex->pData, i ) )
-            Aig_InfoSetBit( pNew->pData, k );
+        if ( Abc_InfoHasBit( pCex->pData, i ) )
+            Abc_InfoSetBit( pNew->pData, k );
     assert( i <= pCex->nBits );
     return pNew;
 }

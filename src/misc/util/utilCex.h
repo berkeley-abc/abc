@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __UTIL_CEX_H__
-#define __UTIL_CEX_H__
+#ifndef ABC__misc__util__utilCex_h
+#define ABC__misc__util__utilCex_h
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///

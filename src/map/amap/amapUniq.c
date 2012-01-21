@@ -198,14 +198,14 @@ int Amap_LibCreateNode( Amap_Lib_t * p, int iFan0, int iFan1, int fXor )
     }
     pNode = Amap_LibCreateObj( p );
     pNode->Type  = fXor? AMAP_OBJ_XOR : AMAP_OBJ_AND;
-    pNode->nSuppSize = p->pNodes[Amap_Lit2Var(iFan0)].nSuppSize + p->pNodes[Amap_Lit2Var(iFan1)].nSuppSize;
+    pNode->nSuppSize = p->pNodes[Abc_Lit2Var(iFan0)].nSuppSize + p->pNodes[Abc_Lit2Var(iFan1)].nSuppSize;
     pNode->iFan0 = iFan0;
     pNode->iFan1 = iFan1;
 if ( p->fVerbose )
 printf( "Creating node %5d %c :  iFan0 = %5d%c  iFan1 = %5d%c\n", 
 pNode->Id, (fXor?'x':' '), 
-Amap_Lit2Var(iFan0), (Amap_LitIsCompl(iFan0)?'-':'+'), 
-Amap_Lit2Var(iFan1), (Amap_LitIsCompl(iFan1)?'-':'+') );
+Abc_Lit2Var(iFan0), (Abc_LitIsCompl(iFan0)?'-':'+'), 
+Abc_Lit2Var(iFan1), (Abc_LitIsCompl(iFan1)?'-':'+') );
 
     if ( fXor )
     {
@@ -246,16 +246,16 @@ int Amap_LibCreateMux( Amap_Lib_t * p, int iFan0, int iFan1, int iFan2 )
     Amap_Nod_t * pNode;
     pNode = Amap_LibCreateObj( p );
     pNode->Type  = AMAP_OBJ_MUX;
-    pNode->nSuppSize = p->pNodes[Amap_Lit2Var(iFan0)].nSuppSize + p->pNodes[Amap_Lit2Var(iFan1)].nSuppSize + p->pNodes[Amap_Lit2Var(iFan2)].nSuppSize;
+    pNode->nSuppSize = p->pNodes[Abc_Lit2Var(iFan0)].nSuppSize + p->pNodes[Abc_Lit2Var(iFan1)].nSuppSize + p->pNodes[Abc_Lit2Var(iFan2)].nSuppSize;
     pNode->iFan0 = iFan0;
     pNode->iFan1 = iFan1;
     pNode->iFan2 = iFan2;
 if ( p->fVerbose )
 printf( "Creating node %5d %c :  iFan0 = %5d%c  iFan1 = %5d%c  iFan2 = %5d%c\n", 
 pNode->Id, 'm', 
-Amap_Lit2Var(iFan0), (Amap_LitIsCompl(iFan0)?'-':'+'), 
-Amap_Lit2Var(iFan1), (Amap_LitIsCompl(iFan1)?'-':'+'), 
-Amap_Lit2Var(iFan2), (Amap_LitIsCompl(iFan2)?'-':'+') );
+Abc_Lit2Var(iFan0), (Abc_LitIsCompl(iFan0)?'-':'+'), 
+Abc_Lit2Var(iFan1), (Abc_LitIsCompl(iFan1)?'-':'+'), 
+Abc_Lit2Var(iFan2), (Abc_LitIsCompl(iFan2)?'-':'+') );
 
     Vec_IntPush( p->vRules3, iFan0 );
     Vec_IntPush( p->vRules3, iFan1 );

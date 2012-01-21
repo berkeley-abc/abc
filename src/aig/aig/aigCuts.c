@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "kit.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -58,7 +58,7 @@ Aig_ManCut_t * Aig_ManCutStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, in
     p->pAig     = pMan;
     p->pCuts    = ABC_CALLOC( Aig_Cut_t *, Aig_ManObjNumMax(pMan) );
     // allocate memory manager
-    p->nTruthWords = Aig_TruthWordNum(nLeafMax);
+    p->nTruthWords = Abc_TruthWordNum(nLeafMax);
     p->nCutSize = sizeof(Aig_Cut_t) + sizeof(int) * nLeafMax + fTruth * sizeof(unsigned) * p->nTruthWords;
     p->pMemCuts = Aig_MmFixedStart( p->nCutSize * p->nCutsMax, 512 );
     // room for temporary truth tables

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "ver.h"
-#include "mio.h"
-#include "main.h"
+#include "src/map/mio/mio.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 

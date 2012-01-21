@@ -21,11 +21,11 @@
 
 // The code in this file is developed in collaboration with Mark Jarvin of Toronto.
 
-#include "bzlib.h"
+#include "src/misc/bzlib/bzlib.h"
 #include "ioAbc.h"
 
 #include <stdarg.h>
-#include "zlib.h"
+#include "src/misc/zlib/zlib.h"
 
 
 ABC_NAMESPACE_IMPL_START
@@ -770,8 +770,8 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 }
 
 
-#include "giaAig.h"
-#include "saig.h"
+#include "src/aig/gia/giaAig.h"
+#include "src/aig/saig/saig.h"
 
 /**Function*************************************************************
 
@@ -825,8 +825,8 @@ void Io_WriteAigerCex( Abc_Cex_t * pCex, Abc_Ntk_t * pNtk, void * pG, char * pFi
     {
         for ( k = 0; k < pCex->nPis; k++ )
         {
-            fprintf( pFile, "%d", Aig_InfoHasBit(pCex->pData, b) );
-            Aig_ManPi( pAig, k )->fMarkA = Aig_InfoHasBit(pCex->pData, b++);
+            fprintf( pFile, "%d", Abc_InfoHasBit(pCex->pData, b) );
+            Aig_ManPi( pAig, k )->fMarkA = Abc_InfoHasBit(pCex->pData, b++);
         }
         fprintf( pFile, " " );
         Aig_ManForEachNode( pAig, pObj, k )

@@ -52,7 +52,7 @@ Nm_Man_t * Nm_ManCreate( int nSize )
     p->nSizeFactor   = 2; // determined the limit on the grow of data before the table resizes
     p->nGrowthFactor = 3; // determined how much the table grows after resizing
     // allocate and clean the bins
-    p->nBins = Cudd_PrimeNm(nSize);
+    p->nBins = Abc_PrimeCudd(nSize);
     p->pBinsI2N = ABC_ALLOC( Nm_Entry_t *, p->nBins );
     p->pBinsN2I = ABC_ALLOC( Nm_Entry_t *, p->nBins );
     memset( p->pBinsI2N, 0, sizeof(Nm_Entry_t *) * p->nBins );

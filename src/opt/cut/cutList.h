@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __CUT_LIST_H__
-#define __CUT_LIST_H__
+#ifndef ABC__opt__cut__cutList_h
+#define ABC__opt__cut__cutList_h
 
 
 ABC_NAMESPACE_HEADER_START

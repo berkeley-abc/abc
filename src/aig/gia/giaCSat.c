@@ -238,8 +238,8 @@ static inline void Cbs_ManSaveModel( Cbs_Man_t * p, Vec_Int_t * vCex )
     p->pProp.iHead = 0;
     Cbs_QueForEachEntry( p->pProp, pVar, i )
         if ( Gia_ObjIsCi(pVar) )
-//            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs_VarValue(pVar)) );
-            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjCioId(pVar), !Cbs_VarValue(pVar)) );
+//            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs_VarValue(pVar)) );
+            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjCioId(pVar), !Cbs_VarValue(pVar)) );
 } 
 
 /**Function*************************************************************
@@ -377,7 +377,7 @@ static inline int Cbs_VarFaninFanoutMax( Cbs_Man_t * p, Gia_Obj_t * pObj )
     assert( Gia_ObjIsAnd(pObj) );
     Count0 = Gia_ObjRefs( p->pAig, Gia_ObjFanin0(pObj) );
     Count1 = Gia_ObjRefs( p->pAig, Gia_ObjFanin1(pObj) );
-    return ABC_MAX( Count0, Count1 );
+    return Abc_MaxInt( Count0, Count1 );
 }
 
 /**Function*************************************************************
@@ -504,7 +504,7 @@ static inline void Cbs_ManAssign( Cbs_Man_t * p, Gia_Obj_t * pObj, int Level, Gi
     Vec_IntPush( p->vLevReas, pRes1 ? pRes1-pObjR : 0 );
     assert( Vec_IntSize(p->vLevReas) == 3 * p->pProp.iTail );
 //    s_Counter++;
-//    s_Counter = Abc_MaxInt( s_Counter, Vec_IntSize(p->vLevReas)/3 );
+//    s_Counter = Abc_MaxIntInt( s_Counter, Vec_IntSize(p->vLevReas)/3 );
 }
 
 
@@ -872,7 +872,7 @@ int Cbs_ManSolve_rec( Cbs_Man_t * p, int Level )
     if ( Cbs_QueIsEmpty(&p->pJust) )
         return 0;
     // quit using resource limits
-    p->Pars.nJustThis = ABC_MAX( p->Pars.nJustThis, p->pJust.iTail - p->pJust.iHead );
+    p->Pars.nJustThis = Abc_MaxInt( p->Pars.nJustThis, p->pJust.iTail - p->pJust.iHead );
     if ( Cbs_ManCheckLimits( p ) )
         return 0;
     // remember the state before branching
@@ -946,7 +946,7 @@ int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
     p->pJust.iHead = p->pJust.iTail = 0;
     p->pClauses.iHead = p->pClauses.iTail = 1;
     p->Pars.nBTTotal += p->Pars.nBTThis;
-    p->Pars.nJustTotal = ABC_MAX( p->Pars.nJustTotal, p->Pars.nJustThis );
+    p->Pars.nJustTotal = Abc_MaxInt( p->Pars.nJustTotal, p->Pars.nJustThis );
     if ( Cbs_ManCheckLimits( p ) )
         RetValue = -1;
 

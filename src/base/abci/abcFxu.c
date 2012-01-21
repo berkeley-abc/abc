@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "fxu.h"
+#include "src/base/abc/abc.h"
+#include "src/opt/fxu/fxu.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -457,7 +457,7 @@ int Cof_ManCountRemoved( Cof_Man_t * p, Cof_Obj_t * pRoot, int fConst1 )
     pRoot->iNext = 0;
     p->pLevels[LevelStart] = Cof_ObjHandle( p, pRoot );
     // set the new literal
-    pRoot->iLit = Gia_Var2Lit( 0, fConst1 );
+    pRoot->iLit = Abc_Var2Lit( 0, fConst1 );
     // process nodes in the levelized order
     for ( i = LevelStart; i < p->nLevels; i++ )
     {
@@ -465,7 +465,7 @@ int Cof_ManCountRemoved( Cof_Man_t * p, Cof_Obj_t * pRoot, int fConst1 )
               iHandle && (pTemp = Cof_ManObj(p, iHandle)); 
               iHandle = pTemp->iNext )
         {
-            assert( pTemp->Id != Gia_Lit2Var(pTemp->iLit) );
+            assert( pTemp->Id != Abc_Lit2Var(pTemp->iLit) );
             Cof_ObjForEachFanout( pTemp, pNext, k )
             {
                 if ( Cof_ObjIsCo(pNext) )
@@ -477,11 +477,11 @@ int Cof_ManCountRemoved( Cof_Man_t * p, Cof_Obj_t * pRoot, int fConst1 )
                 assert( pFanin0 == pTemp || pFanin1 == pTemp );
                 pNextGia = Gia_ManObj( p->pGia, pNext->Id );
                 if ( Cof_ObjIsTravIdCurrent(p, pFanin0) )
-                    iLit0 = Gia_LitNotCond( pFanin0->iLit, Gia_ObjFaninC0(pNextGia) );
+                    iLit0 = Abc_LitNotCond( pFanin0->iLit, Gia_ObjFaninC0(pNextGia) );
                 else
                     iLit0 = Gia_ObjFaninLit0( pNextGia, pNext->Id );
                 if ( Cof_ObjIsTravIdCurrent(p, pFanin1) )
-                    iLit1 = Gia_LitNotCond( pFanin1->iLit, Gia_ObjFaninC1(pNextGia) );
+                    iLit1 = Abc_LitNotCond( pFanin1->iLit, Gia_ObjFaninC1(pNextGia) );
                 else
                     iLit1 = Gia_ObjFaninLit1( pNextGia, pNext->Id );
                 iNextNew = Gia_ManHashAndTry( p->pGia, iLit0, iLit1 );
@@ -578,12 +578,12 @@ void Cof_ManPrintFanio( Cof_Man_t * p )
         nFanouts = Cof_ObjFanoutNum(pNode);
         nFaninsAll  += nFanins;
         nFanoutsAll += nFanouts;
-        nFaninsMax   = ABC_MAX( nFaninsMax, nFanins );
-        nFanoutsMax  = ABC_MAX( nFanoutsMax, nFanouts );
+        nFaninsMax   = Abc_MaxInt( nFaninsMax, nFanins );
+        nFanoutsMax  = Abc_MaxInt( nFanoutsMax, nFanouts );
     }
 
     // allocate storage for fanin/fanout numbers
-    nSizeMax = ABC_MAX( 10 * (Gia_Base10Log(nFaninsMax) + 1), 10 * (Gia_Base10Log(nFanoutsMax) + 1) );
+    nSizeMax = Abc_MaxInt( 10 * (Abc_Base10Log(nFaninsMax) + 1), 10 * (Abc_Base10Log(nFanoutsMax) + 1) );
     vFanins  = Vec_IntStart( nSizeMax );
     vFanouts = Vec_IntStart( nSizeMax );
 
@@ -717,7 +717,7 @@ Gia_Man_t * Gia_ManDupCofInt( Gia_Man_t * p, int iVar )
         return NULL;
     }
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
@@ -728,7 +728,7 @@ Gia_Man_t * Gia_ManDupCofInt( Gia_Man_t * p, int iVar )
         if ( pObj == pPivot )
         {
             iCofVar = pObj->Value;
-            pObj->Value = Gia_Var2Lit( 0, 0 );
+            pObj->Value = Abc_Var2Lit( 0, 0 );
         }
     }
     Gia_ManForEachAnd( p, pObj, i )
@@ -737,7 +737,7 @@ Gia_Man_t * Gia_ManDupCofInt( Gia_Man_t * p, int iVar )
         if ( pObj == pPivot )
         {
             iCofVar = pObj->Value;
-            pObj->Value = Gia_Var2Lit( 0, 0 );
+            pObj->Value = Abc_Var2Lit( 0, 0 );
         }
     }
     Gia_ManForEachCo( p, pObj, i )
@@ -745,15 +745,15 @@ Gia_Man_t * Gia_ManDupCofInt( Gia_Man_t * p, int iVar )
     // compute the positive cofactor
     Gia_ManForEachCi( p, pObj, i )
     {
-        pObj->Value = Gia_Var2Lit( Gia_ObjId(pNew, Gia_ManCi(pNew, i)), 0 );
+        pObj->Value = Abc_Var2Lit( Gia_ObjId(pNew, Gia_ManCi(pNew, i)), 0 );
         if ( pObj == pPivot )
-            pObj->Value = Gia_Var2Lit( 0, 1 );
+            pObj->Value = Abc_Var2Lit( 0, 1 );
     }
     Gia_ManForEachAnd( p, pObj, i )
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( pObj == pPivot )
-            pObj->Value = Gia_Var2Lit( 0, 1 );
+            pObj->Value = Abc_Var2Lit( 0, 1 );
     }
     // create MUXes
     assert( iCofVar > 0 );
@@ -836,9 +836,9 @@ Vec_Int_t * Gia_ManTransfer( Gia_Man_t * pAig, Gia_Man_t * pCof, Gia_Man_t * pNe
     Gia_ManForEachObjVec( vSigs, pAig, pObj, i )
     {
         assert( Gia_ObjIsCand(pObj) );
-        pObjF = Gia_ManObj( pCof, Gia_Lit2Var(pObj->Value) );
+        pObjF = Gia_ManObj( pCof, Abc_Lit2Var(pObj->Value) );
         if ( pObjF->Value && ~pObjF->Value )
-            Vec_IntPushUnique( vSigsNew, Gia_Lit2Var(pObjF->Value) );
+            Vec_IntPushUnique( vSigsNew, Abc_Lit2Var(pObjF->Value) );
     }
     return vSigsNew;    
 }

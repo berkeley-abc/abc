@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "satSolver2.h"
-#include "vec.h"
-#include "aig.h"
+#include "src/misc/vec/vec.h"
+#include "src/aig/aig/aig.h"
 #include "satTruth.h"
 #include "vecRec.h"
 
@@ -610,7 +610,7 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
 
     // start the AIG
     pAig = Aig_ManStart( 10000 );
-    pAig->pName = Aig_UtilStrsav( "interpol" );
+    pAig->pName = Abc_UtilStrsav( "interpol" );
     for ( i = 0; i < Vec_IntSize(vGlobVars); i++ )
         Aig_ObjCreatePi( pAig );
 

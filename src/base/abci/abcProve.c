@@ -18,10 +18,11 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "fraig.h"
-#include "math.h"
-#include "extra.h"
+#include <math.h>
+
+#include "src/base/abc/abc.h"
+#include "src/proof/fraig/fraig.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -254,7 +255,7 @@ Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, ABC_INT64_T nInsp
     // no more than 256M for one circuit (128M + 128M)
     nWords1 = 32;
     nWords2 = (1<<27) / (Abc_NtkNodeNum(pNtk) + Abc_NtkCiNum(pNtk));
-    nWordsMin = ABC_MIN( nWords1, nWords2 );
+    nWordsMin = Abc_MinInt( nWords1, nWords2 );
 
     // set the FRAIGing parameters
     Fraig_ParamsSetDefault( pParams );

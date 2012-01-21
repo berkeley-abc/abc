@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
-#include "mainInt.h"
-#include "saig.h"
+#include "src/base/main/mainInt.h"
+#include "src/aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1998,7 +1998,7 @@ usage:
 
 ABC_NAMESPACE_IMPL_END
 
-#include "fra.h"
+#include "src/proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -18,10 +18,10 @@
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "src/base/abc/abc.h"
 #include "resInt.h"
-#include "hop.h"
-#include "satSolver.h"
+#include "src/aig/hop/hop.h"
+#include "src/sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 

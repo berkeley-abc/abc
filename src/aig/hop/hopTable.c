@@ -52,7 +52,6 @@ static Hop_Obj_t ** Hop_TableFind( Hop_Man_t * p, Hop_Obj_t * pObj )
 }
 
 static void         Hop_TableResize( Hop_Man_t * p );
-static unsigned int Cudd_PrimeAig( unsigned int  p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -174,7 +173,7 @@ clk = clock();
     pTableOld = p->pTable;
     nTableSizeOld = p->nTableSize;
     // get the new table
-    p->nTableSize = Cudd_PrimeAig( 2 * Hop_ManNodeNum(p) ); 
+    p->nTableSize = Abc_PrimeCudd( 2 * Hop_ManNodeNum(p) ); 
     p->pTable = ABC_ALLOC( Hop_Obj_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Hop_Obj_t *) * p->nTableSize );
     // rehash the entries from the old table
@@ -222,41 +221,6 @@ void Hop_TableProfile( Hop_Man_t * p )
             printf( "%d ", Counter );
     }
 }
-
-/**Function********************************************************************
-
-  Synopsis    [Returns the next prime &gt;= p.]
-
-  Description [Copied from CUDD, for stand-aloneness.]
-
-  SideEffects [None]
-
-  SeeAlso     []
-
-******************************************************************************/
-unsigned int Cudd_PrimeAig( unsigned int  p)
-{
-    int i,pn;
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

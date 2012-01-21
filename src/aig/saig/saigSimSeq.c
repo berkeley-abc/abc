@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "ssw.h"
+#include "src/proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -433,8 +433,8 @@ Abc_Cex_t * Raig_ManGenerateCounter( Aig_Man_t * pAig, int iFrame, int iOut, int
             continue;
         for ( w = 0; w < nWords; w++ )
             pData[w] = Aig_ManRandom( 0 );
-        if ( Aig_InfoHasBit( pData, iPat ) )
-            Aig_InfoSetBit( p->pData, Counter + iPioId );
+        if ( Abc_InfoHasBit( pData, iPat ) )
+            Abc_InfoSetBit( p->pData, Counter + iPioId );
     }
     ABC_FREE( pData );
     return p;

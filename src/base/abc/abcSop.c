@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -885,7 +884,7 @@ char * Abc_SopFromTruthBin( char * pTruth )
 
     // get the number of variables
     nTruthSize = strlen(pTruth);
-    nVars = Extra_Base2Log( nTruthSize );
+    nVars = Abc_Base2Log( nTruthSize );
     if ( nTruthSize != (1 << (nVars)) )
     {
         printf( "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
@@ -954,7 +953,7 @@ char * Abc_SopFromTruthHex( char * pTruth )
 
     // get the number of variables
     nTruthSize = strlen(pTruth);
-    nVars = (nTruthSize < 2) ? 2 : Extra_Base2Log(nTruthSize) + 2;
+    nVars = (nTruthSize < 2) ? 2 : Abc_Base2Log(nTruthSize) + 2;
     if ( nTruthSize != (1 << (nVars-2)) )
     {
         printf( "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
@@ -1051,7 +1050,7 @@ char * Abc_SopEncoderLog( Mem_Flex_t * pMan, int iBit, int nValues )
 {
     char * pResult;
     Vec_Str_t * vSop;
-    int v, Counter, fFirst = 1, nBits = Extra_Base2Log(nValues);
+    int v, Counter, fFirst = 1, nBits = Abc_Base2Log(nValues);
     assert( iBit < nBits );
     // count the number of literals
     Counter = 0;
@@ -1131,7 +1130,7 @@ char * Abc_SopDecoderLog( Mem_Flex_t * pMan, int nValues )
 {
     char * pResult;
     Vec_Str_t * vSop;
-    int i, b, nBits = Extra_Base2Log(nValues);
+    int i, b, nBits = Abc_Base2Log(nValues);
     assert( nValues > 1 && nValues <= (1<<nBits) );
     vSop = Vec_StrAlloc( 100 );
     for ( i = 0; i < nValues; i++ )

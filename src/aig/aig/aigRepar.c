@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "cnf.h"
-#include "satSolver2.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -313,7 +313,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
 
     // start the interpolant
     pBase = Aig_ManStart( 1000 );
-    pBase->pName = Aig_UtilStrsav( "repar" );
+    pBase->pName = Abc_UtilStrsav( "repar" );
     for ( k = 0; k < 2*nOuts; k++ )
         Aig_IthVar(pBase, i);
 
@@ -338,7 +338,7 @@ Aig_Man_t * Aig_ManInterRepar( Aig_Man_t * pMan, int fVerbose )
         Sat_Solver2PrintStats( stdout, pSat );
 
         // derive interpolant
-        pInter = Sat_ProofInterpolant( pSat, vVars );
+        pInter = (Aig_Man_t *)Sat_ProofInterpolant( pSat, vVars );
         Aig_ManPrintStats( pInter );
         // make sure interpolant does not depend on useless vars
         Aig_ManForEachPi( pInter, pObj, i )

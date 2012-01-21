@@ -18,10 +18,10 @@
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "base/abc/abc.h"
 
 // placement includes
-#include "place_base.h"
+#include "phys/place/place_base.h"
 
 ABC_NAMESPACE_IMPL_START
 

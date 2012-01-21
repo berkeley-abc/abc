@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __SAT_TRUTH_H__
-#define __SAT_TRUTH_H__
+#ifndef ABC__sat__bsat__satTruth_h
+#define ABC__sat__bsat__satTruth_h
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 

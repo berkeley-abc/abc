@@ -16,16 +16,15 @@
 
 ***********************************************************************/
  
-#ifndef __FXU_INT_H__
-#define __FXU_INT_H__
+#ifndef ABC__opt__fxu__fxuInt_h
+#define ABC__opt__fxu__fxuInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
 
 ABC_NAMESPACE_HEADER_START
 

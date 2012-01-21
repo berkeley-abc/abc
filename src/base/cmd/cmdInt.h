@@ -18,15 +18,15 @@
 
 ***********************************************************************/
 
-#ifndef __CMD_INT_H__
-#define __CMD_INT_H__
+#ifndef ABC__base__cmd__cmdInt_h
+#define ABC__base__cmd__cmdInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "mainInt.h"
+#include "src/base/main/mainInt.h"
 #include "cmd.h"
 
 ABC_NAMESPACE_HEADER_START

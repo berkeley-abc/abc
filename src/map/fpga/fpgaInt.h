@@ -16,8 +16,8 @@
 
 ***********************************************************************/
  
-#ifndef __FPGA_INT_H__
-#define __FPGA_INT_H__
+#ifndef ABC__map__fpga__fpgaInt_h
+#define ABC__map__fpga__fpgaInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "extra.h"
+#include "src/misc/extra/extra.h"
 #include "fpga.h"
 
 ABC_NAMESPACE_HEADER_START
@@ -377,9 +377,6 @@ extern Fpga_NodeVec_t *  Fpga_MappingLevelize( Fpga_Man_t * pMan, Fpga_NodeVec_t
 extern int               Fpga_MappingMaxLevel( Fpga_Man_t * pMan );
 extern void              Fpga_ManReportChoices( Fpga_Man_t * pMan );
 extern void              Fpga_MappingSetChoiceLevels( Fpga_Man_t * pMan );
-
-/*=== CUDD package.c ===============================================================*/
-extern unsigned int      Cudd_Prime( unsigned int p );
 
 
 

@@ -53,7 +53,7 @@ Map_HashTable_t * Map_SuperTableCreate( Map_SuperLib_t * pLib )
     memset( p, 0, sizeof(Map_HashTable_t) );
     p->mmMan = pLib->mmEntries;
     // allocate and clean the bins
-    p->nBins = Cudd_Prime(20000);
+    p->nBins = Abc_PrimeCudd(20000);
     p->pBins = ABC_ALLOC( Map_HashEntry_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Map_HashEntry_t *) * p->nBins );
     return p;
@@ -237,7 +237,7 @@ void Map_SuperTableResize( Map_HashTable_t * p )
     int nBinsNew, Counter, i;
     unsigned Key;
     // get the new table size
-    nBinsNew = Cudd_Prime(2 * p->nBins); 
+    nBinsNew = Abc_PrimeCudd(2 * p->nBins); 
     // allocate a new array
     pBinsNew = ABC_ALLOC( Map_HashEntry_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Map_HashEntry_t *) * nBinsNew );

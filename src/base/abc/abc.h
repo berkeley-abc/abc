@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __ABC_H__
-#define __ABC_H__
+#ifndef ABC__base__abc__abc_h
+#define ABC__base__abc__abc_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -32,13 +32,14 @@
 #include <assert.h>
 #include <time.h>
 
-#include "vec.h"
-#include "hop.h"
-#include "st.h"
-#include "stmm.h"
-#include "nm.h"
-#include "mem.h"
-#include "utilCex.h"
+#include "src/misc/vec/vec.h"
+#include "src/aig/hop/hop.h"
+#include "src/misc/st/st.h"
+#include "src/misc/st/stmm.h"
+#include "src/misc/nm/nm.h"
+#include "src/misc/mem/mem.h"
+#include "src/misc/util/utilCex.h"
+#include "src/misc/extra/extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -239,15 +240,6 @@ struct Abc_Lib_t_
 ////////////////////////////////////////////////////////////////////////
 
 // transforming floats into ints and back
-//static inline int         Abc_Float2Int( float Val )                 { return *((int *)&Val);                       }
-//static inline float       Abc_Int2Float( int Num )                   { return *((float *)&Num);                     }
-static inline int         Abc_Float2Int( float Val )                 { union { int x; float y; } v; v.y = Val; return v.x;    }
-static inline float       Abc_Int2Float( int Num )                   { union { int x; float y; } v; v.x = Num; return v.y;    }
-static inline int         Abc_BitWordNum( int nBits )                { return (nBits>>5) + ((nBits&31) > 0);        }
-static inline int         Abc_TruthWordNum( int nVars )              { return nVars <= 5 ? 1 : (1 << (nVars - 5));  }
-static inline int         Abc_InfoHasBit( unsigned * p, int i )      { return (p[(i)>>5] & (1<<((i) & 31))) > 0;    }
-static inline void        Abc_InfoSetBit( unsigned * p, int i )      { p[(i)>>5] |= (1<<((i) & 31));                }
-static inline void        Abc_InfoXorBit( unsigned * p, int i )      { p[(i)>>5] ^= (1<<((i) & 31));                }
 static inline unsigned    Abc_InfoRandomWord()                       { return ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand())); } // #define RAND_MAX 0x7fff
 static inline void        Abc_InfoRandom( unsigned * p, int nWords ) { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = Abc_InfoRandomWord();   } 
 static inline void        Abc_InfoClear( unsigned * p, int nWords )  { memset( p, 0, sizeof(unsigned) * nWords );   } 

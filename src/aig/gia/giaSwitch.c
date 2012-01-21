@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "giaAig.h"
-#include "main.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -569,7 +569,7 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     {
         printf( "Obj = %8d (%8d). F = %6d. ", 
             pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront, 
-            4.0*Gia_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
+            4.0*Abc_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
         printf( "AIG = %7.2f Mb. F-mem = %7.2f Mb. Other = %7.2f Mb.  ", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
             4.0*p->nWords*p->pAig->nFront/(1<<20), 
@@ -691,8 +691,8 @@ Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * pAig, int nFrames, int nPref
     Aig_ManForEachObj( pAig, pObj, i )
     {
 //        if ( Aig_ObjIsPo(pObj) )
-//            printf( "%d=%f\n", i, Aig_Int2Float( Vec_IntEntry(vSwitching, Gia_Lit2Var(pObj->iData)) ) );
-        Vec_IntWriteEntry( vResult, i, Vec_IntEntry(vSwitching, Gia_Lit2Var(pObj->iData)) );
+//            printf( "%d=%f\n", i, Abc_Int2Float( Vec_IntEntry(vSwitching, Abc_Lit2Var(pObj->iData)) ) );
+        Vec_IntWriteEntry( vResult, i, Vec_IntEntry(vSwitching, Abc_Lit2Var(pObj->iData)) );
     }
     // delete intermediate results
     Vec_IntFree( vSwitching );

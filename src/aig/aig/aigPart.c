@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "tim.h"
-#include "fra.h"
+#include "src/misc/tim/tim.h"
+#include "src/proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -471,13 +471,13 @@ unsigned * Aig_ManSuppCharStart( Vec_Int_t * vOne, int nPis )
 {
     unsigned * pBuffer;
     int i, Entry;
-    int nWords = Aig_BitWordNum(nPis);
+    int nWords = Abc_BitWordNum(nPis);
     pBuffer = ABC_ALLOC( unsigned, nWords );
     memset( pBuffer, 0, sizeof(unsigned) * nWords );
     Vec_IntForEachEntry( vOne, Entry, i )
     {
         assert( Entry < nPis );
-        Aig_InfoSetBit( pBuffer, Entry );
+        Abc_InfoSetBit( pBuffer, Entry );
     }
     return pBuffer;
 }
@@ -499,7 +499,7 @@ void Aig_ManSuppCharAdd( unsigned * pBuffer, Vec_Int_t * vOne, int nPis )
     Vec_IntForEachEntry( vOne, Entry, i )
     {
         assert( Entry < nPis );
-        Aig_InfoSetBit( pBuffer, Entry );
+        Abc_InfoSetBit( pBuffer, Entry );
     }
 }
 
@@ -518,7 +518,7 @@ int Aig_ManSuppCharCommon( unsigned * pBuffer, Vec_Int_t * vOne )
 {
     int i, Entry, nCommon = 0;
     Vec_IntForEachEntry( vOne, Entry, i )
-        nCommon += Aig_InfoHasBit(pBuffer, Entry);
+        nCommon += Abc_InfoHasBit(pBuffer, Entry);
     return nCommon;
 }
 
@@ -558,7 +558,7 @@ int Aig_ManPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vParts
         if ( Vec_IntSize(vPartSupp) < 100 )
             Repulse = 1;
         else
-            Repulse = 1+Aig_Base2Log(Vec_IntSize(vPartSupp)-100);
+            Repulse = 1+Abc_Base2Log(Vec_IntSize(vPartSupp)-100);
         Value = Attract/Repulse;
         if ( ValueBest < Value )
         {

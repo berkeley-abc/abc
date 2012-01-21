@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "kit.h"
-#include "bdc.h"
-#include "ioa.h"
+#include "src/bool/kit/kit.h"
+#include "src/bool/bdc/bdc.h"
+#include "src/aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -106,7 +106,7 @@ Aig_RMan_t * Aig_RManStart()
     p->pAig  = Aig_ManStart( 1000000 );
     Aig_IthVar( p->pAig, p->nVars-1 );
     // create hash table
-    p->nBins = Aig_PrimeCudd(5000);
+    p->nBins = Abc_PrimeCudd(5000);
     p->pBins = ABC_CALLOC( Aig_Tru_t *, p->nBins );
     p->pMemTrus = Aig_MmFlexStart();
     // bi-decomposition manager
@@ -182,7 +182,7 @@ clk = clock();
     pBinsOld = p->pBins;
     nBinsOld = p->nBins;
     // get the new Bins
-    p->nBins = Aig_PrimeCudd( 3 * nBinsOld ); 
+    p->nBins = Abc_PrimeCudd( 3 * nBinsOld ); 
     p->pBins = ABC_CALLOC( Aig_Tru_t *, p->nBins );
     // rehash the entries from the old table
     Counter = 0;
@@ -628,7 +628,7 @@ void Aig_RManRecord( unsigned * pTruth, int nVarsInit )
     else
         s_pRMan->nTtDsdNot++;
     // compute the number of words
-    nWords = Aig_TruthWordNum( nVars );
+    nWords = Abc_TruthWordNum( nVars );
     // copy the function
     memcpy( s_pRMan->pTruthInit, Kit_DsdObjTruth(pObj), 4*nWords );
     Kit_DsdNtkFree( pNtk );

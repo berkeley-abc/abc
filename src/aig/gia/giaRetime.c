@@ -125,7 +125,7 @@ Gia_Man_t * Gia_ManRetimeDupForward( Gia_Man_t * p, Vec_Ptr_t * vCut )
     int i;
     // create the new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     // create the true PIs
     Gia_ManFillValue( p );
@@ -135,7 +135,7 @@ Gia_Man_t * Gia_ManRetimeDupForward( Gia_Man_t * p, Vec_Ptr_t * vCut )
         pObj->Value = Gia_ManAppendCi( pNew );
     // create the registers
     Vec_PtrForEachEntry( Gia_Obj_t *, vCut, pObj, i )
-        pObj->Value = Gia_LitNotCond( Gia_ManAppendCi(pNew), pObj->fPhase );
+        pObj->Value = Abc_LitNotCond( Gia_ManAppendCi(pNew), pObj->fPhase );
     // duplicate logic above the cut
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManRetimeDup_rec( pNew, Gia_ObjFanin0(pObj) );
@@ -156,7 +156,7 @@ Gia_Man_t * Gia_ManRetimeDupForward( Gia_Man_t * p, Vec_Ptr_t * vCut )
     Vec_PtrForEachEntry( Gia_Obj_t *, vCut, pObj, i )
     {
         Gia_ManRetimeDup_rec( pNew, pObj );
-        Gia_ManAppendCo( pNew, Gia_LitNotCond( pObj->Value, pObj->fPhase ) );
+        Gia_ManAppendCo( pNew, Abc_LitNotCond( pObj->Value, pObj->fPhase ) );
     }
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Vec_PtrSize(vCut) );

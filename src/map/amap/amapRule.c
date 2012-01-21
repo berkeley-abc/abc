@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "amapInt.h"
-#include "kit.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -59,7 +59,7 @@ Vec_Int_t * Amap_CreateRulesPrime( Amap_Lib_t * p, Vec_Int_t * vNods0, Vec_Int_t
         iNod = Amap_LibFindMux( p, iNod0, iNod1, iNod2 );
         if ( iNod == -1 )
             iNod = Amap_LibCreateMux( p, iNod0, iNod1, iNod2 );
-        Vec_IntPush( vRes, Amap_Var2Lit(iNod, 0) );
+        Vec_IntPush( vRes, Abc_Var2Lit(iNod, 0) );
     }
     return vRes;
 }
@@ -84,7 +84,7 @@ void Amap_CreateRulesTwo( Amap_Lib_t * p, Vec_Int_t * vNods, Vec_Int_t * vNods0,
         iNod = Amap_LibFindNode( p, iNod0, iNod1, fXor );
         if ( iNod == -1 )
             iNod = Amap_LibCreateNode( p, iNod0, iNod1, fXor );
-        Vec_IntPushUnique( vNods, Amap_Var2Lit(iNod, 0) );
+        Vec_IntPushUnique( vNods, Abc_Var2Lit(iNod, 0) );
     }
 }
 
@@ -196,20 +196,20 @@ Vec_Int_t * Amap_CreateRulesFromDsd_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * p, in
     Kit_DsdObj_t * pObj;
     unsigned i;
     int iFanin, iNod, k;
-    assert( !Kit_DsdLitIsCompl(iLit) );
-    pObj = Kit_DsdNtkObj( p, Kit_DsdLit2Var(iLit) );
+    assert( !Abc_LitIsCompl(iLit) );
+    pObj = Kit_DsdNtkObj( p, Abc_Lit2Var(iLit) );
     if ( pObj == NULL )
         return Vec_IntStartNatural( 1 );
     // solve for the inputs
     vVecNods = Vec_PtrAlloc( pObj->nFans );
     Kit_DsdObjForEachFanin( p, pObj, iFanin, i )
     {
-        vNodsFanin = Amap_CreateRulesFromDsd_rec( pLib, p, Kit_DsdLitRegular(iFanin) );
-        if ( Kit_DsdLitIsCompl(iFanin) )
+        vNodsFanin = Amap_CreateRulesFromDsd_rec( pLib, p, Abc_LitRegular(iFanin) );
+        if ( Abc_LitIsCompl(iFanin) )
         {
             Vec_IntForEachEntry( vNodsFanin, iNod, k )
                 if ( iNod > 0 )
-                    Vec_IntWriteEntry( vNodsFanin, k, Amap_LitNot(iNod) );
+                    Vec_IntWriteEntry( vNodsFanin, k, Abc_LitNot(iNod) );
         }
         Vec_PtrPush( vVecNods, vNodsFanin );
     }
@@ -247,13 +247,13 @@ Vec_Int_t * Amap_CreateRulesFromDsd( Amap_Lib_t * pLib, Kit_DsdNtk_t * p )
     Vec_Int_t * vNods;
     int iNod, i;
     assert( p->nVars >= 2 );
-    vNods = Amap_CreateRulesFromDsd_rec( pLib, p, Kit_DsdLitRegular(p->Root) );
+    vNods = Amap_CreateRulesFromDsd_rec( pLib, p, Abc_LitRegular(p->Root) );
     if ( vNods == NULL )
         return NULL;
-    if ( Kit_DsdLitIsCompl(p->Root) )
+    if ( Abc_LitIsCompl(p->Root) )
     {
         Vec_IntForEachEntry( vNods, iNod, i )
-            Vec_IntWriteEntry( vNods, i, Amap_LitNot(iNod) );
+            Vec_IntWriteEntry( vNods, i, Abc_LitNot(iNod) );
     }
     return vNods;
 }
@@ -298,12 +298,12 @@ Kit_DsdPrint( stdout, pNtk );
         Vec_IntForEachEntry( vNods, iNod, i )
         {
             assert( iNod > 1 );
-            pNod = Amap_LibNod( pLib, Amap_Lit2Var(iNod) );
+            pNod = Amap_LibNod( pLib, Abc_Lit2Var(iNod) );
 //            assert( pNod->Type == AMAP_OBJ_MUX || pNod->nSuppSize == pGate->nPins );
             pSet = (Amap_Set_t *)Aig_MmFlexEntryFetch( pLib->pMemSet, sizeof(Amap_Set_t) );
             memset( pSet, 0, sizeof(Amap_Set_t) );
             pSet->iGate = pGate->Id;
-            pSet->fInv  = Amap_LitIsCompl(iNod);
+            pSet->fInv  = Abc_LitIsCompl(iNod);
             pSet->nIns  = pGate->nPins;
             if ( Amap_LibDeriveGatePerm( pLib, pGate, pNtk, pNod, pSet->Ins ) == 0 )
             {

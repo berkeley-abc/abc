@@ -20,7 +20,7 @@
 
 ***********************************************************************/
 
-#include "extra.h"
+#include "extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

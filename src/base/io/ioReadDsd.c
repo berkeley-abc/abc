@@ -241,7 +241,7 @@ Abc_Ntk_t * Io_ReadDsd( char * pForm )
     nInputs = 0;
     for ( pCur = pForm; *pCur; pCur++ )
         if ( *pCur >= 'a' && *pCur <= 'z' )
-            nInputs = ABC_MAX( nInputs, *pCur - 'a' );
+            nInputs = Abc_MaxInt( nInputs, *pCur - 'a' );
     nInputs++;
 
     // create the network

@@ -367,7 +367,7 @@ Aig_Man_t * Abc_NtkAigForConstraints( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "fra.h"
+#include "src/proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 

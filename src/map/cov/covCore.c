@@ -447,7 +447,7 @@ int Abc_NodeCovPropagate( Cov_Man_t * p, Abc_Obj_t * pObj )
 
     // count statistics
     p->nSupps++;
-    p->nSuppsMax = ABC_MAX( p->nSuppsMax, p->nSupps );
+    p->nSuppsMax = Abc_MaxInt( p->nSuppsMax, p->nSupps );
     return 1;
 }
 
@@ -732,7 +732,7 @@ int Abc_NodeCovPropagateEsop( Cov_Man_t * p, Abc_Obj_t * pObj, Abc_Obj_t * pObj0
 
     // count statistics
     p->nSupps++;
-    p->nSuppsMax = ABC_MAX( p->nSuppsMax, p->nSupps );
+    p->nSuppsMax = Abc_MaxInt( p->nSuppsMax, p->nSupps );
 
     // set the covers
     assert( Abc_ObjGetSupp(pObj) == NULL );
@@ -835,7 +835,7 @@ int Abc_NodeCovPropagateSop( Cov_Man_t * p, Abc_Obj_t * pObj, Abc_Obj_t * pObj0,
 
     // count statistics
     p->nSupps++;
-    p->nSuppsMax = ABC_MAX( p->nSuppsMax, p->nSupps );
+    p->nSuppsMax = Abc_MaxInt( p->nSuppsMax, p->nSupps );
 
     // set the covers
     assert( Abc_ObjGetSupp(pObj) == NULL );

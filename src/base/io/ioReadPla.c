@@ -158,7 +158,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                     ABC_FREE( ppSops );
                     return NULL;
                 }
-                nDigits = Extra_Base10Log( nInputs );
+                nDigits = Abc_Base10Log( nInputs );
                 for ( i = 0; i < nInputs; i++ )
                 {
                     sprintf( Buffer, "x%0*d", nDigits, i );
@@ -175,7 +175,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
                     ABC_FREE( ppSops );
                     return NULL;
                 }
-                nDigits = Extra_Base10Log( nOutputs );
+                nDigits = Abc_Base10Log( nOutputs );
                 for ( i = 0; i < nOutputs; i++ )
                 {
                     sprintf( Buffer, "z%0*d", nDigits, i );

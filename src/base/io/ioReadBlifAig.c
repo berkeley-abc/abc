@@ -18,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
-#include "vecPtr.h"
+#include "src/base/abc/abc.h"
+#include "src/misc/vec/vecPtr.h"
 
 ABC_NAMESPACE_IMPL_START
 

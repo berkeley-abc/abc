@@ -814,7 +814,7 @@ Map_CutTable_t * Map_CutTableStart( Map_Man_t * pMan )
     // allocate the table
     p = ABC_ALLOC( Map_CutTable_t, 1 );
     memset( p, 0, sizeof(Map_CutTable_t) );
-    p->nBins = Cudd_Prime( 10 * MAP_CUTS_MAX_COMPUTE );
+    p->nBins = Abc_PrimeCudd( 10 * MAP_CUTS_MAX_COMPUTE );
     p->pBins = ABC_ALLOC( Map_Cut_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Map_Cut_t *) * p->nBins );
     p->pCuts = ABC_ALLOC( int, 2 * MAP_CUTS_MAX_COMPUTE );

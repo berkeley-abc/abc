@@ -1,7 +1,7 @@
 // C-language header for MiniSat 1.14p
 
-#ifndef m114p_types_h
-#define m114p_types_h
+#ifndef ABC__sat__psat__m114p_types_h
+#define ABC__sat__psat__m114p_types_h
 
 
 ABC_NAMESPACE_HEADER_START

@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __UTIL_SIGNAL_H__
-#define __UTIL_SIGNAL_H__
+#ifndef ABC__misc__util__utilSignal_h
+#define ABC__misc__util__utilSignal_h
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///

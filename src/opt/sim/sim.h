@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __SIM_H__
-#define __SIM_H__
+#ifndef ABC__opt__sim__sim_h
+#define ABC__opt__sim__sim_h
 
 
 /*

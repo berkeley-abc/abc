@@ -232,7 +232,7 @@ Aig_Man_t * Saig_ManWindowExtractNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes )
     Aig_ManCleanData( p ); 
     // create the new manager
     pNew = Aig_ManStart( Vec_PtrSize(vNodes) );
-    pNew->pName = Aig_UtilStrsav( "wnd" );
+    pNew->pName = Abc_UtilStrsav( "wnd" );
     pNew->pSpec = NULL;
     // map constant nodes
     pObj = Aig_ManConst1( p );
@@ -375,8 +375,8 @@ Aig_Man_t * Saig_ManWindowInsertNodes( Aig_Man_t * p, Vec_Ptr_t * vNodes, Aig_Ma
     Aig_ManCleanData( p ); 
     Aig_ManCleanData( pWnd ); 
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // map constant nodes
     pObj = Aig_ManConst1( p );
     pObj->pData = Aig_ManConst1( pNew );
@@ -745,7 +745,7 @@ Aig_Man_t * Saig_ManWindowExtractMiter( Aig_Man_t * p0, Aig_Man_t * p1 )
     vNodes1 = Saig_ManCollectedDiffNodes( p1, p0 );
     // create the new manager
     pNew = Aig_ManStart( Vec_PtrSize(vNodes0) + Vec_PtrSize(vNodes1) );
-    pNew->pName = Aig_UtilStrsav( "wnd" );
+    pNew->pName = Abc_UtilStrsav( "wnd" );
     pNew->pSpec = NULL;
     // map constant nodes
     pObj0 = Aig_ManConst1( p0 );

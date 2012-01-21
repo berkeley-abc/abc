@@ -18,22 +18,22 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "main.h"
-#include "giaAig.h"
-#include "dar.h"
-#include "cnf.h"
-#include "fra.h"
-#include "fraig.h"
-#include "int.h"
-#include "dch.h"
-#include "ssw.h"
-#include "cgt.h"
-#include "bbr.h"
-#include "gia.h"
-#include "cec.h"
-#include "csw.h"
-#include "pdr.h" 
+#include "src/base/abc/abc.h"
+#include "src/base/main/main.h"
+#include "src/aig/gia/giaAig.h"
+#include "src/opt/dar/dar.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/proof/fra/fra.h"
+#include "src/proof/fraig/fraig.h"
+#include "src/proof/int/int.h"
+#include "src/proof/dch/dch.h"
+#include "src/proof/ssw/ssw.h"
+#include "src/opt/cgt/cgt.h"
+#include "src/proof/bbr/bbr.h"
+#include "src/aig/gia/gia.h"
+#include "src/proof/cec/cec.h"
+#include "src/opt/csw/csw.h"
+#include "src/proof/pdr/pdr.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -358,7 +358,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         }
 */
         assert( Abc_NtkBoxNum(pNtkOld) == Abc_NtkLatchNum(pNtkOld) );
-        nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtkNew) );
+        nDigits = Abc_Base10Log( Abc_NtkLatchNum(pNtkNew) );
         Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
         {
             pLatch = Abc_NtkBox( pNtkOld, Vec_IntEntry( pMan->vFlopNums, i ) );
@@ -1669,7 +1669,7 @@ Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, in
 
 /*
 #include <signal.h>
-#include "utilMem.h"
+#include "src/misc/util/utilMem.h"
 static void sigfunc( int signo ) 
 {
     if (signo == SIGINT) {
@@ -2160,10 +2160,10 @@ int Abc_NtkDarDemiterDual( Abc_Ntk_t * pNtk, int fVerbose )
     }
     // create new AIG
     ABC_FREE( pPart0->pName );
-    pPart0->pName = Aig_UtilStrsav( "part0" );
+    pPart0->pName = Abc_UtilStrsav( "part0" );
     // create new AIGs
     ABC_FREE( pPart1->pName );
-    pPart1->pName = Aig_UtilStrsav( "part1" );
+    pPart1->pName = Abc_UtilStrsav( "part1" );
     // create file names
     pFileNameGeneric = Extra_FileNameGeneric( pNtk->pSpec );
     sprintf( pFileName0,  "%s%s",  pFileNameGeneric, "_part0.aig" ); 
@@ -3831,8 +3831,8 @@ int Abc_NtkDarReach( Abc_Ntk_t * pNtk, Saig_ParBbr_t * pPars )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "amap.h"
-#include "mio.h"
+#include "src/map/amap/amap.h"
+#include "src/map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -4095,7 +4095,7 @@ void Abc_NtkDarConstrProfile( Abc_Ntk_t * pNtk, int fVerbose )
             printf( "Primary output :  ", i );
         else
             printf( "Constraint %3d :  ", i-(Saig_ManPoNum(pMan) - Saig_ManConstrNum(pMan)) );
-        printf( "ProbOne = %f  ", Aig_Int2Float(Entry) );
+        printf( "ProbOne = %f  ", Abc_Int2Float(Entry) );
         printf( "AllZeroValue = %d ", Aig_ObjPhase(pObj) );
         printf( "\n" );
     }

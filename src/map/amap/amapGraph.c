@@ -141,9 +141,9 @@ Amap_Obj_t * Amap_ManCreateAnd( Amap_Man_t * p, Amap_Obj_t * pFan0, Amap_Obj_t *
     pObj->Type   = AMAP_OBJ_AND;
     pObj->Fan[0] = Amap_ObjToLit(pFan0);  Amap_Regular(pFan0)->nRefs++;
     pObj->Fan[1] = Amap_ObjToLit(pFan1);  Amap_Regular(pFan1)->nRefs++;
-    assert( Amap_Lit2Var(pObj->Fan[0]) != Amap_Lit2Var(pObj->Fan[1]) );
+    assert( Abc_Lit2Var(pObj->Fan[0]) != Abc_Lit2Var(pObj->Fan[1]) );
     pObj->fPhase = Amap_ObjPhaseReal(pFan0) & Amap_ObjPhaseReal(pFan1);
-    pObj->Level  = 1 + ABC_MAX( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
+    pObj->Level  = 1 + Abc_MaxInt( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
     assert( p->nLevelMax < 4094 ); // 2^12-2
@@ -170,7 +170,7 @@ Amap_Obj_t * Amap_ManCreateXor( Amap_Man_t * p, Amap_Obj_t * pFan0, Amap_Obj_t *
     pObj->Fan[0] = Amap_ObjToLit(pFan0);  Amap_Regular(pFan0)->nRefs++;
     pObj->Fan[1] = Amap_ObjToLit(pFan1);  Amap_Regular(pFan1)->nRefs++;
     pObj->fPhase = Amap_ObjPhaseReal(pFan0) ^ Amap_ObjPhaseReal(pFan1);
-    pObj->Level  = 2 + ABC_MAX( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
+    pObj->Level  = 2 + Abc_MaxInt( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
     assert( p->nLevelMax < 4094 ); // 2^12-2
@@ -199,8 +199,8 @@ Amap_Obj_t * Amap_ManCreateMux( Amap_Man_t * p, Amap_Obj_t * pFan0, Amap_Obj_t *
     pObj->Fan[2] = Amap_ObjToLit(pFanC);  Amap_Regular(pFanC)->nRefs++;
     pObj->fPhase = (Amap_ObjPhaseReal(pFan1) &  Amap_ObjPhaseReal(pFanC)) | 
                    (Amap_ObjPhaseReal(pFan0) & ~Amap_ObjPhaseReal(pFanC));
-    pObj->Level  = ABC_MAX( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
-    pObj->Level  = 2 + ABC_MAX( pObj->Level, Amap_Regular(pFanC)->Level );
+    pObj->Level  = Abc_MaxInt( Amap_Regular(pFan0)->Level, Amap_Regular(pFan1)->Level );
+    pObj->Level  = 2 + Abc_MaxInt( pObj->Level, Amap_Regular(pFanC)->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
     assert( p->nLevelMax < 4094 ); // 2^12-2
@@ -228,7 +228,7 @@ void Amap_ManCreateChoice( Amap_Man_t * p, Amap_Obj_t * pObj )
     // update the level of this node (needed for correct required time computation)
     for ( pTemp = pObj; pTemp; pTemp = Amap_ObjChoice(p, pTemp) )
     {
-        pObj->Level = ABC_MAX( pObj->Level, pTemp->Level );
+        pObj->Level = Abc_MaxInt( pObj->Level, pTemp->Level );
 //        pTemp->nVisits++; pTemp->nVisitsCopy++;
     }
     // mark the largest level

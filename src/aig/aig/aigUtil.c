@@ -30,42 +30,6 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/**Function********************************************************************
-
-  Synopsis    [Returns the next prime >= p.]
-
-  Description [Copied from CUDD, for stand-aloneness.]
-
-  SideEffects [None]
-
-  SeeAlso     []
-
-******************************************************************************/
-unsigned int Aig_PrimeCudd( unsigned int p )
-{
-    int i,pn;
-
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
-
 /**Function*************************************************************
 
   Synopsis    [Increments the current traversal ID of the network.]
@@ -140,7 +104,7 @@ int Aig_ManLevels( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i, LevelMax = 0;
     Aig_ManForEachPo( p, pObj, i )
-        LevelMax = ABC_MAX( LevelMax, (int)Aig_ObjFanin0(pObj)->Level );
+        LevelMax = Abc_MaxInt( LevelMax, (int)Aig_ObjFanin0(pObj)->Level );
     return LevelMax;
 }
 
@@ -791,7 +755,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec
         pObj->iData = Counter++;
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->iData = Counter++;
-    nDigits = Aig_Base10Log( Counter );
+    nDigits = Abc_Base10Log( Counter );
     // write the file 
     pFile = fopen( pFileName, "w" );
     fprintf( pFile, "# BLIF file written by procedure Aig_ManDumpBlif()\n" );
@@ -906,7 +870,7 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
         pObj->iData = Counter++;
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->iData = Counter++;
-    nDigits = Aig_Base10Log( Counter );
+    nDigits = Abc_Base10Log( Counter );
     // write the file
     pFile = fopen( pFileName, "w" );
     fprintf( pFile, "// Verilog file written by procedure Aig_ManDumpVerilog()\n" );
@@ -1299,7 +1263,7 @@ void Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * v
     Aig_Obj_t ** pBeg2 = (Aig_Obj_t **)vArr2->pArray;
     Aig_Obj_t ** pEnd1 = (Aig_Obj_t **)vArr1->pArray + vArr1->nSize;
     Aig_Obj_t ** pEnd2 = (Aig_Obj_t **)vArr2->pArray + vArr2->nSize;
-    Vec_PtrGrow( vArr, ABC_MAX( Vec_PtrSize(vArr1), Vec_PtrSize(vArr2) ) );
+    Vec_PtrGrow( vArr, Abc_MaxInt( Vec_PtrSize(vArr1), Vec_PtrSize(vArr2) ) );
     pBeg  = (Aig_Obj_t **)vArr->pArray;
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
@@ -1324,8 +1288,8 @@ void Aig_NodeIntersectLists( Vec_Ptr_t * vArr1, Vec_Ptr_t * vArr2, Vec_Ptr_t * v
 
 ABC_NAMESPACE_IMPL_END
 
-#include "fra.h"
-#include "saig.h"
+#include "src/proof/fra/fra.h"
+#include "src/aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1353,45 +1317,45 @@ void Aig_ManCounterExampleValueStart( Aig_Man_t * pAig, Abc_Cex_t * pCex )
     assert( Aig_ManRegNum(pAig) > 0 ); // makes sense only for sequential AIGs
     assert( pAig->pData2 == NULL );    // if this fail, there may be a memory leak
     // allocate memory to store simulation bits for internal nodes
-    pAig->pData2 = ABC_CALLOC( unsigned, Aig_BitWordNum( (pCex->iFrame + 1) * Aig_ManObjNum(pAig) ) );
+    pAig->pData2 = ABC_CALLOC( unsigned, Abc_BitWordNum( (pCex->iFrame + 1) * Aig_ManObjNum(pAig) ) );
     // the register values in the counter-example should be zero
     Saig_ManForEachLo( pAig, pObj, k )
-        assert( Aig_InfoHasBit(pCex->pData, iBit++) == 0 );
+        assert( Abc_InfoHasBit(pCex->pData, iBit++) == 0 );
     // iterate through the timeframes
     nObjs = Aig_ManObjNum(pAig);
     for ( i = 0; i <= pCex->iFrame; i++ )
     {
         // set constant 1 node
-        Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + 0 );
+        Abc_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + 0 );
         // set primary inputs according to the counter-example
         Saig_ManForEachPi( pAig, pObj, k )
-            if ( Aig_InfoHasBit(pCex->pData, iBit++) )
-                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+            if ( Abc_InfoHasBit(pCex->pData, iBit++) )
+                Abc_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
         // compute values for each node
         Aig_ManForEachNode( pAig, pObj, k )
         {
-            Val0 = Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
-            Val1 = Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId1(pObj) );
+            Val0 = Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
+            Val1 = Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId1(pObj) );
             if ( (Val0 ^ Aig_ObjFaninC0(pObj)) & (Val1 ^ Aig_ObjFaninC1(pObj)) )
-                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+                Abc_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
         }
         // derive values for combinational outputs
         Aig_ManForEachPo( pAig, pObj, k )
         {
-            Val0 = Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
+            Val0 = Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjFaninId0(pObj) );
             if ( Val0 ^ Aig_ObjFaninC0(pObj) )
-                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
+                Abc_InfoSetBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObj) );
         }
         if ( i == pCex->iFrame )
             continue;
         // transfer values to the register output of the next frame
         Saig_ManForEachLiLo( pAig, pObjRi, pObjRo, k )
-            if ( Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObjRi) ) )
-                Aig_InfoSetBit( (unsigned *)pAig->pData2, nObjs * (i+1) + Aig_ObjId(pObjRo) );
+            if ( Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * i + Aig_ObjId(pObjRi) ) )
+                Abc_InfoSetBit( (unsigned *)pAig->pData2, nObjs * (i+1) + Aig_ObjId(pObjRo) );
     }
     assert( iBit == pCex->nBits );
     // check that the counter-example is correct, that is, the corresponding output is asserted
-    assert( Aig_InfoHasBit( (unsigned *)pAig->pData2, nObjs * pCex->iFrame + Aig_ObjId(Aig_ManPo(pAig, pCex->iPo)) ) );
+    assert( Abc_InfoHasBit( (unsigned *)pAig->pData2, nObjs * pCex->iFrame + Aig_ObjId(Aig_ManPo(pAig, pCex->iPo)) ) );
 }
 
 /**Function*************************************************************
@@ -1428,7 +1392,7 @@ void Aig_ManCounterExampleValueStop( Aig_Man_t * pAig )
 int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame )
 {
     assert( Id >= 0 && Id < Aig_ManObjNum(pAig) );
-    return Aig_InfoHasBit( (unsigned *)pAig->pData2, Aig_ManObjNum(pAig) * iFrame + Id );
+    return Abc_InfoHasBit( (unsigned *)pAig->pData2, Aig_ManObjNum(pAig) * iFrame + Id );
 }
 
 /**Function*************************************************************
@@ -1445,7 +1409,7 @@ int Aig_ManCounterExampleValueLookup(  Aig_Man_t * pAig, int Id, int iFrame )
 void Aig_ManCounterExampleValueTest( Aig_Man_t * pAig, Abc_Cex_t * pCex )
 {
     Aig_Obj_t * pObj = Aig_ManObj( pAig, Aig_ManObjNum(pAig)/2 );
-    int iFrame = ABC_MAX( 0, pCex->iFrame - 1 );
+    int iFrame = Abc_MaxInt( 0, pCex->iFrame - 1 );
     printf( "\nUsing counter-example, which asserts output %d in frame %d.\n", pCex->iPo, pCex->iFrame );
     Aig_ManCounterExampleValueStart( pAig, pCex );
     printf( "Value of object %d in frame %d is %d.\n", Aig_ObjId(pObj), iFrame,

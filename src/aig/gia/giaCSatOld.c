@@ -213,8 +213,8 @@ static inline void Cbs0_ManSaveModel( Cbs0_Man_t * p, Vec_Int_t * vCex )
     p->pProp.iHead = 0;
     Cbs0_QueForEachEntry( p->pProp, pVar, i )
         if ( Gia_ObjIsCi(pVar) )
-//            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs0_VarValue(pVar)) );
-            Vec_IntPush( vCex, Gia_Var2Lit(Gia_ObjCioId(pVar), !Cbs0_VarValue(pVar)) );
+//            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs0_VarValue(pVar)) );
+            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjCioId(pVar), !Cbs0_VarValue(pVar)) );
 } 
 
 /**Function*************************************************************
@@ -332,7 +332,7 @@ static inline int Cbs0_VarFaninFanoutMax( Cbs0_Man_t * p, Gia_Obj_t * pObj )
     assert( Gia_ObjIsAnd(pObj) );
     Count0 = Gia_ObjRefs( p->pAig, Gia_ObjFanin0(pObj) );
     Count1 = Gia_ObjRefs( p->pAig, Gia_ObjFanin1(pObj) );
-    return ABC_MAX( Count0, Count1 );
+    return Abc_MaxInt( Count0, Count1 );
 }
 
 /**Function*************************************************************
@@ -596,7 +596,7 @@ int Cbs0_ManSolve_rec( Cbs0_Man_t * p )
     if ( Cbs0_QueIsEmpty(&p->pJust) )
         return 0;
     // quit using resource limits
-    p->Pars.nJustThis = ABC_MAX( p->Pars.nJustThis, p->pJust.iTail - p->pJust.iHead );
+    p->Pars.nJustThis = Abc_MaxInt( p->Pars.nJustThis, p->pJust.iTail - p->pJust.iHead );
     if ( Cbs0_ManCheckLimits( p ) )
         return 0;
     // remember the state before branching
@@ -656,7 +656,7 @@ int Cbs0_ManSolve( Cbs0_Man_t * p, Gia_Obj_t * pObj )
     Cbs0_ManCancelUntil( p, 0 );
     p->pJust.iHead = p->pJust.iTail = 0;
     p->Pars.nBTTotal += p->Pars.nBTThis;
-    p->Pars.nJustTotal = ABC_MAX( p->Pars.nJustTotal, p->Pars.nJustThis );
+    p->Pars.nJustTotal = Abc_MaxInt( p->Pars.nJustTotal, p->Pars.nJustThis );
     if ( Cbs0_ManCheckLimits( p ) )
         RetValue = -1;
 //    printf( "Outcome = %2d.  Confs = %6d.  Decision level max = %3d.\n", 

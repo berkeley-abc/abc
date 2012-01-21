@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "espresso.h"
+#include "base/abc/abc.h"
+#include "misc/espresso/espresso.h"
 
 ABC_NAMESPACE_IMPL_START
 

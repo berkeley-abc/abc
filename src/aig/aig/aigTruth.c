@@ -88,7 +88,7 @@ unsigned * Aig_ManCutTruth( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * 
     Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
         pObj->pData = Vec_PtrEntry( vTruthElem, i );
     // compute truths for other nodes
-    nWords = Aig_TruthWordNum( Vec_PtrSize(vLeaves) );
+    nWords = Abc_TruthWordNum( Vec_PtrSize(vLeaves) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
         pObj->pData = Aig_ManCutTruthOne( pObj, (unsigned *)Vec_PtrEntry(vTruthStore, i), nWords );
     return (unsigned *)pRoot->pData;

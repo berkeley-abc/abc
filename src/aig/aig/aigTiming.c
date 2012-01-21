@@ -121,7 +121,7 @@ int Aig_ObjReverseLevelNew( Aig_Man_t * p, Aig_Obj_t * pObj )
     Aig_ObjForEachFanout( p, pObj, pFanout, iFanout, i )
     {
         LevelCur = Aig_ObjReverseLevel( p, pFanout );
-        Level = ABC_MAX( Level, LevelCur );
+        Level = Abc_MaxInt( Level, LevelCur );
     }
     return Level + 1;
 }

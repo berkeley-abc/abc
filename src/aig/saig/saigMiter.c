@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "fra.h"
+#include "src/proof/fra/fra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -106,7 +106,7 @@ Aig_Man_t * Saig_ManCreateMiter( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     assert( Saig_ManPiNum(p0) == Saig_ManPiNum(p1) );
     assert( Saig_ManPoNum(p0) == Saig_ManPoNum(p1) );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p0) + Aig_ManObjNumMax(p1) );
-    pNew->pName = Aig_UtilStrsav( "miter" );
+    pNew->pName = Abc_UtilStrsav( "miter" );
     Aig_ManCleanData( p0 );
     Aig_ManCleanData( p1 );
     // map constant nodes
@@ -168,7 +168,7 @@ Aig_Man_t * Saig_ManCreateMiterComb( Aig_Man_t * p0, Aig_Man_t * p1, int Oper )
     assert( Aig_ManPiNum(p0) == Aig_ManPiNum(p1) );
     assert( Aig_ManPoNum(p0) == Aig_ManPoNum(p1) );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p0) + Aig_ManObjNumMax(p1) );
-    pNew->pName = Aig_UtilStrsav( "miter" );
+    pNew->pName = Abc_UtilStrsav( "miter" );
     // map constant nodes
     Aig_ManConst1(p0)->pData = Aig_ManConst1(pNew);
     Aig_ManConst1(p1)->pData = Aig_ManConst1(pNew);
@@ -246,8 +246,8 @@ Aig_Man_t * Saig_ManDualRail( Aig_Man_t * p, int fMiter )
     Aig_ManCleanNext( p );
     // create the new manager
     pNew = Aig_ManStart( 4*Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs 
     Aig_ManConst1(p)->pData = Aig_ManConst0(pNew);
     Aig_ManConst1(p)->pNext = Aig_ManConst1(pNew);
@@ -331,8 +331,8 @@ Aig_Man_t * Saig_ManUnrollTwo( Aig_Man_t * pBot, Aig_Man_t * pTop, int nFrames )
     assert( Saig_ManRegNum(pBot) == Saig_ManRegNum(pTop) );
     assert( Saig_ManRegNum(pBot) > 0 || Saig_ManRegNum(pTop) > 0 );
     // start timeframes
-    p = Aig_ManStart( nFrames * ABC_MAX(Aig_ManObjNumMax(pBot), Aig_ManObjNumMax(pTop)) );
-    p->pName = Aig_UtilStrsav( "frames" );
+    p = Aig_ManStart( nFrames * Abc_MaxInt(Aig_ManObjNumMax(pBot), Aig_ManObjNumMax(pTop)) );
+    p->pName = Abc_UtilStrsav( "frames" );
     // create variables for register outputs
     pAig = pBot;
     Saig_ManForEachLo( pAig, pObj, i )
@@ -392,7 +392,7 @@ Aig_Man_t * Aig_ManDupNodesAll( Aig_Man_t * p, Vec_Ptr_t * vSet )
     Aig_Obj_t * pObj;
     int i;
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
@@ -430,7 +430,7 @@ Aig_Man_t * Aig_ManDupNodesHalf( Aig_Man_t * p, Vec_Ptr_t * vSet, int iPart )
     int i;
     Aig_ManCleanData( p );
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Saig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
@@ -534,13 +534,13 @@ int Saig_ManDemiterSimple( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAi
     {
         *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 );
         ABC_FREE( (*ppAig0)->pName );
-        (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
+        (*ppAig0)->pName = Abc_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
         *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 );
         ABC_FREE( (*ppAig1)->pName );
-        (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
+        (*ppAig1)->pName = Abc_UtilStrsav( "part1" );
     }
     Vec_PtrFree( vSet0 );
     Vec_PtrFree( vSet1 );
@@ -682,11 +682,11 @@ int Saig_ManDemiterSimpleDiff( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** 
     // create new AIG
     *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 );
     ABC_FREE( (*ppAig0)->pName );
-    (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
+    (*ppAig0)->pName = Abc_UtilStrsav( "part0" );
     // create new AIGs
     *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 );
     ABC_FREE( (*ppAig1)->pName );
-    (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
+    (*ppAig1)->pName = Abc_UtilStrsav( "part1" );
     // cleanup
     Vec_PtrFree( vSet0 );
     Vec_PtrFree( vSet1 );
@@ -812,13 +812,13 @@ int Saig_ManDemiterSimpleDiff_old( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t
     {
         *ppAig0 = Aig_ManDupNodesAll( p, vSet0 );
         ABC_FREE( (*ppAig0)->pName );
-        (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
+        (*ppAig0)->pName = Abc_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
         *ppAig1 = Aig_ManDupNodesAll( p, vSet1 );
         ABC_FREE( (*ppAig1)->pName );
-        (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
+        (*ppAig1)->pName = Abc_UtilStrsav( "part1" );
     }
     Vec_PtrFree( vSet0 );
     Vec_PtrFree( vSet1 );
@@ -984,14 +984,14 @@ int Saig_ManDemiter( Aig_Man_t * p, Aig_Man_t ** ppAig0, Aig_Man_t ** ppAig1 )
         assert( 0 );
         *ppAig0 = Aig_ManDupNodesHalf( p, vSet0, 0 ); // not ready
         ABC_FREE( (*ppAig0)->pName );
-        (*ppAig0)->pName = Aig_UtilStrsav( "part0" );
+        (*ppAig0)->pName = Abc_UtilStrsav( "part0" );
     }
     if ( ppAig1 )
     {
         assert( 0 );
         *ppAig1 = Aig_ManDupNodesHalf( p, vSet1, 1 ); // not ready
         ABC_FREE( (*ppAig1)->pName );
-        (*ppAig1)->pName = Aig_UtilStrsav( "part1" );
+        (*ppAig1)->pName = Abc_UtilStrsav( "part1" );
     }
     Vec_PtrFree( vSet0 );
     Vec_PtrFree( vSet1 );

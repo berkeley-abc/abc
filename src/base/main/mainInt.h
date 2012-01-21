@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __MAIN_INT_H__
-#define __MAIN_INT_H__
+#ifndef ABC__base__main__mainInt_h
+#define ABC__base__main__mainInt_h
 
  
 ////////////////////////////////////////////////////////////////////////
@@ -27,15 +27,16 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "main.h"
-#include "tim.h"
-#include "if.h"
-#include "aig.h"
-#include "gia.h"
-#include "ssw.h"
-#include "fra.h"
-#include "nwkMerge.h"
-#include "ntlnwk.h"
-#include "ext.h"
+#include "src/misc/tim/tim.h"
+#include "src/map/if/if.h"
+#include "src/aig/aig/aig.h"
+#include "src/aig/gia/gia.h"
+#include "src/proof/ssw/ssw.h"
+#include "src/proof/fra/fra.h"
+//#include "src/aig/nwk/nwkMerge.h"
+//#include "src/aig/ntl/ntlnwk.h"
+#include "src/misc/ext/ext.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -89,12 +90,6 @@ struct Abc_Frame_t_
     void *          pLibVer;     // the current Verilog library
 
     // new code
-    Ntl_Man_t *     pAbc8Ntl;    // the current design
-    Nwk_Man_t *     pAbc8Nwk;    // the current mapped network
-    Aig_Man_t *     pAbc8Aig;    // the current AIG
-    If_Lib_t *      pAbc8Lib;    // the current LUT library
-    If_Lib_t *      pAbc85Lib;   // the current LUT library
-
     Gia_Man_t *     pGia;
     Gia_Man_t *     pGia2;
     Abc_Cex_t *     pCex; 

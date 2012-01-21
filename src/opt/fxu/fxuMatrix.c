@@ -25,8 +25,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern unsigned int Cudd_Prime( unsigned int p );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +45,7 @@ Fxu_Matrix * Fxu_MatrixAllocate()
     Fxu_Matrix * p;
     p = ABC_ALLOC( Fxu_Matrix, 1 );
     memset( p, 0, sizeof(Fxu_Matrix) );
-    p->nTableSize = Cudd_Prime(10000);
+    p->nTableSize = Abc_PrimeCudd(10000);
     p->pTable = ABC_ALLOC( Fxu_ListDouble, p->nTableSize );
     memset( p->pTable, 0, sizeof(Fxu_ListDouble) * p->nTableSize );
 #ifndef USE_SYSTEM_MEMORY_MANAGEMENT

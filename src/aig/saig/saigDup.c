@@ -54,7 +54,7 @@ Aig_Man_t * Saig_ManDupOrpos( Aig_Man_t * pAig )
     }
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     pAigNew->nConstrs = pAig->nConstrs;
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
@@ -100,7 +100,7 @@ Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs )
     }
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     pAigNew->nConstrs = pAig->nConstrs;
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
@@ -150,7 +150,7 @@ Aig_Man_t * Saig_ManTrimPis( Aig_Man_t * p )
             fAllPisHaveNoRefs = 0;
     // start the new manager
     pNew = Aig_ManStart( Aig_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
     // start mapping of the CI numbers
     pNew->vCiNumsOrig = Vec_IntAlloc( Aig_ManPiNum(p) );
@@ -210,7 +210,7 @@ Aig_Man_t * Saig_ManDupAbstraction( Aig_Man_t * p, Vec_Int_t * vFlops )
     Aig_ManCleanData( p );
     // start the new manager
     pNew = Aig_ManStart( 5000 );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     // map the constant node
     Aig_ManConst1(p)->pData = Aig_ManConst1( pNew );
     // label included flops
@@ -283,11 +283,11 @@ int Saig_ManVerifyCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     Aig_ManCleanMarkB(pAig);
     Aig_ManConst1(pAig)->fMarkB = 1;
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
     for ( i = 0; i <= p->iFrame; i++ )
     {
         Saig_ManForEachPi( pAig, pObj, k )
-            pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+            pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
         Aig_ManForEachNode( pAig, pObj, k )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
                            (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
@@ -328,15 +328,15 @@ Abc_Cex_t * Saig_ManExtendCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     Aig_ManCleanMarkB(pAig);
     Aig_ManConst1(pAig)->fMarkB = 1;
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
     for ( i = 0; i <= p->iFrame; i++ )
     {
         Saig_ManForEachPi( pAig, pObj, k )
-            pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+            pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
         ///////// write PI+LO values ////////////
         Aig_ManForEachPi( pAig, pObj, k )
             if ( pObj->fMarkB )
-                Aig_InfoSetBit(pNew->pData, Aig_ManPiNum(pAig)*i + k);
+                Abc_InfoSetBit(pNew->pData, Aig_ManPiNum(pAig)*i + k);
         /////////////////////////////////////////
         Aig_ManForEachNode( pAig, pObj, k )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
@@ -374,11 +374,11 @@ int Saig_ManFindFailedPoCex( Aig_Man_t * pAig, Abc_Cex_t * p )
     Aig_ManCleanMarkB(pAig);
     Aig_ManConst1(pAig)->fMarkB = 1;
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+        pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
     for ( i = 0; i <= p->iFrame; i++ )
     {
         Saig_ManForEachPi( pAig, pObj, k )
-            pObj->fMarkB = Aig_InfoHasBit(p->pData, iBit++);
+            pObj->fMarkB = Abc_InfoHasBit(p->pData, iBit++);
         Aig_ManForEachNode( pAig, pObj, k )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
                            (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
@@ -421,7 +421,7 @@ Aig_Man_t * Saig_ManDupWithPhase( Aig_Man_t * pAig, Vec_Int_t * vInit )
     assert( Aig_ManRegNum(pAig) <= Vec_IntSize(vInit) );
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     pAigNew->nConstrs = pAig->nConstrs;
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );

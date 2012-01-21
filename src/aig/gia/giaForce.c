@@ -609,7 +609,7 @@ int Frc_ManCrossCut_rec( Frc_Man_t * p, Frc_Obj_t * pObj )
         Frc_Obj_t * pFanin;
         int i;
         p->nCutCur++;
-        p->nCutMax = ABC_MAX( p->nCutMax, p->nCutCur );
+        p->nCutMax = Abc_MaxInt( p->nCutMax, p->nCutCur );
         if ( !Frc_ObjIsCi(pObj) )
             Frc_ObjForEachFanin( pObj, pFanin, i )
                 p->nCutCur -= Frc_ManCrossCut_rec( p, pFanin );
@@ -636,7 +636,7 @@ int Frc_ManCrossCut2_rec( Frc_Man_t * p, Frc_Obj_t * pObj )
         Frc_Obj_t * pFanin;
         int i;
         p->nCutCur++;
-        p->nCutMax = ABC_MAX( p->nCutMax, p->nCutCur );
+        p->nCutMax = Abc_MaxInt( p->nCutMax, p->nCutCur );
         if ( !Frc_ObjIsCi(pObj) )
             Frc_ObjForEachFaninReverse( pObj, pFanin, i )
                 p->nCutCur -= Frc_ManCrossCut2_rec( p, pFanin );
@@ -912,8 +912,8 @@ void Frc_ManPlacementRefine( Frc_Man_t * p, int nIters, int fVerbose )
             iMinX = iMaxX = pThis->pPlace;
             Frc_ObjForEachFanout( pThis, pNext, k )
             {
-                iMinX = ABC_MIN( iMinX, pNext->pPlace );
-                iMaxX = ABC_MAX( iMaxX, pNext->pPlace );
+                iMinX = Abc_MinInt( iMinX, pNext->pPlace );
+                iMaxX = Abc_MaxInt( iMaxX, pNext->pPlace );
             }
             pThis->fEdgeCenter = 0.5 * (iMaxX + iMinX);
             CostThis += (iMaxX - iMinX);

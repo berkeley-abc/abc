@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "ssw.h"
+#include "src/proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -398,7 +398,7 @@ int Saig_StrSimDetectUnique( Aig_Man_t * p0, Aig_Man_t * p1 )
     int i, nTableSize, Counter;
 
     // allocate the hash table hashing simulation info into nodes
-    nTableSize = Aig_PrimeCudd( Aig_ManObjNum(p0)/2 );
+    nTableSize = Abc_PrimeCudd( Aig_ManObjNum(p0)/2 );
     ppTable = ABC_CALLOC( Aig_Obj_t *, nTableSize ); 
     ppNexts = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 
     ppCands = ABC_CALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p0) ); 

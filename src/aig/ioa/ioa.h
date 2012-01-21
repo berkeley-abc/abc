@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __IOA_H__
-#define __IOA_H__
+#ifndef ABC__aig__ioa__ioa_h
+#define ABC__aig__ioa__ioa_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -32,9 +32,9 @@
 #include <assert.h>
 #include <time.h>
 
-#include "vec.h"
+#include "src/misc/vec/vec.h"
 //#include "bar.h"
-#include "aig.h"
+#include "src/aig/aig/aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

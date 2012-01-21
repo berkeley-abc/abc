@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "giaAig.h"
-#include "fra.h"
-#include "dch.h"
-#include "dar.h"
+#include "src/proof/fra/fra.h"
+#include "src/proof/dch/dch.h"
+#include "src/opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -30,8 +30,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int Gia_ObjChild0Copy( Aig_Obj_t * pObj )  { return Gia_LitNotCond( Aig_ObjFanin0(pObj)->iData, Aig_ObjFaninC0(pObj) ); }
-static inline int Gia_ObjChild1Copy( Aig_Obj_t * pObj )  { return Gia_LitNotCond( Aig_ObjFanin1(pObj)->iData, Aig_ObjFaninC1(pObj) ); }
+static inline int Gia_ObjChild0Copy( Aig_Obj_t * pObj )  { return Abc_LitNotCond( Aig_ObjFanin0(pObj)->iData, Aig_ObjFaninC0(pObj) ); }
+static inline int Gia_ObjChild1Copy( Aig_Obj_t * pObj )  { return Abc_LitNotCond( Aig_ObjFanin1(pObj)->iData, Aig_ObjFaninC1(pObj) ); }
 
 static inline Aig_Obj_t * Gia_ObjChild0Copy2( Aig_Obj_t ** ppNodes, Gia_Obj_t * pObj, int Id )  { return Aig_NotCond( ppNodes[Gia_ObjFaninId0(pObj, Id)], Gia_ObjFaninC0(pObj) ); }
 static inline Aig_Obj_t * Gia_ObjChild1Copy2( Aig_Obj_t ** ppNodes, Gia_Obj_t * pObj, int Id )  { return Aig_NotCond( ppNodes[Gia_ObjFaninId1(pObj, Id)], Gia_ObjFaninC1(pObj) ); }
@@ -64,8 +64,8 @@ void Gia_ManFromAig_rec( Gia_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
     {
         int iObjNew, iNextNew;
         Gia_ManFromAig_rec( pNew, p, pNext );
-        iObjNew  = Gia_Lit2Var(pObj->iData);
-        iNextNew = Gia_Lit2Var(pNext->iData);
+        iObjNew  = Abc_Lit2Var(pObj->iData);
+        iNextNew = Abc_Lit2Var(pNext->iData);
         if ( pNew->pNexts )
             pNew->pNexts[iObjNew] = iNextNew;        
     }
@@ -89,7 +89,7 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
     int i;
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
     // create room to store equivalences
     if ( p->pEquivs )
@@ -128,7 +128,7 @@ Gia_Man_t * Gia_ManFromAigSimple( Aig_Man_t * p )
     int i;
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
     // create the PIs
     Aig_ManCleanData( p );
@@ -167,7 +167,7 @@ Gia_Man_t * Gia_ManFromAigSwitch( Aig_Man_t * p )
     int i;
     // create the new manager
     pNew = Gia_ManStart( Aig_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
     // create the PIs
     Aig_ManCleanData( p );
@@ -246,9 +246,9 @@ Aig_Man_t * Gia_ManToAig( Gia_Man_t * p, int fChoices )
     assert( !fChoices || (p->pNexts && p->pReprs) );
     // create the new manager
     pNew = Aig_ManStart( Gia_ManAndNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
-//    pNew->pSpec = Gia_UtilStrsav( p->pName );
+//    pNew->pSpec = Abc_UtilStrsav( p->pName );
     // duplicate representation of choice nodes
     if ( fChoices )
         pNew->pEquivs = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
@@ -293,9 +293,9 @@ Aig_Man_t * Gia_ManToAigSkip( Gia_Man_t * p, int nOutDelta )
     assert( nOutDelta > 0 && Gia_ManCoNum(p) % nOutDelta == 0 );
     // create the new manager
     pNew = Aig_ManStart( Gia_ManAndNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
-//    pNew->pSpec = Gia_UtilStrsav( p->pName );
+//    pNew->pSpec = Abc_UtilStrsav( p->pName );
     // create the PIs
     ppNodes = ABC_CALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
     ppNodes[0] = Aig_ManConst0(pNew);
@@ -334,7 +334,7 @@ Aig_Man_t * Gia_ManToAigSimple( Gia_Man_t * p )
     ppNodes = ABC_FALLOC( Aig_Obj_t *, Gia_ManObjNum(p) );
     // create the new manager
     pNew = Aig_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nConstrs = p->nConstrs;
     // create the PIs
     Gia_ManForEachObj( p, pObj, i )
@@ -349,7 +349,7 @@ Aig_Man_t * Gia_ManToAigSimple( Gia_Man_t * p )
             ppNodes[i] = Aig_ManConst0(pNew);
         else
             assert( 0 );
-        pObj->Value = Gia_Var2Lit( Aig_ObjId(Aig_Regular(ppNodes[i])), Aig_IsComplement(ppNodes[i]) );
+        pObj->Value = Abc_Var2Lit( Aig_ObjId(Aig_Regular(ppNodes[i])), Aig_IsComplement(ppNodes[i]) );
         assert( i == 0 || Aig_ObjId(ppNodes[i]) == i );
     }
     Aig_ManSetRegNum( pNew, Gia_ManRegNum(p) );
@@ -402,8 +402,8 @@ void Gia_ManReprToAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia )
     // move pointers from AIG to GIA
     Aig_ManForEachObj( pAig, pObj, i )
     {
-        assert( i == 0 || !Gia_LitIsCompl(pObj->iData) );
-        pGiaObj = Gia_ManObj( pGia, Gia_Lit2Var(pObj->iData) );
+        assert( i == 0 || !Abc_LitIsCompl(pObj->iData) );
+        pGiaObj = Gia_ManObj( pGia, Abc_Lit2Var(pObj->iData) );
         pGiaObj->Value = i;
     }
     // set the pointers to the nodes in AIG
@@ -441,7 +441,7 @@ void Gia_ManReprToAigRepr2( Aig_Man_t * pAig, Gia_Man_t * pGia )
         pGiaRepr = Gia_ObjReprObj( pGia, i );
         if ( pGiaRepr == NULL )
             continue;
-        Aig_ObjCreateRepr( pAig, Aig_ManObj(pAig, Gia_Lit2Var(pGiaRepr->Value)), Aig_ManObj(pAig, Gia_Lit2Var(pGiaObj->Value)) );
+        Aig_ObjCreateRepr( pAig, Aig_ManObj(pAig, Abc_Lit2Var(pGiaRepr->Value)), Aig_ManObj(pAig, Abc_Lit2Var(pGiaObj->Value)) );
     }
 }
 
@@ -472,8 +472,8 @@ void Gia_ManReprFromAigRepr( Aig_Man_t * pAig, Gia_Man_t * pGia )
 //        Abc_Print( 1, "%d -> %d %d\n", i, Gia_ObjValue(pObjGia), Gia_ObjValue(pObjGia)/2 );
         if ( Gia_ObjIsCo(pObjGia) )
             continue;
-        assert( i == 0 || !Gia_LitIsCompl(Gia_ObjValue(pObjGia)) );
-        pObjAig  = Aig_ManObj( pAig, Gia_Lit2Var(Gia_ObjValue(pObjGia)) );
+        assert( i == 0 || !Abc_LitIsCompl(Gia_ObjValue(pObjGia)) );
+        pObjAig  = Aig_ManObj( pAig, Abc_Lit2Var(Gia_ObjValue(pObjGia)) );
         pObjAig->iData = i;
     }
     Aig_ManForEachObj( pAig, pObjAig, i )

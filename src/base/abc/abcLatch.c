@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "extra.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -150,7 +150,7 @@ void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches )
     if ( nLatches < 1 )
         return;
     nTotal = nLatches * Abc_NtkPiNum(pNtk);
-    nDigits = Extra_Base10Log( nTotal );
+    nDigits = Abc_Base10Log( nTotal );
     vNodes = Vec_PtrAlloc( 100 );
     Abc_NtkForEachPi( pNtk, pObj, i )
     {
@@ -486,7 +486,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "giaAig.h"
+#include "src/aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -18,10 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "fraig.h"
-#include "extra.h"
-#include "sim.h"
+#include "src/base/abc/abc.h"
+#include "src/proof/fraig/fraig.h"
+#include "src/opt/sim/sim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -434,7 +433,7 @@ int Abc_NtkRRWindow( Abc_RRMan_t * p )
     pEdgeFanout = p->pFanout? p->pFanout : p->pNode;
     pEdgeFanin  = p->pFanout? p->pNode : p->pFanin;
     // get the minimum and maximum levels of the window
-    LevelMin = ABC_MAX( 0, ((int)p->pFanin->Level) - p->nFaninLevels );
+    LevelMin = Abc_MaxInt( 0, ((int)p->pFanin->Level) - p->nFaninLevels );
     LevelMax = (int)pEdgeFanout->Level + p->nFanoutLevels;
 
     // start the TFI leaves with the fanin

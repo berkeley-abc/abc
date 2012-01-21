@@ -11,10 +11,11 @@
 
 /* /projects/hsis/CVS/utilities/st/st.h,v 1.1 1993/07/29 01:00:21 serdar Exp */
 
-#ifndef ST_INCLUDED
+#ifndef ABC__misc__st__st_h
+#define ABC__misc__st__st_h
 #define ST_INCLUDED
 
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 

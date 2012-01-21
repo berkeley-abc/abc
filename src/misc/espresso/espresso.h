@@ -18,7 +18,7 @@
 
 #include "util_hack.h" // added
 
-#define ptime()            util_cpu_time()
+#define ABC__misc__espresso__espresso_h
 #define print_time(t)    util_print_time(t)
 
 #ifdef IBM_WATC
@@ -55,7 +55,7 @@
 
 
 /* Define host machine characteristics of "unsigned int" */
-#ifndef BPI
+#ifndef ABC__misc__espresso__espresso_h
 #define BPI
 
 

@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
-#include "dsd.h"
+#include "src/base/abc/abc.h"
+#include "src/misc/extra/extraBdd.h"
+#include "src/bdd/dsd/dsd.h"
 
 ABC_NAMESPACE_IMPL_START
 

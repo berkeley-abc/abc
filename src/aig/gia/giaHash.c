@@ -46,10 +46,10 @@ static inline int Gia_ManHashOne( int iLit0, int iLit1, int TableSize )
 {
     unsigned Key = 0;
     assert( iLit0 < iLit1 );
-    Key ^= Gia_Lit2Var(iLit0) * 7937;
-    Key ^= Gia_Lit2Var(iLit1) * 2971;
-    Key ^= Gia_LitIsCompl(iLit0) * 911;
-    Key ^= Gia_LitIsCompl(iLit1) * 353;
+    Key ^= Abc_Lit2Var(iLit0) * 7937;
+    Key ^= Abc_Lit2Var(iLit1) * 2971;
+    Key ^= Abc_LitIsCompl(iLit0) * 911;
+    Key ^= Abc_LitIsCompl(iLit1) * 353;
     return (int)(Key % TableSize);
 }
 
@@ -68,8 +68,8 @@ static inline int * Gia_ManHashFind( Gia_Man_t * p, int iLit0, int iLit1 )
 {
     Gia_Obj_t * pThis;
     int * pPlace = p->pHTable + Gia_ManHashOne( iLit0, iLit1, p->nHTable );
-    for ( pThis = (*pPlace)? Gia_ManObj(p, Gia_Lit2Var(*pPlace)) : NULL; pThis; 
-          pPlace = (int *)&pThis->Value, pThis = (*pPlace)? Gia_ManObj(p, Gia_Lit2Var(*pPlace)) : NULL )
+    for ( pThis = (*pPlace)? Gia_ManObj(p, Abc_Lit2Var(*pPlace)) : NULL; pThis; 
+          pPlace = (int *)&pThis->Value, pThis = (*pPlace)? Gia_ManObj(p, Abc_Lit2Var(*pPlace)) : NULL )
               if ( Gia_ObjFaninLit0p(p, pThis) == iLit0 && Gia_ObjFaninLit1p(p, pThis) == iLit1 )
                   break;
     return pPlace;
@@ -109,7 +109,7 @@ int Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 )
 void Gia_ManHashAlloc( Gia_Man_t * p )  
 {
     assert( p->pHTable == NULL );
-    p->nHTable = Gia_PrimeCudd( p->nObjsAlloc );
+    p->nHTable = Abc_PrimeCudd( p->nObjsAlloc );
     p->pHTable = ABC_CALLOC( int, p->nHTable );
 }
 
@@ -134,7 +134,7 @@ void Gia_ManHashStart( Gia_Man_t * p )
     {
         pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0(pObj, i), Gia_ObjFaninLit1(pObj, i) );
         assert( *pPlace == 0 );
-        *pPlace = Gia_Var2Lit( i, 0 );
+        *pPlace = Abc_Var2Lit( i, 0 );
     }
 }
 
@@ -175,20 +175,20 @@ void Gia_ManHashResize( Gia_Man_t * p )
     // replace the table
     pHTableOld = p->pHTable;
     nHTableOld = p->nHTable;
-    p->nHTable = Gia_PrimeCudd( 2 * Gia_ManAndNum(p) ); 
+    p->nHTable = Abc_PrimeCudd( 2 * Gia_ManAndNum(p) ); 
     p->pHTable = ABC_CALLOC( int, p->nHTable );
     // rehash the entries from the old table
     Counter = 0;
     for ( i = 0; i < nHTableOld; i++ )
-    for ( pThis = (pHTableOld[i]? Gia_ManObj(p, Gia_Lit2Var(pHTableOld[i])) : NULL),
+    for ( pThis = (pHTableOld[i]? Gia_ManObj(p, Abc_Lit2Var(pHTableOld[i])) : NULL),
           iNext = (pThis? pThis->Value : 0);  
-          pThis;  pThis = (iNext? Gia_ManObj(p, Gia_Lit2Var(iNext)) : NULL),   
+          pThis;  pThis = (iNext? Gia_ManObj(p, Abc_Lit2Var(iNext)) : NULL),   
           iNext = (pThis? pThis->Value : 0)  )
     {
         pThis->Value = 0;
         pPlace = Gia_ManHashFind( p, Gia_ObjFaninLit0p(p, pThis), Gia_ObjFaninLit1p(p, pThis) );
         assert( *pPlace == 0 ); // should not be there
-        *pPlace = Gia_Var2Lit( Gia_ObjId(p, pThis), 0 );
+        *pPlace = Abc_Var2Lit( Gia_ObjId(p, pThis), 0 );
         assert( *pPlace != 0 );
         Counter++;
     }
@@ -220,9 +220,9 @@ void Gia_ManHashProfile( Gia_Man_t * p )
     for ( i = 0; i < Limit; i++ )
     {
         Counter = 0;
-        for ( pEntry = (p->pHTable[i]? Gia_ManObj(p, Gia_Lit2Var(p->pHTable[i])) : NULL); 
+        for ( pEntry = (p->pHTable[i]? Gia_ManObj(p, Abc_Lit2Var(p->pHTable[i])) : NULL); 
               pEntry; 
-              pEntry = (pEntry->Value? Gia_ManObj(p, Gia_Lit2Var(pEntry->Value)) : NULL) )
+              pEntry = (pEntry->Value? Gia_ManObj(p, Abc_Lit2Var(pEntry->Value)) : NULL) )
             Counter++;
         if ( Counter ) 
             printf( "%d ", Counter );
@@ -480,7 +480,7 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         return iLit1 ? iLit0 : 0;
     if ( iLit0 == iLit1 )
         return iLit1;
-    if ( iLit0 == Gia_LitNot(iLit1) )
+    if ( iLit0 == Abc_LitNot(iLit1) )
         return 0;
     if ( (p->nObjs & 0xFF) == 0 && 2 * p->nHTable < Gia_ManAndNum(p) )
         Gia_ManHashResize( p );
@@ -531,7 +531,7 @@ int Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 )
         return iLit1 ? iLit0 : 0;
     if ( iLit0 == iLit1 )
         return iLit1;
-    if ( iLit0 == Gia_LitNot(iLit1) )
+    if ( iLit0 == Abc_LitNot(iLit1) )
         return 0;
     if ( iLit0 > iLit1 )
         iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
@@ -556,10 +556,10 @@ int Gia_ManHashAndTry( Gia_Man_t * p, int iLit0, int iLit1 )
 ***********************************************************************/
 int Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
-    int fCompl = Gia_LitIsCompl(iLit0) ^ Gia_LitIsCompl(iLit1);
-    int iTemp0 = Gia_ManHashAnd( p, Gia_LitRegular(iLit0), Gia_LitNot(Gia_LitRegular(iLit1)) );
-    int iTemp1 = Gia_ManHashAnd( p, Gia_LitRegular(iLit1), Gia_LitNot(Gia_LitRegular(iLit0)) );
-    return Gia_LitNotCond( Gia_ManHashAnd( p, Gia_LitNot(iTemp0), Gia_LitNot(iTemp1) ), !fCompl );
+    int fCompl = Abc_LitIsCompl(iLit0) ^ Abc_LitIsCompl(iLit1);
+    int iTemp0 = Gia_ManHashAnd( p, Abc_LitRegular(iLit0), Abc_LitNot(Abc_LitRegular(iLit1)) );
+    int iTemp1 = Gia_ManHashAnd( p, Abc_LitRegular(iLit1), Abc_LitNot(Abc_LitRegular(iLit0)) );
+    return Abc_LitNotCond( Gia_ManHashAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), !fCompl );
 }
 
 /**Function*************************************************************
@@ -575,9 +575,9 @@ int Gia_ManHashXor( Gia_Man_t * p, int iLit0, int iLit1 )
 ***********************************************************************/
 int Gia_ManHashMux( Gia_Man_t * p, int iCtrl, int iData1, int iData0 )  
 { 
-    int iTemp0 = Gia_ManHashAnd( p, Gia_LitNot(iCtrl), iData0 );
+    int iTemp0 = Gia_ManHashAnd( p, Abc_LitNot(iCtrl), iData0 );
     int iTemp1 = Gia_ManHashAnd( p, iCtrl, iData1 );
-    return Gia_LitNotCond( Gia_ManHashAnd( p, Gia_LitNot(iTemp0), Gia_LitNot(iTemp1) ), 1 );
+    return Abc_LitNotCond( Gia_ManHashAnd( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ), 1 );
 }
 
 /**Function*************************************************************
@@ -597,7 +597,7 @@ Gia_Man_t * Gia_ManRehash( Gia_Man_t * p, int fAddStrash )
     Gia_Obj_t * pObj;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->fAddStrash = fAddStrash;
     Gia_ManHashAlloc( pNew );
     Gia_ManConst0(p)->Value = 0;

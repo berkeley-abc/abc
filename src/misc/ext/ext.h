@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __EXT_H__
-#define __EXT_H__
+#ifndef ABC__misc__ext__ext_h
+#define ABC__misc__ext__ext_h
 
 #define EXT_ABC_FRAME
 #define EXT_ABC_INIT(pAbc)

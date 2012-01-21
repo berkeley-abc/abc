@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "hop.h"
-#include "st.h"
+#include "misc/st/st.h"
 
 ABC_NAMESPACE_IMPL_START
 

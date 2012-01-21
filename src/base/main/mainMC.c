@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "mainInt.h"
-#include "aig.h"
-#include "saig.h"
-#include "fra.h"
-#include "ioa.h"
+#include "aig/aig/aig.h"
+#include "aig/saig/saig.h"
+#include "aig/fra/fra.h"
+#include "aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 

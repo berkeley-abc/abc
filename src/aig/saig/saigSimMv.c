@@ -184,7 +184,7 @@ static inline int Saig_MvCreateObj( Saig_MvMan_t * p, int iFan0, int iFan1 )
     pNode->iFan1 = iFan1;
     pNode->iNext = 0;
     if ( iFan0 || iFan1 )
-        p->pLevels[p->nObjs] = 1 + ABC_MAX( Saig_MvLev(p, iFan0), Saig_MvLev(p, iFan1) );
+        p->pLevels[p->nObjs] = 1 + Abc_MaxInt( Saig_MvLev(p, iFan0), Saig_MvLev(p, iFan1) );
     else
         p->pLevels[p->nObjs] = 0, p->nPis++;
     return p->nObjs++;
@@ -216,7 +216,7 @@ Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig, int nFramesSatur )
     p->nFlops       = Aig_ManRegNum(pAig);
     // compacted AIG
     p->pAigOld      = Saig_ManCreateReducedAig( pAig, &p->vFlops );
-    p->nTStatesSize = Aig_PrimeCudd( p->nStatesMax );
+    p->nTStatesSize = Abc_PrimeCudd( p->nStatesMax );
     p->pTStates     = ABC_CALLOC( unsigned, p->nTStatesSize );
     p->pMemStates   = Aig_MmFixedStart( sizeof(int) * (p->nFlops+1), p->nStatesMax );
     p->vStates      = Vec_PtrAlloc( p->nStatesMax );
@@ -231,7 +231,7 @@ Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig, int nFramesSatur )
     // internal AIG
     p->nObjsAlloc   = 1000000;
     p->pAigNew      = ABC_ALLOC( Saig_MvAnd_t, p->nObjsAlloc );
-    p->nTNodesSize  = Aig_PrimeCudd( p->nObjsAlloc / 3 );
+    p->nTNodesSize  = Abc_PrimeCudd( p->nObjsAlloc / 3 );
     p->pTNodes      = ABC_CALLOC( int, p->nTNodesSize );
     p->pLevels      = ABC_ALLOC( unsigned char, p->nObjsAlloc );
     Saig_MvCreateObj( p, 0, 0 );

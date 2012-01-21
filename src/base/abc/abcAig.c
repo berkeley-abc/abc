@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -133,7 +132,7 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan = ABC_ALLOC( Abc_Aig_t, 1 );
     memset( pMan, 0, sizeof(Abc_Aig_t) );
     // allocate the table
-    pMan->nBins    = Cudd_Prime( 10000 );
+    pMan->nBins    = Abc_PrimeCudd( 10000 );
     pMan->pBins    = ABC_ALLOC( Abc_Obj_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Abc_Obj_t *) * pMan->nBins );
     pMan->vNodes   = Vec_PtrAlloc( 100 );
@@ -250,7 +249,7 @@ int Abc_AigCheck( Abc_Aig_t * pMan )
             printf( "Abc_AigCheck: The AIG has non-standard nodes.\n" );
             return 0;
         }
-        if ( pObj->Level != 1 + ABC_MAX( Abc_ObjFanin0(pObj)->Level, Abc_ObjFanin1(pObj)->Level ) )
+        if ( pObj->Level != 1 + (unsigned)Abc_MaxInt( Abc_ObjFanin0(pObj)->Level, Abc_ObjFanin1(pObj)->Level ) )
             printf( "Abc_AigCheck: Node \"%s\" has level that does not agree with the fanin levels.\n", Abc_ObjName(pObj) );
         pAnd = Abc_AigAndLookup( pMan, Abc_ObjChild0(pObj), Abc_ObjChild1(pObj) );
         if ( pAnd != pObj )
@@ -330,7 +329,7 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     Abc_ObjAddFanin( pAnd, p0 );
     Abc_ObjAddFanin( pAnd, p1 );
     // set the level of the new node
-    pAnd->Level  = 1 + ABC_MAX( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
+    pAnd->Level  = 1 + Abc_MaxInt( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
     pAnd->fExor  = Abc_NodeIsExorType(pAnd);
     pAnd->fPhase = (Abc_ObjIsComplement(p0) ^ Abc_ObjRegular(p0)->fPhase) & (Abc_ObjIsComplement(p1) ^ Abc_ObjRegular(p1)->fPhase);
     // add the node to the corresponding linked list in the table
@@ -374,7 +373,7 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
     Abc_ObjAddFanin( pAnd, p0 );
     Abc_ObjAddFanin( pAnd, p1 );
     // set the level of the new node
-    pAnd->Level      = 1 + ABC_MAX( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
+    pAnd->Level      = 1 + Abc_MaxInt( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
     pAnd->fExor      = Abc_NodeIsExorType(pAnd);
     // add the node to the corresponding linked list in the table
     Key = Abc_HashKey2( p0, p1, pMan->nBins );
@@ -595,7 +594,7 @@ void Abc_AigResize( Abc_Aig_t * pMan )
 
 clk = clock();
     // get the new table size
-    nBinsNew = Cudd_Prime( 3 * pMan->nBins ); 
+    nBinsNew = Abc_PrimeCudd( 3 * pMan->nBins ); 
     // allocate a new array
     pBinsNew = ABC_ALLOC( Abc_Obj_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Abc_Obj_t *) * nBinsNew );
@@ -1076,7 +1075,7 @@ void Abc_AigUpdateLevel_int( Abc_Aig_t * pMan )
                 if ( Abc_ObjIsCo(pFanout) )
                     continue;
                 // get the new level of this fanout
-                LevelNew = 1 + ABC_MAX( Abc_ObjFanin0(pFanout)->Level, Abc_ObjFanin1(pFanout)->Level );
+                LevelNew = 1 + Abc_MaxInt( Abc_ObjFanin0(pFanout)->Level, Abc_ObjFanin1(pFanout)->Level );
                 assert( LevelNew > i );
                 if ( (int)pFanout->Level == LevelNew ) // no change
                     continue;

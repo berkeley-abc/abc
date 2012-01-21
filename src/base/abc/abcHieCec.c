@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "ioAbc.h"
-#include "gia.h"
+#include "src/base/io/ioAbc.h"
+#include "src/aig/gia/gia.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -154,16 +154,16 @@ int Abc_NtkDeriveFlatGiaSop( Gia_Man_t * pGia, int * gFanins, char * pSop )
                 if ( Value == '1' )
                     gAnd = Gia_ManHashAnd( pGia, gAnd, gFanins[i] );
                 else if ( Value == '0' )
-                    gAnd = Gia_ManHashAnd( pGia, gAnd, Gia_LitNot(gFanins[i]) );
+                    gAnd = Gia_ManHashAnd( pGia, gAnd, Abc_LitNot(gFanins[i]) );
             }
             // add to the sum of cubes
-            gSum = Gia_ManHashAnd( pGia, Gia_LitNot(gSum), Gia_LitNot(gAnd) );
-            gSum = Gia_LitNot( gSum );
+            gSum = Gia_ManHashAnd( pGia, Abc_LitNot(gSum), Abc_LitNot(gAnd) );
+            gSum = Abc_LitNot( gSum );
         }
     }
     // decide whether to complement the result
     if ( Abc_SopIsComplement(pSop) )
-        gSum = Gia_LitNot(gSum);
+        gSum = Abc_LitNot(gSum);
     return gSum;
 }
 
@@ -199,7 +199,7 @@ void Abc_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Abc_Ntk_t * pNtk )
                 assert( pSop[2] == '1' );
                 assert( pSop[0] == '0' || pSop[0] == '1' );
                 assert( Abc_ObjFanin0(pObj)->iTemp >= 0 );
-                Abc_ObjFanout0(pObj)->iTemp = Gia_LitNotCond( Abc_ObjFanin0(pObj)->iTemp, pSop[0]=='0' );
+                Abc_ObjFanout0(pObj)->iTemp = Abc_LitNotCond( Abc_ObjFanin0(pObj)->iTemp, pSop[0]=='0' );
                 continue;
             }
             if ( nLength == 5 ) // and2
@@ -210,8 +210,8 @@ void Abc_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Abc_Ntk_t * pNtk )
                 assert( Abc_ObjFanin0(pObj)->iTemp >= 0 );
                 assert( Abc_ObjFanin1(pObj)->iTemp >= 0 );
                 Abc_ObjFanout0(pObj)->iTemp = Gia_ManHashAnd( pGia, 
-                    Gia_LitNotCond( Abc_ObjFanin0(pObj)->iTemp, pSop[0]=='0' ),
-                    Gia_LitNotCond( Abc_ObjFanin1(pObj)->iTemp, pSop[1]=='0' )
+                    Abc_LitNotCond( Abc_ObjFanin0(pObj)->iTemp, pSop[0]=='0' ),
+                    Abc_LitNotCond( Abc_ObjFanin1(pObj)->iTemp, pSop[1]=='0' )
                     );
                 continue;
             }
@@ -267,7 +267,7 @@ Gia_Man_t * Abc_NtkDeriveFlatGia( Abc_Ntk_t * pNtk )
     Abc_NtkFillTemp( pNtk );
     // start the network
     pGia = Gia_ManStart( (1<<16) );
-    pGia->pName = Gia_UtilStrsav( Abc_NtkName(pNtk) );
+    pGia->pName = Abc_UtilStrsav( Abc_NtkName(pNtk) );
     Gia_ManHashAlloc( pGia );
     // create PIs
     Abc_NtkForEachPi( pNtk, pTerm, i )
@@ -343,7 +343,7 @@ Gia_Man_t * Abc_NtkDeriveFlatGia2Derive( Abc_Ntk_t * pNtk, Vec_Ptr_t * vOrder )
 
     // start the network
     pGia = Gia_ManStart( (1<<15) );
-    pGia->pName = Gia_UtilStrsav( Abc_NtkName(pNtk) );
+    pGia->pName = Abc_UtilStrsav( Abc_NtkName(pNtk) );
     Gia_ManHashAlloc( pGia );
     // create PIs
     Abc_NtkForEachPi( pNtk, pTerm, i )
@@ -458,7 +458,7 @@ Gia_Man_t * Abc_NtkDeriveFlatGia2( Abc_Ntk_t * pNtk, Vec_Ptr_t * vModels )
         Vec_PtrFree( vOrder );
     }
 
-    pGia = pModel->pData;  pModel->pData = NULL;
+    pGia = (Gia_Man_t *)pModel->pData;  pModel->pData = NULL;
 
     Vec_PtrForEachEntry( Abc_Ntk_t *, vModels, pModel, i )
         Gia_ManStopP( (Gia_Man_t **)&pModel->pData );

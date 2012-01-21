@@ -52,7 +52,7 @@ Mfs_Man_t * Mfs_ManAlloc( Mfs_Par_t * pPars )
     p->vProjVarsCnf = Vec_IntAlloc( 100 );
     p->vProjVarsSat = Vec_IntAlloc( 100 );
     p->vDivLits  = Vec_IntAlloc( 100 );
-    p->nDivWords = Aig_BitWordNum(p->pPars->nDivMax + MFS_FANIN_MAX);
+    p->nDivWords = Abc_BitWordNum(p->pPars->nDivMax + MFS_FANIN_MAX);
     p->vDivCexes = Vec_PtrAllocSimInfo( p->pPars->nDivMax+MFS_FANIN_MAX+1, p->nDivWords );
     p->pMan      = Int_ManAlloc();
     p->vMem      = Vec_IntAlloc( 0 );

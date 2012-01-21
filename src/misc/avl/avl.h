@@ -7,8 +7,8 @@
  * $Date: 1994/07/15 23:00:40 $
  *
  */
-#ifndef AVL_INCLUDED
-#define AVL_INCLUDED
+#ifndef ABC__misc__avl__avl_h
+#define ABC__misc__avl__avl_h
 
 
 ABC_NAMESPACE_HEADER_START

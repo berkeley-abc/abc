@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "src/base/abc/abc.h"
 #include "mainInt.h"
 
 #ifdef ABC_PYTHON_EMBED

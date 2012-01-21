@@ -18,10 +18,11 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "main.h"
-#include "cmd.h"
-#include "satSolver.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/main.h"
+#include "src/base/cmd/cmd.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -590,7 +591,7 @@ int Abc_NtkMiterSatCreateInt( sat_solver * pSat, Abc_Ntk_t * pNtk )
                 continue;
             pPrefVars[nVars++] = (int)pNode->pCopy;
         }
-        nVars = ABC_MIN( nVars, 10 );
+        nVars = Abc_MinInt( nVars, 10 );
         ASat_SolverSetPrefVars( pSat, pPrefVars, nVars );
     }
 */

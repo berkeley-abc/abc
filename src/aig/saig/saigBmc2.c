@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "cnf.h"
-#include "satStore.h"
-#include "ssw.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satStore.h"
+#include "src/proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -180,8 +180,8 @@ Vec_Ptr_t * Abs_ManTernarySimulate( Aig_Man_t * p, int nFramesMax, int fVerbose 
     assert( Aig_ManRegNum(p) > 0 );
     // the maximum number of frames will be determined to use at most 200Mb of RAM
     nFramesLimit = 1 + (200000000 * 4)/Aig_ManObjNum(p);
-    nFramesLimit = ABC_MIN( nFramesLimit, nFramesMax );
-    nFrameWords  = Aig_BitWordNum( 2 * Aig_ManObjNum(p) );
+    nFramesLimit = Abc_MinInt( nFramesLimit, nFramesMax );
+    nFrameWords  = Abc_BitWordNum( 2 * Aig_ManObjNum(p) );
     // allocate simulation info
     vSimInfo = Vec_PtrAlloc( nFramesLimit );
     for ( f = 0; f < nFramesLimit; f++ )
@@ -652,7 +652,7 @@ Abc_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
             if ( iVarNum == 0 )
                 continue;
             if ( sat_solver_var_value( p->pSat, iVarNum ) )
-                Aig_InfoSetBit( pCex->pData, pCex->nRegs + Saig_ManPiNum(p->pAig) * f + i );
+                Abc_InfoSetBit( pCex->pData, pCex->nRegs + Saig_ManPiNum(p->pAig) * f + i );
         }
     }
     // verify the counter example

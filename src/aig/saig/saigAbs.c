@@ -105,8 +105,8 @@ Abc_Cex_t * Saig_ManCexRemap( Aig_Man_t * p, Aig_Man_t * pAbs, Abc_Cex_t * pCexA
         {
             if ( i == Saig_ManPiNum(p) )
                 break;
-            if ( Aig_InfoHasBit( pCexAbs->pData, pCexAbs->nRegs + pCexAbs->nPis * f + i ) )
-                Aig_InfoSetBit( pCex->pData, pCex->nRegs + pCex->nPis * f + i );
+            if ( Abc_InfoHasBit( pCexAbs->pData, pCexAbs->nRegs + pCexAbs->nPis * f + i ) )
+                Abc_InfoSetBit( pCex->pData, pCex->nRegs + pCex->nPis * f + i );
         }
     }
     // verify the counter example

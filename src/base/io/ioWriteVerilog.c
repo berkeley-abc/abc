@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
-#include "main.h"
-#include "mio.h"
+#include "src/base/main/main.h"
+#include "src/map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -492,7 +492,7 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
     int i, k, Counter, nDigits, Length;
 
     // write boxes
-    nDigits = Extra_Base10Log( Abc_NtkBoxNum(pNtk)-Abc_NtkLatchNum(pNtk) );
+    nDigits = Abc_Base10Log( Abc_NtkBoxNum(pNtk)-Abc_NtkLatchNum(pNtk) );
     Counter = 0;
     Abc_NtkForEachBox( pNtk, pObj, i )
     {
@@ -517,7 +517,7 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk )
     if ( Abc_NtkHasMapping(pNtk) )
     {
         Length  = Mio_LibraryReadGateNameMax((Mio_Library_t *)pNtk->pManFunc);
-        nDigits = Extra_Base10Log( Abc_NtkNodeNum(pNtk) );
+        nDigits = Abc_Base10Log( Abc_NtkNodeNum(pNtk) );
         Counter = 0;
         Abc_NtkForEachNode( pNtk, pObj, k )
         {

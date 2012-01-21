@@ -20,7 +20,7 @@
  
 #include "gia.h"
 #include "giaAig.h"
-#include "saig.h"
+#include "src/aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -472,7 +472,7 @@ int Gia_ManGlaPbaPerform( Gia_Man_t * pGia, void * pPars, int fNewSolver )
             // this obj was abstracted before
             assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(pGia, pObj) );
             // if corresponding AIG object is not abstracted, remove abstraction
-            if ( !Vec_IntEntry(vGateClasses, Gia_Lit2Var(pObj->Value)) )
+            if ( !Vec_IntEntry(vGateClasses, Abc_Lit2Var(pObj->Value)) )
             {
                 Vec_IntWriteEntry( pGia->vGateClasses, i, 0 );
                 Counter++;

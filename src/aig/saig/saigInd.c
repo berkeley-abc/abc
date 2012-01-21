@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "cnf.h"
-#include "satSolver.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -324,7 +324,7 @@ nextrun:
                 Vec_IntForEachEntryStart( vTopVarIds, VarNum, i, 1 )
                 {
                     if ( VarNum >= 0 && sat_solver_var_value( pSat, VarNum ) )
-                        Aig_InfoSetBit( pCex->pData, iBit );
+                        Abc_InfoSetBit( pCex->pData, iBit );
                     iBit++;
                 }
                 assert( iBit == pCex->nBits );

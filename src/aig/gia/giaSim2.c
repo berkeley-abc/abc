@@ -471,7 +471,7 @@ void Gia_Sim2ProcessRefined( Gia_Sim2_t * p, Vec_Int_t * vRefined )
     int * pTable, nTableSize, i, k, Key;
     if ( Vec_IntSize(vRefined) == 0 )
         return;
-    nTableSize = Gia_PrimeCudd( 1000 + Vec_IntSize(vRefined) / 3 );
+    nTableSize = Abc_PrimeCudd( 1000 + Vec_IntSize(vRefined) / 3 );
     pTable = ABC_CALLOC( int, nTableSize );
     Vec_IntForEachEntry( vRefined, i, k )
     {
@@ -617,8 +617,8 @@ Abc_Cex_t * Gia_Sim2GenerateCounter( Gia_Man_t * pAig, int iFrame, int iOut, int
     {
         for ( w = nWords-1; w >= 0; w-- )
             pData[w] = Gia_ManRandom( 0 );
-        if ( Gia_InfoHasBit( pData, iPat ) )
-            Gia_InfoSetBit( p->pData, Counter + i );
+        if ( Abc_InfoHasBit( pData, iPat ) )
+            Abc_InfoSetBit( p->pData, Counter + i );
     }
     ABC_FREE( pData );
     return p;

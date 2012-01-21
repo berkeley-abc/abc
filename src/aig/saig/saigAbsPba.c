@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "cnf.h"
-#include "satSolver.h"
-#include "giaAig.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/aig/gia/giaAig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -99,8 +99,8 @@ Aig_Man_t * Saig_ManUnrollForPba( Aig_Man_t * pAig, int nStart, int nFrames, Vec
     }
     // derive unrolled timeframes
     pFrames = Aig_ManStart( 10000 );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
-    pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // create activation variables
     Saig_ManForEachLo( pAig, pObj, i )
         Aig_ObjCreatePi( pFrames );
@@ -186,19 +186,19 @@ Abc_Cex_t * Saig_ManPbaDeriveCex( Aig_Man_t * pAig, sat_solver * pSat, Cnf_Dat_t
         {
             int iSatVar = pCnf->pVarNums[ Aig_ObjId(Aig_ManPi(pCnf->pMan, Entry)) ];
             if ( sat_solver_var_value( pSat, iSatVar ) )
-                Aig_InfoSetBit( pCex->pData, Aig_ManRegNum(pAig) + i );
+                Abc_InfoSetBit( pCex->pData, Aig_ManRegNum(pAig) + i );
         }
     }
     // check what frame has failed
     Aig_ManCleanMarkB(pAig);
     Aig_ManConst1(pAig)->fMarkB = 1;
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->fMarkB = Aig_InfoHasBit(pCex->pData, iBit++);
+        pObj->fMarkB = Abc_InfoHasBit(pCex->pData, iBit++);
     for ( f = 0; f < nFrames; f++ )
     {
         // compute new state
         Saig_ManForEachPi( pAig, pObj, i )
-            pObj->fMarkB = Aig_InfoHasBit(pCex->pData, iBit++);
+            pObj->fMarkB = Abc_InfoHasBit(pCex->pData, iBit++);
         Aig_ManForEachNode( pAig, pObj, i )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
                            (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));

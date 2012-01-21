@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __HASH_H__
-#define __HASH_H__
+#ifndef ABC__misc__hash__hash_h
+#define ABC__misc__hash__hash_h
 
 
 #ifdef _WIN32
@@ -29,7 +29,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 
 #include "hashInt.h"
 #include "hashFlt.h"
@@ -55,7 +55,7 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 int Hash_DefaultHashFunc(int key, int nBins) {
-  return ABC_ABS( ( (key+11)*(key)*7+3 ) % nBins );
+  return Abc_AbsInt( ( (key+11)*(key)*7+3 ) % nBins );
 }
 
 ////////////////////////////////////////////////////////////////////////

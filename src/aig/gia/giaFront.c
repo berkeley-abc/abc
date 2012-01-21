@@ -115,7 +115,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
     Gia_ManSetRefs( p );
     // start the new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->nFront = 1 + (int)((float)1.1 * nCrossCutMaxInit); 
     // start the frontier
     pFront = ABC_CALLOC( char, pNew->nFront );
@@ -134,7 +134,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
                 nCrossCutMax = nCrossCut;
             // create new node
             iLit = Gia_ManAppendCi( pNew );
-            pObjNew = Gia_ManObj( pNew, Gia_Lit2Var(iLit) );
+            pObjNew = Gia_ManObj( pNew, Abc_Lit2Var(iLit) );
             assert( Gia_ObjId(pNew, pObjNew) == Gia_ObjId(p, pObj) );
             pObjNew->Value = iFront = Gia_ManFrontFindNext( pFront, pNew->nFront, iFront );
             // handle CIs without fanout
@@ -147,7 +147,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
             assert( Gia_ObjValue(pObj) == 0 );
             // create new node
             iLit = Gia_ManAppendCo( pNew, 0 );
-            pObjNew = Gia_ManObj( pNew, Gia_Lit2Var(iLit) );
+            pObjNew = Gia_ManObj( pNew, Abc_Lit2Var(iLit) );
             assert( Gia_ObjId(pNew, pObjNew) == Gia_ObjId(p, pObj) );
             // get the fanin
             pFanin0New = Gia_ManObj( pNew, Gia_ObjFaninId0(pObj, i) );

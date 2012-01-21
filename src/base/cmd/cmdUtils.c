@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "mainInt.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/mainInt.h"
 #include "cmdInt.h"
 #include <ctype.h>
 

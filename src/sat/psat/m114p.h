@@ -1,7 +1,7 @@
 // C-language header for MiniSat 1.14p
 
-#ifndef m114p_h
-#define m114p_h
+#ifndef ABC__sat__psat__m114p_h
+#define ABC__sat__psat__m114p_h
 
 
 #include "m114p_types.h"

@@ -17,7 +17,7 @@
 ***********************************************************************/
 
 #include "mioInt.h"
-#include "parse.h"
+#include "bdd/parse/parse.h"
 
 ABC_NAMESPACE_IMPL_START
 

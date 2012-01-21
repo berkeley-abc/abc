@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
-#include "kit.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -143,7 +143,7 @@ If_And_t If_CutDelaySopCube( Vec_Wrd_t * vCube, Vec_Wrd_t * vAnds, int fOrGate )
         Next.fCompl1 = This.fCompl ^ fOrGate;
         Next.Id      = Vec_WrdSize(vAnds);
         Next.fCompl  = fOrGate;
-        Next.Delay   = 1 + ABC_MAX( This.Delay, Prev.Delay );
+        Next.Delay   = 1 + Abc_MaxInt( This.Delay, Prev.Delay );
         // add new
         If_AndInsertSorted( vCube, Next );
         Vec_WrdPush( vAnds, If_AndToWrd(Next) );
@@ -313,7 +313,7 @@ int If_CutDelayLeafDepth_rec( Vec_Wrd_t * vAnds, If_And_t And, int iLeaf )
         return -IF_BIG_CHAR;
     Depth0 = If_CutDelayLeafDepth_rec( vAnds, If_WrdToAnd(Vec_WrdEntry(vAnds, And.iFan0)), iLeaf );
     Depth1 = If_CutDelayLeafDepth_rec( vAnds, If_WrdToAnd(Vec_WrdEntry(vAnds, And.iFan1)), iLeaf );
-    Depth  = ABC_MAX( Depth0, Depth1 );
+    Depth  = Abc_MaxInt( Depth0, Depth1 );
     Depth  = (Depth == -IF_BIG_CHAR) ? -IF_BIG_CHAR : Depth + 1;
     return Depth;
 }

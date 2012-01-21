@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __CUDD2_H__
-#define __CUDD2_H__
+#ifndef ABC__aig__hop__cudd2_h
+#define ABC__aig__hop__cudd2_h
 
 
 // HA: Added for printing messages

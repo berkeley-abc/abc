@@ -32,10 +32,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int   Abc_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);     }
-static inline int   Abc_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0; }
-static inline void  Abc_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));             }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////

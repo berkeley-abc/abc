@@ -843,7 +843,7 @@ Amap_Tree_t * Amap_LibertyStart( char * pFileName )
     fclose( pFile );
     p->pContents[p->nContents] = 0;
     // other 
-    p->pFileName = Aig_UtilStrsav( pFileName );
+    p->pFileName = Abc_UtilStrsav( pFileName );
     p->nItermAlloc = 10 + Amap_LibertyCountItems( p->pContents, p->pContents+p->nContents );
     p->pItems = ABC_CALLOC( Amap_Item_t, p->nItermAlloc );
     p->nItems = 0;

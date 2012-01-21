@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __IF_H__
-#define __IF_H__
+#ifndef ABC__map__if__if_h
+#define ABC__map__if__if_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -31,9 +31,9 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include "vec.h"
-#include "mem.h"
-#include "tim.h"
+#include "src/misc/vec/vec.h"
+#include "src/misc/mem/mem.h"
+#include "src/misc/tim/tim.h"
 
 
 

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "saig.h"
+#include "src/aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -133,10 +133,10 @@ Aig_Tsi_t * Aig_TsiStart( Aig_Man_t * pAig )
     p = ABC_ALLOC( Aig_Tsi_t, 1 );
     memset( p, 0, sizeof(Aig_Tsi_t) );
     p->pAig    = pAig;
-    p->nWords  = Aig_BitWordNum( 2*Aig_ManRegNum(pAig) );
+    p->nWords  = Abc_BitWordNum( 2*Aig_ManRegNum(pAig) );
     p->vStates = Vec_PtrAlloc( 1000 );
     p->pMem    = Aig_MmFixedStart( sizeof(unsigned) * p->nWords + sizeof(unsigned *), 10000 );
-    p->nBins   = Aig_PrimeCudd(TSI_MAX_ROUNDS/2);
+    p->nBins   = Abc_PrimeCudd(TSI_MAX_ROUNDS/2);
     p->pBins   = ABC_ALLOC( unsigned *, p->nBins );
     memset( p->pBins, 0, sizeof(unsigned *) * p->nBins );
     return p;
@@ -274,7 +274,7 @@ void Aig_TsiStatePrint( Aig_Tsi_t * p, unsigned * pState )
     int i, Value, nZeros = 0, nOnes = 0, nDcs = 0;
     for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
     {
-        Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+        Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
         if ( Value == 1 )
             printf( "0" ), nZeros++;
         else if ( Value == 2 )
@@ -304,7 +304,7 @@ int Aig_TsiStateCount( Aig_Tsi_t * p, unsigned * pState )
     int i, Value, nCounter = 0;
     Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObjLo, i )
     {
-        Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+        Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
         nCounter += (Value == 1 || Value == 2);
     }
     return nCounter;
@@ -369,9 +369,9 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose, int fVeryVerbos
         {
             Value = Aig_ObjGetXsim(pObjLo);
             if ( Value & 1 )
-                Aig_InfoSetBit( pState, 2 * i );
+                Abc_InfoSetBit( pState, 2 * i );
             if ( Value & 2 )
-                Aig_InfoSetBit( pState, 2 * i + 1 );
+                Abc_InfoSetBit( pState, 2 * i + 1 );
         }
 
 //        printf( "%d ", Aig_TsiStateCount(pTsi, pState) );
@@ -446,7 +446,7 @@ Aig_TsiStatePrint( pTsi, pState );
         for ( i = 0; i < pTsi->nWords - 1; i++ )
             if ( pState[i] != ~0 )
                 fConstants = 1;
-        if ( pState[i] != Aig_InfoMask( 2*Aig_ManRegNum(p) - 32*(pTsi->nWords-1) ) )
+        if ( pState[i] != Abc_InfoMask( 2*Aig_ManRegNum(p) - 32*(pTsi->nWords-1) ) )
             fConstants = 1;
     }
     if ( fConstants == 0 )
@@ -465,7 +465,7 @@ Aig_TsiStatePrint( pTsi, pState );
     nCounter = 0;
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
     {
-        Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+        Value = (Abc_InfoHasBit( pState, 2 * i + 1 ) << 1) | Abc_InfoHasBit( pState, 2 * i );
         nCounter += (Value == 1 || Value == 2);
         if ( Value == 1 )
             Vec_PtrPush( vMap, Aig_ManConst0(p) );

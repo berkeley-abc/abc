@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __PR_H__
-#define __PR_H__
+#ifndef ABC__sat__proof__pr_h
+#define ABC__sat__proof__pr_h
 
 
 #ifdef _WIN32

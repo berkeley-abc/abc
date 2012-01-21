@@ -58,9 +58,9 @@ unsigned Lpk_ComputeSets_rec( Kit_DsdNtk_t * p, int iLit, Vec_Int_t * vSets )
     unsigned i, iLitFanin, uSupport, uSuppCur;
     Kit_DsdObj_t * pObj;
     // consider the case of simple gate
-    pObj = Kit_DsdNtkObj( p, Kit_DsdLit2Var(iLit) );
+    pObj = Kit_DsdNtkObj( p, Abc_Lit2Var(iLit) );
     if ( pObj == NULL )
-        return (1 << Kit_DsdLit2Var(iLit));
+        return (1 << Abc_Lit2Var(iLit));
     if ( pObj->Type == KIT_DSD_AND || pObj->Type == KIT_DSD_XOR )
     {
         unsigned uSupps[16], Limit, s;
@@ -116,7 +116,7 @@ unsigned Lpk_ComputeSets( Kit_DsdNtk_t * p, Vec_Int_t * vSets )
         return 0;
     if ( Kit_DsdNtkRoot(p)->Type == KIT_DSD_VAR )
     {
-        uSupport = ( 1 << Kit_DsdLit2Var(Kit_DsdNtkRoot(p)->pFans[0]) );
+        uSupport = ( 1 << Abc_Lit2Var(Kit_DsdNtkRoot(p)->pFans[0]) );
         Vec_IntPush( vSets, uSupport );
         return uSupport;
     }

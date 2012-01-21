@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -418,8 +418,8 @@ Abc_Obj_t * Abc_NtkBddCurtis( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t 
     DdManager * ddNew = (DdManager *)pNtkNew->pManFunc;
     DdNode * bCof, * bUniq, * bMint, * bTemp, * bFunc, * bBits[10], ** pbCodeVars;
     Abc_Obj_t * pNodeNew = NULL, * pNodeBS[10];
-    int nLutSize = Extra_Base2Log( Vec_PtrSize(vCofs) );
-    int nBits    = Extra_Base2Log( Vec_PtrSize(vUniq) );
+    int nLutSize = Abc_Base2Log( Vec_PtrSize(vCofs) );
+    int nBits    = Abc_Base2Log( Vec_PtrSize(vUniq) );
     int b, c, u, i;
     assert( nBits + 2 <= nLutSize );
     assert( nLutSize < Abc_ObjFaninNum(pNode) );

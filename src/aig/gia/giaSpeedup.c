@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "if.h"
+#include "src/map/if/if.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -597,7 +597,7 @@ void Gia_ManSpeedupObj( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_I
     for ( i = 0; i < nCofs; i++ )
     {
         Gia_ManForEachObjVec( vLeaves, p, pTemp, k )
-            pTemp->Value = Gia_Var2Lit( Gia_ObjId(p, pTemp), 0 );
+            pTemp->Value = Abc_Var2Lit( Gia_ObjId(p, pTemp), 0 );
         Gia_ManForEachObjVec( vTimes, p, pTemp, k )
             pTemp->Value = ((i & (1<<k)) != 0);
         Gia_ManForEachObjVec( vNodes, p, pTemp, k )
@@ -611,7 +611,7 @@ void Gia_ManSpeedupObj( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_I
             pCofs[i] = Gia_ManHashMux( pNew, Gia_ObjToLit(p,pTemp), pCofs[i+nSkip], pCofs[i] );
     // create choice node  (pObj is repr and ppCofs[0] is new)
     iObj    = Gia_ObjId( p, pObj );
-    iResult = Gia_Lit2Var( pCofs[0] );
+    iResult = Abc_Lit2Var( pCofs[0] );
     if ( iResult <= iObj )
         return;
     Gia_ObjSetRepr( pNew, iResult, iObj );

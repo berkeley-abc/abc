@@ -22,8 +22,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "parseInt.h"
-#include "vec.h"
-#include "hop.h"
+#include "src/misc/vec/vec.h"
+#include "src/aig/hop/hop.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -19,8 +19,8 @@
 ***********************************************************************/
  
 #include "saig.h"
-#include "satSolver.h"
-#include "satStore.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 

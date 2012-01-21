@@ -333,7 +333,7 @@ static inline int Gli_NodeComputeValue( Gli_Obj_t * pNode )
     int i, Phase = 0;
     for ( i = 0; i < (int)pNode->nFanins; i++ )
         Phase |= (Gli_ObjFanin(pNode, i)->fPhase << i);
-    return Gia_InfoHasBit( pNode->uTruth, Phase );
+    return Abc_InfoHasBit( pNode->uTruth, Phase );
 }
 
 /**Function*************************************************************
@@ -352,7 +352,7 @@ static inline int Gli_NodeComputeValue2( Gli_Obj_t * pNode )
     int i, Phase = 0;
     for ( i = 0; i < (int)pNode->nFanins; i++ )
         Phase |= (Gli_ObjFanin(pNode, i)->fPhase2 << i);
-    return Gia_InfoHasBit( pNode->uTruth, Phase );
+    return Abc_InfoHasBit( pNode->uTruth, Phase );
 }
 
 /**Function*************************************************************
@@ -593,7 +593,7 @@ unsigned Gli_ManSimulateSeqNode( Gli_Man_t * p, Gli_Obj_t * pNode )
         for ( k = 0; k < nFanins; k++ )
             if ( (pSimInfos[k] >> i) & 1 )
                 Phase |= (1 << k);
-        if ( Gia_InfoHasBit( pNode->uTruth, Phase ) )
+        if ( Abc_InfoHasBit( pNode->uTruth, Phase ) )
             Result |= (1 << i);
     }
     return Result;
@@ -755,7 +755,7 @@ void Gli_ManSwitchesAndGlitches( Gli_Man_t * p, int nPatterns, float PiTransProb
     }
     else 
     {
-        int nIters = Gia_BitWordNum(nPatterns);
+        int nIters = Abc_BitWordNum(nPatterns);
         Gli_ManSimulateSeqPref( p, 16 );
         for ( i = 0; i < 32; i++ )
         {

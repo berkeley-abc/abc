@@ -77,7 +77,7 @@ clk = clock();
     pTableOld = p->pTable;
     nTableSizeOld = p->nTableSize;
     // get the new table
-    p->nTableSize = Aig_PrimeCudd( 2 * Aig_ManNodeNum(p) ); 
+    p->nTableSize = Abc_PrimeCudd( 2 * Aig_ManNodeNum(p) ); 
     p->pTable = ABC_ALLOC( Aig_Obj_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
     // rehash the entries from the old table

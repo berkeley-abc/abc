@@ -277,7 +277,7 @@ Vec_Ptr_t * Amap_LibSelectGates( Amap_Lib_t * p, int fVerbose )
                 continue;
             if ( pGate2->nPins != pGate->nPins )
                 continue;
-            if ( !memcmp( pGate2->pFunc, pGate->pFunc, sizeof(unsigned) * Aig_TruthWordNum(pGate->nPins) ) )
+            if ( !memcmp( pGate2->pFunc, pGate->pFunc, sizeof(unsigned) * Abc_TruthWordNum(pGate->nPins) ) )
                 break;
         }
         if ( k < i )

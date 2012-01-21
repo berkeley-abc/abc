@@ -18,23 +18,22 @@
 
 ***********************************************************************/
  
-#ifndef __MFS_INT_H__
-#define __MFS_INT_H__
+#ifndef ABC__opt__mfs__mfsInt_h
+#define ABC__opt__mfs__mfsInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
 #include "mfs.h"
-#include "aig.h"
-#include "cnf.h"
-#include "satSolver.h"
-#include "satStore.h"
-#include "bdc.h"
-#include "gia.h"
+#include "src/aig/aig/aig.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/sat/bsat/satStore.h"
+#include "src/bool/bdc/bdc.h"
+#include "src/aig/gia/gia.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

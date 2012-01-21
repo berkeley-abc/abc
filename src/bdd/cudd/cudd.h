@@ -54,16 +54,16 @@
 
 ******************************************************************************/
 
-#ifndef _CUDD
-#define _CUDD
+#ifndef ABC__bdd__cudd__cudd_h
+#define ABC__bdd__cudd__cudd_h
 
 
 /*---------------------------------------------------------------------------*/
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
 
-#include "mtr.h"
-#include "epd.h"
+#include "src/bdd/mtr/mtr.h"
+#include "src/bdd/epd/epd.h"
 
 ABC_NAMESPACE_HEADER_START
 

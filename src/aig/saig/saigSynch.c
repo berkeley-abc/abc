@@ -471,7 +471,7 @@ Aig_Man_t * Saig_ManDupInitZero( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Saig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );
@@ -619,7 +619,7 @@ Aig_Man_t * Saig_Synchronize( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int nWords, 
         return NULL;
     }
     clk = clock();
-    vSimInfo = Vec_PtrAllocSimInfo( ABC_MAX( Aig_ManObjNumMax(pAig1), Aig_ManObjNumMax(pAig2) ), 1 );
+    vSimInfo = Vec_PtrAllocSimInfo( Abc_MaxInt( Aig_ManObjNumMax(pAig1), Aig_ManObjNumMax(pAig2) ), 1 );
 
     // process Design 1
     RetValue = Saig_SynchSequenceRun( pAig1, vSimInfo, vSeq1, 1 );

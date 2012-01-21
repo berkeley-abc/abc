@@ -19,12 +19,13 @@
 ***********************************************************************/
 
 #include <math.h>
-#include "abc.h"
-#include "dec.h"
-#include "main.h"
-#include "mio.h"
-#include "aig.h"
-#include "if.h"
+#include "src/base/abc/abc.h"
+#include "src/bool/dec/dec.h"
+#include "src/base/main/main.h"
+#include "src/map/mio/mio.h"
+#include "src/aig/aig/aig.h"
+#include "src/map/if/if.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -523,7 +524,7 @@ void Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk )
         if ( nFanins > vFanins->nSize || nFanouts > vFanouts->nSize )
         {
             nOldSize = vFanins->nSize;
-            nNewSize = ABC_MAX(nFanins, nFanouts) + 10;
+            nNewSize = Abc_MaxInt(nFanins, nFanouts) + 10;
             Vec_IntGrow( vFanins,  nNewSize  );
             Vec_IntGrow( vFanouts, nNewSize );
             for ( k = nOldSize; k < nNewSize; k++ )
@@ -592,12 +593,12 @@ void Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk, int fMffc )
             nFanouts = Abc_ObjFanoutNum(pNode);
         nFaninsAll  += nFanins;
         nFanoutsAll += nFanouts;
-        nFaninsMax   = ABC_MAX( nFaninsMax, nFanins );
-        nFanoutsMax  = ABC_MAX( nFanoutsMax, nFanouts );
+        nFaninsMax   = Abc_MaxInt( nFaninsMax, nFanins );
+        nFanoutsMax  = Abc_MaxInt( nFanoutsMax, nFanouts );
     }
 
     // allocate storage for fanin/fanout numbers
-    nSizeMax = ABC_MAX( 10 * (Extra_Base10Log(nFaninsMax) + 1), 10 * (Extra_Base10Log(nFanoutsMax) + 1) );
+    nSizeMax = Abc_MaxInt( 10 * (Abc_Base10Log(nFaninsMax) + 1), 10 * (Abc_Base10Log(nFanoutsMax) + 1) );
     vFanins  = Vec_IntStart( nSizeMax );
     vFanouts = Vec_IntStart( nSizeMax );
 

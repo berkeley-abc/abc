@@ -18,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "cut.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
+#include "src/opt/cut/cut.h"
 
 ABC_NAMESPACE_IMPL_START
 

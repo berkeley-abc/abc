@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "cnf.h"
-#include "satStore.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 

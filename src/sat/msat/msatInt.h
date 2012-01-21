@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __MSAT_INT_H__
-#define __MSAT_INT_H__
+#ifndef ABC__sat__msat__msatInt_h
+#define ABC__sat__msat__msatInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -33,7 +33,7 @@
 #include <time.h>
 #include <math.h>
 
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 #include "msat.h"
 
 ABC_NAMESPACE_HEADER_START

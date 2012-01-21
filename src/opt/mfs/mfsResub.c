@@ -142,8 +142,8 @@ p->timeGia += clock() - clk;
         pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
         if ( !sat_solver_var_value( p->pSat, iVar ) ) // remove 0s!!!
         {
-            assert( Aig_InfoHasBit(pData, p->nCexes) );
-            Aig_InfoXorBit( pData, p->nCexes );
+            assert( Abc_InfoHasBit(pData, p->nCexes) );
+            Abc_InfoXorBit( pData, p->nCexes );
         }
     }
     p->nCexes++;
@@ -242,13 +242,13 @@ p->timeInt += clock() - clk;
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
                 pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
-                printf( "%d", Aig_InfoHasBit(pData, p->nCexes-1) );
+                printf( "%d", Abc_InfoHasBit(pData, p->nCexes-1) );
             }
             printf( "\n" );
         }
 
         // find the next divisor to try
-        nWords = Aig_BitWordNum(p->nCexes);
+        nWords = Abc_BitWordNum(p->nCexes);
         assert( nWords <= p->nDivWords );
         for ( iVar = 0; iVar < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); iVar++ )
         {
@@ -387,13 +387,13 @@ p->timeInt += clock() - clk;
             for ( i = 0; i < Vec_PtrSize(p->vDivs); i++ )
             {
                 pData = (unsigned *)Vec_PtrEntry( p->vDivCexes, i );
-                printf( "%d", Aig_InfoHasBit(pData, p->nCexes-1) );
+                printf( "%d", Abc_InfoHasBit(pData, p->nCexes-1) );
             }
             printf( "\n" );
         }
 
         // find the next divisor to try
-        nWords = Aig_BitWordNum(p->nCexes);
+        nWords = Abc_BitWordNum(p->nCexes);
         assert( nWords <= p->nDivWords );
         fBreak = 0;
         for ( iVar = 1; iVar < Vec_PtrSize(p->vDivs)-Abc_ObjFaninNum(pNode); iVar++ )

@@ -9,6 +9,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "st.h"
 
@@ -16,7 +17,7 @@ ABC_NAMESPACE_IMPL_START
 
 
 #define ST_NUMCMP(x,y) ((x) != (y))
-#define ST_NUMHASH(x,size) (ABC_ABS((long)x)%(size))
+#define ST_NUMHASH(x,size) (Abc_AbsInt((long)x)%(size))
 //#define ST_PTRHASH(x,size) ((int)((ABC_PTRUINT_T)(x)>>2)%size)  // 64-bit bug fix 9/17/2007
 #define ST_PTRHASH(x,size) ((int)(((ABC_PTRUINT_T)(x)>>2)%size))
 #define EQUAL(func, x, y) \

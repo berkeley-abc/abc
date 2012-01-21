@@ -16,8 +16,8 @@
 
 ***********************************************************************/
 
-#ifndef __MAPPER_INT_H__
-#define __MAPPER_INT_H__
+#ifndef ABC__map__mapper__mapperInt_h
+#define ABC__map__mapper__mapperInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -28,10 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
-#include "main.h"
-#include "mio.h"
+#include "src/base/main/main.h"
+#include "src/map/mio/mio.h"
 #include "mapper.h"
-#include "cuddInt.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_HEADER_START
 

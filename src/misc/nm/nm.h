@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __NM_H__
-#define __NM_H__
+#ifndef ABC__misc__nm__nm_h
+#define ABC__misc__nm__nm_h
 
 
 /*

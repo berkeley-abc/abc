@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "aig.h"
-#include "nwkMerge.h"
+#include "src/base/abc/abc.h"
+#include "src/aig/aig/aig.h"
+#include "src/opt/nwk/nwkMerge.h"
 
 ABC_NAMESPACE_IMPL_START
 

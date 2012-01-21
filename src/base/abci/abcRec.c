@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "if.h"
-#include "kit.h"
+#include "src/base/abc/abc.h"
+#include "src/map/if/if.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -246,7 +246,7 @@ void Rec_ObjSet(Abc_ManRec_t* p, Rec_Obj_t* pRecObj, Abc_Obj_t* pObj, char* newD
     Abc_NodeSetTravIdCurrent(pObj);
     Delay0 = If_CutDelayRecComput_rec(Abc_ObjFanin0(pObj), vCosts);
     Delay1 = If_CutDelayRecComput_rec(Abc_ObjFanin1(pObj), vCosts);
-    Delay = ABC_MAX(Delay0, Delay1) + 1;
+    Delay = Abc_MaxInt(Delay0, Delay1) + 1;
     Vec_StrWriteEntry(vCosts,pObj->Id,Delay);
     return Delay;
  }*/
@@ -299,7 +299,7 @@ char If_CutDepthRecComput_rec(Abc_Obj_t* pObj, int iLeaf)
         return -IF_BIG_CHAR;
     Depth0 = If_CutDepthRecComput_rec(Abc_ObjFanin0(pObj), iLeaf);
     Depth1 = If_CutDepthRecComput_rec(Abc_ObjFanin1(pObj), iLeaf);
-    Depth = ABC_MAX(Depth0, Depth1);
+    Depth = Abc_MaxInt(Depth0, Depth1);
     Depth = (Depth == -IF_BIG_CHAR) ? -IF_BIG_CHAR : Depth + 1;
     assert(Depth <= 127);
     return Depth;
@@ -1064,7 +1064,7 @@ void Abc_NtkRecLibMerge(Abc_Ntk_t* pNtk)
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, i+1 );
     Abc_AigForEachAnd( pNtk, pObj, i )
-        Abc_ObjSetMax( pObj, ABC_MAX( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
+        Abc_ObjSetMax( pObj, Abc_MaxInt( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
 
     // insert the PO nodes into the table
     Abc_NtkForEachPo( pNtk, pObj, i )
@@ -1105,7 +1105,7 @@ void Abc_NtkRecRezieHash(Abc_ManRec_t* p)
     int nBinsNew, Counter, i;
     int clk = clock();
     // get the new table size
-    nBinsNew = Cudd_Prime( 3 * p->nBins ); 
+    nBinsNew = Abc_PrimeCudd( 3 * p->nBins ); 
     printf("Hash table resize from %d to %d.\n", p->nBins, nBinsNew);
     // allocate a new array
     pBinsNew = ABC_ALLOC( Rec_Obj_t *, nBinsNew );
@@ -1242,7 +1242,7 @@ p->timeTruth += clock() - clk;
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, i+1 );
     Abc_AigForEachAnd( pNtk, pObj, i )
-        Abc_ObjSetMax( pObj, ABC_MAX( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
+        Abc_ObjSetMax( pObj, Abc_MaxInt( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
 
     // insert the PO nodes into the table
     timeInsert = clock();
@@ -1308,7 +1308,7 @@ void Abc_NtkRecDumpTruthTables( Abc_ManRec_t * p )
     for ( i = 0; i < p->nBins; i++ )
         for ( pObj = p->pBins[i]; pObj; pObj = pObj->pCopy )
         {
-            pTruth = Vec_PtrEntry(p->vTtNodes, pObj->Id);
+            pTruth = (unsigned *)Vec_PtrEntry(p->vTtNodes, pObj->Id);
             if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
                 continue;
             Extra_PrintHex( pFile, pTruth, nVars );
@@ -1418,7 +1418,7 @@ void Abc_NtkRecPs(int fPrintLib)
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_ObjSetMax( pObj, i+1 );
     Abc_AigForEachAnd( pNtk, pObj, i )
-        Abc_ObjSetMax( pObj, ABC_MAX( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
+        Abc_ObjSetMax( pObj, Abc_MaxInt( Abc_ObjGetMax(Abc_ObjFanin0(pObj)), Abc_ObjGetMax(Abc_ObjFanin1(pObj)) ) );
 if(fPrintLib)
 {
     pFile = fopen( "tt10.txt", "wb" );
@@ -1426,7 +1426,7 @@ for ( i = 0; i < p->nBins; i++ )
     for ( entry = p->pBins[i]; entry; entry = entry->pCopy )
     {
         int tmp = 0;
-        pTruth = Vec_PtrEntry(p->vTtNodes, entry->Id);
+        pTruth = (unsigned *)Vec_PtrEntry(p->vTtNodes, entry->Id);
         /*if ( (int)Kit_TruthSupport(pTruth, nVars) != (1<<nVars)-1 )
             continue;*/
         Extra_PrintHex( pFile, pTruth, nVars );
@@ -2416,7 +2416,7 @@ char Abc_NtkRecCurrentDepth_rec(If_Obj_t * pObj, int iLeaf)
         return -IF_BIG_CHAR;
     Depth0 = Abc_NtkRecCurrentDepth_rec(If_ObjFanin0(pObj), iLeaf);
     Depth1 = Abc_NtkRecCurrentDepth_rec(If_ObjFanin1(pObj), iLeaf);
-    Depth = ABC_MAX(Depth0, Depth1);
+    Depth = Abc_MaxInt(Depth0, Depth1);
     Depth = (Depth == -IF_BIG_CHAR) ? -IF_BIG_CHAR : Depth + 1;
     assert(Depth <= 127);
     return Depth;

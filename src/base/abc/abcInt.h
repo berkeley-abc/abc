@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __ABC_INT_H__
-#define __ABC_INT_H__
+#ifndef ABC__base__abc__abcInt_h
+#define ABC__base__abc__abcInt_h
 
 
 ABC_NAMESPACE_HEADER_START

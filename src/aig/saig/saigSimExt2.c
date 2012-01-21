@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "ssw.h"
+#include "src/proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -139,12 +139,12 @@ int Saig_ManSimDataInit2( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo 
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, f, iBit = 0;
     Saig_ManForEachLo( p, pObj, i )
-        Saig_ManSimInfo2Set( vSimInfo, pObj, 0, Aig_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE_NEW:SAIG_ZER_NEW );
+        Saig_ManSimInfo2Set( vSimInfo, pObj, 0, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE_NEW:SAIG_ZER_NEW );
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
         Saig_ManSimInfo2Set( vSimInfo, Aig_ManConst1(p), f, SAIG_ONE_NEW );
         Saig_ManForEachPi( p, pObj, i )
-            Saig_ManSimInfo2Set( vSimInfo, pObj, f, Aig_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE_NEW:SAIG_ZER_NEW );
+            Saig_ManSimInfo2Set( vSimInfo, pObj, f, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE_NEW:SAIG_ZER_NEW );
         Aig_ManForEachNode( p, pObj, i )
             Saig_ManExtendOneEval2( vSimInfo, pObj, f );
         Aig_ManForEachPo( p, pObj, i )
@@ -284,7 +284,7 @@ Vec_Int_t * Saig_ManProcessCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCe
     Vec_Int_t * vRes, * vResInv;
     int i, f, Value;
 //    assert( Aig_ManRegNum(p) > 0 );
-    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Abc_BitWordNum(2*(pCex->iFrame+1)) );
     // start simulation data
     Value = Saig_ManSimDataInit2( p, pCex, vSimInfo );
     assert( Value == SAIG_ONE_NEW );
@@ -345,8 +345,8 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest2( Aig_Man_t * p, int iFirstFlopPi, 
         return NULL;
     }
     Aig_ManFanoutStart( p );
-    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Aig_BitWordNum(2*(pCex->iFrame+1)) );
-    Vec_PtrCleanSimInfo( vSimInfo, 0, Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Abc_BitWordNum(2*(pCex->iFrame+1)) );
+    Vec_PtrCleanSimInfo( vSimInfo, 0, Abc_BitWordNum(2*(pCex->iFrame+1)) );
 
 clk = clock();
     vRes = Saig_ManProcessCex( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );
@@ -382,7 +382,7 @@ Abc_Cex_t * Saig_ManDeriveCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex
     Vec_Int_t * vRes, * vResInv;
     int i, f, Value;
 //    assert( Aig_ManRegNum(p) > 0 );
-    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Abc_BitWordNum(2*(pCex->iFrame+1)) );
     // start simulation data
     Value = Saig_ManSimDataInit2( p, pCex, vSimInfo );
     assert( Value == SAIG_ONE_NEW );
@@ -400,7 +400,7 @@ Abc_Cex_t * Saig_ManDeriveCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex
 
     // create CEX
     pCare = Abc_CexDup( pCex, pCex->nRegs );
-    memset( pCare->pData, 0, sizeof(unsigned) * Aig_BitWordNum(pCare->nBits) );
+    memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
 
     // select the result
     vRes = Vec_IntAlloc( 1000 );
@@ -414,7 +414,7 @@ Abc_Cex_t * Saig_ManDeriveCex( Aig_Man_t * p, int iFirstFlopPi, Abc_Cex_t * pCex
             if ( Saig_ManSimInfo2IsOld( Value ) )
             {
                 fFound = 1;
-                Aig_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * f + i );
+                Abc_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * f + i );
             }
         }
         if ( fFound )
@@ -454,8 +454,8 @@ Abc_Cex_t * Saig_ManFindCexCareBitsSense( Aig_Man_t * p, Abc_Cex_t * pCex, int i
         return NULL;
     }
     Aig_ManFanoutStart( p );
-    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Aig_BitWordNum(2*(pCex->iFrame+1)) );
-    Vec_PtrCleanSimInfo( vSimInfo, 0, Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Abc_BitWordNum(2*(pCex->iFrame+1)) );
+    Vec_PtrCleanSimInfo( vSimInfo, 0, Abc_BitWordNum(2*(pCex->iFrame+1)) );
 
 clk = clock();
     pCare = Saig_ManDeriveCex( p, iFirstFlopPi, pCex, vSimInfo, fVerbose );

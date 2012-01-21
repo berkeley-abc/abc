@@ -18,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "dec.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
+#include "src/bool/dec/dec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1151,7 +1150,7 @@ Dec_Graph_t * Abc_ManResubDivs12( Abc_ManRes_t * p, int Required )
                         break;
                 if ( w == p->nWords )
                 {
-                    LevelMax = ABC_MAX( pObj0->Level, ABC_MAX(pObj1->Level, pObj2->Level) );
+                    LevelMax = Abc_MaxInt( pObj0->Level, Abc_MaxInt(pObj1->Level, pObj2->Level) );
                     assert( LevelMax <= Required - 1 );
 
                     pObjMax = NULL;
@@ -1192,7 +1191,7 @@ Dec_Graph_t * Abc_ManResubDivs12( Abc_ManRes_t * p, int Required )
                         break;
                 if ( w == p->nWords )
                 {
-                    LevelMax = ABC_MAX( pObj0->Level, ABC_MAX(pObj1->Level, pObj2->Level) );
+                    LevelMax = Abc_MaxInt( pObj0->Level, Abc_MaxInt(pObj1->Level, pObj2->Level) );
                     assert( LevelMax <= Required - 1 );
 
                     pObjMax = NULL;

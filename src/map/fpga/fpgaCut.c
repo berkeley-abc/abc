@@ -918,7 +918,7 @@ Fpga_CutTable_t * Fpga_CutTableStart( Fpga_Man_t * pMan )
     // allocate the table
     p = ABC_ALLOC( Fpga_CutTable_t, 1 );
     memset( p, 0, sizeof(Fpga_CutTable_t) );
-    p->nBins = Cudd_Prime( 10 * FPGA_CUTS_MAX_COMPUTE );
+    p->nBins = Abc_PrimeCudd( 10 * FPGA_CUTS_MAX_COMPUTE );
     p->pBins = ABC_ALLOC( Fpga_Cut_t *, p->nBins );
     memset( p->pBins, 0, sizeof(Fpga_Cut_t *) * p->nBins );
     p->pCuts = ABC_ALLOC( int, 2 * FPGA_CUTS_MAX_COMPUTE );

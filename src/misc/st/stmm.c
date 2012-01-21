@@ -8,14 +8,14 @@
  *
  */
 #include <stdio.h>
-#include "extra.h"
+#include "src/misc/extra/extra.h"
 #include "stmm.h"
 
 ABC_NAMESPACE_IMPL_START
 
 
 #define STMM_NUMCMP(x,y) ((x) != (y))
-#define STMM_NUMHASH(x,size) (ABC_ABS((long)x)%(size))
+#define STMM_NUMHASH(x,size) (Abc_AbsInt((long)x)%(size))
 //#define STMM_PTRHASH(x,size) ((int)((ABC_PTRUINT_T)(x)>>2)%size) //  64-bit bug fix 9/17/2007
 #define STMM_PTRHASH(x,size) ((int)(((ABC_PTRUINT_T)(x)>>2)%size))
 #define EQUAL(func, x, y) \

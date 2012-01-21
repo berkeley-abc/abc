@@ -18,6 +18,8 @@
 
 ***********************************************************************/
 
+#include <math.h>
+
 #include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -58,27 +60,6 @@ static void Extra_Permutations_rec( char ** pRes, int nFact, int n, char Array[]
 /* Definition of exported functions                                          */
 /*---------------------------------------------------------------------------*/
 
-
-/**Function********************************************************************
-
-  Synopsis    [Finds the smallest integer larger of equal than the logarithm.]
-
-  Description [Returns [Log2(Num)].]
-
-  SideEffects []
-
-  SeeAlso     []
-
-******************************************************************************/
-int Extra_Base2Log( unsigned Num )
-{
-    int Res;
-    if ( Num == 0 ) return 0;
-    if ( Num == 1 ) return 1;
-    for ( Res = 0, Num--; Num; Num >>= 1, Res++ );
-    return Res;
-} /* end of Extra_Base2Log */
-
 /**Function********************************************************************
 
   Synopsis    [Finds the smallest integer larger of equal than the logarithm.]
@@ -102,26 +83,6 @@ int Extra_Base2LogDouble( double Num )
     else 
         return ResInt+1;
 }
-
-/**Function********************************************************************
-
-  Synopsis    [Finds the smallest integer larger of equal than the logarithm.]
-
-  Description [Returns [Log10(Num)].]
-
-  SideEffects []
-
-  SeeAlso     []
-
-******************************************************************************/
-int Extra_Base10Log( unsigned Num )
-{
-    int Res;
-    if ( Num == 0 ) return 0;
-    if ( Num == 1 ) return 1;
-    for ( Res = 0, Num--;  Num;  Num /= 10,  Res++ );
-    return Res;
-} /* end of Extra_Base2Log */
 
 /**Function********************************************************************
 
@@ -2118,41 +2079,6 @@ void Extra_BubbleSort( int Order[], int Costs[], int nSize, int fIncreasing )
     }
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Returns the smallest prime larger than the number.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned int Cudd_PrimeCopy( unsigned int  p)
-{
-    int i,pn;
-
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
 
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */

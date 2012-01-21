@@ -66,13 +66,13 @@ Lpk_Res_t * Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p )
             // include cof var into 0-block
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+0] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+1]           , p->pDelays );
-            Delay0 = ABC_MAX( DelayA, DelayB + 1 );
+            Delay0 = Abc_MaxInt( DelayA, DelayB + 1 );
             // include cof var into 1-block
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+1] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+0]           , p->pDelays );
-            Delay1 = ABC_MAX( DelayA, DelayB + 1 );
+            Delay1 = Abc_MaxInt( DelayA, DelayB + 1 );
             // get the best delay
-            Delay = ABC_MIN( Delay0, Delay1 );
+            Delay = Abc_MinInt( Delay0, Delay1 );
             Area = 2;
             Polarity = (int)(Delay == Delay1);
         }
@@ -80,7 +80,7 @@ Lpk_Res_t * Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p )
         {
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+0] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+1]           , p->pDelays );
-            Delay = ABC_MAX( DelayA, DelayB + 1 );
+            Delay = Abc_MaxInt( DelayA, DelayB + 1 );
             Area = 1 + Lpk_LutNumLuts( nSuppSize1, p->nLutK );
             Polarity = 0;
         }
@@ -88,7 +88,7 @@ Lpk_Res_t * Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p )
         {
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+1] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+0]           , p->pDelays );
-            Delay = ABC_MAX( DelayA, DelayB + 1 );
+            Delay = Abc_MaxInt( DelayA, DelayB + 1 );
             Area = 1 + Lpk_LutNumLuts( nSuppSize0, p->nLutK );
             Polarity = 1;
         }
@@ -96,7 +96,7 @@ Lpk_Res_t * Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p )
         {
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+1] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+0]           , p->pDelays );
-            Delay = ABC_MAX( DelayA, DelayB + 1 );
+            Delay = Abc_MaxInt( DelayA, DelayB + 1 );
             Area = 1 + Lpk_LutNumLuts( nSuppSize1+2, p->nLutK );
             Polarity = 1;
         }
@@ -104,7 +104,7 @@ Lpk_Res_t * Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p )
         {
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+0] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+1]           , p->pDelays );
-            Delay = ABC_MAX( DelayA, DelayB + 1 );
+            Delay = Abc_MaxInt( DelayA, DelayB + 1 );
             Area = 1 + Lpk_LutNumLuts( nSuppSize0+2, p->nLutK );
             Polarity = 0;
         }
@@ -113,13 +113,13 @@ Lpk_Res_t * Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p )
             // include cof var into 0-block
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+0] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+1]           , p->pDelays );
-            Delay0 = ABC_MAX( DelayA, DelayB + 1 );
+            Delay0 = Abc_MaxInt( DelayA, DelayB + 1 );
             // include cof var into 1-block
             DelayA = Lpk_SuppDelay( p->puSupps[2*Var+1] | (1<<Var), p->pDelays );
             DelayB = Lpk_SuppDelay( p->puSupps[2*Var+0]           , p->pDelays );
-            Delay1 = ABC_MAX( DelayA, DelayB + 1 );
+            Delay1 = Abc_MaxInt( DelayA, DelayB + 1 );
             // get the best delay
-            Delay = ABC_MIN( Delay0, Delay1 );
+            Delay = Abc_MinInt( Delay0, Delay1 );
             if ( Delay == Delay0 )
                 Area = Lpk_LutNumLuts( nSuppSize0+2, p->nLutK ) + Lpk_LutNumLuts( nSuppSize1, p->nLutK );
             else
@@ -131,8 +131,8 @@ Lpk_Res_t * Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p )
             continue;
         if ( Area > (int)p->nAreaLim )
             continue;
-        nSuppSizeS = ABC_MIN( nSuppSize0 + 2 *!Polarity, nSuppSize1 + 2 * Polarity );
-        nSuppSizeL = ABC_MAX( nSuppSize0 + 2 *!Polarity, nSuppSize1 + 2 * Polarity );
+        nSuppSizeS = Abc_MinInt( nSuppSize0 + 2 *!Polarity, nSuppSize1 + 2 * Polarity );
+        nSuppSizeL = Abc_MaxInt( nSuppSize0 + 2 *!Polarity, nSuppSize1 + 2 * Polarity );
         if ( nSuppSizeL > (int)p->nVars )
             continue;
         if ( pRes->Variable == -1 || pRes->AreaEst > Area || 

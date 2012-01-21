@@ -48,8 +48,8 @@
 
 ******************************************************************************/
 
-#ifndef _EPD
-#define _EPD
+#ifndef ABC__bdd__epd__epd_h
+#define ABC__bdd__epd__epd_h
 
 ABC_NAMESPACE_HEADER_START
 

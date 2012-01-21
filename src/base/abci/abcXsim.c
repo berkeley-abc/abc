@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "gia.h"
+#include "src/base/abc/abc.h"
+#include "src/aig/gia/gia.h"
 
 ABC_NAMESPACE_IMPL_START
 

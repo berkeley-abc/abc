@@ -18,8 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "reo.h"
+#include "src/base/abc/abc.h"
+#include "src/bdd/reo/reo.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -263,7 +264,7 @@ int Abc_ResCofCount( DdManager * dd, DdNode * bFunc, unsigned uMask, int * pChec
     Vec_PtrFree( vCofs );
     if ( pCheck )
     {
-        *pCheck = Abc_ResCheckNonStrict( Pattern, nVars, Extra_Base2Log(Result) );
+        *pCheck = Abc_ResCheckNonStrict( Pattern, nVars, Abc_Base2Log(Result) );
 /*
         if ( *pCheck == 1 && nVars == 4 && Result == 8 )
         {
@@ -290,7 +291,7 @@ int Abc_ResCofCount( DdManager * dd, DdNode * bFunc, unsigned uMask, int * pChec
 int Abc_ResCost( DdManager * dd, DdNode * bFunc, unsigned uMask, int * pnCofs, int * pCheck )
 {
     int nCofs = Abc_ResCofCount( dd, bFunc, uMask, pCheck );
-    int n2Log = Extra_Base2Log( nCofs );
+    int n2Log = Abc_Base2Log( nCofs );
     if ( pnCofs ) *pnCofs = nCofs;
     return 10000 * n2Log + (nCofs - (1 << (n2Log-1))) * (nCofs - (1 << (n2Log-1)));
 }
@@ -360,7 +361,7 @@ void Abc_ResPrint( DdManager * dd, DdNode * bFunc, int nInputs, unsigned uParts[
         CostAll += Cost;
         for ( k = 0; k < nInputs; k++ )
             printf( "%c", (uParts[i] & (1 << k))? 'a' + k : '-' );
-        printf( " %2d %d-%d %6d   ", nCofs, Extra_Base2Log(nCofs), fCheck, Cost );
+        printf( " %2d %d-%d %6d   ", nCofs, Abc_Base2Log(nCofs), fCheck, Cost );
     }
     printf( "%4d\n", CostAll );
 }
@@ -390,7 +391,7 @@ void Abc_ResPrintAllCofs( DdManager * dd, DdNode * bFunc, int nInputs, int nCofM
         for ( k = 0; k < nInputs; k++ )
             printf( "%c", (i & (1 << k))? 'a' + k : '-' );
         printf( "  n=%2d  c=%2d  l=%d-%d   %6d\n", 
-            Extra_WordCountOnes(i), nCofs, Extra_Base2Log(nCofs), fCheck, Cost );
+            Extra_WordCountOnes(i), nCofs, Abc_Base2Log(nCofs), fCheck, Cost );
     }
 }
 

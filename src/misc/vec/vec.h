@@ -18,15 +18,15 @@
 
 ***********************************************************************/
  
-#ifndef __VEC_H__
-#define __VEC_H__
+#ifndef ABC__misc__vec__vec_h
+#define ABC__misc__vec__vec_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 
 #include "vecInt.h"
 #include "vecFlt.h"

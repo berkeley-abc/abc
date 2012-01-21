@@ -7,8 +7,8 @@
  * $Date$
  *
  */
-#ifndef SPARSE_H
-#define SPARSE_H
+#ifndef ABC__misc__espresso__sparse_h
+#define ABC__misc__espresso__sparse_h
 
 
 ABC_NAMESPACE_HEADER_START

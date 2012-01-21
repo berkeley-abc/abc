@@ -16,11 +16,11 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "fraig.h"
+#include "src/base/abc/abc.h"
+#include "src/proof/fraig/fraig.h"
 #include "csat_apis.h"
-#include "stmm.h"
-#include "main.h"
+#include "src/misc/st/stmm.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 

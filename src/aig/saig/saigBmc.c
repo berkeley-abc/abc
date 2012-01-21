@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "fra.h"
-#include "cnf.h"
-#include "satStore.h"
+#include "src/proof/fra/fra.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -167,7 +167,7 @@ Aig_Man_t * Saig_ManFramesBmcLimit( Aig_Man_t * pAig, int nFrames, int nSizeMax 
 
 ABC_NAMESPACE_IMPL_END
 
-#include "utilMem.h"
+#include "src/misc/util/utilMem.h"
 
 ABC_NAMESPACE_IMPL_START
 

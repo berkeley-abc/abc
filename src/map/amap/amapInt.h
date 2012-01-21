@@ -18,15 +18,15 @@
 
 ***********************************************************************/
  
-#ifndef __AMAP_INT_H__
-#define __AMAP_INT_H__
+#ifndef ABC__map__amap__amapInt_h
+#define ABC__map__amap__amapInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "aig.h"
+#include "src/aig/aig/aig.h"
 #include "amap.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -216,13 +216,6 @@ struct Amap_Obj_t_
     Amap_Mat_t         Best;           // the best match of the node
 };
 
-static inline int          Amap_Var2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
-static inline int          Amap_Lit2Var( int Lit )              { return Lit >> 1;           }
-static inline int          Amap_LitIsCompl( int Lit )           { return Lit & 1;            }
-static inline int          Amap_LitNot( int Lit )               { return Lit ^ 1;            }
-static inline int          Amap_LitNotCond( int Lit, int c )    { return Lit ^ (int)(c > 0); }
-static inline int          Amap_LitRegular( int Lit )           { return Lit & ~01;          }
-
 static inline Amap_Obj_t * Amap_Regular( Amap_Obj_t * p )                          { return (Amap_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);  }
 static inline Amap_Obj_t * Amap_Not( Amap_Obj_t * p )                              { return (Amap_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);  }
 static inline Amap_Obj_t * Amap_NotCond( Amap_Obj_t * p, int c )                   { return (Amap_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));  }
@@ -249,13 +242,13 @@ static inline int          Amap_ObjIsXor( Amap_Obj_t * pObj )                   
 static inline int          Amap_ObjIsMux( Amap_Obj_t * pObj )                      { return pObj->Type == AMAP_OBJ_MUX;                 }
 static inline int          Amap_ObjIsNode( Amap_Obj_t * pObj )                     { return pObj->Type == AMAP_OBJ_AND || pObj->Type == AMAP_OBJ_XOR || pObj->Type == AMAP_OBJ_MUX;  }
 
-static inline int          Amap_ObjToLit( Amap_Obj_t * pObj )                      { return Amap_Var2Lit( Amap_Regular(pObj)->Id, Amap_IsComplement(pObj) ); }
-static inline Amap_Obj_t * Amap_ObjFanin0( Amap_Man_t * p, Amap_Obj_t * pObj )     { return Amap_ManObj(p, Amap_Lit2Var(pObj->Fan[0])); }
-static inline Amap_Obj_t * Amap_ObjFanin1( Amap_Man_t * p, Amap_Obj_t * pObj )     { return Amap_ManObj(p, Amap_Lit2Var(pObj->Fan[1])); }
-static inline Amap_Obj_t * Amap_ObjFanin2( Amap_Man_t * p, Amap_Obj_t * pObj )     { return Amap_ManObj(p, Amap_Lit2Var(pObj->Fan[2])); }
-static inline int          Amap_ObjFaninC0( Amap_Obj_t * pObj )                    { return Amap_LitIsCompl(pObj->Fan[0]);              }
-static inline int          Amap_ObjFaninC1( Amap_Obj_t * pObj )                    { return Amap_LitIsCompl(pObj->Fan[1]);              }
-static inline int          Amap_ObjFaninC2( Amap_Obj_t * pObj )                    { return Amap_LitIsCompl(pObj->Fan[2]);              }
+static inline int          Amap_ObjToLit( Amap_Obj_t * pObj )                      { return Abc_Var2Lit( Amap_Regular(pObj)->Id, Amap_IsComplement(pObj) ); }
+static inline Amap_Obj_t * Amap_ObjFanin0( Amap_Man_t * p, Amap_Obj_t * pObj )     { return Amap_ManObj(p, Abc_Lit2Var(pObj->Fan[0])); }
+static inline Amap_Obj_t * Amap_ObjFanin1( Amap_Man_t * p, Amap_Obj_t * pObj )     { return Amap_ManObj(p, Abc_Lit2Var(pObj->Fan[1])); }
+static inline Amap_Obj_t * Amap_ObjFanin2( Amap_Man_t * p, Amap_Obj_t * pObj )     { return Amap_ManObj(p, Abc_Lit2Var(pObj->Fan[2])); }
+static inline int          Amap_ObjFaninC0( Amap_Obj_t * pObj )                    { return Abc_LitIsCompl(pObj->Fan[0]);              }
+static inline int          Amap_ObjFaninC1( Amap_Obj_t * pObj )                    { return Abc_LitIsCompl(pObj->Fan[1]);              }
+static inline int          Amap_ObjFaninC2( Amap_Obj_t * pObj )                    { return Abc_LitIsCompl(pObj->Fan[2]);              }
 static inline void *       Amap_ObjCopy( Amap_Obj_t * pObj )                       { return pObj->pData;                                }
 static inline int          Amap_ObjLevel( Amap_Obj_t * pObj )                      { return pObj->Level;                                }
 static inline void         Amap_ObjSetLevel( Amap_Obj_t * pObj, int Level )        { pObj->Level = Level;                               }
@@ -313,14 +306,14 @@ extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 // iterates through each fanin of the match
 #define Amap_MatchForEachFaninCompl( p, pM, pFanin, fCompl, i )            \
     for ( i = 0; i < (int)(pM)->pCut->nFans &&                             \
-        ((pFanin = Amap_ManObj((p), Amap_Lit2Var((pM)->pCut->Fans[Amap_Lit2Var((pM)->pSet->Ins[i])]))), 1) && \
-        ((fCompl = Amap_LitIsCompl((pM)->pSet->Ins[i]) ^ Amap_LitIsCompl((pM)->pCut->Fans[Amap_Lit2Var((pM)->pSet->Ins[i])])), 1); \
+        ((pFanin = Amap_ManObj((p), Abc_Lit2Var((pM)->pCut->Fans[Abc_Lit2Var((pM)->pSet->Ins[i])]))), 1) && \
+        ((fCompl = Abc_LitIsCompl((pM)->pSet->Ins[i]) ^ Abc_LitIsCompl((pM)->pCut->Fans[Abc_Lit2Var((pM)->pSet->Ins[i])])), 1); \
         i++ )
 
 // iterates through each fanin of the match
 #define Amap_MatchForEachFanin( p, pM, pFanin, i )                         \
     for ( i = 0; i < (int)(pM)->pCut->nFans &&                             \
-        ((pFanin = Amap_ManObj((p), Amap_Lit2Var((pM)->pCut->Fans[Amap_Lit2Var((pM)->pSet->Ins[i])]))), 1); \
+        ((pFanin = Amap_ManObj((p), Abc_Lit2Var((pM)->pCut->Fans[Abc_Lit2Var((pM)->pSet->Ins[i])]))), 1); \
         i++ )
 
 ////////////////////////////////////////////////////////////////////////

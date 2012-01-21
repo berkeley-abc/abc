@@ -18,7 +18,7 @@
 
 #include <ctype.h>
 #include "mioInt.h"
-#include "ioAbc.h"
+#include "src/base/io/ioAbc.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -18,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
-#include "cut.h" 
+#include "src/base/abc/abc.h"
+#include "src/opt/cut/cut.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -175,7 +174,7 @@ int Abc_NtkSuperChoiceLut( Abc_Ntk_t * pNtk, int nLutSize, int nCutSizeMax, int 
         if ( Abc_ObjFaninNum(pFanin) == 1 )
             pFanin = Abc_ObjFanin0( pFanin );
         // get the new level
-        LevelMax = ABC_MAX( LevelMax, (int)pFanin->Level );
+        LevelMax = Abc_MaxInt( LevelMax, (int)pFanin->Level );
     }
 
     if ( fVerbose )
@@ -516,7 +515,7 @@ int Abc_NodeGetLevel( Abc_Obj_t * pObj )
     int i, Level;
     Level = 0;
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        Level = ABC_MAX( Level, (int)pFanin->Level );
+        Level = Abc_MaxInt( Level, (int)pFanin->Level );
     return Level + 1;
 }
 
@@ -723,7 +722,7 @@ int Abc_NodeDecomposeStep( Abc_ManScl_t * p )
             return 0;
     }
     // the number of cofactors is acceptable
-    nVarsNew = Extra_Base2Log( nClasses );
+    nVarsNew = Abc_Base2Log( nClasses );
     assert( nVarsNew < p->nLutSize );
     // create the remainder truth table
     // for each class of cofactors, multiply cofactor truth table by its code

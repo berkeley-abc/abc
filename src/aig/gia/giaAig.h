@@ -18,15 +18,15 @@
 
 ***********************************************************************/
  
-#ifndef __GIA_AIG_H__
-#define __GIA_AIG_H__
+#ifndef ABC__aig__gia__giaAig_h
+#define ABC__aig__gia__giaAig_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "aig.h"
+#include "src/aig/aig/aig.h"
 #include "gia.h"
 
 ABC_NAMESPACE_HEADER_START

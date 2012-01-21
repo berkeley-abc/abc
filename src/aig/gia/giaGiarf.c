@@ -301,7 +301,7 @@ int Hcd_ManHashKey( unsigned * pSim, int nWords, int nTableSize )
 void Hcd_ManClassesRehash( Hcd_Man_t * p, Vec_Int_t * vRefined )
 {
     int * pTable, nTableSize, Key, i, k;
-    nTableSize = Gia_PrimeCudd( 100 + Vec_IntSize(vRefined) / 5 );
+    nTableSize = Abc_PrimeCudd( 100 + Vec_IntSize(vRefined) / 5 );
     pTable = ABC_CALLOC( int, nTableSize );
     Vec_IntForEachEntry( vRefined, i, k )
     {
@@ -538,7 +538,7 @@ Gia_Man_t * Gia_GenerateReducedLevel( Gia_Man_t * p, int Level, Vec_Ptr_t ** pvR
     vRoots = Vec_PtrAlloc( 100 );
     // copy unmarked nodes
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
@@ -553,7 +553,7 @@ Gia_Man_t * Gia_GenerateReducedLevel( Gia_Man_t * p, int Level, Vec_Ptr_t ** pvR
         {
 //            printf( "Substituting %d <--- %d\n", Gia_ObjId(p, pRepr), Gia_ObjId(p, pObj) ); 
             assert( pRepr < pObj );
-            pObj->Value  = Gia_LitNotCond( pRepr->Value, Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
+            pObj->Value  = Abc_LitNotCond( pRepr->Value, Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
             continue;
         }
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -644,19 +644,19 @@ int Gia_GiarfStorePatternTry( Vec_Ptr_t * vInfo, Vec_Ptr_t * vPres, int iBit, in
     int i;
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        if ( Gia_InfoHasBit( pPres, iBit ) && 
-             Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Abc_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Abc_Lit2Var(pLits[i]));
+        if ( Abc_InfoHasBit( pPres, iBit ) && 
+             Abc_InfoHasBit( pInfo, iBit ) == Abc_LitIsCompl(pLits[i]) )
              return 0;
     }
     for ( i = 0; i < nLits; i++ )
     {
-        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Gia_Lit2Var(pLits[i]));
-        pPres = (unsigned *)Vec_PtrEntry(vPres, Gia_Lit2Var(pLits[i]));
-        Gia_InfoSetBit( pPres, iBit );
-        if ( Gia_InfoHasBit( pInfo, iBit ) == Gia_LitIsCompl(pLits[i]) )
-            Gia_InfoXorBit( pInfo, iBit );
+        pInfo = (unsigned *)Vec_PtrEntry(vInfo, Abc_Lit2Var(pLits[i]));
+        pPres = (unsigned *)Vec_PtrEntry(vPres, Abc_Lit2Var(pLits[i]));
+        Abc_InfoSetBit( pPres, iBit );
+        if ( Abc_InfoHasBit( pInfo, iBit ) == Abc_LitIsCompl(pLits[i]) )
+            Abc_InfoXorBit( pInfo, iBit );
     }
     return 1;
 }
@@ -699,10 +699,10 @@ void Gia_GiarfInsertPattern( Hcd_Man_t * p, Vec_Int_t * vCex, int k )
     int Lit, i;
     Vec_IntForEachEntry( vCex, Lit, i )
     {
-        pObj = Gia_ManCi( p->pGia, Gia_Lit2Var(Lit) );
+        pObj = Gia_ManCi( p->pGia, Abc_Lit2Var(Lit) );
         pInfo = Hcd_ObjSimP( p, Gia_ObjId( p->pGia, pObj ) );
-        if ( Gia_InfoHasBit( pInfo, k ) == Gia_LitIsCompl(Lit) )
-            Gia_InfoXorBit( pInfo, k );
+        if ( Abc_InfoHasBit( pInfo, k ) == Abc_LitIsCompl(Lit) )
+            Abc_InfoXorBit( pInfo, k );
     }
 }
 
@@ -737,7 +737,7 @@ void Gia_GiarfPrintClasses( Gia_Man_t * pGia )
 
 ABC_NAMESPACE_IMPL_END
 
-#include "cecInt.h"
+#include "src/proof/cec/cecInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -785,7 +785,7 @@ int Gia_ComputeEquivalencesLevel( Hcd_Man_t * p, Gia_Man_t * pGiaLev, Vec_Ptr_t 
         iRoot = Gia_ObjId( p->pGia, pRoot );
         if ( !Gia_ObjIsConst( p->pGia, iRoot ) )
             continue;
-        iRootNew = Gia_LitNotCond( pRoot->Value, pRoot->fPhase );
+        iRootNew = Abc_LitNotCond( pRoot->Value, pRoot->fPhase );
         assert( iRootNew != 1 );
         if ( fUse2Solver )
         {
@@ -880,8 +880,8 @@ int Gia_ComputeEquivalencesLevel( Hcd_Man_t * p, Gia_Man_t * pGiaLev, Vec_Ptr_t 
             pMemberPrev = (Gia_Obj_t *)Vec_PtrEntryLast( vMembers );
             Vec_PtrForEachEntry( Gia_Obj_t *, vMembers, pMember, k )
             {
-                iMemberPrev = Gia_LitNotCond( pMemberPrev->Value,  pMemberPrev->fPhase ); 
-                iMember     = Gia_LitNotCond( pMember->Value,     !pMember->fPhase ); 
+                iMemberPrev = Abc_LitNotCond( pMemberPrev->Value,  pMemberPrev->fPhase ); 
+                iMember     = Abc_LitNotCond( pMember->Value,     !pMember->fPhase ); 
                 assert( iMemberPrev != iMember );
                 if ( fUse2Solver )
                 {

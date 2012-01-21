@@ -18,8 +18,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Minisat_solver_h
-#define Minisat_solver_h
+#ifndef ABC__sat__lsat__solver_h
+#define ABC__sat__lsat__solver_h
 
 
 ABC_NAMESPACE_HEADER_START

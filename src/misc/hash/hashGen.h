@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __HASH_GEN_H__
-#define __HASH_GEN_H__
+#ifndef ABC__misc__hash__hashGen_h
+#define ABC__misc__hash__hashGen_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "extra.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_HEADER_START
 

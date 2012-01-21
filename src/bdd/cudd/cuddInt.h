@@ -48,8 +48,8 @@
 
 ******************************************************************************/
 
-#ifndef _CUDDINT
-#define _CUDDINT
+#ifndef ABC__bdd__cudd__cuddInt_h
+#define ABC__bdd__cudd__cuddInt_h
 
 
 /*---------------------------------------------------------------------------*/
@@ -59,8 +59,8 @@
 #ifdef DD_MIS
 #include "array.h"
 #include "list.h"
-#include "st.h"
-#include "espresso.h"
+#include "src/misc/st/st.h"
+#include "src/misc/espresso/espresso.h"
 #include "node.h"
 #ifdef SIS
 #include "graph.h"
@@ -71,7 +71,7 @@
 
 #include <math.h>
 #include "cudd.h"
-#include "st.h"
+#include "src/misc/st/st.h"
 
 ABC_NAMESPACE_HEADER_START
 

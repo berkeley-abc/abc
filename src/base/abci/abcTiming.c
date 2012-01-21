@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "main.h"
-#include "mio.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/main.h"
+#include "src/map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -139,7 +139,7 @@ void Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tArrDef.Rise  = Rise;
     pNtk->pManTime->tArrDef.Fall  = Fall;
-    pNtk->pManTime->tArrDef.Worst = ABC_MAX( Rise, Fall );
+    pNtk->pManTime->tArrDef.Worst = Abc_MaxInt( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -161,7 +161,7 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
         pNtk->pManTime = Abc_ManTimeStart();
     pNtk->pManTime->tReqDef.Rise  = Rise;
     pNtk->pManTime->tReqDef.Fall  = Fall;
-    pNtk->pManTime->tReqDef.Worst = ABC_MAX( Rise, Fall );
+    pNtk->pManTime->tReqDef.Worst = Abc_MaxInt( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -189,7 +189,7 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    pTime->Worst = ABC_MAX( Rise, Fall );
+    pTime->Worst = Abc_MaxInt( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -217,7 +217,7 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    pTime->Worst = ABC_MAX( Rise, Fall );
+    pTime->Worst = Abc_MaxInt( Rise, Fall );
 }
 
 /**Function*************************************************************
@@ -625,7 +625,7 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
         }
         pPin = Mio_PinReadNext(pPin);
     }
-    pTimeOut->Worst = ABC_MAX( pTimeOut->Rise, pTimeOut->Fall );
+    pTimeOut->Worst = Abc_MaxInt( pTimeOut->Rise, pTimeOut->Fall );
 }
 
 
@@ -647,7 +647,7 @@ int Abc_ObjLevelNew( Abc_Obj_t * pObj )
     Abc_Obj_t * pFanin;
     int i, Level = 0;
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        Level = ABC_MAX( Level, Abc_ObjLevel(pFanin) );
+        Level = Abc_MaxInt( Level, Abc_ObjLevel(pFanin) );
     return Level + 1;
 }
 
@@ -669,7 +669,7 @@ int Abc_ObjReverseLevelNew( Abc_Obj_t * pObj )
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
         LevelCur = Abc_ObjReverseLevel( pFanout );
-        Level = ABC_MAX( Level, LevelCur );
+        Level = Abc_MaxInt( Level, LevelCur );
     }
     return Level + 1;
 }
@@ -827,7 +827,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
                 assert( Abc_ObjLevel(pFanout) >= Lev );
                 Vec_VecPush( vLevels, Abc_ObjLevel(pFanout), pFanout );
 //                Counter++;
-//                CounterMax = ABC_MAX( CounterMax, Counter );
+//                CounterMax = Abc_MaxInt( CounterMax, Counter );
                 pFanout->fMarkA = 1;
             }
         }

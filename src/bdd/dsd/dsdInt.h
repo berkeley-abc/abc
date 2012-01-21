@@ -16,11 +16,11 @@
 
 ***********************************************************************/
 
-#ifndef __DSD_INT_H__
-#define __DSD_INT_H__
+#ifndef ABC__bdd__dsd__dsdInt_h
+#define ABC__bdd__dsd__dsdInt_h
 
 
-#include "extra.h"
+#include "src/misc/extra/extraBdd.h"
 #include "dsd.h"
 
 ABC_NAMESPACE_HEADER_START

@@ -8,7 +8,7 @@
 /*===================================================================*/
 
 #if !defined(PLACE_BASE_H_)
-#define PLACE_BASE_H_
+#define ABC__phys__place__place_base_h
 
 
 ABC_NAMESPACE_HEADER_START
@@ -21,7 +21,7 @@ ABC_NAMESPACE_HEADER_START
 
 // --- a C++ bool-like type
 //typedef char bool;
-#ifndef bool
+#ifndef ABC__phys__place__place_base_h
 #define bool int
 #endif
 

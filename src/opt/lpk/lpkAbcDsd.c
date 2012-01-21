@@ -73,8 +73,8 @@ int Lpk_FunComputeMinSuppSizeVar( Lpk_Fun_t * p, unsigned ** ppTruths, int nTrut
                 nSuppSize0 = Kit_TruthSupportSize( ppCofs[2*i+0], p->nVars );
                 nSuppSize1 = Kit_TruthSupportSize( ppCofs[2*i+1], p->nVars );
             }        
-            nSuppMaxCur = ABC_MAX( nSuppMaxCur, nSuppSize0 );
-            nSuppMaxCur = ABC_MAX( nSuppMaxCur, nSuppSize1 );
+            nSuppMaxCur = Abc_MaxInt( nSuppMaxCur, nSuppSize0 );
+            nSuppMaxCur = Abc_MaxInt( nSuppMaxCur, nSuppSize1 );
             nSuppTotalCur += nSuppSize0 + nSuppSize1;
         }
         if ( VarBest == -1 || nSuppMaxMin > nSuppMaxCur ||
@@ -110,9 +110,9 @@ unsigned Lpk_ComputeBoundSets_rec( Kit_DsdNtk_t * p, int iLit, Vec_Int_t * vSets
     unsigned i, iLitFanin, uSupport, uSuppCur;
     Kit_DsdObj_t * pObj;
     // consider the case of simple gate
-    pObj = Kit_DsdNtkObj( p, Kit_DsdLit2Var(iLit) );
+    pObj = Kit_DsdNtkObj( p, Abc_Lit2Var(iLit) );
     if ( pObj == NULL )
-        return (1 << Kit_DsdLit2Var(iLit));
+        return (1 << Abc_Lit2Var(iLit));
     if ( pObj->Type == KIT_DSD_AND || pObj->Type == KIT_DSD_XOR )
     {
         unsigned uSupps[16], Limit, s;
@@ -171,7 +171,7 @@ Vec_Int_t * Lpk_ComputeBoundSets( Kit_DsdNtk_t * p, int nSizeMax )
         return vSets;
     if ( Kit_DsdNtkRoot(p)->Type == KIT_DSD_VAR )
     {
-        uSupport = ( 1 << Kit_DsdLit2Var(Kit_DsdNtkRoot(p)->pFans[0]) );
+        uSupport = ( 1 << Abc_Lit2Var(Kit_DsdNtkRoot(p)->pFans[0]) );
         if ( Kit_WordCountOnes(uSupport) <= nSizeMax )
             Vec_IntPush( vSets, uSupport );
         return vSets;

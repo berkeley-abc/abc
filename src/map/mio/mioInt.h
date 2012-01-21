@@ -16,8 +16,8 @@
 
 ***********************************************************************/
 
-#ifndef __MIO_INT_H__
-#define __MIO_INT_H__
+#ifndef ABC__map__mio__mioInt_h
+#define ABC__map__mio__mioInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -28,9 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "vec.h"
-#include "mem.h"
-#include "st.h"
+#include "src/misc/vec/vec.h"
+#include "src/misc/mem/mem.h"
+#include "src/misc/st/st.h"
 #include "mio.h"
  
 ABC_NAMESPACE_HEADER_START

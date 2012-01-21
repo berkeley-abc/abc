@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "tim.h"
+#include "src/misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -477,7 +477,7 @@ int Aig_ManLevelNum( Aig_Man_t * p )
     int i, LevelsMax;
     LevelsMax = 0;
     Aig_ManForEachPo( p, pObj, i )
-        LevelsMax = ABC_MAX( LevelsMax, (int)Aig_ObjFanin0(pObj)->Level );
+        LevelsMax = Abc_MaxInt( LevelsMax, (int)Aig_ObjFanin0(pObj)->Level );
     return LevelsMax;
 }
 

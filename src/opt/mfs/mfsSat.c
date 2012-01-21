@@ -72,8 +72,8 @@ int Abc_NtkMfsSolveSat_iter( Mfs_Man_t * p )
             Lits[b] = lit_neg( Lits[b] );
         }
     }
-    assert( !Aig_InfoHasBit(p->uCare, Mint) );
-    Aig_InfoSetBit( p->uCare, Mint );
+    assert( !Abc_InfoHasBit(p->uCare, Mint) );
+    Abc_InfoSetBit( p->uCare, Mint );
     // add the blocking clause
     RetValue = sat_solver_addclause( p->pSat, Lits, Lits + Vec_IntSize(p->vProjVarsSat) );
     if ( RetValue == 0 )
@@ -106,7 +106,7 @@ int Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
     // prepare the truth table of care set
     p->nFanins = Vec_IntSize( p->vProjVarsSat );
-    p->nWords = Aig_TruthWordNum( p->nFanins );
+    p->nWords = Abc_TruthWordNum( p->nFanins );
     memset( p->uCare, 0, sizeof(unsigned) * p->nWords );
 
     // iterate through the SAT assignments

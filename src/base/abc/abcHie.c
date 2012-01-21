@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -194,8 +193,8 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy2( Abc_Ntk_t * pNtk )
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // duplicate the name and the spec
-    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
-    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    pNtkNew->pName = Abc_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Abc_UtilStrsav(pNtk->pSpec);
 
     // clean the node copy fields
     Abc_NtkCleanCopy( pNtk );

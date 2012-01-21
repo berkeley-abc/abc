@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "aig.h"
-#include "dar.h"
+#include "src/aig/aig/aig.h"
+#include "src/opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -75,7 +75,7 @@ Gia_Man_t * Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose
     Gia_ManConst0(p)->Value = 0;
     // start the new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManCleanLevels( pNew, Gia_ManObjNum(p) );
     Gia_ManForEachObj1( p, pObj, i )
@@ -114,7 +114,7 @@ Gia_Man_t * Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose
             else
             {
                 pObj->Value = Dar_LibEvalBuild( pNew, vLeaves, 0xffff & *pTruth, fKeepLevel, vLeavesBest );
-                pObj->Value = Gia_LitNotCond( pObj->Value, Gia_ObjPhaseRealLit(pNew, pObj->Value) ^ pObj->fPhase );
+                pObj->Value = Abc_LitNotCond( pObj->Value, Gia_ObjPhaseRealLit(pNew, pObj->Value) ^ pObj->fPhase );
             }
         }
     }

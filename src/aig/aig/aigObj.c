@@ -122,11 +122,11 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
     // create the power counter
     if ( p->vProbs )
     {
-        float Prob0 = Aig_Int2Float( Vec_IntEntry( p->vProbs, Aig_ObjFaninId0(pObj) ) );
-        float Prob1 = Aig_Int2Float( Vec_IntEntry( p->vProbs, Aig_ObjFaninId1(pObj) ) );
+        float Prob0 = Abc_Int2Float( Vec_IntEntry( p->vProbs, Aig_ObjFaninId0(pObj) ) );
+        float Prob1 = Abc_Int2Float( Vec_IntEntry( p->vProbs, Aig_ObjFaninId1(pObj) ) );
         Prob0 = Aig_ObjFaninC0(pObj)? 1.0 - Prob0 : Prob0;
         Prob1 = Aig_ObjFaninC1(pObj)? 1.0 - Prob1 : Prob1;
-        Vec_IntSetEntry( p->vProbs, pObj->Id, Aig_Float2Int(Prob0 * Prob1) );
+        Vec_IntSetEntry( p->vProbs, pObj->Id, Abc_Float2Int(Prob0 * Prob1) );
     }
     return pObj;
 }
@@ -563,7 +563,7 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     if ( p->pFanData && Aig_ObjIsBuf(pObjOld) )
     {
         Vec_PtrPush( p->vBufs, pObjOld );
-        p->nBufMax = ABC_MAX( p->nBufMax, Vec_PtrSize(p->vBufs) );
+        p->nBufMax = Abc_MaxInt( p->nBufMax, Vec_PtrSize(p->vBufs) );
         Aig_ManPropagateBuffers( p, fUpdateLevel );
     }
 }

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "ioAbc.h"
-#include "dec.h"
-#include "bblif.h"
+#include "src/bool/dec/dec.h"
+#include "src/misc/bbl/bblif.h"
 
 ABC_NAMESPACE_IMPL_START
 

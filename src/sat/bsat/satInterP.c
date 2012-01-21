@@ -25,7 +25,7 @@
 #include <time.h>
 
 #include "satStore.h"
-#include "vec.h"
+#include "src/misc/vec/vec.h"
 
 ABC_NAMESPACE_IMPL_START
 

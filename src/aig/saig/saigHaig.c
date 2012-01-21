@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "satSolver.h"
-#include "cnf.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/sat/cnf/cnf.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -101,8 +101,8 @@ Aig_Man_t * Aig_ManHaigFrames( Aig_Man_t * pHaig, int nFrames )
     assert( nFrames == 1 || Saig_ManRegNum(pHaig) > 0 );
     // start AIG manager for timeframes
     pFrames = Aig_ManStart( Aig_ManNodeNum(pHaig) * nFrames );
-    pFrames->pName = Aig_UtilStrsav( pHaig->pName );
-    pFrames->pSpec = Aig_UtilStrsav( pHaig->pSpec );
+    pFrames->pName = Abc_UtilStrsav( pHaig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pHaig->pSpec );
     // map the constant node
     Aig_ManConst1(pHaig)->pData = Aig_ManConst1( pFrames );
     // create variables for register outputs

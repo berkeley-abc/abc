@@ -18,9 +18,9 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "fraig.h"
-#include "main.h"
+#include "src/base/abc/abc.h"
+#include "src/proof/fraig/fraig.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -722,7 +722,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
     // no more than 256M for one circuit (128M + 128M)
     nWords1 = 32;
     nWords2 = (1<<27) / (Abc_NtkNodeNum(pNtk) + Abc_NtkCiNum(pNtk));
-    nWordsMin = ABC_MIN( nWords1, nWords2 );
+    nWordsMin = Abc_MinInt( nWords1, nWords2 );
 
     // set parameters for fraiging
     Fraig_ParamsSetDefault( &Params );

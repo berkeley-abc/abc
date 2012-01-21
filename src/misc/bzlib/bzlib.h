@@ -24,8 +24,8 @@
 #endif
 #endif
 
-#ifndef _BZLIB_H
-#define _BZLIB_H
+#ifndef ABC__misc__bzlib__bzlib_h
+#define ABC__misc__bzlib__bzlib_h
 
 #define BZ_RUN               0
 #define BZ_FLUSH             1
@@ -96,7 +96,7 @@ typedef
 #endif
 
 #include <stdio.h>
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 
 ABC_NAMESPACE_HEADER_START
 

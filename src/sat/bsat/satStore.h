@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __SAT_STORE_H__
-#define __SAT_STORE_H__
+#ifndef ABC__sat__bsat__satStore_h
+#define ABC__sat__bsat__satStore_h
 
 
 /*

@@ -20,10 +20,10 @@
 
 #include "saig.h"
 
-#include "nwk.h"
-#include "cnf.h"
-#include "satSolver.h"
-#include "satStore.h"
+#include "src/opt/nwk/nwk.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -287,8 +287,8 @@ Aig_Man_t * Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut )
 //    assert( Vec_PtrSize(vCut) == Saig_ManRetimeCountCut(p, vCut) );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nRegs = Vec_PtrSize(vCut);
     pNew->nTruePis = p->nTruePis;
     pNew->nTruePos = p->nTruePos;
@@ -346,8 +346,8 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_
 //    assert( Vec_PtrSize(vCut) == Saig_ManRetimeCountCut(p, vCut) );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nRegs = Vec_PtrSize(vCut);
     pNew->nTruePis = p->nTruePis;
     pNew->nTruePos = p->nTruePos;

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "cnf.h"
-#include "satSolver.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -160,7 +160,7 @@ Aig_Man_t * Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits, int fVerbose
 
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     pAigNew->nConstrs = pAig->nConstrs;
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
@@ -180,7 +180,7 @@ Aig_Man_t * Saig_ManDecPropertyOutput( Aig_Man_t * pAig, int nLits, int fVerbose
         pMiter = Aig_ManConst1( pAigNew );
         Vec_IntForEachEntry( vCube, Lit, i )
         {
-            pObj = Aig_NotCond( Aig_ObjCopy(Aig_ManObj(pAig, Aig_Lit2Var(Lit))), Aig_LitIsCompl(Lit) );
+            pObj = Aig_NotCond( Aig_ObjCopy(Aig_ManObj(pAig, Abc_Lit2Var(Lit))), Abc_LitIsCompl(Lit) );
             pMiter = Aig_And( pAigNew, pMiter, pObj );
         }
         Aig_ObjCreatePo( pAigNew, pMiter );

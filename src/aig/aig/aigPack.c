@@ -295,19 +295,19 @@ int Aig_ManPackAddPatternTry( Aig_ManPack_t * p, int iBit, Vec_Int_t * vLits )
     int i, Lit;
     Vec_IntForEachEntry( vLits, Lit, i )
     {
-        pInfo = Vec_WrdEntryP( p->vPiPats, Aig_Lit2Var(Lit) );
-        pPres = Vec_WrdEntryP( p->vPiCare, Aig_Lit2Var(Lit) );
-        if ( Aig_InfoHasBit( (unsigned *)pPres, iBit ) && 
-             Aig_InfoHasBit( (unsigned *)pInfo, iBit ) == Aig_LitIsCompl(Lit) )
+        pInfo = Vec_WrdEntryP( p->vPiPats, Abc_Lit2Var(Lit) );
+        pPres = Vec_WrdEntryP( p->vPiCare, Abc_Lit2Var(Lit) );
+        if ( Abc_InfoHasBit( (unsigned *)pPres, iBit ) && 
+             Abc_InfoHasBit( (unsigned *)pInfo, iBit ) == Abc_LitIsCompl(Lit) )
              return 0;
     }
     Vec_IntForEachEntry( vLits, Lit, i )
     {
-        pInfo = Vec_WrdEntryP( p->vPiPats, Aig_Lit2Var(Lit) );
-        pPres = Vec_WrdEntryP( p->vPiCare, Aig_Lit2Var(Lit) );
-        Aig_InfoSetBit( (unsigned *)pPres, iBit );
-        if ( Aig_InfoHasBit( (unsigned *)pInfo, iBit ) == Aig_LitIsCompl(Lit) )
-             Aig_InfoXorBit( (unsigned *)pInfo, iBit );
+        pInfo = Vec_WrdEntryP( p->vPiPats, Abc_Lit2Var(Lit) );
+        pPres = Vec_WrdEntryP( p->vPiCare, Abc_Lit2Var(Lit) );
+        Abc_InfoSetBit( (unsigned *)pPres, iBit );
+        if ( Abc_InfoHasBit( (unsigned *)pInfo, iBit ) == Abc_LitIsCompl(Lit) )
+             Abc_InfoXorBit( (unsigned *)pInfo, iBit );
     }
     return 1;
 }
@@ -335,16 +335,16 @@ void Aig_ManPackAddPattern( Aig_ManPack_t * p, Vec_Int_t * vLits )
         word * pInfo, * pPres;
         int i, Lit;
         Vec_IntForEachEntry( vLits, Lit, i )
-            printf( "%d", Aig_LitIsCompl(Lit) );
+            printf( "%d", Abc_LitIsCompl(Lit) );
         printf( "\n\n" );
         for ( k = 1; k < 64; k++ )
         {
             Vec_IntForEachEntry( vLits, Lit, i )
             {
-                pInfo = Vec_WrdEntryP( p->vPiPats, Aig_Lit2Var(Lit) );
-                pPres = Vec_WrdEntryP( p->vPiCare, Aig_Lit2Var(Lit) );
-                if ( Aig_InfoHasBit( (unsigned *)pPres, k ) )
-                    printf( "%d", Aig_InfoHasBit( (unsigned *)pInfo, k ) );
+                pInfo = Vec_WrdEntryP( p->vPiPats, Abc_Lit2Var(Lit) );
+                pPres = Vec_WrdEntryP( p->vPiCare, Abc_Lit2Var(Lit) );
+                if ( Abc_InfoHasBit( (unsigned *)pPres, k ) )
+                    printf( "%d", Abc_InfoHasBit( (unsigned *)pInfo, k ) );
                 else
                     printf( "-" );
             }

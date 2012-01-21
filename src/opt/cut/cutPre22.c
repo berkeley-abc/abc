@@ -192,7 +192,7 @@ void Cut_CellLoad()
         // derive the cell
         pCell = (Cut_Cell_t *)Extra_MmFixedEntryFetch( p->pMem );
         memset( pCell, 0, sizeof(Cut_Cell_t) );
-        pCell->nVars = Extra_Base2Log(Length*4);
+        pCell->nVars = Abc_Base2Log(Length*4);
         pCell->nUsed = 1;
 //        Extra_TruthCopy( pCell->uTruth, pTruth, nVars );
         Extra_ReadHexadecimal( pCell->uTruth, pString, pCell->nVars );

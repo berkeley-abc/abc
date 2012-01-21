@@ -18,11 +18,10 @@
 
 ***********************************************************************/
 
-#ifndef __COV_INT_H__
-#define __COV_INT_H__
+#ifndef ABC__map__cov__covInt_h
+#define ABC__map__cov__covInt_h
 
-#include "abc.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
 
 
 ABC_NAMESPACE_HEADER_START

@@ -338,9 +338,9 @@ Vec_Int_t * Gia_ManTransferFrames( Gia_Man_t * pAig, Gia_Man_t * pFrames, int nF
         assert( Gia_ObjIsCand(pObj) );
         for ( f = 0; f < nFrames; f++ )
         {
-            pObjF = Gia_ManObj( pFrames, Gia_Lit2Var(Gia_ObjCopyF( pAig, f, pObj )) );
+            pObjF = Gia_ManObj( pFrames, Abc_Lit2Var(Gia_ObjCopyF( pAig, f, pObj )) );
             if ( pObjF->Value && ~pObjF->Value )
-                Vec_IntPushUnique( vSigsNew, Gia_Lit2Var(pObjF->Value) );
+                Vec_IntPushUnique( vSigsNew, Abc_Lit2Var(pObjF->Value) );
         }
     }
     return vSigsNew;    
@@ -365,7 +365,7 @@ Gia_Man_t * Gia_ManUnrollInit( Gia_Man_t * p, int nFrames )
     ABC_FREE( p->pCopies );
     p->pCopies = ABC_FALLOC( int, nFrames * Gia_ManObjNum(p) );
     pNew = Gia_ManStart( nFrames * Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachRo( p, pObj, i )
         Gia_ObjSetCopyF( p, 0, pObj, 0 );
@@ -440,7 +440,7 @@ Gia_Man_t * Gia_ManRemoveEnables2( Gia_Man_t * p )
     Gia_Obj_t * pThis, * pNode;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
@@ -481,13 +481,13 @@ Gia_Man_t * Gia_ManRemoveEnables2( Gia_Man_t * p )
         {
 //            printf( "FlopIn compl = %d. FlopOut is d0. Complement = %d.\n", 
 //                Gia_ObjFaninC0(pFlopIn), Gia_IsComplement(pObj0) );
-            pFlopIn->Value = Gia_LitNotCond(Gia_Regular(pObj1)->Value, !Gia_IsComplement(pObj1));
+            pFlopIn->Value = Abc_LitNotCond(Gia_Regular(pObj1)->Value, !Gia_IsComplement(pObj1));
         }
         else if ( Gia_Regular(pObj1) == pFlopOut )
         {
 //            printf( "FlopIn compl = %d. FlopOut is d1. Complement = %d.\n", 
 //                Gia_ObjFaninC0(pFlopIn), Gia_IsComplement(pObj1) );
-            pFlopIn->Value = Gia_LitNotCond(Gia_Regular(pObj0)->Value, !Gia_IsComplement(pObj0));
+            pFlopIn->Value = Abc_LitNotCond(Gia_Regular(pObj0)->Value, !Gia_IsComplement(pObj0));
         }
     }
     Gia_ManForEachCo( p, pThis, i )
@@ -610,7 +610,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
     
 
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
@@ -627,7 +627,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
         if ( pData == NULL )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         else
-            pObj->Value = Gia_ManAppendCo( pNew, Gia_LitNotCond(Gia_Regular(pData)->Value, Gia_IsComplement(pData)) );
+            pObj->Value = Gia_ManAppendCo( pNew, Abc_LitNotCond(Gia_Regular(pData)->Value, Gia_IsComplement(pData)) );
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Vec_PtrFree( vDatas );

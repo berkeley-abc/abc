@@ -260,7 +260,7 @@ void Nm_ManResize( Nm_Man_t * p )
 
 clk = clock();
     // get the new table size
-    nBinsNew = Cudd_PrimeCopy( p->nGrowthFactor * p->nBins ); 
+    nBinsNew = Abc_PrimeCudd( p->nGrowthFactor * p->nBins ); 
     // allocate a new array
     pBinsNewI2N = ABC_ALLOC( Nm_Entry_t *, nBinsNew );
     pBinsNewN2I = ABC_ALLOC( Nm_Entry_t *, nBinsNew );
@@ -299,41 +299,6 @@ clk = clock();
 }
 
 
-/**Function*************************************************************
-
-  Synopsis    [Returns the smallest prime larger than the number.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned int Cudd_PrimeNm( unsigned int  p)
-{
-    int i,pn;
-
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "giaAig.h"
-#include "ioa.h"
+#include "src/aig/gia/giaAig.h"
+#include "src/aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -89,7 +89,7 @@ Vec_Int_t * Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_I
         // override the flop values according to the cex
         iBit = pAbsCex->nRegs + f * pAbsCex->nPis + Saig_ManPiNum(pAig);
         Vec_IntForEachEntry( vMapEntries, Entry, k )
-            Saig_ManLo(pAig, Entry)->fMarkB = Aig_InfoHasBit(pAbsCex->pData, iBit + k);
+            Saig_ManLo(pAig, Entry)->fMarkB = Abc_InfoHasBit(pAbsCex->pData, iBit + k);
         // simulate
         Aig_ManForEachNode( pAig, pObj, k )
             pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
@@ -102,7 +102,7 @@ Vec_Int_t * Saig_ManCbaFilterFlops( Aig_Man_t * pAig, Abc_Cex_t * pAbsCex, Vec_I
         // compare
         iBit = pAbsCex->nRegs + (f + 1) * pAbsCex->nPis + Saig_ManPiNum(pAig);
         Vec_IntForEachEntry( vMapEntries, Entry, k )
-            if ( Saig_ManLi(pAig, Entry)->fMarkB != (unsigned)Aig_InfoHasBit(pAbsCex->pData, iBit + k) )
+            if ( Saig_ManLi(pAig, Entry)->fMarkB != (unsigned)Abc_InfoHasBit(pAbsCex->pData, iBit + k) )
                 Vec_IntAddToEntry( vFlopCosts, k, 1 );
     }
 //    Vec_IntForEachEntry( vFlopCosts, Entry, i )
@@ -153,7 +153,7 @@ Aig_Man_t * Saig_ManDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value )
     assert( pAig->nConstrs == 0 );
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) + Vec_VecSizeSize(vReg2Value) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
@@ -168,8 +168,8 @@ Aig_Man_t * Saig_ManDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value )
         pMiter = Aig_ManConst1( pAigNew );
         Vec_IntForEachEntry( vLevel, Lit, k )
         {
-            pObj = Saig_ManLi( pAig, Aig_Lit2Var(Lit) );
-            pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Aig_LitIsCompl(Lit)) );
+            pObj = Saig_ManLi( pAig, Abc_Lit2Var(Lit) );
+            pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Abc_LitIsCompl(Lit)) );
         }
         Aig_ObjCreatePo( pAigNew, pMiter );
     }
@@ -227,20 +227,20 @@ Abc_Cex_t * Saig_ManCbaReason2Cex( Saig_ManCba_t * p, Vec_Int_t * vReasons )
     Abc_Cex_t * pCare;
     int i, Entry, iInput, iFrame;
     pCare = Abc_CexDup( p->pCex, p->pCex->nRegs );
-    memset( pCare->pData, 0, sizeof(unsigned) * Aig_BitWordNum(pCare->nBits) );
+    memset( pCare->pData, 0, sizeof(unsigned) * Abc_BitWordNum(pCare->nBits) );
     Vec_IntForEachEntry( vReasons, Entry, i )
     {
         assert( Entry >= 0 && Entry < Aig_ManPiNum(p->pFrames) );
         iInput = Vec_IntEntry( p->vMapPiF2A, 2*Entry );
         iFrame = Vec_IntEntry( p->vMapPiF2A, 2*Entry+1 );
-        Aig_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
+        Abc_InfoSetBit( pCare->pData, pCare->nRegs + pCare->nPis * iFrame + iInput );
     }
 /*
     for ( iFrame = 0; iFrame <= pCare->iFrame; iFrame++ )
     {
         int Count = 0;
         for ( i = 0; i < pCare->nPis; i++ )
-            Count +=  Aig_InfoHasBit(pCare->pData, pCare->nRegs + pCare->nPis * iFrame + i);
+            Count +=  Abc_InfoHasBit(pCare->pData, pCare->nRegs + pCare->nPis * iFrame + i);
         printf( "%d ", Count );
     }
 printf( "\n" );
@@ -322,7 +322,7 @@ Vec_Int_t * Saig_ManCbaFindReason( Saig_ManCba_t * p )
     {
         int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
         int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
-        pObj->fPhase = Aig_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
+        pObj->fPhase = Abc_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
         Vec_IntWriteEntry( vPrios, Aig_ObjId(pObj), i );
     }
 
@@ -434,11 +434,11 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
 
     // derive unrolled timeframes
     pFrames = Aig_ManStart( 10000 );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
-    pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // initialize the flops 
     Saig_ManForEachLo( pAig, pObj, i )
-        pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Aig_InfoHasBit(pCex->pData, i) );
+        pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, i) );
     // iterate through the frames
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
@@ -457,7 +457,7 @@ Aig_Man_t * Saig_ManCbaUnrollWithCex( Aig_Man_t * pAig, Abc_Cex_t * pCex, int nI
                 if ( Aig_ObjPioNum(pObj) < nInputs )
                 {
                     int iBit = pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj);
-                    pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Aig_InfoHasBit(pCex->pData, iBit) );
+                    pObj->pData = Aig_NotCond( Aig_ManConst1(pFrames), !Abc_InfoHasBit(pCex->pData, iBit) );
                 }
                 else
                 {
@@ -558,12 +558,12 @@ void Saig_ManCbaShrink( Saig_ManCba_t * p )
     {
         Vec_IntForEachEntryDouble( vLevel, ObjId, Lit, k )
         {
-            pObjFrame = Aig_ManObj( p->pFrames, Aig_Lit2Var(Lit) );
+            pObjFrame = Aig_ManObj( p->pFrames, Abc_Lit2Var(Lit) );
             if ( pObjFrame == NULL || (!Aig_ObjIsConst1(pObjFrame) && !Aig_ObjIsTravIdCurrent(p->pFrames, pObjFrame)) )
                 continue;
             pObjLi = Aig_ManObj( p->pAig, ObjId );
             assert( Saig_ObjIsLi(p->pAig, pObjLi) );
-            Vec_VecPushInt( p->vReg2Value, f, Aig_Var2Lit( Aig_ObjPioNum(pObjLi) - Saig_ManPoNum(p->pAig), Aig_LitIsCompl(Lit) ^ !pObjFrame->fPhase ) );
+            Vec_VecPushInt( p->vReg2Value, f, Abc_Var2Lit( Aig_ObjPioNum(pObjLi) - Saig_ManPoNum(p->pAig), Abc_LitIsCompl(Lit) ^ !pObjFrame->fPhase ) );
         }
     }
     // print statistics

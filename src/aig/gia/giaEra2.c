@@ -136,11 +136,11 @@ static inline Gia_ObjAre_t *  Gia_ObjNextObj0( Gia_ManAre_t * p, Gia_ObjAre_t * 
 static inline Gia_ObjAre_t *  Gia_ObjNextObj1( Gia_ManAre_t * p, Gia_ObjAre_t * q )   { return Gia_ManAreObj( p, q->F[1] );                      }
 static inline Gia_ObjAre_t *  Gia_ObjNextObj2( Gia_ManAre_t * p, Gia_ObjAre_t * q )   { return Gia_ManAreObj( p, q->F[2] );                      }
 
-static inline int             Gia_StaHasValue0( Gia_StaAre_t * p, int iReg )          { return Gia_InfoHasBit( p->pData,  iReg << 1 );           }
-static inline int             Gia_StaHasValue1( Gia_StaAre_t * p, int iReg )          { return Gia_InfoHasBit( p->pData, (iReg << 1) + 1 );      }
+static inline int             Gia_StaHasValue0( Gia_StaAre_t * p, int iReg )          { return Abc_InfoHasBit( p->pData,  iReg << 1 );           }
+static inline int             Gia_StaHasValue1( Gia_StaAre_t * p, int iReg )          { return Abc_InfoHasBit( p->pData, (iReg << 1) + 1 );      }
 
-static inline void            Gia_StaSetValue0( Gia_StaAre_t * p, int iReg )          { Gia_InfoSetBit( p->pData,  iReg << 1 );                  }
-static inline void            Gia_StaSetValue1( Gia_StaAre_t * p, int iReg )          { Gia_InfoSetBit( p->pData, (iReg << 1) + 1 );             }
+static inline void            Gia_StaSetValue0( Gia_StaAre_t * p, int iReg )          { Abc_InfoSetBit( p->pData,  iReg << 1 );                  }
+static inline void            Gia_StaSetValue1( Gia_StaAre_t * p, int iReg )          { Abc_InfoSetBit( p->pData, (iReg << 1) + 1 );             }
 
 static inline Gia_StaAre_t *  Gia_StaPrev( Gia_ManAre_t * p, Gia_StaAre_t * pS )      { return Gia_ManAreSta(p, pS->iPrev);                      }
 static inline Gia_StaAre_t *  Gia_StaNext( Gia_ManAre_t * p, Gia_StaAre_t * pS )      { return Gia_ManAreSta(p, pS->iNext);                      }
@@ -198,7 +198,7 @@ void Gia_ManCountMintermsInCube( Gia_StaAre_t * pCube, int nVars, unsigned * pSt
         for ( i = 0; i < nVars; i++ )
             if ( m & (1 << i) )
                 Mint |= (1 << Dashes[i]);
-        Gia_InfoSetBit( pStore, Mint );
+        Abc_InfoSetBit( pStore, Mint );
     }
 }
 
@@ -220,7 +220,7 @@ int Gia_ManCountMinterms( Gia_ManAre_t * p )
     int i, nMemSize, Counter = 0;
     if ( Gia_ManRegNum(p->pAig) > 30 )
         return -1;
-    nMemSize = Gia_BitWordNum( 1 << Gia_ManRegNum(p->pAig) );
+    nMemSize = Abc_BitWordNum( 1 << Gia_ManRegNum(p->pAig) );
     pMemory  = ABC_CALLOC( unsigned, nMemSize );
     Gia_ManAreForEachCubeStore( p, pCube, i )
         if ( Gia_StaIsUsed(pCube) )
@@ -477,7 +477,7 @@ Gia_ManAre_t * Gia_ManAreCreate( Gia_Man_t * pAig )
     assert( sizeof(Gia_ObjAre_t) == 16 );
     p = ABC_CALLOC( Gia_ManAre_t, 1 );
     p->pAig       = pAig;
-    p->nWords     = Gia_BitWordNum( 2 * Gia_ManRegNum(pAig) );
+    p->nWords     = Abc_BitWordNum( 2 * Gia_ManRegNum(pAig) );
     p->nSize      = sizeof(Gia_StaAre_t)/4 + p->nWords;
     p->ppObjs     = ABC_CALLOC( unsigned *, MAX_PAGE_NUM );
     p->ppStas     = ABC_CALLOC( unsigned *, MAX_PAGE_NUM );
@@ -1421,7 +1421,7 @@ static inline Gia_Obj_t * Gia_ManAreMostUsedPi( Gia_ManAre_t * p )
         if ( pObj->Value <= 1 )
             continue;
         Gia_ManIncrementTravId( p->pNew );
-        Gia_ManAreMostUsedPi_rec( p->pNew, Gia_ManObj(p->pNew, Gia_Lit2Var(pObj->Value)) );
+        Gia_ManAreMostUsedPi_rec( p->pNew, Gia_ManObj(p->pNew, Abc_Lit2Var(pObj->Value)) );
     }
     // check the CI counters
     Gia_ManForEachCi( p->pNew, pObj, i )
@@ -1471,7 +1471,7 @@ static inline int Gia_ManCheckPOs( Gia_ManAre_t * p )
     int i, CountCur, CountMax = 0;
     Gia_ManForEachPo( p->pAig, pObj, i )
     {
-        pObjNew = Gia_ManObj( p->pNew, Gia_Lit2Var(pObj->Value) );
+        pObjNew = Gia_ManObj( p->pNew, Abc_Lit2Var(pObj->Value) );
         if ( Gia_ObjIsConst0(pObjNew) )
             CountCur = 0;
         else 
@@ -1479,7 +1479,7 @@ static inline int Gia_ManCheckPOs( Gia_ManAre_t * p )
             Gia_ManIncrementTravId( p->pNew );
             CountCur = Gia_ManCheckPOs_rec( p->pNew, pObjNew );
         }
-        CountMax = ABC_MAX( CountMax, CountCur );
+        CountMax = Abc_MaxInt( CountMax, CountCur );
     }
     return CountMax;
 }
@@ -1501,10 +1501,10 @@ static inline int Gia_ManCheckPOstatus( Gia_ManAre_t * p )
     int i;
     Gia_ManForEachPo( p->pAig, pObj, i )
     {
-        pObjNew = Gia_ManObj( p->pNew, Gia_Lit2Var(pObj->Value) );
+        pObjNew = Gia_ManObj( p->pNew, Abc_Lit2Var(pObj->Value) );
         if ( Gia_ObjIsConst0(pObjNew) )
         {
-            if ( Gia_LitIsCompl(pObj->Value) )
+            if ( Abc_LitIsCompl(pObj->Value) )
             {
                 p->iOutFail = i;
                 return 1;
@@ -1638,7 +1638,7 @@ int Gia_ManAreDeriveNexts( Gia_ManAre_t * p, Gia_PtrAre_t Sta )
         else if ( Gia_StaHasValue1( pSta, i ) )
             pObj->Value = 1;
         else // don't-care literal
-            pObj->Value = Gia_Var2Lit( Gia_ObjId( p->pNew, Gia_ManCi(p->pNew, Gia_ObjCioId(pObj)) ), 0 );
+            pObj->Value = Abc_Var2Lit( Gia_ObjId( p->pNew, Gia_ManCi(p->pNew, Gia_ObjCioId(pObj)) ), 0 );
     }
     Gia_ManForEachAnd( p->pAig, pObj, i )
         pObj->Value = Gia_ManHashAnd( p->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -1770,8 +1770,8 @@ int Gia_ManArePerform( Gia_Man_t * pAig, int nStatesMax, int fMiter, int fVerbos
 ABC_NAMESPACE_IMPL_END
 
 #include "giaAig.h"
-#include "cnf.h"
-#include "satSolver.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1848,22 +1848,22 @@ void Gia_ManAreDeriveCexSat( Gia_ManAre_t * p, Gia_StaAre_t * pCur, Gia_StaAre_t
     for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
     {
         if ( Gia_StaHasValue0(pCur, i) )
-            Vec_IntPush( p->vAssumps, Gia_Var2Lit( Vec_IntEntry(p->vSatNumCis, Gia_ManPiNum(p->pAig)+i), 1 ) );
+            Vec_IntPush( p->vAssumps, Abc_Var2Lit( Vec_IntEntry(p->vSatNumCis, Gia_ManPiNum(p->pAig)+i), 1 ) );
         else if ( Gia_StaHasValue1(pCur, i) )
-            Vec_IntPush( p->vAssumps, Gia_Var2Lit( Vec_IntEntry(p->vSatNumCis, Gia_ManPiNum(p->pAig)+i), 0 ) );
+            Vec_IntPush( p->vAssumps, Abc_Var2Lit( Vec_IntEntry(p->vSatNumCis, Gia_ManPiNum(p->pAig)+i), 0 ) );
     }
     if ( pNext )
     for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
     {
         if ( Gia_StaHasValue0(pNext, i) )
-            Vec_IntPush( p->vAssumps, Gia_Var2Lit( Vec_IntEntry(p->vSatNumCos, Gia_ManPoNum(p->pAig)+i), 1 ) );
+            Vec_IntPush( p->vAssumps, Abc_Var2Lit( Vec_IntEntry(p->vSatNumCos, Gia_ManPoNum(p->pAig)+i), 1 ) );
         else if ( Gia_StaHasValue1(pNext, i) )
-            Vec_IntPush( p->vAssumps, Gia_Var2Lit( Vec_IntEntry(p->vSatNumCos, Gia_ManPoNum(p->pAig)+i), 0 ) );
+            Vec_IntPush( p->vAssumps, Abc_Var2Lit( Vec_IntEntry(p->vSatNumCos, Gia_ManPoNum(p->pAig)+i), 0 ) );
     }
     if ( iOutFailed >= 0 )
     {
         assert( iOutFailed < Gia_ManPoNum(p->pAig) );
-        Vec_IntPush( p->vAssumps, Gia_Var2Lit( Vec_IntEntry(p->vSatNumCos, iOutFailed), 0 ) );
+        Vec_IntPush( p->vAssumps, Abc_Var2Lit( Vec_IntEntry(p->vSatNumCos, iOutFailed), 0 ) );
     }
     // solve SAT
     status = sat_solver_solve( (sat_solver *)p->pSat, (int *)Vec_IntArray(p->vAssumps), (int *)Vec_IntArray(p->vAssumps) + Vec_IntSize(p->vAssumps), 
@@ -1935,7 +1935,7 @@ Abc_Cex_t * Gia_ManAreDeriveCex( Gia_ManAre_t * p, Gia_StaAre_t * pLast )
         Vec_IntForEachEntry( p->vCofVars, Var, v )
         {
             assert( Var < Gia_ManPiNum(p->pAig) );
-            Gia_InfoSetBit( pCex->pData, Gia_ManRegNum(p->pAig) + (Vec_PtrSize(vStates)-1-i) * Gia_ManPiNum(p->pAig) + Var );
+            Abc_InfoSetBit( pCex->pData, Gia_ManRegNum(p->pAig) + (Vec_PtrSize(vStates)-1-i) * Gia_ManPiNum(p->pAig) + Var );
         }
     }
     // free temporary things

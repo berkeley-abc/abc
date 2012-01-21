@@ -23,9 +23,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "main.h"
-#include "cmd.h"
-#include "extra.h"
+#include "src/base/main/main.h"
+#include "src/base/cmd/cmd.h"
+#include "src/misc/extra/extraBdd.h"
 #include "cas.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -112,7 +112,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
 
 
     // create the variables to encode the outputs
-    nVarsEnc = Extra_Base2Log( nOuts );
+    nVarsEnc = Abc_Base2Log( nOuts );
     for ( i = 0; i < nVarsEnc; i++ )
         pbVarsEnc[i] = Cudd_bddNewVarAtLevel( dd, i );
 
@@ -704,7 +704,7 @@ DdNode * GetSingleOutputFunctionRemappedNewDD( DdManager * dd, DdNode ** pOutput
     }
     
     // select the encoding variables to follow immediately after the original variables
-    nVarsEnc = Extra_Base2Log(nOuts);
+    nVarsEnc = Abc_Base2Log(nOuts);
 /*
     for ( v = 0; v < nVarsEnc; v++ )
         if ( nVarsMax + v < dd->size )

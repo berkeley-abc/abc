@@ -18,10 +18,9 @@
 
 ***********************************************************************/
 
-#include "extra.h"
 #include "rwr.h"
-#include "dec.h"
-#include "ivy.h"
+#include "src/bool/dec/dec.h"
+#include "src/aig/ivy/ivy.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -487,7 +486,7 @@ int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
             return 0;
     Depth0 = Rwr_NodeGetDepth_rec( Abc_ObjFanin0(pObj), vLeaves );
     Depth1 = Rwr_NodeGetDepth_rec( Abc_ObjFanin1(pObj), vLeaves );
-    return 1 + ABC_MAX( Depth0, Depth1 );
+    return 1 + Abc_MaxInt( Depth0, Depth1 );
 }
 
 

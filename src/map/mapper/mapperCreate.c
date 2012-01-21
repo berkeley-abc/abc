@@ -390,7 +390,7 @@ Map_Node_t * Map_NodeCreate( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 )
 void Map_TableCreate( Map_Man_t * pMan )
 {
     assert( pMan->pBins == NULL );
-    pMan->nBins = Cudd_Prime(5000);
+    pMan->nBins = Abc_PrimeCudd(5000);
     pMan->pBins = ABC_ALLOC( Map_Node_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Map_Node_t *) * pMan->nBins );
     pMan->nNodes = 0;
@@ -474,7 +474,7 @@ void Map_TableResize( Map_Man_t * pMan )
 
 clk = clock();
     // get the new table size
-    nBinsNew = Cudd_Prime(2 * pMan->nBins); 
+    nBinsNew = Abc_PrimeCudd(2 * pMan->nBins); 
     // allocate a new array
     pBinsNew = ABC_ALLOC( Map_Node_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Map_Node_t *) * nBinsNew );

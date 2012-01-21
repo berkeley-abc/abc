@@ -8,7 +8,7 @@
 /*===================================================================*/
 
 #if !defined(_QPS_H)
-#define _QPS_H
+#define ABC__phys__place__place_qpsolver_h
 
 
 #include <stdio.h>

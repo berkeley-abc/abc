@@ -20,7 +20,7 @@
 
 #include "gia.h"
 #include "giaAig.h"
-#include "saig.h"
+#include "src/aig/saig/saig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -52,7 +52,7 @@ Gia_Man_t * Gia_ManDupIn2Ff( Gia_Man_t * p )
     int i;
     vPiOuts = Vec_IntAlloc( Gia_ManPiNum(p) );
     pNew = Gia_ManStart( Gia_ManObjNum(p) + 2 * Gia_ManPiNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachPi( p, pObj, i )
@@ -112,7 +112,7 @@ Gia_Man_t * Gia_ManDupFf2In( Gia_Man_t * p, int nFlopsOld )
     Gia_Obj_t * pObj;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachRo( p, pObj, i )

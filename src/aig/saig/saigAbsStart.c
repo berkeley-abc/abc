@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "ssw.h"
-#include "fra.h"
-#include "bbr.h"
-#include "pdr.h"
+#include "src/proof/ssw/ssw.h"
+#include "src/proof/fra/fra.h"
+#include "src/proof/bbr/bbr.h"
+#include "src/proof/pdr/pdr.h"
 
 ABC_NAMESPACE_IMPL_START
 

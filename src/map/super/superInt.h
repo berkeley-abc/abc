@@ -16,19 +16,19 @@
 
 ***********************************************************************/
 
-#ifndef __super_INT_H__
-#define __super_INT_H__
+#ifndef ABC__map__super__superInt_h
+#define ABC__map__super__superInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc.h"
-#include "mainInt.h"
-#include "mvc.h"
-#include "mio.h"
-#include "stmm.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/mainInt.h"
+#include "src/misc/mvc/mvc.h"
+#include "src/map/mio/mio.h"
+#include "src/misc/st/stmm.h"
 #include "super.h"
 
 ABC_NAMESPACE_HEADER_START

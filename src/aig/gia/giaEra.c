@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "mem.h"
+#include "src/misc/mem/mem.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -45,7 +45,7 @@ struct Gia_ManEra_t_
 {
     Gia_Man_t *    pAig;         // user's AIG manager
     int            nWordsSim;       // 2^(PInum)
-    int            nWordsDat;   // Gia_BitWordNum
+    int            nWordsDat;   // Abc_BitWordNum
     unsigned *     pDataSim;     // simulation data
     Mem_Fixed_t *  pMemory;      // memory manager
     Vec_Ptr_t *    vStates;      // reached states
@@ -83,12 +83,12 @@ Gia_ManEra_t * Gia_ManEraCreate( Gia_Man_t * pAig )
     int i;
     p = ABC_CALLOC( Gia_ManEra_t, 1 );
     p->pAig      = pAig;
-    p->nWordsSim = Gia_TruthWordNum( Gia_ManPiNum(pAig) );
-    p->nWordsDat = Gia_BitWordNum( Gia_ManRegNum(pAig) );
+    p->nWordsSim = Abc_TruthWordNum( Gia_ManPiNum(pAig) );
+    p->nWordsDat = Abc_BitWordNum( Gia_ManRegNum(pAig) );
     p->pDataSim  = ABC_ALLOC( unsigned, p->nWordsSim*Gia_ManObjNum(pAig) );
     p->pMemory   = Mem_FixedStart( sizeof(Gia_ObjEra_t) + sizeof(unsigned) * p->nWordsDat );
     p->vStates   = Vec_PtrAlloc( 100000 );
-    p->nBins     = Gia_PrimeCudd( 100000 );
+    p->nBins     = Abc_PrimeCudd( 100000 );
     p->pBins     = ABC_CALLOC( unsigned, p->nBins );
     Vec_PtrPush( p->vStates, NULL );
     // assign primary input values
@@ -226,7 +226,7 @@ void Gia_ManEraHashResize( Gia_ManEra_t * p )
     // replace the table
     pBinsOld = p->pBins;
     nBinsOld = p->nBins;
-    p->nBins = Gia_PrimeCudd( 3 * p->nBins ); 
+    p->nBins = Abc_PrimeCudd( 3 * p->nBins ); 
     p->pBins = ABC_CALLOC( unsigned, p->nBins );
     // rehash the entries from the old table
     Counter = 0;
@@ -266,7 +266,7 @@ void Gia_ManInsertState( Gia_ManEra_t * p, Gia_ObjEra_t * pState )
     Gia_ManForEachRo( p->pAig, pObj, i )
     {
         pSimInfo = Gia_ManEraData( p, Gia_ObjId(p->pAig, pObj) );
-        if ( Gia_InfoHasBit(pState->pData, i) )
+        if ( Abc_InfoHasBit(pState->pData, i) )
             memset( pSimInfo, 0xff, sizeof(unsigned) * p->nWordsSim );
         else
             memset( pSimInfo, 0, sizeof(unsigned) * p->nWordsSim );
@@ -465,8 +465,8 @@ int Gia_ManAnalyzeResult( Gia_ManEra_t * p, Gia_ObjEra_t * pState, int fMiter )
         Gia_ManForEachRi( p->pAig, pObj, i )
         {
             pSimInfo = Gia_ManEraData( p, Gia_ObjId(p->pAig, pObj) );
-            if ( Gia_InfoHasBit(p->pStateNew->pData, i) != Gia_InfoHasBit(pSimInfo, k) )
-                Gia_InfoXorBit( p->pStateNew->pData, i );
+            if ( Abc_InfoHasBit(p->pStateNew->pData, i) != Abc_InfoHasBit(pSimInfo, k) )
+                Abc_InfoXorBit( p->pStateNew->pData, i );
         }
         piPlace = Gia_ManEraHashFind( p, p->pStateNew );
         if ( piPlace == NULL )

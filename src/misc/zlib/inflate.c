@@ -83,7 +83,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "abc_global.h"
+#include "src/misc/util/abc_global.h"
 
 #include "zutil.h"
 #include "inftrees.h"

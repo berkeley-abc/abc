@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "satSolver2.h"
+#include "src/sat/bsat/satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -210,7 +210,7 @@ Vec_Int_t * Gia_VtaConvertToGla( Gia_Man_t * p, Vec_Int_t * vAbs )
     int i, Entry, nFrames = Vec_IntEntry( vAbs, 0 );
     assert( Vec_IntEntry(vAbs, nFrames+1) == Vec_IntSize(vAbs) );
     // get the bitmask
-    nObjMask = (1 << Gia_Base2Log(nObjs)) - 1;
+    nObjMask = (1 << Abc_Base2Log(nObjs)) - 1;
     assert( nObjs <= nObjMask );
     // go through objects
     vPresent = Vec_IntStart( nObjs );
@@ -248,7 +248,7 @@ static inline int Vta_ManReadFrameStart( Vec_Int_t * p, int nWords )
             pTotal[w] |= pThis[i];
     }
     for ( i = nWords * 32 - 1; i >= 0; i-- )
-        if ( Gia_InfoHasBit(pTotal, i) )
+        if ( Abc_InfoHasBit(pTotal, i) )
         {
             ABC_FREE( pTotal );
             return i+1;
@@ -716,7 +716,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p )
             if ( Gia_ObjIsRo(p->pGia, pObj) )
                 assert( pThis->iFrame == 0 && pThis->Value == VTA_VAR0 );
             else if ( Gia_ObjIsPi(p->pGia, pObj) && pThis->Value == VTA_VAR1 )
-                Gia_InfoSetBit( pCex->pData, pCex->nRegs + pThis->iFrame * pCex->nPis + Gia_ObjCioId(pObj) );
+                Abc_InfoSetBit( pCex->pData, pCex->nRegs + pThis->iFrame * pCex->nPis + Gia_ObjCioId(pObj) );
         }
     }
     // perform refinement
@@ -776,7 +776,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->pBins       = ABC_CALLOC( int, p->nBins );
     p->vOrder      = Vec_IntAlloc( 1013 );
     // abstraction
-    p->nObjBits    = Gia_Base2Log( Gia_ManObjNum(pGia) );
+    p->nObjBits    = Abc_Base2Log( Gia_ManObjNum(pGia) );
     p->nObjMask    = (1 << p->nObjBits) - 1;
     assert( Gia_ManObjNum(pGia) <= (int)p->nObjMask );
     p->nWords      = 1;
@@ -922,7 +922,8 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
 ***********************************************************************/
 void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames )
 {
-    unsigned * pInfo, * pCountAll, * pCountUni;
+    unsigned * pInfo;
+    int * pCountAll, * pCountUni;
     int i, k, iFrame, iObj, Entry;
     // print info about frames
     pCountAll = ABC_CALLOC( int, nFrames + 1 );
@@ -933,9 +934,9 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames )
         iFrame = (Entry >> p->nObjBits);
         assert( iFrame < nFrames );
         pInfo  = (unsigned *)Vec_IntEntryP( p->vSeens, p->nWords * iObj );
-        if ( Gia_InfoHasBit(pInfo, iFrame) == 0 )
+        if ( Abc_InfoHasBit(pInfo, iFrame) == 0 )
         {
-            Gia_InfoSetBit( pInfo, iFrame );
+            Abc_InfoSetBit( pInfo, iFrame );
             pCountUni[iFrame+1]++;
             pCountUni[0]++;
         }
@@ -1062,7 +1063,7 @@ static inline int Vga_ManGetOutLit( Vta_Man_t * p, int f )
     Gia_Obj_t * pObj = Gia_ManPo(p->pGia, 0);
     Vta_Obj_t * pThis = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
     assert( pThis != NULL && pThis->fAdded );
-    return Gia_Var2Lit( Vta_ObjId(p, pThis), Gia_ObjFaninC0(pObj) );
+    return Abc_Var2Lit( Vta_ObjId(p, pThis), Gia_ObjFaninC0(pObj) );
 }
 
 /**Function*************************************************************
@@ -1105,7 +1106,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         if ( f < p->pPars->nFramesStart )
         {
             // load this timeframe
-            Vga_ManLoadSlice( p, Vec_PtrEntry(p->vFrames, f), 0 );
+            Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
             // run SAT solver
             vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status );
             assert( (vCore != NULL) == (Status == 1) );
@@ -1123,7 +1124,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 {
                     pObj = Gia_ManObj( p->pGia, pThis->iObj );
                     if ( Gia_ObjIsPi(p->pGia, pObj) && sat_solver2_var_value(p->pSat, Vta_ObjId(p, pThis)) )
-                        Gia_InfoSetBit( pCex->pData, pCex->nRegs + pThis->iFrame * pCex->nPis + Gia_ObjCioId(pObj) );
+                        Abc_InfoSetBit( pCex->pData, pCex->nRegs + pThis->iFrame * pCex->nPis + Gia_ObjCioId(pObj) );
                 }
             }
         }
@@ -1133,7 +1134,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // load the time frame
             int Limit = Abc_MinInt(5, p->pPars->nFramesStart);
             for ( i = 1; i <= Limit; i++ )
-                Vga_ManLoadSlice( p, Vec_PtrEntry(p->vCores, f-i), i );
+                Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vCores, f-i), i );
             // iterate as long as there are counter-examples
             do {
                 vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status );

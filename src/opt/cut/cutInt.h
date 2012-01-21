@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __CUT_INT_H__
-#define __CUT_INT_H__
+#ifndef ABC__opt__cut__cutInt_h
+#define ABC__opt__cut__cutInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -27,8 +27,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "extra.h"
-#include "vec.h"
+#include "src/misc/extra/extra.h"
+#include "src/misc/vec/vec.h"
 #include "cut.h"
 #include "cutList.h"
 

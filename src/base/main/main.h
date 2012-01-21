@@ -18,30 +18,29 @@
 
 ***********************************************************************/
 
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef ABC__base__main__main_h
+#define ABC__base__main__main_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-// data structure packages
-#include "extra.h"
-#include "vec.h"
-#include "st.h"
-
 // core packages
-#include "abc.h"
-#include "gia.h"
+#include "src/base/abc/abc.h"
+#include "src/aig/gia/gia.h"
+
+// data structure packages
+#include "src/misc/vec/vec.h"
+#include "src/misc/st/st.h"
 
 ABC_NAMESPACE_HEADER_START
 // the framework containing all data
 typedef struct Abc_Frame_t_      Abc_Frame_t;
 ABC_NAMESPACE_HEADER_END
 
-#include "cmd.h"
-#include "ioAbc.h"
+#include "src/base/cmd/cmd.h"
+#include "src/base/io/ioAbc.h"
 
 ABC_NAMESPACE_HEADER_START
 

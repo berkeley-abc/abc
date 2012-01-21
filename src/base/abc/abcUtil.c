@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "main.h"
-#include "mio.h"
-#include "dec.h"
-//#include "seq.h"
+#include "src/base/main/main.h"
+#include "src/map/mio/mio.h"
+#include "src/bool/dec/dec.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

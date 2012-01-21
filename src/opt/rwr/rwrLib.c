@@ -18,7 +18,6 @@
 
 ***********************************************************************/
 
-#include "extra.h"
 #include "rwr.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -76,7 +75,7 @@ void Rwr_ManPrecompute( Rwr_Man_t * p )
 //            break;
 
         // compute the level and volume of the new nodes
-        Level  = 1 + ABC_MAX( p0->Level, p1->Level );
+        Level  = 1 + Abc_MaxInt( p0->Level, p1->Level );
         Volume = 1 + Rwr_ManNodeVolume( p, p0, p1 );
         // try four different AND nodes
         Rwr_ManTryNode( p,         p0 ,         p1 , 0, Level, Volume );

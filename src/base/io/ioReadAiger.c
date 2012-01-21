@@ -21,9 +21,9 @@
 
 // The code in this file is developed in collaboration with Mark Jarvin of Toronto.
 
-#include "bzlib.h"
+#include "src/misc/bzlib/bzlib.h"
 #include "ioAbc.h"
-#include "zlib.h"
+#include "src/misc/zlib/zlib.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -358,7 +358,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         pObj = Abc_NtkCreatePo(pNtkNew);   
     }
     // create the latches
-    nDigits = Extra_Base10Log( nLatches );
+    nDigits = Abc_Base10Log( nLatches );
     for ( i = 0; i < nLatches; i++ )
     {
         pObj = Abc_NtkCreateLatch(pNtkNew);

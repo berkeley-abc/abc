@@ -1312,14 +1312,14 @@ int Abc_NodeSetChoiceLevel_rec( Abc_Obj_t * pNode, int fMaximum )
     // compute levels of the children nodes
     Level1 = Abc_NodeSetChoiceLevel_rec( Abc_ObjFanin0(pNode), fMaximum );
     Level2 = Abc_NodeSetChoiceLevel_rec( Abc_ObjFanin1(pNode), fMaximum );
-    Level  = 1 + ABC_MAX( Level1, Level2 );
+    Level  = 1 + Abc_MaxInt( Level1, Level2 );
     if ( pNode->pData )
     {
         LevelE = Abc_NodeSetChoiceLevel_rec( (Abc_Obj_t *)pNode->pData, fMaximum );
         if ( fMaximum )
-            Level = ABC_MAX( Level, LevelE );
+            Level = Abc_MaxInt( Level, LevelE );
         else
-            Level = ABC_MIN( Level, LevelE );
+            Level = Abc_MinInt( Level, LevelE );
         // set the level of all equivalent nodes to be the same minimum
         for ( pTemp = (Abc_Obj_t *)pNode->pData; pTemp; pTemp = (Abc_Obj_t *)pTemp->pData )
             pTemp->pCopy = (Abc_Obj_t *)(ABC_PTRINT_T)Level;
@@ -1363,7 +1363,7 @@ int Abc_AigSetChoiceLevels( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         LevelCur = Abc_NodeSetChoiceLevel_rec( Abc_ObjFanin0(pObj), 1 );
-        LevelMax = ABC_MAX( LevelMax, LevelCur );
+        LevelMax = Abc_MaxInt( LevelMax, LevelCur );
     }
     return LevelMax;
 }

@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "src/base/abc/abc.h"
 #include "resInt.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -145,10 +145,10 @@ int Res_WinCollectLeavesAndNodes( Res_Win_t * p )
     // get the lowest leaf level
     p->nLevLeafMin = ABC_INFINITY;
     Vec_PtrForEachEntry( Abc_Obj_t *, p->vLeaves, pObj, k )
-        p->nLevLeafMin = ABC_MIN( p->nLevLeafMin, (int)pObj->Level );
+        p->nLevLeafMin = Abc_MinInt( p->nLevLeafMin, (int)pObj->Level );
 
     // set minimum traversal level
-    p->nLevTravMin = ABC_MAX( ((int)p->pNode->Level) - p->nWinTfiMax - p->nLevTfiMinus, p->nLevLeafMin );
+    p->nLevTravMin = Abc_MaxInt( ((int)p->pNode->Level) - p->nWinTfiMax - p->nLevTfiMinus, p->nLevLeafMin );
     assert( p->nLevTravMin >= 0 );
     return 1;
 }

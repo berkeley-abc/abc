@@ -18,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
-#include "fraig.h"
+#include "src/base/abc/abc.h"
+#include "src/proof/fraig/fraig.h"
 #include "sim.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -384,7 +383,7 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
             iWordLim = iWord + 1; 
             // set the pattern for all PIs from iBit to iWord + p->nInputs
             iBeg = p->iInput;
-            iEnd = ABC_MIN( iBeg + 32, p->nInputs );
+            iEnd = Abc_MinInt( iBeg + 32, p->nInputs );
 //            for ( i = iBeg; i < iEnd; i++ )
             Abc_NtkForEachCi( p->pNtk, pNode, i )
             {

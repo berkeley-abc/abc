@@ -18,7 +18,6 @@
 
 ***********************************************************************/
 
-#include "extra.h"
 #include "rwr.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -491,7 +490,7 @@ void Rwr_ManLoadFromArray( Rwr_Man_t * p, int fVerbose )
         p0 = (Rwr_Node_t *)p->vForest->pArray[Entry0 >> 1];
         p1 = (Rwr_Node_t *)p->vForest->pArray[Entry1 >> 1];
         // compute the level and volume of the new nodes
-        Level  = 1 + ABC_MAX( p0->Level, p1->Level );
+        Level  = 1 + Abc_MaxInt( p0->Level, p1->Level );
         Volume = 1 + Rwr_ManNodeVolume( p, p0, p1 );
         // set the complemented attributes
         p0 = Rwr_NotCond( p0, (Entry0 & 1) );
@@ -586,7 +585,7 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
         p0 = (Rwr_Node_t *)p->vForest->pArray[pBuffer[2*i + 0] >> 1];
         p1 = (Rwr_Node_t *)p->vForest->pArray[pBuffer[2*i + 1] >> 1];
         // compute the level and volume of the new nodes
-        Level  = 1 + ABC_MAX( p0->Level, p1->Level );
+        Level  = 1 + Abc_MaxInt( p0->Level, p1->Level );
         Volume = 1 + Rwr_ManNodeVolume( p, p0, p1 );
         // set the complemented attributes
         p0 = Rwr_NotCond( p0, (pBuffer[2*i + 0] & 1) );

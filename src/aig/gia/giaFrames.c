@@ -90,7 +90,7 @@ void Gia_ManUnrollDup_rec( Gia_Man_t * pNew, Gia_Obj_t * pObj, int Id )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     }
     else assert( 0 );
-    Gia_ManObj(pNew, Gia_Lit2Var(pObj->Value))->Value = Id;
+    Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value))->Value = Id;
 }
 
 /**Function*************************************************************
@@ -111,7 +111,7 @@ Gia_Man_t * Gia_ManUnrollDup( Gia_Man_t * p, Vec_Int_t * vLimit )
     int i;
     assert( Vec_IntSize(vLimit) == 0 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
 
     // save constant class
     Gia_ManFillValue( p );
@@ -161,7 +161,7 @@ Vec_Ptr_t * Gia_ManUnrollAbs( Gia_Man_t * p, int nFrames )
     int nObjBits, nObjMask;
     int f, fMax, k, Entry, Prev, iStart, iStop, Size;
     // get the bitmasks
-    nObjBits = Gia_Base2Log( Gia_ManObjNum(p) );
+    nObjBits = Abc_Base2Log( Gia_ManObjNum(p) );
     nObjMask = (1 << nObjBits) - 1;
     assert( Gia_ManObjNum(p) <= nObjMask );
     // derive the tents
@@ -349,12 +349,12 @@ static inline int Gia_ObjUnrRead( Gia_ManUnr_t * p, int Id, int Degree )
 static inline int Gia_ObjUnrReadCopy0( Gia_ManUnr_t * p, Gia_Obj_t * pObj, int Id )  
 {
     int Lit = Gia_ObjUnrRead(p, Gia_ObjFaninId0(pObj, Id), Vec_IntEntry(p->vDegDiff, 2*Id));
-    return Gia_LitNotCond( Lit, Gia_ObjFaninC0(pObj) );
+    return Abc_LitNotCond( Lit, Gia_ObjFaninC0(pObj) );
 }
 static inline int Gia_ObjUnrReadCopy1( Gia_ManUnr_t * p, Gia_Obj_t * pObj, int Id )  
 {
     int Lit = Gia_ObjUnrRead(p, Gia_ObjFaninId1(pObj, Id), Vec_IntEntry(p->vDegDiff, 2*Id+1));
-    return Gia_LitNotCond( Lit, Gia_ObjFaninC1(pObj) );
+    return Abc_LitNotCond( Lit, Gia_ObjFaninC1(pObj) );
 }
 static inline int Gia_ObjUnrReadCi( Gia_ManUnr_t * p, int Id, int f, Gia_Man_t * pNew )  
 {
@@ -367,7 +367,7 @@ static inline int Gia_ObjUnrReadCi( Gia_ManUnr_t * p, int Id, int f, Gia_Man_t *
             pObj = Gia_ManPi( pNew, Gia_ManPiNum(p->pAig) * f + Gia_ObjCioId(pObjReal) );
         else
             pObj = Gia_ManPi( pNew, Gia_ManRegNum(p->pAig) + Gia_ManPiNum(p->pAig) * f + Gia_ObjCioId(pObjReal) );
-        return Gia_Var2Lit( Gia_ObjId(pNew, pObj), 0 );
+        return Abc_Var2Lit( Gia_ObjId(pNew, pObj), 0 );
     }
     if ( f == 0 ) // initialize!
     {
@@ -378,9 +378,9 @@ static inline int Gia_ObjUnrReadCi( Gia_ManUnr_t * p, int Id, int f, Gia_Man_t *
             pObj = Gia_ManPi( pNew, Gia_ManPiNum(p->pAig) * p->pPars->nFrames + Gia_ObjCioId(pObjReal)-Gia_ManPiNum(p->pAig) );
         else
             pObj = Gia_ManPi( pNew, Gia_ObjCioId(pObjReal)-Gia_ManPiNum(p->pAig) );
-        return Gia_Var2Lit( Gia_ObjId(pNew, pObj), 0 );
+        return Abc_Var2Lit( Gia_ObjId(pNew, pObj), 0 );
     }
-    pObj = Gia_ManObj( p->pOrder, Gia_Lit2Var(Gia_ObjRoToRi(p->pAig, pObjReal)->Value) );
+    pObj = Gia_ManObj( p->pOrder, Abc_Lit2Var(Gia_ObjRoToRi(p->pAig, pObjReal)->Value) );
     assert( Gia_ObjIsCo(pObj) );
     return Gia_ObjUnrRead( p, Gia_ObjId(p->pOrder, pObj), 0 );
 }
@@ -405,7 +405,7 @@ void * Gia_ManUnrollStart( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     // start timeframes
     assert( p->pNew == NULL );
     p->pNew = Gia_ManStart( 10000 );
-    p->pNew->pName = Gia_UtilStrsav( p->pAig->pName );
+    p->pNew->pName = Abc_UtilStrsav( p->pAig->pName );
     Gia_ManHashAlloc( p->pNew );
     // create combinational inputs
     if ( !p->pPars->fSaveLastLit ) // only in the case when unrolling depth is known
@@ -541,7 +541,7 @@ Gia_Man_t * Gia_ManUnroll( Gia_ManUnr_t * p )
     int fMax, f, i, Lit, Beg, End;
     // start timeframes
     pNew = Gia_ManStart( 10000 );
-    pNew->pName = Gia_UtilStrsav( p->pAig->pName );
+    pNew->pName = Abc_UtilStrsav( p->pAig->pName );
     Gia_ManHashAlloc( pNew );
     // create combinational inputs
     for ( f = 0; f < p->pPars->nFrames; f++ )
@@ -754,7 +754,7 @@ Gia_Man_t * Gia_ManFramesInit( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     Gia_ManFraSupports( p );
     pFrames = Gia_ManStart( Vec_VecSizeSize((Vec_Vec_t*)p->vIns)+
         Vec_VecSizeSize((Vec_Vec_t*)p->vAnds)+Vec_VecSizeSize((Vec_Vec_t*)p->vOuts) );
-    pFrames->pName = Gia_UtilStrsav( pAig->pName );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
     Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )
@@ -864,7 +864,7 @@ Gia_Man_t * Gia_ManFrames( Gia_Man_t * pAig, Gia_ParFra_t * pPars )
     if ( pPars->fInit )
         return Gia_ManFramesInit( pAig, pPars );
     pFrames = Gia_ManStart( pPars->nFrames * Gia_ManObjNum(pAig) );
-    pFrames->pName = Gia_UtilStrsav( pAig->pName );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
     Gia_ManHashAlloc( pFrames );
     Gia_ManConst0(pAig)->Value = 0;
     for ( f = 0; f < pPars->nFrames; f++ )

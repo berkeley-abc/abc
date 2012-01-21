@@ -19,10 +19,10 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "cnf.h"
-#include "satSolver.h"
-#include "kit.h"
-#include "bar.h"
+#include "src/sat/cnf/cnf.h"
+#include "src/sat/bsat/satSolver.h"
+#include "src/bool/kit/kit.h"
+#include "src/misc/bar/bar.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -244,8 +244,8 @@ Aig_Man_t * Saig_ManCreateIndMiter( Aig_Man_t * pAig, Vec_Vec_t * vCands )
 
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFrames );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
-    pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // map constant nodes
     for ( f = 0; f < nFrames; f++ )
         Aig_ObjSetFrames( pObjMap, nFrames, Aig_ManConst1(pAig), f, Aig_ManConst1(pFrames) );
@@ -437,8 +437,8 @@ Aig_Man_t * Saig_ManUnrollCOI( Aig_Man_t * pAig, int nFrames )
     pObjMap = ABC_CALLOC( Aig_Obj_t *, nFrames * Aig_ManObjNumMax(pAig) );
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFrames );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
-    pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // map constant nodes
     for ( f = 0; f < nFrames; f++ )
         Aig_ObjSetFrames( pObjMap, nFrames, Aig_ManConst1(pAig), f, Aig_ManConst1(pFrames) );
@@ -504,8 +504,8 @@ void Saig_CollectSatValues( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Ptr_t * vIn
             continue;
         assert( pCnf->pVarNums[i] > 0 );
         pInfo = (unsigned *)Vec_PtrEntry( vInfo, i );
-        if ( Aig_InfoHasBit(pInfo, *piPat) != sat_solver_var_value(pSat, pCnf->pVarNums[i]) )
-            Aig_InfoXorBit(pInfo, *piPat);
+        if ( Abc_InfoHasBit(pInfo, *piPat) != sat_solver_var_value(pSat, pCnf->pVarNums[i]) )
+            Abc_InfoXorBit(pInfo, *piPat);
     }
 }
 
@@ -949,8 +949,8 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
     assert( Aig_ManConstrNum(pAig) < Saig_ManPoNum(pAig) );
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
-    pAigNew->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
+    pAigNew->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs

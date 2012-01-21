@@ -18,8 +18,8 @@
 
 ***********************************************************************/
  
-#ifndef __ABC_GLOBAL_H__
-#define __ABC_GLOBAL_H__
+#ifndef ABC__misc__util__abc_global_h
+#define ABC__misc__util__abc_global_h
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -200,11 +200,7 @@ typedef ABC_UINT64_T word;
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-
-#define ABC_ABS(a)            ((a) < 0 ? -(a) : (a))
-#define ABC_MAX(a,b)        ((a) > (b) ? (a) : (b))
-#define ABC_MIN(a,b)        ((a) < (b) ? (a) : (b))
-#define ABC_INFINITY        (100000000)
+#define ABC_INFINITY    (100000000)
 
 #define ABC_PRT(a,t)    (printf("%s = ", (a)), printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC)))
 #define ABC_PRTr(a,t)   (printf("%s = ", (a)), printf("%7.2f sec\r", (float)(t)/(float)(CLOCKS_PER_SEC)))
@@ -236,17 +232,37 @@ ABC_NAMESPACE_HEADER_START
          ((type *) Util_MemRecAlloc(malloc(sizeof(type) * (num)))))
 #endif
 
-static inline int    Abc_AbsInt( int a        )          { return a < 0 ? -a : a; }
-static inline int    Abc_MaxInt( int a, int b )          { return a > b ?  a : b; }
-static inline int    Abc_MinInt( int a, int b )          { return a < b ?  a : b; }
-static inline word   Abc_MaxWord( word a, word b )       { return a > b ?  a : b; }
-static inline word   Abc_MinWord( word a, word b )       { return a < b ?  a : b; }
-static inline float  Abc_AbsFloat( float a          )    { return a < 0 ? -a : a; }
-static inline float  Abc_MaxFloat( float a, float b )    { return a > b ?  a : b; }
-static inline float  Abc_MinFloat( float a, float b )    { return a < b ?  a : b; }
-static inline double Abc_AbsDouble( double a           ) { return a < 0 ? -a : a; }
-static inline double Abc_MaxDouble( double a, double b ) { return a > b ?  a : b; }
-static inline double Abc_MinDouble( double a, double b ) { return a < b ?  a : b; }
+static inline int      Abc_AbsInt( int a        )             { return a < 0 ? -a : a; }
+static inline int      Abc_MaxInt( int a, int b )             { return a > b ?  a : b; }
+static inline int      Abc_MinInt( int a, int b )             { return a < b ?  a : b; }
+static inline word     Abc_MaxWord( word a, word b )          { return a > b ?  a : b; }
+static inline word     Abc_MinWord( word a, word b )          { return a < b ?  a : b; }
+static inline float    Abc_AbsFloat( float a          )       { return a < 0 ? -a : a; }
+static inline float    Abc_MaxFloat( float a, float b )       { return a > b ?  a : b; }
+static inline float    Abc_MinFloat( float a, float b )       { return a < b ?  a : b; }
+static inline double   Abc_AbsDouble( double a           )    { return a < 0 ? -a : a; }
+static inline double   Abc_MaxDouble( double a, double b )    { return a > b ?  a : b; }
+static inline double   Abc_MinDouble( double a, double b )    { return a < b ?  a : b; }
+
+static inline int      Abc_Float2Int( float Val )             { union { int x; float y; } v; v.y = Val; return v.x;         }
+static inline float    Abc_Int2Float( int Num )               { union { int x; float y; } v; v.x = Num; return v.y;         }
+static inline int      Abc_Base2Log( unsigned n )             { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
+static inline int      Abc_Base10Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
+static inline int      Abc_Base16Log( unsigned n )            { int r; if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 16, r++ ); return r; }
+static inline char *   Abc_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;  }
+static inline int      Abc_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);                       }
+static inline int      Abc_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));                 }
+static inline int      Abc_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;                   }
+static inline void     Abc_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                               }
+static inline void     Abc_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                               }
+static inline unsigned Abc_InfoMask( int nVar )               { return (~(unsigned)0) >> (32-nVar);                         }
+
+static inline int      Abc_Var2Lit( int Var, int fCompl )     { return Var + Var + fCompl; }
+static inline int      Abc_Lit2Var( int Lit )                 { return Lit >> 1;           }
+static inline int      Abc_LitIsCompl( int Lit )              { return Lit & 1;            }
+static inline int      Abc_LitNot( int Lit )                  { return Lit ^ 1;            }
+static inline int      Abc_LitNotCond( int Lit, int c )       { return Lit ^ (int)(c > 0); }
+static inline int      Abc_LitRegular( int Lit )              { return Lit & ~01;          }
 
 enum Abc_VerbLevel 
 {

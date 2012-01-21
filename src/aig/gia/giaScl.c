@@ -199,7 +199,7 @@ Gia_Man_t * Gia_ManReduceEquiv( Gia_Man_t * p, int fVerbose )
         else if ( ~pMaps[iLit] ) // in this case, ID(pObj) > ID(pRepr) 
             pCi2Lit[Gia_ManPiNum(p)+i] = pMaps[iLit], Counter++; 
         else
-            pMaps[iLit] = Gia_Var2Lit( Gia_ObjId(p, pObjRo), 0 );
+            pMaps[iLit] = Abc_Var2Lit( Gia_ObjId(p, pObjRo), 0 );
     }
 /*
     Gia_ManForEachCi( p, pObjRo, i )

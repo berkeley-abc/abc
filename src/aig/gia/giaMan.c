@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "tim.h"
+#include "src/misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -262,7 +262,8 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
     Vec_Int_t * vAbs = p->vObjClasses;
     int i, k, Entry, iStart, iStop, nFrames;
     int nObjBits, nObjMask, iObj, iFrame, nWords;
-    unsigned * pInfo, * pCountAll, * pCountUni;
+    unsigned * pInfo;
+    int * pCountAll, * pCountUni;
     if ( vAbs == NULL )
         return;
     nFrames = Vec_IntEntry( vAbs, 0 );
@@ -270,10 +271,10 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
     pCountAll = ABC_ALLOC( int, nFrames + 1 );
     pCountUni = ABC_ALLOC( int, nFrames + 1 );
     // start storage for seen objects
-    nWords = Gia_BitWordNum( nFrames );
+    nWords = Abc_BitWordNum( nFrames );
     vSeens = Vec_IntStart( Gia_ManObjNum(p) * nWords );
     // get the bitmasks
-    nObjBits = Gia_Base2Log( Gia_ManObjNum(p) );
+    nObjBits = Abc_Base2Log( Gia_ManObjNum(p) );
     nObjMask = (1 << nObjBits) - 1;
     assert( Gia_ManObjNum(p) <= nObjMask );
     // print info about frames
@@ -289,16 +290,16 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
             iObj   = (Entry &  nObjMask);
             iFrame = (Entry >> nObjBits);
             pInfo  = (unsigned *)Vec_IntEntryP( vSeens, nWords * iObj );
-            if ( Gia_InfoHasBit(pInfo, iFrame) == 0 )
+            if ( Abc_InfoHasBit(pInfo, iFrame) == 0 )
             {
-                Gia_InfoSetBit( pInfo, iFrame );
+                Abc_InfoSetBit( pInfo, iFrame );
                 pCountUni[iFrame+1]++;
                 pCountUni[0]++;
             }
             pCountAll[iFrame+1]++;
             pCountAll[0]++;
         }
-        assert( pCountAll[0] == (unsigned)(iStop - iStart) );
+        assert( pCountAll[0] == (iStop - iStart) );
 //        printf( "%5d%5d  ", pCountAll[0], pCountUni[0] ); 
         printf( "%3d :", i );
         printf( "%6d", pCountAll[0] ); 

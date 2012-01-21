@@ -1,5 +1,4 @@
 SRC +=    src/base/abci/abc.c \
-    src/base/abci/abcAbc8.c \
     src/base/abci/abcAttach.c \
     src/base/abci/abcAuto.c \
     src/base/abci/abcBalance.c \

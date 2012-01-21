@@ -20,7 +20,7 @@
 ///       Version 1.0. Started - August 20, 2000        ///
 ///     Version 2.0. Added to EXTRA - July 17, 2001     ///
 
-#include "extra.h"
+#include "extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

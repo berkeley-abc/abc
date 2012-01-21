@@ -68,7 +68,7 @@ void Dsd_CheckCacheAllocate( int nEntries )
     memset( pCache, 0, sizeof(Dds_Cache_t) );
 
     // check what is the size of the current cache
-    nRequested = Cudd_Prime( nEntries );
+    nRequested = Abc_PrimeCudd( nEntries );
     if ( pCache->nTableSize != nRequested )
     { // the current size is different
         // deallocate the old, allocate the new

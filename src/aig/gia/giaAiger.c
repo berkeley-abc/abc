@@ -146,7 +146,7 @@ int Gia_FileSize( char * pFileName )
 char * Gia_FileNameGeneric( char * FileName )
 {
     char * pDot, * pRes;
-    pRes = Gia_UtilStrsav( FileName );
+    pRes = Abc_UtilStrsav( FileName );
     if ( (pDot = strrchr( pRes, '.' )) )
         *pDot = 0;
     return pRes;
@@ -445,8 +445,8 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
     // allocate the empty AIG
     pNew = Gia_ManStart( nTotal + nLatches + nOutputs + 1 );
     pName = Gia_FileNameGeneric( pFileName );
-    pNew->pName = Gia_UtilStrsav( pName );
-//    pNew->pSpec = Gia_UtilStrsav( pFileName );
+    pNew->pName = Abc_UtilStrsav( pName );
+//    pNew->pSpec = Abc_UtilStrsav( pFileName );
     ABC_FREE( pName );
     pNew->nConstrs = nConstr;
 
@@ -482,8 +482,8 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
         uLit1 = uLit  - Gia_ReadAigerDecode( &pCur );
         uLit0 = uLit1 - Gia_ReadAigerDecode( &pCur );
 //        assert( uLit1 > uLit0 );
-        iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
-        iNode1 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
+        iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
+        iNode1 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
 //        Vec_IntPush( vNodes, Gia_And(pNew, iNode0, iNode1) );
         Vec_IntPush( vNodes, Gia_ManAppendAnd(pNew, iNode0, iNode1) );
@@ -500,14 +500,14 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
         for ( i = 0; i < nLatches; i++ )
         {
             uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
         // read the PO driver literals
         for ( i = 0; i < nOutputs; i++ )
         {
             uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
 
@@ -518,14 +518,14 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
         for ( i = 0; i < nLatches; i++ )
         {
             uLit0 = Vec_IntEntry( vLits, i );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
         // read the PO driver literals
         for ( i = 0; i < nOutputs; i++ )
         {
             uLit0 = Vec_IntEntry( vLits, i+nLatches );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
         Vec_IntFree( vLits );
@@ -604,7 +604,7 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
             pCur++;
             // read model name
             ABC_FREE( pNew->pName );
-            pNew->pName = Gia_UtilStrsav( (char *)pCur );
+            pNew->pName = Abc_UtilStrsav( (char *)pCur );
         }
     }
     Vec_IntFree( vNodes );
@@ -753,8 +753,8 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         uLit1 = uLit  - Gia_ReadAigerDecode( &pCur );
         uLit0 = uLit1 - Gia_ReadAigerDecode( &pCur );
 //        assert( uLit1 > uLit0 );
-        iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
-        iNode1 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
+        iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), uLit0 & 1 );
+        iNode1 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit1 >> 1), uLit1 & 1 );
         assert( Vec_IntSize(vNodes) == i + 1 + nInputs + nLatches );
 //        Vec_IntPush( vNodes, Gia_And(pNew, iNode0, iNode1) );
         Vec_IntPush( vNodes, Gia_ManHashAnd(pNew, iNode0, iNode1) );
@@ -772,14 +772,14 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         for ( i = 0; i < nLatches; i++ )
         {
             uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
         // read the PO driver literals
         for ( i = 0; i < nOutputs; i++ )
         {
             uLit0 = atoi( (char *)pCur );  while ( *pCur++ != '\n' );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
 
@@ -790,14 +790,14 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
         for ( i = 0; i < nLatches; i++ )
         {
             uLit0 = Vec_IntEntry( vLits, i );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
         // read the PO driver literals
         for ( i = 0; i < nOutputs; i++ )
         {
             uLit0 = Vec_IntEntry( vLits, i+nLatches );
-            iNode0 = Gia_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
+            iNode0 = Abc_LitNotCond( Vec_IntEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );
             Vec_IntPush( vDrivers, iNode0 );
         }
         Vec_IntFree( vLits );
@@ -877,7 +877,7 @@ Gia_Man_t * Gia_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck
             pCur++;
             // read model name
             ABC_FREE( pNew->pName );
-            pNew->pName = Gia_UtilStrsav( (char *)pCur );
+            pNew->pName = Abc_UtilStrsav( (char *)pCur );
         }
     }
 
@@ -1094,7 +1094,7 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     {
         ABC_FREE( pNew->pName );
         pName = Gia_FileNameGeneric( pFileName );
-        pNew->pName = Gia_UtilStrsav( pName );
+        pNew->pName = Abc_UtilStrsav( pName );
 //        pNew->pSpec = Ioa_UtilStrsav( pFileName );
         ABC_FREE( pName );
     }
@@ -1246,30 +1246,30 @@ unsigned char * Gia_WriteEquivClasses( Gia_Man_t * p, int * pEquivSize )
     }
     pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (nItems + 1) );
     // write constant class
-    iPos = Gia_WriteAigerEncode( pBuffer, 4, Gia_Var2Lit(0, 1) );
+    iPos = Gia_WriteAigerEncode( pBuffer, 4, Abc_Var2Lit(0, 1) );
 //printf( "\nRepr = %d ", 0 );
     iPrevNode = 0;
     for ( iNode = 1; iNode < Gia_ManObjNum(p); iNode++ )
         if ( Gia_ObjIsConst(p, iNode) )
         {
 //printf( "Node = %d ", iNode );
-            iLit = Gia_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
+            iLit = Abc_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
             iPrevNode = iNode;
-            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_Var2Lit(iLit, 0) );
+            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Abc_Var2Lit(iLit, 0) );
         }
     // write non-constant classes
     iPrevRepr = 0;
     Gia_ManForEachClass( p, iRepr )
     {
 //printf( "\nRepr = %d ", iRepr );
-        iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_Var2Lit(iRepr - iPrevRepr, 1) );
+        iPos = Gia_WriteAigerEncode( pBuffer, iPos, Abc_Var2Lit(iRepr - iPrevRepr, 1) );
         iPrevRepr = iPrevNode = iRepr;
         Gia_ClassForEachObj1( p, iRepr, iNode )
         {
 //printf( "Node = %d ", iNode );
-            iLit = Gia_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
+            iLit = Abc_Var2Lit( iNode - iPrevNode, Gia_ObjProved(p, iNode) );
             iPrevNode = iNode;
-            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Gia_Var2Lit(iLit, 0) );
+            iPos = Gia_WriteAigerEncode( pBuffer, iPos, Abc_Var2Lit(iLit, 0) );
         }
     }
     Gia_WriteInt( pBuffer, iPos );
@@ -1291,8 +1291,8 @@ unsigned char * Gia_WriteEquivClasses( Gia_Man_t * p, int * pEquivSize )
 int Gia_WriteDiffValue( unsigned char * pPos, int iPos, int iPrev, int iThis )
 {
     if ( iPrev < iThis )
-        return Gia_WriteAigerEncode( pPos, iPos, Gia_Var2Lit(iThis - iPrev, 1) );
-    return Gia_WriteAigerEncode( pPos, iPos, Gia_Var2Lit(iPrev - iThis, 0) );
+        return Gia_WriteAigerEncode( pPos, iPos, Abc_Var2Lit(iThis - iPrev, 1) );
+    return Gia_WriteAigerEncode( pPos, iPos, Abc_Var2Lit(iPrev - iThis, 0) );
 }
 
 /**Function*************************************************************
@@ -1420,7 +1420,7 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     pBuffer = ABC_ALLOC( unsigned char, nBufferSize );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        uLit  = Gia_Var2Lit( i, 0 );
+        uLit  = Abc_Var2Lit( i, 0 );
         uLit0 = Gia_ObjFaninLit0( pObj, i );
         uLit1 = Gia_ObjFaninLit1( pObj, i );
         assert( uLit0 < uLit1 );

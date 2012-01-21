@@ -18,15 +18,15 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "main.h"
-#include "cmd.h"
-#include "fraig.h"
-#include "sim.h"
-#include "aig.h"
-#include "saig.h"
-#include "gia.h"
-#include "ssw.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/main.h"
+#include "src/base/cmd/cmd.h"
+#include "src/proof/fraig/fraig.h"
+#include "src/opt/sim/sim.h"
+#include "src/aig/aig/aig.h"
+#include "src/aig/saig/saig.h"
+#include "src/aig/gia/gia.h"
+#include "src/proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -20,7 +20,7 @@
 
 #include <math.h>
 #include "gia.h"
-#include "ioa.h"
+#include "src/aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -690,12 +690,12 @@ void Emb_ManPrintFanio( Emb_Man_t * p )
         nFanouts = Emb_ObjFanoutNum(pNode);
         nFaninsAll  += nFanins;
         nFanoutsAll += nFanouts;
-        nFaninsMax   = ABC_MAX( nFaninsMax, nFanins );
-        nFanoutsMax  = ABC_MAX( nFanoutsMax, nFanouts );
+        nFaninsMax   = Abc_MaxInt( nFaninsMax, nFanins );
+        nFanoutsMax  = Abc_MaxInt( nFanoutsMax, nFanouts );
     }
 
     // allocate storage for fanin/fanout numbers
-    nSizeMax = ABC_MAX( 10 * (Gia_Base10Log(nFaninsMax) + 1), 10 * (Gia_Base10Log(nFanoutsMax) + 1) );
+    nSizeMax = Abc_MaxInt( 10 * (Abc_Base10Log(nFaninsMax) + 1), 10 * (Abc_Base10Log(nFanoutsMax) + 1) );
     vFanins  = Vec_IntStart( nSizeMax );
     vFanouts = Vec_IntStart( nSizeMax );
 
@@ -1436,8 +1436,8 @@ void Emb_ManDerivePlacement( Emb_Man_t * p, int nSols )
     pY0 = Emb_ManSol( p, 0 );
     for ( k = 0; k < p->nObjs; k++ )
     {
-        Min0 = ABC_MIN( Min0, pY0[k] );
-        Max0 = ABC_MAX( Max0, pY0[k] );
+        Min0 = Abc_MinInt( Min0, pY0[k] );
+        Max0 = Abc_MaxInt( Max0, pY0[k] );
     }
     Str0 = 1.0*GIA_PLACE_SIZE/(Max0 - Min0);
     // update the coordinates
@@ -1450,8 +1450,8 @@ void Emb_ManDerivePlacement( Emb_Man_t * p, int nSols )
     pY1 = Emb_ManSol( p, 1 );
     for ( k = 0; k < p->nObjs; k++ )
     {
-        Min1 = ABC_MIN( Min1, pY1[k] );
-        Max1 = ABC_MAX( Max1, pY1[k] );
+        Min1 = Abc_MinInt( Min1, pY1[k] );
+        Max1 = Abc_MaxInt( Max1, pY1[k] );
     }
     Str1 = 1.0*GIA_PLACE_SIZE/(Max1 - Min1);
     // update the coordinates
@@ -1498,10 +1498,10 @@ double Emb_ManComputeHPWL( Emb_Man_t * p )
         iMinY = iMaxY = p->pPlacement[2*pThis->Value+1];
         Emb_ObjForEachFanout( pThis, pNext, k )
         {
-            iMinX = ABC_MIN( iMinX, p->pPlacement[2*pNext->Value+0] );
-            iMaxX = ABC_MAX( iMaxX, p->pPlacement[2*pNext->Value+0] );
-            iMinY = ABC_MIN( iMinY, p->pPlacement[2*pNext->Value+1] );
-            iMaxY = ABC_MAX( iMaxY, p->pPlacement[2*pNext->Value+1] );
+            iMinX = Abc_MinInt( iMinX, p->pPlacement[2*pNext->Value+0] );
+            iMaxX = Abc_MaxInt( iMaxX, p->pPlacement[2*pNext->Value+0] );
+            iMinY = Abc_MinInt( iMinY, p->pPlacement[2*pNext->Value+1] );
+            iMaxY = Abc_MaxInt( iMaxY, p->pPlacement[2*pNext->Value+1] );
         }
         Result += (iMaxX - iMinX) + (iMaxY - iMinY);
     }
@@ -1548,10 +1548,10 @@ void Emb_ManPlacementRefine( Emb_Man_t * p, int nIters, int fVerbose )
             iMinY = iMaxY = p->pPlacement[2*pThis->Value+1];
             Emb_ObjForEachFanout( pThis, pNext, k )
             {
-                iMinX = ABC_MIN( iMinX, p->pPlacement[2*pNext->Value+0] );
-                iMaxX = ABC_MAX( iMaxX, p->pPlacement[2*pNext->Value+0] );
-                iMinY = ABC_MIN( iMinY, p->pPlacement[2*pNext->Value+1] );
-                iMaxY = ABC_MAX( iMaxY, p->pPlacement[2*pNext->Value+1] );
+                iMinX = Abc_MinInt( iMinX, p->pPlacement[2*pNext->Value+0] );
+                iMaxX = Abc_MaxInt( iMaxX, p->pPlacement[2*pNext->Value+0] );
+                iMinY = Abc_MinInt( iMinY, p->pPlacement[2*pNext->Value+1] );
+                iMaxY = Abc_MaxInt( iMaxY, p->pPlacement[2*pNext->Value+1] );
             }
             pEdgeX[pThis->Value] = 0.5 * (iMaxX + iMinX);
             pEdgeY[pThis->Value] = 0.5 * (iMaxY + iMinY);

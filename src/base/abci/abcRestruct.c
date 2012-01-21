@@ -18,11 +18,11 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "extra.h"
-#include "dec.h"
-#include "dsd.h"
-#include "cut.h"
+#include "src/base/abc/abc.h"
+#include "src/bool/dec/dec.h"
+#include "src/opt/cut/cut.h"
+#include "src/misc/extra/extraBdd.h"
+#include "src/bdd/dsd/dsd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -655,7 +655,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
             // set level
             Level1 = Dec_GraphNode( pGraph, eNode1.Node )->Level;
             Level2 = Dec_GraphNode( pGraph, eNode2.Node )->Level;
-            Dec_GraphNode( pGraph, eNode3.Node )->Level = 1 + ABC_MAX(Level1, Level2);
+            Dec_GraphNode( pGraph, eNode3.Node )->Level = 1 + Abc_MaxInt(Level1, Level2);
             // get the new node if possible
             if ( pNode3 )
             {
@@ -708,7 +708,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
             // set level
             Level1 = Dec_GraphNode( pGraph, eNode1.Node )->Level;
             Level2 = Dec_GraphNode( pGraph, eNode2.Node )->Level;
-            Dec_GraphNode( pGraph, eNode3.Node )->Level = 2 + ABC_MAX(Level1, Level2);
+            Dec_GraphNode( pGraph, eNode3.Node )->Level = 2 + Abc_MaxInt(Level1, Level2);
             // get the new node if possible
             if ( pNode3 )
             {
@@ -824,7 +824,7 @@ Dec_Edge_t Abc_NodeEvaluateDsd_rec( Dec_Graph_t * pGraph, Abc_ManRst_t * pManRst
         Level1 = Dec_GraphNode( pGraph, eNode1.Node )->Level;
         Level2 = Dec_GraphNode( pGraph, eNode2.Node )->Level;
         Level3 = Dec_GraphNode( pGraph, eNode3.Node )->Level;
-        Dec_GraphNode( pGraph, eResult.Node )->Level = 2 + ABC_MAX( ABC_MAX(Level1, Level2), Level3 );
+        Dec_GraphNode( pGraph, eResult.Node )->Level = 2 + Abc_MaxInt( Abc_MaxInt(Level1, Level2), Level3 );
         // get the new node if possible
         if ( pNode4 )
         {

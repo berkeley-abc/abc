@@ -133,18 +133,18 @@ Vec_Int_t * Gia_ManSimDeriveResets( Gia_Man_t * pGia )
     {
         if ( Count < nImpLimit )
             continue;
-        pObj = Gia_ManObj( pGia, Gia_Lit2Var(Lit) );
-        if ( Gia_LitIsCompl(Lit) ) // const 0
+        pObj = Gia_ManObj( pGia, Abc_Lit2Var(Lit) );
+        if ( Abc_LitIsCompl(Lit) ) // const 0
         {
 //            Ssm_ObjSetLogic0( pObj );
-            Vec_IntWriteEntry( vResult, Gia_Lit2Var(Lit), 0 );
+            Vec_IntWriteEntry( vResult, Abc_Lit2Var(Lit), 0 );
             CounterPi0 += Gia_ObjIsPi(pGia, pObj);
             Counter0++;
         }
         else
         {
 //            Ssm_ObjSetLogic1( pObj );
-            Vec_IntWriteEntry( vResult, Gia_Lit2Var(Lit), 1 );
+            Vec_IntWriteEntry( vResult, Abc_Lit2Var(Lit), 1 );
             CounterPi1 += Gia_ObjIsPi(pGia, pObj);
             Counter1++;
         }
@@ -568,8 +568,8 @@ Abc_Cex_t * Gia_ManGenerateCounter( Gia_Man_t * pAig, int iFrame, int iOut, int 
             continue;
         for ( w = nWords-1; w >= 0; w-- )
             pData[w] = Gia_ManRandom( 0 );
-        if ( Gia_InfoHasBit( pData, iPat ) )
-            Gia_InfoSetBit( p->pData, Counter + iPioId );
+        if ( Abc_InfoHasBit( pData, iPat ) )
+            Abc_InfoSetBit( p->pData, Counter + iPioId );
     }
     ABC_FREE( pData );
     return p;

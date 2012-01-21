@@ -120,7 +120,7 @@ void Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout )
     assert( Gia_ObjId(p, pFanout) > 0 );
     if ( Gia_ObjId(p, pObj) >= p->nFansAlloc || Gia_ObjId(p, pFanout) >= p->nFansAlloc )
     {
-        int nFansAlloc = 2 * ABC_MAX( Gia_ObjId(p, pObj), Gia_ObjId(p, pFanout) ); 
+        int nFansAlloc = 2 * Abc_MaxInt( Gia_ObjId(p, pObj), Gia_ObjId(p, pFanout) ); 
         p->pFanData = ABC_REALLOC( int, p->pFanData, 5 * nFansAlloc );
         memset( p->pFanData + 5 * p->nFansAlloc, 0, sizeof(int) * 5 * (nFansAlloc - p->nFansAlloc) );
         p->nFansAlloc = nFansAlloc;

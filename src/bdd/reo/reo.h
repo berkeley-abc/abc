@@ -16,13 +16,13 @@
 
 ***********************************************************************/
 
-#ifndef __REO_H__
-#define __REO_H__
+#ifndef ABC__bdd__reo__reo_h
+#define ABC__bdd__reo__reo_h
 
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "extra.h"
+#include "src/misc/extra/extraBdd.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                     MACRO DEFINITIONS                            ///

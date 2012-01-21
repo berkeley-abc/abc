@@ -54,7 +54,7 @@ Amap_Cut_t * Amap_ManSetupPis( Amap_Man_t * p )
         pCut->iMat = 0;
         pCut->fInv = 0;
         pCut->nFans = 1;
-        pCut->Fans[0] = Amap_Var2Lit( pObj->Id, 0 );
+        pCut->Fans[0] = Abc_Var2Lit( pObj->Id, 0 );
         pObj->pData = pCut;
         pObj->nCuts = 1;
         pObj->EstRefs = (float)1.0;
@@ -83,7 +83,7 @@ Amap_Cut_t * Amap_ManCutStore( Amap_Man_t * p, Amap_Cut_t * pCut, int fCompl )
     pNew->nFans = pCut->nFans;
     memcpy( pNew->Fans, pCut->Fans, sizeof(int) * pCut->nFans );
     // add it to storage
-    iFan = Amap_Var2Lit( pNew->iMat, pNew->fInv );
+    iFan = Abc_Var2Lit( pNew->iMat, pNew->fInv );
     if ( p->ppCutsTemp[ iFan ] == NULL )
         Vec_IntPushOrder( p->vTemp, iFan );
     *Amap_ManCutNextP( pNew ) = p->ppCutsTemp[ iFan ];
@@ -198,7 +198,7 @@ void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
     pNext->iMat  = 0; 
     pNext->fInv  = 0;
     pNext->nFans = 1;
-    pNext->Fans[0] = Amap_Var2Lit(pNode->Id, 0);
+    pNext->Fans[0] = Abc_Var2Lit(pNode->Id, 0);
     pNext  = (Amap_Cut_t *)(pBuffer + 2);
     // add other cuts
     nCuts2 = 1;
@@ -224,7 +224,7 @@ void Amap_ManCutSaveStored( Amap_Man_t * p, Amap_Obj_t * pNode )
         if ( p->ppCutsTemp[i] != NULL )
             printf( "Amap_ManCutSaveStored(): Error!\n" );
     pNode->pData = (Amap_Cut_t *)pBuffer;
-    pNode->nCuts = ABC_MIN( nCuts, nMaxCuts-1 );
+    pNode->nCuts = Abc_MinInt( nCuts, nMaxCuts-1 );
     assert( nCuts < (1<<20) );
 //    printf("%d ", nCuts );
     // verify cuts
@@ -263,8 +263,8 @@ int Amap_ManMergeCountCuts( Amap_Man_t * p, Amap_Obj_t * pNode )
     {
         iCompl0 = pCut0->fInv ^ Amap_ObjFaninC0(pNode);
         iCompl1 = pCut1->fInv ^ Amap_ObjFaninC1(pNode);
-        iFan0   = !pCut0->iMat? 0: Amap_Var2Lit( pCut0->iMat, iCompl0 );
-        iFan1   = !pCut1->iMat? 0: Amap_Var2Lit( pCut1->iMat, iCompl1 );
+        iFan0   = !pCut0->iMat? 0: Abc_Var2Lit( pCut0->iMat, iCompl0 );
+        iFan1   = !pCut1->iMat? 0: Abc_Var2Lit( pCut1->iMat, iCompl1 );
         Entry = Amap_LibFindNode( p->pLib, iFan0, iFan1, pNode->Type == AMAP_OBJ_XOR );
         Counter += ( Entry >=0 );
 //        if ( Entry >=0 )
@@ -300,7 +300,7 @@ void Amap_ManPrintCuts( Amap_Obj_t * pNode )
     {
         printf( "%3d :  Mat= %3d  Inv=%d  ", c, pCut->iMat, pCut->fInv );
         for ( i = 0; i < (int)pCut->nFans; i++ )
-            printf( "%d%c ", Amap_Lit2Var(pCut->Fans[i]), Amap_LitIsCompl(pCut->Fans[i])?'-':'+' );
+            printf( "%d%c ", Abc_Lit2Var(pCut->Fans[i]), Abc_LitIsCompl(pCut->Fans[i])?'-':'+' );
         printf( "\n" );
     }
 }
@@ -356,7 +356,7 @@ int Amap_ManFindCut( Amap_Obj_t * pNode, Amap_Obj_t * pFanin, int fComplFanin, i
     Amap_NodeForEachCut( pFanin, pCut, c )
     {
         iCompl = pCut->fInv ^ fComplFanin;
-        iFan   = !pCut->iMat? 0: Amap_Var2Lit( pCut->iMat, iCompl );
+        iFan   = !pCut->iMat? 0: Abc_Var2Lit( pCut->iMat, iCompl );
         if ( iFan == Val )
             Vec_PtrPush( vCuts, pCut );
     }
@@ -406,20 +406,20 @@ void Amap_ManMergeNodeCutsMux( Amap_Man_t * p, Amap_Obj_t * pNode )
                 continue;
             // complement literals
             if ( pCut0->nFans == 1 && (pCut0->fInv ^ fComplFanin0) )
-                pCut0->Fans[0] = Amap_LitNot(pCut0->Fans[0]);
+                pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
             if ( pCut1->nFans == 1 && (pCut1->fInv ^ fComplFanin1) )
-                pCut1->Fans[0] = Amap_LitNot(pCut1->Fans[0]);
+                pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
             if ( pCut2->nFans == 1 && (pCut2->fInv ^ fComplFanin2) )
-                pCut2->Fans[0] = Amap_LitNot(pCut2->Fans[0]);
+                pCut2->Fans[0] = Abc_LitNot(pCut2->Fans[0]);
             // create new cut
             Amap_ManCutCreate3( p, pCut0, pCut1, pCut2, Vec_IntEntry(vRules, x+3) );
             // uncomplement literals
             if ( pCut0->nFans == 1 && (pCut0->fInv ^ fComplFanin0) )
-                pCut0->Fans[0] = Amap_LitNot(pCut0->Fans[0]);
+                pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
             if ( pCut1->nFans == 1 && (pCut1->fInv ^ fComplFanin1) )
-                pCut1->Fans[0] = Amap_LitNot(pCut1->Fans[0]);
+                pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
             if ( pCut2->nFans == 1 && (pCut2->fInv ^ fComplFanin2) )
-                pCut2->Fans[0] = Amap_LitNot(pCut2->Fans[0]);
+                pCut2->Fans[0] = Abc_LitNot(pCut2->Fans[0]);
         }
     }
     Amap_ManCutSaveStored( p, pNode );
@@ -457,10 +457,10 @@ void Amap_ManMergeNodeCuts( Amap_Man_t * p, Amap_Obj_t * pNode )
     Amap_NodeForEachCut( pFanin0, pCut0, c )
     {
         iCompl0 = pCut0->fInv ^ Amap_ObjFaninC0(pNode);
-        iFan0   = !pCut0->iMat? 0: Amap_Var2Lit( pCut0->iMat, iCompl0 );
+        iFan0   = !pCut0->iMat? 0: Abc_Var2Lit( pCut0->iMat, iCompl0 );
         // complement literals
         if ( pCut0->nFans == 1 && iCompl0 )
-            pCut0->Fans[0] = Amap_LitNot(pCut0->Fans[0]);
+            pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
         // label resulting sets
         for ( i = 0; (Entry = pRules[iFan0][i]); i++ )
             p->pMatsTemp[Entry & 0xffff] = (Entry >> 16);
@@ -468,12 +468,12 @@ void Amap_ManMergeNodeCuts( Amap_Man_t * p, Amap_Obj_t * pNode )
         Amap_NodeForEachCut( pFanin1, pCut1, k )
         {
             iCompl1 = pCut1->fInv ^ Amap_ObjFaninC1(pNode);
-            iFan1   = !pCut1->iMat? 0: Amap_Var2Lit( pCut1->iMat, iCompl1 );
+            iFan1   = !pCut1->iMat? 0: Abc_Var2Lit( pCut1->iMat, iCompl1 );
             if ( p->pMatsTemp[iFan1] == 0 )
                 continue;
             // complement literals
             if ( pCut1->nFans == 1 && iCompl1 )
-                pCut1->Fans[0] = Amap_LitNot(pCut1->Fans[0]);
+                pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
             // create new cut
             if ( iFan0 >= iFan1 )
                 Amap_ManCutCreate( p, pCut0, pCut1, p->pMatsTemp[iFan1] );
@@ -481,11 +481,11 @@ void Amap_ManMergeNodeCuts( Amap_Man_t * p, Amap_Obj_t * pNode )
                 Amap_ManCutCreate( p, pCut1, pCut0, p->pMatsTemp[iFan1] );
             // uncomplement literals
             if ( pCut1->nFans == 1 && iCompl1 )
-                pCut1->Fans[0] = Amap_LitNot(pCut1->Fans[0]);
+                pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
         }
         // uncomplement literals
         if ( pCut0->nFans == 1 && iCompl0 )
-            pCut0->Fans[0] = Amap_LitNot(pCut0->Fans[0]);
+            pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
         // label resulting sets
         for ( i = 0; (Entry = pRules[iFan0][i]); i++ )
             p->pMatsTemp[Entry & 0xffff] = 0;

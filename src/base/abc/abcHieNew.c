@@ -24,8 +24,9 @@
 #include <assert.h>
 #include <time.h>
 
-#include "vec.h"
-#include "utilNam.h"
+#include "src/misc/vec/vec.h"
+#include "src/misc/util/utilNam.h"
+#include "src/misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -958,7 +959,6 @@ static inline void Au_NtkParseCBlifNum( Vec_Int_t * vFanins, char * pToken, Vec_
 ***********************************************************************/
 Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
 {
-    extern char * Extra_FileRead( FILE * pFile );
     FILE * pFile;
     Au_Man_t * pMan;
     Au_Ntk_t * pRoot;
@@ -1109,7 +1109,7 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
 
 
 #include "abc.h"
-#include "gia.h"
+#include "src/aig/gia/gia.h"
 
 extern Vec_Ptr_t * Abc_NtkDfsBoxes( Abc_Ntk_t * pNtk );
 extern int Abc_NtkDeriveFlatGiaSop( Gia_Man_t * pGia, int * gFanins, char * pSop );
@@ -1161,15 +1161,15 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
             {
                 int Lit0, Lit1, Lit2;
                 assert( pObj->Func >= 1 && pObj->Func <= 3 );
-                Lit0 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin0(pObj)), Au_ObjFaninC0(pObj) );
-                Lit1 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin1(pObj)), Au_ObjFaninC1(pObj) );
+                Lit0 = Abc_LitNotCond( Au_ObjCopy(Au_ObjFanin0(pObj)), Au_ObjFaninC0(pObj) );
+                Lit1 = Abc_LitNotCond( Au_ObjCopy(Au_ObjFanin1(pObj)), Au_ObjFaninC1(pObj) );
                 if ( pObj->Func == 1 )
                     Lit = Gia_ManHashAnd( pGia, Lit0, Lit1 );
                 else if ( pObj->Func == 2 )
                     Lit = Gia_ManHashXor( pGia, Lit0, Lit1 );
                 else if ( pObj->Func == 3 )
                 {
-                    Lit2 = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin2(pObj)), Au_ObjFaninC2(pObj) );
+                    Lit2 = Abc_LitNotCond( Au_ObjCopy(Au_ObjFanin2(pObj)), Au_ObjFaninC2(pObj) );
                     Lit = Gia_ManHashMux( pGia, Lit0, Lit1, Lit2 );
                 }
                 else assert( 0 ); 
@@ -1199,7 +1199,7 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
     }
     Au_NtkForEachPo( p, pTerm, i )
     {
-        Lit = Gia_LitNotCond( Au_ObjCopy(Au_ObjFanin0(pTerm)), Au_ObjFaninC0(pTerm) );
+        Lit = Abc_LitNotCond( Au_ObjCopy(Au_ObjFanin0(pTerm)), Au_ObjFaninC0(pTerm) );
         Au_ObjSetCopy( pTerm, Lit );
     }
     Au_NtkForEachPo( p, pTerm, i )
@@ -1227,7 +1227,7 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
     Au_NtkCleanCopy( p );
     // start the network
     pGia = Gia_ManStart( (1<<16) );
-    pGia->pName = Gia_UtilStrsav( Au_NtkName(p) );
+    pGia->pName = Abc_UtilStrsav( Au_NtkName(p) );
     Gia_ManHashAlloc( pGia );
     Gia_ManFlipVerbose( pGia );
     // create PIs

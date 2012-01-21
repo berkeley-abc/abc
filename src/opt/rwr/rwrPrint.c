@@ -18,7 +18,6 @@
 
 ***********************************************************************/
 
-#include "extra.h"
 #include "rwr.h"
 
 ABC_NAMESPACE_IMPL_START

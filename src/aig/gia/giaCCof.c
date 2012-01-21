@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "satSolver.h"
+#include "src/sat/bsat/satSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -134,10 +134,10 @@ void Gia_ManCofExtendSolver( Ccf_Man_t * p )
 }
 
 static inline int Gia_Obj0Copy( Vec_Int_t * vCopies, int Fan0, int fCompl0 )  
-{ return Gia_LitNotCond( Vec_IntEntry(vCopies, Fan0), fCompl0 ); }
+{ return Abc_LitNotCond( Vec_IntEntry(vCopies, Fan0), fCompl0 ); }
 
 static inline int Gia_Obj1Copy( Vec_Int_t * vCopies, int Fan1, int fCompl1 )  
-{ return Gia_LitNotCond( Vec_IntEntry(vCopies, Fan1), fCompl1 ); }
+{ return Abc_LitNotCond( Vec_IntEntry(vCopies, Fan1), fCompl1 ); }
  
 /**Function*************************************************************
 
@@ -173,7 +173,7 @@ void Gia_ManCofOneDerive_rec( Ccf_Man_t * p, int Id )
     else if ( Gia_ObjCioId(pObj) >= Gia_ManRegNum(p->pGia) ) // PI
         Res = sat_solver_var_value( p->pSat, Id );
     else
-        Res = Gia_Var2Lit( Id, 0 );
+        Res = Abc_Var2Lit( Id, 0 );
     Vec_IntWriteEntry( p->vCopies, Id, Res );
 }
 
@@ -193,15 +193,15 @@ int Gia_ManCofOneDerive( Ccf_Man_t * p, int LitProp )
     int LitOut;
     // derive the cofactor of the property node
     Vec_IntFill( p->vCopies, Gia_ManObjNum(p->pFrames), -1 );
-    Gia_ManCofOneDerive_rec( p, Gia_Lit2Var(LitProp) );
-    LitOut = Vec_IntEntry( p->vCopies, Gia_Lit2Var(LitProp) );
-    LitOut = Gia_LitNotCond( LitOut, Gia_LitIsCompl(LitProp) );
+    Gia_ManCofOneDerive_rec( p, Abc_Lit2Var(LitProp) );
+    LitOut = Vec_IntEntry( p->vCopies, Abc_Lit2Var(LitProp) );
+    LitOut = Abc_LitNotCond( LitOut, Abc_LitIsCompl(LitProp) );
     // add new PO for the cofactor
     Gia_ManAppendCo( p->pFrames, LitOut );
     // add SAT clauses
     Gia_ManCofExtendSolver( p );
     // return negative literal of the cofactor
-    return Gia_LitNot(LitOut);
+    return Abc_LitNot(LitOut);
 } 
 
 /**Function*************************************************************

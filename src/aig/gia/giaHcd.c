@@ -20,8 +20,8 @@
 
 #include "gia.h"
 #include "giaAig.h"
-#include "aig.h"
-#include "dar.h"
+#include "src/aig/aig/aig.h"
+#include "src/opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -332,7 +332,7 @@ Gia_Man_t * Hcd_ManChoiceMiter( Vec_Ptr_t * vGias )
     }
     // start the new manager
     pNew = Gia_ManStart( Vec_PtrSize(vGias) * Gia_ManObjNum(pGia0) );
-    pNew->pName = Gia_UtilStrsav( pGia0->pName );
+    pNew->pName = Abc_UtilStrsav( pGia0->pName );
     // create new CIs and assign them to the old manager CIs
     for ( k = 0; k < Gia_ManCiNum(pGia0); k++ )
     {
@@ -457,7 +457,7 @@ void Hcd_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
     {
         if ( Gia_ObjIsConst0(pRepr) )
         {
-            pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+            pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
             return;
         }
         Hcd_ManEquivToChoices_rec( pNew, p, pRepr );
@@ -465,20 +465,20 @@ void Hcd_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
         Hcd_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
         Hcd_ManEquivToChoices_rec( pNew, p, Gia_ObjFanin1(pObj) );
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        if ( Gia_LitRegular(pObj->Value) == Gia_LitRegular(pRepr->Value) )
+        if ( Abc_LitRegular(pObj->Value) == Abc_LitRegular(pRepr->Value) )
         {
-            assert( (int)pObj->Value == Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) ) );
+            assert( (int)pObj->Value == Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) ) );
             return;
         }
         if ( pRepr->Value > pObj->Value ) // should never happen with high resource limit
             return;
         assert( pRepr->Value < pObj->Value );
-        pReprNew = Gia_ManObj( pNew, Gia_Lit2Var(pRepr->Value) );
-        pObjNew  = Gia_ManObj( pNew, Gia_Lit2Var(pObj->Value) );
+        pReprNew = Gia_ManObj( pNew, Abc_Lit2Var(pRepr->Value) );
+        pObjNew  = Gia_ManObj( pNew, Abc_Lit2Var(pObj->Value) );
         if ( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) )
         {
             assert( Gia_ObjReprObj( pNew, Gia_ObjId(pNew, pObjNew) ) == pReprNew );
-            pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+            pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
             return;
         }
         if ( !Hcd_ObjCheckTfi( pNew, pReprNew, pObjNew ) )
@@ -487,7 +487,7 @@ void Hcd_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
             Gia_ObjSetRepr( pNew, Gia_ObjId(pNew, pObjNew), Gia_ObjId(pNew, pReprNew) );
             Hcd_ManAddNextEntry_rec( pNew, pReprNew, pObjNew ); 
         }
-        pObj->Value = Gia_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
+        pObj->Value = Abc_LitNotCond( pRepr->Value, Gia_ObjPhaseReal(pRepr) ^ Gia_ObjPhaseReal(pObj) );
         return;
     }
     assert( Gia_ObjIsAnd(pObj) );
@@ -563,7 +563,7 @@ Gia_Man_t * Hcd_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     assert( (Gia_ManCoNum(p) % nSnapshots) == 0 );
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
     pNew->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
     for ( i = 0; i < Gia_ManObjNum(p); i++ )

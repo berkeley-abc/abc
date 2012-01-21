@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "tim.h"
+#include "src/misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -68,7 +68,7 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
     p->pConst1->fPhase = 1;
     p->nObjs[AIG_OBJ_CONST1]++;
     // start the table
-    p->nTableSize = Aig_PrimeCudd( nNodesMax );
+    p->nTableSize = Abc_PrimeCudd( nNodesMax );
     p->pTable = ABC_ALLOC( Aig_Obj_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
     return p;
@@ -92,8 +92,8 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
@@ -149,8 +149,8 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);

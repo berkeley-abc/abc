@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "ioa.h"
+#include "src/aig/ioa/ioa.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -151,18 +151,18 @@ void Saig_ManCexMinDerivePhasePriority_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj )
         Saig_ManCexMinDerivePhasePriority_rec( pAig, Aig_ObjFanin1(pObj) );
         assert( Aig_ObjFanin0(pObj)->iData >= 0 );
         assert( Aig_ObjFanin1(pObj)->iData >= 0 );
-        fPhase0 = Aig_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
-        fPhase1 = Aig_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
-        iPrio0  = Aig_Lit2Var( Aig_ObjFanin0(pObj)->iData );
-        iPrio1  = Aig_Lit2Var( Aig_ObjFanin1(pObj)->iData );
+        fPhase0 = Abc_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
+        fPhase1 = Abc_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
+        iPrio0  = Abc_Lit2Var( Aig_ObjFanin0(pObj)->iData );
+        iPrio1  = Abc_Lit2Var( Aig_ObjFanin1(pObj)->iData );
         if ( fPhase0 && fPhase1 ) // both are one
-            pObj->iData = Aig_Var2Lit( Abc_MinInt(iPrio0, iPrio1), 1 );
+            pObj->iData = Abc_Var2Lit( Abc_MinInt(iPrio0, iPrio1), 1 );
         else if ( !fPhase0 && fPhase1 ) 
-            pObj->iData = Aig_Var2Lit( iPrio0, 0 );
+            pObj->iData = Abc_Var2Lit( iPrio0, 0 );
         else if ( fPhase0 && !fPhase1 )
-            pObj->iData = Aig_Var2Lit( iPrio1, 0 );
+            pObj->iData = Abc_Var2Lit( iPrio1, 0 );
         else // both are zero
-            pObj->iData = Aig_Var2Lit( Abc_MaxInt(iPrio0, iPrio1), 0 );
+            pObj->iData = Abc_Var2Lit( Abc_MaxInt(iPrio0, iPrio1), 0 );
     }
 }
 
@@ -183,7 +183,7 @@ void Saig_ManCexMinVerifyPhase( Aig_Man_t * pAig, Abc_Cex_t * pCex, int f )
     int i;
     Aig_ManConst1(pAig)->fPhase = 1;
     Saig_ManForEachPi( pAig, pObj, i )
-        pObj->fPhase = Aig_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + i);
+        pObj->fPhase = Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + i);
     if ( f == 0 )
     {
         Saig_ManForEachLo( pAig, pObj, i )
@@ -266,7 +266,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority_( Aig_Man_t * pAig, Abc_Cex_t * p
     // set the constant node to higher priority than the flops
     vFramePPs = Vec_VecStart( pCex->iFrame+1 );
     nPrioOffset = (pCex->iFrame + 1) * pCex->nPis;
-    Aig_ManConst1(pAig)->iData = Aig_Var2Lit( nPrioOffset + pCex->nRegs, 1 );
+    Aig_ManConst1(pAig)->iData = Abc_Var2Lit( nPrioOffset + pCex->nRegs, 1 );
     vRoots = Vec_IntAlloc( 1000 );
 //printf( "Const1 = %d  Offset = %d\n", Aig_ManConst1(pAig)->iData, nPrioOffset ); 
     for ( f = 0; f <= pCex->iFrame; f++ )
@@ -280,9 +280,9 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority_( Aig_Man_t * pAig, Abc_Cex_t * p
         {
             assert( Aig_ObjIsPi(pObj) );
             if ( Saig_ObjIsPi(pAig, pObj) )
-                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( (f+1) * pCex->nPis - nPiCount++, Aig_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
+                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( (f+1) * pCex->nPis - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
             else if ( f == 0 )
-                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( nPrioOffset + Saig_ObjRegId(pAig, pObj), 0 ) );
+                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( nPrioOffset + Saig_ObjRegId(pAig, pObj), 0 ) );
             else
             {
                 Aig_Obj_t * pObj0 = Saig_ObjLoToLi(pAig, pObj);
@@ -298,7 +298,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority_( Aig_Man_t * pAig, Abc_Cex_t * p
     Vec_IntFree( vRoots );
     // check the output
     pObj = Aig_ManPo( pAig, pCex->iPo );
-    assert( Aig_LitIsCompl(pObj->iData) );
+    assert( Abc_LitIsCompl(pObj->iData) );
     return vFramePPs;
 }
 
@@ -327,7 +327,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
     // set the constant node to higher priority than the flops
     vFramePPs = Vec_VecStart( pCex->iFrame+1 );
     nPrioOffset = pCex->nRegs;
-    Aig_ManConst1(pAig)->iData = Aig_Var2Lit( nPrioOffset + (pCex->iFrame + 1) * pCex->nPis, 1 );
+    Aig_ManConst1(pAig)->iData = Abc_Var2Lit( nPrioOffset + (pCex->iFrame + 1) * pCex->nPis, 1 );
     vRoots = Vec_IntAlloc( 1000 );
 //printf( "Const1 = %d  Offset = %d\n", Aig_ManConst1(pAig)->iData, nPrioOffset ); 
     for ( f = 0; f <= pCex->iFrame; f++ )
@@ -341,9 +341,9 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
         {
             assert( Aig_ObjIsPi(pObj) );
             if ( Saig_ObjIsPi(pAig, pObj) )
-                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( nPrioOffset + (f+1) * pCex->nPis - 1 - nPiCount++, Aig_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
+                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( nPrioOffset + (f+1) * pCex->nPis - 1 - nPiCount++, Abc_InfoHasBit(pCex->pData, pCex->nRegs + f * pCex->nPis + Aig_ObjPioNum(pObj)) ) );
             else if ( f == 0 )
-                Vec_IntPush( vFramePPsOne, Aig_Var2Lit( Saig_ObjRegId(pAig, pObj), 0 ) );
+                Vec_IntPush( vFramePPsOne, Abc_Var2Lit( Saig_ObjRegId(pAig, pObj), 0 ) );
             else
             {
                 Aig_Obj_t * pObj0 = Saig_ObjLoToLi(pAig, pObj);
@@ -359,7 +359,7 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
     Vec_IntFree( vRoots );
     // check the output
     pObj = Aig_ManPo( pAig, pCex->iPo );
-    assert( Aig_LitIsCompl(pObj->iData) );
+    assert( Abc_LitIsCompl(pObj->iData) );
     return vFramePPs;
 }
 
@@ -383,9 +383,9 @@ void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t
     if ( Aig_ObjIsPi(pObj) )
     {
         if ( fPiReason && Saig_ObjIsPi(p, pObj) )
-            Vec_IntPush( vReason, Aig_Var2Lit( Aig_ObjPioNum(pObj), !Aig_LitIsCompl(pObj->iData) ) );
+            Vec_IntPush( vReason, Abc_Var2Lit( Aig_ObjPioNum(pObj), !Abc_LitIsCompl(pObj->iData) ) );
         else if ( !fPiReason && Saig_ObjIsLo(p, pObj) )
-            Vec_IntPush( vReason, Aig_Var2Lit( Saig_ObjRegId(p, pObj), !Aig_LitIsCompl(pObj->iData) ) );
+            Vec_IntPush( vReason, Abc_Var2Lit( Saig_ObjRegId(p, pObj), !Abc_LitIsCompl(pObj->iData) ) );
         return;
     }
     if ( Aig_ObjIsPo(pObj) )
@@ -396,18 +396,18 @@ void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t
     if ( Aig_ObjIsConst1(pObj) )
         return;
     assert( Aig_ObjIsNode(pObj) );
-    if ( Aig_LitIsCompl(pObj->iData) ) // value 1
+    if ( Abc_LitIsCompl(pObj->iData) ) // value 1
     {
-        int fPhase0 = Aig_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
-        int fPhase1 = Aig_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
+        int fPhase0 = Abc_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
+        int fPhase1 = Abc_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
         assert( fPhase0 && fPhase1 );
         Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
         Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin1(pObj), vReason, fPiReason );
     }
     else
     {
-        int fPhase0 = Aig_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
-        int fPhase1 = Aig_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
+        int fPhase0 = Abc_LitIsCompl( Aig_ObjFanin0(pObj)->iData ) ^ Aig_ObjFaninC0(pObj);
+        int fPhase1 = Abc_LitIsCompl( Aig_ObjFanin1(pObj)->iData ) ^ Aig_ObjFaninC1(pObj);
         assert( !fPhase0 || !fPhase1 );
         if ( !fPhase0 && fPhase1 )
             Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
@@ -415,8 +415,8 @@ void Saig_ManCexMinCollectReason_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t
             Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin1(pObj), vReason, fPiReason );
         else 
         {
-            int iPrio0 = Aig_Lit2Var( Aig_ObjFanin0(pObj)->iData );
-            int iPrio1 = Aig_Lit2Var( Aig_ObjFanin1(pObj)->iData );
+            int iPrio0 = Abc_Lit2Var( Aig_ObjFanin0(pObj)->iData );
+            int iPrio1 = Abc_Lit2Var( Aig_ObjFanin1(pObj)->iData );
             if ( iPrio0 >= iPrio1 )
                 Saig_ManCexMinCollectReason_rec( p, Aig_ObjFanin0(pObj), vReason, fPiReason );
             else
@@ -514,7 +514,7 @@ Aig_Man_t * Saig_ManCexMinDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value
     assert( pAig->nConstrs == 0 );
     // start the new manager
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) + Vec_VecSizeSize(vReg2Value) + Vec_VecSize(vReg2Value) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     // map the constant node
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     // create variables for PIs
@@ -532,8 +532,8 @@ Aig_Man_t * Saig_ManCexMinDupWithCubes( Aig_Man_t * pAig, Vec_Vec_t * vReg2Value
         Vec_IntForEachEntry( vLevel, Lit, k )
         {
             assert( Lit >= 0 && Lit < 2 * Aig_ManRegNum(pAig) );
-            pObj = Saig_ManLi( pAig, Aig_Lit2Var(Lit) );
-            pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Aig_LitIsCompl(Lit)) );
+            pObj = Saig_ManLi( pAig, Abc_Lit2Var(Lit) );
+            pMiter = Aig_And( pAigNew, pMiter, Aig_NotCond(Aig_ObjChild0Copy(pObj), Abc_LitIsCompl(Lit)) );
         }
         Aig_ObjCreatePo( pAigNew, pMiter );
     }

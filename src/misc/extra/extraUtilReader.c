@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 #include "extra.h"
-#include "vec.h"
+#include "src/misc/vec/vec.h"
 
 ABC_NAMESPACE_IMPL_START
 

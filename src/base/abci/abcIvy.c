@@ -18,13 +18,14 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "dec.h"
-#include "fra.h"
-#include "ivy.h"
-#include "fraig.h"
-#include "mio.h"
-#include "aig.h"
+#include "src/base/abc/abc.h"
+#include "src/bool/dec/dec.h"
+#include "src/proof/fra/fra.h"
+#include "src/aig/ivy/ivy.h"
+#include "src/proof/fraig/fraig.h"
+#include "src/map/mio/mio.h"
+#include "src/aig/aig/aig.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 

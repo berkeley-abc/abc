@@ -22,10 +22,10 @@
 #include <unistd.h>
 #endif
 
-#include "main.h"
+#include "src/base/main/main.h"
 #include "mio.h"
-#include "mapper.h"
-#include "amap.h"
+#include "src/map/mapper/mapper.h"
+#include "src/map/amap/amap.h"
 
 ABC_NAMESPACE_IMPL_START
 

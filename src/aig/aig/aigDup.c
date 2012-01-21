@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#include "saig.h"
-#include "tim.h"
+#include "src/aig/saig/saig.h"
+#include "src/misc/tim/tim.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -52,8 +52,8 @@ Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
     assert( p->pManHaig == NULL || Aig_ManBufNum(p) == 0 );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -124,7 +124,7 @@ Aig_Man_t * Aig_ManDupSimpleWithHints( Aig_Man_t * p, Vec_Int_t * vHints )
     assert( p->nAsserts == 0 || p->nConstrs == 0 );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -203,8 +203,8 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
     assert( p->pManHaig == NULL || Aig_ManBufNum(p) == 0 );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -303,8 +303,8 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -379,8 +379,8 @@ Aig_Man_t * Aig_ManDupCof( Aig_Man_t * p, int iInput, int Value )
     assert( p->pManHaig == NULL || Aig_ManBufNum(p) == 0 );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -456,8 +456,8 @@ Aig_Man_t * Aig_ManDupTrim( Aig_Man_t * p )
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
     // create the PIs
     Aig_ManCleanData( p );
@@ -505,8 +505,8 @@ Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->fCatchExor = 1;
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -608,8 +608,8 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -749,8 +749,8 @@ Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios )
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -821,8 +821,8 @@ Aig_Man_t * Aig_ManDupLevelized( Aig_Man_t * p )
     int i, k;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nAsserts = p->nAsserts;
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
@@ -895,8 +895,8 @@ Aig_Man_t * Aig_ManDupWithoutPos( Aig_Man_t * p )
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -980,8 +980,8 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
     int i;
     // start the HOP package
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -1054,8 +1054,8 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
     int i;
     // start the HOP package
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->nConstrs = p->nConstrs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
@@ -1163,8 +1163,8 @@ Aig_Man_t * Aig_ManDupOrpos( Aig_Man_t * p, int fAddRegs )
     }
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -1212,8 +1212,8 @@ Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
     assert( iPoNum < Aig_ManPoNum(p)-Aig_ManRegNum(p) );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -1263,8 +1263,8 @@ Aig_Man_t * Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs )
     }
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -1321,7 +1321,7 @@ Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
     }
     // create the new manager
     pNew = Aig_ManStart( 10000 );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManForEachPi( p, pObj, i )
         Aig_ObjCreatePi(pNew);
     // create the PIs

@@ -50,7 +50,7 @@ Aig_Man_t * Saig_ManTemporFrames( Aig_Man_t * pAig, int nFrames )
     // start the frames package
     Aig_ManCleanData( pAig );
     pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFrames );
-    pFrames->pName = Aig_UtilStrsav( pAig->pName );
+    pFrames->pName = Abc_UtilStrsav( pAig->pName );
     // initiliaze the flops
     Saig_ManForEachLo( pAig, pObj, i )
         pObj->pData = Aig_ManConst0(pFrames);
@@ -103,7 +103,7 @@ Aig_Man_t * Saig_ManTemporDecompose( Aig_Man_t * pAig, int nFrames )
     // start the new manager
     Aig_ManCleanData( pAig );
     pAigNew = Aig_ManStart( Aig_ManNodeNum(pAig) );
-    pAigNew->pName = Aig_UtilStrsav( pAig->pName );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
     // map the constant node and primary inputs
     Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
     Saig_ManForEachPi( pAig, pObj, i )

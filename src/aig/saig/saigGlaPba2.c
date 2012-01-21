@@ -19,7 +19,7 @@
 ***********************************************************************/
  
 #include "saig.h"
-#include "satSolver2.h"
+#include "src/sat/bsat/satSolver2.h"
 
 ABC_NAMESPACE_IMPL_START
 

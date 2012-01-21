@@ -18,17 +18,17 @@
 
 ***********************************************************************/
  
-#ifndef __LPK_INT_H__
-#define __LPK_INT_H__
+#ifndef ABC__opt__lpk__lpkInt_h
+#define ABC__opt__lpk__lpkInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "abc.h"
-#include "kit.h"
-#include "if.h"
+#include "src/base/abc/abc.h"
+#include "src/bool/kit/kit.h"
+#include "src/map/if/if.h"
 #include "lpk.h"
 
 ////////////////////////////////////////////////////////////////////////

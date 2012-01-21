@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -48,7 +47,7 @@ Abc_Lib_t * Abc_LibCreate( char * pName )
     Abc_Lib_t * p;
     p = ABC_ALLOC( Abc_Lib_t, 1 );
     memset( p, 0, sizeof(Abc_Lib_t) );
-    p->pName    = Extra_UtilStrsav( pName );
+    p->pName    = Abc_UtilStrsav( pName );
     p->tModules = st_init_table( strcmp, st_strhash );
     p->vTops    = Vec_PtrAlloc( 100 );
     p->vModules = Vec_PtrAlloc( 100 );

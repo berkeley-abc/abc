@@ -19,9 +19,9 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "aig.h"
-#include "if.h"
-#include "dar.h"
+#include "src/aig/aig/aig.h"
+#include "src/map/if/if.h"
+#include "src/opt/dar/dar.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -306,11 +306,11 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p )
     {
         nLuts++;
         nFanins += Gia_ObjLutSize(p, i);
-        nLutSize = ABC_MAX( nLutSize, Gia_ObjLutSize(p, i) );
+        nLutSize = Abc_MaxInt( nLutSize, Gia_ObjLutSize(p, i) );
         Gia_LutForEachFanin( p, i, iFan, k )
-            pLevels[i] = ABC_MAX( pLevels[i], pLevels[iFan] );
+            pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[iFan] );
         pLevels[i]++;
-        LevelMax = ABC_MAX( LevelMax, pLevels[i] );
+        LevelMax = Abc_MaxInt( LevelMax, pLevels[i] );
     }
     ABC_FREE( pLevels );
     Abc_Print( 1, "mapping (K=%d)  :  ", nLutSize );
@@ -355,7 +355,7 @@ int Gia_ManLutSizeMax( Gia_Man_t * p )
 {
     int i, nSizeMax = -1;
     Gia_ManForEachLut( p, i )
-        nSizeMax = ABC_MAX( nSizeMax, Gia_ObjLutSize(p, i) );
+        nSizeMax = Abc_MaxInt( nSizeMax, Gia_ObjLutSize(p, i) );
     return nSizeMax;
 }
 

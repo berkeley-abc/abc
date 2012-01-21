@@ -16,8 +16,8 @@
 
 ***********************************************************************/
 
-#ifndef __PARSE_INT_H__
-#define __PARSE_INT_H__
+#ifndef ABC__bdd__parse__parseInt_h
+#define ABC__bdd__parse__parseInt_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -26,8 +26,7 @@
 
 
 #include <stdio.h>
-#include "extra.h"
-#include "cuddInt.h"
+#include "src/misc/extra/extraBdd.h"
 #include "parse.h"
 
 ABC_NAMESPACE_HEADER_START

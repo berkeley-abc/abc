@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "extra.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -401,7 +401,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
         if ( nValuesMax < nValues )
             nValuesMax = nValues;
     }
-    nBits = Extra_Base2Log( nValuesMax );
+    nBits = Abc_Base2Log( nValuesMax );
     pBits = ABC_ALLOC( Abc_Obj_t *, nBits );
 
     // clean the node copy fields
@@ -474,7 +474,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
             nValues = Abc_ObjMvVarNum(pNet);
             pValues = ABC_ALLOC( Abc_Obj_t *, nValues );
             // create PIs for the encoding bits
-            nBits = Extra_Base2Log( nValues );
+            nBits = Abc_Base2Log( nValues );
             for ( k = 0; k < nBits; k++ )
             {
                 pBits[k] = Abc_NtkCreatePi( pNtkNew );
@@ -506,7 +506,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
             nValues = Abc_ObjMvVarNum(pNet);
             pValues = ABC_ALLOC( Abc_Obj_t *, nValues );
             // create PIs for the encoding bits
-            nBits = Extra_Base2Log( nValues );
+            nBits = Abc_Base2Log( nValues );
             for ( k = 0; k < nBits; k++ )
             {
                 pBits[k] = Abc_NtkCreateBo( pNtkNew );
@@ -602,7 +602,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
 //            Abc_NodeSetTravIdCurrent( pNet );
             nValues = Abc_ObjMvVarNum(pNet);
             pValues = (Abc_Obj_t **)pNet->pCopy;
-            nBits = Extra_Base2Log( nValues );
+            nBits = Abc_Base2Log( nValues );
             for ( k = 0; k < nBits; k++ )
             {
                 pBit = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
@@ -628,7 +628,7 @@ Abc_Ntk_t * Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk )
 //            Abc_NodeSetTravIdCurrent( pNet );
             nValues = Abc_ObjMvVarNum(pNet);
             pValues = (Abc_Obj_t **)pNet->pCopy;
-            nBits = Extra_Base2Log( nValues );
+            nBits = Abc_Base2Log( nValues );
             for ( k = 0; k < nBits; k++ )
             {
                 pBit = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
@@ -805,7 +805,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
         {
             pNet = Abc_ObjFanout0(pObj);
             nValues = Abc_ObjMvVarNum(pNet);
-            nBits = Extra_Base2Log( nValues );
+            nBits = Abc_Base2Log( nValues );
             for ( k = 0; k < nBits; k++ )
             {
                 pNodeNew = Abc_NtkCreateNode( pNtkNew );
@@ -856,7 +856,7 @@ Abc_Ntk_t * Abc_NtkSkeletonBlifMv( Abc_Ntk_t * pNtk )
                 continue;
             Abc_NodeSetTravIdCurrent( pNet );
             nValues = Abc_ObjMvVarNum(pNet);
-            nBits = Extra_Base2Log( nValues );
+            nBits = Abc_Base2Log( nValues );
             pNodeNew = Abc_NtkCreateNode( pNtkNew );
             pNodeNew->pData = Abc_SopDecoderLog( (Mem_Flex_t *)pNtkNew->pManFunc, nValues );
             for ( k = 0; k < nBits; k++ )

@@ -19,8 +19,8 @@
 ***********************************************************************/
 
 #include "amapInt.h"
-#include "hop.h"
-#include "kit.h"
+#include "src/aig/hop/hop.h"
+#include "src/bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -437,8 +437,8 @@ int Amap_LibParseEquations( Amap_Lib_t * p, int fVerbose )
             printf( "Skipping gate \"%s\" because its output \"%s\" does not depend on all input variables.\n", pGate->pName, pGate->pForm );
             continue;
         }
-        pGate->pFunc = (unsigned *)Aig_MmFlexEntryFetch( p->pMemGates, sizeof(unsigned)*Aig_TruthWordNum(pGate->nPins) );
-        memcpy( pGate->pFunc, pTruth, sizeof(unsigned)*Aig_TruthWordNum(pGate->nPins) );
+        pGate->pFunc = (unsigned *)Aig_MmFlexEntryFetch( p->pMemGates, sizeof(unsigned)*Abc_TruthWordNum(pGate->nPins) );
+        memcpy( pGate->pFunc, pTruth, sizeof(unsigned)*Abc_TruthWordNum(pGate->nPins) );
     }
     Vec_PtrFree( vNames );
     Vec_IntFree( vTruth );

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "ssw.h"
+#include "src/proof/ssw/ssw.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -111,12 +111,12 @@ int Saig_ManSimDataInit( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo, 
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, f, Entry, iBit = 0;
     Saig_ManForEachLo( p, pObj, i )
-        Saig_ManSimInfoSet( vSimInfo, pObj, 0, Aig_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE:SAIG_ZER );
+        Saig_ManSimInfoSet( vSimInfo, pObj, 0, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE:SAIG_ZER );
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
         Saig_ManSimInfoSet( vSimInfo, Aig_ManConst1(p), f, SAIG_ONE );
         Saig_ManForEachPi( p, pObj, i )
-            Saig_ManSimInfoSet( vSimInfo, pObj, f, Aig_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE:SAIG_ZER );
+            Saig_ManSimInfoSet( vSimInfo, pObj, f, Abc_InfoHasBit(pCex->pData, iBit++)?SAIG_ONE:SAIG_ZER );
         if ( vRes )
         Vec_IntForEachEntry( vRes, Entry, i )
             Saig_ManSimInfoSet( vSimInfo, Aig_ManPi(p, Entry), f, SAIG_UND );
@@ -251,7 +251,7 @@ Vec_Int_t * Saig_ManExtendCounterExample0( Aig_Man_t * p, int iFirstFlopPi, Abc_
     Vec_Int_t * vRes, * vResInv, * vUndo, * vVis, * vVis2;
     int i, f, Value;
 //    assert( Aig_ManRegNum(p) > 0 );
-    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Abc_BitWordNum(2*(pCex->iFrame+1)) );
     // start simulation data
     Value = Saig_ManSimDataInit( p, pCex, vSimInfo, NULL );
     assert( Value == SAIG_ONE );
@@ -301,7 +301,7 @@ Vec_Int_t * Saig_ManExtendCounterExample1( Aig_Man_t * p, int iFirstFlopPi, Abc_
     Vec_Int_t * vRes, * vResInv, * vUndo, * vVis, * vVis2;
     int i, f, Value;
 //    assert( Aig_ManRegNum(p) > 0 );
-    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Abc_BitWordNum(2*(pCex->iFrame+1)) );
     // start simulation data
     Value = Saig_ManSimDataInit( p, pCex, vSimInfo, NULL );
     assert( Value == SAIG_ONE );
@@ -351,7 +351,7 @@ Vec_Int_t * Saig_ManExtendCounterExample2( Aig_Man_t * p, int iFirstFlopPi, Abc_
     Vec_Int_t * vRes, * vResInv, * vUndo, * vVis, * vVis2;
     int i, f, Value;
 //    assert( Aig_ManRegNum(p) > 0 );
-    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Abc_BitWordNum(2*(pCex->iFrame+1)) );
     // start simulation data
     Value = Saig_ManSimDataInit( p, pCex, vSimInfo, NULL );
     assert( Value == SAIG_ONE );
@@ -419,7 +419,7 @@ Vec_Int_t * Saig_ManExtendCounterExample3( Aig_Man_t * p, int iFirstFlopPi, Abc_
     Vec_Int_t * vRes, * vResInv, * vUndo, * vVis, * vVis2;
     int i, f, Value;
 //    assert( Aig_ManRegNum(p) > 0 );
-    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    assert( (unsigned *)Vec_PtrEntry(vSimInfo,1) - (unsigned *)Vec_PtrEntry(vSimInfo,0) >= Abc_BitWordNum(2*(pCex->iFrame+1)) );
     // start simulation data
     Value = Saig_ManSimDataInit( p, pCex, vSimInfo, NULL );
     assert( Value == SAIG_ONE );
@@ -529,8 +529,8 @@ Vec_Int_t * Saig_ManExtendCounterExampleTest( Aig_Man_t * p, int iFirstFlopPi, A
         return NULL;
     }
     Aig_ManFanoutStart( p );
-    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Aig_BitWordNum(2*(pCex->iFrame+1)) );
-    Vec_PtrCleanSimInfo( vSimInfo, 0, Aig_BitWordNum(2*(pCex->iFrame+1)) );
+    vSimInfo = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p), Abc_BitWordNum(2*(pCex->iFrame+1)) );
+    Vec_PtrCleanSimInfo( vSimInfo, 0, Abc_BitWordNum(2*(pCex->iFrame+1)) );
 
 clk = clock();
     if ( fTryFour )

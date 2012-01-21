@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
-#include "bdc.h"
+#include "src/bool/bdc/bdc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int Bdc_FunObjCopy( Bdc_Fun_t * pObj )     { return Gia_LitNotCond( Bdc_FuncCopyInt(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
+static inline int Bdc_FunObjCopy( Bdc_Fun_t * pObj )     { return Abc_LitNotCond( Bdc_FuncCopyInt(Bdc_Regular(pObj)), Bdc_IsComplement(pObj) );  }
 static inline int Bdc_FunFanin0Copy( Bdc_Fun_t * pObj )  { return Bdc_FunObjCopy( Bdc_FuncFanin0(pObj) );                                        }
 static inline int Bdc_FunFanin1Copy( Bdc_Fun_t * pObj )  { return Bdc_FunObjCopy( Bdc_FuncFanin1(pObj) );                                        }
 
@@ -109,7 +109,7 @@ unsigned * Gia_ManConvertAigToTruth( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t
     int i, nWords, nVars;
     // get the number of variables and words
     nVars  = Vec_IntSize( vLeaves );
-    nWords = Gia_TruthWordNum( nVars );
+    nWords = Abc_TruthWordNum( nVars );
     // check the case of a constant
     if ( Gia_ObjIsConst0( Gia_Regular(pRoot) ) )
     {
@@ -263,7 +263,7 @@ Gia_Man_t * Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose )
     Gia_ManConst0(p)->Value = 0;
     // start the new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
-    pNew->pName = Gia_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
 //    Gia_ManCleanLevels( pNew, Gia_ManObjNum(p) );
     pManDec = Bdc_ManAlloc( pPars );

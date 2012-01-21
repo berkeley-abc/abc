@@ -128,13 +128,13 @@ int Hop_ManCountLevels( Hop_Man_t * p )
     {
         Level0 = (int)(ABC_PTRUINT_T)Hop_ObjFanin0(pObj)->pData;
         Level1 = (int)(ABC_PTRUINT_T)Hop_ObjFanin1(pObj)->pData;
-        pObj->pData = (void *)(ABC_PTRUINT_T)(1 + Hop_ObjIsExor(pObj) + ABC_MAX(Level0, Level1));
+        pObj->pData = (void *)(ABC_PTRUINT_T)(1 + Hop_ObjIsExor(pObj) + Abc_MaxInt(Level0, Level1));
     }
     Vec_PtrFree( vNodes );
     // get levels of the POs
     LevelsMax = 0;
     Hop_ManForEachPo( p, pObj, i )
-        LevelsMax = ABC_MAX( LevelsMax, (int)(ABC_PTRUINT_T)Hop_ObjFanin0(pObj)->pData );
+        LevelsMax = Abc_MaxInt( LevelsMax, (int)(ABC_PTRUINT_T)Hop_ObjFanin0(pObj)->pData );
     return LevelsMax;
 }
 

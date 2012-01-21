@@ -18,10 +18,9 @@
 
 ***********************************************************************/
 
-#include "extra.h"
 #include "rwr.h"
-#include "main.h"
-#include "dec.h"
+#include "src/base/main/main.h"
+#include "src/bool/dec/dec.h"
 
 ABC_NAMESPACE_IMPL_START
 

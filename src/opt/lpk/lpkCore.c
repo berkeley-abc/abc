@@ -19,8 +19,8 @@
 ***********************************************************************/
  
 #include "lpkInt.h"
-#include "cloud.h"
-#include "main.h"
+#include "src/bool/kit/cloud.h"
+#include "src/base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -140,7 +140,7 @@ int Lpk_ExploreCut( Lpk_Man_t * p, Lpk_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
     pRoot = Kit_DsdNtkRoot( pNtk );
     if ( pRoot->Type == KIT_DSD_CONST1 )
     {
-        if ( Kit_DsdLitIsCompl(pNtk->Root) )
+        if ( Abc_LitIsCompl(pNtk->Root) )
             pObjNew = Abc_NtkCreateNodeConst0( p->pNtk );
         else
             pObjNew = Abc_NtkCreateNodeConst1( p->pNtk );
@@ -150,8 +150,8 @@ int Lpk_ExploreCut( Lpk_Man_t * p, Lpk_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
     }
     if ( pRoot->Type == KIT_DSD_VAR )
     {
-        pObjNew = Abc_NtkObj( p->pNtk, pCut->pLeaves[ Kit_DsdLit2Var(pRoot->pFans[0]) ] );
-        if ( Kit_DsdLitIsCompl(pNtk->Root) ^ Kit_DsdLitIsCompl(pRoot->pFans[0]) )
+        pObjNew = Abc_NtkObj( p->pNtk, pCut->pLeaves[ Abc_Lit2Var(pRoot->pFans[0]) ] );
+        if ( Abc_LitIsCompl(pNtk->Root) ^ Abc_LitIsCompl(pRoot->pFans[0]) )
             pObjNew = Abc_NtkCreateNodeInv( p->pNtk, pObjNew );
         Abc_NtkUpdate( p->pObj, pObjNew, p->vLevels );
         p->nGainTotal += pCut->nNodes - pCut->nNodesDup;

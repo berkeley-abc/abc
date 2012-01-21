@@ -25,7 +25,7 @@
 #include <assert.h>
 
 #include "abc_global.h"
-#include "vec.h"
+#include "src/misc/vec/vec.h"
 #include "utilNam.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -304,7 +304,7 @@ void Abc_NamStrHashResize( Abc_Nam_t * p )
     char * pThis;
     int * piPlace, * pBinsOld, iHandleOld, i;//, clk = clock();
     assert( p->pBins != NULL );
-//    Abc_Print( 1, "Resizing names manager hash table from %6d to %6d. ", p->nBins, Gia_PrimeCudd( 3 * p->nBins ) );
+//    Abc_Print( 1, "Resizing names manager hash table from %6d to %6d. ", p->nBins, Abc_PrimeCudd( 3 * p->nBins ) );
     // replace the table
     pBinsOld = p->pBins;
     p->nBins = Abc_PrimeCudd( 3 * p->nBins ); 

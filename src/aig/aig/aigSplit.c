@@ -19,9 +19,8 @@
 ***********************************************************************/
 
 #include "aig.h"
-#include "saig.h"
-#include "cuddInt.h"
-#include "extra.h"
+#include "src/aig/saig/saig.h"
+#include "src/misc/extra/extraBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -84,7 +83,7 @@ Aig_Man_t * Aig_ManConvertBddsToAigs( Aig_Man_t * p, DdManager * dd, Vec_Ptr_t *
     Aig_ManCleanData( p );
     // generate AIG for BDD
     pNew = Aig_ManStart( Aig_ManObjNum(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pName = Abc_UtilStrsav( p->pName );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi( pNew );

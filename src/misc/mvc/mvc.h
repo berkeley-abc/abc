@@ -16,8 +16,8 @@
 
 ***********************************************************************/
 
-#ifndef __MVC_H__
-#define __MVC_H__
+#ifndef ABC__misc__mvc__mvc_h
+#define ABC__misc__mvc__mvc_h
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -25,8 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "extra.h"
-#include "extra.h"
+#include "src/misc/extra/extra.h"
 
 ABC_NAMESPACE_HEADER_START
 

@@ -18,10 +18,10 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "main.h"
-#include "mio.h"
-#include "mapper.h"
+#include "src/base/abc/abc.h"
+#include "src/base/main/main.h"
+#include "src/map/mio/mio.h"
+#include "src/map/mapper/mapper.h"
 
 ABC_NAMESPACE_IMPL_START
 

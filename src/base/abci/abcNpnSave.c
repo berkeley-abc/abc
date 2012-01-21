@@ -18,9 +18,8 @@
 
 ***********************************************************************/
 
-#include "abc.h"
-#include "aig.h"
-#include "extra.h"
+#include "src/base/abc/abc.h"
+#include "src/aig/aig/aig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -81,7 +80,7 @@ static Npn_Man_t * pNpnMan = NULL;
 void Npn_TruthPermute_rec( char * pStr, int mid, int end )
 {
     static int count = 0;
-    char * pTemp = Aig_UtilStrsav(pStr);
+    char * pTemp = Abc_UtilStrsav(pStr);
     char e;
     int i;
     if ( mid == end ) 
@@ -329,7 +328,7 @@ static inline word Npn_TruthCanon( word t, int nVars, int * pPhase )
                 }
                 else
                 {
-                    if ( ABC_MIN(pSigs[2*v],pSigs[2*v+1]) >= ABC_MIN(pSigs[2*(v+1)],pSigs[2*(v+1)+1]) )
+                    if ( Abc_MinInt(pSigs[2*v],pSigs[2*v+1]) >= Abc_MinInt(pSigs[2*(v+1)],pSigs[2*(v+1)+1]) )
                         continue;
                 }
                 fChange = 1;
@@ -400,7 +399,7 @@ clk = clock();
     pBinsOld = p->pBins;
     nBinsOld = p->nBins;
     // get the new Bins
-    p->nBins = Aig_PrimeCudd( 3 * nBinsOld ); 
+    p->nBins = Abc_PrimeCudd( 3 * nBinsOld ); 
     p->pBins = ABC_CALLOC( int, p->nBins );
     // rehash the entries from the old table
     Counter = 1;
@@ -594,7 +593,7 @@ Npn_Man_t * Npn_ManStart( char * pFileName )
         p->nBufferSize = 1000000;
         p->nBufferSize = 100;
         p->pBuffer     = ABC_ALLOC( Npn_Obj_t, p->nBufferSize );
-        p->nBins       = Aig_PrimeCudd( p->nBufferSize / 2 );
+        p->nBins       = Abc_PrimeCudd( p->nBufferSize / 2 );
         p->pBins       = ABC_CALLOC( int, p->nBins );
         p->nEntries    = 1;
     }
@@ -609,7 +608,7 @@ Npn_Man_t * Npn_ManStart( char * pFileName )
         fclose( pFile );
         p->nBufferSize = 4 * ( Extra_FileSize(pFileName) / 20 );
         p->pBuffer     = ABC_ALLOC( Npn_Obj_t, p->nBufferSize );
-        p->nBins       = Aig_PrimeCudd( p->nBufferSize / 2 );
+        p->nBins       = Abc_PrimeCudd( p->nBufferSize / 2 );
         p->pBins       = ABC_CALLOC( int, p->nBins );
         p->nEntries    = 1;
         Npn_ManRead( p, pFileName );
