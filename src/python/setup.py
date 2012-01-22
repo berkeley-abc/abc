@@ -4,25 +4,6 @@ from distutils.core import setup, Extension
 from distutils.sysconfig import get_config_vars
 from distutils import util
 
-include_dirs = [
-    '../aig/hop',
-    '../aig/gia',
-    '../aig/mem',
-    '../base/abc',
-    '../base/cmd',
-    '../base/io',
-    '../base/main',
-    '../bdd/cudd',
-    '../bdd/epd',
-    '../bdd/mtr',
-    '../misc/extra',
-    '../misc/nm',
-    '../misc/st',
-    '../misc/util',
-    '../misc/vec',
-    '../misc/hash',
-    ]
-    
 define_macros = []
 libraries = []
 library_dirs = []
@@ -54,7 +35,7 @@ ext = Extension(
     '_pyabc',
     src_file,
     define_macros=define_macros,
-    include_dirs = include_dirs,
+    include_dirs = ["../.."],
     library_dirs=library_dirs,
     libraries=libraries
     )

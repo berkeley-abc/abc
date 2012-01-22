@@ -22,8 +22,8 @@
 
 %{
     
-#include <main.h>
-#include <utilCex.h>
+#include <src/base/main/main.h>
+#include <src/misc/util/utilCex.h>
 
 #include <stdlib.h>
 #include <signal.h>
