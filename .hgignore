@@ -48,3 +48,6 @@ syntax: regexp
 
 ^libabc.a$
 ^abc$
+
+^arch_flags$
+
