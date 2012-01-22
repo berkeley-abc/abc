@@ -55,11 +55,6 @@ extern void         Sat_Solver2PrintStats( FILE * pFile, sat_solver2 * p );
 extern int *        Sat_Solver2GetModel( sat_solver2 * p, int * pVars, int nVars );
 extern void         Sat_Solver2DoubleClauses( sat_solver2 * p, int iVar );
 
-// trace recording
-extern void         sat_solver2TraceStart( sat_solver2 * pSat, char * pName );
-extern void         sat_solver2TraceStop( sat_solver2 * pSat );
-extern void         sat_solver2TraceWrite( sat_solver2 * pSat, int * pBeg, int * pEnd, int fRoot );
-
 // global variables
 extern int          var_is_partA (sat_solver2* s, int v);
 extern void         var_set_partA(sat_solver2* s, int v, int partA);
@@ -257,7 +252,7 @@ static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
     return fNotUseRandomOld;
 }
 
-static inline int sat_solver2_bookmark(sat_solver2* s)
+static inline void sat_solver2_bookmark(sat_solver2* s)
 {
     s->hLearntPivot = veci_size(&s->learnts);
     s->hClausePivot = veci_size(&s->clauses);

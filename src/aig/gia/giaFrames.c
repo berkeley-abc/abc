@@ -200,6 +200,8 @@ Vec_Ptr_t * Gia_ManUnrollAbs( Gia_Man_t * p, int nFrames )
             }
 //            printf( "\n" );
         }
+        // add in reverse topological order
+        Vec_IntSort( vOne, 1 );
         Vec_PtrPush( vFrames, vOne );
         assert( Vec_IntSize(vOne) <= Size - 1 );
     }
