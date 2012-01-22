@@ -31,9 +31,9 @@ all: $(PROG)
 default: $(PROG)
 
 arch_flags : arch_flags.c
-	gcc arch_flags.c -o arch_flags
+	$(CC) arch_flags.c -o arch_flags
 
-ARCHFLAGS := $(shell  gcc arch_flags.c -o arch_flags && ./arch_flags)
+ARCHFLAGS := $(shell $(CC) arch_flags.c -o arch_flags && ./arch_flags)
 OPTFLAGS  := -g -O #-DABC_NAMESPACE=xxx
 
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)
@@ -43,7 +43,7 @@ CXXFLAGS += $(CFLAGS)
 LIBS := -lreadline
 
 SRC  := 
-GARBAGE := core core.* *.stackdump ./tags $(PROG)
+GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
 
 .PHONY: tags clean docs
 
