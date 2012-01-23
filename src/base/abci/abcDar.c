@@ -2270,6 +2270,10 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
                 printf( "SOLUTION: FAIL       " );
                 ABC_PRT( "Time", clock() - clkTotal );
             }
+            // return the counter-example generated
+            ABC_FREE( pNtk->pModel );
+            ABC_FREE( pNtk->pSeqModel );
+            pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
             Aig_ManStop( pMan );
             return RetValue;
         }
