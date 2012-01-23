@@ -129,12 +129,14 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 ***********************************************************************/
 void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
 {
+    int size = sizeof(Gia_ParVta_t);
     memset( p, 0, sizeof(Gia_ParVta_t) );
-    p->nFramesStart  =   10;  
-    p->nFramesMax    =    0;
-    p->nConfLimit    =    0;
-    p->nTimeOut      =   60;
-    p->fVerbose      =    1;
+    p->nFramesStart  =   10;  // the number of starting frames
+    p->nFramesMax    =    0;  // the max number of frames
+//    p->nFramesOver   =    4;  // the number of overlapping frames
+    p->nConfLimit    =    0;  // conflict limit
+    p->nTimeOut      =   60;  // timeout in seconds
+    p->fVerbose      =    1;  // verbosity flag
 }
 
 /**Function*************************************************************
@@ -601,7 +603,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             pThis->Prio = 0; // set highest priority
             continue;
         }
-        // collect useful terminals
+        // collect terminals
         assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
         if ( !pThis->fAdded )
         {
@@ -683,6 +685,8 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
                 assert( pThis0 );
                 pThis->Prio = pThis0->Prio;
             }
+            else
+                pThis->Prio = 0;
         }
     }
 
@@ -764,13 +768,19 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
 
     // verify
     Vta_ManForEachObjVec( p->vOrder, p, pThis, i )
-        pThis->Value = VTA_VARX;
+        if ( !pThis->fAdded )
+            pThis->Value = VTA_VARX;
     Vta_ManForEachObjVec( vTermsToAdd, p, pThis, i )
+    {
+        assert( !pThis->fAdded );
         pThis->Value = sat_solver2_var_value(p->pSat, Vta_ObjId(p, pThis)) ? VTA_VAR1 : VTA_VAR0;
+    }
     // simulate 
     Vta_ManForEachObjObjVec( vOrder, p, pThis, pObj, i )
     {
         assert( pThis->fVisit == 0 );
+        if ( !pThis->fAdded )
+            continue;
         if ( Gia_ObjIsAnd(pObj) )
         {
             pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );

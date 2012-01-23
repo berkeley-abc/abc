@@ -203,6 +203,7 @@ struct Gia_ParVta_t_
 {
     int            nFramesStart;  // starting frame 
     int            nFramesMax;    // maximum frames
+    int            nFramesOver;   // overlap frames
     int            nConfLimit;    // conflict limit
     int            nTimeOut;      // timeout in seconds
     int            fUseTermVars;  // use terminal variables

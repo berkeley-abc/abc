@@ -26404,7 +26404,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_ParVta_t Pars, * pPars = &Pars;
+    Gia_ParVta_t Pars, Pars2, * pPars = &Pars;
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
