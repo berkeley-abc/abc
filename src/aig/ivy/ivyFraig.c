@@ -2119,9 +2119,9 @@ int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pN
     if ( p->pSat == NULL )
     {
         p->pSat = sat_solver_new();
-        p->pSat->factors = ABC_CALLOC( double, 1 );
-        p->nSatVars = 1;
         sat_solver_setnvars( p->pSat, 1000 );
+        p->pSat->factors = ABC_CALLOC( double, 1000 );
+        p->nSatVars = 1;
         // var 0 is reserved for const1 node - add the clause
 //        pLits[0] = toLit( 0 );
 //        sat_solver_addclause( p->pSat, pLits, pLits + 1 );
@@ -2271,9 +2271,9 @@ int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
     if ( p->pSat == NULL )
     {
         p->pSat = sat_solver_new();
-        p->pSat->factors = ABC_CALLOC( double, 1 );
-        p->nSatVars = 1;
         sat_solver_setnvars( p->pSat, 1000 );
+        p->pSat->factors = ABC_CALLOC( double, 1000 );
+        p->nSatVars = 1;
         // var 0 is reserved for const1 node - add the clause
 //        pLits[0] = toLit( 0 );
 //        sat_solver_addclause( p->pSat, pLits, pLits + 1 );

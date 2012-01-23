@@ -376,8 +376,8 @@ void Cec_ManSatSolverRecycle( Cec_ManSat_t * p )
         sat_solver_delete( p->pSat );
     }
     p->pSat = sat_solver_new();
-    p->pSat->factors = ABC_CALLOC( double, 1 );
     sat_solver_setnvars( p->pSat, 1000 );
+    p->pSat->factors = ABC_CALLOC( double, 1000 );
     // var 0 is not used
     // var 1 is reserved for const0 node - add the clause
     p->nSatVars = 1;
