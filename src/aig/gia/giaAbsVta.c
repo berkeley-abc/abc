@@ -52,7 +52,7 @@ struct Vta_Man_t_
     int           nObjsAlloc;   // the number of objects allocated
     int           nBins;        // number of hash table entries
     int *         pBins;        // hash table bins
-    Vta_Obj_t *   pObjs;        // hash table bins
+    Vta_Obj_t *   pObjs;        // storage for objects
     Vec_Int_t *   vOrder;       // objects in DPS order
     // abstraction
     int           nObjBits;     // the number of bits to represent objects
@@ -66,6 +66,7 @@ struct Vta_Man_t_
     Vec_Int_t *   vCla2Var;     // map clauses into variables
     Vec_Ptr_t *   vCores;       // unsat core for each frame
     sat_solver2 * pSat;         // incremental SAT solver
+    int           iPivot;
 };
 
 
@@ -77,11 +78,19 @@ struct Vta_Man_t_
 
 static inline int Vta_ValIs0( Vta_Obj_t * pThis, int fCompl )
 {
-    return (pThis->Value == VTA_VAR0 && !fCompl) || (pThis->Value == VTA_VAR1 && fCompl);
+    if ( pThis->Value == VTA_VAR1 && fCompl )
+        return 1;
+    if ( pThis->Value == VTA_VAR0 && !fCompl )
+        return 1;
+    return 0;
 }
 static inline int Vta_ValIs1( Vta_Obj_t * pThis, int fCompl )
 {
-    return (pThis->Value == VTA_VAR1 && !fCompl) || (pThis->Value == VTA_VAR0 && fCompl);
+    if ( pThis->Value == VTA_VAR0 && fCompl )
+        return 1;
+    if ( pThis->Value == VTA_VAR1 && !fCompl )
+        return 1;
+    return 0;
 }
 
 static inline Vta_Obj_t *  Vta_ManObj( Vta_Man_t * p, int i )           { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                     }
@@ -89,20 +98,21 @@ static inline int          Vta_ObjId( Vta_Man_t * p, Vta_Obj_t * pObj ) { assert
 
 #define Vta_ManForEachObj( p, pObj, i )                                 \
     for ( i = 1; (i < p->nObjs) && ((pObj) = Vta_ManObj(p, i)); i++ )
-#define Vta_ManForEachObjVec( vVec, p, pObj, i )                        \
-    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))); i++ )
-#define Vta_ManForEachObjVecReverse( vVec, p, pObj, i )                 \
-    for ( i = Vec_IntSize(vVec) - 1; (i >= 1) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))); i-- )
-
-#define Vta_ManForEachObjObjVec( vVec, p, pObj, pObjG, i )              \
-    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))) && ((pObjG) = Gia_ManObj(p->pGia, pObj->iObj)); i++ )
-#define Vta_ManForEachObjObjVecReverse( vVec, p, pObj, pObjG, i )       \
-    for ( i = Vec_IntSize(vVec) - 1; (i >= 1) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))) && ((pObjG) = Gia_ManObj(p->pGia, pObj->iObj)); i-- )
-
 #define Vta_ManForEachObjObj( p, pObjVta, pObjGia, i )                  \
     for ( i = 1; (i < p->nObjs) && ((pObjVta) = Vta_ManObj(p, i)) && ((pObjGia) = Gia_ManObj(p->pGia, pObjVta->iObj)); i++ )
 #define Vta_ManForEachObjObjReverse( p, pObjVta, pObjGia, i )           \
     for ( i = Vec_IntSize(vVec) - 1; (i >= 1) && ((pObjVta) = Vta_ManObj(p, i)) && ((pObjGia) = Gia_ManObj(p->pGia, pObjVta->iObj)); i++ )
+
+#define Vta_ManForEachObjVec( vVec, p, pObj, i )                        \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))); i++ )
+#define Vta_ManForEachObjVecReverse( vVec, p, pObj, i )                 \
+    for ( i = Vec_IntSize(vVec) - 1; (i >= 0) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))); i-- )
+
+#define Vta_ManForEachObjObjVec( vVec, p, pObj, pObjG, i )              \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))) && ((pObjG) = Gia_ManObj(p->pGia, pObj->iObj)); i++ )
+#define Vta_ManForEachObjObjVecReverse( vVec, p, pObj, pObjG, i )       \
+    for ( i = Vec_IntSize(vVec) - 1; (i >= 0) && ((pObj) = Vta_ManObj(p, Vec_IntEntry(vVec,i))) && ((pObjG) = Gia_ManObj(p->pGia, pObj->iObj)); i-- )
+
 
 // abstraction is given as an array of integers:
 // - the first entry is the number of timeframes (F)
@@ -129,14 +139,15 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 ***********************************************************************/
 void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
 {
-    int size = sizeof(Gia_ParVta_t);
     memset( p, 0, sizeof(Gia_ParVta_t) );
-    p->nFramesStart  =   10;  // the number of starting frames
-    p->nFramesMax    =    0;  // the max number of frames
-//    p->nFramesOver   =    4;  // the number of overlapping frames
-    p->nConfLimit    =    0;  // conflict limit
-    p->nTimeOut      =   60;  // timeout in seconds
-    p->fVerbose      =    1;  // verbosity flag
+    p->nFramesStart  =    5;   // starting frame 
+    p->nFramesMax    =   10;   // maximum frames
+    p->nFramesOver   =    3;   // overlap frames
+    p->nConfLimit    =    0;   // conflict limit
+    p->nTimeOut      =   60;   // timeout in seconds
+    p->fUseTermVars  =    0;   // use terminal variables
+    p->fVerbose      =    1;   // verbose flag
+    p->iFrame        =   -1;   // the number of frames covered 
 }
 
 /**Function*************************************************************
@@ -535,7 +546,7 @@ void Vta_ManCollectNodes_rec( Vta_Man_t * p, Vta_Obj_t * pThis, Vec_Int_t * vOrd
 {
     Gia_Obj_t * pObj;
     Vta_Obj_t * pThis0, * pThis1;
-    if ( !pThis->fVisit )
+    if ( pThis->fVisit )
         return;
     pThis->fVisit = 1;
     pObj = Gia_ManObj( p->pGia, pThis->iObj );
@@ -569,6 +580,54 @@ Vec_Int_t * Vta_ManCollectNodes( Vta_Man_t * p, int f )
   SeeAlso     []
 
 ***********************************************************************/
+void Vta_ManSatVerify( Vta_Man_t * p )
+{
+    Vta_Obj_t * pThis, * pThis0, * pThis1;
+    Gia_Obj_t * pObj;
+    int i;
+    Vta_ManForEachObj( p, pThis, i )
+        pThis->Value = (sat_solver2_var_value(p->pSat, i) ? VTA_VAR1 : VTA_VAR0);
+    Vta_ManForEachObjObj( p, pThis, pObj, i )
+    {
+        if ( !pThis->fAdded )
+            continue;
+        Vta_ObjPreds( p, pThis, pObj, &pThis0, &pThis1 );
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            int iVar  = Vta_ObjId(p, pThis);
+            int iVar0 = Vta_ObjId(p, pThis0);
+            int iVar1 = Vta_ObjId(p, pThis1);
+            if ( pThis->Value == VTA_VAR1 )
+                assert( Vta_ValIs1(pThis0, Gia_ObjFaninC0(pObj)) && Vta_ValIs1(pThis1, Gia_ObjFaninC1(pObj)) );
+            else if ( pThis->Value == VTA_VAR0 )
+                assert( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) || Vta_ValIs0(pThis1, Gia_ObjFaninC1(pObj)) );
+            else assert( 0 );
+        }
+        else if ( Gia_ObjIsRo(p->pGia, pObj) )
+        {
+            pObj = Gia_ObjRoToRi( p->pGia, pObj );
+            if ( pThis->iFrame == 0 )
+                assert( pThis->Value == VTA_VAR0 );
+            else if ( pThis->Value == VTA_VAR0 )
+                assert( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) );
+            else if ( pThis->Value == VTA_VAR1 )
+                assert( Vta_ValIs1(pThis0, Gia_ObjFaninC0(pObj)) );
+            else assert( 0 );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Refines abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
 {
     Abc_Cex_t * pCex = NULL;
@@ -578,17 +637,46 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     Gia_Obj_t * pObj;
     int i, Counter;
 
+    Vta_ManSatVerify( p );
+
     // collect nodes in a topological order
     vOrder = Vta_ManCollectNodes( p, f );
     Vta_ManForEachObjObjVec( vOrder, p, pThis, pObj, i )
     {
         pThis->Prio = VTA_LARGE;
-        pThis->Value = sat_solver2_var_value(p->pSat, i) ? VTA_VAR1 : VTA_VAR0;
+        pThis->Value = sat_solver2_var_value(p->pSat, Vta_ObjId(p, pThis)) ? VTA_VAR1 : VTA_VAR0;
         pThis->fVisit = 0;
     }
 
+    // verify
+    Vta_ManForEachObjObjVec( vOrder, p, pThis, pObj, i )
+    {
+        if ( !pThis->fAdded )
+            continue;
+        Vta_ObjPreds( p, pThis, pObj, &pThis0, &pThis1 );
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            if ( pThis->Value == VTA_VAR1 )
+                assert( Vta_ValIs1(pThis0, Gia_ObjFaninC0(pObj)) && Vta_ValIs1(pThis1, Gia_ObjFaninC1(pObj)) );
+            else if ( pThis->Value == VTA_VAR0 )
+                assert( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) || Vta_ValIs0(pThis1, Gia_ObjFaninC1(pObj)) );
+            else assert( 0 );
+        }
+        else if ( Gia_ObjIsRo(p->pGia, pObj) )
+        {
+            pObj = Gia_ObjRoToRi( p->pGia, pObj );
+            if ( pThis->iFrame == 0 )
+                assert( pThis->Value == VTA_VAR0 );
+            else if ( pThis->Value == VTA_VAR0 )
+                assert( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) );
+            else if ( pThis->Value == VTA_VAR1 )
+                assert( Vta_ValIs1(pThis0, Gia_ObjFaninC0(pObj)) );
+            else assert( 0 );
+        }
+    }
+
     // compute distance in reverse order
-    pThis = Vta_ManObj( p, p->nObjs - 1 );
+    pThis = Vta_ManObj( p, Vec_IntEntryLast(vOrder) );
     pThis->Prio  = 1;
     // collect used and unused terms
     vTermsUsed   = Vec_PtrAlloc( 1015 );
@@ -638,6 +726,8 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         pThis->Prio = Counter++;
     Vec_PtrForEachEntry( Vta_Obj_t *, vTermsUnused, pThis, i )
         pThis->Prio = Counter++;
+//    printf( "Used %d  Unused %d\n", Vec_PtrSize(vTermsUsed), Vec_PtrSize(vTermsUnused) );
+
     Vec_PtrFree( vTermsUsed );
     Vec_PtrFree( vTermsUnused );
 
@@ -653,7 +743,6 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         // assumes that values are assigned!!!
         assert( pThis->Value != 0 );
         // propagate
-        assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
         if ( Gia_ObjIsAnd(pObj) )
         {
             pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );
@@ -688,12 +777,17 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             else
                 pThis->Prio = 0;
         }
+        else if ( Gia_ObjIsConst0(pObj) )
+            pThis->Prio = 0;
+        else
+            assert( 0 );
     }
 
     // select important values
-    pTop = Vta_ManObj( p, Vec_IntEntryLast(p->vOrder) );
+    pTop = Vta_ManObj( p, Vec_IntEntryLast(vOrder) );
     pTop->fVisit = 1;
     vTermsToAdd = Vec_IntAlloc( 100 );
+    printf( "\n\n" );
     Vta_ManForEachObjObjVecReverse( vOrder, p, pThis, pObj, i )
     {
         if ( !pThis->fVisit )
@@ -703,13 +797,13 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         // skip terminal objects
         if ( !pThis->fAdded )
         {
+            assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) || Gia_ObjIsConst0(pObj) || Gia_ObjIsPi(p->pGia, pObj) );
             Vec_IntPush( vTermsToAdd, Vta_ObjId(p, pThis) );
             continue;
         }
         // assumes that values are assigned!!!
         assert( pThis->Value != 0 );
         // propagate
-        assert( Gia_ObjIsAnd(pObj) || Gia_ObjIsRo(p->pGia, pObj) );
         if ( Gia_ObjIsAnd(pObj) )
         {
             pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );
@@ -722,31 +816,45 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
                 assert( pThis1->Prio <= pThis->Prio );
                 pThis0->fVisit = 1;
                 pThis1->fVisit = 1;
+
+//                printf( "And1 %d requires %d %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis0), Vta_ObjId(p,pThis1) );
             }
             else if ( pThis->Value == VTA_VAR0 )
             {
                 if ( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) && Vta_ValIs0(pThis1, Gia_ObjFaninC1(pObj)) )
                 {
-                    if ( pThis0->Prio <= pThis1->Prio ) // choice!!!
+                    if ( pThis0->fVisit )
+                    {
+//                printf( "And0 %d requires %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis0) );
+                    }
+                    else if ( pThis1->fVisit )
+                    {
+//                printf( "And0 %d requires %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis1) );
+                    }
+                    else if ( pThis0->Prio <= pThis1->Prio ) // choice!!!
                     {
                         pThis0->fVisit = 1;
                         assert( pThis0->Prio == pThis->Prio );
+//                printf( "And0 %d requires %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis0) );
                     }
                     else
                     {
                         pThis1->fVisit = 1;
                         assert( pThis1->Prio == pThis->Prio );
+//                printf( "And0 %d requires %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis1) );
                     }
                 }
                 else if ( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) )
                 {
                     pThis0->fVisit = 1;
                     assert( pThis0->Prio == pThis->Prio );
+//                printf( "And0 %d requires %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis0) );
                 }
                 else if ( Vta_ValIs0(pThis1, Gia_ObjFaninC1(pObj)) )
                 {
                     pThis1->fVisit = 1;
                     assert( pThis1->Prio == pThis->Prio );
+//                printf( "And0 %d requires %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis1) );
                 }
                 else assert( 0 );
             }
@@ -761,15 +869,17 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
                 assert( pThis0 );
                 pThis0->fVisit = 1;
                 assert( pThis0->Prio == pThis->Prio );
+//                printf( "Reg %d requires %d\n", Vta_ObjId(p,pThis), Vta_ObjId(p,pThis0) );
             }
         }
-        else assert( 0 );
+        else if ( !Gia_ObjIsConst0(pObj) )
+            assert( 0 );
     }
+//printf( "\n" );
 
     // verify
-    Vta_ManForEachObjVec( p->vOrder, p, pThis, i )
-        if ( !pThis->fAdded )
-            pThis->Value = VTA_VARX;
+    Vta_ManForEachObjVec( vOrder, p, pThis, i )
+        pThis->Value = VTA_VARX;
     Vta_ManForEachObjVec( vTermsToAdd, p, pThis, i )
     {
         assert( !pThis->fAdded );
@@ -786,6 +896,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             pThis0 = Vga_ManFind( p, Gia_ObjFaninId0p(p->pGia, pObj), pThis->iFrame );
             pThis1 = Vga_ManFind( p, Gia_ObjFaninId1p(p->pGia, pObj), pThis->iFrame );
             assert( pThis0 && pThis1 );
+//            printf( "AND %d  %d %d  ", Vta_ObjId(p, pThis), Vta_ObjId(p,pThis0), Vta_ObjId(p,pThis1) );
             if ( Vta_ValIs1(pThis0, Gia_ObjFaninC0(pObj)) && Vta_ValIs1(pThis1, Gia_ObjFaninC1(pObj)) )
                 pThis->Value = VTA_VAR1;
             else if ( Vta_ValIs0(pThis0, Gia_ObjFaninC0(pObj)) || Vta_ValIs0(pThis1, Gia_ObjFaninC1(pObj)) )
@@ -806,17 +917,30 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
                     pThis->Value = VTA_VAR1;
                 else
                     pThis->Value = VTA_VARX;
+//            printf( "RO %d  ", Vta_ObjId(p, pThis), Vta_ObjId(p,pThis0) );
             }
             else
+            {
+//            printf( "RO %d frame0  ", Vta_ObjId(p, pThis) );
                 pThis->Value = VTA_VAR0;
+            }
         }
+        else if ( Gia_ObjIsConst0(pObj) )
+        {
+//            printf( "CONST0 %d  ", Vta_ObjId(p, pThis) );
+            pThis->Value = VTA_VAR0;
+        }
+        else assert( 0 );
+//        printf( "val = %d. \n", (pThis->Value==VTA_VAR0) ? 0 : ((pThis->Value==VTA_VAR0) ? 1 : 2 ) );
         // double check the solver
         assert( pThis->Value == VTA_VARX || (int)pThis->Value == (sat_solver2_var_value(p->pSat, Vta_ObjId(p, pThis)) ? VTA_VAR1 : VTA_VAR0) );
     }
 
     // check the output
-    if ( pTop->Value != VTA_VAR1 )
+    if ( !Vta_ValIs1(pTop, Gia_ObjFaninC0(Gia_ManPo(p->pGia, 0))) )
         printf( "Vta_ManRefineAbstraction(): Terminary simulation verification failed!\n" );
+    else
+        printf( "Verification OK.\n" );
 
     // produce true counter-example
     if ( pTop->Prio == 0 )
@@ -840,8 +964,9 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     // perform refinement
     else
     {
-        Vta_ManForEachObjVec( vTermsToAdd, p, pThis, i )
-            Vga_ManAddClausesOne( p, pThis->iObj, pThis->iFrame );
+        Vta_ManForEachObjObjVec( vTermsToAdd, p, pThis, pObj, i )
+            if ( !Gia_ObjIsPi(p->pGia, pObj) )
+                Vga_ManAddClausesOne( p, pThis->iObj, pThis->iFrame );
     }
     Vec_IntFree( vTermsToAdd );
     return pCex;
@@ -901,6 +1026,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vCla2Var    = Vec_IntAlloc( 1000 );
     p->vCores      = Vec_PtrAlloc( 100 );
     p->pSat        = sat_solver2_new();
+    p->iPivot      = Gia_ObjFaninId0p(p->pGia, Gia_ManPo(p->pGia, 0));
     return p;
 }
 
@@ -952,10 +1078,10 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
     int nConfPrev = pSat->stats.conflicts;
     if ( piRetValue )
         *piRetValue = 1;
-    if ( pnConfls )
-        *pnConfls = 0;
     // solve the problem
     RetValue = sat_solver2_solve( pSat, &iLit, &iLit+1, (ABC_INT64_T)nConfMax, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    if ( pnConfls )
+        *pnConfls = (int)pSat->stats.conflicts - nConfPrev;
     if ( RetValue == l_Undef )
     {
         if ( piRetValue )
@@ -968,8 +1094,6 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
             *piRetValue = 0;
         return NULL;
     }
-    if ( pnConfls )
-        *pnConfls = (int)pSat->stats.conflicts - nConfPrev;
     if ( fVerbose )
     {
 //        printf( "%6d", (int)pSat->stats.conflicts - nConfPrev );
@@ -1081,8 +1205,21 @@ void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame )
     Vta_Obj_t * pThis = Vga_ManFindOrAdd( p, iObj, iFrame );
     int iMainVar = Vta_ObjId(p, pThis);
     assert( pThis->iObj == iObj && pThis->iFrame == iFrame );
+
+    if ( iObj == 317 && iFrame == 0 )
+    {
+        int s = 0;
+    }
     if ( pThis->fAdded )
+    {
+//        if ( p->iPivot == iObj )
+//            printf( "Pivot in frame %d is already added\n", iFrame );
         return;
+    }
+//    if ( p->iPivot == iObj )
+//        printf( "Adding pivot in frame %d\n", iFrame );
+//    printf( "(%d,%d) ", iObj, iFrame );
+
     pThis->fAdded = 1;
     if ( Gia_ObjIsAnd(pObj) )
     {
@@ -1148,6 +1285,7 @@ void Vga_ManLoadSlice( Vta_Man_t * p, Vec_Int_t * vOne, int Lift )
     int i, Entry;
     Vec_IntForEachEntry( vOne, Entry, i )
         Vga_ManAddClausesOne( p, Entry & p->nObjMask, (Entry >> p->nObjBits) + Lift );
+    printf( "\n\n" );
 }
 
 /**Function*************************************************************
@@ -1169,6 +1307,49 @@ static inline int Vga_ManGetOutLit( Vta_Man_t * p, int f )
     return Abc_Var2Lit( Vta_ObjId(p, pThis), Gia_ObjFaninC0(pObj) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vga_ManPrintCore( Vta_Man_t * p, Vec_Int_t * vCore, int Lift )
+{
+    int i, Entry, iObj, iFrame;
+    Vec_IntForEachEntry( vCore, Entry, i )
+    {
+        iObj   = (Entry &  p->nObjMask);
+        iFrame = (Entry >> p->nObjBits);
+        printf( "%d*%d ", iObj, iFrame+Lift );
+    }
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vga_ManRollBack( Vta_Man_t * p, int nObjOld )
+{
+    Vta_Obj_t * pThis  = p->pObjs + nObjOld;
+    Vta_Obj_t * pLimit = p->pObjs + p->nObjs;
+    for ( ; pThis < pLimit; pThis++ )
+        Vga_ManDelete( p, pThis->iObj, pThis->iFrame );
+    memset( p->pObjs + nObjOld, 0, sizeof(Vta_Obj_t) * (p->nObjs - nObjOld) );
+    p->nObjs = nObjOld;
+}
 
 /**Function*************************************************************
 
@@ -1208,34 +1389,54 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         if ( f < p->pPars->nFramesStart )
             Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
         else
+//        for ( f = 0; f < p->pPars->nFramesStart; f++ )
+//            Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
         {
             // create bookmark to be used for rollback
+            int nObjOld;
+            int nClaOld;
+//start:            
+            nObjOld = p->nObjs;
+            nClaOld = Vec_IntSize(p->vCla2Var);
             sat_solver2_bookmark( p->pSat );
             // load the time frame
-            for ( i = 1; i <= Abc_MinInt(4, p->pPars->nFramesStart); i++ )
-                Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vCores, f-i), i );
-            // iterate as long as there are counter-examples
-            while ( 1 )
+            for ( i = 1; i <= Abc_MinInt(p->pPars->nFramesOver, p->pPars->nFramesStart); i++ )
             {
-                vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, NULL );
+                Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vCores, f-i), i );
+//Vga_ManPrintCore( p, (Vec_Int_t *)Vec_PtrEntry(p->vCores, f-i), i );
+            }
+            // iterate as long as there are counter-examples
+            for ( i = 1; ; i++ )
+            {
+                vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
                 assert( (vCore != NULL) == (Status == 1) );
                 if ( Status == -1 ) // resource limit is reached
                     goto finish;
                 if ( vCore != NULL )
                     break;
+                printf( "Frame %d  iter %d...\n", f, i );
                 assert( Status == 0 );
                 pCex = Vta_ManRefineAbstraction( p, f );
-                goto finish;
+                if ( pCex != NULL )
+                    goto finish;
             }
             assert( Status == 1 );
+/*
             // valid core is obtained
             Vta_ManUnsatCoreRemap( p, vCore );
-            Vec_IntSort( vCore, 0 );
+printf( "Double checked core...\n" );
+Vga_ManPrintCore( p, vCore, 0 );
+//            Vec_IntSort( vCore, 0 );
             // update the SAT solver
             sat_solver2_rollback( p->pSat );
+            // update storage
+            Vga_ManRollBack( p, nObjOld );
+            Vec_IntShrink( p->vCla2Var, nClaOld );
             // load this timeframe
             Vga_ManLoadSlice( p, vCore, 0 );
+*/
             Vec_IntFree( vCore );
+//            goto start;
         }
         // run SAT solver
         vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
@@ -1252,13 +1453,20 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         }
         // add the core
         Vta_ManUnsatCoreRemap( p, vCore );
+
+        if ( f >= p->pPars->nFramesStart )
+        {
+//            printf( "Core to record:\n" );
+//            Vga_ManPrintCore( p, vCore, 0 );
+        }
+
         // add in direct topological order
-        Vec_IntSort( vCore, 0 );
+//        Vec_IntSort( vCore, 1 );
         Vec_PtrPush( p->vCores, vCore );
         // print the result
         Vta_ManAbsPrintFrame( p, vCore, f+1, p->pPars->fVerbose );
-        if ( f == p->pPars->nFramesStart-1 )
-           break;
+//        if ( f == p->pPars->nFramesStart-1 )
+//           break;
     }
 finish:
     // analize the results

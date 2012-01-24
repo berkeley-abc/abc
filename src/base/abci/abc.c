@@ -26404,7 +26404,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_ParVta_t Pars, Pars2, * pPars = &Pars;
+    Gia_ParVta_t Pars, * pPars = &Pars;
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
@@ -26483,7 +26483,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
         return 0;
     }
-    if ( pPars->nFramesMax > 0 )
+    if ( pPars->nFramesMax < 0 )
     {
         Abc_Print( 1, "The number of starting frames should be a positive integer.\n" );
         return 0;

@@ -141,7 +141,7 @@ static inline satset* clause_read   (sat_solver2* s, cla h)      { return (h & 1
 static inline cla     clause_handle (sat_solver2* s, satset* c)  { return c->learnt ? (satset_handle(&s->learnts, c)<<1)|1: satset_handle(&s->clauses, c)<<1;  }
 static inline int     clause_check  (sat_solver2* s, satset* c)  { return c->learnt ? satset_check(&s->learnts, c)  : satset_check(&s->clauses, c);            }
 static inline int     clause_proofid(sat_solver2* s, satset* c, int partA)  { return c->learnt ? (veci_begin(&s->claProofs)[c->Id]<<2) | (partA<<1) : (satset_handle(&s->clauses, c)<<2) | (partA<<1) | 1; }
-static inline int     clause_is_used(sat_solver2* s, cla h)      { return (h & 1) ? (h >> 1) < s->hLearntPivot : (h >> 1) < s->hClausePivot;                   }
+static inline int     clause_is_used(sat_solver2* s, cla h)      { return (h & 1) ? ((h >> 1) < s->hLearntPivot) : ((h >> 1) < s->hClausePivot);               }
 
 //static inline int     var_reason    (sat_solver2* s, int v)      { return (s->reasons[v]&1) ? 0 : s->reasons[v] >> 1;                   } 
 //static inline int     lit_reason    (sat_solver2* s, int l)      { return (s->reasons[lit_var(l)&1]) ? 0 : s->reasons[lit_var(l)] >> 1; } 
@@ -150,8 +150,8 @@ static inline int     clause_is_used(sat_solver2* s, cla h)      { return (h & 1
 static inline int     var_reason    (sat_solver2* s, int v)            { return s->reasons[v];           } 
 static inline int     lit_reason    (sat_solver2* s, int l)            { return s->reasons[lit_var(l)];  } 
 static inline satset* var_unit_clause(sat_solver2* s, int v)           { return clause_read(s, s->units[v]);                                          } 
-//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; } 
-static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size); s->units[v] = i; s->nUnits++; } 
+static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size && !s->units[v]); s->units[v] = i; s->nUnits++; } 
+//static inline void    var_set_unit_clause(sat_solver2* s, int v, cla i){ assert(v >= 0 && v < s->size); s->units[v] = i; s->nUnits++; } 
 
 // these two only work after creating a clause before the solver is called
 int    clause_is_partA (sat_solver2* s, int h)                   { return clause_read(s, h)->partA;         }  
@@ -501,8 +501,12 @@ static void solver2_canceluntil(sat_solver2* s, int level) {
     for (c = s->qtail-1; c >= bound; c--) 
     {
         x = lit_var(trail[c]);
-        var_set_value(s, x, varX);
         s->reasons[x] = 0;
+//        if ( s->units[x] == 0 || var_level(s, x) > 0 )
+        {
+            var_set_value(s, x, varX);
+            s->units[x] = 0; // temporary?
+        }
         if ( c < lastLev )
             var_set_polar(s, x, !lit_sign(trail[c]));
     }
@@ -1551,7 +1555,7 @@ void sat_solver2_rollback( sat_solver2* s )
 {
     int i, k, j;
     assert( s->hClausePivot >= 1 && s->hClausePivot <= veci_size(&s->clauses) );
-    assert( s->hLearntPivot >= 1 && s->hLearntPivot <= veci_size(&s->clauses) );
+    assert( s->hLearntPivot >= 1 && s->hLearntPivot <= veci_size(&s->learnts) );
     assert( s->iVarPivot >= 0 && s->iVarPivot <= s->size );
     veci_resize(&s->order, 0);
     if ( s->hClausePivot > 1 || s->hLearntPivot > 1 )
@@ -1581,18 +1585,24 @@ void sat_solver2_rollback( sat_solver2* s )
                 s->units[i] = 0;
     }
     // reset
+    if ( s->hClausePivot < veci_size(&s->clauses) )
+    {
+        satset* first = satset_read(&s->clauses, s->hClausePivot);
+        s->stats.clauses = first->Id;
+        veci_resize(&s->clauses, s->hClausePivot);
+    }
     if ( s->hLearntPivot < veci_size(&s->learnts) )
     {
         satset* first = satset_read(&s->learnts, s->hLearntPivot);
-        veci_resize(&s->claActs,   first->Id);
+        veci_resize(&s->claActs,   first->Id+1);
         if ( s->fProofLogging ) {
-            veci_resize(&s->claProofs, first->Id);
+            veci_resize(&s->claProofs, first->Id+1);
             Sat_ProofReduce( s );
         }
+        s->stats.learnts = first->Id;
+        veci_resize(&s->learnts, s->hLearntPivot);
     }
-    veci_resize(&s->clauses, s->hClausePivot);
-    veci_resize(&s->learnts, s->hLearntPivot);
-    for ( i = s->iVarPivot; i < s->size*2; i++ )
+    for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
     s->size = s->iVarPivot;
     // initialize other vars
@@ -1628,8 +1638,66 @@ void sat_solver2_rollback( sat_solver2* s )
         s->stats.learnts          = 0;
         s->stats.learnts_literals = 0;
         s->stats.tot_literals     = 0;
+        // initialize clause pointers
+        s->hClausePivot   =  1;
+        s->hLearntPivot   =  1;
+        s->hLearntLast    = -1; // the last learnt clause 
     }
 }
+
+// find the clause in the watcher lists
+int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
+{
+    int i, k, Found = 0;
+    if ( Hand >= s->clauses.size )
+        return 1;
+    for ( i = 0; i < s->size*2; i++ )
+    {
+        cla* pArray = veci_begin(&s->wlists[i]);
+        for ( k = 0; k < veci_size(&s->wlists[i]); k++ )
+            if ( (pArray[k] >> 1) == Hand )
+            {
+                if ( fVerbose )
+                printf( "Clause found in list %d.\n", k );
+                Found = 1;
+                break;
+            }
+    }
+    if ( Found == 0 )
+    {
+        if ( fVerbose )
+        printf( "Clause with hand %d is not found.\n", Hand );
+    }
+    return Found;
+}
+
+// verify that all clauses are satisfied
+void sat_solver2_verify( sat_solver2* s )
+{
+    satset * c;
+    int i, k, v, Counter = 0;
+    satset_foreach_entry( &s->clauses, c, i, 1 )
+    {
+        for ( k = 0; k < (int)c->nEnts; k++ )
+        {
+            v = lit_var(c->pEnts[k]);
+            if ( sat_solver2_var_value(s, v) ^ lit_sign(c->pEnts[k]) )
+                break;
+        }
+        if ( k == (int)c->nEnts )
+        {
+            printf( "Clause %d is not satisfied.   ", c->Id );
+            satset_print( c );
+            sat_solver2_find_clause( s, satset_handle(&s->clauses, c), 1 );
+            Counter++;
+        }
+    }
+    if ( Counter == 0 )
+        printf( "Verification passed.\n" );
+    else
+        printf( "Verification failed!\n" );
+}
+
 
 int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal)
 {
@@ -1798,6 +1866,8 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         printf("==============================================================================\n");
 
     solver2_canceluntil(s,0);
+    if ( status == l_True )
+        sat_solver2_verify( s );
     return status;
 }
 
