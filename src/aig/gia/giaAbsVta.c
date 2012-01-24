@@ -939,8 +939,8 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     // check the output
     if ( !Vta_ValIs1(pTop, Gia_ObjFaninC0(Gia_ManPo(p->pGia, 0))) )
         printf( "Vta_ManRefineAbstraction(): Terminary simulation verification failed!\n" );
-    else
-        printf( "Verification OK.\n" );
+//    else
+//        printf( "Verification OK.\n" );
 
     // produce true counter-example
     if ( pTop->Prio == 0 )
@@ -1285,6 +1285,7 @@ void Vga_ManLoadSlice( Vta_Man_t * p, Vec_Int_t * vOne, int Lift )
     int i, Entry;
     Vec_IntForEachEntry( vOne, Entry, i )
         Vga_ManAddClausesOne( p, Entry & p->nObjMask, (Entry >> p->nObjBits) + Lift );
+    sat_solver2_simplify( p->pSat );
     printf( "\n\n" );
 }
 

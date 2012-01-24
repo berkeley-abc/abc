@@ -115,6 +115,7 @@ struct sat_solver2_t
     int             hLearntPivot;   // the pivot among learned clause
     int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
     int             iVarPivot;      // the pivot among the variables
+    int             iSimpPivot;     // marker of unit-clauses
 
     veci            claActs;        // clause activities
     veci            claProofs;      // clause proofs
@@ -223,14 +224,6 @@ static inline void sat_solver2_act_var_clear(sat_solver2* s)
         s->activity[i] = 0;//.0;
     s->var_inc = 1.0;
 }
-static inline void sat_solver2_compress(sat_solver2* s) 
-{
-    if ( s->qtail != s->qhead )
-    {
-        int RetValue = sat_solver2_simplify(s);
-        assert( RetValue != 0 );
-    }
-}
 
 static inline int sat_solver2_final(sat_solver2* s, int ** ppArray)
 {
@@ -257,6 +250,7 @@ static inline void sat_solver2_bookmark(sat_solver2* s)
     s->hLearntPivot = veci_size(&s->learnts);
     s->hClausePivot = veci_size(&s->clauses);
     s->iVarPivot    = s->size;
+    s->iSimpPivot   = s->simpdb_assigns;
 }
 
 static inline int sat_solver2_add_const( sat_solver2 * pSat, int iVar, int fCompl, int fMark )

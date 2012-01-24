@@ -469,6 +469,17 @@ static inline int solver2_enqueue(sat_solver2* s, lit l, cla from)
         s->reasons[v] = from;  //  = from << 1;
         s->trail[s->qtail++] = l;
         order_assigned(s, v);
+/*
+        if ( solver2_dlevel(s) == 0 )
+        {
+            satset * c = from ? clause_read( s, from ) : NULL;
+            printf( "Enqueing var %d on level %d with reason clause  ", v, solver2_dlevel(s) );
+            if ( c )
+                satset_print( c );
+            else
+                printf( "<none>\n" );           
+        }
+*/
         return true;
     }
 }
@@ -490,6 +501,11 @@ static void solver2_canceluntil(sat_solver2* s, int level) {
     int      bound;
     int      lastLev;
     int      c, x;
+
+    if ( level == 0 )
+    {
+        int ss = 0;
+    }
    
     if (solver2_dlevel(s) <= level)
         return;
@@ -501,12 +517,9 @@ static void solver2_canceluntil(sat_solver2* s, int level) {
     for (c = s->qtail-1; c >= bound; c--) 
     {
         x = lit_var(trail[c]);
+        var_set_value(s, x, varX);
         s->reasons[x] = 0;
-//        if ( s->units[x] == 0 || var_level(s, x) > 0 )
-        {
-            var_set_value(s, x, varX);
-            s->units[x] = 0; // temporary?
-        }
+        s->units[x] = 0; // temporary?
         if ( c < lastLev )
             var_set_polar(s, x, !lit_sign(trail[c]));
     }
@@ -519,7 +532,7 @@ static void solver2_canceluntil(sat_solver2* s, int level) {
 }
 
 
-static void solver2_record(sat_solver2* s, veci* cls, int proof_id)
+static void solver2_record(sat_solver2* s, veci* cls, int proof_id, int fSkipUnit)
 {
     lit* begin = veci_begin(cls);
     lit* end   = begin + veci_size(cls);
@@ -527,7 +540,7 @@ static void solver2_record(sat_solver2* s, veci* cls, int proof_id)
     assert(veci_size(cls) > 0);
     if ( veci_size(cls) == 1 )
     {
-        if ( s->fProofLogging )
+        if ( s->fProofLogging && !fSkipUnit)
             var_set_unit_clause(s, lit_var(begin[0]), Cid);
         Cid = 0;
     }
@@ -1009,11 +1022,16 @@ static lbool clause_simplify(sat_solver2* s, satset* c)
 
 int sat_solver2_simplify(sat_solver2* s)
 {
+    int TailOld = s->qtail;
 //    int type;
     int Counter = 0;
     assert(solver2_dlevel(s) == 0);
+    // reset the head
+    s->qhead = 0;
     if (solver2_propagate(s) != 0)
         return false;
+//    printf( "Tail moved from %d to %d.\n", TailOld, s->qtail );
+
     if (s->qhead == s->simpdb_assigns || s->simpdb_props > 0)
         return true;
 /*
@@ -1108,8 +1126,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
 #ifdef SAT_USE_ANALYZE_FINAL
                 proof_id = solver2_analyze_final(s, confl, 0);
                 assert( proof_id > 0 );
-//                if ( proof_id > 0 )
-                    solver2_record(s,&s->conf_final, proof_id);
+                solver2_record(s,&s->conf_final, proof_id, 0);
 #endif
                 veci_delete(&learnt_clause);
                 return l_False;
@@ -1120,7 +1137,7 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             blevel = veci_size(&learnt_clause) > 1 ? var_level(s, lit_var(veci_begin(&learnt_clause)[1])) : s->root_level;
             blevel = s->root_level > blevel ? s->root_level : blevel;
             solver2_canceluntil(s,blevel);
-            solver2_record(s,&learnt_clause, proof_id);
+            solver2_record(s,&learnt_clause, proof_id, 0);
 #ifdef SAT_USE_ANALYZE_FINAL
             // if (learnt_clause.size() == 1) level[var(learnt_clause[0])] = 0;    
             // (this is ugly (but needed for 'analyzeFinal()') -- in future versions, we will backtrack past the 'root_level' and redo the assumptions)
@@ -1584,13 +1601,20 @@ void sat_solver2_rollback( sat_solver2* s )
             if ( s->units[i] && !clause_is_used(s, s->units[i]) )
                 s->units[i] = 0;
     }
-    // reset
+    // reset implication queue
+    assert( (&s->trail_lim)->ptr[0] == s->simpdb_assigns );
+    assert( s->simpdb_assigns >= s->iSimpPivot );
+    (&s->trail_lim)->ptr[0] = s->iSimpPivot;
+    s->simpdb_assigns = s->iSimpPivot;
+    solver2_canceluntil( s, 0 );
+    // reset problem clauses
     if ( s->hClausePivot < veci_size(&s->clauses) )
     {
         satset* first = satset_read(&s->clauses, s->hClausePivot);
         s->stats.clauses = first->Id;
         veci_resize(&s->clauses, s->hClausePivot);
     }
+    // resetn learned clauses
     if ( s->hLearntPivot < veci_size(&s->learnts) )
     {
         satset* first = satset_read(&s->learnts, s->hLearntPivot);
@@ -1602,6 +1626,7 @@ void sat_solver2_rollback( sat_solver2* s )
         s->stats.learnts = first->Id;
         veci_resize(&s->learnts, s->hLearntPivot);
     }
+    // reset watcher lists
     for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
     s->size = s->iVarPivot;
@@ -1804,7 +1829,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 if (var_level(s, lit_var(p)) > 0) 
                     veci_push(&s->conf_final, p);
             }
-            solver2_record(s, &s->conf_final, proof_id);
+            solver2_record(s, &s->conf_final, proof_id, 1);
             solver2_canceluntil(s, 0);
             return l_False; 
         }
@@ -1815,7 +1840,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 proof_id = solver2_analyze_final(s, confl, 0);
                 assert(s->conf_final.size > 0);
                 solver2_canceluntil(s, 0);
-                solver2_record(s,&s->conf_final, proof_id);
+                solver2_record(s,&s->conf_final, proof_id, 1);
                 return l_False; 
             }
         }
@@ -1866,8 +1891,8 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         printf("==============================================================================\n");
 
     solver2_canceluntil(s,0);
-    if ( status == l_True )
-        sat_solver2_verify( s );
+//    if ( status == l_True )
+//        sat_solver2_verify( s );
     return status;
 }
 
