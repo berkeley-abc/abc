@@ -151,7 +151,7 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
     p->nConfLimit    =    0;   // conflict limit
     p->nTimeOut      =   60;   // timeout in seconds
     p->fUseTermVars  =    0;   // use terminal variables
-    p->fVerbose      =    1;   // verbose flag
+    p->fVerbose      =    0;   // verbose flag
     p->iFrame        =   -1;   // the number of frames covered 
 }
 

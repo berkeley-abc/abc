@@ -26408,7 +26408,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFCTtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFPCTtvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26432,6 +26432,17 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nFramesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nFramesMax < 0 ) 
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesOver = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesOver < 0 ) 
                 goto usage;
             break;
         case 'C':
@@ -26499,10 +26510,11 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &vta [-SFCT num] [-tvh]\n" );
+    Abc_Print( -2, "usage: &vta [-SFPCT num] [-tvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
+    Abc_Print( -2, "\t-P num : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesOver );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-t     : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
