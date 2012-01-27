@@ -85,8 +85,6 @@ struct sat_solver2_t
     int             qtail;          // Tail index of queue.
 
     int             root_level;     // Level of first proper decision.
-    int             simpdb_assigns; // Number of top-level assignments at last 'simplifyDB()'.
-    int             simpdb_props;   // Number of propagations before next 'simplifyDB()'.
     double          random_seed;
     double          progress_estimate;
     int             verbosity;      // Verbosity level. 0=silent, 1=some progress report, 2=everything    // activities
@@ -111,9 +109,10 @@ struct sat_solver2_t
     veci            clauses;        // clause memory
     veci            learnts;        // learnt memory
     veci*           wlists;         // watcher lists (for each literal)
+    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    int             hProofLast;     // in proof-logging mode, the ID of the final conflict clause (conf_final)
     int             hClausePivot;   // the pivot among problem clause
     int             hLearntPivot;   // the pivot among learned clause
-    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
     int             iVarPivot;      // the pivot among the variables
     int             iSimpPivot;     // marker of unit-clauses
 
@@ -247,10 +246,11 @@ static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
 
 static inline void sat_solver2_bookmark(sat_solver2* s)
 {
+    assert( s->qhead == s->qtail );
     s->hLearntPivot = veci_size(&s->learnts);
     s->hClausePivot = veci_size(&s->clauses);
     s->iVarPivot    = s->size;
-    s->iSimpPivot   = s->simpdb_assigns;
+    s->iSimpPivot   = s->qhead;
 }
 
 static inline int sat_solver2_add_const( sat_solver2 * pSat, int iVar, int fCompl, int fMark )

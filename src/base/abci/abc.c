@@ -26234,7 +26234,7 @@ int Abc_CommandAbc9GlaCba( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The number of frames should be a positive integer.\n" );
         return 0;
     }
-    if ( pPars->nStart > 0 && pPars->nStart >= pPars->nFramesMax )
+    if ( pPars->nStart > 0 && pPars->nFramesMax > 0 && pPars->nStart >= pPars->nFramesMax )
     {
         Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
         return 0;

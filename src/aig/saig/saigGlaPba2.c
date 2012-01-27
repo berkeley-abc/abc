@@ -308,7 +308,7 @@ int Aig_Gla3CreateSatSolver( Aig_Gla3Man_t * p )
     Vec_IntPush( p->vCla2Fra, 0 );
     assert( Vec_IntSize(p->vCla2Fra) == Vec_IntSize(p->vCla2Obj) );
     assert( nVars == Vec_IntSize(p->vVar2Inf) );
-    assert( Vec_IntSize(p->vCla2Obj) == (int)p->pSat->stats.clauses );
+    assert( Vec_IntSize(p->vCla2Obj) == (int)p->pSat->stats.clauses+1 );
     if ( p->fVerbose )
         printf( "The resulting SAT problem contains %d variables and %d clauses.\n", 
             p->pSat->size, p->pSat->stats.clauses );
@@ -337,8 +337,8 @@ Aig_Gla3Man_t * Aig_Gla3ManStart( Aig_Man_t * pAig, int nStart, int nFramesMax, 
     p->vObj2Vec   = Vec_IntStart( Aig_ManObjNumMax(pAig) );
     p->vVec2Var   = Vec_IntAlloc( 1 << 20 );
     p->vVar2Inf   = Vec_IntAlloc( 1 << 20 );
-    p->vCla2Obj   = Vec_IntAlloc( 1 << 20 );
-    p->vCla2Fra   = Vec_IntAlloc( 1 << 20 );
+    p->vCla2Obj   = Vec_IntAlloc( 1 << 20 ); Vec_IntPush( p->vCla2Obj, -1 );
+    p->vCla2Fra   = Vec_IntAlloc( 1 << 20 ); Vec_IntPush( p->vCla2Fra, -1 );
 
     // skip first vector ID
     p->nStart     = nStart;
