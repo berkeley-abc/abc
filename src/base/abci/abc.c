@@ -276,6 +276,8 @@ static int Abc_CommandTestCex                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandPdr                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReconcile              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCexMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDualRail               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBlockPo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandTraceStart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -686,6 +688,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "pdr",           Abc_CommandPdr,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "reconcile",     Abc_CommandReconcile,        1 );
     Cmd_CommandAdd( pAbc, "Verification", "cexmin",        Abc_CommandCexMin,           0 );
+    Cmd_CommandAdd( pAbc, "Verification", "dualrail",      Abc_CommandDualRail,         1 );
+    Cmd_CommandAdd( pAbc, "Verification", "blockpo",       Abc_CommandBlockPo,          1 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&get",          Abc_CommandAbc9Get,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&put",          Abc_CommandAbc9Put,          0 );
@@ -21071,6 +21075,182 @@ usage:
     Abc_Print( -2, "\t         reduces the length of the counter-example\n" );
     Abc_Print( -2, "\t-C num : the maximum number of conflicts [default = %d]\n", nConfLimit );
     Abc_Print( -2, "\t-R num : the number of minimization rounds [default = %d]\n", nRounds );
+    Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
+{   
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+    Abc_Ntk_t * pNtk, * pNtkNew = NULL;
+    Aig_Man_t * pAig, * pAigNew;
+    int c;
+    int nDualPis = 0;
+    int fDualFfs = 0;
+    int fComplPo = 0;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ifcvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nDualPis = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDualPis < 0 ) 
+                goto usage;
+            break;
+        case 'f':
+            fDualFfs ^= 1;
+            break;
+        case 'c':
+            fComplPo ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+
+    // check the main AIG
+    pNtk = Abc_FrameReadNtk(pAbc);
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Main AIG: There is no current network.\n");
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
+        return 0;
+    }
+
+    // tranform    
+    pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    pAigNew = Saig_ManDupDual( pAig, nDualPis, fDualFfs, fComplPo );
+    Aig_ManStop( pAig );
+    pNtkNew = Abc_NtkFromAigPhase( pAigNew );
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    Aig_ManStop( pAigNew );
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: dualrail [-I num] [-fcvh]\n" );
+    Abc_Print( -2, "\t         transforms the current AIG into a dual-rail miter\n" );
+    Abc_Print( -2, "\t         expressing the property \"at least one PO has ternary value\"\n" );
+    Abc_Print( -2, "\t-I num : the number of first PIs interpreted as ternary [default = %d]\n", nDualPis );
+    Abc_Print( -2, "\t-f     : toggle ternary flop init values [default = %s]\n", fDualFfs? "yes": "const0 init values" );
+    Abc_Print( -2, "\t-c     : toggle complementing the miter output [default = %s]\n", fComplPo? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBlockPo( Abc_Frame_t * pAbc, int argc, char ** argv )
+{   
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+    Abc_Ntk_t * pNtk, * pNtkNew = NULL;
+    Aig_Man_t * pAig;
+    int c;
+    int nCycles = 0;
+    int fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCycles = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCycles < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+
+    // check the main AIG
+    pNtk = Abc_FrameReadNtk(pAbc);
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Main AIG: There is no current network.\n");
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
+        return 0;
+    }
+    if ( nCycles == 0 )
+    {
+        Abc_Print( 1, "The number of time frame is 0. The circuit is left unchanged.\n" );
+        return 0;
+    }
+
+    // transform
+    pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    Saig_ManBlockPo( pAig, nCycles );
+    pNtkNew = Abc_NtkFromAigPhase( pAig );
+    Aig_ManStop( pAig );
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: blockpo [-F num] [-fvh]\n" );
+    Abc_Print( -2, "\t         forces the miter outputs to be \"true\" in the first F frames\n" );
+    Abc_Print( -2, "\t-F num : the number of time frames [default = %d]\n", nCycles );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

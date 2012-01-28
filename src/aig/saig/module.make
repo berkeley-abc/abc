@@ -10,6 +10,7 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigCone.c \
     src/aig/saig/saigConstr.c \
     src/aig/saig/saigConstr2.c \
+    src/aig/saig/saigDual.c \
     src/aig/saig/saigDup.c \
     src/aig/saig/saigGlaCba.c \
     src/aig/saig/saigGlaPba.c \
