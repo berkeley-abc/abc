@@ -1366,7 +1366,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         if ( f == p->nWords * 32 )
             p->nWords = Vec_IntDoubleWidth( p->vSeens, p->nWords );
         // check this timeframe
-        i = 0;
+        i = 0; 
         if ( f < p->pPars->nFramesStart )
             Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
         else
@@ -1380,7 +1380,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vCores, f-i), i );
             // iterate as long as there are counter-examples
             for ( i = 0; ; i++ )
-            {
+            { 
                 clk2 = clock();
                 vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, pPars->fVerbose, &Status, &nConfls );
                 assert( (vCore != NULL) == (Status == 1) );
@@ -1410,7 +1410,6 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             Vga_ManRollBack( p, nObjOld );
             Vec_IntShrink( p->vCla2Var, (int)p->pSat->stats.clauses+1 );
             // load this timeframe
-            nObjOld = p->nObjs;
             Vga_ManLoadSlice( p, vCore, 0 );
             Vec_IntFree( vCore );
         }

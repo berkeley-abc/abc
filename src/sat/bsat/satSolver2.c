@@ -1492,8 +1492,8 @@ void sat_solver2_rollback( sat_solver2* s )
     assert( s->iVarPivot >= 0 && s->iVarPivot <= s->size );
     veci_resize(&s->order, 0);
     if ( s->hClausePivot > 1 || s->hLearntPivot > 1 )
-    {
-        // update order
+    { 
+        // update order 
         for ( i = 0; i < s->iVarPivot; i++ )
         {
             if ( var_value(s, i) != varX )
@@ -1511,16 +1511,6 @@ void sat_solver2_rollback( sat_solver2* s )
                     pArray[j++] = pArray[k];
             veci_resize(&s->wlists[i],j);
         }
-        // compact units
-        if ( s->fProofLogging ) {
-            for ( i = 0; i < s->size; i++ )
-                if ( s->units[i] && !clause_is_used(s, s->units[i]) )
-                {
-                    var_set_value(s, i, varX);
-                    s->reasons[i] = 0;
-                    s->units[i] = 0;
-                }
-        }
     }
     // reset implication queue
     assert( (&s->trail_lim)->ptr[0] >= s->iSimpPivot );
@@ -1535,7 +1525,7 @@ void sat_solver2_rollback( sat_solver2* s )
     }
     // resetn learned clauses
     if ( s->hLearntPivot < veci_size(&s->learnts) )
-    {
+    { 
         satset* first = satset_read(&s->learnts, s->hLearntPivot);
         veci_resize(&s->claActs,   first->Id);
         if ( s->fProofLogging ) {
@@ -1548,6 +1538,20 @@ void sat_solver2_rollback( sat_solver2* s )
     // reset watcher lists
     for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
+    for ( i = s->iVarPivot; i < s->size; i++ )
+    {
+        *((int*)s->vi + i) = 0;
+        s->levels  [i] = 0;
+        s->assigns [i] = varX;
+        s->reasons [i] = 0;        
+        s->units   [i] = 0;        
+#ifdef USE_FLOAT_ACTIVITY2
+        s->activity[i] = 0;
+#else
+        s->activity[i] = (1<<10);
+#endif
+        s->model   [i] = 0; 
+    }
     s->size = s->iVarPivot;
     // initialize other vars
     if ( s->size == 0 )
