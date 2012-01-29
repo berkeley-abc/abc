@@ -1161,10 +1161,10 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nC
     //    printf( "%5d%5d", pCountAll[0], pCountUni[0] ); 
         printf( "%6d", p->nSeenGla ); 
         printf( "%5d", nCexes ); 
-        printf( "%6d", pCountAll[0] ); 
+        printf( "%7d", pCountAll[0] ); 
         for ( k = 0; k < nFrames; k++ )
     //        printf( "%5d%5d  ", pCountAll[k+1], pCountUni[k+1] ); 
-            printf( "%4d", pCountAll[k+1] ); 
+            printf( "%5d", pCountAll[k+1] ); 
         printf( "\n" );
         fflush( stdout );
     }
@@ -1356,7 +1356,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     p = Vga_ManStart( pAig, pPars );
     // perform initial abstraction
     if ( p->pPars->fVerbose )
-        printf( "Frame Confl  One  Cex   All  F0  F1  F2  F3 ...\n" );
+        printf( "Frame  Confl  One  Cex    All   F0   F1   F2   F3  ...\n" );
     for ( f = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
         if ( p->pPars->fVerbose )
@@ -1369,6 +1369,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         i = 0; 
         if ( f < p->pPars->nFramesStart )
         {
+//            printf( " Adding %8d  ", Vec_IntSize(Vec_PtrEntry(p->vFrames, f)) );
             Vga_ManAddClausesOne( p, 0, f );
             Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
         }
@@ -1421,7 +1422,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
         p->timeUnsat += clock() - clk2;
         if ( p->pPars->fVerbose )
-            printf( "%5d", nConfls );
+            printf( "%6d", nConfls );
         assert( (vCore != NULL) == (Status == 1) );
         if ( Status == -1 ) // resource limit is reached
             break;
