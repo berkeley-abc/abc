@@ -21098,12 +21098,13 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
     Aig_Man_t * pAig, * pAigNew;
     int c;
-    int nDualPis = 0;
-    int fDualFfs = 0;
-    int fComplPo = 0;
-    int fVerbose = 0;
+    int nDualPis  = 0;
+    int fDualFfs  = 0;
+    int fMiterFfs = 0;
+    int fComplPo  = 0;
+    int fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Ifcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Itfcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21118,8 +21119,11 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nDualPis < 0 ) 
                 goto usage;
             break;
-        case 'f':
+        case 't':
             fDualFfs ^= 1;
+            break;
+        case 'f':
+            fMiterFfs ^= 1;
             break;
         case 'c':
             fComplPo ^= 1;
@@ -21150,7 +21154,7 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // tranform    
     pAig = Abc_NtkToDar( pNtk, 0, 1 );
-    pAigNew = Saig_ManDupDual( pAig, nDualPis, fDualFfs, fComplPo );
+    pAigNew = Saig_ManDupDual( pAig, nDualPis, fDualFfs, fMiterFfs, fComplPo );
     Aig_ManStop( pAig );
     pNtkNew = Abc_NtkFromAigPhase( pAigNew );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
@@ -21161,11 +21165,13 @@ int Abc_CommandDualRail( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dualrail [-I num] [-fcvh]\n" );
+    Abc_Print( -2, "usage: dualrail [-I num] [-tfcvh]\n" );
     Abc_Print( -2, "\t         transforms the current AIG into a dual-rail miter\n" );
     Abc_Print( -2, "\t         expressing the property \"at least one PO has ternary value\"\n" );
+    Abc_Print( -2, "\t         (to compute an initialization sequence, use switches \"-tfc\")\n" );
     Abc_Print( -2, "\t-I num : the number of first PIs interpreted as ternary [default = %d]\n", nDualPis );
-    Abc_Print( -2, "\t-f     : toggle ternary flop init values [default = %s]\n", fDualFfs? "yes": "const0 init values" );
+    Abc_Print( -2, "\t-t     : toggle ternary flop init values [default = %s]\n", fDualFfs? "yes": "const0 init values" );
+    Abc_Print( -2, "\t-f     : toggle mitering flops instead of POs [default = %s]\n", fMiterFfs? "flops": "POs" );
     Abc_Print( -2, "\t-c     : toggle complementing the miter output [default = %s]\n", fComplPo? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

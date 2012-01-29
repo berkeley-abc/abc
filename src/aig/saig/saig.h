@@ -164,7 +164,7 @@ extern void              Saig_ManDetectConstrFuncTest( Aig_Man_t * p, int nFrame
 extern Aig_Man_t *       Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbose );
 extern Aig_Man_t *       Saig_ManDupUnfoldConstrsFunc( Aig_Man_t * pAig, int nFrames, int nConfs, int nProps, int fOldAlgo, int fVerbose );
 /*=== saigDual.c ==========================================================*/
-extern Aig_Man_t *       Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int fComplPo );
+extern Aig_Man_t *       Saig_ManDupDual( Aig_Man_t * pAig, int nDualPis, int fDualFfs, int fMiterFfs, int fComplPo );
 extern void              Saig_ManBlockPo( Aig_Man_t * pAig, int nCycles );
 /*=== saigDup.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManDupOrpos( Aig_Man_t * p );
