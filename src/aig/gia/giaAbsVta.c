@@ -1368,7 +1368,10 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         // check this timeframe
         i = 0; 
         if ( f < p->pPars->nFramesStart )
+        {
+            Vga_ManAddClausesOne( p, 0, f );
             Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
+        }
         else
         {
             // create bookmark to be used for rollback
@@ -1421,12 +1424,14 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             printf( "%5d", nConfls );
         assert( (vCore != NULL) == (Status == 1) );
         if ( Status == -1 ) // resource limit is reached
-            goto finish;
+            break;
         if ( Status == 0 )
         {
+            Vta_ManSatVerify( p );
             // make sure, there was no initial abstraction (otherwise, it was invalid)
             assert( pAig->vObjClasses == NULL && f < p->pPars->nFramesStart );
             pCex = Vga_ManDeriveCex( p );
+            break;
         }
         // add the core
         Vta_ManUnsatCoreRemap( p, vCore );
@@ -1455,7 +1460,7 @@ finish:
         ABC_FREE( p->pGia->pCexSeq );
         p->pGia->pCexSeq = pCex;
         if ( !Gia_ManVerifyCex( p->pGia, pCex, 0 ) )
-            printf( "Gia_VtaPerform(): CEX verification has failed!\n" );
+            printf( "    Gia_VtaPerform(): CEX verification has failed!\n" );
         printf( "Counter-example detected in frame %d.  ", f );
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
