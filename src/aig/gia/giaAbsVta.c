@@ -342,7 +342,6 @@ int Vec_IntDoubleWidth( Vec_Int_t * p, int nWords )
 
 
 
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -377,14 +376,25 @@ static inline Vta_Obj_t * Vga_ManFind( Vta_Man_t * p, int iObj, int iFrame )
 static inline Vta_Obj_t * Vga_ManFindOrAdd( Vta_Man_t * p, int iObj, int iFrame )
 {
     Vta_Obj_t * pThis;
-    int * pPlace;
+    int i, * pPlace;
     assert( iObj >= 0 && iFrame >= -1 );
     if ( p->nObjs == p->nObjsAlloc )
     {
+        // resize objects
         p->pObjs = ABC_REALLOC( Vta_Obj_t, p->pObjs, 2 * p->nObjsAlloc );
         memset( p->pObjs + p->nObjsAlloc, 0, p->nObjsAlloc * sizeof(Vta_Obj_t) );
         p->nObjsAlloc *= 2;
         // rehash entries in the table
+        ABC_FREE( p->pBins );
+        p->nBins = Abc_PrimeCudd( 2 * p->nBins );
+        p->pBins = ABC_CALLOC( int, p->nBins );
+        Vta_ManForEachObj( p, pThis, i )
+        {
+            pThis->iNext = 0;
+            pPlace = Vga_ManLookup( p, pThis->iObj, pThis->iFrame );
+            assert( *pPlace == 0 );
+            *pPlace = i;
+        }
     }
     pPlace = Vga_ManLookup( p, iObj, iFrame );
     if ( *pPlace )

@@ -8837,6 +8837,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Aig_ManSupportsTest( Aig_Man_t * pMan );
     extern int Aig_SupportSizeTest( Aig_Man_t * pMan );
     extern int Abc_NtkSuppSizeTest( Abc_Ntk_t * p );
+    extern void Iso_ManTest( Aig_Man_t * pAig, int fVerbose );
     if ( pNtk )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
@@ -8844,7 +8845,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Aig_ManInterTest( pAig, 1 );
 //        Aig_ManSupportsTest( pAig );
 //        Aig_SupportSizeTest( pAig );
-        Abc_NtkSuppSizeTest( pNtk );
+        Iso_ManTest( pAig, fVerbose );
         Aig_ManStop( pAig );
     }
 }

@@ -3043,6 +3043,10 @@ SOURCE=.\src\aig\aig\aigInter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigIso.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigJust.c
 # End Source File
 # Begin Source File
@@ -3192,6 +3196,10 @@ SOURCE=.\src\aig\saig\saigConstr.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigConstr2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigDual.c
 # End Source File
 # Begin Source File
 
