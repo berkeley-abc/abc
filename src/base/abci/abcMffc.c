@@ -137,26 +137,6 @@ void Abc_MffcCollectLeaves( Vec_Ptr_t * vNodes, Vec_Ptr_t * vLeaves )
 
 /**Function*************************************************************
 
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Vec_IntPrint( Vec_Int_t * vVec )
-{
-    int i, Entry;
-    Vec_IntForEachEntry( vVec, Entry, i )
-        printf( "%d ", Entry );
-    printf( "\n" );
-}
-
-
-/**Function*************************************************************
-
   Synopsis    [Collects internal nodes that are roots of MFFCs.]
 
   Description []

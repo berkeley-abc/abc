@@ -1237,6 +1237,26 @@ static inline void Vec_IntSelectSort( int * pArray, int nSize )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntPrint( Vec_Int_t * vVec )
+{
+    int i, Entry;
+    printf( "Vector has %d entries: {", Vec_IntSize(vVec) );
+    Vec_IntForEachEntry( vVec, Entry, i )
+        printf( " %d", Entry );
+    printf( " }\n" );
+}
+
 
 ABC_NAMESPACE_HEADER_END
 
