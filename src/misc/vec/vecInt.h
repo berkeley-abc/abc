@@ -926,6 +926,8 @@ static inline Vec_Int_t * Vec_IntInvert( Vec_Int_t * p, int Fill )
 {
     int Entry, i;
     Vec_Int_t * vRes = Vec_IntAlloc( 0 );
+    if ( Vec_IntSize(p) == 0 )
+        return vRes;
     Vec_IntFill( vRes, Vec_IntFindMax(p) + 1, Fill );
     Vec_IntForEachEntry( p, Entry, i )
         if ( Entry != Fill )

@@ -8837,16 +8837,26 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Aig_ManSupportsTest( Aig_Man_t * pMan );
     extern int Aig_SupportSizeTest( Aig_Man_t * pMan );
     extern int Abc_NtkSuppSizeTest( Abc_Ntk_t * p );
-    extern void Iso_ManTest( Aig_Man_t * pAig, int fVerbose );
+    extern Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     if ( pNtk )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+        Aig_Man_t * pRes;
+        Abc_Ntk_t * pNtkRes;
 //        Aig_ManInterRepar( pAig, 1 );
 //        Aig_ManInterTest( pAig, 1 );
 //        Aig_ManSupportsTest( pAig );
 //        Aig_SupportSizeTest( pAig );
-        Iso_ManTest( pAig, fVerbose );
+        pRes = Iso_ManTest( pAig, fVerbose );
         Aig_ManStop( pAig );
+
+        pNtkRes = Abc_NtkFromAigPhase( pRes );
+        Aig_ManStop( pRes );
+
+        ABC_FREE( pNtkRes->pName );
+        pNtkRes->pName = Extra_UtilStrsav(pNtk->pName);
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
 }
 

@@ -446,6 +446,82 @@ Aig_Man_t * Saig_ManDupWithPhase( Aig_Man_t * pAig, Vec_Int_t * vInit )
     return pAigNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Copy an AIG structure related to the selected POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManDupCones_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Ptr_t * vRoots )
+{
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsNode(pObj) )
+    {
+        Saig_ManDupCones_rec( p, Aig_ObjFanin0(pObj), vLeaves, vNodes, vRoots );
+        Saig_ManDupCones_rec( p, Aig_ObjFanin1(pObj), vLeaves, vNodes, vRoots );
+        Vec_PtrPush( vNodes, pObj );
+    }
+    else if ( Aig_ObjIsPo(pObj) )
+        Saig_ManDupCones_rec( p, Aig_ObjFanin0(pObj), vLeaves, vNodes, vRoots );
+    else if ( Saig_ObjIsLo(p, pObj) )
+        Vec_PtrPush( vRoots, Saig_ObjLoToLi(p, pObj) );
+    else if ( Saig_ObjIsPi(p, pObj) )
+        Vec_PtrPush( vLeaves, pObj );
+    else assert( 0 );
+}
+Aig_Man_t * Saig_ManDupCones( Aig_Man_t * pAig, int * pPos, int nPos )
+{
+    Aig_Man_t * pAigNew;
+    Vec_Ptr_t * vLeaves, * vNodes, * vRoots;
+    Aig_Obj_t * pObj;
+    int i;
+
+    // collect initial POs
+    vLeaves = Vec_PtrAlloc( 100 );
+    vNodes = Vec_PtrAlloc( 100 );
+    vRoots = Vec_PtrAlloc( 100 );
+    for ( i = 0; i < nPos; i++ )
+        Vec_PtrPush( vRoots, Aig_ManPo(pAig, pPos[i]) );
+
+    // mark internal nodes
+    Aig_ManIncrementTravId( pAig );
+    Aig_ObjSetTravIdCurrent( pAig, Aig_ManConst1(pAig) );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vRoots, pObj, i )
+        Saig_ManDupCones_rec( pAig, pObj, vLeaves, vNodes, vRoots );
+
+    // start the new manager
+    pAigNew = Aig_ManStart( Vec_PtrSize(vNodes) );
+    pAigNew->pName = Abc_UtilStrsav( pAig->pName );
+    // map the constant node
+    Aig_ManConst1(pAig)->pData = Aig_ManConst1( pAigNew );
+    // create PIs
+    Vec_PtrForEachEntry( Aig_Obj_t *, vLeaves, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pAigNew );
+    // create LOs
+    Vec_PtrForEachEntryStart( Aig_Obj_t *, vRoots, pObj, i, nPos )
+        Saig_ObjLiToLo(pAig, pObj)->pData = Aig_ObjCreatePi( pAigNew );
+    // create internal nodes
+    Vec_PtrForEachEntry( Aig_Obj_t *, vNodes, pObj, i )
+        pObj->pData = Aig_And( pAigNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // create COs
+    Vec_PtrForEachEntry( Aig_Obj_t *, vRoots, pObj, i )
+        Aig_ObjCreatePo( pAigNew, Aig_ObjChild0Copy(pObj) );
+    // finalize
+    Aig_ManSetRegNum( pAigNew, Vec_PtrSize(vRoots)-nPos );
+    Vec_PtrFree( vLeaves );
+    Vec_PtrFree( vNodes );
+    Vec_PtrFree( vRoots );
+    return pAigNew;
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -92,6 +92,8 @@ int Iso_ManNegEdgeNum( Aig_Man_t * pAig )
 {
     Aig_Obj_t * pObj;
     int i, Counter = 0;
+    if ( pAig->nComplEdges > 0 )
+        return pAig->nComplEdges;
     Aig_ManForEachObj( pAig, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
         {
@@ -100,7 +102,7 @@ int Iso_ManNegEdgeNum( Aig_Man_t * pAig )
         }
         else if ( Aig_ObjIsPo(pObj) )
             Counter += Aig_ObjFaninC0(pObj);
-    return Counter;
+    return (pAig->nComplEdges = Counter);
 }
 
 /**Function*************************************************************
@@ -716,7 +718,7 @@ int Iso_ManCheckMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vMap2
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int fVerbose )
+Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vPerm1_, Vec_Int_t * vPerm2_, int fVerbose )
 {
     Vec_Int_t * vPerm1, * vPerm2, * vInvPerm2;
     int i, Entry;
@@ -732,12 +734,16 @@ Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int fVerbo
         return NULL;
     if ( Iso_ManNegEdgeNum(pAig1) != Iso_ManNegEdgeNum(pAig2) )
         return NULL;
+    if ( fVerbose ) 
+        printf( "AIG1:\n" );
+    vPerm1 = vPerm1_ ? vPerm1_ : Iso_ManFindPerm( pAig1, fVerbose );
     if ( fVerbose )
         printf( "AIG1:\n" );
-    vPerm1 = Iso_ManFindPerm( pAig1, fVerbose );
-    if ( fVerbose )
-        printf( "AIG1:\n" );
-    vPerm2 = Iso_ManFindPerm( pAig2, fVerbose );
+    vPerm2 = vPerm2_ ? vPerm2_ : Iso_ManFindPerm( pAig2, fVerbose );
+    if ( vPerm1_ )
+        assert( Vec_IntSize(vPerm1_) == Aig_ManPiNum(pAig1) );
+    if ( vPerm2_ )
+        assert( Vec_IntSize(vPerm2_) == Aig_ManPiNum(pAig2) );
     // find canonical permutation
     // vPerm1/vPerm2 give canonical order of CIs of AIG1/AIG2
     vInvPerm2 = Vec_IntInvert( vPerm2, -1 );
@@ -746,8 +752,10 @@ Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, int fVerbo
         assert( Entry >= 0 && Entry < Aig_ManPiNum(pAig1) );
         Vec_IntWriteEntry( vInvPerm2, i, Vec_IntEntry(vPerm1, Entry) );
     }
-    Vec_IntFree( vPerm1 );
-    Vec_IntFree( vPerm2 );
+    if ( vPerm1_ == NULL )
+        Vec_IntFree( vPerm1 );
+    if ( vPerm2_ == NULL )
+        Vec_IntFree( vPerm2 );
     // check if they are indeed equivalent
     if ( !Iso_ManCheckMapping( pAig1, pAig2, vInvPerm2, fVerbose ) )
         Vec_IntFreeP( &vInvPerm2 );
@@ -772,8 +780,9 @@ void Iso_ManTestOne( Aig_Man_t * pAig, int fVerbose )
     Vec_IntFree( vPerm );
 }
 
-#include "src/base/abc/abc.h"
 
+
+#include "src/aig/saig/saig.h"
 
 /**Function*************************************************************
 
@@ -786,7 +795,91 @@ void Iso_ManTestOne( Aig_Man_t * pAig, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Iso_ManTest( Aig_Man_t * pAig1, int fVerbose )
+Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
+{
+    int fVeryVerbose = 0;
+    Vec_Ptr_t * vParts, * vPerms, * vAigs;
+    Vec_Int_t * vPos, * vMap;
+    Aig_Man_t * pPart, * pTemp;
+    int i, k, nPos;
+
+    // derive AIG for each PO
+    nPos = Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig);
+    vParts = Vec_PtrAlloc( nPos );
+    vPerms = Vec_PtrAlloc( nPos );
+    for ( i = 0; i < nPos; i++ )
+    {
+        pPart = Saig_ManDupCones( pAig, &i, 1 );
+        vMap  = Iso_ManFindPerm( pPart, fVeryVerbose );
+        Vec_PtrPush( vParts, pPart ); 
+        Vec_PtrPush( vPerms, vMap );
+    }
+
+    // check AIGs for each PO
+    vAigs = Vec_PtrAlloc( 1000 );
+    vPos  = Vec_IntAlloc( 1000 );
+    Vec_PtrForEachEntry( Aig_Man_t *, vParts, pPart, i )
+    {
+        if ( fVeryVerbose )
+        {
+            printf( "AIG %4d : ", i );
+            Aig_ManPrintStats( pPart );
+        }
+        Vec_PtrForEachEntry( Aig_Man_t *, vAigs, pTemp, k )
+        {
+            if ( fVeryVerbose )
+                printf( "Comparing AIG %4d and AIG %4d.  ", Vec_IntEntry(vPos,k), i );
+            vMap = Iso_ManFindMapping( pTemp, pPart, 
+                (Vec_Int_t *)Vec_PtrEntry(vPerms, Vec_IntEntry(vPos,k)), 
+                (Vec_Int_t *)Vec_PtrEntry(vPerms, i),
+                fVeryVerbose );
+            if ( vMap != NULL )
+            {
+                if ( fVeryVerbose )
+                    printf( "Found match\n" );
+                if ( fVerbose )
+                    printf( "Found match for AIG %4d and AIG %4d.\n", Vec_IntEntry(vPos,k), i );
+                Vec_IntFree( vMap );
+                break;
+            }
+            if ( fVeryVerbose )
+                printf( "No match.\n" );
+        }
+        if ( k == Vec_PtrSize(vAigs) )
+        {
+            Vec_PtrPush( vAigs, pPart );
+            Vec_IntPush( vPos, i );
+        }
+    }
+    // delete AIGs
+    Vec_PtrForEachEntry( Aig_Man_t *, vParts, pPart, i )
+        Aig_ManStop( pPart );
+    Vec_PtrFree( vParts );
+    Vec_PtrForEachEntry( Vec_Int_t *, vPerms, vMap, i )
+        Vec_IntFree( vMap );
+    Vec_PtrFree( vPerms );
+    // derive the resulting AIG
+    pPart = Saig_ManDupCones( pAig, Vec_IntArray(vPos), Vec_IntSize(vPos) );
+    Vec_PtrFree( vAigs );
+    Vec_IntFree( vPos );
+    return pPart;
+}
+
+
+#include "src/base/abc/abc.h"
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Iso_ManTestOld( Aig_Man_t * pAig1, int fVerbose )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
@@ -799,7 +892,7 @@ void Iso_ManTest( Aig_Man_t * pAig1, int fVerbose )
     pAig2 = Abc_NtkToDar( pNtk, 0, 1 );
     Abc_NtkDelete( pNtk );
 
-    vMap = Iso_ManFindMapping( pAig1, pAig2, fVerbose );
+    vMap = Iso_ManFindMapping( pAig1, pAig2, NULL, NULL, fVerbose );
     Aig_ManStop( pAig2 );
 
     if ( vMap != NULL )
@@ -811,6 +904,28 @@ void Iso_ManTest( Aig_Man_t * pAig1, int fVerbose )
     else
         printf( "Mapping of AIGs is NOT found.\n" );
     Vec_IntFreeP( &vMap );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
+{ 
+    Aig_Man_t * pPart;
+    int clk = clock();
+    pPart = Iso_ManFilterPos( pAig, fVerbose );
+    printf( "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
+    Abc_PrintTime( 1, "Time", clock() - clk );
+//    Aig_ManStop( pPart );
+    return pPart;
 }
 
 ////////////////////////////////////////////////////////////////////////
