@@ -706,6 +706,8 @@ int Iso_ManCheckMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t * vMap2
     return 1;    
 }
 
+//static int s_Counter;
+
 /**Function*************************************************************
 
   Synopsis    [Finds mapping of CIs of AIG2 into those of AIG1.]
@@ -734,6 +736,8 @@ Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t 
         return NULL;
     if ( Iso_ManNegEdgeNum(pAig1) != Iso_ManNegEdgeNum(pAig2) )
         return NULL;
+//    s_Counter++;
+
     if ( fVerbose ) 
         printf( "AIG1:\n" );
     vPerm1 = vPerm1_ ? vPerm1_ : Iso_ManFindPerm( pAig1, fVerbose );
@@ -814,6 +818,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
         Vec_PtrPush( vParts, pPart ); 
         Vec_PtrPush( vPerms, vMap );
     }
+//    s_Counter = 0;
 
     // check AIGs for each PO
     vAigs = Vec_PtrAlloc( 1000 );
@@ -862,6 +867,8 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     pPart = Saig_ManDupCones( pAig, Vec_IntArray(vPos), Vec_IntSize(vPos) );
     Vec_PtrFree( vAigs );
     Vec_IntFree( vPos );
+
+//    printf( "The number of all checks %d.  Complex checks %d.\n", nPos*(nPos-1)/2, s_Counter );
     return pPart;
 }
 
