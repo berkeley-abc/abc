@@ -11997,12 +11997,16 @@ int Abc_CommandRecAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
+    int fUseSOPB = 0;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'g':
+            fUseSOPB = 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -12019,7 +12023,7 @@ int Abc_CommandRecAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command works for AIGs after calling \"rec_start\".\n" );
         return 0;
     }
-    Abc_NtkRecAdd( pNtk );
+    Abc_NtkRecAdd( pNtk, fUseSOPB);
     return 0;
 
 usage:
@@ -13422,13 +13426,23 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify for global delay optimization
-    if ( pPars->fDelayOpt || pPars->fUserRecLib )
+    if ( pPars->fDelayOpt )
     {
         pPars->fTruth      =  1;
         pPars->fExpRed     =  0;
         pPars->fUsePerm    =  1;
         pPars->pLutLib     =  NULL;
     }
+    // modify the subgraph recording
+    if ( pPars->fUserRecLib )
+    {
+        pPars->fTruth      =  1;
+        pPars->fExpRed     =  0;
+        pPars->fUsePerm    =  1;
+        pPars->pLutLib     =  NULL;
+        pPars->fCutMin       =  1;
+    }
+
 /*
     // modify for LUT structures
     if ( pPars->pLutStruct )
