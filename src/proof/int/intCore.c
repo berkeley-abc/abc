@@ -169,14 +169,16 @@ p->timeCnf += clock() - clk;
 
         //////////////////////////////////////////
         // start containment checking
-        if ( !(pPars->fTransLoop || pPars->fUseBackward) )
+        if ( !(pPars->fTransLoop || pPars->fUseBackward || pPars->nFramesK > 1) )
         {
             pCheck = Inter_CheckStart( p->pAigTrans, pPars->nFramesK );
             // try new containment check for the initial state
 clk = clock();
             pCnfInter2 = Cnf_Derive( p->pInter, 1 );  
 p->timeCnf += clock() - clk;    
+clk = clock();
             RetValue = Inter_CheckPerform( pCheck, pCnfInter2, nTimeNewOut );
+p->timeEqu += clock() - clk;
 //            assert( RetValue == 0 );
             Cnf_DataFree( pCnfInter2 );
             if ( p->vInters )
@@ -296,8 +298,12 @@ clk = clock();
             {
                 if ( Aig_ManPiNum(p->pInterNew) == Aig_ManPiNum(p->pInter) )
                 {
-                    if ( pPars->fTransLoop || pPars->fUseBackward )
-                        Status = Inter_ManCheckInductiveContainment( p->pAigTrans, p->pInterNew, pPars->nFramesK, pPars->fUseBackward );
+                    if ( pPars->fTransLoop || pPars->fUseBackward || pPars->nFramesK > 1 )
+                    {
+clk2 = clock();
+                        Status = Inter_ManCheckInductiveContainment( p->pAigTrans, p->pInterNew, Abc_MinInt(i + 1, pPars->nFramesK), pPars->fUseBackward );
+timeTemp = clock() - clk2;
+                    }
                     else
                     {   // new containment check
 clk2 = clock();
