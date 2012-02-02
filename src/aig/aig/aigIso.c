@@ -33,13 +33,15 @@ typedef struct Iso_Obj_t_ Iso_Obj_t;
 struct Iso_Obj_t_
 {
     // hashing entries (related to the parameter ISO_NUM_INTS!)
-    unsigned      fFlop    :  1;
-    unsigned      nFinPos  :  2;
-    unsigned      nFoutPos : 29;
-    unsigned      fMux     :  1;
-    unsigned      nFinNeg  :  2;
-    unsigned      nFoutNeg : 29;
     int           Level;
+    unsigned      fFlop    :  1;
+    unsigned      fMux     :  1;
+    unsigned      nFinPos  :  2;
+    unsigned      nFoutPos : 28;
+    unsigned      fCLow    :  1;
+    unsigned      fCHigh   :  1;
+    unsigned      nFinNeg  :  2;
+    unsigned      nFoutNeg : 28;
     // other data
     int           iNext;          // hash table entry
     int           iClass;         // next one in class
@@ -185,23 +187,53 @@ void Iso_ManStop( Iso_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Iso_ObjCompareBasic( Iso_Obj_t * pIso1, Iso_Obj_t * pIso2 )
+{
+    int fCLow1, fCLow2, fCHigh1, fCHigh2, Diff;
+
+    fCLow1  = pIso1->fCLow;  pIso1->fCLow = 0;
+    fCLow2  = pIso2->fCLow;  pIso2->fCLow = 0;
+    fCHigh1 = pIso1->fCHigh; pIso1->fCHigh = 0;
+    fCHigh2 = pIso2->fCHigh; pIso2->fCHigh = 0;
+
+    Diff = memcmp( pIso1, pIso2, sizeof(int) * ISO_NUM_INTS );
+
+    pIso1->fCLow  = fCLow1;
+    pIso2->fCLow  = fCLow2;
+    pIso1->fCHigh = fCHigh1;
+    pIso2->fCHigh = fCHigh2;
+
+    return -Diff;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compares two objects by their signature.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Iso_ObjCompare( Iso_Obj_t ** pp1, Iso_Obj_t ** pp2 )
 {
     Iso_Obj_t * pIso1 = *pp1;
     Iso_Obj_t * pIso2 = *pp2;
     int Diff = memcmp( pIso1, pIso2, sizeof(int) * ISO_NUM_INTS );
     if ( Diff )
-        return Diff;
+        return -Diff;
 //    return 0;
     if ( pIso1->vAllies == NULL && pIso2->vAllies == NULL )
         return  0;
     if ( pIso1->vAllies == NULL && pIso2->vAllies != NULL )
-        return -1;
-    if ( pIso1->vAllies != NULL && pIso2->vAllies == NULL )
         return  1;
+    if ( pIso1->vAllies != NULL && pIso2->vAllies == NULL )
+        return -1;
     Diff = Vec_IntSize(pIso1->vAllies) - Vec_IntSize(pIso2->vAllies);
     if ( Diff )
-        return Diff;
+        return -Diff;
     return memcmp( Vec_IntArray(pIso1->vAllies), Vec_IntArray(pIso2->vAllies), Vec_IntSize(pIso1->vAllies) * sizeof(int) );
 }
 
@@ -319,6 +351,26 @@ Iso_Man_t * Iso_ManCreate( Aig_Man_t * pAig )
             pIso->nFinNeg  = Aig_ObjFaninC0(pObj) + Aig_ObjFaninC1(pObj);
             pIso->nFinPos  = 2 - pIso->nFinNeg;
             pIso->fMux  = Aig_ObjIsMuxType( pObj );
+            if ( Aig_ObjFaninC0(pObj) != Aig_ObjFaninC1(pObj) )
+            {
+                // fanins are already assigned!!!
+                if ( Aig_ObjFaninC0(pObj) )
+                {
+                    int Diff = Iso_ObjCompareBasic( Iso_ManObj(p,Aig_ObjFaninId0(pObj)), Iso_ManObj(p,Aig_ObjFaninId1(pObj)) );
+                    if ( Diff < 0 )
+                        pIso->fCLow  = 1;
+                    else if ( Diff > 0 )
+                        pIso->fCHigh = 1;
+                }
+                else
+                {
+                    int Diff = Iso_ObjCompareBasic( Iso_ManObj(p,Aig_ObjFaninId1(pObj)), Iso_ManObj(p,Aig_ObjFaninId0(pObj)) );
+                    if ( Diff < 0 )
+                        pIso->fCLow  = 1;
+                    else if ( Diff > 0 )
+                        pIso->fCHigh = 1;
+                }
+            }
         }
         else
             pIso->fFlop = (int)(Aig_ObjPioNum(pObj) >= Aig_ManPiNum(pAig) - Aig_ManRegNum(pAig));
@@ -351,7 +403,7 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
     for ( i = 0; i < p->nBins; i++ )
         for ( pIso = Iso_ManObj(p, p->pBins[i]); pIso; pIso = Iso_ManObj(p, pIso->iNext) )
         {
-            assert( pIso->Id == 0 );
+//            assert( pIso->Id == 0 );
             if ( pIso->iClass )
                 Vec_PtrPush( p->vClasses, pIso );
             else 
@@ -374,10 +426,9 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Iso_ManPrintClasses( Iso_Man_t * p, int fVerbose )
+void Iso_ManPrintClasses( Iso_Man_t * p, int fVerbose, int fVeryVerbose )
 {
-    int fOnlyCis = 1;
-    int fVeryVerbose = 0;
+    int fOnlyCis = 0;
     Iso_Obj_t * pIso, * pTemp;
     int i;
 
@@ -403,7 +454,15 @@ void Iso_ManPrintClasses( Iso_Man_t * p, int fVerbose )
             if ( fOnlyCis )
                 printf( " %d", Aig_ObjPioNum(Aig_ManObj(p->pAig, Iso_ObjId(p, pTemp))) );
             else
-                printf( " %d", Iso_ObjId(p, pTemp) );
+            {
+                Aig_Obj_t * pObj = Aig_ManObj(p->pAig, Iso_ObjId(p, pTemp));
+                if ( Aig_ObjIsNode(pObj) )
+                    printf( " %d{%s%d(%d),%s%d(%d)}", Iso_ObjId(p, pTemp), 
+                        Aig_ObjFaninC0(pObj)? "-": "+", Aig_ObjFaninId0(pObj), Aig_ObjLevel(Aig_ObjFanin0(pObj)), 
+                        Aig_ObjFaninC1(pObj)? "-": "+", Aig_ObjFaninId1(pObj), Aig_ObjLevel(Aig_ObjFanin1(pObj)) );
+                else
+                    printf( " %d", Iso_ObjId(p, pTemp) );
+            }
             printf( "(%d,%d,%d)", pTemp->Level, pTemp->nFoutPos, pTemp->nFoutNeg );
             if ( pTemp->vAllies )
             {
@@ -636,7 +695,7 @@ Vec_Int_t * Iso_ManFindPerm( Aig_Man_t * pAig, int fVerbose )
     Vec_Int_t * vRes;
     int i;
     p = Iso_ManCreate( pAig );
-    Iso_ManPrintClasses( p, fVerbose );
+    Iso_ManPrintClasses( p, fVerbose, 0 );
     while ( p->nSingles )
     {
         // collect singletons and classes
@@ -651,8 +710,27 @@ Vec_Int_t * Iso_ManFindPerm( Aig_Man_t * pAig, int fVerbose )
         Iso_ManAssignAdjacency( p );
         // rehash the class nodes
         Iso_ManRehashClassNodes( p );
-        Iso_ManPrintClasses( p, fVerbose );
+        Iso_ManPrintClasses( p, fVerbose, 0 );
+
+        if ( p->nSingles == 0 )
+        {
+            // assign ID to the first class
+            pIso = (Iso_Obj_t *)Vec_PtrEntry( p->vClasses, 0 );
+            assert( pIso->Id == 0 );
+            pIso->Id = p->nObjIds++;
+            // assign adjacency to classes
+            Iso_ManAssignAdjacency( p );
+            // rehash the class nodes
+            Iso_ManRehashClassNodes( p );
+            Iso_ManPrintClasses( p, fVerbose, 0 );
+            if ( p->nSingles == 0 )
+            {
+                pIso->Id = 0;
+                p->nObjIds--;
+            }
+        }
     }
+//    Iso_ManPrintClasses( p, fVerbose, 1 );
     vRes = Iso_ManFinalize( p );
     Iso_ManStop( p );
     return vRes;
@@ -766,24 +844,6 @@ Vec_Int_t * Iso_ManFindMapping( Aig_Man_t * pAig1, Aig_Man_t * pAig2, Vec_Int_t 
     return vInvPerm2;
 }
 
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Iso_ManTestOne( Aig_Man_t * pAig, int fVerbose )
-{
-    Vec_Int_t * vPerm;
-    vPerm = Iso_ManFindPerm( pAig, fVerbose );
-    Vec_IntFree( vPerm );
-}
-
 
 
 #include "src/aig/saig/saig.h"
@@ -886,7 +946,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Iso_ManTestOld( Aig_Man_t * pAig1, int fVerbose )
+Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig1, int fVerbose )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
@@ -911,6 +971,7 @@ void Iso_ManTestOld( Aig_Man_t * pAig1, int fVerbose )
     else
         printf( "Mapping of AIGs is NOT found.\n" );
     Vec_IntFreeP( &vMap );
+    return NULL;
 }
 
 /**Function*************************************************************
@@ -924,7 +985,7 @@ void Iso_ManTestOld( Aig_Man_t * pAig1, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
+Aig_Man_t * Iso_ManTest666( Aig_Man_t * pAig, int fVerbose )
 { 
     Aig_Man_t * pPart;
     int clk = clock();
@@ -933,6 +994,25 @@ Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
     Abc_PrintTime( 1, "Time", clock() - clk );
 //    Aig_ManStop( pPart );
     return pPart;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Iso_ManTest777( Aig_Man_t * pAig, int fVerbose )
+{
+    Vec_Int_t * vPerm;
+    vPerm = Iso_ManFindPerm( pAig, fVerbose );
+    Vec_IntFree( vPerm );
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -8850,13 +8850,15 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Aig_SupportSizeTest( pAig );
         pRes = Iso_ManTest( pAig, fVerbose );
         Aig_ManStop( pAig );
+        if ( pRes != NULL )
+        {
+            pNtkRes = Abc_NtkFromAigPhase( pRes );
+            Aig_ManStop( pRes );
 
-        pNtkRes = Abc_NtkFromAigPhase( pRes );
-        Aig_ManStop( pRes );
-
-        ABC_FREE( pNtkRes->pName );
-        pNtkRes->pName = Extra_UtilStrsav(pNtk->pName);
-        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+            ABC_FREE( pNtkRes->pName );
+            pNtkRes->pName = Extra_UtilStrsav(pNtk->pName);
+            Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+        }
     }
 }
 
