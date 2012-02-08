@@ -71,10 +71,6 @@
 #include <time.h>
 #include <stdarg.h>
 
-#ifndef __cplusplus
-typedef int bool;
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                         NAMESPACES                               ///
 ////////////////////////////////////////////////////////////////////////
@@ -209,9 +205,6 @@ typedef ABC_UINT64_T word;
 #define ABC_PRM(a,f)    (printf("%s = ", (a)), printf("%7.3f Mb  ",    1.0*(f)/(1<<20)))
 #define ABC_PRMP(a,f,F) (printf("%s = ", (a)), printf("%7.3f Mb (%6.2f %%)  ",  (1.0*(f)/(1<<20)), ((F)? 100.0*(f)/(F) : 0.0) ) )
 
-//#define ABC_USE_MEM_REC 1
-
-#ifndef ABC_USE_MEM_REC
 #define ABC_ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
 #define ABC_CALLOC(type, num)     ((type *) calloc((num), sizeof(type)))
 #define ABC_FALLOC(type, num)     ((type *) memset(malloc(sizeof(type) * (num)), 0xff, sizeof(type) * (num)))
@@ -219,18 +212,6 @@ typedef ABC_UINT64_T word;
 #define ABC_REALLOC(type, obj, num)    \
         ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
          ((type *) malloc(sizeof(type) * (num))))
-#else
-ABC_NAMESPACE_HEADER_END
-#include "utilMem.h"
-ABC_NAMESPACE_HEADER_START
-#define ABC_ALLOC(type, num)     ((type *) Util_MemRecAlloc(malloc(sizeof(type) * (num))))
-#define ABC_CALLOC(type, num)     ((type *) Util_MemRecAlloc(calloc((num), sizeof(type))))
-#define ABC_FALLOC(type, num)     ((type *) memset(Util_MemRecAlloc(malloc(sizeof(type) * (num))), 0xff, sizeof(type) * (num)))
-#define ABC_FREE(obj)             ((obj) ?  (free((char *) Util_MemRecFree(obj)), (obj) = 0) : 0)
-#define ABC_REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) Util_MemRecAlloc(realloc((char *)(Util_MemRecFree(obj)), sizeof(type) * (num)))) : \
-         ((type *) Util_MemRecAlloc(malloc(sizeof(type) * (num)))))
-#endif
 
 static inline int      Abc_AbsInt( int a        )             { return a < 0 ? -a : a; }
 static inline int      Abc_MaxInt( int a, int b )             { return a > b ?  a : b; }
