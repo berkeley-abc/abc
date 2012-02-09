@@ -215,7 +215,8 @@ Vec_Int_t * Saig_RefManFindReason( Saig_RefMan_t * p )
     // select the reason
     vReasons = Vec_IntAlloc( 100 );
     Aig_ManIncrementTravId( p->pFrames );
-    Saig_RefManFindReason_rec( p->pFrames, Aig_ObjFanin0(pObj), vPrios, vReasons );
+    if ( !Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
+        Saig_RefManFindReason_rec( p->pFrames, Aig_ObjFanin0(pObj), vPrios, vReasons );
     Vec_IntFree( vPrios );
     return vReasons;
 }
