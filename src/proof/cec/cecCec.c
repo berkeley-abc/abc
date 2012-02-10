@@ -48,13 +48,10 @@ void Cec_ManTransformPattern( Gia_Man_t * p, int iOut, int * pValues )
 {
     int i;
     assert( p->pCexComb == NULL );
-    p->pCexComb = (Abc_Cex_t *)ABC_CALLOC( char, 
-        sizeof(Abc_Cex_t) + sizeof(unsigned) * Abc_BitWordNum(Gia_ManCiNum(p)) );
+    p->pCexComb = Abc_CexAlloc( 0, Gia_ManCiNum(p), 1 );
     p->pCexComb->iPo = iOut;
-    p->pCexComb->nPis = Gia_ManCiNum(p);
-    p->pCexComb->nBits = Gia_ManCiNum(p);
     for ( i = 0; i < Gia_ManCiNum(p); i++ )
-        if ( pValues[i] )
+        if ( pValues && pValues[i] )
             Abc_InfoSetBit( p->pCexComb->pData, i );
 }
 
@@ -124,6 +121,77 @@ Abc_PrintTime( 1, "Time", clock() - clkTotal );
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
+{
+    Gia_Obj_t * pObj1, * pObj2;
+    Gia_Obj_t * pDri1, * pDri2;
+    int i, clk = clock();
+    Gia_ManSetPhase( p );
+    Gia_ManForEachPo( p, pObj1, i )
+    {
+        pObj2 = Gia_ManPo( p, ++i );
+        // check if they different on all-0 pattern
+        // (for example, when they have the same driver but complemented)
+        if ( Gia_ObjPhase(pObj1) != Gia_ObjPhase(pObj2) )
+        {
+            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
+            Abc_PrintTime( 1, "Time", clock() - clk );
+            pPars->iOutFail = i/2;
+            Cec_ManTransformPattern( p, i/2, NULL );
+            return 0;
+        }
+        // get the drivers
+        pDri1 = Gia_ObjFanin0(pObj1);
+        pDri2 = Gia_ObjFanin0(pObj2);
+        // drivers are different PIs
+        if ( Gia_ObjIsPi(p, pDri1) && Gia_ObjIsPi(p, pDri2) && pDri1 != pDri2 )
+        {
+            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
+            Abc_PrintTime( 1, "Time", clock() - clk );
+            pPars->iOutFail = i/2;
+            Cec_ManTransformPattern( p, i/2, NULL );
+            // if their compl attributes are the same - one should be complemented
+            assert( Gia_ObjFaninC0(pObj1) == Gia_ObjFaninC0(pObj2) );
+            Abc_InfoSetBit( p->pCexComb->pData, Gia_ObjCioId(pDri1) );
+            return 0;
+        }
+        // one of the drivers is a PI; another is a constant 0
+        if ( (Gia_ObjIsPi(p, pDri1) && Gia_ObjIsConst0(pDri2)) || 
+             (Gia_ObjIsPi(p, pDri2) && Gia_ObjIsConst0(pDri1)) )
+        {
+            Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
+            Abc_PrintTime( 1, "Time", clock() - clk );
+            pPars->iOutFail = i/2;
+            Cec_ManTransformPattern( p, i/2, NULL );
+            // the compl attributes are the same - the PI should be complemented
+            assert( Gia_ObjFaninC0(pObj1) == Gia_ObjFaninC0(pObj2) );
+            if ( Gia_ObjIsPi(p, pDri1) )
+                Abc_InfoSetBit( p->pCexComb->pData, Gia_ObjCioId(pDri1) );
+            else
+                Abc_InfoSetBit( p->pCexComb->pData, Gia_ObjCioId(pDri2) );
+            return 0;
+        }
+    }
+    if ( Gia_ManAndNum(p) == 0 )
+    {
+        Abc_Print( 1, "Networks are equivalent.  " );
+        Abc_PrintTime( 1, "Time", clock() - clk );
+        return 1;
+    }
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [New CEC engine.]
 
   Description []
@@ -140,6 +208,13 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     Gia_Man_t * p, * pNew;
     int RetValue, clk = clock();
     double clkTotal = clock();
+    // consider special cases:
+    // 1) (SAT) a pair of POs have different value under all-0 pattern
+    // 2) (SAT) a pair of POs has different PI/Const drivers
+    // 3) (UNSAT) 1-2 do not hold and there is no nodes
+    RetValue = Cec_ManHandleSpecialCases( pInit, pPars );
+    if ( RetValue == 0 || RetValue == 1 )
+        return RetValue;
     // preprocess 
     p = Gia_ManDup( pInit );
     Gia_ManEquivFixOutputPairs( p );
@@ -176,31 +251,10 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
         Gia_ManStop( pNew );
         pNew = p;
     }
-    if ( Gia_ManAndNum(pNew) == 0 )
-    {
-        Gia_Obj_t * pObj1, * pObj2;
-        int i;
-        Gia_ManForEachPo( pNew, pObj1, i )
-        {
-            pObj2 = Gia_ManPo( pNew, ++i );
-            if ( Gia_ObjChild0(pObj1) != Gia_ObjChild0(pObj2) )
-            {
-                Abc_Print( 1, "Networks are NOT EQUIVALENT. Outputs %d trivially differ.  ", i/2 );
-                Abc_PrintTime( 1, "Time", clock() - clk );
-                Gia_ManStop( pNew );
-                pPars->iOutFail = i/2;
-                return 0;
-            }
-        }
-        Abc_Print( 1, "Networks are equivalent.  " );
-        Abc_PrintTime( 1, "Time", clock() - clk );
-        Gia_ManStop( pNew );
-        return 1;
-    }
     if ( pPars->fVerbose )
     {
-    Abc_Print( 1, "Networks are UNDECIDED after the new CEC engine.  " );
-    Abc_PrintTime( 1, "Time", clock() - clk );
+        Abc_Print( 1, "Networks are UNDECIDED after the new CEC engine.  " );
+        Abc_PrintTime( 1, "Time", clock() - clk );
     }
     if ( fDumpUndecided )
     {
@@ -216,7 +270,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     }
     // call other solver
     if ( pPars->fVerbose )
-    Abc_Print( 1, "Calling the old CEC engine.\n" );
+        Abc_Print( 1, "Calling the old CEC engine.\n" );
     fflush( stdout );
     RetValue = Cec_ManVerifyOld( pNew, pPars->fVerbose, &pPars->iOutFail );
     p->pCexComb = pNew->pCexComb; pNew->pCexComb = NULL;

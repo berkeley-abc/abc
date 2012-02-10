@@ -24980,7 +24980,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         Abc_Print( 1, "Assuming the current network is a double-output miter. (Conflict limit = %d.)\n", pPars->nBTLimit );
-        Cec_ManVerify( pAbc->pGia, pPars );
+        pAbc->Status = Cec_ManVerify( pAbc->pGia, pPars );
+        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
         return 0;
     }
 
@@ -25017,7 +25018,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pMiter = Gia_ManMiter( pAbc->pGia, pSecond, 1, 0, pPars->fVerbose );
     if ( pMiter )
     {
-        Cec_ManVerify( pMiter, pPars );
+        pAbc->Status = Cec_ManVerify( pMiter, pPars );
+        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
         Gia_ManStop( pMiter );
     }
     Gia_ManStop( pSecond );
