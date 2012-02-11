@@ -395,7 +395,7 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
+void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintFlops )
 {
     Abc_Obj_t * pObj;
     int i;
@@ -410,6 +410,9 @@ void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
     Abc_NtkForEachPo( pNtk, pObj, i )
         fprintf( pFile, " %s", Abc_ObjName(pObj) );
     fprintf( pFile, "\n" );    
+
+    if ( !fPrintFlops )
+        return;
 
     fprintf( pFile, "Latches (%d):  ", Abc_NtkLatchNum(pNtk) );  
     Abc_NtkForEachLatch( pNtk, pObj, i )

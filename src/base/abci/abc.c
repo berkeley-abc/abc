@@ -1088,14 +1088,17 @@ int Abc_CommandPrintIo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Obj_t * pNode;
-    int c;
+    int c, fPrintFlops = 1;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            fPrintFlops ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -1127,12 +1130,13 @@ int Abc_CommandPrintIo( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // print the nodes
-    Abc_NtkPrintIo( stdout, pNtk );
+    Abc_NtkPrintIo( stdout, pNtk, fPrintFlops );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_io [-h] <node>\n" );
-    Abc_Print( -2, "\t        prints the PIs/POs or fanins/fanouts of a node\n" );
+    Abc_Print( -2, "usage: print_io [-fh] <node>\n" );
+    Abc_Print( -2, "\t        prints the PIs/POs/flops or fanins/fanouts of a node\n" );
+    Abc_Print( -2, "\t-f    : toggles printing flops [default = %s]\n", fPrintFlops? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tnode  : the node to print fanins/fanouts\n");
     return 1;
