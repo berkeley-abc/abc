@@ -64,6 +64,10 @@ struct Iso_Man_t_
     Vec_Ptr_t *   vClasses;       // other classes
     Vec_Ptr_t *   vTemp1;         // other classes
     Vec_Ptr_t *   vTemp2;         // other classes
+    int           timeHash;
+    int           timeFout;
+    int           timeOther;
+    int           timeTotal;
 };
 
 static inline Iso_Obj_t *  Iso_ManObj( Iso_Man_t * p, int i )            { assert( i >= 0 && i < p->nObjs ); return i ? p->pObjs + i : NULL;                     }
@@ -135,10 +139,20 @@ Iso_Man_t * Iso_ManStart( Aig_Man_t * pAig )
     p->nObjIds  = 1;
     return p;
 }
-void Iso_ManStop( Iso_Man_t * p )
+void Iso_ManStop( Iso_Man_t * p, int fVerbose )
 {
     Iso_Obj_t * pIso;
     int i;
+
+    if ( fVerbose )
+    {
+        p->timeOther = p->timeTotal - p->timeHash - p->timeFout;
+        ABC_PRTP( "Building ", p->timeFout,   p->timeTotal );
+        ABC_PRTP( "Hashing  ", p->timeHash,   p->timeTotal );
+        ABC_PRTP( "Other    ", p->timeOther,  p->timeTotal );
+        ABC_PRTP( "TOTAL    ", p->timeTotal,  p->timeTotal );
+    }
+
     Iso_ManForEachObj( p, pIso, i )
         Vec_IntFreeP( &pIso->vAllies );
     Vec_PtrFree( p->vTemp1 );
@@ -183,25 +197,7 @@ int Iso_ObjCompare( Iso_Obj_t ** pp1, Iso_Obj_t ** pp2 )
   SeeAlso     []
 
 ***********************************************************************/
-int Iso_ObjCompareById( Iso_Obj_t ** pp1, Iso_Obj_t ** pp2 )
-{
-    Iso_Obj_t * pIso1 = *pp1;
-    Iso_Obj_t * pIso2 = *pp2;
-    return pIso1->Id - pIso2->Id;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Compares two objects by their ID.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Iso_ObjCompareAigObjByData( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
+int Iso_ObjCompareByData( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 )
 {
     Aig_Obj_t * pIso1 = *pp1;
     Aig_Obj_t * pIso2 = *pp2;
@@ -229,6 +225,12 @@ static inline int Iso_ObjHash( Iso_Obj_t * pIso, int nBins )
     assert( ISO_NUM_INTS < 8 );
     for ( i = 0; i < ISO_NUM_INTS; i++ )
         Value ^= BigPrimes[i] * pArray[i];
+    if ( pIso->vAllies )
+    {
+        pArray = (unsigned *)Vec_IntArray(pIso->vAllies);
+        for ( i = 0; i < (unsigned)Vec_IntSize(pIso->vAllies); i++ )
+            Value ^= BigPrimes[i&7] * pArray[i];
+    }
     return Value % nBins;
 }
 static inline int Iso_ObjHashAdd( Iso_Man_t * p, Iso_Obj_t * pIso )
@@ -275,6 +277,8 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
     Vec_PtrClear( p->vSingles );
     Vec_PtrClear( p->vClasses );
     for ( i = 0; i < p->nBins; i++ )
+    {
+//        int Counter = 0;
         for ( pIso = Iso_ManObj(p, p->pBins[i]); pIso; pIso = Iso_ManObj(p, pIso->iNext) )
         {
             assert( pIso->Id == 0 );
@@ -282,7 +286,12 @@ void Iso_ManCollectClasses( Iso_Man_t * p )
                 Vec_PtrPush( p->vClasses, pIso );
             else 
                 Vec_PtrPush( p->vSingles, pIso );
+//            Counter++;
         }
+//        if ( Counter )
+//        printf( "%d ", Counter );
+    }
+//    printf( "\n" );
     Vec_PtrSort( p->vSingles, (int (*)(void))Iso_ObjCompare );
     Vec_PtrSort( p->vClasses, (int (*)(void))Iso_ObjCompare );
     assert( Vec_PtrSize(p->vSingles) == p->nSingles );
@@ -679,8 +688,8 @@ Vec_Int_t * Iso_ManFinalize( Iso_Man_t * p )
             Vec_PtrPush( p->vTemp1, pObj );
     }
     // sort CIs by their IDs
-    Vec_PtrSort( p->vTemp1, (int (*)(void))Iso_ObjCompareAigObjByData );
-    Vec_PtrSort( p->vTemp2, (int (*)(void))Iso_ObjCompareAigObjByData );
+    Vec_PtrSort( p->vTemp1, (int (*)(void))Iso_ObjCompareByData );
+    Vec_PtrSort( p->vTemp2, (int (*)(void))Iso_ObjCompareByData );
     // create the result
     vRes = Vec_IntAlloc( Aig_ManPiNum(p->pAig) );
     Vec_PtrForEachEntry( Aig_Obj_t *, p->vTemp1, pObj, i )
@@ -735,14 +744,19 @@ Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
 {
     Vec_Int_t * vRes;
     Iso_Man_t * p;
+    int clk, clk2 = clock();
     p = Iso_ManCreate( pAig );
     Iso_ManPrintClasses( p, fVerbose, 0 );
     while ( p->nClasses )
     {
         // assign adjacency to classes
+        clk = clock();
         Iso_ManAssignAdjacency( p );
+        p->timeFout += clock() - clk;
         // rehash the class nodes
+        clk = clock();
         Iso_ManRehashClassNodes( p );
+        p->timeHash += clock() - clk;
         Iso_ManPrintClasses( p, fVerbose, 0 );
         // force refinement
         while ( p->nSingles == 0 && p->nClasses )
@@ -750,18 +764,23 @@ Vec_Int_t * Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose )
             // assign IDs to the topmost level of classes
             Iso_ManBreakTies( p, fVerbose );
             // assign adjacency to classes
+            clk = clock();
             Iso_ManAssignAdjacency( p );
+            p->timeFout += clock() - clk;
             // rehash the class nodes
+            clk = clock();
             Iso_ManRehashClassNodes( p );
+            p->timeHash += clock() - clk;
             Iso_ManPrintClasses( p, fVerbose, 0 );
         }
     }
+    p->timeTotal = clock() - clk2;
 //    printf( "IDs assigned = %d.  Objects = %d.\n", p->nObjIds, 1+Aig_ManPiNum(p->pAig)+Aig_ManNodeNum(p->pAig) );
     assert( p->nObjIds == 1+Aig_ManPiNum(p->pAig)+Aig_ManNodeNum(p->pAig) );
 //    if ( p->nClasses )
 //        Iso_ManDumpOneClass( p );
     vRes = Iso_ManFinalize( p );
-    Iso_ManStop( p );
+    Iso_ManStop( p, fVerbose );
     return vRes;
 }
 

@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 Vec_Int_t * Saig_ManFindIsoPermCos( Aig_Man_t * pAig, Vec_Int_t * vPermCis )
 {
-    extern int Iso_ObjCompareAigObjByData( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 );
+    extern int Iso_ObjCompareByData( Aig_Obj_t ** pp1, Aig_Obj_t ** pp2 );
     Vec_Int_t * vPermCos;
     Aig_Obj_t * pObj, * pFanin;
     int i, Entry, Diff;
@@ -63,7 +63,7 @@ Vec_Int_t * Saig_ManFindIsoPermCos( Aig_Man_t * pAig, Vec_Int_t * vPermCis )
             pObj->iData = Abc_Var2Lit( pFanin->iData, Aig_ObjFaninC0(pObj) );
             Vec_PtrPush( vRoots, pObj );
         }
-        Vec_PtrSort( vRoots, (int (*)(void))Iso_ObjCompareAigObjByData );
+        Vec_PtrSort( vRoots, (int (*)(void))Iso_ObjCompareByData );
         Vec_PtrForEachEntry( Aig_Obj_t *, vRoots, pObj, i )
             Vec_IntPush( vPermCos, Aig_ObjPioNum(pObj) );
         Vec_PtrFree( vRoots );
@@ -433,8 +433,8 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     vBuffers = Vec_PtrAlloc( nPos );
     for ( i = 0; i < nPos; i++ )
     {
-//        if ( i % 100 == 0 )
-//            printf( "%d finished...\n", i );
+        if ( i % 100 == 0 )
+            printf( "%6d finished...\n", i );
         pPart = Saig_ManDupCones( pAig, &i, 1 );
         pTemp = Saig_ManDupIsoCanonical( pPart, 0 );
         vStr  = Ioa_WriteAigerIntoMemoryStr( pTemp );
