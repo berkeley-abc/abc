@@ -89,7 +89,7 @@ int n_latches()
     return -1;
 }
 
-bool has_comb_model()
+int has_comb_model()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -97,7 +97,7 @@ bool has_comb_model()
     return pNtk && pNtk->pModel;
 }
 
-bool has_seq_model()
+int has_seq_model()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -117,7 +117,7 @@ int prob_status()
     return Abc_FrameReadProbStatus(pAbc);
 }
 
-bool is_valid_cex()
+int is_valid_cex()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -125,7 +125,7 @@ bool is_valid_cex()
     return pNtk && Abc_FrameReadCex(pAbc) && Abc_NtkIsValidCex( pNtk, Abc_FrameReadCex(pAbc) );
 }
 
-bool is_true_cex()
+int is_true_cex()
 {
     Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -546,14 +546,14 @@ int n_latches();
 
 int run_command(char* cmd);
 
-bool has_comb_model();
-bool has_seq_model();
+int has_comb_model();
+int has_seq_model();
 
 int  n_bmc_frames();
 int  prob_status();
 
-bool is_valid_cex();
-bool is_true_cex();
+int is_valid_cex();
+int is_true_cex();
 int  n_cex_pis();
 int  n_cex_regs();
 int  cex_po();
