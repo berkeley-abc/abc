@@ -320,7 +320,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             return;
         }
         if ( FileType == IO_FILE_AIGER )
-            Io_WriteAiger( pNtk, pFileName, 1, 0 );
+            Io_WriteAiger( pNtk, pFileName, 1, 0, 0 );
         else //if ( FileType == IO_FILE_BAF )
             Io_WriteBaf( pNtk, pFileName );
         return;

@@ -3043,10 +3043,6 @@ SOURCE=.\src\aig\aig\aigInter.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigIso.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\aig\aigJust.c
 # End Source File
 # Begin Source File
@@ -3228,6 +3224,18 @@ SOURCE=.\src\aig\saig\saigInd.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigIoa.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigIso.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigIsoFast.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigIsoSlow.c
 # End Source File
 # Begin Source File
 

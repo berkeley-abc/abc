@@ -18,6 +18,9 @@ SRC +=    src/aig/saig/saigAbs.c \
     src/aig/saig/saigHaig.c \
     src/aig/saig/saigInd.c \
     src/aig/saig/saigIoa.c \
+    src/aig/saig/saigIso.c \
+    src/aig/saig/saigIsoFast.c \
+    src/aig/saig/saigIsoSlow.c \
     src/aig/saig/saigMiter.c \
     src/aig/saig/saigOutDec.c \
     src/aig/saig/saigPhase.c \

@@ -283,9 +283,8 @@ Vec_Str_t * Ioa_WriteEncodeLiterals( Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
-char * Ioa_WriteAigerIntoMemory( Aig_Man_t * pMan, int * pnSize )
+Vec_Str_t * Ioa_WriteAigerIntoMemoryStr( Aig_Man_t * pMan )
 {
-    char * pBuffer;
     Vec_Str_t * vBuffer;
     Aig_Obj_t * pObj, * pDriver;
     int nNodes, i, uLit, uLit0, uLit1; 
@@ -357,10 +356,28 @@ char * Ioa_WriteAigerIntoMemory( Aig_Man_t * pMan, int * pnSize )
         Ioa_WriteAigerEncodeStr( vBuffer, uLit  - uLit1 );
         Ioa_WriteAigerEncodeStr( vBuffer, uLit1 - uLit0 );
     }
-//    fprintf( pFile, "c" );
-//    if ( pMan->pName )
-//        fprintf( pFile, "n%s%c", pMan->pName, '\0' );
     Vec_StrPrintStr( vBuffer, "c" );
+    return vBuffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in into the memory buffer.]
+
+  Description [The resulting buffer constains the AIG in AIGER format. 
+  The returned size (pnSize) gives the number of bytes in the buffer. 
+  The resulting buffer should be deallocated by the user.]
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Ioa_WriteAigerIntoMemory( Aig_Man_t * pMan, int * pnSize )
+{
+    char * pBuffer;
+    Vec_Str_t * vBuffer;
+    vBuffer = Ioa_WriteAigerIntoMemoryStr( pMan );
     if ( pMan->pName )
     {
         Vec_StrPrintStr( vBuffer, "n" );

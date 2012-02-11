@@ -650,6 +650,26 @@ static inline void Vec_StrSort( Vec_Str_t * p, int fReverse )
                 (int (*)(const void *, const void *)) Vec_StrSortCompare1 );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_StrCompareVec( Vec_Str_t * p1, Vec_Str_t * p2 )
+{
+    if ( p1 == NULL || p2 == NULL )
+        return (p1 != NULL) - (p2 != NULL);
+    if ( Vec_StrSize(p1) != Vec_StrSize(p2) )
+        return Vec_StrSize(p1) - Vec_StrSize(p2);
+    return memcmp( Vec_StrArray(p1), Vec_StrArray(p2), Vec_StrSize(p1) );
+}
+
 
 
 ABC_NAMESPACE_HEADER_END

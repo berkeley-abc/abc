@@ -65,6 +65,7 @@ ABC_NAMESPACE_HEADER_START
 extern Aig_Man_t *    Ioa_ReadAigerFromMemory( char * pContents, int nFileSize, int fCheck );
 extern Aig_Man_t *    Ioa_ReadAiger( char * pFileName, int fCheck );
 /*=== ioaWriteAig.c =======================================================*/
+extern Vec_Str_t *    Ioa_WriteAigerIntoMemoryStr( Aig_Man_t * pMan );
 extern char *         Ioa_WriteAigerIntoMemory( Aig_Man_t * pMan, int * pnSize );
 extern void           Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
 /*=== ioaUtil.c =======================================================*/

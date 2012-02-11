@@ -278,6 +278,7 @@ static int Abc_CommandReconcile              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandCexMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDualRail               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBlockPo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIso                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandTraceStart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -690,6 +691,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "cexmin",        Abc_CommandCexMin,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "dualrail",      Abc_CommandDualRail,         1 );
     Cmd_CommandAdd( pAbc, "Verification", "blockpo",       Abc_CommandBlockPo,          1 );
+    Cmd_CommandAdd( pAbc, "Verification", "iso",           Abc_CommandIso,              1 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&get",          Abc_CommandAbc9Get,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&put",          Abc_CommandAbc9Put,          0 );
@@ -8839,17 +8841,26 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int Abc_NtkSuppSizeTest( Abc_Ntk_t * p );
     extern Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+    extern Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig );
     if ( pNtk )
     {
         Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
         Aig_Man_t * pRes;
-        Abc_Ntk_t * pNtkRes;
+//        Abc_Ntk_t * pNtkRes;
 //        Aig_ManInterRepar( pAig, 1 );
 //        Aig_ManInterTest( pAig, 1 );
 //        Aig_ManSupportsTest( pAig );
 //        Aig_SupportSizeTest( pAig );
+        if ( !fNewAlgo )
+            Saig_IsoDetectFast( pAig );
+        else
+        {
+            pRes = Iso_ManTest( pAig, fVerbose );
+            Aig_ManStopP( &pRes );
+        }
+
+/*
         pRes = Iso_ManTest( pAig, fVerbose );
-        Aig_ManStop( pAig );
         if ( pRes != NULL )
         {
             pNtkRes = Abc_NtkFromAigPhase( pRes );
@@ -8859,6 +8870,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             pNtkRes->pName = Extra_UtilStrsav(pNtk->pName);
             Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         }
+*/
+        Aig_ManStop( pAig );
     }
 }
 
@@ -21285,6 +21298,77 @@ usage:
     Abc_Print( -2, "\t         forces the miter outputs to be \"true\" in the first F frames\n" );
     Abc_Print( -2, "\t-F num : the number of time frames [default = %d]\n", nCycles );
     Abc_Print( -2, "\t-v     : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandIso( Abc_Frame_t * pAbc, int argc, char ** argv )
+{   
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+    Abc_Ntk_t * pNtk, * pNtkNew = NULL;
+    Aig_Man_t * pAig, * pTemp;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+
+    // check the main AIG
+    pNtk = Abc_FrameReadNtk(pAbc);
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Main AIG: There is no current network.\n");
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( 1, "Main AIG: The current network is not an AIG.\n");
+        return 0;
+    }
+    if ( Abc_NtkPoNum(pNtk) == 1 )
+    {
+        Abc_Print( 1, "Current AIG has only one PO. Transformation is not performed.\n");
+        return 0;
+    }
+
+    // transform
+    pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    pTemp = Saig_ManIsoReduce( pAig, fVerbose );
+    pNtkNew = Abc_NtkFromAigPhase( pTemp );
+    Aig_ManStop( pTemp );
+    Aig_ManStop( pAig );
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: iso [-vh]\n" );
+    Abc_Print( -2, "\t         removes POs with isomorphic sequential COI\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

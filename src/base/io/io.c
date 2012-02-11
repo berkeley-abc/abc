@@ -1382,12 +1382,16 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     int fWriteSymbols;
     int fCompact;
+    int fUnique;
+    int fVerbose;
     int c;
 
-    fCompact      = 1;
     fWriteSymbols = 0;
+    fCompact      = 1;
+    fUnique       = 0;
+    fVerbose      = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "sch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "scuvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1396,6 +1400,12 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'c':
                 fCompact ^= 1;
+                break;
+            case 'u':
+                fUnique ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -1418,14 +1428,29 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
         return 1;
     }
-    Io_WriteAiger( pAbc->pNtkCur, pFileName, fWriteSymbols, fCompact );
+    if ( fUnique )
+    {
+        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+        extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+        Aig_Man_t * pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        Aig_Man_t * pCan = Saig_ManDupIsoCanonical( pAig, fVerbose );
+        Abc_Ntk_t * pTemp = Abc_NtkFromAigPhase( pCan );
+        Aig_ManStop( pCan );
+        Aig_ManStop( pAig );
+        Io_WriteAiger( pTemp, pFileName, fWriteSymbols, fCompact, fUnique );
+        Abc_NtkDelete( pTemp );
+    }
+    else
+        Io_WriteAiger( pAbc->pNtkCur, pFileName, fWriteSymbols, fCompact, fUnique );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_aiger [-sch] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_aiger [-scuvh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the network in the AIGER format (http://fmv.jku.at/aiger)\n" );
     fprintf( pAbc->Err, "\t-s     : toggle saving I/O names [default = %s]\n", fWriteSymbols? "yes" : "no" );
     fprintf( pAbc->Err, "\t-c     : toggle writing more compactly [default = %s]\n", fCompact? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .aig)\n" );
     return 1;

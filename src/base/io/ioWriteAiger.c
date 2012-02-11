@@ -581,7 +581,7 @@ int fprintfBz2Aig( bz2file * b, char * fmt, ... ) {
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fCompact )
+void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fCompact, int fUnique )
 {
     ProgressBar * pProgress;
 //    FILE * pFile;
@@ -590,6 +590,13 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
     bz2file b;
+
+    // define unique writing
+    if ( fUnique )
+    {
+        fWriteSymbols = 0;
+        fCompact = 0;
+    }
 
     // check that the network is valid
     assert( Abc_NtkIsStrash(pNtk) );
@@ -750,10 +757,13 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
 
     // write the comment
     fprintfBz2Aig( &b, "c" );
-    if ( pNtk->pName && strlen(pNtk->pName) > 0 )
-        fprintfBz2Aig( &b, "\n%s%c", pNtk->pName, '\0' );
-    fprintfBz2Aig( &b, "\nThis file was written by ABC on %s\n", Extra_TimeStamp() );
-    fprintfBz2Aig( &b, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
+    if ( !fUnique )
+    {
+        if ( pNtk->pName && strlen(pNtk->pName) > 0 )
+            fprintfBz2Aig( &b, "\n%s%c", pNtk->pName, '\0' );
+        fprintfBz2Aig( &b, "\nThis file was written by ABC on %s\n", Extra_TimeStamp() );
+        fprintfBz2Aig( &b, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
+    }
 
     // close the file
     if (b.b) {

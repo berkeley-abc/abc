@@ -1259,6 +1259,26 @@ static inline void Vec_IntPrint( Vec_Int_t * vVec )
     printf( " }\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntCompareVec( Vec_Int_t * p1, Vec_Int_t * p2 )
+{
+    if ( p1 == NULL || p2 == NULL )
+        return (p1 != NULL) - (p2 != NULL);
+    if ( Vec_IntSize(p1) != Vec_IntSize(p2) )
+        return Vec_IntSize(p1) - Vec_IntSize(p2);
+    return memcmp( Vec_IntArray(p1), Vec_IntArray(p2), sizeof(int)*Vec_IntSize(p1) );
+}
+
 
 ABC_NAMESPACE_HEADER_END
 

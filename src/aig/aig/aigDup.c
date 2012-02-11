@@ -1342,6 +1342,43 @@ Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG with only one primary output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupNodes( Aig_Man_t * pMan, Vec_Ptr_t * vArray )
+{
+    Aig_Man_t * pNew;
+    Vec_Ptr_t * vObjs;
+    Aig_Obj_t * pObj;
+    int i;
+    if ( Vec_PtrSize(vArray) == 0 )
+        return NULL;
+    vObjs = Aig_ManDfsNodes( pMan, (Aig_Obj_t **)Vec_PtrArray(vArray), Vec_PtrSize(vArray) );
+    // create the new manager
+    pNew = Aig_ManStart( 10000 );
+    pNew->pName = Abc_UtilStrsav( pMan->pName );
+    Aig_ManConst1(pMan)->pData = Aig_ManConst1(pNew);
+    Vec_PtrForEachEntry( Aig_Obj_t *, vObjs, pObj, i )
+        if ( Aig_ObjIsPi(pObj) )
+            pObj->pData = Aig_ObjCreatePi(pNew);
+    Vec_PtrForEachEntry( Aig_Obj_t *, vObjs, pObj, i )
+        if ( Aig_ObjIsNode(pObj) )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    Vec_PtrForEachEntry( Aig_Obj_t *, vArray, pObj, i )
+            Aig_ObjCreatePo( pNew, pObj->pData );
+    Aig_ManSetRegNum( pNew, 0 );
+    Vec_PtrFree( vObjs );
+    return pNew;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

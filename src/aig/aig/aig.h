@@ -504,6 +504,7 @@ extern Aig_Man_t *     Aig_ManDupOrpos( Aig_Man_t * p, int fAddRegs );
 extern Aig_Man_t *     Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs );
 extern Aig_Man_t *     Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs );
 extern Aig_Man_t *     Aig_ManDupArray( Vec_Ptr_t * vArray );
+extern Aig_Man_t *     Aig_ManDupNodes( Aig_Man_t * pMan, Vec_Ptr_t * vArray );
 /*=== aigFanout.c ==========================================================*/
 extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );

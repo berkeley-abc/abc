@@ -182,6 +182,12 @@ extern int               Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int n
 /*=== saigIoa.c ==========================================================*/
 extern void              Saig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
+/*=== saigIso.c ==========================================================*/
+extern Vec_Int_t *       Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose );
+extern Aig_Man_t *       Saig_ManDupIsoCanonical( Aig_Man_t * pAig, int fVerbose );
+extern Aig_Man_t *       Saig_ManIsoReduce( Aig_Man_t * pAig, int fVerbose );
+/*=== saigIsoFast.c ==========================================================*/
+extern Vec_Vec_t *       Saig_IsoDetectFast( Aig_Man_t * pAig );
 /*=== saigMiter.c ==========================================================*/
 extern Sec_MtrStatus_t   Sec_MiterStatus( Aig_Man_t * p );
 extern Aig_Man_t *       Saig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper );
