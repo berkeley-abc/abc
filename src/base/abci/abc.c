@@ -26831,7 +26831,7 @@ usage:
     Abc_Print( -2, "\t-P num : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesPast );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
-    Abc_Print( -2, "\t-R num : stop when less than this %% of object is abstracted (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
+    Abc_Print( -2, "\t-R num : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-t     : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

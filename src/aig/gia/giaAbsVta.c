@@ -1521,7 +1521,7 @@ finish:
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
                 printf( "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
             else if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
-                printf( "Percentage of abstracted objects is less than %d in frame %d.  ", pPars->nRatioMin, f );
+                printf( "The ratio of abstracted objects is less than %d %% in frame %d.  ", pPars->nRatioMin, f );
             else
                 printf( "Abstraction stopped for unknown reason in frame %d.  ", f );
         }
@@ -1546,6 +1546,8 @@ finish:
     ABC_PRTP( "TOTAL       ", clock() - clk, clock() - clk );
 
     Vga_ManStop( p );
+
+    fflush( stdout );
     return RetValue;
 }
 
