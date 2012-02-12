@@ -26711,7 +26711,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFPCTtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFPCTRtvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26770,6 +26770,17 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 ) 
                 goto usage;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRatioMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRatioMin < 0 ) 
+                goto usage;
+            break;
         case 't':
             pPars->fUseTermVars ^= 1;
             break;
@@ -26813,13 +26824,14 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &vta [-SFPCT num] [-tvh]\n" );
+    Abc_Print( -2, "usage: &vta [-SFPCTR num] [-tvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-P num : the number of previous frames for UNSAT core [default = %d]\n", pPars->nFramesOver );
     Abc_Print( -2, "\t-C num : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
+    Abc_Print( -2, "\t-R num : stop when less than this %% of object is abstracted (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-t     : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

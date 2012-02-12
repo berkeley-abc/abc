@@ -146,10 +146,11 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
 {
     memset( p, 0, sizeof(Gia_ParVta_t) );
     p->nFramesStart  =    5;   // starting frame 
-    p->nFramesOver   =    2;   // overlap frames
+    p->nFramesOver   =    4;   // overlap frames
     p->nFramesMax    =    0;   // maximum frames
     p->nConfLimit    =    0;   // conflict limit
     p->nTimeOut      =    0;   // timeout in seconds
+    p->nRatioMin     =   10;   // stop when less than this % of object is abstracted
     p->fUseTermVars  =    0;   // use terminal variables
     p->fVerbose      =    0;   // verbose flag
     p->iFrame        =   -1;   // the number of frames covered 
@@ -647,6 +648,7 @@ void Vta_ManSatVerify( Vta_Man_t * p )
 ***********************************************************************/
 Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
 {
+    int fVerify = 0;
     Abc_Cex_t * pCex = NULL;
     Vec_Int_t * vOrder, * vTermsToAdd;
     Vec_Ptr_t * vTermsUsed, * vTermsUnused;
@@ -654,6 +656,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     Gia_Obj_t * pObj;
     int i, Counter;
 
+    if ( fVerify )
     Vta_ManSatVerify( p );
 
     // collect nodes in a topological order
@@ -666,6 +669,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     }
 
     // verify
+    if ( fVerify )
     Vta_ManForEachObjObjVec( vOrder, p, pThis, pObj, i )
     {
         if ( !pThis->fAdded )
@@ -884,6 +888,8 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     }
 
 
+    if ( fVerify )
+    {
     // verify
     Vta_ManForEachObjVec( vOrder, p, pThis, i )
         pThis->Value = VTA_VARX;
@@ -948,6 +954,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         printf( "Vta_ManRefineAbstraction(): Terminary simulation verification failed!\n" );
 //    else
 //        printf( "Verification OK.\n" );
+    }
 
 
     // produce true counter-example
@@ -1400,8 +1407,10 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     // perform initial abstraction
     if ( p->pPars->fVerbose )
     {
-        printf( "Running VTA with FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d.\n", 
-            p->pPars->nFramesStart, p->pPars->nFramesOver, p->pPars->nFramesMax, p->pPars->nConfLimit, p->pPars->nTimeOut );
+        printf( "Running variable-timeframe abstraction (VTA) with the following parameters:\n" );
+        printf( "FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
+            p->pPars->nFramesStart, p->pPars->nFramesOver, p->pPars->nFramesMax, 
+            p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
         printf( "Frame   Abs   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
     }
     for ( f = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
@@ -1489,6 +1498,12 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         // print the result
         if ( p->pPars->fVerbose )
             Vta_ManAbsPrintFrame( p, vCore, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
+        // chech if the number of objects is below limit
+        if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
+        {
+            Status = -1;
+            break;
+        }
     }
 finish:
     // analize the results
@@ -1505,8 +1520,10 @@ finish:
                 printf( "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
             else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
                 printf( "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+            else if ( p->nSeenGla >= Gia_ManCandNum(pAig) * (100-pPars->nRatioMin) / 100 )
+                printf( "Percentage of abstracted objects is less than %d in frame %d.  ", pPars->nRatioMin, f );
             else
-                printf( "SAT solver ran out of resources in frame %d.  ", f );
+                printf( "Abstraction stopped for unknown reason in frame %d.  ", f );
         }
         else
             printf( "SAT solver completed %d frames and produced an abstraction.  ", f );
