@@ -205,6 +205,7 @@ struct Gia_ParVta_t_
     int            nFramesStart;  // starting frame 
     int            nFramesPast;   // overlap frames
     int            nConfLimit;    // conflict limit
+    int            nLearntMax;    // max number of learned clauses
     int            nTimeOut;      // timeout in seconds
     int            nRatioMin;     // stop when less than this % of object is abstracted
     int            fUseTermVars;  // use terminal variables

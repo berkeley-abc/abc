@@ -183,9 +183,12 @@ static inline void proof_chain_resolve( sat_solver2* s, satset* cls, int Var )
 {
     if ( s->fProofLogging )
     {
+//        int CapOld = (&s->proofs)->cap;
         satset* c = cls ? cls : var_unit_clause( s, Var );
         veci_push(&s->proofs, clause_proofid(s, c, var_is_partA(s,Var)) );
 //        printf( "%d %d  ", clause_proofid(s, c), Var );
+//        if ( (&s->proofs)->cap > CapOld )
+//            printf( "Resized proof from %d to %d.\n", CapOld, (&s->proofs)->cap );
     }
 }
 
@@ -1006,46 +1009,6 @@ int sat_solver2_simplify(sat_solver2* s)
     return (solver2_propagate(s) == NULL);
 }
 
-/*
- 
-void solver2_reducedb(sat_solver2* s)
-{
-    satset* c;
-    cla Cid;
-    int clk = clock();
-
-    // sort the clauses by activity
-    int nLearnts = veci_size(&s->claActs) - 1;
-    extern int * Abc_SortCost( int * pCosts, int nSize );
-    int * pPerm, * pCosts = veci_begin(&s->claActs);
-    pPerm = Abc_SortCost( pCosts, veci_size(&s->claActs) );
-    assert( pCosts[pPerm[1]] <= pCosts[pPerm[veci_size(&s->claActs)-1]] );
-
-    // mark clauses to be removed
-    {
-        double   extra_limD = (double)s->cla_inc / nLearnts; // Remove any clause below this activity
-        unsigned extra_lim  = (extra_limD < 1.0) ? 1 : (int)extra_limD;
-        unsigned * pActs = (unsigned *)veci_begin(&s->claActs);
-        int k = 1, Counter = 0;
-        sat_solver_foreach_learnt( s, c, Cid )
-        {
-            assert( c->Id == k );
-            c->mark = 0;
-            if ( c->nEnts > 2 && lit_reason(s,c->pEnts[0]) != Cid && (k < nLearnts/2 || pActs[k] < extra_lim) )
-            {
-                c->mark = 1;
-                Counter++;
-            }
-            k++;
-        }
-printf( "ReduceDB removed %10d clauses (out of %10d)... Cutoff = %8d  ", Counter, nLearnts, extra_lim );
-Abc_PrintTime( 1, "Time", clock() - clk );
-    }
-    ABC_FREE( pPerm );
-}
-*/
-
-
 static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
 {
     double  random_var_freq = s->fNotUseRandom ? 0.0 : 0.02;
@@ -1119,6 +1082,10 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
                 // Simplify the set of problem clauses:
 //                sat_solver2_simplify(s);
 
+            // Reduce the set of learnt clauses:
+//            if (s->nLearntMax > 0 && s->stats.learnts >= (unsigned)s->nLearntMax)
+//                sat_solver2_reducedb(s);
+
             // New variable decision:
             s->stats.decisions++;
             next = order_select(s,(float)random_var_freq);
@@ -1130,15 +1097,6 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
                     s->model[i] = (var_value(s,i)==var1 ? l_True : l_False);
                 solver2_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
-
-                /*
-                veci apa; veci_new(&apa);
-                for (i = 0; i < s->size; i++) 
-                    veci_push(&apa,(int)(s->model.ptr[i] == l_True ? toLit(i) : lit_neg(toLit(i))));
-                printf("model: "); printlits((lit*)apa.ptr, (lit*)apa.ptr + veci_size(&apa)); printf("\n");
-                veci_delete(&apa);
-                */
-
                 return l_True;
             }
 
@@ -1193,6 +1151,7 @@ sat_solver2* sat_solver2_new(void)
 #endif
     s->fSkipSimplify  =  1;
     s->fNotUseRandom  =  0;
+    s->nLearntMax     =  0;  
 
     // prealloc clause
     assert( !s->clauses.ptr );
@@ -1430,25 +1389,34 @@ void luby2_test()
     for ( i = 0; i < 20; i++ )
         printf( "%d ", (int)luby2(2,i) );
     printf( "\n" );
-}
+} 
 
 
 // updates clauses, watches, units, and proof
-void solver2_reducedb(sat_solver2* s)
+void sat_solver2_reducedb(sat_solver2* s)
 {
-    satset * c;
-    cla h,* pArray,* pArray2;
-    int Counter = 0, CounterStart = s->stats.learnts * 3 / 4; // 2/3;
-    int i, j, k, hTemp, hHandle, clk = clock();
     static int TimeTotal = 0;
+    cla h,* pArray,* pArray2;
+    satset * c, * pivot;
+    int Counter, CounterStart;
+    int i, j, k, hTemp, hHandle, clk = clock();
+
+    if ( s->nLearntMax == 0 || s->stats.learnts < (unsigned)s->nLearntMax )
+        return;
+
+    CounterStart   = s->stats.learnts - (s->nLearntMax / 3);
+    s->nLearntMax = s->nLearntMax * 11 / 10;
 
     // remove 2/3 of learned clauses while skipping small clauses
+    Counter = 0;
     veci_resize( &s->learnt_live, 0 );
     sat_solver_foreach_learnt( s, c, h )
-        if ( Counter++ > CounterStart || c->nEnts < 3 )
+    {
+        if ( Counter++ > CounterStart || c->nEnts < 3 || s->reasons[lit_var(c->pEnts[0])] == (h<<1)+1 )
             veci_push( &s->learnt_live, h );
         else
             c->mark = 1;
+    }
     // report the results
     printf( "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ", 
         veci_size(&s->learnt_live), s->stats.learnts, 100.0 * veci_size(&s->learnt_live) / s->stats.learnts );
@@ -1468,6 +1436,15 @@ void solver2_reducedb(sat_solver2* s)
     veci_resize(&s->claProofs,veci_size(&s->learnt_live)+1);
     veci_resize(&s->claActs,veci_size(&s->learnt_live)+1);
 
+    // update reason clauses
+    for ( i = 0; i < s->size; i++ )
+        if ( s->reasons[i] && (s->reasons[i] & 1) )
+        {
+            c = clause_read( s, s->reasons[i] );
+            assert( c->mark == 0 );
+            s->reasons[i] = (c->Id << 1) | 1;
+        }
+
     // compact watches 
     for ( i = 0; i < s->size*2; i++ )
     {
@@ -1483,12 +1460,22 @@ void solver2_reducedb(sat_solver2* s)
     if ( s->fProofLogging )
     for ( i = 0; i < s->size; i++ )
         if ( s->units[i] && (s->units[i] & 1) )
-            s->units[i] = (clause_read(s, s->units[i])->Id << 1) | 1;
+        {
+            c = clause_read( s, s->units[i] );
+            assert( c->mark == 0 );
+            s->units[i] = (c->Id << 1) | 1;
+        }
     // compact clauses
+    pivot = satset_read( &s->learnts, s->hLearntPivot );
     satset_foreach_entry_vec( &s->learnt_live, &s->learnts, c, i )
     {
         hTemp = c->Id; c->Id = i + 1;
         memmove( veci_begin(&s->learnts) + hTemp, c, sizeof(int)*satset_size(c->nEnts) );
+        if ( pivot && pivot <= c )
+        {
+            s->hLearntPivot = hTemp;
+            pivot = NULL;
+        }
     }
     assert( hHandle == hTemp + satset_size(c->nEnts) );
     veci_resize(&s->learnts,hHandle);
@@ -1496,7 +1483,7 @@ void solver2_reducedb(sat_solver2* s)
 
     // compact proof (compacts 'proofs' and update 'claProofs')
     if ( s->fProofLogging )
-    Sat_ProofReduce( s );
+        Sat_ProofReduce( s );
 
     TimeTotal += clock() - clk;
     Abc_PrintTime( 1, "Time", TimeTotal );
@@ -1607,7 +1594,7 @@ void sat_solver2_rollback( sat_solver2* s )
         s->hLearntLast    = -1; // the last learnt clause 
         s->hProofLast     = -1; // the last proof ID
         s->hClausePivot   =  1; // the pivot among clauses
-        s->hLearntPivot   =  1; // the pivot moang learned clauses
+        s->hLearntPivot   =  1; // the pivot among learned clauses
         s->iVarPivot      =  0; // the pivot among the variables
         s->iSimpPivot     =  0; // marker of unit-clauses
     }
@@ -1671,7 +1658,6 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
 {
     int restart_iter = 0;
     ABC_INT64_T  nof_conflicts;
-    ABC_INT64_T  nof_learnts   = sat_solver2_nclauses(s) / 3;
     lbool status = l_Undef;
     int proof_id;
     lit * i;
@@ -1786,8 +1772,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 (double)s->stats.conflicts,
                 (double)s->stats.clauses, 
                 (double)s->stats.clauses_literals,
-//                (double)nof_learnts, 
-                (double)0, 
+                (double)s->nLearntMax, 
                 (double)s->stats.learnts, 
                 (double)s->stats.learnts_literals,
                 (s->stats.learnts == 0)? 0.0 : (double)s->stats.learnts_literals / s->stats.learnts,
@@ -1796,12 +1781,8 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         }
         if ( s->nRuntimeLimit && time(NULL) > s->nRuntimeLimit )
             break;
-         // reduce the set of learnt clauses:
-        if (nof_learnts > 0 && s->stats.learnts > nof_learnts)
-        {
-//            solver2_reducedb(s);
-            nof_learnts = nof_learnts * 11 / 10;
-        }
+        // reduce the set of learnt clauses:
+        sat_solver2_reducedb(s);
         // perform next run
         nof_conflicts = (ABC_INT64_T)( 100 * luby2(2, restart_iter++) );
         status = solver2_search(s, nof_conflicts);

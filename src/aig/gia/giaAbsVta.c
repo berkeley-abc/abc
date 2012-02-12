@@ -145,15 +145,16 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
 {
     memset( p, 0, sizeof(Gia_ParVta_t) );
-    p->nFramesMax    =    0;   // maximum frames
-    p->nFramesStart  =    5;   // starting frame 
-    p->nFramesPast   =    4;   // overlap frames
-    p->nConfLimit    =    0;   // conflict limit
-    p->nTimeOut      =    0;   // timeout in seconds
-    p->nRatioMin     =   10;   // stop when less than this % of object is abstracted
-    p->fUseTermVars  =    1;   // use terminal variables
-    p->fVerbose      =    0;   // verbose flag
-    p->iFrame        =   -1;   // the number of frames covered 
+    p->nFramesMax    =      0;   // maximum frames
+    p->nFramesStart  =      5;   // starting frame 
+    p->nFramesPast   =      4;   // overlap frames
+    p->nConfLimit    =      0;   // conflict limit
+    p->nLearntMax    =  10000;   // max number of learned clauses
+    p->nTimeOut      =      0;   // timeout in seconds
+    p->nRatioMin     =     10;   // stop when less than this % of object is abstracted
+    p->fUseTermVars  =      1;   // use terminal variables
+    p->fVerbose      =      0;   // verbose flag
+    p->iFrame        =     -1;   // the number of frames covered 
 }
 
 /**Function*************************************************************
@@ -1401,6 +1402,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
     // start the manager
     p = Vga_ManStart( pAig, pPars );
+    sat_solver2_set_learntmax( p->pSat, pPars->nLearntMax );
     // set runtime limit
     if ( p->pPars->nTimeOut )
         sat_solver2_set_runtime_limit( p->pSat, time(NULL) + p->pPars->nTimeOut - 1 );
@@ -1432,6 +1434,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
             // create bookmark to be used for rollback
             int nObjOld = p->nObjs;
+//            sat_solver2_reducedb( p->pSat );
             sat_solver2_bookmark( p->pSat );
             Vec_IntClear( p->vAddedNew );
             // load the time frame

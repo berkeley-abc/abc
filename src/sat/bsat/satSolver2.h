@@ -47,6 +47,7 @@ extern int          sat_solver2_addclause(sat_solver2* s, lit* begin, lit* end);
 extern int          sat_solver2_simplify(sat_solver2* s);
 extern int          sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, ABC_INT64_T nConfLimitGlobal, ABC_INT64_T nInsLimitGlobal);
 extern void         sat_solver2_rollback(sat_solver2* s);
+extern void         sat_solver2_reducedb(sat_solver2* s);
 
 extern void         sat_solver2_setnvars(sat_solver2* s,int n);
 
@@ -101,6 +102,7 @@ struct sat_solver2_t
     unsigned*       activity;       // A heuristic measurement of the activity of a variable.
 #endif
 
+    int             nLearntMax;     // enables using reduce DB method
     int             fNotUseRandom;  // do not allow random decisions with a fixed probability
     int             fSkipSimplify;  // set to one to skip simplification of the clause database
     int             fProofLogging;  // enable proof-logging
@@ -115,6 +117,7 @@ struct sat_solver2_t
     int             hLearntPivot;   // the pivot among learned clause
     int             iVarPivot;      // the pivot among the variables
     int             iSimpPivot;     // marker of unit-clauses
+    int             nof_learnts;    // the number of clauses to trigger reduceDB
 
     veci            claActs;        // clause activities
     veci            claProofs;      // clause proofs
@@ -232,16 +235,23 @@ static inline int sat_solver2_final(sat_solver2* s, int ** ppArray)
 
 static inline int sat_solver2_set_runtime_limit(sat_solver2* s, int Limit)
 {
-    int nRuntimeLimit = s->nRuntimeLimit;
+    int temp = s->nRuntimeLimit;
     s->nRuntimeLimit = Limit;
-    return nRuntimeLimit;
+    return temp;
 }
 
 static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
 {
-    int fNotUseRandomOld = s->fNotUseRandom;
+    int temp = s->fNotUseRandom;
     s->fNotUseRandom = fNotUseRandom;
-    return fNotUseRandomOld;
+    return temp;
+}
+
+static inline int sat_solver2_set_learntmax(sat_solver2* s, int nLearntMax)
+{
+    int temp = s->nLearntMax;
+    s->nLearntMax = nLearntMax;
+    return temp;
 }
 
 static inline void sat_solver2_bookmark(sat_solver2* s)
