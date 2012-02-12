@@ -427,6 +427,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     Vec_Int_t * vLevel, * vRemain;
     Vec_Str_t * vStr, * vPrev;
     int i, nPos, nUnique = 0, clk = clock();
+    int clkDup = 0, clkAig = 0, clkIso = 0, clk2;
 
     // derive AIG for each PO
     nPos = Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig);
@@ -434,10 +435,20 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     for ( i = 0; i < nPos; i++ )
     {
         if ( i % 100 == 0 )
-            printf( "%6d finished...\n", i );
+            printf( "%6d finished...\r", i );
+
+        clk2 = clock();
         pPart = Saig_ManDupCones( pAig, &i, 1 );
+        clkDup += clock() - clk2;
+
+        clk2 = clock();
         pTemp = Saig_ManDupIsoCanonical( pPart, 0 );
+        clkIso += clock() - clk2;
+
+        clk2 = clock();
         vStr  = Ioa_WriteAigerIntoMemoryStr( pTemp );
+        clkAig += clock() - clk2;
+
         Vec_PtrPush( vBuffers, vStr );
         Aig_ManStop( pTemp );
         Aig_ManStop( pPart );
@@ -446,7 +457,11 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     }
 //    s_Counter = 0;
     if ( fVerbose )
-    Abc_PrintTime( 1, "Isomorph time", clock() - clk );
+    {
+    Abc_PrintTime( 1, "Duplicate time", clkDup );
+    Abc_PrintTime( 1, "Isomorph  time", clkIso );
+    Abc_PrintTime( 1, "AIGER     time", clkAig );
+    }
 
     // sort the infos
     clk = clock();
@@ -471,7 +486,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     Vec_VecFree( (Vec_Vec_t *)vBuffers );
 
     if ( fVerbose )
-    Abc_PrintTime( 1, "Sorting  time", clock() - clk );
+    Abc_PrintTime( 1, "Sorting   time", clock() - clk );
 //    Abc_PrintTime( 1, "Traversal time", time_Trav );
 
     // report the results
