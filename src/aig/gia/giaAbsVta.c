@@ -146,10 +146,10 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
 {
     memset( p, 0, sizeof(Gia_ParVta_t) );
     p->nFramesStart  =    5;   // starting frame 
-    p->nFramesMax    =   10;   // maximum frames
-    p->nFramesOver   =    3;   // overlap frames
+    p->nFramesOver   =    2;   // overlap frames
+    p->nFramesMax    =    0;   // maximum frames
     p->nConfLimit    =    0;   // conflict limit
-    p->nTimeOut      =   60;   // timeout in seconds
+    p->nTimeOut      =    0;   // timeout in seconds
     p->fUseTermVars  =    0;   // use terminal variables
     p->fVerbose      =    0;   // verbose flag
     p->iFrame        =   -1;   // the number of frames covered 
@@ -1138,48 +1138,78 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
   SeeAlso     []
 
 ***********************************************************************/
-void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nCexes, int fVerbose )
+void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, int Time )
 {
     unsigned * pInfo;
     int * pCountAll, * pCountUni;
     int i, k, iFrame, iObj, Entry;
     // print info about frames
-    pCountAll = ABC_CALLOC( int, nFrames + 1 );
-    pCountUni = ABC_CALLOC( int, nFrames + 1 );
-    Vec_IntForEachEntry( vCore, Entry, i )
+    if ( vCore )
     {
-        iObj   = (Entry &  p->nObjMask);
-        iFrame = (Entry >> p->nObjBits);
-        assert( iFrame < nFrames );
-        pInfo  = (unsigned *)Vec_IntEntryP( p->vSeens, p->nWords * iObj );
-        if ( !Abc_InfoHasBit(pInfo, iFrame) )
+        pCountAll = ABC_CALLOC( int, nFrames + 1 );
+        pCountUni = ABC_CALLOC( int, nFrames + 1 );
+        Vec_IntForEachEntry( vCore, Entry, i )
         {
-            Abc_InfoSetBit( pInfo, iFrame );
-            pCountUni[iFrame+1]++;
-            pCountUni[0]++;
-        }
-        pCountAll[iFrame+1]++;
-        pCountAll[0]++;
-        if ( !Vec_BitEntry(p->vSeenGla, iObj) )
-        {
-            Vec_BitWriteEntry(p->vSeenGla, iObj, 1);
-            p->nSeenGla++;
+            iObj   = (Entry &  p->nObjMask);
+            iFrame = (Entry >> p->nObjBits);
+            assert( iFrame < nFrames );
+            pInfo  = (unsigned *)Vec_IntEntryP( p->vSeens, p->nWords * iObj );
+            if ( !Abc_InfoHasBit(pInfo, iFrame) )
+            {
+                Abc_InfoSetBit( pInfo, iFrame );
+                pCountUni[iFrame+1]++;
+                pCountUni[0]++;
+            }
+            pCountAll[iFrame+1]++;
+            pCountAll[0]++;
+            if ( !Vec_BitEntry(p->vSeenGla, iObj) )
+            {
+                Vec_BitWriteEntry(p->vSeenGla, iObj, 1);
+                p->nSeenGla++;
+            }
         }
     }
-    if ( fVerbose )
+//    printf( "%5d%5d", pCountAll[0], pCountUni[0] ); 
+    printf( "%3d :", nFrames-1 );
+    printf( "%6d", p->nSeenGla ); 
+    printf( "%8d", nConfls ); 
+    printf( "%5d", nCexes ); 
+    if ( vCore == NULL )
     {
-    //    printf( "%5d%5d", pCountAll[0], pCountUni[0] ); 
-        printf( "%6d", p->nSeenGla ); 
-        printf( "%5d", nCexes ); 
+        printf( "    ..." ); 
+        for ( k = 0; k < 10; k++ )
+            printf( "     " );
+        printf( "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
+        printf( "\r" );
+    }
+    else
+    {
         printf( "%7d", pCountAll[0] ); 
-        for ( k = 0; k < nFrames; k++ )
-    //        printf( "%5d%5d  ", pCountAll[k+1], pCountUni[k+1] ); 
-            printf( "%5d", pCountAll[k+1] ); 
+        if ( nFrames > 10 )
+        {
+            for ( k = 0; k < 4; k++ )
+                printf( "%5d", pCountAll[k+1] ); 
+            printf( "  ..." );
+            for ( k = nFrames-5; k < nFrames; k++ )
+                printf( "%5d", pCountAll[k+1] ); 
+        }
+        else
+        {
+            for ( k = 0; k < nFrames; k++ )
+                printf( "%5d", pCountAll[k+1] ); 
+            for ( k = nFrames; k < 10; k++ )
+                printf( "     " );
+        }
+        printf( "%9.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC) );
         printf( "\n" );
-        fflush( stdout );
     }
-    ABC_FREE( pCountAll );
-    ABC_FREE( pCountUni );
+    fflush( stdout );
+
+    if ( vCore )
+    {
+        ABC_FREE( pCountAll );
+        ABC_FREE( pCountUni );
+    }
 }
 
 /**Function*************************************************************
@@ -1364,13 +1394,19 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
     // start the manager
     p = Vga_ManStart( pAig, pPars );
+    // set runtime limit
+    if ( p->pPars->nTimeOut )
+        sat_solver2_set_runtime_limit( p->pSat, time(NULL) + p->pPars->nTimeOut - 1 );
     // perform initial abstraction
     if ( p->pPars->fVerbose )
-        printf( "Frame  Confl  One  Cex    All   F0   F1   F2   F3  ...\n" );
+    {
+        printf( "Running VTA with FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d.\n", 
+            p->pPars->nFramesStart, p->pPars->nFramesOver, p->pPars->nFramesMax, p->pPars->nConfLimit, p->pPars->nTimeOut );
+        printf( "Frame   Abs   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
+    }
     for ( f = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
-        if ( p->pPars->fVerbose )
-            printf( "%3d :", f );
+        int nConflsBeg = sat_solver2_nconflicts(p->pSat);
         p->pPars->iFrame = f;
         // realloc storage for abstraction marks
         if ( f == p->nWords * 32 )
@@ -1413,6 +1449,9 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 p->timeCex += clock() - clk2;
                 if ( pCex != NULL )
                     goto finish;
+                // print the result
+                if ( p->pPars->fVerbose )
+                    Vta_ManAbsPrintFrame( p, NULL, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
             }
             assert( Status == 1 );
             // valid core is obtained
@@ -1431,8 +1470,6 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         clk2 = clock();
         vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
         p->timeUnsat += clock() - clk2;
-        if ( p->pPars->fVerbose )
-            printf( "%6d", nConfls );
         assert( (vCore != NULL) == (Status == 1) );
         if ( Status == -1 ) // resource limit is reached
             break;
@@ -1450,7 +1487,8 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         Vec_IntSort( vCore, 1 );
         Vec_PtrPush( p->vCores, vCore );
         // print the result
-        Vta_ManAbsPrintFrame( p, vCore, f+1, i, p->pPars->fVerbose );
+        if ( p->pPars->fVerbose )
+            Vta_ManAbsPrintFrame( p, vCore, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
     }
 finish:
     // analize the results
@@ -1462,7 +1500,14 @@ finish:
         Vec_IntFreeP( &pAig->vObjClasses );
         pAig->vObjClasses = Gia_VtaFramesToAbs( (Vec_Vec_t *)p->vCores );
         if ( Status == -1 )
-            printf( "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+        {
+            if ( p->pPars->nTimeOut && time(NULL) >= p->pSat->nRuntimeLimit ) 
+                printf( "SAT solver ran out of time at %d sec in frame %d.  ", p->pPars->nTimeOut, f );
+            else if ( pPars->nConfLimit && sat_solver2_nconflicts(p->pSat) >= pPars->nConfLimit )
+                printf( "SAT solver ran out of resources at %d conflicts in frame %d.  ", pPars->nConfLimit, f );
+            else
+                printf( "SAT solver ran out of resources in frame %d.  ", f );
+        }
         else
             printf( "SAT solver completed %d frames and produced an abstraction.  ", f );
     }
