@@ -201,9 +201,9 @@ struct Gia_ParSim_t_
 typedef struct Gia_ParVta_t_ Gia_ParVta_t;
 struct Gia_ParVta_t_
 {
-    int            nFramesStart;  // starting frame 
     int            nFramesMax;    // maximum frames
-    int            nFramesOver;   // overlap frames
+    int            nFramesStart;  // starting frame 
+    int            nFramesPast;   // overlap frames
     int            nConfLimit;    // conflict limit
     int            nTimeOut;      // timeout in seconds
     int            nRatioMin;     // stop when less than this % of object is abstracted

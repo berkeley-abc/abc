@@ -145,13 +145,13 @@ extern void Vga_ManAddClausesOne( Vta_Man_t * p, int iObj, int iFrame );
 void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
 {
     memset( p, 0, sizeof(Gia_ParVta_t) );
-    p->nFramesStart  =    5;   // starting frame 
-    p->nFramesOver   =    4;   // overlap frames
     p->nFramesMax    =    0;   // maximum frames
+    p->nFramesStart  =    5;   // starting frame 
+    p->nFramesPast   =    4;   // overlap frames
     p->nConfLimit    =    0;   // conflict limit
     p->nTimeOut      =    0;   // timeout in seconds
     p->nRatioMin     =   10;   // stop when less than this % of object is abstracted
-    p->fUseTermVars  =    0;   // use terminal variables
+    p->fUseTermVars  =    1;   // use terminal variables
     p->fVerbose      =    0;   // verbose flag
     p->iFrame        =   -1;   // the number of frames covered 
 }
@@ -1409,7 +1409,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     {
         printf( "Running variable-timeframe abstraction (VTA) with the following parameters:\n" );
         printf( "FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
-            p->pPars->nFramesStart, p->pPars->nFramesOver, p->pPars->nFramesMax, 
+            p->pPars->nFramesStart, p->pPars->nFramesPast, p->pPars->nFramesMax, 
             p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
         printf( "Frame   Abs   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
     }
@@ -1435,7 +1435,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             sat_solver2_bookmark( p->pSat );
             Vec_IntClear( p->vAddedNew );
             // load the time frame
-            for ( i = 1; i <= Abc_MinInt(p->pPars->nFramesOver, p->pPars->nFramesStart); i++ )
+            for ( i = 1; i <= Abc_MinInt(p->pPars->nFramesPast, p->pPars->nFramesStart); i++ )
                 Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vCores, f-i), i );
             // iterate as long as there are counter-examples
             for ( i = 0; ; i++ )
