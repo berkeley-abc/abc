@@ -498,33 +498,53 @@ static inline int solver2_assume(sat_solver2* s, lit l)
 }
 
 static void solver2_canceluntil(sat_solver2* s, int level) {
-    lit*     trail;   
     int      bound;
     int      lastLev;
     int      c, x;
    
-    if (solver2_dlevel(s) < level)
+    if (solver2_dlevel(s) <= level)
         return;
+    assert( solver2_dlevel(s) > 0 );
 
-    trail   = s->trail;
     bound   = (veci_begin(&s->trail_lim))[level];
     lastLev = (veci_begin(&s->trail_lim))[veci_size(&s->trail_lim)-1];
 
     for (c = s->qtail-1; c >= bound; c--) 
     {
-        x = lit_var(trail[c]);
+        x = lit_var(s->trail[c]);
         var_set_value(s, x, varX);
         s->reasons[x] = 0;
         s->units[x] = 0; // temporary?
         if ( c < lastLev )
-            var_set_polar(s, x, !lit_sign(trail[c]));
+            var_set_polar(s, x, !lit_sign(s->trail[c]));
     }
 
     for (c = s->qhead-1; c >= bound; c--)
-        order_unassigned(s,lit_var(trail[c]));
+        order_unassigned(s,lit_var(s->trail[c]));
 
     s->qhead = s->qtail = bound;
     veci_resize(&s->trail_lim,level);
+}
+
+static void solver2_canceluntil_rollback(sat_solver2* s, int NewBound) {
+    int      c, x;
+   
+    assert( solver2_dlevel(s) == 0 );
+    assert( s->qtail == s->qhead );
+    assert( s->qtail >= NewBound );
+
+    for (c = s->qtail-1; c >= NewBound; c--) 
+    {
+        x = lit_var(s->trail[c]);
+        var_set_value(s, x, varX);
+        s->reasons[x] = 0;
+        s->units[x] = 0; // temporary?
+    }
+
+    for (c = s->qhead-1; c >= NewBound; c--)
+        order_unassigned(s,lit_var(s->trail[c]));
+
+    s->qhead = s->qtail = NewBound;
 }
 
 
@@ -1513,9 +1533,8 @@ void sat_solver2_rollback( sat_solver2* s )
         }
     }
     // reset implication queue
-    assert( (&s->trail_lim)->ptr[0] >= s->iSimpPivot );
-    (&s->trail_lim)->ptr[0] = s->iSimpPivot;
-    solver2_canceluntil( s, 0 );
+    assert( solver2_dlevel(s) == 0 );
+    solver2_canceluntil_rollback( s, s->iSimpPivot );
     // reset problem clauses
     if ( s->hClausePivot < veci_size(&s->clauses) )
     {

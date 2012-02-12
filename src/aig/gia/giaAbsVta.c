@@ -654,7 +654,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
     Gia_Obj_t * pObj;
     int i, Counter;
 
-//    Vta_ManSatVerify( p );
+    Vta_ManSatVerify( p );
 
     // collect nodes in a topological order
     vOrder = Vta_ManCollectNodes( p, f );
@@ -664,7 +664,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         pThis->Value = sat_solver2_var_value(p->pSat, Vta_ObjId(p, pThis)) ? VTA_VAR1 : VTA_VAR0;
         pThis->fVisit = 0;
     }
-/*
+
     // verify
     Vta_ManForEachObjObjVec( vOrder, p, pThis, pObj, i )
     {
@@ -691,7 +691,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             else assert( 0 );
         }
     }
-*/
+
     // compute distance in reverse order
     pThis = Vta_ManObj( p, Vec_IntEntryLast(vOrder) );
     pThis->Prio  = 1;
@@ -883,7 +883,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             assert( 0 );
     }
 
-/*
+
     // verify
     Vta_ManForEachObjVec( vOrder, p, pThis, i )
         pThis->Value = VTA_VARX;
@@ -948,7 +948,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         printf( "Vta_ManRefineAbstraction(): Terminary simulation verification failed!\n" );
 //    else
 //        printf( "Verification OK.\n" );
-*/
+
 
     // produce true counter-example
     if ( pTop->Prio == 0 )
