@@ -868,11 +868,15 @@ Hop_Obj_t * Abc_RecToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, 
 //      return Abc_NodeTruthToHop(pMan, pIfMan, pCut);
     Kit_TruthCopy(pInOut, If_CutTruth(pCut), pCut->nLimit);
     //special cases when cut-minimization return 2, that means there is only one leaf in the cut.
+    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 0) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 1))
+        return Hop_ManConst0(pMan);
+    if ((Kit_TruthIsConst0(pInOut, nLeaves) && pCut->fCompl == 1) || (Kit_TruthIsConst1(pInOut, nLeaves) && pCut->fCompl == 0))
+        return Hop_ManConst1(pMan);
     if (Kit_TruthSupport(pInOut, nLeaves) != Kit_BitMask(nLeaves))
-    {
+    {   
         for (i = 0; i < nLeaves; i++)
             if(Kit_TruthVarInSupport( pInOut, nLeaves, i ))
-                return Hop_IthVar(pMan, i);
+                return Hop_NotCond(Hop_IthVar(pMan, i), (pCut->fCompl ^ ((*pInOut & 0x01) > 0)));
     }
     
     for (i = 0; i < nLeaves; i++)
@@ -2792,11 +2796,23 @@ int If_CutDelayRecCost(If_Man_t* p, If_Cut_t* pCut, If_Obj_t * pObj)
     //if not every variables are in the support, skip this cut.
     if ( Kit_TruthSupport(pInOut, nLeaves) != Kit_BitMask(nLeaves) )
     {
+        DelayMin = 0;
         //s_pMan->nFunsFilteredBysupport++;
         pCut->fUser = 1;
         pCut->fUseless = 0;
-        pCut->Cost = 0;
-        return 0;
+        pCut->Cost = 1;
+        for (i = 0; i < nLeaves; i++)
+        {
+            if(Kit_TruthVarInSupport( pInOut, nLeaves, i ))
+            {
+                pCut->pPerm[i] = 0;
+                DelayMin = If_ObjCutBest(If_ManObj( p, pCut->pLeaves[i]))->Delay;
+            }
+            else
+                pCut->pPerm[i] = IF_BIG_CHAR;
+        }
+            
+        return DelayMin;
     }
     timeCanonicize = clock();
     //canonicize
