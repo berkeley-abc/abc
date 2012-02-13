@@ -149,7 +149,7 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
     p->nFramesStart  =      5;   // starting frame 
     p->nFramesPast   =      4;   // overlap frames
     p->nConfLimit    =      0;   // conflict limit
-    p->nLearntMax    =  10000;   // max number of learned clauses
+    p->nLearntMax    =      0;   // max number of learned clauses
     p->nTimeOut      =      0;   // timeout in seconds
     p->nRatioMin     =     10;   // stop when less than this % of object is abstracted
     p->fUseTermVars  =      1;   // use terminal variables
@@ -1415,7 +1415,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
         printf( "Frame   Abs   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
     }
-    for ( f = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
+    for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
         int nConflsBeg = sat_solver2_nconflicts(p->pSat);
         p->pPars->iFrame = f;
@@ -1423,10 +1423,8 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         if ( f == p->nWords * 32 )
             p->nWords = Vec_IntDoubleWidth( p->vSeens, p->nWords );
         // check this timeframe
-        i = 0; 
         if ( f < p->pPars->nFramesStart )
         {
-//            printf( " Adding %8d  ", Vec_IntSize(Vec_PtrEntry(p->vFrames, f)) );
             Vga_ManAddClausesOne( p, 0, f );
             Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
         }

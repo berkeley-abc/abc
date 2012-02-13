@@ -1037,7 +1037,6 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             if (solver2_dlevel(s) <= s->root_level){
                 proof_id = solver2_analyze_final(s, confl, 0);
                 assert( proof_id > 0 );
-//                solver2_record(s,&s->conf_final, proof_id);
                 s->hProofLast = proof_id;
                 veci_delete(&learnt_clause);
                 return l_False;
@@ -1093,8 +1092,11 @@ static lbool solver2_search(sat_solver2* s, ABC_INT64_T nof_conflicts)
             if (next == var_Undef){
                 // Model found:
                 int i;
-                for (i = 0; i < s->size; i++) 
+                for (i = 0; i < s->size; i++)
+                {
+                    assert( var_value(s,i) != varX );
                     s->model[i] = (var_value(s,i)==var1 ? l_True : l_False);
+                }
                 solver2_canceluntil(s,s->root_level);
                 veci_delete(&learnt_clause);
                 return l_True;
@@ -1493,14 +1495,16 @@ void sat_solver2_reducedb(sat_solver2* s)
 void sat_solver2_rollback( sat_solver2* s )
 {
     int i, k, j;
-    assert( s->qhead == s->qtail );
+    assert( s->iVarPivot >= 0 && s->iVarPivot <= s->size );
+    assert( s->iSimpPivot >= 0 && s->iSimpPivot <= s->qtail );
     assert( s->hClausePivot >= 1 && s->hClausePivot <= veci_size(&s->clauses) );
     assert( s->hLearntPivot >= 1 && s->hLearntPivot <= veci_size(&s->learnts) );
-    assert( s->iVarPivot >= 0 && s->iVarPivot <= s->size );
-    veci_resize(&s->order, 0);
-    if ( s->hClausePivot > 1 || s->hLearntPivot > 1 )
+    // reset implication queue
+    solver2_canceluntil_rollback( s, s->iSimpPivot );
+    // update order 
+    if ( s->iVarPivot < s->size )
     { 
-        // update order 
+        veci_resize(&s->order, 0);
         for ( i = 0; i < s->iVarPivot; i++ )
         {
             if ( var_value(s, i) != varX )
@@ -1509,7 +1513,10 @@ void sat_solver2_rollback( sat_solver2* s )
             veci_push(&s->order,i);
             order_update(s, i);
         }
-        // compact watches
+    }
+    // compact watches
+    if ( s->hClausePivot > 1 || s->hLearntPivot > 1 )
+    {
         for ( i = 0; i < s->size*2; i++ )
         {
             cla* pArray = veci_begin(&s->wlists[i]);
@@ -1519,9 +1526,6 @@ void sat_solver2_rollback( sat_solver2* s )
             veci_resize(&s->wlists[i],j);
         }
     }
-    // reset implication queue
-    assert( solver2_dlevel(s) == 0 );
-    solver2_canceluntil_rollback( s, s->iSimpPivot );
     // reset problem clauses
     if ( s->hClausePivot < veci_size(&s->clauses) )
     {
@@ -1557,6 +1561,7 @@ void sat_solver2_rollback( sat_solver2* s )
         s->activity[i] = (1<<10);
 #endif
         s->model   [i] = 0; 
+        s->orderpos[i] = -1;
     }
     s->size = s->iVarPivot;
     // initialize other vars
@@ -1613,7 +1618,7 @@ int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
             if ( (pArray[k] >> 1) == Hand )
             {
                 if ( fVerbose )
-                printf( "Clause found in list %d.\n", k );
+                printf( "Clause found in list %d at position.\n", i, k );
                 Found = 1;
                 break;
             }
@@ -1621,12 +1626,12 @@ int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
     if ( Found == 0 )
     {
         if ( fVerbose )
-        printf( "Clause with hand %d is not found.\n", Hand );
+        printf( "Clause with handle %d is not found.\n", Hand );
     }
     return Found;
 }
 
-// verify that all clauses are satisfied
+// verify that all problem clauses are satisfied
 void sat_solver2_verify( sat_solver2* s )
 {
     satset * c;
@@ -1738,7 +1743,6 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
                 if (var_level(s, lit_var(p)) > 0) 
                     veci_push(&s->conf_final, p);
             }
-//            solver2_record(s, &s->conf_final, proof_id, 1);
             s->hProofLast = proof_id;
             solver2_canceluntil(s, 0);
             return l_False; 
@@ -1749,7 +1753,6 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
             if (confl != NULL){
                 proof_id = solver2_analyze_final(s, confl, 0);
                 assert(s->conf_final.size > 0);
-//                solver2_record(s,&s->conf_final, proof_id, 1);
                 s->hProofLast = proof_id;
                 solver2_canceluntil(s, 0);
                 return l_False; 
