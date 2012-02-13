@@ -106,6 +106,7 @@ struct sat_solver2_t
     int             fNotUseRandom;  // do not allow random decisions with a fixed probability
     int             fSkipSimplify;  // set to one to skip simplification of the clause database
     int             fProofLogging;  // enable proof-logging
+    int             fVerbose;
 
     // clauses
     veci            clauses;        // clause memory
@@ -237,13 +238,6 @@ static inline int sat_solver2_set_runtime_limit(sat_solver2* s, int Limit)
 {
     int temp = s->nRuntimeLimit;
     s->nRuntimeLimit = Limit;
-    return temp;
-}
-
-static inline int sat_solver2_set_random(sat_solver2* s, int fNotUseRandom)
-{
-    int temp = s->fNotUseRandom;
-    s->fNotUseRandom = fNotUseRandom;
     return temp;
 }
 

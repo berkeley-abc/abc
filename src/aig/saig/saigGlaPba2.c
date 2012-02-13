@@ -516,7 +516,7 @@ Vec_Int_t * Aig_Gla3ManPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, in
         Aig_Gla3ManStop( p );
         return NULL;
     }
-    sat_solver2_set_random( p->pSat, fSkipRand );
+    p->pSat->fNotUseRandom = fSkipRand;
     p->timePre += clock() - clk;
 
     // set runtime limit

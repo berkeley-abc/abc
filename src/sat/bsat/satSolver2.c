@@ -1153,7 +1153,8 @@ sat_solver2* sat_solver2_new(void)
 #endif
     s->fSkipSimplify  =  1;
     s->fNotUseRandom  =  0;
-    s->nLearntMax     =  0;  
+    s->nLearntMax     =  0;
+    s->fVerbose       =  0;
 
     // prealloc clause
     assert( !s->clauses.ptr );
@@ -1220,7 +1221,6 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         *((int*)s->vi + var) = 0; //s->vi[var].val = varX;
         s->levels  [var] = 0;
         s->assigns [var] = varX;
-        s->orderpos[var] = veci_size(&s->order);
         s->reasons [var] = 0;        
         if ( s->fProofLogging )
         s->units   [var] = 0;        
@@ -1232,6 +1232,7 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
         s->model   [var] = 0; 
         // does not hold because variables enqueued at top level will not be reinserted in the heap
         // assert(veci_size(&s->order) == var); 
+        s->orderpos[var] = veci_size(&s->order);
         veci_push(&s->order,var);
         order_update(s, var);
     }
@@ -1420,6 +1421,7 @@ void sat_solver2_reducedb(sat_solver2* s)
             c->mark = 1;
     }
     // report the results
+    if ( s->fVerbose )
     printf( "reduceDB: Keeping %7d out of %7d clauses (%5.2f %%)  ", 
         veci_size(&s->learnt_live), s->stats.learnts, 100.0 * veci_size(&s->learnt_live) / s->stats.learnts );
 
@@ -1488,6 +1490,7 @@ void sat_solver2_reducedb(sat_solver2* s)
         Sat_ProofReduce( s );
 
     TimeTotal += clock() - clk;
+    if ( s->fVerbose )
     Abc_PrintTime( 1, "Time", TimeTotal );
 }
 
@@ -1548,6 +1551,7 @@ void sat_solver2_rollback( sat_solver2* s )
     // reset watcher lists
     for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
+    // clean the room
     for ( i = s->iVarPivot; i < s->size; i++ )
     {
         *((int*)s->vi + i) = 0;

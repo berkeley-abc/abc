@@ -1402,6 +1402,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
     assert( pPars->nFramesMax == 0 || pPars->nFramesStart <= pPars->nFramesMax );
     // start the manager
     p = Vga_ManStart( pAig, pPars );
+    p->pSat->fVerbose = p->pPars->fVerbose;
     sat_solver2_set_learntmax( p->pSat, pPars->nLearntMax );
     // set runtime limit
     if ( p->pPars->nTimeOut )
