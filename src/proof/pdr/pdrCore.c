@@ -432,7 +432,7 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
             return 0; // SAT
         if ( p->nQueLim && p->nQueCur >= p->nQueLim )
         {
-            p->nQueLim = p->nQueLim * 11 / 10;
+            p->nQueLim = p->nQueLim * 3 / 2;
             Pdr_QueueStop( p );
             return 1; // restart
         }
