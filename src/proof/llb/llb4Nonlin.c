@@ -127,13 +127,24 @@ DdNode * Llb_Nonlin4ComputeBad( DdManager * dd, Aig_Man_t * pAig, Vec_Int_t * vO
         bCube = Cudd_ReadOne(dd);  Cudd_Ref( bCube );
         Saig_ManForEachPi( pAig, pObj, i )
         {
-            bCube = Cudd_bddAnd( dd, bTemp = bCube, (DdNode *)pObj->pData );  Cudd_Ref( bCube );
+            bCube = Cudd_bddAnd( dd, bTemp = bCube, (DdNode *)pObj->pData );  
+            if ( bCube == NULL )
+            {
+                Cudd_RecursiveDeref( dd, bTemp );
+                Cudd_RecursiveDeref( dd, bResult );
+                bResult = NULL;
+                break;
+            }
+            Cudd_Ref( bCube );
             Cudd_RecursiveDeref( dd, bTemp );
         }
-        bResult = Cudd_bddExistAbstract( dd, bTemp = bResult, bCube );  Cudd_Ref( bResult );
-        Cudd_RecursiveDeref( dd, bTemp );
-        Cudd_RecursiveDeref( dd, bCube );
-        Cudd_Deref( bResult );
+        if ( bResult != NULL )
+        {
+            bResult = Cudd_bddExistAbstract( dd, bTemp = bResult, bCube );  Cudd_Ref( bResult );
+            Cudd_RecursiveDeref( dd, bTemp );
+            Cudd_RecursiveDeref( dd, bCube );
+            Cudd_Deref( bResult );
+        }
     }
 //if ( bResult )
 //printf( "Bad state = %d.\n", Cudd_DagSize(bResult) );
