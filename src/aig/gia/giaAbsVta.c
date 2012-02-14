@@ -62,6 +62,7 @@ struct Vta_Man_t_
     Vec_Int_t *   vSeens;       // seen objects
     Vec_Bit_t *   vSeenGla;     // seen objects in all frames
     int           nSeenGla;     // seen objects in all frames
+    int           nSeenAll;     // seen objects in all frames
     // other data
     Vec_Int_t *   vCla2Var;     // map clauses into variables
     Vec_Ptr_t *   vCores;       // unsat core for each frame
@@ -149,7 +150,7 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
     p->nFramesStart  =      5;   // starting frame 
     p->nFramesPast   =      4;   // overlap frames
     p->nConfLimit    =      0;   // conflict limit
-    p->nLearntMax    =      0;   // max number of learned clauses
+    p->nLearntMax    =  15000;   // max number of learned clauses
     p->nTimeOut      =      0;   // timeout in seconds
     p->nRatioMin     =     10;   // stop when less than this % of object is abstracted
     p->fUseTermVars  =      1;   // use terminal variables
@@ -968,6 +969,8 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             if ( !Gia_ObjIsPi(p->pGia, pObj) )
                 Vga_ManAddClausesOne( p, pThis->iObj, pThis->iFrame );
         sat_solver2_simplify( p->pSat );
+
+//        printf( "VecCla grew to %d.       \n\n", Vec_IntSize(p->vCla2Var) );
     }
     Vec_IntFree( vTermsToAdd );
     return pCex;
@@ -1005,6 +1008,7 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
     p->vSeens      = Vec_IntStart( Gia_ManObjNum(pGia) * p->nWords );
     p->vSeenGla    = Vec_BitStart( Gia_ManObjNum(pGia) );
     p->nSeenGla    = 1;
+    p->nSeenAll    = 1;
     // start the abstraction
     if ( pGia->vObjClasses == NULL )
         p->vFrames = Gia_ManUnrollAbs( pGia, pPars->nFramesStart );
@@ -1167,6 +1171,7 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nC
                 Abc_InfoSetBit( pInfo, iFrame );
                 pCountUni[iFrame+1]++;
                 pCountUni[0]++;
+                p->nSeenAll++;
             }
             pCountAll[iFrame+1]++;
             pCountAll[0]++;
@@ -1180,8 +1185,12 @@ void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nC
 //    printf( "%5d%5d", pCountAll[0], pCountUni[0] ); 
     printf( "%3d :", nFrames-1 );
     printf( "%6d", p->nSeenGla ); 
-    printf( "%8d", nConfls ); 
-    printf( "%5d", nCexes ); 
+    printf( "%4d", Abc_MinInt(100, 100 * p->nSeenAll / (p->nSeenGla * nFrames)) ); 
+    printf( "%8d", nConfls );
+    if ( nCexes == 0 )
+        printf( "%5c", '-' ); 
+    else
+        printf( "%5d", nCexes ); 
     if ( vCore == NULL )
     {
         printf( "    ..." ); 
@@ -1414,7 +1423,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         printf( "FrameStart = %d  FramePast = %d  FrameMax = %d  Conf = %d  Timeout = %d. RatioMin = %d %%.\n", 
             p->pPars->nFramesStart, p->pPars->nFramesPast, p->pPars->nFramesMax, 
             p->pPars->nConfLimit, p->pPars->nTimeOut, pPars->nRatioMin );
-        printf( "Frame   Abs   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
+        printf( "Frame   Abs   %%   Confl  Cex   Core   F0   F1   F2   F3  ...\n" );
     }
     for ( f = i = 0; !p->pPars->nFramesMax || f < p->pPars->nFramesMax; f++ )
     {
@@ -1428,6 +1437,8 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
             Vga_ManAddClausesOne( p, 0, f );
             Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
+
+//            printf( "VecCla grew ttto %d.        \n\n", Vec_IntSize(p->vCla2Var) );
         }
         else
         {

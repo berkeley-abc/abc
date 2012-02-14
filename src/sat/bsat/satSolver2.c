@@ -1399,23 +1399,35 @@ void luby2_test()
 void sat_solver2_reducedb(sat_solver2* s)
 {
     static int TimeTotal = 0;
-    cla h,* pArray,* pArray2;
     satset * c, * pivot;
-    int Counter, CounterStart;
+    cla h,* pArray,* pArray2;
+    int * pPerm, * pClaAct, nClaAct, ActCutOff;
     int i, j, k, hTemp, hHandle, clk = clock();
+    int Counter, CounterStart;
 
+    // check if it is time to reduce
     if ( s->nLearntMax == 0 || s->stats.learnts < (unsigned)s->nLearntMax )
         return;
-
-    CounterStart   = s->stats.learnts - (s->nLearntMax / 3);
     s->nLearntMax = s->nLearntMax * 11 / 10;
 
-    // remove 2/3 of learned clauses while skipping small clauses
+    // preserve 1/10 of last clauses
+    CounterStart  = s->stats.learnts - (s->nLearntMax / 10);
+
+    // preserve 1/10 of most active clauses
+    pClaAct = veci_begin(&s->claActs) + 1;
+    nClaAct = veci_size(&s->claActs) - 1;
+    pPerm = Abc_SortCost( pClaAct, nClaAct );
+    assert( pClaAct[pPerm[0]] <= pClaAct[pPerm[nClaAct-1]] );
+    ActCutOff = pClaAct[pPerm[nClaAct*9/10]];
+    ABC_FREE( pPerm );
+//    ActCutOff = ABC_INFINITY;
+
+    // mark learned clauses to remove
     Counter = 0;
     veci_resize( &s->learnt_live, 0 );
     sat_solver_foreach_learnt( s, c, h )
     {
-        if ( Counter++ > CounterStart || c->nEnts < 3 || s->reasons[lit_var(c->pEnts[0])] == (h<<1)+1 )
+        if ( Counter++ > CounterStart || c->nEnts < 3 || pClaAct[c->Id-1] >= ActCutOff || s->reasons[lit_var(c->pEnts[0])] == (h<<1)+1 )
             veci_push( &s->learnt_live, h );
         else
             c->mark = 1;
@@ -1471,6 +1483,7 @@ void sat_solver2_reducedb(sat_solver2* s)
         }
     // compact clauses
     pivot = satset_read( &s->learnts, s->hLearntPivot );
+    s->hLearntPivot = hHandle;
     satset_foreach_entry_vec( &s->learnt_live, &s->learnts, c, i )
     {
         hTemp = c->Id; c->Id = i + 1;
@@ -1484,6 +1497,8 @@ void sat_solver2_reducedb(sat_solver2* s)
     assert( hHandle == hTemp + satset_size(c->nEnts) );
     veci_resize(&s->learnts,hHandle);
     s->stats.learnts = veci_size(&s->learnt_live);
+    assert( s->hLearntPivot <= veci_size(&s->learnts) );
+    assert( s->hClausePivot <= veci_size(&s->clauses) );
 
     // compact proof (compacts 'proofs' and update 'claProofs')
     if ( s->fProofLogging )
@@ -1551,24 +1566,9 @@ void sat_solver2_rollback( sat_solver2* s )
     // reset watcher lists
     for ( i = 2*s->iVarPivot; i < 2*s->size; i++ )
         s->wlists[i].size = 0;
-    // clean the room
-    for ( i = s->iVarPivot; i < s->size; i++ )
-    {
-        *((int*)s->vi + i) = 0;
-        s->levels  [i] = 0;
-        s->assigns [i] = varX;
-        s->reasons [i] = 0;        
-        s->units   [i] = 0;        
-#ifdef USE_FLOAT_ACTIVITY2
-        s->activity[i] = 0;
-#else
-        s->activity[i] = (1<<10);
-#endif
-        s->model   [i] = 0; 
-        s->orderpos[i] = -1;
-    }
-    s->size = s->iVarPivot;
+
     // initialize other vars
+    s->size = s->iVarPivot;
     if ( s->size == 0 )
     {
     //    s->size                   = 0;

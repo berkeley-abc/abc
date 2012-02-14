@@ -44,7 +44,11 @@ static inline void veci_new (veci* v) {
 static inline void   veci_delete (veci* v)          { ABC_FREE(v->ptr);   }
 static inline int*   veci_begin  (veci* v)          { return v->ptr;  }
 static inline int    veci_size   (veci* v)          { return v->size; }
-static inline void   veci_resize (veci* v, int k)   { assert(k <= v->size); v->size = k;         } // only safe to shrink !!
+static inline void   veci_resize (veci* v, int k)   { 
+    assert(k <= v->size); 
+//    memset( veci_begin(v) + k, -1, sizeof(int) * (veci_size(v) - k) );
+    v->size = k;         
+} // only safe to shrink !!
 static inline int    veci_pop    (veci* v)          { assert(v->size); return v->ptr[--v->size]; }
 static inline void   veci_push   (veci* v, int e)
 {
