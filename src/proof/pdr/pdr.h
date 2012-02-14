@@ -44,6 +44,7 @@ struct Pdr_Par_t_
     int nRecycle;     // limit on vars for recycling
     int nFrameMax;    // limit on frame count
     int nConfLimit;   // limit on SAT solver conflicts
+    int nRestLimit;   // limit on the number of proof-obligations
     int nTimeOut;     // timeout in seconds
     int fTwoRounds;   // use two rounds for generalization
     int fMonoCnf;     // monolythic CNF

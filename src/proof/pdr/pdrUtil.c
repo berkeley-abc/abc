@@ -500,6 +500,7 @@ Pdr_Obl_t * Pdr_QueuePop( Pdr_Man_t * p )
         return NULL;
     p->pQueue = p->pQueue->pLink;
     Pdr_OblDeref( pRes );
+    p->nQueCur--;
     return pRes;
 }
 
@@ -518,6 +519,8 @@ void Pdr_QueuePush( Pdr_Man_t * p, Pdr_Obl_t * pObl )
 {
     Pdr_Obl_t * pTemp, ** ppPrev;
     p->nObligs++;
+    p->nQueCur++;
+    p->nQueMax = Abc_MaxInt( p->nQueMax, p->nQueCur );
     Pdr_OblRef( pObl );
     if ( p->pQueue == NULL )
     {
@@ -569,6 +572,7 @@ void Pdr_QueueStop( Pdr_Man_t * p )
         Pdr_OblDeref( pObl );
     }
     p->pQueue = NULL;
+    p->nQueCur = 0;
 }
 
 

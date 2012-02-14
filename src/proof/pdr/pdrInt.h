@@ -107,6 +107,9 @@ struct Pdr_Man_t_
     int         nCasesSU;
     int         nCasesUS;
     int         nCasesUU;
+    int         nQueCur;
+    int         nQueMax;
+    int         nQueLim;
     // runtime
     int         timeStart;
     int         timeToStop;

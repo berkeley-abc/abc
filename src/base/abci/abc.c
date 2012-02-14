@@ -20783,7 +20783,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OMFCTrmsdgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OMFCRTrmsdgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20829,6 +20829,17 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nRestLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nRestLimit < 0 ) 
                 goto usage;
             break;
         case 'T':
@@ -20904,14 +20915,15 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-OMFCT<num] [-rmsdgvwh]\n" );
-    Abc_Print( -2, "\t         model checking using property directed reachability (aka ic3)\n" );
+    Abc_Print( -2, "usage: pdr [-OMFCRT<num] [-rmsdgvwh]\n" );
+    Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron Bradley (http://ecee.colorado.edu/~bradleya/ic3/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
     Abc_Print( -2, "\t-O num : the zero-based number of the primary output to solve [default = all]\n" );
-    Abc_Print( -2, "\t-M num : number of unused vars to trigger SAT solver recycling [default = %d]\n", pPars->nRecycle );
-    Abc_Print( -2, "\t-F num : number of timeframes explored to stop computation [default = %d]\n", pPars->nFrameMax );
-    Abc_Print( -2, "\t-C num : number of conflicts in a SAT call (0 = no limit) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-M num : limit on unused vars to trigger SAT solver recycling [default = %d]\n", pPars->nRecycle );
+    Abc_Print( -2, "\t-F num : limit on timeframes explored to stop computation [default = %d]\n", pPars->nFrameMax );
+    Abc_Print( -2, "\t-C num : limit on conflicts in one SAT call (0 = no limit) [default = %d]\n", pPars->nConfLimit );
+    Abc_Print( -2, "\t-R num : limit on proof obligations before a restart (0 = no limit) [default = %d]\n", pPars->nRestLimit );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds (0 = no limit) [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n", pPars->fTwoRounds? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle using monolythic CNF computation [default = %s]\n", pPars->fMonoCnf? "yes": "no" );

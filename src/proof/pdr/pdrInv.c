@@ -46,7 +46,6 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
 {
-    static int PastSize;
     Vec_Ptr_t * vVec;
     int i, ThisSize, Length, LengthStart;
     if ( Vec_PtrSize(p->vSolvers) < 2 )
@@ -56,9 +55,9 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
     Vec_VecForEachLevel( p->vClauses, vVec, i )
         Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
     // determine the starting point
-    LengthStart = Abc_MaxInt( 0, Length - 70 );
+    LengthStart = Abc_MaxInt( 0, Length - 60 );
     printf( "%3d :", Vec_PtrSize(p->vSolvers)-1 );
-    ThisSize = 6;
+    ThisSize = 5;
     if ( LengthStart > 0 )
     {
         printf( " ..." );
@@ -76,18 +75,13 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, int Time )
         Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
         ThisSize += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
     }
+    for ( i = ThisSize; i < 70; i++ )
+        printf( " " );
+    printf( "%6d", p->nQueMax );
+    printf(" %8.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC));
+    printf("%s", fClose ? "\n":"\r" );
     if ( fClose )
-    {
-        for ( i = 0; i < PastSize - ThisSize; i++ )
-            printf( " " );
-        printf( "\n" );
-    }
-    else
-    {
-        printf( "\r" );
-        PastSize = ThisSize;
-    }
-//    printf(" %.2f sec", (float)(Time)/(float)(CLOCKS_PER_SEC));
+        p->nQueMax = 0;
 }
 
 /**Function*************************************************************

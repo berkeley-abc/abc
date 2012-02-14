@@ -50,6 +50,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->nFrameMax     =    5000;  // limit on number of timeframes
     pPars->nTimeOut      =       0;  // timeout in seconds
     pPars->nConfLimit    =  100000;  // limit on SAT solver conflicts
+    pPars->nRestLimit    =       0;  // limit on the number of proof-obligations
     pPars->fTwoRounds    =       0;  // use two rounds for generalization
     pPars->fMonoCnf      =       0;  // monolythic CNF
     pPars->fDumpInv      =       0;  // dump inductive invariant
@@ -429,6 +430,12 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
         pThis = Pdr_QueueHead( p );
         if ( pThis->iFrame == 0 )
             return 0; // SAT
+        if ( p->nQueLim && p->nQueCur >= p->nQueLim )
+        {
+            p->nQueLim = p->nQueLim * 11 / 10;
+            Pdr_QueueStop( p );
+            return 1; // restart
+        }
         pThis = Pdr_QueuePop( p );
         assert( pThis->iFrame > 0 );
         assert( !Pdr_SetIsInit(pThis->pState, -1) );
@@ -584,12 +591,15 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 p->pPars->iFrame = k;
                 return 0; // SAT
             }
+            if ( p->pPars->fVerbose ) 
+                Pdr_ManPrintProgress( p, 0, clock() - clkStart );
         }
         else
         {
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 1, clock() - clkStart );
             // open a new timeframe
+            p->nQueLim = p->pPars->nRestLimit;
             assert( pCube == NULL );
             Pdr_ManSetPropertyOutput( p, k );
             Pdr_ManCreateSolver( p, ++k );
@@ -619,7 +629,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             }
             if ( p->pPars->fVerbose ) 
                 Pdr_ManPrintProgress( p, 0, clock() - clkStart );
-            clkStart = clock();
+//            clkStart = clock();
         }
 
         // check the timeout
@@ -696,6 +706,14 @@ int Pdr_ManSolve_( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t ** pvPrioInit,
 ***********************************************************************/
 int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars, Abc_Cex_t ** ppCex )
 {
+//    printf( "Running PDR by Niklas Een (aka IC3 by Aaron Bradley) with these parameters:\n" );
+    printf( "VarMax = %d. FrameMax = %d. QueueMax = %d. TimeMax = %d. ", 
+        pPars->nRecycle, pPars->nFrameMax, pPars->nRestLimit, pPars->nTimeOut );
+    if ( pPars->iOutput >= 0 )
+        printf( "Output = %d. ", pPars->iOutput );
+    printf( "MonoCNF = %s. SkipGen = %s.\n", 
+        pPars->fMonoCnf ? "yes" : "no", pPars->fSkipGeneral ? "yes" : "no" );
+
 /*
     Vec_Int_t * vPrioInit = NULL;
     int RetValue, nTimeOut;
