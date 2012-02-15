@@ -315,24 +315,6 @@ static Vec_Int_t * Vec_IntSplitHalf( Vec_Int_t * vVec )
 
 /**Function*************************************************************
 
-  Synopsis    [Appends the contents of the second vector.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static void Vec_IntAppend( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
-{
-    int Entry, i;
-    Vec_IntForEachEntry( vVec2, Entry, i )
-        Vec_IntPush( vVec1, Entry );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Complements all literals in the clause.]
 
   Description []

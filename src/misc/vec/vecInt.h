@@ -359,6 +359,22 @@ static inline int Vec_IntSize( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Vec_IntCap( Vec_Int_t * p )
+{
+    return p->nCap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_IntEntry( Vec_Int_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );
@@ -446,6 +462,27 @@ static inline int Vec_IntEntryLast( Vec_Int_t * p )
 ***********************************************************************/
 static inline void Vec_IntGrow( Vec_Int_t * p, int nCapMin )
 {
+    if ( p->nCap >= nCapMin )
+        return;
+    p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
+    assert( p->pArray );
+    p->nCap   = nCapMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resizes the vector to the given capacity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntGrowResize( Vec_Int_t * p, int nCapMin )
+{
+    p->nSize  = nCapMin;
     if ( p->nCap >= nCapMin )
         return;
     p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
@@ -1215,7 +1252,7 @@ static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fast mapping for one node.]
+  Synopsis    []
 
   Description []
                
@@ -1232,6 +1269,32 @@ static inline void Vec_IntSelectSort( int * pArray, int nSize )
         best_i = i;
         for ( j = i+1; j < nSize; j++ )
             if ( pArray[j] < pArray[best_i] )
+                best_i = j;
+        temp = pArray[i]; 
+        pArray[i] = pArray[best_i]; 
+        pArray[best_i] = temp;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntSelectSortCost( int * pArray, int nSize, Vec_Int_t * vCosts )
+{
+    int temp, i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( Vec_IntEntry(vCosts, pArray[j]) < Vec_IntEntry(vCosts, pArray[best_i]) )
                 best_i = j;
         temp = pArray[i]; 
         pArray[i] = pArray[best_i]; 
@@ -1277,6 +1340,24 @@ static inline int Vec_IntCompareVec( Vec_Int_t * p1, Vec_Int_t * p2 )
     if ( Vec_IntSize(p1) != Vec_IntSize(p2) )
         return Vec_IntSize(p1) - Vec_IntSize(p2);
     return memcmp( Vec_IntArray(p1), Vec_IntArray(p2), sizeof(int)*Vec_IntSize(p1) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Appends the contents of the second vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Vec_IntAppend( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
+{
+    int Entry, i;
+    Vec_IntForEachEntry( vVec2, Entry, i )
+        Vec_IntPush( vVec1, Entry );
 }
 
 

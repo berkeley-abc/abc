@@ -23,6 +23,7 @@ SRC +=    src/aig/gia/gia.c \
     src/aig/gia/giaGlitch.c \
     src/aig/gia/giaHash.c \
     src/aig/gia/giaIf.c \
+    src/aig/gia/giaIso.c \
     src/aig/gia/giaMan.c \
     src/aig/gia/giaMem.c \
     src/aig/gia/giaPat.c \

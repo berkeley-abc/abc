@@ -27798,6 +27798,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
 //    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
 //    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
+    extern void Gia_IsoTest( Gia_Man_t * p );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
@@ -27834,8 +27835,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    pAbc->pGia = Gia_VtaTest( pTemp = pAbc->pGia );
 //    Gia_ManStopP( &pTemp );
 //    Gia_ManSuppSizeTest( pAbc->pGia );
-
 //    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
+
+    Gia_IsoTest( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-svh]\n" );
