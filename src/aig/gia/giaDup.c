@@ -1740,6 +1740,83 @@ Vec_Int_t * Gia_GlaCollectAssigned( Gia_Man_t * p, Vec_Int_t * vGateClasses )
     return vAssigned;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Copy an AIG structure related to the selected POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupCones_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Ptr_t * vRoots )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Gia_ManDupCones_rec( p, Gia_ObjFanin0(pObj), vLeaves, vNodes, vRoots );
+        Gia_ManDupCones_rec( p, Gia_ObjFanin1(pObj), vLeaves, vNodes, vRoots );
+        Vec_PtrPush( vNodes, pObj );
+    }
+    else if ( Gia_ObjIsPo(p, pObj) )
+        Gia_ManDupCones_rec( p, Gia_ObjFanin0(pObj), vLeaves, vNodes, vRoots );
+    else if ( Gia_ObjIsRo(p, pObj) )
+        Vec_PtrPush( vRoots, Gia_ObjRoToRi(p, pObj) );
+    else if ( Gia_ObjIsPi(p, pObj) )
+        Vec_PtrPush( vLeaves, pObj );
+    else assert( 0 );
+}
+Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos )
+{
+    Gia_Man_t * pNew;
+    Vec_Ptr_t * vLeaves, * vNodes, * vRoots;
+    Gia_Obj_t * pObj;
+    int i;
+
+    // collect initial POs
+    vLeaves = Vec_PtrAlloc( 100 );
+    vNodes = Vec_PtrAlloc( 100 );
+    vRoots = Vec_PtrAlloc( 100 );
+    for ( i = 0; i < nPos; i++ )
+        Vec_PtrPush( vRoots, Gia_ManPo(p, pPos[i]) );
+
+    // mark internal nodes
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
+    Vec_PtrForEachEntry( Gia_Obj_t *, vRoots, pObj, i )
+        Gia_ManDupCones_rec( p, pObj, vLeaves, vNodes, vRoots );
+
+    // start the new manager
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Vec_PtrSize(vLeaves) + Vec_PtrSize(vNodes) + Vec_PtrSize(vRoots) + 1);
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    // map the constant node
+    Gia_ManConst0(p)->Value = 0;
+    // create PIs
+    Vec_PtrForEachEntry( Gia_Obj_t *, vLeaves, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    // create LOs
+    Vec_PtrForEachEntryStart( Gia_Obj_t *, vRoots, pObj, i, nPos )
+        Gia_ObjRiToRo(p, pObj)->Value = Gia_ManAppendCi( pNew );
+    // create internal nodes
+    Vec_PtrForEachEntry( Gia_Obj_t *, vNodes, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // create COs
+    Vec_PtrForEachEntry( Gia_Obj_t *, vRoots, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    // finalize
+    Gia_ManSetRegNum( pNew, Vec_PtrSize(vRoots)-nPos );
+    Vec_PtrFree( vLeaves );
+    Vec_PtrFree( vNodes );
+    Vec_PtrFree( vRoots );
+    return pNew;
+
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
