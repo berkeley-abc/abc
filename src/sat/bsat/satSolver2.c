@@ -172,10 +172,12 @@ static inline void proof_chain_start( sat_solver2* s, satset* c )
 {
     if ( s->fProofLogging )
     {
-        s->iStartChain = veci_size(&s->proofs);
-        veci_push(&s->proofs, 0);
-        veci_push(&s->proofs, 0);
-        veci_push(&s->proofs, clause_proofid(s, c, 0) );
+        int ProofId = clause_proofid(s, c, 0);
+        assert( ProofId > 0 );
+        veci_resize( &s->temp_proof, 0 );
+        veci_push( &s->temp_proof, 0 );
+        veci_push( &s->temp_proof, 0 );
+        veci_push( &s->temp_proof, ProofId );
     }
 }
 
@@ -183,12 +185,10 @@ static inline void proof_chain_resolve( sat_solver2* s, satset* cls, int Var )
 {
     if ( s->fProofLogging )
     {
-//        int CapOld = (&s->proofs)->cap;
         satset* c = cls ? cls : var_unit_clause( s, Var );
-        veci_push(&s->proofs, clause_proofid(s, c, var_is_partA(s,Var)) );
-//        printf( "%d %d  ", clause_proofid(s, c), Var );
-//        if ( (&s->proofs)->cap > CapOld )
-//            printf( "Resized proof from %d to %d.\n", CapOld, (&s->proofs)->cap );
+        int ProofId = clause_proofid(s, c, var_is_partA(s,Var));
+        assert( ProofId > 0 );
+        veci_push( &s->temp_proof, ProofId );
     }
 }
 
@@ -196,12 +196,10 @@ static inline int proof_chain_stop( sat_solver2* s )
 {
     if ( s->fProofLogging )
     {
-        int RetValue = s->iStartChain;
-        satset* c = (satset*)(veci_begin(&s->proofs) + s->iStartChain);
-        assert( s->iStartChain > 0 && s->iStartChain < veci_size(&s->proofs) );
-        c->nEnts = veci_size(&s->proofs) - s->iStartChain - 2;
-        s->iStartChain = 0;
-        return RetValue;
+        int h = Vec_SetAppend( &s->Proofs, veci_begin(&s->temp_proof), veci_size(&s->temp_proof) );
+        satset * c = (satset *)Vec_SetEntry( &s->Proofs, h );
+        c->nEnts = veci_size(&s->temp_proof) - 2;
+        return h;
     }
     return 0;
 }
@@ -1119,20 +1117,6 @@ sat_solver2* sat_solver2_new(void)
 {
     sat_solver2* s = (sat_solver2 *)ABC_CALLOC( char, sizeof(sat_solver2) );
 
-    // initialize vectors
-    veci_new(&s->order);
-    veci_new(&s->trail_lim);
-    veci_new(&s->tagged);
-    veci_new(&s->stack);
-    veci_new(&s->temp_clause);
-    veci_new(&s->conf_final);
-    veci_new(&s->mark_levels);
-    veci_new(&s->min_lit_order); 
-    veci_new(&s->min_step_order);
-    veci_new(&s->learnt_live);
-    veci_new(&s->claActs);    veci_push(&s->claActs,   -1);
-    veci_new(&s->claProofs);  veci_push(&s->claProofs, -1);
-
 #ifdef USE_FLOAT_ACTIVITY2
     s->var_inc        = 1;
     s->cla_inc        = 1;
@@ -1156,6 +1140,23 @@ sat_solver2* sat_solver2_new(void)
     s->nLearntMax     =  0;
     s->fVerbose       =  0;
 
+    // initialize vectors
+    veci_new(&s->order);
+    veci_new(&s->trail_lim);
+    veci_new(&s->tagged);
+    veci_new(&s->stack);
+    veci_new(&s->temp_clause);
+    veci_new(&s->temp_proof);
+    veci_new(&s->conf_final);
+    veci_new(&s->mark_levels);
+    veci_new(&s->min_lit_order); 
+    veci_new(&s->min_step_order);
+    veci_new(&s->learnt_live);
+    veci_new(&s->claActs);    veci_push(&s->claActs,   -1);
+    veci_new(&s->claProofs);  veci_push(&s->claProofs, -1);
+    if ( s->fProofLogging )
+        Vec_SetAlloc_( &s->Proofs );
+
     // prealloc clause
     assert( !s->clauses.ptr );
     s->clauses.cap = (1 << 20);
@@ -1166,21 +1167,17 @@ sat_solver2* sat_solver2_new(void)
     s->learnts.cap = (1 << 20);
     s->learnts.ptr = ABC_ALLOC( int, s->learnts.cap );
     veci_push(&s->learnts, -1);
-    // prealloc proofs
-    if ( s->fProofLogging )
-    {
-        assert( !s->proofs.ptr );
-        s->proofs.cap = (1 << 20);
-        s->proofs.ptr = ABC_ALLOC( int, s->proofs.cap );
-        veci_push(&s->proofs, -1);
-    }
+
     // initialize clause pointers
-    s->hLearntLast    = -1; // the last learnt clause 
-    s->hProofLast     = -1; // the last proof ID
-    s->hClausePivot   =  1; // the pivot among clauses
-    s->hLearntPivot   =  1; // the pivot moang learned clauses
-    s->iVarPivot      =  0; // the pivot among the variables
-    s->iSimpPivot     =  0; // marker of unit-clauses
+    s->hLearntLast            = -1; // the last learnt clause 
+    s->hProofLast             = -1; // the last proof ID
+    // initialize rollback
+    s->iVarPivot              =  0; // the pivot for variables
+    s->iTrailPivot            =  0; // the pivot for trail
+    s->iProofPivot            =  0; // the pivot for proof records
+    s->hClausePivot           =  1; // the pivot for problem clause
+    s->hLearntPivot           =  1; // the pivot for learned clause
+    s->hProofPivot            =  1; // the pivot for proof records
     return s;
 }
 
@@ -1241,35 +1238,38 @@ void sat_solver2_setnvars(sat_solver2* s,int n)
 
 void sat_solver2_delete(sat_solver2* s)
 {
-//    veci * pCore;
+    int fVerify = 0;
+    if ( fVerify )
+    {
+        veci * pCore = Sat_ProofCore( s );
+        printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
+        veci_delete( pCore );
+        ABC_FREE( pCore ); 
+        if ( s->fProofLogging )
+            Sat_ProofCheck( s );
+    }
 
     // report statistics
-    printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 2.0 * veci_size(&s->proofs) / (1<<20), s->nUnits );
-/*
-    pCore = Sat_ProofCore( s );
-    printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
-    veci_delete( pCore );
-    ABC_FREE( pCore ); 
+    printf( "Used %6.2f Mb for proof-logging.   Unit clauses = %d.\n", 1.0 * Vec_SetMemory(&s->Proofs) / (1<<20), s->nUnits );
 
-    if ( s->fProofLogging )
-        Sat_ProofCheck( s );
-*/
     // delete vectors
     veci_delete(&s->order);
     veci_delete(&s->trail_lim);
     veci_delete(&s->tagged);
     veci_delete(&s->stack);
     veci_delete(&s->temp_clause);
+    veci_delete(&s->temp_proof);
     veci_delete(&s->conf_final);
     veci_delete(&s->mark_levels);
     veci_delete(&s->min_lit_order);
     veci_delete(&s->min_step_order);
     veci_delete(&s->learnt_live);
-    veci_delete(&s->proofs);
     veci_delete(&s->claActs);
     veci_delete(&s->claProofs);
     veci_delete(&s->clauses);
     veci_delete(&s->learnts);
+//    veci_delete(&s->proofs);
+    Vec_SetFree_( &s->Proofs );
 
     // delete arrays
     if (s->vi != 0){
@@ -1514,11 +1514,13 @@ void sat_solver2_rollback( sat_solver2* s )
 {
     int i, k, j;
     assert( s->iVarPivot >= 0 && s->iVarPivot <= s->size );
-    assert( s->iSimpPivot >= 0 && s->iSimpPivot <= s->qtail );
+    assert( s->iTrailPivot >= 0 && s->iTrailPivot <= s->qtail );
+    assert( s->iProofPivot >= 0 && s->iProofPivot <= Vec_SetEntryNum(&s->Proofs) );
     assert( s->hClausePivot >= 1 && s->hClausePivot <= veci_size(&s->clauses) );
     assert( s->hLearntPivot >= 1 && s->hLearntPivot <= veci_size(&s->learnts) );
+    assert( s->hProofPivot >= 1 && s->hProofPivot <= Vec_SetHandCurrent(&s->Proofs) );
     // reset implication queue
-    solver2_canceluntil_rollback( s, s->iSimpPivot );
+    solver2_canceluntil_rollback( s, s->iTrailPivot );
     // update order 
     if ( s->iVarPivot < s->size )
     { 
@@ -1558,7 +1560,9 @@ void sat_solver2_rollback( sat_solver2* s )
         veci_resize(&s->claActs,   first->Id);
         if ( s->fProofLogging ) {
             veci_resize(&s->claProofs, first->Id);
-            Sat_ProofReduce( s );
+            Vec_SetWriteEntryNum(&s->Proofs, s->iProofPivot);
+            Vec_SetShrink(&s->Proofs, s->hProofPivot);
+//            Sat_ProofReduce( s );
         }
         s->stats.learnts = first->Id-1;
         veci_resize(&s->learnts, s->hLearntPivot);
@@ -1600,12 +1604,16 @@ void sat_solver2_rollback( sat_solver2* s )
         s->stats.learnts_literals = 0;
         s->stats.tot_literals     = 0;
         // initialize clause pointers
-        s->hLearntLast    = -1; // the last learnt clause 
-        s->hProofLast     = -1; // the last proof ID
-        s->hClausePivot   =  1; // the pivot among clauses
-        s->hLearntPivot   =  1; // the pivot among learned clauses
-        s->iVarPivot      =  0; // the pivot among the variables
-        s->iSimpPivot     =  0; // marker of unit-clauses
+        s->hLearntLast            = -1; // the last learnt clause 
+        s->hProofLast             = -1; // the last proof ID
+
+        // initialize rollback
+        s->iVarPivot              =  0; // the pivot for variables
+        s->iTrailPivot            =  0; // the pivot for trail
+        s->iProofPivot            =  0; // the pivot for proof records
+        s->hClausePivot           =  1; // the pivot for problem clause
+        s->hLearntPivot           =  1; // the pivot for learned clause
+        s->hProofPivot            =  1; // the pivot for proof records
     }
 }
 
@@ -1803,7 +1811,7 @@ int sat_solver2_solve(sat_solver2* s, lit* begin, lit* end, ABC_INT64_T nConfLim
         printf("==============================================================================\n");
 
     solver2_canceluntil(s,0);
-    assert( s->qhead == s->qtail );
+//    assert( s->qhead == s->qtail );
 //    if ( status == l_True )
 //        sat_solver2_verify( s );
     return status;

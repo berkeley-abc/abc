@@ -29,6 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <assert.h>
 
 #include "satVec.h"
+#include "vecSet.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -112,16 +113,19 @@ struct sat_solver2_t
     veci            clauses;        // clause memory
     veci            learnts;        // learnt memory
     veci*           wlists;         // watcher lists (for each literal)
-    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
-    int             hProofLast;     // in proof-logging mode, the ID of the final conflict clause (conf_final)
-    int             hClausePivot;   // the pivot among problem clause
-    int             hLearntPivot;   // the pivot among learned clause
-    int             iVarPivot;      // the pivot among the variables
-    int             iSimpPivot;     // marker of unit-clauses
-    int             nof_learnts;    // the number of clauses to trigger reduceDB
-
     veci            claActs;        // clause activities
     veci            claProofs;      // clause proofs
+    int             hLearntLast;    // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    int             hProofLast;     // in proof-logging mode, the ID of the final conflict clause (conf_final)
+    int             nof_learnts;    // the number of clauses to trigger reduceDB
+
+    // rollback
+    int             iVarPivot;      // the pivot for variables
+    int             iTrailPivot;    // the pivot for trail
+    int             iProofPivot;    // the pivot for proof records
+    int             hClausePivot;   // the pivot for problem clause
+    int             hLearntPivot;   // the pivot for learned clause
+    int             hProofPivot;    // the pivot for proof records
 
     // internal state
     varinfo2 *      vi;             // variable information
@@ -146,8 +150,8 @@ struct sat_solver2_t
     veci            learnt_live;    // remaining clauses after reduce DB
 
     // proof logging
-    veci            proofs;         // sequence of proof records
-    int             iStartChain;    // temporary variable to remember beginning of the current chain in proof logging
+    Vec_Set_t       Proofs;         // sequence of proof records
+    veci            temp_proof;     // temporary place to store proofs
     int             nUnits;         // the total number of unit clauses
 
     // statistics
@@ -251,10 +255,12 @@ static inline int sat_solver2_set_learntmax(sat_solver2* s, int nLearntMax)
 static inline void sat_solver2_bookmark(sat_solver2* s)
 {
     assert( s->qhead == s->qtail );
-    s->hLearntPivot = veci_size(&s->learnts);
-    s->hClausePivot = veci_size(&s->clauses);
     s->iVarPivot    = s->size;
-    s->iSimpPivot   = s->qhead;
+    s->iTrailPivot  = s->qhead;
+    s->iProofPivot  = Vec_SetEntryNum(&s->Proofs);
+    s->hClausePivot = veci_size(&s->clauses);
+    s->hLearntPivot = veci_size(&s->learnts);
+    s->hProofPivot  = Vec_SetHandCurrent(&s->Proofs);
 }
 
 static inline int sat_solver2_add_const( sat_solver2 * pSat, int iVar, int fCompl, int fMark )

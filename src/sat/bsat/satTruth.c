@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "satTruth.h"
-#include "vecRec.h"
+#include "vecSet.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -39,7 +39,7 @@ struct Tru_Man_t_
     int              nEntrySize;   // the size of one entry in 'int'
     int              nTableSize;   // hash table size
     int *            pTable;       // hash table
-    Vec_Rec_t *      pMem;         // memory for truth tables
+    Vec_Set_t *      pMem;         // memory for truth tables
     word *           pZero;        // temporary truth table 
     int              hIthVars[16]; // variable handles
     int              nTableLookups;
@@ -53,7 +53,7 @@ struct Tru_One_t_
     word             pTruth[0];    // truth table
 };
 
-static inline Tru_One_t * Tru_ManReadOne( Tru_Man_t * p, int h ) { return h ? (Tru_One_t *)Vec_RecEntryP(p->pMem, h) : NULL; }
+static inline Tru_One_t * Tru_ManReadOne( Tru_Man_t * p, int h ) { return h ? (Tru_One_t *)Vec_SetEntry(p->pMem, h) : NULL; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -140,7 +140,7 @@ void Tru_ManResize( Tru_Man_t * p )
         *pSpot = pThis->Handle;
         Counter++;
     }
-    assert( Counter == Vec_RecEntryNum(p->pMem) );
+    assert( Counter == Vec_SetEntryNum(p->pMem) );
     ABC_FREE( pTableOld );
 }
 
@@ -163,7 +163,7 @@ int Tru_ManInsert( Tru_Man_t * p, word * pTruth )
     if ( Tru_ManEqual1(pTruth, p->nWords) )
         return 1;
     p->nTableLookups++;
-    if ( Vec_RecEntryNum(p->pMem) > 2 * p->nTableSize )
+    if ( Vec_SetEntryNum(p->pMem) > 2 * p->nTableSize )
         Tru_ManResize( p );
     fCompl = pTruth[0] & 1;
     if ( fCompl )  
@@ -172,7 +172,7 @@ int Tru_ManInsert( Tru_Man_t * p, word * pTruth )
     if ( *pSpot == 0 )
     {
         Tru_One_t * pEntry;
-        *pSpot = Vec_RecAppend( p->pMem, p->nEntrySize );
+        *pSpot = Vec_SetAppend( p->pMem, NULL, p->nEntrySize );
         assert( (*pSpot & 1) == 0 );
         pEntry = Tru_ManReadOne( p, *pSpot );
         Tru_ManCopy( pEntry->pTruth, pTruth, p->nWords );
@@ -215,7 +215,7 @@ Tru_Man_t * Tru_ManAlloc( int nVars )
     p->nEntrySize = (sizeof(Tru_One_t) + p->nWords * sizeof(word))/sizeof(int);
     p->nTableSize = 8147;
     p->pTable     = ABC_CALLOC( int, p->nTableSize );
-    p->pMem       = Vec_RecAlloc();
+    p->pMem       = Vec_SetAlloc();
     // initialize truth tables
     p->pZero = ABC_ALLOC( word, p->nWords );
     for ( i = 0; i < nVars; i++ )
@@ -247,8 +247,8 @@ Tru_Man_t * Tru_ManAlloc( int nVars )
 ***********************************************************************/
 void Tru_ManFree( Tru_Man_t * p )
 {
-    printf( "Lookups = %d. Entries = %d.\n", p->nTableLookups, Vec_RecEntryNum(p->pMem) );
-    Vec_RecFree( p->pMem );
+    printf( "Lookups = %d. Entries = %d.\n", p->nTableLookups, Vec_SetEntryNum(p->pMem) );
+    Vec_SetFree( p->pMem );
     ABC_FREE( p->pZero );
     ABC_FREE( p->pTable );
     ABC_FREE( p );
@@ -287,25 +287,9 @@ word * Tru_ManFunc( Tru_Man_t * p, int h )
     assert( (h & 1) == 0 );
     if ( h == 0 )
         return p->pZero;
-    assert( Vec_RecChunk(h) );
     return Tru_ManReadOne( p, h )->pTruth;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Returns stored truth table]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Tru_ManHandleMax( Tru_Man_t * p )
-{
-    return p->pMem->hCurrent;
-}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

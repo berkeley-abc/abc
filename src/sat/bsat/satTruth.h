@@ -77,7 +77,7 @@ extern void          Tru_ManFree( Tru_Man_t * p );
 extern word *        Tru_ManVar( Tru_Man_t * p, int v );
 extern word *        Tru_ManFunc( Tru_Man_t * p, int h );
 extern int           Tru_ManInsert( Tru_Man_t * p, word * pTruth );
-extern int           Tru_ManHandleMax( Tru_Man_t * p );
+//extern int           Tru_ManHandleMax( Tru_Man_t * p );
 
 ABC_NAMESPACE_HEADER_END
 

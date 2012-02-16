@@ -29,7 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <assert.h>
 
 #include "satVec.h"
-#include "vecRec.h"
+#include "vecSet.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -92,7 +92,7 @@ struct sat_solver_t
     int         qtail;         // Tail index of queue.
 
     // clauses
-    Vec_Rec_t   Mem;
+    Vec_Set_t   Mem;
     int         hLearnts;      // the first learnt clause
     int         hBinary;       // the special binary clause
     clause *    binary;

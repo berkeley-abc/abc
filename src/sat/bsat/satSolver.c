@@ -71,11 +71,6 @@ static inline int irand(double* seed, int size) {
 
 
 //=================================================================================================
-// Predeclarations:
-
-static void sat_solver_sort(void** array, int size, int(*comp)(const void *, const void *));
-
-//=================================================================================================
 // Variable datatype + minor functions:
 
 static const int var0  = 1;
@@ -90,12 +85,12 @@ struct varinfo_t
     unsigned lev    : 28;  // variable level
 };
 
-static inline int     var_level     (sat_solver* s, int v)            { return s->levels[v]; }
-static inline int     var_value     (sat_solver* s, int v)            { return s->assigns[v]; }
+static inline int     var_level     (sat_solver* s, int v)            { return s->levels[v];   }
+static inline int     var_value     (sat_solver* s, int v)            { return s->assigns[v];  }
 static inline int     var_polar     (sat_solver* s, int v)            { return s->polarity[v]; }
 
-static inline void    var_set_level (sat_solver* s, int v, int lev)   { s->levels[v] = lev;  }
-static inline void    var_set_value (sat_solver* s, int v, int val)   { s->assigns[v] = val;  }
+static inline void    var_set_level (sat_solver* s, int v, int lev)   { s->levels[v] = lev;    }
+static inline void    var_set_value (sat_solver* s, int v, int val)   { s->assigns[v] = val;   }
 static inline void    var_set_polar (sat_solver* s, int v, int pol)   { s->polarity[v] = pol;  }
 
 // variable tags
@@ -130,7 +125,7 @@ int sat_solver_get_var_value(sat_solver* s, int v)
     assert( 0 );
     return 0;
 }
-
+ 
 //=================================================================================================
 // Clause datatype + minor functions:
 
@@ -139,6 +134,8 @@ struct clause_t
     int size_learnt;
     lit lits[0];
 };
+
+static inline clause*  clause_read         (sat_solver* s, int h)  { return (clause *)Vec_SetEntry(&s->Mem, h>>1);     }
 
 static inline int      clause_nlits        (clause* c)             { return c->size_learnt >> 1;                       }
 static inline lit*     clause_begin        (clause* c)             { return c->lits;                                   }
@@ -155,21 +152,18 @@ static inline void     clause_print        (clause* c)             {
     printf( "}\n" );
 }
 
-static inline clause* clause_read( sat_solver* s, int h )          { return (clause *)Vec_RecEntryP(&s->Mem, h);       }
-static inline int     clause_size( int nLits, int fLearnt )        { int a = nLits + fLearnt + 1; return a + (a & 1);  }
-
 //=================================================================================================
 // Encode literals in clause pointers:
 
-static inline int     clause_from_lit (lit l)       { return l + l + 1;                            }
-static inline int     clause_is_lit   (int h)       { return (h & 1);                              }
-static inline lit     clause_read_lit (int h)       { return (lit)(h >> 1);                        }
+static inline int      clause_from_lit (lit l)       { return l + l + 1;                            }
+static inline int      clause_is_lit   (int h)       { return (h & 1);                              }
+static inline lit      clause_read_lit (int h)       { return (lit)(h >> 1);                        }
 
 //=================================================================================================
 // Simple helpers:
 
-static inline int     sat_solver_dl(sat_solver* s)                { return veci_size(&s->trail_lim); }
-static inline veci*   sat_solver_read_wlist(sat_solver* s, lit l) { return &s->wlists[l];            }
+static inline int      sat_solver_dl(sat_solver* s)                { return veci_size(&s->trail_lim); }
+static inline veci*    sat_solver_read_wlist(sat_solver* s, lit l) { return &s->wlists[l];            }
 
 //=================================================================================================
 // Variable order functions:
@@ -418,15 +412,6 @@ static void sortrnd(void** array, int size, int(*comp)(const void *, const void 
     }
 }
 
-void sat_solver_sort(void** array, int size, int(*comp)(const void *, const void *))
-{
-//    int i;
-    double seed = 91648253;
-    sortrnd(array,size,comp,&seed);
-//    for ( i = 1; i < size; i++ )
-//        assert(comp(array[i-1], array[i])<0);
-}
-
 //=================================================================================================
 // Clause functions:
 
@@ -451,9 +436,9 @@ static int clause_create_new(sat_solver* s, lit* begin, lit* end, int learnt)
     }
 
     // create new clause
-    h = Vec_RecAppend( &s->Mem, clause_size(size, learnt) );
-    c = clause_read( s, h );
+    h = Vec_SetAppend( &s->Mem, NULL, size + learnt + 1 ) << 1;
     assert( !(h & 1) );
+    c = clause_read( s, h );
     if ( s->hLearnts == -1 && learnt )
         s->hLearnts = h;
     c->size_learnt = (size << 1) | learnt;
@@ -927,9 +912,9 @@ sat_solver* sat_solver_new(void)
 {
     sat_solver* s = (sat_solver*)ABC_CALLOC( char, sizeof(sat_solver));
 
-    Vec_RecAlloc_(&s->Mem);
+    Vec_SetAlloc_(&s->Mem);
     s->hLearnts = -1;
-    s->hBinary = Vec_RecAppend( &s->Mem, clause_size(2, 0) );
+    s->hBinary = Vec_SetAppend( &s->Mem, NULL, 3 ) << 1;
     s->binary = clause_read( s, s->hBinary );
     s->binary->size_learnt = (2 << 1);
 
@@ -1049,7 +1034,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
 
 void sat_solver_delete(sat_solver* s)
 {
-    Vec_RecFree_( &s->Mem );
+    Vec_SetFree_( &s->Mem );
 
     // delete vectors
     veci_delete(&s->order);
@@ -1087,10 +1072,10 @@ void sat_solver_delete(sat_solver* s)
 void sat_solver_rollback( sat_solver* s )
 {
     int i;
-    Vec_RecRestart( &s->Mem );
+    Vec_SetRestart( &s->Mem );
 
     s->hLearnts = -1;
-    s->hBinary = Vec_RecAppend( &s->Mem, clause_size(2, 0) );
+    s->hBinary = Vec_SetAppend( &s->Mem, NULL, 3 ) << 1;
     s->binary = clause_read( s, s->hBinary );
     s->binary->size_learnt = (2 << 1);
 

@@ -147,7 +147,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
             pMan->pData = Sat_Solver2GetModel( pSat, vCiIds->pArray, vCiIds->nSize );
         }
         // free the sat_solver2
-        if ( fVerbose )
+//        if ( fVerbose )
             Sat_Solver2PrintStats( stdout, pSat );
     //sat_solver2_store_write( pSat, "trace.cnf" );
     //sat_solver2_store_free( pSat );
@@ -253,7 +253,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
             pMan->pData = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
         }
         // free the sat_solver
-        if ( fVerbose )
+//        if ( fVerbose )
             Sat_SolverPrintStats( stdout, pSat );
     //sat_solver_store_write( pSat, "trace.cnf" );
     //sat_solver_store_free( pSat );
