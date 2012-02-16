@@ -209,6 +209,7 @@ struct Gia_ParVta_t_
     int            nTimeOut;      // timeout in seconds
     int            nRatioMin;     // stop when less than this % of object is abstracted
     int            fUseTermVars;  // use terminal variables
+    int            fUseRollback;  // use rollback to the starting number of frames
     int            fVerbose;      // verbose flag
     int            iFrame;        // the number of frames covered 
 };

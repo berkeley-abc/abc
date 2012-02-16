@@ -26723,7 +26723,7 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Gia_VtaSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSPCLTRtrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26807,6 +26807,9 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             pPars->fUseTermVars ^= 1;
             break;
+        case 'r':
+            pPars->fUseRollback ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -26841,13 +26844,18 @@ int Abc_CommandAbc9Vta( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
         return 0;
     }
+    if ( pPars->nFramesStart < 1 )
+    {
+        Abc_Print( 1, "The starting frame should be 1 or larger.\n" );
+        return 0;
+    }
     pAbc->Status  = Gia_VtaPerform( pAbc->pGia, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &vta [-FSPCLTR num] [-tvh]\n" );
+    Abc_Print( -2, "usage: &vta [-FSPCLTR num] [-trvh]\n" );
     Abc_Print( -2, "\t         refines abstracted object map with proof-based abstraction\n" );
     Abc_Print( -2, "\t-F num : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
@@ -26857,6 +26865,7 @@ usage:
     Abc_Print( -2, "\t-T num : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
     Abc_Print( -2, "\t-R num : minimum percentage of abstracted objects (0<=num<=100) [default = %d]\n", pPars->nRatioMin );
     Abc_Print( -2, "\t-t     : toggle using terminal variables [default = %s]\n", pPars->fUseTermVars? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle using rollback after the starting frames [default = %s]\n", pPars->fUseRollback? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

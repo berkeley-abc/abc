@@ -118,6 +118,7 @@ alias drwsat2     "st; drw; b -l; drw; drf; ifraig -C 20; drw; b -l; drw; drf"
 alias share       "st; multi -m; fx; resyn2"
 alias addinit     "read_init; undc; strash; zero"
 alias blif2aig    "undc; strash; zero"
+alias v2p         "&vta_gla; &ps; &gla_derive; &put; w 1.aig; pdr -v"
 
 # resubstitution scripts for the IWLS paper
 alias src_rw      "st; rw -l; rwz -l; rwz -l" 

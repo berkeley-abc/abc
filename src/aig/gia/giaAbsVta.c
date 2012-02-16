@@ -59,6 +59,7 @@ struct Vta_Man_t_
     unsigned      nObjMask;     // object mask
     Vec_Ptr_t *   vFrames;      // start abstraction for each frame
     int           nWords;       // the number of words in the record
+    int           nCexes;       // the number of CEXes
     Vec_Int_t *   vSeens;       // seen objects
     Vec_Bit_t *   vSeenGla;     // seen objects in all frames
     int           nSeenGla;     // seen objects in all frames
@@ -154,6 +155,7 @@ void Gia_VtaSetDefaultParams( Gia_ParVta_t * p )
     p->nTimeOut      =      0;   // timeout in seconds
     p->nRatioMin     =     10;   // stop when less than this % of object is abstracted
     p->fUseTermVars  =      1;   // use terminal variables
+    p->fUseRollback  =      0;   // use rollback to the starting number of frames
     p->fVerbose      =      0;   // verbose flag
     p->iFrame        =     -1;   // the number of frames covered 
 }
@@ -969,8 +971,6 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
             if ( !Gia_ObjIsPi(p->pGia, pObj) )
                 Vga_ManAddClausesOne( p, pThis->iObj, pThis->iFrame );
         sat_solver2_simplify( p->pSat );
-
-//        printf( "VecCla grew to %d.       \n\n", Vec_IntSize(p->vCla2Var) );
     }
     Vec_IntFree( vTermsToAdd );
     return pCex;
@@ -1049,8 +1049,8 @@ Vta_Man_t * Vga_ManStart( Gia_Man_t * pGia, Gia_ParVta_t * pPars )
 void Vga_ManStop( Vta_Man_t * p )
 {
 //    if ( p->pPars->fVerbose )
-        printf( "SAT solver:  Variables = %d. Clauses = %d. Conflicts = %d.\n", 
-            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat) );
+        printf( "SAT solver:  Variables = %d. Clauses = %d. Conflicts = %d. Cexes = %d.\n", 
+            sat_solver2_nvars(p->pSat), sat_solver2_nclauses(p->pSat), sat_solver2_nconflicts(p->pSat), p->nCexes );
 
     Vec_VecFreeP( (Vec_Vec_t **)&p->vCores );
     Vec_VecFreeP( (Vec_Vec_t **)&p->vFrames );
@@ -1399,12 +1399,12 @@ void Vga_ManRollBack( Vta_Man_t * p, int nObjOld )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
+int Gia_VtaPerformInt( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
 {
     Vta_Man_t * p;
     Vec_Int_t * vCore;
     Abc_Cex_t * pCex = NULL;
-    int i, f, nConfls, Status, RetValue = -1;
+    int i, f, nConfls, Status, nObjOld, RetValue = -1;
     int clk = clock(), clk2;
     // preconditions
     assert( Gia_ManPoNum(pAig) == 1 );
@@ -1437,13 +1437,11 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
         {
             Vga_ManAddClausesOne( p, 0, f );
             Vga_ManLoadSlice( p, (Vec_Int_t *)Vec_PtrEntry(p->vFrames, f), 0 );
-
-//            printf( "VecCla grew ttto %d.        \n\n", Vec_IntSize(p->vCla2Var) );
         }
         else
         {
             // create bookmark to be used for rollback
-            int nObjOld = p->nObjs;
+            nObjOld = p->nObjs;
 //            sat_solver2_reducedb( p->pSat );
             sat_solver2_bookmark( p->pSat );
             Vec_IntClear( p->vAddedNew );
@@ -1465,12 +1463,16 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
                 }
                 p->timeSat += clock() - clk2;
                 assert( Status == 0 );
+                p->nCexes++;
                 // perform the refinement
                 clk2 = clock();
                 pCex = Vta_ManRefineAbstraction( p, f );
                 p->timeCex += clock() - clk2;
                 if ( pCex != NULL )
+                {
+                    RetValue = 0;
                     goto finish;
+                }
                 // print the result
                 if ( p->pPars->fVerbose )
                     Vta_ManAbsPrintFrame( p, NULL, f+1, sat_solver2_nconflicts(p->pSat)-nConflsBeg, i, clock() - clk );
@@ -1487,7 +1489,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // load this timeframe
             Vga_ManLoadSlice( p, vCore, 0 );
             Vec_IntFree( vCore );
-        }
+        } 
         // run SAT solver
         clk2 = clock();
         vCore = Vta_ManUnsatCore( Vga_ManGetOutLit(p, f), p->vCla2Var, p->pSat, pPars->nConfLimit, p->pPars->fVerbose, &Status, &nConfls );
@@ -1501,6 +1503,7 @@ int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
             // make sure, there was no initial abstraction (otherwise, it was invalid)
             assert( pAig->vObjClasses == NULL && f < p->pPars->nFramesStart );
             pCex = Vga_ManDeriveCex( p );
+            RetValue = 0;
             break;
         }
         // add the core
@@ -1548,6 +1551,7 @@ finish:
         if ( !Gia_ManVerifyCex( p->pGia, pCex, 0 ) )
             printf( "    Gia_VtaPerform(): CEX verification has failed!\n" );
         printf( "Counter-example detected in frame %d.  ", f );
+        p->pPars->iFrame = pCex->iFrame - 1;
     }
     Abc_PrintTime( 1, "Time", clock() - clk );
 
@@ -1559,9 +1563,34 @@ finish:
     ABC_PRTP( "TOTAL       ", clock() - clk, clock() - clk );
 
     Vga_ManStop( p );
-
     fflush( stdout );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect nodes/flops involved in different timeframes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_VtaPerform( Gia_Man_t * pAig, Gia_ParVta_t * pPars )
+{
+    int RetValue = -1;
+    if ( pAig->vObjClasses == NULL && pPars->fUseRollback )
+    {
+        int nFramesMaxOld = pPars->nFramesMax;
+        pPars->nFramesMax = pPars->nFramesStart;
+        RetValue = Gia_VtaPerformInt( pAig, pPars );
+        pPars->nFramesMax = nFramesMaxOld;
+    }
+    if ( RetValue == 0 )
+        return RetValue;
+    return Gia_VtaPerformInt( pAig, pPars );
 }
 
 ////////////////////////////////////////////////////////////////////////
