@@ -39,7 +39,7 @@ CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(ARCHFLAGS) -I$(PWD)
 CXXFLAGS += $(CFLAGS) 
 
 #LIBS := -m32 -ldl -rdynamic -lreadline -ltermcap
-LIBS := -lreadline
+LIBS := -ldl -lreadline
 
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
