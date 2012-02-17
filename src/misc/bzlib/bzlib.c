@@ -30,7 +30,9 @@
 
 #include "bzlib_private.h"
 
+#ifdef WIN32
 #pragma warning(disable : 4996)
+#endif
 
 ABC_NAMESPACE_IMPL_START
 
