@@ -35,6 +35,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #include "src/misc/util/abc_global.h"
 
 #include "zconf.h"
