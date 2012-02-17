@@ -667,10 +667,11 @@ char * Bbl_ManFileRead( char * pFileName )
     FILE * pFile;
     char * pContents;
     int nFileSize;
+    int RetValue;
     nFileSize = Bbl_ManFileSize( pFileName );
     pFile = fopen( pFileName, "rb" );
     pContents = BBLIF_ALLOC( char, nFileSize );
-    fread( pContents, nFileSize, 1, pFile );
+    RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
     return pContents;
 }

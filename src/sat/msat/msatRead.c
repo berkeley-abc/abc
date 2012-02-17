@@ -48,6 +48,7 @@ char * Msat_FileRead( FILE * pFile )
 {
     int nFileSize;
     char * pBuffer;
+    int RetValue;
     // get the file size, in bytes
     fseek( pFile, 0, SEEK_END );  
     nFileSize = ftell( pFile );  
@@ -55,7 +56,7 @@ char * Msat_FileRead( FILE * pFile )
     rewind( pFile ); 
     // load the contents of the file into memory
     pBuffer = ABC_ALLOC( char, nFileSize + 3 );
-    fread( pBuffer, nFileSize, 1, pFile );
+    RetValue = fread( pBuffer, nFileSize, 1, pFile );
     // terminate the string with '\0'
     pBuffer[ nFileSize + 0] = '\n';
     pBuffer[ nFileSize + 1] = '\0';

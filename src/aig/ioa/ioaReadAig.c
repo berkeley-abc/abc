@@ -433,13 +433,13 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     FILE * pFile;
     Aig_Man_t * pNew;
     char * pName, * pContents;
-    int nFileSize;
+    int nFileSize, RetValue;
 
     // read the file into the buffer
     nFileSize = Ioa_FileSize( pFileName );
     pFile = fopen( pFileName, "rb" );
     pContents = ABC_ALLOC( char, nFileSize );
-    fread( pContents, nFileSize, 1, pFile );
+    RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
     pNew = Ioa_ReadAigerFromMemory( pContents, nFileSize, fCheck );

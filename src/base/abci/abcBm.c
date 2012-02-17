@@ -462,7 +462,7 @@ int * Abc_NtkSimulateOneNode( Abc_Ntk_t * pNtk, int * pModel, int input, Vec_Ptr
     // set the CI values     
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)1;
     pNode = Abc_NtkCi(pNtk, input);
-    pNode->pCopy = (Abc_Obj_t *)pModel[input];
+    pNode->iTemp = pModel[input];
     
     // simulate in the topological order    
     for(i = Vec_PtrSize(topOrder[input])-1; i >= 0; i--)
@@ -472,9 +472,9 @@ int * Abc_NtkSimulateOneNode( Abc_Ntk_t * pNtk, int * pModel, int input, Vec_Ptr
         Value0 = ((int)(ABC_PTRUINT_T)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
         Value1 = ((int)(ABC_PTRUINT_T)Abc_ObjFanin1(pNode)->pCopy) ^ Abc_ObjFaninC1(pNode);
         
-        if( pNode->pCopy != (Abc_Obj_t *)(Value0 & Value1))
+        if( pNode->iTemp != (Value0 & Value1))
         {
-            pNode->pCopy = (Abc_Obj_t *)(Value0 & Value1);
+            pNode->iTemp = (Value0 & Value1);
             Vec_PtrPush(vNodes, pNode);
         }
     
@@ -846,7 +846,7 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
         vNodes = Abc_NtkNodeSupport( pNtk1, &pNode, 1 );
         // set the PI numbers
         Abc_NtkForEachCi( pNtk1, pNode, i )
-            pNode->pCopy = (Abc_Obj_t *)i;
+            pNode->iTemp = i;
         // print the model
         pNode = (Abc_Obj_t *)Vec_PtrEntry( vNodes, 0 );
         if ( Abc_ObjIsCi(pNode) )

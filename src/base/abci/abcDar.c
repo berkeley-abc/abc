@@ -1174,9 +1174,9 @@ Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t 
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName, int fFastAlgo, int fChangePol, int fVerbose )
 {
-    Vec_Ptr_t * vMapped = NULL;
+//    Vec_Ptr_t * vMapped = NULL;
     Aig_Man_t * pMan;
-    Cnf_Man_t * pManCnf = NULL;
+//    Cnf_Man_t * pManCnf = NULL;
     Cnf_Dat_t * pCnf;
     Abc_Ntk_t * pNtkNew = NULL;
     int clk = clock();
@@ -1888,7 +1888,7 @@ int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars )
 ***********************************************************************/
 int Abc_NtkDarBmcInter_int( Aig_Man_t * pMan, Inter_ManParams_t * pPars, Aig_Man_t ** ppNtkRes )
 {
-    int RetValue, iFrame, clk = clock();
+    int RetValue = -1, iFrame, clk = clock();
     int nTotalProvedSat = 0;
     assert( pMan->nRegs > 0 );
     if ( ppNtkRes )

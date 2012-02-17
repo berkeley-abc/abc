@@ -2248,7 +2248,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     // set defaults
     Extra_UtilGetoptReset();
@@ -2420,7 +2420,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
             return 1;
         }
-    }
+    }    
     Abc_NodeShowBdd( pNode );
     return 0;
 
@@ -5805,7 +5805,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandZeroPo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes = NULL;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes = NULL;
     int c, iOutput = -1;
     extern void Abc_NtkDropOneOutput( Abc_Ntk_t * pNtk, int iOutput );
 
@@ -5956,7 +5956,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandRemovePo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes = NULL;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);//, * pNtkRes = NULL;
     int c, iOutput = -1;
     extern void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput );
 
@@ -8118,11 +8118,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     int nVars;    // the number of variables
-    int nLutSize; // the size of LUTs
-    int nLuts;    // the number of LUTs
+    int nLutSize = -1; // the size of LUTs
+    int nLuts = -1;    // the number of LUTs
     int fAdder;
     int fSorter;
     int fMesh;
@@ -11533,7 +11533,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandFraigClean( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     int fDuplicate;
     // set defaults
@@ -11972,7 +11972,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandRecStop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     // set defaults
     Extra_UtilGetoptReset();
@@ -12065,7 +12065,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandRecPs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fPrintLib = 0;
     // set defaults
     Extra_UtilGetoptReset();
@@ -12162,7 +12162,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandRecFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, nLimit = 0;
     // set defaults
     Extra_UtilGetoptReset();
@@ -26065,7 +26065,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9AbsRefine( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp = NULL;
+//    Gia_Man_t * pTemp = NULL;
     int c;
     int nFfToAddMax = 0;
     int fTryFour    = 1;
@@ -27141,8 +27141,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReachM( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Gia_ParLlb_t Pars, * pPars = &Pars;
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     char * pLogFileName = NULL;
     int c;
     extern int Llb_ManModelCheckGia( Gia_Man_t * pGia, Gia_ParLlb_t * pPars );
@@ -27320,8 +27320,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReachP( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Gia_ParLlb_t Pars, * pPars = &Pars;
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Aig_Man_t * pMan;
     char * pLogFileName = NULL;
     int c;
@@ -27470,8 +27470,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReachN( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Gia_ParLlb_t Pars, * pPars = &Pars;
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Aig_Man_t * pMan;
     char * pLogFileName = NULL;
     int c;
@@ -27600,8 +27600,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReachY( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+//    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Gia_ParLlb_t Pars, * pPars = &Pars;
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Aig_Man_t * pMan;
     char * pLogFileName = NULL;
     int c;
@@ -27801,7 +27801,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp = NULL;
+//    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int fSwitch = 0;
 //    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );

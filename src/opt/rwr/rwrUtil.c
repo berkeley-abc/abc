@@ -563,6 +563,7 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
     unsigned * pBuffer;
     int Level, Volume, nEntries, fExor;
     int i, clk = clock();
+    int RetValue;
 
     // load the data
     pFile = fopen( pFileName, "rb" );
@@ -571,9 +572,9 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
         printf( "Rwr_ManLoadFromFile: Cannot open file \"%s\".\n", pFileName );
         return;
     }
-    fread( &nEntries, sizeof(int), 1, pFile );
+    RetValue = fread( &nEntries, sizeof(int), 1, pFile );
     pBuffer = ABC_ALLOC( unsigned, nEntries * 2 );
-    fread( pBuffer, sizeof(unsigned), nEntries * 2, pFile );
+    RetValue = fread( pBuffer, sizeof(unsigned), nEntries * 2, pFile );
     fclose( pFile );
     // reconstruct the forest
     for ( i = 0; i < nEntries; i++ )

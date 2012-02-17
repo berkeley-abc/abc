@@ -494,7 +494,7 @@ void Au_ManCountThings( Au_Man_t * p )
 {
     Au_Ntk_t * pNtk, * pBoxModel;
     Au_Obj_t * pBox;
-    int i, k, clk = clock();
+    int i, k;//, clk = clock();
     Au_ManForEachNtkReverse( p, pNtk, i )
     {
         pNtk->nBoxes = Au_NtkBoxNum(pNtk);
@@ -961,7 +961,7 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
 {
     FILE * pFile;
     Au_Man_t * pMan;
-    Au_Ntk_t * pRoot;
+    Au_Ntk_t * pRoot = NULL;
     Au_Obj_t * pBox, * pFan;
     char * pBuffer, * pCur;
     Vec_Int_t * vLines, * vNum2Obj, * vFanins;
@@ -1147,7 +1147,6 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
             {
                 int gFanins[16];
                 char * pSop = Abc_NamStr( p->pMan->pFuncs, pObj->Func );
-                int nLength = strlen(pSop);
                 assert( Au_ObjFaninNum(pObj) <= 16 );
                 assert( Au_ObjFaninNum(pObj) == Abc_SopGetVarNum(pSop) );
                 Au_ObjForEachFanin( pObj, pTerm, k )
@@ -1322,7 +1321,7 @@ static inline int  Au_ObjGetXsimFan2( Au_Obj_t * pObj )
 ***********************************************************************/
 void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
 { 
-    Au_Obj_t * pObj, * pTerm;
+    Au_Obj_t * pObj = NULL, * pTerm;
     int i, k;
     Au_NtkForEachPi( p, pTerm, i )
     {
@@ -1492,7 +1491,8 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     Abc_Ntk_t * pMod;
     Au_Man_t * pMan;
     Au_Ntk_t * pNtk = NULL;
-    int i, clk1, clk2 = 0, clk3 = 0, clk4 = 0, clk = clock();
+    int i, clk1, clk2 = 0, clk3 = 0, clk = clock();
+//    int clk4 = 0;
 
     clk1 = clock();
     pMan = Au_ManAlloc( pRoot->pDesign ? pRoot->pDesign->pName : pRoot->pName );

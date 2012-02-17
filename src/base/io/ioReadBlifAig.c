@@ -433,6 +433,7 @@ static char * Io_BlifLoadFile( char * pFileName )
     FILE * pFile;
     int nFileSize;
     char * pContents;
+    int RetValue;
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
@@ -449,7 +450,7 @@ static char * Io_BlifLoadFile( char * pFileName )
     }
     pContents = ABC_ALLOC( char, nFileSize + 10 );
     rewind( pFile );
-    fread( pContents, nFileSize, 1, pFile );
+    RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
     // finish off the file with the spare .end line
     // some benchmarks suddenly break off without this line

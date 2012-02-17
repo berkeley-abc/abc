@@ -473,7 +473,7 @@ static inline int Gia_ManSwiSimInfoCountTrans( Gia_ManSwi_t * p, int iPlace )
 static inline void Gia_ManSwiSimulateRound( Gia_ManSwi_t * p, int fCount )
 {
     Gia_Obj_t * pObj;
-    int i, iCis = 0, iCos = 0;
+    int i;//, iCis = 0, iCos = 0;
     assert( p->pAig->nFront > 0 );
     assert( Gia_ManConst0(p->pAig)->Value == 0 );
     Gia_ManSwiSimInfoZero( p, Gia_SwiData(p, 0) );
@@ -568,8 +568,7 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     if ( pPars->fVerbose )
     {
         printf( "Obj = %8d (%8d). F = %6d. ", 
-            pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront, 
-            4.0*Abc_BitWordNum(2 * p->pAig->nFront)/(1<<20) );
+            pAig->nObjs, Gia_ManCiNum(pAig) + Gia_ManAndNum(pAig), p->pAig->nFront );
         printf( "AIG = %7.2f Mb. F-mem = %7.2f Mb. Other = %7.2f Mb.  ", 
             12.0*Gia_ManObjNum(p->pAig)/(1<<20), 
             4.0*p->nWords*p->pAig->nFront/(1<<20), 
@@ -740,7 +739,7 @@ float Gia_ManComputeSwitching( Gia_Man_t * p, int nFrames, int nPref, int fProbO
     Gia_Man_t * pDfs;
     Gia_Obj_t * pObj, * pObjDfs;
     Vec_Int_t * vSwitching;
-    float * pSwitching, Switch, SwitchTotal = 0.0, SwitchTotal2 = 0.0;
+    float * pSwitching, Switch, SwitchTotal = 0.0;//, SwitchTotal2 = 0.0;
     int i;
     Gia_ParSwi_t Pars, * pPars = &Pars;
     ABC_FREE( p->pSwitching );

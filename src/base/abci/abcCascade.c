@@ -874,7 +874,7 @@ DdNode * Abc_NtkBddDecCharFunc( DdManager * dd, DdNode ** pFuncs, int nOuts, int
 ***********************************************************************/
 DdNode * Abc_NtkBddDecTry( reo_man * pReo, DdManager * dd, DdNode ** pFuncs, int nIns, int nOuts, int Mask, int nBits )
 {
-    int fReorder = 0;
+//    int fReorder = 0;
     DdNode * bFunc;//, * aFunc, * aFuncNew;
     // derive the characteristic function
     bFunc = Abc_NtkBddDecCharFunc( dd, pFuncs, nOuts, Mask, nBits );    Cudd_Ref( bFunc );

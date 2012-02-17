@@ -372,7 +372,6 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
     }
 
 
-/*
     s_TotalNodes += Abc_NtkNodeNum(pNtk);
     printf( "Total nodes = %6d   %6.2f Mb   Changes = %6d.\n", 
         s_TotalNodes, s_TotalNodes * 20.0 / (1<<20), s_TotalChanges );
@@ -1301,7 +1300,7 @@ void Abc_NtkPrintMiter( Abc_Ntk_t * pNtk )
     Time = clock() - Time;
     printf(" %7.2f sec\n", (float)(Time)/(float)(CLOCKS_PER_SEC));
     if ( iOut >= 0 )
-        printf( "The first satisfiable output is number %d (%d).\n", iOut, Abc_ObjName( Abc_NtkPo(pNtk, iOut) ) );
+        printf( "The first satisfiable output is number %d (%s).\n", iOut, Abc_ObjName( Abc_NtkPo(pNtk, iOut) ) );
 }
 
 
@@ -1486,12 +1485,12 @@ void Abc_NtkShow6VarFunc( char * pF0, char * pF1 )
     word F0, F1;
     if ( strlen(pF0) != 16 )
     {
-        printf( "Wrong length (%d) of 6-var truth table (%s).\n", strlen(pF0), pF0 );
+        printf( "Wrong length (%d) of 6-var truth table.\n", strlen(pF0) );
         return;
     }
     if ( strlen(pF1) != 16 )
     {
-        printf( "Wrong length (%d) of 6-var truth table (%s).\n", strlen(pF1), pF1 );
+        printf( "Wrong length (%d) of 6-var truth table.\n", strlen(pF1) );
         return;
     }
     Extra_ReadHexadecimal( (unsigned *)&F0, pF0, 6 );

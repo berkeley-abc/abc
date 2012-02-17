@@ -1069,6 +1069,7 @@ void For_ManFileExperiment()
     int * pBuffer;
     int i, Size, Exp = 25;
     int clk = clock();
+    int RetValue;
 
     Size = (1 << Exp);
     printf( "2^%d machine words (%d bytes).\n", Exp, sizeof(int) * Size );
@@ -1080,7 +1081,7 @@ ABC_PRT( "Fillup", clock() - clk );
 
 clk = clock();
     pFile = fopen( "test.txt", "rb" );
-    fread( pBuffer, 1, sizeof(int) * Size, pFile );
+    RetValue = fread( pBuffer, 1, sizeof(int) * Size, pFile );
     fclose( pFile );
 ABC_PRT( "Read  ", clock() - clk );
 

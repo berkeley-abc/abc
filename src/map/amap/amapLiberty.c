@@ -826,6 +826,7 @@ Amap_Tree_t * Amap_LibertyStart( char * pFileName )
 {
     FILE * pFile;
     Amap_Tree_t * p;
+    int RetValue;
     // start the manager
     p = ABC_ALLOC( Amap_Tree_t, 1 );
     memset( p, 0, sizeof(Amap_Tree_t) );
@@ -839,7 +840,7 @@ Amap_Tree_t * Amap_LibertyStart( char * pFileName )
     }
     pFile = fopen( pFileName, "rb" );
     p->pContents = ABC_ALLOC( char, p->nContents+1 );
-    fread( p->pContents, p->nContents, 1, pFile );
+    RetValue = fread( p->pContents, p->nContents, 1, pFile );
     fclose( pFile );
     p->pContents[p->nContents] = 0;
     // other 

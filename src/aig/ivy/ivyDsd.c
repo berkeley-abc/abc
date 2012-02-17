@@ -722,6 +722,8 @@ void Ivy_TruthTestOne( unsigned uTruth )
 //    Vec_IntFree( vTree );
 }
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -817,6 +819,7 @@ void Ivy_TruthTest5()
     fclose( pFile );
 }
 
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -114,6 +114,7 @@ Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_tab
     {
         FILE * pFile;
         int nFileSize;
+        int RetValue;
 
         // open the BLIF file for binary reading
         pFile = Io_FileOpen( FileName, "open_path", "rb", 1 );
@@ -128,7 +129,7 @@ Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st_tab
         rewind( pFile ); 
         // load the contents of the file into memory
         pBuffer   = ABC_ALLOC( char, nFileSize + 10 );
-        fread( pBuffer, nFileSize, 1, pFile );
+        RetValue = fread( pBuffer, nFileSize, 1, pFile );
         // terminate the string with '\0'
         pBuffer[ nFileSize ] = '\0';
         strcat( pBuffer, "\n.end\n" );

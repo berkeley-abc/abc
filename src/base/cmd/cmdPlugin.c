@@ -332,7 +332,7 @@ static unsigned textToBin(char* text, unsigned long text_sz)
     char*       dst = text;
     const char* src = text;
     unsigned sz, i;
-    sscanf(src, "%lu ", &sz);
+    sscanf(src, "%u ", &sz);
     while(*src++ != ' ');
     for ( i = 0; i < sz; i += 3 )
     {

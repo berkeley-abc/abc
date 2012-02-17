@@ -91,6 +91,7 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
     FILE * pFile;
     char * pChar;
     int nCharsToRead;
+    int RetValue;
     // check if the file can be opened
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
@@ -122,7 +123,7 @@ Extra_FileReader_t * Extra_FileReaderAlloc( char * pFileName,
     // determine how many chars to read
     nCharsToRead = EXTRA_MINIMUM(p->nFileSize, EXTRA_BUFFER_SIZE);
     // load the first part into the buffer
-    fread( p->pBuffer, nCharsToRead, 1, p->pFile );
+    RetValue = fread( p->pBuffer, nCharsToRead, 1, p->pFile );
     p->nFileRead = nCharsToRead;
     // set the ponters to the end and the stopping point
     p->pBufferEnd  = p->pBuffer + nCharsToRead;
@@ -361,6 +362,7 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
 void Extra_FileReaderReload( Extra_FileReader_t * p )
 {
     int nCharsUsed, nCharsToRead;
+    int RetValue;
     assert( !p->fStop );
     assert( p->pBufferCur > p->pBufferStop );
     assert( p->pBufferCur < p->pBufferEnd );
@@ -372,7 +374,7 @@ void Extra_FileReaderReload( Extra_FileReader_t * p )
     // determine how many chars we will read
     nCharsToRead = EXTRA_MINIMUM( p->nBufferSize - nCharsUsed, p->nFileSize - p->nFileRead );
     // read the chars
-    fread( p->pBuffer + nCharsUsed, nCharsToRead, 1, p->pFile );
+    RetValue = fread( p->pBuffer + nCharsUsed, nCharsToRead, 1, p->pFile );
     p->nFileRead += nCharsToRead;
     // set the ponters to the end and the stopping point
     p->pBufferEnd  = p->pBuffer + nCharsUsed + nCharsToRead;

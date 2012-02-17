@@ -326,7 +326,7 @@ Abc_Ntk_t * Abc_NtkTestScorr( char * pFileNameIn, char * pFileNameOut, int nStep
     Abc_Ntk_t * pNetlist, * pLogic, * pStrash, * pResult;
     Aig_Man_t * pAig, * pTempAig;
     Gia_Man_t * pGia, * pTempGia;
-    int Counter = 0;
+//    int Counter = 0;
     // check the files
     pFile = fopen( pFileNameIn, "rb" );
     if ( pFile == NULL )

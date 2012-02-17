@@ -497,7 +497,7 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
     Abc_Obj_t * pNodeBot, * pNodeTop;
     DdManager * ddOld = (DdManager *)pNode->pNtk->pManFunc;
     DdManager * ddNew = (DdManager *)pNtkNew->pManFunc;
-    DdNode * bCof0, * bCof1, * bSupp, * bTemp, * bVar;
+    DdNode * bCof0 = NULL, * bCof1 = NULL, * bSupp, * bTemp, * bVar;
     DdNode * bCof0n, * bCof1n;
     int i, iCof, iFreeVar, fCof1Smaller = -1;
     assert( Abc_ObjFaninNum(pNode) == nLutSize + 1 );

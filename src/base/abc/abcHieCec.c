@@ -192,8 +192,8 @@ void Abc_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Abc_Ntk_t * pNtk )
         if ( Abc_ObjIsNode(pObj) )
         {
             char * pSop = (char *)pObj->pData;
-            int nLength = strlen(pSop);
 /*
+            int nLength = strlen(pSop);
             if ( nLength == 4 ) // buf/inv
             {
                 assert( pSop[2] == '1' );
@@ -446,8 +446,8 @@ Gia_Man_t * Abc_NtkDeriveFlatGia2( Abc_Ntk_t * pNtk )
 */
 Gia_Man_t * Abc_NtkDeriveFlatGia2( Abc_Ntk_t * pNtk, Vec_Ptr_t * vModels )
 { 
-    Abc_Ntk_t * pModel;
     Vec_Ptr_t * vOrder;
+    Abc_Ntk_t * pModel = NULL;
     Gia_Man_t * pGia = NULL;
     int i;
 

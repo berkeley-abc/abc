@@ -291,12 +291,7 @@ float Gia_ManDelayTraceLut( Gia_Man_t * p )
     vObjs = Gia_ManOrderReverse( p );
     Vec_IntForEachEntry( vObjs, iObj, i )
     {
-        if ( i == 1137 )
-        {
-            int s = 0;
-        }
         pObj = Gia_ManObj(p, iObj);
-//printf( "%d ", Gia_ObjLevel(p, pObj) );
         if ( Gia_ObjIsLut(p, iObj) )
         {
             Gia_ObjPropagateRequired( p, iObj, fUseSorting );

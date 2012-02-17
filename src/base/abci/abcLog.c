@@ -134,7 +134,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
     FILE * pFile;
     Abc_Cex_t * pCex;
     Vec_Int_t * vNums;
-    char Buffer[1000], * pToken;
+    char Buffer[1000], * pToken, * RetValue;
     int c, nRegs = -1, nFrames = -1, iPo = -1, Status = -1, nFrames2 = -1;
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
@@ -142,7 +142,7 @@ int Abc_NtkReadLogFile( char * pFileName, Abc_Cex_t ** ppCex, int * pnFrames )
         printf( "Cannot open log file for reading \"%s\".\n" , pFileName );
         return -1;
     }
-    fgets( Buffer, 1000, pFile );
+    RetValue = fgets( Buffer, 1000, pFile );
     if ( !strncmp( Buffer, "snl_UNSAT", strlen("snl_UNSAT") ) )
     {
         Status = 1;

@@ -354,13 +354,14 @@ Gia_Man_t * Gia_ReadAiger2( char * pFileName, int fCheck )
     unsigned char * pDrivers, * pSymbols, * pCur;//, * pType;
     char * pContents, * pName;
     unsigned uLit0, uLit1, uLit;
+    int RetValue;
 
     // read the file into the buffer
     Gia_FixFileName( pFileName );
     nFileSize = Gia_FileSize( pFileName );
     pFile = fopen( pFileName, "rb" );
     pContents = ABC_ALLOC( char, nFileSize );
-    fread( pContents, nFileSize, 1, pFile );
+    RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
     // check if the input file format is correct
@@ -1079,13 +1080,14 @@ Gia_Man_t * Gia_ReadAiger( char * pFileName, int fCheck )
     Gia_Man_t * pNew;
     char * pName, * pContents;
     int nFileSize;
+    int RetValue;
 
     // read the file into the buffer
     Gia_FixFileName( pFileName );
     nFileSize = Gia_FileSize( pFileName );
     pFile = fopen( pFileName, "rb" );
     pContents = ABC_ALLOC( char, nFileSize );
-    fread( pContents, nFileSize, 1, pFile );
+    RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
     pNew = Gia_ReadAigerFromMemory( pContents, nFileSize, fCheck );

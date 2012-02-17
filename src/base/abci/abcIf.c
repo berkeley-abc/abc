@@ -358,7 +358,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
 Hop_Obj_t * Abc_NodeTruthToHopInt( Hop_Man_t * pMan, Vec_Wrd_t * vAnds, int nVars )
 {
     Vec_Ptr_t * vResults;
-    Hop_Obj_t * pRes0, * pRes1, * pRes;
+    Hop_Obj_t * pRes0, * pRes1, * pRes = NULL;
     If_And_t This;
     word Entry;
     int i;

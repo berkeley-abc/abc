@@ -52,12 +52,13 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
     int nInputs, nOutputs, nLatches, nAnds, nFileSize, Num, i;
     char * pContents, * pName, * pCur;
     unsigned * pBufferNode;
+    int RetValue;
 
     // read the file into the buffer
     nFileSize = Extra_FileSize( pFileName );
     pFile = fopen( pFileName, "rb" );
     pContents = ABC_ALLOC( char, nFileSize );
-    fread( pContents, nFileSize, 1, pFile );
+    RetValue = fread( pContents, nFileSize, 1, pFile );
     fclose( pFile );
 
     // skip the comments (comment lines begin with '#' and end with '\n')

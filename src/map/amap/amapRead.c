@@ -76,6 +76,7 @@ char * Amap_LoadFile( char * pFileName )
     FILE * pFile;
     char * pBuffer;
     int nFileSize;
+    int RetValue;
     // open the BLIF file for binary reading
     pFile = Io_FileOpen( pFileName, "open_path", "rb", 1 );
 //    pFile = fopen( FileName, "rb" );
@@ -94,7 +95,7 @@ char * Amap_LoadFile( char * pFileName )
     rewind( pFile ); 
     // load the contents of the file into memory
     pBuffer = ABC_ALLOC( char, nFileSize + 10 );
-    fread( pBuffer, nFileSize, 1, pFile );
+    RetValue = fread( pBuffer, nFileSize, 1, pFile );
     // terminate the string with '\0'
     pBuffer[ nFileSize ] = '\0';
     strcat( pBuffer, "\n.end\n" );

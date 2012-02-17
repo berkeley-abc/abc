@@ -49,11 +49,12 @@ static int CmdCommandPrintCompare( Abc_Command ** ppC1, Abc_Command ** ppC2 );
 ***********************************************************************/
 int cmdCheckShellEscape( Abc_Frame_t * pAbc, int argc, char ** argv)
 {
+    int RetValue;
     if (argv[0][0] == '!') 
     {
         const int size = 4096;
         int i;
-        char buffer[4096];
+        char * buffer = ABC_ALLOC(char, 10000);
         strncpy (buffer, &argv[0][1], size);
         for (i = 1; i < argc; ++i)
         {
@@ -62,7 +63,8 @@ int cmdCheckShellEscape( Abc_Frame_t * pAbc, int argc, char ** argv)
         }
         if (buffer[0] == 0) 
             strncpy (buffer, "/bin/sh", size);
-        system (buffer);
+        RetValue = system (buffer);
+        ABC_FREE( buffer );
 
         // NOTE: Since we reconstruct the cmdline by concatenating
         // the parts, we lose information. So a command like

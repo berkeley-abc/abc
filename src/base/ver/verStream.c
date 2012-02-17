@@ -76,6 +76,7 @@ Ver_Stream_t * Ver_StreamAlloc( char * pFileName )
     Ver_Stream_t * p;
     FILE * pFile;
     int nCharsToRead;
+    int RetValue;
     // check if the file can be opened
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
@@ -99,7 +100,7 @@ Ver_Stream_t * Ver_StreamAlloc( char * pFileName )
     // determine how many chars to read
     nCharsToRead = VER_MINIMUM(p->nFileSize, VER_BUFFER_SIZE);
     // load the first part into the buffer
-    fread( p->pBuffer, nCharsToRead, 1, p->pFile );
+    RetValue = fread( p->pBuffer, nCharsToRead, 1, p->pFile );
     p->nFileRead = nCharsToRead;
     // set the ponters to the end and the stopping point
     p->pBufferEnd  = p->pBuffer + nCharsToRead;
@@ -123,6 +124,7 @@ Ver_Stream_t * Ver_StreamAlloc( char * pFileName )
 void Ver_StreamReload( Ver_Stream_t * p )
 {
     int nCharsUsed, nCharsToRead;
+    int RetValue;
     assert( !p->fStop );
     assert( p->pBufferCur > p->pBufferStop );
     assert( p->pBufferCur < p->pBufferEnd );
@@ -134,7 +136,7 @@ void Ver_StreamReload( Ver_Stream_t * p )
     // determine how many chars we will read
     nCharsToRead = VER_MINIMUM( p->nBufferSize - nCharsUsed, p->nFileSize - p->nFileRead );
     // read the chars
-    fread( p->pBuffer + nCharsUsed, nCharsToRead, 1, p->pFile );
+    RetValue = fread( p->pBuffer + nCharsUsed, nCharsToRead, 1, p->pFile );
     p->nFileRead += nCharsToRead;
     // set the ponters to the end and the stopping point
     p->pBufferEnd  = p->pBuffer + nCharsUsed + nCharsToRead;

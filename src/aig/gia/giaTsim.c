@@ -178,10 +178,6 @@ static inline void Gia_ManTerSimulateCi( Gia_ManTer_t * p, Gia_Obj_t * pObj, int
 static inline void Gia_ManTerSimulateCo( Gia_ManTer_t * p, int iCo, Gia_Obj_t * pObj )
 {
     int Value = Gia_ManTerSimInfoGet( p->pDataSim, Gia_ObjDiff0(pObj) );
-    if ( iCo == Gia_ManCoNum(p->pAig) -1 )
-    {
-        int s = 0;
-    }
     Gia_ManTerSimInfoSet( p->pDataSimCos, iCo, Gia_XsimNotCond( Value, Gia_ObjFaninC0(pObj) ) );
 }
 
@@ -418,7 +414,7 @@ static inline void Gia_ManTerSimulateRound( Gia_ManTer_t * p )
 ***********************************************************************/
 int Gia_ManTerRetire2( Gia_ManTer_t * p, unsigned * pState )
 {
-    int i, Entry, iMaxTerValue = -1, Counter = 0;
+    int i, Entry, iMaxTerValue = -1;
     // find non-retired register with this value
     for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
         if ( Gia_ManTerSimInfoGet( pState, i ) != GIA_UND && !p->pRetired[i] && iMaxTerValue < p->pCountX[i] )

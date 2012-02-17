@@ -725,15 +725,16 @@ Vec_Wrd_t * Bdc_SpfdReadFiles5( Vec_Int_t ** pvWeights )
     Vec_Int_t * vWeights;
     Vec_Wrd_t * vDivs;
     FILE * pFile;
+    int RetValue;
     
     vDivs = Vec_WrdStart( 3863759 );
     pFile = fopen( "func6v5n_bin.txt", "rb" );
-    fread( Vec_WrdArray(vDivs), sizeof(word), Vec_WrdSize(vDivs), pFile );
+    RetValue = fread( Vec_WrdArray(vDivs), sizeof(word), Vec_WrdSize(vDivs), pFile );
     fclose( pFile );
 
     vWeights = Vec_IntStart( 3863759 );
     pFile = fopen( "func6v5nW_bin.txt", "rb" );
-    fread( Vec_IntArray(vWeights), sizeof(int), Vec_IntSize(vWeights), pFile );
+    RetValue = fread( Vec_IntArray(vWeights), sizeof(int), Vec_IntSize(vWeights), pFile );
     fclose( pFile );
 
     *pvWeights = vWeights;
@@ -756,12 +757,13 @@ Vec_Wrd_t * Bdc_SpfdReadFiles6( Vec_Int_t ** pvWeights )
     Vec_Int_t * vWeights;
     Vec_Wrd_t * vDivs = Vec_WrdStart( 12776759 );
     FILE * pFile = fopen( "func6v6n_bin.txt", "rb" );
-    fread( Vec_WrdArray(vDivs), sizeof(word), Vec_WrdSize(vDivs), pFile );
+    int RetValue;
+    RetValue = fread( Vec_WrdArray(vDivs), sizeof(word), Vec_WrdSize(vDivs), pFile );
     fclose( pFile );
 
     vWeights = Vec_IntStart( 12776759 );
     pFile = fopen( "func6v6nW_bin.txt", "rb" );
-    fread( Vec_IntArray(vWeights), sizeof(int), Vec_IntSize(vWeights), pFile );
+    RetValue = fread( Vec_IntArray(vWeights), sizeof(int), Vec_IntSize(vWeights), pFile );
     fclose( pFile );
 
     *pvWeights = vWeights;

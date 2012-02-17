@@ -21,9 +21,15 @@
 
 // The code in this file is developed in collaboration with Mark Jarvin of Toronto.
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
+
 #include "src/misc/bzlib/bzlib.h"
-#include "ioAbc.h"
 #include "src/misc/zlib/zlib.h"
+#include "ioAbc.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -119,6 +125,7 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
     int       bzError;
     struct buflist * pNext;
     buflist * bufHead = NULL, * buf = NULL;
+    int RetValue;
 
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
@@ -165,7 +172,7 @@ static char * Ioa_ReadLoadFileBz2Aig( char * pFileName, int * pFileSize )
         }
         pContents = ABC_ALLOC( char, nFileSize + 10 );
         rewind( pFile );
-        fread( pContents, nFileSize, 1, pFile );
+        RetValue = fread( pContents, nFileSize, 1, pFile );
     } else { 
         // Some other error.
         printf( "Ioa_ReadLoadFileBz2(): Unable to read the compressed BLIF.\n" );
@@ -238,6 +245,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     int nFileSize = -1, iTerm, nDigits, i;
     char * pContents, * pDrivers = NULL, * pSymbols, * pCur, * pName, * pType;
     unsigned uLit0, uLit1, uLit;
+    int RetValue;
 
     // read the file into the buffer
     if ( !strncmp(pFileName+strlen(pFileName)-4,".bz2",4) )
@@ -250,7 +258,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         nFileSize = Extra_FileSize( pFileName );
         pFile = fopen( pFileName, "rb" );
         pContents = ABC_ALLOC( char, nFileSize );
-        fread( pContents, nFileSize, 1, pFile );
+        RetValue = fread( pContents, nFileSize, 1, pFile );
         fclose( pFile );
     }
 
