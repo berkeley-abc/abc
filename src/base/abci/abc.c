@@ -21950,7 +21950,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
-    Abc_FrameClearVerifStatus( pAbc );
+//    Abc_FrameClearVerifStatus( pAbc );
     return 0;
 
 usage:
@@ -24016,8 +24016,13 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Abc_CommandAbc9Miter(): The number of outputs should be even.\n" );
             return 0;
         }
-        pAbc->pGia = Gia_ManTransformMiter( pAux = pAbc->pGia );
-        Gia_ManStop( pAux );
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Miter(): There is no AIG.\n" );
+            return 1;
+        } 
+        pAux = Gia_ManTransformMiter( pAbc->pGia );
+        Abc_CommandUpdate9( pAbc, pAux );
         Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs pair-wise.\n" );
         return 0;
     }
