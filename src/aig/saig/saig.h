@@ -185,7 +185,7 @@ extern Aig_Man_t *       Saig_ManReadBlif( char * pFileName );
 /*=== saigIso.c ==========================================================*/
 extern Vec_Int_t *       Saig_ManFindIsoPerm( Aig_Man_t * pAig, int fVerbose );
 extern Aig_Man_t *       Saig_ManDupIsoCanonical( Aig_Man_t * pAig, int fVerbose );
-extern Aig_Man_t *       Saig_ManIsoReduce( Aig_Man_t * pAig, int fVerbose );
+extern Aig_Man_t *       Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fVerbose );
 /*=== saigIsoFast.c ==========================================================*/
 extern Vec_Vec_t *       Saig_IsoDetectFast( Aig_Man_t * pAig );
 /*=== saigMiter.c ==========================================================*/

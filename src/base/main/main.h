@@ -108,7 +108,8 @@ extern ABC_DLL int             Abc_FrameIsFlagEnabled( char * pFlag );
 extern ABC_DLL int             Abc_FrameReadBmcFrames( Abc_Frame_t * p );              
 extern ABC_DLL int             Abc_FrameReadProbStatus( Abc_Frame_t * p );              
 extern ABC_DLL Abc_Cex_t *     Abc_FrameReadCex( Abc_Frame_t * p );              
-extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadCexVec( Abc_Frame_t * p );              
+extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadCexVec( Abc_Frame_t * p );  
+extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadPoEquivs( Abc_Frame_t * p );  
 
 extern ABC_DLL int             Abc_FrameReadCexPiNum( Abc_Frame_t * p );              
 extern ABC_DLL int             Abc_FrameReadCexRegNum( Abc_Frame_t * p );              

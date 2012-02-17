@@ -362,8 +362,8 @@ Aig_Man_t * Iso_ManFilterPos_old( Aig_Man_t * pAig, int fVerbose )
             {
                 if ( fVeryVerbose )
                     printf( "Found match\n" );
-                if ( fVerbose )
-                    printf( "Found match for AIG %4d and AIG %4d.\n", Vec_IntEntry(vPos,k), i );
+//                if ( fVerbose )
+//                    printf( "Found match for AIG %4d and AIG %4d.\n", Vec_IntEntry(vPos,k), i );
                 Vec_IntFree( vMap );
                 break;
             }
@@ -419,7 +419,7 @@ int Iso_StoCompareVecStr( Vec_Str_t ** p1, Vec_Str_t ** p2 )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
+Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
 {
 //    int fVeryVerbose = 0;
     Aig_Man_t * pPart, * pTemp;
@@ -492,6 +492,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     // report the results
 //    Vec_VecPrintInt( (Vec_Vec_t *)vClasses );
 //    printf( "Devided %d outputs into %d cand equiv classes.\n", Saig_ManPoNum(pAig), Vec_PtrSize(vClasses) );
+/*
     if ( fVerbose )
     {
         Vec_PtrForEachEntry( Vec_Int_t *, vClasses, vLevel, i )
@@ -501,7 +502,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
                 nUnique++;
         printf( " Unique = %d\n", nUnique );
     }
-
+*/
     // collect the first ones
     vRemain = Vec_IntAlloc( 100 );
     Vec_PtrForEachEntry( Vec_Int_t *, vClasses, vLevel, i )
@@ -512,7 +513,13 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
     Vec_IntFree( vRemain );
 
 //    return (Vec_Vec_t *)vClasses;
-    Vec_VecFree( (Vec_Vec_t *)vClasses );
+//    Vec_VecFree( (Vec_Vec_t *)vClasses );
+    *pvPosEquivs = vClasses;
+    if ( fVerbose && vClasses )
+    {
+        printf( "Non-trivial equivalence clases of primary outputs:\n" );
+        Vec_VecPrintInt( (Vec_Vec_t *)vClasses, 1 );
+    }
 
 //    printf( "The number of all checks %d.  Complex checks %d.\n", nPos*(nPos-1)/2, s_Counter );
     return pPart;
@@ -550,11 +557,11 @@ Aig_Man_t * Iso_ManTest( Aig_Man_t * pAig, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, int fVerbose )
+Aig_Man_t * Saig_ManIsoReduce( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fVerbose )
 { 
     Aig_Man_t * pPart;
     int clk = clock();
-    pPart = Iso_ManFilterPos( pAig, fVerbose );
+    pPart = Iso_ManFilterPos( pAig, pvPosEquivs, fVerbose );
     printf( "Reduced %d outputs to %d outputs.  ", Saig_ManPoNum(pAig), Saig_ManPoNum(pPart) );
     Abc_PrintTime( 1, "Time", clock() - clk );
 //    Aig_ManStop( pPart );

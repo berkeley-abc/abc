@@ -90,10 +90,11 @@ struct Abc_Frame_t_
     void *          pLibVer;     // the current Verilog library
 
     // new code
-    Gia_Man_t *     pGia;
-    Gia_Man_t *     pGia2;
-    Abc_Cex_t *     pCex; 
-    Vec_Ptr_t *     vCexVec;
+    Gia_Man_t *     pGia;        // alternative current network as a light-weight AIG
+    Gia_Man_t *     pGia2;       // copy of the above
+    Abc_Cex_t *     pCex;        // a counter-example to fail the current network
+    Vec_Ptr_t *     vCexVec;     // a vector of counter-examples if more than one PO fails
+    Vec_Ptr_t *     vPoEquivs;   // equivalence classes of isomorphic primary outputs
 
     void *          pSave1; 
     void *          pSave2; 

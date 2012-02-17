@@ -422,6 +422,26 @@ void Abc_FrameReplaceCexVec( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvCexVec )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_FrameReplacePoEquivs( Abc_Frame_t * pAbc, Vec_Ptr_t ** pvPoEquivs )
+{
+    // update the array vector
+    if ( pAbc->vPoEquivs )
+        Vec_VecFree( (Vec_Vec_t *)pAbc->vPoEquivs );
+    pAbc->vPoEquivs = *pvPoEquivs;
+    *pvPoEquivs = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_FrameClearDesign()
 {
 }
@@ -21335,6 +21355,7 @@ int Abc_CommandIso( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     Abc_Ntk_t * pNtk, * pNtkNew = NULL;
     Aig_Man_t * pAig, * pTemp;
+    Vec_Ptr_t * vPosEquivs = NULL;
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -21372,10 +21393,13 @@ int Abc_CommandIso( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // transform
     pAig = Abc_NtkToDar( pNtk, 0, 1 );
-    pTemp = Saig_ManIsoReduce( pAig, fVerbose );
+    pTemp = Saig_ManIsoReduce( pAig, &vPosEquivs, fVerbose );
     pNtkNew = Abc_NtkFromAigPhase( pTemp );
     Aig_ManStop( pTemp );
     Aig_ManStop( pAig );
+
+    // update the internal storage of PO equivalences
+    Abc_FrameReplacePoEquivs( pAbc, &vPosEquivs );
 
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );

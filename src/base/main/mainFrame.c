@@ -63,11 +63,12 @@ int         Abc_FrameReadBmcFrames( Abc_Frame_t * p )        { return s_GlobalFr
 int         Abc_FrameReadProbStatus( Abc_Frame_t * p )       { return s_GlobalFrame->Status;       }               
 Abc_Cex_t * Abc_FrameReadCex( Abc_Frame_t * p )              { return s_GlobalFrame->pCex;         }        
 Vec_Ptr_t * Abc_FrameReadCexVec( Abc_Frame_t * p )           { return s_GlobalFrame->vCexVec;      }        
+Vec_Ptr_t * Abc_FrameReadPoEquivs( Abc_Frame_t * p )         { return s_GlobalFrame->vPoEquivs;    }        
        
-int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->nPis;      }               
-int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;     }               
-int         Abc_FrameReadCexPo( Abc_Frame_t * p )            { return s_GlobalFrame->pCex->iPo;       }               
-int         Abc_FrameReadCexFrame( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->iFrame;    }               
+int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->nPis;   }               
+int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;  }               
+int         Abc_FrameReadCexPo( Abc_Frame_t * p )            { return s_GlobalFrame->pCex->iPo;    }               
+int         Abc_FrameReadCexFrame( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->iFrame; }               
 
 void        Abc_FrameSetLibLut( void * pLib )                { s_GlobalFrame->pLibLut   = pLib;    } 
 void        Abc_FrameSetLibGen( void * pLib )                { s_GlobalFrame->pLibGen   = pLib;    } 
@@ -162,14 +163,16 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
 //    undefine_cube_size();
     Rwt_ManGlobalStop();
 //    Ivy_TruthManStop();
-    if ( p->pLibVer ) Abc_LibFree( (Abc_Lib_t *)p->pLibVer, NULL );
-    if ( p->pManDec ) Dec_ManStop( (Dec_Man_t *)p->pManDec );
-    if ( p->dd )      Extra_StopManager( p->dd );
-    if ( p->vStore )  Vec_PtrFree( p->vStore );
-    if ( p->pSave1 )  Aig_ManStop( (Aig_Man_t *)p->pSave1 );
-    if ( p->pSave2 )  Aig_ManStop( (Aig_Man_t *)p->pSave2 );
-    if ( p->pSave3 )  Aig_ManStop( (Aig_Man_t *)p->pSave3 );
-    if ( p->pSave4 )  Aig_ManStop( (Aig_Man_t *)p->pSave4 );
+    if ( p->vCexVec   )  Vec_PtrFreeFree( p->vCexVec );
+    if ( p->vPoEquivs )  Vec_VecFree( (Vec_Vec_t *)p->vPoEquivs );
+    if ( p->pLibVer   )  Abc_LibFree( (Abc_Lib_t *)p->pLibVer, NULL );
+    if ( p->pManDec   )  Dec_ManStop( (Dec_Man_t *)p->pManDec );
+    if ( p->dd        )  Extra_StopManager( p->dd );
+    if ( p->vStore    )  Vec_PtrFree( p->vStore );
+    if ( p->pSave1    )  Aig_ManStop( (Aig_Man_t *)p->pSave1 );
+    if ( p->pSave2    )  Aig_ManStop( (Aig_Man_t *)p->pSave2 );
+    if ( p->pSave3    )  Aig_ManStop( (Aig_Man_t *)p->pSave3 );
+    if ( p->pSave4    )  Aig_ManStop( (Aig_Man_t *)p->pSave4 );
     if ( p->vPlugInComBinPairs ) 
     {
         char * pTemp;

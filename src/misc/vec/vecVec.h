@@ -597,17 +597,19 @@ static inline void Vec_VecSort( Vec_Vec_t * p, int fReverse )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_VecPrintInt( Vec_Vec_t * p )
+static inline void Vec_VecPrintInt( Vec_Vec_t * p, int fSkipSingles )
 {
     int i, k, Entry;
-    printf( "Integers by level" );
     Vec_VecForEachEntryInt( p, Entry, i, k )
     {
+        if ( Vec_VecLevelSize(p, i) == 1 )
+            break;
         if ( k == 0 )
-            printf( "\n%3d : ", i );
-        printf( "%6d ", Entry );
+            printf( " %4d : {", i );
+        printf( " %d", Entry );
+        if ( k == Vec_VecLevelSize(p, i) - 1 )
+            printf( " }\n" );
     }
-    printf( "\n" );
 }
 
 
