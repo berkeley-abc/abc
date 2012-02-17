@@ -2038,7 +2038,7 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
 ***********************************************************************/
 int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
-    If_Grp_t G1 = {0}, G3 = {0};
+    If_Grp_t G1 = {0};//, G3 = {0};
     int i, nLutLeaf, nLutLeaf2, nLutRoot, Length;
     // quit if parameters are wrong
     Length = strlen(pStr);
