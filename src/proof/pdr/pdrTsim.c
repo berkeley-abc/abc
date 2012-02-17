@@ -199,7 +199,7 @@ int Pdr_ManSimDataInit( Aig_Man_t * pAig,
 int Pdr_ManExtendOne( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Int_t * vUndo, Vec_Int_t * vVis )
 {
     Aig_Obj_t * pFanout;
-    int i, k, iFanout, Value, Value2;
+    int i, k, iFanout = -1, Value, Value2;
     assert( Saig_ObjIsLo(pAig, pObj) );
     assert( Aig_ObjIsTravIdCurrent(pAig, pObj) );
     // save original value

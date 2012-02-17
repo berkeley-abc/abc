@@ -1402,8 +1402,8 @@ void sat_solver2_reducedb(sat_solver2* s)
     satset * c, * pivot;
     cla h,* pArray,* pArray2;
     int * pPerm, * pClaAct, nClaAct, ActCutOff;
-    int i, j, k, hTemp, hHandle, clk = clock();
-    int Counter, CounterStart, LastSize;
+    int i, j, k, hTemp, hHandle, LastSize = 0;
+    int Counter, CounterStart, clk = clock();
 
     // check if it is time to reduce
     if ( s->nLearntMax == 0 || s->stats.learnts < (unsigned)s->nLearntMax )
@@ -1483,7 +1483,7 @@ void sat_solver2_reducedb(sat_solver2* s)
         }
     // compact clauses
     pivot = satset_read( &s->learnts, s->hLearntPivot );
-    s->hLearntPivot = hHandle;
+    s->hLearntPivot = hTemp = hHandle;
     satset_foreach_entry_vec( &s->learnt_live, &s->learnts, c, i )
     {
         hTemp = c->Id; c->Id = i + 1;
@@ -1631,7 +1631,7 @@ int sat_solver2_find_clause( sat_solver2* s, int Hand, int fVerbose )
             if ( (pArray[k] >> 1) == Hand )
             {
                 if ( fVerbose )
-                printf( "Clause found in list %d at position.\n", i, k );
+                printf( "Clause found in list %d at position %d.\n", i, k );
                 Found = 1;
                 break;
             }

@@ -506,7 +506,7 @@ void Gli_ManSwitching( Gli_Man_t * p )
 ***********************************************************************/
 void Gli_ManGlitching( Gli_Man_t * p )
 {
-    Gli_Obj_t * pThis, * pFanout, * pOther = Gli_ManObj(p, 41);
+    Gli_Obj_t * pThis, * pFanout;//, * pOther = Gli_ManObj(p, 41);
     int i, k, Handle;
 //    Gli_ManForEachObj( p, pThis, i )
 //        assert( pThis->fMark == 0 );

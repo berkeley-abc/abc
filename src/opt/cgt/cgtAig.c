@@ -90,7 +90,7 @@ void Cgt_ManDetectCandidates( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nLevelMax,
 void Cgt_ManDetectFanout_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nOdcMax, Vec_Ptr_t * vFanout )
 {
     Aig_Obj_t * pFanout;
-    int f, iFanout;
+    int f, iFanout = -1;
     if ( Aig_ObjIsPo(pObj) || Aig_ObjLevel(pObj) > nOdcMax )
         return;
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
@@ -115,7 +115,7 @@ void Cgt_ManDetectFanout_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nOdcMax, V
 void Cgt_ManDetectFanout( Aig_Man_t * pAig, Aig_Obj_t * pObj, int nOdcMax, Vec_Ptr_t * vFanout )
 {
     Aig_Obj_t * pFanout;
-    int i, k, f, iFanout;
+    int i, k, f, iFanout = -1;
     // collect visited nodes
     Vec_PtrClear( vFanout );
     Aig_ManIncrementTravId( pAig );

@@ -99,7 +99,7 @@ Abc_Cex_t * Llb_CoreDeriveCex( Llb_Img_t * p )
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vSupps, * vQuant0, * vQuant1;
-    DdNode * bState, * bImage, * bOneCube, * bTemp, * bRing;
+    DdNode * bState = NULL, * bImage, * bOneCube, * bTemp, * bRing;
     int i, v, RetValue, nPiOffset;
     char * pValues = ABC_ALLOC( char, Cudd_ReadSize(p->ddR) );
     assert( Vec_PtrSize(p->vRings) > 0 );
@@ -209,7 +209,7 @@ int Llb_CoreReachability_int( Llb_Img_t * p, Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQ
     int * pLoc2GloR = p->pPars->fBackward? Vec_IntArray( p->vNs2Glo ) : Vec_IntArray( p->vCs2Glo );
     int * pGlo2Loc  = p->pPars->fBackward? Vec_IntArray( p->vGlo2Ns ) : Vec_IntArray( p->vGlo2Cs );
     DdNode * bCurrent, * bReached, * bNext, * bTemp;
-    int clk2, clk = clock(), nIters, nBddSize, iOutFail = -1;
+    int clk2, clk = clock(), nIters, nBddSize;//, iOutFail = -1;
 /*
     // compute time to stop
     if ( p->pPars->TimeLimit )
@@ -533,7 +533,7 @@ Vec_Ptr_t * Llb_CoreConstructAll( Aig_Man_t * p, Vec_Ptr_t * vResult, Vec_Int_t 
 {
     DdManager * dd;
     Vec_Ptr_t * vDdMans;
-    Vec_Ptr_t * vLower, * vUpper;
+    Vec_Ptr_t * vLower, * vUpper = NULL;
     int i;
     vDdMans = Vec_PtrStart( Vec_PtrSize(vResult) );
     Vec_PtrForEachEntryReverse( Vec_Ptr_t *, vResult, vLower, i )

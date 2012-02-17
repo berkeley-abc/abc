@@ -639,7 +639,7 @@ cuddBddIteRecur(
     DdNode       *one, *zero, *res;
     DdNode       *r, *Fv, *Fnv, *Gv, *Gnv, *H, *Hv, *Hnv, *t, *e;
     unsigned int topf, topg, toph, v;
-    int          index;
+    int          index = -1;
     int          comple;
 
     statLine(dd);

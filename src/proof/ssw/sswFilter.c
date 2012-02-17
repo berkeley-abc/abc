@@ -382,7 +382,7 @@ void Ssw_SignalFilter( Aig_Man_t * pAig, int nFramesMax, int nConfMax, int nRoun
 {
     Ssw_Pars_t Pars, * pPars = &Pars;
     Ssw_Man_t * p;
-    int r, TimeLimitPart, clkTotal = clock();
+    int r, TimeLimitPart;//, clkTotal = clock();
     int nTimeToStop = TimeLimit ? TimeLimit + time(NULL) : 0;
     assert( Aig_ManRegNum(pAig) > 0 );
     assert( Aig_ManConstrNum(pAig) == 0 );

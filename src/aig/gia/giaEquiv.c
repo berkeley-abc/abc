@@ -1913,7 +1913,7 @@ int Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName
 {
     Vec_Int_t * vNodes;
     Gia_Man_t * pGia1, * pGia2, * pMiter;
-    Gia_Obj_t * pObj1, * pObj2, * pObjM, * pObj;
+    Gia_Obj_t * pObj1, * pObj2, * pObjM, * pObj = NULL;
     int i, k, iObj, iNext, iPrev, iRepr;
     int iLitsOld, iLitsNew;
     if ( pGia->pReprs == NULL || pGia->pNexts == NULL )

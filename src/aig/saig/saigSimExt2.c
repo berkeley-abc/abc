@@ -173,7 +173,7 @@ int Saig_ManSimDataInit2( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo 
 void Saig_ManSetAndDriveImplications_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int f, int fMax, Vec_Ptr_t * vSimInfo )
 {
     Aig_Obj_t * pFanout;
-    int k, iFanout, Value0, Value1;
+    int k, iFanout = -1, Value0, Value1;
     int Value = Saig_ManSimInfo2Get( vSimInfo, pObj, f );
     assert( !Saig_ManSimInfo2IsOld( Value ) );
     Saig_ManSimInfo2Set( vSimInfo, pObj, f, Saig_ManSimInfo2SetOld(Value) );

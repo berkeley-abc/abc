@@ -80,7 +80,7 @@ void Llb_MtrSwapColumns( Llb_Mtr_t * p, int iCol1, int iCol2 )
 int Llb_MtrFindBestColumn( Llb_Mtr_t * p, int iGrpStart )
 {
     int Cost, Cost2, CostBest = ABC_INFINITY, Cost2Best = ABC_INFINITY;
-    int WeightCur, WeightBest = -ABC_INFINITY, iGrp, iGrpBest = -1;
+    int WeightCur, WeightBest = -ABC_INFINITY, iGrp = -1, iGrpBest = -1;
     int k, c, iVar, Counter;
     // find partition that reduces partial product as much as possible
     for ( iVar = 0; iVar < p->nRows - p->nFfs; iVar++ )

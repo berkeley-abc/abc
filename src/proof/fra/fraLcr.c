@@ -538,7 +538,7 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     Fra_Man_t * pTemp;
     Aig_Man_t * pAigPart, * pAigTemp, * pAigNew = NULL;
     Vec_Int_t * vPart;
-    int i, nIter, timeSim, clk = clock(), clk2, clk3;
+    int i, nIter, timeSim, clk2, clk3, clk = clock();
     int TimeToStop = (TimeLimit == 0.0)? 0 : clock() + (int)(TimeLimit * CLOCKS_PER_SEC);
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
@@ -615,7 +615,6 @@ p->timePart += clock() - clk2;
         Vec_PtrClear( p->vFraigs );
         Vec_PtrForEachEntry( Vec_Int_t *, p->vParts, vPart, i )
         {
-            int clk3 = clock();
             if ( TimeLimit != 0.0 && clock() > TimeToStop )
             {
                 Vec_PtrForEachEntry( Aig_Man_t *, p->vFraigs, pAigPart, i )

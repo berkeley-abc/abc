@@ -465,7 +465,7 @@ Abc_Cex_t * Llb_ManReachDeriveCex( Llb_Man_t * p )
 {
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
-    DdNode * bState, * bImage, * bOneCube, * bTemp, * bRing;
+    DdNode * bState = NULL, * bImage, * bOneCube, * bTemp, * bRing;
     int i, v, RetValue, nPiOffset;
     char * pValues = ABC_ALLOC( char, Cudd_ReadSize(p->ddR) );
     assert( Vec_PtrSize(p->vRings) > 0 );
@@ -582,7 +582,7 @@ int Llb_ManReachability( Llb_Man_t * p, Vec_Int_t * vHints, DdManager ** pddGlo 
     DdNode * bCurrent, * bReached, * bNext, * bTemp, * bCube;
     DdNode * bConstrCs, * bConstrNs;
     int clk2, clk = clock(), nIters, nBddSize = 0;
-    int nThreshold = 10000;
+//    int nThreshold = 10000;
 
     // compute time to stop
     p->pPars->TimeTarget = p->pPars->TimeLimit ? time(NULL) + p->pPars->TimeLimit : 0;

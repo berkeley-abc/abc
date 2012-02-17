@@ -130,7 +130,7 @@ void Ssw_MatchingStart( Aig_Man_t * p0, Aig_Man_t * p1, Vec_Int_t * vPairs )
 void Ssw_MatchingExtendOne( Aig_Man_t * p, Vec_Ptr_t * vNodes )
 {
     Aig_Obj_t * pNext, * pObj;
-    int i, k, iFan;
+    int i, k, iFan = -1;
     Vec_PtrClear( vNodes );
     Aig_ManIncrementTravId( p );
     Aig_ManForEachObj( p, pObj, i )

@@ -602,7 +602,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
     for ( q = p; q < p+nFuncs; q++ )
        q->iList = 0;
     q = p + 1;
-    printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, q-p );
+    printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, (int)(q-p) );
 
     vTruths  = Vec_WrdStart( nFuncs );
     vWeights = Vec_IntStart( nFuncs );
@@ -624,7 +624,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
         Vec_IntPush( vWeights, 0 );
     }
     Vec_IntPush( vStops, 7 );
-    printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, q-p );
+    printf( "Added %d + %d + 0 = %d. Total = %8d.\n", 0, 0, 0, (int)(q-p) );
 
     // create gates
     for ( n = 0; n < Limit; n++ )
@@ -643,7 +643,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
             pEnd1 = p + Vec_IntEntry( vStops, m+1 );
 
             clk2 = clock();
-            printf( "Trying %7d  x %7d.  ", pEnd0-pBeg0, pEnd1-pBeg1 );
+            printf( "Trying %7d  x %7d.  ", (int)(pEnd0-pBeg0), (int)(pEnd1-pBeg1) );
             for ( pThis0 = pBeg0; pThis0 < pEnd0; pThis0++ )
             for ( pThis1 = pBeg1; pThis1 < pEnd1; pThis1++ )
             if ( k < m || pThis1 > pThis0 )
@@ -679,7 +679,7 @@ Vec_Wrd_t * Bdc_SpfdDecomposeTest__( Vec_Int_t ** pvWeights )
                     goto finish;
                 }
             }
-            printf( "Added %d + %d + 1 = %d. Total = %8d.   ", k, m, n+1, q-p );
+            printf( "Added %d + %d + 1 = %d. Total = %8d.   ", k, m, n+1, (int)(q-p) );
             Abc_PrintTime( 1, "Time", clock() - clk2 );
         }
         Vec_IntPush( vStops, q-p );
@@ -804,7 +804,7 @@ int Bdc_SpfdComputeCost( word f, int i, Vec_Int_t * vWeights )
 word Bdc_SpfdFindBest( Vec_Wrd_t * vDivs, Vec_Int_t * vWeights, word F0, word F1, int * pCost )
 {
     word Func, FuncBest;
-    int i, Cost, CostBest = -1, NumBest;
+    int i, Cost, CostBest = -1, NumBest = -1;
     Vec_WrdForEachEntry( vDivs, Func, i )
     {
         if ( (Func & F0) == 0 )

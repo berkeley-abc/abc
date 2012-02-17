@@ -549,7 +549,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
     int fPrintClauses = 0;
     Pdr_Set_t * pCube;
     int k, RetValue = -1;
-    int clkTotal = clock();
+//    int clkTotal = clock();
     int clkStart = clock();
     p->timeToStop = p->pPars->nTimeOut ? time(NULL) + p->pPars->nTimeOut : 0;
     assert( Vec_PtrSize(p->vSolvers) == 0 );

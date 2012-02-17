@@ -722,6 +722,7 @@ int Amap_LibertyBuildItem( Amap_Tree_t * p, char ** ppPos, char * pEnd )
     Amap_Item_t * pItem;
     Amap_Pair_t Key, Head, Body;
     char * pNext, * pStop;
+    Key.End = 0;
     if ( Amap_LibertySkipSpaces( p, ppPos, pEnd, 0 ) )
         return -2;
     Key.Beg = *ppPos - p->pContents;

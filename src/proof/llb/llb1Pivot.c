@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 int Llb_ManTracePaths_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pPivot )
 {
     Aig_Obj_t * pFanout;
-    int k, iFan;
+    int k, iFan = -1;
     if ( Aig_ObjIsTravIdPrevious(p, pObj) )
         return 0;
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )

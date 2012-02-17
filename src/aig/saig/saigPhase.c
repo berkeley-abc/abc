@@ -259,7 +259,7 @@ Vec_Int_t * Saig_TsiComputeTransient( Saig_Tsim_t * p, int nPref )
 {
     Vec_Int_t * vCounters;
     unsigned * pState;
-    int ValueThis, ValuePrev = -1, StepPrev = -1;
+    int ValueThis = -1, ValuePrev = -1, StepPrev = -1;
     int i, k, nRegs = p->pAig->nRegs;
     vCounters = Vec_IntStart( nPref );
     for ( i = 0; i < nRegs; i++ )

@@ -121,7 +121,7 @@ Vec_Ptr_t * Llb_ImgSupports( Aig_Man_t * p, Vec_Ptr_t * vDdMans, Vec_Int_t * vSt
 void Llb_ImgSchedule( Vec_Ptr_t * vSupps, Vec_Ptr_t ** pvQuant0, Vec_Ptr_t ** pvQuant1, int fVerbose )
 {
     Vec_Int_t * vOne;
-    int nVarsAll, Counter, iSupp, Entry, i, k;
+    int nVarsAll, Counter, iSupp = -1, Entry, i, k;
     // start quantification arrays
     *pvQuant0 = Vec_PtrAlloc( Vec_PtrSize(vSupps) );
     *pvQuant1 = Vec_PtrAlloc( Vec_PtrSize(vSupps) );
@@ -362,7 +362,7 @@ DdNode * Llb_ImgComputeImage( Aig_Man_t * pAig, Vec_Ptr_t * vDdMans, DdManager *
     Vec_Ptr_t * vQuant0, Vec_Ptr_t * vQuant1, Vec_Int_t * vDriRefs, 
     int TimeTarget, int fBackward, int fReorder, int fVerbose )
 {
-    int fCheckSupport = 0;
+//    int fCheckSupport = 0;
     DdManager * ddPart;
     DdNode * bImage, * bGroup, * bCube, * bTemp;
     int i, clk, clk0 = clock();

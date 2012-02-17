@@ -58,13 +58,13 @@ static word Truth6[6] = {
     0xFFFFFFFF00000000
 };
 static word Truth7[7][2] = {
-    0xAAAAAAAAAAAAAAAA,0xAAAAAAAAAAAAAAAA,
-    0xCCCCCCCCCCCCCCCC,0xCCCCCCCCCCCCCCCC,
-    0xF0F0F0F0F0F0F0F0,0xF0F0F0F0F0F0F0F0,
-    0xFF00FF00FF00FF00,0xFF00FF00FF00FF00,
-    0xFFFF0000FFFF0000,0xFFFF0000FFFF0000,
-    0xFFFFFFFF00000000,0xFFFFFFFF00000000,
-    0x0000000000000000,0xFFFFFFFFFFFFFFFF
+    {0xAAAAAAAAAAAAAAAA,0xAAAAAAAAAAAAAAAA},
+    {0xCCCCCCCCCCCCCCCC,0xCCCCCCCCCCCCCCCC},
+    {0xF0F0F0F0F0F0F0F0,0xF0F0F0F0F0F0F0F0},
+    {0xFF00FF00FF00FF00,0xFF00FF00FF00FF00},
+    {0xFFFF0000FFFF0000,0xFFFF0000FFFF0000},
+    {0xFFFFFFFF00000000,0xFFFFFFFF00000000},
+    {0x0000000000000000,0xFFFFFFFFFFFFFFFF}
 };
 
 extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
@@ -82,20 +82,20 @@ void If_DecPrintConfig( word z )
    printf( " " );
    Kit_DsdPrintFromTruth( S, 4 );
    printf( " " );
-   printf( " %d", (z >> 16) & 7 );
-   printf( " %d", (z >> 20) & 7 );
-   printf( " %d", (z >> 24) & 7 );
-   printf( " %d", (z >> 28) & 7 );
+   printf( " %d", (int)((z >> 16) & 7) );
+   printf( " %d", (int)((z >> 20) & 7) );
+   printf( " %d", (int)((z >> 24) & 7) );
+   printf( " %d", (int)((z >> 28) & 7) );
    printf( "   " );
    S[0] = ((z >> 32) & 0xffff) | (((z >> 32) & 0xffff) << 16);
    Extra_PrintBinary( stdout, S, 16 );
    printf( " " );
    Kit_DsdPrintFromTruth( S, 4 );
    printf( " " );
-   printf( " %d", (z >> 48) & 7 );
-   printf( " %d", (z >> 52) & 7 );
-   printf( " %d", (z >> 56) & 7 );
-   printf( " %d", (z >> 60) & 7 );
+   printf( " %d", (int)((z >> 48) & 7) );
+   printf( " %d", (int)((z >> 52) & 7) );
+   printf( " %d", (int)((z >> 56) & 7) );
+   printf( " %d", (int)((z >> 60) & 7) );
    printf( "\n" );
 }
 

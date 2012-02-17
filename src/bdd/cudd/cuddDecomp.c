@@ -1693,7 +1693,7 @@ BuildConjuncts(
   st_table * mintermTable)
 {
     int topid, distance;
-    Conjuncts *factorsNv, *factorsNnv, *factors;
+    Conjuncts *factorsNv = NULL, *factorsNnv = NULL, *factors;
     Conjuncts *dummy;
     DdNode *N, *Nv, *Nnv, *temp, *g1, *g2, *h1, *h2, *topv;
     double minNv = 0.0, minNnv = 0.0;

@@ -677,9 +677,10 @@ Nwk_Grf_t * Nwk_ManLutMergeReadGraph( char * pFileName )
     FILE * pFile;
     char Buffer[100];
     int nNodes, nEdges, iNode1, iNode2;
+    int RetValue;
     pFile = fopen( pFileName, "r" );
-    fscanf( pFile, "%s %d", Buffer, &nNodes );
-    fscanf( pFile, "%s %d", Buffer, &nEdges );
+    RetValue = fscanf( pFile, "%s %d", Buffer, &nNodes );
+    RetValue = fscanf( pFile, "%s %d", Buffer, &nEdges );
     p = Nwk_ManGraphAlloc( nNodes );
     while ( fscanf( pFile, "%s %d %d", Buffer, &iNode1, &iNode2 ) == 3 )
         Nwk_ManGraphHashEdge( p, iNode1, iNode2 );

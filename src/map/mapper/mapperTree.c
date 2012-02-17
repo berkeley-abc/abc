@@ -114,6 +114,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     Map_Super_t * pGate;
     char * pTemp = 0, * pLibName;
     int nCounter, k, i;
+    int RetValue;
 
     // skip empty and comment lines
     while ( fgets( pBuffer, 5000, pFile ) != NULL )
@@ -177,7 +178,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     }
 
     // read the number of variables
-    fscanf( pFile, "%d\n", &pLib->nVarsMax );
+    RetValue = fscanf( pFile, "%d\n", &pLib->nVarsMax );
     if ( pLib->nVarsMax < 2 || pLib->nVarsMax > 10 )
     {
         printf( "Suspicious number of variables (%d).\n", pLib->nVarsMax );
@@ -185,7 +186,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     }
 
     // read the number of gates
-    fscanf( pFile, "%d\n", &pLib->nSupersReal );
+    RetValue = fscanf( pFile, "%d\n", &pLib->nSupersReal );
     if ( pLib->nSupersReal < 1 || pLib->nSupersReal > 10000000 )
     {
         printf( "Suspicious number of gates (%d).\n", pLib->nSupersReal );
@@ -193,7 +194,7 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     }
 
     // read the number of lines
-    fscanf( pFile, "%d\n", &pLib->nLines );
+    RetValue = fscanf( pFile, "%d\n", &pLib->nLines );
     if ( pLib->nLines < 1 || pLib->nLines > 10000000 )
     {
         printf( "Suspicious number of lines (%d).\n", pLib->nLines );

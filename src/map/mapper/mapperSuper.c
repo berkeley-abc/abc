@@ -87,6 +87,7 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     char * pLibName;
     int nCounter, nGatesTotal;
     unsigned uCanon[2];
+    int RetValue;
 
     // skip empty and comment lines
     while ( fgets( pBuffer, 2000, pFile ) != NULL )
@@ -122,7 +123,7 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     }
 
     // read the number of variables
-    fscanf( pFile, "%d\n", &pLib->nVarsMax );
+    RetValue = fscanf( pFile, "%d\n", &pLib->nVarsMax );
     if ( pLib->nVarsMax < 2 || pLib->nVarsMax > 10 )
     {
         printf( "Suspicious number of variables (%d).\n", pLib->nVarsMax );
@@ -130,7 +131,7 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     }
 
     // read the number of gates
-    fscanf( pFile, "%d\n", &nGatesTotal );
+    RetValue = fscanf( pFile, "%d\n", &nGatesTotal );
     if ( nGatesTotal < 1 || nGatesTotal > 10000000 )
     {
         printf( "Suspicious number of gates (%d).\n", nGatesTotal );

@@ -257,9 +257,9 @@ static inline void act_var_rescale(sat_solver* s)  {
     s->var_inc *= 1e-100;
 }
 static inline void act_clause_rescale(sat_solver* s) {
-    static int Total = 0;
+//    static int Total = 0;
     clause** cs = (clause**)veci_begin(&s->learnts);
-    int i, clk = clock();
+    int i;//, clk = clock();
     for (i = 0; i < veci_size(&s->learnts); i++){
         float a = clause_activity(cs[i]);
         clause_setactivity(cs[i], a * (float)1e-20);
@@ -1300,8 +1300,8 @@ void luby_test()
 
 static lbool sat_solver_search(sat_solver* s, ABC_INT64_T nof_conflicts, ABC_INT64_T nof_learnts)
 {
-    double  var_decay       = 0.95;
-    double  clause_decay    = 0.999;
+//    double  var_decay       = 0.95;
+//    double  clause_decay    = 0.999;
     double  random_var_freq = s->fNotUseRandom ? 0.0 : 0.02;
 
     ABC_INT64_T  conflictC       = 0;

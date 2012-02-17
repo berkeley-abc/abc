@@ -495,7 +495,7 @@ cuddZddSwapInPlace(
     int         i;
     int         posn;
     DdNode      *f, *f1, *f0, *f11, *f10, *f01, *f00;
-    DdNode      *newf1, *newf0, *next;
+    DdNode      *newf1=NULL, *newf0, *next;
     DdNodePtr   g, *lastP, *previousP;
 
 #ifdef DD_DEBUG
@@ -756,7 +756,7 @@ cuddZddSwapping(
     int iterate;
     int previousSize;
     Move *moves, *move;
-    int pivot;
+    int pivot = -1;
     int modulo;
     int result;
 

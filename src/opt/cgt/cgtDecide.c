@@ -52,7 +52,7 @@ extern int Ssw_SmlNodeCountOnesRealVec( Ssw_Sml_t * p, Vec_Ptr_t * vObjs );
 void Cgt_ManCollectFanoutPos_rec( Aig_Man_t * pAig, Aig_Obj_t * pObj, Vec_Ptr_t * vFanout )
 {
     Aig_Obj_t * pFanout;
-    int f, iFanout;
+    int f, iFanout = -1;
     if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(pAig, pObj);

@@ -867,7 +867,7 @@ Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
     extern Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars );
 //    extern Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
     extern Aig_Man_t * Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars );
-    int fVerbose = pPars->fVerbose;
+//    int fVerbose = pPars->fVerbose;
     Aig_Man_t * pMan, * pTemp;
     Gia_Man_t * pGia;
     Vec_Ptr_t * vPios;

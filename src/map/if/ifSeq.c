@@ -198,7 +198,7 @@ int If_ManBinarySearchPeriod( If_Man_t * p )
 {
     If_Obj_t * pObj;
     int i, c, fConverged;
-    int fResetRefs = 0;
+//    int fResetRefs = 0;
     p->nAttempts++;
 
     // reset initial LValues (PIs to 0; others to -inf)

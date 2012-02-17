@@ -459,7 +459,7 @@ int Cec_ManLoadCounterExamples( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int iS
     Vec_Ptr_t * vPres;
     int nWords = Vec_PtrReadWordsSimInfo(vInfo);
     int nBits = 32 * nWords; 
-    int k, nSize, iBit = 1, kMax = 0;
+    int k, nSize, kMax = 0;//, iBit = 1;
     vPat  = Vec_IntAlloc( 100 );
     vPres = Vec_PtrAllocSimInfo( Vec_PtrSize(vInfo), nWords );
     Vec_PtrCleanSimInfo( vPres, 0, nWords );

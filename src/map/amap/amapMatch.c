@@ -433,7 +433,7 @@ static inline void Amap_ManMatchGetExacts( Amap_Man_t * p, Amap_Obj_t * pNode, A
 ***********************************************************************/
 void Amap_ManMatchNode( Amap_Man_t * p, Amap_Obj_t * pNode, int fFlow, int fRefs )
 {
-    Amap_Mat_t M1, M2, * pMBest = &M1, * pMThis = &M2;
+    Amap_Mat_t M1 = {0}, M2 = {0}, * pMBest = &M1, * pMThis = &M2;
     Amap_Cut_t * pCut;
     Amap_Set_t * pSet;
     Amap_Nod_t * pNod;

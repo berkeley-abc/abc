@@ -52,7 +52,7 @@ Abc_Cex_t * Llb4_Nonlin4TransformCex( Aig_Man_t * pAig, Vec_Ptr_t * vStates, int
     sat_solver * pSat;
     Aig_Obj_t * pObj;
     unsigned * pNext, * pThis;
-    int i, k, iBit, status, nRegs, clk = clock();
+    int i, k, iBit, status, nRegs;//, clk = clock();
 /*
     Vec_PtrForEachEntry( unsigned *, vStates, pNext, i )
     {

@@ -175,7 +175,7 @@ Vec_Ptr_t * Gia_VtaAbsToFrames( Vec_Int_t * vAbs )
 {
     Vec_Ptr_t * vFrames;
     Vec_Int_t * vFrame;
-    int i, k, Entry, iStart, iStop;
+    int i, k, Entry, iStart, iStop = -1;
     int nFrames = Vec_IntEntry( vAbs, 0 );
     assert( Vec_IntEntry(vAbs, nFrames+1) == Vec_IntSize(vAbs) );
     vFrames = Vec_PtrAlloc( nFrames );
@@ -614,9 +614,6 @@ void Vta_ManSatVerify( Vta_Man_t * p )
         Vta_ObjPreds( p, pThis, pObj, &pThis0, &pThis1 );
         if ( Gia_ObjIsAnd(pObj) )
         {
-            int iVar  = Vta_ObjId(p, pThis);
-            int iVar0 = Vta_ObjId(p, pThis0);
-            int iVar1 = Vta_ObjId(p, pThis1);
             if ( pThis->Value == VTA_VAR1 )
                 assert( Vta_ValIs1(pThis0, Gia_ObjFaninC0(pObj)) && Vta_ValIs1(pThis1, Gia_ObjFaninC1(pObj)) );
             else if ( pThis->Value == VTA_VAR0 )
@@ -625,8 +622,6 @@ void Vta_ManSatVerify( Vta_Man_t * p )
         }
         else if ( Gia_ObjIsRo(p->pGia, pObj) )
         {
-            int VarA = Vta_ObjId(p,pThis);
-            int VarB = !pThis0 ? 0 : Vta_ObjId(p,pThis0);
             pObj = Gia_ObjRoToRi( p->pGia, pObj );
             if ( pThis->iFrame == 0 )
                 assert( pThis->Value == VTA_VAR0 );
@@ -966,7 +961,7 @@ Abc_Cex_t * Vta_ManRefineAbstraction( Vta_Man_t * p, int f )
         pCex = Vga_ManDeriveCex( p );
     else
     {
-        int nObjOld = p->nObjs;
+//        int nObjOld = p->nObjs;
         Vta_ManForEachObjObjVec( vTermsToAdd, p, pThis, pObj, i )
             if ( !Gia_ObjIsPi(p->pGia, pObj) )
                 Vga_ManAddClausesOne( p, pThis->iObj, pThis->iFrame );
@@ -1153,7 +1148,7 @@ Vec_Int_t * Vta_ManUnsatCore( int iLit, Vec_Int_t * vCla2Var, sat_solver2 * pSat
 void Vta_ManAbsPrintFrame( Vta_Man_t * p, Vec_Int_t * vCore, int nFrames, int nConfls, int nCexes, int Time )
 {
     unsigned * pInfo;
-    int * pCountAll, * pCountUni;
+    int * pCountAll = NULL, * pCountUni = NULL;
     int i, k, iFrame, iObj, Entry;
     // print info about frames
     if ( vCore )

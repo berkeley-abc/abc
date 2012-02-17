@@ -1479,10 +1479,10 @@ ddSymmGroupMove(
   Move ** moves)
 {
     Move *move;
-    int  size;
+    int  size = -1;
     int  i,j;
     int  xtop,xbot,xsize,ytop,ybot,ysize,newxtop;
-    int  swapx,swapy;
+    int  swapx = -1,swapy = -1;
 
 #ifdef DD_DEBUG
     assert(x < y);      /* we assume that x < y */

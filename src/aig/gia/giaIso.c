@@ -986,7 +986,7 @@ void Gia_IsoTest( Gia_Man_t * pGia )
 ***********************************************************************/
 Gia_Man_t * Gia_IsoFilterPos( Gia_Man_t * pGia, int fVerbose )
 {
-    int fVeryVerbose = 0;
+//    int fVeryVerbose = 0;
     Gia_IsoMan_t * p;
     Gia_Man_t * pTemp;
     Vec_Ptr_t * vBuffers, * vClasses;

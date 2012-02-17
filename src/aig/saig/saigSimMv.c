@@ -572,7 +572,7 @@ void Saig_MvManPostProcess( Saig_MvMan_t * p, int iState )
 {
     Saig_MvObj_t * pEntry;
     unsigned * pState;
-    int i, k, j, nTotal = 0, Counter = 0, iFlop;
+    int i, k, j, nTotal = 0, iFlop;
     Vec_Int_t * vUniques = Vec_IntAlloc( 100 );
     Vec_Int_t * vCounter = Vec_IntAlloc( 100 );
     // count registers that never became undef

@@ -388,8 +388,6 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     if ( pNtk->vRealNodes )
     {
         Abc_Obj_t * pObj;
-        int Num1 = Vec_IntSize(pNtk->vRealNodes);
-        int Num2 = Abc_NtkPoNum(pNtk)-pNtk->nRealPos;
         fprintf( pFile, "\n\n" );
         assert( Vec_IntSize(pNtk->vRealNodes) == Abc_NtkPoNum(pNtk)-pNtk->nRealPos );
         Abc_NtkForEachObjVec( pNtk->vRealNodes, pNtk, pObj, i )
@@ -723,7 +721,7 @@ void Io_NtkWriteNodeInt( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vCover )
         extern word If_Dec7Perform( word t[2], int fDerive );
 
         char * pSop;
-        word z, uTruth6, uTruth7[2], Cofs6[2], Cofs7[2][2];
+        word z, uTruth6 = 0, uTruth7[2], Cofs6[2], Cofs7[2][2];
         int c, iVar, nVarsMin[2], pVars[2][10];
 
         // collect variables

@@ -391,10 +391,6 @@ p->timeCuts += clock() - clk;
     p->nCutsUseful += p->nEvals;
     for ( i = 0; i < p->nEvals; i++ )
     {
-        if ( p->pObj->Id == 1478 )
-        {
-            int x = 0;
-        }
         // get the cut
         pCut = p->pCuts + p->pEvals[i];
         if ( p->pPars->fFirst && i == 1 )

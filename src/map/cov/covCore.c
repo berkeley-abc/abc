@@ -250,8 +250,8 @@ void Abc_NtkCovCovers_rec( Cov_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vBoundar
     Abc_NtkCovCovers_rec( p, pObj0, vBoundary );
     Abc_NtkCovCovers_rec( p, pObj1, vBoundary );
     // skip the node that spaced out
-    if ( !pObj0->fMarkA && !Abc_ObjGetSupp(pObj0) ||  // fanin is not ready
-         !pObj1->fMarkA && !Abc_ObjGetSupp(pObj1) ||  // fanin is not ready
+    if ( (!pObj0->fMarkA && !Abc_ObjGetSupp(pObj0)) ||  // fanin is not ready
+         (!pObj1->fMarkA && !Abc_ObjGetSupp(pObj1)) ||  // fanin is not ready
          !Abc_NodeCovPropagate( p, pObj ) )           // node's support or covers cannot be computed
     {
         // save the nodes of the future boundary

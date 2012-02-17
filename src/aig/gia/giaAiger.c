@@ -1450,13 +1450,13 @@ void Gia_WriteAiger( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         assert( Vec_PtrSize(p->vNamesOut) == Gia_ManCoNum(p) );
         // write PIs
         Gia_ManForEachPi( p, pObj, i )
-            fprintf( pFile, "i%d %s\n", i, Vec_PtrEntry(p->vNamesIn, i) );
+            fprintf( pFile, "i%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesIn, i) );
         // write latches
         Gia_ManForEachRo( p, pObj, i )
-            fprintf( pFile, "l%d %s\n", i, Vec_PtrEntry(p->vNamesIn, Gia_ManPiNum(p) + i) );
+            fprintf( pFile, "l%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesIn, Gia_ManPiNum(p) + i) );
         // write POs
         Gia_ManForEachPo( p, pObj, i )
-            fprintf( pFile, "o%d %s\n", i, Vec_PtrEntry(p->vNamesOut, i) );
+            fprintf( pFile, "o%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesOut, i) );
     }
 
     // write the comment

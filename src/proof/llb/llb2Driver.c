@@ -161,7 +161,7 @@ DdNode * Llb_DriverPhaseCube( Aig_Man_t * pAig, Vec_Int_t * vDriRefs, DdManager 
 ***********************************************************************/
 DdManager * Llb_DriverLastPartition( Aig_Man_t * p, Vec_Int_t * vVarsNs, int TimeTarget )
 {
-    int fVerbose = 1;
+//    int fVerbose = 1;
     DdManager * dd;
     DdNode * bVar1, * bVar2, * bProd, * bRes, * bTemp;
     Aig_Obj_t * pObj;

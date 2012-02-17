@@ -267,7 +267,7 @@ Gia_Man_t * Gia_ManCofTest( Gia_Man_t * pGia, int nFrameMax, int nConfMax, int n
     Gia_Man_t * pNew;
     Ccf_Man_t * p;
     Gia_Obj_t * pObj;
-    int f, i, Lit, RetValue, fFailed = 0;
+    int f, i, Lit, RetValue = -1, fFailed = 0;
     int nTimeToStop = time(NULL) + nTimeMax;
     int clk = clock();
     assert( Gia_ManPoNum(pGia) == 1 );

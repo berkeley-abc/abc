@@ -144,7 +144,7 @@ Cudd_addHarwell(
     DdNode *cubex, *cubey, *minterm1;
     int u, v, err, i, j, nv;
     double val;
-    DdNode **lx, **ly, **lxn, **lyn;    /* local copies of x, y, xn, yn_ */
+    DdNode **lx = NULL, **ly = NULL, **lxn = NULL, **lyn = NULL;    /* local copies of x, y, xn, yn_ */
     int lnx, lny;                       /* local copies of nx and ny */
     char title[73], key[9], mxtype[4], rhstyp[4];
     int totcrd, ptrcrd, indcrd, valcrd, rhscrd,

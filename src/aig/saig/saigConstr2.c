@@ -202,7 +202,7 @@ int Ssw_ManProfileConstraints( Aig_Man_t * p, int nWords, int nFrames, int fVerb
         Saig_ManForEachPo( p, pObj, i )
         {
             if ( i < Saig_ManPoNum(p) - Saig_ManConstrNum(p) )
-                printf( "Primary output :  ", i );
+                printf( "Primary output :  " );
             else
                 printf( "Constraint %3d :  ", i-(Saig_ManPoNum(p) - Saig_ManConstrNum(p))  );
             printf( "ProbOne = %f  ",  (float)Vec_IntEntry(vProbs,  i)/(32*nWords*nFrames) );

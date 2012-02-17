@@ -895,7 +895,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, in
     int fTryBmc = 0;
     int fMiter = 1;
     Ssw_RarMan_t * p;
-    int r, f, clk, clkTotal = clock();
+    int r, f = -1, clk, clkTotal = clock();
     int nTimeToStop = time(NULL) + TimeOut;
     int RetValue = -1;
     int iFrameFail = -1;
@@ -1012,7 +1012,7 @@ int Ssw_RarSimulateGia( Gia_Man_t * p, int nFrames, int nWords, int nBinSize, in
 int Ssw_RarSignalFilter( Aig_Man_t * pAig, int nFrames, int nWords, int nBinSize, int nRounds, int nRandSeed, int TimeOut, int fMiter, Abc_Cex_t * pCex, int fLatchOnly, int fVerbose )
 {
     Ssw_RarMan_t * p;
-    int r, f, i, k, clkTotal = clock();
+    int r, f = -1, i, k, clkTotal = clock();
     int nTimeToStop = time(NULL) + TimeOut;
     int RetValue = -1;
     assert( Aig_ManRegNum(pAig) > 0 );

@@ -84,7 +84,7 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     Aig_Obj_t * pObj, * pObjNew;
     int i, k, nNodesOld, nNodeBefore, nNodeAfter, Required;
     int clk = 0, clkStart, Counter = 0;
-    int nMffcSize, nMffcGains[MAX_VAL+1][MAX_VAL+1] = {{0}};
+    int nMffcSize;//, nMffcGains[MAX_VAL+1][MAX_VAL+1] = {{0}};
     // prepare the library
     Dar_LibPrepare( pPars->nSubgMax ); 
     // create rewriting manager

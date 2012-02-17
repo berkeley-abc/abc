@@ -1781,7 +1781,7 @@ DdNode * extraBddChangePolarity(
     if ( Cudd_IsConstant(bFunc) )
         return bFunc;
 
-    if ( bRes = cuddCacheLookup2(dd, extraBddChangePolarity, bFunc, bVars) )
+    if ( (bRes = cuddCacheLookup2(dd, extraBddChangePolarity, bFunc, bVars)) )
         return bRes;
     else
     {

@@ -25700,7 +25700,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Era( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp = NULL;
+//    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int fUseCubes = 1;
     int fMiter = 0;

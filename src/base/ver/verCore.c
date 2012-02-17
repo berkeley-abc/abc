@@ -2051,10 +2051,6 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
     assert( Ver_NtkIsDefined(pNtkBox) );
     assert( !Abc_NtkHasBlackbox(pNtkBox) || Abc_NtkBoxNum(pNtkBox) == 1 );
 
-    if ( !strcmp(pNtkBox->pName,"add_4u_4u") )
-    {
-        int s = 0;
-    }
 /*
     // clean the PI/PO nets
     Abc_NtkForEachPi( pNtkBox, pTerm, i )

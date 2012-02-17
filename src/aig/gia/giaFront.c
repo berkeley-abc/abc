@@ -110,7 +110,7 @@ Gia_Man_t * Gia_ManFront( Gia_Man_t * p )
     char * pFront;    // places used for the frontier
     int i, iLit, nCrossCut = 0, nCrossCutMax = 0;
     int nCrossCutMaxInit = Gia_ManCrossCut( p );
-    int iFront = 0, clk = clock(); 
+    int iFront = 0;//, clk = clock(); 
     // set references for all objects
     Gia_ManSetRefs( p );
     // start the new manager

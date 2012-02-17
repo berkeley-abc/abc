@@ -286,7 +286,7 @@ Aig_Man_t * Cgt_ClockGating( Aig_Man_t * pAig, Aig_Man_t * pCare, Cgt_Par_t * pP
     Aig_Man_t * pGated;
     Vec_Vec_t * vGatesAll;
     Vec_Vec_t * vGates;
-    int nNodesUsed, clk = clock();
+    int nNodesUsed;//, clk = clock();
     vGatesAll = Cgt_ClockGatingCandidates( pAig, pCare, pPars );
     if ( pPars->fAreaOnly )
         vGates = Cgt_ManDecideArea( pAig, vGatesAll, pPars->nOdcMax, pPars->fVerbose );

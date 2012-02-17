@@ -1804,7 +1804,7 @@ cuddInsertSubtables(
     int oldsize,newsize;
     int i,j,index,reorderSave;
     unsigned int numSlots = unique->initSlots;
-    int *newperm, *newinvperm, *newmap;
+    int *newperm, *newinvperm, *newmap=NULL;
     DdNode *one, *zero;
 
 #ifdef DD_DEBUG

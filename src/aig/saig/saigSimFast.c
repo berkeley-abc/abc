@@ -348,7 +348,7 @@ Vec_Int_t * Faig_ManComputeSwitchProbs4( Aig_Man_t * p, int nFrames, int nPref, 
     Vec_Int_t * vSwitching;
     int * pProbs;
     float * pSwitching;
-    int nFramesReal, clk, clkTotal = clock();
+    int nFramesReal, clk;//, clkTotal = clock();
     if ( fProbOne )
         fTrans = 0;
     vSwitching = Vec_IntStart( Aig_ManObjNumMax(p) );

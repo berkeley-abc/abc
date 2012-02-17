@@ -241,7 +241,7 @@ Gia_Man_t * Gia_ManPerformBidec( Gia_Man_t * p, int fVerbose )
     Vec_Int_t * vLeaves, * vTruth, * vVisited;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
-    int i, clk = clock();
+    int i;//, clk = clock();
     pPars->nVarsMax = Gia_ManLutSizeMax( p );
     pPars->fVerbose = fVerbose;
     if ( pPars->nVarsMax < 2 )

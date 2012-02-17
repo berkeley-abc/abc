@@ -273,7 +273,7 @@ int Llb_ManCutLiNum( Aig_Man_t * p, Vec_Ptr_t * vMinCut )
 {
     Aig_Obj_t * pFanout;
     Aig_Obj_t * pObj;
-    int i, k, iFanout, Counter = 0;
+    int i, k, iFanout = -1, Counter = 0;
     Vec_PtrForEachEntry( Aig_Obj_t *, vMinCut, pObj, i )
     {
         if ( Aig_ObjIsPi(pObj) )
@@ -1018,7 +1018,7 @@ void Llb_ManFlowUnmarkCone( Aig_Man_t * p, Vec_Ptr_t * vCone )
 void Llb_ManFlowCollectAndMarkCone_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vCone )
 {
     Aig_Obj_t * pFanout;
-    int i, iFanout;
+    int i, iFanout = -1;
     if ( Saig_ObjIsLi(p, pObj) )
         return;
     if ( pObj->fMarkB )
@@ -1225,7 +1225,7 @@ Vec_Ptr_t * Llb_ManFlowFindBestCut( Aig_Man_t * p, Vec_Ptr_t * vLower, Vec_Ptr_t
 Vec_Ptr_t * Llb_ManComputeCuts( Aig_Man_t * p, int Num, int fVerbose, int fVeryVerbose )
 {
     int nVolMax = Aig_ManNodeNum(p) / Num;
-    Vec_Ptr_t * vResult, * vMinCut, * vLower, * vUpper;
+    Vec_Ptr_t * vResult, * vMinCut = NULL, * vLower, * vUpper;
     int i, k, nVol, clk = clock();
     vResult = Vec_PtrAlloc( 100 );
     Vec_PtrPush( vResult, Llb_ManComputeCutLo(p) );
@@ -1336,7 +1336,7 @@ void Llb_ManMinCutTest( Aig_Man_t * pAig, int Num )
     extern void Llb_BddExperiment( Aig_Man_t * pInit, Aig_Man_t * pAig, Gia_ParLlb_t * pPars, Vec_Ptr_t * vResult, Vec_Ptr_t * vMaps );
  
 
-    int fVerbose = 1;
+//    int fVerbose = 1;
     Gia_ParLlb_t Pars, * pPars = &Pars;
     Vec_Ptr_t * vResult;//, * vSupps, * vMaps;
     Aig_Man_t * p;

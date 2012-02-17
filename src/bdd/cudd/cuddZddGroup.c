@@ -436,7 +436,7 @@ zddReorderChildren(
   Cudd_ReorderingType method)
 {
     int lower;
-    int upper;
+    int upper = -1;
     int result;
     unsigned int initialSize;
 
@@ -1084,7 +1084,7 @@ zddGroupMove(
     Move *move;
     int  size;
     int  i,j,xtop,xbot,xsize,ytop,ybot,ysize,newxtop;
-    int  swapx,swapy;
+    int  swapx=-1,swapy=-1;
 #if defined(DD_DEBUG) && defined(DD_VERBOSE)
     int  initialSize,bestSize;
 #endif

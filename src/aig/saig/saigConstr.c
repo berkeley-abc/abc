@@ -273,7 +273,7 @@ Vec_Ptr_t * Saig_ManDetectConstrCheckCont( Vec_Ptr_t * vSuper, Vec_Ptr_t * vSupe
 ***********************************************************************/
 int Saig_ManDetectConstr( Aig_Man_t * p, Vec_Ptr_t ** pvOuts, Vec_Ptr_t ** pvCons )
 {
-    Vec_Ptr_t * vSuper, * vSuper2, * vUnique;
+    Vec_Ptr_t * vSuper, * vSuper2 = NULL, * vUnique;
     Aig_Obj_t * pObj, * pObj2, * pFlop;
     int i, nFlops, RetValue;
     *pvOuts = NULL;

@@ -247,7 +247,7 @@ Abc_Cex_t * Llb_NonlinDeriveCex( Llb_Mnn_t * p )
     Abc_Cex_t * pCex;
     Aig_Obj_t * pObj;
     Vec_Int_t * vVarsNs;
-    DdNode * bState, * bImage, * bOneCube, * bTemp, * bRing;
+    DdNode * bState = NULL, * bImage, * bOneCube, * bTemp, * bRing;
     int i, v, RetValue, nPiOffset;
     char * pValues = ABC_ALLOC( char, Cudd_ReadSize(p->ddR) );
     assert( Vec_PtrSize(p->vRings) > 0 );
@@ -428,7 +428,7 @@ int Llb_NonlinCompPerms( DdManager * dd, int * pVar2Lev )
 int Llb_NonlinReachability( Llb_Mnn_t * p )
 { 
     DdNode * bTemp, * bNext;
-    int nIters, nBddSize0, nBddSize, NumCmp, Limit = p->pPars->nBddMax;
+    int nIters, nBddSize0, nBddSize = -1, NumCmp;//, Limit = p->pPars->nBddMax;
     int clk2, clk3, clk = clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 

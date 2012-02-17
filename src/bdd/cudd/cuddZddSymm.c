@@ -1487,7 +1487,7 @@ zdd_group_move(
     Move        *move;
     int         size;
     int         i, temp, gxtop, gxbot, gybot, yprev;
-    int         swapx, swapy;
+    int         swapx = -1, swapy = -1;
 
 #ifdef DD_DEBUG
     assert(x < y);      /* we assume that x < y */

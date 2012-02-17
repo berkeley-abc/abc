@@ -1186,7 +1186,7 @@ int Dar2_LibEval( Gia_Man_t * p, Vec_Int_t * vCutLits, unsigned uTruth, int fKee
     int p_LevelBest  =  1000000;
     int p_GainBest   = -1000000;
     int p_ClassBest  = -1;
-    int fTraining    =  0;
+//    int fTraining    =  0;
     Dar_LibObj_t * pObj;
     int Out, k, Class, nNodesSaved, nNodesAdded, nNodesGained, clk;
     clk = clock();

@@ -149,7 +149,7 @@ int Saig_ManExtendOne( Aig_Man_t * p, Abc_Cex_t * pCex, Vec_Ptr_t * vSimInfo,
     int iPi, int iFrame, Vec_Int_t * vUndo, Vec_Int_t * vVis, Vec_Int_t * vVis2 )
 {
     Aig_Obj_t * pFanout, * pObj = Aig_ManPi(p, iPi);
-    int i, k, f, iFanout, Value, Value2, Entry;
+    int i, k, f, iFanout = -1, Value, Value2, Entry;
     // save original value
     Value = Saig_ManSimInfoGet( vSimInfo, pObj, iFrame );
     assert( Value == SAIG_ZER || Value == SAIG_ONE );

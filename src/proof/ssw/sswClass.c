@@ -499,7 +499,7 @@ void Ssw_ClassesRemoveNode( Ssw_Cla_t * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 int Ssw_ClassesPrepareRehash( Ssw_Cla_t * p, Vec_Ptr_t * vCands, int fConstCorr )
 {
-    Aig_Man_t * pAig = p->pAig;
+//    Aig_Man_t * pAig = p->pAig;
     Aig_Obj_t ** ppTable, ** ppNexts, ** ppClassNew;
     Aig_Obj_t * pObj, * pTemp, * pRepr;
     int i, k, nTableSize, nNodes, iEntry, nEntries, nEntries2;

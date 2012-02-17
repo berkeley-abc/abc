@@ -246,7 +246,7 @@ Aig_Man_t * Aig_Gla1DeriveAbs( Aig_Gla1Man_t * p )
 { 
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
-    int i, nFlops = 0, RetValue;
+    int i, RetValue;
     assert( Saig_ManPoNum(p->pAig) == 1 );
     // start the new manager
     pNew = Aig_ManStart( 5000 );

@@ -608,8 +608,8 @@ int Saig_ManDemiterCheckPo( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t ** ppPo0,
     // make sure they can reach only one
     pObjR0 = Aig_Regular(pObj0);
     pObjR1 = Aig_Regular(pObj1);
-    if ( pObjR0->fMarkA && pObjR0->fMarkB || pObjR1->fMarkA && pObjR1->fMarkB || 
-         pObjR0->fMarkA && pObjR1->fMarkA || pObjR0->fMarkB && pObjR1->fMarkB )
+    if ( (pObjR0->fMarkA && pObjR0->fMarkB) || (pObjR1->fMarkA && pObjR1->fMarkB) || 
+         (pObjR0->fMarkA && pObjR1->fMarkA) || (pObjR0->fMarkB && pObjR1->fMarkB) )
          return 0;
 
     if ( pObjR1->fMarkA && !pObjR0->fMarkA )

@@ -983,7 +983,7 @@ void Gia_ManPrintRepr( Gia_Man_t * p )
     int i;
     Gia_ManForEachObj( p, pObj, i )
         if ( ~p->pReprsOld[i] )
-            printf( "%d->%d ", i, p->pReprs[i] );
+            printf( "%d->%d ", i, p->pReprs[i].iRepr );
     printf( "\n" );
 }
 
@@ -1620,7 +1620,7 @@ Gia_Man_t * Gia_ManDupAbsGates( Gia_Man_t * p, Vec_Int_t * vGateClasses )
     Vec_Int_t * vAssigned, * vPis, * vPPis, * vFlops, * vNodes;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pCopy;
-    int i, nFlops = 0;
+    int i;//, nFlops = 0;
     assert( Gia_ManPoNum(p) == 1 );
     assert( Vec_IntSize(vGateClasses) == Gia_ManObjNum(p) );
 

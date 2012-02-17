@@ -98,7 +98,7 @@ If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
     If_Man_t * pIfMan;
     If_Obj_t * pIfObj;
     Gia_Obj_t * pNode;
-    int i, clk = clock();
+    int i;//, clk = clock();
     Gia_ManLevelNum( p );
 //    assert( p->pReprs == NULL );
 /*

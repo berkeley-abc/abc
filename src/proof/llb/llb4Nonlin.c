@@ -576,8 +576,8 @@ Vec_Ptr_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, int fVerbose )
     Vec_Int_t * vVars2Q;
     Vec_Ptr_t * vStates, * vRootsNew;
     Aig_Obj_t * pObj;
-    DdNode * bState, * bImage, * bOneCube, * bRing;
-    int i, v, RetValue, clk = clock();
+    DdNode * bState = NULL, * bImage, * bOneCube, * bRing;
+    int i, v, RetValue;//, clk = clock();
     char * pValues;
     assert( Vec_PtrSize(p->vRings) > 0 );
     // disable the timeout
@@ -666,7 +666,7 @@ Vec_Ptr_t * Llb_Nonlin4DeriveCex( Llb_Mnx_t * p, int fBackward, int fVerbose )
 int Llb_Nonlin4Reachability( Llb_Mnx_t * p )
 { 
     DdNode * bAux;
-    int nIters, nBddSizeFr, nBddSizeTo, nBddSizeTo2;
+    int nIters, nBddSizeFr = 0, nBddSizeTo = 0, nBddSizeTo2 = 0;
     int clkTemp, clkIter, clk = clock();
     assert( Aig_ManRegNum(p->pAig) > 0 );
 

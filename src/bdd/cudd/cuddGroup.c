@@ -456,7 +456,7 @@ ddReorderChildren(
   Cudd_ReorderingType method)
 {
     int lower;
-    int upper;
+    int upper = -1;
     int result;
     unsigned int initialSize;
 
@@ -1494,7 +1494,7 @@ ddGroupMove(
     Move *move;
     int  size;
     int  i,j,xtop,xbot,xsize,ytop,ybot,ysize,newxtop;
-    int  swapx,swapy;
+    int  swapx = -1,swapy = -1;
 #if defined(DD_DEBUG) && defined(DD_VERBOSE)
     int  initialSize,bestSize;
 #endif
@@ -1674,7 +1674,7 @@ ddGroupSiftingBackward(
 {
     Move *move;
     int  res;
-    Move *end_move;
+    Move *end_move = NULL;
     int diff, tmp_diff;
     int index;
     unsigned int pairlev;

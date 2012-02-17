@@ -102,7 +102,7 @@ int Abc_NtkMfsTryResubOnce( Mfs_Man_t * p, int * pCands, int nCands )
 {
     int fVeryVerbose = 0;
     unsigned * pData;
-    int RetValue, RetValue2 = -1, iVar, i, clk = clock();
+    int RetValue, RetValue2 = -1, iVar, i;//, clk = clock();
 /*
     if ( p->pPars->fGiaSat )
     {

@@ -53,17 +53,6 @@ struct If_Hte_t_
     word       pTruth[1];
 };
 
-// the bit count for the first 256 integer numbers
-static int BitCount8[256] = {
-    0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
-};
 // variable swapping code
 static word PMasks[5][3] = {
     { 0x9999999999999999, 0x2222222222222222, 0x4444444444444444 },
@@ -657,14 +646,14 @@ void If_CluVerify( word * pF, int nVars, If_Grp_t * g, If_Grp_t * r, word BStrut
         If_CluInitTruthTables();
 
     for ( i = 0; i < g->nVars; i++ )
-        If_CluCopy( pTTFans[i], TruthAll[g->pVars[i]], nVars );
+        If_CluCopy( pTTFans[i], TruthAll[(int)g->pVars[i]], nVars );
     If_CluComposeLut( nVars, g, &BStruth, pTTFans, pTTWire );
 
     for ( i = 0; i < r->nVars; i++ )
         if ( r->pVars[i] == nVars )
             If_CluCopy( pTTFans[i], pTTWire, nVars );
         else
-            If_CluCopy( pTTFans[i], TruthAll[r->pVars[i]], nVars );
+            If_CluCopy( pTTFans[i], TruthAll[(int)r->pVars[i]], nVars );
     If_CluComposeLut( nVars, r, pFStruth, pTTFans, pTTRes );
 
     if ( !If_CluEqual(pTTRes, pF, nVars) )
@@ -690,11 +679,11 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
         If_CluInitTruthTables();
 
     for ( i = 0; i < g->nVars; i++ )
-        If_CluCopy( pTTFans[i], TruthAll[g->pVars[i]], nVars );
+        If_CluCopy( pTTFans[i], TruthAll[(int)g->pVars[i]], nVars );
     If_CluComposeLut( nVars, g, &BStruth, pTTFans, pTTWire );
 
     for ( i = 0; i < g2->nVars; i++ )
-        If_CluCopy( pTTFans[i], TruthAll[g2->pVars[i]], nVars );
+        If_CluCopy( pTTFans[i], TruthAll[(int)g2->pVars[i]], nVars );
     If_CluComposeLut( nVars, g2, &BStruth2, pTTFans, pTTWire2 );
 
     for ( i = 0; i < r->nVars; i++ )
@@ -703,7 +692,7 @@ void If_CluVerify3( word * pF, int nVars, If_Grp_t * g, If_Grp_t * g2, If_Grp_t 
         else if ( r->pVars[i] == nVars + 1 )
             If_CluCopy( pTTFans[i], pTTWire2, nVars );
         else
-            If_CluCopy( pTTFans[i], TruthAll[r->pVars[i]], nVars );
+            If_CluCopy( pTTFans[i], TruthAll[(int)r->pVars[i]], nVars );
     If_CluComposeLut( nVars, r, &FStruth, pTTFans, pTTRes );
 
     if ( !If_CluEqual(pTTRes, pF, nVars) )
@@ -1293,7 +1282,7 @@ int If_CluCheckNonDisjointGroup( word * pF, int nVars, int * V2P, int * P2V, If_
         // try cofactoring w.r.t. each variable
         for ( v = 0; v < g->nVars; v++ )
         {
-            If_CluCofactors( pF, nVars, V2P[g->pVars[v]], pCofs[0], pCofs[1] );
+            If_CluCofactors( pF, nVars, V2P[(int)g->pVars[v]], pCofs[0], pCofs[1] );
             nCofsBest2 = If_CluCountCofs( pCofs[0], nVars, g->nVars, 0, NULL );
             if ( nCofsBest2 > 2 )
                 continue;
@@ -1316,7 +1305,7 @@ If_Grp_t If_CluFindGroup( word * pF, int nVars, int iVarStart, int * V2P, int * 
 {
     int fVerbose = 0;
     int nRounds = 2;//nBSsize;
-    If_Grp_t G = {0}, * g = &G, BestG = {0};
+    If_Grp_t G = {0}, * g = &G;//, BestG = {0};
     int i, r, v, nCofs, VarBest, nCofsBest2;
     assert( nVars > nBSsize && nVars >= nBSsize + iVarStart && nVars <= CLU_VAR_MAX );
     assert( nBSsize >= 2 && nBSsize <= 6 );
@@ -1882,7 +1871,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
     for ( i = 0; i < G2.nVars; i++ )
     {
         assert( G2.pVars[i] < R2.nVars );
-        G2.pVars[i] = R2.pVars[ G2.pVars[i] ];
+        G2.pVars[i] = R2.pVars[ (int)G2.pVars[i] ];
     }
     // remap variables
     for ( i = 0; i < R.nVars; i++ )
@@ -1890,7 +1879,7 @@ If_Grp_t If_CluCheck3( If_Man_t * p, word * pTruth0, int nVars, int nLutLeaf, in
         if ( R.pVars[i] == R2.nVars )
             R.pVars[i] = nVars + 1;
         else
-            R.pVars[i] = R2.pVars[ R.pVars[i] ];
+            R.pVars[i] = R2.pVars[ (int)R.pVars[i] ];
     }
 
     // decomposition exist
@@ -1940,7 +1929,7 @@ float If_CluDelayMax( If_Grp_t * g, float * pDelays )
     float Delay = 0.0;
     int i;
     for ( i = 0; i < g->nVars; i++ )
-        Delay = Abc_MaxFloat( Delay, pDelays[g->pVars[i]] );
+        Delay = Abc_MaxFloat( Delay, pDelays[(int)g->pVars[i]] );
     return Delay;
 }
 
@@ -2008,16 +1997,16 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
 
     // mark used groups
     for ( i = 0; i < G1.nVars; i++ )
-        fUsed[G1.pVars[i]] = 1;
+        fUsed[(int)G1.pVars[i]] = 1;
     for ( i = 0; i < G2.nVars; i++ )
-        fUsed[G2.pVars[i]] = 1;
+        fUsed[(int)G2.pVars[i]] = 1;
     // mark unused groups
     assert( G1.nMyu >= 2 && G1.nMyu <= 4 );
     if ( G1.nMyu > 2 )
-        fUsed[G1.pVars[G1.nVars-1]] = 0;
+        fUsed[(int)G1.pVars[G1.nVars-1]] = 0;
     assert( !G2.nVars || (G2.nMyu >= 2 && G2.nMyu <= 4) );
     if ( G2.nMyu > 2 )
-        fUsed[G2.pVars[G2.nVars-1]] = 0;
+        fUsed[(int)G2.pVars[G2.nVars-1]] = 0;
 
     // create remaining group
     assert( G3.nVars == 0 );

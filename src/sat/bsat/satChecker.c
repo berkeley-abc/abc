@@ -121,6 +121,7 @@ void Sat_ProofChecker( char * pFileName )
     FILE * pFile;
     Vec_Vec_t * vClauses;
     int c, i, Num, RetValue, Counter, Counter2, Clause1, Clause2;
+    int RetValue;
     // open the file
     pFile = fopen( pFileName, "r" );
     if ( pFile == NULL )
@@ -138,7 +139,7 @@ void Sat_ProofChecker( char * pFileName )
     rewind( pFile );
     for ( i = 1 ; ; i++ )
     {
-        RetValue = fscanf( pFile, "%d", &Num );
+        RetValue = RetValue = fscanf( pFile, "%d", &Num );
         if ( RetValue != 1 )
             break;
         assert( Num == i );

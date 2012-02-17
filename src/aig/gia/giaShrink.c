@@ -53,7 +53,7 @@ Gia_Man_t * Gia_ManPerformMapShrink( Gia_Man_t * p, int fKeepLevel, int fVerbose
     Gia_Obj_t * pObj, * pFanin;
     unsigned * pTruth;
     int i, k, iFan, clk = clock();
-    int ClassCounts[222] = {0};
+//    int ClassCounts[222] = {0};
     int * pLutClass, Counter = 0;
     assert( p->pMapping != NULL );
     if ( Gia_ManLutSizeMax( p ) > 4 )

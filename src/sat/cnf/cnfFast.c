@@ -666,7 +666,7 @@ Cnf_Dat_t * Cnf_DeriveFastClauses( Aig_Man_t * p, int nOutputs )
 Cnf_Dat_t * Cnf_DeriveFast( Aig_Man_t * p, int nOutputs )
 {
     Cnf_Dat_t * pCnf = NULL;
-    int clk, clkTotal = clock();
+    int clk;//, clkTotal = clock();
 //    printf( "\n" );
     Aig_ManCleanMarkAB( p );
     // create initial marking

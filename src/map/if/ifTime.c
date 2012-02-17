@@ -53,7 +53,7 @@ word If_AndVerifyArray( Vec_Wrd_t * vAnds, int nVars )
 {
     Vec_Wrd_t * vTruths;
     If_And_t This;
-    word Entry, Truth0, Truth1, TruthR;
+    word Entry, Truth0, Truth1, TruthR = 0;
     int i;
     static word Truth[8] = {
         0xAAAAAAAAAAAAAAAA,

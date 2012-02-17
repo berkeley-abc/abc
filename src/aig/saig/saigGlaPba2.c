@@ -412,7 +412,7 @@ Vec_Int_t * Aig_Gla3ManUnsatCore( sat_solver2 * pSat, int nConfMax, int fVerbose
     }
     if ( fVerbose )
     {
-        printf( "SAT solver returned UNSAT after %7d conflicts.      ", pSat->stats.conflicts );
+        printf( "SAT solver returned UNSAT after %7d conflicts.      ", (int)pSat->stats.conflicts );
         Abc_PrintTime( 1, "Time", clock() - clk );
     }
     assert( RetValue == l_False );

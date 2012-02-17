@@ -323,8 +323,8 @@ int Llb_Nonlin4Quantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2 
     Vec_Ptr_t * vSingles;
     DdNode * bCube, * bFunc;
     int i, RetValue, nSuppSize;
-    int iPart1 = pPart1->iPart;
-    int iPart2 = pPart2->iPart;
+//    int iPart1 = pPart1->iPart;
+//    int iPart2 = pPart2->iPart;
     int liveBeg, liveEnd;
 
     // create cube to be quantified
@@ -806,7 +806,7 @@ Vec_Ptr_t * Llb_Nonlin4Group( DdManager * dd, Vec_Ptr_t * vParts, Vec_Int_t * vV
     Vec_Ptr_t * vGroups;
     Llb_Prt_t * pPart, * pPart1, * pPart2;
     Llb_Mgr_t * p;
-    int i, nReorders, clk = clock();
+    int i, nReorders;//, clk = clock();
     // start the manager
     p = Llb_Nonlin4Alloc( dd, vParts, NULL, vVars2Q, nSizeMax );
     // remove singles

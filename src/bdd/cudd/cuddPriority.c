@@ -790,7 +790,7 @@ Cudd_Inequality(
         int leftChild, middleChild, rightChild;
         DdNode *g0, *g1, *fplus, *fequal, *fminus;
         int j;
-        DdNode *newMap[2];
+        DdNode *newMap[2] = {NULL};
         int newIndex[2];
 
         kTrueLower = kTrue;
@@ -978,7 +978,7 @@ Cudd_Disequality(
         int leftChild, middleChild, rightChild;
         DdNode *g0, *g1, *fplus, *fequal, *fminus;
         int j;
-        DdNode *newMap[2];
+        DdNode *newMap[2] = {NULL};
         int newIndex[2];
 
         kTrueLbLower = kTrueLb;
@@ -1430,7 +1430,7 @@ cuddCProjectionRecur(
 {
     DdNode *res, *res1, *res2, *resA;
     DdNode *r, *y, *RT, *RE, *YT, *YE, *Yrest, *Ra, *Ran, *Gamma, *Alpha;
-    unsigned int topR, topY, top, index;
+    unsigned int topR, topY, top, index = 0;
     DdNode *one = DD_ONE(dd);
 
     statLine(dd);

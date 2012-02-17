@@ -421,7 +421,7 @@ int Iso_StoCompareVecStr( Vec_Str_t ** p1, Vec_Str_t ** p2 )
 ***********************************************************************/
 Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, int fVerbose )
 {
-    int fVeryVerbose = 0;
+//    int fVeryVerbose = 0;
     Aig_Man_t * pPart, * pTemp;
     Vec_Ptr_t * vBuffers, * vClasses;
     Vec_Int_t * vLevel, * vRemain;

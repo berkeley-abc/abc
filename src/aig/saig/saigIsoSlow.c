@@ -318,7 +318,7 @@ Iso_Man_t * Iso_ManCreate( Aig_Man_t * pAig )
     Iso_Man_t * p;
     Iso_Obj_t * pIso;
     Aig_Obj_t * pObj;
-    int i, nNodes = 0, nEdges = 0;
+    int i;//, nNodes = 0, nEdges = 0;
     p = Iso_ManStart( pAig );
     Aig_ManForEachObj( pAig, pObj, i )
     {

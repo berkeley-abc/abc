@@ -111,11 +111,11 @@ void Msat_SolverPrintStats( Msat_Solver_t * p )
 {
     printf("C solver (%d vars; %d clauses; %d learned):\n", 
         p->nVars, Msat_ClauseVecReadSize(p->vClauses), Msat_ClauseVecReadSize(p->vLearned) );
-    printf("starts        : %lld\n", p->Stats.nStarts);
-    printf("conflicts     : %lld\n", p->Stats.nConflicts);
-    printf("decisions     : %lld\n", p->Stats.nDecisions);
-    printf("propagations  : %lld\n", p->Stats.nPropagations);
-    printf("inspects      : %lld\n", p->Stats.nInspects);
+    printf("starts        : %d\n", (int)p->Stats.nStarts);
+    printf("conflicts     : %d\n", (int)p->Stats.nConflicts);
+    printf("decisions     : %d\n", (int)p->Stats.nDecisions);
+    printf("propagations  : %d\n", (int)p->Stats.nPropagations);
+    printf("inspects      : %d\n", (int)p->Stats.nInspects);
 }
 
 /**Function*************************************************************

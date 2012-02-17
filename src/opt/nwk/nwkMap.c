@@ -104,7 +104,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
 {
     extern Vec_Int_t * Saig_ManComputeSwitchProbs( Aig_Man_t * p, int nFrames, int nPref, int fProbOne );
     Vec_Int_t * vSwitching = NULL, * vSwitching2 = NULL;
-    float * pSwitching, * pSwitching2;
+    float * pSwitching = NULL, * pSwitching2 = NULL;
     If_Man_t * pIfMan;
     If_Obj_t * pIfObj;
     Aig_Obj_t * pNode, * pFanin, * pPrev;

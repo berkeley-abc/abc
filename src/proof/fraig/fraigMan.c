@@ -103,8 +103,8 @@ void Prove_ParamsPrint( Prove_Params_t * pParams )
     printf( "BDD size limit for bailing out: %d\n", pParams->nBddSizeLimit );
     printf( "BDD reordering enabled: %s\n", pParams->fBddReorder? "yes":"no" );
     printf( "Last-gasp mitering limit: %d\n", pParams->nMiteringLimitLast );
-    printf( "Total conflict limit: %lld\n", pParams->nTotalBacktrackLimit );
-    printf( "Total inspection limit: %lld\n", pParams->nTotalInspectLimit );
+    printf( "Total conflict limit: %ld\n", (int)pParams->nTotalBacktrackLimit );
+    printf( "Total inspection limit: %ld\n", (int)pParams->nTotalInspectLimit );
     printf( "Parameter dump complete.\n" );
 }
 

@@ -80,7 +80,7 @@ int Inter_ManPerformInterpolation( Aig_Man_t * pAig, Inter_ManParams_t * pPars, 
     Inter_Man_t * p;
     Inter_Check_t * pCheck = NULL;
     Aig_Man_t * pAigTemp;
-    int s, i, RetValue, Status, clk, clk2, clkTotal = clock(), timeTemp;
+    int s, i, RetValue, Status, clk, clk2, clkTotal = clock(), timeTemp = 0;
     int nTimeNewOut = pPars->nSecLimit ? time(NULL) + pPars->nSecLimit : 0;
 
     // sanity checks

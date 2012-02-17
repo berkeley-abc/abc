@@ -322,7 +322,6 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
     nPrioOffset = pCex->nRegs;
     Aig_ManConst1(pAig)->iData = Abc_Var2Lit( nPrioOffset + (pCex->iFrame + 1) * pCex->nPis, 1 );
     vRoots = Vec_IntAlloc( 1000 );
-//printf( "Const1 = %d  Offset = %d\n", Aig_ManConst1(pAig)->iData, nPrioOffset ); 
     for ( f = 0; f <= pCex->iFrame; f++ )
     {
         int nPiCount = 0;
@@ -338,14 +337,8 @@ Vec_Vec_t * Saig_ManCexMinCollectPhasePriority( Aig_Man_t * pAig, Abc_Cex_t * pC
             else if ( f == 0 )
                 Vec_IntPush( vFramePPsOne, Abc_Var2Lit( Saig_ObjRegId(pAig, pObj), 0 ) );
             else
-            {
-                Aig_Obj_t * pObj0 = Saig_ObjLoToLi(pAig, pObj);
-                int Value = Saig_ObjLoToLi(pAig, pObj)->iData;
                 Vec_IntPush( vFramePPsOne, Saig_ObjLoToLi(pAig, pObj)->iData );
-            }
-//printf( "%d ", Vec_IntEntryLast(vFramePPsOne) );
         }
-//printf( "\n" );
         // compute the PP info
         Saig_ManCexMinDerivePhasePriority( pAig, pCex, vFrameCis, vFramePPs, f, vRoots );
     }

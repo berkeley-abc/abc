@@ -72,7 +72,7 @@ reo_unit * reoTransferNodesToUnits_rec( reo_man * p, DdNode * F )
     if ( cuddIsConstant(F) )
     {
         pUnit->lev    = REO_CONST_LEVEL;
-        pUnit->pE     = (reo_unit*)((int)(ABC_PTRUINT_T)(cuddV(F)));
+        pUnit->pE     = (reo_unit*)(ABC_PTRUINT_T)(cuddV(F));
         pUnit->pT     = NULL;
         // check if the diagram that is being reordering has complement edges
         if ( F != dd->one )

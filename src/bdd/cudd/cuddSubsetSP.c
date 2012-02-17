@@ -1261,12 +1261,12 @@ BuildSubsetBdd(
 {
     DdNode *N, *Nv, *Nnv;
     DdNode *ThenBranch, *ElseBranch, *childBranch;
-    DdNode *child, *regChild, *regNnv, *regNv;
+    DdNode *child, *regChild, *regNnv = NULL, *regNv = NULL;
     NodeDist_t *nodeStatNv, *nodeStat, *nodeStatNnv;
     DdNode *neW, *topv, *regNew;
     char *entry;
     unsigned int topid;
-    unsigned int childPathLength, oddLen, evenLen, NnvPathLength, NvPathLength;
+    unsigned int childPathLength, oddLen, evenLen, NnvPathLength = 0, NvPathLength = 0;
     unsigned int NvBotDist, NnvBotDist;
     int tiebreakChild;
     int  processingDone, thenDone, elseDone;

@@ -1485,12 +1485,12 @@ void Abc_NtkShow6VarFunc( char * pF0, char * pF1 )
     word F0, F1;
     if ( strlen(pF0) != 16 )
     {
-        printf( "Wrong length (%d) of 6-var truth table.\n", strlen(pF0) );
+        printf( "Wrong length (%d) of 6-var truth table.\n", (int)strlen(pF0) );
         return;
     }
     if ( strlen(pF1) != 16 )
     {
-        printf( "Wrong length (%d) of 6-var truth table.\n", strlen(pF1) );
+        printf( "Wrong length (%d) of 6-var truth table.\n", (int)strlen(pF1) );
         return;
     }
     Extra_ReadHexadecimal( (unsigned *)&F0, pF0, 6 );

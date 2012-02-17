@@ -261,7 +261,7 @@ Vec_Ptr_t * Amap_LibSelectGates( Amap_Lib_t * p, int fVerbose )
 {
     Vec_Ptr_t * vSelect;
     Amap_Gat_t * pGate, * pGate2;
-    int i, k, clk = clock();
+    int i, k;//, clk = clock();
     p->pGate0   = Amap_LibFindGate( p, 0 );
     p->pGate1   = Amap_LibFindGate( p, ~0 );
     p->pGateBuf = Amap_LibFindGate( p, 0xAAAAAAAA );
@@ -343,8 +343,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVe
     p->vSelect = Amap_LibSelectGates( p, fVerbose );
     if ( fVerbose )
     {
-        printf( "Selected %d functionally unique gates. ",
-            Vec_PtrSize(p->vSelect), Vec_PtrSize(p->vSorted) );
+        printf( "Selected %d functionally unique gates. ", Vec_PtrSize(p->vSelect) );
         ABC_PRT( "Time", clock() - clk );
 //       Amap_LibPrintSelectedGates( p, 0 );
     }
@@ -352,8 +351,7 @@ Amap_Lib_t * Amap_LibReadAndPrepare( char * pFileName, int fVerbose, int fVeryVe
     Amap_LibCreateRules( p, fVeryVerbose );
     if ( fVerbose )
     {
-        printf( "Created %d rules and %d matches. ", 
-            p->nNodes, p->nSets );
+        printf( "Created %d rules and %d matches. ", p->nNodes, p->nSets );
         ABC_PRT( "Time", clock() - clk );
     }
     return p;

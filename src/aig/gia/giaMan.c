@@ -260,7 +260,7 @@ void Gia_ManPrintObjClasses( Gia_Man_t * p )
 {
     Vec_Int_t * vSeens;  // objects seen so far
     Vec_Int_t * vAbs = p->vObjClasses;
-    int i, k, Entry, iStart, iStop, nFrames;
+    int i, k, Entry, iStart, iStop = -1, nFrames;
     int nObjBits, nObjMask, iObj, iFrame, nWords;
     unsigned * pInfo;
     int * pCountAll, * pCountUni;

@@ -714,7 +714,7 @@ Vec_Int_t * Frc_ManCollectCos( Frc_Man_t * p )
 void Frc_ManCrossCutTest( Frc_Man_t * p, Vec_Int_t * vOrderInit )
 {
     Vec_Int_t * vOrder;
-    int clk = clock();
+//    int clk = clock();
     vOrder = vOrderInit? vOrderInit : Frc_ManCollectCos( p );
     printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 0 ) );
     printf( "CrossCut = %6d\n", Frc_ManCrossCut( p, vOrder, 1 ) );
@@ -1072,7 +1072,7 @@ void For_ManFileExperiment()
     int RetValue;
 
     Size = (1 << Exp);
-    printf( "2^%d machine words (%d bytes).\n", Exp, sizeof(int) * Size );
+    printf( "2^%d machine words (%d bytes).\n", Exp, (int)sizeof(int) * Size );
 
     pBuffer = ABC_ALLOC( int, Size );
     for ( i = 0; i < Size; i++ )

@@ -508,7 +508,7 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     Aig_Obj_t * pObj;
     Vec_Vec_t * vLits = NULL;
     Vec_Int_t * vAssumps, * vVar2PiId;
-    int i, k, f = 0, Entry, RetValue, Counter = 0;
+    int i, k, Entry, RetValue;//, f = 0, Counter = 0;
     int nCoreLits, * pCoreLits;
     int clk = clock();
     // create CNF
@@ -551,8 +551,6 @@ Abc_Cex_t * Saig_RefManRunSat( Saig_RefMan_t * p, int fNewOrder )
     vAssumps = Vec_IntAlloc( Aig_ManPiNum(p->pFrames) );
     Aig_ManForEachPi( p->pFrames, pObj, i )
     {
-        int iInput = Vec_IntEntry( p->vMapPiF2A, 2*i );
-        int iFrame = Vec_IntEntry( p->vMapPiF2A, 2*i+1 );
 //        RetValue = Abc_InfoHasBit( p->pCex->pData, p->pCex->nRegs + p->pCex->nPis * iFrame + iInput );
 //        Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], !RetValue ) );
         Vec_IntPush( vAssumps, toLitCond( pCnf->pVarNums[Aig_ObjId(pObj)], 1 ) );

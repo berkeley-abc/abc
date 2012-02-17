@@ -68,6 +68,8 @@ static ABC_UINT64_T realTimeAbs()  // -- absolute time in nano-seconds
 
     ok = QueryPerformanceCounter(&t); assert(ok);
     return (ABC_UINT64_T)(__int64)(((__int64)(((ABC_UINT64_T)t.LowPart | ((ABC_UINT64_T)t.HighPart << 32))) * realTime_freq * 1000000000));
+#else
+    return 0;
 #endif
 }
 

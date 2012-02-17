@@ -150,7 +150,7 @@ int Saig_ManInduction( Aig_Man_t * p, int nFramesMax, int nConfMax, int fUnique,
     Vec_Int_t * vTopVarNums, * vState, * vTopVarIds = NULL;
     Vec_Ptr_t * vTop, * vBot;
     Aig_Obj_t * pObjPi, * pObjPiCopy, * pObjPo;
-    int i, k, f, clk, Lits[2], status, RetValue, nSatVarNum, nConfPrev;
+    int i, k, f, clk, Lits[2], status = -1, RetValue, nSatVarNum, nConfPrev;
     int nOldSize, iReg, iLast, fAdded, nConstrs = 0, nClauses = 0;
     assert( fUnique == 0 || fUniqueAll == 0 );
     assert( Saig_ManPoNum(p) == 1 );
@@ -287,7 +287,7 @@ nextrun:
         {
             printf( "%4d : PI =%5d. PO =%5d. AIG =%5d. Var =%7d. Clau =%7d. Conf =%7d. ",
                 f, Aig_ManPiNum(pAigPart), Aig_ManPoNum(pAigPart), Aig_ManNodeNum(pAigPart), 
-                nSatVarNum, nClauses, pSat->stats.conflicts-nConfPrev );
+                nSatVarNum, nClauses, (int)pSat->stats.conflicts-nConfPrev );
             ABC_PRT( "Time", clock() - clk );
         }
         if ( status == l_Undef )

@@ -268,7 +268,7 @@ Vec_Int_t * Saig_ManComputeSwitchProb4s( Aig_Man_t * p, int nFrames, int nPref, 
     Saig_SimObj_t * pAig, * pEntry;
     Vec_Int_t * vSwitching;
     float * pSwitching;
-    int nFramesReal, clk, clkTotal = clock();
+    int nFramesReal, clk;//, clkTotal = clock();
     vSwitching = Vec_IntStart( Aig_ManObjNumMax(p) );
     pSwitching = (float *)vSwitching->pArray;
 clk = clock();
@@ -557,7 +557,7 @@ Aig_CMan_t * Aig_CManCreate( Aig_Man_t * p )
         Aig_CManAddPo( pCMan, 
             (Aig_ObjFaninId0(pObj) << 1) | Aig_ObjFaninC0(pObj) ); 
     printf( "\nBytes alloc = %5d.  Bytes used = %7d.  Ave per node = %4.2f. \n", 
-        pCMan->nBytes, pCMan->pCur - pCMan->Data, 
+        pCMan->nBytes, (int)(pCMan->pCur - pCMan->Data), 
         1.0 * (pCMan->pCur - pCMan->Data) / (pCMan->nNodes + pCMan->nOuts ) );
 //    Aig_CManStop( pCMan );
     return pCMan;

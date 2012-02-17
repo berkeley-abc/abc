@@ -80,7 +80,7 @@ void Rwr_Temp()
     pFile = fopen( "nnclass_stats5.txt", "r" );
     for ( i = 0; i < 13719; i++ )
     {
-        fscanf( pFile, "%s%d", Buffer, &pFreqs[i] );
+        int RetValue = fscanf( pFile, "%s%d", Buffer, &pFreqs[i] );
         Extra_ReadHexadecimal( &uTruth, Buffer+2, 5 );
         pTruths[i] = uTruth;
     }

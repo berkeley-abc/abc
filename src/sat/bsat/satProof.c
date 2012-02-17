@@ -524,7 +524,7 @@ void Sat_ProofCheck( sat_solver2 * s )
     Vec_Int_t Roots = { 1, 1, &s->hProofLast }, * vRoots = &Roots;
     Vec_Set_t * vResolves;
     Vec_Int_t * vUsed, * vTemp;
-    satset * pSet, * pSet0, * pSet1;
+    satset * pSet, * pSet0 = NULL, * pSet1;
     int i, k, hRoot, Handle, Counter = 0, clk = clock(); 
     hRoot = s->hProofLast;
     if ( hRoot == -1 )
@@ -537,6 +537,7 @@ void Sat_ProofCheck( sat_solver2 * s )
     vResolves = Vec_SetAlloc();
     Proof_ForeachNodeVec( vUsed, vProof, pSet, i )
     {
+        Handle = -1;
         pSet0 = Sat_ProofCheckReadOne( vClauses, vProof, vResolves, pSet->pEnts[0] );
         for ( k = 1; k < (int)pSet->nEnts; k++ )
         {
@@ -578,7 +579,7 @@ Vec_Int_t * Sat_ProofCollectCore( Vec_Int_t * vClauses, Vec_Set_t * vProof, Vec_
 {
     Vec_Int_t * vCore;
     satset * pNode, * pFanin;
-    int i, k, clk = clock();
+    int i, k;//, clk = clock();
     vCore = Vec_IntAlloc( 1000 );
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
     {
@@ -669,7 +670,7 @@ void * Sat_ProofInterpolant( sat_solver2 * s, void * pGloVars )
     Vec_Int_t * vUsed, * vCore, * vCoreNums, * vVarMap;
     satset * pNode, * pFanin;
     Aig_Man_t * pAig;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i, k, iVar, Lit, Entry, hRoot;
 //    if ( s->hLearntLast < 0 )
 //        return NULL;

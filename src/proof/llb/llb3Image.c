@@ -345,8 +345,8 @@ int Llb_NonlinQuantify2( Llb_Mgr_t * p, Llb_Prt_t * pPart1, Llb_Prt_t * pPart2, 
     Vec_Ptr_t * vSingles;
     DdNode * bCube, * bFunc;
     int i, RetValue, nSuppSize;
-    int iPart1 = pPart1->iPart;
-    int iPart2 = pPart2->iPart;
+//    int iPart1 = pPart1->iPart;
+//    int iPart2 = pPart2->iPart;
 
     // create cube to be quantified
     bCube = Llb_NonlinCreateCube2( p, pPart1, pPart2 );   Cudd_Ref( bCube );
