@@ -41,7 +41,7 @@ static int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int Mio_CommandReadLibrary2( Abc_Frame_t * pAbc, int argc, char **argv );
 static int Mio_CommandPrintLibrary2( Abc_Frame_t * pAbc, int argc, char **argv );
-
+/*
 // internal version of GENLIB library
 static char * pMcncGenlib[25] = {
     "GATE inv1    1   O=!a;             PIN * INV     1 999 0.9 0.0 0.9 0.0\n",
@@ -66,7 +66,7 @@ static char * pMcncGenlib[25] = {
     "GATE zero    0   O=CONST0;\n",
     "GATE one     0   O=CONST1;\n"
 };
-
+*/
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////

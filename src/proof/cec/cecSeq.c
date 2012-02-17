@@ -185,7 +185,7 @@ int Cec_ManSeqResimulateInfo( Gia_Man_t * pAig, Vec_Ptr_t * vSimInfo, Abc_Cex_t 
 {
     Cec_ParSim_t ParsSim, * pParsSim = &ParsSim;
     Cec_ManSim_t * pSim;
-    int RetValue, clkTotal = clock();
+    int RetValue;//, clkTotal = clock();
     assert( (Vec_PtrSize(vSimInfo) - Gia_ManRegNum(pAig)) % Gia_ManPiNum(pAig) == 0 );
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nFrames = (Vec_PtrSize(vSimInfo) - Gia_ManRegNum(pAig)) / Gia_ManPiNum(pAig);

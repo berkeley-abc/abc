@@ -480,7 +480,7 @@ printf( "\n" );
 int If_CutPerformCheck10( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
     int nSupp, fDerive = 0;
-    word z[2] = {0}, pF[16];
+    word pF[16];
     if ( nLeaves <= 6 )
         return 1;
     If_Dec10Copy( pF, (word *)pTruth, nVars );

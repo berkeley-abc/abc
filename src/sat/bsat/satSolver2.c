@@ -331,8 +331,8 @@ static inline void act_var_rescale(sat_solver2* s) {
     s->var_inc = Abc_MaxInt( s->var_inc, (1<<4) );
 }
 static inline void act_clause_rescale(sat_solver2* s) {
-    static int Total = 0;
-    int i, clk = clock();
+//    static int Total = 0;
+    int i;//, clk = clock();
     unsigned * claActs = (unsigned *)veci_begin(&s->claActs);
     for (i = 1; i < veci_size(&s->claActs); i++)
         claActs[i] >>= 14;

@@ -2012,10 +2012,10 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
     assert( G3.nVars == 0 );
     for ( i = 0; i < nLeaves; i++ )
         if ( !fUsed[i] )
-            G3.pVars[G3.nVars++] = i;
-    G3.pVars[G3.nVars++] = nLeaves;
+            G3.pVars[(int)G3.nVars++] = i;
+    G3.pVars[(int)G3.nVars++] = nLeaves;
     if ( G2.nVars )
-        G3.pVars[G3.nVars++] = nLeaves+1;
+        G3.pVars[(int)G3.nVars++] = nLeaves+1;
     assert( G1.nVars + G2.nVars + G3.nVars == nLeaves + 
         (G1.nVars > 0) + (G2.nVars > 0) + (G1.nMyu > 2) + (G2.nMyu > 2) );
     // what if both non-disjoint vars are the same???
@@ -2038,7 +2038,7 @@ float If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float Wi
 ***********************************************************************/
 int If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
-    If_Grp_t G1 = {0}, G2 = {0}, G3 = {0};
+    If_Grp_t G1 = {0}, G3 = {0};
     int i, nLutLeaf, nLutLeaf2, nLutRoot, Length;
     // quit if parameters are wrong
     Length = strlen(pStr);

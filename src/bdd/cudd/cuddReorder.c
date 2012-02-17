@@ -615,7 +615,7 @@ cuddSwapping(
     int iterate;
     int previousSize;
     Move *moves, *move;
-    int pivot;
+    int pivot = -1;
     int modulo;
     int result;
 

@@ -170,7 +170,7 @@ static inline int Gia_ManIsoHashKey( int Id, unsigned * pStore, int nWords, int 
 static inline void Gia_ManIsoTableAdd( Gia_Man_t * p, int Id, unsigned * pStore, int nWords, int * pTable, int nTableSize )
 {
     Gia_Obj_t * pTemp;
-    int Key, Ent, Counter = 0, Color = Gia_ObjColors( p, Id );
+    int Key, Ent, Color = Gia_ObjColors( p, Id );
     assert( Color == 1 || Color == 2 );
     Key = Gia_ManIsoHashKey( Id, pStore, nWords, nTableSize );
     for ( Ent = pTable[Key],  pTemp = (Ent ?  Gia_ManObj(p, Ent) : NULL);  pTemp;

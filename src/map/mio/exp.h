@@ -153,7 +153,7 @@ static inline Vec_Int_t * Exp_Or( int * pMan, int nVars, Vec_Int_t * p0, Vec_Int
 }
 static inline Vec_Int_t * Exp_Xor( int * pMan, int nVars, Vec_Int_t * p0, Vec_Int_t * p1 )
 {
-    int i, v = 0, Len0 = Vec_IntSize(p0), Len1 = Vec_IntSize(p1);
+    int i, Len0 = Vec_IntSize(p0), Len1 = Vec_IntSize(p1);
     Vec_Int_t * r = Vec_IntAlloc( Len0 + Len1 + 5 );
     assert( (Len0 & 1) && (Len1 & 1) );
     Vec_IntPush( r, 2 * (nVars + Len0/2 + Len1/2 + 2)     );

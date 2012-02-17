@@ -282,10 +282,11 @@ timeSelect += clock() - clk;
 int Msat_HeapCheck_rec( Msat_Order_t * p, int i )
 {
     return i >= HSIZE(p) ||
-        ( HPARENT(i) == 0 || 
         (
-           !HCOMPARE(p, HHEAP(p, i), HHEAP(p, HPARENT(i))) ) &&
+            ( HPARENT(i) == 0 || !HCOMPARE(p, HHEAP(p, i), HHEAP(p, HPARENT(i))) ) &&
+
             Msat_HeapCheck_rec( p, HLEFT(i) ) && 
+            
             Msat_HeapCheck_rec( p, HRIGHT(i) )
         );
 }

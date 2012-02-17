@@ -37,7 +37,7 @@ static int           Map_LibraryGetMaxSuperPi_rec( Map_Super_t * pGate );
 static unsigned      Map_LibraryGetGateSupp_rec( Map_Super_t * pGate );
 
 // fanout limits
-extern const int s_MapFanoutLimits[10] = { 1/*0*/, 10/*1*/, 5/*2*/, 2/*3*/, 1/*4*/, 1/*5*/, 1/*6*/ };
+static const int s_MapFanoutLimits[10] = { 1/*0*/, 10/*1*/, 5/*2*/, 2/*3*/, 1/*4*/, 1/*5*/, 1/*6*/ };
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
