@@ -102,7 +102,7 @@ void Proof_CleanCollected( Vec_Set_t * vProof, Vec_Int_t * vUsed )
 
 /**Function*************************************************************
 
-  Synopsis    [Marks useful nodes of the proof.]
+  Synopsis    []
 
   Description []
                
@@ -141,18 +141,6 @@ void Proof_CollectUsed_iter( Vec_Set_t * vProof, int hNode, Vec_Int_t * vUsed, V
             }
     }
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively visits useful proof nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int fSort )
 {
     int fVerify = 0;
@@ -186,7 +174,7 @@ Vec_Int_t * Proof_CollectUsedIter( Vec_Set_t * vProof, Vec_Int_t * vRoots, int f
 
 /**Function*************************************************************
 
-  Synopsis    [Recursively visits useful proof nodes.]
+  Synopsis    [Recursively collects useful proof nodes.]
 
   Description []
                
@@ -207,6 +195,16 @@ void Proof_CollectUsed_rec( Vec_Set_t * vProof, int hNode, Vec_Int_t * vUsed )
             Proof_CollectUsed_rec( vProof, pNode->pEnts[i] >> 2, vUsed );
     Vec_IntPush( vUsed, hNode );
 }
+Vec_Int_t * Proof_CollectUsedRec( Vec_Set_t * vProof, Vec_Int_t * vRoots )
+{
+    Vec_Int_t * vUsed;
+    int i, Entry;
+    vUsed = Vec_IntAlloc( 1000 );
+    Vec_IntForEachEntry( vRoots, Entry, i )
+        if ( Entry >= 0 )
+            Proof_CollectUsed_rec( vProof, Entry, vUsed );
+    return vUsed;
+}
 
 /**Function*************************************************************
 
@@ -219,15 +217,25 @@ void Proof_CollectUsed_rec( Vec_Set_t * vProof, int hNode, Vec_Int_t * vUsed )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Proof_CollectUsedRec( Vec_Set_t * vProof, Vec_Int_t * vRoots )
+int Proof_MarkUsed_rec( Vec_Set_t * vProof, int hNode )
 {
-    Vec_Int_t * vUsed;
-    int i, Entry;
-    vUsed = Vec_IntAlloc( 1000 );
+    satset * pNext, * pNode = Proof_NodeRead( vProof, hNode );
+    int i, Counter = 1;
+    if ( pNode->Id )
+        return 0;
+    pNode->Id = 1;
+    Proof_NodeForeachFanin( vProof, pNode, pNext, i )
+        if ( pNext && !pNext->Id )
+            Counter += Proof_MarkUsed_rec( vProof, pNode->pEnts[i] >> 2 );
+    return Counter;
+}
+int Proof_MarkUsedRec( Vec_Set_t * vProof, Vec_Int_t * vRoots )
+{
+    int i, Entry, Counter = 0;
     Vec_IntForEachEntry( vRoots, Entry, i )
         if ( Entry >= 0 )
-            Proof_CollectUsed_rec( vProof, Entry, vUsed );
-    return vUsed;
+            Counter += Proof_MarkUsed_rec( vProof, Entry );
+    return Counter;
 }
 
 
@@ -292,7 +300,7 @@ void Sat_ProofReduceCheck( sat_solver2 * s )
   SeeAlso     []
 
 ***********************************************************************/
-void Sat_ProofReduce( sat_solver2 * s )
+void Sat_ProofReduce2( sat_solver2 * s )
 {
     Vec_Set_t * vProof   = (Vec_Set_t *)&s->Proofs;
     Vec_Int_t * vRoots   = (Vec_Int_t *)&s->claProofs;
@@ -300,7 +308,7 @@ void Sat_ProofReduce( sat_solver2 * s )
 
     int fVerbose = 0;
     Vec_Int_t * vUsed;
-    satset * pNode, * pFanin;
+    satset * pNode, * pFanin, * pPivot;
     int i, k, hTemp, clk = clock();
     static int TimeTotal = 0;
 
@@ -321,11 +329,22 @@ void Sat_ProofReduce( sat_solver2 * s )
     // update roots
     Proof_ForeachNodeVec1( vRoots, vProof, pNode, i )
         Vec_IntWriteEntry( vRoots, i, pNode->Id );
+    // determine new pivot
+    assert( s->hProofPivot >= 1 && s->hProofPivot <= Vec_SetHandCurrent(vProof) );
+    pPivot = Proof_NodeRead( vProof, s->hProofPivot );
+    s->hProofPivot = Vec_SetHandCurrentS(vProof);
+    s->iProofPivot = Vec_IntSize(vUsed);
     // compact the nodes
     Proof_ForeachNodeVec( vUsed, vProof, pNode, i )
     {
         hTemp = pNode->Id; pNode->Id = 0;
         memmove( Vec_SetEntry(vProof, hTemp), pNode, sizeof(word)*Proof_NodeWordNum(pNode->nEnts) );
+        if ( pPivot && pPivot <= pNode )
+        { 
+            s->hProofPivot = hTemp;
+            s->iProofPivot = i;
+            pPivot = NULL;
+        }
     }
     Vec_SetWriteEntryNum( vProof, Vec_IntSize(vUsed) );
     Vec_IntFree( vUsed );
@@ -333,6 +352,7 @@ void Sat_ProofReduce( sat_solver2 * s )
     // report the result
     if ( fVerbose )
     {
+        printf( "\n" );
         printf( "The proof was reduced from %6.2f Mb to %6.2f Mb (by %6.2f %%)  ", 
             1.0 * Vec_SetMemory(vProof) / (1<<20), 1.0 * Vec_SetMemoryS(vProof) / (1<<20), 
             100.0 * (Vec_SetMemory(vProof) - Vec_SetMemoryS(vProof)) / Vec_SetMemory(vProof) );
@@ -341,6 +361,75 @@ void Sat_ProofReduce( sat_solver2 * s )
     }
     Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
     Sat_ProofReduceCheck( s );
+} 
+
+void Sat_ProofReduce( sat_solver2 * s )
+{
+    Vec_Set_t * vProof   = (Vec_Set_t *)&s->Proofs;
+    Vec_Int_t * vRoots   = (Vec_Int_t *)&s->claProofs;
+    Vec_Int_t * vClauses = (Vec_Int_t *)&s->clauses;
+    int fVerbose = 0;
+    Vec_Ptr_t * vUsed;
+    satset * pNode, * pFanin, * pPivot;
+    int i, j, k, hTemp, nSize, clk = clock();
+    static int TimeTotal = 0;
+
+    // collect visited nodes
+    nSize = Proof_MarkUsedRec( vProof, vRoots );
+    vUsed = Vec_PtrAlloc( nSize );
+
+    // relabel nodes to use smaller space
+    Vec_SetShrinkS( vProof, 1 );
+    Vec_SetForEachEntry( satset *, vProof, nSize, pNode, i, j )
+    {
+        nSize = Vec_SetWordNum( 2 + pNode->nEnts );
+        if ( pNode->Id == 0 ) 
+            continue;
+        pNode->Id = Vec_SetAppendS( vProof, 2 + pNode->nEnts );
+        Vec_PtrPush( vUsed, pNode );
+        // update fanins
+        Proof_NodeForeachFaninLeaf( vProof, vClauses, pNode, pFanin, k )
+            if ( (pNode->pEnts[k] & 1) == 0 ) // proof node
+                pNode->pEnts[k] = (pFanin->Id << 2) | (pNode->pEnts[k] & 2);
+            else // problem clause
+                assert( (int*)pFanin >= Vec_IntArray(vClauses) && (int*)pFanin < Vec_IntArray(vClauses)+Vec_IntSize(vClauses) );
+    }
+    // update roots
+    Proof_ForeachNodeVec1( vRoots, vProof, pNode, i )
+        Vec_IntWriteEntry( vRoots, i, pNode->Id );
+    // determine new pivot
+    assert( s->hProofPivot >= 1 && s->hProofPivot <= Vec_SetHandCurrent(vProof) );
+    pPivot = Proof_NodeRead( vProof, s->hProofPivot );
+    s->hProofPivot = Vec_SetHandCurrentS(vProof);
+    s->iProofPivot = Vec_PtrSize(vUsed);
+    // compact the nodes
+    Vec_PtrForEachEntry( satset *, vUsed, pNode, i )
+    {
+        hTemp = pNode->Id; pNode->Id = 0;
+        memmove( Vec_SetEntry(vProof, hTemp), pNode, sizeof(word)*Proof_NodeWordNum(pNode->nEnts) );
+        if ( pPivot && pPivot <= pNode )
+        {
+            s->hProofPivot = hTemp;
+            s->iProofPivot = i;
+            pPivot = NULL;
+        }
+    }
+    Vec_SetWriteEntryNum( vProof, Vec_PtrSize(vUsed) );
+    Vec_PtrFree( vUsed );
+
+    // report the result
+    if ( fVerbose )
+    {
+        printf( "\n" );
+        printf( "The proof was reduced from %6.2f Mb to %6.2f Mb (by %6.2f %%)  ", 
+            1.0 * Vec_SetMemory(vProof) / (1<<20), 1.0 * Vec_SetMemoryS(vProof) / (1<<20), 
+            100.0 * (Vec_SetMemory(vProof) - Vec_SetMemoryS(vProof)) / Vec_SetMemory(vProof) );
+        TimeTotal += clock() - clk;
+        Abc_PrintTime( 1, "Time", TimeTotal );
+    }
+    Vec_SetShrink( vProof, Vec_SetHandCurrentS(vProof) );
+    Vec_SetShrinkLimits( vProof );
+//    Sat_ProofReduceCheck( s );
 }
 
 
@@ -788,8 +877,7 @@ void * Sat_ProofCore( sat_solver2 * s )
     Vec_Set_t * vProof    = (Vec_Set_t *)&s->Proofs;
     Vec_Int_t Roots = { 1, 1, &s->hProofLast }, * vRoots = &Roots;
     Vec_Int_t * vCore, * vUsed;
-    int hRoot;
-    hRoot = s->hProofLast;
+    int hRoot = s->hProofLast;
     if ( hRoot == -1 )
         return NULL;
     // collect visited clauses

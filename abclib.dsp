@@ -1259,10 +1259,6 @@ SOURCE=.\src\sat\bsat\satVec.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\bsat\vecRec.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\sat\bsat\vecSet.h
 # End Source File
 # End Group

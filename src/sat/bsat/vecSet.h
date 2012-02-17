@@ -61,6 +61,7 @@ struct Vec_Set_t_
 
 static inline int     Vec_SetHandPage( int h )                   { return h >> 16;                }
 static inline int     Vec_SetHandShift( int h )                  { return h & 0xFFFF;             }
+static inline int     Vec_SetWordNum( int nSize )                { return (nSize + 1) >> 1;       }
 
 static inline word *  Vec_SetEntry( Vec_Set_t * p, int h )       { return p->pPages[Vec_SetHandPage(h)] + Vec_SetHandShift(h);     }
 static inline int     Vec_SetEntryNum( Vec_Set_t * p )           { return p->nEntries;            }
@@ -181,7 +182,7 @@ static inline void Vec_SetFree( Vec_Set_t * p )
 ***********************************************************************/
 static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
 {
-    int nWords = (nSize + 1) >> 1;
+    int nWords = Vec_SetWordNum( nSize );
     assert( nWords < 0x10000 );
     p->nEntries++;
     if ( Vec_SetLimit( p->pPages[p->iPage] ) + nWords > 0x10000 )
@@ -198,13 +199,13 @@ static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
         Vec_SetWriteLimit( p->pPages[p->iPage], 1 );
     }
     if ( pArray )
-    memmove( p->pPages[p->iPage] + Vec_SetLimit(p->pPages[p->iPage]), pArray, sizeof(int) * nSize );
+        memmove( p->pPages[p->iPage] + Vec_SetLimit(p->pPages[p->iPage]), pArray, sizeof(int) * nSize );
     Vec_SetIncLimit( p->pPages[p->iPage], nWords );
     return Vec_SetHandCurrent(p) - nWords;
 }
 static inline int Vec_SetAppendS( Vec_Set_t * p, int nSize )
 {
-    int nWords = (nSize + 1) >> 1;
+    int nWords = Vec_SetWordNum( nSize );
     assert( nWords < 0x10000 );
     if ( Vec_SetLimitS( p->pPages[p->iPageS] ) + nWords > 0x10000 )
         Vec_SetWriteLimitS( p->pPages[++p->iPageS], 1 );
@@ -234,6 +235,13 @@ static inline void Vec_SetShrinkS( Vec_Set_t * p, int h )
     assert( h <= Vec_SetHandCurrent(p) );
     p->iPageS = Vec_SetHandPage(h); 
     Vec_SetWriteLimitS( p->pPages[p->iPageS], Vec_SetHandShift(h) );  
+}
+
+static inline void Vec_SetShrinkLimits( Vec_Set_t * p )
+{
+    int i;
+    for ( i = 0; i <= p->iPage; i++ )
+        Vec_SetWriteLimit( p->pPages[i], Vec_SetLimitS(p->pPages[i]) );
 }
 
 

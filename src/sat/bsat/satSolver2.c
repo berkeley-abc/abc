@@ -1403,7 +1403,7 @@ void sat_solver2_reducedb(sat_solver2* s)
     cla h,* pArray,* pArray2;
     int * pPerm, * pClaAct, nClaAct, ActCutOff;
     int i, j, k, hTemp, hHandle, clk = clock();
-    int Counter, CounterStart;
+    int Counter, CounterStart, LastSize;
 
     // check if it is time to reduce
     if ( s->nLearntMax == 0 || s->stats.learnts < (unsigned)s->nLearntMax )
@@ -1487,14 +1487,15 @@ void sat_solver2_reducedb(sat_solver2* s)
     satset_foreach_entry_vec( &s->learnt_live, &s->learnts, c, i )
     {
         hTemp = c->Id; c->Id = i + 1;
-        memmove( veci_begin(&s->learnts) + hTemp, c, sizeof(int)*satset_size(c->nEnts) );
+        LastSize = satset_size(c->nEnts);
+        memmove( veci_begin(&s->learnts) + hTemp, c, sizeof(int)*LastSize );
         if ( pivot && pivot <= c )
         {
             s->hLearntPivot = hTemp;
             pivot = NULL;
         }
     }
-    assert( hHandle == hTemp + satset_size(c->nEnts) );
+    assert( hHandle == hTemp + LastSize );
     veci_resize(&s->learnts,hHandle);
     s->stats.learnts = veci_size(&s->learnt_live);
     assert( s->hLearntPivot <= veci_size(&s->learnts) );
@@ -1560,9 +1561,9 @@ void sat_solver2_rollback( sat_solver2* s )
         veci_resize(&s->claActs,   first->Id);
         if ( s->fProofLogging ) {
             veci_resize(&s->claProofs, first->Id);
-            Vec_SetWriteEntryNum(&s->Proofs, s->iProofPivot);
-            Vec_SetShrink(&s->Proofs, s->hProofPivot);
-//            Sat_ProofReduce( s );
+//            Vec_SetWriteEntryNum(&s->Proofs, s->iProofPivot); // <- some bug here
+//            Vec_SetShrink(&s->Proofs, s->hProofPivot);
+            Sat_ProofReduce( s );
         }
         s->stats.learnts = first->Id-1;
         veci_resize(&s->learnts, s->hLearntPivot);
