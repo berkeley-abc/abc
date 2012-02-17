@@ -1373,7 +1373,7 @@ Aig_Man_t * Aig_ManDupNodes( Aig_Man_t * pMan, Vec_Ptr_t * vArray )
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
     Vec_PtrForEachEntry( Aig_Obj_t *, vArray, pObj, i )
-            Aig_ObjCreatePo( pNew, pObj->pData );
+            Aig_ObjCreatePo( pNew, (Aig_Obj_t *)pObj->pData );
     Aig_ManSetRegNum( pNew, 0 );
     Vec_PtrFree( vObjs );
     return pNew;

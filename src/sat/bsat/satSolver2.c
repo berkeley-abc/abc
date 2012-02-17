@@ -1241,7 +1241,7 @@ void sat_solver2_delete(sat_solver2* s)
     int fVerify = 0;
     if ( fVerify )
     {
-        veci * pCore = Sat_ProofCore( s );
+        veci * pCore = (veci *)Sat_ProofCore( s );
         printf( "UNSAT core contains %d clauses (%6.2f %%).\n", veci_size(pCore), 100.0*veci_size(pCore)/veci_size(&s->clauses) );
         veci_delete( pCore );
         ABC_FREE( pCore ); 
