@@ -1,4 +1,3 @@
-
 CC   := gcc
 CXX  := g++
 LD   := g++
@@ -58,11 +57,21 @@ DEP := $(OBJ:.o=.d)
 
 # implicit rules
 
+%.o: %.c
+	@echo "\`\` Compiling:" $(LOCAL_PATH)/$<
+	@$(CC) -c $(CFLAGS) $< -o $@
+
+%.o: %.cc
+	@echo "\`\` Compiling:" $(LOCAL_PATH)/$<
+	@$(CC) -c $(CXXFLAGS) $< -o $@
+
 %.d: %.c
-	./depends.sh $(CC) `dirname $*.c` $(CFLAGS) $*.c > $@
+	@echo "\`\` Dependency:" $(LOCAL_PATH)/$<
+	@./depends.sh $(CC) `dirname $*.c` $(CFLAGS) $*.c > $@
 
 %.d: %.cc
-	./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $(CFLAGS) $*.cc > $@
+	@echo "\`\` Generating dependency:" $(LOCAL_PATH)/$<
+	@./depends.sh $(CXX) `dirname $*.cc` $(CXXFLAGS) $(CFLAGS) $*.cc > $@
 
 -include $(DEP)
 
@@ -71,18 +80,21 @@ DEP := $(OBJ:.o=.d)
 depend: $(DEP)
 
 clean: 
-	rm -rf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d) 
+	@echo "\`\` Cleaning up..."
+	@rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d) 
 
 tags:
 	ctags -R .
 
 $(PROG): $(OBJ)
-	$(LD) -o $@ $^ $(LIBS)
+	@echo "\`\` Building binary:" $(notdir $@)
+	@$(LD) -o $@ $^ $(LIBS)
 
 lib$(PROG).a: $(OBJ)
-	ar rv $@ $?
-	ranlib $@
+	@echo "\`\` Linking:" $(notdir $@)
+	@ar rv $@ $?
+	@ranlib $@
 
 docs:
-	doxygen doxygen.conf
-
+	@echo "\`\` Building documentation." $(notdir $@)
+	@doxygen doxygen.conf
