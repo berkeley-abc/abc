@@ -503,6 +503,12 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
         printf( " Unique = %d\n", nUnique );
     }
 */
+
+    // canonicize order
+    Vec_PtrForEachEntry( Vec_Int_t *, vClasses, vLevel, i )
+        Vec_IntSort( vLevel, 0 );
+     Vec_VecSortByFirstInt( (Vec_Vec_t *)vClasses, 0 );
+       
     // collect the first ones
     vRemain = Vec_IntAlloc( 100 );
     Vec_PtrForEachEntry( Vec_Int_t *, vClasses, vLevel, i )
